@@ -1,0 +1,22 @@
+[package]
+
+name = "multirust-rs"
+version = "0.0.1"
+authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
+
+[dependencies]
+clap = { version = "1.4.2", features = ["yaml"] }
+regex = "0.1.41"
+rand = "0.3.11"
+hyper = "0.6.14"
+
+[[bin]]
+
+name = "multirust-rs"
+path = "src/multirust.rs"
+
+[[bin]]
+
+name = "multirustproxy-rs"
+path = "src/multirustproxy.rs"
+

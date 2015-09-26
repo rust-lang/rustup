@@ -1,0 +1,279 @@
+name: multirust-rs
+version: 0.0.1
+author: Diggory Blake <diggsey@googlemail.com>
+about: Port of multirust to rust
+args:
+    - verbose:
+        long: verbose
+        short: v
+        help: Enable verbose output
+subcommands:
+    - default:
+        about: Set the default toolchain.
+        after_help: |
+            Sets the default toolchain to the one specified. If the toolchain is
+            not already installed then it is first installed.
+            
+            If the toolchain is already installed then it is not reinstalled,
+            though if installing a custom toolchain with --copy-local,
+            --link-local, or --installer then the toolchain is always
+            reinstalled.
+        args:
+            - toolchain:
+                required: true
+            - copy-local:
+                long: copy-local
+                help: |1-
+                              
+                              Install by copying a local toolchain. This will
+                              copy the toolchain from a local directory to a
+                              directory in multirust's home.
+                              
+                takes_value: true
+                value_name: toolchain-path
+                number_of_values: 1
+            - link-local:
+                long: link-local
+                help: |1-
+                              
+                              Install by linking to a local toolchain. This
+                              will create a soft link to the local toolchain
+                              in multirust's home.
+                              
+                takes_value: true
+                value_name: toolchain-path
+                number_of_values: 1
+            - installer:
+                long: installer
+                help: |1-
+                              
+                              Allows arbitrary builds of rust to be installed
+                              from a custom-built installer, either from the
+                              local filesystem or the network. Custom
+                              installers are neither checksum nor
+                              signature-verified.
+                              
+                              If multiple installers are specified then they
+                              are all installed to the same location. This can
+                              make installing cargo easier since otherwise it
+                              would need to be combined with rustc into a
+                              single installer through the rust-packaging
+                              project.
+                              
+                takes_value: true
+                value_name: installer-path-or-url
+                min_values: 1
+        arg_groups:
+            - toolchain-source:
+                args:
+                    - copy-local
+                    - link-local
+                    - installer
+                requires:
+                    - toolchain
+    - override:
+        about: Set the toolchain override.
+        after_help: |
+            Sets the toolchain that will be used when working at or below the
+            current directory. If the toolchain is not already installed then it
+            is first installed.
+            
+            If the toolchain is already installed then it is not reinstalled,
+            though if installing a custom toolchain with --copy-local,
+            --link-local, or --installer then the toolchain is always
+            reinstalled.
+            
+            To remove an existing override use `multirust remove-override`.
+        args:
+            - toolchain:
+                required: true
+            - copy-local:
+                long: copy-local
+                help: |1-
+                              
+                              Install by copying a local toolchain. This will
+                              copy the toolchain from a local directory to a
+                              directory in multirust's home.
+                              
+                takes_value: true
+                value_name: toolchain-path
+                number_of_values: 1
+            - link-local:
+                long: link-local
+                help: |1-
+                              
+                              Install by linking to a local toolchain. This
+                              will create a soft link to the local toolchain
+                              in multirust's home.
+                              
+                takes_value: true
+                value_name: toolchain-path
+                number_of_values: 1
+            - installer:
+                long: installer
+                help: |1-
+                              
+                              Allows arbitrary builds of rust to be installed
+                              from a custom-built installer, either from the
+                              local filesystem or the network. Custom
+                              installers are neither checksum nor
+                              signature-verified.
+                              
+                              If multiple installers are specified then they
+                              are all installed to the same location. This can
+                              make installing cargo easier since otherwise it
+                              would need to be combined with rustc into a
+                              single installer through the rust-packaging
+                              project.
+                              
+                takes_value: true
+                value_name: installer-path-or-url
+                min_values: 1
+        arg_groups:
+            - toolchain-source:
+                args:
+                    - copy-local
+                    - link-local
+                    - installer
+                requires:
+                    - toolchain
+    - update:
+        about: Install or update a given toolchain.
+        after_help: |
+            With no toolchain specified, the update command updates each of the
+            stable, beta, and nightly toolchains from the official release
+            channels.
+        args:
+            - toolchain:
+                required: false
+            - copy-local:
+                long: copy-local
+                help: |1-
+                              
+                              Install by copying a local toolchain. This will
+                              copy the toolchain from a local directory to a
+                              directory in multirust's home.
+                              
+                takes_value: true
+                value_name: toolchain-path
+                number_of_values: 1
+            - link-local:
+                long: link-local
+                help: |1-
+                              
+                              Install by linking to a local toolchain. This
+                              will create a soft link to the local toolchain
+                              in multirust's home.
+                              
+                takes_value: true
+                value_name: toolchain-path
+                number_of_values: 1
+            - installer:
+                long: installer
+                help: |1-
+                              
+                              Allows arbitrary builds of rust to be installed
+                              from a custom-built installer, either from the
+                              local filesystem or the network. Custom
+                              installers are neither checksum nor
+                              signature-verified.
+                              
+                              If multiple installers are specified then they
+                              are all installed to the same location. This can
+                              make installing cargo easier since otherwise it
+                              would need to be combined with rustc into a
+                              single installer through the rust-packaging
+                              project.
+                              
+                takes_value: true
+                value_name: installer-path-or-url
+                min_values: 1
+        arg_groups:
+            - toolchain-source:
+                args:
+                    - copy-local
+                    - link-local
+                    - installer
+                requires:
+                    - toolchain
+    - show-override:
+        about: Show information about the current override.
+    - show-default:
+        about: Show information about the current default.
+    - list-overrides:
+        about: List all overrides.
+    - list-toolchains:
+        about: List all installed toolchains.
+    - remove-override:
+        about: Remove an override.
+        after_help: |
+            Removes the override for the current directory, or the named
+            override if one is provided.
+        args:
+            - override:
+                required: false
+    - remove-toolchain:
+        about: Uninstall a toolchain.
+        after_help: Uninstalls an installed toolchain.
+        args:
+            - toolchain:
+                required: true
+    - run:
+        about: Run a command.
+        after_help: |
+            Configures an environment to use the given toolchain and then runs
+            the specified program. The command may be any program, not just
+            rustc or cargo. This can be used for testing arbitrary toolchains
+            without setting an override.
+        args:
+            - command:
+                required: true
+    - delete-data:
+        about: Delete all user metadata.
+        after_help: |
+            Deletes the ~/.multirust directory, removing all installed
+            toolchains, overrides, and aliases for the current user.
+            
+            Prompts for confirmation, unless disabled.
+            
+            Does not delete global aliases.
+        args:
+            - no-prompt:
+                short: y
+                help: Disable confirmation prompt.
+    - upgrade-data:
+        about: Upgrade the ~/.multirust directory.
+        after_help: |
+            Upgrades the ~/.multirust directory from previous versions.
+            
+            By default, it opens the API documentation for the standard library.
+    - doc:
+        about: Open the documentation for the current toolchain.
+        after_help: |
+            Opens the documentation for the currently active toolchain with the
+            default browser.
+            
+            By default, it opens the API documentation for the standard library.
+        args:
+            - all:
+                long: all
+                help: |1-
+                              
+                              Opens the documentation overview page, which
+                              gives access to all the installed documentation.
+                              
+    - which:
+        about: Report location of the currently active Rust tool.
+        args:
+            - binary:
+                required: true
+    - ctl:
+        subcommands:
+            - home:
+            - override-toolchain:
+            - default-toolchain:
+            - toolchain-sysroot:
+                args:
+                    - toolchain:
+                        required: true
+
