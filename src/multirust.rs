@@ -667,21 +667,56 @@ fn install_toolchain_tar_gz(cfg: &Cfg, toolchain: &str, installer: &Path, work_d
 	}
 }
 
-fn install_toolchain_msi(cfg: &Cfg, toolchain: &str, installer: &Path, _work_dir: &Path) {
+fn prefix_arg<S: AsRef<OsStr>>(name: &str, s: S) -> OsString {
+	let mut arg = OsString::from(name);
+	arg.push(s);
+	arg
+}
+
+fn install_toolchain_msi(cfg: &Cfg, toolchain: &str, installer: &Path, work_dir: &Path) {
 	let toolchain_dir = get_toolchain_dir(cfg, toolchain, true);
 	verbose_say(&cfg.base, &format!("installing toolchain to '{}'", toolchain_dir.display()));
 	say(&format!("installing toolchain for '{}'", toolchain));
 
-	let result = Command::new("msiexec")
-		.arg("/a").arg(installer)
-		.arg("/qn")
-		.env("TARGETDIR", &toolchain_dir)
-		.status().ok()
-		.expect("failed to run `msiexec` while installing toolchain").success();
+	let inner = || -> Result<(),&'static str> {
+		// Can't install to same folder as installer, so create subfolder
+		let install_dir = work_dir.join("install");
 		
-	if !result {
+		let installer_arg = installer;
+		let target_arg = prefix_arg("TARGETDIR=", &install_dir);
+		
+		let mut command = Command::new("msiexec");
+		command
+			.arg("/a").arg(&installer_arg)
+			.arg("/qn")
+			.arg(&target_arg);
+			
+		verbose_say(&cfg.base, &format!("command: {:?}", &command));
+		
+		// Extract the MSI to the subfolder
+		let result = try!(command.status().map_err(|_|"could not run msiexec")).success();
+			
+		if !result {
+			return Err("could not extract from msi");
+		}
+		
+		// Find the root Rust folder within the subfolder
+		let root_dir = try!(try!(fs::read_dir(install_dir).map_err(|_|"could not inspect install directory"))
+			.filter_map(Result::ok)
+			.map(|e| e.path())
+			.filter(|p| is_directory(&p))
+			.next()
+			.ok_or("could not locate rust directory within msi"));
+			
+		// Rename and move it to the toolchain directory
+		try!(fs::rename(&root_dir, &toolchain_dir).map_err(|_|"could not rename directory"));
+			
+		Ok(())
+	};
+	
+	if let Err(msg) = inner() {
 		let _ = fs::remove_dir_all(&toolchain_dir);
-		panic!("failed to install toolchain");
+		panic!("failed to install toolchain: {}", msg);
 	}
 }
 
