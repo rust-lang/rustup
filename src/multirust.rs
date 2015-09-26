@@ -141,9 +141,9 @@ fn ensure_dir_exists<P: AsRef<Path>>(cfg: &BaseCfg, path: P, name: &str) {
 		.expect(&format!("failed to create {} directory '{}'", name, path.as_ref().display()));
 }
 
-fn set_globals(matches: &ArgMatches) -> Cfg {
+fn set_globals(matches: Option<&ArgMatches>) -> Cfg {
 	// Base config
-	let verbose = matches.is_present("verbose");
+	let verbose = matches.map(|m| m.is_present("verbose")).unwrap_or(false);
 	let base = BaseCfg {
 		verbose: verbose,
 	};
@@ -206,10 +206,76 @@ fn set_globals(matches: &ArgMatches) -> Cfg {
 }
 
 fn main() {
+	let mut arg_iter = env::args_os();
+	let arg0 = PathBuf::from(arg_iter.next().unwrap());
+	let arg0_stem = arg0.file_stem().expect("invalid multirust invocation")
+		.to_str().expect("don't know how to proxy that binary");
+	
+	match arg0_stem {
+		"multirust" | "multirust-rs" => {
+			let arg1 = arg_iter.next();
+			if let Some("run") = arg1.as_ref().and_then(|s| s.to_str()) {
+				let arg2 = arg_iter.next().expect("expected binary name");
+				let stem = arg2.to_str().expect("don't know how to proxy that binary");
+				if !stem.starts_with("-") {
+					run_proxy(stem, arg_iter);
+				} else {
+					run_multirust();
+				}
+			} else {
+				run_multirust();
+			}
+		},
+		"rustc" | "rustdoc" | "cargo" | "rust-lldb" | "rust-gdb" => {
+			run_proxy(arg0_stem, arg_iter);
+		},
+		other => {
+			panic!("don't know how to proxy that binary: {}", other);
+		},
+	}
+}
+
+fn default_var<S: AsRef<OsStr>>(name: &str, value: S) {
+	if env::var_os(name).and_then(if_not_empty).is_none() {
+		env::set_var(name, value);
+	}
+}
+
+fn run_proxy<I: Iterator<Item=OsString>>(binary: &str, arg_iter: I) {
+	let cfg = set_globals(None);
+	
+	let (toolchain, toolchain_dir, _) = find_override_toolchain_or_default(&cfg)
+		.expect("no default toolchain configured");
+	
+	let binary_path = toolchain_dir.join(bin_path(binary));
+	
+	if is_file(&binary_path) {
+		push_toolchain_ldpath(&cfg, &toolchain);
+		
+		default_var("CARGO_HOME", &toolchain_dir.join("cargo"));
+		env::set_var("MULTIRUST_TOOLCHAIN", &toolchain);
+		env::set_var("MULTIRUST_HOME", &cfg.multirust_dir);
+		
+		let mut command = Command::new(&binary_path);
+		for arg in arg_iter {
+			command.arg(arg);
+		}
+		let result = command.status()
+			.ok().expect(&format!("failed to run `{}`", binary_path.display()));
+			
+		// Ensure correct exit code is returned
+		std::process::exit(result.code().unwrap_or(1));
+	} else {
+		say_err(&format!("command \"{}\" does not exist", binary_path.display()));
+		panic!();
+	}
+}
+
+fn run_multirust() {
 	let yaml = load_yaml!("cli.yml");
 	let app_matches = App::from_yaml(yaml).get_matches();
 	
-	let cfg = set_globals(&app_matches);
+	let cfg = set_globals(Some(&app_matches));
 	
 	match app_matches.subcommand_name() {
 		Some("upgrade-data")|Some("delete-data") => {}, // Don't need consistent metadata

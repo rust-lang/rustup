@@ -14,9 +14,3 @@ hyper = "0.6.14"
 
 name = "multirust-rs"
 path = "src/multirust.rs"
-
-[[bin]]
-
-name = "multirustproxy-rs"
-path = "src/multirustproxy.rs"
-
