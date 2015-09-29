@@ -10,7 +10,8 @@ regex = "0.1.41"
 rand = "0.3.11"
 hyper = "0.6.14"
 
-[[bin]]
+[lib]
+name = "multirust"
 
+[[bin]]
 name = "multirust-rs"
-path = "src/multirust.rs"
