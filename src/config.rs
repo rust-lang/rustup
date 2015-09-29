@@ -151,7 +151,7 @@ impl Cfg {
 	}
 
 	fn path_to_db_key(&self, path: &Path) -> Result<String> {
-		Ok(try!(utils::canonicalize_path(path))
+		Ok(utils::canonicalize_path(path, &self.notify_handler)
 			.display().to_string() + DB_DELIMITER)
 	}
 	
@@ -521,7 +521,7 @@ impl Cfg {
 		}
 		
 		let dir_unresolved = path;
-		let dir = try!(utils::canonicalize_path(dir_unresolved));
+		let dir = utils::canonicalize_path(dir_unresolved, &self.notify_handler);
 		let mut path = &*dir;
 		while let Some(parent) = path.parent() {
 			let key = try!(self.path_to_db_key(path));

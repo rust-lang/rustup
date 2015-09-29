@@ -77,9 +77,12 @@ pub fn match_file<T, F: FnMut(&str) -> Option<T>>(name: &'static str, src: &Path
 		})
 }
 
-pub fn canonicalize_path(path: &Path) -> Result<PathBuf> {
+pub fn canonicalize_path(path: &Path, notify_handler: &NotifyHandler) -> PathBuf {
 	fs::canonicalize(path)
-		.map_err(|e| Error::CanonicalizingPath { path: PathBuf::from(path), error: e })
+		.unwrap_or_else(|_| {
+			notify_handler.call(Notification::NoCanonicalPath(path));
+			PathBuf::from(path)
+		})
 }
 
 pub fn download_file(url: hyper::Url, path: &Path, notify_handler: &NotifyHandler) -> Result<()> {

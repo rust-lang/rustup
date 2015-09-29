@@ -28,6 +28,7 @@ pub enum Notification<'a> {
 	UpgradingMetadata(&'a str, &'a str),
 	WritingMetadataVersion(&'a str),
 	ReadMetadataVersion(&'a str),
+	NoCanonicalPath(&'a Path),
 }
 
 pub enum Error {
@@ -38,7 +39,6 @@ pub enum Error {
 	WritingFile { name: &'static str, path: PathBuf, error: io::Error },
 	CreatingFile { name: &'static str, path: PathBuf, error: io::Error },
 	CreatingDirectory { name: &'static str, path: PathBuf, error: io::Error },
-	CanonicalizingPath { path: PathBuf, error: io::Error },
 	FilteringFile { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
 	RenamingFile { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
 	RenamingDirectory { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
@@ -88,7 +88,8 @@ impl<'a> Notification<'a> {
 			SetDefaultToolchain(_) | SetOverrideToolchain(_, _) | UpdatingToolchain(_) |
 			InstallingToolchain(_) | UsingExistingToolchain(_) | LinkingDirectory(_, _) |
 			CopyingDirectory(_, _) | UninstallingToolchain(_) | UninstalledToolchain(_) |
-			ToolchainNotInstalled(_) | DownloadingFile(_, _) | UpgradingMetadata(_, _) =>
+			ToolchainNotInstalled(_) | DownloadingFile(_, _) | UpgradingMetadata(_, _) |
+			NoCanonicalPath(_) =>
 				false,
 		}
 	}
@@ -133,6 +134,8 @@ impl<'a> Display for Notification<'a> {
 				write!(f, "writing metadata version: '{}'", ver),
 			ReadMetadataVersion(ver) =>
 				write!(f, "read metadata version: '{}'", ver),
+			NoCanonicalPath(path) =>
+				write!(f, "could not canonicalize path: '{}'", path.display()),
 		}
 	}
 }
@@ -154,8 +157,6 @@ impl Display for Error {
 				=> write!(f, "could not create {} file: '{}'", name, path.display()),
 			Error::CreatingDirectory { ref name, ref path, error: _ }
 				=> write!(f, "could not create {} directory: '{}'", name, path.display()),
-			Error::CanonicalizingPath { ref path, error: _ }
-				=> write!(f, "could not canonicalize path: '{}'", path.display()),
 			Error::FilteringFile { ref name, ref src, ref dest, error: _ }
 				=> write!(f, "could not copy {} file from '{}' to '{}'", name, src.display(), dest.display() ),
 			Error::RenamingFile { ref name, ref src, ref dest, error: _ }
