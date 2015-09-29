@@ -192,19 +192,20 @@ pub fn prefix_arg<S: AsRef<OsStr>>(name: &str, s: S) -> OsString {
 
 pub fn open_browser(path: &Path) -> io::Result<bool> {
 	#[cfg(not(windows))]
-	fn has_cmd(cmd: &str) -> bool {
+	fn has_cmd(cmd: &&str) -> bool {
 		Command::new("command")
 			.arg("-v").arg(cmd)
 			.stdin(Stdio::null())
 			.stdout(Stdio::null())
 			.stderr(Stdio::null())
 			.status()
-			.map(|s| s.success()) == Ok(true)
+			.map(|s| s.success())
+			.unwrap_or(false)
 	}
 	#[cfg(not(windows))]
 	fn inner(path: &Path) -> io::Result<bool> {
 		let commands = ["xdg-open", "open", "firefox", "chromium"];
-		if let Some(cmd) = commands.filter(has_cmd).next() {
+		if let Some(cmd) = commands.iter().map(|s| *s).filter(has_cmd).next() {
 			Command::new(cmd)
 				.arg(path)
 				.stdin(Stdio::null())
