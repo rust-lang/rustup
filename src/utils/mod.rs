@@ -19,7 +19,7 @@ pub use self::raw::{
 
 pub fn ensure_dir_exists(name: &'static str, path: &Path, notify_handler: &NotifyHandler) -> Result<bool> {
 	raw::ensure_dir_exists(path, |p| {
-		notify_handler.call(CreatingDirectory(name, path))
+		notify_handler.call(CreatingDirectory(name, p))
 	}).map_err(|e| Error::CreatingDirectory { name: name, path: PathBuf::from(path), error: e })
 }
 
@@ -85,7 +85,7 @@ pub fn canonicalize_path(path: &Path) -> Result<PathBuf> {
 pub fn download_file(url: hyper::Url, path: &Path, notify_handler: &NotifyHandler) -> Result<()> {
 	notify_handler.call(DownloadingFile(&url, path));
 	raw::download_file(url.clone(), path)
-		.map_err(|e| Error::DownloadingFile { url: url, path: PathBuf::from(path) })
+		.map_err(|_| Error::DownloadingFile { url: url, path: PathBuf::from(path) })
 }
 
 pub fn cmd_status(name: &'static str, mut cmd: Command) -> Result<()> {

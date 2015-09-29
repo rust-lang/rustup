@@ -142,7 +142,7 @@ impl Cfg {
 		})
 	}
 	
-	pub fn set_default_toolchain(&self, toolchain: &str) -> Result<()> {
+	pub fn set_default(&self, toolchain: &str) -> Result<()> {
 		let work_file = try!(self.temp_cfg.new_file());
 		
 		try!(utils::write_file("temp", &work_file, toolchain));

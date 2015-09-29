@@ -122,7 +122,7 @@ fn default_(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
 		try!(cfg.install_toolchain_if_not_installed(toolchain));
 	}
 	
-	cfg.set_default_toolchain(toolchain)
+	cfg.set_default(toolchain)
 }
 
 fn override_(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {

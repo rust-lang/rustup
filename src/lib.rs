@@ -7,8 +7,8 @@ extern crate regex;
 pub use errors::*;
 pub use config::*;
 
-mod notify;
+pub mod notify;
 pub mod utils;
-mod temp;
+pub mod temp;
 mod errors;
 mod config;
