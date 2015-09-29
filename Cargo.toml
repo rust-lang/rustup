@@ -5,16 +5,14 @@ version = "0.0.1"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "multirust in rust - manage multiple rust installations with ease"
 
-# These URLs point to more information about the repository
+documentation = "http://diggsey.github.io/multirust-rs/multirust/index.html"
 homepage = "https://github.com/Diggsey/multirust-rs"
 repository = "https://github.com/Diggsey/multirust-rs"
 
+readme = "README.md"
+
 keywords = ["multirust", "install", "proxy"]
 
-# This is a string description of the license for this package. Currently
-# crates.io will validate the license provided against a whitelist of known
-# license identifiers from http://spdx.org/licenses/. Multiple licenses can
-# be separated with a `/`
 license = "MIT"
 
 [dependencies]
