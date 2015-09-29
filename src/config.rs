@@ -1,7 +1,5 @@
 use std::path::{Path, PathBuf};
 use std::borrow::Cow;
-use std::sync::Mutex;
-use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::env;
 use std::io;
@@ -75,7 +73,6 @@ pub struct Cfg {
 	pub update_hash_dir: PathBuf,
 	pub temp_cfg: temp::Cfg,
 	pub gpg_key: Cow<'static, str>,
-	pub var_stack: Mutex<HashMap<&'static str, Vec<Option<OsString>>>>,
 	pub notify_handler: NotifyHandler,
 	pub env_override: Option<String>,
 }
@@ -136,7 +133,6 @@ impl Cfg {
 			update_hash_dir: update_hash_dir,
 			temp_cfg: temp_cfg,
 			gpg_key: gpg_key,
-			var_stack: Mutex::new(HashMap::new()),
 			notify_handler: notify_handler,
 			env_override: env_override,
 		})
