@@ -107,12 +107,16 @@ impl Cfg {
 			}
 		}
 	}
-
+	
 	pub fn new_file(&self) -> Result<File> {
+		self.new_file_with_ext("")
+	}
+
+	pub fn new_file_with_ext(&self, ext: &str) -> Result<File> {
 		try!(self.create_root());
 		
 		loop {
-			let temp_name = raw::random_string(16) + "_file";
+			let temp_name = raw::random_string(16) + "_file" + ext;
 			
 			let temp_file = self.root_directory.join(temp_name);
 			

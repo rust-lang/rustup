@@ -40,13 +40,37 @@ impl ToolchainDesc {
 		}
 	}
 	
-	pub fn package_url(&self, dist_root: &str, package: &str, target_triple: &str, ext: &str) -> String {
+	pub fn package_dir(&self, dist_root: &str) -> String {
 		match *self {
-			ToolchainDesc::Channel(ref channel) =>
-				format!("{}/{}-{}-{}{}", dist_root, package, channel, target_triple, ext),
-			ToolchainDesc::ChannelDate(ref channel, ref date) =>
-				format!("{}/{}/{}-{}-{}{}", dist_root, package, date, channel, target_triple, ext),
+			ToolchainDesc::Channel(_) =>
+				format!("{}", dist_root),
+			ToolchainDesc::ChannelDate(_, ref date) =>
+				format!("{}/{}", dist_root, date),
 		}
+	}
+	
+	pub fn download_manifest<'a>(&self, cfg: DownloadCfg<'a>) -> Result<Manifest<'a>> {
+		let url = self.manifest_url(cfg.dist_root);
+		let package_dir = self.package_dir(cfg.dist_root);
+		
+		let manifest = try!(download_and_check(&url, None, "", cfg)).unwrap();
+		
+		Ok(Manifest(manifest, package_dir))
+	}
+}
+
+pub struct Manifest<'a>(temp::File<'a>, String);
+
+impl<'a> Manifest<'a> {
+	pub fn package_url(&self, package: &str, target_triple: &str, ext: &str) -> Result<Option<String>> {
+		let suffix = target_triple.to_owned() + ext;
+		utils::match_file("manifest", &self.0, |line| {
+			if line.starts_with(package) && line.ends_with(&suffix) {
+				Some(format!("{}/{}", &self.1, line))
+			} else {
+				None
+			}
+		})
 	}
 }
 
@@ -62,7 +86,7 @@ fn parse_url(url: &str) -> Result<hyper::Url> {
 	hyper::Url::parse(url).map_err(|_| Error::InvalidUrl)
 }
 
-pub fn download_and_check<'a>(url: &str, update_hash: Option<&Path>, cfg: DownloadCfg<'a>) -> Result<Option<temp::File<'a>>> {
+pub fn download_and_check<'a>(url: &str, update_hash: Option<&Path>, ext: &str, cfg: DownloadCfg<'a>) -> Result<Option<temp::File<'a>>> {
 	let hash = try!(download_hash(url, cfg));
 	let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
 	
@@ -80,10 +104,12 @@ pub fn download_and_check<'a>(url: &str, update_hash: Option<&Path>, cfg: Downlo
 		} else {
 			cfg.notify_handler.call(Notification::NoUpdateHash(hash_file));
 		}
+		
+		try!(utils::write_file("update hash", hash_file, &partial_hash));
 	}
 	
 	let url = try!(parse_url(url));
-	let file = try!(cfg.temp_cfg.new_file());
+	let file = try!(cfg.temp_cfg.new_file_with_ext(ext));
 	try!(utils::download_file(url, &file, cfg.notify_handler));
 	// TODO: Actually download and check the checksum and signature of the file
 	Ok(Some(file))
@@ -103,9 +129,13 @@ pub fn download_dist<'a>(toolchain: &str, update_hash: Option<&Path>, cfg: Downl
 	let target_triple = try!(get_host_triple().ok_or(Error::UnsupportedHost));
 	let ext = get_installer_ext();
 	
-	let download_url = desc.package_url(cfg.dist_root, "rust", &target_triple, ext);
+	let manifest = try!(desc.download_manifest(cfg));
 	
-	download_and_check(&download_url, update_hash, cfg)
+	let maybe_url = try!(manifest.package_url("rust", &target_triple, ext));
+	
+	let url = try!(maybe_url.ok_or(Error::UnsupportedHost));
+	
+	download_and_check(&url, update_hash, ext, cfg)
 }
 
 pub fn get_host_triple() -> Option<&'static str> {

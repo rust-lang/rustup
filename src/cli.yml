@@ -3,6 +3,10 @@ version: 0.0.1
 author: Diggory Blake <diggsey@googlemail.com>
 about: Port of multirust to rust
 args:
+    - verbose:
+        long: verbose
+        short: v
+        help: Enable verbose output
 subcommands:
     - default:
         about: Set the default toolchain.
@@ -15,10 +19,6 @@ subcommands:
             --link-local, or --installer then the toolchain is always
             reinstalled.
         args:
-            - verbose:
-                long: verbose
-                short: v
-                help: Enable verbose output
             - toolchain:
                 required: true
             - copy-local:
@@ -85,10 +85,6 @@ subcommands:
             
             To remove an existing override use `multirust remove-override`.
         args:
-            - verbose:
-                long: verbose
-                short: v
-                help: Enable verbose output
             - toolchain:
                 required: true
             - copy-local:
@@ -148,10 +144,6 @@ subcommands:
             stable, beta, and nightly toolchains from the official release
             channels.
         args:
-            - verbose:
-                long: verbose
-                short: v
-                help: Enable verbose output
             - toolchain:
                 required: false
             - copy-local:
@@ -218,20 +210,12 @@ subcommands:
             Removes the override for the current directory, or the named
             override if one is provided.
         args:
-            - verbose:
-                long: verbose
-                short: v
-                help: Enable verbose output
             - override:
                 required: false
     - remove-toolchain:
         about: Uninstall a toolchain.
         after_help: Uninstalls an installed toolchain.
         args:
-            - verbose:
-                long: verbose
-                short: v
-                help: Enable verbose output
             - toolchain:
                 required: true
     - run:
@@ -242,10 +226,6 @@ subcommands:
             rustc or cargo. This can be used for testing arbitrary toolchains
             without setting an override.
         args:
-            - verbose:
-                long: verbose
-                short: v
-                help: Enable verbose output
             - command:
                 required: true
     - delete-data:
@@ -258,10 +238,6 @@ subcommands:
             
             Does not delete global aliases.
         args:
-            - verbose:
-                long: verbose
-                short: v
-                help: Enable verbose output
             - no-prompt:
                 short: y
                 help: Disable confirmation prompt.
@@ -271,11 +247,6 @@ subcommands:
             Upgrades the ~/.multirust directory from previous versions.
             
             By default, it opens the API documentation for the standard library.
-        args:
-            - verbose:
-                long: verbose
-                short: v
-                help: Enable verbose output
     - doc:
         about: Open the documentation for the current toolchain.
         after_help: |
