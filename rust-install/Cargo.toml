@@ -17,7 +17,7 @@ license = "MIT"
 regex = "0.1.41"
 rand = "0.3.11"
 hyper = "0.6.14"
-winapi = "*"
+winapi = "0.2.4"
 winreg = "0.3.1"
 
 [lib]

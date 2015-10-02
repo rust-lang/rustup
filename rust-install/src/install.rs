@@ -234,23 +234,27 @@ impl InstallPrefix {
 			None
 		}
 	}
+	
+	#[cfg(windows)]
 	pub fn get_uninstall_msi(&self, notify_handler: &NotifyHandler) -> Option<String> {
-		if cfg!(windows) {
-			let canon_path = utils::canonicalize_path(&self.path, notify_handler);
-			
-			if let Ok(installers) = msi::all_installers() {
-				for installer in &installers {
-					if let Ok(loc) = installer.install_location() {
-						let path = utils::canonicalize_path(&loc, notify_handler);
-						
-						if path == canon_path {
-							return Some(installer.product_id().to_owned());
-						}
+		let canon_path = utils::canonicalize_path(&self.path, notify_handler);
+		
+		if let Ok(installers) = msi::all_installers() {
+			for installer in &installers {
+				if let Ok(loc) = installer.install_location() {
+					let path = utils::canonicalize_path(&loc, notify_handler);
+					
+					if path == canon_path {
+						return Some(installer.product_id().to_owned());
 					}
 				}
 			}
 		}
 		
+		None
+	}
+	#[cfg(not(windows))]
+	pub fn get_uninstall_msi(&self, notify_handler: &NotifyHandler) -> Option<String> {
 		None
 	}
 	pub fn get_uninstaller(&self, notify_handler: &NotifyHandler) -> Option<Uninstaller> {
