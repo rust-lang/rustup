@@ -14,9 +14,9 @@ use std::process::Command;
 use std::ffi::OsString;
 use multirust::*;
 
-fn set_globals(matches: Option<&ArgMatches>) -> Result<Cfg> {
+fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
 	// Base config
-	let verbose = matches.map(|m| m.is_present("verbose")).unwrap_or(false);
+	let verbose = m.map(|m| m.is_present("verbose")).unwrap_or(false);
 	Cfg::from_env(NotifyHandler::from(move |n: Notification| {
 		if verbose || !n.is_verbose() {
 			println!("{}", n);
@@ -94,64 +94,75 @@ fn run_multirust() -> Result<()> {
 	}
 	
 	match app_matches.subcommand() {
-		("update", Some(matches)) => update(&cfg, matches),
-		("default", Some(matches)) => default_(&cfg, matches),
-		("override", Some(matches)) => override_(&cfg, matches),
+		("update", Some(m)) => update(&cfg, m),
+		("default", Some(m)) => default_(&cfg, m),
+		("override", Some(m)) => override_(&cfg, m),
 		("show-default", Some(_)) => show_default(&cfg),
 		("show-override", Some(_)) => show_override(&cfg),
 		("list-overrides", Some(_)) => list_overrides(&cfg),
 		("list-toolchains", Some(_)) => list_toolchains(&cfg),
-		("remove-override", Some(matches)) => remove_override(&cfg, matches),
-		("remove-toolchain", Some(matches)) => remove_toolchain_args(&cfg, matches),
+		("remove-override", Some(m)) => remove_override(&cfg, m),
+		("remove-toolchain", Some(m)) => remove_toolchain_args(&cfg, m),
 		("upgrade-data", Some(_)) => cfg.upgrade_data().map(|_|()),
-		("delete-data", Some(matches)) => delete_data(&cfg, matches),
-		("which", Some(matches)) => which(&cfg, matches),
-		("ctl", Some(matches)) => ctl(&cfg, matches),
-		("doc", Some(matches)) => doc(&cfg, matches),
+		("delete-data", Some(m)) => delete_data(&cfg, m),
+		("which", Some(m)) => which(&cfg, m),
+		("ctl", Some(m)) => ctl(&cfg, m),
+		("doc", Some(m)) => doc(&cfg, m),
 		_ => Ok(()),
 	}
 }
 
-fn remove_toolchain_args(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
-	cfg.remove_toolchain(matches.value_of("toolchain").unwrap())
+fn get_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches, create_parent: bool) -> Result<Toolchain<'a>> {
+	cfg.get_toolchain(m.value_of("toolchain").unwrap(), create_parent)
 }
 
-fn default_(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
-	let toolchain = matches.value_of("toolchain").unwrap();
-	if !try!(common_install_args(cfg, "default", matches)) {
-		try!(cfg.install_toolchain_if_not_installed(toolchain));
+fn remove_toolchain_args(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	try!(get_toolchain(cfg, m, false)).remove()
+}
+
+fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	let toolchain = try!(get_toolchain(cfg, m, false));
+	if !try!(common_install_args(&toolchain, m)) {
+		try!(toolchain.install_from_dist_if_not_installed());
 	}
 	
-	cfg.set_default(toolchain)
+	toolchain.make_default()
 }
 
-fn override_(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
-	let toolchain = matches.value_of("toolchain").unwrap();
-	if !try!(common_install_args(cfg, "override", matches)) {
-		try!(cfg.install_toolchain_if_not_installed(toolchain));
+fn override_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	let toolchain = try!(get_toolchain(cfg, m, false));
+	if !try!(common_install_args(&toolchain, m)) {
+		try!(toolchain.install_from_dist_if_not_installed());
 	}
 	
-	cfg.set_override(&try!(current_dir()), toolchain)
+	toolchain.make_override(&try!(current_dir()))
 }
 
-fn common_install_args(cfg: &Cfg, _: &str, matches: &ArgMatches) -> Result<bool> {
-	let toolchain = matches.value_of("toolchain").unwrap();
+fn common_install_args(toolchain: &Toolchain, m: &ArgMatches) -> Result<bool> {
 	
-	if let Some(installers) = matches.values_of("installer") {
+	if let Some(installers) = m.values_of("installer") {
 		let is: Vec<_> = installers.iter().map(|i| i.as_ref()).collect();
-		try!(cfg.update_custom_toolchain_from_installers(toolchain, &*is));
-	} else if let Some(path) = matches.value_of("copy-local") {
-		try!(cfg.update_custom_toolchain_from_dir(toolchain, Path::new(path), false));
-	} else if let Some(path) = matches.value_of("link-local") {
-		try!(cfg.update_custom_toolchain_from_dir(toolchain, Path::new(path), true));
+		try!(toolchain.install_from_installers(&*is));
+	} else if let Some(path) = m.value_of("copy-local") {
+		try!(toolchain.install_from_dir(Path::new(path), false));
+	} else if let Some(path) = m.value_of("link-local") {
+		try!(toolchain.install_from_dir(Path::new(path), true));
 	} else {
 		return Ok(false);
 	}
 	Ok(true)
 }
 
-fn doc(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
-	cfg.open_docs_for_dir(&try!(current_dir()), matches.is_present("all"))
+fn doc_url(m: &ArgMatches) -> &'static str {
+	if m.is_present("all") {
+		"index.html"
+	} else {
+		"std/index.html"
+	}
+}
+
+fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	cfg.open_docs_for_dir(&try!(current_dir()), doc_url(m))
 }
 
 fn ctl_home(cfg: &Cfg) -> Result<()> {
@@ -160,39 +171,39 @@ fn ctl_home(cfg: &Cfg) -> Result<()> {
 }
 
 fn ctl_overide_toolchain(cfg: &Cfg) -> Result<()> {
-	let (toolchain, _, _) = try!(cfg.toolchain_for_dir(&try!(current_dir())));
+	let (toolchain, _) = try!(cfg.toolchain_for_dir(&try!(current_dir())));
 	
-	println!("{}", toolchain);
+	println!("{}", toolchain.name());
 	Ok(())
 }
 
 fn ctl_default_toolchain(cfg: &Cfg) -> Result<()> {
-	let (toolchain, _) = try!(try!(cfg.find_default()).ok_or(Error::NoDefaultToolchain));
+	let toolchain = try!(try!(cfg.find_default()).ok_or(Error::NoDefaultToolchain));
 	
-	println!("{}", toolchain);
+	println!("{}", toolchain.name());
 	Ok(())
 }
 
-fn ctl_toolchain_sysroot(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
-	let toolchain = matches.value_of("toolchain").unwrap();
+fn ctl_toolchain_sysroot(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	let toolchain = try!(get_toolchain(cfg, m, false));
 	
-	let toolchain_dir = try!(cfg.get_toolchain_dir(toolchain, false));
+	let toolchain_dir = toolchain.prefix().path();
 	println!("{}", toolchain_dir.display());
 	Ok(())
 }
 
-fn ctl(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
-	match matches.subcommand() {
+fn ctl(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	match m.subcommand() {
 		("home", Some(_)) => ctl_home(cfg),
 		("override-toolchain", Some(_)) => ctl_overide_toolchain(cfg),
 		("default-toolchain", Some(_)) => ctl_default_toolchain(cfg),
-		("toolchain-sysroot", Some(matches)) => ctl_toolchain_sysroot(cfg, matches),
+		("toolchain-sysroot", Some(m)) => ctl_toolchain_sysroot(cfg, m),
 		_ => Ok(()),
 	}
 }
 
-fn which(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
-	let binary = matches.value_of("binary").unwrap();
+fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	let binary = m.value_of("binary").unwrap();
 	
 	let binary_path = try!(cfg.which_binary(&try!(current_dir()), binary))
 		.expect("binary not found");
@@ -210,8 +221,8 @@ fn read_line() -> String {
 	lines.next().unwrap().unwrap()
 }
 
-fn delete_data(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
-	if !matches.is_present("no-prompt") {
+fn delete_data(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	if !m.is_present("no-prompt") {
 		print!("This will delete all toolchains, overrides, aliases, and other multirust data associated with this user. Continue? (y/n) ");
 		let input = read_line();
 		
@@ -227,22 +238,22 @@ fn delete_data(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
 	cfg.delete_data()
 }
 
-fn remove_override(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
-	if let Some(path) = matches.value_of("override") {
-		cfg.remove_override(path.as_ref())
+fn remove_override(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	if let Some(path) = m.value_of("override") {
+		cfg.override_db.remove(path.as_ref(), &cfg.temp_cfg, &cfg.notify_handler)
 	} else {
-		cfg.remove_override(&try!(current_dir()))
+		cfg.override_db.remove(&try!(current_dir()), &cfg.temp_cfg, &cfg.notify_handler)
 	}.map(|_|())
 }
 
-fn show_tool_versions(cfg: &Cfg, toolchain: &str) -> Result<()> {
+fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
 	println!("");
-	if try!(cfg.is_toolchain_installed(toolchain)) {
-		let toolchain_dir = try!(cfg.get_toolchain_dir(toolchain, false));
-		let rustc_path = toolchain_dir.join(&cfg.bin_path("rustc"));
-		let cargo_path = toolchain_dir.join(&cfg.bin_path("cargo"));
 
-		try!(cfg.with_toolchain_ldpath(toolchain, || {
+	if toolchain.exists() {
+		let rustc_path = toolchain.prefix().binary_file("rustc");
+		let cargo_path = toolchain.prefix().binary_file("cargo");
+
+		try!(toolchain.prefix().with_ldpath(|| {
 			if utils::is_file(&rustc_path) {
 				Command::new(&rustc_path)
 					.arg("--version")
@@ -269,11 +280,11 @@ fn show_tool_versions(cfg: &Cfg, toolchain: &str) -> Result<()> {
 }
 
 fn show_default(cfg: &Cfg) -> Result<()> {
-	if let Some((toolchain, sysroot)) = try!(cfg.find_default()) {
-		println!("default toolchain: {}", &toolchain);
-		println!("default location: {}", sysroot.display());
+	if let Some(toolchain) = try!(cfg.find_default()) {
+		println!("default toolchain: {}", toolchain.name());
+		println!("default location: {}", toolchain.prefix().path().display());
 		
-		show_tool_versions(cfg, &toolchain)
+		show_tool_versions(&toolchain)
 	} else {
 		println!("no default toolchain configured. run `multirust helpdefault`");
 		Ok(())
@@ -281,12 +292,12 @@ fn show_default(cfg: &Cfg) -> Result<()> {
 }
 
 fn show_override(cfg: &Cfg) -> Result<()> {
-	if let Some((toolchain, sysroot, reason)) = try!(cfg.find_override(&try!(current_dir()))) {
-		println!("override toolchain: {}", &toolchain);
-		println!("override location: {}", sysroot.display());
+	if let Some((toolchain, reason)) = try!(cfg.find_override(&try!(current_dir()))) {
+		println!("override toolchain: {}", toolchain.name());
+		println!("override location: {}", toolchain.prefix().path().display());
 		println!("override reason: {}", reason);
 		
-		show_tool_versions(cfg, &toolchain)
+		show_tool_versions(&toolchain)
 	} else {
 		println!("no override");
 		show_default(cfg)
@@ -294,7 +305,7 @@ fn show_override(cfg: &Cfg) -> Result<()> {
 }
 
 fn list_overrides(cfg: &Cfg) -> Result<()> {
-	let mut overrides = try!(cfg.list_overrides());
+	let mut overrides = try!(cfg.override_db.list());
 		
 	overrides.sort();
 	
@@ -343,18 +354,19 @@ fn update_all_channels(cfg: &Cfg) -> Result<()> {
 	}
 	
 	println!("stable revision:");
-	try!(show_tool_versions(cfg, "stable"));
+	try!(show_tool_versions(&try!(cfg.get_toolchain("stable", false))));
 	println!("beta revision:");
-	try!(show_tool_versions(cfg, "beta"));
+	try!(show_tool_versions(&try!(cfg.get_toolchain("beta", false))));
 	println!("nightly revision:");
-	try!(show_tool_versions(cfg, "nightly"));
+	try!(show_tool_versions(&try!(cfg.get_toolchain("nightly", false))));
 	Ok(())
 }
 
-fn update(cfg: &Cfg, matches: &ArgMatches) -> Result<()> {
-	if let Some(toolchain) = matches.value_of("toolchain") {
-		if !try!(common_install_args(cfg, "update", matches)) {
-			try!(cfg.update_toolchain(toolchain))
+fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	if let Some(name) = m.value_of("toolchain") {
+		let toolchain = try!(cfg.get_toolchain(name, true));
+		if !try!(common_install_args(&toolchain, m)) {
+			try!(toolchain.install_from_dist())
 		}
 	} else {
 		try!(update_all_channels(cfg))

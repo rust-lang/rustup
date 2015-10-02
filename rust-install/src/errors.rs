@@ -29,6 +29,9 @@ pub enum Notification<'a> {
 	WritingMetadataVersion(&'a str),
 	ReadMetadataVersion(&'a str),
 	NoCanonicalPath(&'a Path),
+	UpdateHashMatches(&'a str),
+	CantReadUpdateHash(&'a Path),
+	NoUpdateHash(&'a Path),
 }
 
 pub enum Error {
@@ -59,6 +62,11 @@ pub enum Error {
 	UnknownMetadataVersion(String),
 	InvalidEnvironment,
 	NoDefaultToolchain,
+	NotInstalledHere,
+	InstallTypeNotPossible,
+	AlreadyInstalledHere,
+	InvalidUrl,
+	UnsupportedHost,
 	Custom { id: String, desc: String },
 }
 
@@ -82,14 +90,15 @@ impl<'a> Notification<'a> {
 	pub fn is_verbose(&self) -> bool {
 		match *self {
 			CreatingDirectory(_, _) | ToolchainDirectory(_, _) | LookingForToolchain(_) |
-			RemovingDirectory(_, _) | WritingMetadataVersion(_) | ReadMetadataVersion(_) =>
+			RemovingDirectory(_, _) | WritingMetadataVersion(_) | ReadMetadataVersion(_) |
+			NoUpdateHash(_) =>
 				true,
 			Temp(ref t) => t.is_verbose(),
 			SetDefaultToolchain(_) | SetOverrideToolchain(_, _) | UpdatingToolchain(_) |
 			InstallingToolchain(_) | UsingExistingToolchain(_) | LinkingDirectory(_, _) |
 			CopyingDirectory(_, _) | UninstallingToolchain(_) | UninstalledToolchain(_) |
 			ToolchainNotInstalled(_) | DownloadingFile(_, _) | UpgradingMetadata(_, _) |
-			NoCanonicalPath(_) =>
+			NoCanonicalPath(_) | UpdateHashMatches(_) | CantReadUpdateHash(_) =>
 				false,
 		}
 	}
@@ -136,6 +145,12 @@ impl<'a> Display for Notification<'a> {
 				write!(f, "read metadata version: '{}'", ver),
 			NoCanonicalPath(path) =>
 				write!(f, "could not canonicalize path: '{}'", path.display()),
+			UpdateHashMatches(hash) =>
+				write!(f, "update hash matches: {}\nskipping update...", hash),
+			CantReadUpdateHash(path) =>
+				write!(f, "can't read update hash file: '{}'\ncan't skip update...", path.display()),
+			NoUpdateHash(path) =>
+				write!(f, "no update hash at: '{}'", path.display()),
 		}
 	}
 }
@@ -197,6 +212,16 @@ impl Display for Error {
 				=> write!(f, "invalid environment"),
 			Error::NoDefaultToolchain
 				=> write!(f, "no default toolchain configured"),
+			Error::NotInstalledHere
+				=> write!(f, "not installed here"),
+			Error::InstallTypeNotPossible
+				=> write!(f, "install type not possible"),
+			Error::AlreadyInstalledHere
+				=> write!(f, "already installed here"),
+			Error::InvalidUrl
+				=> write!(f, "invalid url"),
+			Error::UnsupportedHost
+				=> write!(f, "binary packages are not yet provided for this host"),
 			Error::Custom { id: _, ref desc }
 				=> write!(f, "{}", desc),
 		}

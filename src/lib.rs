@@ -1,14 +1,14 @@
-#![feature(coerce_unsized, fs_canonicalize)]
 
+extern crate rust_install;
 extern crate rand;
 extern crate hyper;
 extern crate regex;
 
-pub use errors::*;
+pub use rust_install::*;
 pub use config::*;
+pub use toolchain::*;
+pub use override_db::*;
 
-pub mod notify;
-pub mod utils;
-pub mod temp;
-mod errors;
+mod override_db;
+mod toolchain;
 mod config;

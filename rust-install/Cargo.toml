@@ -1,0 +1,24 @@
+[package]
+
+name = "rust-install"
+version = "0.0.1"
+authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
+description = "common code shared by multirust and rustup"
+
+documentation = "http://diggsey.github.io/multirust-rs/rust-install/index.html"
+homepage = "https://github.com/Diggsey/multirust-rs"
+repository = "https://github.com/Diggsey/multirust-rs"
+
+readme = "README.md"
+
+license = "MIT"
+
+[dependencies]
+regex = "0.1.41"
+rand = "0.3.11"
+hyper = "0.6.14"
+winapi = "*"
+winreg = "0.3.1"
+
+[lib]
+name = "rust_install"
