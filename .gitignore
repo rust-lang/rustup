@@ -1,3 +1,4 @@
 /.project
 /target
 /Cargo.lock
+/rust-install/target

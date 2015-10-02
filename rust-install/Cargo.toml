@@ -9,8 +9,6 @@ documentation = "http://diggsey.github.io/multirust-rs/rust-install/index.html"
 homepage = "https://github.com/Diggsey/multirust-rs"
 repository = "https://github.com/Diggsey/multirust-rs"
 
-readme = "README.md"
-
 license = "MIT"
 
 [dependencies]
