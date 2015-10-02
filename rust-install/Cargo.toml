@@ -1,11 +1,11 @@
 [package]
 
 name = "rust-install"
-version = "0.0.2"
+version = "0.0.3"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "common code shared by multirust and rustup"
 
-documentation = "http://diggsey.github.io/multirust-rs/rust-install/index.html"
+documentation = "http://diggsey.github.io/multirust-rs/rust_install/index.html"
 homepage = "https://github.com/Diggsey/multirust-rs"
 repository = "https://github.com/Diggsey/multirust-rs"
 

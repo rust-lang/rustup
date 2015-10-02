@@ -2,6 +2,12 @@
 
 Multirust-rs is a reimplementation of multirust in rust. It provides both a command line interface, and a rust library, so it's trivial to integrate it with external tools.
 
+## Documentation
+
+- [multirust](http://diggsey.github.io/multirust-rs/multirust/index.html)
+- [rust-install](http://diggsey.github.io/multirust-rs/rust_install/index.html)
+
+
 ## Installation
 
 Currently an installer is the missing piece. Manual installation is described below:
