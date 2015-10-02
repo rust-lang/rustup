@@ -1,9 +1,10 @@
 use utils;
 use errors::*;
-use msi;
 use temp;
 use env_var;
 use dist;
+#[cfg(windows)]
+use msi;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
