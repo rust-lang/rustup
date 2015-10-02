@@ -39,7 +39,16 @@ impl<'a> Toolchain<'a> {
 		utils::assert_is_directory(self.prefix.path())
 	}
 	pub fn remove(&self) -> Result<()> {
-		self.prefix.uninstall(&self.cfg.notify_handler)
+		if self.exists() {
+			self.cfg.notify_handler.call(UninstallingToolchain(&self.name));
+		} else {
+			self.cfg.notify_handler.call(ToolchainNotInstalled(&self.name));
+		}
+		let result = self.prefix.uninstall(&self.cfg.notify_handler);
+		if !self.exists() {
+			self.cfg.notify_handler.call(UninstalledToolchain(&self.name));
+		}
+		result
 	}
 	pub fn remove_if_exists(&self) -> Result<()> {
 		if self.exists() {
@@ -49,9 +58,16 @@ impl<'a> Toolchain<'a> {
 		}
 	}
 	pub fn install(&self, install_method: InstallMethod) -> Result<()> {
+		if self.exists() {
+			self.cfg.notify_handler.call(UpdatingToolchain(&self.name));
+		} else {
+			self.cfg.notify_handler.call(InstallingToolchain(&self.name));
+		}
+		self.cfg.notify_handler.call(ToolchainDirectory(self.prefix.path(), &self.name));
 		self.prefix.install(install_method, &self.cfg.notify_handler)
 	}
 	pub fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<()> {
+		self.cfg.notify_handler.call(LookingForToolchain(&self.name));
 		if !self.exists() {
 			self.install(install_method)
 		} else {
