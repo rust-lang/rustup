@@ -255,7 +255,7 @@ impl InstallPrefix {
 		None
 	}
 	#[cfg(not(windows))]
-	pub fn get_uninstall_msi(&self, notify_handler: &NotifyHandler) -> Option<String> {
+	pub fn get_uninstall_msi(&self, _: &NotifyHandler) -> Option<String> {
 		None
 	}
 	pub fn get_uninstaller(&self, notify_handler: &NotifyHandler) -> Option<Uninstaller> {
