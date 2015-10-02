@@ -16,7 +16,7 @@ keywords = ["multirust", "install", "proxy"]
 license = "MIT"
 
 [dependencies]
-rust-install = { path = "rust-install" }
+rust-install = { version = "0.0.2", path = "rust-install" }
 clap = { version = "1.4.2", features = ["yaml"] }
 regex = "0.1.41"
 rand = "0.3.11"
