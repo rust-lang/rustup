@@ -10,23 +10,35 @@ Multirust-rs is a reimplementation of multirust in rust. It provides both a comm
 
 ## Installation
 
-Currently an installer is the missing piece. Manual installation is described below:
+Run this command in a writable directory:
+```
+git clone --depth 1 https://github.com/Diggsey/multirust-rs.git multirust-rs && cd multirust-rs && cargo run --release install [-a]
+```
 
-- Run `cargo build --release` to build the multirust-rs binary
-- Add the binary to your PATH
-- Add symlinks for `rustc`, `cargo`, `rustdoc`, and optionally `rust-lldb` and `rust-gdb`
-- All symlinks should point to the same `multirust-rs` binary
-- Done!
+Passing `-a` will attempt to automatically add `~/.multirust/bin` to your PATH.
+
+On linux, this is done by appending to `~/.profile`.
+On windows, this is done by modifying the registry entry `HKCU\Environment\PATH`.
+
+The changes to PATH will not take effect immediately within the same terminal.
+
+The `multirust-rs` directory which is created is no longer required once installation has completed, but keeping it around will make future updates much faster:
+
+```
+cd multirust-rs && git pull && cargo run --release install
+```
+
 
 ## Usage
 
 ```
 USAGE:
-        multirust-rs [FLAGS] [SUBCOMMAND]
+        multirust [FLAGS] [SUBCOMMAND]
 
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
+    -v, --verbose    Enable verbose output
 
 SUBCOMMANDS:
     ctl
@@ -34,6 +46,7 @@ SUBCOMMANDS:
     delete-data         Delete all user metadata.
     doc                 Open the documentation for the current toolchain.
     help                Prints this message
+    install             Installs multirust.
     list-overrides      List all overrides.
     list-toolchains     List all installed toolchains.
     override            Set the toolchain override.
@@ -42,6 +55,7 @@ SUBCOMMANDS:
     run                 Run a command.
     show-default        Show information about the current default.
     show-override       Show information about the current override.
+    uninstall           Uninstalls multirust.
     update              Install or update a given toolchain.
     upgrade-data        Upgrade the ~/.multirust directory.
     which               Report location of the currently active Rust tool.
