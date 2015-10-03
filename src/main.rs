@@ -153,7 +153,7 @@ fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	}
 	
 	#[cfg(windows)]
-	fn add_to_path(path: PathBuf) -> Result<()> {
+	fn add_to_path(_cfg: &Cfg, path: PathBuf) -> Result<()> {
 		use winreg::RegKey;
 		use winreg::enums::*;
 
@@ -171,13 +171,13 @@ fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 		Ok(())
 	}
 	#[cfg(not(windows))]
-	fn add_to_path(path: PathBuf) -> Result<()> {
-		let tmp = try!(path.into_os_string().into_string().ok().expect("cannot install to invalid unicode path"));
-		utils::append_file(".profile", "~/.profile", format!("\n# Multirust override:\nexport PATH={}:$PATH", &tmp))
+	fn add_to_path(cfg: &Cfg, path: PathBuf) -> Result<()> {
+		let tmp = path.into_os_string().into_string().ok().expect("cannot install to invalid unicode path");
+		utils::append_file(".profile", &cfg.home_dir.join(".profile"), &format!("\n# Multirust override:\nexport PATH={}:$PATH", &tmp))
 	}
 	
 	if m.is_present("add-to-path") {
-		try!(add_to_path(bin_path));
+		try!(add_to_path(cfg, bin_path));
 	}
 	
 	println!("Installed");
