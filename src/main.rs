@@ -6,11 +6,17 @@ extern crate regex;
 extern crate hyper;
 extern crate multirust;
 
+#[cfg(windows)]
+extern crate winapi;
+#[cfg(windows)]
+extern crate winreg;
+
 use clap::{App, ArgMatches};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::io::BufRead;
 use std::process::Command;
+use std::process;
 use std::ffi::OsString;
 use multirust::*;
 
@@ -42,7 +48,8 @@ fn try_main() -> Result<()> {
 		"multirust" | "multirust-rs" => {
 			let arg1 = arg_iter.next();
 			if let Some("run") = arg1.as_ref().and_then(|s| s.to_str()) {
-				let arg2 = arg_iter.next().expect("expected binary name");
+				let arg2 = PathBuf::from(arg_iter.next().expect("expected binary name"))
+					.file_stem().expect("invalid binary name").to_owned();
 				let stem = arg2.to_str().expect("don't know how to proxy that binary");
 				if !stem.starts_with("-") {
 					run_proxy(stem, arg_iter)
@@ -88,7 +95,7 @@ fn run_multirust() -> Result<()> {
 	let cfg = try!(set_globals(Some(&app_matches)));
 	
 	match app_matches.subcommand_name() {
-		Some("upgrade-data")|Some("delete-data") => {}, // Don't need consistent metadata
+		Some("upgrade-data")|Some("delete-data")|Some("install")|Some("uninstall") => {}, // Don't need consistent metadata
 		Some(_) => { try!(cfg.check_metadata_version()); },
 		_ => {},
 	}
@@ -105,11 +112,99 @@ fn run_multirust() -> Result<()> {
 		("remove-toolchain", Some(m)) => remove_toolchain_args(&cfg, m),
 		("upgrade-data", Some(_)) => cfg.upgrade_data().map(|_|()),
 		("delete-data", Some(m)) => delete_data(&cfg, m),
+		("install", Some(m)) => install(&cfg, m),
+		("uninstall", Some(m)) => uninstall(&cfg, m),
 		("which", Some(m)) => which(&cfg, m),
 		("ctl", Some(m)) => ctl(&cfg, m),
 		("doc", Some(m)) => doc(&cfg, m),
 		_ => Ok(()),
 	}
+}
+
+fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	#[cfg(windows)]
+	fn create_proxy_script(mut path: PathBuf, name: &'static str) -> Result<()> {
+		path.push(name.to_owned() + ".bat");
+		utils::write_file(name, &path, &format!("%~dp0\\multirust.exe run {} \"%*\"", name))
+	}
+	#[cfg(not(windows))]
+	fn create_proxy_script(mut path: PathBuf, name: &'static str) -> Result<()> {
+		path.push(name.to_owned() + ".sh");
+		utils::write_file(name, &path, &format!("#!/bin/sh\n`dirname $0`/multirust run {} \"$@\"", name))
+	}
+	
+	let should_move = m.is_present("move");
+	let bin_path = cfg.multirust_dir.join("bin");
+	
+	try!(utils::ensure_dir_exists("bin", &bin_path, &cfg.notify_handler));
+	
+	let dest_path = bin_path.join("multirust".to_owned() + env::consts::EXE_SUFFIX);
+	let src_path = try!(env::current_exe().map_err(|_| Error::LocatingWorkingDir));
+	
+	if should_move {
+		try!(utils::rename_file("multirust", &src_path, &dest_path));
+	} else {
+		try!(utils::copy_file(&src_path, &dest_path));
+	}
+	
+	let tools = ["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
+	for tool in &tools {
+		try!(create_proxy_script(bin_path.clone(), tool));
+	}
+	
+	#[cfg(windows)]
+	fn add_to_path(path: PathBuf) -> Result<()> {
+		use winreg::RegKey;
+		use winreg::enums::*;
+
+		let root = RegKey::predef(HKEY_CURRENT_USER);
+		let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ|KEY_WRITE)
+			.map_err(|_| Error::PermissionDenied));
+		
+		let mut new_path: String = path.into_os_string().into_string().ok().expect("cannot install to invalid unicode path");
+		let old_path: String = environment.get_value("PATH").unwrap_or(String::new());
+		new_path.push_str(";");
+		new_path.push_str(&old_path);
+		try!(environment.set_value("PATH", &new_path)
+			.map_err(|_| Error::PermissionDenied));
+		
+		Ok(())
+	}
+	#[cfg(not(windows))]
+	fn add_to_path(path: PathBuf) -> Result<()> {
+		let tmp = try!(path.into_os_string().into_string().ok().expect("cannot install to invalid unicode path"));
+		utils::append_file(".profile", "~/.profile", format!("\n# Multirust override:\nexport PATH={}:$PATH", &tmp))
+	}
+	
+	if m.is_present("add-to-path") {
+		try!(add_to_path(bin_path));
+	}
+	
+	println!("Installed");
+	
+	Ok(())
+}
+
+fn uninstall(cfg: &Cfg, _: &ArgMatches) -> Result<()> {
+	#[cfg(windows)]
+	fn inner(cfg: &Cfg) -> Result<()> {
+		let mut cmd = Command::new("cmd");
+		let _ = cmd
+			.arg("/C").arg("start").arg("cmd").arg("/C")
+			.arg(&format!("echo Uninstalling... & ping -n 4 127.0.0.1>nul & rd /S /Q {} & echo Uninstalled", cfg.multirust_dir.display()))
+			.spawn();
+		Ok(())
+	}
+	#[cfg(not(windows))]
+	fn inner(cfg: &Cfg) -> Result<()> {
+		println!("Uninstalling...");
+		try!(utils::remove_dir("multirust", &cfg.multirust_dir, &cfg.notify_handler));
+	}
+	
+	println!("This will not attempt to remove the '.multirust/bin' directory from your PATH");
+	try!(inner(cfg));
+	
+	process::exit(0);
 }
 
 fn get_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches, create_parent: bool) -> Result<Toolchain<'a>> {

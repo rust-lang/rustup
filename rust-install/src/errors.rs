@@ -52,6 +52,7 @@ pub enum Error {
 	NotADirectory { path: PathBuf },
 	LinkingDirectory(PathBuf, PathBuf),
 	CopyingDirectory(PathBuf, PathBuf),
+	CopyingFile(PathBuf, PathBuf),
 	RemovingFile { name: &'static str, path: PathBuf, error: io::Error },
 	RemovingDirectory { name: &'static str, path: PathBuf, error: io::Error },
 	InvalidFileExtension,
@@ -67,6 +68,7 @@ pub enum Error {
 	AlreadyInstalledHere,
 	InvalidUrl,
 	UnsupportedHost,
+	PermissionDenied,
 	Custom { id: String, desc: String },
 }
 
@@ -192,6 +194,8 @@ impl Display for Error {
 				=> write!(f, "could not create symlink from '{}' to '{}'", src.display(), dest.display()),
 			Error::CopyingDirectory(ref src, ref dest)
 				=> write!(f, "could not copy directory from '{}' to '{}'", src.display(), dest.display()),
+			Error::CopyingFile(ref src, ref dest)
+				=> write!(f, "could not copy file from '{}' to '{}'", src.display(), dest.display()),
 			Error::RemovingFile { ref name, ref path, error: _ }
 				=> write!(f, "could not remove {} file: '{}'", name, path.display()),
 			Error::RemovingDirectory { ref name, ref path, error: _ }
@@ -222,6 +226,8 @@ impl Display for Error {
 				=> write!(f, "invalid url"),
 			Error::UnsupportedHost
 				=> write!(f, "binary packages are not yet provided for this host"),
+			Error::PermissionDenied
+				=> write!(f, "permission denied"),
 			Error::Custom { id: _, ref desc }
 				=> write!(f, "{}", desc),
 		}

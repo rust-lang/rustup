@@ -134,6 +134,12 @@ pub fn copy_dir(src: &Path, dest: &Path, notify_handler: &NotifyHandler) -> Resu
 		.ok_or_else(|| Error::CopyingDirectory(PathBuf::from(src), PathBuf::from(dest)))
 }
 
+pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
+	fs::copy(src, dest)
+		.map_err(|_| Error::CopyingFile(PathBuf::from(src), PathBuf::from(dest)))
+		.map(|_|())
+}
+
 pub fn remove_dir(name: &'static str, path: &Path, notify_handler: &NotifyHandler) -> Result<()> {
 	notify_handler.call(RemovingDirectory(name, path));
 	fs::remove_dir_all(path)

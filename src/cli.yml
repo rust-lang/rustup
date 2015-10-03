@@ -247,6 +247,17 @@ subcommands:
             Upgrades the ~/.multirust directory from previous versions.
             
             By default, it opens the API documentation for the standard library.
+    - install:
+        about: Installs multirust.
+        args:
+            - add-to-path:
+                short: a
+                help: Modifies .profile or the registry
+            - move:
+                short: m
+                help: Move self instead of copying
+    - uninstall:
+        about: Uninstalls multirust.
     - doc:
         about: Open the documentation for the current toolchain.
         after_help: |
