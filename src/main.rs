@@ -198,7 +198,7 @@ fn uninstall(cfg: &Cfg, _: &ArgMatches) -> Result<()> {
 	#[cfg(not(windows))]
 	fn inner(cfg: &Cfg) -> Result<()> {
 		println!("Uninstalling...");
-		try!(utils::remove_dir("multirust", &cfg.multirust_dir, &cfg.notify_handler));
+		utils::remove_dir("multirust", &cfg.multirust_dir, &cfg.notify_handler)
 	}
 	
 	println!("This will not attempt to remove the '.multirust/bin' directory from your PATH");
