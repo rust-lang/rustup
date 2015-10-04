@@ -141,7 +141,7 @@ impl Cfg {
 			try!(utils::ensure_dir_exists("update-hash", &self.update_hash_dir, &self.notify_handler));
 		}
 		
-		Ok(self.toolchains_dir.join(toolchain))
+		Ok(self.update_hash_dir.join(toolchain))
 	}
 	
 	pub fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {

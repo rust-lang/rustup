@@ -85,6 +85,7 @@ impl<'a> InstallMethod<'a> {
 				utils::symlink_dir(&prefix.path, src, notify_handler)
 			},
 			InstallMethod::Installer(src, temp_cfg) => {
+				notify_handler.call(Extracting(src, prefix.path()));
 				let temp_dir = try!(temp_cfg.new_directory());
 				match src.extension().and_then(OsStr::to_str) {
 					Some("gz") => InstallMethod::tar_gz(src, &temp_dir, prefix),
@@ -93,8 +94,11 @@ impl<'a> InstallMethod<'a> {
 				}
 			},
 			InstallMethod::Dist(toolchain, update_hash, dl_cfg) => {
-				if let Some(installer) = try!(dist::download_dist(toolchain, update_hash, dl_cfg)) {
+				if let Some((installer, hash)) = try!(dist::download_dist(toolchain, update_hash, dl_cfg)) {
 					try!(InstallMethod::Installer(&*installer, dl_cfg.temp_cfg).run(prefix, dl_cfg.notify_handler));
+					if let Some(hash_file) = update_hash {
+						try!(utils::write_file("update hash", hash_file, &hash));
+					}
 				}
 				Ok(())
 			}

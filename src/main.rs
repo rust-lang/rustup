@@ -5,6 +5,7 @@ extern crate rand;
 extern crate regex;
 extern crate hyper;
 extern crate multirust;
+extern crate term;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -18,14 +19,64 @@ use std::io::BufRead;
 use std::process::{Command, Stdio};
 use std::process;
 use std::ffi::{OsStr, OsString};
+use std::fmt;
 use multirust::*;
+
+
+macro_rules! warn {
+	( $ ( $ arg : tt ) * ) => ( $crate::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+}
+macro_rules! err {
+	( $ ( $ arg : tt ) * ) => ( $crate::err_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+}
+macro_rules! info {
+	( $ ( $ arg : tt ) * ) => ( $crate::info_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+}
+
+fn warn_fmt(args: fmt::Arguments) {
+	let mut t = term::stderr().unwrap();
+	let _ = t.fg(term::color::BRIGHT_YELLOW);
+	let _ = write!(t, "warning: ");
+	let _ = t.reset();
+	let _ = t.write_fmt(args);
+	let _ = write!(t, "\n");
+}
+
+fn err_fmt(args: fmt::Arguments) {
+	let mut t = term::stderr().unwrap();
+	let _ = t.fg(term::color::BRIGHT_RED);
+	let _ = write!(t, "error: ");
+	let _ = t.reset();
+	let _ = t.write_fmt(args);
+	let _ = write!(t, "\n");
+}
+
+fn info_fmt(args: fmt::Arguments) {
+	let mut t = term::stderr().unwrap();
+	let _ = t.fg(term::color::BRIGHT_GREEN);
+	let _ = write!(t, "info: ");
+	let _ = t.reset();
+	let _ = t.write_fmt(args);
+	let _ = write!(t, "\n");
+}
 
 fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
 	// Base config
 	let verbose = m.map(|m| m.is_present("verbose")).unwrap_or(false);
 	Cfg::from_env(NotifyHandler::from(move |n: Notification| {
-		if verbose || !n.is_verbose() {
-			println!("{}", n);
+		match n.level() {
+			NotificationLevel::Verbose => if verbose {
+				println!("{}", n);
+			},
+			NotificationLevel::Normal => {
+				println!("{}", n);
+			},
+			NotificationLevel::Info => {
+				info!("{}", n);
+			},
+			NotificationLevel::Warn => {
+				warn!("{}", n);
+			}
 		}
 	}))
 		
@@ -33,7 +84,7 @@ fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
 
 fn main() {
 	if let Err(e) = try_main() {
-		println!("error: {}", e);
+		err!("{}", e);
 		std::process::exit(1);
 	}
 }
@@ -127,7 +178,7 @@ fn test_proxies() -> bool {
 		.stdout(Stdio::null())
 		.stderr(Stdio::null());
 	let result = utils::cmd_status("rustc", cmd);
-	result.map_err(|e| println!("{}", e)).is_ok()
+	result.map_err(|e| info!("{}", e)).is_ok()
 }
 
 fn test_installed(cfg: &Cfg) -> bool {
@@ -152,11 +203,11 @@ fn run_multirust() -> Result<()> {
 		_ => {
 			if !test_proxies() {
 				if !test_installed(&cfg) {
-					println!("warning: multirust is not installed for the current user: \
+					warn!("multirust is not installed for the current user: \
 						`rustc` invocations will not be proxied.\n\n\
 						For more information, run  `multirust install --help`\n");
 				} else {
-					println!("warning: multirust is installed but is not set up correctly: \
+					warn!("multirust is installed but is not set up correctly: \
 						`rustc` invocations will not be proxied.\n\n\
 						Ensure '{}' is on your PATH, and has priority.\n", cfg.multirust_dir.join("bin").display());
 				}
@@ -244,7 +295,7 @@ fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 		try!(add_to_path(cfg, bin_path));
 	}
 	
-	println!("Installed");
+	info!("Installed");
 	
 	Ok(())
 }
@@ -265,7 +316,7 @@ fn uninstall(cfg: &Cfg, _: &ArgMatches) -> Result<()> {
 		utils::remove_dir("multirust", &cfg.multirust_dir, &cfg.notify_handler)
 	}
 	
-	println!("This will not attempt to remove the '.multirust/bin' directory from your PATH");
+	warn!("This will not attempt to remove the '.multirust/bin' directory from your PATH");
 	try!(inner(cfg));
 	
 	process::exit(0);
@@ -280,7 +331,7 @@ fn remove_toolchain_args(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-	let toolchain = try!(get_toolchain(cfg, m, false));
+	let toolchain = try!(get_toolchain(cfg, m, true));
 	if !try!(common_install_args(&toolchain, m)) {
 		try!(toolchain.install_from_dist_if_not_installed());
 	}
@@ -289,7 +340,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn override_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-	let toolchain = try!(get_toolchain(cfg, m, false));
+	let toolchain = try!(get_toolchain(cfg, m, true));
 	if !try!(common_install_args(&toolchain, m)) {
 		try!(toolchain.install_from_dist_if_not_installed());
 	}

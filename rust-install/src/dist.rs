@@ -53,7 +53,7 @@ impl ToolchainDesc {
 		let url = self.manifest_url(cfg.dist_root);
 		let package_dir = self.package_dir(cfg.dist_root);
 		
-		let manifest = try!(download_and_check(&url, None, "", cfg)).unwrap();
+		let manifest = try!(download_and_check(&url, None, "", cfg)).unwrap().0;
 		
 		Ok(Manifest(manifest, package_dir))
 	}
@@ -86,7 +86,7 @@ fn parse_url(url: &str) -> Result<hyper::Url> {
 	hyper::Url::parse(url).map_err(|_| Error::InvalidUrl)
 }
 
-pub fn download_and_check<'a>(url: &str, update_hash: Option<&Path>, ext: &str, cfg: DownloadCfg<'a>) -> Result<Option<temp::File<'a>>> {
+pub fn download_and_check<'a>(url: &str, update_hash: Option<&Path>, ext: &str, cfg: DownloadCfg<'a>) -> Result<Option<(temp::File<'a>, String)>> {
 	let hash = try!(download_hash(url, cfg));
 	let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
 	
@@ -104,15 +104,13 @@ pub fn download_and_check<'a>(url: &str, update_hash: Option<&Path>, ext: &str, 
 		} else {
 			cfg.notify_handler.call(Notification::NoUpdateHash(hash_file));
 		}
-		
-		try!(utils::write_file("update hash", hash_file, &partial_hash));
 	}
 	
 	let url = try!(parse_url(url));
 	let file = try!(cfg.temp_cfg.new_file_with_ext(ext));
 	try!(utils::download_file(url, &file, cfg.notify_handler));
 	// TODO: Actually download and check the checksum and signature of the file
-	Ok(Some(file))
+	Ok(Some((file, partial_hash)))
 }
 
 #[derive(Copy, Clone)]
@@ -122,7 +120,7 @@ pub struct DownloadCfg<'a> {
 	pub notify_handler: &'a NotifyHandler,
 }
 
-pub fn download_dist<'a>(toolchain: &str, update_hash: Option<&Path>, cfg: DownloadCfg<'a>) -> Result<Option<temp::File<'a>>> {
+pub fn download_dist<'a>(toolchain: &str, update_hash: Option<&Path>, cfg: DownloadCfg<'a>) -> Result<Option<(temp::File<'a>, String)>> {
 	let desc = try!(ToolchainDesc::from_str(toolchain)
 		.ok_or(Error::InvalidToolchainName));
 	

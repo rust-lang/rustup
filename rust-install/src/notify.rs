@@ -24,3 +24,10 @@ impl<T: ?Sized> NotifyHandler<T> {
 		}
 	}
 }
+
+pub enum NotificationLevel {
+	Verbose,
+	Normal,
+	Info,
+	Warn,
+}

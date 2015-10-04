@@ -74,11 +74,11 @@ impl<'a> Toolchain<'a> {
 			Ok(())
 		}
 	}
-	pub fn update_hash(&self) -> Option<PathBuf> {
+	pub fn update_hash(&self) -> Result<Option<PathBuf>> {
 		if self.is_custom() {
-			None
+			Ok(None)
 		} else {
-			Some(self.cfg.update_hash_dir.join(&self.name))
+			Ok(Some(try!(self.cfg.get_hash_file(&self.name, true))))
 		}
 	}
 	
@@ -91,11 +91,11 @@ impl<'a> Toolchain<'a> {
 	}
 	
 	pub fn install_from_dist(&self) -> Result<()> {
-		let update_hash = self.update_hash();
+		let update_hash = try!(self.update_hash());
 		self.install(InstallMethod::Dist(&self.name, update_hash.as_ref().map(|p| &**p), self.download_cfg()))
 	}
 	pub fn install_from_dist_if_not_installed(&self) -> Result<()> {
-		let update_hash = self.update_hash();
+		let update_hash = try!(self.update_hash());
 		self.install_if_not_installed(InstallMethod::Dist(&self.name, update_hash.as_ref().map(|p| &**p), self.download_cfg()))
 	}
 	pub fn is_custom(&self) -> bool {

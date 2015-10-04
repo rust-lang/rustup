@@ -7,6 +7,7 @@ use temp;
 use hyper;
 
 pub use self::Notification::*;
+pub use ::notify::NotificationLevel;
 
 pub enum Notification<'a> {
 	CreatingDirectory(&'a str, &'a Path),
@@ -21,6 +22,7 @@ pub enum Notification<'a> {
 	LinkingDirectory(&'a Path, &'a Path),
 	CopyingDirectory(&'a Path, &'a Path),
 	RemovingDirectory(&'a str, &'a Path),
+	Extracting(&'a Path, &'a Path),
 	UninstallingToolchain(&'a str),
 	UninstalledToolchain(&'a str),
 	ToolchainNotInstalled(&'a str),
@@ -89,19 +91,23 @@ impl From<temp::Error> for Error {
 }
 
 impl<'a> Notification<'a> {
-	pub fn is_verbose(&self) -> bool {
+	pub fn level(&self) -> NotificationLevel {
 		match *self {
+			Temp(ref t) => t.level(),
 			CreatingDirectory(_, _) | ToolchainDirectory(_, _) | LookingForToolchain(_) |
 			RemovingDirectory(_, _) | WritingMetadataVersion(_) | ReadMetadataVersion(_) |
 			NoUpdateHash(_) =>
-				true,
-			Temp(ref t) => t.is_verbose(),
+				NotificationLevel::Verbose,
+			LinkingDirectory(_, _) | CopyingDirectory(_, _) | DownloadingFile(_, _) |
+			Extracting(_, _) =>
+				NotificationLevel::Normal,
 			SetDefaultToolchain(_) | SetOverrideToolchain(_, _) | UpdatingToolchain(_) |
-			InstallingToolchain(_) | UsingExistingToolchain(_) | LinkingDirectory(_, _) |
-			CopyingDirectory(_, _) | UninstallingToolchain(_) | UninstalledToolchain(_) |
-			ToolchainNotInstalled(_) | DownloadingFile(_, _) | UpgradingMetadata(_, _) |
-			NoCanonicalPath(_) | UpdateHashMatches(_) | CantReadUpdateHash(_) =>
-				false,
+			InstallingToolchain(_) | UsingExistingToolchain(_) | UninstallingToolchain(_) |
+			UninstalledToolchain(_) | ToolchainNotInstalled(_) | UpgradingMetadata(_, _) |
+			UpdateHashMatches(_) =>
+				NotificationLevel::Info,
+			NoCanonicalPath(_) | CantReadUpdateHash(_) =>
+				NotificationLevel::Warn,
 		}
 	}
 }
@@ -131,6 +137,8 @@ impl<'a> Display for Notification<'a> {
 				write!(f, "coping directory from: '{}'", src.display()),
 			RemovingDirectory(name, path) =>
 				write!(f, "removing {} directory: '{}'", name, path.display()),
+			Extracting(_, _) =>
+				write!(f, "extracting..."),
 			UninstallingToolchain(name) =>
 				write!(f, "uninstalling toolchain '{}'", name),
 			UninstalledToolchain(name) =>
@@ -148,9 +156,9 @@ impl<'a> Display for Notification<'a> {
 			NoCanonicalPath(path) =>
 				write!(f, "could not canonicalize path: '{}'", path.display()),
 			UpdateHashMatches(hash) =>
-				write!(f, "update hash matches: {}\nskipping update...", hash),
+				write!(f, "update hash matches: {}, skipping update...", hash),
 			CantReadUpdateHash(path) =>
-				write!(f, "can't read update hash file: '{}'\ncan't skip update...", path.display()),
+				write!(f, "can't read update hash file: '{}', can't skip update...", path.display()),
 			NoUpdateHash(path) =>
 				write!(f, "no update hash at: '{}'", path.display()),
 		}
@@ -185,7 +193,7 @@ impl Display for Error {
 			Error::RunningCommand { ref name, error: _ }
 				=> write!(f, "could not run command: '{}'", name),
 			Error::CommandStatus { ref name, ref status }
-				=> write!(f, "command '{}' had exit status '{}'", name, status),
+				=> write!(f, "command '{}' terminated with {}", name, status),
 			Error::NotAFile { ref path }
 				=> write!(f, "not a file: '{}'", path.display()),
 			Error::NotADirectory { ref path }

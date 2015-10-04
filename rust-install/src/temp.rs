@@ -6,6 +6,7 @@ use std::fmt::{self, Display};
 use utils::raw;
 
 pub use self::Notification::*;
+pub use ::notify::NotificationLevel;
 
 pub enum Error {
 	CreatingRoot { path: PathBuf, error: io::Error },
@@ -40,12 +41,16 @@ pub struct File<'a> {
 }
 
 impl<'a> Notification<'a> {
-	pub fn is_verbose(&self) -> bool {
+	pub fn level(&self) -> NotificationLevel {
 		match *self {
 			CreatingRoot(_) | CreatingFile(_) | CreatingDirectory(_) =>
-				true,
+				NotificationLevel::Verbose,
 			FileDeletion(_, ref result) | DirectoryDeletion(_, ref result) =>
-				result.is_ok(),
+				if result.is_ok() {
+					NotificationLevel::Verbose
+				} else {
+					NotificationLevel::Warn
+				}
 		}
 	}
 }
