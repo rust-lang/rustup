@@ -15,9 +15,9 @@ use clap::{App, ArgMatches};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::io::BufRead;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::process;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use multirust::*;
 
 fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
@@ -76,16 +76,62 @@ fn current_dir() -> Result<PathBuf> {
 fn run_proxy<I: Iterator<Item=OsString>>(binary: &str, arg_iter: I) -> Result<()> {
 	let cfg = try!(set_globals(None));
 	
-	let mut command = try!(cfg.create_command_for_dir(&try!(current_dir()), binary));
+	let result = cfg.create_command_for_dir(&try!(current_dir()), binary);
 	
-	for arg in arg_iter {
-		command.arg(arg);
-	}
-	let result = command.status()
-		.ok().expect(&format!("failed to run `{}`", binary));
+	if let Ok(mut command) = result {
+		for arg in arg_iter {
+			if let Some("--multirust") = arg.to_str() {
+				println!("Proxied via multirust");
+				std::process::exit(0);
+			} else {
+				command.arg(arg);
+			}
+		}
+		let result = command.status()
+			.ok().expect(&format!("failed to run `{}`", binary));
 			
-	// Ensure correct exit code is returned
-	std::process::exit(result.code().unwrap_or(1));
+		// Ensure correct exit code is returned
+		std::process::exit(result.code().unwrap_or(1));
+	} else {
+		for arg in arg_iter {
+			if let Some("--multirust") = arg.to_str() {
+				println!("Proxied via multirust");
+				std::process::exit(0);
+			}
+		}
+		result.map(|_|())
+	}
+}
+
+fn shell_cmd(cmdline: &OsStr) -> Command {
+	#[cfg(windows)]
+	fn inner(cmdline: &OsStr) -> Command {
+		let mut cmd = Command::new("cmd");
+		cmd.arg("/C").arg(cmdline);
+		cmd
+	}
+	#[cfg(not(windows))]
+	fn inner(cmdline: &OsStr) -> Command {
+		let mut cmd = Command::new("/bin/sh");
+		cmd.arg("-c").arg(cmdline);
+		cmd
+	}
+	
+	inner(cmdline)
+}
+
+fn test_proxies() -> bool {
+	let mut cmd = shell_cmd("rustc --multirust".as_ref());
+	cmd
+		.stdin(Stdio::null())
+		.stdout(Stdio::null())
+		.stderr(Stdio::null());
+	let result = utils::cmd_status("rustc", cmd);
+	result.map_err(|e| println!("{}", e)).is_ok()
+}
+
+fn test_installed(cfg: &Cfg) -> bool {
+	utils::is_file(cfg.multirust_dir.join(bin_path("multirust")))
 }
 
 fn run_multirust() -> Result<()> {
@@ -98,6 +144,24 @@ fn run_multirust() -> Result<()> {
 		Some("upgrade-data")|Some("delete-data")|Some("install")|Some("uninstall") => {}, // Don't need consistent metadata
 		Some(_) => { try!(cfg.check_metadata_version()); },
 		_ => {},
+	}
+	
+	// Make sure everything is set-up correctly
+	match app_matches.subcommand_name() {
+		Some("install") => {},
+		_ => {
+			if !test_proxies() {
+				if !test_installed(&cfg) {
+					println!("warning: multirust is not installed for the current user: \
+						`rustc` invocations will not be proxied.\n\n\
+						For more information, run  `multirust install --help`\n");
+				} else {
+					println!("warning: multirust is installed but is not set up correctly: \
+						`rustc` invocations will not be proxied.\n\n\
+						Ensure '{}' is on your PATH, and has priority.\n", cfg.multirust_dir.join("bin").display());
+				}
+			}
+		},
 	}
 	
 	match app_matches.subcommand() {
@@ -125,12 +189,12 @@ fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	#[cfg(windows)]
 	fn create_proxy_script(mut path: PathBuf, name: &'static str) -> Result<()> {
 		path.push(name.to_owned() + ".bat");
-		utils::write_file(name, &path, &format!("%~dp0\\multirust.exe run {} \"%*\"", name))
+		utils::write_file(name, &path, &format!("@\"%~dp0\\multirust\" run {} \"%*\"", name))
 	}
 	#[cfg(not(windows))]
 	fn create_proxy_script(mut path: PathBuf, name: &'static str) -> Result<()> {
 		path.push(name.to_owned() + ".sh");
-		utils::write_file(name, &path, &format!("#!/bin/sh\n`dirname $0`/multirust run {} \"$@\"", name))
+		utils::write_file(name, &path, &format!("#!/bin/sh\n\"`dirname $0`/multirust\" run {} \"$@\"", name))
 	}
 	
 	let should_move = m.is_present("move");

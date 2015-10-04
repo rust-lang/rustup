@@ -252,6 +252,7 @@ subcommands:
         args:
             - add-to-path:
                 short: a
+                long: add-to-path
                 help: Modifies .profile or the registry
             - move:
                 short: m
