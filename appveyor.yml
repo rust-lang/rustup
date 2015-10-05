@@ -39,5 +39,6 @@ on_success:
   - copy /B /Y "target\release\*" "binaries\%TARGET%"
   - git rev-parse HEAD > "binaries\%TARGET%\commit.txt"
   - cd binaries
+  - git add .
   - git commit -m "Auto-update windows binaries"
   - ps: git push; $attempts = 0; while($lastexitcode -ne '0' -and $attempts -le 5) { git pull --rebase; git push; $attempts++ }
