@@ -1,0 +1,32 @@
+environment:
+  matrix:
+  - TARGET: x86_64-pc-windows-msvc
+  - TARGET: i686-pc-windows-msvc
+  - TARGET: x86_64-pc-windows-gnu
+  - TARGET: i686-pc-windows-gnu
+  access_token:
+    secure: CZlbQEamQxfTbQJlLl/3QfVLhVxk+1sBFMxuCN3dwHKeGHNBSE4tQudXSJ5n0Z6P
+install:
+  - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-nightly-${env:TARGET}.exe" -FileName "rust-nightly.exe"
+  - ps: .\rust-nightly.exe /VERYSILENT /NORESTART /DIR="C:\rust" | Out-Null
+  - ps: $env:PATH="$env:PATH;C:\rust\bin"
+  - rustc -vV
+  - cargo -vV
+build_script:
+  - cargo build --release
+test_script:
+  - cargo test
+notifications:
+  - provider: Webhook
+    url: https://webhooks.gitter.im/e/9907ad94eb7a5ff291c3
+on_success:
+  - git config --global credential.helper store
+  - ps: Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
+  - git submodule init
+  - git submodule update --depth 1
+  - if not exist "binaries\${env:TARGET}" mkdir "binaries\${env:TARGET}"
+  - copy /B /Y "target\release\*" "binaries\${env:TARGET}"
+  - git rev-parse HEAD > "binaries\${env:TARGET}\commit.txt"
+  - cd binaries
+  - git commit -m "Auto-update windows binaries"
+  - ps: git push; $attempts = 0; while($lastexitcode -ne '0' -and $attempts -le 5) { git pull --rebase; git push; $attempts++ }

@@ -96,26 +96,27 @@ fn try_main() -> Result<()> {
 		.to_str().expect("don't know how to proxy that binary");
 	
 	match arg0_stem {
-		"multirust" | "multirust-rs" => {
-			let arg1 = arg_iter.next();
-			if let Some("run") = arg1.as_ref().and_then(|s| s.to_str()) {
-				let arg2 = PathBuf::from(arg_iter.next().expect("expected binary name"))
-					.file_stem().expect("invalid binary name").to_owned();
-				let stem = arg2.to_str().expect("don't know how to proxy that binary");
-				if !stem.starts_with("-") {
-					run_proxy(stem, arg_iter)
-				} else {
-					run_multirust()
-				}
-			} else {
-				run_multirust()
-			}
-		},
 		"rustc" | "rustdoc" | "cargo" | "rust-lldb" | "rust-gdb" => {
 			run_proxy(arg0_stem, arg_iter)
 		},
 		other => {
-			Err(Error::Custom { id: "no-proxy".to_owned(), desc: format!("don't know how to proxy that binary: {}", other) })
+			if other.starts_with("multirust") {
+				let arg1 = arg_iter.next();
+				if let Some("run") = arg1.as_ref().and_then(|s| s.to_str()) {
+					let arg2 = PathBuf::from(arg_iter.next().expect("expected binary name"))
+						.file_stem().expect("invalid binary name").to_owned();
+					let stem = arg2.to_str().expect("don't know how to proxy that binary");
+					if !stem.starts_with("-") {
+						run_proxy(stem, arg_iter)
+					} else {
+						run_multirust()
+					}
+				} else {
+					run_multirust()
+				}
+			} else {
+				Err(Error::Custom { id: "no-proxy".to_owned(), desc: format!("don't know how to proxy that binary: {}", other) })
+			}
 		},
 	}
 }
