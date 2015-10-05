@@ -15,7 +15,7 @@ extern crate winreg;
 use clap::{App, ArgMatches};
 use std::env;
 use std::path::{Path, PathBuf};
-use std::io::BufRead;
+use std::io::{Write, BufRead};
 use std::process::{Command, Stdio};
 use std::process;
 use std::ffi::{OsStr, OsString};
@@ -178,7 +178,7 @@ fn test_proxies() -> bool {
 		.stdout(Stdio::null())
 		.stderr(Stdio::null());
 	let result = utils::cmd_status("rustc", cmd);
-	result.map_err(|e| info!("{}", e)).is_ok()
+	result.is_ok()
 }
 
 fn test_installed(cfg: &Cfg) -> bool {
@@ -232,15 +232,30 @@ fn run_multirust() -> Result<()> {
 		("which", Some(m)) => which(&cfg, m),
 		("ctl", Some(m)) => ctl(&cfg, m),
 		("doc", Some(m)) => doc(&cfg, m),
-		_ => Ok(()),
+		_ => maybe_install(&cfg),
 	}
 }
 
+fn maybe_install(cfg: &Cfg) -> Result<()> {
+	if !test_installed(&cfg) {
+		if !ask("Install multirust now?").unwrap_or(false) {
+			return Ok(());
+		}
+		let add_to_path = ask("Add multirust to PATH?").unwrap_or(false);
+		return handle_install(cfg, false, add_to_path);
+	}
+	Ok(())
+}
+
 fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	handle_install(cfg, m.is_present("move"), m.is_present("add-to-path"))
+}
+
+fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()> {
 	#[cfg(windows)]
 	fn create_proxy_script(mut path: PathBuf, name: &'static str) -> Result<()> {
 		path.push(name.to_owned() + ".bat");
-		utils::write_file(name, &path, &format!("@\"%~dp0\\multirust\" run {} \"%*\"", name))
+		utils::write_file(name, &path, &format!("@\"%~dp0\\multirust\" run {} %*", name))
 	}
 	#[cfg(not(windows))]
 	fn create_proxy_script(mut path: PathBuf, name: &'static str) -> Result<()> {
@@ -248,7 +263,6 @@ fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 		utils::write_file(name, &path, &format!("#!/bin/sh\n\"`dirname $0`/multirust\" run {} \"$@\"", name))
 	}
 	
-	let should_move = m.is_present("move");
 	let bin_path = cfg.multirust_dir.join("bin");
 	
 	try!(utils::ensure_dir_exists("bin", &bin_path, &cfg.notify_handler));
@@ -268,7 +282,7 @@ fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	}
 	
 	#[cfg(windows)]
-	fn add_to_path(_cfg: &Cfg, path: PathBuf) -> Result<()> {
+	fn do_add_to_path(_cfg: &Cfg, path: PathBuf) -> Result<()> {
 		use winreg::RegKey;
 		use winreg::enums::*;
 
@@ -286,13 +300,13 @@ fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 		Ok(())
 	}
 	#[cfg(not(windows))]
-	fn add_to_path(cfg: &Cfg, path: PathBuf) -> Result<()> {
+	fn do_add_to_path(cfg: &Cfg, path: PathBuf) -> Result<()> {
 		let tmp = path.into_os_string().into_string().ok().expect("cannot install to invalid unicode path");
 		utils::append_file(".profile", &cfg.home_dir.join(".profile"), &format!("\n# Multirust override:\nexport PATH={}:$PATH", &tmp))
 	}
 	
-	if m.is_present("add-to-path") {
-		try!(add_to_path(cfg, bin_path));
+	if add_to_path {
+		try!(do_add_to_path(cfg, bin_path));
 	}
 	
 	info!("Installed");
@@ -431,17 +445,23 @@ fn read_line() -> String {
 	lines.next().unwrap().unwrap()
 }
 
+fn ask(question: &str) -> Option<bool> {
+	print!("{} (y/n) ", question);
+	let _ = std::io::stdout().flush();
+	let input = read_line();
+	
+	match &*input {
+		"y"|"Y" => Some(true),
+		"n"|"N" => Some(false),
+		_ => None,
+	}
+}
+
 fn delete_data(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	if !m.is_present("no-prompt") {
-		print!("This will delete all toolchains, overrides, aliases, and other multirust data associated with this user. Continue? (y/n) ");
-		let input = read_line();
-		
-		match &*input {
-			"y"|"Y" => {},
-			_ => {
-				println!("aborting");
-				return Ok(());
-			}
+		if !ask("This will delete all toolchains, overrides, aliases, and other multirust data associated with this user. Continue?").unwrap_or(false) {
+			println!("aborting");
+			return Ok(());
 		}
 	}
 	

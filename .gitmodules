@@ -1,0 +1,3 @@
+[submodule "binaries"]
+	path = binaries
+	url = https://github.com/Diggsey/multirust-rs-binaries.git

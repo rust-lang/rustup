@@ -1,7 +1,7 @@
 [package]
 
 name = "rust-install"
-version = "0.0.3"
+version = "0.0.4"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "common code shared by multirust and rustup"
 

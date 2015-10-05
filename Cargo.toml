@@ -1,7 +1,7 @@
 [package]
 
 name = "multirust-rs"
-version = "0.0.3"
+version = "0.0.4"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "multirust in rust - manage multiple rust installations with ease"
 
@@ -16,7 +16,7 @@ keywords = ["multirust", "install", "proxy"]
 license = "MIT"
 
 [dependencies]
-rust-install = { version = "0.0.3", path = "rust-install" }
+rust-install = { version = "0.0.4", path = "rust-install" }
 clap = { version = "1.4.2", features = ["yaml"] }
 regex = "0.1.41"
 rand = "0.3.11"
