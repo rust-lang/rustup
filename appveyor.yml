@@ -33,9 +33,9 @@ on_success:
   - ps: Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
   - git submodule init
   - git submodule update --depth 1
-  - if not exist "binaries\${env:TARGET}" mkdir "binaries\${env:TARGET}"
-  - copy /B /Y "target\release\*" "binaries\${env:TARGET}"
-  - git rev-parse HEAD > "binaries\${env:TARGET}\commit.txt"
+  - if not exist "binaries\%TARGET%" mkdir "binaries\%TARGET%"
+  - copy /B /Y "target\release\*" "binaries\%TARGET%"
+  - git rev-parse HEAD > "binaries\%TARGET%\commit.txt"
   - cd binaries
   - git commit -m "Auto-update windows binaries"
   - ps: git push; $attempts = 0; while($lastexitcode -ne '0' -and $attempts -le 5) { git pull --rebase; git push; $attempts++ }
