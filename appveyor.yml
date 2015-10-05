@@ -43,5 +43,5 @@ on_success:
   - cd binaries
   - git checkout master
   - git add .
-  - git commit -m "Auto-update windows binaries"
-  - ps: $attempts = 0; do { .\push-changes.bat; $attempts++ } while($lastexitcode -ne '0' -and $attempts -le 5)
+  - git commit -m "Auto-update %TARGET% binaries (Appveyor CI)"
+  - ps: $attempts = 1; do { .\push-changes.bat; $attempts++ } while($lastexitcode -ne '0' -and $attempts -le 5)
