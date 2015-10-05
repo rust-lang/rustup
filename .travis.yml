@@ -16,14 +16,12 @@ script: |
   cargo test --verbose
 
 after_success: |
-  # Build docs
   cargo doc \
   && echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html && \
   sudo pip install ghp-import && \
   ghp-import -n target/doc && \
   git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
   
-  # Upload binaries
   git submodule init
   git submodule update --depth 1 --remote
   mkdir -p "binaries/$TARGET"
