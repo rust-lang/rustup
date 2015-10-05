@@ -1,4 +1,7 @@
 environment:
+  OPENSSL_INCLUDE_DIR: C:\OpenSSL\include
+  OPENSSL_LIB_DIR: C:\OpenSSL\lib
+  OPENSSL_LIBS: ssleay32:libeay32
   matrix:
   - TARGET: x86_64-pc-windows-msvc
   - TARGET: i686-pc-windows-msvc
@@ -7,6 +10,8 @@ environment:
   access_token:
     secure: CZlbQEamQxfTbQJlLl/3QfVLhVxk+1sBFMxuCN3dwHKeGHNBSE4tQudXSJ5n0Z6P
 install:
+  - ps: Start-FileDownload "http://slproweb.com/download/Win${env:BITS}OpenSSL-1_0_2d.exe"
+  - Win%BITS%OpenSSL-1_0_2d.exe /SILENT /VERYSILENT /SP- /DIR="C:\OpenSSL"
   - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-nightly-${env:TARGET}.exe" -FileName "rust-nightly.exe"
   - ps: .\rust-nightly.exe /VERYSILENT /NORESTART /DIR="C:\rust" | Out-Null
   - ps: $env:PATH="$env:PATH;C:\rust\bin"
