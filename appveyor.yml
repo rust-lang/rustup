@@ -34,7 +34,8 @@ on_success:
   - git config --global credential.helper store
   - ps: Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
   - git submodule init
-  - git submodule update --depth 1
+  - git submodule update --depth 1 --remote
+  - git checkout master
   - if not exist "binaries\%TARGET%" mkdir "binaries\%TARGET%"
   - copy /B /Y "target\release\*" "binaries\%TARGET%"
   - git rev-parse HEAD > "binaries\%TARGET%\commit.txt"
