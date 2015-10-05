@@ -4,9 +4,13 @@ environment:
   OPENSSL_LIBS: ssleay32:libeay32
   matrix:
   - TARGET: x86_64-pc-windows-msvc
+    BITS: 64
   - TARGET: i686-pc-windows-msvc
+    BITS: 32
   - TARGET: x86_64-pc-windows-gnu
+    BITS: 64
   - TARGET: i686-pc-windows-gnu
+    BITS: 32
   access_token:
     secure: CZlbQEamQxfTbQJlLl/3QfVLhVxk+1sBFMxuCN3dwHKeGHNBSE4tQudXSJ5n0Z6P
 install:
