@@ -21,6 +21,8 @@ install:
   - ps: $env:PATH="$env:PATH;C:\rust\bin"
   - rustc -vV
   - cargo -vV
+  - git config --global user.email "diggsey@googlemail.com"
+  - git config --global user.name "Diggory Blake (via Appveyor CI)"
 build_script:
   - cargo build --release
 test_script:
