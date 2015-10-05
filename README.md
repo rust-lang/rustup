@@ -10,6 +10,15 @@ Multirust-rs is a reimplementation of multirust in rust. It provides both a comm
 
 ## Installation
 
+### Installing from binaries
+
+- [Windows 64-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/x86_64-pc-windows-gnu/multirust-rs.exe)
+
+Binaries for other platforms are not yet available. Follow the instructions below for installing from source.
+
+
+### Installing from source
+
 Run this command in a writable directory:
 ```
 git clone --depth 1 https://github.com/Diggsey/multirust-rs.git multirust-rs && cd multirust-rs && cargo run --release install [-a]
