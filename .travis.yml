@@ -16,6 +16,8 @@ script: |
   cargo test --verbose
 
 after_success: |
+  git config --global credential.helper store && \
+  echo "https://${TOKEN}:x-oauth-basic@github.com" >> "~/.git-credentials" && \
   cargo doc \
   && echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html && \
   sudo pip install ghp-import && \
