@@ -12,7 +12,11 @@ Multirust-rs is a reimplementation of multirust in rust. It provides both a comm
 
 ### Installing from binaries
 
-- [Windows 64-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/x86_64-pc-windows-gnu/multirust-rs.exe)
+- [Windows GNU 64-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/x86_64-pc-windows-gnu/multirust-rs.exe)
+- [Windows MSVC 64-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/x86_64-pc-windows-msvc/multirust-rs.exe)
+- [Windows GNU 32-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/i686-pc-windows-gnu/multirust-rs.exe)
+- [Windows MSVC 32-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/i686-pc-windows-msvc/multirust-rs.exe)
+- [Linux 64-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/x86_64-unknown-linux-gnu/multirust-rs)
 
 Binaries for other platforms are not yet available. Follow the instructions below for installing from source.
 
