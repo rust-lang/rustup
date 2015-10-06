@@ -24,7 +24,7 @@ after_success: |
   git submodule init && \
   git submodule update --depth 1 --remote && \
   mkdir -p "binaries/$TARGET" && \
-  cp "target/release/"* "binaries/$TARGET" && \
+  find "target/release/" -maxdepth 1 -type f -exec cp {} "binaries/$TARGET" \; && \
   git rev-parse HEAD > "binaries/$TARGET/commit.txt" && \
   cd binaries && \
   git checkout master && \
