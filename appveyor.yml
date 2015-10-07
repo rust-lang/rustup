@@ -1,7 +1,4 @@
 environment:
-  OPENSSL_INCLUDE_DIR: C:\OpenSSL\include
-  OPENSSL_LIB_DIR: C:\OpenSSL\lib
-  OPENSSL_LIBS: ssleay32:libeay32
   matrix:
   - TARGET: x86_64-pc-windows-msvc
     BITS: 64
@@ -14,17 +11,43 @@ environment:
   access_token:
     secure: CZlbQEamQxfTbQJlLl/3QfVLhVxk+1sBFMxuCN3dwHKeGHNBSE4tQudXSJ5n0Z6P
 install:
-  - ps: Start-FileDownload "http://slproweb.com/download/Win${env:BITS}OpenSSL-1_0_2d.exe"
-  - Win%BITS%OpenSSL-1_0_2d.exe /SILENT /VERYSILENT /SP- /DIR="C:\OpenSSL"
-  - ps: Start-FileDownload "https://static.rust-lang.org/dist/rust-nightly-${env:TARGET}.exe" -FileName "rust-nightly.exe"
-  - ps: .\rust-nightly.exe /VERYSILENT /NORESTART /DIR="C:\rust" | Out-Null
-  - ps: $env:PATH="$env:PATH;C:\rust\bin"
-  - ps: if ($env:TARGET -match "-gnu$") { $env:PATH="$env:PATH;C:\msys64\mingw${env:BITS}\bin" }
-  - rustc -vV
-  - cargo -vV
-  - git config --global user.email "diggsey@googlemail.com"
-  - git config --global user.name "Diggory Blake (via Appveyor CI)"
-  - git config --global push.default simple
+  - ps: |
+      # Install Rust
+      Start-FileDownload "https://static.rust-lang.org/dist/rust-nightly-${env:TARGET}.exe" -FileName "rust-nightly.exe"
+      .\rust-nightly.exe /VERYSILENT /NORESTART /DIR="C:\rust" | Out-Null
+      $env:PATH="$env:PATH;C:\rust\bin"
+      
+      # OpenSSL must be linked statically
+      $env:OPENSSL_STATIC="1"
+      
+      # For -gnu builds
+      if ($env:TARGET -match "-gnu$") {
+        $env:PATH="$env:PATH;C:\msys64\mingw${env:BITS}\bin"
+        $env:OPENSSL_INCLUDE_DIR="C:\msys64\mingw${env:BITS}\include"
+        $env:OPENSSL_LIB_DIR="C:\msys64\mingw${env:BITS}\lib"
+        $env:OPENSSL_LIBS="crypto:ssl"
+      }
+      
+      # For -msvc builds
+      if ($env:TARGET -match "-msvc$") {
+        # Install OpenSSL
+        Start-FileDownload "http://slproweb.com/download/Win${env:BITS}OpenSSL-1_0_2d.exe"
+        Win${env:BITS}OpenSSL-1_0_2d.exe /SILENT /VERYSILENT /SP- /DIR="C:\OpenSSL"
+      
+        $env:OPENSSL_INCLUDE_DIR="C:\OpenSSL\include"
+        $env:OPENSSL_LIB_DIR="C:\OpenSSL\lib\VC\static"
+        $env:OPENSSL_LIBS="ssleay32MT:libeay32MT"
+      }
+      
+      # Print version info
+      rustc -vV
+      cargo -vV
+      
+      # Configure git
+      git config --global user.email "diggsey@googlemail.com"
+      git config --global user.name "Diggory Blake (via Appveyor CI)"
+      git config --global push.default simple
+
 build_script:
   - cargo build --release
 test_script:
