@@ -31,11 +31,15 @@ install:
       # For -msvc builds
       if ($env:TARGET -match "-msvc$") {
         # Install OpenSSL
-        Start-FileDownload "http://slproweb.com/download/Win${env:BITS}OpenSSL-1_0_2d.exe" -FileName "openssl.exe"
-        .\openssl.exe /SILENT /VERYSILENT /SP- /DIR="C:\OpenSSL"
+        Start-FileDownload "http://www.npcglib.org/~stathis/downloads/openssl-1.0.2d-vs2015.7z" -FileName "openssl.7z"
+        7z x openssl.7z -o"C:\OpenSSL"
       
-        $env:OPENSSL_INCLUDE_DIR="C:\OpenSSL\include"
-        $env:OPENSSL_LIB_DIR="C:\OpenSSL\lib\VC\static"
+        $env:OPENSSL_INCLUDE_DIR="C:\OpenSSL\openssl-1.0.2d-vs2015\include"
+        if ($env:BITS -eq "32") {
+          $env:OPENSSL_LIB_DIR="C:\OpenSSL\openssl-1.0.2d-vs2015\lib"
+        } else {
+          $env:OPENSSL_LIB_DIR="C:\OpenSSL\openssl-1.0.2d-vs2015\lib64"
+        }
         $env:OPENSSL_LIBS="ssleay32MT:libeay32MT"
       }
       
