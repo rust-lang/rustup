@@ -58,7 +58,7 @@ build_script:
         cargo rustc --release --bin multirust-rs -- -C link-args="-lgdi32 -luser32"
       }
       if ($env:TARGET -match "-msvc$") {
-        cargo rustc --release --bin multirust-rs -- -C link-args="gdi32 user32"
+        cargo rustc --release --bin multirust-rs -- -C link-args="gdi32.lib user32.lib"
       }
 notifications:
   - provider: Webhook
