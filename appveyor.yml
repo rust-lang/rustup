@@ -31,8 +31,8 @@ install:
       # For -msvc builds
       if ($env:TARGET -match "-msvc$") {
         # Install OpenSSL
-        Start-FileDownload "http://slproweb.com/download/Win${env:BITS}OpenSSL-1_0_2d.exe"
-        Win${env:BITS}OpenSSL-1_0_2d.exe /SILENT /VERYSILENT /SP- /DIR="C:\OpenSSL"
+        Start-FileDownload "http://slproweb.com/download/Win${env:BITS}OpenSSL-1_0_2d.exe" -FileName "openssl.exe"
+        .\openssl.exe /SILENT /VERYSILENT /SP- /DIR="C:\OpenSSL"
       
         $env:OPENSSL_INCLUDE_DIR="C:\OpenSSL\include"
         $env:OPENSSL_LIB_DIR="C:\OpenSSL\lib\VC\static"
