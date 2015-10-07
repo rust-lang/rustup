@@ -15,8 +15,6 @@ keywords = ["multirust", "install", "proxy"]
 
 license = "MIT"
 
-build = "build.rs"
-
 [dependencies]
 rust-install = { version = "0.0.4", path = "rust-install" }
 clap = { version = "1.4.2", features = ["yaml"] }
