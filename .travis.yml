@@ -19,7 +19,7 @@ install: |
 
 before_script:
   - sudo apt-get update
-  - sudo apt-get install libc6:i386 libstdc++6:i386 zlib1g:i386
+  - sudo apt-get install libc6-dev:i386 libstdc++6-dev:i386 zlib1g-dev:i386
   - sudo ~/rust/install.sh
   
 script: |
