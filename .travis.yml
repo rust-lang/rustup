@@ -4,11 +4,14 @@ env:
   - TARGET=x86_64-unknown-linux-gnu
     BITS=64
 
+git:
+  submodules: false
+
 install: |
-  sudo echo "foreign-architecture i386" > /etc/dpkg/dpkg.cfg.d/multiarch && \
-  sudo apt-get update && \
-  sudo apt-get install libc6:i386 libncurses5:i386 libstdc++6:i386 && \
-  \
+  if [ $BITS -eq 32 ]
+    sudo apt-get install libgd2-xpm ia32-libs ia32-libs-multiarch -qq
+  fi
+
   git config --global user.email "diggsey@googlemail.com" && \
   git config --global user.name "Diggory Blake (via Travis CI)" && \
   git config --global push.default simple && \
