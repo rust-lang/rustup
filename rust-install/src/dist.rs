@@ -207,9 +207,7 @@ pub fn get_host_triple() -> (&'static str, Option<&'static str>, Option<&'static
 
 pub fn get_installer_ext() -> &'static str {
 	if cfg!(windows) {
-		if env::var_os("MSYSTEM").and_then(utils::if_not_empty).is_none() {
-			return ".msi"
-		}
+		return ".msi"
 	}
 	".tar.gz"
 }

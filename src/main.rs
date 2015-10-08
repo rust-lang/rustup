@@ -265,14 +265,12 @@ fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()> {
-	#[cfg(windows)]
-	fn create_proxy_script(mut path: PathBuf, name: &'static str) -> Result<()> {
+	fn create_bat_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
 		path.push(name.to_owned() + ".bat");
 		utils::write_file(name, &path, &format!("@\"%~dp0\\multirust\" run {} %*", name))
 	}
-	#[cfg(not(windows))]
-	fn create_proxy_script(mut path: PathBuf, name: &'static str) -> Result<()> {
-		path.push(name.to_owned() + ".sh");
+	fn create_sh_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
+		path.push(name.to_owned());
 		utils::write_file(name, &path, &format!("#!/bin/sh\n\"`dirname $0`/multirust\" run {} \"$@\"", name))
 	}
 	
@@ -291,7 +289,8 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	
 	let tools = ["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
 	for tool in &tools {
-		try!(create_proxy_script(bin_path.clone(), tool));
+		try!(create_bat_proxy(bin_path.clone(), tool));
+		try!(create_sh_proxy(bin_path.clone(), tool));
 	}
 	
 	#[cfg(windows)]
