@@ -5,7 +5,9 @@ env:
     BITS=64
 
 install: |
-  sudo dpkg --add-architecture i386 && \
+  echo "foreign-architecture i386" > /etc/dpkg/dpkg.cfg.d/multiarch && \
+  sudo apt-get update && \
+  sudo apt-get install libc6:i386 libncurses5:i386 libstdc++6:i386 && \
   \
   git config --global user.email "diggsey@googlemail.com" && \
   git config --global user.name "Diggory Blake (via Travis CI)" && \
