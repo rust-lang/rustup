@@ -5,7 +5,7 @@ env:
     BITS=64
 
 install: |
-  echo "foreign-architecture i386" > /etc/dpkg/dpkg.cfg.d/multiarch && \
+  sudo echo "foreign-architecture i386" > /etc/dpkg/dpkg.cfg.d/multiarch && \
   sudo apt-get update && \
   sudo apt-get install libc6:i386 libncurses5:i386 libstdc++6:i386 && \
   \
