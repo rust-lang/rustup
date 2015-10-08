@@ -7,21 +7,24 @@ env:
 git:
   submodules: false
 
+sudo: required
 install: |
-  if [ $BITS -eq 32 ]; then sudo apt-get install libgd2-xpm ia32-libs ia32-libs-multiarch -qq; fi && \
-  \
   git config --global user.email "diggsey@googlemail.com" && \
   git config --global user.name "Diggory Blake (via Travis CI)" && \
   git config --global push.default simple && \
   \
   mkdir -p ~/rust && \
   echo -e "\033[33;1mDownloading Rust\033[0m" && \
-  curl -sL http://static.rust-lang.org/dist/rust-nightly-$TARGET.tar.gz | tar --strip-components=1 -C ~/rust -xzf - && \
-  export PATH="$PATH:$HOME/rust/bin" && \
-  export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HOME/rust/lib" && \
-  export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$HOME/rust/lib"
+  curl -sL http://static.rust-lang.org/dist/rust-nightly-$TARGET.tar.gz | tar --strip-components=1 -C ~/rust -xzf -
+
+before_script:
+  - sudo apt-get update
+  - sudo apt-get install libc6:i386 libstdc++6:i386
   
 script: |
+  export PATH="$PATH:$HOME/rust/bin" && \
+  export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HOME/rust/lib" && \
+  export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$HOME/rust/lib" && \
   export OPENSSL_STATIC=1 && \
   cargo build --release --verbose && \
   cargo test --verbose
