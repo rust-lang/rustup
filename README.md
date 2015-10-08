@@ -52,7 +52,7 @@ cd multirust-rs && git pull && cargo run --release install
 
 ```
 USAGE:
-        multirust \[FLAGS\] \[SUBCOMMAND\]
+        multirust [FLAGS] [SUBCOMMAND]
 
 FLAGS:
     -h, --help       Prints help information
@@ -84,7 +84,7 @@ SUBCOMMANDS:
 
 Standard toolchain names have the following form:
 ```
-\[<arch>-\]\[<os>-\]\[<env>-\]<channel>\[-<date>\]
+[<arch>-][<os>-][<env>-]<channel>[-<date>]
 
 <arch>		= i686|x86_64
 <os>		= pc-windows|unknown-linux|apple-darwin
