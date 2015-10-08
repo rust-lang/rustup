@@ -119,7 +119,7 @@ If the date is omitted, the toolchain will track the most recent version.
 	`multirust override my_custom_toolchain --install "C:\RustInstaller.msi"`
 
 - Install a custom toolchain using an installer (linux):
-	`multirust override my_custom_toolchain --install "C:\RustInstaller.tar.gz"`
+	`multirust override my_custom_toolchain --install "/home/user/RustInstaller.tar.gz"`
 
 - Install a custom toolchain using an installer from the internet (linux):
 	`multirust override my_custom_toolchain --install "http://domain.tld/installer.tar.gz"`
