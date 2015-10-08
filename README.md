@@ -2,13 +2,17 @@
 
 Multirust-rs is a reimplementation of multirust in rust. It provides both a command line interface, and a rust library, so it's trivial to integrate it with external tools.
 
-## Documentation
+## Library Installation
+
+Add [multirust-rs](https://crates.io/crates/multirust-rs) or [rust-install](https://crates.io/crates/rust-install) as a standard cargo dependency to your project, depending on your requirements.
+
+## Library Documentation
 
 - [multirust](http://diggsey.github.io/multirust-rs/multirust/index.html)
 - [rust-install](http://diggsey.github.io/multirust-rs/rust_install/index.html)
 
 
-## Installation
+## Tool Installation
 
 ### Installing from binaries
 
@@ -42,11 +46,13 @@ cd multirust-rs && git pull && cargo run --release install
 ```
 
 
-## Usage
+## Tool Documentation
+
+### Usage
 
 ```
 USAGE:
-        multirust [FLAGS] [SUBCOMMAND]
+        multirust \[FLAGS\] \[SUBCOMMAND\]
 
 FLAGS:
     -h, --help       Prints help information
@@ -73,6 +79,63 @@ SUBCOMMANDS:
     upgrade-data        Upgrade the ~/.multirust directory.
     which               Report location of the currently active Rust tool.
 ```
+
+### Toolchain names
+
+Standard toolchain names have the following form:
+```
+\[<arch>-\]\[<os>-\]\[<env>-\]<channel>\[-<date>\]
+
+<arch>		= i686|x86_64
+<os>		= pc-windows|unknown-linux|apple-darwin
+<env>		= gnu|msvc
+<channel>	= stable|beta|nightly
+<date>		= YYYY-MM-DD
+```
+
+Any combination of optional parts are acceptable.
+
+Parts of the target triple which are omitted, will default to that of the host.
+If the date is omitted, the toolchain will track the most recent version.
+
+### Example usage
+
+- Set the default toolchain to the latest nightly:
+	`multirust default nightly`
+
+- For the current directory, use the most recent stable build using the MSVC linker:
+	`multirust override msvc-stable`
+
+- For the current directory, use a 32-bit beta build instead:
+	`multirust override i686-beta`
+
+- For the current directory, use a nightly from a specific date:
+	`multirust override nightly-2015-04-01`
+
+- Combine these:
+	`multirust override i686-msvc-nightly-2015-04-01`
+
+- Install a custom toolchain using an installer (windows):
+	`multirust override my_custom_toolchain --install "C:\RustInstaller.msi"`
+
+- Install a custom toolchain using an installer (linux):
+	`multirust override my_custom_toolchain --install "C:\RustInstaller.tar.gz"`
+
+- Install a custom toolchain using an installer from the internet (linux):
+	`multirust override my_custom_toolchain --install "http://domain.tld/installer.tar.gz"`
+
+- Install a custom toolchain by symlinking an existing installation:
+	`multirust override my_custom_toolchain --link-local "C:\RustInstallation"`
+
+- Install a custom toolchain by copying an existing installation:
+	`multirust override my_custom_toolchain --copy-local "C:\RustInstallation"`
+
+- Switch back to the default toolchain for the current directory:
+	`multirust remove-override`
+	
+- See which toolchain will be used in the current directory:
+	`multirust show-override`
+
 
 ## Contributing
 

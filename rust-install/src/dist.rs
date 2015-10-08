@@ -13,40 +13,77 @@ use hyper;
 pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
 pub const UPDATE_HASH_LEN: usize = 20;
 
-pub enum ToolchainDesc {
-	Channel(String),
-	ChannelDate(String, String),
+pub struct ToolchainDesc {
+	pub arch: Option<String>,
+	pub os: Option<String>,
+	pub env: Option<String>,
+	pub channel: String,
+	pub date: Option<String>,
 }
 
 impl ToolchainDesc {
 	pub fn from_str(name: &str) -> Option<Self> {
-		let re = Regex::new(r"^(nightly|beta|stable)(?:-(\d{4}-\d{2}-\d{2}))?$").unwrap();
+		let archs = ["i686", "x86_64"];
+		let oses = ["pc-windows", "unknown-linux", "apple-darwin"];
+		let envs = ["gnu", "msvc"];
+		let channels = ["nightly", "beta", "stable"];
+		
+		let pattern = format!(
+			r"^(?:({})-)?(?:({})-)?(?:({})-)?({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?$",
+			archs.join("|"), oses.join("|"), envs.join("|"), channels.join("|")
+			);
+		
+		let re = Regex::new(&pattern).unwrap();
 		re.captures(name).map(|c| {
-			let channel = c.at(1).unwrap().to_owned();
-			if let Some(date) = c.at(2) {
-				ToolchainDesc::ChannelDate(channel, date.to_owned())
-			} else {
-				ToolchainDesc::Channel(channel)
+			fn fn_map(s: &str) -> Option<String> {
+				if s == "" {
+					None
+				} else {
+					Some(s.to_owned())
+				}
+			}
+				
+			ToolchainDesc {
+				arch: c.at(1).and_then(fn_map),
+				os: c.at(2).and_then(fn_map),
+				env: c.at(3).and_then(fn_map),
+				channel: c.at(4).unwrap().to_owned(),
+				date: c.at(5).and_then(fn_map),
 			}
 		})
 	}
 	
 	pub fn manifest_url(&self, dist_root: &str) -> String {
-		match *self {
-			ToolchainDesc::Channel(ref channel) =>
-				format!("{}/channel-rust-{}", dist_root, channel),
-			ToolchainDesc::ChannelDate(ref channel, ref date) =>
-				format!("{}/{}/channel-rust-{}", dist_root, date, channel),
+		match self.date {
+			None =>
+				format!("{}/channel-rust-{}", dist_root, self.channel),
+			Some(ref date) =>
+				format!("{}/{}/channel-rust-{}", dist_root, date, self.channel),
 		}
 	}
 	
 	pub fn package_dir(&self, dist_root: &str) -> String {
-		match *self {
-			ToolchainDesc::Channel(_) =>
+		match self.date {
+			None =>
 				format!("{}", dist_root),
-			ToolchainDesc::ChannelDate(_, ref date) =>
+			Some(ref date) =>
 				format!("{}/{}", dist_root, date),
 		}
+	}
+	
+	pub fn target_triple(&self) -> Option<String> {
+		let (host_arch, host_os, host_env) = get_host_triple();
+		let arch = self.arch.as_ref().map(|s| &**s).unwrap_or(host_arch);
+		let os = self.os.as_ref().map(|s| &**s).or(host_os);
+		let env = self.env.as_ref().map(|s| &**s).or(host_env);
+		
+		os.map(|os| {
+			if let Some(ref env) = env {
+				format!("{}-{}-{}", arch, os, env)
+			} else {
+				format!("{}-{}", arch, os)
+			}
+		})
 	}
 	
 	pub fn download_manifest<'a>(&self, cfg: DownloadCfg<'a>) -> Result<Manifest<'a>> {
@@ -76,10 +113,23 @@ impl<'a> Manifest<'a> {
 
 impl fmt::Display for ToolchainDesc {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		match *self {
-			ToolchainDesc::Channel(ref channel) => write!(f, "{}", channel),
-			ToolchainDesc::ChannelDate(ref channel, ref date) => write!(f, "{}-{}", channel, date),
+		if let Some(ref arch) = self.arch {
+			try!(write!(f, "{}-", arch));
 		}
+		if let Some(ref os) = self.os {
+			try!(write!(f, "{}-", os));
+		}
+		if let Some(ref env) = self.env {
+			try!(write!(f, "{}-", env));
+		}
+		
+		try!(write!(f, "{}", &self.channel));
+		
+		if let Some(ref date) = self.date {
+			try!(write!(f, "-{}", date));
+		}
+		
+		Ok(())
 	}
 }
 fn parse_url(url: &str) -> Result<hyper::Url> {
@@ -124,7 +174,7 @@ pub fn download_dist<'a>(toolchain: &str, update_hash: Option<&Path>, cfg: Downl
 	let desc = try!(ToolchainDesc::from_str(toolchain)
 		.ok_or(Error::InvalidToolchainName));
 	
-	let target_triple = try!(get_host_triple().ok_or(Error::UnsupportedHost));
+	let target_triple = try!(desc.target_triple().ok_or(Error::UnsupportedHost));
 	let ext = get_installer_ext();
 	
 	let manifest = try!(desc.download_manifest(cfg));
@@ -136,18 +186,23 @@ pub fn download_dist<'a>(toolchain: &str, update_hash: Option<&Path>, cfg: Downl
 	download_and_check(&url, update_hash, ext, cfg)
 }
 
-pub fn get_host_triple() -> Option<&'static str> {
-	match (env::consts::ARCH, env::consts::OS, cfg!(target_env = "gnu")) {
-		("x86_64", "macos", _) => Some("x86_64-apple-darwin"),
-		("x86_64", "windows", true) => Some("x86_64-pc-windows-gnu"),
-		("x86_64", "windows", false) => Some("x86_64-pc-windows-msvc"),
-		("x86_64", "linux", _) => Some("x86_64-unknown-linux-gnu"),
-		("i686", "macos", _) => Some("i686-apple-darwin"),
-		("i686", "windows", true) => Some("i686-pc-windows-gnu"),
-		("i686", "windows", false) => Some("i686-pc-windows-msvc"),
-		("i686", "linux", _) => Some("i686-unknown-linux-gnu"),
-		_ => None
-	}
+pub fn get_host_triple() -> (&'static str, Option<&'static str>, Option<&'static str>) {
+	let arch = env::consts::ARCH;
+	
+	let os = match env::consts::OS {
+		"windows" => Some("pc-windows"),
+		"linux" => Some("unknown-linux"),
+		"macos" => Some("apple-darwin"),
+		_ => None,
+	};
+	
+	let env = match () {
+		() if cfg!(target_env = "gnu") => Some("gnu"),
+		() if cfg!(target_env = "msvc") => Some("msvc"),
+		_ => None,
+	};
+	
+	(arch, os, env)
 }
 
 pub fn get_installer_ext() -> &'static str {
