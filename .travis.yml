@@ -20,7 +20,6 @@ install: |
 before_script:
   - sudo apt-get update
   - sudo apt-get install libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libgcc1:i386
-  - sudo aptitude why oracle-java7-installer
   - sudo ~/rust/install.sh
   
 script: |
