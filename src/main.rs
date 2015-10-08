@@ -318,8 +318,8 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 		
 		// Tell other processes to update their environment
 		unsafe {
-			SendMessageTimeoutA(HWND_BROADCAST, WM_SETTINGCHANGE, 0,
-				"Environment\0".as_ptr() as isize as i64, SMTO_ABORTIFHUNG,
+			SendMessageTimeoutA(HWND_BROADCAST, WM_SETTINGCHANGE, 0 as WPARAM,
+				"Environment\0".as_ptr() as LPARAM, SMTO_ABORTIFHUNG,
 				5000, ptr::null_mut());
 		}
 		
