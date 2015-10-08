@@ -9,10 +9,10 @@ env:
 install: |
   git config --global user.email "diggsey@googlemail.com" && \
   git config --global user.name "Diggory Blake (via Travis CI)" && \
-  git config --global push.default simple && \
+  git config --global push.default simple
   
 script: |
-  export OPENSSL_STATIC=1
+  export OPENSSL_STATIC=1 && \
   cargo build --release --verbose && \
   cargo test --verbose
 
