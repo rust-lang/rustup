@@ -11,6 +11,8 @@ extern crate term;
 extern crate winapi;
 #[cfg(windows)]
 extern crate winreg;
+#[cfg(windows)]
+extern crate user32;
 
 use clap::{App, ArgMatches};
 use std::env;
@@ -238,12 +240,22 @@ fn run_multirust() -> Result<()> {
 }
 
 fn maybe_install(cfg: &Cfg) -> Result<()> {
+	let exe_path = try!(env::current_exe().map_err(|_| Error::LocatingWorkingDir));
 	if !test_installed(&cfg) {
 		if !ask("Install multirust now?").unwrap_or(false) {
 			return Ok(());
 		}
 		let add_to_path = ask("Add multirust to PATH?").unwrap_or(false);
 		return handle_install(cfg, false, add_to_path);
+	} else if exe_path.parent() != Some(&cfg.multirust_dir.join("bin")) {
+		println!("Existing multirust installation detected.");
+		if !ask("Replace or update it now?").unwrap_or(false) {
+			return Ok(());
+		}
+		return handle_install(cfg, false, false);
+	} else {
+		println!("This is the currently installed multirust binary.");
+		read_line();
 	}
 	Ok(())
 }
@@ -284,8 +296,11 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	
 	#[cfg(windows)]
 	fn do_add_to_path(_cfg: &Cfg, path: PathBuf) -> Result<()> {
+		
 		use winreg::RegKey;
-		use winreg::enums::*;
+		use winapi::*;
+		use user32::*;
+		use std::ptr;
 
 		let root = RegKey::predef(HKEY_CURRENT_USER);
 		let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ|KEY_WRITE)
@@ -298,12 +313,28 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 		try!(environment.set_value("PATH", &new_path)
 			.map_err(|_| Error::PermissionDenied));
 		
+		const HWND_BROADCAST: HWND = 0xffff as HWND;
+		const SMTO_ABORTIFHUNG: UINT = 0x0002;
+		
+		// Tell other processes to update their environment
+		unsafe {
+			SendMessageTimeoutA(HWND_BROADCAST, WM_SETTINGCHANGE, 0,
+				"Environment\0".as_ptr() as i64, SMTO_ABORTIFHUNG,
+				5000, ptr::null_mut());
+		}
+		
+		println!("PATH has been updated. You may need to restart your shell for changes to take effect.");
+		
 		Ok(())
 	}
 	#[cfg(not(windows))]
 	fn do_add_to_path(cfg: &Cfg, path: PathBuf) -> Result<()> {
 		let tmp = path.into_os_string().into_string().ok().expect("cannot install to invalid unicode path");
-		utils::append_file(".profile", &cfg.home_dir.join(".profile"), &format!("\n# Multirust override:\nexport PATH={}:$PATH", &tmp))
+		try!(utils::append_file(".profile", &cfg.home_dir.join(".profile"), &format!("\n# Multirust override:\nexport PATH={}:$PATH", &tmp)));
+		
+		println!("'~/.profile' has been updated. You will need to start a new login shell for changes to take effect.");
+		
+		Ok(())
 	}
 	
 	if add_to_path {
@@ -311,6 +342,7 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	}
 	
 	info!("Installed");
+	read_line();
 	
 	Ok(())
 }

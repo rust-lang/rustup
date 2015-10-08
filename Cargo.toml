@@ -26,18 +26,22 @@ term = "0.2.11"
 [target.x86_64-pc-windows-gnu.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.1"
+user32-sys = "0.1.2"
 
 [target.x86_64-pc-windows-msvc.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.1"
+user32-sys = "0.1.2"
 
 [target.i686-pc-windows-gnu.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.1"
+user32-sys = "0.1.2"
 
 [target.i686-pc-windows-msvc.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.1"
+user32-sys = "0.1.2"
 
 [lib]
 name = "multirust"
