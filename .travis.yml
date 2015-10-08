@@ -8,10 +8,8 @@ git:
   submodules: false
 
 install: |
-  if [ $BITS -eq 32 ]
-    sudo apt-get install libgd2-xpm ia32-libs ia32-libs-multiarch -qq
-  fi
-
+  if [ $BITS -eq 32 ]; then sudo apt-get install libgd2-xpm ia32-libs ia32-libs-multiarch -qq; fi && \
+  \
   git config --global user.email "diggsey@googlemail.com" && \
   git config --global user.name "Diggory Blake (via Travis CI)" && \
   git config --global push.default simple && \
