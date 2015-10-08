@@ -271,7 +271,8 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	}
 	fn create_sh_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
 		path.push(name.to_owned());
-		utils::write_file(name, &path, &format!("#!/bin/sh\n\"`dirname $0`/multirust\" run {} \"$@\"", name))
+		try!(utils::write_file(name, &path, &format!("#!/bin/sh\n\"`dirname $0`/multirust\" run {} \"$@\"", name)));
+		utils::make_executable(&path)
 	}
 	
 	let bin_path = cfg.multirust_dir.join("bin");

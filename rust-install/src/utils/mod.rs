@@ -163,3 +163,26 @@ pub fn open_browser(path: &Path) -> Result<()> {
 		Err(Error::OpeningBrowser)
 	}
 }
+
+pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
+	fs::set_permissions(path, perms).map_err(|_| Error::SettingPermissions(PathBuf::from(path)))
+}
+
+pub fn make_executable(path: &Path) -> Result<()> {
+	#[cfg(windows)]
+	fn inner(_: &Path) -> Result<()> {
+		Ok(())
+	}
+	#[cfg(not(windows))]
+	fn inner(path: &Path) -> Result<()> {
+		use std::os::unix::fs::PermissionsExt;
+		
+		let metadata = try!(fs::metadata(path).map_err(|_| Error::SettingPermissions(PathBuf::from(path))));
+		let mut perms = metadata.permissions();
+		perms.set_mode(perms.mode()|0o111);
+		
+		set_permissions(path, perms)
+	}
+	
+	inner(path)
+}

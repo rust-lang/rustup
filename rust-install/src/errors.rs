@@ -71,6 +71,7 @@ pub enum Error {
 	InvalidUrl,
 	UnsupportedHost,
 	PermissionDenied,
+	SettingPermissions(PathBuf),
 	Custom { id: String, desc: String },
 }
 
@@ -236,6 +237,8 @@ impl Display for Error {
 				=> write!(f, "binary packages are not yet provided for this host"),
 			Error::PermissionDenied
 				=> write!(f, "permission denied"),
+			Error::SettingPermissions(ref path)
+				=> write!(f, "failed to set permissions for: '{}'", path.display()),
 			Error::Custom { id: _, ref desc }
 				=> write!(f, "{}", desc),
 		}
