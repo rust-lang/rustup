@@ -20,11 +20,9 @@ install: |
 before_script:
   - sudo apt-get update
   - sudo apt-get install libc6:i386 libstdc++6:i386
+  - sudo ~/rust/install.sh
   
 script: |
-  export PATH="$PATH:$HOME/rust/bin" && \
-  export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HOME/rust/lib" && \
-  export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$HOME/rust/lib" && \
   export OPENSSL_STATIC=1 && \
   cargo build --release --verbose && \
   cargo test --verbose
