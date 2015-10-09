@@ -25,7 +25,7 @@ install: |
   curl -sL http://static.rust-lang.org/dist/rust-nightly-$TARGET.tar.gz | tar --strip-components=1 -C ~/rust -xzf -
 
 before_script: |
-  if [ $BITS -eq 32 ]; then \
+  if [ $TARGET -eq i686-unknown-linux-gnu ]; then \
     sudo apt-get update && \
     sudo apt-get install libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386 gcc-multilib; \
   fi && \
