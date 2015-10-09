@@ -179,7 +179,8 @@ pub fn make_executable(path: &Path) -> Result<()> {
 		
 		let metadata = try!(fs::metadata(path).map_err(|_| Error::SettingPermissions(PathBuf::from(path))));
 		let mut perms = metadata.permissions();
-		perms.set_mode(perms.mode()|0o111);
+		let new_mode = perms.mode()|0o111;
+		perms.set_mode(new_mode);
 		
 		set_permissions(path, perms)
 	}
