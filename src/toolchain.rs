@@ -43,6 +43,10 @@ impl<'a> Toolchain<'a> {
 			self.cfg.notify_handler.call(UninstallingToolchain(&self.name));
 		} else {
 			self.cfg.notify_handler.call(ToolchainNotInstalled(&self.name));
+			return Ok(());
+		}
+		if let Some(update_hash) = try!(self.update_hash()) {
+			try!(utils::remove_file("update hash", &update_hash));
 		}
 		let result = self.prefix.uninstall(&self.cfg.notify_handler);
 		if !self.exists() {
@@ -164,6 +168,10 @@ impl<'a> Toolchain<'a> {
 	}
 	
 	pub fn create_command(&self, binary: &str) -> Result<Command> {
+		if !self.exists() {
+			return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
+		}
+		
 		let binary_path = self.prefix.binary_file(binary);
 		
 		self.with_env(|| Ok(Command::new(binary_path)))

@@ -14,16 +14,17 @@ extern crate winreg;
 #[cfg(windows)]
 extern crate user32;
 
-use clap::{App, ArgMatches};
+use clap::ArgMatches;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::io::{Write, BufRead};
 use std::process::{Command, Stdio};
 use std::process;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::fmt;
 use multirust::*;
 
+mod cli;
 
 macro_rules! warn {
 	( $ ( $ arg : tt ) * ) => ( $crate::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
@@ -85,41 +86,9 @@ fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
 }
 
 fn main() {
-	if let Err(e) = try_main() {
+	if let Err(e) = run_multirust() {
 		err!("{}", e);
 		std::process::exit(1);
-	}
-}
-
-fn try_main() -> Result<()> {
-	let mut arg_iter = env::args_os();
-	let arg0 = PathBuf::from(arg_iter.next().unwrap());
-	let arg0_stem = arg0.file_stem().expect("invalid multirust invocation")
-		.to_str().expect("don't know how to proxy that binary");
-	
-	match arg0_stem {
-		"rustc" | "rustdoc" | "cargo" | "rust-lldb" | "rust-gdb" => {
-			run_proxy(arg0_stem, arg_iter)
-		},
-		other => {
-			if other.starts_with("multirust") {
-				let arg1 = arg_iter.next();
-				if let Some("run") = arg1.as_ref().and_then(|s| s.to_str()) {
-					let arg2 = PathBuf::from(arg_iter.next().expect("expected binary name"))
-						.file_stem().expect("invalid binary name").to_owned();
-					let stem = arg2.to_str().expect("don't know how to proxy that binary");
-					if !stem.starts_with("-") {
-						run_proxy(stem, arg_iter)
-					} else {
-						run_multirust()
-					}
-				} else {
-					run_multirust()
-				}
-			} else {
-				Err(Error::Custom { id: "no-proxy".to_owned(), desc: format!("don't know how to proxy that binary: {}", other) })
-			}
-		},
 	}
 }
 
@@ -127,14 +96,10 @@ fn current_dir() -> Result<PathBuf> {
 	env::current_dir().map_err(|_| Error::LocatingWorkingDir)
 }
 
-fn run_proxy<I: Iterator<Item=OsString>>(binary: &str, arg_iter: I) -> Result<()> {
-	let cfg = try!(set_globals(None));
-	
-	let result = cfg.create_command_for_dir(&try!(current_dir()), binary);
-	
-	if let Ok(mut command) = result {
-		for arg in arg_iter {
-			if let Some("--multirust") = arg.to_str() {
+fn run_inner(_: &Cfg, command: Result<Command>, args: &[&str]) -> Result<()> {
+	if let Ok(mut command) = command {
+		for arg in &args[1..] {
+			if arg == &"--multirust" {
 				println!("Proxied via multirust");
 				std::process::exit(0);
 			} else {
@@ -142,19 +107,32 @@ fn run_proxy<I: Iterator<Item=OsString>>(binary: &str, arg_iter: I) -> Result<()
 			}
 		}
 		let result = command.status()
-			.ok().expect(&format!("failed to run `{}`", binary));
+			.ok().expect(&format!("failed to run `{}`", args[0]));
 			
 		// Ensure correct exit code is returned
 		std::process::exit(result.code().unwrap_or(1));
 	} else {
-		for arg in arg_iter {
-			if let Some("--multirust") = arg.to_str() {
+		for arg in &args[1..] {
+			if arg == &"--multirust" {
 				println!("Proxied via multirust");
 				std::process::exit(0);
 			}
 		}
-		result.map(|_|())
+		command.map(|_|())
 	}
+}
+
+fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	let toolchain = try!(get_toolchain(cfg, m, false));
+	let args = m.values_of("command").unwrap();
+	
+	run_inner(cfg, toolchain.create_command(args[0]), &args)
+}
+
+fn proxy(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	let args = m.values_of("command").unwrap();
+	
+	run_inner(cfg, cfg.create_command_for_dir(&try!(current_dir()), args[0]), &args)
 }
 
 fn shell_cmd(cmdline: &OsStr) -> Command {
@@ -189,8 +167,7 @@ fn test_installed(cfg: &Cfg) -> bool {
 }
 
 fn run_multirust() -> Result<()> {
-	let yaml = load_yaml!("cli.yml");
-	let app_matches = App::from_yaml(yaml).get_matches();
+	let app_matches = cli::get().get_matches();
 	
 	let cfg = try!(set_globals(Some(&app_matches)));
 	
@@ -228,6 +205,8 @@ fn run_multirust() -> Result<()> {
 		("list-toolchains", Some(_)) => list_toolchains(&cfg),
 		("remove-override", Some(m)) => remove_override(&cfg, m),
 		("remove-toolchain", Some(m)) => remove_toolchain_args(&cfg, m),
+		("run", Some(m)) => run(&cfg, m),
+		("proxy", Some(m)) => proxy(&cfg, m),
 		("upgrade-data", Some(_)) => cfg.upgrade_data().map(|_|()),
 		("delete-data", Some(m)) => delete_data(&cfg, m),
 		("install", Some(m)) => install(&cfg, m),
@@ -267,11 +246,11 @@ fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()> {
 	fn create_bat_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
 		path.push(name.to_owned() + ".bat");
-		utils::write_file(name, &path, &format!("@\"%~dp0\\multirust\" run {} %*", name))
+		utils::write_file(name, &path, &format!("@\"%~dp0\\multirust\" proxy {} %*", name))
 	}
 	fn create_sh_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
 		path.push(name.to_owned());
-		try!(utils::write_file(name, &path, &format!("#!/bin/sh\n\"`dirname $0`/multirust\" run {} \"$@\"", name)));
+		try!(utils::write_file(name, &path, &format!("#!/bin/sh\n\"`dirname $0`/multirust\" proxy {} \"$@\"", name)));
 		utils::make_executable(&path)
 	}
 	

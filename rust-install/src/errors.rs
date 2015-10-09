@@ -72,6 +72,7 @@ pub enum Error {
 	UnsupportedHost,
 	PermissionDenied,
 	SettingPermissions(PathBuf),
+	ToolchainNotInstalled(String),
 	Custom { id: String, desc: String },
 }
 
@@ -239,6 +240,8 @@ impl Display for Error {
 				=> write!(f, "permission denied"),
 			Error::SettingPermissions(ref path)
 				=> write!(f, "failed to set permissions for: '{}'", path.display()),
+			Error::ToolchainNotInstalled(ref name)
+				=> write!(f, "toolchain '{}' is not installed", name),
 			Error::Custom { id: _, ref desc }
 				=> write!(f, "{}", desc),
 		}

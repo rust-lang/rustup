@@ -69,6 +69,7 @@ SUBCOMMANDS:
     list-overrides      List all overrides.
     list-toolchains     List all installed toolchains.
     override            Set the toolchain override.
+    proxy               Proxy a command.
     remove-override     Remove an override.
     remove-toolchain    Uninstall a toolchain.
     run                 Run a command.
