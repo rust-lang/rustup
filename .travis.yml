@@ -15,44 +15,42 @@ git:
   submodules: false
 
 sudo: required
-install: |
-  git config --global user.email "diggsey@googlemail.com" && \
-  git config --global user.name "Diggory Blake (via Travis CI)" && \
-  git config --global push.default simple && \
-  \
-  mkdir -p ~/rust && \
-  echo -e "\033[33;1mDownloading Rust\033[0m" && \
-  curl -sL http://static.rust-lang.org/dist/rust-nightly-$TARGET.tar.gz | tar --strip-components=1 -C ~/rust -xzf -
+install:
+  - git config --global user.email "diggsey@googlemail.com"
+  - git config --global user.name "Diggory Blake (via Travis CI)"
+  - git config --global push.default simple
+  - mkdir -p ~/rust
+  - echo -e "\033[33;1mDownloading Rust\033[0m"
+  - curl -sL http://static.rust-lang.org/dist/rust-nightly-$TARGET.tar.gz | tar --strip-components=1 -C ~/rust -xzf -
+  - if [ "$TARGET" == "i686-unknown-linux-gnu" ]; then
+      sudo apt-get update;
+      sudo apt-get install libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386 gcc-multilib;
+    fi
+  - echo -e "\033[33;1mInstalling Rust\033[0m"
+  - sudo ~/rust/install.sh
 
-before_script: |
-  if [ $TARGET -eq "i686-unknown-linux-gnu" ]; then \
-    sudo apt-get update && \
-    sudo apt-get install libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386 gcc-multilib; \
-  fi && \
-  sudo ~/rust/install.sh
-  
-script: |
-  export OPENSSL_STATIC=1 && \
-  cargo build --release --verbose && \
-  cargo test --verbose
+script:
+  - export OPENSSL_STATIC=1
+  - cargo build --release --verbose
+  - cargo test --verbose
 
-after_success: |
-  git config --global credential.helper store && \
-  echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials && \
-  if [ $TARGET -eq "x86_64-unknown-linux-gnu" ]; then \
-    cargo doc && \
-    echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html && \
-    sudo pip install ghp-import && \
-    ghp-import -n target/doc && \
-    git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages; \
-  fi && \
-  git submodule init && \
-  git submodule update --depth 1 --remote && \
-  mkdir -p "binaries/$TARGET" && \
-  find "target/release/" -maxdepth 1 -type f -exec cp {} "binaries/$TARGET" \; && \
-  git rev-parse HEAD > "binaries/$TARGET/commit.txt" && \
-  cd binaries && \
-  git checkout master && \
-  git add . && \
-  git commit -m "Auto-update $TARGET binaries (Travis CI)" && \
-  for i in {1..5}; do ./push-changes.sh && break; done
+after_success:
+  - git config --global credential.helper store
+  - echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials && \
+  - if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
+      cargo doc;
+      echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html;
+      sudo pip install ghp-import;
+      ghp-import -n target/doc;
+      git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages;
+    fi
+  - git submodule init
+  - git submodule update --depth 1 --remote
+  - mkdir -p "binaries/$TARGET"
+  - find "target/release/" -maxdepth 1 -type f -exec cp {} "binaries/$TARGET" \;
+  - git rev-parse HEAD > "binaries/$TARGET/commit.txt"
+  - cd binaries
+  - git checkout master
+  - git add .
+  - git commit -m "Auto-update $TARGET binaries (Travis CI)"
+  - for i in {1..5}; do ./push-changes.sh && break; done
