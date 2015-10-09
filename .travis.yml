@@ -32,11 +32,13 @@ script: |
 after_success: |
   git config --global credential.helper store && \
   echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials && \
-  cargo doc \
-  && echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html && \
-  sudo pip install ghp-import && \
-  ghp-import -n target/doc && \
-  git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages && \
+  if [ $TARGET -eq x86_64-unknown-linux-gnu ]; then \
+    cargo doc && \
+    echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html && \
+    sudo pip install ghp-import && \
+    ghp-import -n target/doc && \
+    git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages; \
+  fi && \
   git submodule init && \
   git submodule update --depth 1 --remote && \
   mkdir -p "binaries/$TARGET" && \
