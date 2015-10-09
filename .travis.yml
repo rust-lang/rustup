@@ -25,7 +25,7 @@ install: |
   curl -sL http://static.rust-lang.org/dist/rust-nightly-$TARGET.tar.gz | tar --strip-components=1 -C ~/rust -xzf -
 
 before_script: |
-  if [ $TARGET -eq i686-unknown-linux-gnu ]; then \
+  if [ $TARGET -eq "i686-unknown-linux-gnu" ]; then \
     sudo apt-get update && \
     sudo apt-get install libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386 gcc-multilib; \
   fi && \
@@ -39,7 +39,7 @@ script: |
 after_success: |
   git config --global credential.helper store && \
   echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials && \
-  if [ $TARGET -eq x86_64-unknown-linux-gnu ]; then \
+  if [ $TARGET -eq "x86_64-unknown-linux-gnu" ]; then \
     cargo doc && \
     echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html && \
     sudo pip install ghp-import && \

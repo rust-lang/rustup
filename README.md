@@ -23,6 +23,7 @@ Add [multirust-rs](https://crates.io/crates/multirust-rs) or [rust-install](http
 - [Linux 64-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/x86_64-unknown-linux-gnu/multirust-rs)
 - [Linux 32-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/i686-unknown-linux-gnu/multirust-rs)
 - [Mac 64-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/x86_64-apple-darwin/multirust-rs)
+- [Mac 32-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/i686-apple-darwin/multirust-rs)
 
 Binaries for other platforms are not yet available. Follow the instructions below for installing from source.
 
