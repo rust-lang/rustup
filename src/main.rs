@@ -179,7 +179,7 @@ fn run_multirust() -> Result<()> {
 	
 	// Make sure everything is set-up correctly
 	match app_matches.subcommand_name() {
-		Some("install") => {},
+		Some("install")|Some("proxy") => {},
 		_ => {
 			if !test_proxies() {
 				if !test_installed(&cfg) {
