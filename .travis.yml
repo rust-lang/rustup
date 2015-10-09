@@ -20,7 +20,7 @@ install: |
 before_script: |
   if [ $BITS -eq 32 ]; then \
     sudo apt-get update && \
-    sudo apt-get install libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 gcc-multilib; \
+    sudo apt-get install libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386 gcc-multilib; \
   fi && \
   sudo ~/rust/install.sh
   
