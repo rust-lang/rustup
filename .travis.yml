@@ -1,8 +1,15 @@
-env:
-  - TARGET=i686-unknown-linux-gnu
-    BITS=32
-  - TARGET=x86_64-unknown-linux-gnu
-    BITS=64
+matrix:
+  include:
+    - os: linux
+      env: TARGET=i686-unknown-linux-gnu BITS=32
+    - os: linux
+      env: TARGET=x86_64-unknown-linux-gnu BITS=64
+    - os: osx
+      env: TARGET=i686-apple-darwin BITS=32
+    - os: osx
+      env: TARGET=x86_64-apple-darwin BITS=64
+  allow_failures:
+    - os: osx
 
 git:
   submodules: false
