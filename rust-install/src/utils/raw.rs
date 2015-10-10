@@ -229,3 +229,15 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
 	}
 	inner(path)
 }
+pub fn home_dir() -> Option<PathBuf> {
+	#[cfg(not(windows))]
+	fn inner() -> Option<PathBuf> {
+		env::home_dir()
+	}
+	#[cfg(windows)]
+	fn inner() -> Option<PathBuf> {
+		env::var_os("USERPROFILE").map(|s| s.into())
+	}
+	
+	inner()
+}

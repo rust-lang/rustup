@@ -15,6 +15,7 @@ pub use self::raw::{
 	if_not_empty,
 	random_string,
 	prefix_arg,
+	home_dir,
 };
 
 pub fn ensure_dir_exists(name: &'static str, path: &Path, notify_handler: &NotifyHandler) -> Result<bool> {

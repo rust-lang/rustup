@@ -46,7 +46,7 @@ pub struct Cfg {
 impl Cfg {
 	pub fn from_env(notify_handler: NotifyHandler) -> Result<Self> {
 		// Get absolute home directory
-		let home_dir = try!(env::home_dir()
+		let home_dir = try!(utils::home_dir()
 			.map(PathBuf::from)
 			.and_then(utils::to_absolute)
 			.ok_or(Error::LocatingHome));
@@ -58,10 +58,6 @@ impl Cfg {
 			.unwrap_or_else(|| home_dir.join(".multirust"));
 			
 		try!(utils::ensure_dir_exists("home", &multirust_dir, &notify_handler));
-		
-		// Export RUSTUP_HOME to configure rustup.sh to store it's stuff
-		// in the MULTIRUST_HOME directory.
-		env::set_var("RUSTUP_HOME", multirust_dir.join("rustup"));
 		
 		// Data locations
 		let version_file = multirust_dir.join("version");
