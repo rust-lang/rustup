@@ -69,7 +69,7 @@ pub enum Error {
 	InstallTypeNotPossible,
 	AlreadyInstalledHere,
 	InvalidUrl,
-	UnsupportedHost,
+	UnsupportedHost(String),
 	PermissionDenied,
 	SettingPermissions(PathBuf),
 	ToolchainNotInstalled(String),
@@ -234,8 +234,8 @@ impl Display for Error {
 				=> write!(f, "already installed here"),
 			Error::InvalidUrl
 				=> write!(f, "invalid url"),
-			Error::UnsupportedHost
-				=> write!(f, "binary packages are not yet provided for this host"),
+			Error::UnsupportedHost(ref spec)
+				=> write!(f, "a binary package was not provided for: '{}'", spec),
 			Error::PermissionDenied
 				=> write!(f, "permission denied"),
 			Error::SettingPermissions(ref path)

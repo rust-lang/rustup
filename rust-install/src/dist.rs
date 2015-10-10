@@ -94,6 +94,15 @@ impl ToolchainDesc {
 		
 		Ok(Manifest(manifest, package_dir))
 	}
+	
+	pub fn full_spec(&self) -> String {
+		let triple = self.target_triple().unwrap_or_else(|| "<invalid target triple>".to_owned());
+		if let Some(ref date) = self.date {
+			format!("{}-{}-{}", triple, &self.channel, date)
+		} else {
+			format!("{}-{} (tracking)", triple, &self.channel)
+		}
+	}
 }
 
 pub struct Manifest<'a>(temp::File<'a>, String);
@@ -174,14 +183,14 @@ pub fn download_dist<'a>(toolchain: &str, update_hash: Option<&Path>, cfg: Downl
 	let desc = try!(ToolchainDesc::from_str(toolchain)
 		.ok_or(Error::InvalidToolchainName));
 	
-	let target_triple = try!(desc.target_triple().ok_or(Error::UnsupportedHost));
+	let target_triple = try!(desc.target_triple().ok_or_else(|| Error::UnsupportedHost(desc.full_spec())));
 	let ext = get_installer_ext();
 	
 	let manifest = try!(desc.download_manifest(cfg));
 	
 	let maybe_url = try!(manifest.package_url("rust", &target_triple, ext));
 	
-	let url = try!(maybe_url.ok_or(Error::UnsupportedHost));
+	let url = try!(maybe_url.ok_or_else(|| Error::UnsupportedHost(desc.full_spec())));
 	
 	download_and_check(&url, update_hash, ext, cfg)
 }
