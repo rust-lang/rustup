@@ -309,7 +309,7 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	#[cfg(not(windows))]
 	fn do_add_to_path(cfg: &Cfg, path: PathBuf) -> Result<()> {
 		let tmp = path.into_os_string().into_string().ok().expect("cannot install to invalid unicode path");
-		try!(utils::append_file(".profile", &cfg.home_dir.join(".profile"), &format!("\n# Multirust override:\nexport PATH={}:$PATH", &tmp)));
+		try!(utils::append_file(".profile", &cfg.home_dir.join(".profile"), &format!("\n# Multirust override:\nexport PATH=\"{}:$PATH\"", &tmp)));
 		
 		println!("'~/.profile' has been updated. You will need to start a new login shell for changes to take effect.");
 		
