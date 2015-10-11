@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 use std::io::{Write, BufRead};
 use std::process::{Command, Stdio};
 use std::process;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::iter;
 use multirust::*;
@@ -110,11 +110,16 @@ fn run_inner(_: &Cfg, command: Result<Command>, args: &[&str]) -> Result<()> {
 				command.arg(arg);
 			}
 		}
-		let result = command.status()
-			.ok().expect(&format!("failed to run `{}`", args[0]));
+		match command.status() {
+			Ok(result) => {
+				// Ensure correct exit code is returned
+				std::process::exit(result.code().unwrap_or(1));
+			},
+			Err(e) => {
+				Err(Error::RunningCommand { name: OsString::from(args[0]), error: e })
+			}
+		}
 			
-		// Ensure correct exit code is returned
-		std::process::exit(result.code().unwrap_or(1));
 	} else {
 		for arg in &args[1..] {
 			if arg == &"--multirust" {

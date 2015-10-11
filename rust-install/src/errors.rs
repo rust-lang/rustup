@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::io;
 use std::process::ExitStatus;
 use std::fmt::{self, Display};
+use std::ffi::OsString;
 use temp;
 use hyper;
 
@@ -50,8 +51,8 @@ pub enum Error {
 	RenamingFile { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
 	RenamingDirectory { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
 	DownloadingFile { url: hyper::Url, path: PathBuf },
-	RunningCommand { name: &'static str, error: io::Error },
-	CommandStatus { name: &'static str, status: ExitStatus },
+	RunningCommand { name: OsString, error: io::Error },
+	CommandStatus { name: OsString, status: ExitStatus },
 	NotAFile { path: PathBuf },
 	NotADirectory { path: PathBuf },
 	LinkingDirectory(PathBuf, PathBuf),
@@ -202,9 +203,9 @@ impl Display for Error {
 			Error::DownloadingFile { ref url, ref path }
 				=> write!(f, "could not download file from '{}' to '{}'", url, path.display()),
 			Error::RunningCommand { ref name, error: _ }
-				=> write!(f, "could not run command: '{}'", name),
+				=> write!(f, "could not run command: '{}'", PathBuf::from(name).display()),
 			Error::CommandStatus { ref name, ref status }
-				=> write!(f, "command '{}' terminated with {}", name, status),
+				=> write!(f, "command '{}' terminated with {}", PathBuf::from(name).display(), status),
 			Error::NotAFile { ref path }
 				=> write!(f, "not a file: '{}'", path.display()),
 			Error::NotADirectory { ref path }

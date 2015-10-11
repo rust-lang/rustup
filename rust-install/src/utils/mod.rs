@@ -3,6 +3,7 @@ use errors::*;
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::process::Command;
+use std::ffi::OsString;
 use hyper;
 use openssl::crypto::hash::Hasher;
 
@@ -95,13 +96,13 @@ pub fn download_file(url: hyper::Url, path: &Path, hasher: Option<&mut Hasher>, 
 
 pub fn cmd_status(name: &'static str, mut cmd: Command) -> Result<()> {
 	cmd.status()
-		.map_err(|e| Error::RunningCommand { name: name, error: e })
+		.map_err(|e| Error::RunningCommand { name: OsString::from(name), error: e })
 		.and_then(|s| {
 			if s.success() {
 				Ok(())
 			} else {
 				Err(Error::CommandStatus {
-					name: name,
+					name: OsString::from(name),
 					status: s,
 				})
 			}
