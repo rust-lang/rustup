@@ -33,6 +33,7 @@ script:
   - export OPENSSL_STATIC=1
   - cargo build --release --verbose
   - cargo test --verbose
+  - tests/cli.sh
 
 after_success:
   - git config --global credential.helper store
