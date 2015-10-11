@@ -3,7 +3,6 @@
 echo ^> Running CLI tests...
 
 set MR="%~dp0\..\target\release\multirust-rs.exe"
-set HMR="%USERPROFILE%\.multirust\bin\multirust.exe"
 
 echo ^> Testing --help
 %MR% --help || exit /b 1

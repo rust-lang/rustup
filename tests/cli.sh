@@ -12,7 +12,7 @@ echo "> Testing install"
 $MR install -a
 
 echo "> Updating PATH"
-source ~/.profile
+. ~/.profile
 
 echo "> Testing default"
 multirust default nightly
