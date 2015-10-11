@@ -6,10 +6,10 @@ echo "> Running CLI tests..."
 MR="`dirname $0`/../target/release/multirust-rs"
 
 echo "> Testing --help"
-%MR% --help
+$MR --help
 
 echo "> Testing install"
-%MR% install -a
+$MR install -a
 
 echo "> Updating PATH"
 source ~/.profile
