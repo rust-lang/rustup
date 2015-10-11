@@ -17,10 +17,10 @@ echo ^> Testing default
 multirust default nightly || (echo FAILED && exit /b 1)
 
 echo ^> Testing rustc
-rustc --multirust || (echo FAILED && exit /b 1)
+call rustc --multirust || (echo FAILED && exit /b 1)
 
 echo ^> Testing cargo
-cargo --multirust || (echo FAILED && exit /b 1)
+call cargo --multirust || (echo FAILED && exit /b 1)
 
 echo ^> Testing override
 multirust override i686-msvc-stable || (echo FAILED && exit /b 1)
