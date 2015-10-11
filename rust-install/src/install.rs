@@ -8,7 +8,7 @@ use msi;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io;
 use std::env;
@@ -125,9 +125,12 @@ impl<'a> InstallMethod<'a> {
 			.ok_or(Error::InvalidInstaller));
 		
 		let mut cmd = Command::new("sh");
+		let mut arg = OsString::from("--prefix=\"");
+		arg.push(&prefix.path);
+		arg.push("\"");
 		cmd
 			.arg(root_dir.join("install.sh"))
-			.arg("--prefix").arg(&prefix.path);
+			.arg(arg);
 		
 		if prefix.install_type != InstallType::Shared {
 			cmd.arg("--disable-ldconfig");
