@@ -105,6 +105,9 @@ impl<'a> Toolchain<'a> {
 	pub fn is_custom(&self) -> bool {
 		dist::ToolchainDesc::from_str(&self.name).is_none()
 	}
+	pub fn is_tracking(&self) -> bool {
+		dist::ToolchainDesc::from_str(&self.name).map(|d| d.is_tracking()) == Some(true)
+	}
 	
 	pub fn ensure_custom(&self) -> Result<()> {
 		if !self.is_custom() {

@@ -22,6 +22,7 @@ use std::process::{Command, Stdio};
 use std::process;
 use std::ffi::OsStr;
 use std::fmt;
+use std::iter;
 use multirust::*;
 
 mod cli;
@@ -79,7 +80,10 @@ fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
 			},
 			NotificationLevel::Warn => {
 				warn!("{}", n);
-			}
+			},
+			NotificationLevel::Error => {
+				err!("{}", n);
+			},
 		}
 	}))
 		
@@ -497,18 +501,22 @@ fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
 
 		try!(toolchain.prefix().with_ldpath(|| {
 			if utils::is_file(&rustc_path) {
-				Command::new(&rustc_path)
-					.arg("--version")
-					.status()
-					.ok().expect("failed to run rustc");
+				let mut cmd = Command::new(&rustc_path);
+				cmd.arg("--version");
+				
+				if utils::cmd_status("rustc", cmd).is_err() {
+					println!("(failed to run rustc)");
+				}
 			} else {
 				println!("(no rustc command in toolchain?)");
 			}
 			if utils::is_file(&cargo_path) {
-				Command::new(&cargo_path)
-					.arg("--version")
-					.status()
-					.ok().expect("failed to run cargo");
+				let mut cmd = Command::new(&cargo_path);
+				cmd.arg("--version");
+				
+				if utils::cmd_status("cargo", cmd).is_err() {
+					println!("(failed to run cargo)");
+				}
 			} else {
 				println!("(no cargo command in toolchain?)");
 			}
@@ -577,30 +585,37 @@ fn list_toolchains(cfg: &Cfg) -> Result<()> {
 }
 
 fn update_all_channels(cfg: &Cfg) -> Result<()> {
-	let result = cfg.update_all_channels();
+	let toolchains = try!(cfg.update_all_channels());
 	
-	if result[0].is_ok() {
-		println!("'stable' update succeeded");
-	} else {
-		println!("'stable' update FAILED");
-	}
-	if result[1].is_ok() {
-		println!("'beta' update succeeded");
-	} else {
-		println!("'beta' update FAILED");
-	}
-	if result[2].is_ok() {
-		println!("'nightly' update succeeded");
-	} else {
-		println!("'nightly' update FAILED");
-	}
+	let max_name_length = toolchains.iter().map(|&(ref n,_)| n.len()).max().unwrap_or(0);
+	let padding_str: String = iter::repeat(' ').take(max_name_length).collect();
 	
-	println!("stable revision:");
-	try!(show_tool_versions(&try!(cfg.get_toolchain("stable", false))));
-	println!("beta revision:");
-	try!(show_tool_versions(&try!(cfg.get_toolchain("beta", false))));
-	println!("nightly revision:");
-	try!(show_tool_versions(&try!(cfg.get_toolchain("nightly", false))));
+	println!("");
+	let mut t = term::stdout().unwrap();
+	for &(ref name, ref result) in &toolchains {
+		let _ = t.fg(term::color::BRIGHT_WHITE);
+		let _ = write!(t, "{}{}", &padding_str[0..(max_name_length-name.len())], name);
+		let _ = t.fg(term::color::WHITE);
+		let _ = write!(t, " update ");
+		if result.is_ok() {
+			let _ = t.fg(term::color::BRIGHT_GREEN);
+			let _ = writeln!(t, "succeeded");
+			let _ = t.fg(term::color::WHITE);
+		} else {
+			let _ = t.fg(term::color::BRIGHT_RED);
+			let _ = writeln!(t, "FAILED");
+			let _ = t.fg(term::color::WHITE);
+		}
+	}
+	println!("");
+	
+	for (name, _) in toolchains {
+		let _ = t.fg(term::color::BRIGHT_WHITE);
+		let _ = write!(t, "{}", name);
+		let _ = t.fg(term::color::WHITE);
+		let _ = writeln!(t, " revision:");
+		try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
+	}
 	Ok(())
 }
 

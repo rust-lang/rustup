@@ -34,6 +34,7 @@ pub enum Notification<'a> {
 	UpdateHashMatches(&'a str),
 	CantReadUpdateHash(&'a Path),
 	NoUpdateHash(&'a Path),
+	NonFatalError(&'a Error),
 }
 
 pub enum Error {
@@ -110,6 +111,8 @@ impl<'a> Notification<'a> {
 				NotificationLevel::Info,
 			NoCanonicalPath(_) | CantReadUpdateHash(_) =>
 				NotificationLevel::Warn,
+			NonFatalError(_) =>
+				NotificationLevel::Error,
 		}
 	}
 }
@@ -163,6 +166,8 @@ impl<'a> Display for Notification<'a> {
 				write!(f, "can't read update hash file: '{}', can't skip update...", path.display()),
 			NoUpdateHash(path) =>
 				write!(f, "no update hash at: '{}'", path.display()),
+			NonFatalError(e) =>
+				write!(f, "{}", e),
 		}
 	}
 }

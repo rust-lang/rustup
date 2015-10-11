@@ -3,6 +3,7 @@ extern crate rust_install;
 extern crate rand;
 extern crate hyper;
 extern crate regex;
+extern crate itertools;
 
 pub use rust_install::*;
 pub use config::*;

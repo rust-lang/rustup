@@ -30,4 +30,5 @@ pub enum NotificationLevel {
 	Normal,
 	Info,
 	Warn,
+	Error,
 }

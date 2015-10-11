@@ -103,6 +103,10 @@ impl ToolchainDesc {
 			format!("{}-{} (tracking)", triple, &self.channel)
 		}
 	}
+	
+	pub fn is_tracking(&self) -> bool {
+		self.date.is_none()
+	}
 }
 
 pub struct Manifest<'a>(temp::File<'a>, String);

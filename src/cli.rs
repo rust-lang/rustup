@@ -54,7 +54,7 @@ To remove an existing override use `multirust remove-override`."
 				.after_help(
 r"With no toolchain specified, the update command updates each of the
 stable, beta, and nightly toolchains from the official release
-channels."
+channels, plus any other installed toolchains."
             	)
 				.arg(Arg::with_name("toolchain").required(false))
 				.args(install_args())

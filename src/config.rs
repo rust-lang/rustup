@@ -6,6 +6,8 @@ use std::fs;
 use std::process::Command;
 use std::fmt::{self, Display};
 
+use itertools::Itertools;
+
 use rust_install::*;
 use override_db::OverrideDB;
 use toolchain::Toolchain;
@@ -239,12 +241,19 @@ impl Cfg {
 		}
 	}
 	
-	pub fn update_all_channels(&self) -> [Result<()>; 3] {
-		let stable_result = self.get_toolchain("stable", true).and_then(|t| t.install_from_dist());
-		let beta_result = self.get_toolchain("beta", true).and_then(|t| t.install_from_dist());
-		let nightly_result = self.get_toolchain("nightly", true).and_then(|t| t.install_from_dist());
+	pub fn update_all_channels(&self) -> Result<Vec<(String, Result<()>)>> {
+		let mut toolchains = try!(self.list_toolchains());
+		toolchains.sort();
 		
-		[stable_result, beta_result, nightly_result]
+		Ok(toolchains.into_iter()
+			.merge(["beta", "nightly", "stable"].into_iter().map(|s| (*s).to_owned()))
+			.dedup()
+			.filter(|name| dist::ToolchainDesc::from_str(&name).map(|d| d.is_tracking()) == Some(true))
+			.map(|name| {
+				let result = self.get_toolchain(&name, true).and_then(|t| t.install_from_dist());
+				(name, result)
+			})
+			.collect())
 	}
 	
 	pub fn check_metadata_version(&self) -> Result<bool> {
