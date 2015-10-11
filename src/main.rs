@@ -40,7 +40,7 @@ fn warn_fmt(args: fmt::Arguments) {
 	let mut t = term::stderr().unwrap();
 	let _ = t.fg(term::color::BRIGHT_YELLOW);
 	let _ = write!(t, "warning: ");
-	let _ = t.reset();
+	let _ = t.fg(term::color::WHITE);
 	let _ = t.write_fmt(args);
 	let _ = write!(t, "\n");
 }
@@ -49,7 +49,7 @@ fn err_fmt(args: fmt::Arguments) {
 	let mut t = term::stderr().unwrap();
 	let _ = t.fg(term::color::BRIGHT_RED);
 	let _ = write!(t, "error: ");
-	let _ = t.reset();
+	let _ = t.fg(term::color::WHITE);
 	let _ = t.write_fmt(args);
 	let _ = write!(t, "\n");
 }
@@ -58,7 +58,7 @@ fn info_fmt(args: fmt::Arguments) {
 	let mut t = term::stderr().unwrap();
 	let _ = t.fg(term::color::BRIGHT_GREEN);
 	let _ = write!(t, "info: ");
-	let _ = t.reset();
+	let _ = t.fg(term::color::WHITE);
 	let _ = t.write_fmt(args);
 	let _ = write!(t, "\n");
 }
