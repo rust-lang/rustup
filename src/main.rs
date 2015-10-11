@@ -523,29 +523,28 @@ fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
 		let rustc_path = toolchain.prefix().binary_file("rustc");
 		let cargo_path = toolchain.prefix().binary_file("cargo");
 
-		try!(toolchain.prefix().with_ldpath(|| {
-			if utils::is_file(&rustc_path) {
-				let mut cmd = Command::new(&rustc_path);
-				cmd.arg("--version");
-				
-				if utils::cmd_status("rustc", cmd).is_err() {
-					println!("(failed to run rustc)");
-				}
-			} else {
-				println!("(no rustc command in toolchain?)");
+		if utils::is_file(&rustc_path) {
+			let mut cmd = Command::new(&rustc_path);
+			cmd.arg("--version");
+			toolchain.prefix().set_ldpath(&mut cmd);
+			
+			if utils::cmd_status("rustc", cmd).is_err() {
+				println!("(failed to run rustc)");
 			}
-			if utils::is_file(&cargo_path) {
-				let mut cmd = Command::new(&cargo_path);
-				cmd.arg("--version");
-				
-				if utils::cmd_status("cargo", cmd).is_err() {
-					println!("(failed to run cargo)");
-				}
-			} else {
-				println!("(no cargo command in toolchain?)");
+		} else {
+			println!("(no rustc command in toolchain?)");
+		}
+		if utils::is_file(&cargo_path) {
+			let mut cmd = Command::new(&cargo_path);
+			cmd.arg("--version");
+			toolchain.prefix().set_ldpath(&mut cmd);
+			
+			if utils::cmd_status("cargo", cmd).is_err() {
+				println!("(failed to run cargo)");
 			}
-			Ok(())
-		}));
+		} else {
+			println!("(no cargo command in toolchain?)");
+		}
 	} else {
 		println!("(toolchain not installed)");
 	}

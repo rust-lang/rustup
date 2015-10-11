@@ -160,14 +160,10 @@ impl<'a> Toolchain<'a> {
 		}
 	}
 	
-	pub fn with_env<T, F: FnOnce() -> Result<T>>(&self, f: F) -> Result<T> {
-		self.prefix.with_env(|| {
-			env_var::with("MULTIRUST_TOOLCHAIN", self.prefix.path().as_ref(), || {
-				env_var::with("MULTIRUST_HOME", self.cfg.multirust_dir.as_ref(), || {
-					f()
-				})
-			})
-		})
+	pub fn set_env(&self, cmd: &mut Command) {
+		self.prefix.set_env(cmd);
+		cmd.env("MULTIRUST_TOOLCHAIN", self.prefix.path());
+		cmd.env("MULTIRUST_HOME", &self.cfg.multirust_dir);
 	}
 	
 	pub fn create_command(&self, binary: &str) -> Result<Command> {
@@ -176,8 +172,9 @@ impl<'a> Toolchain<'a> {
 		}
 		
 		let binary_path = self.prefix.binary_file(binary);
-		
-		self.with_env(|| Ok(Command::new(binary_path)))
+		let mut cmd = Command::new(binary_path);
+		self.set_env(&mut cmd);
+		Ok(cmd)
 	}
 	
 	pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {

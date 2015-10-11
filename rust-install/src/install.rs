@@ -302,30 +302,26 @@ impl InstallPrefix {
 		method.run(self, notify_handler)
 	}
 	
-	pub fn with_ldpath<T, F: FnOnce() -> Result<T>>(&self, f: F) -> Result<T> {
+	pub fn set_ldpath(&self, cmd: &mut Command) {
 		let new_path = self.path.join("lib");
 		
-		env_var::with_path("LD_LIBRARY_PATH", &new_path, || {
-			env_var::with_path("DYLD_LIBRARY_PATH", &new_path, || {
-				f()
-			})
-		})
+		env_var::set_path("LD_LIBRARY_PATH", &new_path, cmd);
+		env_var::set_path("DYLD_LIBRARY_PATH", &new_path, cmd);
 	}
 	
-	pub fn with_env<T, F: FnOnce() -> Result<T>>(&self, f: F) -> Result<T> {
+	pub fn set_env(&self, cmd: &mut Command) {
 		let cargo_path = self.path.join("cargo");
 		
-		self.with_ldpath(|| {
-			env_var::with_default("CARGO_HOME", cargo_path.as_ref(), || {
-				f()
-			})
-		})
+		self.set_ldpath(cmd);
+		env_var::set_default("CARGO_HOME", cargo_path.as_ref(), cmd);
 	}
 	
-	pub fn create_command(&self, binary: &str) -> Result<Command> {
+	pub fn create_command(&self, binary: &str) -> Command {
 		let binary_path = self.binary_file(binary);
+		let mut cmd = Command::new(binary_path);
 		
-		self.with_env(|| Ok(Command::new(binary_path)))
+		self.set_env(&mut cmd);
+		cmd
 	}
 	
 	pub fn open_docs(&self, relative: &str) -> Result<()> {
