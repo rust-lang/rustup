@@ -34,6 +34,7 @@ pub enum Notification<'a> {
 	UpdateHashMatches(&'a str),
 	CantReadUpdateHash(&'a Path),
 	NoUpdateHash(&'a Path),
+	ChecksumValid(&'a str),
 	NonFatalError(&'a Error),
 }
 
@@ -74,6 +75,7 @@ pub enum Error {
 	PermissionDenied,
 	SettingPermissions(PathBuf),
 	ToolchainNotInstalled(String),
+	ChecksumFailed { url: String, expected: String, calculated: String },
 	Custom { id: String, desc: String },
 }
 
@@ -102,7 +104,7 @@ impl<'a> Notification<'a> {
 			NoUpdateHash(_) =>
 				NotificationLevel::Verbose,
 			LinkingDirectory(_, _) | CopyingDirectory(_, _) | DownloadingFile(_, _) |
-			Extracting(_, _) =>
+			Extracting(_, _) | ChecksumValid(_) =>
 				NotificationLevel::Normal,
 			SetDefaultToolchain(_) | SetOverrideToolchain(_, _) | UpdatingToolchain(_) |
 			InstallingToolchain(_) | UsingExistingToolchain(_) | UninstallingToolchain(_) |
@@ -166,6 +168,8 @@ impl<'a> Display for Notification<'a> {
 				write!(f, "can't read update hash file: '{}', can't skip update...", path.display()),
 			NoUpdateHash(path) =>
 				write!(f, "no update hash at: '{}'", path.display()),
+			ChecksumValid(_) =>
+				write!(f, "checksum passed"),
 			NonFatalError(e) =>
 				write!(f, "{}", e),
 		}
@@ -247,6 +251,8 @@ impl Display for Error {
 				=> write!(f, "failed to set permissions for: '{}'", path.display()),
 			Error::ToolchainNotInstalled(ref name)
 				=> write!(f, "toolchain '{}' is not installed", name),
+			Error::ChecksumFailed { url: _, ref expected, ref calculated }
+				=> write!(f, "checksum failed, expected: '{}', calculated: '{}'", expected, calculated),
 			Error::Custom { id: _, ref desc }
 				=> write!(f, "{}", desc),
 		}

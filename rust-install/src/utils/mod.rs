@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::process::Command;
 use hyper;
+use openssl::crypto::hash::Hasher;
 
 pub mod raw;
 
@@ -86,9 +87,9 @@ pub fn canonicalize_path(path: &Path, notify_handler: &NotifyHandler) -> PathBuf
 		})
 }
 
-pub fn download_file(url: hyper::Url, path: &Path, notify_handler: &NotifyHandler) -> Result<()> {
+pub fn download_file(url: hyper::Url, path: &Path, hasher: Option<&mut Hasher>, notify_handler: &NotifyHandler) -> Result<()> {
 	notify_handler.call(DownloadingFile(&url, path));
-	raw::download_file(url.clone(), path)
+	raw::download_file(url.clone(), path, hasher)
 		.map_err(|_| Error::DownloadingFile { url: url, path: PathBuf::from(path) })
 }
 

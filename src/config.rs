@@ -251,6 +251,9 @@ impl Cfg {
 			.filter(|name| dist::ToolchainDesc::from_str(&name).map(|d| d.is_tracking()) == Some(true))
 			.map(|name| {
 				let result = self.get_toolchain(&name, true).and_then(|t| t.install_from_dist());
+				if let Err(ref e) = result {
+					self.notify_handler.call(NonFatalError(e));
+				}
 				(name, result)
 			})
 			.collect())

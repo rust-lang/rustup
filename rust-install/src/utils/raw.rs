@@ -8,6 +8,7 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 use std::ffi::{OsStr, OsString};
 use hyper::{self, Client};
+use openssl::crypto::hash::Hasher;
 
 use rand::random;
 
@@ -130,13 +131,13 @@ pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
 	Ok(())
 }
 
-pub fn download_file<P: AsRef<Path>>(url: hyper::Url, path: P) -> Result<(),()> {
+pub fn download_file<P: AsRef<Path>>(url: hyper::Url, path: P, mut hasher: Option<&mut Hasher>) -> Result<(),()> {
 	let client = Client::new();
 
 	let mut res = try!(client.get(url).send().map_err(|_|()));
 	if res.status != hyper::Ok { return Err(()); }
 	
-	let buffer_size = 0x1000;
+	let buffer_size = 0x10000;
 	let mut buffer = vec![0u8; buffer_size];
 	
 	let mut file = try!(fs::File::create(path).map_err(|_|()));
@@ -144,6 +145,9 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url, path: P) -> Result<(),()> 
 	loop {
 		let bytes_read = try!(io::Read::read(&mut res, &mut buffer).map_err(|_|()));
 		if bytes_read != 0 {
+			if let Some(ref mut h) = hasher {
+				try!(io::Write::write_all(*h, &mut buffer[0..bytes_read]).map_err(|_|()));
+			}
 			try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read]).map_err(|_|()));
 		} else {
 			try!(file.sync_data().map_err(|_|()));

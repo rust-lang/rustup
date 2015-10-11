@@ -9,6 +9,8 @@ use std::env;
 
 use regex::Regex;
 use hyper;
+use openssl::crypto::hash::{Type, Hasher};
+use itertools::Itertools;
 
 pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
 pub const UPDATE_HASH_LEN: usize = 20;
@@ -149,8 +151,8 @@ fn parse_url(url: &str) -> Result<hyper::Url> {
 	hyper::Url::parse(url).map_err(|_| Error::InvalidUrl)
 }
 
-pub fn download_and_check<'a>(url: &str, update_hash: Option<&Path>, ext: &str, cfg: DownloadCfg<'a>) -> Result<Option<(temp::File<'a>, String)>> {
-	let hash = try!(download_hash(url, cfg));
+pub fn download_and_check<'a>(url_str: &str, update_hash: Option<&Path>, ext: &str, cfg: DownloadCfg<'a>) -> Result<Option<(temp::File<'a>, String)>> {
+	let hash = try!(download_hash(url_str, cfg));
 	let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
 	
 	if let Some(hash_file) = update_hash {
@@ -169,10 +171,24 @@ pub fn download_and_check<'a>(url: &str, update_hash: Option<&Path>, ext: &str, 
 		}
 	}
 	
-	let url = try!(parse_url(url));
+	let url = try!(parse_url(url_str));
 	let file = try!(cfg.temp_cfg.new_file_with_ext(ext));
-	try!(utils::download_file(url, &file, cfg.notify_handler));
-	// TODO: Actually download and check the checksum and signature of the file
+	
+	let mut hasher = Hasher::new(Type::SHA256);
+	try!(utils::download_file(url, &file, Some(&mut hasher), cfg.notify_handler));
+	let actual_hash = hasher.finish().iter()
+		.map(|b| format!("{:02x}", b))
+		.join("");
+	
+	if hash != actual_hash {
+		// Incorrect hash
+		return Err(Error::ChecksumFailed { url: url_str.to_owned(), expected: hash, calculated: actual_hash });
+	} else {
+		cfg.notify_handler.call(ChecksumValid(url_str));
+	}
+	
+	// TODO: Check the signature of the file
+	
 	Ok(Some((file, partial_hash)))
 }
 
@@ -232,7 +248,7 @@ pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
 	let hash_url = try!(parse_url(&(url.to_owned() + ".sha256")));
 	let hash_file = try!(cfg.temp_cfg.new_file());
 	
-	try!(utils::download_file(hash_url, &hash_file, cfg.notify_handler));
+	try!(utils::download_file(hash_url, &hash_file, None, cfg.notify_handler));
 	
-	utils::read_file("hash", &hash_file)
+	utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
 }

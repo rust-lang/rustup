@@ -3,6 +3,8 @@
 extern crate rand;
 extern crate hyper;
 extern crate regex;
+extern crate openssl;
+extern crate itertools;
 #[cfg(windows)]
 extern crate winapi;
 #[cfg(windows)]

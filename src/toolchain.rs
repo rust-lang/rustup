@@ -137,7 +137,7 @@ impl<'a> Toolchain<'a> {
 				
 				// Download to a local file
 				local_installer = Cow::Owned(work_dir.join(basename));
-				try!(utils::download_file(url, &local_installer, &self.cfg.notify_handler));
+				try!(utils::download_file(url, &local_installer, None, &self.cfg.notify_handler));
 			} else {
 				// If installer is a filename
 				
