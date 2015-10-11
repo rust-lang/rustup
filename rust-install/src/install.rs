@@ -116,9 +116,17 @@ impl<'a> InstallMethod<'a> {
 		
 		try!(utils::cmd_status("tar", cmd));
 		
+		// Find the root Rust folder within the subfolder
+		let root_dir = try!(try!(utils::read_dir("install", work_dir))
+			.filter_map(io::Result::ok)
+			.map(|e| e.path())
+			.filter(|p| utils::is_directory(&p))
+			.next()
+			.ok_or(Error::InvalidInstaller));
+		
 		let mut cmd = Command::new("sh");
 		cmd
-			.arg(installer_dir.join("install.sh"))
+			.arg(root_dir.join("install.sh"))
 			.arg("--prefix").arg(&prefix.path);
 		
 		if prefix.install_type != InstallType::Shared {
@@ -126,6 +134,8 @@ impl<'a> InstallMethod<'a> {
 		}
 
 		let result = utils::cmd_status("sh", cmd);
+		
+		let _ = fs::remove_dir_all(&installer_dir);
 			
 		if result.is_err() && prefix.install_type == InstallType::Owned {
 			let _ = fs::remove_dir_all(&prefix.path);
@@ -153,7 +163,7 @@ impl<'a> InstallMethod<'a> {
 				.filter(|p| utils::is_directory(&p))
 				.next()
 				.ok_or(Error::InvalidInstaller));
-				
+			
 			// Rename and move it to the toolchain directory
 			utils::rename_dir("install", &root_dir, &prefix.path)
 		};
