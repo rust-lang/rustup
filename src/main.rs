@@ -218,7 +218,21 @@ fn run_multirust() -> Result<()> {
 		("which", Some(m)) => which(&cfg, m),
 		("ctl", Some(m)) => ctl(&cfg, m),
 		("doc", Some(m)) => doc(&cfg, m),
-		_ => maybe_install(&cfg),
+		_ => {
+			let result = maybe_install(&cfg);
+			println!("");
+			
+			// Suspend in case we were run from the UI
+			try!(utils::cmd_status("shell", shell_cmd(
+				(if cfg!(windows) {
+					"pause"
+				} else {
+					"read -p \"Press any key to continue...\" -n 1 -s && echo"
+				}).as_ref()
+			)));
+			
+			result
+		},
 	}
 }
 
@@ -238,7 +252,6 @@ fn maybe_install(cfg: &Cfg) -> Result<()> {
 		return handle_install(cfg, false, false);
 	} else {
 		println!("This is the currently installed multirust binary.");
-		read_line();
 	}
 	Ok(())
 }
@@ -325,12 +338,18 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	}
 	
 	info!("Installed");
-	read_line();
 	
 	Ok(())
 }
 
-fn uninstall(cfg: &Cfg, _: &ArgMatches) -> Result<()> {
+fn uninstall(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+	if !m.is_present("no-prompt") {
+		if !ask("This will delete all toolchains, overrides, aliases, and other multirust data associated with this user. Continue?").unwrap_or(false) {
+			println!("aborting");
+			return Ok(());
+		}
+	}
+
 	#[cfg(windows)]
 	fn inner(cfg: &Cfg) -> Result<()> {
 		let mut cmd = Command::new("cmd");

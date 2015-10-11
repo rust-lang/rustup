@@ -60,6 +60,7 @@ build_script:
       if ($env:TARGET -match "-msvc$") {
         cargo rustc --release --bin multirust-rs -- -C link-args="gdi32.lib user32.lib"
       }
+  - tests\cli.bat
 notifications:
   - provider: Webhook
     url: https://webhooks.gitter.im/e/9907ad94eb7a5ff291c3

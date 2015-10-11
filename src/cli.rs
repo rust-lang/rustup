@@ -8,7 +8,7 @@ pub fn get() -> App<'static, 'static, 'static, 'static, 'static, 'static> {
 		.about("Port of multirust to rust")
 		.setting(AppSettings::VersionlessSubcommands)
 		.arg(
-			Arg::with_name("verbise")
+			Arg::with_name("verbose")
 				.short("v")
 				.long("verbose")
 				.help("Enable verbose output")
@@ -149,6 +149,7 @@ r"Installs multirust for the current user."
 		.subcommand(
 			SubCommand::with_name("uninstall")
 				.about("Uninstalls multirust.")
+				.arg(Arg::with_name("no-prompt").short("y").help("Disable confirmation prompt."))
 		)
 		.subcommand(
 			SubCommand::with_name("doc")
