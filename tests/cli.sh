@@ -24,7 +24,7 @@ echo "> Testing cargo"
 cargo --multirust
 
 echo "> Testing override"
-multirust override i686-msvc-stable
+multirust override i686-pc-windows-msvc-stable
 
 echo "> Testing update"
 multirust update
