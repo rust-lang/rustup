@@ -196,7 +196,10 @@ pub fn download_dist<'a>(toolchain: &str, update_hash: Option<&Path>, cfg: Downl
 }
 
 pub fn get_host_triple() -> (&'static str, Option<&'static str>, Option<&'static str>) {
-	let arch = env::consts::ARCH;
+	let arch = match env::consts::ARCH {
+		"x86" => "i686", // Why, rust... WHY?
+		other => other,
+	};
 	
 	let os = match env::consts::OS {
 		"windows" => Some("pc-windows"),
