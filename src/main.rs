@@ -184,15 +184,14 @@ fn test_installed(cfg: &Cfg) -> bool {
 fn maybe_direct_proxy() -> Result<bool> {
 	let arg0: PathBuf = env::args_os().next().unwrap().into();
 	
-	match arg0.file_stem().and_then(OsStr::to_str) {
-		Some("multirust") | Some("multirust-rs") => Ok(false),
-		Some(name) => {
+	if let Some(name) = arg0.file_stem().and_then(OsStr::to_str) {
+		if !name.starts_with("multirust") {
 			let cfg = try!(set_globals(None));
 			try!(direct_proxy(&cfg, name));
-			Ok(true)
-		},
-		_ => Ok(false)
+			return Ok(true)
+		}
 	}
+	Ok(false)
 }
 
 fn run_multirust() -> Result<()> {
