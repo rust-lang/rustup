@@ -169,6 +169,23 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> Option<()> {
 	symlink_dir_inner(src, dest)
 }
 
+pub fn symlink_file(src: &Path, dest: &Path) -> Option<()> {
+	#[cfg(windows)]
+	fn symlink_file_inner(src: &Path, dest: &Path) -> Option<()> {
+		::std::os::windows::fs::symlink_file(src, dest).ok()
+	}
+	#[cfg(not(windows))]
+	fn symlink_file_inner(src: &Path, dest: &Path) -> Option<()> {
+		::std::os::unix::fs::symlink(src, dest).ok()
+	}
+	
+	symlink_file_inner(src, dest)
+}
+
+pub fn hardlink(src: &Path, dest: &Path) -> Option<()> {
+	fs::hard_link(src, dest).ok()
+}
+
 pub fn copy_dir(src: &Path, dest: &Path) -> Option<()> {
 	#[cfg(windows)]
 	fn copy_dir_inner(src: &Path, dest: &Path) -> Option<()> {

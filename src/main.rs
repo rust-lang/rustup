@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 use std::io::{Write, BufRead};
 use std::process::{Command, Stdio};
 use std::process;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::fmt;
 use std::iter;
 use multirust::*;
@@ -100,10 +100,10 @@ fn current_dir() -> Result<PathBuf> {
 	env::current_dir().map_err(|_| Error::LocatingWorkingDir)
 }
 
-fn run_inner(_: &Cfg, command: Result<Command>, args: &[&str]) -> Result<()> {
+fn run_inner<S: AsRef<OsStr>>(_: &Cfg, command: Result<Command>, args: &[S]) -> Result<()> {
 	if let Ok(mut command) = command {
 		for arg in &args[1..] {
-			if arg == &"--multirust" {
+			if arg.as_ref() == <str as AsRef<OsStr>>::as_ref("--multirust") {
 				println!("Proxied via multirust");
 				std::process::exit(0);
 			} else {
@@ -116,13 +116,13 @@ fn run_inner(_: &Cfg, command: Result<Command>, args: &[&str]) -> Result<()> {
 				std::process::exit(result.code().unwrap_or(1));
 			},
 			Err(e) => {
-				Err(Error::RunningCommand { name: OsString::from(args[0]), error: e })
+				Err(Error::RunningCommand { name: args[0].as_ref().to_owned(), error: e })
 			}
 		}
 			
 	} else {
 		for arg in &args[1..] {
-			if arg == &"--multirust" {
+			if arg.as_ref() == <str as AsRef<OsStr>>::as_ref("--multirust") {
 				println!("Proxied via multirust");
 				std::process::exit(0);
 			}
@@ -142,6 +142,12 @@ fn proxy(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	let args = m.values_of("command").unwrap();
 	
 	run_inner(cfg, cfg.create_command_for_dir(&try!(current_dir()), args[0]), &args)
+}
+
+fn direct_proxy(cfg: &Cfg, arg0: &str) -> Result<()> {
+	let args: Vec<_> = env::args_os().collect();
+	
+	run_inner(cfg, cfg.create_command_for_dir(&try!(current_dir()), arg0), &args)
 }
 
 fn shell_cmd(cmdline: &OsStr) -> Command {
@@ -175,7 +181,25 @@ fn test_installed(cfg: &Cfg) -> bool {
 	utils::is_file(cfg.multirust_dir.join(bin_path("multirust")))
 }
 
+fn maybe_direct_proxy() -> Result<bool> {
+	let arg0: PathBuf = env::args_os().next().unwrap().into();
+	
+	match arg0.file_stem().and_then(OsStr::to_str) {
+		Some("multirust") | Some("multirust-rs") => Ok(false),
+		Some(name) => {
+			let cfg = try!(set_globals(None));
+			try!(direct_proxy(&cfg, name));
+			Ok(true)
+		},
+		_ => Ok(false)
+	}
+}
+
 fn run_multirust() -> Result<()> {
+	// If the executable name is not multirust*, then go straight
+	// to proxying
+	if try!(maybe_direct_proxy()) { return Ok(()); }
+	
 	let app_matches = cli::get().get_matches();
 	
 	let cfg = try!(set_globals(Some(&app_matches)));
@@ -266,14 +290,28 @@ fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()> {
+	#[allow(dead_code)]
 	fn create_bat_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
 		path.push(name.to_owned() + ".bat");
 		utils::write_file(name, &path, &format!("@\"%~dp0\\multirust\" proxy {} %*", name))
 	}
+	#[allow(dead_code)]
 	fn create_sh_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
 		path.push(name.to_owned());
 		try!(utils::write_file(name, &path, &format!("#!/bin/sh\n\"`dirname $0`/multirust\" proxy {} \"$@\"", name)));
 		utils::make_executable(&path)
+	}
+	fn create_symlink_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
+		let mut dest_path = path.clone();
+		dest_path.push("multirust".to_owned() + env::consts::EXE_SUFFIX);
+		path.push(name.to_owned() + env::consts::EXE_SUFFIX);
+		utils::symlink_file(&path, &dest_path)
+	}
+	fn create_hardlink_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
+		let mut dest_path = path.clone();
+		dest_path.push("multirust".to_owned() + env::consts::EXE_SUFFIX);
+		path.push(name.to_owned() + env::consts::EXE_SUFFIX);
+		utils::hardlink_file(&dest_path, &path)
 	}
 	
 	let bin_path = cfg.multirust_dir.join("bin");
@@ -291,8 +329,27 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	
 	let tools = ["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
 	for tool in &tools {
-		try!(create_bat_proxy(bin_path.clone(), tool));
-		try!(create_sh_proxy(bin_path.clone(), tool));
+		// There are five ways to create the proxies:
+		// 1) Shell/batch scripts
+		//    On windows, `CreateProcess` (on which Command is based) will not look for batch scripts
+		// 2) Symlinks
+		//    On windows, symlinks require admin privileges to create
+		// 3) Copies of the multirust binary
+		//    The multirust binary is not exactly small
+		// 4) Stub executables
+		//    Complicates build process and even trivial rust executables are quite large
+		// 5) Hard links
+		//    Downsides are yet to be determined
+		// As a result, use hardlinks on windows, and symlinks elsewhere.
+		
+		// try!(create_bat_proxy(bin_path.clone(), tool));
+		// try!(create_sh_proxy(bin_path.clone(), tool));
+		
+		if cfg!(windows) {
+			try!(create_hardlink_proxy(bin_path.clone(), tool));
+		} else {
+			try!(create_symlink_proxy(bin_path.clone(), tool));
+		}
 	}
 	
 	#[cfg(windows)]

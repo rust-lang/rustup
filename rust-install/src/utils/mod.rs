@@ -131,6 +131,16 @@ pub fn symlink_dir(src: &Path, dest: &Path, notify_handler: &NotifyHandler) -> R
 		.ok_or_else(|| Error::LinkingDirectory(PathBuf::from(src), PathBuf::from(dest)))
 }
 
+pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
+	raw::symlink_file(src, dest)
+		.ok_or_else(|| Error::LinkingFile(PathBuf::from(src), PathBuf::from(dest)))
+}
+
+pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
+	raw::hardlink(src, dest)
+		.ok_or_else(|| Error::LinkingFile(PathBuf::from(src), PathBuf::from(dest)))
+}
+
 pub fn copy_dir(src: &Path, dest: &Path, notify_handler: &NotifyHandler) -> Result<()> {
 	notify_handler.call(CopyingDirectory(src, dest));
 	raw::copy_dir(src, dest)

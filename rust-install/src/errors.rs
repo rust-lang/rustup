@@ -55,6 +55,7 @@ pub enum Error {
 	CommandStatus { name: OsString, status: ExitStatus },
 	NotAFile { path: PathBuf },
 	NotADirectory { path: PathBuf },
+	LinkingFile(PathBuf, PathBuf),
 	LinkingDirectory(PathBuf, PathBuf),
 	CopyingDirectory(PathBuf, PathBuf),
 	CopyingFile(PathBuf, PathBuf),
@@ -210,6 +211,8 @@ impl Display for Error {
 				=> write!(f, "not a file: '{}'", path.display()),
 			Error::NotADirectory { ref path }
 				=> write!(f, "not a directory: '{}'", path.display()),
+			Error::LinkingFile(ref src, ref dest)
+				=> write!(f, "could not create link from '{}' to '{}'", src.display(), dest.display()),
 			Error::LinkingDirectory(ref src, ref dest)
 				=> write!(f, "could not create symlink from '{}' to '{}'", src.display(), dest.display()),
 			Error::CopyingDirectory(ref src, ref dest)
