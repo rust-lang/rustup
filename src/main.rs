@@ -305,7 +305,7 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 		let mut dest_path = path.clone();
 		dest_path.push("multirust".to_owned() + env::consts::EXE_SUFFIX);
 		path.push(name.to_owned() + env::consts::EXE_SUFFIX);
-		utils::symlink_file(&path, &dest_path)
+		utils::symlink_file(&dest_path, &path)
 	}
 	fn create_hardlink_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
 		let mut dest_path = path.clone();

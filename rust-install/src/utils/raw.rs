@@ -166,6 +166,11 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> Option<()> {
 		::std::os::unix::fs::symlink(src, dest).ok()
 	}
 	
+	// This is stupid, but seems to be the safest way to delete
+	// a directory that may be a symbol link...
+	let _ = fs::remove_file(dest);
+	let _ = fs::remove_dir(dest);
+	let _ = fs::remove_dir_all(dest);
 	symlink_dir_inner(src, dest)
 }
 
@@ -179,10 +184,12 @@ pub fn symlink_file(src: &Path, dest: &Path) -> Option<()> {
 		::std::os::unix::fs::symlink(src, dest).ok()
 	}
 	
+	let _ = fs::remove_file(dest);
 	symlink_file_inner(src, dest)
 }
 
 pub fn hardlink(src: &Path, dest: &Path) -> Option<()> {
+	let _ = fs::remove_file(dest);
 	fs::hard_link(src, dest).ok()
 }
 
