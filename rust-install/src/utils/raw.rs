@@ -269,3 +269,47 @@ pub fn home_dir() -> Option<PathBuf> {
 	
 	inner()
 }
+
+#[cfg(windows)]
+pub mod windows {
+	use winapi::*;
+	use std::io;
+	use std::path::PathBuf;
+	use std::ptr;
+	use std::slice;
+	use std::ffi::OsString;
+	use std::os::windows::ffi::OsStringExt;
+	use shell32;
+	use ole32;
+	
+	#[allow(non_upper_case_globals)]
+	pub const FOLDERID_LocalAppData: GUID = GUID {
+		Data1: 0xF1B32785, 
+		Data2: 0x6FBA,
+		Data3: 0x4FCF,
+		Data4: [0x9D, 0x55, 0x7B, 0x8E, 0x7F, 0x15, 0x70, 0x91],
+	};
+	
+	pub fn get_special_folder(id: &shtypes::KNOWNFOLDERID) -> io::Result<PathBuf> {
+		
+		
+		let mut path = ptr::null_mut();
+		let result;
+		
+		unsafe {
+			let code = shell32::SHGetKnownFolderPath(id, 0, ptr::null_mut(), &mut path);
+			if code == 0 {
+				let mut length = 0usize;
+				while *path.offset(length as isize) != 0 {
+					length += 1;
+				}
+				let slice = slice::from_raw_parts(path, length);
+				result = Ok(OsString::from_wide(slice).into());
+			} else {
+				result = Err(io::Error::from_raw_os_error(code));
+			}
+			ole32::CoTaskMemFree(path as *mut _);
+		}
+		result
+	}
+}

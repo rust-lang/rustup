@@ -9,6 +9,10 @@ extern crate itertools;
 extern crate winapi;
 #[cfg(windows)]
 extern crate winreg;
+#[cfg(windows)]
+extern crate shell32;
+#[cfg(windows)]
+extern crate ole32;
 
 pub use errors::*;
 pub use install::*;

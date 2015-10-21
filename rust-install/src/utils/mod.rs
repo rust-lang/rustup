@@ -200,3 +200,20 @@ pub fn make_executable(path: &Path) -> Result<()> {
 	
 	inner(path)
 }
+
+pub fn get_local_data_path() -> Result<PathBuf> {
+	#[cfg(windows)]
+	fn inner() -> Result<PathBuf> {
+		raw::windows::get_special_folder(&raw::windows::FOLDERID_LocalAppData).map_err(|_| Error::LocatingHome)
+	}
+	#[cfg(not(windows))]
+	fn inner() -> Result<PathBuf> {
+		// TODO: consider using ~/.local/ instead
+		home_dir()
+			.map(PathBuf::from)
+			.and_then(to_absolute)
+			.ok_or(Error::LocatingHome)
+	}
+	
+	inner()
+}

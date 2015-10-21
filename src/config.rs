@@ -31,7 +31,6 @@ impl Display for OverrideReason {
 }
 
 pub struct Cfg {
-	pub home_dir: PathBuf,
 	pub multirust_dir: PathBuf,
 	pub version_file: PathBuf,
 	pub override_db: OverrideDB,
@@ -48,16 +47,13 @@ pub struct Cfg {
 impl Cfg {
 	pub fn from_env(notify_handler: NotifyHandler) -> Result<Self> {
 		// Get absolute home directory
-		let home_dir = try!(utils::home_dir()
-			.map(PathBuf::from)
-			.and_then(utils::to_absolute)
-			.ok_or(Error::LocatingHome));
+		let data_dir = try!(utils::get_local_data_path());
 		
 		// Set up the multirust home directory
 		let multirust_dir = env::var_os("MULTIRUST_HOME")
 			.and_then(utils::if_not_empty)
 			.map(PathBuf::from)
-			.unwrap_or_else(|| home_dir.join(".multirust"));
+			.unwrap_or_else(|| data_dir.join(".multirust"));
 			
 		try!(utils::ensure_dir_exists("home", &multirust_dir, &notify_handler));
 		
@@ -93,7 +89,6 @@ impl Cfg {
 			.unwrap_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT));
 		
 		Ok(Cfg {
-			home_dir: home_dir,
 			multirust_dir: multirust_dir,
 			version_file: version_file,
 			override_db: override_db,
