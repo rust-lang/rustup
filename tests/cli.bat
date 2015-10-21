@@ -2,7 +2,10 @@
 
 echo ^> Running CLI tests...
 
-set MR="%~dp0\..\target\release\multirust-rs.exe"
+set MR="%~dp0\..\target\release\multirust-rs(2).exe"
+
+echo ^> Renaming to multirust(2).exe
+ren "%~dp0\..\target\release\multirust-rs.exe" "multirust-rs(2).exe" || (echo FAILED && exit /b 1)
 
 echo ^> Testing --help
 %MR% --help || (echo FAILED && exit /b 1)

@@ -3,7 +3,10 @@ set -e
 
 echo "> Running CLI tests..."
 
-MR="`dirname $0`/../target/release/multirust-rs"
+MR="`dirname $0`/../target/release/multirust-rs(2)"
+
+echo "> Renaming to multirust(2)"
+mv "`dirname $0`/../target/release/multirust-rs" "`dirname $0`/../target/release/multirust-rs(2)"
 
 echo "> Testing --help"
 $MR --help
