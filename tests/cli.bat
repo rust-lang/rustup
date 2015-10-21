@@ -11,7 +11,7 @@ echo ^> Testing install
 %MR% install -a || (echo FAILED && exit /b 1)
 
 echo ^> Updating PATH
-set PATH=%USERPROFILE%\.multirust\bin;%PATH%
+set PATH=%LOCALAPPDATA%\.multirust\bin;%PATH%
 
 echo ^> Testing default
 multirust default nightly || (echo FAILED && exit /b 1)
