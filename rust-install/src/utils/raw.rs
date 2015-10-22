@@ -275,7 +275,7 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
 pub fn home_dir() -> Option<PathBuf> {
 	#[cfg(not(windows))]
 	fn inner() -> Option<PathBuf> {
-		std::env::home_dir()
+		::std::env::home_dir()
 	}
 	#[cfg(windows)]
 	fn inner() -> Option<PathBuf> {
