@@ -71,10 +71,11 @@ on_success:
   - git submodule init
   - git submodule update --depth 1 --remote
   - if not exist "binaries\%TARGET%" mkdir "binaries\%TARGET%"
+  - del /Q "binaries\%TARGET%"
   - copy /B /Y "target\release\*" "binaries\%TARGET%"
   - git rev-parse HEAD > "binaries\%TARGET%\commit.txt"
   - cd binaries
   - git checkout master
-  - git add .
+  - git add -A
   - git commit -m "Auto-update %TARGET% binaries (Appveyor CI)"
   - ps: $attempts = 1; do { .\push-changes.bat; $attempts++ } while($lastexitcode -ne '0' -and $attempts -le 5)

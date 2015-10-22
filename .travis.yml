@@ -48,10 +48,11 @@ after_success:
   - git submodule init
   - git submodule update --depth 1 --remote
   - mkdir -p "binaries/$TARGET"
+  - rm ./binaries/$TARGET/*
   - find "target/release/" -maxdepth 1 -type f -exec cp {} "binaries/$TARGET" \;
   - git rev-parse HEAD > "binaries/$TARGET/commit.txt"
   - cd binaries
   - git checkout master
-  - git add .
+  - git add -A
   - git commit -m "Auto-update $TARGET binaries (Travis CI)"
   - for i in {1..5}; do ./push-changes.sh && break; done
