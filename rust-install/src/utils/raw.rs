@@ -3,7 +3,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::io;
 use std::char::from_u32;
-use std::env;
 use std::io::Write;
 use std::process::{Command, Stdio, ExitStatus};
 use std::ffi::{OsStr, OsString};
@@ -36,13 +35,6 @@ pub fn path_exists<P: AsRef<Path>>(path: P) -> bool {
 pub fn random_string(length: usize) -> String {
 	let chars = b"abcdefghijklmnopqrstuvwxyz0123456789_";
 	(0..length).map(|_| from_u32(chars[random::<usize>() % chars.len()] as u32).unwrap()).collect()
-}
-
-pub fn to_absolute<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
-	env::current_dir().map(|mut v| {
-			v.push(path);
-			v
-		})
 }
 
 pub fn if_not_empty<S: PartialEq<str>>(s: S) -> Option<S> {

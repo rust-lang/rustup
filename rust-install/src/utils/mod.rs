@@ -17,7 +17,6 @@ pub use self::raw::{
 	is_directory,
 	is_file,
 	path_exists,
-	to_absolute,
 	if_not_empty,
 	random_string,
 	prefix_arg,
@@ -323,6 +322,13 @@ pub fn current_exe() -> Result<PathBuf> {
 	env::current_exe().map_err(|e| Error::LocatingWorkingDir { error: e })
 }
 
+pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
+	current_dir().map(|mut v| {
+		v.push(path);
+		v
+	})
+}
+
 pub fn get_local_data_path() -> Result<PathBuf> {
 	#[cfg(windows)]
 	fn inner() -> Result<PathBuf> {
@@ -332,9 +338,9 @@ pub fn get_local_data_path() -> Result<PathBuf> {
 	fn inner() -> Result<PathBuf> {
 		// TODO: consider using ~/.local/ instead
 		home_dir()
+			.ok_or(Error::LocatingHome)
 			.map(PathBuf::from)
 			.and_then(to_absolute)
-			.ok_or(Error::LocatingHome)
 	}
 	
 	inner()
