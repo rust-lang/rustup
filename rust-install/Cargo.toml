@@ -3,7 +3,7 @@
 name = "rust-install"
 version = "0.0.4"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
-description = "common code shared by multirust and rustup"
+description = "Encapsulates managing a single rust installation"
 
 documentation = "http://diggsey.github.io/multirust-rs/rust_install/index.html"
 homepage = "https://github.com/Diggsey/multirust-rs"
