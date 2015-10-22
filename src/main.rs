@@ -386,7 +386,7 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	}
 	#[cfg(not(windows))]
 	fn do_add_to_path(cfg: &Cfg, path: PathBuf) -> Result<()> {
-		let home_dir = try!(utils::home_dir().ok_or(Error::LocatingHome));
+		let home_dir = try!(utils::home_dir().ok_or(utils::Error::LocatingHome));
 		let tmp = path.into_os_string().into_string().ok().expect("cannot install to invalid unicode path");
 		try!(utils::append_file(".profile", &home_dir.join(".profile"), &format!("\n# Multirust override:\nexport PATH=\"{}:$PATH\"", &tmp)));
 		
