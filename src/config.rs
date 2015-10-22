@@ -8,7 +8,8 @@ use std::fmt::{self, Display};
 
 use itertools::Itertools;
 
-use rust_install::*;
+use errors::*;
+use rust_install::{temp, utils, dist};
 use override_db::OverrideDB;
 use toolchain::Toolchain;
 
@@ -39,13 +40,13 @@ pub struct Cfg {
 	pub update_hash_dir: PathBuf,
 	pub temp_cfg: temp::Cfg,
 	pub gpg_key: Cow<'static, str>,
-	pub notify_handler: NotifyHandler,
 	pub env_override: Option<String>,
 	pub dist_root_url: Cow<'static, str>,
+	pub notify_handler: SharedNotifyHandler,
 }
 
 impl Cfg {
-	pub fn from_env(notify_handler: NotifyHandler) -> Result<Self> {
+	pub fn from_env(notify_handler: SharedNotifyHandler) -> Result<Self> {
 		// Get absolute home directory
 		let data_dir = try!(utils::get_local_data_path());
 		
@@ -55,7 +56,7 @@ impl Cfg {
 			.map(PathBuf::from)
 			.unwrap_or_else(|| data_dir.join(".multirust"));
 			
-		try!(utils::ensure_dir_exists("home", &multirust_dir, &notify_handler));
+		try!(utils::ensure_dir_exists("home", &multirust_dir, ntfy!(&notify_handler)));
 		
 		// Data locations
 		let version_file = multirust_dir.join("version");
@@ -67,8 +68,8 @@ impl Cfg {
 		let notify_clone = notify_handler.clone();
 		let temp_cfg = temp::Cfg::new(
 			multirust_dir.join("tmp"),
-			temp::NotifyHandler::from(move |n: temp::Notification| {
-				notify_clone.call(Temp(n));
+			shared_ntfy!(move |n: temp::Notification| {
+				notify_clone.call(Notification::Temp(n));
 			}),
 		);
 		
@@ -110,14 +111,14 @@ impl Cfg {
 		
 		try!(utils::rename_file("default", &*work_file, &self.default_file));
 		
-		self.notify_handler.call(SetDefaultToolchain(toolchain));
+		self.notify_handler.call(Notification::SetDefaultToolchain(toolchain));
 		
 		Ok(())
 	}
 
 	pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain> {
 		if create_parent {
-			try!(utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &self.notify_handler));
+			try!(utils::ensure_dir_exists("toolchains", &self.toolchains_dir, ntfy!(&self.notify_handler)));
 		}
 		
 		Ok(Toolchain::from(self, name))
@@ -131,7 +132,7 @@ impl Cfg {
 	
 	pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> Result<PathBuf> {
 		if create_parent {
-			try!(utils::ensure_dir_exists("update-hash", &self.update_hash_dir, &self.notify_handler));
+			try!(utils::ensure_dir_exists("update-hash", &self.update_hash_dir, ntfy!(&self.notify_handler)));
 		}
 		
 		Ok(self.update_hash_dir.join(toolchain))
@@ -153,7 +154,7 @@ impl Cfg {
 		
 		let current_version = try!(utils::read_file("version", &self.version_file));
 		
-		self.notify_handler.call(UpgradingMetadata(&current_version, METADATA_VERSION));
+		self.notify_handler.call(Notification::UpgradingMetadata(&current_version, METADATA_VERSION));
 
 		match &*current_version {
 			"2" => {
@@ -179,7 +180,7 @@ impl Cfg {
 	
 	pub fn delete_data(&self) -> Result<()> {
 		if utils::path_exists(&self.multirust_dir) {
-			utils::remove_dir("home", &self.multirust_dir, &self.notify_handler)
+			Ok(try!(utils::remove_dir("home", &self.multirust_dir, ntfy!(&self.notify_handler))))
 		} else {
 			Ok(())
 		}
@@ -207,7 +208,7 @@ impl Cfg {
 			return Ok(Some((toolchain, OverrideReason::Environment)));
 		}
 		
-		if let Some((name, reason_path)) = try!(self.override_db.find(path, &self.notify_handler)) {
+		if let Some((name, reason_path)) = try!(self.override_db.find(path, self.notify_handler.as_ref())) {
 			let toolchain = try!(self.verify_toolchain(&name));
 			return Ok(Some((toolchain, OverrideReason::OverrideDB(reason_path))));
 		}
@@ -247,7 +248,7 @@ impl Cfg {
 			.map(|name| {
 				let result = self.get_toolchain(&name, true).and_then(|t| t.install_from_dist());
 				if let Err(ref e) = result {
-					self.notify_handler.call(NonFatalError(e));
+					self.notify_handler.call(Notification::NonFatalError(e));
 				}
 				(name, result)
 			})
@@ -258,7 +259,7 @@ impl Cfg {
 		try!(utils::assert_is_directory(&self.multirust_dir));
 		
 		if !utils::is_file(&self.version_file) {
-			self.notify_handler.call(WritingMetadataVersion(METADATA_VERSION));
+			self.notify_handler.call(Notification::WritingMetadataVersion(METADATA_VERSION));
 			
 			try!(utils::write_file("metadata version", &self.version_file, METADATA_VERSION));
 			
@@ -266,7 +267,7 @@ impl Cfg {
 		} else {
 			let current_version = try!(utils::read_file("metadata version", &self.version_file));
 			
-			self.notify_handler.call(ReadMetadataVersion(&current_version));
+			self.notify_handler.call(Notification::ReadMetadataVersion(&current_version));
 			
 			Ok(&*current_version == METADATA_VERSION)
 		}

@@ -1,4 +1,4 @@
-#![feature(coerce_unsized, fs_canonicalize)]
+#![feature(fs_canonicalize, fundamental)]
 
 extern crate rand;
 extern crate hyper;
@@ -18,6 +18,7 @@ pub use errors::*;
 pub use install::*;
 
 pub mod env_var;
+#[macro_use]
 pub mod notify;
 pub mod utils;
 pub mod temp;

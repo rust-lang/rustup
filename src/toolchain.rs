@@ -1,4 +1,5 @@
-use rust_install::*;
+use errors::*;
+use rust_install::{utils, dist, InstallPrefix, InstallType, InstallMethod};
 use config::Cfg;
 
 use std::process::Command;
@@ -36,23 +37,24 @@ impl<'a> Toolchain<'a> {
 		utils::is_directory(self.prefix.path())
 	}
 	pub fn verify(&self) -> Result<()> {
-		utils::assert_is_directory(self.prefix.path())
+		Ok(try!(utils::assert_is_directory(self.prefix.path())))
 	}
 	pub fn remove(&self) -> Result<()> {
 		if self.exists() {
-			self.cfg.notify_handler.call(UninstallingToolchain(&self.name));
+			self.cfg.notify_handler.call(Notification::UninstallingToolchain(&self.name));
 		} else {
-			self.cfg.notify_handler.call(ToolchainNotInstalled(&self.name));
+			self.cfg.notify_handler.call(Notification::ToolchainNotInstalled(&self.name));
 			return Ok(());
 		}
 		if let Some(update_hash) = try!(self.update_hash()) {
 			try!(utils::remove_file("update hash", &update_hash));
 		}
-		let result = self.prefix.uninstall(&self.cfg.notify_handler);
+		let handler = self.cfg.notify_handler.as_ref();
+		let result = self.prefix.uninstall(ntfy!(&handler));
 		if !self.exists() {
-			self.cfg.notify_handler.call(UninstalledToolchain(&self.name));
+			self.cfg.notify_handler.call(Notification::UninstalledToolchain(&self.name));
 		}
-		result
+		Ok(try!(result))
 	}
 	pub fn remove_if_exists(&self) -> Result<()> {
 		if self.exists() {
@@ -63,18 +65,20 @@ impl<'a> Toolchain<'a> {
 	}
 	pub fn install(&self, install_method: InstallMethod) -> Result<()> {
 		if self.exists() {
-			self.cfg.notify_handler.call(UpdatingToolchain(&self.name));
+			self.cfg.notify_handler.call(Notification::UpdatingToolchain(&self.name));
 		} else {
-			self.cfg.notify_handler.call(InstallingToolchain(&self.name));
+			self.cfg.notify_handler.call(Notification::InstallingToolchain(&self.name));
 		}
-		self.cfg.notify_handler.call(ToolchainDirectory(self.prefix.path(), &self.name));
-		self.prefix.install(install_method, &self.cfg.notify_handler)
+		self.cfg.notify_handler.call(Notification::ToolchainDirectory(self.prefix.path(), &self.name));
+		let handler = self.cfg.notify_handler.as_ref();
+		Ok(try!(self.prefix.install(install_method, ntfy!(&handler))))
 	}
 	pub fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<()> {
-		self.cfg.notify_handler.call(LookingForToolchain(&self.name));
+		self.cfg.notify_handler.call(Notification::LookingForToolchain(&self.name));
 		if !self.exists() {
 			self.install(install_method)
 		} else {
+			self.cfg.notify_handler.call(Notification::UsingExistingToolchain(&self.name));
 			Ok(())
 		}
 	}
@@ -90,7 +94,7 @@ impl<'a> Toolchain<'a> {
 		dist::DownloadCfg {
 			dist_root: &self.cfg.dist_root_url,
 			temp_cfg: &self.cfg.temp_cfg,
-			notify_handler: &self.cfg.notify_handler,
+			notify_handler: ntfy!(&self.cfg.notify_handler),
 		}
 	}
 	
@@ -137,7 +141,7 @@ impl<'a> Toolchain<'a> {
 				
 				// Download to a local file
 				local_installer = Cow::Owned(work_dir.join(basename));
-				try!(utils::download_file(url, &local_installer, None, &self.cfg.notify_handler));
+				try!(utils::download_file(url, &local_installer, None, ntfy!(&self.cfg.notify_handler)));
 			} else {
 				// If installer is a filename
 				
@@ -179,17 +183,17 @@ impl<'a> Toolchain<'a> {
 	
 	pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {
 		try!(self.verify());
-		self.prefix.doc_path(relative)
+		Ok(try!(self.prefix.doc_path(relative)))
 	}
 	pub fn open_docs(&self, relative: &str) -> Result<()> {
 		try!(self.verify());
-		self.prefix.open_docs(relative)
+		Ok(try!(self.prefix.open_docs(relative)))
 	}
 	
 	pub fn make_default(&self) -> Result<()> {
 		self.cfg.set_default(&self.name)
 	}
 	pub fn make_override(&self, path: &Path) -> Result<()> {
-		self.cfg.override_db.set(path, &self.name, &self.cfg.temp_cfg, &self.cfg.notify_handler)
+		Ok(try!(self.cfg.override_db.set(path, &self.name, &self.cfg.temp_cfg, self.cfg.notify_handler.as_ref())))
 	}
 }

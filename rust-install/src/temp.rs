@@ -5,8 +5,7 @@ use std::ops;
 use std::fmt::{self, Display};
 use utils::raw;
 
-pub use self::Notification::*;
-pub use ::notify::NotificationLevel;
+use notify::{self, NotificationLevel, Notifyable};
 
 pub enum Error {
 	CreatingRoot { path: PathBuf, error: io::Error },
@@ -15,7 +14,8 @@ pub enum Error {
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
-pub type NotifyHandler = ::notify::NotifyHandler<for<'a> Fn(Notification<'a>)>;
+pub type NotifyHandler<'a> = notify::NotifyHandler<'a, for<'b> Notifyable<Notification<'b>>>;
+pub type SharedNotifyHandler = notify::SharedNotifyHandler<for<'b> Notifyable<Notification<'b>>>;
 
 pub enum Notification<'a> {
 	CreatingRoot(&'a Path),
@@ -27,7 +27,7 @@ pub enum Notification<'a> {
 
 pub struct Cfg {
 	root_directory: PathBuf,
-	notify_handler: NotifyHandler,
+	notify_handler: SharedNotifyHandler,
 }
 
 pub struct Dir<'a> {
@@ -42,6 +42,7 @@ pub struct File<'a> {
 
 impl<'a> Notification<'a> {
 	pub fn level(&self) -> NotificationLevel {
+		use self::Notification::*;
 		match *self {
 			CreatingRoot(_) | CreatingFile(_) | CreatingDirectory(_) =>
 				NotificationLevel::Verbose,
@@ -57,6 +58,7 @@ impl<'a> Notification<'a> {
 
 impl<'a> Display for Notification<'a> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+		use self::Notification::*;
 		match *self {
 			CreatingRoot(path) =>
 				write!(f, "creating temp root: {}", path.display()),
@@ -80,8 +82,22 @@ impl<'a> Display for Notification<'a> {
 	}
 }
 
+impl Display for Error {
+	fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+		use self::Error::*;
+		match *self {
+			CreatingRoot { ref path, error: _ } =>
+				write!(f, "could not create temp root: {}", path.display()),
+			CreatingFile { ref path, error: _ } =>
+				write!(f, "could not create temp file: {}", path.display()),
+			CreatingDirectory { ref path, error: _ } =>
+				write!(f, "could not create temp directory: {}", path.display()),
+		}
+	}
+}
+
 impl Cfg {
-	pub fn new(root_directory: PathBuf, notify_handler: NotifyHandler) -> Self {
+	pub fn new(root_directory: PathBuf, notify_handler: SharedNotifyHandler) -> Self {
 		Cfg {
 			root_directory: root_directory,
 			notify_handler: notify_handler,
@@ -90,7 +106,7 @@ impl Cfg {
 	
 	pub fn create_root(&self) -> Result<bool> {
 		raw::ensure_dir_exists(&self.root_directory, |p| {
-			self.notify_handler.call(CreatingRoot(p));
+			self.notify_handler.call(Notification::CreatingRoot(p));
 		}).map_err(|e| Error::CreatingRoot { path: PathBuf::from(&self.root_directory), error: e })
 	}
 	
@@ -105,7 +121,7 @@ impl Cfg {
 			// This is technically racey, but the probability of getting the same
 			// random names at exactly the same time is... low.
 			if !raw::path_exists(&temp_dir) {
-				self.notify_handler.call(CreatingDirectory(&temp_dir));
+				self.notify_handler.call(Notification::CreatingDirectory(&temp_dir));
 				try!(fs::create_dir(&temp_dir)
 					.map_err(|e| Error::CreatingDirectory { path: PathBuf::from(&temp_dir), error: e }));
 				return Ok(Dir { cfg: self, path: temp_dir });
@@ -128,7 +144,7 @@ impl Cfg {
 			// This is technically racey, but the probability of getting the same
 			// random names at exactly the same time is... low.
 			if !raw::path_exists(&temp_file) {
-				self.notify_handler.call(CreatingFile(&temp_file));
+				self.notify_handler.call(Notification::CreatingFile(&temp_file));
 				try!(fs::File::create(&temp_file)
 					.map_err(|e| Error::CreatingFile { path: PathBuf::from(&temp_file), error: e }));
 				return Ok(File { cfg: self, path: temp_file });
@@ -156,7 +172,7 @@ impl<'a> ops::Deref for File<'a> {
 impl<'a> Drop for Dir<'a> {
 	fn drop(&mut self) {
 		if raw::is_directory(&self.path) {
-			self.cfg.notify_handler.call(DirectoryDeletion(&self.path, fs::remove_dir_all(&self.path)));
+			self.cfg.notify_handler.call(Notification::DirectoryDeletion(&self.path, fs::remove_dir_all(&self.path)));
 		}
 	}
 }
@@ -164,7 +180,7 @@ impl<'a> Drop for Dir<'a> {
 impl<'a> Drop for File<'a> {
 	fn drop(&mut self) {
 		if raw::is_file(&self.path) {
-			self.cfg.notify_handler.call(FileDeletion(&self.path, fs::remove_file(&self.path)));
+			self.cfg.notify_handler.call(Notification::FileDeletion(&self.path, fs::remove_file(&self.path)));
 		}
 	}
 }

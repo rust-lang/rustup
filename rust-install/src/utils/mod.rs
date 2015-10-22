@@ -1,11 +1,15 @@
 
-use errors::*;
 use std::path::{Path, PathBuf};
 use std::fs;
+use std::io;
 use std::process::Command;
 use std::ffi::OsString;
+use std::fmt::{self, Display};
+use std::env;
 use hyper;
 use openssl::crypto::hash::Hasher;
+
+use notify::{self, NotificationLevel, Notifyable};
 
 pub mod raw;
 
@@ -20,9 +24,129 @@ pub use self::raw::{
 	home_dir,
 };
 
-pub fn ensure_dir_exists(name: &'static str, path: &Path, notify_handler: &NotifyHandler) -> Result<bool> {
+pub enum Notification<'a> {
+	CreatingDirectory(&'a str, &'a Path),
+	LinkingDirectory(&'a Path, &'a Path),
+	CopyingDirectory(&'a Path, &'a Path),
+	RemovingDirectory(&'a str, &'a Path),
+	DownloadingFile(&'a hyper::Url, &'a Path),
+	NoCanonicalPath(&'a Path),
+}
+
+pub enum Error {
+	LocatingHome,
+	LocatingWorkingDir { error: io::Error },
+	ReadingFile { name: &'static str, path: PathBuf, error: io::Error },
+	ReadingDirectory { name: &'static str, path: PathBuf, error: io::Error },
+	WritingFile { name: &'static str, path: PathBuf, error: io::Error },
+	CreatingDirectory { name: &'static str, path: PathBuf, error: io::Error },
+	FilteringFile { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
+	RenamingFile { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
+	RenamingDirectory { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
+	DownloadingFile { url: hyper::Url, path: PathBuf },
+	RunningCommand { name: OsString, error: raw::CommandError },
+	NotAFile { path: PathBuf },
+	NotADirectory { path: PathBuf },
+	LinkingFile { src: PathBuf, dest: PathBuf, error: io::Error },
+	LinkingDirectory { src: PathBuf, dest: PathBuf, error: io::Error },
+	CopyingDirectory { src: PathBuf, dest: PathBuf, error: raw::CommandError },
+	CopyingFile { src: PathBuf, dest: PathBuf, error: io::Error },
+	RemovingFile { name: &'static str, path: PathBuf, error: io::Error },
+	RemovingDirectory { name: &'static str, path: PathBuf, error: io::Error },
+	OpeningBrowser,
+	SettingPermissions { path: PathBuf, error: io::Error },
+}
+
+pub type Result<T> = ::std::result::Result<T, Error>;
+pub type NotifyHandler<'a> = notify::NotifyHandler<'a, for<'b> Notifyable<Notification<'b>>>;
+
+impl<'a> Notification<'a> {
+	pub fn level(&self) -> NotificationLevel {
+		use self::Notification::*;
+		match *self {
+			CreatingDirectory(_, _) | RemovingDirectory(_, _) =>
+				NotificationLevel::Verbose,
+			LinkingDirectory(_, _) | CopyingDirectory(_, _) | DownloadingFile(_, _) =>
+				NotificationLevel::Normal,
+			NoCanonicalPath(_) =>
+				NotificationLevel::Warn,
+		}
+	}
+}
+
+impl<'a> Display for Notification<'a> {
+	fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+		use self::Notification::*;
+		match *self {
+			CreatingDirectory(name, path) =>
+				write!(f, "creating {} directory: '{}'", name, path.display()),
+			LinkingDirectory(_, dest) =>
+				write!(f, "linking directory from: '{}'", dest.display()),
+			CopyingDirectory(src, _) =>
+				write!(f, "coping directory from: '{}'", src.display()),
+			RemovingDirectory(name, path) =>
+				write!(f, "removing {} directory: '{}'", name, path.display()),
+			DownloadingFile(url, _) =>
+				write!(f, "downloading file from: '{}'", url),
+			NoCanonicalPath(path) =>
+				write!(f, "could not canonicalize path: '{}'", path.display()),
+		}
+	}
+}
+
+impl Display for Error {
+	fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+		use self::Error::*;
+		match *self {
+			LocatingHome =>
+				write!(f, "could not locate home directory"),
+			LocatingWorkingDir { error: _ } =>
+				write!(f, "could not locate working directory"),
+			ReadingFile { ref name, ref path, error: _ } =>
+				write!(f, "could not read {} file: '{}'", name, path.display()),
+			ReadingDirectory { ref name, ref path, error: _ } =>
+				write!(f, "could not read {} directory: '{}'", name, path.display()),
+			WritingFile { ref name, ref path, error: _ } =>
+				write!(f, "could not write {} file: '{}'", name, path.display()),
+			CreatingDirectory { ref name, ref path, error: _ } =>
+				write!(f, "could not create {} directory: '{}'", name, path.display()),
+			FilteringFile { ref name, ref src, ref dest, error: _ } =>
+				write!(f, "could not copy {} file from '{}' to '{}'", name, src.display(), dest.display() ),
+			RenamingFile { ref name, ref src, ref dest, error: _ } =>
+				write!(f, "could not rename {} file from '{}' to '{}'", name, src.display(), dest.display() ),
+			RenamingDirectory { ref name, ref src, ref dest, error: _ } =>
+				write!(f, "could not rename {} directory from '{}' to '{}'", name, src.display(), dest.display() ),
+			DownloadingFile { ref url, ref path } =>
+				write!(f, "could not download file from '{}' to '{}'", url, path.display()),
+			RunningCommand { ref name, error: _ } =>
+				write!(f, "command failed: '{}'", PathBuf::from(name).display()),
+			NotAFile { ref path } =>
+				write!(f, "not a file: '{}'", path.display()),
+			NotADirectory { ref path } =>
+				write!(f, "not a directory: '{}'", path.display()),
+			LinkingFile { ref src, ref dest, error: _ } =>
+				write!(f, "could not create link from '{}' to '{}'", src.display(), dest.display()),
+			LinkingDirectory { ref src, ref dest, error: _ } =>
+				write!(f, "could not create symlink from '{}' to '{}'", src.display(), dest.display()),
+			CopyingDirectory { ref src, ref dest, error: _ } =>
+				write!(f, "could not copy directory from '{}' to '{}'", src.display(), dest.display()),
+			CopyingFile { ref src, ref dest, error: _ } =>
+				write!(f, "could not copy file from '{}' to '{}'", src.display(), dest.display()),
+			RemovingFile { ref name, ref path, error: _ } =>
+				write!(f, "could not remove {} file: '{}'", name, path.display()),
+			RemovingDirectory { ref name, ref path, error: _ } =>
+				write!(f, "could not remove {} directory: '{}'", name, path.display()),
+			OpeningBrowser =>
+				write!(f, "could not open browser"),
+			SettingPermissions { ref path, error: _ } =>
+				write!(f, "failed to set permissions for: '{}'", path.display()),
+		}
+	}
+}
+
+pub fn ensure_dir_exists(name: &'static str, path: &Path, notify_handler: NotifyHandler) -> Result<bool> {
 	raw::ensure_dir_exists(path, |p| {
-		notify_handler.call(CreatingDirectory(name, p))
+		notify_handler.call(Notification::CreatingDirectory(name, p))
 	}).map_err(|e| Error::CreatingDirectory { name: name, path: PathBuf::from(path), error: e })
 }
 
@@ -80,7 +204,7 @@ pub fn match_file<T, F: FnMut(&str) -> Option<T>>(name: &'static str, src: &Path
 		})
 }
 
-pub fn canonicalize_path(path: &Path, notify_handler: &NotifyHandler) -> PathBuf {
+pub fn canonicalize_path(path: &Path, notify_handler: NotifyHandler) -> PathBuf {
 	fs::canonicalize(path)
 		.unwrap_or_else(|_| {
 			notify_handler.call(Notification::NoCanonicalPath(path));
@@ -88,25 +212,15 @@ pub fn canonicalize_path(path: &Path, notify_handler: &NotifyHandler) -> PathBuf
 		})
 }
 
-pub fn download_file(url: hyper::Url, path: &Path, hasher: Option<&mut Hasher>, notify_handler: &NotifyHandler) -> Result<()> {
-	notify_handler.call(DownloadingFile(&url, path));
+pub fn download_file(url: hyper::Url, path: &Path, hasher: Option<&mut Hasher>, notify_handler: NotifyHandler) -> Result<()> {
+	notify_handler.call(Notification::DownloadingFile(&url, path));
 	raw::download_file(url.clone(), path, hasher)
 		.map_err(|_| Error::DownloadingFile { url: url, path: PathBuf::from(path) })
 }
 
-pub fn cmd_status(name: &'static str, mut cmd: Command) -> Result<()> {
-	cmd.status()
+pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
+	raw::cmd_status(cmd)
 		.map_err(|e| Error::RunningCommand { name: OsString::from(name), error: e })
-		.and_then(|s| {
-			if s.success() {
-				Ok(())
-			} else {
-				Err(Error::CommandStatus {
-					name: OsString::from(name),
-					status: s,
-				})
-			}
-		})
 }
 
 pub fn assert_is_file(path: &Path) -> Result<()> {
@@ -125,36 +239,36 @@ pub fn assert_is_directory(path: &Path) -> Result<()> {
 	}
 }
 
-pub fn symlink_dir(src: &Path, dest: &Path, notify_handler: &NotifyHandler) -> Result<()> {
-	notify_handler.call(LinkingDirectory(src, dest));
+pub fn symlink_dir(src: &Path, dest: &Path, notify_handler: NotifyHandler) -> Result<()> {
+	notify_handler.call(Notification::LinkingDirectory(src, dest));
 	raw::symlink_dir(src, dest)
-		.ok_or_else(|| Error::LinkingDirectory(PathBuf::from(src), PathBuf::from(dest)))
+		.map_err(|e| Error::LinkingDirectory { src: PathBuf::from(src), dest: PathBuf::from(dest), error: e })
 }
 
 pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
 	raw::symlink_file(src, dest)
-		.ok_or_else(|| Error::LinkingFile(PathBuf::from(src), PathBuf::from(dest)))
+		.map_err(|e| Error::LinkingFile { src: PathBuf::from(src), dest: PathBuf::from(dest), error: e })
 }
 
 pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
 	raw::hardlink(src, dest)
-		.ok_or_else(|| Error::LinkingFile(PathBuf::from(src), PathBuf::from(dest)))
+		.map_err(|e| Error::LinkingFile { src: PathBuf::from(src), dest: PathBuf::from(dest), error: e })
 }
 
-pub fn copy_dir(src: &Path, dest: &Path, notify_handler: &NotifyHandler) -> Result<()> {
-	notify_handler.call(CopyingDirectory(src, dest));
+pub fn copy_dir(src: &Path, dest: &Path, notify_handler: NotifyHandler) -> Result<()> {
+	notify_handler.call(Notification::CopyingDirectory(src, dest));
 	raw::copy_dir(src, dest)
-		.ok_or_else(|| Error::CopyingDirectory(PathBuf::from(src), PathBuf::from(dest)))
+		.map_err(|e| Error::CopyingDirectory { src: PathBuf::from(src), dest: PathBuf::from(dest), error: e })
 }
 
 pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
 	fs::copy(src, dest)
-		.map_err(|_| Error::CopyingFile(PathBuf::from(src), PathBuf::from(dest)))
+		.map_err(|e| Error::CopyingFile { src: PathBuf::from(src), dest: PathBuf::from(dest), error: e })
 		.map(|_|())
 }
 
-pub fn remove_dir(name: &'static str, path: &Path, notify_handler: &NotifyHandler) -> Result<()> {
-	notify_handler.call(RemovingDirectory(name, path));
+pub fn remove_dir(name: &'static str, path: &Path, notify_handler: NotifyHandler) -> Result<()> {
+	notify_handler.call(Notification::RemovingDirectory(name, path));
 	fs::remove_dir_all(path)
 		.map_err(|e| Error::RemovingDirectory { name: name, path: PathBuf::from(path), error: e })
 }
@@ -178,7 +292,7 @@ pub fn open_browser(path: &Path) -> Result<()> {
 }
 
 pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
-	fs::set_permissions(path, perms).map_err(|_| Error::SettingPermissions(PathBuf::from(path)))
+	fs::set_permissions(path, perms).map_err(|e| Error::SettingPermissions { path: PathBuf::from(path), error: e })
 }
 
 pub fn make_executable(path: &Path) -> Result<()> {
@@ -199,6 +313,14 @@ pub fn make_executable(path: &Path) -> Result<()> {
 	}
 	
 	inner(path)
+}
+
+pub fn current_dir() -> Result<PathBuf> {
+	env::current_dir().map_err(|e| Error::LocatingWorkingDir { error: e })
+}
+
+pub fn current_exe() -> Result<PathBuf> {
+	env::current_exe().map_err(|e| Error::LocatingWorkingDir { error: e })
 }
 
 pub fn get_local_data_path() -> Result<PathBuf> {

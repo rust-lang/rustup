@@ -5,7 +5,7 @@ use std::io;
 use std::char::from_u32;
 use std::env;
 use std::io::Write;
-use std::process::{Command, Stdio};
+use std::process::{Command, Stdio, ExitStatus};
 use std::ffi::{OsStr, OsString};
 use hyper::{self, Client};
 use openssl::crypto::hash::Hasher;
@@ -38,11 +38,11 @@ pub fn random_string(length: usize) -> String {
 	(0..length).map(|_| from_u32(chars[random::<usize>() % chars.len()] as u32).unwrap()).collect()
 }
 
-pub fn to_absolute<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
+pub fn to_absolute<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
 	env::current_dir().map(|mut v| {
 			v.push(path);
 			v
-		}).ok()
+		})
 }
 
 pub fn if_not_empty<S: PartialEq<str>>(s: S) -> Option<S> {
@@ -131,82 +131,105 @@ pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
 	Ok(())
 }
 
-pub fn download_file<P: AsRef<Path>>(url: hyper::Url, path: P, mut hasher: Option<&mut Hasher>) -> Result<(),()> {
+pub enum DownloadError {
+	Status(hyper::status::StatusCode),
+	Network(hyper::Error),
+	File(io::Error),
+}
+pub type DownloadResult<T> = Result<T, DownloadError>;
+
+pub fn download_file<P: AsRef<Path>>(url: hyper::Url, path: P, mut hasher: Option<&mut Hasher>) -> DownloadResult<()> {
 	let client = Client::new();
 
-	let mut res = try!(client.get(url).send().map_err(|_|()));
-	if res.status != hyper::Ok { return Err(()); }
+	let mut res = try!(client.get(url).send().map_err(DownloadError::Network));
+	if res.status != hyper::Ok { return Err(DownloadError::Status(res.status)); }
 	
 	let buffer_size = 0x10000;
 	let mut buffer = vec![0u8; buffer_size];
 	
-	let mut file = try!(fs::File::create(path).map_err(|_|()));
+	let mut file = try!(fs::File::create(path).map_err(DownloadError::File));
 	
 	loop {
-		let bytes_read = try!(io::Read::read(&mut res, &mut buffer).map_err(|_|()));
+		let bytes_read = try!(io::Read::read(&mut res, &mut buffer)
+			.map_err(hyper::Error::Io)
+			.map_err(DownloadError::Network)
+			);
+		
 		if bytes_read != 0 {
 			if let Some(ref mut h) = hasher {
-				try!(io::Write::write_all(*h, &mut buffer[0..bytes_read]).map_err(|_|()));
+				try!(io::Write::write_all(*h, &mut buffer[0..bytes_read]).map_err(DownloadError::File));
 			}
-			try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read]).map_err(|_|()));
+			try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read]).map_err(DownloadError::File));
 		} else {
-			try!(file.sync_data().map_err(|_|()));
+			try!(file.sync_data().map_err(DownloadError::File));
 			return Ok(());
 		}
 	}
 }
 
-pub fn symlink_dir(src: &Path, dest: &Path) -> Option<()> {
+pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
 	#[cfg(windows)]
-	fn symlink_dir_inner(src: &Path, dest: &Path) -> Option<()> {
-		::std::os::windows::fs::symlink_dir(src, dest).ok()
+	fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
+		::std::os::windows::fs::symlink_dir(src, dest)
 	}
 	#[cfg(not(windows))]
-	fn symlink_dir_inner(src: &Path, dest: &Path) -> Option<()> {
-		::std::os::unix::fs::symlink(src, dest).ok()
+	fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
+		::std::os::unix::fs::symlink(src, dest)
 	}
 	
 	// This is stupid, but seems to be the safest way to delete
-	// a directory that may be a symbol link...
+	// a directory that may be a symbol link, without accidentally
+	// deleting the contents too...
 	let _ = fs::remove_file(dest);
 	let _ = fs::remove_dir(dest);
 	let _ = fs::remove_dir_all(dest);
 	symlink_dir_inner(src, dest)
 }
 
-pub fn symlink_file(src: &Path, dest: &Path) -> Option<()> {
+pub fn symlink_file(src: &Path, dest: &Path) -> io::Result<()> {
 	#[cfg(windows)]
-	fn symlink_file_inner(src: &Path, dest: &Path) -> Option<()> {
-		::std::os::windows::fs::symlink_file(src, dest).ok()
+	fn symlink_file_inner(src: &Path, dest: &Path) -> io::Result<()> {
+		::std::os::windows::fs::symlink_file(src, dest)
 	}
 	#[cfg(not(windows))]
-	fn symlink_file_inner(src: &Path, dest: &Path) -> Option<()> {
-		::std::os::unix::fs::symlink(src, dest).ok()
+	fn symlink_file_inner(src: &Path, dest: &Path) -> io::Result<()> {
+		::std::os::unix::fs::symlink(src, dest)
 	}
 	
 	let _ = fs::remove_file(dest);
 	symlink_file_inner(src, dest)
 }
 
-pub fn hardlink(src: &Path, dest: &Path) -> Option<()> {
+pub fn hardlink(src: &Path, dest: &Path) -> io::Result<()> {
 	let _ = fs::remove_file(dest);
-	fs::hard_link(src, dest).ok()
+	fs::hard_link(src, dest)
 }
 
-pub fn copy_dir(src: &Path, dest: &Path) -> Option<()> {
+pub enum CommandError {
+	Io(io::Error),
+	Status(ExitStatus),
+}
+
+pub type CommandResult<T> = Result<T, CommandError>;
+
+pub fn cmd_status(cmd: &mut Command) -> CommandResult<()> {
+	cmd.status().map_err(CommandError::Io).and_then(|s| {
+		if s.success() {
+			Ok(())
+		} else {
+			Err(CommandError::Status(s))
+		}
+	})
+}
+
+pub fn copy_dir(src: &Path, dest: &Path) -> CommandResult<()> {
 	#[cfg(windows)]
-	fn copy_dir_inner(src: &Path, dest: &Path) -> Option<()> {
-		Command::new("robocopy")
-			.arg(src).arg(dest).arg("/E")
-			.status().ok()
-			.and_then(|code| if code.success() { Some(()) } else { None })
+	fn copy_dir_inner(src: &Path, dest: &Path) -> CommandResult<()> {
+		cmd_status(Command::new("robocopy").arg(src).arg(dest).arg("/E"))
 	}
 	#[cfg(not(windows))]
-	fn copy_dir_inner(src: &Path, dest: &Path) -> Option<()> {
-		Command::new("cp")
-			.arg("-R").arg(src).arg(dest)
-			.status().ok()
-			.and_then(|code| if code.success() { Some(()) } else { None })
+	fn copy_dir_inner(src: &Path, dest: &Path) -> CommandResult<()> {
+		cmd_status(Command::new("cp").arg("-R").arg(src).arg(dest))
 	}
 	
 	copy_dir_inner(src, dest)
@@ -264,7 +287,7 @@ pub fn home_dir() -> Option<PathBuf> {
 	}
 	#[cfg(windows)]
 	fn inner() -> Option<PathBuf> {
-		env::var_os("USERPROFILE").map(|s| s.into())
+		windows::get_special_folder(&windows::FOLDERID_Profile).ok()
 	}
 	
 	inner()
@@ -288,6 +311,13 @@ pub mod windows {
 		Data2: 0x6FBA,
 		Data3: 0x4FCF,
 		Data4: [0x9D, 0x55, 0x7B, 0x8E, 0x7F, 0x15, 0x70, 0x91],
+	};
+	#[allow(non_upper_case_globals)]
+	pub const FOLDERID_Profile: GUID = GUID {
+		Data1: 0x5E6C858F, 
+		Data2: 0x0E22,
+		Data3: 0x4760,
+		Data4: [0x9A, 0xFE, 0xEA, 0x33, 0x17, 0xB6, 0x71, 0x73],
 	};
 	
 	pub fn get_special_folder(id: &shtypes::KNOWNFOLDERID) -> io::Result<PathBuf> {

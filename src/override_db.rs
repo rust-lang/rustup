@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use rust_install::*;
+use errors::*;
+use rust_install::{utils, temp};
 
 pub const DB_DELIMITER: &'static str = ";";
 
@@ -8,8 +9,8 @@ pub struct OverrideDB(PathBuf);
 
 impl OverrideDB {
 	
-	fn path_to_db_key(&self, path: &Path, notify_handler: &NotifyHandler) -> Result<String> {
-		Ok(utils::canonicalize_path(path, notify_handler)
+	fn path_to_db_key(&self, path: &Path, notify_handler: NotifyHandler) -> Result<String> {
+		Ok(utils::canonicalize_path(path, ntfy!(&notify_handler))
 			.display().to_string() + DB_DELIMITER)
 	}
 	
@@ -17,7 +18,7 @@ impl OverrideDB {
 		OverrideDB(path)
 	}
 	
-	pub fn remove(&self, path: &Path, temp_cfg: &temp::Cfg, notify_handler: &NotifyHandler) -> Result<bool> {
+	pub fn remove(&self, path: &Path, temp_cfg: &temp::Cfg, notify_handler: NotifyHandler) -> Result<bool> {
 		let key = try!(self.path_to_db_key(path, notify_handler));
 		
 		let work_file = try!(temp_cfg.new_file());
@@ -38,7 +39,7 @@ impl OverrideDB {
 		}
 	}
 	
-	pub fn set(&self, path: &Path, toolchain: &str, temp_cfg: &temp::Cfg, notify_handler: &NotifyHandler) -> Result<()> {
+	pub fn set(&self, path: &Path, toolchain: &str, temp_cfg: &temp::Cfg, notify_handler: NotifyHandler) -> Result<()> {
 		let key = try!(self.path_to_db_key(path, notify_handler));
 		
 		let work_file = try!(temp_cfg.new_file());
@@ -53,17 +54,17 @@ impl OverrideDB {
 			
 		try!(utils::rename_file("override db", &*work_file, &self.0));
 			
-		notify_handler.call(SetOverrideToolchain(path, toolchain));
+		notify_handler.call(Notification::SetOverrideToolchain(path, toolchain));
 		
 		Ok(())
 	}
 
-	pub fn find(&self, dir_unresolved: &Path, notify_handler: &NotifyHandler) -> Result<Option<(String, PathBuf)>> {
+	pub fn find(&self, dir_unresolved: &Path, notify_handler: NotifyHandler) -> Result<Option<(String, PathBuf)>> {
 		if !utils::is_file(&self.0) {
 			return Ok(None);
 		}
 		
-		let dir = utils::canonicalize_path(dir_unresolved, notify_handler);
+		let dir = utils::canonicalize_path(dir_unresolved, ntfy!(&notify_handler));
 		let mut path = &*dir;
 		while let Some(parent) = path.parent() {
 			let key = try!(self.path_to_db_key(path, notify_handler));

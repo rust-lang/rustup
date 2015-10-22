@@ -1,9 +1,12 @@
+#[macro_use]
+extern crate rust_install;
 
 #[macro_use]
 extern crate clap;
 extern crate rand;
 extern crate regex;
 extern crate hyper;
+#[macro_use]
 extern crate multirust;
 extern crate term;
 
@@ -67,21 +70,22 @@ fn info_fmt(args: fmt::Arguments) {
 fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
 	// Base config
 	let verbose = m.map(|m| m.is_present("verbose")).unwrap_or(false);
-	Cfg::from_env(NotifyHandler::from(move |n: Notification| {
+	Cfg::from_env(shared_ntfy!(move |n: Notification| {
+		use multirust::notify::NotificationLevel::*;
 		match n.level() {
-			NotificationLevel::Verbose => if verbose {
+			Verbose => if verbose {
 				println!("{}", n);
 			},
-			NotificationLevel::Normal => {
+			Normal => {
 				println!("{}", n);
 			},
-			NotificationLevel::Info => {
+			Info => {
 				info!("{}", n);
 			},
-			NotificationLevel::Warn => {
+			Warn => {
 				warn!("{}", n);
 			},
-			NotificationLevel::Error => {
+			Error => {
 				err!("{}", n);
 			},
 		}
@@ -94,10 +98,6 @@ fn main() {
 		err!("{}", e);
 		std::process::exit(1);
 	}
-}
-
-fn current_dir() -> Result<PathBuf> {
-	env::current_dir().map_err(|_| Error::LocatingWorkingDir)
 }
 
 fn run_inner<S: AsRef<OsStr>>(_: &Cfg, command: Result<Command>, args: &[S]) -> Result<()> {
@@ -116,7 +116,7 @@ fn run_inner<S: AsRef<OsStr>>(_: &Cfg, command: Result<Command>, args: &[S]) -> 
 				std::process::exit(result.code().unwrap_or(1));
 			},
 			Err(e) => {
-				Err(Error::RunningCommand { name: args[0].as_ref().to_owned(), error: e })
+				Err(utils::Error::RunningCommand { name: args[0].as_ref().to_owned(), error: utils::raw::CommandError::Io(e) }.into())
 			}
 		}
 			
@@ -141,13 +141,13 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn proxy(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	let args = m.values_of("command").unwrap();
 	
-	run_inner(cfg, cfg.create_command_for_dir(&try!(current_dir()), args[0]), &args)
+	run_inner(cfg, cfg.create_command_for_dir(&try!(utils::current_dir()), args[0]), &args)
 }
 
 fn direct_proxy(cfg: &Cfg, arg0: &str) -> Result<()> {
 	let args: Vec<_> = env::args_os().collect();
 	
-	run_inner(cfg, cfg.create_command_for_dir(&try!(current_dir()), arg0), &args)
+	run_inner(cfg, cfg.create_command_for_dir(&try!(utils::current_dir()), arg0), &args)
 }
 
 fn shell_cmd(cmdline: &OsStr) -> Command {
@@ -168,12 +168,12 @@ fn shell_cmd(cmdline: &OsStr) -> Command {
 }
 
 fn test_proxies() -> bool {
-	let mut cmd = shell_cmd("rustc --multirust".as_ref());
-	cmd
-		.stdin(Stdio::null())
-		.stdout(Stdio::null())
-		.stderr(Stdio::null());
-	let result = utils::cmd_status("rustc", cmd);
+	let result = utils::cmd_status("rustc", 
+		shell_cmd("rustc --multirust".as_ref())
+			.stdin(Stdio::null())
+			.stdout(Stdio::null())
+			.stderr(Stdio::null())
+	);
 	result.is_ok()
 }
 
@@ -251,7 +251,7 @@ fn run_multirust() -> Result<()> {
 			println!("");
 			
 			// Suspend in case we were run from the UI
-			try!(utils::cmd_status("shell", shell_cmd(
+			try!(utils::cmd_status("shell", &mut shell_cmd(
 				(if cfg!(windows) {
 					"pause"
 				} else {
@@ -265,7 +265,7 @@ fn run_multirust() -> Result<()> {
 }
 
 fn maybe_install(cfg: &Cfg) -> Result<()> {
-	let exe_path = try!(env::current_exe().map_err(|_| Error::LocatingWorkingDir));
+	let exe_path = try!(utils::current_exe());
 	if !test_installed(&cfg) {
 		if !ask("Install multirust now?").unwrap_or(false) {
 			return Ok(());
@@ -290,23 +290,23 @@ fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()> {
 	#[allow(dead_code)]
-	fn create_bat_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
+	fn create_bat_proxy(mut path: PathBuf, name: &'static str) -> utils::Result<()> {
 		path.push(name.to_owned() + ".bat");
 		utils::write_file(name, &path, &format!("@\"%~dp0\\multirust\" proxy {} %*", name))
 	}
 	#[allow(dead_code)]
-	fn create_sh_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
+	fn create_sh_proxy(mut path: PathBuf, name: &'static str) -> utils::Result<()> {
 		path.push(name.to_owned());
 		try!(utils::write_file(name, &path, &format!("#!/bin/sh\n\"`dirname $0`/multirust\" proxy {} \"$@\"", name)));
 		utils::make_executable(&path)
 	}
-	fn create_symlink_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
+	fn create_symlink_proxy(mut path: PathBuf, name: &'static str) -> utils::Result<()> {
 		let mut dest_path = path.clone();
 		dest_path.push("multirust".to_owned() + env::consts::EXE_SUFFIX);
 		path.push(name.to_owned() + env::consts::EXE_SUFFIX);
 		utils::symlink_file(&dest_path, &path)
 	}
-	fn create_hardlink_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
+	fn create_hardlink_proxy(mut path: PathBuf, name: &'static str) -> utils::Result<()> {
 		let mut dest_path = path.clone();
 		dest_path.push("multirust".to_owned() + env::consts::EXE_SUFFIX);
 		path.push(name.to_owned() + env::consts::EXE_SUFFIX);
@@ -315,10 +315,10 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	
 	let bin_path = cfg.multirust_dir.join("bin");
 	
-	try!(utils::ensure_dir_exists("bin", &bin_path, &cfg.notify_handler));
+	try!(utils::ensure_dir_exists("bin", &bin_path, ntfy!(&cfg.notify_handler)));
 	
 	let dest_path = bin_path.join("multirust".to_owned() + env::consts::EXE_SUFFIX);
-	let src_path = try!(env::current_exe().map_err(|_| Error::LocatingWorkingDir));
+	let src_path = try!(utils::current_exe());
 	
 	if should_move {
 		try!(utils::rename_file("multirust", &src_path, &dest_path));
@@ -456,7 +456,7 @@ fn override_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 		try!(toolchain.install_from_dist_if_not_installed());
 	}
 	
-	toolchain.make_override(&try!(current_dir()))
+	toolchain.make_override(&try!(utils::current_dir()))
 }
 
 fn common_install_args(toolchain: &Toolchain, m: &ArgMatches) -> Result<bool> {
@@ -483,7 +483,7 @@ fn doc_url(m: &ArgMatches) -> &'static str {
 }
 
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-	cfg.open_docs_for_dir(&try!(current_dir()), doc_url(m))
+	cfg.open_docs_for_dir(&try!(utils::current_dir()), doc_url(m))
 }
 
 fn ctl_home(cfg: &Cfg) -> Result<()> {
@@ -492,7 +492,7 @@ fn ctl_home(cfg: &Cfg) -> Result<()> {
 }
 
 fn ctl_overide_toolchain(cfg: &Cfg) -> Result<()> {
-	let (toolchain, _) = try!(cfg.toolchain_for_dir(&try!(current_dir())));
+	let (toolchain, _) = try!(cfg.toolchain_for_dir(&try!(utils::current_dir())));
 	
 	println!("{}", toolchain.name());
 	Ok(())
@@ -526,7 +526,7 @@ fn ctl(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	let binary = m.value_of("binary").unwrap();
 	
-	let binary_path = try!(cfg.which_binary(&try!(current_dir()), binary))
+	let binary_path = try!(cfg.which_binary(&try!(utils::current_dir()), binary))
 		.expect("binary not found");
 	
 	try!(utils::assert_is_file(&binary_path));
@@ -567,9 +567,9 @@ fn delete_data(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn remove_override(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	if let Some(path) = m.value_of("override") {
-		cfg.override_db.remove(path.as_ref(), &cfg.temp_cfg, &cfg.notify_handler)
+		cfg.override_db.remove(path.as_ref(), &cfg.temp_cfg, cfg.notify_handler.as_ref())
 	} else {
-		cfg.override_db.remove(&try!(current_dir()), &cfg.temp_cfg, &cfg.notify_handler)
+		cfg.override_db.remove(&try!(utils::current_dir()), &cfg.temp_cfg, cfg.notify_handler.as_ref())
 	}.map(|_|())
 }
 
@@ -585,7 +585,7 @@ fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
 			cmd.arg("--version");
 			toolchain.prefix().set_ldpath(&mut cmd);
 			
-			if utils::cmd_status("rustc", cmd).is_err() {
+			if utils::cmd_status("rustc", &mut cmd).is_err() {
 				println!("(failed to run rustc)");
 			}
 		} else {
@@ -596,7 +596,7 @@ fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
 			cmd.arg("--version");
 			toolchain.prefix().set_ldpath(&mut cmd);
 			
-			if utils::cmd_status("cargo", cmd).is_err() {
+			if utils::cmd_status("cargo", &mut cmd).is_err() {
 				println!("(failed to run cargo)");
 			}
 		} else {
@@ -622,7 +622,7 @@ fn show_default(cfg: &Cfg) -> Result<()> {
 }
 
 fn show_override(cfg: &Cfg) -> Result<()> {
-	if let Some((toolchain, reason)) = try!(cfg.find_override(&try!(current_dir()))) {
+	if let Some((toolchain, reason)) = try!(cfg.find_override(&try!(utils::current_dir()))) {
 		println!("override toolchain: {}", toolchain.name());
 		println!("override location: {}", toolchain.prefix().path().display());
 		println!("override reason: {}", reason);

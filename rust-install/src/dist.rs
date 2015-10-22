@@ -116,13 +116,13 @@ pub struct Manifest<'a>(temp::File<'a>, String);
 impl<'a> Manifest<'a> {
 	pub fn package_url(&self, package: &str, target_triple: &str, ext: &str) -> Result<Option<String>> {
 		let suffix = target_triple.to_owned() + ext;
-		utils::match_file("manifest", &self.0, |line| {
+		Ok(try!(utils::match_file("manifest", &self.0, |line| {
 			if line.starts_with(package) && line.ends_with(&suffix) {
 				Some(format!("{}/{}", &self.1, line))
 			} else {
 				None
 			}
-		})
+		})))
 	}
 }
 
@@ -175,7 +175,7 @@ pub fn download_and_check<'a>(url_str: &str, update_hash: Option<&Path>, ext: &s
 	let file = try!(cfg.temp_cfg.new_file_with_ext(ext));
 	
 	let mut hasher = Hasher::new(Type::SHA256);
-	try!(utils::download_file(url, &file, Some(&mut hasher), cfg.notify_handler));
+	try!(utils::download_file(url, &file, Some(&mut hasher), ntfy!(&cfg.notify_handler)));
 	let actual_hash = hasher.finish().iter()
 		.map(|b| format!("{:02x}", b))
 		.join("");
@@ -184,7 +184,7 @@ pub fn download_and_check<'a>(url_str: &str, update_hash: Option<&Path>, ext: &s
 		// Incorrect hash
 		return Err(Error::ChecksumFailed { url: url_str.to_owned(), expected: hash, calculated: actual_hash });
 	} else {
-		cfg.notify_handler.call(ChecksumValid(url_str));
+		cfg.notify_handler.call(Notification::ChecksumValid(url_str));
 	}
 	
 	// TODO: Check the signature of the file
@@ -196,7 +196,7 @@ pub fn download_and_check<'a>(url_str: &str, update_hash: Option<&Path>, ext: &s
 pub struct DownloadCfg<'a> {
 	pub dist_root: &'a str,
 	pub temp_cfg: &'a temp::Cfg,
-	pub notify_handler: &'a NotifyHandler,
+	pub notify_handler: NotifyHandler<'a>,
 }
 
 pub fn download_dist<'a>(toolchain: &str, update_hash: Option<&Path>, cfg: DownloadCfg<'a>) -> Result<Option<(temp::File<'a>, String)>> {
@@ -248,7 +248,7 @@ pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
 	let hash_url = try!(parse_url(&(url.to_owned() + ".sha256")));
 	let hash_file = try!(cfg.temp_cfg.new_file());
 	
-	try!(utils::download_file(hash_url, &hash_file, None, cfg.notify_handler));
+	try!(utils::download_file(hash_url, &hash_file, None, ntfy!(&cfg.notify_handler)));
 	
-	utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
+	Ok(try!(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())))
 }

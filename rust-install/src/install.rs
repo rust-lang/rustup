@@ -37,14 +37,14 @@ impl Uninstaller {
 	pub fn run(&self) -> Result<()> {
 		match *self {
 			Uninstaller::Sh(ref path) => {
-				let mut cmd = Command::new("sudo");
-				cmd.arg("sh").arg(path);
-				utils::cmd_status("uninstall.sh", cmd)
+				Ok(try!(
+					utils::cmd_status("uninstall.sh", Command::new("sudo").arg("sh").arg(path))
+				))
 			},
 			Uninstaller::Msi(ref id) => {
-				let mut cmd = Command::new("msiexec");
-				cmd.arg("/x").arg(id);
-				utils::cmd_status("msiexec", cmd)
+				Ok(try!(
+					utils::cmd_status("msiexec", Command::new("msiexec").arg("/x").arg(id))
+				))
 			},
 		}
 	}
@@ -64,7 +64,7 @@ impl<'a> InstallMethod<'a> {
 			InstallMethod::Installer(_, _)|InstallMethod::Dist(_,_,_) => true,
 		}
 	}
-	pub fn run(self, prefix: &InstallPrefix, notify_handler: &NotifyHandler) -> Result<()> {
+	pub fn run(self, prefix: &InstallPrefix, notify_handler: NotifyHandler) -> Result<()> {
 		if prefix.is_installed_here() {
 			// Don't uninstall first for Dist method
 			match self {
@@ -79,13 +79,15 @@ impl<'a> InstallMethod<'a> {
 		
 		match self {
 			InstallMethod::Copy(src) => {
-				utils::copy_dir(src, &prefix.path, notify_handler)
+				try!(utils::copy_dir(src, &prefix.path, ntfy!(&notify_handler)));
+				Ok(())
 			},
 			InstallMethod::Link(src) => {
-				utils::symlink_dir(&prefix.path, src, notify_handler)
+				try!(utils::symlink_dir(&prefix.path, src, ntfy!(&notify_handler)));
+				Ok(())
 			},
 			InstallMethod::Installer(src, temp_cfg) => {
-				notify_handler.call(Extracting(src, prefix.path()));
+				notify_handler.call(Notification::Extracting(src, prefix.path()));
 				let temp_dir = try!(temp_cfg.new_directory());
 				match src.extension().and_then(OsStr::to_str) {
 					Some("gz") => InstallMethod::tar_gz(src, &temp_dir, prefix),
@@ -109,12 +111,11 @@ impl<'a> InstallMethod<'a> {
 		let installer_dir = Path::new(try!(Path::new(src.file_stem().unwrap()).file_stem()
 			.ok_or(Error::InvalidFileExtension)));
 			
-		let mut cmd = Command::new("tar");
-		cmd
-			.arg("xzf").arg(src)
-			.arg("-C").arg(work_dir);
-		
-		try!(utils::cmd_status("tar", cmd));
+		try!(utils::cmd_status("tar",
+			Command::new("tar")
+				.arg("xzf").arg(src)
+				.arg("-C").arg(work_dir)
+		));
 		
 		// Find the root Rust folder within the subfolder
 		let root_dir = try!(try!(utils::read_dir("install", work_dir))
@@ -136,7 +137,7 @@ impl<'a> InstallMethod<'a> {
 			cmd.arg("--disable-ldconfig");
 		}
 
-		let result = utils::cmd_status("sh", cmd);
+		let result = Ok(try!(utils::cmd_status("sh", &mut cmd)));
 		
 		let _ = fs::remove_dir_all(&installer_dir);
 			
@@ -157,7 +158,12 @@ impl<'a> InstallMethod<'a> {
 				.arg("/qn")
 				.arg(&target_arg);
 			
-			try!(utils::cmd_status("msiexec", cmd));
+			try!(utils::cmd_status("msiexec",
+				Command::new("msiexec")
+					.arg("/a").arg(src)
+					.arg("/qn")
+					.arg(&target_arg)
+			));
 			
 			// Find the root Rust folder within the subfolder
 			let root_dir = try!(try!(utils::read_dir("install", work_dir))
@@ -168,20 +174,19 @@ impl<'a> InstallMethod<'a> {
 				.ok_or(Error::InvalidInstaller));
 			
 			// Rename and move it to the toolchain directory
-			utils::rename_dir("install", &root_dir, &prefix.path)
+			Ok(try!(utils::rename_dir("install", &root_dir, &prefix.path)))
 		};
 		
 		let msi_shared = || -> Result<()> {
 			let target_arg = utils::prefix_arg("TARGETDIR=", &prefix.path);
 			
 			// Extract the MSI to the subfolder
-			let mut cmd = Command::new("msiexec");
-			cmd
-				.arg("/i").arg(src)
-				.arg("/qn")
-				.arg(&target_arg);
-			
-			utils::cmd_status("msiexec", cmd)
+			Ok(try!(utils::cmd_status("msiexec", 
+				Command::new("msiexec")
+					.arg("/i").arg(src)
+					.arg("/qn")
+					.arg(&target_arg)
+			)))
 		};
 		
 		match prefix.install_type {
@@ -254,13 +259,13 @@ impl InstallPrefix {
 	}
 	
 	#[cfg(windows)]
-	pub fn get_uninstall_msi(&self, notify_handler: &NotifyHandler) -> Option<String> {
-		let canon_path = utils::canonicalize_path(&self.path, notify_handler);
+	pub fn get_uninstall_msi(&self, notify_handler: NotifyHandler) -> Option<String> {
+		let canon_path = utils::canonicalize_path(&self.path, ntfy!(&notify_handler));
 		
 		if let Ok(installers) = msi::all_installers() {
 			for installer in &installers {
 				if let Ok(loc) = installer.install_location() {
-					let path = utils::canonicalize_path(&loc, notify_handler);
+					let path = utils::canonicalize_path(&loc, ntfy!(&notify_handler));
 					
 					if path == canon_path {
 						return Some(installer.product_id().to_owned());
@@ -272,19 +277,19 @@ impl InstallPrefix {
 		None
 	}
 	#[cfg(not(windows))]
-	pub fn get_uninstall_msi(&self, _: &NotifyHandler) -> Option<String> {
+	pub fn get_uninstall_msi(&self, _: NotifyHandler) -> Option<String> {
 		None
 	}
-	pub fn get_uninstaller(&self, notify_handler: &NotifyHandler) -> Option<Uninstaller> {
+	pub fn get_uninstaller(&self, notify_handler: NotifyHandler) -> Option<Uninstaller> {
 		self.get_uninstall_sh().map(Uninstaller::Sh).or_else(
 			|| self.get_uninstall_msi(notify_handler).map(Uninstaller::Msi)
 			)
 	}
-	pub fn uninstall(&self, notify_handler: &NotifyHandler) -> Result<()> {
+	pub fn uninstall(&self, notify_handler: NotifyHandler) -> Result<()> {
 		if self.is_installed_here() {
 			match self.install_type {
 				InstallType::Owned => {
-					utils::remove_dir("install", &self.path, notify_handler)
+					Ok(try!(utils::remove_dir("install", &self.path, ntfy!(&notify_handler))))
 				},
 				InstallType::Shared => {
 					if let Some(uninstaller) = self.get_uninstaller(notify_handler) {
@@ -298,7 +303,7 @@ impl InstallPrefix {
 			Err(Error::NotInstalledHere)
 		}
 	}
-	pub fn install(&self, method: InstallMethod, notify_handler: &NotifyHandler) -> Result<()> {
+	pub fn install(&self, method: InstallMethod, notify_handler: NotifyHandler) -> Result<()> {
 		method.run(self, notify_handler)
 	}
 	
@@ -325,6 +330,6 @@ impl InstallPrefix {
 	}
 	
 	pub fn open_docs(&self, relative: &str) -> Result<()> {
-		utils::open_browser(&try!(self.doc_path(relative)))
+		Ok(try!(utils::open_browser(&try!(self.doc_path(relative)))))
 	}
 }
