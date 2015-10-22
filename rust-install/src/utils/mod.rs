@@ -304,7 +304,7 @@ pub fn make_executable(path: &Path) -> Result<()> {
 	fn inner(path: &Path) -> Result<()> {
 		use std::os::unix::fs::PermissionsExt;
 		
-		let metadata = try!(fs::metadata(path).map_err(|_| Error::SettingPermissions(PathBuf::from(path))));
+		let metadata = try!(fs::metadata(path).map_err(|e| Error::SettingPermissions { path: PathBuf::from(path), error: e }));
 		let mut perms = metadata.permissions();
 		let new_mode = perms.mode()|0o111;
 		perms.set_mode(new_mode);
