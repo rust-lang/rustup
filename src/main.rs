@@ -44,7 +44,7 @@ fn warn_fmt(args: fmt::Arguments) {
 	let mut t = term::stderr().unwrap();
 	let _ = t.fg(term::color::BRIGHT_YELLOW);
 	let _ = write!(t, "warning: ");
-	let _ = t.fg(term::color::WHITE);
+	let _ = t.reset();
 	let _ = t.write_fmt(args);
 	let _ = write!(t, "\n");
 }
@@ -53,7 +53,7 @@ fn err_fmt(args: fmt::Arguments) {
 	let mut t = term::stderr().unwrap();
 	let _ = t.fg(term::color::BRIGHT_RED);
 	let _ = write!(t, "error: ");
-	let _ = t.fg(term::color::WHITE);
+	let _ = t.reset();
 	let _ = t.write_fmt(args);
 	let _ = write!(t, "\n");
 }
@@ -62,7 +62,7 @@ fn info_fmt(args: fmt::Arguments) {
 	let mut t = term::stderr().unwrap();
 	let _ = t.fg(term::color::BRIGHT_GREEN);
 	let _ = write!(t, "info: ");
-	let _ = t.fg(term::color::WHITE);
+	let _ = t.reset();
 	let _ = t.write_fmt(args);
 	let _ = write!(t, "\n");
 }
@@ -684,16 +684,16 @@ fn update_all_channels(cfg: &Cfg) -> Result<()> {
 	for &(ref name, ref result) in &toolchains {
 		let _ = t.fg(term::color::BRIGHT_WHITE);
 		let _ = write!(t, "{}{}", &padding_str[0..(max_name_length-name.len())], name);
-		let _ = t.fg(term::color::WHITE);
+		let _ = t.reset();
 		let _ = write!(t, " update ");
 		if result.is_ok() {
 			let _ = t.fg(term::color::BRIGHT_GREEN);
 			let _ = writeln!(t, "succeeded");
-			let _ = t.fg(term::color::WHITE);
+			let _ = t.reset();
 		} else {
 			let _ = t.fg(term::color::BRIGHT_RED);
 			let _ = writeln!(t, "FAILED");
-			let _ = t.fg(term::color::WHITE);
+			let _ = t.reset();
 		}
 	}
 	println!("");
@@ -701,7 +701,7 @@ fn update_all_channels(cfg: &Cfg) -> Result<()> {
 	for (name, _) in toolchains {
 		let _ = t.fg(term::color::BRIGHT_WHITE);
 		let _ = write!(t, "{}", name);
-		let _ = t.fg(term::color::WHITE);
+		let _ = t.reset();
 		let _ = writeln!(t, " revision:");
 		try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
 	}
