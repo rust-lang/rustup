@@ -61,7 +61,7 @@ build_script:
         cargo rustc --release --bin multirust-rs -- -C link-args="gdi32.lib user32.lib"
       }
       # Generate hashes
-      Get-FileHash .\target\release\* | ForEach-Object {$_.Hash | Out-File ($_.Path + ".sha256")}
+      Get-FileHash .\target\release\* | ForEach-Object {[io.file]::WriteAllText($_.Path + ".sha256", $_.Hash.ToLower() + "`n")}
 test_script:
   - tests\cli.bat
 notifications:
