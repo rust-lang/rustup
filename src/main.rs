@@ -259,7 +259,7 @@ fn run_multirust() -> Result<()> {
 				(if cfg!(windows) {
 					"pause"
 				} else {
-					"read -p \"Press any key to continue...\" -n 1 -s && echo"
+					"echo -n \"Press any key to continue...\" && CFG=`stty -g` && stty -echo -icanon && dd count=1 1>/dev/null 2>&1 && stty $CFG && echo"
 				}).as_ref()
 			)));
 			
