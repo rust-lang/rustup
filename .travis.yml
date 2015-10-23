@@ -32,6 +32,7 @@ install:
 script:
   - export OPENSSL_STATIC=1
   - cargo build --release --verbose
+  - find "target/release/" -maxdepth 1 -type f -exec sh -c 'sha256sum -b "{}" | cut -d\  -f1 > "{}.sha256"' \;
   - cargo test --verbose
   - tests/cli.sh
 
@@ -49,7 +50,7 @@ after_success:
   - git submodule update --depth 1 --remote
   - mkdir -p "binaries/$TARGET"
   - rm ./binaries/$TARGET/*
-  - find "target/release/" -maxdepth 1 -type f -exec cp {} "binaries/$TARGET" \;
+  - find "target/release/" -maxdepth 1 -type f -exec cp "{}" "binaries/$TARGET" \;
   - git rev-parse HEAD > "binaries/$TARGET/commit.txt"
   - cd binaries
   - git checkout master
