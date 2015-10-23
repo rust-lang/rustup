@@ -123,6 +123,25 @@ pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
 	Ok(())
 }
 
+pub fn tee_file<W: io::Write>(path: &Path, mut w: &mut W) -> io::Result<()> {
+	let mut file = try!(fs::OpenOptions::new()
+		.read(true)
+		.open(path));
+	
+	let buffer_size = 0x10000;
+	let mut buffer = vec![0u8; buffer_size];
+	
+	loop {
+		let bytes_read = try!(io::Read::read(&mut file, &mut buffer));
+		
+		if bytes_read != 0 {
+			try!(io::Write::write_all(w, &mut buffer[0..bytes_read]));
+		} else {
+			return Ok(());
+		}
+	}
+}
+
 pub enum DownloadError {
 	Status(hyper::status::StatusCode),
 	Network(hyper::Error),

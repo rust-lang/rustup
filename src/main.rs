@@ -9,6 +9,8 @@ extern crate hyper;
 #[macro_use]
 extern crate multirust;
 extern crate term;
+extern crate openssl;
+extern crate itertools;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -26,7 +28,11 @@ use std::process;
 use std::ffi::OsStr;
 use std::fmt;
 use std::iter;
+use std::thread;
 use multirust::*;
+use rust_install::dist;
+use openssl::crypto::hash::{Type, Hasher};
+use itertools::Itertools;
 
 mod cli;
 
@@ -325,6 +331,10 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	let src_path = try!(utils::current_exe());
 	
 	if should_move {
+		if cfg!(windows) {
+			// Wait for old version to exit
+			thread::sleep_ms(1000);
+		}
 		try!(utils::rename_file("multirust", &src_path, &dest_path));
 	} else {
 		try!(utils::copy_file(&src_path, &dest_path));
@@ -437,8 +447,72 @@ fn self_uninstall(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	process::exit(0);
 }
 
-fn self_update(_cfg: &Cfg, _m: &ArgMatches) -> Result<()> {
-	println!("Not yet implemented");	
+fn self_update(cfg: &Cfg, _m: &ArgMatches) -> Result<()> {
+	// Get host triple
+	let triple = if let (arch, Some(os), maybe_env) = dist::get_host_triple() {
+		if let Some(env) = maybe_env {
+			format!("{}-{}-{}", arch, os, env)
+		} else {
+			format!("{}-{}", arch, os)
+		}
+	} else {
+		return Err(Error::UnknownHostTriple);
+	};
+	
+	// Get download URL
+	let url = format!("https://github.com/Diggsey/multirust-rs-binaries/raw/master/{}/multirust-rs{}", triple, env::consts::EXE_SUFFIX);
+	
+	// Calculate own hash
+	let mut hasher = Hasher::new(Type::SHA256);
+	try!(utils::tee_file("self", &try!(utils::current_exe()), &mut hasher));
+	let current_hash = hasher.finish().iter()
+		.map(|b| format!("{:02x}", b)).join("");
+	
+	// Download latest hash
+	let mut latest_hash = {
+		let hash_url = try!(utils::parse_url(&(url.clone() + ".sha256")));
+		let hash_file = try!(cfg.temp_cfg.new_file());
+		try!(utils::download_file(hash_url, &hash_file, None, ntfy!(&cfg.notify_handler)));
+		try!(utils::read_file("hash", &hash_file))
+	};
+	latest_hash.truncate(64);
+	
+	// If up-to-date
+	if latest_hash == current_hash {
+		info!("Already up to date!");
+		return Ok(());
+	}
+	
+	// Get download path
+	let download_file = try!(cfg.temp_cfg.new_file_with_ext("multirust-", env::consts::EXE_SUFFIX));
+	let download_url = try!(utils::parse_url(&url));
+	
+	// Download new version
+	let mut hasher = Hasher::new(Type::SHA256);
+	try!(utils::download_file(download_url, &download_file, Some(&mut hasher), ntfy!(&cfg.notify_handler)));
+	let download_hash = hasher.finish().iter()
+		.map(|b| format!("{:02x}", b)).join("");
+	
+	// Check that hash is correct
+	if latest_hash != download_hash {
+		return Err(Error::Install(rust_install::Error::ChecksumFailed { url: url, expected: latest_hash, calculated: download_hash }));
+	}
+	
+	#[cfg(windows)]
+	fn inner(path: &Path) -> Result<()> {
+		let mut cmd = Command::new("cmd");
+		let _ = cmd
+			.arg("/C").arg("start").arg(path).arg("self").arg("install").arg("-m")
+			.spawn();
+		Ok(())
+	}
+	#[cfg(not(windows))]
+	fn inner(path: &Path) -> Result<()> {
+		Ok(try!(utils::cmd_status(Command::new(path).arg("self").arg("install").arg("-m"))))
+	}
+	
+	println!("Installing...");
+	try!(inner(&download_file));
 	process::exit(0);
 }
 

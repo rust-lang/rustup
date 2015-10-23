@@ -43,6 +43,7 @@ pub enum Error {
 	RenamingFile { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
 	RenamingDirectory { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
 	DownloadingFile { url: hyper::Url, path: PathBuf },
+	InvalidUrl { url: String },
 	RunningCommand { name: OsString, error: raw::CommandError },
 	NotAFile { path: PathBuf },
 	NotADirectory { path: PathBuf },
@@ -117,6 +118,8 @@ impl Display for Error {
 				write!(f, "could not rename {} directory from '{}' to '{}'", name, src.display(), dest.display() ),
 			DownloadingFile { ref url, ref path } =>
 				write!(f, "could not download file from '{}' to '{}'", url, path.display()),
+			InvalidUrl { ref url } =>
+				write!(f, "invalid url: '{}'", url),
 			RunningCommand { ref name, error: _ } =>
 				write!(f, "command failed: '{}'", PathBuf::from(name).display()),
 			NotAFile { ref path } =>
@@ -213,10 +216,19 @@ pub fn canonicalize_path(path: &Path, notify_handler: NotifyHandler) -> PathBuf 
 		})
 }
 
+pub fn tee_file<W: io::Write>(name: &'static str, path: &Path, w: &mut W) -> Result<()> {
+	raw::tee_file(path, w)
+		.map_err(|e| Error::ReadingFile { name: name, path: PathBuf::from(path), error: e })
+}
+
 pub fn download_file(url: hyper::Url, path: &Path, hasher: Option<&mut Hasher>, notify_handler: NotifyHandler) -> Result<()> {
 	notify_handler.call(Notification::DownloadingFile(&url, path));
 	raw::download_file(url.clone(), path, hasher)
 		.map_err(|_| Error::DownloadingFile { url: url, path: PathBuf::from(path) })
+}
+
+pub fn parse_url(url: &str) -> Result<hyper::Url> {
+	hyper::Url::parse(url).map_err(|_| Error::InvalidUrl { url: url.to_owned() })
 }
 
 pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {

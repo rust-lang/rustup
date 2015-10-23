@@ -26,7 +26,6 @@ pub enum Error {
 	InvalidToolchainName,
 	NotInstalledHere,
 	InstallTypeNotPossible,
-	InvalidUrl,
 	UnsupportedHost(String),
 	ChecksumFailed { url: String, expected: String, calculated: String },
 }
@@ -87,7 +86,6 @@ impl Display for Error {
 			InvalidFileExtension => write!(f, "invalid file extension"),
 			InvalidInstaller => write!(f, "invalid installer"),
 			InvalidToolchainName => write!(f, "invalid custom toolchain name"),
-			InvalidUrl => write!(f, "invalid url"),
 			NotInstalledHere => write!(f, "not installed here"),
 			InstallTypeNotPossible => write!(f, "install type not possible"),
 			UnsupportedHost(ref spec) => write!(f, "a binary package was not provided for: '{}'", spec),

@@ -8,7 +8,6 @@ use std::fmt;
 use std::env;
 
 use regex::Regex;
-use hyper;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;
 
@@ -147,9 +146,6 @@ impl fmt::Display for ToolchainDesc {
 		Ok(())
 	}
 }
-fn parse_url(url: &str) -> Result<hyper::Url> {
-	hyper::Url::parse(url).map_err(|_| Error::InvalidUrl)
-}
 
 pub fn download_and_check<'a>(url_str: &str, update_hash: Option<&Path>, ext: &str, cfg: DownloadCfg<'a>) -> Result<Option<(temp::File<'a>, String)>> {
 	let hash = try!(download_hash(url_str, cfg));
@@ -171,8 +167,8 @@ pub fn download_and_check<'a>(url_str: &str, update_hash: Option<&Path>, ext: &s
 		}
 	}
 	
-	let url = try!(parse_url(url_str));
-	let file = try!(cfg.temp_cfg.new_file_with_ext(ext));
+	let url = try!(utils::parse_url(url_str));
+	let file = try!(cfg.temp_cfg.new_file_with_ext("", ext));
 	
 	let mut hasher = Hasher::new(Type::SHA256);
 	try!(utils::download_file(url, &file, Some(&mut hasher), ntfy!(&cfg.notify_handler)));
@@ -245,7 +241,7 @@ pub fn get_installer_ext() -> &'static str {
 }
 
 pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
-	let hash_url = try!(parse_url(&(url.to_owned() + ".sha256")));
+	let hash_url = try!(utils::parse_url(&(url.to_owned() + ".sha256")));
 	let hash_file = try!(cfg.temp_cfg.new_file());
 	
 	try!(utils::download_file(hash_url, &hash_file, None, ntfy!(&cfg.notify_handler)));

@@ -9,6 +9,7 @@ use std::borrow::Cow;
 
 use regex::Regex;
 use hyper;
+use rust_install;
 
 pub struct Toolchain<'a> {
 	cfg: &'a Cfg,
@@ -115,7 +116,7 @@ impl<'a> Toolchain<'a> {
 	
 	pub fn ensure_custom(&self) -> Result<()> {
 		if !self.is_custom() {
-			Err(Error::InvalidToolchainName)
+			Err(Error::Install(rust_install::Error::InvalidToolchainName))
 		} else {
 			Ok(())
 		}
@@ -137,7 +138,7 @@ impl<'a> Toolchain<'a> {
 				// Extract basename from url (eg. 'rust-1.3.0-x86_64-unknown-linux-gnu.tar.gz')
 				let re = Regex::new(r"[\\/]([^\\/?]+)(\?.*)?$").unwrap();
 				let basename = try!(re.captures(installer_str.unwrap())
-					.ok_or(Error::InvalidInstallerUrl)).at(1).unwrap();
+					.ok_or(Error::Utils(utils::Error::InvalidUrl { url: installer_str.unwrap().to_owned() }))).at(1).unwrap();
 				
 				// Download to a local file
 				local_installer = Cow::Owned(work_dir.join(basename));
