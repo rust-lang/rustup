@@ -508,7 +508,7 @@ fn self_update(cfg: &Cfg, _m: &ArgMatches) -> Result<()> {
 	}
 	#[cfg(not(windows))]
 	fn inner(path: &Path) -> Result<()> {
-		Ok(try!(utils::cmd_status(Command::new(path).arg("self").arg("install").arg("-m"))))
+		Ok(try!(utils::cmd_status("update", Command::new(path).arg("self").arg("install").arg("-m"))))
 	}
 	
 	println!("Installing...");
