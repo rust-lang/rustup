@@ -36,7 +36,7 @@ echo "> Testing doc"
 multirust doc
 
 echo "> Testing doc --all"
-multirust doc -all
+multirust doc --all
 
 echo "> Testing self uninstall"
 multirust self uninstall -y
