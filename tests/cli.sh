@@ -32,6 +32,12 @@ multirust override i686-pc-windows-msvc-stable
 echo "> Testing update"
 multirust update
 
+echo "> Testing doc"
+multirust doc
+
+echo "> Testing doc --all"
+multirust doc -all
+
 echo "> Testing uninstall"
 multirust uninstall -y
 

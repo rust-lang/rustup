@@ -31,6 +31,12 @@ multirust override i686-msvc-stable || (echo FAILED && exit /b 1)
 echo ^> Testing update
 multirust update || (echo FAILED && exit /b 1)
 
+echo ^> Testing doc
+multirust doc || (echo FAILED && exit /b 1)
+
+echo ^> Testing doc --all
+multirust doc --all || (echo FAILED && exit /b 1)
+
 echo ^> Testing uninstall
 multirust uninstall -y || (echo FAILED && exit /b 1)
 

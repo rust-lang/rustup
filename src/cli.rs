@@ -138,18 +138,26 @@ r"Upgrades the ~/.multirust directory from previous versions."
             	)
 		)
 		.subcommand(
-			SubCommand::with_name("install")
-				.about("Installs multirust.")
-				.after_help(
-r"Installs multirust for the current user."
-            	)
-				.arg(Arg::with_name("add-to-path").short("a").long("add-to-path").help("Modifies .profile or the registry"))
-				.arg(Arg::with_name("move").short("m").long("move").help("Move self instead of copying"))
-		)
-		.subcommand(
-			SubCommand::with_name("uninstall")
-				.about("Uninstalls multirust.")
-				.arg(Arg::with_name("no-prompt").short("y").help("Disable confirmation prompt."))
+			SubCommand::with_name("self")
+				.about("Commands for managing multirust itself.")
+				.subcommand(
+					SubCommand::with_name("install")
+						.about("Installs multirust.")
+						.after_help(
+		r"Installs multirust for the current user."
+		            	)
+						.arg(Arg::with_name("add-to-path").short("a").long("add-to-path").help("Modifies .profile or the registry"))
+						.arg(Arg::with_name("move").short("m").long("move").help("Move self instead of copying"))
+				)
+				.subcommand(
+					SubCommand::with_name("uninstall")
+						.about("Uninstalls multirust.")
+						.arg(Arg::with_name("no-prompt").short("y").help("Disable confirmation prompt."))
+				)
+				.subcommand(
+					SubCommand::with_name("update")
+						.about("Updates multirust.")
+				)
 		)
 		.subcommand(
 			SubCommand::with_name("doc")

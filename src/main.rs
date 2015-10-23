@@ -241,8 +241,12 @@ fn run_multirust() -> Result<()> {
 		("proxy", Some(m)) => proxy(&cfg, m),
 		("upgrade-data", Some(_)) => cfg.upgrade_data().map(|_|()),
 		("delete-data", Some(m)) => delete_data(&cfg, m),
-		("install", Some(m)) => install(&cfg, m),
-		("uninstall", Some(m)) => uninstall(&cfg, m),
+		("self", Some(c)) => match c.subcommand() {
+			("install", Some(m)) => self_install(&cfg, m),
+			("uninstall", Some(m)) => self_uninstall(&cfg, m),
+			("update", Some(m)) => self_update(&cfg, m),
+			_ => Ok(()),
+		},
 		("which", Some(m)) => which(&cfg, m),
 		("ctl", Some(m)) => ctl(&cfg, m),
 		("doc", Some(m)) => doc(&cfg, m),
@@ -284,7 +288,7 @@ fn maybe_install(cfg: &Cfg) -> Result<()> {
 	Ok(())
 }
 
-fn install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn self_install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	handle_install(cfg, m.is_present("move"), m.is_present("add-to-path"))
 }
 
@@ -404,7 +408,7 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	Ok(())
 }
 
-fn uninstall(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn self_uninstall(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	if !m.is_present("no-prompt") {
 		if !ask("This will delete all toolchains, overrides, aliases, and other multirust data associated with this user. Continue?").unwrap_or(false) {
 			println!("aborting");
@@ -430,6 +434,11 @@ fn uninstall(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 	warn!("This will not attempt to remove the '.multirust/bin' directory from your PATH");
 	try!(inner(cfg));
 	
+	process::exit(0);
+}
+
+fn self_update(_cfg: &Cfg, _m: &ArgMatches) -> Result<()> {
+	println!("Not yet implemented");	
 	process::exit(0);
 }
 

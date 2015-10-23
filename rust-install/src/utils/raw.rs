@@ -236,14 +236,11 @@ pub fn prefix_arg<S: AsRef<OsStr>>(name: &str, s: S) -> OsString {
 pub fn open_browser(path: &Path) -> io::Result<bool> {
 	#[cfg(not(windows))]
 	fn has_cmd(cmd: &&str) -> bool {
-		Command::new("command")
-			.arg("-v").arg(cmd)
+		cmd_status(Command::new("which")
+			.arg(cmd)
 			.stdin(Stdio::null())
 			.stdout(Stdio::null())
-			.stderr(Stdio::null())
-			.status()
-			.map(|s| s.success())
-			.unwrap_or(false)
+			.stderr(Stdio::null())).is_ok()
 	}
 	#[cfg(not(windows))]
 	fn inner(path: &Path) -> io::Result<bool> {
@@ -262,7 +259,9 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
 	}
 	#[cfg(windows)]
 	fn inner(path: &Path) -> io::Result<bool> {
-		Command::new("start")
+		Command::new("cmd")
+			.arg("/C")
+			.arg("start")
 			.arg(path)
 			.stdin(Stdio::null())
 			.stdout(Stdio::null())

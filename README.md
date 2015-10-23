@@ -35,7 +35,7 @@ Binaries for other platforms are not yet available. Follow the instructions belo
 
 Run this command in a writable directory:
 ```
-git clone --depth 1 https://github.com/Diggsey/multirust-rs.git multirust-rs && cd multirust-rs && cargo run --release install [-a]
+git clone --depth 1 https://github.com/Diggsey/multirust-rs.git multirust-rs && cd multirust-rs && cargo run --release self install [-a]
 ```
 
 Passing `-a` will attempt to automatically add `~/.multirust/bin` to your PATH.
@@ -57,6 +57,10 @@ cd multirust-rs && git pull && cargo run --release install
 ### Usage
 
 ```
+multirust 0.0.4
+Diggory Blake
+Port of multirust to rust
+
 USAGE:
         multirust [FLAGS] [SUBCOMMAND]
 
@@ -71,7 +75,6 @@ SUBCOMMANDS:
     delete-data         Delete all user metadata.
     doc                 Open the documentation for the current toolchain.
     help                Prints this message
-    install             Installs multirust.
     list-overrides      List all overrides.
     list-toolchains     List all installed toolchains.
     override            Set the toolchain override.
@@ -79,9 +82,9 @@ SUBCOMMANDS:
     remove-override     Remove an override.
     remove-toolchain    Uninstall a toolchain.
     run                 Run a command.
+    self                Commands for managing multirust itself.
     show-default        Show information about the current default.
     show-override       Show information about the current override.
-    uninstall           Uninstalls multirust.
     update              Install or update a given toolchain.
     upgrade-data        Upgrade the ~/.multirust directory.
     which               Report location of the currently active Rust tool.

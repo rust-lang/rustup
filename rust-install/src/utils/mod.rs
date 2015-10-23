@@ -52,7 +52,7 @@ pub enum Error {
 	CopyingFile { src: PathBuf, dest: PathBuf, error: io::Error },
 	RemovingFile { name: &'static str, path: PathBuf, error: io::Error },
 	RemovingDirectory { name: &'static str, path: PathBuf, error: io::Error },
-	OpeningBrowser,
+	OpeningBrowser { error: Option<io::Error> },
 	SettingPermissions { path: PathBuf, error: io::Error },
 }
 
@@ -135,8 +135,10 @@ impl Display for Error {
 				write!(f, "could not remove {} file: '{}'", name, path.display()),
 			RemovingDirectory { ref name, ref path, error: _ } =>
 				write!(f, "could not remove {} directory: '{}'", name, path.display()),
-			OpeningBrowser =>
-				write!(f, "could not open browser"),
+			OpeningBrowser { error: Some(ref e) } =>
+				write!(f, "could not open browser: {}", e),
+			OpeningBrowser { error: None } =>
+				write!(f, "could not open browser: no browser installed"),
 			SettingPermissions { ref path, error: _ } =>
 				write!(f, "failed to set permissions for: '{}'", path.display()),
 		}
@@ -283,10 +285,10 @@ pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
 }
 
 pub fn open_browser(path: &Path) -> Result<()> {
-	if let Ok(true) = raw::open_browser(path) {
-		Ok(())
-	} else {
-		Err(Error::OpeningBrowser)
+	match raw::open_browser(path) {
+		Ok(true) => Ok(()),
+		Ok(false) => Err(Error::OpeningBrowser { error: None }),
+		Err(e) => Err(Error::OpeningBrowser { error: Some(e) }),
 	}
 }
 
