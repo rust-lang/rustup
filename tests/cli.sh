@@ -11,8 +11,8 @@ cp "`dirname $0`/../target/release/multirust-rs" $MR
 echo "> Testing --help"
 $MR --help
 
-echo "> Testing install"
-$MR install -a
+echo "> Testing self install"
+$MR self install -a
 
 echo "> Updating PATH"
 . ~/.profile
@@ -38,7 +38,7 @@ multirust doc
 echo "> Testing doc --all"
 multirust doc -all
 
-echo "> Testing uninstall"
-multirust uninstall -y
+echo "> Testing self uninstall"
+multirust self uninstall -y
 
 echo "> Finished"

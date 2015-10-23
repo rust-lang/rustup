@@ -10,8 +10,8 @@ copy /B /Y "%~dp0\..\target\release\multirust-rs.exe" %MR% || (echo FAILED && ex
 echo ^> Testing --help
 %MR% --help || (echo FAILED && exit /b 1)
 
-echo ^> Testing install
-%MR% install -a || (echo FAILED && exit /b 1)
+echo ^> Testing self install
+%MR% self install -a || (echo FAILED && exit /b 1)
 
 echo ^> Updating PATH
 set PATH=%LOCALAPPDATA%\.multirust\bin;%PATH%
@@ -37,7 +37,7 @@ multirust doc || (echo FAILED && exit /b 1)
 echo ^> Testing doc --all
 multirust doc --all || (echo FAILED && exit /b 1)
 
-echo ^> Testing uninstall
-multirust uninstall -y || (echo FAILED && exit /b 1)
+echo ^> Testing self uninstall
+multirust self uninstall -y || (echo FAILED && exit /b 1)
 
 echo ^> Finished
