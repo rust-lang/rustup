@@ -498,6 +498,9 @@ fn self_update(cfg: &Cfg, _m: &ArgMatches) -> Result<()> {
 		return Err(Error::Install(rust_install::Error::ChecksumFailed { url: url, expected: latest_hash, calculated: download_hash }));
 	}
 	
+	// Mark as executable
+	try!(utils::make_executable(&download_file));
+	
 	#[cfg(windows)]
 	fn inner(path: &Path) -> Result<()> {
 		let mut cmd = Command::new("cmd");
