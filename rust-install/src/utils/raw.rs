@@ -231,14 +231,15 @@ pub fn cmd_status(cmd: &mut Command) -> CommandResult<()> {
 }
 
 pub fn remove_dir(path: &Path) -> io::Result<()> {
-	if try!(fs::metadata(path)).file_type().is_symlink() {
-		if cfg!(windows) {
-			fs::remove_dir(path)
-		} else {
-			fs::remove_file(path)
-		}
+	// is_symlink is broken, so just try treating it as a symlink first
+	if let Err(_) = if cfg!(windows) {
+		fs::remove_dir(path)
 	} else {
+		fs::remove_file(path)
+	} {
 		fs::remove_dir_all(path)
+	} else {
+		Ok(())
 	}
 }
 
