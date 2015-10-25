@@ -42,7 +42,7 @@ pub enum Error {
 	FilteringFile { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
 	RenamingFile { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
 	RenamingDirectory { name: &'static str, src: PathBuf, dest: PathBuf, error: io::Error },
-	DownloadingFile { url: hyper::Url, path: PathBuf },
+	DownloadingFile { url: hyper::Url, path: PathBuf, error: raw::DownloadError },
 	InvalidUrl { url: String },
 	RunningCommand { name: OsString, error: raw::CommandError },
 	NotAFile { path: PathBuf },
@@ -100,50 +100,50 @@ impl Display for Error {
 		match *self {
 			LocatingHome =>
 				write!(f, "could not locate home directory"),
-			LocatingWorkingDir { error: _ } =>
-				write!(f, "could not locate working directory"),
-			ReadingFile { ref name, ref path, error: _ } =>
-				write!(f, "could not read {} file: '{}'", name, path.display()),
-			ReadingDirectory { ref name, ref path, error: _ } =>
-				write!(f, "could not read {} directory: '{}'", name, path.display()),
-			WritingFile { ref name, ref path, error: _ } =>
-				write!(f, "could not write {} file: '{}'", name, path.display()),
-			CreatingDirectory { ref name, ref path, error: _ } =>
-				write!(f, "could not create {} directory: '{}'", name, path.display()),
-			FilteringFile { ref name, ref src, ref dest, error: _ } =>
-				write!(f, "could not copy {} file from '{}' to '{}'", name, src.display(), dest.display() ),
-			RenamingFile { ref name, ref src, ref dest, error: _ } =>
-				write!(f, "could not rename {} file from '{}' to '{}'", name, src.display(), dest.display() ),
-			RenamingDirectory { ref name, ref src, ref dest, error: _ } =>
-				write!(f, "could not rename {} directory from '{}' to '{}'", name, src.display(), dest.display() ),
-			DownloadingFile { ref url, ref path } =>
-				write!(f, "could not download file from '{}' to '{}'", url, path.display()),
+			LocatingWorkingDir { ref error } =>
+				write!(f, "could not locate working directory ({})", error),
+			ReadingFile { ref name, ref path, ref error } =>
+				write!(f, "could not read {} file: '{}' ({})", name, path.display(), error),
+			ReadingDirectory { ref name, ref path, ref error } =>
+				write!(f, "could not read {} directory: '{}' ({})", name, path.display(), error),
+			WritingFile { ref name, ref path, ref error } =>
+				write!(f, "could not write {} file: '{}' ({})", name, path.display(), error),
+			CreatingDirectory { ref name, ref path, ref error } =>
+				write!(f, "could not create {} directory: '{}' ({})", name, path.display(), error),
+			FilteringFile { ref name, ref src, ref dest, ref error } =>
+				write!(f, "could not copy {} file from '{}' to '{}' ({})", name, src.display(), dest.display(), error ),
+			RenamingFile { ref name, ref src, ref dest, ref error } =>
+				write!(f, "could not rename {} file from '{}' to '{}' ({})", name, src.display(), dest.display(), error ),
+			RenamingDirectory { ref name, ref src, ref dest, ref error } =>
+				write!(f, "could not rename {} directory from '{}' to '{}' ({})", name, src.display(), dest.display(), error ),
+			DownloadingFile { ref url, ref path, ref error } =>
+				write!(f, "could not download file from '{}' to '{}' ({:?})", url, path.display(), error),
 			InvalidUrl { ref url } =>
 				write!(f, "invalid url: '{}'", url),
-			RunningCommand { ref name, error: _ } =>
-				write!(f, "command failed: '{}'", PathBuf::from(name).display()),
+			RunningCommand { ref name, ref error } =>
+				write!(f, "command failed: '{}' ({:?})", PathBuf::from(name).display(), error),
 			NotAFile { ref path } =>
 				write!(f, "not a file: '{}'", path.display()),
 			NotADirectory { ref path } =>
 				write!(f, "not a directory: '{}'", path.display()),
-			LinkingFile { ref src, ref dest, error: _ } =>
-				write!(f, "could not create link from '{}' to '{}'", src.display(), dest.display()),
-			LinkingDirectory { ref src, ref dest, error: _ } =>
-				write!(f, "could not create symlink from '{}' to '{}'", src.display(), dest.display()),
-			CopyingDirectory { ref src, ref dest, error: _ } =>
-				write!(f, "could not copy directory from '{}' to '{}'", src.display(), dest.display()),
-			CopyingFile { ref src, ref dest, error: _ } =>
-				write!(f, "could not copy file from '{}' to '{}'", src.display(), dest.display()),
-			RemovingFile { ref name, ref path, error: _ } =>
-				write!(f, "could not remove {} file: '{}'", name, path.display()),
-			RemovingDirectory { ref name, ref path, error: _ } =>
-				write!(f, "could not remove {} directory: '{}'", name, path.display()),
+			LinkingFile { ref src, ref dest, ref error } =>
+				write!(f, "could not create link from '{}' to '{}' ({})", src.display(), dest.display(), error),
+			LinkingDirectory { ref src, ref dest, ref error } =>
+				write!(f, "could not create symlink from '{}' to '{}' ({})", src.display(), dest.display(), error),
+			CopyingDirectory { ref src, ref dest, ref error } =>
+				write!(f, "could not copy directory from '{}' to '{}' ({:?})", src.display(), dest.display(), error),
+			CopyingFile { ref src, ref dest, ref error } =>
+				write!(f, "could not copy file from '{}' to '{}' ({})", src.display(), dest.display(), error),
+			RemovingFile { ref name, ref path, ref error } =>
+				write!(f, "could not remove {} file: '{}' ({})", name, path.display(), error),
+			RemovingDirectory { ref name, ref path, ref error } =>
+				write!(f, "could not remove {} directory: '{} ({})'", name, path.display(), error),
 			OpeningBrowser { error: Some(ref e) } =>
 				write!(f, "could not open browser: {}", e),
 			OpeningBrowser { error: None } =>
 				write!(f, "could not open browser: no browser installed"),
-			SettingPermissions { ref path, error: _ } =>
-				write!(f, "failed to set permissions for: '{}'", path.display()),
+			SettingPermissions { ref path, ref error } =>
+				write!(f, "failed to set permissions for: '{} ({})'", path.display(), error),
 		}
 	}
 }
@@ -224,7 +224,7 @@ pub fn tee_file<W: io::Write>(name: &'static str, path: &Path, w: &mut W) -> Res
 pub fn download_file(url: hyper::Url, path: &Path, hasher: Option<&mut Hasher>, notify_handler: NotifyHandler) -> Result<()> {
 	notify_handler.call(Notification::DownloadingFile(&url, path));
 	raw::download_file(url.clone(), path, hasher)
-		.map_err(|_| Error::DownloadingFile { url: url, path: PathBuf::from(path) })
+		.map_err(|e| Error::DownloadingFile { url: url, path: PathBuf::from(path), error: e })
 }
 
 pub fn parse_url(url: &str) -> Result<hyper::Url> {

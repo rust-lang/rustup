@@ -142,6 +142,7 @@ pub fn tee_file<W: io::Write>(path: &Path, mut w: &mut W) -> io::Result<()> {
 	}
 }
 
+#[derive(Debug)]
 pub enum DownloadError {
 	Status(hyper::status::StatusCode),
 	Network(hyper::Error),
@@ -211,6 +212,7 @@ pub fn hardlink(src: &Path, dest: &Path) -> io::Result<()> {
 	fs::hard_link(src, dest)
 }
 
+#[derive(Debug)]
 pub enum CommandError {
 	Io(io::Error),
 	Status(ExitStatus),
