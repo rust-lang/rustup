@@ -282,7 +282,7 @@ pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
 
 pub fn remove_dir(name: &'static str, path: &Path, notify_handler: NotifyHandler) -> Result<()> {
 	notify_handler.call(Notification::RemovingDirectory(name, path));
-	fs::remove_dir_all(path)
+	raw::remove_dir(path)
 		.map_err(|e| Error::RemovingDirectory { name: name, path: PathBuf::from(path), error: e })
 }
 

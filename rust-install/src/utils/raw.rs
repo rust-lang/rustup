@@ -188,7 +188,7 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
 		::std::os::unix::fs::symlink(src, dest)
 	}
 	
-	let _ = fs::remove_dir_all(dest);
+	let _ = remove_dir(dest);
 	symlink_dir_inner(src, dest)
 }
 
@@ -228,6 +228,18 @@ pub fn cmd_status(cmd: &mut Command) -> CommandResult<()> {
 	})
 }
 
+pub fn remove_dir(path: &Path) -> io::Result<()> {
+	if try!(fs::metadata(path)).file_type().is_symlink() {
+		if cfg!(windows) {
+			fs::remove_dir(path)
+		} else {
+			fs::remove_file(path)
+		}
+	} else {
+		fs::remove_dir_all(path)
+	}
+}
+
 pub fn copy_dir(src: &Path, dest: &Path) -> CommandResult<()> {
 	#[cfg(windows)]
 	fn copy_dir_inner(src: &Path, dest: &Path) -> CommandResult<()> {
@@ -238,7 +250,7 @@ pub fn copy_dir(src: &Path, dest: &Path) -> CommandResult<()> {
 		cmd_status(Command::new("cp").arg("-R").arg(src).arg(dest))
 	}
 	
-	let _ = fs::remove_dir_all(dest);
+	let _ = remove_dir(dest);
 	copy_dir_inner(src, dest)
 }
 
