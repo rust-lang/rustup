@@ -83,7 +83,7 @@ impl<'a> InstallMethod<'a> {
 				Ok(())
 			},
 			InstallMethod::Link(src) => {
-				try!(utils::symlink_dir(&prefix.path, src, ntfy!(&notify_handler)));
+				try!(utils::symlink_dir(src, &prefix.path, ntfy!(&notify_handler)));
 				Ok(())
 			},
 			InstallMethod::Installer(src, temp_cfg) => {
