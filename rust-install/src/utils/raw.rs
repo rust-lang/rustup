@@ -188,12 +188,7 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
 		::std::os::unix::fs::symlink(src, dest)
 	}
 	
-	// This is stupid, but seems to be the safest way to delete
-	// a directory that may be a symbol link, without accidentally
-	// deleting the contents too...
-	let _ = fs::remove_file(dest);
-	let _ = fs::remove_dir(dest);
-	let _ = fs::remove_dir_all(dest);
+	let _ = fs::remove_dir_all(src);
 	symlink_dir_inner(src, dest)
 }
 
@@ -207,7 +202,7 @@ pub fn symlink_file(src: &Path, dest: &Path) -> io::Result<()> {
 		::std::os::unix::fs::symlink(src, dest)
 	}
 	
-	let _ = fs::remove_file(dest);
+	let _ = fs::remove_file(src);
 	symlink_file_inner(src, dest)
 }
 
@@ -243,6 +238,7 @@ pub fn copy_dir(src: &Path, dest: &Path) -> CommandResult<()> {
 		cmd_status(Command::new("cp").arg("-R").arg(src).arg(dest))
 	}
 	
+	let _ = fs::remove_dir_all(dest);
 	copy_dir_inner(src, dest)
 }
 
