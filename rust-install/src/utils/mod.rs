@@ -180,7 +180,6 @@ pub fn rename_file(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
 }
 
 pub fn rename_dir(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
-	let _ = fs::remove_dir_all(dest);
 	fs::rename(src, dest)
 		.map_err(|e| Error::RenamingDirectory {
 			name: name,
