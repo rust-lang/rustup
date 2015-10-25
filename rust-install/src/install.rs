@@ -247,7 +247,10 @@ impl InstallPrefix {
 		Ok(doc_dir)
 	}
 	pub fn is_installed_here(&self) -> bool {
-		utils::is_directory(&self.manifest_dir())
+		match self.install_type {
+			InstallType::Owned => utils::is_directory(&self.path),
+			InstallType::Shared => utils::is_directory(&self.manifest_dir()),
+		}
 	}
 	pub fn get_uninstall_sh(&self) -> Option<PathBuf> {
 		let path = self.manifest_file("uninstall.sh");

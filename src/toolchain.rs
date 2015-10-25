@@ -159,7 +159,7 @@ impl<'a> Toolchain<'a> {
 	
 	pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
 		if link {
-			self.install(InstallMethod::Link(src))
+			self.install(InstallMethod::Link(&try!(utils::to_absolute(src))))
 		} else {
 			self.install(InstallMethod::Copy(src))
 		}
