@@ -188,7 +188,7 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
 		::std::os::unix::fs::symlink(src, dest)
 	}
 	
-	let _ = fs::remove_dir_all(src);
+	let _ = fs::remove_dir_all(dest);
 	symlink_dir_inner(src, dest)
 }
 
@@ -202,7 +202,7 @@ pub fn symlink_file(src: &Path, dest: &Path) -> io::Result<()> {
 		::std::os::unix::fs::symlink(src, dest)
 	}
 	
-	let _ = fs::remove_file(src);
+	let _ = fs::remove_file(dest);
 	symlink_file_inner(src, dest)
 }
 
