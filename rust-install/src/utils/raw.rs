@@ -245,7 +245,17 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
 pub fn copy_dir(src: &Path, dest: &Path) -> CommandResult<()> {
 	#[cfg(windows)]
 	fn copy_dir_inner(src: &Path, dest: &Path) -> CommandResult<()> {
-		cmd_status(Command::new("robocopy").arg(src).arg(dest).arg("/E"))
+		Command::new("robocopy")
+			.arg(src).arg(dest).arg("/E")
+			.arg("/NFL").arg("/NDL").arg("/NJH").arg("/NJS").arg("/nc").arg("/ns").arg("/np")
+			.status().map_err(CommandError::Io)
+			.and_then(|s| {
+				match s.code() {
+					// Robocopy has non-zero exit codes for successful copies...
+					Some(value) if value < 8 => Ok(()),
+					_ => Err(CommandError::Status(s)),
+				}
+			})
 	}
 	#[cfg(not(windows))]
 	fn copy_dir_inner(src: &Path, dest: &Path) -> CommandResult<()> {
