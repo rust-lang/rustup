@@ -117,11 +117,11 @@ impl Display for Error {
 			RenamingDirectory { ref name, ref src, ref dest, ref error } =>
 				write!(f, "could not rename {} directory from '{}' to '{}' ({})", name, src.display(), dest.display(), error ),
 			DownloadingFile { ref url, ref path, ref error } =>
-				write!(f, "could not download file from '{}' to '{}' ({:?})", url, path.display(), error),
+				write!(f, "could not download file from '{}' to '{}' ({})", url, path.display(), error),
 			InvalidUrl { ref url } =>
 				write!(f, "invalid url: '{}'", url),
 			RunningCommand { ref name, ref error } =>
-				write!(f, "command failed: '{}' ({:?})", PathBuf::from(name).display(), error),
+				write!(f, "command failed: '{}' ({})", PathBuf::from(name).display(), error),
 			NotAFile { ref path } =>
 				write!(f, "not a file: '{}'", path.display()),
 			NotADirectory { ref path } =>
@@ -131,7 +131,7 @@ impl Display for Error {
 			LinkingDirectory { ref src, ref dest, ref error } =>
 				write!(f, "could not create symlink from '{}' to '{}' ({})", src.display(), dest.display(), error),
 			CopyingDirectory { ref src, ref dest, ref error } =>
-				write!(f, "could not copy directory from '{}' to '{}' ({:?})", src.display(), dest.display(), error),
+				write!(f, "could not copy directory from '{}' to '{}' ({})", src.display(), dest.display(), error),
 			CopyingFile { ref src, ref dest, ref error } =>
 				write!(f, "could not copy file from '{}' to '{}' ({})", src.display(), dest.display(), error),
 			RemovingFile { ref name, ref path, ref error } =>

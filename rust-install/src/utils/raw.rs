@@ -6,6 +6,7 @@ use std::char::from_u32;
 use std::io::Write;
 use std::process::{Command, Stdio, ExitStatus};
 use std::ffi::{OsStr, OsString};
+use std::fmt;
 use hyper::{self, Client};
 use openssl::crypto::hash::Hasher;
 
@@ -150,6 +151,16 @@ pub enum DownloadError {
 }
 pub type DownloadResult<T> = Result<T, DownloadError>;
 
+impl fmt::Display for DownloadError {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match *self {
+			DownloadError::Status(ref s) => write!(f, "Status: {}", s),
+			DownloadError::Network(ref e) => write!(f, "Network: {}", e),
+			DownloadError::File(ref e) => write!(f, "File: {}", e),
+		}
+	}
+}
+
 pub fn download_file<P: AsRef<Path>>(url: hyper::Url, path: P, mut hasher: Option<&mut Hasher>) -> DownloadResult<()> {
 	let client = Client::new();
 
@@ -219,6 +230,15 @@ pub enum CommandError {
 }
 
 pub type CommandResult<T> = Result<T, CommandError>;
+
+impl fmt::Display for CommandError {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		match *self {
+			CommandError::Io(ref e) => write!(f, "Io: {}", e),
+			CommandError::Status(ref s) => write!(f, "Status: {}", s),
+		}
+	}
+}
 
 pub fn cmd_status(cmd: &mut Command) -> CommandResult<()> {
 	cmd.status().map_err(CommandError::Io).and_then(|s| {
