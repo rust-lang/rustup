@@ -68,16 +68,25 @@ notifications:
   - provider: Webhook
     url: https://webhooks.gitter.im/e/9907ad94eb7a5ff291c3
 on_success:
-  - git config --global credential.helper store
-  - ps: Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
-  - git submodule init
-  - git submodule update --depth 1 --remote
-  - if not exist "binaries\%TARGET%" mkdir "binaries\%TARGET%"
-  - del /Q "binaries\%TARGET%"
-  - copy /B /Y "target\release\*" "binaries\%TARGET%"
-  - git rev-parse HEAD > "binaries\%TARGET%\commit.txt"
-  - cd binaries
-  - git checkout master
-  - git add -A
-  - git commit -m "Auto-update %TARGET% binaries (Appveyor CI)"
-  - ps: $attempts = 1; do { .\push-changes.bat; $attempts++ } while($lastexitcode -ne '0' -and $attempts -le 5)
+  - ps: |
+      if (!$env:APPVEYOR_PULL_REQUEST_NUMBER) {
+        if ($env:APPVEYOR_REPO_BRANCH -eq "master") {
+          $bin = "binaries\$env:TARGET"
+        } else {
+          $bin = "binaries\$env:APPVEYOR_REPO_BRANCH\$env:TARGET"
+        }
+        
+        git config --global credential.helper store
+        Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
+        git submodule init
+        git submodule update --depth 1 --remote
+        if not exist "$bin" mkdir "$bin"
+        del /Q "$bin"
+        copy /B /Y "target\release\*" "$bin"
+        git rev-parse HEAD > "$bin\commit.txt"
+        cd binaries
+        git checkout master
+        git add -A
+        git commit -m "Auto-update $env:APPVEYOR_REPO_BRANCH/$env:TARGET binaries (Appveyor CI)"
+        $attempts = 1; do { .\push-changes.bat; $attempts++ } while($lastexitcode -ne '0' -and $attempts -le 5)
+      }

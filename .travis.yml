@@ -37,23 +37,30 @@ script:
   - tests/cli.sh
 
 after_success:
-  - git config --global credential.helper store
-  - echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials
-  - if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
-      cargo doc;
-      echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html;
-      sudo pip install ghp-import;
-      ghp-import -n target/doc;
-      git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages;
+  - if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+      git config --global credential.helper store
+      echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials
+      if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
+        cargo doc;
+        echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html;
+        sudo pip install ghp-import;
+        ghp-import -n target/doc;
+        git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages;
+      fi
+      if [ "$TRAVIS_BRANCH" == "master" ]; then
+        bin=./binaries/$TARGET
+      else
+        bin=./binaries/$TRAVIS_BRANCH/$TARGET
+      fi
+      git submodule init
+      git submodule update --depth 1 --remote
+      mkdir -p "$bin"
+      rm $bin/*
+      find "target/release/" -maxdepth 1 -type f -exec cp "{}" "$bin" \;
+      git rev-parse HEAD > "$bin/commit.txt"
+      cd binaries
+      git checkout master
+      git add -A
+      git commit -m "Auto-update $TRAVIS_BRANCH/$TARGET binaries (Travis CI)"
+      for i in {1..5}; do ./push-changes.sh && break; done
     fi
-  - git submodule init
-  - git submodule update --depth 1 --remote
-  - mkdir -p "binaries/$TARGET"
-  - rm ./binaries/$TARGET/*
-  - find "target/release/" -maxdepth 1 -type f -exec cp "{}" "binaries/$TARGET" \;
-  - git rev-parse HEAD > "binaries/$TARGET/commit.txt"
-  - cd binaries
-  - git checkout master
-  - git add -A
-  - git commit -m "Auto-update $TARGET binaries (Travis CI)"
-  - for i in {1..5}; do ./push-changes.sh && break; done
