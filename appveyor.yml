@@ -80,7 +80,7 @@ on_success:
         Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
         git submodule init
         git submodule update --depth 1 --remote
-        if not exist "$bin" mkdir "$bin"
+        if (!(Test-Path -Path "$bin")) { mkdir "$bin" }
         del /Q "$bin"
         copy /B /Y "target\release\*" "$bin"
         git rev-parse HEAD > "$bin\commit.txt"
