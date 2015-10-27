@@ -190,13 +190,13 @@ impl Cfg {
 		if !utils::is_file(&self.default_file) {
 			return Ok(None);
 		}
-		
-		let name = try!(utils::read_file("default", &self.default_file));
+		let content = try!(utils::read_file("default", &self.default_file));
+		let name = content.trim_matches('\n');
 		if name.is_empty() {
 			return Ok(None);
 		}
 		
-		let toolchain = try!(self.verify_toolchain(&name));
+		let toolchain = try!(self.verify_toolchain(name));
 		
 		Ok(Some(toolchain))
 	}
