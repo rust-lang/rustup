@@ -56,7 +56,7 @@ after_success:
       git submodule update --depth 1 --remote;
       mkdir -p "$bin";
       rm $bin/*;
-      find "target/release/" -maxdepth 1 -type f -exec cp "{}" "$bin" \;
+      find "target/release/" -maxdepth 1 -type f -exec cp "{}" "$bin" \;;
       git rev-parse HEAD > "$bin/commit.txt";
       cd binaries;
       git checkout master;
