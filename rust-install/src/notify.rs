@@ -124,3 +124,12 @@ macro_rules! shared_ntfy {
 		$crate::notify::SharedNotifyHandler::some(::std::sync::Arc::new($e))
 	)
 }
+#[macro_export]
+macro_rules! ok_ntfy {
+	($n:expr, $w:path, $e:expr) => (
+		match $e {
+			Err(e) => { $n.call($w(&e)); None },
+			Ok(r) => Some(r)
+		}
+	)
+}

@@ -15,6 +15,8 @@ pub enum Notification<'a> {
 	CantReadUpdateHash(&'a Path),
 	NoUpdateHash(&'a Path),
 	ChecksumValid(&'a str),
+	RollingBack(&'a str),
+	NonFatalError(&'a Error),
 }
 
 pub enum Error {
@@ -28,10 +30,14 @@ pub enum Error {
 	InstallTypeNotPossible,
 	UnsupportedHost(String),
 	ChecksumFailed { url: String, expected: String, calculated: String },
+	ComponentConflict { name: String, path: String },
+	CorruptComponent(String),
+	UnknownItemType(String, String),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 pub type NotifyHandler<'a> = ::notify::NotifyHandler<'a, for<'b> Notifyable<Notification<'b>>>;
+pub type SharedNotifyHandler = ::notify::SharedNotifyHandler<for<'b> Notifyable<Notification<'b>>>;
 
 extend_error!(Error: temp::Error, e => Error::Temp(e));
 extend_error!(Error: utils::Error, e => Error::Utils(e));
@@ -49,10 +55,12 @@ impl<'a> Notification<'a> {
 				NotificationLevel::Verbose,
 			Extracting(_, _) | ChecksumValid(_) =>
 				NotificationLevel::Normal,
-			UpdateHashMatches(_) =>
+			UpdateHashMatches(_) | RollingBack(_) =>
 				NotificationLevel::Info,
 			CantReadUpdateHash(_) =>
 				NotificationLevel::Warn,
+			NonFatalError(_) =>
+				NotificationLevel::Error,
 		}
 	}
 }
@@ -73,6 +81,10 @@ impl<'a> Display for Notification<'a> {
 				write!(f, "no update hash at: '{}'", path.display()),
 			ChecksumValid(_) =>
 				write!(f, "checksum passed"),
+			RollingBack(_) =>
+				write!(f, "rolling back changes"),
+			NonFatalError(e) =>
+				write!(f, "{}", e),
 		}
 	}
 }
@@ -91,6 +103,12 @@ impl Display for Error {
 			UnsupportedHost(ref spec) => write!(f, "a binary package was not provided for: '{}'", spec),
 			ChecksumFailed { url: _, ref expected, ref calculated } =>
 				write!(f, "checksum failed, expected: '{}', calculated: '{}'", expected, calculated),
+			ComponentConflict { ref name, ref path } =>
+				write!(f, "failed to install component: '{}', detected conflict: '{}'", name, path),
+			CorruptComponent(ref name) =>
+				write!(f, "component manifest for '{}' is corrupt", name),
+			UnknownItemType(ref t, ref name) =>
+				write!(f, "unknown item: '{}:{}', this item will be ignored", t, name),
 		}
 	}
 }

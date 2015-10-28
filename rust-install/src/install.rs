@@ -5,6 +5,7 @@ use env_var;
 use dist;
 #[cfg(windows)]
 use msi;
+use distv2::DistV2;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -233,6 +234,11 @@ impl InstallPrefix {
 		path.push(name);
 		path
 	}
+	pub fn rel_manifest_file(&self, name: &str) -> String {
+		let mut path = PathBuf::from(REL_MANIFEST_DIR);
+		path.push(name);
+		path.into_os_string().into_string().unwrap()
+	}
 	pub fn binary_file(&self, name: &str) -> PathBuf {
 		let mut path = self.path.clone();
 		path.push(bin_path(name));
@@ -336,5 +342,9 @@ impl InstallPrefix {
 	
 	pub fn open_docs(&self, relative: &str) -> Result<()> {
 		Ok(try!(utils::open_browser(&try!(self.doc_path(relative)))))
+	}
+	
+	pub fn as_distv2_install(&self) -> Option<DistV2> {
+		DistV2::new(self)
 	}
 }
