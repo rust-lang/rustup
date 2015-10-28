@@ -81,8 +81,8 @@ on_success:
         cmd /c "git submodule init 2>&1"
         cmd /c "git submodule update --depth 1 --remote 2>&1"
         if (!(Test-Path -Path "$bin")) { mkdir "$bin" }
-        del /Q "$bin"
-        copy /B /Y "target\release\*" "$bin"
+        cmd /c "del /Q `"$bin`""
+        cmd /c "copy /B /Y `"target\release\*`" `"$bin`""
         cmd /c "git rev-parse HEAD > `"$bin\commit.txt`" 2>&1"
         cd binaries
         cmd /c "git checkout master 2>&1"
