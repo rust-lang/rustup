@@ -5,9 +5,9 @@ matrix:
     - os: linux
       env: TARGET=x86_64-unknown-linux-gnu BITS=64
     - os: osx
-      env: TARGET=i686-apple-darwin BITS=32
+      env: TARGET=i686-apple-darwin BITS=32 MACOSX_DEPLOYMENT_TARGET=10.7
     - os: osx
-      env: TARGET=x86_64-apple-darwin BITS=64
+      env: TARGET=x86_64-apple-darwin BITS=64 MACOSX_DEPLOYMENT_TARGET=10.7
   allow_failures:
     - os: osx
 
