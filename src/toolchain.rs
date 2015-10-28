@@ -19,6 +19,7 @@ pub struct Toolchain<'a> {
 
 impl<'a> Toolchain<'a> {
 	pub fn from(cfg: &'a Cfg, name: &str) -> Self {
+        let name = name.trim_matches('\n');
 		Toolchain {
 			cfg: cfg,
 			name: name.to_owned(),
