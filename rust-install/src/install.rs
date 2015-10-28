@@ -13,7 +13,10 @@ use std::fs;
 use std::io;
 use std::env;
 
-const REL_MANIFEST_DIR: &'static str = "rustlib";
+#[cfg(not(windows))]
+const REL_MANIFEST_DIR: &'static str = "lib/rustlib";
+#[cfg(windows)]
+const REL_MANIFEST_DIR: &'static str = "bin\\rustlib";
 
 pub struct InstallPrefix {
 	path: PathBuf,
@@ -222,7 +225,6 @@ impl InstallPrefix {
 	}
 	pub fn manifest_dir(&self) -> PathBuf {
 		let mut path = self.path.clone();
-		path.push("bin");
 		path.push(REL_MANIFEST_DIR);
 		path
 	}

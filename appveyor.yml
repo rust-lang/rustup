@@ -76,17 +76,17 @@ on_success:
           $bin = "binaries\$env:APPVEYOR_REPO_BRANCH\$env:TARGET"
         }
         
-        (cmd /c git config --global credential.helper store 2>&1)
+        git config --global credential.helper store
         Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
-        (cmd /c git submodule init 2>&1)
-        (cmd /c git submodule update --depth 1 --remote 2>&1)
+        cmd /c git submodule init 2^>^&1
+        cmd /c git submodule update --depth 1 --remote 2^>^&1
         if (!(Test-Path -Path "$bin")) { mkdir "$bin" }
         del /Q "$bin"
         copy /B /Y "target\release\*" "$bin"
-        (cmd /c git rev-parse HEAD > "$bin\commit.txt" 2>&1)
+        git rev-parse HEAD > "$bin\commit.txt"
         cd binaries
-        (cmd /c git checkout master 2>&1)
-        (cmd /c git add -A 2>&1)
-        (cmd /c git commit -m "Auto-update $env:APPVEYOR_REPO_BRANCH/$env:TARGET binaries (Appveyor CI)" 2>&1)
+        git checkout master
+        git add -A
+        git commit -m "Auto-update $env:APPVEYOR_REPO_BRANCH/$env:TARGET binaries (Appveyor CI)"
         $attempts = 1; do { .\push-changes.bat; $attempts++ } while($lastexitcode -ne '0' -and $attempts -le 5)
       }
