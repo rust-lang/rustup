@@ -166,7 +166,7 @@ impl<'a> Toolchain<'a> {
 	}
 	
 	pub fn set_env(&self, cmd: &mut Command) {
-		self.prefix.set_env(cmd);
+		self.prefix.set_env(cmd, &self.cfg.multirust_dir.join("cargo"));
 		cmd.env("MULTIRUST_TOOLCHAIN", self.prefix.path());
 		cmd.env("MULTIRUST_HOME", &self.cfg.multirust_dir);
 	}
