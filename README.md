@@ -108,6 +108,28 @@ Any combination of optional parts are acceptable.
 Parts of the target triple which are omitted, will default to that of the host.
 If the date is omitted, the toolchain will track the most recent version.
 
+### Envionment variables
+
+The following environment variables can be used to customize the behaviour of
+multirust-rs:
+
+- `MULTIRUST_TOOLCHAIN` (default: none)
+	If set, will override the toolchain used for all rust tool invocations. A toolchain
+	with this name should be installed, or invocations will fail.
+	
+- `MULTIRUST_DIST_ROOT` (default: `https://static.rust-lang.org/dist`)
+	Sets the root URL for downloading packages. You can change this to instead use
+	a local mirror, or to test the binaries from the staging directory.
+	
+- `MULTIRUST_HOME` (default: `~/.multirust` or `%LOCALAPPDATA%/.multirust`)
+	Sets the root multirust folder, used for storing installed toolchains and configuration
+	options.
+	
+- `MULTIRUST_GPG_KEY` (default: none)
+	Sets the GPG key used to verify the signatures of downloaded files.
+	WARNING: GPG signature verification is not yet implemented.
+
+
 ### Example usage
 
 - Set the default toolchain to the latest nightly:

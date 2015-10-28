@@ -325,18 +325,16 @@ impl InstallPrefix {
 		env_var::set_path("DYLD_LIBRARY_PATH", &new_path, cmd);
 	}
 	
-	pub fn set_env(&self, cmd: &mut Command) {
-		let cargo_path = self.path.join("cargo");
-		
+	pub fn set_env(&self, cmd: &mut Command, cargo_home: &Path) {
 		self.set_ldpath(cmd);
-		env_var::set_default("CARGO_HOME", cargo_path.as_ref(), cmd);
+		env_var::set_default("CARGO_HOME", cargo_home.as_ref(), cmd);
 	}
 	
-	pub fn create_command(&self, binary: &str) -> Command {
+	pub fn create_command(&self, binary: &str, cargo_home: &Path) -> Command {
 		let binary_path = self.binary_file(binary);
 		let mut cmd = Command::new(binary_path);
 		
-		self.set_env(&mut cmd);
+		self.set_env(&mut cmd, cargo_home);
 		cmd
 	}
 	
