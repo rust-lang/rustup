@@ -1,4 +1,4 @@
-#![feature(fs_canonicalize, fundamental)]
+#![feature(fundamental)]
 
 extern crate rand;
 extern crate hyper;
