@@ -29,5 +29,4 @@ pub mod msi;
 pub mod dist;
 mod errors;
 mod install;
-pub mod components;
-pub mod distv2;
+pub mod component;

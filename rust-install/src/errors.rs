@@ -1,6 +1,7 @@
 
 use std::path::Path;
 use std::fmt::{self, Display};
+use std::io;
 use temp;
 use utils;
 
@@ -15,7 +16,7 @@ pub enum Notification<'a> {
 	CantReadUpdateHash(&'a Path),
 	NoUpdateHash(&'a Path),
 	ChecksumValid(&'a str),
-	RollingBack(&'a str),
+	RollingBack,
 	NonFatalError(&'a Error),
 }
 
@@ -32,7 +33,7 @@ pub enum Error {
 	ChecksumFailed { url: String, expected: String, calculated: String },
 	ComponentConflict { name: String, path: String },
 	CorruptComponent(String),
-	UnknownItemType(String, String),
+	ExtractingPackage(io::Error),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -55,7 +56,7 @@ impl<'a> Notification<'a> {
 				NotificationLevel::Verbose,
 			Extracting(_, _) | ChecksumValid(_) =>
 				NotificationLevel::Normal,
-			UpdateHashMatches(_) | RollingBack(_) =>
+			UpdateHashMatches(_) | RollingBack =>
 				NotificationLevel::Info,
 			CantReadUpdateHash(_) =>
 				NotificationLevel::Warn,
@@ -81,7 +82,7 @@ impl<'a> Display for Notification<'a> {
 				write!(f, "no update hash at: '{}'", path.display()),
 			ChecksumValid(_) =>
 				write!(f, "checksum passed"),
-			RollingBack(_) =>
+			RollingBack =>
 				write!(f, "rolling back changes"),
 			NonFatalError(e) =>
 				write!(f, "{}", e),
@@ -107,8 +108,8 @@ impl Display for Error {
 				write!(f, "failed to install component: '{}', detected conflict: '{}'", name, path),
 			CorruptComponent(ref name) =>
 				write!(f, "component manifest for '{}' is corrupt", name),
-			UnknownItemType(ref t, ref name) =>
-				write!(f, "unknown item: '{}:{}', this item will be ignored", t, name),
+			ExtractingPackage(ref error) =>
+				write!(f, "failed to extract package: {}", error),
 		}
 	}
 }

@@ -5,7 +5,7 @@ use env_var;
 use dist;
 #[cfg(windows)]
 use msi;
-use distv2::DistV2;
+use component::Components;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -19,6 +19,7 @@ const REL_MANIFEST_DIR: &'static str = "lib/rustlib";
 #[cfg(windows)]
 const REL_MANIFEST_DIR: &'static str = "bin\\rustlib";
 
+#[derive(Clone)]
 pub struct InstallPrefix {
 	path: PathBuf,
 	install_type: InstallType,
@@ -224,6 +225,9 @@ impl InstallPrefix {
 	pub fn path(&self) -> &Path {
 		&self.path
 	}
+	pub fn abs_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+		self.path.join(path)
+	}
 	pub fn manifest_dir(&self) -> PathBuf {
 		let mut path = self.path.clone();
 		path.push(REL_MANIFEST_DIR);
@@ -342,7 +346,7 @@ impl InstallPrefix {
 		Ok(try!(utils::open_browser(&try!(self.doc_path(relative)))))
 	}
 	
-	pub fn as_distv2_install(&self) -> Option<DistV2> {
-		DistV2::new(self)
+	pub fn components(&self) -> Option<Components> {
+		Components::new(self.clone())
 	}
 }
