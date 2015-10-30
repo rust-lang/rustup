@@ -1,0 +1,18 @@
+[package]
+
+name = "rust-manifest"
+version = "0.0.1"
+authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
+description = "Serialization of rust manifest files"
+
+documentation = "http://diggsey.github.io/multirust-rs/rust_manifest/index.html"
+homepage = "https://github.com/Diggsey/multirust-rs"
+repository = "https://github.com/Diggsey/multirust-rs"
+
+license = "MIT"
+
+[dependencies]
+toml = "0.1.23"
+
+[lib]
+name = "rust_manifest"

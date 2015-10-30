@@ -49,6 +49,10 @@ impl Components {
 			None
 		}
 	}
+	pub fn init(prefix: InstallPrefix) -> Result<Self> {
+		try!(utils::write_file("components", &prefix.manifest_file(COMPONENTS_FILE), ""));
+		Ok(Components { prefix: prefix })
+	}
 	fn rel_components_file(&self) -> String {
 		self.prefix.rel_manifest_file(COMPONENTS_FILE)
 	}
@@ -74,25 +78,36 @@ impl Components {
 		let result = try!(self.list());
 		Ok(result.into_iter().filter(|c| (c.name() == name)).next())
 	}
-	pub fn apply_change_set<'a>(&self, change_set: &ChangeSet, mut tx: Transaction<'a>) -> Result<Transaction<'a>> {
+	pub fn apply_change_set<'a>(&self, change_set: &ChangeSet, default_target: &str, mut tx: Transaction<'a>) -> Result<Transaction<'a>> {
 		// First uninstall old packages
 		for c in &change_set.to_uninstall {
 			let component = try!(try!(self.find(c)).ok_or(Error::InvalidChangeSet));
 			tx = try!(component.uninstall(tx));
 		}
 		// Then install new packages
+		let long_suffix = format!("-{}", default_target);
 		for c in &change_set.to_install {
+			// Compute short name
+			let short_name = if c.ends_with(&long_suffix) {
+				Some(&c[0..(c.len()-long_suffix.len())])
+			} else {
+				None
+			};
+			
 			if try!(self.find(c)).is_some() {
 				return Err(Error::InvalidChangeSet);
 			}
 			let p = try!(change_set.packages
-				.iter().filter(|p| p.contains(c)).next()
+				.iter().filter(|p| p.contains(c, short_name)).next()
 				.ok_or(Error::InvalidChangeSet));
 			
-			tx = try!(p.install(self, c, tx));
+			tx = try!(p.install(self, c, short_name, tx));
 		}
 		
 		Ok(tx)
+	}
+	pub fn prefix(&self) -> InstallPrefix {
+		self.prefix.clone()
 	}
 }
 

@@ -14,8 +14,8 @@ use std::io::Read;
 use std::fs::File;
 
 pub trait Package {
-	fn contains(&self, component: &str) -> bool;
-	fn install<'a>(&self, target: &Components, component: &str, tx: Transaction<'a>) -> Result<Transaction<'a>>;
+	fn contains(&self, component: &str, short_name: Option<&str>) -> bool;
+	fn install<'a>(&self, target: &Components, component: &str, short_name: Option<&str>, tx: Transaction<'a>) -> Result<Transaction<'a>>;
 }
 
 pub struct DirectoryPackage {
@@ -35,11 +35,23 @@ impl DirectoryPackage {
 }
 
 impl Package for DirectoryPackage {
-	fn contains(&self, component: &str) -> bool {
-		self.components.contains(component)
+	fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
+		self.components.contains(component) || if let Some(n) = short_name {
+			self.components.contains(n)
+		} else {
+			false
+		}
 	}
-	fn install<'a>(&self, target: &Components, name: &str, tx: Transaction<'a>) -> Result<Transaction<'a>> {
-		let root = self.path.join(name);
+	fn install<'a>(&self, target: &Components, name: &str, short_name: Option<&str>, tx: Transaction<'a>) -> Result<Transaction<'a>> {
+		let actual_name = if self.components.contains(name) {
+			name
+		} else if let Some(n) = short_name {
+			n
+		} else {
+			name
+		};
+		
+		let root = self.path.join(actual_name);
 		
 		let manifest = try!(utils::read_file("package manifest", &root.join("manifest.in")));
 		let mut builder = target.add(name, tx);
@@ -79,11 +91,11 @@ impl<'a> TarPackage<'a> {
 }
 
 impl<'a> Package for TarPackage<'a> {
-	fn contains(&self, component: &str) -> bool {
-		self.0.contains(component)
+	fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
+		self.0.contains(component, short_name)
 	}
-	fn install<'b>(&self, target: &Components, component: &str, tx: Transaction<'b>) -> Result<Transaction<'b>> {
-		self.0.install(target, component, tx)
+	fn install<'b>(&self, target: &Components, component: &str, short_name: Option<&str>, tx: Transaction<'b>) -> Result<Transaction<'b>> {
+		self.0.install(target, component, short_name, tx)
 	}
 }
 
@@ -103,10 +115,10 @@ impl<'a> TarGzPackage<'a> {
 }
 
 impl<'a> Package for TarGzPackage<'a> {
-	fn contains(&self, component: &str) -> bool {
-		self.0.contains(component)
+	fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
+		self.0.contains(component, short_name)
 	}
-	fn install<'b>(&self, target: &Components, component: &str, tx: Transaction<'b>) -> Result<Transaction<'b>> {
-		self.0.install(target, component, tx)
+	fn install<'b>(&self, target: &Components, component: &str, short_name: Option<&str>, tx: Transaction<'b>) -> Result<Transaction<'b>> {
+		self.0.install(target, component, short_name, tx)
 	}
 }

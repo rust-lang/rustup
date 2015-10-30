@@ -4,6 +4,7 @@ use std::fmt::{self, Display};
 use std::io;
 use temp;
 use utils;
+use rust_manifest;
 
 use notify::{NotificationLevel, Notifyable};
 
@@ -17,12 +18,14 @@ pub enum Notification<'a> {
 	NoUpdateHash(&'a Path),
 	ChecksumValid(&'a str),
 	RollingBack,
+	ExtensionNotInstalled(&'a rust_manifest::Component),
 	NonFatalError(&'a Error),
 }
 
 pub enum Error {
 	Utils(utils::Error),
 	Temp(temp::Error),
+	Manifest(rust_manifest::Error),
 	
 	InvalidFileExtension,
 	InvalidInstaller,
@@ -34,6 +37,7 @@ pub enum Error {
 	ComponentConflict { name: String, path: String },
 	CorruptComponent(String),
 	ExtractingPackage(io::Error),
+	ExtensionNotFound(rust_manifest::Component),
 	InvalidChangeSet,
 }
 
@@ -43,6 +47,7 @@ pub type SharedNotifyHandler = ::notify::SharedNotifyHandler<for<'b> Notifyable<
 
 extend_error!(Error: temp::Error, e => Error::Temp(e));
 extend_error!(Error: utils::Error, e => Error::Utils(e));
+extend_error!(Error: rust_manifest::Error, e => Error::Manifest(e));
 
 extend_notification!(Notification: utils::Notification, n => Notification::Utils(n));
 extend_notification!(Notification: temp::Notification, n => Notification::Temp(n));
@@ -59,7 +64,7 @@ impl<'a> Notification<'a> {
 				NotificationLevel::Normal,
 			UpdateHashMatches(_) | RollingBack =>
 				NotificationLevel::Info,
-			CantReadUpdateHash(_) =>
+			CantReadUpdateHash(_) | ExtensionNotInstalled(_) =>
 				NotificationLevel::Warn,
 			NonFatalError(_) =>
 				NotificationLevel::Error,
@@ -85,6 +90,8 @@ impl<'a> Display for Notification<'a> {
 				write!(f, "checksum passed"),
 			RollingBack =>
 				write!(f, "rolling back changes"),
+			ExtensionNotInstalled(c) =>
+				write!(f, "extension '{}-{}' was not installed", c.pkg, c.target),
 			NonFatalError(e) =>
 				write!(f, "{}", e),
 		}
@@ -97,6 +104,7 @@ impl Display for Error {
 		match *self {
 			Temp(ref n) => n.fmt(f),
 			Utils(ref n) => n.fmt(f),
+			Manifest(ref n) => n.fmt(f),
 			InvalidFileExtension => write!(f, "invalid file extension"),
 			InvalidInstaller => write!(f, "invalid installer"),
 			InvalidToolchainName => write!(f, "invalid custom toolchain name"),
@@ -111,6 +119,8 @@ impl Display for Error {
 				write!(f, "component manifest for '{}' is corrupt", name),
 			ExtractingPackage(ref error) =>
 				write!(f, "failed to extract package: {}", error),
+			ExtensionNotFound(ref c) =>
+				write!(f, "could not find extension: '{}-{}'", c.pkg, c.target),
 			InvalidChangeSet =>
 				write!(f, "invalid change-set"),
 		}

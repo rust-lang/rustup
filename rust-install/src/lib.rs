@@ -13,6 +13,7 @@ extern crate winreg;
 extern crate shell32;
 #[cfg(windows)]
 extern crate ole32;
+extern crate rust_manifest;
 
 pub use errors::*;
 pub use install::*;
@@ -30,3 +31,4 @@ pub mod dist;
 mod errors;
 mod install;
 pub mod component;
+pub mod manifest;
