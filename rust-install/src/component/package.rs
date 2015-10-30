@@ -8,13 +8,14 @@ use errors::*;
 use utils;
 use temp;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::io::Read;
+use std::fs::File;
 
 pub trait Package {
 	fn contains(&self, component: &str) -> bool;
-	fn install<'a>(&self, target: &Components, components: &[&str], tx: Transaction<'a>) -> Result<Transaction<'a>>;
+	fn install<'a>(&self, target: &Components, component: &str, tx: Transaction<'a>) -> Result<Transaction<'a>>;
 }
 
 pub struct DirectoryPackage {
@@ -31,7 +32,13 @@ impl DirectoryPackage {
 			components: components,
 		})
 	}
-	pub fn install_component<'a>(&self, target: &Components, name: &str, tx: Transaction<'a>) -> Result<Transaction<'a>> {
+}
+
+impl Package for DirectoryPackage {
+	fn contains(&self, component: &str) -> bool {
+		self.components.contains(component)
+	}
+	fn install<'a>(&self, target: &Components, name: &str, tx: Transaction<'a>) -> Result<Transaction<'a>> {
 		let root = self.path.join(name);
 		
 		let manifest = try!(utils::read_file("package manifest", &root.join("manifest.in")));
@@ -58,18 +65,6 @@ impl DirectoryPackage {
 	}
 }
 
-impl Package for DirectoryPackage {
-	fn contains(&self, component: &str) -> bool {
-		self.components.contains(component)
-	}
-	fn install<'a>(&self, target: &Components, components: &[&str], mut tx: Transaction<'a>) -> Result<Transaction<'a>> {
-		for c in components {
-			tx = try!(self.install_component(target, c, tx));
-		}
-		Ok(tx)
-	}
-}
-
 pub struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
 
 impl<'a> TarPackage<'a> {
@@ -87,8 +82,8 @@ impl<'a> Package for TarPackage<'a> {
 	fn contains(&self, component: &str) -> bool {
 		self.0.contains(component)
 	}
-	fn install<'b>(&self, target: &Components, components: &[&str], tx: Transaction<'b>) -> Result<Transaction<'b>> {
-		self.0.install(target, components, tx)
+	fn install<'b>(&self, target: &Components, component: &str, tx: Transaction<'b>) -> Result<Transaction<'b>> {
+		self.0.install(target, component, tx)
 	}
 }
 
@@ -101,13 +96,17 @@ impl<'a> TarGzPackage<'a> {
 		
 		Ok(TarGzPackage(try!(TarPackage::new(stream, temp_cfg))))
 	}
+	pub fn new_file(path: &Path, temp_cfg: &'a temp::Cfg) -> Result<Self> {
+		let file = try!(File::open(path).map_err(Error::ExtractingPackage));
+		Self::new(file, temp_cfg)
+	}
 }
 
 impl<'a> Package for TarGzPackage<'a> {
 	fn contains(&self, component: &str) -> bool {
 		self.0.contains(component)
 	}
-	fn install<'b>(&self, target: &Components, components: &[&str], tx: Transaction<'b>) -> Result<Transaction<'b>> {
-		self.0.install(target, components, tx)
+	fn install<'b>(&self, target: &Components, component: &str, tx: Transaction<'b>) -> Result<Transaction<'b>> {
+		self.0.install(target, component, tx)
 	}
 }

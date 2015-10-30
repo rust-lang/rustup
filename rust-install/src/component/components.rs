@@ -3,12 +3,38 @@ use install::InstallPrefix;
 use errors::*;
 
 use component::transaction::Transaction;
+use component::package::Package;
 
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::Write;
 
 pub const COMPONENTS_FILE: &'static str = "components";
+
+pub struct ChangeSet<'a> {
+	pub packages: Vec<Box<Package + 'a>>,
+	pub to_install: Vec<String>,
+	pub to_uninstall: Vec<String>,
+}
+
+impl<'a> ChangeSet<'a> {
+	pub fn new() -> Self {
+		ChangeSet {
+			packages: Vec::new(),
+			to_install: Vec::new(),
+			to_uninstall: Vec::new(),
+		}
+	}
+	pub fn install(&mut self, component: String) {
+		self.to_install.push(component);
+	}
+	pub fn uninstall(&mut self, component: String) {
+		self.to_uninstall.push(component);
+	}
+	pub fn add_package<P: Package + 'a>(&mut self, package: P) {
+		self.packages.push(Box::new(package));
+	}
+}
 
 #[derive(Clone)]
 pub struct Components {
@@ -47,6 +73,26 @@ impl Components {
 	pub fn find(&self, name: &str) -> Result<Option<Component>> {
 		let result = try!(self.list());
 		Ok(result.into_iter().filter(|c| (c.name() == name)).next())
+	}
+	pub fn apply_change_set<'a>(&self, change_set: &ChangeSet, mut tx: Transaction<'a>) -> Result<Transaction<'a>> {
+		// First uninstall old packages
+		for c in &change_set.to_uninstall {
+			let component = try!(try!(self.find(c)).ok_or(Error::InvalidChangeSet));
+			tx = try!(component.uninstall(tx));
+		}
+		// Then install new packages
+		for c in &change_set.to_install {
+			if try!(self.find(c)).is_some() {
+				return Err(Error::InvalidChangeSet);
+			}
+			let p = try!(change_set.packages
+				.iter().filter(|p| p.contains(c)).next()
+				.ok_or(Error::InvalidChangeSet));
+			
+			tx = try!(p.install(self, c, tx));
+		}
+		
+		Ok(tx)
 	}
 }
 

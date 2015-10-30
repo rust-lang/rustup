@@ -34,6 +34,7 @@ pub enum Error {
 	ComponentConflict { name: String, path: String },
 	CorruptComponent(String),
 	ExtractingPackage(io::Error),
+	InvalidChangeSet,
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -110,6 +111,8 @@ impl Display for Error {
 				write!(f, "component manifest for '{}' is corrupt", name),
 			ExtractingPackage(ref error) =>
 				write!(f, "failed to extract package: {}", error),
+			InvalidChangeSet =>
+				write!(f, "invalid change-set"),
 		}
 	}
 }
