@@ -765,6 +765,7 @@ fn update_all_channels(cfg: &Cfg) -> Result<()> {
 	let mut t = term::stdout().unwrap();
 	for &(ref name, ref result) in &toolchains {
 		let _ = t.fg(term::color::BRIGHT_WHITE);
+		let _ = t.bg(term::color::BLACK);
 		let _ = write!(t, "{}{}", &padding_str[0..(max_name_length-name.len())], name);
 		let _ = t.reset();
 		let _ = write!(t, " update ");
@@ -782,6 +783,7 @@ fn update_all_channels(cfg: &Cfg) -> Result<()> {
 	
 	for (name, _) in toolchains {
 		let _ = t.fg(term::color::BRIGHT_WHITE);
+		let _ = t.bg(term::color::BLACK);
 		let _ = write!(t, "{}", name);
 		let _ = t.reset();
 		let _ = writeln!(t, " revision:");
