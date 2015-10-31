@@ -23,7 +23,8 @@ not already installed then it is first installed.
 If the toolchain is already installed then it is not reinstalled,
 though if installing a custom toolchain with --copy-local,
 --link-local, or --installer then the toolchain is always
-reinstalled."
+reinstalled.
+"
             	)
 				.arg(Arg::with_name("toolchain").required(true))
 				.args(install_args())
@@ -42,7 +43,8 @@ though if installing a custom toolchain with --copy-local,
 --link-local, or --installer then the toolchain is always
 reinstalled.
 
-To remove an existing override use `multirust remove-override`."
+To remove an existing override use `multirust remove-override`.
+"
             	)
 				.arg(Arg::with_name("toolchain").required(true))
 				.args(install_args())
@@ -54,7 +56,8 @@ To remove an existing override use `multirust remove-override`."
 				.after_help(
 r"With no toolchain specified, the update command updates each of the
 stable, beta, and nightly toolchains from the official release
-channels, plus any other installed toolchains."
+channels, plus any other installed toolchains.
+"
             	)
 				.arg(Arg::with_name("toolchain").required(false))
 				.args(install_args())
@@ -81,7 +84,8 @@ channels, plus any other installed toolchains."
 				.about("Remove an override.")
 				.after_help(
 r"Removes the override for the current directory, or the named
-override if one is provided."
+override if one is provided.
+"
             	)
 				.arg(Arg::with_name("override").required(false))
 		)
@@ -89,7 +93,8 @@ override if one is provided."
 			SubCommand::with_name("remove-toolchain")
 				.about("Uninstall a toolchain.")
 				.after_help(
-r"Uninstalls an installed toolchain."
+r"Uninstalls an installed toolchain.
+"
             	)
 				.arg(Arg::with_name("toolchain").required(true))
 		)
@@ -101,7 +106,8 @@ r"Uninstalls an installed toolchain."
 r"Configures an environment to use the given toolchain and then runs
 the specified program. The command may be any program, not just
 rustc or cargo. This can be used for testing arbitrary toolchains
-without setting an override."
+without setting an override.
+"
             	)
 				.arg(Arg::with_name("toolchain").required(true))
 				.arg(Arg::with_name("command").required(true).multiple(true))
@@ -113,7 +119,8 @@ without setting an override."
 				.after_help(
 r"Configures an environment to use the correct toolchain for the
 current directory, and then runs the specified program. The command
-may be any program, not just rustc or cargo."
+may be any program, not just rustc or cargo.
+"
             	)
 				.arg(Arg::with_name("command").required(true).multiple(true))
 		)
@@ -126,7 +133,8 @@ current user.
 
 Prompts for confirmation, unless disabled.
 
-Does not uninstall multirust."
+Does not uninstall multirust.
+"
             	)
 				.arg(Arg::with_name("no-prompt").short("y").help("Disable confirmation prompt."))
 		)
@@ -134,7 +142,8 @@ Does not uninstall multirust."
 			SubCommand::with_name("upgrade-data")
 				.about("Upgrade the ~/.multirust directory.")
 				.after_help(
-r"Upgrades the ~/.multirust directory from previous versions."
+r"Upgrades the ~/.multirust directory from previous versions.
+"
             	)
 		)
 		.subcommand(
@@ -144,7 +153,8 @@ r"Upgrades the ~/.multirust directory from previous versions."
 					SubCommand::with_name("install")
 						.about("Installs multirust.")
 						.after_help(
-		r"Installs multirust for the current user."
+r"Installs multirust for the current user.
+"
 		            	)
 						.arg(Arg::with_name("add-to-path").short("a").long("add-to-path").help("Modifies .profile or the registry"))
 						.arg(Arg::with_name("move").short("m").long("move").help("Move self instead of copying"))
@@ -166,7 +176,8 @@ r"Upgrades the ~/.multirust directory from previous versions."
 r"Opens the documentation for the currently active toolchain with the
 default browser.
 
-By default, it opens the API documentation for the standard library."
+By default, it opens the API documentation for the standard library.
+"
             	)
 				.arg(Arg::with_name("all").long("all").help(r"
              Opens the documentation overview page, which
@@ -226,7 +237,7 @@ fn install_args() -> Vec<Arg<'static, 'static, 'static, 'static, 'static, 'stati
              local filesystem or the network. Custom
              installers are neither checksum nor
              signature-verified.
-             
+
              If multiple installers are specified then they
              are all installed to the same location. This can
              make installing cargo easier since otherwise it
