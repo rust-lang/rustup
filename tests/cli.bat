@@ -17,16 +17,22 @@ echo ^> Testing default
 multirust default nightly || (echo FAILED && exit /b 1)
 
 echo ^> Testing rustc
-call rustc --multirust || (echo FAILED && exit /b 1)
+rustc --multirust || (echo FAILED && exit /b 1)
 
 echo ^> Testing cargo
-call cargo --multirust || (echo FAILED && exit /b 1)
+cargo --multirust || (echo FAILED && exit /b 1)
 
 echo ^> Testing override
 multirust override i686-msvc-stable || (echo FAILED && exit /b 1)
 
 echo ^> Testing update
 multirust update || (echo FAILED && exit /b 1)
+
+echo ^> Testing proxying global commands
+multirust proxy echo "Hello from global command" || (echo FAILED && exit /b 1)
+
+echo ^> Testing running global commands
+multirust run stable echo "Hello from global command" || (echo FAILED && exit /b 1)
 
 echo ^> Testing doc
 multirust doc || (echo FAILED && exit /b 1)
