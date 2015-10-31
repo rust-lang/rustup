@@ -37,6 +37,7 @@ pub enum Error {
 	PermissionDenied,
 	ToolchainNotInstalled(String),
 	UnknownHostTriple,
+	InfiniteRecursion,
 	Custom { id: String, desc: String },
 }
 
@@ -124,6 +125,7 @@ impl Display for Error {
 			PermissionDenied => write!(f, "permission denied"),
 			ToolchainNotInstalled(ref name) => write!(f, "toolchain '{}' is not installed", name),
 			UnknownHostTriple => write!(f, "unknown host triple"),
+			InfiniteRecursion => write!(f, "infinite recursion detected: the command may not exist for this toolchain"),
 			Custom { id: _, ref desc } => write!(f, "{}", desc),
 		}
 	}

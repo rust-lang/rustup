@@ -201,6 +201,11 @@ fn maybe_direct_proxy() -> Result<bool> {
 }
 
 fn run_multirust() -> Result<()> {
+	// Check for infinite recursion
+	if env::var("RUST_RECURSION_COUNT").ok().and_then(|s| s.parse().ok()).unwrap_or(0) > 5 {
+		return Err(Error::InfiniteRecursion);
+	}
+	
 	// If the executable name is not multirust*, then go straight
 	// to proxying
 	if try!(maybe_direct_proxy()) { return Ok(()); }

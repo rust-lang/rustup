@@ -165,10 +165,14 @@ impl<'a> Toolchain<'a> {
 		}
 	}
 	
-	pub fn set_env(&self, cmd: &mut Command) {
-		self.prefix.set_env(cmd, &self.cfg.multirust_dir.join("cargo"));
+	fn set_env_inner(&self, cmd: &mut Command) {
 		cmd.env("MULTIRUST_TOOLCHAIN", self.prefix.path());
 		cmd.env("MULTIRUST_HOME", &self.cfg.multirust_dir);
+	}
+	
+	pub fn set_env(&self, cmd: &mut Command) {
+		self.prefix.set_env(cmd, &self.cfg.multirust_dir.join("cargo"));
+		self.set_env_inner(cmd);
 	}
 	
 	pub fn create_command(&self, binary: &str) -> Result<Command> {
@@ -176,9 +180,8 @@ impl<'a> Toolchain<'a> {
 			return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
 		}
 		
-		let binary_path = self.prefix.binary_file(binary);
-		let mut cmd = Command::new(binary_path);
-		self.set_env(&mut cmd);
+		let mut cmd = self.prefix.create_command(binary, &self.cfg.multirust_dir.join("cargo"));
+		self.set_env_inner(&mut cmd);
 		Ok(cmd)
 	}
 	
