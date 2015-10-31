@@ -8,9 +8,6 @@ MR="`dirname $0`/multirust-rs(2)"
 echo "> Renaming to multirust(2)"
 cp "`dirname $0`/../target/release/multirust-rs" $MR
 
-echo "> Testing --help"
-$MR --help
-
 echo "> Testing self install"
 $MR self install -a
 

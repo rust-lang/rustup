@@ -7,9 +7,6 @@ set MR="%~dp0\multirust-rs(2).exe"
 echo ^> Renaming to multirust(2).exe
 copy /B /Y "%~dp0\..\target\release\multirust-rs.exe" %MR% || (echo FAILED && exit /b 1)
 
-echo ^> Testing --help
-%MR% --help || (echo FAILED && exit /b 1)
-
 echo ^> Testing self install
 %MR% self install -a || (echo FAILED && exit /b 1)
 
