@@ -7,6 +7,7 @@ use std::io::Write;
 use std::process::{Command, Stdio, ExitStatus};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
+use std::thread;
 use hyper::{self, Client};
 use openssl::crypto::hash::Hasher;
 
@@ -258,7 +259,18 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
 			fs::remove_file(path)
 		}
 	} else {
-		fs::remove_dir_all(path)
+		let mut result = Ok(());
+		
+		// The implementation of `remove_dir_all` is broken on windows,
+		// so may need to try multiple times!
+		for _ in 0..5 {
+			result = fs::remove_dir_all(path);
+			if !is_directory(path) {
+				return Ok(());
+			}
+			thread::sleep_ms(100);
+		}
+		result
 	}
 }
 
