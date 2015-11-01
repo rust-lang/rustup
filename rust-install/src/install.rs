@@ -331,12 +331,13 @@ impl InstallPrefix {
 	
 	pub fn set_env(&self, cmd: &mut Command, cargo_home: &Path) {
 		self.set_ldpath(cmd);
+		env_var::set_path("PATH", &self.path.join("bin"), cmd);
 		env_var::set_default("CARGO_HOME", cargo_home.as_ref(), cmd);
+		env_var::inc("RUST_RECURSION_COUNT", cmd);
 	}
 	
 	pub fn create_command(&self, binary: &str, cargo_home: &Path) -> Command {
-		let binary_path = self.binary_file(binary);
-		let mut cmd = Command::new(binary_path);
+		let mut cmd = Command::new(binary);
 		
 		self.set_env(&mut cmd, cargo_home);
 		cmd

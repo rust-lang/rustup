@@ -29,6 +29,12 @@ multirust override i686-pc-windows-msvc-stable
 echo "> Testing update"
 multirust update
 
+echo "> Testing proxying global commands"
+multirust proxy echo "Hello from global command"
+
+echo "> Testing running global commands"
+multirust run stable echo "Hello from global command"
+
 echo "> Testing doc"
 multirust doc
 

@@ -201,6 +201,11 @@ fn maybe_direct_proxy() -> Result<bool> {
 }
 
 fn run_multirust() -> Result<()> {
+	// Check for infinite recursion
+	if env::var("RUST_RECURSION_COUNT").ok().and_then(|s| s.parse().ok()).unwrap_or(0) > 5 {
+		return Err(Error::InfiniteRecursion);
+	}
+	
 	// If the executable name is not multirust*, then go straight
 	// to proxying
 	if try!(maybe_direct_proxy()) { return Ok(()); }
@@ -760,6 +765,7 @@ fn update_all_channels(cfg: &Cfg) -> Result<()> {
 	let mut t = term::stdout().unwrap();
 	for &(ref name, ref result) in &toolchains {
 		let _ = t.fg(term::color::BRIGHT_WHITE);
+		let _ = t.bg(term::color::BLACK);
 		let _ = write!(t, "{}{}", &padding_str[0..(max_name_length-name.len())], name);
 		let _ = t.reset();
 		let _ = write!(t, " update ");
@@ -777,6 +783,7 @@ fn update_all_channels(cfg: &Cfg) -> Result<()> {
 	
 	for (name, _) in toolchains {
 		let _ = t.fg(term::color::BRIGHT_WHITE);
+		let _ = t.bg(term::color::BLACK);
 		let _ = write!(t, "{}", name);
 		let _ = t.reset();
 		let _ = writeln!(t, " revision:");
