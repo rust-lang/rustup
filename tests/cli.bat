@@ -29,10 +29,10 @@ echo ^> Testing update
 multirust update || (echo FAILED && exit /b 1)
 
 echo ^> Testing proxying global commands
-multirust proxy echo "Hello from global command" || (echo FAILED && exit /b 1)
+multirust proxy cmd /c echo "Hello from global command" || (echo FAILED && exit /b 1)
 
 echo ^> Testing running global commands
-multirust run stable echo "Hello from global command" || (echo FAILED && exit /b 1)
+multirust run stable cmd /c echo "Hello from global command" || (echo FAILED && exit /b 1)
 
 echo ^> Testing doc
 multirust doc || (echo FAILED && exit /b 1)
