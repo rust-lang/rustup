@@ -304,19 +304,34 @@ pub fn prefix_arg<S: AsRef<OsStr>>(name: &str, s: S) -> OsString {
 	arg
 }
 
-pub fn open_browser(path: &Path) -> io::Result<bool> {
+pub fn has_cmd(cmd: &str) -> bool {
 	#[cfg(not(windows))]
-	fn has_cmd(cmd: &&str) -> bool {
+	fn inner(cmd: &str) -> bool {
 		cmd_status(Command::new("which")
 			.arg(cmd)
 			.stdin(Stdio::null())
 			.stdout(Stdio::null())
 			.stderr(Stdio::null())).is_ok()
 	}
+	#[cfg(windows)]
+	fn inner(cmd: &str) -> bool {
+		cmd_status(Command::new("where")
+			.arg("/Q")
+			.arg(cmd)).is_ok()
+	}
+	
+	inner(cmd)
+}
+
+pub fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
+	cmds.into_iter().map(|&s| s).filter(|&s| has_cmd(s)).next()
+}
+
+pub fn open_browser(path: &Path) -> io::Result<bool> {
 	#[cfg(not(windows))]
 	fn inner(path: &Path) -> io::Result<bool> {
 		let commands = ["xdg-open", "open", "firefox", "chromium"];
-		if let Some(cmd) = commands.iter().map(|s| *s).filter(has_cmd).next() {
+		if let Some(cmd) = find_cmd(&commands) {
 			Command::new(cmd)
 				.arg(path)
 				.stdin(Stdio::null())

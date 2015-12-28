@@ -21,6 +21,8 @@ pub use self::raw::{
 	random_string,
 	prefix_arg,
 	home_dir,
+	has_cmd,
+	find_cmd,
 };
 
 pub enum Notification<'a> {

@@ -17,6 +17,7 @@ pub enum Notification<'a> {
 	CantReadUpdateHash(&'a Path),
 	NoUpdateHash(&'a Path),
 	ChecksumValid(&'a str),
+	SignatureValid(&'a str),
 	RollingBack,
 	ExtensionNotInstalled(&'a rust_manifest::Component),
 	NonFatalError(&'a Error),
@@ -39,6 +40,7 @@ pub enum Error {
 	ExtractingPackage(io::Error),
 	ExtensionNotFound(rust_manifest::Component),
 	InvalidChangeSet,
+	NoGPG,
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -60,7 +62,7 @@ impl<'a> Notification<'a> {
 			Utils(ref n) => n.level(),
 			NoUpdateHash(_) =>
 				NotificationLevel::Verbose,
-			Extracting(_, _) | ChecksumValid(_) =>
+			Extracting(_, _) | ChecksumValid(_) | SignatureValid(_) =>
 				NotificationLevel::Normal,
 			UpdateHashMatches(_) | RollingBack =>
 				NotificationLevel::Info,
@@ -88,6 +90,8 @@ impl<'a> Display for Notification<'a> {
 				write!(f, "no update hash at: '{}'", path.display()),
 			ChecksumValid(_) =>
 				write!(f, "checksum passed"),
+			SignatureValid(_) =>
+				write!(f, "signature valid"),
 			RollingBack =>
 				write!(f, "rolling back changes"),
 			ExtensionNotInstalled(c) =>
@@ -123,6 +127,8 @@ impl Display for Error {
 				write!(f, "could not find extension: '{}-{}'", c.pkg, c.target),
 			InvalidChangeSet =>
 				write!(f, "invalid change-set"),
+			NoGPG =>
+				write!(f, "could not find 'gpg': ensure it is on PATH or disable GPG verification"),
 		}
 	}
 }

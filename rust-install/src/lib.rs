@@ -32,3 +32,5 @@ mod errors;
 mod install;
 pub mod component;
 pub mod manifest;
+pub mod configured;
+pub mod download;

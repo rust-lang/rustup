@@ -13,6 +13,15 @@ pub struct Changes {
 	pub remove_extensions: Vec<Component>,
 }
 
+impl Changes {
+	pub fn none() -> Self {
+		Changes {
+			add_extensions: Vec::new(),
+			remove_extensions: Vec::new(),
+		}
+	}
+}
+
 pub const DIST_MANIFEST: &'static str = "dist.toml";
 pub const PACKAGES_MANIFEST: &'static str = "packages.toml";
 
@@ -37,7 +46,9 @@ impl Manifestation {
 		Components::init(prefix).map(Manifestation)
 	}
 	
-	pub fn update(components: &Components, changes: Changes, temp_cfg: &temp::Cfg, notify_handler: NotifyHandler) -> Result<()> {
+	pub fn update(&self, changes: Changes, temp_cfg: &temp::Cfg, notify_handler: NotifyHandler) -> Result<()> {
+		let components = &self.0;
+		
 		// First load dist and packages manifests
 		let prefix = components.prefix();
 		let dist_path = prefix.manifest_file(DIST_MANIFEST);
@@ -120,6 +131,28 @@ impl Manifestation {
 		for c in diff.to_uninstall {
 			change_set.uninstall(c.name());
 		}
+		
+		// Begin transaction
+		let mut tx = Transaction::new(prefix, temp_cfg, notify_handler);
+		
+		// Apply changes
+		tx = try!(components.apply_change_set(&change_set, &old_target, tx));
+		
+		// Update packages manifest
+		try!(tx.modify_file(rel_packages_path));
+		try!(utils::write_file("packages manifest", &packages_path, &new_manifest_str));
+		
+		// End transaction
+		tx.commit();
+		
+		Ok(())
+	}
+	
+	pub fn uninstall(self, temp_cfg: &temp::Cfg, notify_handler: NotifyHandler) -> Result<()> {
+		let components = &self.0;
+		
+		// First load dist and packages manifests
+		let prefix = components.prefix();
 		
 		// Begin transaction
 		let mut tx = Transaction::new(prefix, temp_cfg, notify_handler);
