@@ -389,8 +389,8 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 		try!(environment.set_value("PATH", &new_path)
 			.map_err(|_| Error::PermissionDenied));
 		
-		const HWND_BROADCAST: HWND = 0xffff as HWND;
-		const SMTO_ABORTIFHUNG: UINT = 0x0002;
+		//const HWND_BROADCAST: HWND = 0xffff as HWND;
+		//const SMTO_ABORTIFHUNG: UINT = 0x0002;
 		
 		// Tell other processes to update their environment
 		unsafe {
