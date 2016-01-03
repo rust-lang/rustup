@@ -8,6 +8,7 @@ use std::process::{Command, Stdio, ExitStatus};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::thread;
+use std::time::Duration;
 use hyper::{self, Client};
 use openssl::crypto::hash::Hasher;
 
@@ -268,7 +269,7 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
 			if !is_directory(path) {
 				return Ok(());
 			}
-			thread::sleep_ms(100);
+			thread::sleep(Duration::from_millis(100));
 		}
 		result
 	}

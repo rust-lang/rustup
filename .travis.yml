@@ -2,8 +2,10 @@ matrix:
   include:
     - os: linux
       env: TARGET=i686-unknown-linux-gnu BITS=32
+      dist: trusty
     - os: linux
       env: TARGET=x86_64-unknown-linux-gnu BITS=64
+      dist: trusty
     - os: osx
       env: TARGET=i686-apple-darwin BITS=32 MACOSX_DEPLOYMENT_TARGET=10.7
     - os: osx
