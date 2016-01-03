@@ -179,4 +179,4 @@ multirust-rs:
 
 ## License
 
-MIT
+MIT/Apache-2.0
