@@ -14,7 +14,7 @@ matrix:
 git:
   submodules: false
 
-sudo: true
+sudo: required
 services:
   - docker
 install:
