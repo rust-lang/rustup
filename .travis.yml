@@ -33,7 +33,7 @@ install:
   - sudo ~/rust/install.sh
 
 script:
-  - which docker
+  - docker --help
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       docker run
         --entrypoint bash
