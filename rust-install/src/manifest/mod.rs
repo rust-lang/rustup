@@ -153,6 +153,24 @@ impl Manifestation {
 		
 		// First load dist and packages manifests
 		let prefix = components.prefix();
+		let dist_path = prefix.manifest_file(DIST_MANIFEST);
+		let dist_manifest = try!(Manifest::parse(&*try!(utils::read_file("dist manifest", &dist_path))));
+		let rel_packages_path = prefix.rel_manifest_file(PACKAGES_MANIFEST);
+		let packages_path = prefix.abs_path(&rel_packages_path);
+		let packages_manifest = try!(Manifest::parse(&*try!(utils::read_file("packages manifest", &packages_path))));
+
+		// Compute change-set
+		let mut change_set = ChangeSet::new();
+		let mut old_components = Vec::new();
+		packages_manifest.flatten_components(&mut old_components);
+		for c in old_components {
+			change_set.uninstall(c.name());
+		}
+
+		// Find root package and target of existing installation
+		let old_root = try!(packages_manifest.get_root());
+		let old_package = try!(packages_manifest.get_package(&old_root));
+		let old_target = try!(old_package.root_target());
 		
 		// Begin transaction
 		let mut tx = Transaction::new(prefix, temp_cfg, notify_handler);
