@@ -153,8 +153,6 @@ impl Manifestation {
 		
 		// First load dist and packages manifests
 		let prefix = components.prefix();
-		let dist_path = prefix.manifest_file(DIST_MANIFEST);
-		let dist_manifest = try!(Manifest::parse(&*try!(utils::read_file("dist manifest", &dist_path))));
 		let rel_packages_path = prefix.rel_manifest_file(PACKAGES_MANIFEST);
 		let packages_path = prefix.abs_path(&rel_packages_path);
 		let packages_manifest = try!(Manifest::parse(&*try!(utils::read_file("packages manifest", &packages_path))));
@@ -180,7 +178,7 @@ impl Manifestation {
 		
 		// Update packages manifest
 		try!(tx.modify_file(rel_packages_path));
-		try!(utils::write_file("packages manifest", &packages_path, &new_manifest_str));
+		try!(utils::remove_file("packages manifest", &packages_path));
 		
 		// End transaction
 		tx.commit();
