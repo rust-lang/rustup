@@ -20,10 +20,10 @@ rust-install = { version = "0.0.4", path = "rust-install" }
 clap = "1.4.5"
 regex = "0.1.41"
 rand = "0.3.11"
-hyper = "0.6.14"
+openssl = "0.7.2"
+hyper = "0.7.0"
 term = "0.2.11"
 itertools = "0.4.1"
-openssl = "0.6.5"
 
 [target.x86_64-pc-windows-gnu.dependencies]
 winapi = "0.2.4"
