@@ -29,6 +29,7 @@ use std::ffi::OsStr;
 use std::fmt;
 use std::iter;
 use std::thread;
+use std::time::Duration;
 use multirust::*;
 use rust_install::dist;
 use openssl::crypto::hash::{Type, Hasher};
@@ -338,7 +339,7 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 	if should_move {
 		if cfg!(windows) {
 			// Wait for old version to exit
-			thread::sleep_ms(1000);
+			thread::sleep(Duration::from_millis(1000));
 		}
 		try!(utils::rename_file("multirust", &src_path, &dest_path));
 	} else {
