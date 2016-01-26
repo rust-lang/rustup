@@ -1,15 +1,19 @@
+/// The representation of the installed toolchain and its components.
+/// `Components` and `DirectoryPackage` are the two sides of the
+/// installation / uninstallation process.
+
 use utils;
 use install::InstallPrefix;
 use errors::*;
 
 use component::transaction::Transaction;
-use component::package::Package;
+use component::package::{Package, INSTALLER_VERSION, VERSION_FILE};
 
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::Write;
 
-pub const COMPONENTS_FILE: &'static str = "components";
+const COMPONENTS_FILE: &'static str = "components";
 
 pub struct ChangeSet<'a> {
 	pub packages: Vec<Box<Package + 'a>>,
@@ -36,22 +40,23 @@ impl<'a> ChangeSet<'a> {
 	}
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Components {
 	prefix: InstallPrefix,
 }
 
 impl Components {
-	pub fn new(prefix: InstallPrefix) -> Option<Self> {
-		if utils::is_file(prefix.manifest_file(COMPONENTS_FILE)) {
-			Some(Components { prefix: prefix })
-		} else {
-			None
-		}
-	}
-	pub fn init(prefix: InstallPrefix) -> Result<Self> {
-		try!(utils::write_file("components", &prefix.manifest_file(COMPONENTS_FILE), ""));
-		Ok(Components { prefix: prefix })
+	pub fn open(prefix: InstallPrefix) -> Result<Self> {
+        let c = Components { prefix: prefix };
+
+        // Validate that the metadata uses a format we know
+        if let Some(v) = try!(c.read_version()) {
+            if v != INSTALLER_VERSION {
+                return Err(Error::InstalledMetadataVersion(v))
+            }
+        }
+
+        Ok(c)
 	}
 	fn rel_components_file(&self) -> String {
 		self.prefix.rel_manifest_file(COMPONENTS_FILE)
@@ -59,6 +64,22 @@ impl Components {
 	fn rel_component_manifest(&self, name: &str) -> String {
 		self.prefix.rel_manifest_file(&format!("manifest-{}", name))
 	}
+    fn read_version(&self) -> Result<Option<String>> {
+        let p = self.prefix.manifest_file(VERSION_FILE);
+        if utils::is_file(&p) {
+            Ok(Some(try!(utils::read_file(VERSION_FILE, &p)).trim().to_string()))
+        } else {
+            Ok(None)
+        }
+    }
+    fn write_version(&self, tx: &mut Transaction) -> Result<()> {
+        try!(tx.modify_file(self.prefix.rel_manifest_file(VERSION_FILE)));
+        try!(utils::write_file(VERSION_FILE,
+                               &self.prefix.manifest_file(VERSION_FILE),
+                               INSTALLER_VERSION));
+
+        Ok(())
+    }
 	pub fn list(&self) -> Result<Vec<Component>> {
 		let path = self.prefix.abs_path(self.rel_components_file());
 		let content = try!(utils::read_file("components", &path));
@@ -136,6 +157,9 @@ impl ComponentBuilder {
 		let abs_path = self.components.prefix.abs_path(&path);
 		try!(tx.modify_file(path));
 		try!(utils::append_file("components", &abs_path, &self.name));
+
+        // Drop in the version file for future use
+        try!(self.components.write_version(tx));
 		
 		// Done, convert into normal component
 		Ok(Component { components: self.components, name: self.name })
@@ -218,9 +242,6 @@ impl Component {
 		try!(tx.modify_file(path));
 		try!(utils::rename_file("components", &temp, &abs_path));
 		
-		// Remove component manifest
-		try!(tx.remove_file(self.rel_manifest_file()));
-		
 		// Remove parts
 		for part in try!(self.parts()).into_iter().rev() {
 			match &*part.0 {
@@ -229,6 +250,9 @@ impl Component {
 				_ => return Err(Error::CorruptComponent(self.name.clone())),
 			}
 		}
+
+		// Remove component manifest
+		try!(tx.remove_file(self.rel_manifest_file()));
 		
 		Ok(tx)
 	}

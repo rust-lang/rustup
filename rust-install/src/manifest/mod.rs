@@ -28,11 +28,11 @@ pub const PACKAGES_MANIFEST: &'static str = "packages.toml";
 pub struct Manifestation(Components);
 
 impl Manifestation {
-	pub fn new(prefix: InstallPrefix) -> Option<Self> {
+	pub fn new(prefix: InstallPrefix) -> Result<Option<Self>> {
 		if utils::is_file(prefix.manifest_file(PACKAGES_MANIFEST)) {
-			Components::new(prefix).map(Manifestation)
+			Ok(Some(Manifestation(try!(Components::open(prefix)))))
 		} else {
-			None
+			Ok(None)
 		}
 	}
 	
@@ -43,7 +43,7 @@ impl Manifestation {
 		
 		try!(utils::write_file("packages manifest", &packages_path, &new_manifest_str));
 		
-		Components::init(prefix).map(Manifestation)
+		Ok(Manifestation(try!(Components::open(prefix))))
 	}
 	
 	pub fn update(&self, changes: Changes, temp_cfg: &temp::Cfg, notify_handler: NotifyHandler) -> Result<()> {

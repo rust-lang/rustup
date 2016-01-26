@@ -34,6 +34,7 @@ pub enum Notification<'a> {
 	NoCanonicalPath(&'a Path),
 }
 
+#[derive(Debug)]
 pub enum Error {
 	LocatingHome,
 	LocatingWorkingDir { error: io::Error },

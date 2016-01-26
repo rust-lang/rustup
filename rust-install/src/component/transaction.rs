@@ -1,3 +1,6 @@
+// FIXME: This uses ensure_dir_exists in some places but rollback does
+// not remove any dirs created by it.
+
 use utils;
 use temp;
 use install::InstallPrefix;
@@ -44,6 +47,9 @@ impl<'a> ChangedItem<'a> {
 		if utils::path_exists(&abs_path) {
 			Err(Error::ComponentConflict { name: component.to_owned(), path: path.clone() })
 		} else {
+            if let Some(p) = abs_path.parent() {
+			    try!(utils::ensure_dir_exists("component", p, utils::NotifyHandler::none()));
+            }
 			let file = try!(File::create(&abs_path)
 				.map_err(|e| utils::Error::WritingFile { name: "component", path: abs_path, error: e }));
 			Ok((ChangedItem::AddedFile(path), file))
@@ -54,6 +60,9 @@ impl<'a> ChangedItem<'a> {
 		if utils::path_exists(&abs_path) {
 			Err(Error::ComponentConflict { name: component.to_owned(), path: path.clone() })
 		} else {
+            if let Some(p) = abs_path.parent() {
+			    try!(utils::ensure_dir_exists("component", p, utils::NotifyHandler::none()));
+            }
 			try!(utils::copy_file(src, &abs_path));
 			Ok(ChangedItem::AddedFile(path))
 		}
@@ -99,6 +108,9 @@ impl<'a> ChangedItem<'a> {
 			try!(utils::copy_file(&abs_path, &backup));
 			Ok(ChangedItem::ModifiedFile(path, Some(backup)))
 		} else {
+			if let Some(p) = abs_path.parent() {
+				try!(utils::ensure_dir_exists("component", p, utils::NotifyHandler::none()));
+			}
 			Ok(ChangedItem::ModifiedFile(path, None))
 		}
 	}

@@ -14,6 +14,8 @@ extern crate shell32;
 #[cfg(windows)]
 extern crate ole32;
 extern crate rust_manifest;
+extern crate tempdir;
+extern crate walkdir;
 
 pub use errors::*;
 pub use install::*;

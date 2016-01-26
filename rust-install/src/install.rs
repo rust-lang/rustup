@@ -16,16 +16,21 @@ use std::env;
 
 #[cfg(not(windows))]
 const REL_MANIFEST_DIR: &'static str = "lib/rustlib";
+
+// FIXME: (brson) I don't think this should be bin/ even though
+// windows puts its libraries in bin.  rust-installer uses lib/ no
+// matter what platform, so using bin here makes the metadata used by
+// multirust-rs incompatible with rust-installer.
 #[cfg(windows)]
 const REL_MANIFEST_DIR: &'static str = "bin\\rustlib";
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct InstallPrefix {
 	path: PathBuf,
 	install_type: InstallType,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum InstallType {
 	// Must be uninstalled by deleting the entire directory
 	Owned,
@@ -347,7 +352,7 @@ impl InstallPrefix {
 		Ok(try!(utils::open_browser(&try!(self.doc_path(relative)))))
 	}
 	
-	pub fn components(&self) -> Option<Components> {
-		Components::new(self.clone())
+	pub fn components(&self) -> Result<Components> {
+		Components::open(self.clone())
 	}
 }

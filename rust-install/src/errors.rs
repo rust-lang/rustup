@@ -5,6 +5,7 @@ use std::io;
 use temp;
 use utils;
 use rust_manifest;
+use walkdir;
 
 use notify::{NotificationLevel, Notifyable};
 
@@ -23,6 +24,7 @@ pub enum Notification<'a> {
 	NonFatalError(&'a Error),
 }
 
+#[derive(Debug)]
 pub enum Error {
 	Utils(utils::Error),
 	Temp(temp::Error),
@@ -41,6 +43,10 @@ pub enum Error {
 	ExtensionNotFound(rust_manifest::Component),
 	InvalidChangeSet,
 	NoGPG,
+    InstallerVersion(String),
+    InstalledMetadataVersion(String),
+    WalkDirForPermissions(walkdir::Error),
+    SetPermissions(io::Error),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -109,6 +115,7 @@ impl Display for Error {
 			Temp(ref n) => n.fmt(f),
 			Utils(ref n) => n.fmt(f),
 			Manifest(ref n) => n.fmt(f),
+
 			InvalidFileExtension => write!(f, "invalid file extension"),
 			InvalidInstaller => write!(f, "invalid installer"),
 			InvalidToolchainName => write!(f, "invalid custom toolchain name"),
@@ -129,6 +136,14 @@ impl Display for Error {
 				write!(f, "invalid change-set"),
 			NoGPG =>
 				write!(f, "could not find 'gpg': ensure it is on PATH or disable GPG verification"),
+            InstallerVersion(ref v) =>
+                write!(f, "unsupported installer version: {}", v),
+            InstalledMetadataVersion(ref v) =>
+                write!(f, "unsupported metadata version in existing installation: {}", v),
+            WalkDirForPermissions(ref e) =>
+                write!(f, "I/O error walking directory during install: {}", e),
+            SetPermissions(ref e) =>
+                write!(f, "error setting file permissions during install: {}", e)
 		}
 	}
 }

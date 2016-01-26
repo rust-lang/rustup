@@ -7,6 +7,7 @@ use utils::raw;
 
 use notify::{self, NotificationLevel, Notifyable};
 
+#[derive(Debug)]
 pub enum Error {
 	CreatingRoot { path: PathBuf, error: io::Error },
 	CreatingFile { path: PathBuf, error: io::Error },
