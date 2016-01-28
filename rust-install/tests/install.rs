@@ -302,7 +302,7 @@ fn component_bad_version() {
 
     // Can't open components now
     let e = Components::open(prefix.clone()).unwrap_err();
-    if let rust_install::Error::InstalledMetadataVersion(_) = e { } else { panic!() }
+    if let rust_install::Error::BadInstalledMetadataVersion(_) = e { } else { panic!() }
 }
 
 // Directories should be 0755, normal files 0644, files that come

@@ -52,7 +52,7 @@ impl Components {
         // Validate that the metadata uses a format we know
         if let Some(v) = try!(c.read_version()) {
             if v != INSTALLER_VERSION {
-                return Err(Error::InstalledMetadataVersion(v));
+                return Err(Error::BadInstalledMetadataVersion(v));
             }
         }
 

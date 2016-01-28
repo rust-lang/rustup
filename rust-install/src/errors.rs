@@ -50,10 +50,10 @@ pub enum Error {
     ExtensionNotFound(rust_manifest::Component),
     InvalidChangeSet,
     NoGPG,
-    InstallerVersion(String),
-    InstalledMetadataVersion(String),
-    WalkDirForPermissions(walkdir::Error),
-    SetPermissions(io::Error),
+    BadInstallerVersion(String),
+    BadInstalledMetadataVersion(String),
+    ComponentDirPermissionsFailed(walkdir::Error),
+    ComponentFilePermissionsFailed(io::Error),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -148,16 +148,16 @@ impl Display for Error {
                 write!(f,
                        "could not find 'gpg': ensure it is on PATH or disable GPG verification")
             }
-            InstallerVersion(ref v) => write!(f, "unsupported installer version: {}", v),
-            InstalledMetadataVersion(ref v) => {
+            BadInstallerVersion(ref v) => write!(f, "unsupported installer version: {}", v),
+            BadInstalledMetadataVersion(ref v) => {
                 write!(f,
                        "unsupported metadata version in existing installation: {}",
                        v)
             }
-            WalkDirForPermissions(ref e) => {
+            ComponentDirPermissionsFailed(ref e) => {
                 write!(f, "I/O error walking directory during install: {}", e)
             }
-            SetPermissions(ref e) => {
+            ComponentFilePermissionsFailed(ref e) => {
                 write!(f, "error setting file permissions during install: {}", e)
             }
         }

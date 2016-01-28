@@ -55,7 +55,7 @@ fn validate_installer_version(path: &Path) -> Result<()> {
     if v == INSTALLER_VERSION {
         Ok(())
     } else {
-        Err(Error::InstallerVersion(v.to_owned()))
+        Err(Error::BadInstallerVersion(v.to_owned()))
     }
 }
 
@@ -131,28 +131,28 @@ fn set_file_perms(dest_path: &Path, src_path: &Path) -> Result<()> {
     if is_dir {
         // Walk the directory setting everything
         for entry in WalkDir::new(dest_path) {
-            let entry = try!(entry.map_err(|e| Error::WalkDirForPermissions(e)));
-            let meta = try!(entry.metadata().map_err(|e| Error::WalkDirForPermissions(e)));
+            let entry = try!(entry.map_err(|e| Error::ComponentDirPermissionsFailed(e)));
+            let meta = try!(entry.metadata().map_err(|e| Error::ComponentDirPermissionsFailed(e)));
             if meta.is_dir() {
                 let mut perm = meta.permissions();
                 perm.set_mode(0o755);
-                try!(fs::set_permissions(entry.path(), perm).map_err(|e| Error::SetPermissions(e)));
+                try!(fs::set_permissions(entry.path(), perm).map_err(|e| Error::ComponentFilePermissionsFailed(e)));
             } else {
                 let mut perm = meta.permissions();
                 perm.set_mode(0o644);
-                try!(fs::set_permissions(entry.path(), perm).map_err(|e| Error::SetPermissions(e)));
+                try!(fs::set_permissions(entry.path(), perm).map_err(|e| Error::ComponentFilePermissionsFailed(e)));
             }
         }
     } else if is_bin {
-        let mut perm = try!(fs::metadata(dest_path).map_err(|e| Error::SetPermissions(e)))
+        let mut perm = try!(fs::metadata(dest_path).map_err(|e| Error::ComponentFilePermissionsFailed(e)))
                            .permissions();
         perm.set_mode(0o755);
-        try!(fs::set_permissions(dest_path, perm).map_err(|e| Error::SetPermissions(e)));
+        try!(fs::set_permissions(dest_path, perm).map_err(|e| Error::ComponentFilePermissionsFailed(e)));
     } else {
-        let mut perm = try!(fs::metadata(dest_path).map_err(|e| Error::SetPermissions(e)))
+        let mut perm = try!(fs::metadata(dest_path).map_err(|e| Error::ComponentFilePermissionsFailed(e)))
                            .permissions();
         perm.set_mode(0o644);
-        try!(fs::set_permissions(dest_path, perm).map_err(|e| Error::SetPermissions(e)));
+        try!(fs::set_permissions(dest_path, perm).map_err(|e| Error::ComponentFilePermissionsFailed(e)));
     }
 
     Ok(())
