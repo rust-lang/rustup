@@ -57,6 +57,8 @@ script:
       find "target/release/" -maxdepth 1 -type f -exec sh -c 'sha256sum -b "{}" | cut -d\  -f1 > "{}.sha256"' \;;
     fi
   - cargo test --verbose
+  - cargo test -p rust-install --verbose
+  - cargo test -p rust-manifest --verbose
   - tests/cli.sh
 
 after_success:

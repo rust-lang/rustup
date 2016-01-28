@@ -63,6 +63,9 @@ build_script:
       # Generate hashes
       Get-FileHash .\target\release\* | ForEach-Object {[io.file]::WriteAllText($_.Path + ".sha256", $_.Hash.ToLower() + "`n")}
 test_script:
+  - cargo test --verbose
+  - cargo test -p rust-install --verbose
+  - cargo test -p rust-manifest --verbose
   - tests\cli.bat
 notifications:
   - provider: Webhook
