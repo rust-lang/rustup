@@ -29,12 +29,14 @@ mod tests {
     use {InstallType, InstallPrefix};
 
     struct MockInstallerBuilder {
-        components: Vec<(&'static str, Vec<Command>, Vec<(&'static str, &'static str)>)>,
+        components: Vec<(&'static str,
+                         Vec<Command>,
+                         Vec<(&'static str, &'static str)>)>,
     }
 
     enum Command {
         File(&'static str),
-        Dir(&'static str)
+        Dir(&'static str),
     }
 
     impl MockInstallerBuilder {
@@ -42,8 +44,12 @@ mod tests {
             for &(name, ref commands, ref files) in &self.components {
                 // Update the components file
                 let comp_file = path.join("components");
-                let ref mut comp_file = OpenOptions::new().write(true).append(true).create(true)
-                    .open(comp_file).unwrap();
+                let ref mut comp_file = OpenOptions::new()
+                                            .write(true)
+                                            .append(true)
+                                            .create(true)
+                                            .open(comp_file)
+                                            .unwrap();
                 writeln!(comp_file, "{}", name).unwrap();
 
                 // Create the component directory
@@ -91,8 +97,7 @@ mod tests {
                                    ("doc/stuff/doc2", "")]),
                              ("mycomponent2",
                               vec![Command::File("bin/quux")],
-                              vec![("bin/quux", "quux")]
-                              )]
+                              vec![("bin/quux", "quux")])],
         };
 
         mock.build(tempdir.path());
@@ -114,12 +119,10 @@ mod tests {
         let mock = MockInstallerBuilder {
             components: vec![("mycomponent",
                               vec![Command::File("bin/foo")],
-                              vec![("bin/foo", "foo")],
-                              ),
+                              vec![("bin/foo", "foo")]),
                              ("mycomponent2",
                               vec![Command::File("bin/bar")],
-                              vec![("bin/bar", "bar")]
-                              )]
+                              vec![("bin/bar", "bar")])],
         };
 
         mock.build(tempdir.path());
@@ -136,11 +139,11 @@ mod tests {
         let mock = MockInstallerBuilder {
             components: vec![("mycomponent",
                               vec![Command::File("bin/foo")],
-                              vec![("bin/foo", "foo")])]
+                              vec![("bin/foo", "foo")])],
         };
 
         mock.build(tempdir.path());
-        
+
         let mut ver = File::create(tempdir.path().join("rust-installer-version")).unwrap();
         writeln!(ver, "100").unwrap();
 
@@ -159,14 +162,13 @@ mod tests {
                               vec![("bin/foo", "foo"),
                                    ("lib/bar", "bar"),
                                    ("doc/stuff/doc1", ""),
-                                   ("doc/stuff/doc2", "")])]
+                                   ("doc/stuff/doc2", "")])],
         };
 
         mock.build(pkgdir.path());
 
         let instdir = TempDir::new("multirust").unwrap();
-        let prefix = InstallPrefix::from(instdir.path().to_owned(),
-                                         InstallType::Owned);
+        let prefix = InstallPrefix::from(instdir.path().to_owned(), InstallType::Owned);
 
         let notify = temp::SharedNotifyHandler::none();
         let tmpdir = TempDir::new("multirust").unwrap();
@@ -199,14 +201,13 @@ mod tests {
                               vec![("bin/foo", "foo")]),
                              ("mycomponent2",
                               vec![Command::File("lib/bar")],
-                              vec![("lib/bar", "bar")])]
+                              vec![("lib/bar", "bar")])],
         };
 
         mock.build(pkgdir.path());
 
         let instdir = TempDir::new("multirust").unwrap();
-        let prefix = InstallPrefix::from(instdir.path().to_owned(),
-                                         InstallType::Owned);
+        let prefix = InstallPrefix::from(instdir.path().to_owned(), InstallType::Owned);
 
         let notify = temp::SharedNotifyHandler::none();
         let tmpdir = TempDir::new("multirust").unwrap();
@@ -244,14 +245,13 @@ mod tests {
                                    ("doc/stuff/doc2", "")]),
                              ("mycomponent2",
                               vec![Command::File("lib/quux")],
-                              vec![("lib/quux", "quux")])]
+                              vec![("lib/quux", "quux")])],
         };
 
         mock.build(pkgdir.path());
 
         let instdir = TempDir::new("multirust").unwrap();
-        let prefix = InstallPrefix::from(instdir.path().to_owned(),
-                                         InstallType::Owned);
+        let prefix = InstallPrefix::from(instdir.path().to_owned(), InstallType::Owned);
 
         let notify = temp::SharedNotifyHandler::none();
         let tmpdir = TempDir::new("multirust").unwrap();
@@ -291,14 +291,13 @@ mod tests {
         let mock = MockInstallerBuilder {
             components: vec![("mycomponent",
                               vec![Command::File("bin/foo")],
-                              vec![("bin/foo", "foo")])]
+                              vec![("bin/foo", "foo")])],
         };
 
         mock.build(pkgdir.path());
 
         let instdir = TempDir::new("multirust").unwrap();
-        let prefix = InstallPrefix::from(instdir.path().to_owned(),
-                                         InstallType::Owned);
+        let prefix = InstallPrefix::from(instdir.path().to_owned(), InstallType::Owned);
 
         let notify = temp::SharedNotifyHandler::none();
         let tmpdir = TempDir::new("multirust").unwrap();
@@ -318,7 +317,10 @@ mod tests {
 
         // Can't open components now
         let e = Components::open(prefix.clone()).unwrap_err();
-        if let errors::Error::InstalledMetadataVersion(_) = e { } else { panic!() }
+        if let errors::Error::InstalledMetadataVersion(_) = e {
+        } else {
+            panic!()
+        }
     }
 
     // Directories should be 0755, normal files 0644, files that come
@@ -338,14 +340,13 @@ mod tests {
                               vec![("bin/foo", "foo"),
                                    ("lib/bar", "bar"),
                                    ("doc/stuff/doc1", ""),
-                                   ("doc/stuff/morestuff/doc2", "")])]
+                                   ("doc/stuff/morestuff/doc2", "")])],
         };
 
         mock.build(pkgdir.path());
 
         let instdir = TempDir::new("multirust").unwrap();
-        let prefix = InstallPrefix::from(instdir.path().to_owned(),
-                                         InstallType::Owned);
+        let prefix = InstallPrefix::from(instdir.path().to_owned(), InstallType::Owned);
 
         let notify = temp::SharedNotifyHandler::none();
         let tmpdir = TempDir::new("multirust").unwrap();
@@ -368,9 +369,15 @@ mod tests {
         assert_eq!(m, 0o755);
         let m = fs::metadata(instdir.path().join("doc/stuff/doc1")).unwrap().permissions().mode();
         assert_eq!(m, 0o644);
-        let m = fs::metadata(instdir.path().join("doc/stuff/morestuff")).unwrap().permissions().mode();
+        let m = fs::metadata(instdir.path().join("doc/stuff/morestuff"))
+                    .unwrap()
+                    .permissions()
+                    .mode();
         assert_eq!(m, 0o755);
-        let m = fs::metadata(instdir.path().join("doc/stuff/morestuff/doc2")).unwrap().permissions().mode();
+        let m = fs::metadata(instdir.path().join("doc/stuff/morestuff/doc2"))
+                    .unwrap()
+                    .permissions()
+                    .mode();
         assert_eq!(m, 0o644);
     }
 }
