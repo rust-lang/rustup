@@ -110,7 +110,9 @@ impl Package for DirectoryPackage {
 }
 
 // On Unix we need to set up the file permissions correctly so
-// binaries are executable and directories readable.
+// binaries are executable and directories readable. This shouldn't be
+// necessary: the source files *should* have the right permissions,
+// but due to rust-lang/rust#25479 they don't.
 #[cfg(unix)]
 fn set_file_perms(dest_path: &Path, src_path: &Path) -> Result<()> {
     use std::fs;
