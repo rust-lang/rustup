@@ -1,0 +1,19 @@
+[target.x86_64-pc-windows-msvc.openssl]
+rustc-link-search = ['native=C:\OpenSSL\openssl-1.0.2d-vs2015\lib64']
+rustc-link-lib = ['static=ssleay32MT', 'static=libeay32MT', 'gdi32', 'user32']
+include = 'C:\OpenSSL\openssl-1.0.2d-vs2015\include'
+
+[target.i686-pc-windows-msvc.openssl]
+rustc-link-search = ['native=C:\OpenSSL\openssl-1.0.2d-vs2015\lib']
+rustc-link-lib = ['static=ssleay32MT', 'static=libeay32MT', 'gdi32', 'user32']
+include = 'C:\OpenSSL\openssl-1.0.2d-vs2015\include'
+
+[target.x86_64-pc-windows-gnu.openssl]
+rustc-link-search = ['native=C:\msys64\mingw64\lib']
+rustc-link-lib = ['static=ssl', 'static=crypto', 'gdi32', 'user32']
+include = 'C:\msys64\mingw64\include'
+
+[target.i686-pc-windows-gnu.openssl]
+rustc-link-search = ['native=C:\msys64\mingw32\lib']
+rustc-link-lib = ['static=ssl', 'static=crypto', 'gdi32', 'user32']
+include = 'C:\msys64\mingw32\include'

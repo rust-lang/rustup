@@ -1,9 +1,7 @@
 environment:
   matrix:
   - TARGET: x86_64-pc-windows-msvc
-    BITS: 64
   - TARGET: i686-pc-windows-msvc
-    BITS: 32
   - TARGET: x86_64-pc-windows-gnu
     BITS: 64
   - TARGET: i686-pc-windows-gnu
@@ -16,56 +14,35 @@ install:
       Start-FileDownload "https://static.rust-lang.org/dist/rust-nightly-${env:TARGET}.exe" -FileName "rust-nightly.exe"
       .\rust-nightly.exe /VERYSILENT /NORESTART /DIR="C:\rust" | Out-Null
       $env:PATH="$env:PATH;C:\rust\bin"
-      
-      # OpenSSL must be linked statically
-      $env:OPENSSL_STATIC="1"
-      
+
+      New-Item .cargo -type directory
+      Copy-Item .appveyor.cargo-config.toml .cargo/config
+
       # For -gnu builds
       if ($env:TARGET -match "-gnu$") {
         $env:PATH="$env:PATH;C:\msys64\mingw${env:BITS}\bin"
-        $env:OPENSSL_INCLUDE_DIR="C:\msys64\mingw${env:BITS}\include"
-        $env:OPENSSL_LIB_DIR="C:\msys64\mingw${env:BITS}\lib"
-        $env:OPENSSL_LIBS="crypto:ssl"
       }
-      
+
       # For -msvc builds
       if ($env:TARGET -match "-msvc$") {
-        # Install OpenSSL
         Start-FileDownload "http://www.npcglib.org/~stathis/downloads/openssl-1.0.2d-vs2015.7z" -FileName "openssl.7z"
-        7z x openssl.7z -o"C:\OpenSSL"
-      
-        $env:OPENSSL_INCLUDE_DIR="C:\OpenSSL\openssl-1.0.2d-vs2015\include"
-        if ($env:BITS -eq "32") {
-          $env:OPENSSL_LIB_DIR="C:\OpenSSL\openssl-1.0.2d-vs2015\lib"
-        } else {
-          $env:OPENSSL_LIB_DIR="C:\OpenSSL\openssl-1.0.2d-vs2015\lib64"
-        }
-        $env:OPENSSL_LIBS="ssleay32MT:libeay32MT"
+        7z x openssl.7z -o"C:\OpenSSL" | Out-Null
       }
-      
+
       # Print version info
       rustc -vV
       cargo -vV
-      
+
       # Configure git
       git config --global user.email "diggsey@googlemail.com"
       git config --global user.name "Diggory Blake (via Appveyor CI)"
       git config --global push.default simple
 
-build_script:
-  - ps: |
-      if ($env:TARGET -match "-gnu$") {
-        cargo rustc --release --bin multirust-rs -- -C link-args="-lgdi32 -luser32"
-      }
-      if ($env:TARGET -match "-msvc$") {
-        cargo rustc --release --bin multirust-rs -- -C link-args="gdi32.lib user32.lib"
-      }
-      # Generate hashes
-      Get-FileHash .\target\release\* | ForEach-Object {[io.file]::WriteAllText($_.Path + ".sha256", $_.Hash.ToLower() + "`n")}
+build: false
 test_script:
-  - cargo test --verbose
-  - cargo test -p rust-install --verbose
-  - cargo test -p rust-manifest --verbose
+  - cargo test
+  - cargo test -p rust-install
+  - cargo test -p rust-manifest
   - tests\cli.bat
 notifications:
   - provider: Webhook
@@ -73,12 +50,16 @@ notifications:
 on_success:
   - ps: |
       if (!$env:APPVEYOR_PULL_REQUEST_NUMBER) {
+        cargo build --release
+        # Generate hashes
+        Get-FileHash .\target\release\* | ForEach-Object {[io.file]::WriteAllText($_.Path + ".sha256", $_.Hash.ToLower() + "`n")}
+
         if ($env:APPVEYOR_REPO_BRANCH -eq "master") {
           $bin = "binaries\$env:TARGET"
         } else {
           $bin = "binaries\$env:APPVEYOR_REPO_BRANCH\$env:TARGET"
         }
-        
+
         cmd /c "git config --global credential.helper store 2>&1"
         Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
         cmd /c "git submodule init 2>&1"
