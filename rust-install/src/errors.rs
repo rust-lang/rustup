@@ -45,6 +45,14 @@ pub enum Error {
         name: String,
         path: String,
     },
+    ComponentMissingFile {
+        name: String,
+        path: String,
+    },
+    ComponentMissingDir {
+        name: String,
+        path: String,
+    },
     CorruptComponent(String),
     ExtractingPackage(io::Error),
     ExtensionNotFound(rust_manifest::Component),
@@ -135,6 +143,18 @@ impl Display for Error {
             ComponentConflict { ref name, ref path } => {
                 write!(f,
                        "failed to install component: '{}', detected conflict: '{}'",
+                       name,
+                       path)
+            }
+            ComponentMissingFile { ref name, ref path } => {
+                write!(f,
+                       "failure removing component '{}', file does not exist: '{}'",
+                       name,
+                       path)
+            }
+            ComponentMissingDir { ref name, ref path } => {
+                write!(f,
+                       "failure removing component '{}', directory does not exist: '{}'",
                        name,
                        path)
             }

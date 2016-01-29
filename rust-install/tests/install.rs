@@ -12,9 +12,14 @@ use std::io::Write;
 use std::path::Path;
 use tempdir::TempDir;
 
+// Mock of the on-disk structure of rust-installer installers
 struct MockInstallerBuilder {
-    components: Vec<(&'static str, Vec<Command>, Vec<(&'static str, &'static str)>)>,
+    components: Vec<MockComponent>,
 }
+
+// A component name, the installation commands for installing files
+// (either "file:" or "dir:") and the file paths and contents.
+type MockComponent = (&'static str, Vec<Command>, Vec<(&'static str, &'static str)>);
 
 enum Command {
     File(&'static str),
@@ -269,6 +274,13 @@ fn uninstall() {
     assert!(components.find("mycomponent2").unwrap().is_none());
 }
 
+// If any single file can't be uninstalled, it is not a fatal error
+// and the subsequent files will still be removed.
+#[test]
+fn uninstall_best_effort() {
+    //unimplemented!()
+}
+
 #[test]
 fn component_bad_version() {
     let pkgdir = TempDir::new("multirust").unwrap();
@@ -357,4 +369,39 @@ fn unix_permissions() {
     assert_eq!(m, 0o755);
     let m = fs::metadata(instdir.path().join("doc/stuff/morestuff/doc2")).unwrap().permissions().mode();
     assert_eq!(m, 0o644);
+}
+
+// Installing to a prefix that doesn't exist creates it automatically
+#[test]
+fn install_to_prefix_that_does_not_exist() {
+    let pkgdir = TempDir::new("multirust").unwrap();
+
+    let mock = MockInstallerBuilder {
+        components: vec![("mycomponent",
+                          vec![Command::File("bin/foo")],
+                          vec![("bin/foo", "foo")])]
+    };
+
+    mock.build(pkgdir.path());
+
+    let instdir = TempDir::new("multirust").unwrap();
+    // The directory that does not exist
+    let does_not_exist = instdir.path().join("super_not_real");
+    let prefix = InstallPrefix::from(does_not_exist.clone(),
+                                     InstallType::Owned);
+
+    let notify = temp::SharedNotifyHandler::none();
+    let tmpdir = TempDir::new("multirust").unwrap();
+    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), notify);
+    let notify = NotifyHandler::none();
+    let tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+
+    let components = Components::open(prefix.clone()).unwrap();
+
+    let pkg = DirectoryPackage::new(pkgdir.path().to_owned()).unwrap();
+
+    let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
+    tx.commit();
+
+    assert!(utils::path_exists(does_not_exist.join("bin/foo")));
 }

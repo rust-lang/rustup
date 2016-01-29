@@ -199,10 +199,6 @@ impl<'a> AddingComponent<'a> {
         self.0.add(ComponentPart("file".to_owned(), path.clone()));
         self.1.add_file(&self.0.name, path)
     }
-    pub fn add_dir(&mut self, path: String) -> Result<()> {
-        self.0.add(ComponentPart("dir".to_owned(), path.clone()));
-        self.1.add_dir(&self.0.name, path)
-    }
     pub fn copy_file(&mut self, path: String, src: &Path) -> Result<()> {
         self.0.add(ComponentPart("file".to_owned(), path.clone()));
         self.1.copy_file(&self.0.name, path, src)
@@ -264,14 +260,14 @@ impl Component {
         // Remove parts
         for part in try!(self.parts()).into_iter().rev() {
             match &*part.0 {
-                "file" => try!(tx.remove_file(part.1)),
-                "dir" => try!(tx.remove_dir(part.1)),
+                "file" => try!(tx.remove_file(&self.name, part.1)),
+                "dir" => try!(tx.remove_dir(&self.name, part.1)),
                 _ => return Err(Error::CorruptComponent(self.name.clone())),
             }
         }
 
         // Remove component manifest
-        try!(tx.remove_file(self.rel_manifest_file()));
+        try!(tx.remove_file(&self.name, self.rel_manifest_file()));
 
         Ok(tx)
     }
