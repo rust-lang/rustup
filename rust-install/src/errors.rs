@@ -1,5 +1,5 @@
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fmt::{self, Display};
 use std::io;
 use temp;
@@ -43,15 +43,15 @@ pub enum Error {
     },
     ComponentConflict {
         name: String,
-        path: String,
+        path: PathBuf,
     },
     ComponentMissingFile {
         name: String,
-        path: String,
+        path: PathBuf,
     },
     ComponentMissingDir {
         name: String,
-        path: String,
+        path: PathBuf,
     },
     CorruptComponent(String),
     ExtractingPackage(io::Error),
@@ -142,19 +142,19 @@ impl Display for Error {
             }
             ComponentConflict { ref name, ref path } => {
                 write!(f,
-                       "failed to install component: '{}', detected conflict: '{}'",
+                       "failed to install component: '{}', detected conflict: '{:?}'",
                        name,
                        path)
             }
             ComponentMissingFile { ref name, ref path } => {
                 write!(f,
-                       "failure removing component '{}', file does not exist: '{}'",
+                       "failure removing component '{}', file does not exist: '{:?}'",
                        name,
                        path)
             }
             ComponentMissingDir { ref name, ref path } => {
                 write!(f,
-                       "failure removing component '{}', directory does not exist: '{}'",
+                       "failure removing component '{}', directory does not exist: '{:?}'",
                        name,
                        path)
             }

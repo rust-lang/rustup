@@ -8,6 +8,7 @@ use rust_install::Error;
 use tempdir::TempDir;
 use std::fs;
 use std::io::Write;
+use std::path::PathBuf;
 
 #[test]
 fn add_file() {
@@ -23,7 +24,7 @@ fn add_file() {
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
 
-    let mut file = tx.add_file("c", "foo/bar".to_string()).unwrap();
+    let mut file = tx.add_file("c", PathBuf::from("foo/bar")).unwrap();
     write!(&mut file, "test").unwrap();
 
     tx.commit();
@@ -47,7 +48,7 @@ fn add_file_then_rollback() {
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
 
-    tx.add_file("c", "foo/bar".to_string()).unwrap();
+    tx.add_file("c", PathBuf::from("foo/bar")).unwrap();
     drop(tx);
 
     assert!(!utils::is_file(prefix.path().join("foo/bar")));
@@ -70,12 +71,12 @@ fn add_file_that_exists() {
     fs::create_dir_all(&prefixdir.path().join("foo")).unwrap();
     utils::write_file("", &prefixdir.path().join("foo/bar"), "").unwrap();
 
-    let err = tx.add_file("c", "foo/bar".to_string()).unwrap_err();
+    let err = tx.add_file("c", PathBuf::from("foo/bar")).unwrap_err();
 
     match err {
         Error::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
-            assert_eq!(path, "foo/bar");
+            assert_eq!(path, PathBuf::from("foo/bar"));
         }
         _ => panic!()
     }
@@ -99,7 +100,7 @@ fn copy_file() {
     let srcpath = srcdir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
 
-    tx.copy_file("c", "foo/bar".to_string(), &srcpath).unwrap();
+    tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath).unwrap();
     tx.commit();
 
     assert!(utils::is_file(prefix.path().join("foo/bar")));
@@ -123,7 +124,7 @@ fn copy_file_then_rollback() {
     let srcpath = srcdir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
 
-    tx.copy_file("c", "foo/bar".to_string(), &srcpath).unwrap();
+    tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath).unwrap();
     drop(tx);
 
     assert!(!utils::is_file(prefix.path().join("foo/bar")));
@@ -150,12 +151,12 @@ fn copy_file_that_exists() {
     fs::create_dir_all(&prefixdir.path().join("foo")).unwrap();
     utils::write_file("", &prefixdir.path().join("foo/bar"), "").unwrap();
 
-    let err = tx.copy_file("c", "foo/bar".to_string(), &srcpath).unwrap_err();
+    let err = tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath).unwrap_err();
 
     match err {
         Error::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
-            assert_eq!(path, "foo/bar");
+            assert_eq!(path, PathBuf::from("foo/bar"));
         }
         _ => panic!()
     }
@@ -185,7 +186,7 @@ fn copy_dir() {
     fs::create_dir_all(srcpath3.parent().unwrap()).unwrap();
     utils::write_file("", &srcpath3, "").unwrap();
 
-    tx.copy_dir("c", "a".to_string(), srcdir.path()).unwrap();
+    tx.copy_dir("c", PathBuf::from("a"), srcdir.path()).unwrap();
     tx.commit();
 
     assert!(utils::is_file(prefix.path().join("a/foo")));
@@ -217,7 +218,7 @@ fn copy_dir_then_rollback() {
     fs::create_dir_all(srcpath3.parent().unwrap()).unwrap();
     utils::write_file("", &srcpath3, "").unwrap();
 
-    tx.copy_dir("c", "a".to_string(), srcdir.path()).unwrap();
+    tx.copy_dir("c", PathBuf::from("a"), srcdir.path()).unwrap();
     drop(tx);
 
     assert!(!utils::is_file(prefix.path().join("a/foo")));
@@ -242,12 +243,12 @@ fn copy_dir_that_exists() {
 
     fs::create_dir_all(prefix.path().join("a")).unwrap();
 
-    let err = tx.copy_dir("c", "a".to_string(), srcdir.path()).unwrap_err();
+    let err = tx.copy_dir("c", PathBuf::from("a"), srcdir.path()).unwrap_err();
 
     match err {
         Error::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
-            assert_eq!(path, "a");
+            assert_eq!(path, PathBuf::from("a"));
         }
         _ => panic!()
     }
@@ -270,7 +271,7 @@ fn remove_file() {
     let filepath = prefixdir.path().join("foo");
     utils::write_file("", &filepath, "").unwrap();
 
-    tx.remove_file("c", "foo".to_string()).unwrap();
+    tx.remove_file("c", PathBuf::from("foo")).unwrap();
     tx.commit();
 
     assert!(!utils::is_file(filepath));
@@ -293,7 +294,7 @@ fn remove_file_then_rollback() {
     let filepath = prefixdir.path().join("foo");
     utils::write_file("", &filepath, "").unwrap();
 
-    tx.remove_file("c", "foo".to_string()).unwrap();
+    tx.remove_file("c", PathBuf::from("foo")).unwrap();
     drop(tx);
 
     assert!(utils::is_file(filepath));
@@ -313,12 +314,12 @@ fn remove_file_that_not_exists() {
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
 
-    let err = tx.remove_file("c", "foo".to_string()).unwrap_err();
+    let err = tx.remove_file("c", PathBuf::from("foo")).unwrap_err();
 
     match err {
         Error::ComponentMissingFile { name, path } => {
             assert_eq!(name, "c");
-            assert_eq!(path, "foo");
+            assert_eq!(path, PathBuf::from("foo"));
         }
         _ => panic!()
     }
@@ -342,7 +343,7 @@ fn remove_dir() {
     fs::create_dir_all(filepath.parent().unwrap()).unwrap();
     utils::write_file("", &filepath, "").unwrap();
 
-    tx.remove_dir("c", "foo".to_string()).unwrap();
+    tx.remove_dir("c", PathBuf::from("foo")).unwrap();
     tx.commit();
 
     assert!(!utils::path_exists(filepath.parent().unwrap()));
@@ -366,7 +367,7 @@ fn remove_dir_then_rollback() {
     fs::create_dir_all(filepath.parent().unwrap()).unwrap();
     utils::write_file("", &filepath, "").unwrap();
 
-    tx.remove_dir("c", "foo".to_string()).unwrap();
+    tx.remove_dir("c", PathBuf::from("foo")).unwrap();
     drop(tx);
 
     assert!(utils::path_exists(filepath.parent().unwrap()));
@@ -386,12 +387,12 @@ fn remove_dir_that_not_exists() {
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
 
-    let err = tx.remove_dir("c", "foo".to_string()).unwrap_err();
+    let err = tx.remove_dir("c", PathBuf::from("foo")).unwrap_err();
 
     match err {
         Error::ComponentMissingDir { name, path } => {
             assert_eq!(name, "c");
-            assert_eq!(path, "foo");
+            assert_eq!(path, PathBuf::from("foo"));
         }
         _ => panic!()
     }
@@ -412,7 +413,7 @@ fn write_file() {
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
 
     let content = "hi".to_string();
-    tx.write_file("c", "foo/bar".to_string(), content.clone()).unwrap();
+    tx.write_file("c", PathBuf::from("foo/bar"), content.clone()).unwrap();
     tx.commit();
 
     let path = prefix.path().join("foo/bar");
@@ -436,7 +437,7 @@ fn write_file_then_rollback() {
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
 
     let content = "hi".to_string();
-    tx.write_file("c", "foo/bar".to_string(), content.clone()).unwrap();
+    tx.write_file("c", PathBuf::from("foo/bar"), content.clone()).unwrap();
     drop(tx);
 
     assert!(!utils::is_file(&prefix.path().join("foo/bar")));
@@ -458,12 +459,12 @@ fn write_file_that_exists() {
 
     let content = "hi".to_string();
     utils::raw::write_file(&prefix.path().join("a"), &content).unwrap();
-    let err = tx.write_file("c", "a".to_string(), content.clone()).unwrap_err();
+    let err = tx.write_file("c", PathBuf::from("a"), content.clone()).unwrap_err();
 
     match err {
         Error::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
-            assert_eq!(path, "a");
+            assert_eq!(path, PathBuf::from("a"));
         }
         _ => panic!()
     }
@@ -485,7 +486,7 @@ fn modify_file_that_not_exists() {
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
 
-    tx.modify_file("foo/bar".to_string()).unwrap();
+    tx.modify_file(PathBuf::from("foo/bar")).unwrap();
     tx.commit();
 
     assert!(utils::path_exists(prefix.path().join("foo")));
@@ -509,7 +510,7 @@ fn modify_file_that_exists() {
 
     let ref path = prefix.path().join("foo");
     utils::raw::write_file(path, "wow").unwrap();
-    tx.modify_file("foo".to_string()).unwrap();
+    tx.modify_file(PathBuf::from("foo")).unwrap();
     tx.commit();
 
     assert_eq!(utils::raw::read_file(path).unwrap(), "wow");
@@ -529,7 +530,7 @@ fn modify_file_that_not_exists_then_rollback() {
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
 
-    tx.modify_file("foo/bar".to_string()).unwrap();
+    tx.modify_file(PathBuf::from("foo/bar")).unwrap();
     drop(tx);
 
     assert!(!utils::path_exists(prefix.path().join("foo/bar")));
@@ -551,7 +552,7 @@ fn modify_file_that_exists_then_rollback() {
 
     let ref path = prefix.path().join("foo");
     utils::raw::write_file(path, "wow").unwrap();
-    tx.modify_file("foo".to_string()).unwrap();
+    tx.modify_file(PathBuf::from("foo")).unwrap();
     utils::raw::write_file(path, "eww").unwrap();
     drop(tx);
 
@@ -576,9 +577,9 @@ fn modify_twice_then_rollback() {
 
     let ref path = prefix.path().join("foo");
     utils::raw::write_file(path, "wow").unwrap();
-    tx.modify_file("foo".to_string()).unwrap();
+    tx.modify_file(PathBuf::from("foo")).unwrap();
     utils::raw::write_file(path, "eww").unwrap();
-    tx.modify_file("foo".to_string()).unwrap();
+    tx.modify_file(PathBuf::from("foo")).unwrap();
     utils::raw::write_file(path, "ewww").unwrap();
     drop(tx);
 
@@ -600,18 +601,18 @@ fn do_multiple_op_transaction(rollback: bool) {
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
 
     // copy_file
-    let relpath1 = "bin/rustc".to_string();
-    let relpath2 = "bin/cargo".to_string();
+    let relpath1 = PathBuf::from("bin/rustc");
+    let relpath2 = PathBuf::from("bin/cargo");
     // copy_dir
-    let relpath4 = "doc/html/index.html".to_string();
+    let relpath4 = PathBuf::from("doc/html/index.html");
     // modify_file
-    let relpath5 = "lib/rustlib/components".to_string();
+    let relpath5 = PathBuf::from("lib/rustlib/components");
     // write_file
-    let relpath6 = "lib/rustlib/rustc-manifest.in".to_string();
+    let relpath6 = PathBuf::from("lib/rustlib/rustc-manifest.in");
     // remove_file
-    let relpath7 = "bin/oldrustc".to_string();
+    let relpath7 = PathBuf::from("bin/oldrustc");
     // remove_dir
-    let relpath8 = "olddoc/htm/index.html".to_string();
+    let relpath8 = PathBuf::from("olddoc/htm/index.html");
 
     let ref path1 = prefix.path().join(&relpath1);
     let ref path2 = prefix.path().join(&relpath2);
@@ -633,7 +634,7 @@ fn do_multiple_op_transaction(rollback: bool) {
     let ref srcpath4 = srcdir.path().join(&relpath4);
     fs::create_dir_all(srcpath4.parent().unwrap()).unwrap();
     utils::raw::write_file(srcpath4, "").unwrap();
-    tx.copy_dir("", "doc".to_string(), &srcdir.path().join("doc")).unwrap();
+    tx.copy_dir("", PathBuf::from("doc"), &srcdir.path().join("doc")).unwrap();
 
     tx.modify_file(relpath5).unwrap();
     utils::raw::write_file(path5, "").unwrap();
@@ -646,7 +647,7 @@ fn do_multiple_op_transaction(rollback: bool) {
 
     fs::create_dir_all(path8.parent().unwrap()).unwrap();
     utils::raw::write_file(path8, "").unwrap();
-    tx.remove_dir("", "olddoc".to_string()).unwrap();
+    tx.remove_dir("", PathBuf::from("olddoc")).unwrap();
 
     if !rollback {
         tx.commit();
@@ -697,9 +698,9 @@ fn rollback_failure_keeps_going() {
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
 
-    write!(&mut tx.add_file("", "foo".to_string()).unwrap(), "").unwrap();
-    write!(&mut tx.add_file("", "bar".to_string()).unwrap(), "").unwrap();
-    write!(&mut tx.add_file("", "baz".to_string()).unwrap(), "").unwrap();
+    write!(&mut tx.add_file("", PathBuf::from("foo")).unwrap(), "").unwrap();
+    write!(&mut tx.add_file("", PathBuf::from("bar")).unwrap(), "").unwrap();
+    write!(&mut tx.add_file("", PathBuf::from("baz")).unwrap(), "").unwrap();
 
     fs::remove_file(prefix.path().join("bar")).unwrap();
 

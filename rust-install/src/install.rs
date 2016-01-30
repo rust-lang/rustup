@@ -244,10 +244,10 @@ impl InstallPrefix {
         path.push(name);
         path
     }
-    pub fn rel_manifest_file(&self, name: &str) -> String {
+    pub fn rel_manifest_file(&self, name: &str) -> PathBuf {
         let mut path = PathBuf::from(REL_MANIFEST_DIR);
         path.push(name);
-        path.into_os_string().into_string().unwrap()
+        path
     }
     pub fn binary_file(&self, name: &str) -> PathBuf {
         let mut path = self.path.clone();
