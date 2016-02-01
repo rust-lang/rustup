@@ -29,6 +29,8 @@ impl Configuration {
     }
 
     pub fn init(prefix: InstallPrefix, config: Config) -> Result<Self> {
+        try!(utils::ensure_dir_exists("manifest", &prefix.manifest_dir(),
+                                      utils::NotifyHandler::none()));
         let path = prefix.manifest_file(CONFIG_FILE);
         try!(utils::write_file("config", &path, &config.stringify()));
 

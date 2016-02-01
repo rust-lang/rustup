@@ -1,3 +1,34 @@
+//! Notification handlers.
+//!
+//! These are used to bubble up information about what is happening
+//! inside the program. They are composed as error types commonly are.
+//!
+//! The major types:
+//!
+//! * `Notifyable<N>`. Types implementing this can receive
+//!   notifications of `N` through the `call` method.  These are
+//!   passed around as trait objects. Closures over `N` automatically
+//!   implement `Notifyable<N>`.
+//! * `NotifyHandler<'a, N>(Option<&N>)`. A wrapper around
+//!   `Notifyable` objects, passed as values.  Functions that need to
+//!   emit notifications take these by value.
+//! * `Notification`. By convention, the name of an enum in each
+//!   module that defines the notifications that module emits.
+//!
+//! Notifications are composed in a hierarchy. For example, this crate
+//! defines `temp::Notification`, and `utils::Notification`, and
+//! futher defines `errors::Notification`, the top-level notification
+//! enum which encapsulates both in the variants
+//! `Notification::Temp(temp::Notification)` and
+//! `Notification::Utils(utils::Notification)`.
+//!
+//! A `NotifyHandler<_, error::Notification>` can be turned into a
+//! `NotifyHandler<_, temp::Notification>` by calling
+//! `temp::NotifyHandler::some(&my_error_notify_handler)`. This works
+//! because `NotifyHandler<_, error::Notification>` implements
+//! `Notifyable<temp::Notification>` via the `extend_notification!`
+//! macro.
+
 use std::fmt;
 use std::intrinsics::type_name;
 use std::sync::Arc;

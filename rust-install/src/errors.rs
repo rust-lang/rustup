@@ -8,6 +8,7 @@ use rust_manifest;
 use walkdir;
 
 use notify::{NotificationLevel, Notifyable};
+use rust_manifest::Component;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -23,6 +24,7 @@ pub enum Notification<'a> {
     RollingBack,
     ExtensionNotInstalled(&'a rust_manifest::Component),
     NonFatalError(&'a Error),
+    MissingInstalledComponent(&'a str),
 }
 
 #[derive(Debug)]
@@ -63,6 +65,7 @@ pub enum Error {
     BadInstalledMetadataVersion(String),
     ComponentDirPermissionsFailed(walkdir::Error),
     ComponentFilePermissionsFailed(io::Error),
+    ComponentDownloadFailed(Component, utils::Error),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -86,7 +89,8 @@ impl<'a> Notification<'a> {
             NoUpdateHash(_) => NotificationLevel::Verbose,
             Extracting(_, _) | ChecksumValid(_) | SignatureValid(_) => NotificationLevel::Normal,
             UpdateHashMatches(_) | RollingBack => NotificationLevel::Info,
-            CantReadUpdateHash(_) | ExtensionNotInstalled(_) => NotificationLevel::Warn,
+            CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
+            MissingInstalledComponent(_) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
         }
     }
@@ -115,6 +119,7 @@ impl<'a> Display for Notification<'a> {
                 write!(f, "extension '{}-{}' was not installed", c.pkg, c.target)
             }
             NonFatalError(e) => write!(f, "{}", e),
+            MissingInstalledComponent(c) => write!(f, "during uninstall component {} was not found", c),
         }
     }
 }
@@ -180,6 +185,9 @@ impl Display for Error {
             }
             ComponentFilePermissionsFailed(ref e) => {
                 write!(f, "error setting file permissions during install: {}", e)
+            }
+            ComponentDownloadFailed(ref component, ref e) => {
+                write!(f, "component download failed for {}-{}: {}", component.pkg, component.target, e)
             }
         }
     }

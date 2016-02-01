@@ -161,6 +161,8 @@ impl ComponentBuilder {
         let abs_path = self.components.prefix.abs_path(&path);
         let mut file = try!(tx.add_file(&self.name, path));
         for part in self.parts {
+            // FIXME: This writes relative paths to the component manifest,
+            // but rust-installer writes absolute paths.
             try!(writeln!(file, "{}", part.encode()).map_err(|e| {
                 utils::Error::WritingFile {
                     name: "component",
@@ -217,7 +219,7 @@ pub struct ComponentPart(pub String, pub PathBuf);
 
 impl ComponentPart {
     pub fn encode(&self) -> String {
-        format!("{}:{:?}", &self.0, &self.1)
+        format!("{}:{}", &self.0, &self.1.to_string_lossy())
     }
     pub fn decode(line: &str) -> Option<Self> {
         line.find(":")
@@ -261,6 +263,9 @@ impl Component {
         try!(utils::filter_file("components", &abs_path, &temp, |l| (l != self.name)));
         try!(tx.modify_file(path));
         try!(utils::rename_file("components", &temp, &abs_path));
+
+        // TODO: If this is the last component remove the components file
+        // and the version file.
 
         // Remove parts
         for part in try!(self.parts()).into_iter().rev() {

@@ -154,6 +154,7 @@ pub enum DownloadError {
     Status(hyper::status::StatusCode),
     Network(hyper::Error),
     File(io::Error),
+    FilePathParse,
 }
 pub type DownloadResult<T> = Result<T, DownloadError>;
 
@@ -163,6 +164,7 @@ impl fmt::Display for DownloadError {
             DownloadError::Status(ref s) => write!(f, "Status: {}", s),
             DownloadError::Network(ref e) => write!(f, "Network: {}", e),
             DownloadError::File(ref e) => write!(f, "File: {}", e),
+            DownloadError::FilePathParse => write!(f, "failed to parse URL as file path"),
         }
     }
 }
@@ -171,6 +173,25 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
                                      path: P,
                                      mut hasher: Option<&mut Hasher>)
                                      -> DownloadResult<()> {
+    // The file scheme is mostly for use by tests to mock the dist server
+    if url.scheme == "file" {
+        let src = try!(url.to_file_path().map_err(|_| DownloadError::FilePathParse));
+        try!(fs::copy(&src, path.as_ref()).map_err(|e| DownloadError::File(e)));
+
+        if let Some(ref mut h) = hasher {
+            let ref mut f = try!(fs::File::open(path.as_ref()).map_err(|e| DownloadError::File(e)));
+
+            let ref mut buffer = vec![0u8; 0x10000];
+            loop {
+                let bytes_read = try!(io::Read::read(f, buffer).map_err(|e| DownloadError::File(e)));
+                if bytes_read == 0 { break }
+                try!(io::Write::write_all(*h, &buffer[0..bytes_read]).map_err(|e| DownloadError::File(e)));
+            }
+        }
+
+        return Ok(());
+    }
+
     let client = Client::new();
 
     let mut res = try!(client.get(url).send().map_err(DownloadError::Network));

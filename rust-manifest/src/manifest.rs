@@ -105,6 +105,9 @@ impl Manifest {
         result.insert("date".to_owned(), toml::Value::String(self.date));
         result.insert("manifest-version".to_owned(),
                       toml::Value::String(self.manifest_version));
+        if let Some(ref r) = self.root {
+            result.insert("root".to_owned(), toml::Value::String(r.clone()));
+        }
 
         let packages = Self::packages_to_table(self.packages);
         result.insert("pkg".to_owned(), toml::Value::Table(packages));

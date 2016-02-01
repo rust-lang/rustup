@@ -7,64 +7,10 @@ use rust_install::component::Transaction;
 use rust_install::temp;
 use rust_install::utils;
 use rust_install::{InstallType, InstallPrefix, NotifyHandler};
-use std::fs::{self, OpenOptions, File};
+use std::fs::File;
 use std::io::Write;
-use std::path::Path;
 use tempdir::TempDir;
-
-// Mock of the on-disk structure of rust-installer installers
-#[derive(Debug)]
-struct MockInstallerBuilder {
-    components: Vec<MockComponent>,
-}
-
-// A component name, the installation commands for installing files
-// (either "file:" or "dir:") and the file paths and contents.
-type MockComponent = (&'static str, Vec<Command>, Vec<(&'static str, &'static str)>);
-
-#[derive(Debug)]
-enum Command {
-    File(&'static str),
-    Dir(&'static str)
-}
-
-impl MockInstallerBuilder {
-    fn build(&self, path: &Path) {
-        for &(name, ref commands, ref files) in &self.components {
-            // Update the components file
-            let comp_file = path.join("components");
-            let ref mut comp_file = OpenOptions::new().write(true).append(true).create(true)
-                .open(comp_file).unwrap();
-            writeln!(comp_file, "{}", name).unwrap();
-
-            // Create the component directory
-            let component_dir = path.join(name);
-            fs::create_dir(&component_dir).unwrap();
-
-            // Create the component manifest
-            let ref mut manifest = File::create(component_dir.join("manifest.in")).unwrap();
-            for command in commands {
-                match command {
-                    &Command::File(f) => writeln!(manifest, "file:{}", f).unwrap(),
-                    &Command::Dir(d) => writeln!(manifest, "dir:{}", d).unwrap(),
-                }
-            }
-
-            // Create the component files
-            for &(ref f_path, ref content) in files {
-                let dir_path = component_dir.join(f_path);
-                let dir_path = dir_path.parent().unwrap();
-                fs::create_dir_all(dir_path).unwrap();
-
-                let ref mut f = File::create(component_dir.join(f_path)).unwrap();
-                f.write(content.as_bytes()).unwrap();
-            }
-        }
-
-        let mut ver = File::create(path.join("rust-installer-version")).unwrap();
-        writeln!(ver, "3").unwrap();
-    }
-}
+use rust_install::mock::{MockInstallerBuilder, MockCommand};
 
 // Just testing that the mocks work
 #[test]
@@ -73,16 +19,16 @@ fn mock_smoke_test() {
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent",
-                          vec![Command::File("bin/foo"),
-                               Command::File("lib/bar"),
-                               Command::Dir("doc/stuff")],
-                          vec![("bin/foo", "foo"),
-                               ("lib/bar", "bar"),
-                               ("doc/stuff/doc1", ""),
-                               ("doc/stuff/doc2", "")]),
+                          vec![MockCommand::File("bin/foo"),
+                               MockCommand::File("lib/bar"),
+                               MockCommand::Dir("doc/stuff")],
+                          vec![("bin/foo", "foo".to_string()),
+                               ("lib/bar", "bar".to_string()),
+                               ("doc/stuff/doc1", "".to_string()),
+                               ("doc/stuff/doc2", "".to_string())]),
                          ("mycomponent2",
-                          vec![Command::File("bin/quux")],
-                          vec![("bin/quux", "quux")]
+                          vec![MockCommand::File("bin/quux")],
+                          vec![("bin/quux", "quux".to_string())]
                           )]
     };
 
@@ -104,12 +50,12 @@ fn package_contains() {
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent",
-                          vec![Command::File("bin/foo")],
-                          vec![("bin/foo", "foo")],
+                          vec![MockCommand::File("bin/foo")],
+                          vec![("bin/foo", "foo".to_string())],
                           ),
                          ("mycomponent2",
-                          vec![Command::File("bin/bar")],
-                          vec![("bin/bar", "bar")]
+                          vec![MockCommand::File("bin/bar")],
+                          vec![("bin/bar", "bar".to_string())]
                           )]
     };
 
@@ -126,8 +72,8 @@ fn package_bad_version() {
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent",
-                          vec![Command::File("bin/foo")],
-                          vec![("bin/foo", "foo")])]
+                          vec![MockCommand::File("bin/foo")],
+                          vec![("bin/foo", "foo".to_string())])]
     };
 
     mock.build(tempdir.path());
@@ -144,13 +90,13 @@ fn basic_install() {
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent",
-                          vec![Command::File("bin/foo"),
-                               Command::File("lib/bar"),
-                               Command::Dir("doc/stuff")],
-                          vec![("bin/foo", "foo"),
-                               ("lib/bar", "bar"),
-                               ("doc/stuff/doc1", ""),
-                               ("doc/stuff/doc2", "")])]
+                          vec![MockCommand::File("bin/foo"),
+                               MockCommand::File("lib/bar"),
+                               MockCommand::Dir("doc/stuff")],
+                          vec![("bin/foo", "foo".to_string()),
+                               ("lib/bar", "bar".to_string()),
+                               ("doc/stuff/doc1", "".to_string()),
+                               ("doc/stuff/doc2", "".to_string())])]
     };
 
     mock.build(pkgdir.path());
@@ -186,11 +132,11 @@ fn multiple_component_install() {
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent",
-                          vec![Command::File("bin/foo")],
-                          vec![("bin/foo", "foo")]),
+                          vec![MockCommand::File("bin/foo")],
+                          vec![("bin/foo", "foo".to_string())]),
                          ("mycomponent2",
-                          vec![Command::File("lib/bar")],
-                          vec![("lib/bar", "bar")])]
+                          vec![MockCommand::File("lib/bar")],
+                          vec![("lib/bar", "bar".to_string())])]
     };
 
     mock.build(pkgdir.path());
@@ -227,16 +173,16 @@ fn uninstall() {
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent",
-                          vec![Command::File("bin/foo"),
-                               Command::File("lib/bar"),
-                               Command::Dir("doc/stuff")],
-                          vec![("bin/foo", "foo"),
-                               ("lib/bar", "bar"),
-                               ("doc/stuff/doc1", ""),
-                               ("doc/stuff/doc2", "")]),
+                          vec![MockCommand::File("bin/foo"),
+                               MockCommand::File("lib/bar"),
+                               MockCommand::Dir("doc/stuff")],
+                          vec![("bin/foo", "foo".to_string()),
+                               ("lib/bar", "bar".to_string()),
+                               ("doc/stuff/doc1", "".to_string()),
+                               ("doc/stuff/doc2", "".to_string())]),
                          ("mycomponent2",
-                          vec![Command::File("lib/quux")],
-                          vec![("lib/quux", "quux")])]
+                          vec![MockCommand::File("lib/quux")],
+                          vec![("lib/quux", "quux".to_string())])]
     };
 
     mock.build(pkgdir.path());
@@ -289,8 +235,8 @@ fn component_bad_version() {
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent",
-                          vec![Command::File("bin/foo")],
-                          vec![("bin/foo", "foo")])]
+                          vec![MockCommand::File("bin/foo")],
+                          vec![("bin/foo", "foo".to_string())])]
     };
 
     mock.build(pkgdir.path());
@@ -326,18 +272,19 @@ fn component_bad_version() {
 #[cfg(unix)]
 fn unix_permissions() {
     use std::os::unix::fs::PermissionsExt;
+    use std::fs;
 
     let pkgdir = TempDir::new("multirust").unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent",
-                          vec![Command::File("bin/foo"),
-                               Command::File("lib/bar"),
-                               Command::Dir("doc/stuff")],
-                          vec![("bin/foo", "foo"),
-                               ("lib/bar", "bar"),
-                               ("doc/stuff/doc1", ""),
-                               ("doc/stuff/morestuff/doc2", "")])]
+                          vec![MockCommand::File("bin/foo"),
+                               MockCommand::File("lib/bar"),
+                               MockCommand::Dir("doc/stuff")],
+                          vec![("bin/foo", "foo".to_string()),
+                               ("lib/bar", "bar".to_string()),
+                               ("doc/stuff/doc1", "".to_string()),
+                               ("doc/stuff/morestuff/doc2", "".to_string())])]
     };
 
     mock.build(pkgdir.path());
@@ -380,8 +327,8 @@ fn install_to_prefix_that_does_not_exist() {
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent",
-                          vec![Command::File("bin/foo")],
-                          vec![("bin/foo", "foo")])]
+                          vec![MockCommand::File("bin/foo")],
+                          vec![("bin/foo", "foo".to_string())])]
     };
 
     mock.build(pkgdir.path());

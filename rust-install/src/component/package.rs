@@ -171,12 +171,33 @@ pub struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
 impl<'a> TarPackage<'a> {
     pub fn new<R: Read>(stream: R, temp_cfg: &'a temp::Cfg) -> Result<Self> {
         let temp_dir = try!(temp_cfg.new_directory());
-
         let mut archive = tar::Archive::new(stream);
-        try!(archive.unpack(&*temp_dir).map_err(Error::ExtractingPackage));
+        // The rust-installer packages unpack to a directory called
+        // $pkgname-$version-$target. Skip that directory when
+        // unpacking.
+        try!(unpack_without_first_dir(&mut archive, &*temp_dir));
 
         Ok(TarPackage(try!(DirectoryPackage::new(temp_dir.to_owned())), temp_dir))
     }
+}
+
+fn unpack_without_first_dir<R: Read>(archive: &mut tar::Archive<R>, path: &Path) -> Result<()> {
+    let entries = try!(archive.entries().map_err(Error::ExtractingPackage));
+    for entry in entries {
+        let mut entry = try!(entry.map_err(Error::ExtractingPackage));
+        let relpath = {
+            let path = entry.path();
+            let path = try!(path.map_err(Error::ExtractingPackage));
+            path.into_owned()
+        };
+        let mut components = relpath.components();
+        // Throw away the first path component
+        components.next();
+        let full_path = path.join(&components.as_path());
+        try!(entry.unpack(&full_path).map_err(Error::ExtractingPackage));
+    }
+
+    Ok(())
 }
 
 impl<'a> Package for TarPackage<'a> {
