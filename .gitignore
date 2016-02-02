@@ -3,3 +3,6 @@
 /Cargo.lock
 /rust-install/target
 /rust-install/Cargo.lock
+/rust-manifest/target
+/rust-manifest/Cargo.lock
+/.settings

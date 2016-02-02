@@ -9,7 +9,7 @@ documentation = "http://diggsey.github.io/multirust-rs/rust_manifest/index.html"
 homepage = "https://github.com/Diggsey/multirust-rs"
 repository = "https://github.com/Diggsey/multirust-rs"
 
-license = "MIT"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 toml = "0.1.23"
