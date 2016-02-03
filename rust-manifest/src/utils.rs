@@ -15,6 +15,16 @@ pub fn get_string(table: &mut toml::Table, key: &str, path: &str) -> Result<Stri
     })
 }
 
+pub fn get_bool(table: &mut toml::Table, key: &str, path: &str) -> Result<bool> {
+    get_value(table, key, path).and_then(|v| {
+        if let toml::Value::Boolean(b) = v {
+            Ok(b)
+        } else {
+            Err(Error::ExpectedType("string", path.to_owned() + key))
+        }
+    })
+}
+
 pub fn get_opt_string(table: &mut toml::Table, key: &str, path: &str) -> Result<Option<String>> {
     if let Some(v) = table.remove(key) {
         if let toml::Value::String(s) = v {

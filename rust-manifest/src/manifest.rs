@@ -1,3 +1,15 @@
+//! Rust distribution v2 manifests.
+//!
+//! This manifest describes the distributable artifacts for a single
+//! release of Rust. They are toml files, typically downloaded from
+//! e.g. static.rust-lang.org/dist/channel-rust-nightly.toml. They
+//! describe where to download, for all platforms, each component of
+//! the a release, and their relationships to each other.
+//!
+//! Installers use this info to customize Rust installations.
+//!
+//! See tests/channel-rust-nightly-example.toml for an example.
+
 use errors::*;
 use toml;
 use utils::*;
@@ -7,20 +19,7 @@ use std::collections::HashMap;
 pub const SUPPORTED_MANIFEST_VERSIONS: [&'static str; 1] = ["2"];
 pub const DEFAULT_MANIFEST_VERSION: &'static str = "2";
 
-#[derive(Clone, Debug)]
-pub struct RequiredPackage {
-    pub url: String,
-    pub hash: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct Diff {
-    pub packages: Vec<RequiredPackage>,
-    pub to_install: Vec<Component>,
-    pub to_uninstall: Vec<Component>,
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Manifest {
     pub manifest_version: String,
     pub date: String,
@@ -28,14 +27,15 @@ pub struct Manifest {
     pub packages: HashMap<String, Package>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Package {
     pub version: String,
     pub targets: HashMap<String, TargettedPackage>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TargettedPackage {
+    pub available: bool,
     pub url: String,
     pub hash: String,
     pub components: Vec<Component>,
@@ -48,21 +48,47 @@ pub struct Component {
     pub target: String,
 }
 
+// These secondary types are returned in operations on the manifest
+
+#[derive(Clone, Debug)]
+pub struct Diff {
+    pub packages: Vec<RequiredPackage>,
+    pub to_install: Vec<Component>,
+    pub to_uninstall: Vec<Component>,
+}
+
+#[derive(Clone, Debug)]
+pub struct RequiredPackage {
+    pub url: String,
+    pub hash: String,
+}
+
 impl Manifest {
-    fn get_packages(table: toml::Table, path: &str) -> Result<HashMap<String, Package>> {
-        let mut result = HashMap::new();
+    pub fn init(root_package: &str, target: &str) -> Self {
+        let mut result = Manifest {
+            manifest_version: DEFAULT_MANIFEST_VERSION.to_owned(),
+            date: String::new(),
+            root: Some(root_package.to_owned()),
+            packages: HashMap::new(),
+        };
 
-        for (k, v) in table {
-            if let toml::Value::Table(t) = v {
-                let path = format!("{}{}.", path, &k);
-                result.insert(k, try!(Package::from_toml(t, &path)));
-            }
-        }
+        result.packages.insert(root_package.to_owned(), Package::init(target));
 
-        Ok(result)
+        result
     }
+
+    pub fn parse(data: &str) -> Result<Self> {
+        let mut parser = toml::Parser::new(data);
+        let value = try!(parser.parse().ok_or_else(move || Error::Parsing(parser.errors)));
+
+        Self::from_toml(value, "")
+    }
+    pub fn stringify(self) -> String {
+        toml::Value::Table(self.to_toml()).to_string()
+    }
+
     pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
-        let version = try!(get_string(&mut table, "manifest_version", path));
+        let version = try!(get_string(&mut table, "manifest-version", path));
         if !SUPPORTED_MANIFEST_VERSIONS.contains(&&*version) {
             return Err(Error::UnsupportedVersion(version));
         }
@@ -70,23 +96,43 @@ impl Manifest {
             manifest_version: version,
             date: try!(get_string(&mut table, "date", path)),
             root: try!(get_opt_string(&mut table, "root", path)),
-            packages: try!(Self::get_packages(table, path)),
+            packages: try!(Self::table_to_packages(table, path)),
         })
     }
-    fn set_packages(packages: HashMap<String, Package>) -> toml::Table {
+    pub fn to_toml(self) -> toml::Table {
+        let mut result = toml::Table::new();
+
+        result.insert("date".to_owned(), toml::Value::String(self.date));
+        result.insert("manifest-version".to_owned(),
+                      toml::Value::String(self.manifest_version));
+
+        let packages = Self::packages_to_table(self.packages);
+        result.insert("pkg".to_owned(), toml::Value::Table(packages));
+
+        result
+    }
+
+    fn table_to_packages(mut table: toml::Table, path: &str) -> Result<HashMap<String, Package>> {
+        let mut result = HashMap::new();
+        let pkg_table = try!(get_table(&mut table, "pkg", path));
+
+        for (k, v) in pkg_table {
+            if let toml::Value::Table(t) = v {
+                result.insert(k, try!(Package::from_toml(t, &path)));
+            }
+        }
+
+        Ok(result)
+    }
+    fn packages_to_table(packages: HashMap<String, Package>) -> toml::Table {
         let mut result = toml::Table::new();
         for (k, v) in packages {
             result.insert(k, toml::Value::Table(v.to_toml()));
         }
         result
     }
-    pub fn to_toml(self) -> toml::Table {
-        let mut result = Self::set_packages(self.packages);
-        result.insert("date".to_owned(), toml::Value::String(self.date));
-        result.insert("manifest_version".to_owned(),
-                      toml::Value::String(self.manifest_version));
-        result
-    }
+
+
     pub fn get_package(&self, name: &str) -> Result<&Package> {
         self.packages.get(name).ok_or_else(|| Error::PackageNotFound(name.to_owned()))
     }
@@ -164,61 +210,57 @@ impl Manifest {
     pub fn get_root(&self) -> Result<String> {
         self.root.clone().ok_or(Error::MissingRoot)
     }
-    pub fn init(root_package: &str, target: &str) -> Self {
-        let mut result = Manifest {
-            manifest_version: DEFAULT_MANIFEST_VERSION.to_owned(),
-            date: String::new(),
-            root: Some(root_package.to_owned()),
-            packages: HashMap::new(),
-        };
-
-        result.packages.insert(root_package.to_owned(), Package::init(target));
-
-        result
-    }
-    pub fn parse(data: &str) -> Result<Self> {
-        let mut parser = toml::Parser::new(data);
-        let value = try!(parser.parse().ok_or_else(move || Error::Parsing(parser.errors)));
-
-        Self::from_toml(value, "")
-    }
-
-    pub fn stringify(self) -> String {
-        toml::Value::Table(self.to_toml()).to_string()
-    }
 }
 
 impl Package {
-    fn get_targets(table: toml::Table, path: &str) -> Result<HashMap<String, TargettedPackage>> {
-        let mut result = HashMap::new();
+    pub fn init(target: &str) -> Self {
+        let mut result = Package {
+            version: String::new(),
+            targets: HashMap::new(),
+        };
 
-        for (k, v) in table {
+        result.targets.insert(target.to_owned(), TargettedPackage::init());
+
+        result
+    }
+
+    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
+        Ok(Package {
+            version: try!(get_string(&mut table, "version", path)),
+            targets: try!(Self::toml_to_targets(table, path)),
+        })
+    }
+    pub fn to_toml(self) -> toml::Table {
+        let mut result = toml::Table::new();
+
+        result.insert("version".to_owned(), toml::Value::String(self.version));
+
+        let targets = Self::targets_to_toml(self.targets);
+        result.insert("target".to_owned(), toml::Value::Table(targets));
+
+        result
+    }
+
+    fn toml_to_targets(mut table: toml::Table, path: &str) -> Result<HashMap<String, TargettedPackage>> {
+        let mut result = HashMap::new();
+        let target_table = try!(get_table(&mut table, "target", path));
+
+        for (k, v) in target_table {
             if let toml::Value::Table(t) = v {
-                let path = format!("{}{}.", path, &k);
                 result.insert(k, try!(TargettedPackage::from_toml(t, &path)));
             }
         }
 
         Ok(result)
     }
-    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
-        Ok(Package {
-            version: try!(get_string(&mut table, "version", path)),
-            targets: try!(Self::get_targets(table, path)),
-        })
-    }
-    fn set_targets(targets: HashMap<String, TargettedPackage>) -> toml::Table {
+    fn targets_to_toml(targets: HashMap<String, TargettedPackage>) -> toml::Table {
         let mut result = toml::Table::new();
         for (k, v) in targets {
             result.insert(k, toml::Value::Table(v.to_toml()));
         }
         result
     }
-    pub fn to_toml(self) -> toml::Table {
-        let mut result = Self::set_targets(self.targets);
-        result.insert("version".to_owned(), toml::Value::String(self.version));
-        result
-    }
+
     pub fn get_target(&self, target: &str) -> Result<&TargettedPackage> {
         self.targets.get(target).ok_or_else(|| Error::TargetNotFound(target.to_owned()))
     }
@@ -238,6 +280,7 @@ impl Package {
 
         Ok(result)
     }
+
     pub fn flatten_components(&self, v: &mut Vec<Component>) {
         for (_, t) in &self.targets {
             t.flatten_components(v);
@@ -280,20 +323,39 @@ impl Package {
     pub fn root_target(&self) -> Result<String> {
         Ok(try!(self.targets.iter().next().ok_or(Error::MissingRoot)).0.clone())
     }
-    pub fn init(target: &str) -> Self {
-        let mut result = Package {
-            version: String::new(),
-            targets: HashMap::new(),
-        };
-
-        result.targets.insert(target.to_owned(), TargettedPackage::init());
-
-        result
-    }
 }
 
 impl TargettedPackage {
-    fn get_components(arr: toml::Array, path: &str) -> Result<Vec<Component>> {
+    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
+        let components = try!(get_array(&mut table, "components", path));
+        let extensions = try!(get_array(&mut table, "extensions", path));
+        Ok(TargettedPackage {
+            available: try!(get_bool(&mut table, "available", path)),
+            url: try!(get_string(&mut table, "url", path)),
+            hash: try!(get_string(&mut table, "hash", path)),
+            components: try!(Self::toml_to_components(components,
+                                                      &format!("{}{}.", path, "components"))),
+            extensions: try!(Self::toml_to_components(extensions,
+                                                      &format!("{}{}.", path, "extensions"))),
+        })
+    }
+    pub fn to_toml(self) -> toml::Table {
+        let extensions = Self::components_to_toml(self.extensions);
+        let components = Self::components_to_toml(self.components);
+        let mut result = toml::Table::new();
+        if !extensions.is_empty() {
+            result.insert("extensions".to_owned(), toml::Value::Array(extensions));
+        }
+        if !components.is_empty() {
+            result.insert("components".to_owned(), toml::Value::Array(components));
+        }
+        result.insert("hash".to_owned(), toml::Value::String(self.hash));
+        result.insert("url".to_owned(), toml::Value::String(self.url));
+        result.insert("available".to_owned(), toml::Value::Boolean(self.available));
+        result
+    }
+
+    fn toml_to_components(arr: toml::Array, path: &str) -> Result<Vec<Component>> {
         let mut result = Vec::new();
 
         for (i, v) in arr.into_iter().enumerate() {
@@ -305,41 +367,17 @@ impl TargettedPackage {
 
         Ok(result)
     }
-    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
-        let components = try!(get_array(&mut table, "components", path));
-        let extensions = try!(get_array(&mut table, "extensions", path));
-        Ok(TargettedPackage {
-            url: try!(get_string(&mut table, "url", path)),
-            hash: try!(get_string(&mut table, "hash", path)),
-            components: try!(Self::get_components(components,
-                                                  &format!("{}{}.", path, "components"))),
-            extensions: try!(Self::get_components(extensions,
-                                                  &format!("{}{}.", path, "extensions"))),
-        })
-    }
-    fn set_components(components: Vec<Component>) -> toml::Array {
+    fn components_to_toml(components: Vec<Component>) -> toml::Array {
         let mut result = toml::Array::new();
         for v in components {
             result.push(toml::Value::Table(v.to_toml()));
         }
         result
     }
-    pub fn to_toml(self) -> toml::Table {
-        let extensions = Self::set_components(self.extensions);
-        let components = Self::set_components(self.components);
-        let mut result = toml::Table::new();
-        if !extensions.is_empty() {
-            result.insert("extensions".to_owned(), toml::Value::Array(extensions));
-        }
-        if !components.is_empty() {
-            result.insert("components".to_owned(), toml::Value::Array(components));
-        }
-        result.insert("hash".to_owned(), toml::Value::String(self.hash));
-        result.insert("url".to_owned(), toml::Value::String(self.url));
-        result
-    }
+
     pub fn with_extensions<F: Fn(&Component) -> bool>(&self, extensions: F) -> Self {
         TargettedPackage {
+            available: self.available,
             url: self.url.clone(),
             hash: self.hash.clone(),
             components: self.components.clone(),
@@ -395,6 +433,7 @@ impl TargettedPackage {
     }
     pub fn init() -> Self {
         TargettedPackage {
+            available: false,
             url: String::new(),
             hash: String::new(),
             components: Vec::new(),
@@ -420,3 +459,4 @@ impl Component {
         format!("{}-{}", self.pkg, self.target)
     }
 }
+

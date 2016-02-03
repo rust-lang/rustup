@@ -6,3 +6,4 @@
 /rust-manifest/target
 /rust-manifest/Cargo.lock
 /.settings
+*~

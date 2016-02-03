@@ -58,10 +58,10 @@ impl Components {
 
         Ok(c)
     }
-    fn rel_components_file(&self) -> String {
+    fn rel_components_file(&self) -> PathBuf {
         self.prefix.rel_manifest_file(COMPONENTS_FILE)
     }
-    fn rel_component_manifest(&self, name: &str) -> String {
+    fn rel_component_manifest(&self, name: &str) -> PathBuf {
         self.prefix.rel_manifest_file(&format!("manifest-{}", name))
     }
     fn read_version(&self) -> Result<Option<String>> {
@@ -195,33 +195,30 @@ impl<'a> AddingComponent<'a> {
 
         Ok((c, tx))
     }
-    pub fn add_file(&mut self, path: String) -> Result<File> {
+    pub fn add_file(&mut self, path: PathBuf) -> Result<File> {
         self.0.add(ComponentPart("file".to_owned(), path.clone()));
         self.1.add_file(&self.0.name, path)
     }
-    pub fn add_dir(&mut self, path: String) -> Result<()> {
-        self.0.add(ComponentPart("dir".to_owned(), path.clone()));
-        self.1.add_dir(&self.0.name, path)
-    }
-    pub fn copy_file(&mut self, path: String, src: &Path) -> Result<()> {
+    pub fn copy_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
         self.0.add(ComponentPart("file".to_owned(), path.clone()));
         self.1.copy_file(&self.0.name, path, src)
     }
-    pub fn copy_dir(&mut self, path: String, src: &Path) -> Result<()> {
+    pub fn copy_dir(&mut self, path: PathBuf, src: &Path) -> Result<()> {
         self.0.add(ComponentPart("dir".to_owned(), path.clone()));
         self.1.copy_dir(&self.0.name, path, src)
     }
 }
 
-pub struct ComponentPart(pub String, pub String);
+pub struct ComponentPart(pub String, pub PathBuf);
 
 impl ComponentPart {
     pub fn encode(&self) -> String {
-        format!("{}:{}", &self.0, &self.1)
+        format!("{}:{:?}", &self.0, &self.1)
     }
     pub fn decode(line: &str) -> Option<Self> {
         line.find(":")
-            .map(|pos| ComponentPart(line[0..pos].to_owned(), line[(pos + 1)..].to_owned()))
+            .map(|pos| ComponentPart(line[0..pos].to_owned(),
+                                     PathBuf::from(&line[(pos + 1)..])))
     }
 }
 
@@ -238,7 +235,7 @@ impl Component {
     pub fn manifest_file(&self) -> PathBuf {
         self.components.prefix.manifest_file(&self.manifest_name())
     }
-    pub fn rel_manifest_file(&self) -> String {
+    pub fn rel_manifest_file(&self) -> PathBuf {
         self.components.prefix.rel_manifest_file(&self.manifest_name())
     }
     pub fn name(&self) -> &str {
@@ -264,14 +261,14 @@ impl Component {
         // Remove parts
         for part in try!(self.parts()).into_iter().rev() {
             match &*part.0 {
-                "file" => try!(tx.remove_file(part.1)),
-                "dir" => try!(tx.remove_dir(part.1)),
+                "file" => try!(tx.remove_file(&self.name, part.1)),
+                "dir" => try!(tx.remove_dir(&self.name, part.1)),
                 _ => return Err(Error::CorruptComponent(self.name.clone())),
             }
         }
 
         // Remove component manifest
-        try!(tx.remove_file(self.rel_manifest_file()));
+        try!(tx.remove_file(&self.name, self.rel_manifest_file()));
 
         Ok(tx)
     }
