@@ -10,8 +10,6 @@ matrix:
       env: TARGET=i686-apple-darwin BITS=32 MACOSX_DEPLOYMENT_TARGET=10.7
     - os: osx
       env: TARGET=x86_64-apple-darwin BITS=64 MACOSX_DEPLOYMENT_TARGET=10.7
-  allow_failures:
-    - os: osx
 
 git:
   submodules: false
