@@ -69,13 +69,13 @@ script:
 
 after_success:
   # Install kcov dependencies
-  - sudo apt-get install libcurl4-openssl-dev libelf-dev libdw-dev
-  # Download and build rust-compatible version of kcov
-  - wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz
-  - tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make
-  - sudo make install && cd ../..
-  # Generate code coverage
-  - kcov --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov target/debug/*-* rust-install/target/debug/*-* rust-manifest/target/debug/*-*
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      sudo apt-get install libcurl4-openssl-dev libelf-dev libdw-dev;
+      wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz;
+      tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make;
+      sudo make install && cd ../..;
+      kcov --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov target/debug/*-* rust-install/target/debug/*-* rust-manifest/target/debug/*-*;
+    fi
 
   # Build documentation and push release binaries
   - if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
