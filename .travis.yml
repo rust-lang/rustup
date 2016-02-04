@@ -26,10 +26,14 @@ install:
   - mkdir -p ~/rust
   - echo -e "\033[33;1mDownloading Rust\033[0m"
   - curl -sL http://static.rust-lang.org/dist/rust-nightly-$TARGET.tar.gz | tar --strip-components=1 -C ~/rust -xzf -
+  # For linux, install required packages
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      sudo apt-get update;
+      sudo apt-get install libcurl4-openssl-dev libelf-dev libdw-dev;
+    fi
   # For 32-bit platforms, install the necessary cross-toolchain
   - if [ "$TARGET" == "i686-unknown-linux-gnu" ]; then
       sudo dpkg --add-architecture i386;
-      sudo apt-get update;
       sudo apt-get install -y libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386 gcc-multilib;
     fi
   # Install nightly rust
@@ -70,7 +74,6 @@ script:
 after_success:
   # Install kcov dependencies
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      sudo apt-get install libcurl4-openssl-dev libelf-dev libdw-dev;
       wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz;
       tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make;
       sudo make install && cd ../..;
