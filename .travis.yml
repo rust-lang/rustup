@@ -34,6 +34,7 @@ install:
   # For 32-bit platforms, install the necessary cross-toolchain
   - if [ "$TARGET" == "i686-unknown-linux-gnu" ]; then
       sudo dpkg --add-architecture i386;
+      sudo apt-get update;
       sudo apt-get install -y libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386 gcc-multilib;
     fi
   # Install nightly rust
