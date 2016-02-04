@@ -29,7 +29,7 @@ install:
   # For linux, install required packages
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       sudo apt-get update;
-      sudo apt-get install libcurl4-openssl-dev libelf-dev libdw-dev;
+      sudo apt-get install -y libcurl4-openssl-dev libelf-dev libdw-dev;
     fi
   # For 32-bit platforms, install the necessary cross-toolchain
   - if [ "$TARGET" == "i686-unknown-linux-gnu" ]; then
