@@ -91,7 +91,7 @@ impl Package for DirectoryPackage {
 
         for l in manifest.lines() {
             let part = try!(ComponentPart::decode(l)
-                                .ok_or_else(|| Error::CorruptComponent(name.to_owned())));
+                            .ok_or_else(|| Error::CorruptComponent(name.to_owned())));
 
             let path = part.1;
             let src_path = root.join(&path);
@@ -105,7 +105,7 @@ impl Package for DirectoryPackage {
             try!(set_file_perms(&target.prefix().path().join(path), &src_path));
         }
 
-        let (_, tx) = try!(builder.finish());
+        let tx = try!(builder.finish());
 
         Ok(tx)
     }
