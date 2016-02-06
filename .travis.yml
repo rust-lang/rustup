@@ -29,7 +29,7 @@ install:
   # For linux, install required packages
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       sudo apt-get update;
-      sudo apt-get install -y libcurl4-openssl-dev libelf-dev libdw-dev;
+      sudo apt-get install -y libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev;
     fi
   # For 32-bit platforms, install the necessary cross-toolchain
   - if [ "$TARGET" == "i686-unknown-linux-gnu" ]; then
@@ -79,7 +79,8 @@ after_success:
       tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make;
       sudo make install && cd ../..;
       echo "Uploading coverage... $TRAVIS_JOB_ID";
-      kcov --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov target/debug/*-* rust-install/target/debug/*-* rust-manifest/target/debug/*-*;
+      find */target/debug/*-* -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
+      find target/debug/*-* -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
     fi
 
   # Build documentation and push release binaries
