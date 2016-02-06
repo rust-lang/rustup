@@ -1,4 +1,5 @@
 use toml;
+use manifest::Component;
 
 use std::error;
 use std::fmt::{self, Display};
@@ -12,6 +13,7 @@ pub enum Error {
     TargetNotFound(String),
     MissingRoot,
     UnsupportedVersion(String),
+    MissingPackageForComponent(Component),
 }
 
 impl error::Error for Error {
@@ -25,6 +27,7 @@ impl error::Error for Error {
             TargetNotFound(_) => "target not found",
             MissingRoot => "manifest has no root package",
             UnsupportedVersion(_) => "unsupported manifest version",
+            MissingPackageForComponent(_) => "missing package for component",
         }
     }
 
@@ -50,6 +53,7 @@ impl Display for Error {
             TargetNotFound(ref n) => write!(f, "target not found: '{}'", n),
             MissingRoot => write!(f, "manifest has no root package"),
             UnsupportedVersion(ref v) => write!(f, "manifest version '{}' is not supported", v),
+            MissingPackageForComponent(ref c) => write!(f,"manifest missing package for component {}", c.name()),
         }
     }
 }

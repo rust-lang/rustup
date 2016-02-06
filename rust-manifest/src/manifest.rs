@@ -52,7 +52,10 @@ impl Manifest {
         let mut parser = toml::Parser::new(data);
         let value = try!(parser.parse().ok_or_else(move || Error::Parsing(parser.errors)));
 
-        Self::from_toml(value, "")
+        let manifest = try!(Self::from_toml(value, ""));
+        try!(manifest.validate());
+
+        Ok(manifest)
     }
     pub fn stringify(self) -> String {
         toml::Value::Table(self.to_toml()).to_string()
@@ -105,6 +108,20 @@ impl Manifest {
 
     pub fn get_package(&self, name: &str) -> Result<&Package> {
         self.packages.get(name).ok_or_else(|| Error::PackageNotFound(name.to_owned()))
+    }
+
+    fn validate(&self) -> Result<()> {
+        // Every component mentioned must have an actual package to download
+        for (_, pkg) in &self.packages {
+            for (_, tpkg) in &pkg.targets {
+                for c in tpkg.components.iter().chain(tpkg.extensions.iter()) {
+                    let cpkg = try!(self.get_package(&c.pkg).map_err(|_| Error::MissingPackageForComponent(c.clone())));
+                    let _ctpkg = try!(cpkg.get_target(&c.target).map_err(|_| Error::MissingPackageForComponent(c.clone())));
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
