@@ -2,7 +2,7 @@
 use clap::*;
 
 pub fn get() -> App<'static, 'static, 'static, 'static, 'static, 'static> {
-	App::new("multirust-rs")
+    App::new("multirust-rs")
 		.version("0.0.4")
 		.author("Diggory Blake")
 		.about("Port of multirust to rust")
@@ -208,7 +208,7 @@ By default, it opens the API documentation for the standard library.
 }
 
 fn install_args() -> Vec<Arg<'static, 'static, 'static, 'static, 'static, 'static>> {
-	vec![
+    vec![
 		Arg::with_name("copy-local")
 			.long("copy-local")
 			.help(r"
@@ -252,9 +252,9 @@ fn install_args() -> Vec<Arg<'static, 'static, 'static, 'static, 'static, 'stati
 }
 
 fn install_group() -> ArgGroup<'static, 'static> {
-	ArgGroup::with_name("toolchain-source")
-		.add("copy-local")
-		.add("link-local")
-		.add("installer")
-		.requires("toolchain")
+    ArgGroup::with_name("toolchain-source")
+        .add("copy-local")
+        .add("link-local")
+        .add("installer")
+        .requires("toolchain")
 }
