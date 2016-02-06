@@ -1,3 +1,9 @@
+//! Mocks for testing
+//!
+//! FIXM: This belongs in some other crate
+
+pub mod dist;
+
 use std::fs::{self, OpenOptions, File};
 use std::path::Path;
 use std::io::Write;
