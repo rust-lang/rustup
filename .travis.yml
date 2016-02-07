@@ -1,7 +1,7 @@
 matrix:
   include:
     - os: linux
-      env: TARGET=i686-unknown-linux-gnu BITS=32
+      env: TARGET=i686-unknown-linux-gnu BITS=32 CFLAGS=-m32 CXXFLAGS=-m32
       dist: trusty
     - os: linux
       env: TARGET=x86_64-unknown-linux-gnu BITS=64
@@ -18,21 +18,34 @@ sudo: required
 services:
   - docker
 install:
+  # Set git user for pushing binaries
   - git config --global user.email "diggsey@googlemail.com"
   - git config --global user.name "Diggory Blake (via Travis CI)"
   - git config --global push.default simple
+  # Download nightly rust
   - mkdir -p ~/rust
   - echo -e "\033[33;1mDownloading Rust\033[0m"
   - curl -sL http://static.rust-lang.org/dist/rust-nightly-$TARGET.tar.gz | tar --strip-components=1 -C ~/rust -xzf -
-  - if [ "$TARGET" == "i686-unknown-linux-gnu" ]; then
-      sudo dpkg --add-architecture i386;
-      sudo apt-get update;
-      sudo apt-get install -y libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386 gcc-multilib;
+  # For linux, install required packages
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      if [ "$BITS" == "32" ]; then
+        sudo dpkg --add-architecture i386;
+        sudo apt-get update;
+        sudo apt-get install -y
+          libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386
+          gcc-multilib g++-multilib libcurl4-openssl-dev:i386 libelf-dev:i386 libdw-dev:i386;
+      else
+        sudo apt-get update;
+        sudo apt-get install -y
+          libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev;
+      fi
     fi
+  # Install nightly rust
   - echo -e "\033[33;1mInstalling Rust\033[0m"
   - sudo ~/rust/install.sh
 
 script:
+  # Run linux builds in a docker container to improve portability of the resulting binaries
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       docker run
         --entrypoint bash
@@ -49,20 +62,35 @@ script:
     else
       cargo build --release --verbose;
     fi
+  # Compute sha-256 hashes of all build artifacts
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
       find "target/release/" -maxdepth 1 -type f -exec sh -c 'shasum -a 256 -b "{}" | cut -d\  -f1 > "{}.sha256"' \;;
     else
       find "target/release/" -maxdepth 1 -type f -exec sh -c 'sha256sum -b "{}" | cut -d\  -f1 > "{}.sha256"' \;;
     fi
+  # Run cargo tests
   - cargo test --verbose
   - cargo test -p rust-install --verbose
   - cargo test -p rust-manifest --verbose
+  # Run end-to-end tests
   - tests/cli.sh
 
 after_success:
+  # Install kcov dependencies
+  - if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
+      wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz;
+      tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make;
+      sudo make install && cd ../..;
+      echo "Uploading coverage... $TRAVIS_JOB_ID";
+      find target/debug/deps/*-* -executable -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
+      find target/debug/*-* -executable -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
+    fi
+
+  # Build documentation and push release binaries
   - if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
       git config --global credential.helper store;
       echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials;
+
       if [ "$TRAVIS_BRANCH" == "master" ]; then
         if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
           cargo doc;
@@ -71,16 +99,20 @@ after_success:
           ghp-import -n target/doc;
           git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages;
         fi;
+
         bin=./binaries/$TARGET;
       else
         bin=./binaries/$TRAVIS_BRANCH/$TARGET;
       fi;
+
       git submodule init;
       git submodule update --depth 1 --remote;
+
       mkdir -p "$bin";
       rm $bin/*;
       find "target/release/" -maxdepth 1 -type f -exec cp "{}" "$bin" \;;
       git rev-parse HEAD > "$bin/commit.txt";
+
       cd binaries;
       git checkout master;
       git add -A;
