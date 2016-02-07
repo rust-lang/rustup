@@ -33,8 +33,7 @@ install:
         sudo apt-get update;
         sudo apt-get install -y
           libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386
-          gcc-multilib g++-multilib libcurl4-openssl-dev:i386 libelf-dev:i386 libdw-dev:i386
-          libbfd-dev:i386 libiberty-dev:i386;
+          gcc-multilib g++-multilib libcurl4-openssl-dev:i386 libelf-dev:i386 libdw-dev:i386;
       else
         sudo apt-get update;
         sudo apt-get install -y
@@ -78,7 +77,7 @@ script:
 
 after_success:
   # Install kcov dependencies
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+  - if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
       wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz;
       tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make;
       sudo make install && cd ../..;
