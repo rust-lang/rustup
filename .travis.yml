@@ -33,8 +33,7 @@ install:
         sudo apt-get update;
         sudo apt-get install -y
           libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386
-          gcc-multilib libcurl4-openssl-dev:i386 libelf-dev:i386 libdw-dev:i386
-          binutils:i386 binutils-dev:i386 libiberty-dev:i386;
+          gcc-multilib libcurl4-openssl-dev:i386 libelf-dev:i386 libdw-dev:i386 libiberty-dev:i386;
       else
         sudo apt-get update;
         sudo apt-get install -y
