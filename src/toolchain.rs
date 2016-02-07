@@ -11,6 +11,7 @@ use regex::Regex;
 use hyper;
 use rust_install;
 
+#[derive(Debug)]
 pub struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: String,

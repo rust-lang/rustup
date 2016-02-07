@@ -7,7 +7,7 @@ use install::InstallPrefix;
 use errors::*;
 
 use component::transaction::Transaction;
-use component::package::{Package, INSTALLER_VERSION, VERSION_FILE};
+use component::package::{PackageDebug, INSTALLER_VERSION, VERSION_FILE};
 
 use std::path::{Path, PathBuf};
 use std::fs::File;
@@ -15,8 +15,9 @@ use std::io::Write;
 
 const COMPONENTS_FILE: &'static str = "components";
 
+#[derive(Debug)]
 pub struct ChangeSet<'a> {
-    pub packages: Vec<Box<Package + 'a>>,
+    pub packages: Vec<Box<PackageDebug + 'a>>,
     pub to_install: Vec<String>,
     pub to_uninstall: Vec<String>,
 }
@@ -35,7 +36,7 @@ impl<'a> ChangeSet<'a> {
     pub fn uninstall(&mut self, component: String) {
         self.to_uninstall.push(component);
     }
-    pub fn add_package<P: Package + 'a>(&mut self, package: P) {
+    pub fn add_package<P: PackageDebug + 'a>(&mut self, package: P) {
         self.packages.push(Box::new(package));
     }
 }
@@ -143,6 +144,7 @@ impl Components {
     }
 }
 
+#[derive(Debug)]
 struct ComponentBuilder {
     components: Components,
     name: String,
@@ -185,6 +187,7 @@ impl ComponentBuilder {
     }
 }
 
+#[derive(Debug)]
 pub struct AddingComponent<'a>(ComponentBuilder, Transaction<'a>);
 
 impl<'a> AddingComponent<'a> {
@@ -209,6 +212,7 @@ impl<'a> AddingComponent<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct ComponentPart(pub String, pub PathBuf);
 
 impl ComponentPart {
@@ -222,7 +226,7 @@ impl ComponentPart {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Component {
     components: Components,
     name: String,

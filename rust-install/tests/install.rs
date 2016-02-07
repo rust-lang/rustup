@@ -13,6 +13,7 @@ use std::path::Path;
 use tempdir::TempDir;
 
 // Mock of the on-disk structure of rust-installer installers
+#[derive(Debug)]
 struct MockInstallerBuilder {
     components: Vec<MockComponent>,
 }
@@ -21,6 +22,7 @@ struct MockInstallerBuilder {
 // (either "file:" or "dir:") and the file paths and contents.
 type MockComponent = (&'static str, Vec<Command>, Vec<(&'static str, &'static str)>);
 
+#[derive(Debug)]
 enum Command {
     File(&'static str),
     Dir(&'static str)

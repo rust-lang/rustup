@@ -14,6 +14,7 @@ use temp;
 
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
+use std::fmt;
 use std::io::Read;
 use std::fs::File;
 
@@ -31,6 +32,10 @@ pub trait Package {
                    -> Result<Transaction<'a>>;
 }
 
+pub trait PackageDebug: Package + fmt::Debug {}
+impl<T: Package + fmt::Debug> PackageDebug for T {}
+
+#[derive(Debug)]
 pub struct DirectoryPackage {
     path: PathBuf,
     components: HashSet<String>,
@@ -163,6 +168,7 @@ fn set_file_perms(_dest_path: &Path, _src_path: &Path) -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug)]
 pub struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
 
 impl<'a> TarPackage<'a> {
@@ -190,6 +196,7 @@ impl<'a> Package for TarPackage<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct TarGzPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarGzPackage<'a> {

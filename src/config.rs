@@ -15,6 +15,7 @@ use toolchain::Toolchain;
 
 pub const METADATA_VERSION: &'static str = "2";
 
+#[derive(Debug)]
 pub enum OverrideReason {
     Environment,
     OverrideDB(PathBuf),
@@ -31,6 +32,7 @@ impl Display for OverrideReason {
     }
 }
 
+#[derive(Debug)]
 pub struct Cfg {
     pub multirust_dir: PathBuf,
     pub version_file: PathBuf,

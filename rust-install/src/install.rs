@@ -38,6 +38,7 @@ pub enum InstallType {
     Shared,
 }
 
+#[derive(Debug)]
 pub enum Uninstaller {
     Sh(PathBuf),
     Msi(String),
@@ -57,6 +58,7 @@ impl Uninstaller {
     }
 }
 
+#[derive(Debug)]
 pub enum InstallMethod<'a> {
     Copy(&'a Path),
     Link(&'a Path),

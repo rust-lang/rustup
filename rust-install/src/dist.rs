@@ -14,6 +14,7 @@ use itertools::Itertools;
 pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
 pub const UPDATE_HASH_LEN: usize = 20;
 
+#[derive(Debug)]
 pub struct ToolchainDesc {
     pub arch: Option<String>,
     pub os: Option<String>,
@@ -106,6 +107,7 @@ impl ToolchainDesc {
     }
 }
 
+#[derive(Debug)]
 pub struct Manifest<'a>(temp::File<'a>, String);
 
 impl<'a> Manifest<'a> {
@@ -197,7 +199,7 @@ pub fn download_and_check<'a>(url_str: &str,
     Ok(Some((file, partial_hash)))
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct DownloadCfg<'a> {
     pub dist_root: &'a str,
     pub temp_cfg: &'a temp::Cfg,

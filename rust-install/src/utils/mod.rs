@@ -16,6 +16,7 @@ pub mod raw;
 pub use self::raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
                     home_dir, has_cmd, find_cmd};
 
+#[derive(Debug)]
 pub enum Notification<'a> {
     CreatingDirectory(&'a str, &'a Path),
     LinkingDirectory(&'a Path, &'a Path),

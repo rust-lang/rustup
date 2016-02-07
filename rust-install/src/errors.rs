@@ -9,6 +9,7 @@ use walkdir;
 
 use notify::{NotificationLevel, Notifyable};
 
+#[derive(Debug)]
 pub enum Notification<'a> {
     Utils(utils::Notification<'a>),
     Temp(temp::Notification<'a>),
