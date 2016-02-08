@@ -1,5 +1,6 @@
 use toml;
 
+use std::error;
 use std::fmt::{self, Display};
 
 #[derive(Debug)]
@@ -11,6 +12,25 @@ pub enum Error {
     TargetNotFound(String),
     MissingRoot,
     UnsupportedVersion(String),
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        use self::Error::*;
+        match *self {
+            Parsing(_) => "error parsing manifest",
+            MissingKey(_) => "missing key",
+            ExpectedType(_, _) => "expected type",
+            PackageNotFound(_) => "package not found",
+            TargetNotFound(_) => "target not found",
+            MissingRoot => "manifest has no root package",
+            UnsupportedVersion(_) => "unsupported manifest version",
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        None
+    }
 }
 
 impl Display for Error {
