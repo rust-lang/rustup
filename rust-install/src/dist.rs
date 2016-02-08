@@ -30,9 +30,9 @@ impl ToolchainDesc {
         let channels = ["nightly", "beta", "stable"];
 
         let pattern = format!(
-			r"^(?:({})-)?(?:({})-)?(?:({})-)?({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?$",
-			archs.join("|"), oses.join("|"), envs.join("|"), channels.join("|")
-			);
+            r"^(?:({})-)?(?:({})-)?(?:({})-)?({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?$",
+            archs.join("|"), oses.join("|"), envs.join("|"), channels.join("|")
+            );
 
         let re = Regex::new(&pattern).unwrap();
         re.captures(name).map(|c| {

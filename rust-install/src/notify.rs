@@ -78,62 +78,62 @@ pub enum NotificationLevel {
 }
 #[macro_export]
 macro_rules! extend_error {
-	($cur:ty: $base:ty, $p:ident => $e:expr) => (
-		impl From<$base> for $cur {
-			fn from($p: $base) -> $cur {
-				$e
-			}
-		}
-	)
+    ($cur:ty: $base:ty, $p:ident => $e:expr) => (
+        impl From<$base> for $cur {
+            fn from($p: $base) -> $cur {
+                $e
+            }
+        }
+    )
 }
 #[macro_export]
 macro_rules! extend_notification {
-	($( $cur:ident )::*: $( $base:ident )::*, $p:ident => $e:expr) => (
-		impl<'a, 'b> $crate::notify::Notifyable<$($base)::*<'a>> for $crate::notify::NotifyHandler<'b, for<'c> $crate::notify::Notifyable<$($cur)::*<'c>>> {
-			fn call(&self, $p: $($base)::*<'a>) {
-				self.call($e)
-			}
-		}
-		impl<'a> $crate::notify::Notifyable<$($base)::*<'a>> for $crate::notify::SharedNotifyHandler<for<'b> $crate::notify::Notifyable<$($cur)::*<'b>>> {
-			fn call(&self, $p: $($base)::*<'a>) {
-				self.call($e)
-			}
-		}
-	)
+    ($( $cur:ident )::*: $( $base:ident )::*, $p:ident => $e:expr) => (
+        impl<'a, 'b> $crate::notify::Notifyable<$($base)::*<'a>> for $crate::notify::NotifyHandler<'b, for<'c> $crate::notify::Notifyable<$($cur)::*<'c>>> {
+            fn call(&self, $p: $($base)::*<'a>) {
+                self.call($e)
+            }
+        }
+        impl<'a> $crate::notify::Notifyable<$($base)::*<'a>> for $crate::notify::SharedNotifyHandler<for<'b> $crate::notify::Notifyable<$($cur)::*<'b>>> {
+            fn call(&self, $p: $($base)::*<'a>) {
+                self.call($e)
+            }
+        }
+    )
 }
 #[macro_export]
 macro_rules! declare_notification {
-	($( $cur:ident )::*: $( $base:ident )::*, $p:ident => $e:expr) => (
-		impl<'a, 'b> $crate::notify::Notifyable<$($base)::*<'a>> for $crate::notify::NotifyHandler<'b, for<'c> $crate::notify::Notifyable<$($cur)::*<'c>>> {
-			fn call(&self, $p: $($base)::*<'a>) {
-				self.call($e)
-			}
-		}
-		impl<'a> $crate::notify::Notifyable<$($base)::*<'a>> for $crate::notify::SharedNotifyHandler<for<'b> $crate::notify::Notifyable<$($cur)::*<'b>>> {
-			fn call(&self, $p: $($base)::*<'a>) {
-				self.call($e)
-			}
-		}
-	)
+    ($( $cur:ident )::*: $( $base:ident )::*, $p:ident => $e:expr) => (
+        impl<'a, 'b> $crate::notify::Notifyable<$($base)::*<'a>> for $crate::notify::NotifyHandler<'b, for<'c> $crate::notify::Notifyable<$($cur)::*<'c>>> {
+            fn call(&self, $p: $($base)::*<'a>) {
+                self.call($e)
+            }
+        }
+        impl<'a> $crate::notify::Notifyable<$($base)::*<'a>> for $crate::notify::SharedNotifyHandler<for<'b> $crate::notify::Notifyable<$($cur)::*<'b>>> {
+            fn call(&self, $p: $($base)::*<'a>) {
+                self.call($e)
+            }
+        }
+    )
 }
 #[macro_export]
 macro_rules! ntfy {
-	($e:expr) => (
-		$crate::notify::NotifyHandler::some($e)
-	)
+    ($e:expr) => (
+        $crate::notify::NotifyHandler::some($e)
+    )
 }
 #[macro_export]
 macro_rules! shared_ntfy {
-	($e:expr) => (
-		$crate::notify::SharedNotifyHandler::some(::std::sync::Arc::new($e))
-	)
+    ($e:expr) => (
+        $crate::notify::SharedNotifyHandler::some(::std::sync::Arc::new($e))
+    )
 }
 #[macro_export]
 macro_rules! ok_ntfy {
-	($n:expr, $w:path, $e:expr) => (
-		match $e {
-			Err(e) => { $n.call($w(&e)); None },
-			Ok(r) => Some(r)
-		}
-	)
+    ($n:expr, $w:path, $e:expr) => (
+        match $e {
+            Err(e) => { $n.call($w(&e)); None },
+            Ok(r) => Some(r)
+        }
+    )
 }
