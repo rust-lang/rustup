@@ -7,7 +7,7 @@ use install::InstallPrefix;
 use errors::*;
 
 use component::transaction::Transaction;
-use component::package::{PackageDebug, INSTALLER_VERSION, VERSION_FILE};
+use component::package::{Package, INSTALLER_VERSION, VERSION_FILE};
 
 use std::path::{Path, PathBuf};
 use std::fs::File;
@@ -17,7 +17,7 @@ const COMPONENTS_FILE: &'static str = "components";
 
 #[derive(Debug)]
 pub struct ChangeSet<'a> {
-    pub packages: Vec<Box<PackageDebug + 'a>>,
+    pub packages: Vec<Box<Package + 'a>>,
     pub to_install: Vec<String>,
     pub to_uninstall: Vec<String>,
 }
@@ -36,7 +36,7 @@ impl<'a> ChangeSet<'a> {
     pub fn uninstall(&mut self, component: String) {
         self.to_uninstall.push(component);
     }
-    pub fn add_package<P: PackageDebug + 'a>(&mut self, package: P) {
+    pub fn add_package<P: Package + 'a>(&mut self, package: P) {
         self.packages.push(Box::new(package));
     }
 }

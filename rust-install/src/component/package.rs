@@ -22,7 +22,7 @@ use std::fs::File;
 pub const INSTALLER_VERSION: &'static str = "3";
 pub const VERSION_FILE: &'static str = "rust-installer-version";
 
-pub trait Package {
+pub trait Package: fmt::Debug {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool;
     fn install<'a>(&self,
                    target: &Components,
@@ -31,9 +31,6 @@ pub trait Package {
                    tx: Transaction<'a>)
                    -> Result<Transaction<'a>>;
 }
-
-pub trait PackageDebug: Package + fmt::Debug {}
-impl<T: Package + fmt::Debug> PackageDebug for T {}
 
 #[derive(Debug)]
 pub struct DirectoryPackage {
