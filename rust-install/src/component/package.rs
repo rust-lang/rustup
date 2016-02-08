@@ -14,6 +14,7 @@ use temp;
 
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
+use std::fmt;
 use std::io::Read;
 use std::fs::File;
 
@@ -21,7 +22,7 @@ use std::fs::File;
 pub const INSTALLER_VERSION: &'static str = "3";
 pub const VERSION_FILE: &'static str = "rust-installer-version";
 
-pub trait Package {
+pub trait Package: fmt::Debug {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool;
     fn install<'a>(&self,
                    target: &Components,
@@ -31,6 +32,7 @@ pub trait Package {
                    -> Result<Transaction<'a>>;
 }
 
+#[derive(Debug)]
 pub struct DirectoryPackage {
     path: PathBuf,
     components: HashSet<String>,
@@ -163,6 +165,7 @@ fn set_file_perms(_dest_path: &Path, _src_path: &Path) -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug)]
 pub struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
 
 impl<'a> TarPackage<'a> {
@@ -190,6 +193,7 @@ impl<'a> Package for TarPackage<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct TarGzPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarGzPackage<'a> {

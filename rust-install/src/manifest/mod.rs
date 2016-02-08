@@ -8,6 +8,7 @@ use install::InstallPrefix;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;
 
+#[derive(Debug)]
 pub struct Changes {
     pub add_extensions: Vec<Component>,
     pub remove_extensions: Vec<Component>,
@@ -25,6 +26,7 @@ impl Changes {
 pub const DIST_MANIFEST: &'static str = "dist.toml";
 pub const PACKAGES_MANIFEST: &'static str = "packages.toml";
 
+#[derive(Debug)]
 pub struct Manifestation(Components);
 
 impl Manifestation {

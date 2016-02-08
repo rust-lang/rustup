@@ -8,6 +8,7 @@ use itertools::Itertools;
 use std::path::Path;
 use std::process::Command;
 
+#[derive(Debug)]
 pub struct DownloadCfg<'a> {
     pub temp_cfg: &'a temp::Cfg,
     pub notify_handler: NotifyHandler<'a>,

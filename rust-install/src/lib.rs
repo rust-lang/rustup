@@ -1,3 +1,4 @@
+#![feature(core_intrinsics)] // For type_name().
 #![feature(fundamental)]
 
 extern crate rand;

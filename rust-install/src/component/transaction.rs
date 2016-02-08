@@ -31,6 +31,7 @@ use std::path::{Path, PathBuf};
 ///
 /// All operations that create files will fail if the destination
 /// already exists.
+#[derive(Debug)]
 pub struct Transaction<'a> {
     prefix: InstallPrefix,
     changes: Vec<ChangedItem<'a>>,
@@ -160,6 +161,7 @@ impl<'a> Drop for Transaction<'a> {
 /// Transaction. More complicated operations, such as installing a
 /// package, or updating a component, distill down into a series of
 /// these primitives.
+#[derive(Debug)]
 enum ChangedItem<'a> {
     AddedFile(PathBuf),
     AddedDir(PathBuf),

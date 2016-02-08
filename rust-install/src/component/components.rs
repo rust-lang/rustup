@@ -15,6 +15,7 @@ use std::io::Write;
 
 const COMPONENTS_FILE: &'static str = "components";
 
+#[derive(Debug)]
 pub struct ChangeSet<'a> {
     pub packages: Vec<Box<Package + 'a>>,
     pub to_install: Vec<String>,
@@ -143,6 +144,7 @@ impl Components {
     }
 }
 
+#[derive(Debug)]
 struct ComponentBuilder {
     components: Components,
     name: String,
@@ -185,6 +187,7 @@ impl ComponentBuilder {
     }
 }
 
+#[derive(Debug)]
 pub struct AddingComponent<'a>(ComponentBuilder, Transaction<'a>);
 
 impl<'a> AddingComponent<'a> {
@@ -209,6 +212,7 @@ impl<'a> AddingComponent<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct ComponentPart(pub String, pub PathBuf);
 
 impl ComponentPart {
@@ -222,7 +226,7 @@ impl ComponentPart {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Component {
     components: Components,
     name: String,

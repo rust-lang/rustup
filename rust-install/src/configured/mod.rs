@@ -8,6 +8,7 @@ use manifest;
 
 pub const CONFIG_FILE: &'static str = "config.toml";
 
+#[derive(Debug)]
 pub struct Configuration {
     prefix: InstallPrefix,
     config: Config,

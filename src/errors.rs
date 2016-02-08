@@ -4,6 +4,7 @@ use std::fmt::{self, Display};
 use rust_install::{self, utils, temp};
 use rust_install::notify::{self, NotificationLevel, Notifyable};
 
+#[derive(Debug)]
 pub enum Notification<'a> {
     Install(rust_install::Notification<'a>),
     Utils(utils::Notification<'a>),
@@ -26,6 +27,7 @@ pub enum Notification<'a> {
     NonFatalError(&'a Error),
 }
 
+#[derive(Debug)]
 pub enum Error {
     Install(rust_install::Error),
     Utils(utils::Error),

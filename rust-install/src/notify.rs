@@ -1,3 +1,5 @@
+use std::fmt;
+use std::intrinsics::type_name;
 use std::sync::Arc;
 
 #[fundamental]
@@ -11,9 +13,14 @@ impl<N, F: ?Sized + Fn(N)> Notifyable<N> for F {
     }
 }
 
-#[derive(Debug)]
 #[fundamental]
 pub struct NotifyHandler<'a, T: 'a + ?Sized>(Option<&'a T>);
+
+impl<'a, T: 'a + ?Sized> fmt::Debug for NotifyHandler<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+	write!(f, "NotifyHandler<{}>", unsafe { type_name::<T>() })
+    }
+}
 
 impl<'a, T: 'a + ?Sized> Copy for NotifyHandler<'a, T> {}
 impl<'a, T: 'a + ?Sized> Clone for NotifyHandler<'a, T> {
@@ -22,13 +29,18 @@ impl<'a, T: 'a + ?Sized> Clone for NotifyHandler<'a, T> {
     }
 }
 
-#[derive(Debug)]
 #[fundamental]
 pub struct SharedNotifyHandler<T: ?Sized>(Option<Arc<T>>);
 
 impl<T: ?Sized> Clone for SharedNotifyHandler<T> {
     fn clone(&self) -> Self {
         SharedNotifyHandler(self.0.clone())
+    }
+}
+
+impl<T: ?Sized> fmt::Debug for SharedNotifyHandler<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+	write!(f, "SharedNotifyHandler<{}>", unsafe { type_name::<T>() })
     }
 }
 

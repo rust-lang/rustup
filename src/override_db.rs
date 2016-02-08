@@ -5,6 +5,7 @@ use rust_install::{utils, temp};
 
 pub const DB_DELIMITER: &'static str = ";";
 
+#[derive(Debug)]
 pub struct OverrideDB(PathBuf);
 
 impl OverrideDB {

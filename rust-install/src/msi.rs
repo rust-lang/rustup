@@ -7,9 +7,12 @@ use std::io;
 use std::iter;
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct Installers(RegKey);
+#[derive(Debug)]
 pub struct AllInstallers(Installers, Installers);
 
+#[derive(Debug)]
 pub struct Installer {
     id: String,
     key: RegKey,

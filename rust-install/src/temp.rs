@@ -27,6 +27,7 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 pub type NotifyHandler<'a> = notify::NotifyHandler<'a, for<'b> Notifyable<Notification<'b>>>;
 pub type SharedNotifyHandler = notify::SharedNotifyHandler<for<'b> Notifyable<Notification<'b>>>;
 
+#[derive(Debug)]
 pub enum Notification<'a> {
     CreatingRoot(&'a Path),
     CreatingFile(&'a Path),
@@ -35,16 +36,19 @@ pub enum Notification<'a> {
     DirectoryDeletion(&'a Path, io::Result<()>),
 }
 
+#[derive(Debug)]
 pub struct Cfg {
     root_directory: PathBuf,
     notify_handler: SharedNotifyHandler,
 }
 
+#[derive(Debug)]
 pub struct Dir<'a> {
     cfg: &'a Cfg,
     path: PathBuf,
 }
 
+#[derive(Debug)]
 pub struct File<'a> {
     cfg: &'a Cfg,
     path: PathBuf,
