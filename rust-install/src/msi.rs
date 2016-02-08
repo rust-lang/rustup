@@ -72,7 +72,7 @@ impl Installer {
 
 impl<'a> IntoIterator for &'a Installers {
     type IntoIter = InstallerIter<'a>;
-	type Item = Installer;
+    type Item = Installer;
 
     fn into_iter(self) -> InstallerIter<'a> {
         self.iter()
@@ -87,7 +87,7 @@ impl AllInstallers {
 
 impl<'a> IntoIterator for &'a AllInstallers {
     type IntoIter = iter::Chain<InstallerIter<'a>, InstallerIter<'a>>;
-	type Item = Installer;
+    type Item = Installer;
 
     fn into_iter(self) -> iter::Chain<InstallerIter<'a>, InstallerIter<'a>> {
         self.iter()

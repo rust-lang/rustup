@@ -38,13 +38,13 @@ use itertools::Itertools;
 mod cli;
 
 macro_rules! warn {
-	( $ ( $ arg : tt ) * ) => ( $crate::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( $crate::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 macro_rules! err {
-	( $ ( $ arg : tt ) * ) => ( $crate::err_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( $crate::err_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 macro_rules! info {
-	( $ ( $ arg : tt ) * ) => ( $crate::info_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( $crate::info_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 
 fn warn_fmt(args: fmt::Arguments) {
