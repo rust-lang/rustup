@@ -344,7 +344,7 @@ impl InstallPrefix {
         env_var::inc("RUST_RECURSION_COUNT", cmd);
     }
 
-    pub fn create_command(&self, binary: &str, cargo_home: &Path) -> Command {
+    pub fn create_command<T: AsRef<OsStr>>(&self, binary: T, cargo_home: &Path) -> Command {
         let mut cmd = Command::new(binary);
 
         self.set_env(&mut cmd, cargo_home);
