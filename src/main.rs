@@ -76,7 +76,7 @@ fn info_fmt(args: fmt::Arguments) {
 
 fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
     // Base config
-    let verbose = m.map(|m| m.is_present("verbose")).unwrap_or(false);
+    let verbose = m.map_or(false, |m| m.is_present("verbose"));
     Cfg::from_env(shared_ntfy!(move |n: Notification| {
         use multirust::notify::NotificationLevel::*;
         match n.level() {
@@ -227,11 +227,11 @@ fn run_multirust() -> Result<()> {
     let cfg = try!(set_globals(Some(&app_matches)));
 
     match app_matches.subcommand_name() {
-        Some("upgrade-data") | Some("delete-data") | Some("install") | Some("uninstall") => {} // Don't need consistent metadata
+        Some("upgrade-data") | Some("delete-data") | Some("install") | 
+        Some("uninstall") | None => {} // Don't need consistent metadata
         Some(_) => {
             try!(cfg.check_metadata_version());
         }
-        _ => {}
     }
 
     // Make sure everything is set-up correctly
@@ -441,7 +441,6 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
         let home_dir = try!(utils::home_dir().ok_or(utils::Error::LocatingHome));
         let tmp = path.into_os_string()
                       .into_string()
-                      .ok()
                       .expect("cannot install to invalid unicode path");
         try!(utils::append_file(".profile",
                                 &home_dir.join(".profile"),
@@ -464,13 +463,12 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 }
 
 fn self_uninstall(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    if !m.is_present("no-prompt") {
-        if !ask("This will delete all toolchains, overrides, aliases, and other multirust data \
-                 associated with this user. Continue?")
-                .unwrap_or(false) {
-            println!("aborting");
-            return Ok(());
-        }
+    if !m.is_present("no-prompt") &&
+       !ask("This will delete all toolchains, overrides, aliases, and other multirust data \
+            associated with this user. Continue?")
+            .unwrap_or(false) {
+        println!("aborting");
+        return Ok(());
     }
 
     #[cfg(windows)]
@@ -711,13 +709,12 @@ fn ask(question: &str) -> Option<bool> {
 }
 
 fn delete_data(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    if !m.is_present("no-prompt") {
-        if !ask("This will delete all toolchains, overrides, aliases, and other multirust data \
-                 associated with this user. Continue?")
-                .unwrap_or(false) {
-            println!("aborting");
-            return Ok(());
-        }
+    if !m.is_present("no-prompt") && 
+       !ask("This will delete all toolchains, overrides, aliases, and other multirust data \
+             associated with this user. Continue?")
+            .unwrap_or(false) {
+        println!("aborting");
+        return Ok(());
     }
 
     cfg.delete_data()
