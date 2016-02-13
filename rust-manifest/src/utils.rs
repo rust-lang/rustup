@@ -25,18 +25,6 @@ pub fn get_bool(table: &mut toml::Table, key: &str, path: &str) -> Result<bool> 
     })
 }
 
-pub fn get_opt_string(table: &mut toml::Table, key: &str, path: &str) -> Result<Option<String>> {
-    if let Some(v) = table.remove(key) {
-        if let toml::Value::String(s) = v {
-            Ok(Some(s))
-        } else {
-            Err(Error::ExpectedType("string", path.to_owned() + key))
-        }
-    } else {
-        Ok(None)
-    }
-}
-
 pub fn get_table(table: &mut toml::Table, key: &str, path: &str) -> Result<toml::Table> {
     if let Some(v) = table.remove(key) {
         if let toml::Value::Table(t) = v {
@@ -46,21 +34,6 @@ pub fn get_table(table: &mut toml::Table, key: &str, path: &str) -> Result<toml:
         }
     } else {
         Ok(toml::Table::new())
-    }
-}
-
-pub fn get_opt_table(table: &mut toml::Table,
-                     key: &str,
-                     path: &str)
-                     -> Result<Option<toml::Table>> {
-    if let Some(v) = table.remove(key) {
-        if let toml::Value::Table(t) = v {
-            Ok(Some(t))
-        } else {
-            Err(Error::ExpectedType("table", path.to_owned() + key))
-        }
-    } else {
-        Ok(None)
     }
 }
 

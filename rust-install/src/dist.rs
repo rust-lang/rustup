@@ -73,7 +73,13 @@ impl ToolchainDesc {
         let (host_arch, host_os, host_env) = get_host_triple();
         let arch = self.arch.as_ref().map(|s| &**s).unwrap_or(host_arch);
         let os = self.os.as_ref().map(|s| &**s).or(host_os);
-        let env = self.env.as_ref().map(|s| &**s).or(host_env);
+        // Mixing arbitrary host envs into arbitrary target specs can't work sensibly.
+        // Only provide a default when the operating system matches.
+        let env = if self.env.is_none() && os == host_os {
+            host_env
+        } else {
+            self.env.as_ref().map(|s| &**s)
+        };
 
         os.map(|os| {
             if let Some(ref env) = env {

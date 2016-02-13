@@ -7,39 +7,13 @@ use install::InstallPrefix;
 use errors::*;
 
 use component::transaction::Transaction;
-use component::package::{Package, INSTALLER_VERSION, VERSION_FILE};
+use component::package::{INSTALLER_VERSION, VERSION_FILE};
 
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::Write;
 
 const COMPONENTS_FILE: &'static str = "components";
-
-#[derive(Debug)]
-pub struct ChangeSet<'a> {
-    pub packages: Vec<Box<Package + 'a>>,
-    pub to_install: Vec<String>,
-    pub to_uninstall: Vec<String>,
-}
-
-impl<'a> ChangeSet<'a> {
-    pub fn new() -> Self {
-        ChangeSet {
-            packages: Vec::new(),
-            to_install: Vec::new(),
-            to_uninstall: Vec::new(),
-        }
-    }
-    pub fn install(&mut self, component: String) {
-        self.to_install.push(component);
-    }
-    pub fn uninstall(&mut self, component: String) {
-        self.to_uninstall.push(component);
-    }
-    pub fn add_package<P: Package + 'a>(&mut self, package: P) {
-        self.packages.push(Box::new(package));
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct Components {
@@ -105,40 +79,6 @@ impl Components {
         let result = try!(self.list());
         Ok(result.into_iter().filter(|c| (c.name() == name)).next())
     }
-    pub fn apply_change_set<'a>(&self,
-                                change_set: &ChangeSet,
-                                default_target: &str,
-                                mut tx: Transaction<'a>)
-                                -> Result<Transaction<'a>> {
-        // First uninstall old packages
-        for c in &change_set.to_uninstall {
-            let component = try!(try!(self.find(c)).ok_or(Error::InvalidChangeSet));
-            tx = try!(component.uninstall(tx));
-        }
-        // Then install new packages
-        let long_suffix = format!("-{}", default_target);
-        for c in &change_set.to_install {
-            // Compute short name
-            let short_name = if c.ends_with(&long_suffix) {
-                Some(&c[0..(c.len() - long_suffix.len())])
-            } else {
-                None
-            };
-
-            if try!(self.find(c)).is_some() {
-                return Err(Error::InvalidChangeSet);
-            }
-            let p = try!(change_set.packages
-                                   .iter()
-                                   .filter(|p| p.contains(c, short_name))
-                                   .next()
-                                   .ok_or(Error::InvalidChangeSet));
-
-            tx = try!(p.install(self, c, short_name, tx));
-        }
-
-        Ok(tx)
-    }
     pub fn prefix(&self) -> InstallPrefix {
         self.prefix.clone()
     }
@@ -161,6 +101,8 @@ impl ComponentBuilder {
         let abs_path = self.components.prefix.abs_path(&path);
         let mut file = try!(tx.add_file(&self.name, path));
         for part in self.parts {
+            // FIXME: This writes relative paths to the component manifest,
+            // but rust-installer writes absolute paths.
             try!(writeln!(file, "{}", part.encode()).map_err(|e| {
                 utils::Error::WritingFile {
                     name: "component",
@@ -217,7 +159,7 @@ pub struct ComponentPart(pub String, pub PathBuf);
 
 impl ComponentPart {
     pub fn encode(&self) -> String {
-        format!("{}:{:?}", &self.0, &self.1)
+        format!("{}:{}", &self.0, &self.1.to_string_lossy())
     }
     pub fn decode(line: &str) -> Option<Self> {
         line.find(":")
@@ -261,6 +203,9 @@ impl Component {
         try!(utils::filter_file("components", &abs_path, &temp, |l| (l != self.name)));
         try!(tx.modify_file(path));
         try!(utils::rename_file("components", &temp, &abs_path));
+
+        // TODO: If this is the last component remove the components file
+        // and the version file.
 
         // Remove parts
         for part in try!(self.parts()).into_iter().rev() {

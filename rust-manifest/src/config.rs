@@ -2,6 +2,7 @@ use toml;
 
 use utils::*;
 use errors::*;
+use super::manifest::Component;
 
 pub const SUPPORTED_CONFIG_VERSIONS: [&'static str; 1] = ["1"];
 pub const DEFAULT_CONFIG_VERSION: &'static str = "1";
@@ -9,19 +10,7 @@ pub const DEFAULT_CONFIG_VERSION: &'static str = "1";
 #[derive(Clone, Debug)]
 pub struct Config {
     pub config_version: String,
-    pub remote: Option<ConfigRemote>,
-    pub install: ConfigInstall,
-}
-
-#[derive(Clone, Debug)]
-pub struct ConfigRemote {
-    pub url: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct ConfigInstall {
-    pub libdir: Option<String>,
-    pub mandir: Option<String>,
+    pub components: Vec<Component>,
 }
 
 impl Config {
@@ -30,32 +19,24 @@ impl Config {
         if !SUPPORTED_CONFIG_VERSIONS.contains(&&*version) {
             return Err(Error::UnsupportedVersion(version));
         }
-        let remote = try!(get_opt_table(&mut table, "remote", path));
-        let install = try!(get_table(&mut table, "install", path));
 
-        let remote = try!(remote.map_or(Ok(None), |r| {
-            ConfigRemote::from_toml(r, &format!("{}{}.", path, "remote")).map(Some)
-        }));
-
-        let install = try!(ConfigInstall::from_toml(install, &format!("{}{}.", path, "install")));
+        let components = try!(get_array(&mut table, "components", path));
+        let components = try!(Self::toml_to_components(components,
+                                                       &format!("{}{}.", path, "components")));
 
         Ok(Config {
             config_version: version,
-            remote: remote,
-            install: install,
+            components: components,
         })
     }
     pub fn to_toml(self) -> toml::Table {
-        let install = self.install.to_toml();
-        let remote = self.remote.map(|r| r.to_toml());
-
         let mut result = toml::Table::new();
-        result.insert("install".to_owned(), toml::Value::Table(install));
-        if let Some(r) = remote {
-            result.insert("remote".to_owned(), toml::Value::Table(r));
-        }
         result.insert("config_version".to_owned(),
                       toml::Value::String(self.config_version));
+        let components = Self::components_to_toml(self.components);
+        if !components.is_empty() {
+            result.insert("components".to_owned(), toml::Value::Array(components));
+        }
         result
     }
 
@@ -70,47 +51,31 @@ impl Config {
         toml::Value::Table(self.to_toml()).to_string()
     }
 
+    fn toml_to_components(arr: toml::Array, path: &str) -> Result<Vec<Component>> {
+        let mut result = Vec::new();
+
+        for (i, v) in arr.into_iter().enumerate() {
+            if let toml::Value::Table(t) = v {
+                let path = format!("{}[{}]", path, i);
+                result.push(try!(Component::from_toml(t, &path)));
+            }
+        }
+
+        Ok(result)
+    }
+
+    fn components_to_toml(components: Vec<Component>) -> toml::Array {
+        let mut result = toml::Array::new();
+        for v in components {
+            result.push(toml::Value::Table(v.to_toml()));
+        }
+        result
+    }
+
     pub fn new() -> Self {
         Config {
             config_version: DEFAULT_CONFIG_VERSION.to_owned(),
-            remote: None,
-            install: ConfigInstall::new(),
-        }
-    }
-}
-
-impl ConfigRemote {
-    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
-        Ok(ConfigRemote { url: try!(get_string(&mut table, "url", path)) })
-    }
-    pub fn to_toml(self) -> toml::Table {
-        let mut result = toml::Table::new();
-        result.insert("url".to_owned(), toml::Value::String(self.url));
-        result
-    }
-}
-
-impl ConfigInstall {
-    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
-        Ok(ConfigInstall {
-            libdir: try!(get_opt_string(&mut table, "libdir", path)),
-            mandir: try!(get_opt_string(&mut table, "mandir", path)),
-        })
-    }
-    pub fn to_toml(self) -> toml::Table {
-        let mut result = toml::Table::new();
-        if let Some(libdir) = self.libdir {
-            result.insert("libdir".to_owned(), toml::Value::String(libdir));
-        }
-        if let Some(mandir) = self.mandir {
-            result.insert("mandir".to_owned(), toml::Value::String(mandir));
-        }
-        result
-    }
-    pub fn new() -> Self {
-        ConfigInstall {
-            libdir: None,
-            mandir: None,
+            components: Vec::new(),
         }
     }
 }
