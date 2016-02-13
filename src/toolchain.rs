@@ -189,7 +189,7 @@ impl<'a> Toolchain<'a> {
         self.set_env_inner(cmd);
     }
 
-    pub fn create_command(&self, binary: &str) -> Result<Command> {
+    pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
         if !self.exists() {
             return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
         }
