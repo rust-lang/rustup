@@ -20,6 +20,7 @@ sudo: required
 services:
   - docker
 install:
+  - which docker
   - git config --global user.email "diggsey@googlemail.com"
   - git config --global user.name "Diggory Blake (via Travis CI)"
   - git config --global push.default simple
