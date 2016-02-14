@@ -135,7 +135,7 @@ impl Display for Error {
                 write!(f,
                        "infinite recursion detected: the command may not exist for this toolchain")
             }
-            Custom { id: _, ref desc } => write!(f, "{}", desc),
+            Custom { ref desc, .. } => write!(f, "{}", desc),
         }
     }
 }

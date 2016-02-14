@@ -55,8 +55,8 @@ impl Cfg {
         // Set up the multirust home directory
         let multirust_dir = env::var_os("MULTIRUST_HOME")
                                 .and_then(utils::if_not_empty)
-                                .map(PathBuf::from)
-                                .unwrap_or_else(|| data_dir.join(".multirust"));
+                                .map_or_else(|| data_dir.join(".multirust"), 
+                                             PathBuf::from);
 
         try!(utils::ensure_dir_exists("home", &multirust_dir, ntfy!(&notify_handler)));
 
@@ -89,8 +89,8 @@ impl Cfg {
         let dist_root_url = env::var("MULTIRUST_DIST_ROOT")
                                 .ok()
                                 .and_then(utils::if_not_empty)
-                                .map(Cow::Owned)
-                                .unwrap_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT));
+                                .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT),
+                                        Cow::Owned);
 
         Ok(Cfg {
             multirust_dir: multirust_dir,
