@@ -30,7 +30,7 @@ install:
   - if [ "$TARGET" == "i686-unknown-linux-gnu" ]; then
       sudo dpkg --add-architecture i386;
       sudo apt-get update;
-      sudo apt-get install -y libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386 gcc-multilib;
+      sudo apt-get install -y libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386 gcc-4.8 cpp-4.8 gcc-4.8-multilib gcc-multilib;
     fi
   - echo -e "\033[33;1mInstalling Rust\033[0m"
   - sudo ~/rust/install.sh
