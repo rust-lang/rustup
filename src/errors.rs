@@ -21,6 +21,7 @@ pub enum Notification<'a> {
     ToolchainNotInstalled(&'a str),
 
     UpgradingMetadata(&'a str, &'a str),
+    MetadataUpgradeNotNeeded(&'a str),
     WritingMetadataVersion(&'a str),
     ReadMetadataVersion(&'a str),
     NonFatalError(&'a Error),
@@ -75,7 +76,8 @@ impl<'a> Notification<'a> {
             UninstallingToolchain(_) |
             UninstalledToolchain(_) |
             ToolchainNotInstalled(_) |
-            UpgradingMetadata(_, _) => NotificationLevel::Info,
+            UpgradingMetadata(_, _) |
+            MetadataUpgradeNotNeeded(_) => NotificationLevel::Info,
             NonFatalError(_) => NotificationLevel::Error,
         }
     }
@@ -108,6 +110,9 @@ impl<'a> Display for Notification<'a> {
                        "upgrading metadata version from '{}' to '{}'",
                        from_ver,
                        to_ver)
+            }
+            MetadataUpgradeNotNeeded(ver) => {
+                write!(f, "nothing to upgrade: metadata version is already '{}'", ver)
             }
             WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{}'", ver),
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{}'", ver),
