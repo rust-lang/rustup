@@ -157,7 +157,9 @@ impl Cfg {
             return Ok(false);
         }
 
-        let current_version = try!(utils::read_file("version", &self.version_file));
+        let mut current_version = try!(utils::read_file("version", &self.version_file));
+        let len = current_version.trim_right().len();
+        current_version.truncate(len);
 
         self.notify_handler
             .call(Notification::UpgradingMetadata(&current_version, METADATA_VERSION));
