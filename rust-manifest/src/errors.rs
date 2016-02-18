@@ -1,5 +1,7 @@
+use multirust_errors::Wrapped;
 use toml;
 
+use std::error;
 use std::fmt::{self, Display};
 
 #[derive(Debug)]
@@ -31,6 +33,13 @@ impl Display for Error {
             MissingRoot => write!(f, "manifest has no root package"),
             UnsupportedVersion(ref v) => write!(f, "manifest version '{}' is not supported", v),
         }
+    }
+}
+
+/// This impl gets around `Error` not implementing `error::Error` itself.
+impl From<Error> for Box<error::Error> {
+    fn from(e: Error) -> Box<error::Error> {
+        Box::new(Wrapped::from(e))
     }
 }
 

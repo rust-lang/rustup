@@ -12,6 +12,7 @@ repository = "https://github.com/Diggsey/multirust-rs"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+multirust-errors = { version = "0.0.1", path = "../errors" }
 regex = "0.1.41"
 rand = "0.3.11"
 hyper = "0.7.0"

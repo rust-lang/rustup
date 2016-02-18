@@ -1,6 +1,8 @@
-use std::path::Path;
+use std::error;
 use std::fmt::{self, Display};
+use std::path::Path;
 
+use multirust_errors::Wrapped;
 use rust_install::{self, utils, temp};
 use rust_install::notify::{self, NotificationLevel, Notifyable};
 
@@ -137,5 +139,12 @@ impl Display for Error {
             }
             Custom { ref desc, .. } => write!(f, "{}", desc),
         }
+    }
+}
+
+/// This impl gets around `Error` not implementing `error::Error` itself.
+impl From<Error> for Box<error::Error> {
+    fn from(e: Error) -> Box<error::Error> {
+        Box::new(Wrapped::from(e))
     }
 }

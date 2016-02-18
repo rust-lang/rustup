@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate rust_install;
+
+extern crate multirust_errors;
 extern crate rand;
 extern crate hyper;
 extern crate regex;

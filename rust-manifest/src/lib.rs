@@ -1,4 +1,5 @@
 extern crate toml;
+extern crate multirust_errors;
 
 pub use errors::*;
 pub use manifest::*;

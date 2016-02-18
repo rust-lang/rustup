@@ -14,6 +14,7 @@ extern crate winreg;
 extern crate shell32;
 #[cfg(windows)]
 extern crate ole32;
+extern crate multirust_errors;
 extern crate rust_manifest;
 extern crate tempdir;
 extern crate walkdir;

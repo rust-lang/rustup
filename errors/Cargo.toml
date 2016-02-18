@@ -1,0 +1,6 @@
+[package]
+name = "multirust-errors"
+version = "0.0.1"
+authors = ["Kamal Marhubi <kamal@marhubi.com>"]
+
+[dependencies]
