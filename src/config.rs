@@ -163,14 +163,16 @@ impl Cfg {
         let len = current_version.trim_right().len();
         current_version.truncate(len);
 
+        if current_version == METADATA_VERSION {
+            self.notify_handler
+                .call(Notification::MetadataUpgradeNotNeeded(METADATA_VERSION));
+            return Ok(false);
+        }
+
         self.notify_handler
             .call(Notification::UpgradingMetadata(&current_version, METADATA_VERSION));
 
         match &*current_version {
-            "2" => {
-                // Current version. Do nothing
-                Ok(false)
-            }
             "1" => {
                 // Ignore errors. These files may not exist.
                 let _ = fs::remove_dir_all(self.multirust_dir.join("available-updates"));
