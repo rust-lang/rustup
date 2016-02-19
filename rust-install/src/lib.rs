@@ -20,6 +20,9 @@ extern crate walkdir;
 extern crate toml;
 extern crate flate2;
 extern crate tar;
+#[macro_use]
+extern crate lazy_static;
+extern crate scopeguard;
 
 pub use errors::*;
 pub use install::*;

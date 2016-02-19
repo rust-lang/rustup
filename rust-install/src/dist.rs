@@ -2,6 +2,11 @@
 use temp;
 use errors::*;
 use utils;
+use InstallPrefix;
+use rust_manifest::Component;
+use rust_manifest::Manifest as ManifestV2;
+use manifest::{Manifestation, UpdateStatus, Changes};
+use hyper;
 
 use std::path::Path;
 use std::fmt;
@@ -267,4 +272,85 @@ pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
     try!(utils::download_file(hash_url, &hash_file, None, ntfy!(&cfg.notify_handler)));
 
     Ok(try!(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())))
+}
+
+// Installs or updates a toolchain from a dist server. If an initial
+// install then it will be installed with the default components. If
+// an upgrade then all the existing components will be upgraded.
+//
+// Returns the manifest's hash if anything changed.
+pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
+                            update_hash: Option<&Path>,
+                            toolchain: &str,
+                            prefix: &InstallPrefix,
+                            add: &[Component],
+                            remove: &[Component],
+                            ) -> Result<Option<String>> {
+
+    let ref toolchain = try!(ToolchainDesc::from_str(toolchain).ok_or(Error::InvalidToolchainName));
+    let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
+
+    let manifestation = try!(Manifestation::open(prefix.clone(), &trip));
+
+    let changes = Changes {
+        add_extensions: add.to_owned(),
+        remove_extensions: remove.to_owned(),
+    };
+
+    match dl_v2_manifest(download, update_hash, toolchain) {
+        Ok(Some((m, hash))) => {
+            match try!(manifestation.update(&m, changes, &download.temp_cfg, download.notify_handler.clone())) {
+                UpdateStatus::Unchanged => Ok(None),
+                UpdateStatus::Changed => Ok(Some(hash)),
+            }
+        }
+        Ok(None) => Ok(None),
+        Err(Error::Utils(utils::Error::DownloadingFile {
+            error: utils::raw::DownloadError::Status(hyper::status::StatusCode::NotFound),
+            ..
+        })) => {
+            // If the v2 manifest is not found then try v1
+            let manifest = try!(dl_v1_manifest(download,toolchain));
+            match try!(manifestation.update_v1(&manifest, update_hash,
+                                               &download.temp_cfg, download.notify_handler.clone())) {
+                None => Ok(None),
+                Some(hash) => Ok(Some(hash)),
+            }
+        }
+        Err(e) => Err(e)
+    }
+}
+
+fn dl_v2_manifest<'a>(download: DownloadCfg<'a>,
+                      update_hash: Option<&Path>,
+                      toolchain: &ToolchainDesc) -> Result<Option<(ManifestV2, String)>> {
+    let ref manifest_url = if let Some(ref d) = toolchain.date {
+        format!("{}/{}/channel-rust-{}.toml", download.dist_root, d, toolchain.channel)
+    } else {
+        format!("{}/channel-rust-{}.toml", download.dist_root, toolchain.channel)
+    };
+    let manifest_dl = try!(download_and_check(&manifest_url,
+                                              update_hash, ".toml", download));
+    let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl { m } else { return Ok(None) };
+    let manifest_str = try!(utils::read_file("manifest", &manifest_file));
+    let manifest = try!(ManifestV2::parse(&manifest_str));
+
+    Ok(Some((manifest, manifest_hash)))
+}
+
+fn dl_v1_manifest<'a>(download: DownloadCfg<'a>,
+                      toolchain: &ToolchainDesc) -> Result<Vec<String>> {
+    let root_url = if let Some(ref d) = toolchain.date {
+        format!("{}/{}", download.dist_root, d)
+    } else {
+        format!("{}", download.dist_root)
+    };
+    let manifest_url = format!("{}/channel-rust-{}", &root_url, toolchain.channel);
+
+    let manifest_dl = try!(download_and_check(&manifest_url, None, "", download));
+    let (manifest_file, _) = manifest_dl.unwrap();
+    let manifest_str = try!(utils::read_file("manifest", &manifest_file));
+    let urls = manifest_str.lines().map(|s| format!("{}/{}", root_url, s)).collect();
+
+    Ok(urls)
 }

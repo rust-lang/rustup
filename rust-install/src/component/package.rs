@@ -30,6 +30,7 @@ pub trait Package: fmt::Debug {
                    short_name: Option<&str>,
                    tx: Transaction<'a>)
                    -> Result<Transaction<'a>>;
+    fn components(&self) -> Vec<String>;
 }
 
 #[derive(Debug)]
@@ -108,6 +109,10 @@ impl Package for DirectoryPackage {
         let tx = try!(builder.finish());
 
         Ok(tx)
+    }
+
+    fn components(&self) -> Vec<String> {
+        self.components.iter().cloned().collect()
     }
 }
 
@@ -212,6 +217,9 @@ impl<'a> Package for TarPackage<'a> {
                    -> Result<Transaction<'b>> {
         self.0.install(target, component, short_name, tx)
     }
+    fn components(&self) -> Vec<String> {
+        self.0.components()
+    }
 }
 
 #[derive(Debug)]
@@ -240,5 +248,8 @@ impl<'a> Package for TarGzPackage<'a> {
                    tx: Transaction<'b>)
                    -> Result<Transaction<'b>> {
         self.0.install(target, component, short_name, tx)
+    }
+    fn components(&self) -> Vec<String> {
+        self.0.components()
     }
 }

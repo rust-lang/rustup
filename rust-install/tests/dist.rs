@@ -14,6 +14,7 @@ extern crate hyper;
 
 use rust_install::{InstallPrefix, InstallType, Error, NotifyHandler};
 use rust_install::mock::dist::*;
+use rust_install::mock::{MockCommand, MockInstallerBuilder};
 use rust_install::dist::ToolchainDesc;
 use rust_install::download::DownloadCfg;
 use rust_install::utils;
@@ -23,15 +24,224 @@ use rust_manifest::{Manifest, Component};
 use hyper::Url;
 use std::fs;
 use std::io::Write;
+use std::path::Path;
 use tempdir::TempDir;
 use itertools::Itertools;
+
+// Creates a mock dist server populated with some test data
+pub fn create_mock_dist_server(path: &Path,
+                               edit: Option<&Fn(&str, &mut MockPackage)>) -> MockDistServer {
+    MockDistServer {
+        path: path.to_owned(),
+        channels: vec![
+            create_mock_channel("nightly", "2016-02-01", edit),
+            create_mock_channel("nightly", "2016-02-02", edit),
+            ]
+    }
+}
+
+pub fn create_mock_channel(channel: &str, date: &str,
+                           edit: Option<&Fn(&str, &mut MockPackage)>) -> MockChannel {
+    // Put the date in the files so they can be differentiated
+    let contents = date.to_string().into_bytes();
+
+    let rust_pkg = MockPackage {
+        name: "rust",
+        version: "1.0.0",
+        targets: vec![
+            MockTargettedPackage {
+                target: "x86_64-apple-darwin".to_string(),
+                available: true,
+                components: vec![
+                    MockComponent {
+                        name: "rustc",
+                        target: "x86_64-apple-darwin".to_string(),
+                    },
+                    MockComponent {
+                        name: "rust-std",
+                        target: "x86_64-apple-darwin".to_string(),
+                    },
+                    ],
+                extensions: vec![
+                    MockComponent {
+                        name: "rust-std",
+                        target: "i686-apple-darwin".to_string(),
+                    },
+                    MockComponent {
+                        name: "rust-std",
+                        target: "i686-unknown-linux-gnu".to_string(),
+                    },
+                    ],
+                installer: MockInstallerBuilder {
+                    components: vec![]
+                }
+            },
+            MockTargettedPackage {
+                target: "i686-apple-darwin".to_string(),
+                available: true,
+                components: vec![
+                    MockComponent {
+                        name: "rustc",
+                        target: "i686-apple-darwin".to_string(),
+                    },
+                    MockComponent {
+                        name: "rust-std",
+                        target: "i686-apple-darwin".to_string(),
+                    },
+                    ],
+                extensions: vec![],
+                installer: MockInstallerBuilder {
+                    components: vec![]
+                }
+            }
+            ]
+    };
+
+    let rustc_pkg = MockPackage {
+        name: "rustc",
+        version: "1.0.0",
+        targets: vec![
+            MockTargettedPackage {
+                target: "x86_64-apple-darwin".to_string(),
+                available: true,
+                components: vec![],
+                extensions: vec![],
+                installer: MockInstallerBuilder {
+                    components: vec![
+                        ("rustc".to_string(),
+                         vec![
+                             MockCommand::File("bin/rustc".to_string()),
+                             ],
+                         vec![
+                             ("bin/rustc".to_string(), contents.clone())
+                                 ],
+                         ),
+                        ]
+                }
+            },
+            MockTargettedPackage {
+                target: "i686-apple-darwin".to_string(),
+                available: true,
+                components: vec![],
+                extensions: vec![],
+                installer: MockInstallerBuilder {
+                    components: vec![]
+                }
+            }
+            ]
+    };
+
+    let std_pkg = MockPackage {
+        name: "rust-std",
+        version: "1.0.0",
+        targets: vec![
+            MockTargettedPackage {
+                target: "x86_64-apple-darwin".to_string(),
+                available: true,
+                components: vec![],
+                extensions: vec![],
+                installer: MockInstallerBuilder {
+                    components: vec![
+                        ("rust-std-x86_64-apple-darwin".to_string(),
+                         vec![
+                             MockCommand::File("lib/libstd.rlib".to_string()),
+                             ],
+                         vec![
+                             ("lib/libstd.rlib".to_string(), contents.clone())
+                                 ],
+                         ),
+                        ]
+                }
+            },
+            MockTargettedPackage {
+                target: "i686-apple-darwin".to_string(),
+                available: true,
+                components: vec![],
+                extensions: vec![],
+                installer: MockInstallerBuilder {
+                    components: vec![
+                        ("rust-std-i686-apple-darwin".to_string(),
+                         vec![
+                             MockCommand::File("lib/i686-apple-darwin/libstd.rlib".to_string()),
+                             ],
+                         vec![
+                             ("lib/i686-apple-darwin/libstd.rlib".to_string(), contents.clone())
+                                 ],
+                         ),
+                        ]
+                }
+            },
+            MockTargettedPackage {
+                target: "i686-unknown-linux-gnu".to_string(),
+                available: true,
+                components: vec![],
+                extensions: vec![],
+                installer: MockInstallerBuilder {
+                    components: vec![
+                        ("rust-std-i686-unknown-linux-gnu".to_string(),
+                         vec![
+                             MockCommand::File("lib/i686-unknown-linux-gnu/libstd.rlib".to_string()),
+                             ],
+                         vec![
+                             ("lib/i686-unknown-linux-gnu/libstd.rlib".to_string(), contents.clone())
+                                 ],
+                         ),
+                        ]
+                }
+            },
+            ]
+    };
+
+    // An extra package that can be used as a component of the other packages
+    // for various tests
+    let bonus_pkg = MockPackage {
+        name: "bonus",
+        version: "1.0.0",
+        targets: vec![
+            MockTargettedPackage {
+                target: "x86_64-apple-darwin".to_string(),
+                available: true,
+                components: vec![],
+                extensions: vec![],
+                installer: MockInstallerBuilder {
+                    components: vec![
+                        ("bonus-x86_64-apple-darwin".to_string(),
+                         vec![
+                             MockCommand::File("bin/bonus".to_string()),
+                             ],
+                         vec![
+                             ("bin/bonus".to_string(), contents.clone())
+                                 ],
+                         ),
+                        ]
+                }
+            },
+            ]
+    };
+
+    let mut rust_pkg = rust_pkg;
+    if let Some(edit) = edit {
+        edit(date, &mut rust_pkg);
+    }
+
+    MockChannel {
+        name: channel.to_string(),
+        date: date.to_string(),
+        packages: vec![
+            rust_pkg,
+            rustc_pkg,
+            std_pkg,
+            bonus_pkg,
+            ]
+    }
+}
 
 #[test]
 fn mock_dist_server_smoke_test() {
     let tempdir = TempDir::new("multirust").unwrap();
     let path = tempdir.path();
 
-    create_mock_dist_server(&path, None).write();
+    create_mock_dist_server(&path, None).write(&[ManifestVersion::V2]);
 
     assert!(utils::path_exists(path.join("dist/2016-02-01/rustc-nightly-x86_64-apple-darwin.tar.gz")));
     assert!(utils::path_exists(path.join("dist/2016-02-01/rustc-nightly-i686-apple-darwin.tar.gz")));
@@ -48,6 +258,7 @@ fn mock_dist_server_smoke_test() {
 // Installs or updates a toolchain from a dist server.  If an initial
 // install then it will be installed with the default components.  If
 // an upgrade then all the existing components will be upgraded.
+// FIXME: Unify this with dist::update_from_dist
 fn update_from_dist(dist_server: &Url,
                     toolchain: &ToolchainDesc,
                     prefix: &InstallPrefix,
@@ -79,16 +290,6 @@ fn update_from_dist(dist_server: &Url,
     manifestation.update(&manifest, changes, temp_cfg, notify_handler.clone())
 }
 
-fn uninstall(toolchain: &ToolchainDesc, prefix: &InstallPrefix, temp_cfg: &temp::Cfg,
-             notify_handler: NotifyHandler) -> Result<(), Error> {
-    let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
-    let manifestation = try!(Manifestation::open(prefix.clone(), &trip));
-
-    try!(manifestation.uninstall(temp_cfg, notify_handler.clone()));
-
-    Ok(())
-}
-
 fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url, Error> {
     let mut url = dist_server.clone();
     if let Some(mut p) = url.path_mut() {
@@ -101,10 +302,20 @@ fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url
     Ok(url)
 }
 
+fn uninstall(toolchain: &ToolchainDesc, prefix: &InstallPrefix, temp_cfg: &temp::Cfg,
+             notify_handler: NotifyHandler) -> Result<(), Error> {
+    let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
+    let manifestation = try!(Manifestation::open(prefix.clone(), &trip));
+
+    try!(manifestation.uninstall(temp_cfg, notify_handler.clone()));
+
+    Ok(())
+}
+
 fn setup(edit: Option<&Fn(&str, &mut MockPackage)>,
          f: &Fn(&Url, &ToolchainDesc, &InstallPrefix, &temp::Cfg)) {
     let dist_tempdir = TempDir::new("multirust").unwrap();
-    create_mock_dist_server(dist_tempdir.path(), edit).write();
+    create_mock_dist_server(dist_tempdir.path(), edit).write(&[ManifestVersion::V2]);
 
     let prefix_tempdir = TempDir::new("multirust").unwrap();
 
@@ -152,6 +363,7 @@ fn uninstall_removes_config_file() {
 #[test]
 fn upgrade() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
+        change_channel_date(url, "nightly", "2016-02-01");
         update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap();
         assert_eq!("2016-02-01", utils::raw::read_file(&prefix.path().join("bin/rustc")).unwrap());
         change_channel_date(url, "nightly", "2016-02-02");
@@ -168,11 +380,12 @@ fn update_removes_components_that_dont_exist() {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.components.push(MockComponent {
                 name: "bonus",
-                target: "x86_64-apple-darwin",
+                target: "x86_64-apple-darwin".to_string(),
             });
         }
     };
     setup(Some(edit), &|url, toolchain, prefix, temp_cfg| {
+        change_channel_date(url, "nightly", "2016-02-01");
         update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap();
         assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
         change_channel_date(url, "nightly", "2016-02-02");
@@ -193,11 +406,13 @@ fn update_preserves_extensions() {
             }
             ];
 
+        change_channel_date(url, "nightly", "2016-02-01");
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, NotifyHandler::none()).unwrap();
 
         assert!(utils::path_exists(&prefix.path().join("lib/i686-apple-darwin/libstd.rlib")));
         assert!(utils::path_exists(&prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")));
 
+        change_channel_date(url, "nightly", "2016-02-02");
         update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap();
 
         assert!(utils::path_exists(&prefix.path().join("lib/i686-apple-darwin/libstd.rlib")));
@@ -212,14 +427,14 @@ fn update_preserves_extensions_that_became_components() {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.extensions.push(MockComponent {
                 name: "bonus",
-                target: "x86_64-apple-darwin",
+                target: "x86_64-apple-darwin".to_string(),
             });
         }
         if date == "2016-02-02" {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.components.push(MockComponent {
                 name: "bonus",
-                target: "x86_64-apple-darwin",
+                target: "x86_64-apple-darwin".to_string(),
             });
         }
     };
@@ -230,10 +445,12 @@ fn update_preserves_extensions_that_became_components() {
             },
             ];
 
+        change_channel_date(url, "nightly", "2016-02-01");
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, NotifyHandler::none()).unwrap();
 
         assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
 
+        change_channel_date(url, "nightly", "2016-02-02");
         update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap();
         assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
     });
@@ -246,18 +463,19 @@ fn update_preserves_components_that_became_extensions() {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.components.push(MockComponent {
                 name: "bonus",
-                target: "x86_64-apple-darwin",
+                target: "x86_64-apple-darwin".to_string(),
             });
         }
         if date == "2016-02-02" {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.extensions.push(MockComponent {
                 name: "bonus",
-                target: "x86_64-apple-darwin",
+                target: "x86_64-apple-darwin".to_string(),
             });
         }
     };
     setup(Some(edit), &|url, toolchain, prefix, temp_cfg| {
+        change_channel_date(url, "nightly", "2016-02-01");
         update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap();
         assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
         change_channel_date(url, "nightly", "2016-02-02");
@@ -318,6 +536,8 @@ fn add_extensions_for_same_manifest() {
 #[test]
 fn add_extensions_for_upgrade() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
+        change_channel_date(url, "nightly", "2016-02-01");
+
         update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap();
 
         change_channel_date(url, "nightly", "2016-02-02");
@@ -438,6 +658,8 @@ fn remove_extensions_for_same_manifest() {
 #[test]
 fn remove_extensions_for_upgrade() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
+        change_channel_date(url, "nightly", "2016-02-01");
+
         let ref adds = vec![
             Component {
                 pkg: "rust-std".to_string(), target: "i686-apple-darwin".to_string()
@@ -468,6 +690,8 @@ fn remove_extensions_for_upgrade() {
 #[should_panic]
 fn remove_extension_not_in_manifest() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
+        change_channel_date(url, "nightly", "2016-02-01");
+
         update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap();
 
         change_channel_date(url, "nightly", "2016-02-02");
@@ -493,11 +717,13 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.extensions.push(MockComponent {
                 name: "bonus",
-                target: "x86_64-apple-darwin",
+                target: "x86_64-apple-darwin".to_string(),
             });
         }
     };
     setup(Some(edit), &|url, toolchain, prefix, temp_cfg| {
+        change_channel_date(url, "nightly", "2016-02-01");
+
         let ref adds = vec![
             Component {
                 pkg: "bonus".to_string(), target: "x86_64-apple-darwin".to_string()
@@ -580,6 +806,8 @@ fn remove_extensions_does_not_remove_other_components() {
 #[test]
 fn add_and_remove_for_upgrade() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
+        change_channel_date(url, "nightly", "2016-02-01");
+
         let ref adds = vec![
             Component {
                 pkg: "rust-std".to_string(), target: "i686-unknown-linux-gnu".to_string()
@@ -665,7 +893,7 @@ fn add_and_remove_same_component() {
 fn bad_component_hash() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         let path = url.to_file_path().unwrap();
-        let path = path.join("dist/2016-02-01/rustc-nightly-x86_64-apple-darwin.tar.gz");
+        let path = path.join("dist/2016-02-02/rustc-nightly-x86_64-apple-darwin.tar.gz");
         utils::raw::write_file(&path, "bogus").unwrap();
 
         let err = update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap_err();
@@ -681,7 +909,7 @@ fn bad_component_hash() {
 fn unable_to_download_component() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         let path = url.to_file_path().unwrap();
-        let path = path.join("dist/2016-02-01/rustc-nightly-x86_64-apple-darwin.tar.gz");
+        let path = path.join("dist/2016-02-02/rustc-nightly-x86_64-apple-darwin.tar.gz");
         fs::remove_file(&path).unwrap();
 
         let err = update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap_err();

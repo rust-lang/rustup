@@ -199,6 +199,13 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
     // The file scheme is mostly for use by tests to mock the dist server
     if url.scheme == "file" {
         let src = try!(url.to_file_path().map_err(|_| DownloadError::FilePathParse));
+        if !is_file(&src) {
+            // Because some of multirust's logic depends on checking
+            // the error when a downloaded file doesn't exist, make
+            // the file case return the same error value as the
+            // network case.
+            return Err(DownloadError::Status(hyper::status::StatusCode::NotFound));
+        }
         try!(fs::copy(&src, path.as_ref()).map_err(|e| DownloadError::File(e)));
 
         if let Some(ref mut h) = hasher {

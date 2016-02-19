@@ -24,6 +24,8 @@ openssl = "0.7.2"
 hyper = "0.7.0"
 term = "0.2.11"
 itertools = "0.4.1"
+tempdir = "0.3.4"
+libc = "0.2.0"
 
 [target.x86_64-pc-windows-gnu.dependencies]
 winapi = "0.2.4"

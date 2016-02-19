@@ -57,6 +57,9 @@ impl Components {
     }
     pub fn list(&self) -> Result<Vec<Component>> {
         let path = self.prefix.abs_path(self.rel_components_file());
+        if !utils::is_file(&path) {
+            return Ok(Vec::new());
+        }
         let content = try!(utils::read_file("components", &path));
         Ok(content.lines()
                   .map(|s| {

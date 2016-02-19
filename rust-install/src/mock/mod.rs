@@ -3,6 +3,7 @@
 //! FIXM: This belongs in some other crate
 
 pub mod dist;
+pub mod clitools;
 
 use std::fs::{self, OpenOptions, File};
 use std::path::Path;
@@ -15,32 +16,35 @@ pub struct MockInstallerBuilder {
 
 // A component name, the installation commands for installing files
 // (either "file:" or "dir:") and the file paths and contents.
-pub type MockComponent = (&'static str, Vec<MockCommand>, Vec<(&'static str, String)>);
+pub type MockComponent = (String, Vec<MockCommand>, Vec<(String, Vec<u8>)>);
 
+#[derive(Clone)]
 pub enum MockCommand {
-    File(&'static str),
-    Dir(&'static str)
+    File(String),
+    Dir(String)
 }
 
 impl MockInstallerBuilder {
     pub fn build(&self, path: &Path) {
-        for &(name, ref commands, ref files) in &self.components {
+        for &(ref name, ref commands, ref files) in &self.components {
             // Update the components file
             let comp_file = path.join("components");
             let ref mut comp_file = OpenOptions::new().write(true).append(true).create(true)
-                .open(comp_file).unwrap();
+                .open(comp_file.clone()).unwrap();
             writeln!(comp_file, "{}", name).unwrap();
 
             // Create the component directory
             let component_dir = path.join(name);
-            fs::create_dir(&component_dir).unwrap();
+            if !component_dir.exists() {
+                fs::create_dir(&component_dir).unwrap();
+            }
 
             // Create the component manifest
             let ref mut manifest = File::create(component_dir.join("manifest.in")).unwrap();
             for command in commands {
                 match command {
-                    &MockCommand::File(f) => writeln!(manifest, "file:{}", f).unwrap(),
-                    &MockCommand::Dir(d) => writeln!(manifest, "dir:{}", d).unwrap(),
+                    &MockCommand::File(ref f) => writeln!(manifest, "file:{}", f).unwrap(),
+                    &MockCommand::Dir(ref d) => writeln!(manifest, "dir:{}", d).unwrap(),
                 }
             }
 
@@ -49,9 +53,9 @@ impl MockInstallerBuilder {
                 let dir_path = component_dir.join(f_path);
                 let dir_path = dir_path.parent().unwrap();
                 fs::create_dir_all(dir_path).unwrap();
-
                 let ref mut f = File::create(component_dir.join(f_path)).unwrap();
-                f.write(content.as_bytes()).unwrap();
+
+                f.write_all(&content).unwrap();
             }
         }
 
