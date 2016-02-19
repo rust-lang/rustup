@@ -1,4 +1,4 @@
-
+use std::error;
 use std::path::{Path, PathBuf};
 use std::fmt::{self, Display};
 use std::io;
@@ -7,6 +7,7 @@ use utils;
 use rust_manifest;
 use walkdir;
 
+use multirust_errors::Wrapped;
 use notify::{NotificationLevel, Notifyable};
 use rust_manifest::Component;
 
@@ -190,5 +191,12 @@ impl Display for Error {
                 write!(f, "component download failed for {}-{}: {}", component.pkg, component.target, e)
             }
         }
+    }
+}
+
+/// This impl gets around `Error` not implementing `error::Error` itself.
+impl From<Error> for Box<error::Error> {
+    fn from(e: Error) -> Box<error::Error> {
+        Box::new(Wrapped::from(e))
     }
 }

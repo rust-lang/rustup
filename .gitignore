@@ -1,6 +1,8 @@
 /.project
 /target
 /Cargo.lock
+/errors/target
+/errors/Cargo.lock
 /rust-install/target
 /rust-install/Cargo.lock
 /rust-manifest/target

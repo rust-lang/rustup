@@ -12,6 +12,7 @@ repository = "https://github.com/Diggsey/multirust-rs"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+multirust-errors = { version = "0.0.1", path = "../errors" }
 toml = "0.1.23"
 
 [lib]
