@@ -35,10 +35,10 @@ Binaries for other platforms are not yet available. Follow the instructions belo
 
 Run this command in a writable directory:
 ```
-git clone --depth 1 https://github.com/Diggsey/multirust-rs.git multirust-rs && cd multirust-rs && cargo run --release self install [-a]
+git clone --depth 1 https://github.com/Diggsey/multirust-rs.git multirust-rs && cd multirust-rs && cargo run --release self install -a
 ```
 
-Passing `-a` will attempt to automatically add `~/.multirust/bin` to your PATH.
+This will automatically add `~/.multirust/bin` to your PATH (remove `-a` to disable this behavior).
 
 On linux, this is done by appending to `~/.profile`.
 On windows, this is done by modifying the registry entry `HKCU\Environment\PATH`.
