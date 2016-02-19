@@ -13,7 +13,8 @@ use rust_install::{temp, utils, dist};
 use override_db::OverrideDB;
 use toolchain::Toolchain;
 
-pub const METADATA_VERSION: &'static str = "2";
+// Note: multirust-rs jumped from 2 to 12 to leave multirust.sh room to diverge
+pub const METADATA_VERSION: &'static str = "12";
 
 #[derive(Debug)]
 pub enum OverrideReason {
