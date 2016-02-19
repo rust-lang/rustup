@@ -1,3 +1,4 @@
+use std::error;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::io;
@@ -91,6 +92,26 @@ impl<'a> Display for Notification<'a> {
                     write!(f, "could not delete temp directory: {}", path.display())
                 }
             }
+        }
+    }
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        use self::Error::*;
+        match *self {
+            CreatingRoot {..} => "could not create temp root",
+            CreatingFile {..} => "could not create temp file",
+            CreatingDirectory {..} => "could not create temp directory",
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        use self::Error::*;
+        match *self {
+            CreatingRoot { ref error, .. } |
+            CreatingFile { ref error, .. } |
+            CreatingDirectory { ref error, .. } => Some(error),
         }
     }
 }

@@ -1,4 +1,5 @@
 
+use std::error;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::io;
@@ -158,6 +159,28 @@ pub enum DownloadError {
 }
 pub type DownloadResult<T> = Result<T, DownloadError>;
 
+impl error::Error for DownloadError {
+    fn description(&self) -> &str {
+        use self::DownloadError::*;
+        match *self {
+            Status(_) => "unsuccessful HTTP status",
+            Network(ref e) => "network error",
+            File(ref e) => "error writing file",
+            FilePathParse => "failed to parse URL as file path",
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        use self::DownloadError::*;
+        match *self {
+            Network(ref e) => Some(e),
+            File(ref e) => Some(e),
+            Status(_) |
+            FilePathParse => None,
+        }
+    }
+}
+
 impl fmt::Display for DownloadError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -263,6 +286,24 @@ pub enum CommandError {
 }
 
 pub type CommandResult<T> = Result<T, CommandError>;
+
+impl error::Error for CommandError {
+    fn description(&self) -> &str {
+        use self::CommandError::*;
+        match *self {
+            Io(_) => "could not execute command",
+            Status(_) => "command exited with unsuccessful status",
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        use self::CommandError::*;
+        match *self {
+            Io(ref e) => Some(e),
+            Status(_) => None,
+        }
+    }
+}
 
 impl fmt::Display for CommandError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

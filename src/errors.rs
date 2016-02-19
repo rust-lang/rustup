@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::error;
 use std::fmt::{self, Display};
 
 use rust_install::{self, utils, temp};
@@ -119,6 +120,42 @@ impl<'a> Display for Notification<'a> {
             WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{}'", ver),
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{}'", ver),
             NonFatalError(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        use self::Error::*;
+        match *self {
+            Install(ref e) => error::Error::description(e),
+            Utils(ref e) => error::Error::description(e),
+            Temp(ref e) => error::Error::description(e),
+            UnknownMetadataVersion(_) => "unknown metadata version",
+            InvalidEnvironment => "invalid environment",
+            NoDefaultToolchain => "no default toolchain configured",
+            PermissionDenied => "permission denied",
+            ToolchainNotInstalled(_) => "toolchain is not installed",
+            UnknownHostTriple => "unknown host triple",
+            InfiniteRecursion =>  "infinite recursion detected",
+            Custom { ref desc, .. } => desc,
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        use Error::*;
+        match *self {
+            Install(ref e) => Some(e),
+            Utils(ref e) => Some(e),
+            Temp(ref e) => Some(e),
+            UnknownMetadataVersion(_) |
+            InvalidEnvironment |
+            NoDefaultToolchain |
+            PermissionDenied |
+            ToolchainNotInstalled(_) |
+            UnknownHostTriple |
+            InfiniteRecursion |
+            Custom {..} => None,
         }
     }
 }

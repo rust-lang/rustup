@@ -1,4 +1,4 @@
-
+use std::error;
 use std::path::{Path, PathBuf};
 use std::fmt::{self, Display};
 use std::io;
@@ -120,6 +120,66 @@ impl<'a> Display for Notification<'a> {
             }
             NonFatalError(e) => write!(f, "{}", e),
             MissingInstalledComponent(c) => write!(f, "during uninstall component {} was not found", c),
+        }
+    }
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        use Error::*;
+        match *self {
+            Utils(ref e) => error::Error::description(e),
+            Temp(ref e) => error::Error::description(e),
+            Manifest(ref e) => error::Error::description(e),
+            InvalidFileExtension => "invalid file extension",
+            InvalidInstaller => "invalid installer",
+            InvalidToolchainName => "invalid custom toolchain name",
+            NotInstalledHere => "not installed here",
+            InstallTypeNotPossible => "install type not possible",
+            UnsupportedHost(_) => "binary package not provided for host",
+            ChecksumFailed {..} => "checksum failed",
+            ComponentConflict {..} => "conflicting component",
+            ComponentMissingFile {..} => "missing file in component",
+            ComponentMissingDir {..} => "missing directory in component",
+            CorruptComponent(_) => "corrupt component manifest",
+            ExtractingPackage(_) => "failed to extract package",
+            ExtensionNotFound(_) => "could not find extension",
+            InvalidChangeSet => "invalid change-set",
+            NoGPG => "could not find 'gpg' on PATH",
+            BadInstallerVersion(_) => "unsupported installer version",
+            BadInstalledMetadataVersion(_) => "unsupported metadata version in existing installation",
+            ComponentDirPermissionsFailed(_) => "I/O error walking directory during install",
+            ComponentFilePermissionsFailed(_) => "error setting file permissions during install",
+            ComponentDownloadFailed(_, _) => "component download failed",
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        use Error::*;
+        match *self {
+            Utils(ref e) => Some(e),
+            Temp(ref e) => Some(e),
+            Manifest(ref e) => Some(e),
+            ComponentFilePermissionsFailed(ref e) => Some(e),
+            ComponentDirPermissionsFailed(ref e) => Some(e),
+            ExtractingPackage(ref e) => Some(e),
+            ComponentDownloadFailed(_, ref e) => Some(e),
+            InvalidFileExtension |
+            InvalidInstaller |
+            InvalidToolchainName |
+            NotInstalledHere |
+            InstallTypeNotPossible |
+            UnsupportedHost(_) |
+            ChecksumFailed {..} |
+            ComponentConflict {..} |
+            ComponentMissingFile {..} |
+            ComponentMissingDir {..} |
+            CorruptComponent(_) |
+            ExtensionNotFound(_) |
+            InvalidChangeSet |
+            NoGPG |
+            BadInstallerVersion(_) |
+            BadInstalledMetadataVersion(_) => None,
         }
     }
 }

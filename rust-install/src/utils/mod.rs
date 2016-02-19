@@ -1,5 +1,6 @@
 
 use std::path::{Path, PathBuf};
+use std::error;
 use std::fs;
 use std::io;
 use std::process::Command;
@@ -157,6 +158,71 @@ impl<'a> Display for Notification<'a> {
             }
             DownloadingFile(url, _) => write!(f, "downloading file from: '{}'", url),
             NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
+        }
+    }
+}
+
+impl error::Error for Error {
+    fn description(&self) -> &str {
+        use self::Error::*;
+        match *self {
+            LocatingHome => "could not locate home directory",
+            LocatingWorkingDir {..} => "could not locate working directory",
+            ReadingFile {..} =>  "could not read file",
+            ReadingDirectory {..} => "could not read directory",
+            WritingFile {..} =>  "could not write file",
+            CreatingDirectory {..} => "could not create directory",
+            FilteringFile {..} => "could not copy  file",
+            RenamingFile {..} => "could not rename file",
+            RenamingDirectory {..} => "could not rename directory",
+            DownloadingFile {..} => "could not download file",
+            InvalidUrl {..} => "invalid url",
+            RunningCommand {..} => "command failed",
+            NotAFile {..} => "not a file",
+            NotADirectory {..} => "not a directory",
+            LinkingFile {..} => "could not link file",
+            LinkingDirectory {..} => "could not symlink directory",
+            CopyingDirectory {..} => "could not copy directory",
+            CopyingFile {..} => "could not copy file",
+            RemovingFile {..} => "could not remove file",
+            RemovingDirectory {..} => "could not remove directory",
+            OpeningBrowser { error: Some(_) } => "could not open browser",
+            OpeningBrowser { error: None } => "could not open browser: no browser installed",
+            SettingPermissions {..} => "failed to set permissions",
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        use self::Error::*;
+        match *self {
+            // Variants that do not carry an error.
+            LocatingHome |
+            InvalidUrl {..} |
+            NotAFile {..} |
+            NotADirectory {..} => None,
+            // Variants that carry `error: io::Error`.
+            LocatingWorkingDir { ref error, .. } |
+            ReadingFile { ref error, .. } |
+            ReadingDirectory { ref error, .. } |
+            WritingFile { ref error, .. } |
+            CreatingDirectory { ref error, .. } |
+            FilteringFile { ref error, .. } |
+            RenamingFile { ref error, .. } |
+            RenamingDirectory { ref error, .. } |
+            LinkingFile { ref error, .. } |
+            LinkingDirectory { ref error, .. } |
+            CopyingFile { ref error, .. } |
+            RemovingFile { ref error, .. } |
+            RemovingDirectory { ref error, .. } |
+            SettingPermissions { ref error, .. } => Some(error),
+            // Variants that carry `error: raw::CommandError`.
+            RunningCommand { ref error, .. } |
+            CopyingDirectory { ref error, .. } => Some(error),
+            // Variant carrying its own error type.
+            DownloadingFile { ref error, .. } => Some(error),
+            // Variant carrying `error: Option<io::Error>`.
+            OpeningBrowser { error: Some(ref e) } => Some(e),
+            OpeningBrowser { error: None } => None,
         }
     }
 }
