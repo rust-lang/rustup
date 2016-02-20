@@ -126,7 +126,9 @@ impl Package {
         result
     }
 
-    fn toml_to_targets(mut table: toml::Table, path: &str) -> Result<HashMap<String, TargettedPackage>> {
+    fn toml_to_targets(mut table: toml::Table,
+                       path: &str)
+                       -> Result<HashMap<String, TargettedPackage>> {
         let mut result = HashMap::new();
         let target_table = try!(get_table(&mut table, "target", path));
 
@@ -219,4 +221,3 @@ impl Component {
         format!("{}-{}", self.pkg, self.target)
     }
 }
-
