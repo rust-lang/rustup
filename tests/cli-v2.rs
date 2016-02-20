@@ -10,10 +10,10 @@ use rust_install::mock::dist::ManifestVersion;
 use rust_install::mock::clitools::{self, Config,
                                    expect_ok, expect_stdout_ok, expect_err,
                                    expect_stderr_ok, set_current_dist_date,
-                                   change_dir, run};
+                                   change_dir, run, cmd};
 
 pub fn setup(f: &Fn(&Config)) {
-    clitools::setup(&[ManifestVersion::V1, ManifestVersion::V2], f);
+    clitools::setup(&[ManifestVersion::V2], f);
 }
 
 #[test]
@@ -437,7 +437,7 @@ fn remove_toolchain_then_add_again() {
 
 #[test]
 fn upgrade_v1_to_v2() {
-    setup(&|config| {
+    clitools::setup(&[ManifestVersion::V1, ManifestVersion::V2], &|config| {
         set_current_dist_date(config, "2015-01-01");
         // Delete the v2 manifest so the first day we install from the v1s
         fs::remove_file(config.distdir.path().join("dist/channel-rust-nightly.toml.sha256")).unwrap();
@@ -451,7 +451,7 @@ fn upgrade_v1_to_v2() {
 
 #[test]
 fn upgrade_v2_to_v1() {
-    setup(&|config| {
+    clitools::setup(&[ManifestVersion::V1, ManifestVersion::V2], &|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["multirust", "default", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
@@ -461,3 +461,15 @@ fn upgrade_v2_to_v1() {
     });
 }
 
+// v2 manifests only work with MULTIRUST_ENABLE_EXPERIMENTAL
+#[test]
+fn enable_experimental() {
+    clitools::setup(&[ManifestVersion::V2], &|config| {
+        let mut cmd = cmd(config, "multirust", &["update", "nightly"]);
+        cmd.env_remove("MULTIRUST_ENABLE_EXPERIMENTAL");
+        let out = cmd.output().unwrap();
+        assert!(!out.status.success());
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(stderr.contains("could not download file"));
+    });
+}

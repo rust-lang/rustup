@@ -111,12 +111,19 @@ pub struct SanitizedOutput {
     pub stderr: String,
 }
 
-pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> SanitizedOutput {
+pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
     let exe_path = config.exedir.path().join(format!("{}{}", name, EXE_SUFFIX));
     let mut cmd = Command::new(exe_path);
     cmd.args(args);
     cmd.env("MULTIRUST_HOME", config.homedir.path().to_string_lossy().to_string());
     cmd.env("MULTIRUST_DIST_ROOT", format!("file://{}", config.distdir.path().join("dist").to_string_lossy()));
+    cmd.env("MULTIRUST_ENABLE_EXPERIMENTAL", "1");
+
+    cmd
+}
+
+pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> SanitizedOutput {
+    let mut cmd = cmd(config, name, args);
     for env in env {
         cmd.env(env.0, env.1);
     }

@@ -241,7 +241,9 @@ impl Manifestation {
         Ok(tx)
     }
 
-    fn read_config(&self) -> Result<Option<Config>> {
+    // Read the config file. Config files are presently only created
+    // for v2 installations.
+    pub fn read_config(&self) -> Result<Option<Config>> {
         let prefix = self.installation.prefix();
         let ref rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
         let ref config_path = prefix.path().join(rel_config_path);

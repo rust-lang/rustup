@@ -297,27 +297,39 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
         remove_extensions: remove.to_owned(),
     };
 
-    match dl_v2_manifest(download, update_hash, toolchain) {
-        Ok(Some((m, hash))) => {
-            match try!(manifestation.update(&m, changes, &download.temp_cfg, download.notify_handler.clone())) {
-                UpdateStatus::Unchanged => Ok(None),
-                UpdateStatus::Changed => Ok(Some(hash)),
+    // Until the v2 dist manifests are actually deployed live they are
+    // not on by default. Putting this env var in Cfg an snaking it
+    // all the way down here didn't seem worth the effort since this
+    // should be short-lived.
+    let enable_experimental = ::std::env::var("MULTIRUST_ENABLE_EXPERIMENTAL").is_ok();
+    let already_using_v2 = try!(manifestation.read_config()).is_some();
+    let can_dl_v2_manifest = enable_experimental || already_using_v2;
+
+    if can_dl_v2_manifest {
+        match dl_v2_manifest(download, update_hash, toolchain) {
+            Ok(Some((m, hash))) => {
+                return match try!(manifestation.update(&m, changes, &download.temp_cfg, download.notify_handler.clone())) {
+                    UpdateStatus::Unchanged => Ok(None),
+                    UpdateStatus::Changed => Ok(Some(hash)),
+                }
             }
-        }
-        Ok(None) => Ok(None),
-        Err(Error::Utils(utils::Error::DownloadingFile {
-            error: utils::raw::DownloadError::Status(hyper::status::StatusCode::NotFound),
-            ..
-        })) => {
-            // If the v2 manifest is not found then try v1
-            let manifest = try!(dl_v1_manifest(download,toolchain));
-            match try!(manifestation.update_v1(&manifest, update_hash,
-                                               &download.temp_cfg, download.notify_handler.clone())) {
-                None => Ok(None),
-                Some(hash) => Ok(Some(hash)),
+            Ok(None) => return Ok(None),
+            Err(Error::Utils(utils::Error::DownloadingFile {
+                error: utils::raw::DownloadError::Status(hyper::status::StatusCode::NotFound),
+                ..
+            })) => {
+                // Proceed to try v1 as a fallback
             }
+            Err(e) => return Err(e)
         }
-        Err(e) => Err(e)
+    }
+
+    // If the v2 manifest is not found then try v1
+    let manifest = try!(dl_v1_manifest(download, toolchain));
+    match try!(manifestation.update_v1(&manifest, update_hash,
+                                       &download.temp_cfg, download.notify_handler.clone())) {
+        None => Ok(None),
+        Some(hash) => Ok(Some(hash)),
     }
 }
 
