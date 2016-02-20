@@ -76,8 +76,11 @@ fn install_toolchain_from_archive() {
 }
 
 #[test]
-#[ignore]
 fn install_toolchain_from_version() {
+    setup(&|config| {
+        expect_ok(config, &["multirust", "default" , "1.1.0"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+    });
 }
 
 #[test]

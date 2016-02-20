@@ -164,6 +164,27 @@ fn create_mock_dist_server(path: &Path, vs: &[ManifestVersion]) {
         path: path.to_owned(),
         channels: vec![c1, c2, c3, c4, c5, c6],
     }.write(vs);
+
+    // Also create the manifests for stable releases by version
+    let _ = fs::copy(path.join("dist/2015-01-01/channel-rust-stable.toml"),
+                     path.join("dist/channel-rust-1.0.0.toml"));
+    let _ = fs::copy(path.join("dist/2015-01-01/channel-rust-stable.toml.sha256"),
+                     path.join("dist/channel-rust-1.0.0.toml.sha256"));
+    let _ = fs::copy(path.join("dist/2015-01-02/channel-rust-stable.toml"),
+                     path.join("dist/channel-rust-1.1.0.toml"));
+    let _ = fs::copy(path.join("dist/2015-01-02/channel-rust-stable.toml.sha256"),
+                     path.join("dist/channel-rust-1.1.0.toml.sha256"));
+
+    // Same for v1 manifests. These are just the installers.
+    let host_triple = this_host_triple("stable");
+    fs::copy(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz", host_triple)),
+             path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple))).unwrap();
+    fs::copy(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz.sha256", host_triple)),
+             path.join(format!("dist/rust-1.0.0-{}.tar.gz.sha256", host_triple))).unwrap();
+    fs::copy(path.join(format!("dist/2015-01-02/rust-stable-{}.tar.gz", host_triple)),
+             path.join(format!("dist/rust-1.1.0-{}.tar.gz", host_triple))).unwrap();
+    fs::copy(path.join(format!("dist/2015-01-02/rust-stable-{}.tar.gz.sha256", host_triple)),
+             path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple))).unwrap();
 }
 
 static CROSS_ARCH1: &'static str = "x86_64-unknown-linux-musl";

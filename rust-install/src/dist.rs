@@ -24,6 +24,7 @@ pub struct ToolchainDesc {
     pub arch: Option<String>,
     pub os: Option<String>,
     pub env: Option<String>,
+    // Either "nightly", "stable", "beta", or an explicit version number
     pub channel: String,
     pub date: Option<String>,
 }
@@ -33,7 +34,9 @@ impl ToolchainDesc {
         let archs = ["i686", "x86_64"];
         let oses = ["pc-windows", "unknown-linux", "apple-darwin"];
         let envs = ["gnu", "msvc"];
-        let channels = ["nightly", "beta", "stable"];
+        let channels = ["nightly", "beta", "stable",
+                        r"\d{1}\.\d{1}\.\d{1}",
+                        r"\d{1}\.\d{2}\.\d{1}"];
 
         let pattern = format!(
             r"^(?:({})-)?(?:({})-)?(?:({})-)?({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?$",
@@ -357,6 +360,16 @@ fn dl_v1_manifest<'a>(download: DownloadCfg<'a>,
     } else {
         format!("{}", download.dist_root)
     };
+
+    if !["nightly", "beta", "stable"].contains(&&*toolchain.channel) {
+        // This is an explicit version. In v1 there was no manifest,
+        // you just know the file to download, so synthesize one.
+        let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
+        let installer_name = format!("{}/rust-{}-{}.tar.gz",
+                                     root_url, toolchain.channel, trip);
+        return Ok(vec![installer_name]);
+    }
+    
     let manifest_url = format!("{}/channel-rust-{}", &root_url, toolchain.channel);
 
     let manifest_dl = try!(download_and_check(&manifest_url, None, "", download));
