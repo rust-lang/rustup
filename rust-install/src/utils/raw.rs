@@ -206,9 +206,13 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
 
             let ref mut buffer = vec![0u8; 0x10000];
             loop {
-                let bytes_read = try!(io::Read::read(f, buffer).map_err(|e| DownloadError::File(e)));
-                if bytes_read == 0 { break }
-                try!(io::Write::write_all(*h, &buffer[0..bytes_read]).map_err(|e| DownloadError::File(e)));
+                let bytes_read = try!(io::Read::read(f, buffer)
+                                          .map_err(|e| DownloadError::File(e)));
+                if bytes_read == 0 {
+                    break;
+                }
+                try!(io::Write::write_all(*h, &buffer[0..bytes_read])
+                         .map_err(|e| DownloadError::File(e)));
             }
         }
 

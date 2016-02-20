@@ -115,7 +115,9 @@ impl<'a> Display for Notification<'a> {
                        to_ver)
             }
             MetadataUpgradeNotNeeded(ver) => {
-                write!(f, "nothing to upgrade: metadata version is already '{}'", ver)
+                write!(f,
+                       "nothing to upgrade: metadata version is already '{}'",
+                       ver)
             }
             WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{}'", ver),
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{}'", ver),
@@ -137,7 +139,7 @@ impl error::Error for Error {
             PermissionDenied => "permission denied",
             ToolchainNotInstalled(_) => "toolchain is not installed",
             UnknownHostTriple => "unknown host triple",
-            InfiniteRecursion =>  "infinite recursion detected",
+            InfiniteRecursion => "infinite recursion detected",
             Custom { ref desc, .. } => desc,
         }
     }

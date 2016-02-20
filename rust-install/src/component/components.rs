@@ -163,8 +163,7 @@ impl ComponentPart {
     }
     pub fn decode(line: &str) -> Option<Self> {
         line.find(":")
-            .map(|pos| ComponentPart(line[0..pos].to_owned(),
-                                     PathBuf::from(&line[(pos + 1)..])))
+            .map(|pos| ComponentPart(line[0..pos].to_owned(), PathBuf::from(&line[(pos + 1)..])))
     }
 }
 

@@ -227,8 +227,11 @@ fn run_multirust() -> Result<()> {
     let cfg = try!(set_globals(Some(&app_matches)));
 
     match app_matches.subcommand_name() {
-        Some("upgrade-data") | Some("delete-data") | Some("install") | 
-        Some("uninstall") | None => {} // Don't need consistent metadata
+        Some("upgrade-data") |
+        Some("delete-data") |
+        Some("install") |
+        Some("uninstall") |
+        None => {} // Don't need consistent metadata
         Some(_) => {
             try!(cfg.check_metadata_version());
         }
@@ -465,7 +468,7 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
 fn self_uninstall(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     if !m.is_present("no-prompt") &&
        !ask("This will delete all toolchains, overrides, aliases, and other multirust data \
-            associated with this user. Continue?")
+             associated with this user. Continue?")
             .unwrap_or(false) {
         println!("aborting");
         return Ok(());
@@ -709,7 +712,7 @@ fn ask(question: &str) -> Option<bool> {
 }
 
 fn delete_data(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    if !m.is_present("no-prompt") && 
+    if !m.is_present("no-prompt") &&
        !ask("This will delete all toolchains, overrides, aliases, and other multirust data \
              associated with this user. Continue?")
             .unwrap_or(false) {
