@@ -168,9 +168,9 @@ impl error::Error for Error {
         match *self {
             LocatingHome => "could not locate home directory",
             LocatingWorkingDir {..} => "could not locate working directory",
-            ReadingFile {..} =>  "could not read file",
+            ReadingFile {..} => "could not read file",
             ReadingDirectory {..} => "could not read directory",
-            WritingFile {..} =>  "could not write file",
+            WritingFile {..} => "could not write file",
             CreatingDirectory {..} => "could not create directory",
             FilteringFile {..} => "could not copy  file",
             RenamingFile {..} => "could not rename file",

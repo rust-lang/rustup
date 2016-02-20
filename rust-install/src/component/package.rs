@@ -138,23 +138,29 @@ fn set_file_perms(dest_path: &Path, src_path: &Path) -> Result<()> {
             if meta.is_dir() {
                 let mut perm = meta.permissions();
                 perm.set_mode(0o755);
-                try!(fs::set_permissions(entry.path(), perm).map_err(|e| Error::ComponentFilePermissionsFailed(e)));
+                try!(fs::set_permissions(entry.path(), perm)
+                         .map_err(|e| Error::ComponentFilePermissionsFailed(e)));
             } else {
                 let mut perm = meta.permissions();
                 perm.set_mode(0o644);
-                try!(fs::set_permissions(entry.path(), perm).map_err(|e| Error::ComponentFilePermissionsFailed(e)));
+                try!(fs::set_permissions(entry.path(), perm)
+                         .map_err(|e| Error::ComponentFilePermissionsFailed(e)));
             }
         }
     } else if is_bin {
-        let mut perm = try!(fs::metadata(dest_path).map_err(|e| Error::ComponentFilePermissionsFailed(e)))
+        let mut perm = try!(fs::metadata(dest_path)
+                                .map_err(|e| Error::ComponentFilePermissionsFailed(e)))
                            .permissions();
         perm.set_mode(0o755);
-        try!(fs::set_permissions(dest_path, perm).map_err(|e| Error::ComponentFilePermissionsFailed(e)));
+        try!(fs::set_permissions(dest_path, perm)
+                 .map_err(|e| Error::ComponentFilePermissionsFailed(e)));
     } else {
-        let mut perm = try!(fs::metadata(dest_path).map_err(|e| Error::ComponentFilePermissionsFailed(e)))
+        let mut perm = try!(fs::metadata(dest_path)
+                                .map_err(|e| Error::ComponentFilePermissionsFailed(e)))
                            .permissions();
         perm.set_mode(0o644);
-        try!(fs::set_permissions(dest_path, perm).map_err(|e| Error::ComponentFilePermissionsFailed(e)));
+        try!(fs::set_permissions(dest_path, perm)
+                 .map_err(|e| Error::ComponentFilePermissionsFailed(e)));
     }
 
     Ok(())

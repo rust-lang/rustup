@@ -16,7 +16,7 @@ pub const CONFIG_FILE: &'static str = "multirust-config.toml";
 #[derive(Debug)]
 pub struct Manifestation {
     installation: Components,
-    target_triple: String
+    target_triple: String,
 }
 
 #[derive(Debug)]
@@ -35,7 +35,10 @@ impl Changes {
 }
 
 #[derive(PartialEq, Debug)]
-pub enum UpdateStatus { Changed, Unchanged }
+pub enum UpdateStatus {
+    Changed,
+    Unchanged,
+}
 
 impl Manifestation {
     /// Open the install prefix for updates from a distribution
@@ -71,7 +74,8 @@ impl Manifestation {
                   new_manifest: &Manifest,
                   changes: Changes,
                   temp_cfg: &temp::Cfg,
-                  notify_handler: NotifyHandler) -> Result<UpdateStatus> {
+                  notify_handler: NotifyHandler)
+                  -> Result<UpdateStatus> {
 
         // Some vars we're going to need a few times
         let prefix = self.installation.prefix();
@@ -100,8 +104,11 @@ impl Manifestation {
         };
 
         // Create the lists of components needed for installation
-        let component_lists = try!(build_update_component_lists(new_manifest, old_manifest, config,
-                                                                changes, &rust_target_package));
+        let component_lists = try!(build_update_component_lists(new_manifest,
+                                                                old_manifest,
+                                                                config,
+                                                                changes,
+                                                                &rust_target_package));
         let (components_to_uninstall,
              components_to_install,
              final_component_list) = component_lists;
@@ -115,7 +122,9 @@ impl Manifestation {
         for component in components_to_install {
             let package = try!(new_manifest.get_package(&component.pkg));
             let target_package = try!(package.get_target(&component.target));
-            let c_u_h = (component, target_package.url.clone(), target_package.hash.clone());
+            let c_u_h = (component,
+                         target_package.url.clone(),
+                         target_package.hash.clone());
             components_urls_and_hashes.push(c_u_h);
         }
 
@@ -127,8 +136,11 @@ impl Manifestation {
             let url_url = try!(utils::parse_url(&url));
 
             let mut hasher = Hasher::new(Type::SHA256);
-            try!(utils::download_file(url_url, &temp_file, Some(&mut hasher), ntfy!(&notify_handler))
-                 .map_err(|e| Error::ComponentDownloadFailed(component.clone(), e)));
+            try!(utils::download_file(url_url,
+                                      &temp_file,
+                                      Some(&mut hasher),
+                                      ntfy!(&notify_handler))
+                     .map_err(|e| Error::ComponentDownloadFailed(component.clone(), e)));
 
             let actual_hash = hasher.finish()
                                     .iter()
@@ -174,9 +186,7 @@ impl Manifestation {
                 return Err(Error::CorruptComponent(component.pkg.clone()));
             }
 
-            tx = try!(package.install(&self.installation,
-                                      name, Some(short_name),
-                                      tx));
+            tx = try!(package.install(&self.installation, name, Some(short_name), tx));
         }
 
         // Install new distribution manifest
@@ -209,7 +219,8 @@ impl Manifestation {
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
-        let ref config_str = try!(utils::read_file("dist config", &prefix.path().join(&rel_config_path)));
+        let ref config_str = try!(utils::read_file("dist config",
+                                                   &prefix.path().join(&rel_config_path)));
         let config = try!(Config::parse(config_str));
         try!(tx.remove_file("dist config", rel_config_path));
 
@@ -221,8 +232,11 @@ impl Manifestation {
         Ok(())
     }
 
-    fn uninstall_component<'a>(&self, component: &Component, mut tx: Transaction<'a>,
-                               notify_handler: NotifyHandler) -> Result<Transaction<'a>> {
+    fn uninstall_component<'a>(&self,
+                               component: &Component,
+                               mut tx: Transaction<'a>,
+                               notify_handler: NotifyHandler)
+                               -> Result<Transaction<'a>> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
@@ -239,18 +253,16 @@ impl Manifestation {
 
         Ok(tx)
     }
-
 }
 
 /// Returns components to uninstall, install, and the list of all
 /// components that will be up to date after the update.
-fn build_update_component_lists(
-    new_manifest: &Manifest,
-    old_manifest: &Option<Manifest>,
-    config: &Option<Config>,
-    changes: Changes,
-    rust_target_package: &TargettedPackage,
-    ) -> Result<(Vec<Component>, Vec<Component>, Vec<Component>)> {
+fn build_update_component_lists(new_manifest: &Manifest,
+                                old_manifest: &Option<Manifest>,
+                                config: &Option<Config>,
+                                changes: Changes,
+                                rust_target_package: &TargettedPackage)
+                                -> Result<(Vec<Component>, Vec<Component>, Vec<Component>)> {
 
     // Check some invariantns
     for component_to_add in &changes.add_extensions {
@@ -298,7 +310,7 @@ fn build_update_component_lists(
         let is_removed = changes.remove_extensions.contains(existing_component);
         let is_already_included = final_component_list.contains(existing_component);
 
-        if is_extension && !is_removed && !is_already_included{
+        if is_extension && !is_removed && !is_already_included {
             final_component_list.push(existing_component.clone());
         }
     }
@@ -328,5 +340,7 @@ fn build_update_component_lists(
         }
     }
 
-    Ok((components_to_uninstall, components_to_install, final_component_list))
+    Ok((components_to_uninstall,
+        components_to_install,
+        final_component_list))
 }

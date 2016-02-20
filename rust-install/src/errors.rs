@@ -89,7 +89,8 @@ impl<'a> Notification<'a> {
             NoUpdateHash(_) => NotificationLevel::Verbose,
             Extracting(_, _) | ChecksumValid(_) | SignatureValid(_) => NotificationLevel::Normal,
             UpdateHashMatches(_) | RollingBack => NotificationLevel::Info,
-            CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
+            CantReadUpdateHash(_) |
+            ExtensionNotInstalled(_) |
             MissingInstalledComponent(_) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
         }
@@ -119,7 +120,9 @@ impl<'a> Display for Notification<'a> {
                 write!(f, "extension '{}-{}' was not installed", c.pkg, c.target)
             }
             NonFatalError(e) => write!(f, "{}", e),
-            MissingInstalledComponent(c) => write!(f, "during uninstall component {} was not found", c),
+            MissingInstalledComponent(c) => {
+                write!(f, "during uninstall component {} was not found", c)
+            }
         }
     }
 }
@@ -147,7 +150,9 @@ impl error::Error for Error {
             InvalidChangeSet => "invalid change-set",
             NoGPG => "could not find 'gpg' on PATH",
             BadInstallerVersion(_) => "unsupported installer version",
-            BadInstalledMetadataVersion(_) => "unsupported metadata version in existing installation",
+            BadInstalledMetadataVersion(_) => {
+                "unsupported metadata version in existing installation"
+            }
             ComponentDirPermissionsFailed(_) => "I/O error walking directory during install",
             ComponentFilePermissionsFailed(_) => "error setting file permissions during install",
             ComponentDownloadFailed(_, _) => "component download failed",
@@ -247,7 +252,11 @@ impl Display for Error {
                 write!(f, "error setting file permissions during install: {}", e)
             }
             ComponentDownloadFailed(ref component, ref e) => {
-                write!(f, "component download failed for {}-{}: {}", component.pkg, component.target, e)
+                write!(f,
+                       "component download failed for {}-{}: {}",
+                       component.pkg,
+                       component.target,
+                       e)
             }
         }
     }

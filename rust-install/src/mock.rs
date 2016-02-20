@@ -13,7 +13,7 @@ pub type MockComponent = (&'static str, Vec<MockCommand>, Vec<(&'static str, Str
 
 pub enum MockCommand {
     File(&'static str),
-    Dir(&'static str)
+    Dir(&'static str),
 }
 
 impl MockInstallerBuilder {
@@ -21,8 +21,12 @@ impl MockInstallerBuilder {
         for &(name, ref commands, ref files) in &self.components {
             // Update the components file
             let comp_file = path.join("components");
-            let ref mut comp_file = OpenOptions::new().write(true).append(true).create(true)
-                .open(comp_file).unwrap();
+            let ref mut comp_file = OpenOptions::new()
+                                        .write(true)
+                                        .append(true)
+                                        .create(true)
+                                        .open(comp_file)
+                                        .unwrap();
             writeln!(comp_file, "{}", name).unwrap();
 
             // Create the component directory

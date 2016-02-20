@@ -111,7 +111,9 @@ impl<'a> Transaction<'a> {
     /// the install prefix.
     pub fn write_file(&mut self, component: &str, relpath: PathBuf, content: String) -> Result<()> {
         assert!(relpath.is_relative());
-        let (item, mut file) = try!(ChangedItem::add_file(&self.prefix, component, relpath.clone()));
+        let (item, mut file) = try!(ChangedItem::add_file(&self.prefix,
+                                                          component,
+                                                          relpath.clone()));
         self.change(item);
         try!(write!(file, "{}", content).map_err(|e| {
             utils::Error::WritingFile {
@@ -235,7 +237,11 @@ impl<'a> ChangedItem<'a> {
             Ok(ChangedItem::AddedFile(relpath))
         }
     }
-    fn copy_dir(prefix: &InstallPrefix, component: &str, relpath: PathBuf, src: &Path) -> Result<Self> {
+    fn copy_dir(prefix: &InstallPrefix,
+                component: &str,
+                relpath: PathBuf,
+                src: &Path)
+                -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
         if utils::path_exists(&abs_path) {
             Err(Error::ComponentConflict {
@@ -250,7 +256,11 @@ impl<'a> ChangedItem<'a> {
             Ok(ChangedItem::AddedDir(relpath))
         }
     }
-    fn remove_file(prefix: &InstallPrefix, component: &str, relpath: PathBuf, temp_cfg: &'a temp::Cfg) -> Result<Self> {
+    fn remove_file(prefix: &InstallPrefix,
+                   component: &str,
+                   relpath: PathBuf,
+                   temp_cfg: &'a temp::Cfg)
+                   -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = try!(temp_cfg.new_file());
         if !utils::path_exists(&abs_path) {
@@ -263,7 +273,11 @@ impl<'a> ChangedItem<'a> {
             Ok(ChangedItem::RemovedFile(relpath, backup))
         }
     }
-    fn remove_dir(prefix: &InstallPrefix, component: &str, relpath: PathBuf, temp_cfg: &'a temp::Cfg) -> Result<Self> {
+    fn remove_dir(prefix: &InstallPrefix,
+                  component: &str,
+                  relpath: PathBuf,
+                  temp_cfg: &'a temp::Cfg)
+                  -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = try!(temp_cfg.new_directory());
         if !utils::path_exists(&abs_path) {
@@ -276,7 +290,10 @@ impl<'a> ChangedItem<'a> {
             Ok(ChangedItem::RemovedDir(relpath, backup))
         }
     }
-    fn modify_file(prefix: &InstallPrefix, relpath: PathBuf, temp_cfg: &'a temp::Cfg) -> Result<Self> {
+    fn modify_file(prefix: &InstallPrefix,
+                   relpath: PathBuf,
+                   temp_cfg: &'a temp::Cfg)
+                   -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
 
         if utils::is_file(&abs_path) {
@@ -291,5 +308,3 @@ impl<'a> ChangedItem<'a> {
         }
     }
 }
-
-
