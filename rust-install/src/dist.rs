@@ -63,11 +63,15 @@ impl ToolchainDesc {
         })
     }
 
-    pub fn manifest_url(&self, dist_root: &str) -> String {
+    pub fn manifest_v1_url(&self, dist_root: &str) -> String {
         match self.date {
             None => format!("{}/channel-rust-{}", dist_root, self.channel),
             Some(ref date) => format!("{}/{}/channel-rust-{}", dist_root, date, self.channel),
         }
+    }
+
+    pub fn manifest_v2_url(&self, dist_root: &str) -> String {
+        format!("{}.toml", self.manifest_v1_url(dist_root))
     }
 
     pub fn package_dir(&self, dist_root: &str) -> String {
@@ -96,15 +100,6 @@ impl ToolchainDesc {
                 format!("{}-{}", arch, os)
             }
         })
-    }
-
-    pub fn download_manifest<'a>(&self, cfg: DownloadCfg<'a>) -> Result<Manifest<'a>> {
-        let url = self.manifest_url(cfg.dist_root);
-        let package_dir = self.package_dir(cfg.dist_root);
-
-        let manifest = try!(download_and_check(&url, None, "", cfg)).unwrap().0;
-
-        Ok(Manifest(manifest, package_dir))
     }
 
     pub fn full_spec(&self) -> String {
@@ -220,25 +215,6 @@ pub struct DownloadCfg<'a> {
     pub notify_handler: NotifyHandler<'a>,
 }
 
-pub fn download_dist<'a>(toolchain: &str,
-                         update_hash: Option<&Path>,
-                         cfg: DownloadCfg<'a>)
-                         -> Result<Option<(temp::File<'a>, String)>> {
-    let desc = try!(ToolchainDesc::from_str(toolchain).ok_or(Error::InvalidToolchainName));
-
-    let target_triple = try!(desc.target_triple()
-                                 .ok_or_else(|| Error::UnsupportedHost(desc.full_spec())));
-    let ext = get_installer_ext();
-
-    let manifest = try!(desc.download_manifest(cfg));
-
-    let maybe_url = try!(manifest.package_url("rust", &target_triple, ext));
-
-    let url = try!(maybe_url.ok_or_else(|| Error::UnsupportedHost(desc.full_spec())));
-
-    download_and_check(&url, update_hash, ext, cfg)
-}
-
 pub fn get_host_triple() -> (&'static str, Option<&'static str>, Option<&'static str>) {
     let arch = match env::consts::ARCH {
         "x86" => "i686", // Why, rust... WHY?
@@ -308,6 +284,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
     let already_using_v2 = try!(manifestation.read_config()).is_some();
     let can_dl_v2_manifest = enable_experimental || already_using_v2;
 
+    // TODO: Add a notification about which manifest version is going to be used
     if can_dl_v2_manifest {
         match dl_v2_manifest(download, update_hash, toolchain) {
             Ok(Some((m, hash))) => {
@@ -339,11 +316,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
 fn dl_v2_manifest<'a>(download: DownloadCfg<'a>,
                       update_hash: Option<&Path>,
                       toolchain: &ToolchainDesc) -> Result<Option<(ManifestV2, String)>> {
-    let ref manifest_url = if let Some(ref d) = toolchain.date {
-        format!("{}/{}/channel-rust-{}.toml", download.dist_root, d, toolchain.channel)
-    } else {
-        format!("{}/channel-rust-{}.toml", download.dist_root, toolchain.channel)
-    };
+    let manifest_url = toolchain.manifest_v2_url(download.dist_root);
     let manifest_dl = try!(download_and_check(&manifest_url,
                                               update_hash, ".toml", download));
     let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl { m } else { return Ok(None) };
@@ -355,11 +328,7 @@ fn dl_v2_manifest<'a>(download: DownloadCfg<'a>,
 
 fn dl_v1_manifest<'a>(download: DownloadCfg<'a>,
                       toolchain: &ToolchainDesc) -> Result<Vec<String>> {
-    let root_url = if let Some(ref d) = toolchain.date {
-        format!("{}/{}", download.dist_root, d)
-    } else {
-        format!("{}", download.dist_root)
-    };
+    let root_url = toolchain.package_dir(download.dist_root);
 
     if !["nightly", "beta", "stable"].contains(&&*toolchain.channel) {
         // This is an explicit version. In v1 there was no manifest,
@@ -370,8 +339,7 @@ fn dl_v1_manifest<'a>(download: DownloadCfg<'a>,
         return Ok(vec![installer_name]);
     }
     
-    let manifest_url = format!("{}/channel-rust-{}", &root_url, toolchain.channel);
-
+    let manifest_url = toolchain.manifest_v1_url(download.dist_root);
     let manifest_dl = try!(download_and_check(&manifest_url, None, "", download));
     let (manifest_file, _) = manifest_dl.unwrap();
     let manifest_str = try!(utils::read_file("manifest", &manifest_file));
