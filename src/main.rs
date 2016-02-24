@@ -142,8 +142,8 @@ fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
                 // delete_line() doesn't seem to clear the line properly.
                 // Instead, let's just print some whitespace to clear it.
                 let _ = write!(t, "                ");
-                t.flush().unwrap();
-                t.carriage_return().unwrap();
+                let _ = t.flush();
+                let _ = t.carriage_return();
             }
             Notification::Install(In::Utils(Un::DownloadFinished)) => {
                 let dd = download_displayer.clone();
