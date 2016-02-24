@@ -266,7 +266,7 @@ impl Manifestation {
             return Err(Error::ObsoleteDistManifest);
         }
 
-        let url = new_manifest.iter().find(|u| u.contains(&self.target_triple));
+        let url = new_manifest.iter().find(|u| u.contains(&format!("{}{}", self.target_triple, ".tar.gz")));
         if url.is_none() {
             return Err(Error::UnsupportedHost(self.target_triple.to_string()));
         }
