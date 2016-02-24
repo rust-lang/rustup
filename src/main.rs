@@ -75,102 +75,102 @@ fn info_fmt(args: fmt::Arguments) {
 }
 
 fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
-	use std::rc::Rc;
-	use std::cell::{Cell, RefCell};
+    use std::rc::Rc;
+    use std::cell::{Cell, RefCell};
 
-	struct DownloadDisplayer {
-		content_len: Cell<Option<u64>>,
-		total_downloaded: Cell<usize>,
-		term: RefCell<Box<term::StdoutTerminal>>,
-	}
+    struct DownloadDisplayer {
+        content_len: Cell<Option<u64>>,
+        total_downloaded: Cell<usize>,
+        term: RefCell<Box<term::StdoutTerminal>>,
+    }
 
-	/// Human readable representation of data size in bytes
-	struct HumanReadable<T>(T);
+    /// Human readable representation of data size in bytes
+    struct HumanReadable<T>(T);
 
-	impl<T: Into<f64> + Clone> fmt::Display for HumanReadable<T> {
-	    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-	        const KIB: f64 = 1024.0;
-	        const MIB: f64 = 1048576.0;
-	        let size: f64 = self.0.clone().into();
+    impl<T: Into<f64> + Clone> fmt::Display for HumanReadable<T> {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            const KIB: f64 = 1024.0;
+            const MIB: f64 = 1048576.0;
+            let size: f64 = self.0.clone().into();
 
-	        if size >= MIB {
-	            write!(f, "{:.2} MiB", size / MIB)
-	        } else if size >= KIB {
-	            write!(f, "{:.2} KiB", size / KIB)
-	        } else {
-	            write!(f, "{} B", size)
-	        }
-	    }
-	}
+            if size >= MIB {
+                write!(f, "{:.2} MiB", size / MIB)
+            } else if size >= KIB {
+                write!(f, "{:.2} KiB", size / KIB)
+            } else {
+                write!(f, "{} B", size)
+            }
+        }
+    }
 
-	let download_displayer = Rc::new(DownloadDisplayer {
-		content_len: Cell::new(None),
-		total_downloaded: Cell::new(0),
-		term: RefCell::new(term::stdout().expect("Failed to open terminal.")),
-	});
+    let download_displayer = Rc::new(DownloadDisplayer {
+        content_len: Cell::new(None),
+        total_downloaded: Cell::new(0),
+        term: RefCell::new(term::stdout().expect("Failed to open terminal.")),
+    });
 
     // Base config
     let verbose = m.map_or(false, |m| m.is_present("verbose"));
     Cfg::from_env(shared_ntfy!(move |n: Notification| {
         use multirust::notify::NotificationLevel::*;
-		use rust_install::Notification as In;
-		use rust_install::utils::Notification as Un;
+        use rust_install::Notification as In;
+        use rust_install::utils::Notification as Un;
 
-		match n {
-			Notification::Install(In::Utils(Un::DownloadContentLengthReceived(len))) => {
-				let dd = download_displayer.clone();
-				dd.content_len.set(Some(len));
-				dd.total_downloaded.set(0);
-			}
-			Notification::Install(In::Utils(Un::DownloadDataReceived(len))) => {
-				let dd = download_displayer.clone();
-				let mut t = dd.term.borrow_mut();
-				dd.total_downloaded.set(dd.total_downloaded.get() + len);
-				let total_downloaded = dd.total_downloaded.get();
-				let total_h = HumanReadable(total_downloaded as f64);
+        match n {
+            Notification::Install(In::Utils(Un::DownloadContentLengthReceived(len))) => {
+                let dd = download_displayer.clone();
+                dd.content_len.set(Some(len));
+                dd.total_downloaded.set(0);
+            }
+            Notification::Install(In::Utils(Un::DownloadDataReceived(len))) => {
+                let dd = download_displayer.clone();
+                let mut t = dd.term.borrow_mut();
+                dd.total_downloaded.set(dd.total_downloaded.get() + len);
+                let total_downloaded = dd.total_downloaded.get();
+                let total_h = HumanReadable(total_downloaded as f64);
 
-				match dd.content_len.get() {
-					Some(content_len) => {
-						let percent = (total_downloaded as f64 / content_len as f64) * 100.;
-						let content_len_h = HumanReadable(content_len as f64);
-						let _ = write!(t, "{} / {} ({:.2}%)", total_h, content_len_h, percent);
-					}
-					None => {
-						let _ = write!(t, "{}", total_h);
-					}
-				}
-				// delete_line() doesn't seem to clear the line properly.
-				// Instead, let's just print some whitespace to clear it.
-				let _ = write!(t, "                ");
-				t.flush().unwrap();
-				t.carriage_return().unwrap();
-			}
-			Notification::Install(In::Utils(Un::DownloadFinished)) => {
-				let dd = download_displayer.clone();
-				let _ = writeln!(dd.term.borrow_mut(), "");
-			}
-			n => {
-				match n.level() {
-		            Verbose => {
-		                if verbose {
-		                    println!("{}", n);
-		                }
-		            }
-		            Normal => {
-		                println!("{}", n);
-		            }
-		            Info => {
-		                info!("{}", n);
-		            }
-		            Warn => {
-		                warn!("{}", n);
-		            }
-		            Error => {
-		                err!("{}", n);
-		            }
-		        }
-			}
-		}
+                match dd.content_len.get() {
+                    Some(content_len) => {
+                        let percent = (total_downloaded as f64 / content_len as f64) * 100.;
+                        let content_len_h = HumanReadable(content_len as f64);
+                        let _ = write!(t, "{} / {} ({:.2}%)", total_h, content_len_h, percent);
+                    }
+                    None => {
+                        let _ = write!(t, "{}", total_h);
+                    }
+                }
+                // delete_line() doesn't seem to clear the line properly.
+                // Instead, let's just print some whitespace to clear it.
+                let _ = write!(t, "                ");
+                t.flush().unwrap();
+                t.carriage_return().unwrap();
+            }
+            Notification::Install(In::Utils(Un::DownloadFinished)) => {
+                let dd = download_displayer.clone();
+                let _ = writeln!(dd.term.borrow_mut(), "");
+            }
+            n => {
+                match n.level() {
+                    Verbose => {
+                        if verbose {
+                            println!("{}", n);
+                        }
+                    }
+                    Normal => {
+                        println!("{}", n);
+                    }
+                    Info => {
+                        info!("{}", n);
+                    }
+                    Warn => {
+                        warn!("{}", n);
+                    }
+                    Error => {
+                        err!("{}", n);
+                    }
+                }
+            }
+        }
     }))
 
 }
@@ -185,7 +185,7 @@ fn main() {
 fn run_inner<S: AsRef<OsStr>>(_: &Cfg, command: Result<Command>, args: &[S]) -> Result<()> {
     if let Ok(mut command) = command {
         for arg in &args[1..] {
-            if arg.as_ref() == <str as AsRef<OsStr>>::as_ref("--multirust") {
+            if arg.as_ref() == <str as AsRef::<OsStr>>::as_ref("--multirust") {
                 println!("Proxied via multirust");
                 std::process::exit(0);
             } else {
@@ -208,7 +208,7 @@ fn run_inner<S: AsRef<OsStr>>(_: &Cfg, command: Result<Command>, args: &[S]) -> 
 
     } else {
         for arg in &args[1..] {
-            if arg.as_ref() == <str as AsRef<OsStr>>::as_ref("--multirust") {
+            if arg.as_ref() == <str as AsRef::<OsStr>>::as_ref("--multirust") {
                 println!("Proxied via multirust");
                 std::process::exit(0);
             }
@@ -300,8 +300,11 @@ fn run_multirust() -> Result<()> {
     let cfg = try!(set_globals(Some(&app_matches)));
 
     match app_matches.subcommand_name() {
-        Some("upgrade-data") | Some("delete-data") | Some("install") |
-        Some("uninstall") | None => {} // Don't need consistent metadata
+        Some("upgrade-data") |
+        Some("delete-data") |
+        Some("install") |
+        Some("uninstall") |
+        None => {} // Don't need consistent metadata
         Some(_) => {
             try!(cfg.check_metadata_version());
         }
