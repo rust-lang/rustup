@@ -185,7 +185,7 @@ fn main() {
 fn run_inner<S: AsRef<OsStr>>(_: &Cfg, command: Result<Command>, args: &[S]) -> Result<()> {
     if let Ok(mut command) = command {
         for arg in &args[1..] {
-            if arg.as_ref() == <str as AsRef::<OsStr>>::as_ref("--multirust") {
+            if arg.as_ref() == <str as AsRef<OsStr>>::as_ref("--multirust") {
                 println!("Proxied via multirust");
                 std::process::exit(0);
             } else {
@@ -208,7 +208,7 @@ fn run_inner<S: AsRef<OsStr>>(_: &Cfg, command: Result<Command>, args: &[S]) -> 
 
     } else {
         for arg in &args[1..] {
-            if arg.as_ref() == <str as AsRef::<OsStr>>::as_ref("--multirust") {
+            if arg.as_ref() == <str as AsRef<OsStr>>::as_ref("--multirust") {
                 println!("Proxied via multirust");
                 std::process::exit(0);
             }
