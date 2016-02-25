@@ -2,6 +2,7 @@
 //! platform components from a distribution server.
 
 use rust_manifest::{Component, Manifest, Config, TargettedPackage};
+use dist::{download_and_check, DownloadCfg};
 use component::{Components, Transaction, TarGzPackage, Package};
 use temp;
 use errors::*;
@@ -9,8 +10,9 @@ use utils;
 use install::InstallPrefix;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;
+use std::path::Path;
 
-pub const DIST_MANIFEST: &'static str = "multirust-dist.toml";
+pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
 pub const CONFIG_FILE: &'static str = "multirust-config.toml";
 
 #[derive(Debug)]
@@ -75,8 +77,6 @@ impl Manifestation {
 
         // Some vars we're going to need a few times
         let prefix = self.installation.prefix();
-        let ref rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
-        let ref config_path = prefix.path().join(rel_config_path);
         let ref rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
         let ref installed_manifest_path = prefix.path().join(rel_installed_manifest_path);
         let rust_package = try!(new_manifest.get_package("rust"));
@@ -92,12 +92,7 @@ impl Manifestation {
         };
 
         // Load the configuration and list of installed components.
-        let ref config = if utils::path_exists(config_path) {
-            let ref config_str = try!(utils::read_file("dist config", config_path));
-            Some(try!(Config::parse(config_str)))
-        } else {
-            None
-        };
+        let ref config = try!(self.read_config());
 
         // Create the lists of components needed for installation
         let component_lists = try!(build_update_component_lists(new_manifest, old_manifest, config,
@@ -152,6 +147,10 @@ impl Manifestation {
         // Begin transaction
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
 
+        // If the previous installation was from a v1 manifest we need
+        // to uninstall it first.
+        tx = try!(self.maybe_handle_v2_upgrade(config, tx));
+
         // Uninstall components
         for component in components_to_uninstall {
             tx = try!(self.uninstall_component(&component, tx, notify_handler.clone()));
@@ -193,6 +192,8 @@ impl Manifestation {
         let mut config = Config::new();
         config.components = final_component_list;
         let ref config_str = config.stringify();
+        let ref rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
+        let ref config_path = prefix.path().join(rel_config_path);
         try!(tx.modify_file(rel_config_path.to_owned()));
         try!(utils::write_file("dist config", config_path, config_str));
 
@@ -240,6 +241,91 @@ impl Manifestation {
         Ok(tx)
     }
 
+    // Read the config file. Config files are presently only created
+    // for v2 installations.
+    pub fn read_config(&self) -> Result<Option<Config>> {
+        let prefix = self.installation.prefix();
+        let ref rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
+        let ref config_path = prefix.path().join(rel_config_path);
+        if utils::path_exists(config_path) {
+            let ref config_str = try!(utils::read_file("dist config", config_path));
+            Ok(Some(try!(Config::parse(config_str))))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Installation using the legacy v1 manifest format
+    pub fn update_v1(&self,
+                     new_manifest: &[String],
+                     update_hash: Option<&Path>,
+                     temp_cfg: &temp::Cfg,
+                     notify_handler: NotifyHandler) -> Result<Option<String>> {
+        // If there's already a v2 installation then something has gone wrong
+        if try!(self.read_config()).is_some() {
+            return Err(Error::ObsoleteDistManifest);
+        }
+
+        let url = new_manifest.iter().find(|u| u.contains(&format!("{}{}", self.target_triple, ".tar.gz")));
+        if url.is_none() {
+            return Err(Error::UnsupportedHost(self.target_triple.to_string()));
+        }
+        let url = url.unwrap();
+
+        let dlcfg = DownloadCfg {
+            dist_root: "bogus",
+            temp_cfg: temp_cfg,
+            notify_handler: notify_handler
+        };
+        let dl = try!(download_and_check(&url, update_hash, ".tar.gz", dlcfg));
+        if dl.is_none() {
+            return Ok(None);
+        };
+        let (installer_file, installer_hash) = dl.unwrap();
+
+        let prefix = self.installation.prefix();
+
+        // Begin transaction
+        let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
+
+        // Uninstall components
+        for component in try!(self.installation.list()) {
+            tx = try!(component.uninstall(tx));
+        }
+
+        // Install all the components in the installer
+        let package = try!(TarGzPackage::new_file(&installer_file, temp_cfg));
+
+        for component in package.components() {
+            tx = try!(package.install(&self.installation,
+                                      &component, None,
+                                      tx));
+        }
+
+        // End transaction
+        tx.commit();
+
+        Ok(Some(installer_hash))
+    }
+
+    // If the previous installation was from a v1 manifest, then it
+    // doesn't have a configuration or manifest-derived list of
+    // component/target pairs. Uninstall it using the intaller's
+    // component list before upgrading.
+    fn maybe_handle_v2_upgrade<'a>(&self,
+                                   config: &Option<Config>,
+                                   mut tx: Transaction<'a>) -> Result<Transaction<'a>> {
+        let installed_components = try!(self.installation.list());
+        let looks_like_v1 = config.is_none() && !installed_components.is_empty();
+
+        if !looks_like_v1 { return Ok(tx) }
+
+        for component in installed_components {
+            tx = try!(component.uninstall(tx));
+        }
+
+        Ok(tx)
+    }
 }
 
 /// Returns components to uninstall, install, and the list of all

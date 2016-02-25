@@ -14,15 +14,7 @@ use std::fs;
 use std::io;
 use std::env;
 
-#[cfg(not(windows))]
 const REL_MANIFEST_DIR: &'static str = "lib/rustlib";
-
-// FIXME: (brson) I don't think this should be bin/ even though
-// windows puts its libraries in bin.  rust-installer uses lib/ no
-// matter what platform, so using bin here makes the metadata used by
-// multirust-rs incompatible with rust-installer.
-#[cfg(windows)]
-const REL_MANIFEST_DIR: &'static str = "bin\\rustlib";
 
 #[derive(Clone, Debug)]
 pub struct InstallPrefix {
@@ -107,15 +99,20 @@ impl<'a> InstallMethod<'a> {
                 }
             }
             InstallMethod::Dist(toolchain, update_hash, dl_cfg) => {
-                if let Some((installer, hash)) = try!(dist::download_dist(toolchain,
-                                                                          update_hash,
-                                                                          dl_cfg)) {
-                    try!(InstallMethod::Installer(&*installer, dl_cfg.temp_cfg)
-                             .run(prefix, dl_cfg.notify_handler));
+                let maybe_new_hash =
+                    try!(dist::update_from_dist(
+                        dl_cfg,
+                        update_hash,
+                        toolchain,
+                        prefix,
+                        &[], &[]));
+
+                if let Some(hash) = maybe_new_hash {
                     if let Some(hash_file) = update_hash {
                         try!(utils::write_file("update hash", hash_file, &hash));
                     }
                 }
+
                 Ok(())
             }
         }

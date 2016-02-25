@@ -18,6 +18,7 @@ extern crate winapi;
 extern crate winreg;
 #[cfg(windows)]
 extern crate user32;
+extern crate libc;
 
 use clap::ArgMatches;
 use std::env;
@@ -47,29 +48,55 @@ macro_rules! info {
     ( $ ( $ arg : tt ) * ) => ( $crate::info_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 
+// Copied from rustc. atty crate did not work as expected
+#[cfg(unix)]
+fn stderr_isatty() -> bool {
+    use libc;
+    unsafe { libc::isatty(libc::STDERR_FILENO) != 0 }
+}
+// FIXME: Unfortunately this doesn't detect msys terminals so rustup
+// is always colorless there (just like rustc and cargo).
+#[cfg(windows)]
+fn stderr_isatty() -> bool {
+    type DWORD = u32;
+    type BOOL = i32;
+    type HANDLE = *mut u8;
+    const STD_ERROR_HANDLE: DWORD = -12i32 as DWORD;
+    extern "system" {
+        fn GetStdHandle(which: DWORD) -> HANDLE;
+        fn GetConsoleMode(hConsoleHandle: HANDLE,
+                          lpMode: *mut DWORD) -> BOOL;
+    }
+    unsafe {
+        let handle = GetStdHandle(STD_ERROR_HANDLE);
+        let mut out = 0;
+        GetConsoleMode(handle, &mut out) != 0
+    }
+}
+
 fn warn_fmt(args: fmt::Arguments) {
     let mut t = term::stderr().unwrap();
-    let _ = t.fg(term::color::BRIGHT_YELLOW);
+    if stderr_isatty() { let _ = t.fg(term::color::BRIGHT_YELLOW); }
     let _ = write!(t, "warning: ");
-    let _ = t.reset();
+    if stderr_isatty() { let _ = t.reset(); }
     let _ = t.write_fmt(args);
     let _ = write!(t, "\n");
 }
 
 fn err_fmt(args: fmt::Arguments) {
     let mut t = term::stderr().unwrap();
-    let _ = t.fg(term::color::BRIGHT_RED);
+    if stderr_isatty() { let _ = t.fg(term::color::BRIGHT_RED); }
     let _ = write!(t, "error: ");
-    let _ = t.reset();
+    if stderr_isatty() { let _ = t.reset(); }
     let _ = t.write_fmt(args);
     let _ = write!(t, "\n");
 }
 
 fn info_fmt(args: fmt::Arguments) {
     let mut t = term::stderr().unwrap();
-    let _ = t.fg(term::color::BRIGHT_GREEN);
+    if stderr_isatty() { let _ = t.fg(term::color::BRIGHT_GREEN); }
     let _ = write!(t, "info: ");
-    let _ = t.reset();
+    if stderr_isatty() { let _ = t.reset(); }
     let _ = t.write_fmt(args);
     let _ = write!(t, "\n");
 }
@@ -774,7 +801,7 @@ fn show_default(cfg: &Cfg) -> Result<()> {
 
         show_tool_versions(&toolchain)
     } else {
-        println!("no default toolchain configured. run `multirust helpdefault`");
+        println!("no default toolchain configured. run `multirust help default`");
         Ok(())
     }
 }
@@ -783,6 +810,8 @@ fn show_override(cfg: &Cfg) -> Result<()> {
     if let Some((toolchain, reason)) = try!(cfg.find_override(&try!(utils::current_dir()))) {
         println!("override toolchain: {}", toolchain.name());
         println!("override location: {}", toolchain.prefix().path().display());
+        // FIXME: On windows this displays the UNC portion of the
+        // windows path, which is pretty ugly
         println!("override reason: {}", reason);
 
         show_tool_versions(&toolchain)

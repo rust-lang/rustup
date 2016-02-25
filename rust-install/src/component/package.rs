@@ -30,6 +30,7 @@ pub trait Package: fmt::Debug {
                    short_name: Option<&str>,
                    tx: Transaction<'a>)
                    -> Result<Transaction<'a>>;
+    fn components(&self) -> Vec<String>;
 }
 
 #[derive(Debug)]
@@ -91,7 +92,7 @@ impl Package for DirectoryPackage {
 
         for l in manifest.lines() {
             let part = try!(ComponentPart::decode(l)
-                                .ok_or_else(|| Error::CorruptComponent(name.to_owned())));
+                            .ok_or_else(|| Error::CorruptComponent(name.to_owned())));
 
             let path = part.1;
             let src_path = root.join(&path);
@@ -105,9 +106,13 @@ impl Package for DirectoryPackage {
             try!(set_file_perms(&target.prefix().path().join(path), &src_path));
         }
 
-        let (_, tx) = try!(builder.finish());
+        let tx = try!(builder.finish());
 
         Ok(tx)
+    }
+
+    fn components(&self) -> Vec<String> {
+        self.components.iter().cloned().collect()
     }
 }
 
@@ -212,6 +217,9 @@ impl<'a> Package for TarPackage<'a> {
                    -> Result<Transaction<'b>> {
         self.0.install(target, component, short_name, tx)
     }
+    fn components(&self) -> Vec<String> {
+        self.0.components()
+    }
 }
 
 #[derive(Debug)]
@@ -240,5 +248,8 @@ impl<'a> Package for TarGzPackage<'a> {
                    tx: Transaction<'b>)
                    -> Result<Transaction<'b>> {
         self.0.install(target, component, short_name, tx)
+    }
+    fn components(&self) -> Vec<String> {
+        self.0.components()
     }
 }

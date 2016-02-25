@@ -1,6 +1,6 @@
 extern crate rust_manifest;
 
-use rust_manifest::Manifest;
+use rust_manifest::{Manifest, Error};
 
 // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
 static EXAMPLE: &'static str = include_str!("channel-rust-nightly-example.toml");
@@ -44,3 +44,35 @@ fn parse_round_trip() {
     assert_eq!(original, new);
 }
 
+#[test]
+fn validate_components_have_corresponding_packages() {
+    let manifest = r#"
+manifest-version = "2"
+date = "2015-10-10"
+[pkg.rust]
+  version = "rustc 1.3.0 (9a92aaf19 2015-09-15)"
+  [pkg.rust.target.x86_64-unknown-linux-gnu]
+    available = true
+    url = "example.com"
+    hash = "..."
+    [[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+      pkg = "rustc"
+      target = "x86_64-unknown-linux-gnu"
+    [[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+      pkg = "rust-std"
+      target = "x86_64-unknown-linux-musl"
+[pkg.rustc]
+  version = "rustc 1.3.0 (9a92aaf19 2015-09-15)"
+  [pkg.rustc.target.x86_64-unknown-linux-gnu]
+    available = true
+    url = "example.com"
+    hash = "..."
+"#;
+
+    let err = Manifest::parse(manifest).unwrap_err();
+
+    match err {
+        Error::MissingPackageForComponent(_) => {},
+        _ => panic!(),
+    }
+}

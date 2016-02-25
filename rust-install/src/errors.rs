@@ -66,6 +66,7 @@ pub enum Error {
     ComponentDirPermissionsFailed(walkdir::Error),
     ComponentFilePermissionsFailed(io::Error),
     ComponentDownloadFailed(Component, utils::Error),
+    ObsoleteDistManifest,
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -151,6 +152,7 @@ impl error::Error for Error {
             ComponentDirPermissionsFailed(_) => "I/O error walking directory during install",
             ComponentFilePermissionsFailed(_) => "error setting file permissions during install",
             ComponentDownloadFailed(_, _) => "component download failed",
+            ObsoleteDistManifest => "the server unexpectedly provided an obsolete version of the distribution manifest"
         }
     }
 
@@ -179,7 +181,8 @@ impl error::Error for Error {
             InvalidChangeSet |
             NoGPG |
             BadInstallerVersion(_) |
-            BadInstalledMetadataVersion(_) => None,
+            BadInstalledMetadataVersion(_) |
+            ObsoleteDistManifest => None,
         }
     }
 }
@@ -248,6 +251,9 @@ impl Display for Error {
             }
             ComponentDownloadFailed(ref component, ref e) => {
                 write!(f, "component download failed for {}-{}: {}", component.pkg, component.target, e)
+            }
+            ObsoleteDistManifest => {
+                write!(f, "the server unexpectedly provided an obsolete version of the distribution manifest")
             }
         }
     }

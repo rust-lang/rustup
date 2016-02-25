@@ -57,6 +57,9 @@ impl Components {
     }
     pub fn list(&self) -> Result<Vec<Component>> {
         let path = self.prefix.abs_path(self.rel_components_file());
+        if !utils::is_file(&path) {
+            return Ok(Vec::new());
+        }
         let content = try!(utils::read_file("components", &path));
         Ok(content.lines()
                   .map(|s| {
@@ -67,13 +70,13 @@ impl Components {
                   })
                   .collect())
     }
-    pub fn add<'a>(&self, name: &str, tx: Transaction<'a>) -> AddingComponent<'a> {
-        AddingComponent(ComponentBuilder {
-                            components: self.clone(),
-                            name: name.to_owned(),
-                            parts: Vec::new(),
-                        },
-                        tx)
+    pub fn add<'a>(&self, name: &str, tx: Transaction<'a>) -> ComponentBuilder<'a> {
+        ComponentBuilder {
+            components: self.clone(),
+            name: name.to_owned(),
+            parts: Vec::new(),
+            tx: tx,
+        }
     }
     pub fn find(&self, name: &str) -> Result<Option<Component>> {
         let result = try!(self.list());
@@ -85,21 +88,32 @@ impl Components {
 }
 
 #[derive(Debug)]
-struct ComponentBuilder {
+pub struct ComponentBuilder<'a> {
     components: Components,
     name: String,
     parts: Vec<ComponentPart>,
+    tx: Transaction<'a>
 }
 
-impl ComponentBuilder {
-    fn add(&mut self, part: ComponentPart) {
-        self.parts.push(part);
+impl<'a> ComponentBuilder<'a> {
+    pub fn add_file(&mut self, path: PathBuf) -> Result<File> {
+        self.parts.push(ComponentPart("file".to_owned(), path.clone()));
+        self.tx.add_file(&self.name, path)
     }
-    fn finish(self, tx: &mut Transaction) -> Result<Component> {
+    pub fn copy_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
+        self.parts.push(ComponentPart("file".to_owned(), path.clone()));
+        self.tx.copy_file(&self.name, path, src)
+    }
+    pub fn copy_dir(&mut self, path: PathBuf, src: &Path) -> Result<()> {
+        self.parts.push(ComponentPart("dir".to_owned(), path.clone()));
+        self.tx.copy_dir(&self.name, path, src)
+    }
+
+    pub fn finish(mut self) -> Result<Transaction<'a>> {
         // Write component manifest
         let path = self.components.rel_component_manifest(&self.name);
         let abs_path = self.components.prefix.abs_path(&path);
-        let mut file = try!(tx.add_file(&self.name, path));
+        let mut file = try!(self.tx.add_file(&self.name, path));
         for part in self.parts {
             // FIXME: This writes relative paths to the component manifest,
             // but rust-installer writes absolute paths.
@@ -115,42 +129,13 @@ impl ComponentBuilder {
         // Add component to components file
         let path = self.components.rel_components_file();
         let abs_path = self.components.prefix.abs_path(&path);
-        try!(tx.modify_file(path));
+        try!(self.tx.modify_file(path));
         try!(utils::append_file("components", &abs_path, &self.name));
 
         // Drop in the version file for future use
-        try!(self.components.write_version(tx));
+        try!(self.components.write_version(&mut self.tx));
 
-        // Done, convert into normal component
-        Ok(Component {
-            components: self.components,
-            name: self.name,
-        })
-    }
-}
-
-#[derive(Debug)]
-pub struct AddingComponent<'a>(ComponentBuilder, Transaction<'a>);
-
-impl<'a> AddingComponent<'a> {
-    pub fn finish(self) -> Result<(Component, Transaction<'a>)> {
-        let AddingComponent(c, mut tx) = self;
-
-        let c = try!(c.finish(&mut tx));
-
-        Ok((c, tx))
-    }
-    pub fn add_file(&mut self, path: PathBuf) -> Result<File> {
-        self.0.add(ComponentPart("file".to_owned(), path.clone()));
-        self.1.add_file(&self.0.name, path)
-    }
-    pub fn copy_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
-        self.0.add(ComponentPart("file".to_owned(), path.clone()));
-        self.1.copy_file(&self.0.name, path, src)
-    }
-    pub fn copy_dir(&mut self, path: PathBuf, src: &Path) -> Result<()> {
-        self.0.add(ComponentPart("dir".to_owned(), path.clone()));
-        self.1.copy_dir(&self.0.name, path, src)
+        Ok(self.tx)
     }
 }
 

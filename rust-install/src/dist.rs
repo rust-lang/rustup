@@ -2,6 +2,11 @@
 use temp;
 use errors::*;
 use utils;
+use InstallPrefix;
+use rust_manifest::Component;
+use rust_manifest::Manifest as ManifestV2;
+use manifest::{Manifestation, UpdateStatus, Changes};
+use hyper;
 
 use std::path::Path;
 use std::fmt;
@@ -19,6 +24,7 @@ pub struct ToolchainDesc {
     pub arch: Option<String>,
     pub os: Option<String>,
     pub env: Option<String>,
+    // Either "nightly", "stable", "beta", or an explicit version number
     pub channel: String,
     pub date: Option<String>,
 }
@@ -28,7 +34,9 @@ impl ToolchainDesc {
         let archs = ["i686", "x86_64"];
         let oses = ["pc-windows", "unknown-linux", "apple-darwin"];
         let envs = ["gnu", "msvc"];
-        let channels = ["nightly", "beta", "stable"];
+        let channels = ["nightly", "beta", "stable",
+                        r"\d{1}\.\d{1}\.\d{1}",
+                        r"\d{1}\.\d{2}\.\d{1}"];
 
         let pattern = format!(
             r"^(?:({})-)?(?:({})-)?(?:({})-)?({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?$",
@@ -55,11 +63,15 @@ impl ToolchainDesc {
         })
     }
 
-    pub fn manifest_url(&self, dist_root: &str) -> String {
+    pub fn manifest_v1_url(&self, dist_root: &str) -> String {
         match self.date {
             None => format!("{}/channel-rust-{}", dist_root, self.channel),
             Some(ref date) => format!("{}/{}/channel-rust-{}", dist_root, date, self.channel),
         }
+    }
+
+    pub fn manifest_v2_url(&self, dist_root: &str) -> String {
+        format!("{}.toml", self.manifest_v1_url(dist_root))
     }
 
     pub fn package_dir(&self, dist_root: &str) -> String {
@@ -88,15 +100,6 @@ impl ToolchainDesc {
                 format!("{}-{}", arch, os)
             }
         })
-    }
-
-    pub fn download_manifest<'a>(&self, cfg: DownloadCfg<'a>) -> Result<Manifest<'a>> {
-        let url = self.manifest_url(cfg.dist_root);
-        let package_dir = self.package_dir(cfg.dist_root);
-
-        let manifest = try!(download_and_check(&url, None, "", cfg)).unwrap().0;
-
-        Ok(Manifest(manifest, package_dir))
     }
 
     pub fn full_spec(&self) -> String {
@@ -212,25 +215,6 @@ pub struct DownloadCfg<'a> {
     pub notify_handler: NotifyHandler<'a>,
 }
 
-pub fn download_dist<'a>(toolchain: &str,
-                         update_hash: Option<&Path>,
-                         cfg: DownloadCfg<'a>)
-                         -> Result<Option<(temp::File<'a>, String)>> {
-    let desc = try!(ToolchainDesc::from_str(toolchain).ok_or(Error::InvalidToolchainName));
-
-    let target_triple = try!(desc.target_triple()
-                                 .ok_or_else(|| Error::UnsupportedHost(desc.full_spec())));
-    let ext = get_installer_ext();
-
-    let manifest = try!(desc.download_manifest(cfg));
-
-    let maybe_url = try!(manifest.package_url("rust", &target_triple, ext));
-
-    let url = try!(maybe_url.ok_or_else(|| Error::UnsupportedHost(desc.full_spec())));
-
-    download_and_check(&url, update_hash, ext, cfg)
-}
-
 pub fn get_host_triple() -> (&'static str, Option<&'static str>, Option<&'static str>) {
     let arch = match env::consts::ARCH {
         "x86" => "i686", // Why, rust... WHY?
@@ -267,4 +251,99 @@ pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
     try!(utils::download_file(hash_url, &hash_file, None, ntfy!(&cfg.notify_handler)));
 
     Ok(try!(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())))
+}
+
+// Installs or updates a toolchain from a dist server. If an initial
+// install then it will be installed with the default components. If
+// an upgrade then all the existing components will be upgraded.
+//
+// Returns the manifest's hash if anything changed.
+pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
+                            update_hash: Option<&Path>,
+                            toolchain: &str,
+                            prefix: &InstallPrefix,
+                            add: &[Component],
+                            remove: &[Component],
+                            ) -> Result<Option<String>> {
+
+    let ref toolchain = try!(ToolchainDesc::from_str(toolchain).ok_or(Error::InvalidToolchainName));
+    let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
+
+    let manifestation = try!(Manifestation::open(prefix.clone(), &trip));
+
+    let changes = Changes {
+        add_extensions: add.to_owned(),
+        remove_extensions: remove.to_owned(),
+    };
+
+    // Until the v2 dist manifests are actually deployed live they are
+    // not on by default. Putting this env var in Cfg an snaking it
+    // all the way down here didn't seem worth the effort since this
+    // should be short-lived.
+    let enable_experimental = ::std::env::var("MULTIRUST_ENABLE_EXPERIMENTAL").is_ok();
+    let already_using_v2 = try!(manifestation.read_config()).is_some();
+    let can_dl_v2_manifest = enable_experimental || already_using_v2;
+
+    // TODO: Add a notification about which manifest version is going to be used
+    if can_dl_v2_manifest {
+        match dl_v2_manifest(download, update_hash, toolchain) {
+            Ok(Some((m, hash))) => {
+                return match try!(manifestation.update(&m, changes, &download.temp_cfg, download.notify_handler.clone())) {
+                    UpdateStatus::Unchanged => Ok(None),
+                    UpdateStatus::Changed => Ok(Some(hash)),
+                }
+            }
+            Ok(None) => return Ok(None),
+            Err(Error::Utils(utils::Error::DownloadingFile {
+                error: utils::raw::DownloadError::Status(hyper::status::StatusCode::NotFound),
+                ..
+            })) => {
+                // Proceed to try v1 as a fallback
+            }
+            Err(e) => return Err(e)
+        }
+    }
+
+    // If the v2 manifest is not found then try v1
+    let manifest = try!(dl_v1_manifest(download, toolchain));
+    match try!(manifestation.update_v1(&manifest, update_hash,
+                                       &download.temp_cfg, download.notify_handler.clone())) {
+        None => Ok(None),
+        Some(hash) => Ok(Some(hash)),
+    }
+}
+
+fn dl_v2_manifest<'a>(download: DownloadCfg<'a>,
+                      update_hash: Option<&Path>,
+                      toolchain: &ToolchainDesc) -> Result<Option<(ManifestV2, String)>> {
+    let manifest_url = toolchain.manifest_v2_url(download.dist_root);
+    let manifest_dl = try!(download_and_check(&manifest_url,
+                                              update_hash, ".toml", download));
+    let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl { m } else { return Ok(None) };
+    let manifest_str = try!(utils::read_file("manifest", &manifest_file));
+    let manifest = try!(ManifestV2::parse(&manifest_str));
+
+    Ok(Some((manifest, manifest_hash)))
+}
+
+fn dl_v1_manifest<'a>(download: DownloadCfg<'a>,
+                      toolchain: &ToolchainDesc) -> Result<Vec<String>> {
+    let root_url = toolchain.package_dir(download.dist_root);
+
+    if !["nightly", "beta", "stable"].contains(&&*toolchain.channel) {
+        // This is an explicit version. In v1 there was no manifest,
+        // you just know the file to download, so synthesize one.
+        let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
+        let installer_name = format!("{}/rust-{}-{}.tar.gz",
+                                     root_url, toolchain.channel, trip);
+        return Ok(vec![installer_name]);
+    }
+    
+    let manifest_url = toolchain.manifest_v1_url(download.dist_root);
+    let manifest_dl = try!(download_and_check(&manifest_url, None, "", download));
+    let (manifest_file, _) = manifest_dl.unwrap();
+    let manifest_str = try!(utils::read_file("manifest", &manifest_file));
+    let urls = manifest_str.lines().map(|s| format!("{}/{}", root_url, s)).collect();
+
+    Ok(urls)
 }

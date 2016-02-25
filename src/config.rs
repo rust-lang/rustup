@@ -13,7 +13,8 @@ use rust_install::{temp, utils, dist};
 use override_db::OverrideDB;
 use toolchain::Toolchain;
 
-pub const METADATA_VERSION: &'static str = "2";
+// Note: multirust-rs jumped from 2 to 12 to leave multirust.sh room to diverge
+pub const METADATA_VERSION: &'static str = "12";
 
 #[derive(Debug)]
 pub enum OverrideReason {
@@ -26,7 +27,7 @@ impl Display for OverrideReason {
         match *self {
             OverrideReason::Environment => write!(f, "environment override by MULTIRUST_TOOLCHAIN"),
             OverrideReason::OverrideDB(ref path) => {
-                write!(f, "directory override due to '{}'", path.display())
+                write!(f, "directory override for '{}'", path.display())
             }
         }
     }
@@ -206,21 +207,21 @@ impl Cfg {
             return Ok(None);
         }
 
-        let toolchain = try!(self.verify_toolchain(name));
+        let toolchain = try!(self.verify_toolchain(name).map_err(|_| Error::ToolchainNotInstalled(name.to_string())));
 
         Ok(Some(toolchain))
     }
 
     pub fn find_override(&self, path: &Path) -> Result<Option<(Toolchain, OverrideReason)>> {
         if let Some(ref name) = self.env_override {
-            let toolchain = try!(self.verify_toolchain(name));
+            let toolchain = try!(self.verify_toolchain(name).map_err(|_| Error::ToolchainNotInstalled(name.to_string())));
 
             return Ok(Some((toolchain, OverrideReason::Environment)));
         }
 
         if let Some((name, reason_path)) = try!(self.override_db
                                                     .find(path, self.notify_handler.as_ref())) {
-            let toolchain = try!(self.verify_toolchain(&name));
+            let toolchain = try!(self.verify_toolchain(&name).map_err(|_| Error::ToolchainNotInstalled(name.to_string())));
             return Ok(Some((toolchain, OverrideReason::OverrideDB(reason_path))));
         }
 

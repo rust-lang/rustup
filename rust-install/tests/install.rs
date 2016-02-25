@@ -18,17 +18,17 @@ fn mock_smoke_test() {
     let tempdir = TempDir::new("multirust").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![("mycomponent",
-                          vec![MockCommand::File("bin/foo"),
-                               MockCommand::File("lib/bar"),
-                               MockCommand::Dir("doc/stuff")],
-                          vec![("bin/foo", "foo".to_string()),
-                               ("lib/bar", "bar".to_string()),
-                               ("doc/stuff/doc1", "".to_string()),
-                               ("doc/stuff/doc2", "".to_string())]),
-                         ("mycomponent2",
-                          vec![MockCommand::File("bin/quux")],
-                          vec![("bin/quux", "quux".to_string())]
+        components: vec![("mycomponent".to_string(),
+                          vec![MockCommand::File("bin/foo".to_string()),
+                               MockCommand::File("lib/bar".to_string()),
+                               MockCommand::Dir("doc/stuff".to_string())],
+                          vec![("bin/foo".to_string(), "foo".into()),
+                               ("lib/bar".to_string(), "bar".into()),
+                               ("doc/stuff/doc1".to_string(), "".into()),
+                               ("doc/stuff/doc2".to_string(), "".into())]),
+                         ("mycomponent2".to_string(),
+                          vec![MockCommand::File("bin/quux".to_string())],
+                          vec![("bin/quux".to_string(), "quux".into())]
                           )]
     };
 
@@ -49,13 +49,13 @@ fn package_contains() {
     let tempdir = TempDir::new("multirust").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![("mycomponent",
-                          vec![MockCommand::File("bin/foo")],
-                          vec![("bin/foo", "foo".to_string())],
+        components: vec![("mycomponent".to_string(),
+                          vec![MockCommand::File("bin/foo".to_string())],
+                          vec![("bin/foo".to_string(), "foo".into())],
                           ),
-                         ("mycomponent2",
-                          vec![MockCommand::File("bin/bar")],
-                          vec![("bin/bar", "bar".to_string())]
+                         ("mycomponent2".to_string(),
+                          vec![MockCommand::File("bin/bar".to_string())],
+                          vec![("bin/bar".to_string(), "bar".into())]
                           )]
     };
 
@@ -71,9 +71,9 @@ fn package_bad_version() {
     let tempdir = TempDir::new("multirust").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![("mycomponent",
-                          vec![MockCommand::File("bin/foo")],
-                          vec![("bin/foo", "foo".to_string())])]
+        components: vec![("mycomponent".to_string(),
+                          vec![MockCommand::File("bin/foo".to_string())],
+                          vec![("bin/foo".to_string(), "foo".into())])]
     };
 
     mock.build(tempdir.path());
@@ -89,14 +89,14 @@ fn basic_install() {
     let pkgdir = TempDir::new("multirust").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![("mycomponent",
-                          vec![MockCommand::File("bin/foo"),
-                               MockCommand::File("lib/bar"),
-                               MockCommand::Dir("doc/stuff")],
-                          vec![("bin/foo", "foo".to_string()),
-                               ("lib/bar", "bar".to_string()),
-                               ("doc/stuff/doc1", "".to_string()),
-                               ("doc/stuff/doc2", "".to_string())])]
+        components: vec![("mycomponent".to_string(),
+                          vec![MockCommand::File("bin/foo".to_string()),
+                               MockCommand::File("lib/bar".to_string()),
+                               MockCommand::Dir("doc/stuff".to_string())],
+                          vec![("bin/foo".to_string(), "foo".into()),
+                               ("lib/bar".to_string(), "bar".into()),
+                               ("doc/stuff/doc1".to_string(), "".into()),
+                               ("doc/stuff/doc2".to_string(), "".into())])]
     };
 
     mock.build(pkgdir.path());
@@ -131,12 +131,12 @@ fn multiple_component_install() {
     let pkgdir = TempDir::new("multirust").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![("mycomponent",
-                          vec![MockCommand::File("bin/foo")],
-                          vec![("bin/foo", "foo".to_string())]),
-                         ("mycomponent2",
-                          vec![MockCommand::File("lib/bar")],
-                          vec![("lib/bar", "bar".to_string())])]
+        components: vec![("mycomponent".to_string(),
+                          vec![MockCommand::File("bin/foo".to_string())],
+                          vec![("bin/foo".to_string(), "foo".into())]),
+                         ("mycomponent2".to_string(),
+                          vec![MockCommand::File("lib/bar".to_string())],
+                          vec![("lib/bar".to_string(), "bar".into())])]
     };
 
     mock.build(pkgdir.path());
@@ -166,23 +166,22 @@ fn multiple_component_install() {
     assert!(components.find("mycomponent2").unwrap().is_some());
 }
 
-#[ignore] // FIXME windows
 #[test]
 fn uninstall() {
     let pkgdir = TempDir::new("multirust").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![("mycomponent",
-                          vec![MockCommand::File("bin/foo"),
-                               MockCommand::File("lib/bar"),
-                               MockCommand::Dir("doc/stuff")],
-                          vec![("bin/foo", "foo".to_string()),
-                               ("lib/bar", "bar".to_string()),
-                               ("doc/stuff/doc1", "".to_string()),
-                               ("doc/stuff/doc2", "".to_string())]),
-                         ("mycomponent2",
-                          vec![MockCommand::File("lib/quux")],
-                          vec![("lib/quux", "quux".to_string())])]
+        components: vec![("mycomponent".to_string(),
+                          vec![MockCommand::File("bin/foo".to_string()),
+                               MockCommand::File("lib/bar".to_string()),
+                               MockCommand::Dir("doc/stuff".to_string())],
+                          vec![("bin/foo".to_string(), "foo".into()),
+                               ("lib/bar".to_string(), "bar".into()),
+                               ("doc/stuff/doc1".to_string(), "".into()),
+                               ("doc/stuff/doc2".to_string(), "".into())]),
+                         ("mycomponent2".to_string(),
+                          vec![MockCommand::File("lib/quux".to_string())],
+                          vec![("lib/quux".to_string(), "quux".into())])]
     };
 
     mock.build(pkgdir.path());
@@ -234,9 +233,9 @@ fn component_bad_version() {
     let pkgdir = TempDir::new("multirust").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![("mycomponent",
-                          vec![MockCommand::File("bin/foo")],
-                          vec![("bin/foo", "foo".to_string())])]
+        components: vec![("mycomponent".to_string(),
+                          vec![MockCommand::File("bin/foo".to_string())],
+                          vec![("bin/foo".to_string(), "foo".into())])]
     };
 
     mock.build(pkgdir.path());
@@ -326,9 +325,9 @@ fn install_to_prefix_that_does_not_exist() {
     let pkgdir = TempDir::new("multirust").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![("mycomponent",
-                          vec![MockCommand::File("bin/foo")],
-                          vec![("bin/foo", "foo".to_string())])]
+        components: vec![("mycomponent".to_string(),
+                          vec![MockCommand::File("bin/foo".to_string())],
+                          vec![("bin/foo".to_string(), "foo".into())])]
     };
 
     mock.build(pkgdir.path());
