@@ -77,7 +77,7 @@ fn package_bad_version() {
     };
 
     mock.build(tempdir.path());
-    
+
     let mut ver = File::create(tempdir.path().join("rust-installer-version")).unwrap();
     writeln!(ver, "100").unwrap();
 
@@ -276,14 +276,14 @@ fn unix_permissions() {
     let pkgdir = TempDir::new("multirust").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![("mycomponent",
-                          vec![MockCommand::File("bin/foo"),
-                               MockCommand::File("lib/bar"),
-                               MockCommand::Dir("doc/stuff")],
-                          vec![("bin/foo", "foo".to_string()),
-                               ("lib/bar", "bar".to_string()),
-                               ("doc/stuff/doc1", "".to_string()),
-                               ("doc/stuff/morestuff/doc2", "".to_string())])]
+        components: vec![("mycomponent".to_string(),
+                          vec![MockCommand::File("bin/foo".to_string()),
+                               MockCommand::File("lib/bar".to_string()),
+                               MockCommand::Dir("doc/stuff".to_string())],
+                          vec![("bin/foo".to_string(), "foo".into()),
+                               ("lib/bar".to_string(), "bar".into()),
+                               ("doc/stuff/doc1".to_string(), "".into()),
+                               ("doc/stuff/morestuff/doc2".to_string(), "".into())])]
     };
 
     mock.build(pkgdir.path());
