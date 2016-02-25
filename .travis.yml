@@ -83,7 +83,7 @@ after_success:
       sudo make install && cd ../..;
       echo "Uploading coverage... $TRAVIS_JOB_ID";
       find target/debug/deps/*-* -executable -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
-      find target/debug/*-* -executable -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
+      find target/debug/*-* -executable ! -name multirust-rs -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
     fi
 
   # Build documentation and push release binaries
