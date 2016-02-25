@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 use std::borrow::Cow;
 use std::env;
 use std::io;
-use std::fs;
 use std::process::Command;
 use std::fmt::{self, Display};
 
@@ -155,9 +154,9 @@ impl Cfg {
         }
     }
 
-    pub fn upgrade_data(&self) -> Result<bool> {
+    pub fn upgrade_data(&self) -> Result<()> {
         if !utils::is_file(&self.version_file) {
-            return Ok(false);
+            return Ok(());
         }
 
         let mut current_version = try!(utils::read_file("version", &self.version_file));
@@ -167,7 +166,7 @@ impl Cfg {
         if current_version == METADATA_VERSION {
             self.notify_handler
                 .call(Notification::MetadataUpgradeNotNeeded(METADATA_VERSION));
-            return Ok(false);
+            return Ok(());
         }
 
         self.notify_handler
@@ -175,15 +174,28 @@ impl Cfg {
 
         match &*current_version {
             "1" => {
-                // Ignore errors. These files may not exist.
-                let _ = fs::remove_dir_all(self.multirust_dir.join("available-updates"));
-                let _ = fs::remove_dir_all(self.multirust_dir.join("update-sums"));
-                let _ = fs::remove_dir_all(self.multirust_dir.join("channel-sums"));
-                let _ = fs::remove_dir_all(self.multirust_dir.join("manifests"));
+                // This corresponds to an old version of multirust.sh.
+                Err(Error::UnknownMetadataVersion(current_version))
+            }
+            "2" => {
+                // The toolchain installation format changed. Just delete them all.
+                let dirs = try!(utils::read_dir("toolchains", &self.toolchains_dir));
+                for dir in dirs {
+                    let dir = try!(dir.map_err(|e| Error::UpgradeIoError(e)));
+                    try!(utils::remove_dir("toolchain", &dir.path(),
+                                           utils::NotifyHandler::some(&self.notify_handler)));
+                }
+
+                // Also delete the update hashes
+                let files = try!(utils::read_dir("update hashes", &self.update_hash_dir));
+                for file in files {
+                    let file = try!(file.map_err(|e| Error::UpgradeIoError(e)));
+                    try!(utils::remove_file("update hash", &file.path()));
+                }
 
                 try!(utils::write_file("version", &self.version_file, METADATA_VERSION));
 
-                Ok(true)
+                Ok(())
             }
             _ => Err(Error::UnknownMetadataVersion(current_version)),
         }
@@ -273,7 +285,7 @@ impl Cfg {
                      .collect())
     }
 
-    pub fn check_metadata_version(&self) -> Result<bool> {
+    pub fn check_metadata_version(&self) -> Result<()> {
         try!(utils::assert_is_directory(&self.multirust_dir));
 
         if !utils::is_file(&self.version_file) {
@@ -281,13 +293,17 @@ impl Cfg {
 
             try!(utils::write_file("metadata version", &self.version_file, METADATA_VERSION));
 
-            Ok(true)
+            Ok(())
         } else {
             let current_version = try!(utils::read_file("metadata version", &self.version_file));
 
             self.notify_handler.call(Notification::ReadMetadataVersion(&current_version));
 
-            Ok(&*current_version == METADATA_VERSION)
+            if &*current_version == METADATA_VERSION {
+                Ok(())
+            } else {
+                Err(Error::NeedMetadataUpgrade)
+            }
         }
     }
 
