@@ -56,6 +56,13 @@ pub fn setup(vs: &[ManifestVersion], f: &Fn(&Config)) {
     fs::copy(multirust_build_path, rustdoc_path).unwrap();
     fs::copy(multirust_build_path, cargo_path).unwrap();
 
+    // Hold a lock while the test is running because they change directories,
+    // causing havok
+    lazy_static! {
+        static ref LOCK: Mutex<()> = Mutex::new(());
+    }
+    let _g = LOCK.lock();
+
     f(config);
 }
 
@@ -136,15 +143,7 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
     }
 }
 
-/// Holds a process wide mutex while working in another directory.
-/// Use this any time you are invoking 'multurust override', since
-/// that captures the current directory from the environment, and
-/// will race without the mutex.
 pub fn change_dir(path: &Path, f: &Fn()) {
-    lazy_static! {
-        static ref LOCK: Mutex<()> = Mutex::new(());
-    }
-    let _g = LOCK.lock();
     let cwd = env::current_dir().unwrap();
     env::set_current_dir(path).unwrap();
     let _g = scopeguard::guard((), move |_| env::set_current_dir(&cwd).unwrap());
