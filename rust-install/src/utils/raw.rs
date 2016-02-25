@@ -1,3 +1,4 @@
+use utils::NotifyHandler;
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -169,8 +170,12 @@ impl fmt::Display for DownloadError {
 
 pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
                                      path: P,
-                                     mut hasher: Option<&mut Hasher>)
+                                     mut hasher: Option<&mut Hasher>,
+                                     notify_handler: NotifyHandler)
                                      -> DownloadResult<()> {
+    use hyper::header::ContentLength;
+    use utils::Notification;
+
     let client = Client::new();
 
     let mut res = try!(client.get(url).send().map_err(DownloadError::Network));
@@ -182,6 +187,10 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
     let mut buffer = vec![0u8; buffer_size];
 
     let mut file = try!(fs::File::create(path).map_err(DownloadError::File));
+
+    if let Some(len) = res.headers.get::<ContentLength>().cloned() {
+        notify_handler.call(Notification::DownloadContentLengthReceived(len.0));
+    }
 
     loop {
         let bytes_read = try!(io::Read::read(&mut res, &mut buffer)
@@ -195,8 +204,10 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
             }
             try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read])
                      .map_err(DownloadError::File));
+            notify_handler.call(Notification::DownloadDataReceived(bytes_read));
         } else {
             try!(file.sync_data().map_err(DownloadError::File));
+            notify_handler.call(Notification::DownloadFinished);
             return Ok(());
         }
     }

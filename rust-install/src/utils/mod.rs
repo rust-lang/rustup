@@ -22,6 +22,12 @@ pub enum Notification<'a> {
     CopyingDirectory(&'a Path, &'a Path),
     RemovingDirectory(&'a str, &'a Path),
     DownloadingFile(&'a hyper::Url, &'a Path),
+    /// Received the Content-Length of the to-be downloaded data.
+    DownloadContentLengthReceived(u64),
+    /// Received some data.
+    DownloadDataReceived(usize),
+    /// Download has finished.
+    DownloadFinished,
     NoCanonicalPath(&'a Path),
 }
 
@@ -133,9 +139,12 @@ impl<'a> Notification<'a> {
         use self::Notification::*;
         match *self {
             CreatingDirectory(_, _) | RemovingDirectory(_, _) => NotificationLevel::Verbose,
-            LinkingDirectory(_, _) | CopyingDirectory(_, _) | DownloadingFile(_, _) => {
-                NotificationLevel::Normal
-            }
+            LinkingDirectory(_, _) |
+            CopyingDirectory(_, _) |
+            DownloadingFile(_, _) |
+            DownloadContentLengthReceived(_) |
+            DownloadDataReceived(_) |
+            DownloadFinished => NotificationLevel::Normal,
             NoCanonicalPath(_) => NotificationLevel::Warn,
         }
     }
@@ -154,6 +163,9 @@ impl<'a> Display for Notification<'a> {
                 write!(f, "removing {} directory: '{}'", name, path.display())
             }
             DownloadingFile(url, _) => write!(f, "downloading file from: '{}'", url),
+            DownloadContentLengthReceived(len) => write!(f, "download size is: '{}'", len),
+            DownloadDataReceived(len) => write!(f, "received some data of size {}", len),
+            DownloadFinished => write!(f, "download finished"),
             NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
         }
     }
@@ -409,7 +421,7 @@ pub fn download_file(url: hyper::Url,
                      notify_handler: NotifyHandler)
                      -> Result<()> {
     notify_handler.call(Notification::DownloadingFile(&url, path));
-    raw::download_file(url.clone(), path, hasher).map_err(|e| {
+    raw::download_file(url.clone(), path, hasher, notify_handler).map_err(|e| {
         Error::DownloadingFile {
             url: url,
             path: PathBuf::from(path),

@@ -112,7 +112,9 @@ impl<'a> Display for Notification<'a> {
                        to_ver)
             }
             MetadataUpgradeNotNeeded(ver) => {
-                write!(f, "nothing to upgrade: metadata version is already '{}'", ver)
+                write!(f,
+                       "nothing to upgrade: metadata version is already '{}'",
+                       ver)
             }
             WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{}'", ver),
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{}'", ver),
