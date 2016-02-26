@@ -8,8 +8,6 @@ use rust_install::mock::clitools::{self, Config, expect_stdout_ok,
                                    expect_ok, expect_err, run,
                                    this_host_triple};
 use rust_install::utils;
-use std::env::consts::EXE_SUFFIX;
-use std::fs;
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(&[ManifestVersion::V2], f);
@@ -137,7 +135,6 @@ fn install_toolchain_change_from_link_to_copy() {
 }
 
 #[test]
-#[ignore]
 fn install_toolchain_from_custom() {
     setup(&|config| {
         let trip = this_host_triple("nightly");
@@ -148,6 +145,19 @@ fn install_toolchain_from_custom() {
                             "--installer", &custom_installer]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-2");
+    });
+}
+
+#[test]
+fn install_toolchain_from_custom_wrong_extension() {
+    setup(&|config| {
+        let trip = this_host_triple("nightly");
+        let custom_installer = config.distdir.path().join(
+            format!("dist/rust-nightly-{}.msi", trip));
+        let custom_installer = custom_installer.to_string_lossy();
+        expect_err(config, &["multirust", "default", "custom",
+                             "--installer", &custom_installer],
+                   "invalid extension for installer: 'msi'");
     });
 }
 
@@ -248,8 +258,17 @@ fn install_override_toolchain_change_from_link_to_copy() {
 }
 
 #[test]
-#[ignore]
 fn install_override_toolchain_from_custom() {
+    setup(&|config| {
+        let trip = this_host_triple("nightly");
+        let custom_installer = config.distdir.path().join(
+            format!("dist/rust-nightly-{}.tar.gz", trip));
+        let custom_installer = custom_installer.to_string_lossy();
+        expect_ok(config, &["multirust", "override", "custom",
+                            "--installer", &custom_installer]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-n-2");
+    });
 }
 
 #[test]
@@ -409,35 +428,59 @@ fn invalid_names_with_copy_local() {
 }
 
 #[test]
-#[ignore]
-fn custom_local_path() {
-}
-
-#[test]
-#[ignore]
 fn custom_remote_url() {
-}
-
-#[test]
-#[ignore]
-fn custom_multiple_local_path() {
-}
-
-#[test]
-#[ignore]
-fn custom_multiple_remote_url() {
-}
-
-#[test]
-#[ignore]
-fn custom_without_rustc() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
-        fs::remove_file(&path.join(format!("bin/rustc{}", EXE_SUFFIX))).unwrap();
-        let path = path.to_string_lossy();
-        expect_err(config, &["multirust", "update", "default-from-path",
-                            "--copy-local", &path],
-                   "no rustc in custom toolchain at");
+        let trip = this_host_triple("nightly");
+        let custom_installer = config.distdir.path().join(
+            format!("dist/rust-nightly-{}.tar.gz", trip));
+        let custom_installer = custom_installer.to_string_lossy();
+        let custom_installer = format!("file://{}", custom_installer);
+        expect_ok(config, &["multirust", "default", "custom",
+                            "--installer", &custom_installer]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-n-2");
+    });
+}
+
+#[test]
+fn custom_multiple_local_path() {
+    setup(&|config| {
+        let trip = this_host_triple("nightly");
+        let custom_installer1 = config.distdir.path().join(
+            format!("dist/2015-01-01/rustc-nightly-{}.tar.gz", trip));
+        let custom_installer1 = custom_installer1.to_string_lossy();
+        let custom_installer2 = config.distdir.path().join(
+            format!("dist/2015-01-01/cargo-nightly-{}.tar.gz", trip));
+        let custom_installer2 = custom_installer2.to_string_lossy();
+        expect_ok(config, &["multirust", "default", "custom",
+                            "--installer", &custom_installer1,
+                            "--installer", &custom_installer2]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-n-1");
+        expect_stdout_ok(config, &["cargo", "--version"],
+                         "hash-n-1");
+    });
+}
+
+#[test]
+fn custom_multiple_remote_url() {
+    setup(&|config| {
+        let trip = this_host_triple("nightly");
+        let custom_installer1 = config.distdir.path().join(
+            format!("dist/2015-01-01/rustc-nightly-{}.tar.gz", trip));
+        let custom_installer1 = custom_installer1.to_string_lossy();
+        let custom_installer1 = format!("file://{}", custom_installer1);
+        let custom_installer2 = config.distdir.path().join(
+            format!("dist/2015-01-01/cargo-nightly-{}.tar.gz", trip));
+        let custom_installer2 = custom_installer2.to_string_lossy();
+        let custom_installer2 = format!("file://{}", custom_installer2);
+        expect_ok(config, &["multirust", "default", "custom",
+                            "--installer", &custom_installer1,
+                            "--installer", &custom_installer2]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-n-1");
+        expect_stdout_ok(config, &["cargo", "--version"],
+                         "hash-n-1");
     });
 }
 

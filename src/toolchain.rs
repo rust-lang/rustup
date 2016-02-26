@@ -136,6 +136,8 @@ impl<'a> Toolchain<'a> {
 
         let work_dir = try!(self.cfg.temp_cfg.new_directory());
 
+        // FIXME: This should do all downloads first, then do
+        // installs, and do it all in a single transaction.
         for installer in installers {
             let local_installer;
             let installer_str = installer.to_str();
