@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::error;
 use std::fmt::{self, Display};
+use std::io;
 
 use rust_install::{self, utils, temp};
 use rust_install::notify::{self, NotificationLevel, Notifyable};
@@ -42,6 +43,8 @@ pub enum Error {
     ToolchainNotInstalled(String),
     UnknownHostTriple,
     InfiniteRecursion,
+    NeedMetadataUpgrade,
+    UpgradeIoError(io::Error),
     Custom {
         id: String,
         desc: String,
@@ -138,6 +141,8 @@ impl error::Error for Error {
             ToolchainNotInstalled(_) => "toolchain is not installed",
             UnknownHostTriple => "unknown host triple",
             InfiniteRecursion =>  "infinite recursion detected",
+            NeedMetadataUpgrade => "multirust's metadata is out of date. run multirust upgrade-data.",
+            UpgradeIoError(_) => "I/O error during upgrade",
             Custom { ref desc, .. } => desc,
         }
     }
@@ -148,6 +153,7 @@ impl error::Error for Error {
             Install(ref e) => Some(e),
             Utils(ref e) => Some(e),
             Temp(ref e) => Some(e),
+            UpgradeIoError(ref e) => Some(e),
             UnknownMetadataVersion(_) |
             InvalidEnvironment |
             NoDefaultToolchain |
@@ -155,6 +161,7 @@ impl error::Error for Error {
             ToolchainNotInstalled(_) |
             UnknownHostTriple |
             InfiniteRecursion |
+            NeedMetadataUpgrade |
             Custom {..} => None,
         }
     }
@@ -162,6 +169,7 @@ impl error::Error for Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+        use std::error::Error;
         use self::Error::*;
         match *self {
             Install(ref n) => n.fmt(f),
@@ -176,6 +184,10 @@ impl Display for Error {
             InfiniteRecursion => {
                 write!(f,
                        "infinite recursion detected: the command may not exist for this toolchain")
+            }
+            NeedMetadataUpgrade => write!(f, "{}", self.description()),
+            UpgradeIoError(ref e) => {
+                write!(f, "I/O error during upgrade: {}", e.description())
             }
             Custom { ref desc, .. } => write!(f, "{}", desc),
         }

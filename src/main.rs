@@ -243,6 +243,12 @@ fn run_multirust() -> Result<()> {
         return Err(Error::InfiniteRecursion);
     }
 
+    let need_metadata = try!(command_requires_metadata());
+    if need_metadata {
+        let cfg = try!(Cfg::from_env(shared_ntfy!(move |_: Notification| { })));
+        try!(cfg.check_metadata_version());
+    }
+
     // If the executable name is not multirust*, then go straight
     // to proxying
     if try!(maybe_direct_proxy()) {
@@ -250,31 +256,24 @@ fn run_multirust() -> Result<()> {
     }
 
     let app_matches = cli::get().get_matches();
-
     let cfg = try!(set_globals(Some(&app_matches)));
 
-    match app_matches.subcommand_name() {
-        Some("upgrade-data") | Some("delete-data") | Some("install") | 
-        Some("uninstall") | None => {} // Don't need consistent metadata
-        Some(_) => {
-            try!(cfg.check_metadata_version());
-        }
-    }
-
     // Make sure everything is set-up correctly
-    match app_matches.subcommand_name() {
-        Some("self") | Some("proxy") => {}
-        _ => {
-            if !test_proxies() {
-                if !test_installed(&cfg) {
-                    warn!("multirust is not installed for the current user: `rustc` invocations \
-                           will not be proxied.\n\nFor more information, run  `multirust install \
-                           --help`\n");
-                } else {
-                    warn!("multirust is installed but is not set up correctly: `rustc` \
-                           invocations will not be proxied.\n\nEnsure '{}' is on your PATH, and \
-                           has priority.\n",
-                          cfg.multirust_dir.join("bin").display());
+    if need_metadata {
+        match app_matches.subcommand_name() {
+            Some("self") | Some("proxy") => {}
+            _ => {
+                if !test_proxies() {
+                    if !test_installed(&cfg) {
+                        warn!("multirust is not installed for the current user: `rustc` invocations \
+                               will not be proxied.\n\nFor more information, run  `multirust install \
+                               --help`\n");
+                    } else {
+                        warn!("multirust is installed but is not set up correctly: `rustc` \
+                               invocations will not be proxied.\n\nEnsure '{}' is on your PATH, and \
+                               has priority.\n",
+                              cfg.multirust_dir.join("bin").display());
+                    }
                 }
             }
         }
@@ -322,6 +321,23 @@ fn run_multirust() -> Result<()> {
                                                   .as_ref())));
 
             result
+        }
+    }
+}
+
+fn command_requires_metadata() -> Result<bool> {
+    let args = env::args().collect::<Vec<_>>();
+    let arg1 = args.get(1).map(|s| &**s);
+    let arg2 = args.get(2).map(|s| &**s);
+
+    match (arg1, arg2) {
+        (Some("upgrade-data"), _) |
+        (Some("delete-data"), _) |
+        (Some("self"), Some("install")) => {
+            Ok(false)
+        }
+        (_, _) => {
+            Ok(true)
         }
     }
 }

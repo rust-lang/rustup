@@ -25,6 +25,9 @@ pub enum Notification<'a> {
     ExtensionNotInstalled(&'a rust_manifest::Component),
     NonFatalError(&'a Error),
     MissingInstalledComponent(&'a str),
+    InstallingToolchain(&'a str),
+    DownloadingComponent(&'a str, &'a str),
+    InstallingComponent(&'a str),
 }
 
 #[derive(Debug)]
@@ -88,7 +91,9 @@ impl<'a> Notification<'a> {
             Temp(ref n) => n.level(),
             Utils(ref n) => n.level(),
             NoUpdateHash(_) => NotificationLevel::Verbose,
-            Extracting(_, _) | ChecksumValid(_) | SignatureValid(_) => NotificationLevel::Normal,
+            Extracting(_, _) | ChecksumValid(_) | SignatureValid(_)  |
+            InstallingToolchain(_) | DownloadingComponent(_, _) |
+            InstallingComponent(_) => NotificationLevel::Normal,
             UpdateHashMatches(_) | RollingBack => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
             MissingInstalledComponent(_) => NotificationLevel::Warn,
@@ -121,6 +126,9 @@ impl<'a> Display for Notification<'a> {
             }
             NonFatalError(e) => write!(f, "{}", e),
             MissingInstalledComponent(c) => write!(f, "during uninstall component {} was not found", c),
+            InstallingToolchain(t) => write!(f, "installing toolchain '{}'", t),
+            DownloadingComponent(c, u) => write!(f, "downloading component '{}' from '{}'", c, u),
+            InstallingComponent(c) => write!(f, "installing component '{}'", c),
         }
     }
 }

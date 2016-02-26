@@ -117,6 +117,9 @@ impl Manifestation {
         // Download component packages and validate hashes
         let mut things_to_install: Vec<(Component, temp::File)> = Vec::new();
         for (component, url, hash) in components_urls_and_hashes {
+
+            notify_handler.call(Notification::DownloadingComponent(&component.pkg, &url));
+
             // Download each package to temp file
             let temp_file = try!(temp_cfg.new_file());
             let url_url = try!(utils::parse_url(&url));
@@ -158,6 +161,9 @@ impl Manifestation {
 
         // Install components
         for (component, installer_file) in things_to_install {
+
+            notify_handler.call(Notification::InstallingComponent(&component.pkg));
+
             let package = try!(TarGzPackage::new_file(&installer_file, temp_cfg));
 
             // For historical reasons, the rust-installer component
