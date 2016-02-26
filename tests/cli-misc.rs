@@ -4,7 +4,8 @@
 extern crate rust_install;
 
 use rust_install::mock::dist::ManifestVersion;
-use rust_install::mock::clitools::{self, Config, expect_stdout_ok,
+use rust_install::mock::clitools::{self, Config,
+                                   expect_stdout_ok, expect_stderr_ok,
                                    expect_ok, expect_err, run,
                                    this_host_triple};
 use rust_install::utils;
@@ -513,7 +514,8 @@ fn upgrade_v2_metadata_to_v12() {
         // Replace the metadata version
         utils::raw::write_file(&config.homedir.path().join("version"),
                                "2").unwrap();
-        expect_ok(config, &["multirust", "upgrade-data"]);
+        expect_stderr_ok(config, &["multirust", "upgrade-data"],
+                         "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");
         expect_err(config, &["multirust", "show-default"],
                    "toolchain 'nightly' is not installed");
         expect_err(config, &["rustc", "--version"],

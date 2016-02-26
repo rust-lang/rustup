@@ -28,6 +28,7 @@ pub enum Notification<'a> {
     WritingMetadataVersion(&'a str),
     ReadMetadataVersion(&'a str),
     NonFatalError(&'a Error),
+    UpgradeRemovesToolchains,
 }
 
 #[derive(Debug)]
@@ -85,6 +86,7 @@ impl<'a> Notification<'a> {
             UpgradingMetadata(_, _) |
             MetadataUpgradeNotNeeded(_) => NotificationLevel::Info,
             NonFatalError(_) => NotificationLevel::Error,
+            UpgradeRemovesToolchains => NotificationLevel::Warn,
         }
     }
 }
@@ -125,6 +127,7 @@ impl<'a> Display for Notification<'a> {
             WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{}'", ver),
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{}'", ver),
             NonFatalError(e) => write!(f, "{}", e),
+            UpgradeRemovesToolchains => write!(f, "this upgrade will remove all existing toolchains. you will need to reinstall them"),
         }
     }
 }
