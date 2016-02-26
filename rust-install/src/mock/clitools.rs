@@ -6,7 +6,7 @@ use std::env;
 use std::process::Command;
 use std::env::consts::EXE_SUFFIX;
 use std::fs::{self, File};
-use std::io::Read;
+use std::io::{Read, Write};
 use std::sync::Mutex;
 use tempdir::TempDir;
 use mock::{MockInstallerBuilder, MockCommand};
@@ -26,6 +26,8 @@ pub struct Config {
     pub distdir: TempDir,
     /// MULTIRUST_HOME
     pub homedir: TempDir,
+    /// Custom toolchains
+    pub customdir: TempDir,
 }
 
 /// Run this to create the test environment containing multirust, and
@@ -38,6 +40,7 @@ pub fn setup(vs: &[ManifestVersion], f: &Fn(&Config)) {
         exedir: TempDir::new("multirust").unwrap(),
         distdir: TempDir::new("multirust").unwrap(),
         homedir: TempDir::new("multirust").unwrap(),
+        customdir: TempDir::new("multirust").unwrap(),
     };
 
     create_mock_dist_server(&config.distdir.path(), vs);
@@ -55,6 +58,9 @@ pub fn setup(vs: &[ManifestVersion], f: &Fn(&Config)) {
     fs::copy(multirust_build_path, rustc_path).unwrap();
     fs::copy(multirust_build_path, rustdoc_path).unwrap();
     fs::copy(multirust_build_path, cargo_path).unwrap();
+
+    // Create some custom toolchains
+    create_custom_toolchains(config.customdir.path());
 
     // Hold a lock while the test is running because they change directories,
     // causing havok
@@ -268,7 +274,7 @@ fn build_mock_channel(channel: &str, date: &str,
     }
 }
 
-fn this_host_triple(channel: &str) -> String {
+pub fn this_host_triple(channel: &str) -> String {
     ToolchainDesc::from_str(channel).and_then(|t| t.target_triple()).unwrap()
 }
 
@@ -417,3 +423,35 @@ fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Vec<u8> {
     bin
 }
 
+// These are toolchains for installation with --link-local and --copy-local
+fn create_custom_toolchains(customdir: &Path) {
+    let ref dir = customdir.join("custom-1/bin");
+    fs::create_dir_all(dir).unwrap();
+    let rustc = mock_bin("rustc", "1.0.0", "hash-c-1");
+    let ref path = customdir.join(format!("custom-1/bin/rustc{}", EXE_SUFFIX));
+    let mut file = File::create(path).unwrap();
+    file.write_all(&rustc).unwrap();
+    make_exe(dir, path);
+
+    let ref dir = customdir.join("custom-2/bin");
+    fs::create_dir_all(dir).unwrap();
+    let rustc = mock_bin("rustc", "1.0.0", "hash-c-2");
+    let ref path = customdir.join(format!("custom-2/bin/rustc{}", EXE_SUFFIX));
+    let mut file = File::create(path).unwrap();
+    file.write_all(&rustc).unwrap();
+    make_exe(dir, path);
+
+    #[cfg(unix)]
+    fn make_exe(dir: &Path, bin: &Path) {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(dir).unwrap().permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(dir, perms).unwrap();
+        let mut perms = fs::metadata(bin).unwrap().permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(bin, perms).unwrap();
+    }
+
+    #[cfg(windows)]
+    fn make_exe(_: &Path, _: &Path) { }
+}

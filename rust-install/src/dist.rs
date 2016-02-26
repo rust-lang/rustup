@@ -267,7 +267,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                             ) -> Result<Option<String>> {
 
     let requested_toolchain = toolchain;
-    let ref toolchain = try!(ToolchainDesc::from_str(toolchain).ok_or(Error::InvalidToolchainName));
+    let ref toolchain = try!(ToolchainDesc::from_str(toolchain).ok_or(Error::InvalidToolchainName(toolchain.to_string())));
     let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
 
     let manifestation = try!(Manifestation::open(prefix.clone(), &trip));

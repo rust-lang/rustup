@@ -123,7 +123,7 @@ impl<'a> Toolchain<'a> {
 
     pub fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
-            Err(Error::Install(rust_install::Error::InvalidToolchainName))
+            Err(Error::Install(rust_install::Error::InvalidToolchainName(self.name.to_string())))
         } else {
             Ok(())
         }
@@ -172,6 +172,8 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
+        try!(self.ensure_custom());
+
         if link {
             self.install(InstallMethod::Link(&try!(utils::to_absolute(src))))
         } else {

@@ -38,7 +38,7 @@ pub enum Error {
 
     InvalidFileExtension,
     InvalidInstaller,
-    InvalidToolchainName,
+    InvalidToolchainName(String),
     NotInstalledHere,
     InstallTypeNotPossible,
     UnsupportedHost(String),
@@ -142,7 +142,7 @@ impl error::Error for Error {
             Manifest(ref e) => error::Error::description(e),
             InvalidFileExtension => "invalid file extension",
             InvalidInstaller => "invalid installer",
-            InvalidToolchainName => "invalid custom toolchain name",
+            InvalidToolchainName(_) => "invalid custom toolchain name",
             NotInstalledHere => "not installed here",
             InstallTypeNotPossible => "install type not possible",
             UnsupportedHost(_) => "binary package not provided for host",
@@ -176,7 +176,7 @@ impl error::Error for Error {
             ComponentDownloadFailed(_, ref e) => Some(e),
             InvalidFileExtension |
             InvalidInstaller |
-            InvalidToolchainName |
+            InvalidToolchainName(_) |
             NotInstalledHere |
             InstallTypeNotPossible |
             UnsupportedHost(_) |
@@ -205,7 +205,7 @@ impl Display for Error {
 
             InvalidFileExtension => write!(f, "invalid file extension"),
             InvalidInstaller => write!(f, "invalid installer"),
-            InvalidToolchainName => write!(f, "invalid custom toolchain name"),
+            InvalidToolchainName(ref s) => write!(f, "invalid custom toolchain name: '{}'", s),
             NotInstalledHere => write!(f, "not installed here"),
             InstallTypeNotPossible => write!(f, "install type not possible"),
             UnsupportedHost(ref spec) => {
