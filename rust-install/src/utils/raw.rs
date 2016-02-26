@@ -1,3 +1,4 @@
+use utils::NotifyHandler;
 
 use std::error;
 use std::fs;
@@ -194,8 +195,12 @@ impl fmt::Display for DownloadError {
 
 pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
                                      path: P,
-                                     mut hasher: Option<&mut Hasher>)
+                                     mut hasher: Option<&mut Hasher>,
+                                     notify_handler: NotifyHandler)
                                      -> DownloadResult<()> {
+    use hyper::header::ContentLength;
+    use utils::Notification;
+
     // The file scheme is mostly for use by tests to mock the dist server
     if url.scheme == "file" {
         let src = try!(url.to_file_path().map_err(|_| DownloadError::FilePathParse));
@@ -234,6 +239,10 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
 
     let mut file = try!(fs::File::create(path).map_err(DownloadError::File));
 
+    if let Some(len) = res.headers.get::<ContentLength>().cloned() {
+        notify_handler.call(Notification::DownloadContentLengthReceived(len.0));
+    }
+
     loop {
         let bytes_read = try!(io::Read::read(&mut res, &mut buffer)
                                   .map_err(hyper::Error::Io)
@@ -246,8 +255,10 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
             }
             try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read])
                      .map_err(DownloadError::File));
+            notify_handler.call(Notification::DownloadDataReceived(bytes_read));
         } else {
             try!(file.sync_data().map_err(DownloadError::File));
+            notify_handler.call(Notification::DownloadFinished);
             return Ok(());
         }
     }
