@@ -8,6 +8,10 @@ environment:
     BITS: 32
   access_token:
     secure: CZlbQEamQxfTbQJlLl/3QfVLhVxk+1sBFMxuCN3dwHKeGHNBSE4tQudXSJ5n0Z6P
+branches:
+  only:
+    - master
+    - new
 install:
   - ps: |
       # Install Rust
