@@ -33,9 +33,6 @@ pub mod notify;
 pub mod utils;
 pub mod temp;
 
-#[cfg(windows)]
-pub mod msi;
-
 pub mod dist;
 mod errors;
 mod install;

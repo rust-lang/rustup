@@ -3,8 +3,6 @@ use errors::*;
 use temp;
 use env_var;
 use dist;
-#[cfg(windows)]
-use msi;
 use component::{Components, TarGzPackage, Transaction, Package};
 
 use std::path::{Path, PathBuf};
@@ -26,26 +24,6 @@ pub enum InstallType {
     Owned,
     // Must be uninstalled via `uninstall.sh` on linux or `msiexec /x` on windows
     Shared,
-}
-
-#[derive(Debug)]
-pub enum Uninstaller {
-    Sh(PathBuf),
-    Msi(String),
-}
-
-impl Uninstaller {
-    pub fn run(&self) -> Result<()> {
-        match *self {
-            Uninstaller::Sh(ref path) => {
-                Ok(try!(utils::cmd_status("uninstall.sh",
-                                          Command::new("sudo").arg("sh").arg(path))))
-            }
-            Uninstaller::Msi(ref id) => {
-                Ok(try!(utils::cmd_status("msiexec", Command::new("msiexec").arg("/x").arg(id))))
-            }
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -185,42 +163,6 @@ impl InstallPrefix {
             InstallType::Shared => utils::is_directory(&self.manifest_dir()),
         }
     }
-    pub fn get_uninstall_sh(&self) -> Option<PathBuf> {
-        let path = self.manifest_file("uninstall.sh");
-        if utils::is_file(&path) {
-            Some(path)
-        } else {
-            None
-        }
-    }
-
-    #[cfg(windows)]
-    pub fn get_uninstall_msi(&self, notify_handler: NotifyHandler) -> Option<String> {
-        let canon_path = utils::canonicalize_path(&self.path, ntfy!(&notify_handler));
-
-        if let Ok(installers) = msi::all_installers() {
-            for installer in &installers {
-                if let Ok(loc) = installer.install_location() {
-                    let path = utils::canonicalize_path(&loc, ntfy!(&notify_handler));
-
-                    if path == canon_path {
-                        return Some(installer.product_id().to_owned());
-                    }
-                }
-            }
-        }
-
-        None
-    }
-    #[cfg(not(windows))]
-    pub fn get_uninstall_msi(&self, _: NotifyHandler) -> Option<String> {
-        None
-    }
-    pub fn get_uninstaller(&self, notify_handler: NotifyHandler) -> Option<Uninstaller> {
-        self.get_uninstall_sh()
-            .map(Uninstaller::Sh)
-            .or_else(|| self.get_uninstall_msi(notify_handler).map(Uninstaller::Msi))
-    }
     pub fn uninstall(&self, notify_handler: NotifyHandler) -> Result<()> {
         if self.is_installed_here() {
             match self.install_type {
@@ -228,11 +170,8 @@ impl InstallPrefix {
                     Ok(try!(utils::remove_dir("install", &self.path, ntfy!(&notify_handler))))
                 }
                 InstallType::Shared => {
-                    if let Some(uninstaller) = self.get_uninstaller(notify_handler) {
-                        uninstaller.run()
-                    } else {
-                        Err(Error::NotInstalledHere)
-                    }
+                    // No code actually calls this
+                    unimplemented!()
                 }
             }
         } else {
