@@ -57,7 +57,7 @@ cd multirust-rs && git pull && cargo run --release install
 ### Usage
 
 ```
-multirust 0.0.4
+multirust 0.0.5
 Diggory Blake
 Port of multirust to rust
 

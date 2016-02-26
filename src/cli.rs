@@ -3,7 +3,7 @@ use clap::*;
 
 pub fn get() -> App<'static, 'static, 'static, 'static, 'static, 'static> {
     App::new("multirust-rs")
-        .version("0.0.4")
+        .version("0.0.5")
         .author("Diggory Blake")
         .about("Port of multirust to rust")
         .setting(AppSettings::VersionlessSubcommands)
