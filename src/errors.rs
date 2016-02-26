@@ -46,6 +46,7 @@ pub enum Error {
     InfiniteRecursion,
     NeedMetadataUpgrade,
     UpgradeIoError(io::Error),
+    BadInstallerType(String),
     Custom {
         id: String,
         desc: String,
@@ -148,6 +149,7 @@ impl error::Error for Error {
             InfiniteRecursion =>  "infinite recursion detected",
             NeedMetadataUpgrade => "multirust's metadata is out of date. run multirust upgrade-data.",
             UpgradeIoError(_) => "I/O error during upgrade",
+            BadInstallerType(_) => "invalid extension for installer",
             Custom { ref desc, .. } => desc,
         }
     }
@@ -167,6 +169,7 @@ impl error::Error for Error {
             UnknownHostTriple |
             InfiniteRecursion |
             NeedMetadataUpgrade |
+            BadInstallerType(_) |
             Custom {..} => None,
         }
     }
@@ -193,6 +196,9 @@ impl Display for Error {
             NeedMetadataUpgrade => write!(f, "{}", self.description()),
             UpgradeIoError(ref e) => {
                 write!(f, "I/O error during upgrade: {}", e.description())
+            }
+            BadInstallerType(ref s) => {
+                write!(f, "invalid extension for installer: '{}'", s)
             }
             Custom { ref desc, .. } => write!(f, "{}", desc),
         }

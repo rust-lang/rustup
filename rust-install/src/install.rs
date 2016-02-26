@@ -89,10 +89,6 @@ impl<'a> InstallMethod<'a> {
                 Ok(())
             }
             InstallMethod::Installer(src, temp_cfg) => {
-                let extension = src.extension().and_then(|s| s.to_str()).unwrap_or_default();
-                if extension != "gz" {
-                    return Err(Error::BadInstallerType(extension.to_string()));
-                }
                 InstallMethod::tar_gz(src, prefix, &temp_cfg, notify_handler)
             }
             InstallMethod::Dist(toolchain, update_hash, dl_cfg) => {

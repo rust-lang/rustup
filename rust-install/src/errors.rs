@@ -70,7 +70,6 @@ pub enum Error {
     ComponentFilePermissionsFailed(io::Error),
     ComponentDownloadFailed(Component, utils::Error),
     ObsoleteDistManifest,
-    BadInstallerType(String),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -162,7 +161,6 @@ impl error::Error for Error {
             ComponentFilePermissionsFailed(_) => "error setting file permissions during install",
             ComponentDownloadFailed(_, _) => "component download failed",
             ObsoleteDistManifest => "the server unexpectedly provided an obsolete version of the distribution manifest",
-            BadInstallerType(_) => "invalid extension for installer",
         }
     }
 
@@ -192,8 +190,7 @@ impl error::Error for Error {
             NoGPG |
             BadInstallerVersion(_) |
             BadInstalledMetadataVersion(_) |
-            ObsoleteDistManifest |
-            BadInstallerType(_) => None,
+            ObsoleteDistManifest => None
         }
     }
 }
@@ -266,9 +263,6 @@ impl Display for Error {
             ObsoleteDistManifest => {
                 write!(f, "the server unexpectedly provided an obsolete version of the distribution manifest")
             },
-            BadInstallerType(ref s) => {
-                write!(f, "invalid extension for installer: '{}'", s)
-            }
         }
     }
 }
