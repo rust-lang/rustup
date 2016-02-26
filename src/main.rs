@@ -102,27 +102,100 @@ fn info_fmt(args: fmt::Arguments) {
 }
 
 fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
+    use std::rc::Rc;
+    use std::cell::{Cell, RefCell};
+
+    struct DownloadDisplayer {
+        content_len: Cell<Option<u64>>,
+        total_downloaded: Cell<usize>,
+        term: RefCell<Box<term::StdoutTerminal>>,
+    }
+
+    /// Human readable representation of data size in bytes
+    struct HumanReadable<T>(T);
+
+    impl<T: Into<f64> + Clone> fmt::Display for HumanReadable<T> {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            const KIB: f64 = 1024.0;
+            const MIB: f64 = 1048576.0;
+            let size: f64 = self.0.clone().into();
+
+            if size >= MIB {
+                write!(f, "{:.2} MiB", size / MIB)
+            } else if size >= KIB {
+                write!(f, "{:.2} KiB", size / KIB)
+            } else {
+                write!(f, "{} B", size)
+            }
+        }
+    }
+
+    let download_displayer = Rc::new(DownloadDisplayer {
+        content_len: Cell::new(None),
+        total_downloaded: Cell::new(0),
+        term: RefCell::new(term::stdout().expect("Failed to open terminal.")),
+    });
+
     // Base config
     let verbose = m.map_or(false, |m| m.is_present("verbose"));
     Cfg::from_env(shared_ntfy!(move |n: Notification| {
         use multirust::notify::NotificationLevel::*;
-        match n.level() {
-            Verbose => {
-                if verbose {
-                    println!("{}", n);
+        use rust_install::Notification as In;
+        use rust_install::utils::Notification as Un;
+
+        match n {
+            Notification::Install(In::Utils(Un::DownloadContentLengthReceived(len))) => {
+                let dd = download_displayer.clone();
+                dd.content_len.set(Some(len));
+                dd.total_downloaded.set(0);
+            }
+            Notification::Install(In::Utils(Un::DownloadDataReceived(len))) => {
+                let dd = download_displayer.clone();
+                let mut t = dd.term.borrow_mut();
+                dd.total_downloaded.set(dd.total_downloaded.get() + len);
+                let total_downloaded = dd.total_downloaded.get();
+                let total_h = HumanReadable(total_downloaded as f64);
+
+                match dd.content_len.get() {
+                    Some(content_len) => {
+                        let percent = (total_downloaded as f64 / content_len as f64) * 100.;
+                        let content_len_h = HumanReadable(content_len as f64);
+                        let _ = write!(t, "{} / {} ({:.2}%)", total_h, content_len_h, percent);
+                    }
+                    None => {
+                        let _ = write!(t, "{}", total_h);
+                    }
                 }
+                // delete_line() doesn't seem to clear the line properly.
+                // Instead, let's just print some whitespace to clear it.
+                let _ = write!(t, "                ");
+                let _ = t.flush();
+                let _ = t.carriage_return();
             }
-            Normal => {
-                println!("{}", n);
+            Notification::Install(In::Utils(Un::DownloadFinished)) => {
+                let dd = download_displayer.clone();
+                let _ = writeln!(dd.term.borrow_mut(), "");
             }
-            Info => {
-                info!("{}", n);
-            }
-            Warn => {
-                warn!("{}", n);
-            }
-            Error => {
-                err!("{}", n);
+            n => {
+                match n.level() {
+                    Verbose => {
+                        if verbose {
+                            println!("{}", n);
+                        }
+                    }
+                    Normal => {
+                        println!("{}", n);
+                    }
+                    Info => {
+                        info!("{}", n);
+                    }
+                    Warn => {
+                        warn!("{}", n);
+                    }
+                    Error => {
+                        err!("{}", n);
+                    }
+                }
             }
         }
     }))
@@ -752,7 +825,7 @@ fn ask(question: &str) -> Option<bool> {
 }
 
 fn delete_data(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    if !m.is_present("no-prompt") && 
+    if !m.is_present("no-prompt") &&
        !ask("This will delete all toolchains, overrides, aliases, and other multirust data \
              associated with this user. Continue?")
             .unwrap_or(false) {
