@@ -78,15 +78,17 @@ impl DownloadTracker {
         self.total_downloaded += len;
         self.downloaded_this_sec += len;
 
+        let current_time = precise_time_s();
+
         match self.last_sec {
-            None => self.last_sec = Some(precise_time_s()),
+            None => self.last_sec = Some(current_time),
             Some(start) => {
-                let elapsed = precise_time_s() - start;
+                let elapsed = current_time - start;
                 if elapsed >= 1.0 {
                     self.seconds_elapsed += 1;
 
                     self.display();
-                    self.last_sec = Some(precise_time_s());
+                    self.last_sec = Some(current_time);
                     if self.downloaded_last_few_secs.len() == DOWNLOAD_TRACK_COUNT {
                         self.downloaded_last_few_secs.pop_back();
                     }
