@@ -11,6 +11,7 @@ extern crate multirust;
 extern crate term;
 extern crate openssl;
 extern crate itertools;
+extern crate time;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -31,16 +32,14 @@ use std::fmt;
 use std::iter;
 use std::thread;
 use std::time::Duration;
-use std::rc::Rc;
 use multirust::*;
 use rust_install::dist;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;
-use cli_dl_display::DownloadDisplayer;
 use rust_install::notify::NotificationLevel;
 
 mod cli;
-mod cli_dl_display;
+mod download_tracker;
 
 macro_rules! warn {
     ( $ ( $ arg : tt ) * ) => ( $crate::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
@@ -106,13 +105,15 @@ fn info_fmt(args: fmt::Arguments) {
 }
 
 fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
+    use download_tracker::DownloadTracker;
+    use std::cell::RefCell;
 
-    let dl_display = Rc::new(DownloadDisplayer::new());
+    let download_tracker = RefCell::new(DownloadTracker::new());
 
     // Base config
     let verbose = m.map_or(false, |m| m.is_present("verbose"));
     Cfg::from_env(shared_ntfy!(move |n: Notification| {
-        if dl_display.handle_notification(&n) {
+        if download_tracker.borrow_mut().handle_notification(&n) {
             return;
         }
 
