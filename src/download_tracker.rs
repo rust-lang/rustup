@@ -73,6 +73,16 @@ impl DownloadTracker {
     /// Display the tracked download information to the terminal.
     fn display(&mut self) {
         let total_h = HumanReadable(self.total_downloaded as f64);
+        let sum = self.downloaded_last_few_secs
+                      .iter()
+                      .fold(0usize, |a, &v| a + v);
+        let len = self.downloaded_last_few_secs.len();
+        let speed = if len > 0 {
+            (sum / len) as u64
+        } else {
+            0
+        };
+        let speed_h = HumanReadable(speed as f64);
 
         match self.content_len {
             Some(content_len) => {
@@ -81,15 +91,6 @@ impl DownloadTracker {
                 let percent = (self.total_downloaded as f64 / content_len as f64) * 100.;
                 let content_len_h = HumanReadable(content_len as f64);
                 let remaining = content_len - self.total_downloaded as u64;
-                let sum = self.downloaded_last_few_secs
-                              .iter()
-                              .fold(0usize, |a, &v| a + v);
-                let len = self.downloaded_last_few_secs.len();
-                let speed = if len > 0 {
-                    (sum / len) as u64
-                } else {
-                    0
-                };
                 let eta = if speed > 0 {
                     Cow::Owned(format!("{}s", remaining / speed))
                 } else {
@@ -100,11 +101,11 @@ impl DownloadTracker {
                                total_h,
                                content_len_h,
                                percent,
-                               HumanReadable(speed as f64),
+                               speed_h,
                                eta);
             }
             None => {
-                let _ = write!(&mut self.term, "{}", total_h);
+                let _ = write!(&mut self.term, "Total: {} Speed: {}/s", total_h, speed_h);
             }
         }
         // delete_line() doesn't seem to clear the line properly.
