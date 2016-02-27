@@ -165,8 +165,8 @@ impl error::Error for DownloadError {
         use self::DownloadError::*;
         match *self {
             Status(_) => "unsuccessful HTTP status",
-            Network(ref e) => "network error",
-            File(ref e) => "error writing file",
+            Network(_) => "network error",
+            File(_) => "error writing file",
             FilePathParse => "failed to parse URL as file path",
         }
     }
