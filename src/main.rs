@@ -31,12 +31,16 @@ use std::fmt;
 use std::iter;
 use std::thread;
 use std::time::Duration;
+use std::rc::Rc;
 use multirust::*;
 use rust_install::dist;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;
+use cli_dl_display::DownloadDisplayer;
+use rust_install::notify::NotificationLevel;
 
 mod cli;
+mod cli_dl_display;
 
 macro_rules! warn {
     ( $ ( $ arg : tt ) * ) => ( $crate::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
@@ -102,100 +106,33 @@ fn info_fmt(args: fmt::Arguments) {
 }
 
 fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
-    use std::rc::Rc;
-    use std::cell::{Cell, RefCell};
 
-    struct DownloadDisplayer {
-        content_len: Cell<Option<u64>>,
-        total_downloaded: Cell<usize>,
-        term: RefCell<Box<term::StdoutTerminal>>,
-    }
-
-    /// Human readable representation of data size in bytes
-    struct HumanReadable<T>(T);
-
-    impl<T: Into<f64> + Clone> fmt::Display for HumanReadable<T> {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            const KIB: f64 = 1024.0;
-            const MIB: f64 = 1048576.0;
-            let size: f64 = self.0.clone().into();
-
-            if size >= MIB {
-                write!(f, "{:.2} MiB", size / MIB)
-            } else if size >= KIB {
-                write!(f, "{:.2} KiB", size / KIB)
-            } else {
-                write!(f, "{} B", size)
-            }
-        }
-    }
-
-    let download_displayer = Rc::new(DownloadDisplayer {
-        content_len: Cell::new(None),
-        total_downloaded: Cell::new(0),
-        term: RefCell::new(term::stdout().expect("Failed to open terminal.")),
-    });
+    let dl_display = Rc::new(DownloadDisplayer::new());
 
     // Base config
     let verbose = m.map_or(false, |m| m.is_present("verbose"));
     Cfg::from_env(shared_ntfy!(move |n: Notification| {
-        use multirust::notify::NotificationLevel::*;
-        use rust_install::Notification as In;
-        use rust_install::utils::Notification as Un;
+        if dl_display.handle_notification(&n) {
+            return;
+        }
 
-        match n {
-            Notification::Install(In::Utils(Un::DownloadContentLengthReceived(len))) => {
-                let dd = download_displayer.clone();
-                dd.content_len.set(Some(len));
-                dd.total_downloaded.set(0);
-            }
-            Notification::Install(In::Utils(Un::DownloadDataReceived(len))) => {
-                let dd = download_displayer.clone();
-                let mut t = dd.term.borrow_mut();
-                dd.total_downloaded.set(dd.total_downloaded.get() + len);
-                let total_downloaded = dd.total_downloaded.get();
-                let total_h = HumanReadable(total_downloaded as f64);
-
-                match dd.content_len.get() {
-                    Some(content_len) => {
-                        let percent = (total_downloaded as f64 / content_len as f64) * 100.;
-                        let content_len_h = HumanReadable(content_len as f64);
-                        let _ = write!(t, "{} / {} ({:.2}%)", total_h, content_len_h, percent);
-                    }
-                    None => {
-                        let _ = write!(t, "{}", total_h);
-                    }
+        match n.level() {
+            NotificationLevel::Verbose => {
+                if verbose {
+                    println!("{}", n);
                 }
-                // delete_line() doesn't seem to clear the line properly.
-                // Instead, let's just print some whitespace to clear it.
-                let _ = write!(t, "                ");
-                let _ = t.flush();
-                let _ = t.carriage_return();
             }
-            Notification::Install(In::Utils(Un::DownloadFinished)) => {
-                let dd = download_displayer.clone();
-                let _ = writeln!(dd.term.borrow_mut(), "");
+            NotificationLevel::Normal => {
+                println!("{}", n);
             }
-            n => {
-                match n.level() {
-                    Verbose => {
-                        if verbose {
-                            println!("{}", n);
-                        }
-                    }
-                    Normal => {
-                        println!("{}", n);
-                    }
-                    Info => {
-                        info!("{}", n);
-                    }
-                    Warn => {
-                        warn!("{}", n);
-                    }
-                    Error => {
-                        err!("{}", n);
-                    }
-                }
+            NotificationLevel::Info => {
+                info!("{}", n);
+            }
+            NotificationLevel::Warn => {
+                warn!("{}", n);
+            }
+            NotificationLevel::Error => {
+                err!("{}", n);
             }
         }
     }))
