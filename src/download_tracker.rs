@@ -1,8 +1,7 @@
-use term;
-
-use std::fmt;
-use time::precise_time_s;
 use std::collections::VecDeque;
+use std::fmt;
+use term;
+use time::precise_time_s;
 
 /// Keep track of this many past download amounts
 const DOWNLOAD_TRACK_COUNT: usize = 5;
