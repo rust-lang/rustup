@@ -68,6 +68,15 @@ impl DownloadTracker {
     /// Notifies self that the download has finished.
     pub fn download_finished(&mut self) {
         let _ = writeln!(&mut self.term, "");
+        self.prepare_for_new_download();
+    }
+    /// Resets the state to be ready for a new download.
+    fn prepare_for_new_download(&mut self) {
+        self.content_len = None;
+        self.total_downloaded = 0;
+        self.downloaded_this_sec = 0;
+        self.downloaded_last_few_secs.clear();
+        self.seconds_elapsed = 0;
         self.last_sec = None;
     }
     /// Display the tracked download information to the terminal.
