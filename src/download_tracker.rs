@@ -93,7 +93,7 @@ impl DownloadTracker {
     }
     /// Display the tracked download information to the terminal.
     fn display(&mut self) {
-        let total_h = HumanReadable(self.total_downloaded as f64);
+        let total_h = HumanReadable(self.total_downloaded as u64);
         let sum = self.downloaded_last_few_secs
                       .iter()
                       .fold(0usize, |a, &v| a + v);
@@ -103,14 +103,14 @@ impl DownloadTracker {
         } else {
             0
         };
-        let speed_h = HumanReadable(speed as f64);
+        let speed_h = HumanReadable(speed);
 
         match self.content_len {
             Some(content_len) => {
                 use std::borrow::Cow;
 
                 let percent = (self.total_downloaded as f64 / content_len as f64) * 100.;
-                let content_len_h = HumanReadable(content_len as f64);
+                let content_len_h = HumanReadable(content_len);
                 let remaining = content_len - self.total_downloaded as u64;
                 let eta = if speed > 0 {
                     Cow::Owned(format!("{}s", remaining / speed))
@@ -139,13 +139,13 @@ impl DownloadTracker {
 }
 
 /// Human readable representation of data size in bytes
-struct HumanReadable<T>(T);
+struct HumanReadable(u64);
 
-impl<T: Into<f64> + Clone> fmt::Display for HumanReadable<T> {
+impl fmt::Display for HumanReadable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KIB: f64 = 1024.0;
         const MIB: f64 = 1048576.0;
-        let size: f64 = self.0.clone().into();
+        let size = self.0 as f64;
 
         if size >= MIB {
             write!(f, "{:.2} MiB", size / MIB)
