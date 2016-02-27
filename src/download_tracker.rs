@@ -23,6 +23,12 @@ pub struct DownloadTracker {
     seconds_elapsed: u32,
     /// The terminal we write the information to.
     term: Box<term::StdoutTerminal>,
+    /// Whether we displayed progress for the download or not.
+    ///
+    /// If the download is quick enough, we don't have time to
+    /// display the progress info.
+    /// In that case, we do not want to do some cleanup stuff we normally do.
+    displayed_progress: bool,
 }
 
 impl DownloadTracker {
@@ -36,6 +42,7 @@ impl DownloadTracker {
             seconds_elapsed: 0,
             last_sec: None,
             term: term::stdout().expect("Failed to open terminal"),
+            displayed_progress: false,
         }
     }
     /// Notifies self that Content-Length information has been received.
@@ -67,7 +74,11 @@ impl DownloadTracker {
     }
     /// Notifies self that the download has finished.
     pub fn download_finished(&mut self) {
-        let _ = writeln!(&mut self.term, "");
+        if self.displayed_progress {
+            // Display the finished state
+            self.display();
+            let _ = writeln!(&mut self.term, "");
+        }
         self.prepare_for_new_download();
     }
     /// Resets the state to be ready for a new download.
@@ -78,6 +89,7 @@ impl DownloadTracker {
         self.downloaded_last_few_secs.clear();
         self.seconds_elapsed = 0;
         self.last_sec = None;
+        self.displayed_progress = false;
     }
     /// Display the tracked download information to the terminal.
     fn display(&mut self) {
@@ -122,6 +134,7 @@ impl DownloadTracker {
         let _ = write!(&mut self.term, "                ");
         let _ = self.term.flush();
         let _ = self.term.carriage_return();
+        self.displayed_progress = true;
     }
 }
 
