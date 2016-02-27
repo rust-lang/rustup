@@ -97,7 +97,7 @@ impl DownloadTracker {
                     Cow::Borrowed("Unknown")
                 };
                 let _ = write!(&mut self.term,
-                               "{} / {} ({:.2}%) ~{}/s ETA: {}",
+                               "{} / {} ({:.2}%) {}/s ETA: {}",
                                total_h,
                                content_len_h,
                                percent,
