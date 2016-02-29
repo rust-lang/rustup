@@ -38,7 +38,7 @@ pub enum Error {
 
     InvalidFileExtension,
     InvalidInstaller,
-    InvalidToolchainName,
+    InvalidToolchainName(String),
     NotInstalledHere,
     InstallTypeNotPossible,
     UnsupportedHost(String),
@@ -142,7 +142,7 @@ impl error::Error for Error {
             Manifest(ref e) => error::Error::description(e),
             InvalidFileExtension => "invalid file extension",
             InvalidInstaller => "invalid installer",
-            InvalidToolchainName => "invalid custom toolchain name",
+            InvalidToolchainName(_) => "invalid custom toolchain name",
             NotInstalledHere => "not installed here",
             InstallTypeNotPossible => "install type not possible",
             UnsupportedHost(_) => "binary package not provided for host",
@@ -160,7 +160,7 @@ impl error::Error for Error {
             ComponentDirPermissionsFailed(_) => "I/O error walking directory during install",
             ComponentFilePermissionsFailed(_) => "error setting file permissions during install",
             ComponentDownloadFailed(_, _) => "component download failed",
-            ObsoleteDistManifest => "the server unexpectedly provided an obsolete version of the distribution manifest"
+            ObsoleteDistManifest => "the server unexpectedly provided an obsolete version of the distribution manifest",
         }
     }
 
@@ -176,7 +176,7 @@ impl error::Error for Error {
             ComponentDownloadFailed(_, ref e) => Some(e),
             InvalidFileExtension |
             InvalidInstaller |
-            InvalidToolchainName |
+            InvalidToolchainName(_) |
             NotInstalledHere |
             InstallTypeNotPossible |
             UnsupportedHost(_) |
@@ -190,7 +190,7 @@ impl error::Error for Error {
             NoGPG |
             BadInstallerVersion(_) |
             BadInstalledMetadataVersion(_) |
-            ObsoleteDistManifest => None,
+            ObsoleteDistManifest => None
         }
     }
 }
@@ -205,7 +205,7 @@ impl Display for Error {
 
             InvalidFileExtension => write!(f, "invalid file extension"),
             InvalidInstaller => write!(f, "invalid installer"),
-            InvalidToolchainName => write!(f, "invalid custom toolchain name"),
+            InvalidToolchainName(ref s) => write!(f, "invalid custom toolchain name: '{}'", s),
             NotInstalledHere => write!(f, "not installed here"),
             InstallTypeNotPossible => write!(f, "install type not possible"),
             UnsupportedHost(ref spec) => {
@@ -262,7 +262,7 @@ impl Display for Error {
             }
             ObsoleteDistManifest => {
                 write!(f, "the server unexpectedly provided an obsolete version of the distribution manifest")
-            }
+            },
         }
     }
 }

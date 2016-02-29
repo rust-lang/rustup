@@ -5,9 +5,7 @@ use config::Cfg;
 use std::process::Command;
 use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
-use std::borrow::Cow;
 
-use regex::Regex;
 use hyper;
 use rust_install;
 
@@ -123,7 +121,7 @@ impl<'a> Toolchain<'a> {
 
     pub fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
-            Err(Error::Install(rust_install::Error::InvalidToolchainName))
+            Err(Error::Install(rust_install::Error::InvalidToolchainName(self.name.to_string())))
         } else {
             Ok(())
         }
@@ -134,44 +132,52 @@ impl<'a> Toolchain<'a> {
 
         try!(self.remove_if_exists());
 
-        let work_dir = try!(self.cfg.temp_cfg.new_directory());
-
+        // FIXME: This should do all downloads first, then do
+        // installs, and do it all in a single transaction.
         for installer in installers {
-            let local_installer;
-            let installer_str = installer.to_str();
-            if let Some(Ok(url)) = installer_str.map(hyper::Url::parse) {
-                // If installer is a URL
+            let installer_str = installer.to_str().unwrap_or("bogus");
+            match installer_str.rfind(".") {
+                Some(i) => {
+                    let extension = &installer_str[i+1..];
+                    if extension != "gz" {
+                        return Err(Error::BadInstallerType(extension.to_string()));
+                    }
+                }
+                None => return Err(Error::BadInstallerType(String::from("(none)")))
+            }
 
-                // Extract basename from url (eg. 'rust-1.3.0-x86_64-unknown-linux-gnu.tar.gz')
-                let re = Regex::new(r"[\\/]([^\\/?]+)(\?.*)?$").unwrap();
-                let basename = try!(re.captures(installer_str.unwrap())
-                                      .ok_or(Error::Utils(utils::Error::InvalidUrl {
-                                          url: installer_str.unwrap().to_owned(),
-                                      })))
-                                   .at(1)
-                                   .unwrap();
+            // FIXME: Pretty hacky
+            let is_url = installer_str.starts_with("file://")
+                || installer_str.starts_with("http://")
+                || installer_str.starts_with("https://");
+            let url = hyper::Url::parse(installer_str).ok();
+            let url = if is_url { url } else { None };
+            if let Some(url) = url {
 
                 // Download to a local file
-                local_installer = Cow::Owned(work_dir.join(basename));
+                let local_installer = try!(self.cfg.temp_cfg.new_file_with_ext("", ".tar.gz"));
                 try!(utils::download_file(url,
                                           &local_installer,
                                           None,
                                           ntfy!(&self.cfg.notify_handler)));
+                try!(self.install(InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg)));
             } else {
                 // If installer is a filename
 
                 // No need to download
-                local_installer = Cow::Borrowed(Path::new(installer));
-            }
+                let local_installer = Path::new(installer);
 
-            // Install from file
-            try!(self.install(InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg)));
+                // Install from file
+                try!(self.install(InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg)));
+            }
         }
 
         Ok(())
     }
 
     pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
+        try!(self.ensure_custom());
+
         if link {
             self.install(InstallMethod::Link(&try!(utils::to_absolute(src))))
         } else {

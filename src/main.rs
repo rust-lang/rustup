@@ -36,6 +36,7 @@ use multirust::*;
 use rust_install::dist;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;
+use rust_install::notify::NotificationLevel;
 
 mod cli;
 mod download_tracker;
@@ -112,40 +113,27 @@ fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
     // Base config
     let verbose = m.map_or(false, |m| m.is_present("verbose"));
     Cfg::from_env(shared_ntfy!(move |n: Notification| {
-        use multirust::notify::NotificationLevel::*;
-        use rust_install::Notification as In;
-        use rust_install::utils::Notification as Un;
+        if download_tracker.borrow_mut().handle_notification(&n) {
+            return;
+        }
 
-        match n {
-            Notification::Install(In::Utils(Un::DownloadContentLengthReceived(len))) => {
-                download_tracker.borrow_mut().content_length_received(len);
-            }
-            Notification::Install(In::Utils(Un::DownloadDataReceived(len))) => {
-                download_tracker.borrow_mut().data_received(len);
-            }
-            Notification::Install(In::Utils(Un::DownloadFinished)) => {
-                download_tracker.borrow_mut().download_finished();
-            }
-            n => {
-                match n.level() {
-                    Verbose => {
-                        if verbose {
-                            println!("{}", n);
-                        }
-                    }
-                    Normal => {
-                        println!("{}", n);
-                    }
-                    Info => {
-                        info!("{}", n);
-                    }
-                    Warn => {
-                        warn!("{}", n);
-                    }
-                    Error => {
-                        err!("{}", n);
-                    }
+        match n.level() {
+            NotificationLevel::Verbose => {
+                if verbose {
+                    println!("{}", n);
                 }
+            }
+            NotificationLevel::Normal => {
+                println!("{}", n);
+            }
+            NotificationLevel::Info => {
+                info!("{}", n);
+            }
+            NotificationLevel::Warn => {
+                warn!("{}", n);
+            }
+            NotificationLevel::Error => {
+                err!("{}", n);
             }
         }
     }))

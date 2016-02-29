@@ -287,7 +287,7 @@ fn update_from_dist(dist_server: &Url,
         remove_extensions: remove.to_owned(),
     };
 
-    manifestation.update(&manifest, changes, temp_cfg, notify_handler.clone())
+    manifestation.update("unknown", &manifest, changes, temp_cfg, notify_handler.clone())
 }
 
 fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url, Error> {

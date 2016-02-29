@@ -28,6 +28,7 @@ pub enum Notification<'a> {
     WritingMetadataVersion(&'a str),
     ReadMetadataVersion(&'a str),
     NonFatalError(&'a Error),
+    UpgradeRemovesToolchains,
 }
 
 #[derive(Debug)]
@@ -45,6 +46,7 @@ pub enum Error {
     InfiniteRecursion,
     NeedMetadataUpgrade,
     UpgradeIoError(io::Error),
+    BadInstallerType(String),
     Custom {
         id: String,
         desc: String,
@@ -85,6 +87,7 @@ impl<'a> Notification<'a> {
             UpgradingMetadata(_, _) |
             MetadataUpgradeNotNeeded(_) => NotificationLevel::Info,
             NonFatalError(_) => NotificationLevel::Error,
+            UpgradeRemovesToolchains => NotificationLevel::Warn,
         }
     }
 }
@@ -125,6 +128,7 @@ impl<'a> Display for Notification<'a> {
             WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{}'", ver),
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{}'", ver),
             NonFatalError(e) => write!(f, "{}", e),
+            UpgradeRemovesToolchains => write!(f, "this upgrade will remove all existing toolchains. you will need to reinstall them"),
         }
     }
 }
@@ -145,6 +149,7 @@ impl error::Error for Error {
             InfiniteRecursion =>  "infinite recursion detected",
             NeedMetadataUpgrade => "multirust's metadata is out of date. run multirust upgrade-data.",
             UpgradeIoError(_) => "I/O error during upgrade",
+            BadInstallerType(_) => "invalid extension for installer",
             Custom { ref desc, .. } => desc,
         }
     }
@@ -164,6 +169,7 @@ impl error::Error for Error {
             UnknownHostTriple |
             InfiniteRecursion |
             NeedMetadataUpgrade |
+            BadInstallerType(_) |
             Custom {..} => None,
         }
     }
@@ -190,6 +196,9 @@ impl Display for Error {
             NeedMetadataUpgrade => write!(f, "{}", self.description()),
             UpgradeIoError(ref e) => {
                 write!(f, "I/O error during upgrade: {}", e.description())
+            }
+            BadInstallerType(ref s) => {
+                write!(f, "invalid extension for installer: '{}'", s)
             }
             Custom { ref desc, .. } => write!(f, "{}", desc),
         }

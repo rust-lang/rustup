@@ -2,6 +2,9 @@ use std::collections::VecDeque;
 use std::fmt;
 use term;
 use time::precise_time_s;
+use multirust::Notification;
+use rust_install::Notification as In;
+use rust_install::utils::Notification as Un;
 
 /// Keep track of this many past download amounts
 const DOWNLOAD_TRACK_COUNT: usize = 5;
@@ -45,6 +48,27 @@ impl DownloadTracker {
             displayed_progress: false,
         }
     }
+
+    pub fn handle_notification(&mut self, n: &Notification) -> bool {
+        match n {
+            &Notification::Install(In::Utils(Un::DownloadContentLengthReceived(content_len))) => {
+                self.content_length_received(content_len);
+                true
+            }
+            &Notification::Install(In::Utils(Un::DownloadDataReceived(len))) => {
+                if super::stderr_isatty() {
+                    self.data_received(len);
+                }
+                true
+            }
+            &Notification::Install(In::Utils(Un::DownloadFinished)) => {
+                self.download_finished();
+                true
+            }
+            _ => false
+        }
+    }
+
     /// Notifies self that Content-Length information has been received.
     pub fn content_length_received(&mut self, content_len: u64) {
         self.content_len = Some(content_len);
@@ -54,15 +78,17 @@ impl DownloadTracker {
         self.total_downloaded += len;
         self.downloaded_this_sec += len;
 
+        let current_time = precise_time_s();
+
         match self.last_sec {
-            None => self.last_sec = Some(precise_time_s()),
+            None => self.last_sec = Some(current_time),
             Some(start) => {
-                let elapsed = precise_time_s() - start;
+                let elapsed = current_time - start;
                 if elapsed >= 1.0 {
                     self.seconds_elapsed += 1;
 
                     self.display();
-                    self.last_sec = Some(precise_time_s());
+                    self.last_sec = Some(current_time);
                     if self.downloaded_last_few_secs.len() == DOWNLOAD_TRACK_COUNT {
                         self.downloaded_last_few_secs.pop_back();
                     }

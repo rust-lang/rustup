@@ -3,15 +3,11 @@ use errors::*;
 use temp;
 use env_var;
 use dist;
-#[cfg(windows)]
-use msi;
-use component::Components;
+use component::{Components, TarGzPackage, Transaction, Package};
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::ffi::{OsStr, OsString};
-use std::fs;
-use std::io;
+use std::ffi::OsStr;
 use std::env;
 
 const REL_MANIFEST_DIR: &'static str = "lib/rustlib";
@@ -28,26 +24,6 @@ pub enum InstallType {
     Owned,
     // Must be uninstalled via `uninstall.sh` on linux or `msiexec /x` on windows
     Shared,
-}
-
-#[derive(Debug)]
-pub enum Uninstaller {
-    Sh(PathBuf),
-    Msi(String),
-}
-
-impl Uninstaller {
-    pub fn run(&self) -> Result<()> {
-        match *self {
-            Uninstaller::Sh(ref path) => {
-                Ok(try!(utils::cmd_status("uninstall.sh",
-                                          Command::new("sudo").arg("sh").arg(path))))
-            }
-            Uninstaller::Msi(ref id) => {
-                Ok(try!(utils::cmd_status("msiexec", Command::new("msiexec").arg("/x").arg(id))))
-            }
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -69,7 +45,8 @@ impl<'a> InstallMethod<'a> {
         if prefix.is_installed_here() {
             // Don't uninstall first for Dist method
             match self {
-                InstallMethod::Dist(_, _, _) => {}
+                InstallMethod::Dist(_, _, _) |
+                InstallMethod::Installer(_, _) => {}
                 _ => {
                     try!(prefix.uninstall(notify_handler));
                 }
@@ -90,13 +67,7 @@ impl<'a> InstallMethod<'a> {
                 Ok(())
             }
             InstallMethod::Installer(src, temp_cfg) => {
-                notify_handler.call(Notification::Extracting(src, prefix.path()));
-                let temp_dir = try!(temp_cfg.new_directory());
-                match src.extension().and_then(OsStr::to_str) {
-                    Some("gz") => InstallMethod::tar_gz(src, &temp_dir, prefix),
-                    Some("msi") => InstallMethod::msi(src, &temp_dir, prefix),
-                    _ => Err(Error::InvalidFileExtension),
-                }
+                InstallMethod::tar_gz(src, prefix, &temp_cfg, notify_handler)
             }
             InstallMethod::Dist(toolchain, update_hash, dl_cfg) => {
                 let maybe_new_hash =
@@ -118,99 +89,22 @@ impl<'a> InstallMethod<'a> {
         }
     }
 
-    fn tar_gz(src: &Path, work_dir: &Path, prefix: &InstallPrefix) -> Result<()> {
-        let installer_dir = Path::new(try!(Path::new(src.file_stem().unwrap())
-                                               .file_stem()
-                                               .ok_or(Error::InvalidFileExtension)));
+    fn tar_gz(src: &Path, prefix: &InstallPrefix, temp_cfg: &temp::Cfg,
+              notify_handler: NotifyHandler) -> Result<()> {
+        notify_handler.call(Notification::Extracting(src, prefix.path()));
 
-        try!(utils::cmd_status("tar",
-                               Command::new("tar")
-                                   .arg("xzf")
-                                   .arg(src)
-                                   .arg("-C")
-                                   .arg(work_dir)));
+        let installation = try!(Components::open(prefix.clone()));
+        let package = try!(TarGzPackage::new_file(src, temp_cfg));
 
-        // Find the root Rust folder within the subfolder
-        let root_dir = try!(try!(utils::read_dir("install", work_dir))
-                                .filter_map(io::Result::ok)
-                                .map(|e| e.path())
-                                .filter(|p| utils::is_directory(&p))
-                                .next()
-                                .ok_or(Error::InvalidInstaller));
+        let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
 
-        let mut cmd = Command::new("sh");
-        let mut arg = OsString::from("--prefix=\"");
-        arg.push(&prefix.path);
-        arg.push("\"");
-        cmd.arg(root_dir.join("install.sh"))
-           .arg(arg);
-
-        if prefix.install_type != InstallType::Shared {
-            cmd.arg("--disable-ldconfig");
+        for component in package.components() {
+            tx = try!(package.install(&installation, &component, None, tx));
         }
 
-        let result = Ok(try!(utils::cmd_status("sh", &mut cmd)));
+        tx.commit();
 
-        let _ = fs::remove_dir_all(&installer_dir);
-
-        if result.is_err() && prefix.install_type == InstallType::Owned {
-            let _ = fs::remove_dir_all(&prefix.path);
-        }
-
-        result
-    }
-    fn msi(src: &Path, work_dir: &Path, prefix: &InstallPrefix) -> Result<()> {
-        let msi_owned = || -> Result<()> {
-            let target_arg = utils::prefix_arg("TARGETDIR=", work_dir);
-
-            // Extract the MSI to the subfolder
-            let mut cmd = Command::new("msiexec");
-            cmd.arg("/a")
-               .arg(src)
-               .arg("/qn")
-               .arg(&target_arg);
-
-            try!(utils::cmd_status("msiexec",
-                                   Command::new("msiexec")
-                                       .arg("/a")
-                                       .arg(src)
-                                       .arg("/qn")
-                                       .arg(&target_arg)));
-
-            // Find the root Rust folder within the subfolder
-            let root_dir = try!(try!(utils::read_dir("install", work_dir))
-                                    .filter_map(io::Result::ok)
-                                    .map(|e| e.path())
-                                    .filter(|p| utils::is_directory(&p))
-                                    .next()
-                                    .ok_or(Error::InvalidInstaller));
-
-            // Rename and move it to the toolchain directory
-            Ok(try!(utils::rename_dir("install", &root_dir, &prefix.path)))
-        };
-
-        let msi_shared = || -> Result<()> {
-            let target_arg = utils::prefix_arg("TARGETDIR=", &prefix.path);
-
-            // Extract the MSI to the subfolder
-            Ok(try!(utils::cmd_status("msiexec",
-                                      Command::new("msiexec")
-                                          .arg("/i")
-                                          .arg(src)
-                                          .arg("/qn")
-                                          .arg(&target_arg))))
-        };
-
-        match prefix.install_type {
-            InstallType::Owned => {
-                let result = msi_owned();
-                if result.is_err() {
-                    let _ = fs::remove_dir_all(&prefix.path);
-                }
-                result
-            }
-            InstallType::Shared => msi_shared(),
-        }
+        Ok(())
     }
 }
 
@@ -269,42 +163,6 @@ impl InstallPrefix {
             InstallType::Shared => utils::is_directory(&self.manifest_dir()),
         }
     }
-    pub fn get_uninstall_sh(&self) -> Option<PathBuf> {
-        let path = self.manifest_file("uninstall.sh");
-        if utils::is_file(&path) {
-            Some(path)
-        } else {
-            None
-        }
-    }
-
-    #[cfg(windows)]
-    pub fn get_uninstall_msi(&self, notify_handler: NotifyHandler) -> Option<String> {
-        let canon_path = utils::canonicalize_path(&self.path, ntfy!(&notify_handler));
-
-        if let Ok(installers) = msi::all_installers() {
-            for installer in &installers {
-                if let Ok(loc) = installer.install_location() {
-                    let path = utils::canonicalize_path(&loc, ntfy!(&notify_handler));
-
-                    if path == canon_path {
-                        return Some(installer.product_id().to_owned());
-                    }
-                }
-            }
-        }
-
-        None
-    }
-    #[cfg(not(windows))]
-    pub fn get_uninstall_msi(&self, _: NotifyHandler) -> Option<String> {
-        None
-    }
-    pub fn get_uninstaller(&self, notify_handler: NotifyHandler) -> Option<Uninstaller> {
-        self.get_uninstall_sh()
-            .map(Uninstaller::Sh)
-            .or_else(|| self.get_uninstall_msi(notify_handler).map(Uninstaller::Msi))
-    }
     pub fn uninstall(&self, notify_handler: NotifyHandler) -> Result<()> {
         if self.is_installed_here() {
             match self.install_type {
@@ -312,11 +170,8 @@ impl InstallPrefix {
                     Ok(try!(utils::remove_dir("install", &self.path, ntfy!(&notify_handler))))
                 }
                 InstallType::Shared => {
-                    if let Some(uninstaller) = self.get_uninstaller(notify_handler) {
-                        uninstaller.run()
-                    } else {
-                        Err(Error::NotInstalledHere)
-                    }
+                    // No code actually calls this
+                    unimplemented!()
                 }
             }
         } else {

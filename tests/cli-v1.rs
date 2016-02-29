@@ -11,6 +11,7 @@ use rust_install::mock::clitools::{self, Config,
                                    expect_ok, expect_stdout_ok, expect_err,
                                    expect_stderr_ok, set_current_dist_date,
                                    change_dir, run};
+use rust_install::utils;
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(&[ManifestVersion::V1], f);
@@ -162,33 +163,71 @@ fn remove_override_toolchain_error_handling() {
 }
 
 #[test]
-#[ignore]
 fn bad_sha_on_manifest() {
+    setup(&|config| {
+        let sha_file = config.distdir.path().join("dist/channel-rust-nightly.sha256");
+        let sha_str = utils::raw::read_file(&sha_file).unwrap();
+        let mut sha_bytes = sha_str.into_bytes();
+        &mut sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
+        let sha_str = String::from_utf8(sha_bytes).unwrap();
+        utils::raw::write_file(&sha_file, &sha_str).unwrap();
+        expect_err(config, &["multirust", "default", "nightly"],
+                   "checksum failed");
+    });
 }
 
 #[test]
-#[ignore]
 fn bad_sha_on_installer() {
+    setup(&|config| {
+        let dir = config.distdir.path().join("dist");
+        for file in fs::read_dir(&dir).unwrap() {
+            let file = file.unwrap();
+            if file.path().to_string_lossy().ends_with(".tar.gz") {
+                utils::raw::write_file(&file.path(), "xxx").unwrap();
+            }
+        }
+        expect_err(config, &["multirust", "default", "nightly"],
+                   "checksum failed");
+    });
 }
 
 #[test]
-#[ignore]
-fn delete_data() {
-}
-
-#[test]
-#[ignore]
 fn install_override_toolchain_from_channel() {
+    setup(&|config| {
+        expect_ok(config, &["multirust", "override", "nightly"]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-n-2");
+        expect_ok(config, &["multirust", "override", "beta"]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-b-2");
+        expect_ok(config, &["multirust", "override", "stable"]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-s-2");
+    });
 }
 
 #[test]
-#[ignore]
 fn install_override_toolchain_from_archive() {
+    setup(&|config| {
+        expect_ok(config, &["multirust", "override", "nightly-2015-01-01"]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-n-1");
+        expect_ok(config, &["multirust", "override", "beta-2015-01-01"]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-b-1");
+        expect_ok(config, &["multirust", "override", "stable-2015-01-01"]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-s-1");
+    });
 }
 
 #[test]
-#[ignore]
 fn install_override_toolchain_from_version() {
+    setup(&|config| {
+        expect_ok(config, &["multirust", "override", "1.1.0"]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-s-2");
+    });
 }
 
 #[test]

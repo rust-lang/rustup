@@ -177,6 +177,9 @@ impl Cfg {
             }
             "2" => {
                 // The toolchain installation format changed. Just delete them all.
+                self.notify_handler
+                    .call(Notification::UpgradeRemovesToolchains);
+
                 let dirs = try!(utils::read_dir("toolchains", &self.toolchains_dir));
                 for dir in dirs {
                     let dir = try!(dir.map_err(|e| Error::UpgradeIoError(e)));

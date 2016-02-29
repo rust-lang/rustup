@@ -57,7 +57,7 @@ cd multirust-rs && git pull && cargo run --release install
 ### Usage
 
 ```
-multirust 0.0.4
+multirust 0.0.5
 Diggory Blake
 Port of multirust to rust
 
@@ -147,10 +147,7 @@ multirust-rs:
 - Combine these:
 	`multirust override i686-msvc-nightly-2015-04-01`
 
-- Install a custom toolchain using an installer (windows):
-	`multirust override my_custom_toolchain --install "C:\RustInstaller.msi"`
-
-- Install a custom toolchain using an installer (linux):
+- Install a custom toolchain using an installer:
 	`multirust override my_custom_toolchain --install "/home/user/RustInstaller.tar.gz"`
 
 - Install a custom toolchain using an installer from the internet (linux):
