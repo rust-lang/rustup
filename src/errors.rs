@@ -5,7 +5,7 @@ use std::io;
 
 use rust_install::{self, utils, temp};
 use rust_install::notify::{self, NotificationLevel, Notifyable};
-use rust_manifest::Component;
+use rust_install::manifest::Component;
 
 #[derive(Debug)]
 pub enum Notification<'a> {

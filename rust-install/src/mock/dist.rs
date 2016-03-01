@@ -3,7 +3,7 @@
 
 use mock::MockInstallerBuilder;
 use utils;
-use rust_manifest::Component;
+use manifest::Component;
 use hyper::Url;
 use std::path::{PathBuf, Path};
 use std::fs::{self, File};

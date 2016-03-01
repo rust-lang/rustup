@@ -2,7 +2,6 @@
 // server (mocked on the file system)
 
 extern crate rust_install;
-extern crate rust_manifest;
 extern crate tempdir;
 extern crate tar;
 extern crate openssl;
@@ -20,7 +19,7 @@ use rust_install::download::DownloadCfg;
 use rust_install::utils;
 use rust_install::temp;
 use rust_install::manifestation::{Manifestation, UpdateStatus, Changes};
-use rust_manifest::{Manifest, Component};
+use rust_install::manifest::{Manifest, Component};
 use hyper::Url;
 use std::fs;
 use std::io::Write;

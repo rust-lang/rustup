@@ -4,11 +4,10 @@ use std::fmt::{self, Display};
 use std::io;
 use temp;
 use utils;
-use rust_manifest;
 use walkdir;
-
+use toml;
 use notify::{NotificationLevel, Notifyable};
-use rust_manifest::Component;
+use manifest::Component;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -23,7 +22,7 @@ pub enum Notification<'a> {
     ChecksumValid(&'a str),
     SignatureValid(&'a str),
     RollingBack,
-    ExtensionNotInstalled(&'a rust_manifest::Component),
+    ExtensionNotInstalled(&'a Component),
     NonFatalError(&'a Error),
     MissingInstalledComponent(&'a str),
     InstallingToolchain(&'a str),
@@ -35,7 +34,6 @@ pub enum Notification<'a> {
 pub enum Error {
     Utils(utils::Error),
     Temp(temp::Error),
-    Manifest(rust_manifest::Error),
 
     InvalidFileExtension,
     InvalidInstaller,
@@ -62,7 +60,7 @@ pub enum Error {
     },
     CorruptComponent(String),
     ExtractingPackage(io::Error),
-    ExtensionNotFound(rust_manifest::Component),
+    ExtensionNotFound(Component),
     InvalidChangeSet,
     NoGPG,
     BadInstallerVersion(String),
@@ -71,6 +69,14 @@ pub enum Error {
     ComponentFilePermissionsFailed(io::Error),
     ComponentDownloadFailed(Component, utils::Error),
     ObsoleteDistManifest,
+    Parsing(Vec<toml::ParserError>),
+    MissingKey(String),
+    ExpectedType(&'static str, String),
+    PackageNotFound(String),
+    TargetNotFound(String),
+    MissingRoot,
+    UnsupportedVersion(String),
+    MissingPackageForComponent(Component),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -80,7 +86,6 @@ pub type SharedNotifyHandler =
 
 extend_error!(Error: temp::Error, e => Error::Temp(e));
 extend_error!(Error: utils::Error, e => Error::Utils(e));
-extend_error!(Error: rust_manifest::Error, e => Error::Manifest(e));
 
 extend_notification!(Notification: utils::Notification, n => Notification::Utils(n));
 extend_notification!(Notification: temp::Notification, n => Notification::Temp(n));
@@ -145,7 +150,6 @@ impl error::Error for Error {
         match *self {
             Utils(ref e) => error::Error::description(e),
             Temp(ref e) => error::Error::description(e),
-            Manifest(ref e) => error::Error::description(e),
             InvalidFileExtension => "invalid file extension",
             InvalidInstaller => "invalid installer",
             InvalidToolchainName(_) => "invalid custom toolchain name",
@@ -167,6 +171,14 @@ impl error::Error for Error {
             ComponentFilePermissionsFailed(_) => "error setting file permissions during install",
             ComponentDownloadFailed(_, _) => "component download failed",
             ObsoleteDistManifest => "the server unexpectedly provided an obsolete version of the distribution manifest",
+            Parsing(_) => "error parsing manifest",
+            MissingKey(_) => "missing key",
+            ExpectedType(_, _) => "expected type",
+            PackageNotFound(_) => "package not found",
+            TargetNotFound(_) => "target not found",
+            MissingRoot => "manifest has no root package",
+            UnsupportedVersion(_) => "unsupported manifest version",
+            MissingPackageForComponent(_) => "missing package for component",
         }
     }
 
@@ -175,7 +187,6 @@ impl error::Error for Error {
         match *self {
             Utils(ref e) => Some(e),
             Temp(ref e) => Some(e),
-            Manifest(ref e) => Some(e),
             ComponentFilePermissionsFailed(ref e) => Some(e),
             ComponentDirPermissionsFailed(ref e) => Some(e),
             ExtractingPackage(ref e) => Some(e),
@@ -196,7 +207,15 @@ impl error::Error for Error {
             NoGPG |
             BadInstallerVersion(_) |
             BadInstalledMetadataVersion(_) |
-            ObsoleteDistManifest => None
+            ObsoleteDistManifest |
+            Parsing(_) |
+            MissingKey(_) |
+            ExpectedType(_, _) |
+            PackageNotFound(_) |
+            TargetNotFound(_) |
+            MissingRoot |
+            UnsupportedVersion(_) |
+            MissingPackageForComponent(_) => None
         }
     }
 }
@@ -207,7 +226,6 @@ impl Display for Error {
         match *self {
             Temp(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
-            Manifest(ref n) => n.fmt(f),
 
             InvalidFileExtension => write!(f, "invalid file extension"),
             InvalidInstaller => write!(f, "invalid installer"),
@@ -269,6 +287,20 @@ impl Display for Error {
             ObsoleteDistManifest => {
                 write!(f, "the server unexpectedly provided an obsolete version of the distribution manifest")
             },
+            Parsing(ref n) => {
+                for e in n {
+                    try!(e.fmt(f));
+                    try!(writeln!(f, ""));
+                }
+                Ok(())
+            }
+            MissingKey(ref n) => write!(f, "missing key: '{}'", n),
+            ExpectedType(ref t, ref n) => write!(f, "expected type: '{}' for '{}'", t, n),
+            PackageNotFound(ref n) => write!(f, "package not found: '{}'", n),
+            TargetNotFound(ref n) => write!(f, "target not found: '{}'", n),
+            MissingRoot => write!(f, "manifest has no root package"),
+            UnsupportedVersion(ref v) => write!(f, "manifest version '{}' is not supported", v),
+            MissingPackageForComponent(ref c) => write!(f,"manifest missing package for component {}", c.name()),
         }
     }
 }

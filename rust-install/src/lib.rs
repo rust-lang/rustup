@@ -14,7 +14,6 @@ extern crate winreg;
 extern crate shell32;
 #[cfg(windows)]
 extern crate ole32;
-extern crate rust_manifest;
 extern crate tempdir;
 extern crate walkdir;
 extern crate toml;
@@ -39,6 +38,9 @@ mod install;
 pub mod component;
 pub mod manifestation;
 pub mod download;
+pub mod manifest;
+pub mod config;
+mod toml_utils;
 
 // Mocks shared by tests
 pub mod mock;

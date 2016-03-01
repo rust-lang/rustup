@@ -76,7 +76,6 @@ script:
   # Run cargo tests
   - cargo test --verbose
   - cargo test -p rust-install --verbose
-  - cargo test -p rust-manifest --verbose
   # Run end-to-end tests
   - tests/cli.sh
 

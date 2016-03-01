@@ -1,6 +1,6 @@
 use toml;
 
-use utils::*;
+use toml_utils::*;
 use errors::*;
 use super::manifest::Component;
 

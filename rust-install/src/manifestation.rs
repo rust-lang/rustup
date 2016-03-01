@@ -1,7 +1,8 @@
 //! Maintains a Rust installation by installing individual Rust
 //! platform components from a distribution server.
 
-use rust_manifest::{Component, Manifest, Config, TargettedPackage};
+use config::Config;
+use manifest::{Component, Manifest, TargettedPackage};
 use dist::{download_and_check, DownloadCfg};
 use component::{Components, Transaction, TarGzPackage, Package};
 use temp;

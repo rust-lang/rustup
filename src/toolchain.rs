@@ -2,7 +2,7 @@ use errors::*;
 use rust_install::{utils, dist, InstallPrefix, InstallType, InstallMethod};
 use rust_install::dist::ToolchainDesc;
 use rust_install::manifestation::{Manifestation, Changes};
-use rust_manifest::Component;
+use rust_install::manifest::Component;
 use config::Cfg;
 
 use std::process::Command;

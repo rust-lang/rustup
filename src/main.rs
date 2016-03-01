@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate rust_install;
-extern crate rust_manifest;
 
 #[macro_use]
 extern crate clap;
@@ -35,7 +34,7 @@ use std::thread;
 use std::time::Duration;
 use multirust::*;
 use rust_install::dist;
-use rust_manifest::Component;
+use rust_install::manifest::Component;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;
 use rust_install::notify::NotificationLevel;

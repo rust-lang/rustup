@@ -47,7 +47,6 @@ test_script:
   - cargo build --release
   - cargo test
   - cargo test -p rust-install
-  - cargo test -p rust-manifest
   - tests\cli.bat
 notifications:
   - provider: Webhook

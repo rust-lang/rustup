@@ -12,7 +12,7 @@
 
 use errors::*;
 use toml;
-use utils::*;
+use toml_utils::*;
 
 use std::collections::HashMap;
 
