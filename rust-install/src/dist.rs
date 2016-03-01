@@ -5,7 +5,7 @@ use utils;
 use InstallPrefix;
 use rust_manifest::Component;
 use rust_manifest::Manifest as ManifestV2;
-use manifest::{Manifestation, UpdateStatus, Changes};
+use manifestation::{Manifestation, UpdateStatus, Changes};
 use hyper;
 
 use std::path::Path;
