@@ -236,7 +236,7 @@ impl<'a> Toolchain<'a> {
         // when the toolchain is created.
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
-        let trip = try!(toolchain.target_triple().ok_or_else(|| rust_install::Error::UnsupportedHost(toolchain.full_spec())));
+        let trip = toolchain.target_triple();
         let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {
@@ -266,7 +266,7 @@ impl<'a> Toolchain<'a> {
 
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
-        let trip = try!(toolchain.target_triple().ok_or_else(|| rust_install::Error::UnsupportedHost(toolchain.full_spec())));
+        let trip = toolchain.target_triple();
         let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {
@@ -309,7 +309,7 @@ impl<'a> Toolchain<'a> {
 
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
-        let trip = try!(toolchain.target_triple().ok_or_else(|| rust_install::Error::UnsupportedHost(toolchain.full_spec())));
+        let trip = toolchain.target_triple();
         let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {

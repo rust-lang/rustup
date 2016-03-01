@@ -557,14 +557,11 @@ fn self_uninstall(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn self_update(cfg: &Cfg, _m: &ArgMatches) -> Result<()> {
     // Get host triple
-    let triple = if let (arch, Some(os), maybe_env) = dist::get_host_triple() {
-        if let Some(env) = maybe_env {
-            format!("{}-{}-{}", arch, os, env)
-        } else {
-            format!("{}-{}", arch, os)
-        }
+    let (arch, os, maybe_env) = dist::get_host_triple();
+    let triple = if let Some(env) = maybe_env {
+        format!("{}-{}-{}", arch, os, env)
     } else {
-        return Err(Error::UnknownHostTriple);
+        format!("{}-{}", arch, os)
     };
 
     // Get download URL

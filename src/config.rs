@@ -273,7 +273,7 @@ impl Cfg {
                      .merge(["beta", "nightly", "stable"].into_iter().map(|s| (*s).to_owned()))
                      .dedup()
                      .filter(|name| {
-                         dist::ToolchainDesc::from_str(&name).ok().map(|d| d.is_tracking()) == Some(true)
+                         dist::ToolchainDesc::from_str(&name).map(|d| d.is_tracking()).ok() == Some(true)
                      })
                      .map(|name| {
                          let result = self.get_toolchain(&name, true)
