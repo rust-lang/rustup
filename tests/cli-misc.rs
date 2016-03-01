@@ -3,15 +3,14 @@
 
 extern crate rust_install;
 
-use rust_install::mock::dist::ManifestVersion;
-use rust_install::mock::clitools::{self, Config,
+use rust_install::mock::clitools::{self, Config, Scenario,
                                    expect_stdout_ok, expect_stderr_ok,
                                    expect_ok, expect_err, run,
                                    this_host_triple};
 use rust_install::utils;
 
 pub fn setup(f: &Fn(&Config)) {
-    clitools::setup(&[ManifestVersion::V2], f);
+    clitools::setup(Scenario::SimpleV2, f);
 }
 
 #[test]
@@ -445,7 +444,7 @@ fn custom_remote_url() {
 
 #[test]
 fn custom_multiple_local_path() {
-    setup(&|config| {
+    clitools::setup(Scenario::Full, &|config| {
         let trip = this_host_triple("nightly");
         let custom_installer1 = config.distdir.path().join(
             format!("dist/2015-01-01/rustc-nightly-{}.tar.gz", trip));
@@ -465,7 +464,7 @@ fn custom_multiple_local_path() {
 
 #[test]
 fn custom_multiple_remote_url() {
-    setup(&|config| {
+    clitools::setup(Scenario::Full, &|config| {
         let trip = this_host_triple("nightly");
         let custom_installer1 = config.distdir.path().join(
             format!("dist/2015-01-01/rustc-nightly-{}.tar.gz", trip));

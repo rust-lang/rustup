@@ -6,8 +6,7 @@ extern crate tempdir;
 
 use std::fs;
 use tempdir::TempDir;
-use rust_install::mock::dist::ManifestVersion;
-use rust_install::mock::clitools::{self, Config,
+use rust_install::mock::clitools::{self, Config, Scenario,
                                    this_host_triple,
                                    expect_ok, expect_stdout_ok, expect_err,
                                    expect_stderr_ok, set_current_dist_date,
@@ -15,7 +14,7 @@ use rust_install::mock::clitools::{self, Config,
 use rust_install::utils;
 
 pub fn setup(f: &Fn(&Config)) {
-    clitools::setup(&[ManifestVersion::V2], f);
+    clitools::setup(Scenario::SimpleV2, f);
 }
 
 #[test]
@@ -48,8 +47,6 @@ fn expected_bins_exist() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "1.3.0");
-        expect_stdout_ok(config, &["rustdoc", "--version"], "1.3.0");
-        expect_stdout_ok(config, &["cargo", "--version"], "1.3.0");
     });
 }
 
@@ -67,7 +64,7 @@ fn install_toolchain_from_channel() {
 
 #[test]
 fn install_toolchain_from_archive() {
-    setup(&|config| {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
         expect_ok(config, &["multirust", "default" , "nightly-2015-01-01"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
         expect_ok(config, &["multirust", "default" , "beta-2015-01-01"]);
@@ -96,7 +93,7 @@ fn default_existing_toolchain() {
 
 #[test]
 fn update_channel() {
-    setup(&|config| {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"],
@@ -110,7 +107,7 @@ fn update_channel() {
 
 #[test]
 fn list_toolchains() {
-    setup(&|config| {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_ok(config, &["multirust", "update", "beta-2015-01-01"]);
         expect_stdout_ok(config, &["multirust", "list-toolchains"],
@@ -211,7 +208,7 @@ fn install_override_toolchain_from_channel() {
 
 #[test]
 fn install_override_toolchain_from_archive() {
-    setup(&|config| {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
         expect_ok(config, &["multirust", "override", "nightly-2015-01-01"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-1");
@@ -408,7 +405,7 @@ fn no_update_on_channel_when_date_has_not_changed() {
 
 #[test]
 fn update_on_channel_when_date_has_changed() {
-    setup(&|config| {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"],
@@ -422,7 +419,7 @@ fn update_on_channel_when_date_has_changed() {
 
 #[test]
 fn update_no_toolchain_means_update_all_toolchains() {
-    setup(&|config| {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["multirust", "update"]);
 
@@ -482,7 +479,7 @@ fn remove_toolchain_then_add_again() {
 
 #[test]
 fn upgrade_v1_to_v2() {
-    clitools::setup(&[ManifestVersion::V1, ManifestVersion::V2], &|config| {
+    clitools::setup(Scenario::Full, &|config| {
         set_current_dist_date(config, "2015-01-01");
         // Delete the v2 manifest so the first day we install from the v1s
         fs::remove_file(config.distdir.path().join("dist/channel-rust-nightly.toml.sha256")).unwrap();
@@ -496,7 +493,7 @@ fn upgrade_v1_to_v2() {
 
 #[test]
 fn upgrade_v2_to_v1() {
-    clitools::setup(&[ManifestVersion::V1, ManifestVersion::V2], &|config| {
+    clitools::setup(Scenario::Full, &|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["multirust", "default", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
@@ -509,7 +506,7 @@ fn upgrade_v2_to_v1() {
 // v2 manifests only work with MULTIRUST_ENABLE_EXPERIMENTAL
 #[test]
 fn enable_experimental() {
-    clitools::setup(&[ManifestVersion::V2], &|config| {
+    setup(&|config| {
         let mut cmd = cmd(config, "multirust", &["update", "nightly"]);
         cmd.env_remove("MULTIRUST_ENABLE_EXPERIMENTAL");
         let out = cmd.output().unwrap();
@@ -529,7 +526,7 @@ fn list_targets_no_toolchain() {
 
 #[test]
 fn list_targets_v1_toolchain() {
-    clitools::setup(&[ManifestVersion::V1], &|config| {
+    clitools::setup(Scenario::SimpleV1, &|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_err(config, &["multirust", "list-targets", "nightly"],
                    "toolchain 'nightly' does not support components");
@@ -588,7 +585,7 @@ fn add_target_bogus() {
 
 #[test]
 fn add_target_v1_toolchain() {
-    clitools::setup(&[ManifestVersion::V1], &|config| {
+    clitools::setup(Scenario::SimpleV1, &|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_err(config, &["multirust", "add-target", "nightly", clitools::CROSS_ARCH1],
                    "toolchain 'nightly' does not support components");
@@ -672,7 +669,7 @@ fn remove_target_bogus() {
 
 #[test]
 fn remove_target_v1_toolchain() {
-    clitools::setup(&[ManifestVersion::V1], &|config| {
+    clitools::setup(Scenario::SimpleV1, &|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_err(config, &["multirust", "remove-target", "nightly", clitools::CROSS_ARCH1],
                    "toolchain 'nightly' does not support components");
