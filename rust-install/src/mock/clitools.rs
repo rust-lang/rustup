@@ -275,7 +275,7 @@ fn build_mock_channel(channel: &str, date: &str,
 }
 
 pub fn this_host_triple(channel: &str) -> String {
-    ToolchainDesc::from_str(channel).and_then(|t| t.target_triple()).unwrap()
+    ToolchainDesc::from_str(channel).ok().and_then(|t| t.target_triple()).unwrap()
 }
 
 fn build_mock_std_installer(channel: &str) -> MockInstallerBuilder {

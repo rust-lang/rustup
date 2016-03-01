@@ -116,10 +116,10 @@ impl<'a> Toolchain<'a> {
                                                           self.download_cfg()))
     }
     pub fn is_custom(&self) -> bool {
-        dist::ToolchainDesc::from_str(&self.name).is_none()
+        ToolchainDesc::from_str(&self.name).is_err()
     }
     pub fn is_tracking(&self) -> bool {
-        dist::ToolchainDesc::from_str(&self.name).map(|d| d.is_tracking()) == Some(true)
+        ToolchainDesc::from_str(&self.name).ok().map(|d| d.is_tracking()) == Some(true)
     }
 
     pub fn ensure_custom(&self) -> Result<()> {
@@ -235,7 +235,7 @@ impl<'a> Toolchain<'a> {
         // FIXME: This toolchain handling is a mess. Just do it once
         // when the toolchain is created.
         let ref toolchain = self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain).ok_or(rust_install::Error::InvalidToolchainName(toolchain.to_string())));
+        let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
         let trip = try!(toolchain.target_triple().ok_or_else(|| rust_install::Error::UnsupportedHost(toolchain.full_spec())));
         let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
 
@@ -265,7 +265,7 @@ impl<'a> Toolchain<'a> {
         }
 
         let ref toolchain = self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain).ok_or(rust_install::Error::InvalidToolchainName(toolchain.to_string())));
+        let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
         let trip = try!(toolchain.target_triple().ok_or_else(|| rust_install::Error::UnsupportedHost(toolchain.full_spec())));
         let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
 
@@ -308,7 +308,7 @@ impl<'a> Toolchain<'a> {
         }
 
         let ref toolchain = self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain).ok_or(rust_install::Error::InvalidToolchainName(toolchain.to_string())));
+        let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
         let trip = try!(toolchain.target_triple().ok_or_else(|| rust_install::Error::UnsupportedHost(toolchain.full_spec())));
         let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
 

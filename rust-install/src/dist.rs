@@ -30,7 +30,7 @@ pub struct ToolchainDesc {
 }
 
 impl ToolchainDesc {
-    pub fn from_str(name: &str) -> Option<Self> {
+    pub fn from_str(name: &str) -> Result<Self> {
         let archs = ["i686", "x86_64"];
         let oses = ["pc-windows", "unknown-linux", "apple-darwin"];
         let envs = ["gnu", "msvc"];
@@ -60,7 +60,7 @@ impl ToolchainDesc {
                 channel: c.at(4).unwrap().to_owned(),
                 date: c.at(5).and_then(fn_map),
             }
-        })
+        }).ok_or(Error::InvalidToolchainName(name.to_string()))
     }
 
     pub fn manifest_v1_url(&self, dist_root: &str) -> String {
@@ -267,7 +267,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                             ) -> Result<Option<String>> {
 
     let requested_toolchain = toolchain;
-    let ref toolchain = try!(ToolchainDesc::from_str(toolchain).ok_or(Error::InvalidToolchainName(toolchain.to_string())));
+    let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
     let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
 
     let manifestation = try!(Manifestation::open(prefix.clone(), &trip));
