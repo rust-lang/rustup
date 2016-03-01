@@ -5,6 +5,7 @@ use std::io;
 
 use rust_install::{self, utils, temp};
 use rust_install::notify::{self, NotificationLevel, Notifyable};
+use rust_manifest::Component;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -47,6 +48,10 @@ pub enum Error {
     NeedMetadataUpgrade,
     UpgradeIoError(io::Error),
     BadInstallerType(String),
+    ComponentsUnsupported(String),
+    UnknownComponent(String, Component),
+    AddingRequiredComponent(String, Component),
+    RemovingRequiredComponent(String, Component),
     Custom {
         id: String,
         desc: String,
@@ -150,6 +155,10 @@ impl error::Error for Error {
             NeedMetadataUpgrade => "multirust's metadata is out of date. run multirust upgrade-data.",
             UpgradeIoError(_) => "I/O error during upgrade",
             BadInstallerType(_) => "invalid extension for installer",
+            ComponentsUnsupported(_) => "toolchain does not support componentsn",
+            UnknownComponent(_ ,_) => "toolchain does not contain component",
+            AddingRequiredComponent(_, _) => "required component cannot be added",
+            RemovingRequiredComponent(_, _) => "required component cannot be removed",
             Custom { ref desc, .. } => desc,
         }
     }
@@ -170,6 +179,10 @@ impl error::Error for Error {
             InfiniteRecursion |
             NeedMetadataUpgrade |
             BadInstallerType(_) |
+            ComponentsUnsupported(_) |
+            UnknownComponent(_, _) |
+            AddingRequiredComponent(_, _) |
+            RemovingRequiredComponent(_, _) |
             Custom {..} => None,
         }
     }
@@ -199,6 +212,20 @@ impl Display for Error {
             }
             BadInstallerType(ref s) => {
                 write!(f, "invalid extension for installer: '{}'", s)
+            }
+            ComponentsUnsupported(ref t) => {
+                write!(f, "toolchain '{}' does not support components", t)
+            }
+            UnknownComponent(ref t, ref c) => {
+                write!(f, "toolchain '{}' does not contain component '{}' for target '{}'", t, c.pkg, c.target)
+            }
+            AddingRequiredComponent(ref t, ref c) => {
+                write!(f, "component '{}' for target '{}' is required for toolchain '{}' and cannot be re-added",
+                       c.pkg, c.target, t)
+            }
+            RemovingRequiredComponent(ref t, ref c) => {
+                write!(f, "component '{}' for target '{}' is required for toolchain '{}' and cannot be removed",
+                       c.pkg, c.target, t)
             }
             Custom { ref desc, .. } => write!(f, "{}", desc),
         }

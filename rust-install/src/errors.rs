@@ -17,6 +17,7 @@ pub enum Notification<'a> {
 
     Extracting(&'a Path, &'a Path),
     UpdateHashMatches(&'a str),
+    ComponentAlreadyInstalled(&'a Component),
     CantReadUpdateHash(&'a Path),
     NoUpdateHash(&'a Path),
     ChecksumValid(&'a str),
@@ -94,7 +95,8 @@ impl<'a> Notification<'a> {
             Extracting(_, _) | ChecksumValid(_) | SignatureValid(_)  |
             InstallingToolchain(_) | DownloadingComponent(_, _) |
             InstallingComponent(_) => NotificationLevel::Normal,
-            UpdateHashMatches(_) | RollingBack => NotificationLevel::Info,
+            UpdateHashMatches(_) | ComponentAlreadyInstalled(_)  |
+            RollingBack => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
             MissingInstalledComponent(_) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
@@ -111,6 +113,10 @@ impl<'a> Display for Notification<'a> {
             Extracting(_, _) => write!(f, "extracting..."),
             UpdateHashMatches(hash) => {
                 write!(f, "update hash matches: {}, skipping update...", hash)
+            }
+            ComponentAlreadyInstalled(ref c) => {
+                write!(f, "component '{}' for target '{}' is up to date",
+                       c.pkg, c.target)
             }
             CantReadUpdateHash(path) => {
                 write!(f,

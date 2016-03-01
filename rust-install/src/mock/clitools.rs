@@ -192,8 +192,8 @@ fn create_mock_dist_server(path: &Path, vs: &[ManifestVersion]) {
              path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple))).unwrap();
 }
 
-static CROSS_ARCH1: &'static str = "x86_64-unknown-linux-musl";
-static CROSS_ARCH2: &'static str = "arm-linux-androideabi";
+pub static CROSS_ARCH1: &'static str = "x86_64-unknown-linux-musl";
+pub static CROSS_ARCH2: &'static str = "arm-linux-androideabi";
 
 fn build_mock_channel(channel: &str, date: &str,
                       version: &'static str, version_hash: &str) -> MockChannel {
