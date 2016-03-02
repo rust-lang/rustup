@@ -5,6 +5,7 @@ use time::precise_time_s;
 use multirust::Notification;
 use multirust_dist::Notification as In;
 use multirust_dist::utils::Notification as Un;
+use tty;
 
 /// Keep track of this many past download amounts
 const DOWNLOAD_TRACK_COUNT: usize = 5;
@@ -56,7 +57,7 @@ impl DownloadTracker {
                 true
             }
             &Notification::Install(In::Utils(Un::DownloadDataReceived(len))) => {
-                if super::stderr_isatty() {
+                if tty::stderr_isatty() {
                     self.data_received(len);
                 }
                 true

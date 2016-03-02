@@ -41,6 +41,7 @@ use multirust_dist::notify::NotificationLevel;
 
 mod cli;
 mod download_tracker;
+mod tty;
 
 macro_rules! warn {
     ( $ ( $ arg : tt ) * ) => ( $crate::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
@@ -52,55 +53,29 @@ macro_rules! info {
     ( $ ( $ arg : tt ) * ) => ( $crate::info_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 
-// Copied from rustc. atty crate did not work as expected
-#[cfg(unix)]
-fn stderr_isatty() -> bool {
-    use libc;
-    unsafe { libc::isatty(libc::STDERR_FILENO) != 0 }
-}
-// FIXME: Unfortunately this doesn't detect msys terminals so rustup
-// is always colorless there (just like rustc and cargo).
-#[cfg(windows)]
-fn stderr_isatty() -> bool {
-    type DWORD = u32;
-    type BOOL = i32;
-    type HANDLE = *mut u8;
-    const STD_ERROR_HANDLE: DWORD = -12i32 as DWORD;
-    extern "system" {
-        fn GetStdHandle(which: DWORD) -> HANDLE;
-        fn GetConsoleMode(hConsoleHandle: HANDLE,
-                          lpMode: *mut DWORD) -> BOOL;
-    }
-    unsafe {
-        let handle = GetStdHandle(STD_ERROR_HANDLE);
-        let mut out = 0;
-        GetConsoleMode(handle, &mut out) != 0
-    }
-}
-
 fn warn_fmt(args: fmt::Arguments) {
     let mut t = term::stderr().unwrap();
-    if stderr_isatty() { let _ = t.fg(term::color::BRIGHT_YELLOW); }
+    if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_YELLOW); }
     let _ = write!(t, "warning: ");
-    if stderr_isatty() { let _ = t.reset(); }
+    if tty::stderr_isatty() { let _ = t.reset(); }
     let _ = t.write_fmt(args);
     let _ = write!(t, "\n");
 }
 
 fn err_fmt(args: fmt::Arguments) {
     let mut t = term::stderr().unwrap();
-    if stderr_isatty() { let _ = t.fg(term::color::BRIGHT_RED); }
+    if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_RED); }
     let _ = write!(t, "error: ");
-    if stderr_isatty() { let _ = t.reset(); }
+    if tty::stderr_isatty() { let _ = t.reset(); }
     let _ = t.write_fmt(args);
     let _ = write!(t, "\n");
 }
 
 fn info_fmt(args: fmt::Arguments) {
     let mut t = term::stderr().unwrap();
-    if stderr_isatty() { let _ = t.fg(term::color::BRIGHT_GREEN); }
+    if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_GREEN); }
     let _ = write!(t, "info: ");
-    if stderr_isatty() { let _ = t.reset(); }
+    if tty::stderr_isatty() { let _ = t.reset(); }
     let _ = t.write_fmt(args);
     let _ = write!(t, "\n");
 }
