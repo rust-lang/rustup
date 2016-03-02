@@ -2,11 +2,12 @@
 //! dist server, mostly derived from multirust/test-v2.sh
 
 extern crate rust_install;
+extern crate multirust_mock;
 
-use rust_install::mock::clitools::{self, Config, Scenario,
-                                   expect_stdout_ok, expect_stderr_ok,
-                                   expect_ok, expect_err, run,
-                                   this_host_triple};
+use multirust_mock::clitools::{self, Config, Scenario,
+                               expect_stdout_ok, expect_stderr_ok,
+                               expect_ok, expect_err, run,
+                               this_host_triple};
 use rust_install::utils;
 
 pub fn setup(f: &Fn(&Config)) {
@@ -137,7 +138,7 @@ fn install_toolchain_change_from_link_to_copy() {
 #[test]
 fn install_toolchain_from_custom() {
     setup(&|config| {
-        let trip = this_host_triple("nightly");
+        let trip = this_host_triple();
         let custom_installer = config.distdir.path().join(
             format!("dist/rust-nightly-{}.tar.gz", trip));
         let custom_installer = custom_installer.to_string_lossy();
@@ -151,7 +152,7 @@ fn install_toolchain_from_custom() {
 #[test]
 fn install_toolchain_from_custom_wrong_extension() {
     setup(&|config| {
-        let trip = this_host_triple("nightly");
+        let trip = this_host_triple();
         let custom_installer = config.distdir.path().join(
             format!("dist/rust-nightly-{}.msi", trip));
         let custom_installer = custom_installer.to_string_lossy();
@@ -260,7 +261,7 @@ fn install_override_toolchain_change_from_link_to_copy() {
 #[test]
 fn install_override_toolchain_from_custom() {
     setup(&|config| {
-        let trip = this_host_triple("nightly");
+        let trip = this_host_triple();
         let custom_installer = config.distdir.path().join(
             format!("dist/rust-nightly-{}.tar.gz", trip));
         let custom_installer = custom_installer.to_string_lossy();
@@ -430,7 +431,7 @@ fn invalid_names_with_copy_local() {
 #[test]
 fn custom_remote_url() {
     setup(&|config| {
-        let trip = this_host_triple("nightly");
+        let trip = this_host_triple();
         let custom_installer = config.distdir.path().join(
             format!("dist/rust-nightly-{}.tar.gz", trip));
         let custom_installer = custom_installer.to_string_lossy();
@@ -445,7 +446,7 @@ fn custom_remote_url() {
 #[test]
 fn custom_multiple_local_path() {
     clitools::setup(Scenario::Full, &|config| {
-        let trip = this_host_triple("nightly");
+        let trip = this_host_triple();
         let custom_installer1 = config.distdir.path().join(
             format!("dist/2015-01-01/rustc-nightly-{}.tar.gz", trip));
         let custom_installer1 = custom_installer1.to_string_lossy();
@@ -465,7 +466,7 @@ fn custom_multiple_local_path() {
 #[test]
 fn custom_multiple_remote_url() {
     clitools::setup(Scenario::Full, &|config| {
-        let trip = this_host_triple("nightly");
+        let trip = this_host_triple();
         let custom_installer1 = config.distdir.path().join(
             format!("dist/2015-01-01/rustc-nightly-{}.tar.gz", trip));
         let custom_installer1 = custom_installer1.to_string_lossy();

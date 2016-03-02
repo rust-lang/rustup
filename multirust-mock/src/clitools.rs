@@ -9,12 +9,10 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::sync::Mutex;
 use tempdir::TempDir;
-use mock::{MockInstallerBuilder, MockCommand};
-use mock::dist::{MockDistServer, MockChannel, MockPackage,
-                 MockTargettedPackage, MockComponent, change_channel_date,
-                 ManifestVersion};
-use dist::ToolchainDesc;
-use utils;
+use {MockInstallerBuilder, MockCommand};
+use dist::{MockDistServer, MockChannel, MockPackage,
+           MockTargettedPackage, MockComponent, change_channel_date,
+           ManifestVersion};
 use hyper::Url;
 use scopeguard;
 
@@ -206,7 +204,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
                      path.join("dist/channel-rust-1.1.0.toml.sha256"));
 
     // Same for v1 manifests. These are just the installers.
-    let host_triple = this_host_triple("stable");
+    let host_triple = this_host_triple();
     if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
         fs::copy(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz", host_triple)),
                  path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple))).unwrap();
@@ -225,15 +223,15 @@ pub static CROSS_ARCH2: &'static str = "arm-linux-androideabi";
 fn build_mock_channel(channel: &str, date: &str,
                       version: &'static str, version_hash: &str) -> MockChannel {
     // Build the mock installers
-    let std = build_mock_std_installer(channel);
-    let cross_std1 = build_mock_cross_std_installer(channel, CROSS_ARCH1, date);
-    let cross_std2 = build_mock_cross_std_installer(channel, CROSS_ARCH2, date);
+    let std = build_mock_std_installer();
+    let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
+    let cross_std2 = build_mock_cross_std_installer(CROSS_ARCH2, date);
     let rustc = build_mock_rustc_installer(version, version_hash);
     let cargo = build_mock_cargo_installer(version, version_hash);
-    let rust_docs = build_mock_rust_doc_installer(channel);
+    let rust_docs = build_mock_rust_doc_installer();
     let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
 
-    let host_triple = this_host_triple(channel);
+    let host_triple = this_host_triple();
 
     // Convert the mock installers to mock package definitions for the
     // mock dist server
@@ -269,27 +267,27 @@ fn build_mock_channel(channel: &str, date: &str,
         let rust_pkg = packages.last_mut().unwrap();
         let target_pkg = rust_pkg.targets.first_mut().unwrap();
         target_pkg.components.push(MockComponent {
-            name: "rust-std",
+            name: "rust-std".to_string(),
             target: host_triple.clone()
         });
         target_pkg.components.push(MockComponent {
-            name: "rustc",
+            name: "rustc".to_string(),
             target: host_triple.clone()
         });
         target_pkg.components.push(MockComponent {
-            name: "cargo",
+            name: "cargo".to_string(),
             target: host_triple.clone()
         });
         target_pkg.components.push(MockComponent {
-            name: "rust-docs",
+            name: "rust-docs".to_string(),
             target: host_triple.clone()
         });
         target_pkg.extensions.push(MockComponent {
-            name: "rust-std",
+            name: "rust-std".to_string(),
             target: CROSS_ARCH1.to_string(),
         });
         target_pkg.extensions.push(MockComponent {
-            name: "rust-std",
+            name: "rust-std".to_string(),
             target: CROSS_ARCH2.to_string(),
         });
     }
@@ -301,12 +299,27 @@ fn build_mock_channel(channel: &str, date: &str,
     }
 }
 
-pub fn this_host_triple(channel: &str) -> String {
-    ToolchainDesc::from_str(channel).ok().map(|t| t.target_triple()).unwrap()
+pub fn this_host_triple() -> String {
+    let arch = if cfg!(target_arch = "x86") { "i686" }
+    else if cfg!(target_arch = "x86_64") { "x86_64" }
+    else { unimplemented!() };
+    let os = if cfg!(target_os = "linux") { "unknown-linux" }
+    else if cfg!(target_os = "windows") { "windows" }
+    else if cfg!(target_os = "macos") { "macos" }
+    else { unimplemented!() };
+    let env = if cfg!(target_env = "gnu") { Some("gnu") }
+    else if cfg!(target_env = "msvc") { Some("msvc") }
+    else { None };
+
+    if let Some(env) = env {
+        format!("{}-{}-{}", arch, os, env)
+    } else {
+        format!("{}-{}", arch, os)
+    }
 }
 
-fn build_mock_std_installer(channel: &str) -> MockInstallerBuilder {
-    let trip = this_host_triple(channel);
+fn build_mock_std_installer() -> MockInstallerBuilder {
+    let trip = this_host_triple();
     MockInstallerBuilder {
         components: vec![
             (format!("rust-std-{}", trip.clone()),
@@ -316,7 +329,7 @@ fn build_mock_std_installer(channel: &str) -> MockInstallerBuilder {
     }
 }
 
-fn build_mock_cross_std_installer(_channel: &str, target: &str, date: &str) -> MockInstallerBuilder {
+fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![
             (format!("rust-std-{}", target.clone()),
@@ -350,7 +363,7 @@ fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstalle
     }
 }
 
-fn build_mock_rust_doc_installer(_channel: &str) -> MockInstallerBuilder {
+fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![
             ("rust-docs".to_string(),
@@ -402,7 +415,7 @@ fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Vec<u8> {
                 println!("{} ({})");
             }}
             "#, EXAMPLE_VERSION, EXAMPLE_VERSION_HASH);
-        utils::raw::write_file(source_path, source).unwrap();
+        File::create(source_path).and_then(|mut f| f.write_all(source.as_bytes())).unwrap();
 
         // Create the executable
         let status = Command::new("rustc").arg(&*source_path.to_string_lossy())

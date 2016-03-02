@@ -2,14 +2,15 @@
 //! derived from multirust/test-v2.sh
 
 extern crate rust_install;
+extern crate multirust_mock;
 extern crate tempdir;
 
 use std::fs;
 use tempdir::TempDir;
-use rust_install::mock::clitools::{self, Config, Scenario,
-                                   expect_ok, expect_stdout_ok, expect_err,
-                                   expect_stderr_ok, set_current_dist_date,
-                                   change_dir, run};
+use multirust_mock::clitools::{self, Config, Scenario,
+                               expect_ok, expect_stdout_ok, expect_err,
+                               expect_stderr_ok, set_current_dist_date,
+                               change_dir, run};
 use rust_install::utils;
 
 pub fn setup(f: &Fn(&Config)) {

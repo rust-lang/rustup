@@ -1,6 +1,17 @@
 //! Mocks for testing
-//!
-//! FIXM: This belongs in some other crate
+
+extern crate hyper;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate scopeguard;
+extern crate walkdir;
+extern crate flate2;
+extern crate tempdir;
+extern crate openssl;
+extern crate itertools;
+extern crate tar;
+extern crate toml;
 
 pub mod dist;
 pub mod clitools;

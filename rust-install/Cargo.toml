@@ -23,8 +23,7 @@ flate2 = "0.2.9"
 tempdir = "0.3.4"
 walkdir = "0.1.5"
 toml = "0.1.27"
-lazy_static = "0.1.15"
-scopeguard = "0.1.1"
+multirust-mock = { path = "../multirust-mock" }
 
 [target.x86_64-pc-windows-gnu.dependencies]
 winapi = "0.2.4"

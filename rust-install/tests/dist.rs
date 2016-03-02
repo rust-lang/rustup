@@ -2,6 +2,7 @@
 // server (mocked on the file system)
 
 extern crate rust_install;
+extern crate multirust_mock;
 extern crate tempdir;
 extern crate tar;
 extern crate openssl;
@@ -11,9 +12,9 @@ extern crate walkdir;
 extern crate itertools;
 extern crate hyper;
 
+use multirust_mock::dist::*;
+use multirust_mock::{MockCommand, MockInstallerBuilder};
 use rust_install::{InstallPrefix, InstallType, Error, NotifyHandler};
-use rust_install::mock::dist::*;
-use rust_install::mock::{MockCommand, MockInstallerBuilder};
 use rust_install::dist::ToolchainDesc;
 use rust_install::download::DownloadCfg;
 use rust_install::utils;
@@ -53,21 +54,21 @@ pub fn create_mock_channel(channel: &str, date: &str,
                 available: true,
                 components: vec![
                     MockComponent {
-                        name: "rustc",
+                        name: "rustc".to_string(),
                         target: "x86_64-apple-darwin".to_string(),
                     },
                     MockComponent {
-                        name: "rust-std",
+                        name: "rust-std".to_string(),
                         target: "x86_64-apple-darwin".to_string(),
                     },
                     ],
                 extensions: vec![
                     MockComponent {
-                        name: "rust-std",
+                        name: "rust-std".to_string(),
                         target: "i686-apple-darwin".to_string(),
                     },
                     MockComponent {
-                        name: "rust-std",
+                        name: "rust-std".to_string(),
                         target: "i686-unknown-linux-gnu".to_string(),
                     },
                     ],
@@ -80,11 +81,11 @@ pub fn create_mock_channel(channel: &str, date: &str,
                 available: true,
                 components: vec![
                     MockComponent {
-                        name: "rustc",
+                        name: "rustc".to_string(),
                         target: "i686-apple-darwin".to_string(),
                     },
                     MockComponent {
-                        name: "rust-std",
+                        name: "rust-std".to_string(),
                         target: "i686-apple-darwin".to_string(),
                     },
                     ],
@@ -378,7 +379,7 @@ fn update_removes_components_that_dont_exist() {
         if date == "2016-02-01" {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.components.push(MockComponent {
-                name: "bonus",
+                name: "bonus".to_string(),
                 target: "x86_64-apple-darwin".to_string(),
             });
         }
@@ -425,14 +426,14 @@ fn update_preserves_extensions_that_became_components() {
         if date == "2016-02-01" {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.extensions.push(MockComponent {
-                name: "bonus",
+                name: "bonus".to_string(),
                 target: "x86_64-apple-darwin".to_string(),
             });
         }
         if date == "2016-02-02" {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.components.push(MockComponent {
-                name: "bonus",
+                name: "bonus".to_string(),
                 target: "x86_64-apple-darwin".to_string(),
             });
         }
@@ -461,14 +462,14 @@ fn update_preserves_components_that_became_extensions() {
         if date == "2016-02-01" {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.components.push(MockComponent {
-                name: "bonus",
+                name: "bonus".to_string(),
                 target: "x86_64-apple-darwin".to_string(),
             });
         }
         if date == "2016-02-02" {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.extensions.push(MockComponent {
-                name: "bonus",
+                name: "bonus".to_string(),
                 target: "x86_64-apple-darwin".to_string(),
             });
         }
@@ -715,7 +716,7 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
         if date == "2016-02-01" {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.extensions.push(MockComponent {
-                name: "bonus",
+                name: "bonus".to_string(),
                 target: "x86_64-apple-darwin".to_string(),
             });
         }

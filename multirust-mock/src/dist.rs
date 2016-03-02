@@ -1,9 +1,7 @@
 //! Tools for building and working with the filesystem of a mock Rust
 //! distribution server, with v1 and v2 manifests.
 
-use mock::MockInstallerBuilder;
-use utils;
-use manifest::Component;
+use MockInstallerBuilder;
 use hyper::Url;
 use std::path::{PathBuf, Path};
 use std::fs::{self, File};
@@ -32,8 +30,8 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
     let ref archive_manifest_path = path.join(format!("{}.toml", archive_manifest_name));
     let ref archive_hash_path = path.join(format!("{}.toml.sha256", archive_manifest_name));
 
-    let _ = utils::copy_file(archive_manifest_path, manifest_path);
-    let _ = utils::copy_file(archive_hash_path, hash_path);
+    let _ = fs::copy(archive_manifest_path, manifest_path);
+    let _ = fs::copy(archive_hash_path, hash_path);
 
     // V1
     let manifest_name = format!("dist/channel-rust-{}", channel);
@@ -44,8 +42,8 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
     let ref archive_manifest_path = path.join(format!("{}", archive_manifest_name));
     let ref archive_hash_path = path.join(format!("{}.sha256", archive_manifest_name));
 
-    let _ = utils::copy_file(archive_manifest_path, manifest_path);
-    let _ = utils::copy_file(archive_hash_path, hash_path);
+    let _ = fs::copy(archive_manifest_path, manifest_path);
+    let _ = fs::copy(archive_hash_path, hash_path);
 
     // Copy all files that look like rust-* for the v1 installers
     let ref archive_path = path.join(format!("dist/{}", date));
@@ -53,7 +51,7 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
         let dir = dir.unwrap();
         if dir.file_name().to_str().unwrap().contains("rust-") {
             let ref path = path.join(format!("dist/{}", dir.file_name().to_str().unwrap()));
-            utils::copy_file(&dir.path(), path).unwrap();
+            fs::copy(&dir.path(), path).unwrap();
         }
     }
 }
@@ -99,8 +97,9 @@ pub struct MockTargettedPackage {
     pub installer: MockInstallerBuilder,
 }
 
+#[derive(PartialEq, Eq, Hash)]
 pub struct MockComponent {
-    pub name: &'static str,
+    pub name: String,
     pub target: String,
 }
 
@@ -125,13 +124,13 @@ impl MockDistServer {
         }
     }
 
-    fn build_package(&self, channel: &MockChannel, package: &MockPackage) -> HashMap<Component, String> {
+    fn build_package(&self, channel: &MockChannel, package: &MockPackage) -> HashMap<MockComponent, String> {
         let mut hashes = HashMap::new();
 
         for target_package in &package.targets {
             let hash = self.build_target_package(channel, package, target_package);
-            let component = Component {
-                pkg: package.name.to_string(),
+            let component = MockComponent {
+                name: package.name.to_string(),
                 target: target_package.target.to_string(),
             };
             hashes.insert(component, hash);
@@ -190,7 +189,7 @@ impl MockDistServer {
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
         let ref manifest_path = self.path.join(format!("{}", manifest_name));
-        utils::raw::write_file(manifest_path, &buf).unwrap();
+        write_file(manifest_path, &buf);
 
         let ref hash_path = self.path.join(format!("{}.sha256", manifest_name));
         create_hash(manifest_path, hash_path);
@@ -198,13 +197,13 @@ impl MockDistServer {
         // Also copy the manifest and hash into the archive folder
         let archive_manifest_name = format!("dist/{}/channel-rust-{}", channel.date, channel.name);
         let ref archive_manifest_path = self.path.join(format!("{}", archive_manifest_name));
-        utils::copy_file(manifest_path, archive_manifest_path).unwrap();
+        fs::copy(manifest_path, archive_manifest_path).unwrap();
 
         let ref archive_hash_path = self.path.join(format!("{}.sha256", archive_manifest_name));
-        utils::copy_file(hash_path, archive_hash_path).unwrap();
+        fs::copy(hash_path, archive_hash_path).unwrap();
     }
 
-    fn write_manifest_v2(&self, channel: &MockChannel, hashes: &HashMap<Component, String>) {
+    fn write_manifest_v2(&self, channel: &MockChannel, hashes: &HashMap<MockComponent, String>) {
         let mut toml_manifest = toml::Table::new();
 
         toml_manifest.insert(String::from("manifest-version"), toml::Value::String(MOCK_MANIFEST_VERSION.to_owned()));
@@ -227,8 +226,8 @@ impl MockDistServer {
                 let url = format!("file://{}", path.to_string_lossy());
                 toml_target.insert(String::from("url"), toml::Value::String(url));
 
-                let ref component = Component {
-                    pkg: package.name.to_owned(),
+                let ref component = MockComponent {
+                    name: package.name.to_owned(),
                     target: target.target.to_owned(),
                 };
                 let hash = hashes[component].clone();
@@ -264,7 +263,7 @@ impl MockDistServer {
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
         let ref manifest_path = self.path.join(format!("{}.toml", manifest_name));
-        utils::raw::write_file(manifest_path, &toml::encode_str(&toml_manifest)).unwrap();
+        write_file(manifest_path, &toml::encode_str(&toml_manifest));
 
         let ref hash_path = self.path.join(format!("{}.toml.sha256", manifest_name));
         create_hash(manifest_path, hash_path);
@@ -272,10 +271,10 @@ impl MockDistServer {
         // Also copy the manifest and hash into the archive folder
         let archive_manifest_name = format!("dist/{}/channel-rust-{}", channel.date, channel.name);
         let ref archive_manifest_path = self.path.join(format!("{}.toml", archive_manifest_name));
-        utils::copy_file(manifest_path, archive_manifest_path).unwrap();
+        fs::copy(manifest_path, archive_manifest_path).unwrap();
 
         let ref archive_hash_path = self.path.join(format!("{}.toml.sha256", archive_manifest_name));
-        utils::copy_file(hash_path, archive_hash_path).unwrap();
+        fs::copy(hash_path, archive_hash_path).unwrap();
     }
 }
 
@@ -310,8 +309,10 @@ fn create_hash(src: &Path, dst: &Path) -> String {
     let hex = hasher.finish().iter().map(|b| format!("{:02x}", b)).join("");
     let src_file = src.file_name().unwrap();
     let ref file_contents = format!("{} *{}\n", hex, src_file.to_string_lossy());
-    utils::raw::write_file(dst, file_contents).unwrap();
-
+    write_file(dst, file_contents);
     hex
 }
 
+fn write_file(dst: &Path, contents: &str) {
+    File::create(dst).and_then(|mut f| f.write_all(contents.as_bytes())).unwrap();
+}

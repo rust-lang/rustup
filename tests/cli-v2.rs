@@ -2,15 +2,16 @@
 //! derived from multirust/test-v2.sh
 
 extern crate rust_install;
+extern crate multirust_mock;
 extern crate tempdir;
 
 use std::fs;
 use tempdir::TempDir;
-use rust_install::mock::clitools::{self, Config, Scenario,
-                                   this_host_triple,
-                                   expect_ok, expect_stdout_ok, expect_err,
-                                   expect_stderr_ok, set_current_dist_date,
-                                   change_dir, run, cmd};
+use multirust_mock::clitools::{self, Config, Scenario,
+                               this_host_triple,
+                               expect_ok, expect_stdout_ok, expect_err,
+                               expect_stderr_ok, set_current_dist_date,
+                               change_dir, run, cmd};
 use rust_install::utils;
 
 pub fn setup(f: &Fn(&Config)) {
@@ -621,7 +622,7 @@ fn add_target_again() {
 #[test]
 fn add_target_host() {
     setup(&|config| {
-        let trip = this_host_triple("nightly");
+        let trip = this_host_triple();
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_err(config, &["multirust", "add-target", "nightly", &trip],
                    &format!("component 'rust-std' for target '{}' is required for toolchain 'nightly' and cannot be re-added", trip));
@@ -703,7 +704,7 @@ fn remove_target_again() {
 #[test]
 fn remove_target_host() {
     setup(&|config| {
-        let trip = this_host_triple("nightly");
+        let trip = this_host_triple();
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_err(config, &["multirust", "remove-target", "nightly", &trip],
                    &format!("component 'rust-std' for target '{}' is required for toolchain 'nightly' and cannot be removed", trip));

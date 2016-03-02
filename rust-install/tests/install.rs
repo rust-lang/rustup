@@ -1,4 +1,5 @@
 extern crate rust_install;
+extern crate multirust_mock;
 extern crate tempdir;
 
 use rust_install::component::Components;
@@ -10,7 +11,7 @@ use rust_install::{InstallType, InstallPrefix, NotifyHandler};
 use std::fs::File;
 use std::io::Write;
 use tempdir::TempDir;
-use rust_install::mock::{MockInstallerBuilder, MockCommand};
+use multirust_mock::{MockInstallerBuilder, MockCommand};
 
 // Just testing that the mocks work
 #[test]

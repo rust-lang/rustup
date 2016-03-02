@@ -48,6 +48,9 @@ winapi = "0.2.4"
 winreg = "0.3.2"
 user32-sys = "0.1.2"
 
+[dev-dependencies]
+multirust-mock = { version = "0.0.5", path = "multirust-mock" }
+
 [lib]
 name = "multirust"
 
