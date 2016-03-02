@@ -28,7 +28,6 @@ use std::io::{Write, BufRead};
 use std::process::{Command, Stdio};
 use std::process;
 use std::ffi::OsStr;
-use std::fmt;
 use std::iter;
 use std::thread;
 use std::time::Duration;
@@ -42,43 +41,8 @@ use multirust_dist::notify::NotificationLevel;
 mod cli;
 mod download_tracker;
 mod tty;
-
-macro_rules! warn {
-    ( $ ( $ arg : tt ) * ) => ( $crate::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
-}
-macro_rules! err {
-    ( $ ( $ arg : tt ) * ) => ( $crate::err_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
-}
-macro_rules! info {
-    ( $ ( $ arg : tt ) * ) => ( $crate::info_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
-}
-
-fn warn_fmt(args: fmt::Arguments) {
-    let mut t = term::stderr().unwrap();
-    if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_YELLOW); }
-    let _ = write!(t, "warning: ");
-    if tty::stderr_isatty() { let _ = t.reset(); }
-    let _ = t.write_fmt(args);
-    let _ = write!(t, "\n");
-}
-
-fn err_fmt(args: fmt::Arguments) {
-    let mut t = term::stderr().unwrap();
-    if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_RED); }
-    let _ = write!(t, "error: ");
-    if tty::stderr_isatty() { let _ = t.reset(); }
-    let _ = t.write_fmt(args);
-    let _ = write!(t, "\n");
-}
-
-fn info_fmt(args: fmt::Arguments) {
-    let mut t = term::stderr().unwrap();
-    if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_GREEN); }
-    let _ = write!(t, "info: ");
-    if tty::stderr_isatty() { let _ = t.reset(); }
-    let _ = t.write_fmt(args);
-    let _ = write!(t, "\n");
-}
+#[macro_use]
+mod log;
 
 fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
     use download_tracker::DownloadTracker;
