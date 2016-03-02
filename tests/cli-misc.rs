@@ -1,14 +1,14 @@
 //! Test cases of the multirust command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 
-extern crate rust_install;
+extern crate multirust_dist;
 extern crate multirust_mock;
 
 use multirust_mock::clitools::{self, Config, Scenario,
                                expect_stdout_ok, expect_stderr_ok,
                                expect_ok, expect_err, run,
                                this_host_triple};
-use rust_install::utils;
+use multirust_dist::utils;
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, f);

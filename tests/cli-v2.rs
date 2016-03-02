@@ -1,7 +1,7 @@
 //! Test cases of the multirust command, using v2 manifests, mostly
 //! derived from multirust/test-v2.sh
 
-extern crate rust_install;
+extern crate multirust_dist;
 extern crate multirust_mock;
 extern crate tempdir;
 
@@ -12,7 +12,7 @@ use multirust_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_stdout_ok, expect_err,
                                expect_stderr_ok, set_current_dist_date,
                                change_dir, run, cmd};
-use rust_install::utils;
+use multirust_dist::utils;
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, f);

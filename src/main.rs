@@ -1,5 +1,5 @@
 #[macro_use]
-extern crate rust_install;
+extern crate multirust_dist;
 
 #[macro_use]
 extern crate clap;
@@ -33,11 +33,11 @@ use std::iter;
 use std::thread;
 use std::time::Duration;
 use multirust::*;
-use rust_install::dist;
-use rust_install::manifest::Component;
+use multirust_dist::dist;
+use multirust_dist::manifest::Component;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;
-use rust_install::notify::NotificationLevel;
+use multirust_dist::notify::NotificationLevel;
 
 mod cli;
 mod download_tracker;
@@ -609,7 +609,7 @@ fn self_update(cfg: &Cfg, _m: &ArgMatches) -> Result<()> {
 
     // Check that hash is correct
     if latest_hash != download_hash {
-        return Err(Error::Install(rust_install::Error::ChecksumFailed {
+        return Err(Error::Install(multirust_dist::Error::ChecksumFailed {
             url: url,
             expected: latest_hash,
             calculated: download_hash,

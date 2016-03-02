@@ -8,7 +8,7 @@ use std::fmt::{self, Display};
 use itertools::Itertools;
 
 use errors::*;
-use rust_install::{temp, utils, dist};
+use multirust_dist::{temp, utils, dist};
 use override_db::OverrideDB;
 use toolchain::Toolchain;
 

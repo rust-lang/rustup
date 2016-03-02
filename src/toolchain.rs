@@ -1,8 +1,8 @@
 use errors::*;
-use rust_install::{utils, dist, InstallPrefix, InstallType, InstallMethod};
-use rust_install::dist::ToolchainDesc;
-use rust_install::manifestation::{Manifestation, Changes};
-use rust_install::manifest::Component;
+use multirust_dist::{utils, dist, InstallPrefix, InstallType, InstallMethod};
+use multirust_dist::dist::ToolchainDesc;
+use multirust_dist::manifestation::{Manifestation, Changes};
+use multirust_dist::manifest::Component;
 use config::Cfg;
 
 use std::process::Command;
@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 
 use hyper;
-use rust_install;
+use multirust_dist;
 
 #[derive(Debug)]
 pub struct Toolchain<'a> {
@@ -124,7 +124,7 @@ impl<'a> Toolchain<'a> {
 
     pub fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
-            Err(Error::Install(rust_install::Error::InvalidToolchainName(self.name.to_string())))
+            Err(Error::Install(multirust_dist::Error::InvalidToolchainName(self.name.to_string())))
         } else {
             Ok(())
         }

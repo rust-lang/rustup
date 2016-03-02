@@ -1,7 +1,7 @@
 // Tests of installation and updates from a v2 Rust distribution
 // server (mocked on the file system)
 
-extern crate rust_install;
+extern crate multirust_dist;
 extern crate multirust_mock;
 extern crate tempdir;
 extern crate tar;
@@ -14,13 +14,13 @@ extern crate hyper;
 
 use multirust_mock::dist::*;
 use multirust_mock::{MockCommand, MockInstallerBuilder};
-use rust_install::{InstallPrefix, InstallType, Error, NotifyHandler};
-use rust_install::dist::ToolchainDesc;
-use rust_install::download::DownloadCfg;
-use rust_install::utils;
-use rust_install::temp;
-use rust_install::manifestation::{Manifestation, UpdateStatus, Changes};
-use rust_install::manifest::{Manifest, Component};
+use multirust_dist::{InstallPrefix, InstallType, Error, NotifyHandler};
+use multirust_dist::dist::ToolchainDesc;
+use multirust_dist::download::DownloadCfg;
+use multirust_dist::utils;
+use multirust_dist::temp;
+use multirust_dist::manifestation::{Manifestation, UpdateStatus, Changes};
+use multirust_dist::manifest::{Manifest, Component};
 use hyper::Url;
 use std::fs;
 use std::io::Write;

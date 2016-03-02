@@ -16,7 +16,7 @@ keywords = ["multirust", "install", "proxy"]
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-rust-install = { version = "0.0.5", path = "rust-install" }
+multirust-dist = { version = "0.0.5", path = "multirust-dist" }
 clap = "1.4.5"
 regex = "0.1.41"
 rand = "0.3.11"

@@ -75,7 +75,7 @@ script:
     fi
   # Run cargo tests
   - cargo test --verbose
-  - cargo test -p rust-install --verbose
+  - cargo test -p multirust-dist --verbose
   # Run end-to-end tests
   - tests/cli.sh
 

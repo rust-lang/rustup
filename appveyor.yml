@@ -46,7 +46,7 @@ build: false
 test_script:
   - cargo build --release
   - cargo test
-  - cargo test -p rust-install
+  - cargo test -p multirust-dist
   - tests\cli.bat
 notifications:
   - provider: Webhook

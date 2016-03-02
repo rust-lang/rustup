@@ -3,8 +3,8 @@ use std::fmt;
 use term;
 use time::precise_time_s;
 use multirust::Notification;
-use rust_install::Notification as In;
-use rust_install::utils::Notification as Un;
+use multirust_dist::Notification as In;
+use multirust_dist::utils::Notification as Un;
 
 /// Keep track of this many past download amounts
 const DOWNLOAD_TRACK_COUNT: usize = 5;

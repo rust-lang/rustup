@@ -1,10 +1,10 @@
-extern crate rust_install;
+extern crate multirust_dist;
 extern crate tempdir;
 
-use rust_install::{InstallPrefix, InstallType, NotifyHandler};
-use rust_install::component::Transaction;
-use rust_install::{temp, utils};
-use rust_install::Error;
+use multirust_dist::{InstallPrefix, InstallType, NotifyHandler};
+use multirust_dist::component::Transaction;
+use multirust_dist::{temp, utils};
+use multirust_dist::Error;
 use tempdir::TempDir;
 use std::fs;
 use std::io::Write;

@@ -1,13 +1,13 @@
-extern crate rust_install;
+extern crate multirust_dist;
 extern crate multirust_mock;
 extern crate tempdir;
 
-use rust_install::component::Components;
-use rust_install::component::{DirectoryPackage, Package};
-use rust_install::component::Transaction;
-use rust_install::temp;
-use rust_install::utils;
-use rust_install::{InstallType, InstallPrefix, NotifyHandler};
+use multirust_dist::component::Components;
+use multirust_dist::component::{DirectoryPackage, Package};
+use multirust_dist::component::Transaction;
+use multirust_dist::temp;
+use multirust_dist::utils;
+use multirust_dist::{InstallType, InstallPrefix, NotifyHandler};
 use std::fs::File;
 use std::io::Write;
 use tempdir::TempDir;
@@ -263,7 +263,7 @@ fn component_bad_version() {
 
     // Can't open components now
     let e = Components::open(prefix.clone()).unwrap_err();
-    if let rust_install::Error::BadInstalledMetadataVersion(_) = e { } else { panic!() }
+    if let multirust_dist::Error::BadInstalledMetadataVersion(_) = e { } else { panic!() }
 }
 
 // Directories should be 0755, normal files 0644, files that come

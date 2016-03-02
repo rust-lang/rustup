@@ -1,5 +1,5 @@
 #[macro_use]
-extern crate rust_install;
+extern crate multirust_dist;
 extern crate rand;
 extern crate hyper;
 extern crate regex;
@@ -9,7 +9,7 @@ pub use errors::*;
 pub use config::*;
 pub use toolchain::*;
 pub use override_db::*;
-pub use rust_install::{utils, notify, bin_path};
+pub use multirust_dist::{utils, notify, bin_path};
 
 mod errors;
 mod override_db;
