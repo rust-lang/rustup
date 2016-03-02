@@ -30,9 +30,20 @@ pub struct Config {
     pub customdir: TempDir,
 }
 
+// Describes all the features of the mock dist server.
+// Building the mock server is slow, so use simple scenario when possible.
+#[derive(PartialEq, Copy, Clone)]
+pub enum Scenario {
+    Full, // Two dates, two manifests, with cargo
+    ArchivesV2, // Two dates, no cargo, v2 manifests
+    ArchivesV1, // Two dates, no cargo, v2 manifests
+    SimpleV2, // One date, no cargo, v2 manifests
+    SimpleV1, // One date, no cargo, v1 manifests
+}
+
 /// Run this to create the test environment containing multirust, and
 /// a mock dist server.
-pub fn setup(vs: &[ManifestVersion], f: &Fn(&Config)) {
+pub fn setup(s: Scenario, f: &Fn(&Config)) {
     // Unset env variables that will break our testing
     env::remove_var("MULTIRUST_TOOLCHAIN");
 
@@ -43,7 +54,7 @@ pub fn setup(vs: &[ManifestVersion], f: &Fn(&Config)) {
         customdir: TempDir::new("multirust").unwrap(),
     };
 
-    create_mock_dist_server(&config.distdir.path(), vs);
+    create_mock_dist_server(&config.distdir.path(), s);
 
     let current_exe_path = env::current_exe().map(PathBuf::from).unwrap();
     let exe_dir = current_exe_path.parent().unwrap();
@@ -51,13 +62,14 @@ pub fn setup(vs: &[ManifestVersion], f: &Fn(&Config)) {
 
     let multirust_path = config.exedir.path().join(format!("multirust{}", EXE_SUFFIX));
     let rustc_path = config.exedir.path().join(format!("rustc{}", EXE_SUFFIX));
-    let rustdoc_path = config.exedir.path().join(format!("rustdoc{}", EXE_SUFFIX));
-    let cargo_path = config.exedir.path().join(format!("cargo{}", EXE_SUFFIX));
 
     fs::copy(multirust_build_path, multirust_path).unwrap();
     fs::copy(multirust_build_path, rustc_path).unwrap();
-    fs::copy(multirust_build_path, rustdoc_path).unwrap();
-    fs::copy(multirust_build_path, cargo_path).unwrap();
+
+    if s == Scenario::Full {
+        let cargo_path = config.exedir.path().join(format!("cargo{}", EXE_SUFFIX));
+        fs::copy(multirust_build_path, cargo_path).unwrap();
+    }
 
     // Create some custom toolchains
     create_custom_toolchains(config.customdir.path());
@@ -157,24 +169,37 @@ pub fn change_dir(path: &Path, f: &Fn()) {
 }
 
 // Creates a mock dist server populated with some test data
-fn create_mock_dist_server(path: &Path, vs: &[ManifestVersion]) {
-    let c1 = build_mock_channel("nightly", "2015-01-01", "1.2.0", "hash-n-1");
-    let c2 = build_mock_channel("beta", "2015-01-01", "1.1.0", "hash-b-1");
-    let c3 = build_mock_channel("stable", "2015-01-01", "1.0.0", "hash-s-1");
+fn create_mock_dist_server(path: &Path, s: Scenario) {
+    let mut chans = Vec::new();
+    if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
+        let c1 = build_mock_channel("nightly", "2015-01-01", "1.2.0", "hash-n-1");
+        let c2 = build_mock_channel("beta", "2015-01-01", "1.1.0", "hash-b-1");
+        let c3 = build_mock_channel("stable", "2015-01-01", "1.0.0", "hash-s-1");
+        chans.extend(vec![c1, c2, c3]);
+    }
     let c4 = build_mock_channel("nightly", "2015-01-02", "1.3.0", "hash-n-2");
     let c5 = build_mock_channel("beta", "2015-01-02", "1.2.0", "hash-b-2");
     let c6 = build_mock_channel("stable", "2015-01-02", "1.1.0", "hash-s-2");
+    chans.extend(vec![c4, c5, c6]);
+
+    let ref vs = match s {
+        Scenario::Full => vec![ManifestVersion::V1, ManifestVersion::V2],
+        Scenario::SimpleV1 | Scenario::ArchivesV1 => vec![ManifestVersion::V1],
+        Scenario::SimpleV2 | Scenario::ArchivesV2 => vec![ManifestVersion::V2],
+    };
 
     MockDistServer {
         path: path.to_owned(),
-        channels: vec![c1, c2, c3, c4, c5, c6],
+        channels: chans,
     }.write(vs);
 
     // Also create the manifests for stable releases by version
-    let _ = fs::copy(path.join("dist/2015-01-01/channel-rust-stable.toml"),
-                     path.join("dist/channel-rust-1.0.0.toml"));
-    let _ = fs::copy(path.join("dist/2015-01-01/channel-rust-stable.toml.sha256"),
-                     path.join("dist/channel-rust-1.0.0.toml.sha256"));
+    if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
+        let _ = fs::copy(path.join("dist/2015-01-01/channel-rust-stable.toml"),
+                         path.join("dist/channel-rust-1.0.0.toml"));
+        let _ = fs::copy(path.join("dist/2015-01-01/channel-rust-stable.toml.sha256"),
+                         path.join("dist/channel-rust-1.0.0.toml.sha256"));
+    }
     let _ = fs::copy(path.join("dist/2015-01-02/channel-rust-stable.toml"),
                      path.join("dist/channel-rust-1.1.0.toml"));
     let _ = fs::copy(path.join("dist/2015-01-02/channel-rust-stable.toml.sha256"),
@@ -182,18 +207,20 @@ fn create_mock_dist_server(path: &Path, vs: &[ManifestVersion]) {
 
     // Same for v1 manifests. These are just the installers.
     let host_triple = this_host_triple("stable");
-    fs::copy(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz", host_triple)),
-             path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple))).unwrap();
-    fs::copy(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz.sha256", host_triple)),
-             path.join(format!("dist/rust-1.0.0-{}.tar.gz.sha256", host_triple))).unwrap();
+    if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
+        fs::copy(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz", host_triple)),
+                 path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple))).unwrap();
+        fs::copy(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz.sha256", host_triple)),
+                 path.join(format!("dist/rust-1.0.0-{}.tar.gz.sha256", host_triple))).unwrap();
+    }
     fs::copy(path.join(format!("dist/2015-01-02/rust-stable-{}.tar.gz", host_triple)),
              path.join(format!("dist/rust-1.1.0-{}.tar.gz", host_triple))).unwrap();
     fs::copy(path.join(format!("dist/2015-01-02/rust-stable-{}.tar.gz.sha256", host_triple)),
              path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple))).unwrap();
 }
 
-static CROSS_ARCH1: &'static str = "x86_64-unknown-linux-musl";
-static CROSS_ARCH2: &'static str = "arm-linux-androideabi";
+pub static CROSS_ARCH1: &'static str = "x86_64-unknown-linux-musl";
+pub static CROSS_ARCH2: &'static str = "arm-linux-androideabi";
 
 fn build_mock_channel(channel: &str, date: &str,
                       version: &'static str, version_hash: &str) -> MockChannel {
@@ -275,7 +302,7 @@ fn build_mock_channel(channel: &str, date: &str,
 }
 
 pub fn this_host_triple(channel: &str) -> String {
-    ToolchainDesc::from_str(channel).and_then(|t| t.target_triple()).unwrap()
+    ToolchainDesc::from_str(channel).ok().map(|t| t.target_triple()).unwrap()
 }
 
 fn build_mock_std_installer(channel: &str) -> MockInstallerBuilder {
@@ -303,14 +330,11 @@ fn build_mock_cross_std_installer(_channel: &str, target: &str, date: &str) -> M
 
 fn build_mock_rustc_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
     let rustc = format!("bin/rustc{}", EXE_SUFFIX);
-    let rustdoc = format!("bin/rustdoc{}", EXE_SUFFIX);
     MockInstallerBuilder {
         components: vec![
             ("rustc".to_string(),
-             vec![MockCommand::File(rustc.clone()),
-                  MockCommand::File(rustdoc.clone())],
-             vec![(rustc, mock_bin("rustc", version, version_hash)),
-                  (rustdoc, mock_bin("rustdoc", version, version_hash))])
+             vec![MockCommand::File(rustc.clone())],
+             vec![(rustc, mock_bin("rustc", version, version_hash))])
                 ]
     }
 }

@@ -99,6 +99,36 @@ r"Uninstalls an installed toolchain.
                 .arg(Arg::with_name("toolchain").required(true))
         )
         .subcommand(
+            SubCommand::with_name("list-targets")
+                .about("List targets available to install")
+                .after_help(
+r"List the targets available to an installed toolchain.
+"
+                )
+                .arg(Arg::with_name("toolchain").required(true))
+        )
+        .subcommand(
+            SubCommand::with_name("add-target")
+                .about("Add additional compilation targets to an existing toolchain")
+                .after_help(
+r"Adds the standard library for a given platform to an existing
+installation.
+"
+                )
+                .arg(Arg::with_name("toolchain").required(true))
+                .arg(Arg::with_name("target").required(true))
+        )
+        .subcommand(
+            SubCommand::with_name("remove-target")
+                .about("Removes compilation targets from an existing toolchain")
+                .after_help(
+r"Removes the standard library for a given platform.
+"
+                )
+                .arg(Arg::with_name("toolchain").required(true))
+                .arg(Arg::with_name("target").required(true))
+        )
+        .subcommand(
             SubCommand::with_name("run")
                 .setting(AppSettings::TrailingVarArg)
                 .about("Run a command.")

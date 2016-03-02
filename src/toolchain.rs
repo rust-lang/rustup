@@ -1,5 +1,8 @@
 use errors::*;
 use rust_install::{utils, dist, InstallPrefix, InstallType, InstallMethod};
+use rust_install::dist::ToolchainDesc;
+use rust_install::manifest::{Manifestation, Changes};
+use rust_manifest::Component;
 use config::Cfg;
 
 use std::process::Command;
@@ -113,10 +116,10 @@ impl<'a> Toolchain<'a> {
                                                           self.download_cfg()))
     }
     pub fn is_custom(&self) -> bool {
-        dist::ToolchainDesc::from_str(&self.name).is_none()
+        ToolchainDesc::from_str(&self.name).is_err()
     }
     pub fn is_tracking(&self) -> bool {
-        dist::ToolchainDesc::from_str(&self.name).map(|d| d.is_tracking()) == Some(true)
+        ToolchainDesc::from_str(&self.name).ok().map(|d| d.is_tracking()) == Some(true)
     }
 
     pub fn ensure_custom(&self) -> Result<()> {
@@ -222,5 +225,124 @@ impl<'a> Toolchain<'a> {
                                          &self.name,
                                          &self.cfg.temp_cfg,
                                          self.cfg.notify_handler.as_ref())))
+    }
+
+    pub fn list_components(&self) -> Result<Vec<Component>> {
+        if !self.exists() {
+            return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
+        }
+
+        // FIXME: This toolchain handling is a mess. Just do it once
+        // when the toolchain is created.
+        let ref toolchain = self.name;
+        let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
+        let trip = toolchain.target_triple();
+        let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
+
+        if let Some(manifest) = try!(manifestation.load_manifest()) {
+            // Return all optional components of the "rust" package for the
+            // toolchain's target triple.
+            let mut res = Vec::new();
+
+            let rust_pkg = manifest.packages.get("rust")
+                .expect("manifest should cantain a rust package");
+            let targ_pkg = rust_pkg.targets.get(&trip)
+                .expect("installed manifest should have a known target");
+
+            for extension in &targ_pkg.extensions {
+                res.push(extension.clone())
+            }
+
+            Ok(res)
+        } else {
+            Err(Error::ComponentsUnsupported(self.name.to_string()))
+        }
+    }
+
+    pub fn add_component(&self, component: Component) -> Result<()> {
+        if !self.exists() {
+            return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
+        }
+
+        let ref toolchain = self.name;
+        let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
+        let trip = toolchain.target_triple();
+        let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
+
+        if let Some(manifest) = try!(manifestation.load_manifest()) {
+
+            // Validate the component name
+            let rust_pkg = manifest.packages.get("rust")
+                .expect("manifest should cantain a rust package");
+            let targ_pkg = rust_pkg.targets.get(&trip)
+                .expect("installed manifest should have a known target");
+
+            if targ_pkg.components.contains(&component) {
+                return Err(Error::AddingRequiredComponent(self.name.to_string(), component));
+            }
+
+            if !targ_pkg.extensions.contains(&component) {
+                return Err(Error::UnknownComponent(self.name.to_string(), component));
+            }
+
+            let changes = Changes {
+                add_extensions: vec![component],
+                remove_extensions: vec![]
+            };
+
+            try!(manifestation.update(&self.name,
+                                      &manifest,
+                                      changes,
+                                      self.download_cfg().temp_cfg,
+                                      self.download_cfg().notify_handler.clone()));
+
+            Ok(())
+        } else {
+            Err(Error::ComponentsUnsupported(self.name.to_string()))
+        }
+    }
+
+    pub fn remove_component(&self, component: Component) -> Result<()> {
+        if !self.exists() {
+            return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
+        }
+
+        let ref toolchain = self.name;
+        let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
+        let trip = toolchain.target_triple();
+        let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
+
+        if let Some(manifest) = try!(manifestation.load_manifest()) {
+
+            // Validate the component name
+            let rust_pkg = manifest.packages.get("rust")
+                .expect("manifest should cantain a rust package");
+            let targ_pkg = rust_pkg.targets.get(&trip)
+                .expect("installed manifest should have a known target");
+
+            if targ_pkg.components.contains(&component) {
+                return Err(Error::RemovingRequiredComponent(self.name.to_string(), component));
+            }
+
+            let dist_config = try!(manifestation.read_config()).unwrap();
+            if !dist_config.components.contains(&component) {
+                return Err(Error::UnknownComponent(self.name.to_string(), component));
+            }
+
+            let changes = Changes {
+                add_extensions: vec![],
+                remove_extensions: vec![component]
+            };
+
+            try!(manifestation.update(&self.name,
+                                      &manifest,
+                                      changes,
+                                      self.download_cfg().temp_cfg,
+                                      self.download_cfg().notify_handler.clone()));
+
+            Ok(())
+        } else {
+            Err(Error::ComponentsUnsupported(self.name.to_string()))
+        }
     }
 }

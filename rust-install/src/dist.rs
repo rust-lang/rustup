@@ -30,7 +30,7 @@ pub struct ToolchainDesc {
 }
 
 impl ToolchainDesc {
-    pub fn from_str(name: &str) -> Option<Self> {
+    pub fn from_str(name: &str) -> Result<Self> {
         let archs = ["i686", "x86_64"];
         let oses = ["pc-windows", "unknown-linux", "apple-darwin"];
         let envs = ["gnu", "msvc"];
@@ -60,7 +60,26 @@ impl ToolchainDesc {
                 channel: c.at(4).unwrap().to_owned(),
                 date: c.at(5).and_then(fn_map),
             }
-        })
+        }).ok_or(Error::InvalidToolchainName(name.to_string()))
+    }
+
+    pub fn target_triple(&self) -> String {
+        let (host_arch, host_os, host_env) = get_host_triple();
+        let arch = self.arch.as_ref().map(|s| &**s).unwrap_or(host_arch);
+        let os = self.os.as_ref().map(|s| &**s).unwrap_or(host_os);
+        // Mixing arbitrary host envs into arbitrary target specs can't work sensibly.
+        // Only provide a default when the operating system matches.
+        let env = if self.env.is_none() && os == host_os {
+            host_env
+        } else {
+            self.env.as_ref().map(|s| &**s)
+        };
+
+        if let Some(ref env) = env {
+            format!("{}-{}-{}", arch, os, env)
+        } else {
+            format!("{}-{}", arch, os)
+        }
     }
 
     pub fn manifest_v1_url(&self, dist_root: &str) -> String {
@@ -81,29 +100,8 @@ impl ToolchainDesc {
         }
     }
 
-    pub fn target_triple(&self) -> Option<String> {
-        let (host_arch, host_os, host_env) = get_host_triple();
-        let arch = self.arch.as_ref().map(|s| &**s).unwrap_or(host_arch);
-        let os = self.os.as_ref().map(|s| &**s).or(host_os);
-        // Mixing arbitrary host envs into arbitrary target specs can't work sensibly.
-        // Only provide a default when the operating system matches.
-        let env = if self.env.is_none() && os == host_os {
-            host_env
-        } else {
-            self.env.as_ref().map(|s| &**s)
-        };
-
-        os.map(|os| {
-            if let Some(ref env) = env {
-                format!("{}-{}-{}", arch, os, env)
-            } else {
-                format!("{}-{}", arch, os)
-            }
-        })
-    }
-
     pub fn full_spec(&self) -> String {
-        let triple = self.target_triple().unwrap_or_else(|| "<invalid target triple>".to_owned());
+        let triple = self.target_triple();
         if let Some(ref date) = self.date {
             format!("{}-{}-{}", triple, &self.channel, date)
         } else {
@@ -215,17 +213,17 @@ pub struct DownloadCfg<'a> {
     pub notify_handler: NotifyHandler<'a>,
 }
 
-pub fn get_host_triple() -> (&'static str, Option<&'static str>, Option<&'static str>) {
+pub fn get_host_triple() -> (&'static str, &'static str, Option<&'static str>) {
     let arch = match env::consts::ARCH {
         "x86" => "i686", // Why, rust... WHY?
         other => other,
     };
 
     let os = match env::consts::OS {
-        "windows" => Some("pc-windows"),
-        "linux" => Some("unknown-linux"),
-        "macos" => Some("apple-darwin"),
-        _ => None,
+        "windows" => "pc-windows",
+        "linux" => "unknown-linux",
+        "macos" => "apple-darwin",
+        _ => unimplemented!()
     };
 
     let env = match () {
@@ -267,9 +265,8 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                             ) -> Result<Option<String>> {
 
     let requested_toolchain = toolchain;
-    let ref toolchain = try!(ToolchainDesc::from_str(toolchain).ok_or(Error::InvalidToolchainName(toolchain.to_string())));
-    let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
-
+    let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
+    let trip = toolchain.target_triple();
     let manifestation = try!(Manifestation::open(prefix.clone(), &trip));
 
     let changes = Changes {
@@ -337,7 +334,7 @@ fn dl_v1_manifest<'a>(download: DownloadCfg<'a>,
     if !["nightly", "beta", "stable"].contains(&&*toolchain.channel) {
         // This is an explicit version. In v1 there was no manifest,
         // you just know the file to download, so synthesize one.
-        let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
+        let trip = toolchain.target_triple();
         let installer_name = format!("{}/rust-{}-{}.tar.gz",
                                      root_url, toolchain.channel, trip);
         return Ok(vec![installer_name]);

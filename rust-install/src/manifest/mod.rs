@@ -86,20 +86,15 @@ impl Manifestation {
         let rust_target_package = try!(rust_package.get_target(&self.target_triple));
 
         // Load the previous dist manifest
-        let ref old_manifest_path = prefix.manifest_file(DIST_MANIFEST);
-        let ref old_manifest = if utils::path_exists(old_manifest_path) {
-            let ref manifest_str = try!(utils::read_file("installed manifest", old_manifest_path));
-            Some(try!(Manifest::parse(manifest_str)))
-        } else {
-            None
-        };
+        let ref old_manifest = try!(self.load_manifest());
 
         // Load the configuration and list of installed components.
         let ref config = try!(self.read_config());
 
         // Create the lists of components needed for installation
         let component_lists = try!(build_update_component_lists(new_manifest, old_manifest, config,
-                                                                changes, &rust_target_package));
+                                                                changes, &rust_target_package,
+                                                                notify_handler));
         let (components_to_uninstall,
              components_to_install,
              final_component_list) = component_lists;
@@ -264,6 +259,17 @@ impl Manifestation {
         }
     }
 
+    pub fn load_manifest(&self) -> Result<Option<Manifest>> {
+        let prefix = self.installation.prefix();
+        let ref old_manifest_path = prefix.manifest_file(DIST_MANIFEST);
+        if utils::path_exists(old_manifest_path) {
+            let ref manifest_str = try!(utils::read_file("installed manifest", old_manifest_path));
+            Ok(Some(try!(Manifest::parse(manifest_str))))
+        } else {
+            Ok(None)
+        }
+    }
+
     /// Installation using the legacy v1 manifest format
     pub fn update_v1(&self,
                      requested_toolchain: &str,
@@ -348,6 +354,7 @@ fn build_update_component_lists(
     config: &Option<Config>,
     changes: Changes,
     rust_target_package: &TargettedPackage,
+    notify_handler: NotifyHandler,
     ) -> Result<(Vec<Component>, Vec<Component>, Vec<Component>)> {
 
     // Check some invariantns
@@ -422,6 +429,10 @@ fn build_update_component_lists(
         for component in &final_component_list {
             if !starting_list.contains(component) {
                 components_to_install.push(component.clone());
+            } else {
+                if changes.add_extensions.contains(&component) {
+                    notify_handler.call(Notification::ComponentAlreadyInstalled(&component));
+                }
             }
         }
     }

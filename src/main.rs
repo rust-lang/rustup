@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate rust_install;
+extern crate rust_manifest;
 
 #[macro_use]
 extern crate clap;
@@ -34,6 +35,7 @@ use std::thread;
 use std::time::Duration;
 use multirust::*;
 use rust_install::dist;
+use rust_manifest::Component;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;
 use rust_install::notify::NotificationLevel;
@@ -300,6 +302,9 @@ fn run_multirust() -> Result<()> {
         ("list-toolchains", Some(_)) => list_toolchains(&cfg),
         ("remove-override", Some(m)) => remove_override(&cfg, m),
         ("remove-toolchain", Some(m)) => remove_toolchain_args(&cfg, m),
+        ("list-targets", Some(m)) => list_targets(&cfg, m),
+        ("add-target", Some(m)) => add_target(&cfg, m),
+        ("remove-target", Some(m)) => remove_target(&cfg, m),
         ("run", Some(m)) => run(&cfg, m),
         ("proxy", Some(m)) => proxy(&cfg, m),
         ("upgrade-data", Some(_)) => cfg.upgrade_data().map(|_| ()),
@@ -552,14 +557,11 @@ fn self_uninstall(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn self_update(cfg: &Cfg, _m: &ArgMatches) -> Result<()> {
     // Get host triple
-    let triple = if let (arch, Some(os), maybe_env) = dist::get_host_triple() {
-        if let Some(env) = maybe_env {
-            format!("{}-{}-{}", arch, os, env)
-        } else {
-            format!("{}-{}", arch, os)
-        }
+    let (arch, os, maybe_env) = dist::get_host_triple();
+    let triple = if let Some(env) = maybe_env {
+        format!("{}-{}-{}", arch, os, env)
     } else {
-        return Err(Error::UnknownHostTriple);
+        format!("{}-{}", arch, os)
     };
 
     // Get download URL
@@ -927,5 +929,43 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     } else {
         try!(update_all_channels(cfg))
     }
+    Ok(())
+}
+
+fn list_targets(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = m.value_of("toolchain").unwrap();
+    let toolchain = try!(cfg.get_toolchain(toolchain, false));
+    for component in try!(toolchain.list_components()) {
+        if component.pkg == "rust-std" {
+            println!("{}", component.target);
+        }
+    }
+
+    Ok(())
+}
+
+fn add_target(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = m.value_of("toolchain").unwrap();
+    let target = m.value_of("target").unwrap();
+    let toolchain = try!(cfg.get_toolchain(toolchain, false));
+    let new_component = Component {
+        pkg: "rust-std".to_string(),
+        target: target.to_string(),
+    };
+    try!(toolchain.add_component(new_component));
+
+    Ok(())
+}
+
+fn remove_target(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = m.value_of("toolchain").unwrap();
+    let target = m.value_of("target").unwrap();
+    let toolchain = try!(cfg.get_toolchain(toolchain, false));
+    let new_component = Component {
+        pkg: "rust-std".to_string(),
+        target: target.to_string(),
+    };
+    try!(toolchain.remove_component(new_component));
+
     Ok(())
 }

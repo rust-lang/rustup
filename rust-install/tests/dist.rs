@@ -279,7 +279,7 @@ fn update_from_dist(dist_server: &Url,
     let manifest = try!(Manifest::parse(&manifest_str));
 
     // Read the manifest to update the components
-    let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
+    let trip = toolchain.target_triple();
     let manifestation = try!(Manifestation::open(prefix.clone(), &trip));
 
     let changes = Changes {
@@ -304,7 +304,7 @@ fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url
 
 fn uninstall(toolchain: &ToolchainDesc, prefix: &InstallPrefix, temp_cfg: &temp::Cfg,
              notify_handler: NotifyHandler) -> Result<(), Error> {
-    let trip = try!(toolchain.target_triple().ok_or_else(|| Error::UnsupportedHost(toolchain.full_spec())));
+    let trip = toolchain.target_triple();
     let manifestation = try!(Manifestation::open(prefix.clone(), &trip));
 
     try!(manifestation.uninstall(temp_cfg, notify_handler.clone()));

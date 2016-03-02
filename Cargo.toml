@@ -17,6 +17,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 rust-install = { version = "0.0.5", path = "rust-install" }
+rust-manifest = { version = "0.0.5", path = "rust-manifest" }
 clap = "1.4.5"
 regex = "0.1.41"
 rand = "0.3.11"
