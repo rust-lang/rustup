@@ -53,6 +53,8 @@ multirust-mock = { version = "0.0.5", path = "multirust-mock" }
 
 [lib]
 name = "multirust"
+path = "src/multirust/lib.rs"
 
 [[bin]]
 name = "multirust-rs"
+path = "src/multirust-cli/main.rs"
