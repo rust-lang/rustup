@@ -44,6 +44,104 @@ mod tty;
 #[macro_use]
 mod log;
 
+fn main() {
+    if let Err(e) = run_multirust() {
+        err!("{}", e);
+        std::process::exit(1);
+    }
+}
+
+fn run_multirust() -> Result<()> {
+    // Check for infinite recursion
+    if env::var("RUST_RECURSION_COUNT").ok().and_then(|s| s.parse().ok()).unwrap_or(0) > 5 {
+        return Err(Error::InfiniteRecursion);
+    }
+
+    let need_metadata = try!(command_requires_metadata());
+    if need_metadata {
+        let cfg = try!(Cfg::from_env(shared_ntfy!(move |_: Notification| { })));
+        try!(cfg.check_metadata_version());
+    }
+
+    // If the executable name is not multirust*, then go straight
+    // to proxying
+    if try!(maybe_direct_proxy()) {
+        return Ok(());
+    }
+
+    let app_matches = cli::get().get_matches();
+    let cfg = try!(set_globals(Some(&app_matches)));
+
+    // Make sure everything is set-up correctly
+    if need_metadata {
+        match app_matches.subcommand_name() {
+            Some("self") | Some("proxy") => {}
+            _ => {
+                if !test_proxies() {
+                    if !test_installed(&cfg) {
+                        warn!("multirust is not installed for the current user: `rustc` invocations \
+                               will not be proxied.\n\nFor more information, run  `multirust install \
+                               --help`\n");
+                    } else {
+                        warn!("multirust is installed but is not set up correctly: `rustc` \
+                               invocations will not be proxied.\n\nEnsure '{}' is on your PATH, and \
+                               has priority.\n",
+                              cfg.multirust_dir.join("bin").display());
+                    }
+                }
+            }
+        }
+    }
+
+    match app_matches.subcommand() {
+        ("update", Some(m)) => update(&cfg, m),
+        ("default", Some(m)) => default_(&cfg, m),
+        ("override", Some(m)) => override_(&cfg, m),
+        ("show-default", Some(_)) => show_default(&cfg),
+        ("show-override", Some(_)) => show_override(&cfg),
+        ("list-overrides", Some(_)) => list_overrides(&cfg),
+        ("list-toolchains", Some(_)) => list_toolchains(&cfg),
+        ("remove-override", Some(m)) => remove_override(&cfg, m),
+        ("remove-toolchain", Some(m)) => remove_toolchain_args(&cfg, m),
+        ("list-targets", Some(m)) => list_targets(&cfg, m),
+        ("add-target", Some(m)) => add_target(&cfg, m),
+        ("remove-target", Some(m)) => remove_target(&cfg, m),
+        ("run", Some(m)) => run(&cfg, m),
+        ("proxy", Some(m)) => proxy(&cfg, m),
+        ("upgrade-data", Some(_)) => cfg.upgrade_data().map(|_| ()),
+        ("delete-data", Some(m)) => delete_data(&cfg, m),
+        ("self", Some(c)) => {
+            match c.subcommand() {
+                ("install", Some(m)) => self_install(&cfg, m),
+                ("uninstall", Some(m)) => self_uninstall(&cfg, m),
+                ("update", Some(m)) => self_update(&cfg, m),
+                _ => Ok(()),
+            }
+        }
+        ("which", Some(m)) => which(&cfg, m),
+        ("ctl", Some(m)) => ctl(&cfg, m),
+        ("doc", Some(m)) => doc(&cfg, m),
+        _ => {
+            let result = maybe_install(&cfg);
+            println!("");
+
+            // Suspend in case we were run from the UI
+            try!(utils::cmd_status("shell",
+                                   &mut shell_cmd((if cfg!(windows) {
+                                                      "pause"
+                                                  } else {
+                                                      "echo -n \"Press any key to continue...\" && \
+                                                       CFG=`stty -g` && stty -echo -icanon && dd \
+                                                       count=1 1>/dev/null 2>&1 && stty $CFG && \
+                                                       echo"
+                                                  })
+                                                  .as_ref())));
+
+            result
+        }
+    }
+}
+
 fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
     use download_tracker::DownloadTracker;
     use std::cell::RefCell;
@@ -78,13 +176,6 @@ fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
         }
     }))
 
-}
-
-fn main() {
-    if let Err(e) = run_multirust() {
-        err!("{}", e);
-        std::process::exit(1);
-    }
 }
 
 fn run_inner<S: AsRef<OsStr>>(_: &Cfg, command: Result<Command>, args: &[S]) -> Result<()> {
@@ -186,97 +277,6 @@ fn maybe_direct_proxy() -> Result<bool> {
         }
     }
     Ok(false)
-}
-
-fn run_multirust() -> Result<()> {
-    // Check for infinite recursion
-    if env::var("RUST_RECURSION_COUNT").ok().and_then(|s| s.parse().ok()).unwrap_or(0) > 5 {
-        return Err(Error::InfiniteRecursion);
-    }
-
-    let need_metadata = try!(command_requires_metadata());
-    if need_metadata {
-        let cfg = try!(Cfg::from_env(shared_ntfy!(move |_: Notification| { })));
-        try!(cfg.check_metadata_version());
-    }
-
-    // If the executable name is not multirust*, then go straight
-    // to proxying
-    if try!(maybe_direct_proxy()) {
-        return Ok(());
-    }
-
-    let app_matches = cli::get().get_matches();
-    let cfg = try!(set_globals(Some(&app_matches)));
-
-    // Make sure everything is set-up correctly
-    if need_metadata {
-        match app_matches.subcommand_name() {
-            Some("self") | Some("proxy") => {}
-            _ => {
-                if !test_proxies() {
-                    if !test_installed(&cfg) {
-                        warn!("multirust is not installed for the current user: `rustc` invocations \
-                               will not be proxied.\n\nFor more information, run  `multirust install \
-                               --help`\n");
-                    } else {
-                        warn!("multirust is installed but is not set up correctly: `rustc` \
-                               invocations will not be proxied.\n\nEnsure '{}' is on your PATH, and \
-                               has priority.\n",
-                              cfg.multirust_dir.join("bin").display());
-                    }
-                }
-            }
-        }
-    }
-
-    match app_matches.subcommand() {
-        ("update", Some(m)) => update(&cfg, m),
-        ("default", Some(m)) => default_(&cfg, m),
-        ("override", Some(m)) => override_(&cfg, m),
-        ("show-default", Some(_)) => show_default(&cfg),
-        ("show-override", Some(_)) => show_override(&cfg),
-        ("list-overrides", Some(_)) => list_overrides(&cfg),
-        ("list-toolchains", Some(_)) => list_toolchains(&cfg),
-        ("remove-override", Some(m)) => remove_override(&cfg, m),
-        ("remove-toolchain", Some(m)) => remove_toolchain_args(&cfg, m),
-        ("list-targets", Some(m)) => list_targets(&cfg, m),
-        ("add-target", Some(m)) => add_target(&cfg, m),
-        ("remove-target", Some(m)) => remove_target(&cfg, m),
-        ("run", Some(m)) => run(&cfg, m),
-        ("proxy", Some(m)) => proxy(&cfg, m),
-        ("upgrade-data", Some(_)) => cfg.upgrade_data().map(|_| ()),
-        ("delete-data", Some(m)) => delete_data(&cfg, m),
-        ("self", Some(c)) => {
-            match c.subcommand() {
-                ("install", Some(m)) => self_install(&cfg, m),
-                ("uninstall", Some(m)) => self_uninstall(&cfg, m),
-                ("update", Some(m)) => self_update(&cfg, m),
-                _ => Ok(()),
-            }
-        }
-        ("which", Some(m)) => which(&cfg, m),
-        ("ctl", Some(m)) => ctl(&cfg, m),
-        ("doc", Some(m)) => doc(&cfg, m),
-        _ => {
-            let result = maybe_install(&cfg);
-            println!("");
-
-            // Suspend in case we were run from the UI
-            try!(utils::cmd_status("shell",
-                                   &mut shell_cmd((if cfg!(windows) {
-                                                      "pause"
-                                                  } else {
-                                                      "echo -n \"Press any key to continue...\" && \
-                                                       CFG=`stty -g` && stty -echo -icanon && dd \
-                                                       count=1 1>/dev/null 2>&1 && stty $CFG && \
-                                                       echo"
-                                                  })
-                                                  .as_ref())));
-
-            result
-        }
-    }
 }
 
 fn command_requires_metadata() -> Result<bool> {
