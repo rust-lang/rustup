@@ -203,7 +203,8 @@ impl<'a> Toolchain<'a> {
             return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
         }
 
-        let mut cmd = self.prefix.create_command(binary, &self.cfg.multirust_dir.join("cargo"));
+        let mut cmd = Command::new(binary);
+        self.prefix.set_env(&mut cmd, &self.cfg.multirust_dir.join("cargo"));
         self.set_env_inner(&mut cmd);
         Ok(cmd)
     }

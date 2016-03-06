@@ -7,7 +7,6 @@ use component::{Components, TarGzPackage, Transaction, Package};
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::ffi::OsStr;
 use std::env;
 
 const REL_MANIFEST_DIR: &'static str = "lib/rustlib";
@@ -162,13 +161,6 @@ impl InstallPrefix {
         env_var::set_path("PATH", &self.path.join("bin"), cmd);
         env_var::set_default("CARGO_HOME", cargo_home.as_ref(), cmd);
         env_var::inc("RUST_RECURSION_COUNT", cmd);
-    }
-
-    pub fn create_command<T: AsRef<OsStr>>(&self, binary: T, cargo_home: &Path) -> Command {
-        let mut cmd = Command::new(binary);
-
-        self.set_env(&mut cmd, cargo_home);
-        cmd
     }
 
     pub fn open_docs(&self, relative: &str) -> Result<()> {
