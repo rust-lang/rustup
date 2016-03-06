@@ -1,0 +1,728 @@
+manifest-version = "2"
+date = "2016-03-04"
+
+[pkg.cargo]
+version = "0.9.0-nightly (34269d0 2016-02-18)"
+
+[pkg.cargo.target.i686-apple-darwin]
+available = true
+url = "https://dev-static.rust-lang.org/cargo-dist/2016-02-19/cargo-nightly-i686-apple-darwin.tar.gz"
+hash = "2a27507b46cb235de9baa49111fcb72a4e37c7ba6b3a00ee07c50be76f6b40de"
+
+[pkg.cargo.target.i686-pc-windows-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/cargo-dist/2016-02-19/cargo-nightly-i686-pc-windows-gnu.tar.gz"
+hash = "da9c3bac5a0a04d7c967efba4203a536240a1741dd7a87ad0fd1e62b11210be6"
+
+[pkg.cargo.target.i686-pc-windows-msvc]
+available = true
+url = "https://dev-static.rust-lang.org/cargo-dist/2016-02-19/cargo-nightly-i686-pc-windows-msvc.tar.gz"
+hash = "890fca92cd4dbcc2b969fd7bc70db8c63fd999e38d31488f2ad4cf49aeb0e660"
+
+[pkg.cargo.target.i686-unknown-linux-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/cargo-dist/2016-02-19/cargo-nightly-i686-unknown-linux-gnu.tar.gz"
+hash = "972f01ec69b7601719f72e1a6a9d25a3e7c233cc896e6fa0111d618320316bb4"
+
+[pkg.cargo.target.x86_64-apple-darwin]
+available = true
+url = "https://dev-static.rust-lang.org/cargo-dist/2016-02-19/cargo-nightly-x86_64-apple-darwin.tar.gz"
+hash = "bc9f16958a2fb529956c1b7fbf5b29c81981e50aa609717725d389d32a8b7293"
+
+[pkg.cargo.target.x86_64-pc-windows-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/cargo-dist/2016-02-19/cargo-nightly-x86_64-pc-windows-gnu.tar.gz"
+hash = "6161c10b04c617bd6dd61f260ea1a0dbf1e43809f2431199ab58336380e66bd1"
+
+[pkg.cargo.target.x86_64-pc-windows-msvc]
+available = true
+url = "https://dev-static.rust-lang.org/cargo-dist/2016-02-19/cargo-nightly-x86_64-pc-windows-msvc.tar.gz"
+hash = "6a68687e68397581494ecc453f89e1a03eabf71be84dd90ecd4daadfbe1dbe46"
+
+[pkg.cargo.target.x86_64-unknown-linux-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/cargo-dist/2016-02-19/cargo-nightly-x86_64-unknown-linux-gnu.tar.gz"
+hash = "ba812247cab6ab6b5387228d916aef38a0f86f4d779d427bda507cac5d4a8178"
+
+[pkg.rust]
+version = "1.9.0-nightly (d31d8a9a9 2016-03-04)"
+
+[pkg.rust.target.i686-apple-darwin]
+available = false
+url = ""
+hash = ""
+[[pkg.rust.target.i686-apple-darwin.components]]
+pkg = "rustc"
+target = "i686-apple-darwin"
+[[pkg.rust.target.i686-apple-darwin.components]]
+pkg = "rust-std"
+target = "i686-apple-darwin"
+[[pkg.rust.target.i686-apple-darwin.components]]
+pkg = "rust-docs"
+target = "i686-apple-darwin"
+[[pkg.rust.target.i686-apple-darwin.components]]
+pkg = "cargo"
+target = "i686-apple-darwin"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "aarch64-unknown-linux-gnu"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "arm-linux-androideabi"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabif"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabihf"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "i686-apple-darwin"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "mips-unknown-linux"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "mipsel-unknown-linux"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.i686-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-musl"
+
+[pkg.rust.target.i686-pc-windows-gnu]
+available = false
+url = ""
+hash = ""
+[[pkg.rust.target.i686-pc-windows-gnu.components]]
+pkg = "rustc"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.i686-pc-windows-gnu.components]]
+pkg = "rust-std"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.i686-pc-windows-gnu.components]]
+pkg = "rust-docs"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.i686-pc-windows-gnu.components]]
+pkg = "cargo"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.i686-pc-windows-gnu.components]]
+pkg = "rust-mingw"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "aarch64-unknown-linux-gnu"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-linux-androideabi"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabif"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabihf"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-apple-darwin"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "mips-unknown-linux"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "mipsel-unknown-linux"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.i686-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-musl"
+
+[pkg.rust.target.i686-pc-windows-msvc]
+available = false
+url = ""
+hash = ""
+[[pkg.rust.target.i686-pc-windows-msvc.components]]
+pkg = "rustc"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.i686-pc-windows-msvc.components]]
+pkg = "rust-std"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.i686-pc-windows-msvc.components]]
+pkg = "rust-docs"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.i686-pc-windows-msvc.components]]
+pkg = "cargo"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "aarch64-unknown-linux-gnu"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "arm-linux-androideabi"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabif"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabihf"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "i686-apple-darwin"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "mips-unknown-linux"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "mipsel-unknown-linux"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.i686-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-musl"
+
+[pkg.rust.target.i686-unknown-linux-gnu]
+available = false
+url = ""
+hash = ""
+[[pkg.rust.target.i686-unknown-linux-gnu.components]]
+pkg = "rustc"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.i686-unknown-linux-gnu.components]]
+pkg = "rust-std"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.i686-unknown-linux-gnu.components]]
+pkg = "rust-docs"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.i686-unknown-linux-gnu.components]]
+pkg = "cargo"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "aarch64-unknown-linux-gnu"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-linux-androideabi"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabif"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabihf"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-apple-darwin"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "mips-unknown-linux"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "mipsel-unknown-linux"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-musl"
+
+[pkg.rust.target.x86_64-apple-darwin]
+available = false
+url = ""
+hash = ""
+[[pkg.rust.target.x86_64-apple-darwin.components]]
+pkg = "rustc"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.x86_64-apple-darwin.components]]
+pkg = "rust-std"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.x86_64-apple-darwin.components]]
+pkg = "rust-docs"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.x86_64-apple-darwin.components]]
+pkg = "cargo"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "aarch64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "arm-linux-androideabi"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabif"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabihf"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "i686-apple-darwin"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "mips-unknown-linux"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "mipsel-unknown-linux"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-apple-darwin.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-musl"
+
+[pkg.rust.target.x86_64-pc-windows-gnu]
+available = false
+url = ""
+hash = ""
+[[pkg.rust.target.x86_64-pc-windows-gnu.components]]
+pkg = "rustc"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.x86_64-pc-windows-gnu.components]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.x86_64-pc-windows-gnu.components]]
+pkg = "rust-docs"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.x86_64-pc-windows-gnu.components]]
+pkg = "cargo"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.x86_64-pc-windows-gnu.components]]
+pkg = "rust-mingw"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "aarch64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-linux-androideabi"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabif"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabihf"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-apple-darwin"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "mips-unknown-linux"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "mipsel-unknown-linux"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-musl"
+
+[pkg.rust.target.x86_64-pc-windows-msvc]
+available = false
+url = ""
+hash = ""
+[[pkg.rust.target.x86_64-pc-windows-msvc.components]]
+pkg = "rustc"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.x86_64-pc-windows-msvc.components]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.x86_64-pc-windows-msvc.components]]
+pkg = "rust-docs"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.x86_64-pc-windows-msvc.components]]
+pkg = "cargo"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "aarch64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "arm-linux-androideabi"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabif"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabihf"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "i686-apple-darwin"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "mips-unknown-linux"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "mipsel-unknown-linux"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-musl"
+
+[pkg.rust.target.x86_64-unknown-linux-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-04/rust-nightly-x86_64-unknown-linux-gnu.tar.gz"
+hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+pkg = "rustc"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+pkg = "rust-docs"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.components]]
+pkg = "cargo"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "aarch64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-linux-androideabi"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabif"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "arm-unknown-linux-gnueabihf"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-apple-darwin"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-gnu"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-pc-windows-msvc"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "i686-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "mips-unknown-linux"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "mipsel-unknown-linux"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-apple-darwin"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-gnu"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-pc-windows-msvc"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-gnu"
+[[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
+pkg = "rust-std"
+target = "x86_64-unknown-linux-musl"
+
+[pkg.rust-docs]
+version = "1.9.0-nightly (d31d8a9a9 2016-03-04)"
+
+[pkg.rust-docs.target.i686-apple-darwin]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-docs-nightly-i686-apple-darwin.tar.gz"
+hash = "1e5df676b576def78293913ecad7d0df50fe7a11bd4b4e79a5fd6c2ee46acfb1"
+
+[pkg.rust-docs.target.i686-pc-windows-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-docs-nightly-i686-pc-windows-gnu.tar.gz"
+hash = "626d0abc1f8df848ad5765b8a0de38a656ad81957bab91942fb28487149ff41a"
+
+[pkg.rust-docs.target.i686-pc-windows-msvc]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-docs-nightly-i686-pc-windows-msvc.tar.gz"
+hash = "74ec0a09590606f8436a71c8bd815148a2a0bf06b12a8c2e99a099990555dce7"
+
+[pkg.rust-docs.target.i686-unknown-linux-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-docs-nightly-i686-unknown-linux-gnu.tar.gz"
+hash = "db36ce902d932bcb4625675e35db36f21112ca4e7084e1d594b6f57137bbf018"
+
+[pkg.rust-docs.target.x86_64-apple-darwin]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-docs-nightly-x86_64-apple-darwin.tar.gz"
+hash = "2ea3021e34c4e023f6d47fddc5a6cd5a80d649b898984a730730e0bb192d9cd9"
+
+[pkg.rust-docs.target.x86_64-pc-windows-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-docs-nightly-x86_64-pc-windows-gnu.tar.gz"
+hash = "7a217384e1b5f018f7bd768fdc2bfed9530ca5f261c8a3f68648e8aace70a617"
+
+[pkg.rust-docs.target.x86_64-pc-windows-msvc]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-docs-nightly-x86_64-pc-windows-msvc.tar.gz"
+hash = "67c45fe1619b5e3b2553b5ffee3f2a39465ca0c8efcc8f46eb2f06e11a09df76"
+
+[pkg.rust-docs.target.x86_64-unknown-linux-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-docs-nightly-x86_64-unknown-linux-gnu.tar.gz"
+hash = "32d0b1266b995d0c8e29db85b8788b33c573fafcc36a7aef580c887a02951eb4"
+
+[pkg.rust-mingw]
+version = "1.9.0-nightly (d31d8a9a9 2016-03-04)"
+
+[pkg.rust-mingw.target.i686-pc-windows-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-mingw-nightly-i686-pc-windows-gnu.tar.gz"
+hash = "33ee3f66dfe7012abeb4cf8f88548283d60ad4bbd3cd10082d90202301e079cd"
+
+[pkg.rust-mingw.target.x86_64-pc-windows-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-mingw-nightly-x86_64-pc-windows-gnu.tar.gz"
+hash = "2a091f4b2159283468e43e4bb45e4b5506a3d1bf5779299bd17897499c68adce"
+
+[pkg.rust-std]
+version = "1.9.0-nightly (d31d8a9a9 2016-03-04)"
+
+[pkg.rust-std.target.aarch64-unknown-linux-gnu]
+available = false
+url = ""
+hash = ""
+
+[pkg.rust-std.target.arm-linux-androideabi]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-std-nightly-arm-linux-androideabi.tar.gz"
+hash = "be7d3d475296ac18d5e52e1cc042d8b9063b9366c5363850479b863bb786c05b"
+
+[pkg.rust-std.target.arm-unknown-linux-gnueabif]
+available = false
+url = ""
+hash = ""
+
+[pkg.rust-std.target.arm-unknown-linux-gnueabihf]
+available = false
+url = ""
+hash = ""
+
+[pkg.rust-std.target.i686-apple-darwin]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-std-nightly-i686-apple-darwin.tar.gz"
+hash = "17095a3f448ca7cc3ae85ea5b8d0181a34e6c0784967e9bfc2ad1ed8352a7591"
+
+[pkg.rust-std.target.i686-pc-windows-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-std-nightly-i686-pc-windows-gnu.tar.gz"
+hash = "0661c920ffc4e9cff76aabb546371f4be53b8d92563bc41d257b0e00e9d05ef1"
+
+[pkg.rust-std.target.i686-pc-windows-msvc]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-std-nightly-i686-pc-windows-msvc.tar.gz"
+hash = "3d57245a7cc7f527e0069fc775134d980cb046b8c14ffff69fbd18790906c6ea"
+
+[pkg.rust-std.target.i686-unknown-linux-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-std-nightly-i686-unknown-linux-gnu.tar.gz"
+hash = "e5b2e67f777069c5f2e11e341d23d2e727c86e8a9a0017cba77d58d8673f8207"
+
+[pkg.rust-std.target.mips-unknown-linux]
+available = false
+url = ""
+hash = ""
+
+[pkg.rust-std.target.mipsel-unknown-linux]
+available = false
+url = ""
+hash = ""
+
+[pkg.rust-std.target.x86_64-apple-darwin]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-std-nightly-x86_64-apple-darwin.tar.gz"
+hash = "07e060958d3cb325021a653f36ba8175bfc192794890647f975f05e3abcc24dd"
+
+[pkg.rust-std.target.x86_64-pc-windows-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-std-nightly-x86_64-pc-windows-gnu.tar.gz"
+hash = "756ba9c65883e42213a50fe0e8667842d3a64518294ee8b3b4d3b7eaca3c4a10"
+
+[pkg.rust-std.target.x86_64-pc-windows-msvc]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-std-nightly-x86_64-pc-windows-msvc.tar.gz"
+hash = "e649b56460ff226aa12db0858d7c0ac3bdb90fcad612c210dc2f5430faf25ba8"
+
+[pkg.rust-std.target.x86_64-unknown-linux-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-std-nightly-x86_64-unknown-linux-gnu.tar.gz"
+hash = "557e942caea2397eb331620847ce79547ce6242f36ad7e30e9fb8290ebe03d24"
+
+[pkg.rust-std.target.x86_64-unknown-linux-musl]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-std-nightly-x86_64-unknown-linux-musl.tar.gz"
+hash = "c9bc2c18ec67d4d7eb97e7ef2669bc422883b50a61867f87998ba45694b7082f"
+
+[pkg.rustc]
+version = "1.9.0-nightly (d31d8a9a9 2016-03-04)"
+
+[pkg.rustc.target.i686-apple-darwin]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rustc-nightly-i686-apple-darwin.tar.gz"
+hash = "ee9a368744ef36d66e3405754b76cfb4ea4c32c5ea49bb1946dd349249aa0871"
+
+[pkg.rustc.target.i686-pc-windows-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rustc-nightly-i686-pc-windows-gnu.tar.gz"
+hash = "14dcf873331b4cd5332dd323ec60cd7f2147f739a38027b1494a538f1fac1fa4"
+
+[pkg.rustc.target.i686-pc-windows-msvc]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rustc-nightly-i686-pc-windows-msvc.tar.gz"
+hash = "d6360a18d8123a4309cb05dbfa62c15371313439733d03894f505d4aa4f6a910"
+
+[pkg.rustc.target.i686-unknown-linux-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rustc-nightly-i686-unknown-linux-gnu.tar.gz"
+hash = "c3affbe7663e8ede07bd5bed7d53ff34aef0578ec4457176dca2d764322e1b41"
+
+[pkg.rustc.target.x86_64-apple-darwin]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rustc-nightly-x86_64-apple-darwin.tar.gz"
+hash = "6ea9a4fa0f74016417e9e8187364243787347a9ddd1272dad8e8ebc58c1fa147"
+
+[pkg.rustc.target.x86_64-pc-windows-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rustc-nightly-x86_64-pc-windows-gnu.tar.gz"
+hash = "16c2490e2698fa28a47ff814bd128b491a43c044f61d3e329f709db38423edd7"
+
+[pkg.rustc.target.x86_64-pc-windows-msvc]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rustc-nightly-x86_64-pc-windows-msvc.tar.gz"
+hash = "a7fe5a58707282186e673863d9518211d61cd29651b49b21d864008c12aeefa5"
+
+[pkg.rustc.target.x86_64-unknown-linux-gnu]
+available = true
+url = "https://dev-static.rust-lang.org/dist/2016-03-05/rustc-nightly-x86_64-unknown-linux-gnu.tar.gz"
+hash = "1b0736d7e49652989269017fc8ea224ecd5e2549da7abf7b92109b4e00256b34"
+

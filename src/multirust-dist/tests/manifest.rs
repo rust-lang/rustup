@@ -5,6 +5,8 @@ use multirust_dist::Error;
 
 // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
 static EXAMPLE: &'static str = include_str!("channel-rust-nightly-example.toml");
+// From brson's live build-rust-manifest.py script
+static EXAMPLE2: &'static str = include_str!("channel-rust-nightly-example2.toml");
 
 #[test]
 fn parse_smoke_test() {
@@ -40,6 +42,11 @@ fn parse_smoke_test() {
 #[test]
 fn parse_round_trip() {
     let original = Manifest::parse(EXAMPLE).unwrap();
+    let serialized = original.clone().stringify();
+    let new = Manifest::parse(&serialized).unwrap();
+    assert_eq!(original, new);
+
+    let original = Manifest::parse(EXAMPLE2).unwrap();
     let serialized = original.clone().stringify();
     let new = Manifest::parse(&serialized).unwrap();
     assert_eq!(original, new);
