@@ -189,14 +189,30 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    fn set_env_inner(&self, cmd: &mut Command) {
-        cmd.env("MULTIRUST_TOOLCHAIN", self.prefix.path());
-        cmd.env("MULTIRUST_HOME", &self.cfg.multirust_dir);
+    pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
+        if !self.exists() {
+            return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
+        }
+
+        let mut cmd = Command::new(binary);
+        self.set_env(&mut cmd);
+        Ok(cmd)
     }
 
-    pub fn set_env(&self, cmd: &mut Command) {
-        self.set_prefix_env(cmd, &self.cfg.multirust_dir.join("cargo"));
-        self.set_env_inner(cmd);
+    fn set_env(&self, cmd: &mut Command) {
+        let ref cargo_home = self.cfg.multirust_dir.join("cargo");
+        let ref bin_path = self.prefix.path().join("bin");
+
+        self.set_ldpath(cmd);
+
+        env_var::set_path("PATH", bin_path, cmd);
+        env_var::set_default("CARGO_HOME", cargo_home.as_ref(), cmd);
+        env_var::inc("RUST_RECURSION_COUNT", cmd);
+
+        // FIXME: This should not be a path, but a toolchain name.
+        // Not sure what's going on here.
+        cmd.env("MULTIRUST_TOOLCHAIN", self.prefix.path());
+        cmd.env("MULTIRUST_HOME", &self.cfg.multirust_dir);
     }
 
     pub fn set_ldpath(&self, cmd: &mut Command) {
@@ -204,24 +220,6 @@ impl<'a> Toolchain<'a> {
 
         env_var::set_path("LD_LIBRARY_PATH", &new_path, cmd);
         env_var::set_path("DYLD_LIBRARY_PATH", &new_path, cmd);
-    }
-
-    fn set_prefix_env(&self, cmd: &mut Command, cargo_home: &Path) {
-        self.set_ldpath(cmd);
-        env_var::set_path("PATH", &self.prefix.path().join("bin"), cmd);
-        env_var::set_default("CARGO_HOME", cargo_home.as_ref(), cmd);
-        env_var::inc("RUST_RECURSION_COUNT", cmd);
-    }
-
-    pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
-        if !self.exists() {
-            return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
-        }
-
-        let mut cmd = Command::new(binary);
-        self.set_prefix_env(&mut cmd, &self.cfg.multirust_dir.join("cargo"));
-        self.set_env_inner(&mut cmd);
-        Ok(cmd)
     }
 
     pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {
