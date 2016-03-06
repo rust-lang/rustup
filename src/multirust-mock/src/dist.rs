@@ -301,7 +301,7 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
     tar.finish().unwrap();
 }
 
-fn create_hash(src: &Path, dst: &Path) -> String {
+pub fn create_hash(src: &Path, dst: &Path) -> String {
     let ref mut buf = Vec::new();
     File::open(src).unwrap().read_to_end(buf).unwrap();
     let mut hasher = hash::Hasher::new(hash::Type::SHA256);

@@ -104,6 +104,18 @@ impl Manifestation {
             return Ok(UpdateStatus::Unchanged);
         }
 
+        // Validate that the requested components are available
+        let unavailable_components: Vec<Component> = components_to_install.iter().filter(|c| {
+            use manifest::*;
+            let pkg: Option<&Package> = new_manifest.get_package(&c.pkg).ok();
+            let target_pkg: Option<&TargettedPackage> = pkg.and_then(|p| p.get_target(&c.target).ok());
+            target_pkg.map(|tp| tp.available) != Some(true)
+        }).cloned().collect();
+
+        if !unavailable_components.is_empty() {
+            return Err(Error::RequestedComponentsUnavailable(unavailable_components));
+        }
+
         // Map components to urls and hashes
         let mut components_urls_and_hashes: Vec<(Component, String, String)> = Vec::new();
         for component in components_to_install {

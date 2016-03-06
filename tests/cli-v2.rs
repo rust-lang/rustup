@@ -710,3 +710,34 @@ fn remove_target_host() {
                    &format!("component 'rust-std' for target '{}' is required for toolchain 'nightly' and cannot be removed", trip));
     });
 }
+
+fn make_component_unavailable(config: &Config, name: &str, target: &str) {
+    use multirust_dist::manifest::Manifest;
+    use multirust_mock::dist::create_hash;
+
+    let ref manifest_path = config.distdir.path().join("dist/channel-rust-nightly.toml");
+    let ref manifest_str = utils::raw::read_file(manifest_path).unwrap();
+    let mut manifest = Manifest::parse(manifest_str).unwrap();
+    {
+        let mut std_pkg = manifest.packages.get_mut(name).unwrap();
+        let mut target_pkg = std_pkg.targets.get_mut(target).unwrap();
+        target_pkg.available = false;
+    }
+    let ref manifest_str = manifest.stringify();
+    utils::raw::write_file(manifest_path, manifest_str).unwrap();
+
+    // Have to update the hash too
+    let ref hash_path = manifest_path.with_extension("toml.sha256");
+    println!("{}", hash_path.display());
+    create_hash(manifest_path, hash_path);
+}
+
+#[test]
+fn update_unavailable_std() {
+    setup(&|config| {
+        let ref trip = this_host_triple();
+        make_component_unavailable(config, "rust-std", trip);
+        expect_err(config, &["multirust", "update", "nightly"],
+                   &format!("component 'rust-std' for '{}' is unavailable for download", trip));
+    });
+}

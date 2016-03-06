@@ -77,6 +77,7 @@ pub enum Error {
     MissingRoot,
     UnsupportedVersion(String),
     MissingPackageForComponent(Component),
+    RequestedComponentsUnavailable(Vec<Component>),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -179,6 +180,7 @@ impl error::Error for Error {
             MissingRoot => "manifest has no root package",
             UnsupportedVersion(_) => "unsupported manifest version",
             MissingPackageForComponent(_) => "missing package for component",
+            RequestedComponentsUnavailable(_) => "some requested components are unavailable to download",
         }
     }
 
@@ -215,7 +217,8 @@ impl error::Error for Error {
             TargetNotFound(_) |
             MissingRoot |
             UnsupportedVersion(_) |
-            MissingPackageForComponent(_) => None
+            MissingPackageForComponent(_) |
+            RequestedComponentsUnavailable(_) => None
         }
     }
 }
@@ -301,6 +304,27 @@ impl Display for Error {
             MissingRoot => write!(f, "manifest has no root package"),
             UnsupportedVersion(ref v) => write!(f, "manifest version '{}' is not supported", v),
             MissingPackageForComponent(ref c) => write!(f,"manifest missing package for component {}", c.name()),
+            RequestedComponentsUnavailable(ref cs) => {
+                assert!(!cs.is_empty());
+                if cs.len() == 1 {
+                    write!(f, "component '{}' for '{}' is unavailable for download",
+                           cs[0].pkg, cs[0].target)
+                } else {
+                    use itertools::Itertools;
+                    let same_target = cs.iter().all(|c| c.target == cs[0].target);
+                    if same_target {
+                        let mut cs_strs = cs.iter().map(|c| format!("'{}'", c.pkg));
+                        let cs_str = cs_strs.join(", ");
+                        write!(f, "some components unavailable for download: {}",
+                               cs_str)
+                    } else {
+                        let mut cs_strs = cs.iter().map(|c| format!("'{}' for '{}'", c.pkg, c.target));
+                        let cs_str = cs_strs.join(", ");
+                        write!(f, "some components unavailable for download: {}",
+                               cs_str)
+                    }
+                }
+            }
         }
     }
 }
