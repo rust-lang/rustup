@@ -198,8 +198,15 @@ impl<'a> Toolchain<'a> {
         self.set_env_inner(cmd);
     }
 
+    pub fn set_ldpath(&self, cmd: &mut Command) {
+        let new_path = self.prefix.path().join("lib");
+
+        ::multirust_dist::env_var::set_path("LD_LIBRARY_PATH", &new_path, cmd);
+        ::multirust_dist::env_var::set_path("DYLD_LIBRARY_PATH", &new_path, cmd);
+    }
+
     fn set_prefix_env(&self, cmd: &mut Command, cargo_home: &Path) {
-        self.prefix.set_ldpath(cmd);
+        self.set_ldpath(cmd);
         ::multirust_dist::env_var::set_path("PATH", &self.prefix.path().join("bin"), cmd);
         ::multirust_dist::env_var::set_default("CARGO_HOME", cargo_home.as_ref(), cmd);
         ::multirust_dist::env_var::inc("RUST_RECURSION_COUNT", cmd);

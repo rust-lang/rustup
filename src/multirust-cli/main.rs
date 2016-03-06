@@ -735,7 +735,7 @@ fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
         if utils::is_file(&rustc_path) {
             let mut cmd = Command::new(&rustc_path);
             cmd.arg("--version");
-            toolchain.prefix().set_ldpath(&mut cmd);
+            toolchain.set_ldpath(&mut cmd);
 
             if utils::cmd_status("rustc", &mut cmd).is_err() {
                 println!("(failed to run rustc)");
@@ -746,7 +746,7 @@ fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
         if utils::is_file(&cargo_path) {
             let mut cmd = Command::new(&cargo_path);
             cmd.arg("--version");
-            toolchain.prefix().set_ldpath(&mut cmd);
+            toolchain.set_ldpath(&mut cmd);
 
             if utils::cmd_status("cargo", &mut cmd).is_err() {
                 println!("(failed to run cargo)");

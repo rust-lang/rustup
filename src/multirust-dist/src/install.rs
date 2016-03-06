@@ -1,12 +1,10 @@
 use utils;
 use errors::*;
 use temp;
-use env_var;
 use dist;
 use component::{Components, TarGzPackage, Transaction, Package};
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::env;
 
 const REL_MANIFEST_DIR: &'static str = "lib/rustlib";
@@ -147,13 +145,6 @@ impl InstallPrefix {
     }
     pub fn install(&self, method: InstallMethod, notify_handler: NotifyHandler) -> Result<()> {
         method.run(self, notify_handler)
-    }
-
-    pub fn set_ldpath(&self, cmd: &mut Command) {
-        let new_path = self.path.join("lib");
-
-        env_var::set_path("LD_LIBRARY_PATH", &new_path, cmd);
-        env_var::set_path("DYLD_LIBRARY_PATH", &new_path, cmd);
     }
 
     pub fn open_docs(&self, relative: &str) -> Result<()> {
