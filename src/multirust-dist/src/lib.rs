@@ -20,8 +20,7 @@ extern crate toml;
 extern crate flate2;
 extern crate tar;
 
-pub use errors::*;
-pub use install::*;
+pub use errors::{Error, Notification, NotifyHandler};
 
 #[macro_use]
 pub mod notify;
@@ -29,8 +28,8 @@ pub mod utils;
 pub mod temp;
 
 pub mod dist;
-mod errors;
-mod install;
+pub mod errors;
+pub mod install;
 pub mod component;
 pub mod manifestation;
 pub mod download;

@@ -146,7 +146,7 @@ impl<'a> Display for Notification<'a> {
 
 impl error::Error for Error {
     fn description(&self) -> &str {
-        use Error::*;
+        use self::Error::*;
         match *self {
             Utils(ref e) => error::Error::description(e),
             Temp(ref e) => error::Error::description(e),
@@ -183,7 +183,7 @@ impl error::Error for Error {
     }
 
     fn cause(&self) -> Option<&error::Error> {
-        use Error::*;
+        use self::Error::*;
         match *self {
             Utils(ref e) => Some(e),
             Temp(ref e) => Some(e),

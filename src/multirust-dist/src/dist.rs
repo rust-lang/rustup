@@ -2,7 +2,7 @@
 use temp;
 use errors::*;
 use utils;
-use InstallPrefix;
+use install::InstallPrefix;
 use manifest::Component;
 use manifest::Manifest as ManifestV2;
 use manifestation::{Manifestation, UpdateStatus, Changes};

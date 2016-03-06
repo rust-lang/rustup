@@ -9,7 +9,8 @@ pub use errors::*;
 pub use config::*;
 pub use toolchain::*;
 pub use override_db::*;
-pub use multirust_dist::{utils, notify, bin_path};
+pub use multirust_dist::{utils, notify};
+pub use multirust_dist::install::bin_path;
 
 mod errors;
 mod override_db;

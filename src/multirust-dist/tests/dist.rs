@@ -14,7 +14,8 @@ extern crate hyper;
 
 use multirust_mock::dist::*;
 use multirust_mock::{MockCommand, MockInstallerBuilder};
-use multirust_dist::{InstallPrefix, Error, NotifyHandler};
+use multirust_dist::install::InstallPrefix;
+use multirust_dist::{Error, NotifyHandler};
 use multirust_dist::dist::ToolchainDesc;
 use multirust_dist::download::DownloadCfg;
 use multirust_dist::utils;
