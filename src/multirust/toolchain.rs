@@ -194,8 +194,15 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn set_env(&self, cmd: &mut Command) {
-        self.prefix.set_env(cmd, &self.cfg.multirust_dir.join("cargo"));
+        self.set_prefix_env(cmd, &self.cfg.multirust_dir.join("cargo"));
         self.set_env_inner(cmd);
+    }
+
+    fn set_prefix_env(&self, cmd: &mut Command, cargo_home: &Path) {
+        self.prefix.set_ldpath(cmd);
+        ::multirust_dist::env_var::set_path("PATH", &self.prefix.path().join("bin"), cmd);
+        ::multirust_dist::env_var::set_default("CARGO_HOME", cargo_home.as_ref(), cmd);
+        ::multirust_dist::env_var::inc("RUST_RECURSION_COUNT", cmd);
     }
 
     pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
@@ -204,7 +211,7 @@ impl<'a> Toolchain<'a> {
         }
 
         let mut cmd = Command::new(binary);
-        self.prefix.set_env(&mut cmd, &self.cfg.multirust_dir.join("cargo"));
+        self.set_prefix_env(&mut cmd, &self.cfg.multirust_dir.join("cargo"));
         self.set_env_inner(&mut cmd);
         Ok(cmd)
     }

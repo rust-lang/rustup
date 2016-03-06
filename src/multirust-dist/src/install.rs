@@ -156,13 +156,6 @@ impl InstallPrefix {
         env_var::set_path("DYLD_LIBRARY_PATH", &new_path, cmd);
     }
 
-    pub fn set_env(&self, cmd: &mut Command, cargo_home: &Path) {
-        self.set_ldpath(cmd);
-        env_var::set_path("PATH", &self.path.join("bin"), cmd);
-        env_var::set_default("CARGO_HOME", cargo_home.as_ref(), cmd);
-        env_var::inc("RUST_RECURSION_COUNT", cmd);
-    }
-
     pub fn open_docs(&self, relative: &str) -> Result<()> {
         Ok(try!(utils::open_browser(&try!(self.doc_path(relative)))))
     }
