@@ -4,6 +4,7 @@ use multirust_dist::dist::ToolchainDesc;
 use multirust_dist::manifestation::{Manifestation, Changes};
 use multirust_dist::manifest::Component;
 use config::Cfg;
+use env_var;
 
 use std::process::Command;
 use std::path::{Path, PathBuf};
@@ -201,15 +202,15 @@ impl<'a> Toolchain<'a> {
     pub fn set_ldpath(&self, cmd: &mut Command) {
         let new_path = self.prefix.path().join("lib");
 
-        ::multirust_dist::env_var::set_path("LD_LIBRARY_PATH", &new_path, cmd);
-        ::multirust_dist::env_var::set_path("DYLD_LIBRARY_PATH", &new_path, cmd);
+        env_var::set_path("LD_LIBRARY_PATH", &new_path, cmd);
+        env_var::set_path("DYLD_LIBRARY_PATH", &new_path, cmd);
     }
 
     fn set_prefix_env(&self, cmd: &mut Command, cargo_home: &Path) {
         self.set_ldpath(cmd);
-        ::multirust_dist::env_var::set_path("PATH", &self.prefix.path().join("bin"), cmd);
-        ::multirust_dist::env_var::set_default("CARGO_HOME", cargo_home.as_ref(), cmd);
-        ::multirust_dist::env_var::inc("RUST_RECURSION_COUNT", cmd);
+        env_var::set_path("PATH", &self.prefix.path().join("bin"), cmd);
+        env_var::set_default("CARGO_HOME", cargo_home.as_ref(), cmd);
+        env_var::inc("RUST_RECURSION_COUNT", cmd);
     }
 
     pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {

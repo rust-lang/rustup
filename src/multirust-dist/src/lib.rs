@@ -23,7 +23,6 @@ extern crate tar;
 pub use errors::*;
 pub use install::*;
 
-pub mod env_var;
 #[macro_use]
 pub mod notify;
 pub mod utils;
