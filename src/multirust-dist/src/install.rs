@@ -15,17 +15,7 @@ const REL_MANIFEST_DIR: &'static str = "lib/rustlib";
 #[derive(Clone, Debug)]
 pub struct InstallPrefix {
     path: PathBuf,
-    install_type: InstallType,
 }
-
-#[derive(Eq, PartialEq, Copy, Clone, Debug)]
-pub enum InstallType {
-    // Must be uninstalled by deleting the entire directory
-    Owned,
-    // Must be uninstalled via `uninstall.sh` on linux or `msiexec /x` on windows
-    Shared,
-}
-
 #[derive(Debug)]
 pub enum InstallMethod<'a> {
     Copy(&'a Path),
@@ -35,12 +25,6 @@ pub enum InstallMethod<'a> {
 }
 
 impl<'a> InstallMethod<'a> {
-    pub fn install_type_possible(&self, install_type: InstallType) -> bool {
-        match *self {
-            InstallMethod::Copy(_) | InstallMethod::Link(_) => install_type == InstallType::Owned,
-            InstallMethod::Installer(_, _) | InstallMethod::Dist(_, _, _) => true,
-        }
-    }
     pub fn run(self, prefix: &InstallPrefix, notify_handler: NotifyHandler) -> Result<()> {
         if prefix.is_installed_here() {
             // Don't uninstall first for Dist method
@@ -51,10 +35,6 @@ impl<'a> InstallMethod<'a> {
                     try!(prefix.uninstall(notify_handler));
                 }
             }
-        }
-
-        if !self.install_type_possible(prefix.install_type) {
-            return Err(Error::InstallTypeNotPossible);
         }
 
         match self {
@@ -115,10 +95,9 @@ pub fn bin_path(name: &str) -> PathBuf {
 }
 
 impl InstallPrefix {
-    pub fn from(path: PathBuf, install_type: InstallType) -> Self {
+    pub fn from(path: PathBuf) -> Self {
         InstallPrefix {
             path: path,
-            install_type: install_type,
         }
     }
     pub fn path(&self) -> &Path {
@@ -158,22 +137,11 @@ impl InstallPrefix {
         Ok(doc_dir)
     }
     pub fn is_installed_here(&self) -> bool {
-        match self.install_type {
-            InstallType::Owned => utils::is_directory(&self.path),
-            InstallType::Shared => utils::is_directory(&self.manifest_dir()),
-        }
+        utils::is_directory(&self.path)
     }
     pub fn uninstall(&self, notify_handler: NotifyHandler) -> Result<()> {
         if self.is_installed_here() {
-            match self.install_type {
-                InstallType::Owned => {
-                    Ok(try!(utils::remove_dir("install", &self.path, ntfy!(&notify_handler))))
-                }
-                InstallType::Shared => {
-                    // No code actually calls this
-                    unimplemented!()
-                }
-            }
+            Ok(try!(utils::remove_dir("install", &self.path, ntfy!(&notify_handler))))
         } else {
             Err(Error::NotInstalledHere)
         }

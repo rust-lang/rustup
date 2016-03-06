@@ -14,7 +14,7 @@ extern crate hyper;
 
 use multirust_mock::dist::*;
 use multirust_mock::{MockCommand, MockInstallerBuilder};
-use multirust_dist::{InstallPrefix, InstallType, Error, NotifyHandler};
+use multirust_dist::{InstallPrefix, Error, NotifyHandler};
 use multirust_dist::dist::ToolchainDesc;
 use multirust_dist::download::DownloadCfg;
 use multirust_dist::utils;
@@ -324,7 +324,7 @@ fn setup(edit: Option<&Fn(&str, &mut MockPackage)>,
 
     let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
     let ref toolchain = ToolchainDesc::from_str("x86_64-apple-darwin-nightly").unwrap();
-    let ref prefix = InstallPrefix::from(prefix_tempdir.path().to_owned(), InstallType::Shared);
+    let ref prefix = InstallPrefix::from(prefix_tempdir.path().to_owned());
 
     f(url, toolchain, prefix, temp_cfg);
 }

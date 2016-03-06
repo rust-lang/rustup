@@ -1,7 +1,7 @@
 extern crate multirust_dist;
 extern crate tempdir;
 
-use multirust_dist::{InstallPrefix, InstallType, NotifyHandler};
+use multirust_dist::{InstallPrefix, NotifyHandler};
 use multirust_dist::component::Transaction;
 use multirust_dist::{temp, utils};
 use multirust_dist::Error;
@@ -15,8 +15,7 @@ fn add_file() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
@@ -39,8 +38,7 @@ fn add_file_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
@@ -62,8 +60,7 @@ fn add_file_that_exists() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -91,8 +88,7 @@ fn copy_file() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -115,8 +111,7 @@ fn copy_file_then_rollback() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -139,8 +134,7 @@ fn copy_file_that_exists() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -171,8 +165,7 @@ fn copy_dir() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -203,8 +196,7 @@ fn copy_dir_then_rollback() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -235,8 +227,7 @@ fn copy_dir_that_exists() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -262,8 +253,7 @@ fn remove_file() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -285,8 +275,7 @@ fn remove_file_then_rollback() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -308,8 +297,7 @@ fn remove_file_that_not_exists() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -333,8 +321,7 @@ fn remove_dir() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -357,8 +344,7 @@ fn remove_dir_then_rollback() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -381,8 +367,7 @@ fn remove_dir_that_not_exists() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -406,8 +391,7 @@ fn write_file() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -430,8 +414,7 @@ fn write_file_then_rollback() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -451,8 +434,7 @@ fn write_file_that_exists() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -480,8 +462,7 @@ fn modify_file_that_not_exists() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -502,8 +483,7 @@ fn modify_file_that_exists() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -524,8 +504,7 @@ fn modify_file_that_not_exists_then_rollback() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -544,8 +523,7 @@ fn modify_file_that_exists_then_rollback() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -569,8 +547,7 @@ fn modify_twice_then_rollback() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -594,8 +571,7 @@ fn do_multiple_op_transaction(rollback: bool) {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
@@ -692,8 +668,7 @@ fn rollback_failure_keeps_going() {
     let tmpnotify = temp::SharedNotifyHandler::none();
     let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
 
-    let prefix = InstallPrefix::from(prefixdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = NotifyHandler::none();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);

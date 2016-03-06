@@ -39,7 +39,6 @@ pub enum Error {
     InvalidInstaller,
     InvalidToolchainName(String),
     NotInstalledHere,
-    InstallTypeNotPossible,
     UnsupportedHost(String),
     ChecksumFailed {
         url: String,
@@ -155,7 +154,6 @@ impl error::Error for Error {
             InvalidInstaller => "invalid installer",
             InvalidToolchainName(_) => "invalid custom toolchain name",
             NotInstalledHere => "not installed here",
-            InstallTypeNotPossible => "install type not possible",
             UnsupportedHost(_) => "binary package not provided for host",
             ChecksumFailed {..} => "checksum failed",
             ComponentConflict {..} => "conflicting component",
@@ -197,7 +195,6 @@ impl error::Error for Error {
             InvalidInstaller |
             InvalidToolchainName(_) |
             NotInstalledHere |
-            InstallTypeNotPossible |
             UnsupportedHost(_) |
             ChecksumFailed {..} |
             ComponentConflict {..} |
@@ -234,7 +231,6 @@ impl Display for Error {
             InvalidInstaller => write!(f, "invalid installer"),
             InvalidToolchainName(ref s) => write!(f, "invalid custom toolchain name: '{}'", s),
             NotInstalledHere => write!(f, "not installed here"),
-            InstallTypeNotPossible => write!(f, "install type not possible"),
             UnsupportedHost(ref spec) => {
                 write!(f, "a binary package was not provided for: '{}'", spec)
             }

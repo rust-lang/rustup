@@ -7,7 +7,7 @@ use multirust_dist::component::{DirectoryPackage, Package};
 use multirust_dist::component::Transaction;
 use multirust_dist::temp;
 use multirust_dist::utils;
-use multirust_dist::{InstallType, InstallPrefix, NotifyHandler};
+use multirust_dist::{InstallPrefix, NotifyHandler};
 use std::fs::File;
 use std::io::Write;
 use tempdir::TempDir;
@@ -103,8 +103,7 @@ fn basic_install() {
     mock.build(pkgdir.path());
 
     let instdir = TempDir::new("multirust").unwrap();
-    let prefix = InstallPrefix::from(instdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let notify = temp::SharedNotifyHandler::none();
     let tmpdir = TempDir::new("multirust").unwrap();
@@ -143,8 +142,7 @@ fn multiple_component_install() {
     mock.build(pkgdir.path());
 
     let instdir = TempDir::new("multirust").unwrap();
-    let prefix = InstallPrefix::from(instdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let notify = temp::SharedNotifyHandler::none();
     let tmpdir = TempDir::new("multirust").unwrap();
@@ -188,8 +186,7 @@ fn uninstall() {
     mock.build(pkgdir.path());
 
     let instdir = TempDir::new("multirust").unwrap();
-    let prefix = InstallPrefix::from(instdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let notify = temp::SharedNotifyHandler::none();
     let tmpdir = TempDir::new("multirust").unwrap();
@@ -242,8 +239,7 @@ fn component_bad_version() {
     mock.build(pkgdir.path());
 
     let instdir = TempDir::new("multirust").unwrap();
-    let prefix = InstallPrefix::from(instdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let notify = temp::SharedNotifyHandler::none();
     let tmpdir = TempDir::new("multirust").unwrap();
@@ -290,8 +286,7 @@ fn unix_permissions() {
     mock.build(pkgdir.path());
 
     let instdir = TempDir::new("multirust").unwrap();
-    let prefix = InstallPrefix::from(instdir.path().to_owned(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let notify = temp::SharedNotifyHandler::none();
     let tmpdir = TempDir::new("multirust").unwrap();
@@ -336,8 +331,7 @@ fn install_to_prefix_that_does_not_exist() {
     let instdir = TempDir::new("multirust").unwrap();
     // The directory that does not exist
     let does_not_exist = instdir.path().join("super_not_real");
-    let prefix = InstallPrefix::from(does_not_exist.clone(),
-                                     InstallType::Owned);
+    let prefix = InstallPrefix::from(does_not_exist.clone());
 
     let notify = temp::SharedNotifyHandler::none();
     let tmpdir = TempDir::new("multirust").unwrap();

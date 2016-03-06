@@ -1,5 +1,5 @@
 use errors::*;
-use multirust_dist::{utils, dist, InstallPrefix, InstallType, InstallMethod};
+use multirust_dist::{utils, dist, InstallPrefix, InstallMethod};
 use multirust_dist::dist::ToolchainDesc;
 use multirust_dist::manifestation::{Manifestation, Changes};
 use multirust_dist::manifest::Component;
@@ -24,7 +24,7 @@ impl<'a> Toolchain<'a> {
         Toolchain {
             cfg: cfg,
             name: name.to_owned(),
-            prefix: InstallPrefix::from(cfg.toolchains_dir.join(name), InstallType::Owned),
+            prefix: InstallPrefix::from(cfg.toolchains_dir.join(name)),
         }
     }
     pub fn cfg(&self) -> &'a Cfg {
