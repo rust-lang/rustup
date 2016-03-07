@@ -98,8 +98,9 @@ impl<'a> Notification<'a> {
         match *self {
             Temp(ref n) => n.level(),
             Utils(ref n) => n.level(),
+            ChecksumValid(_) => NotificationLevel::Verbose,
             NoUpdateHash(_) => NotificationLevel::Verbose,
-            Extracting(_, _) | ChecksumValid(_) | SignatureValid(_)  |
+            Extracting(_, _) | SignatureValid(_)  |
             InstallingToolchain(_) | DownloadingComponent(_, _) |
             InstallingComponent(_) |
             UpdateHashMatches | ComponentAlreadyInstalled(_)  |
