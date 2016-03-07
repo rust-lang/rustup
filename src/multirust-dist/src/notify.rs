@@ -114,7 +114,6 @@ impl<T: ?Sized> SharedNotifyHandler<T> {
 #[derive(Debug)]
 pub enum NotificationLevel {
     Verbose,
-    Normal,
     Info,
     Warn,
     Error,

@@ -161,9 +161,6 @@ fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
                     println!("{}", n);
                 }
             }
-            NotificationLevel::Normal => {
-                println!("{}", n);
-            }
             NotificationLevel::Info => {
                 info!("{}", n);
             }

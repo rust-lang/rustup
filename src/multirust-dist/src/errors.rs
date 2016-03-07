@@ -99,7 +99,7 @@ impl<'a> Notification<'a> {
             NoUpdateHash(_) => NotificationLevel::Verbose,
             Extracting(_, _) | ChecksumValid(_) | SignatureValid(_)  |
             InstallingToolchain(_) | DownloadingComponent(_, _) |
-            InstallingComponent(_) => NotificationLevel::Normal,
+            InstallingComponent(_) |
             UpdateHashMatches(_) | ComponentAlreadyInstalled(_)  |
             RollingBack => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
