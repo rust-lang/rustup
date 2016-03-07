@@ -3,14 +3,15 @@ use std::error;
 use std::fmt::{self, Display};
 use std::io;
 
-use multirust_dist::{self, utils, temp};
-use multirust_dist::notify::{self, NotificationLevel, Notifyable};
+use multirust_dist::{self, temp};
+use multirust_utils;
+use multirust_utils::notify::{self, NotificationLevel, Notifyable};
 use multirust_dist::manifest::Component;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
     Install(multirust_dist::Notification<'a>),
-    Utils(utils::Notification<'a>),
+    Utils(multirust_utils::Notification<'a>),
     Temp(temp::Notification<'a>),
 
     SetDefaultToolchain(&'a str),
@@ -36,7 +37,7 @@ pub enum Notification<'a> {
 #[derive(Debug)]
 pub enum Error {
     Install(multirust_dist::Error),
-    Utils(utils::Error),
+    Utils(multirust_utils::Error),
     Temp(temp::Error),
 
     UnknownMetadataVersion(String),
@@ -64,11 +65,11 @@ pub type NotifyHandler<'a> = notify::NotifyHandler<'a, for<'b> Notifyable<Notifi
 pub type SharedNotifyHandler = notify::SharedNotifyHandler<for<'b> Notifyable<Notification<'b>>>;
 
 extend_error!(Error: multirust_dist::Error, e => Error::Install(e));
-extend_error!(Error: utils::Error, e => Error::Utils(e));
+extend_error!(Error: multirust_utils::Error, e => Error::Utils(e));
 extend_error!(Error: temp::Error, e => Error::Temp(e));
 
 extend_notification!(Notification: multirust_dist::Notification, n => Notification::Install(n));
-extend_notification!(Notification: utils::Notification, n => Notification::Utils(n));
+extend_notification!(Notification: multirust_utils::Notification, n => Notification::Utils(n));
 extend_notification!(Notification: temp::Notification, n => Notification::Temp(n));
 
 impl<'a> Notification<'a> {

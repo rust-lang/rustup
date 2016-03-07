@@ -2,7 +2,7 @@
 /// `Components` and `DirectoryPackage` are the two sides of the
 /// installation / uninstallation process.
 
-use utils;
+use multirust_utils::{self, utils};
 use prefix::InstallPrefix;
 use errors::*;
 
@@ -118,7 +118,7 @@ impl<'a> ComponentBuilder<'a> {
             // FIXME: This writes relative paths to the component manifest,
             // but rust-installer writes absolute paths.
             try!(writeln!(file, "{}", part.encode()).map_err(|e| {
-                utils::Error::WritingFile {
+                multirust_utils::Error::WritingFile {
                     name: "component",
                     path: abs_path.clone(),
                     error: e,

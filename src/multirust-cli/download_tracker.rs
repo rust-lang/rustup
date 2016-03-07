@@ -4,7 +4,7 @@ use term;
 use time::precise_time_s;
 use multirust::Notification;
 use multirust_dist::Notification as In;
-use multirust_dist::utils::Notification as Un;
+use multirust_utils::Notification as Un;
 use tty;
 
 /// Keep track of this many past download amounts

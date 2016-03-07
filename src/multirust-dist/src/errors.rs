@@ -3,15 +3,15 @@ use std::path::{Path, PathBuf};
 use std::fmt::{self, Display};
 use std::io;
 use temp;
-use utils;
 use walkdir;
 use toml;
-use notify::{NotificationLevel, Notifyable};
+use multirust_utils;
+use multirust_utils::notify::{self, NotificationLevel, Notifyable};
 use manifest::Component;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
-    Utils(utils::Notification<'a>),
+    Utils(multirust_utils::Notification<'a>),
     Temp(temp::Notification<'a>),
 
     Extracting(&'a Path, &'a Path),
@@ -32,7 +32,7 @@ pub enum Notification<'a> {
 
 #[derive(Debug)]
 pub enum Error {
-    Utils(utils::Error),
+    Utils(multirust_utils::Error),
     Temp(temp::Error),
 
     InvalidFileExtension,
@@ -66,7 +66,7 @@ pub enum Error {
     BadInstalledMetadataVersion(String),
     ComponentDirPermissionsFailed(walkdir::Error),
     ComponentFilePermissionsFailed(io::Error),
-    ComponentDownloadFailed(Component, utils::Error),
+    ComponentDownloadFailed(Component, multirust_utils::Error),
     ObsoleteDistManifest,
     Parsing(Vec<toml::ParserError>),
     MissingKey(String),
@@ -80,14 +80,14 @@ pub enum Error {
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
-pub type NotifyHandler<'a> = ::notify::NotifyHandler<'a, for<'b> Notifyable<Notification<'b>>>;
+pub type NotifyHandler<'a> = notify::NotifyHandler<'a, for<'b> Notifyable<Notification<'b>>>;
 pub type SharedNotifyHandler =
-    ::notify::SharedNotifyHandler<for<'b> Notifyable<Notification<'b>>>;
+    notify::SharedNotifyHandler<for<'b> Notifyable<Notification<'b>>>;
 
 extend_error!(Error: temp::Error, e => Error::Temp(e));
-extend_error!(Error: utils::Error, e => Error::Utils(e));
+extend_error!(Error: multirust_utils::Error, e => Error::Utils(e));
 
-extend_notification!(Notification: utils::Notification, n => Notification::Utils(n));
+extend_notification!(Notification: multirust_utils::Notification, n => Notification::Utils(n));
 extend_notification!(Notification: temp::Notification, n => Notification::Temp(n));
 
 impl<'a> Notification<'a> {

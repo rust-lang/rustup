@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use errors::*;
-use multirust_dist::{utils, temp};
+use multirust_dist::temp;
+use multirust_utils::utils;
 
 pub const DB_DELIMITER: &'static str = ";";
 

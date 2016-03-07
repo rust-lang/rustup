@@ -1,7 +1,3 @@
-#![feature(core_intrinsics)] // For type_name().
-#![feature(fundamental)]
-
-extern crate rand;
 extern crate hyper;
 extern crate regex;
 extern crate openssl;
@@ -19,12 +15,11 @@ extern crate walkdir;
 extern crate toml;
 extern crate flate2;
 extern crate tar;
+#[macro_use]
+extern crate multirust_utils;
 
 pub use errors::{Error, Notification, NotifyHandler};
 
-#[macro_use]
-pub mod notify;
-pub mod utils;
 pub mod temp;
 
 pub mod dist;

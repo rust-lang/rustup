@@ -7,7 +7,7 @@ use dist::{download_and_check, DownloadCfg};
 use component::{Components, Transaction, TarGzPackage, Package};
 use temp;
 use errors::*;
-use utils;
+use multirust_utils::utils;
 use prefix::InstallPrefix;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;

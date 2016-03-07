@@ -2,6 +2,7 @@
 // server (mocked on the file system)
 
 extern crate multirust_dist;
+extern crate multirust_utils;
 extern crate multirust_mock;
 extern crate tempdir;
 extern crate tar;
@@ -18,7 +19,8 @@ use multirust_dist::prefix::InstallPrefix;
 use multirust_dist::{Error, NotifyHandler};
 use multirust_dist::dist::ToolchainDesc;
 use multirust_dist::download::DownloadCfg;
-use multirust_dist::utils;
+use multirust_utils::utils;
+use multirust_utils::raw as utils_raw;
 use multirust_dist::temp;
 use multirust_dist::manifestation::{Manifestation, UpdateStatus, Changes};
 use multirust_dist::manifest::{Manifest, Component};
@@ -366,10 +368,10 @@ fn upgrade() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         change_channel_date(url, "nightly", "2016-02-01");
         update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap();
-        assert_eq!("2016-02-01", utils::raw::read_file(&prefix.path().join("bin/rustc")).unwrap());
+        assert_eq!("2016-02-01", utils_raw::read_file(&prefix.path().join("bin/rustc")).unwrap());
         change_channel_date(url, "nightly", "2016-02-02");
         update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap();
-        assert_eq!("2016-02-02", utils::raw::read_file(&prefix.path().join("bin/rustc")).unwrap());
+        assert_eq!("2016-02-02", utils_raw::read_file(&prefix.path().join("bin/rustc")).unwrap());
     });
 }
 
@@ -895,7 +897,7 @@ fn bad_component_hash() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         let path = url.to_file_path().unwrap();
         let path = path.join("dist/2016-02-02/rustc-nightly-x86_64-apple-darwin.tar.gz");
-        utils::raw::write_file(&path, "bogus").unwrap();
+        utils_raw::write_file(&path, "bogus").unwrap();
 
         let err = update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap_err();
 

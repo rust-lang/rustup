@@ -1,9 +1,9 @@
-#[macro_use]
 extern crate multirust_dist;
+#[macro_use]
+extern crate multirust_utils;
 
 #[macro_use]
 extern crate clap;
-extern crate rand;
 extern crate regex;
 extern crate hyper;
 #[macro_use]
@@ -36,7 +36,7 @@ use multirust_dist::dist;
 use multirust_dist::manifest::Component;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;
-use multirust_dist::notify::NotificationLevel;
+use multirust_utils::notify::NotificationLevel;
 
 mod cli;
 mod download_tracker;
@@ -170,9 +170,9 @@ fn run_inner<S: AsRef<OsStr>>(_: &Cfg, command: Result<Command>, args: &[S]) -> 
                 std::process::exit(result.code().unwrap_or(1));
             }
             Err(e) => {
-                Err(utils::Error::RunningCommand {
+                Err(multirust_utils::Error::RunningCommand {
                         name: args[0].as_ref().to_owned(),
-                        error: utils::raw::CommandError::Io(e),
+                        error: multirust_utils::raw::CommandError::Io(e),
                     }
                     .into())
             }
@@ -290,32 +290,33 @@ fn self_install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()> {
     #[allow(dead_code)]
-    fn create_bat_proxy(mut path: PathBuf, name: &'static str) -> utils::Result<()> {
+    fn create_bat_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
         path.push(name.to_owned() + ".bat");
-        utils::write_file(name,
-                          &path,
-                          &format!("@\"%~dp0\\multirust\" proxy {} %*", name))
+        Ok(try!(utils::write_file(name,
+                                  &path,
+                                  &format!("@\"%~dp0\\multirust\" proxy {} %*", name))))
+
     }
     #[allow(dead_code)]
-    fn create_sh_proxy(mut path: PathBuf, name: &'static str) -> utils::Result<()> {
+    fn create_sh_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
         path.push(name.to_owned());
         try!(utils::write_file(name,
                                &path,
                                &format!("#!/bin/sh\n\"`dirname $0`/multirust\" proxy {} \"$@\"",
                                         name)));
-        utils::make_executable(&path)
+        Ok(try!(utils::make_executable(&path)))
     }
-    fn create_symlink_proxy(mut path: PathBuf, name: &'static str) -> utils::Result<()> {
+    fn create_symlink_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
         let mut dest_path = path.clone();
         dest_path.push("multirust".to_owned() + env::consts::EXE_SUFFIX);
         path.push(name.to_owned() + env::consts::EXE_SUFFIX);
-        utils::symlink_file(&dest_path, &path)
+        Ok(try!(utils::symlink_file(&dest_path, &path)))
     }
-    fn create_hardlink_proxy(mut path: PathBuf, name: &'static str) -> utils::Result<()> {
+    fn create_hardlink_proxy(mut path: PathBuf, name: &'static str) -> Result<()> {
         let mut dest_path = path.clone();
         dest_path.push("multirust".to_owned() + env::consts::EXE_SUFFIX);
         path.push(name.to_owned() + env::consts::EXE_SUFFIX);
-        utils::hardlink_file(&dest_path, &path)
+        Ok(try!(utils::hardlink_file(&dest_path, &path)))
     }
 
     let bin_path = cfg.multirust_dir.join("bin");
@@ -403,7 +404,7 @@ fn handle_install(cfg: &Cfg, should_move: bool, add_to_path: bool) -> Result<()>
     }
     #[cfg(not(windows))]
     fn do_add_to_path(path: PathBuf) -> Result<()> {
-        let home_dir = try!(utils::home_dir().ok_or(utils::Error::LocatingHome));
+        let home_dir = try!(utils::home_dir().ok_or(multirust_utils::Error::LocatingHome));
         let tmp = path.into_os_string()
                       .into_string()
                       .expect("cannot install to invalid unicode path");

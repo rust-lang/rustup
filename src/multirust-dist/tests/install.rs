@@ -1,4 +1,5 @@
 extern crate multirust_dist;
+extern crate multirust_utils;
 extern crate multirust_mock;
 extern crate tempdir;
 
@@ -6,7 +7,7 @@ use multirust_dist::component::Components;
 use multirust_dist::component::{DirectoryPackage, Package};
 use multirust_dist::component::Transaction;
 use multirust_dist::temp;
-use multirust_dist::utils;
+use multirust_utils::utils;
 use multirust_dist::NotifyHandler;
 use multirust_dist::prefix::InstallPrefix;
 use std::fs::File;

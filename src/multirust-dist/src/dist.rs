@@ -1,7 +1,7 @@
 
 use temp;
 use errors::*;
-use utils;
+use multirust_utils::utils;
 use prefix::InstallPrefix;
 use manifest::Component;
 use manifest::Manifest as ManifestV2;
@@ -292,8 +292,8 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                 }
             }
             Ok(None) => return Ok(None),
-            Err(Error::Utils(utils::Error::DownloadingFile {
-                error: utils::raw::DownloadError::Status(hyper::status::StatusCode::NotFound),
+            Err(Error::Utils(::multirust_utils::errors::Error::DownloadingFile {
+                error: ::multirust_utils::raw::DownloadError::Status(hyper::status::StatusCode::NotFound),
                 ..
             })) => {
                 // Proceed to try v1 as a fallback

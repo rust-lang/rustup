@@ -2,13 +2,13 @@
 //! dist server, mostly derived from multirust/test-v2.sh
 
 extern crate multirust_dist;
+extern crate multirust_utils;
 extern crate multirust_mock;
 
 use multirust_mock::clitools::{self, Config, Scenario,
                                expect_stdout_ok, expect_stderr_ok,
                                expect_ok, expect_err, run,
                                this_host_triple};
-use multirust_dist::utils;
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, f);
@@ -495,7 +495,7 @@ fn running_with_v2_metadata() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         // Replace the metadata version
-        utils::raw::write_file(&config.homedir.path().join("version"),
+        multirust_utils::raw::write_file(&config.homedir.path().join("version"),
                                "2").unwrap();
         expect_err(config, &["multirust", "default", "nightly"],
                    "multirust's metadata is out of date. run multirust upgrade-data");
@@ -512,7 +512,7 @@ fn upgrade_v2_metadata_to_v12() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         // Replace the metadata version
-        utils::raw::write_file(&config.homedir.path().join("version"),
+        multirust_utils::raw::write_file(&config.homedir.path().join("version"),
                                "2").unwrap();
         expect_stderr_ok(config, &["multirust", "upgrade-data"],
                          "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");

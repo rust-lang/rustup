@@ -9,7 +9,7 @@
 //! FIXME: This uses ensure_dir_exists in some places but rollback
 //! does not remove any dirs created by it.
 
-use utils;
+use multirust_utils::{self, utils};
 use temp;
 use prefix::InstallPrefix;
 use errors::*;
@@ -114,7 +114,7 @@ impl<'a> Transaction<'a> {
         let (item, mut file) = try!(ChangedItem::add_file(&self.prefix, component, relpath.clone()));
         self.change(item);
         try!(write!(file, "{}", content).map_err(|e| {
-            utils::Error::WritingFile {
+            multirust_utils::Error::WritingFile {
                 name: "component",
                 path: self.prefix.abs_path(&relpath),
                 error: e,
@@ -178,7 +178,7 @@ impl<'a> ChangedItem<'a> {
             AddedDir(ref path) => {
                 try!(utils::remove_dir("component",
                                        &prefix.abs_path(path),
-                                       utils::NotifyHandler::none()))
+                                       multirust_utils::NotifyHandler::none()))
             }
             RemovedFile(ref path, ref tmp) | ModifiedFile(ref path, Some(ref tmp)) => {
                 try!(utils::rename_file("component", &tmp, &prefix.abs_path(path)))
@@ -204,10 +204,10 @@ impl<'a> ChangedItem<'a> {
             })
         } else {
             if let Some(p) = abs_path.parent() {
-                try!(utils::ensure_dir_exists("component", p, utils::NotifyHandler::none()));
+                try!(utils::ensure_dir_exists("component", p, multirust_utils::NotifyHandler::none()));
             }
             let file = try!(File::create(&abs_path).map_err(|e| {
-                utils::Error::WritingFile {
+                multirust_utils::Error::WritingFile {
                     name: "component",
                     path: abs_path,
                     error: e,
@@ -229,7 +229,7 @@ impl<'a> ChangedItem<'a> {
             })
         } else {
             if let Some(p) = abs_path.parent() {
-                try!(utils::ensure_dir_exists("component", p, utils::NotifyHandler::none()));
+                try!(utils::ensure_dir_exists("component", p, multirust_utils::NotifyHandler::none()));
             }
             try!(utils::copy_file(src, &abs_path));
             Ok(ChangedItem::AddedFile(relpath))
@@ -244,9 +244,9 @@ impl<'a> ChangedItem<'a> {
             })
         } else {
             if let Some(p) = abs_path.parent() {
-                try!(utils::ensure_dir_exists("component", p, utils::NotifyHandler::none()));
+                try!(utils::ensure_dir_exists("component", p, multirust_utils::NotifyHandler::none()));
             }
-            try!(utils::copy_dir(src, &abs_path, utils::NotifyHandler::none()));
+            try!(utils::copy_dir(src, &abs_path, multirust_utils::NotifyHandler::none()));
             Ok(ChangedItem::AddedDir(relpath))
         }
     }
@@ -285,7 +285,7 @@ impl<'a> ChangedItem<'a> {
             Ok(ChangedItem::ModifiedFile(relpath, Some(backup)))
         } else {
             if let Some(p) = abs_path.parent() {
-                try!(utils::ensure_dir_exists("component", p, utils::NotifyHandler::none()));
+                try!(utils::ensure_dir_exists("component", p, multirust_utils::NotifyHandler::none()));
             }
             Ok(ChangedItem::ModifiedFile(relpath, None))
         }

@@ -9,7 +9,7 @@ use component::components::*;
 use component::transaction::*;
 
 use errors::*;
-use utils;
+use multirust_utils::utils;
 use temp;
 
 use std::path::{Path, PathBuf};

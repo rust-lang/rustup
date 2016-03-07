@@ -2,6 +2,7 @@
 //! derived from multirust/test-v2.sh
 
 extern crate multirust_dist;
+extern crate multirust_utils;
 extern crate multirust_mock;
 extern crate tempdir;
 
@@ -12,7 +13,6 @@ use multirust_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_stdout_ok, expect_err,
                                expect_stderr_ok, set_current_dist_date,
                                change_dir, run, cmd};
-use multirust_dist::utils;
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, f);
@@ -166,11 +166,11 @@ fn bad_sha_on_manifest() {
     setup(&|config| {
         // Corrupt the sha
         let sha_file = config.distdir.path().join("dist/channel-rust-nightly.toml.sha256");
-        let sha_str = utils::raw::read_file(&sha_file).unwrap();
+        let sha_str = multirust_utils::raw::read_file(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         &mut sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
         let sha_str = String::from_utf8(sha_bytes).unwrap();
-        utils::raw::write_file(&sha_file, &sha_str).unwrap();
+        multirust_utils::raw::write_file(&sha_file, &sha_str).unwrap();
         expect_err(config, &["multirust", "default", "nightly"],
                    "checksum failed");
     });
@@ -184,7 +184,7 @@ fn bad_sha_on_installer() {
         for file in fs::read_dir(&dir).unwrap() {
             let file = file.unwrap();
             if file.path().to_string_lossy().ends_with(".tar.gz") {
-                utils::raw::write_file(&file.path(), "xxx").unwrap();
+                multirust_utils::raw::write_file(&file.path(), "xxx").unwrap();
             }
         }
         expect_err(config, &["multirust", "default", "nightly"],
@@ -716,7 +716,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &str) {
     use multirust_mock::dist::create_hash;
 
     let ref manifest_path = config.distdir.path().join("dist/channel-rust-nightly.toml");
-    let ref manifest_str = utils::raw::read_file(manifest_path).unwrap();
+    let ref manifest_str = multirust_utils::raw::read_file(manifest_path).unwrap();
     let mut manifest = Manifest::parse(manifest_str).unwrap();
     {
         let mut std_pkg = manifest.packages.get_mut(name).unwrap();
@@ -724,7 +724,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &str) {
         target_pkg.available = false;
     }
     let ref manifest_str = manifest.stringify();
-    utils::raw::write_file(manifest_path, manifest_str).unwrap();
+    multirust_utils::raw::write_file(manifest_path, manifest_str).unwrap();
 
     // Have to update the hash too
     let ref hash_path = manifest_path.with_extension("toml.sha256");

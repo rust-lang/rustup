@@ -1,5 +1,5 @@
 use errors::*;
-use utils;
+use multirust_utils::utils;
 use temp;
 
 use openssl::crypto::hash::{Type, Hasher};

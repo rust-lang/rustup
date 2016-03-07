@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 use std::io;
 use std::ops;
 use std::fmt::{self, Display};
-use utils::raw;
+use multirust_utils::raw;
 
-use notify::{self, NotificationLevel, Notifyable};
+use multirust_utils::notify::{self, NotificationLevel, Notifyable};
 
 #[derive(Debug)]
 pub enum Error {
