@@ -19,15 +19,18 @@ use multirust_dist;
 pub struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: String,
+    path: PathBuf,
     prefix: InstallPrefix,
 }
 
 impl<'a> Toolchain<'a> {
     pub fn from(cfg: &'a Cfg, name: &str) -> Self {
+        let path = cfg.toolchains_dir.join(name);
         Toolchain {
             cfg: cfg,
             name: name.to_owned(),
-            prefix: InstallPrefix::from(cfg.toolchains_dir.join(name)),
+            path: path.clone(),
+            prefix: InstallPrefix::from(path),
         }
     }
     pub fn cfg(&self) -> &'a Cfg {
@@ -40,10 +43,10 @@ impl<'a> Toolchain<'a> {
         &self.prefix
     }
     pub fn exists(&self) -> bool {
-        utils::is_directory(self.prefix.path())
+        utils::is_directory(&self.path)
     }
     pub fn verify(&self) -> Result<()> {
-        Ok(try!(utils::assert_is_directory(self.prefix.path())))
+        Ok(try!(utils::assert_is_directory(&self.path)))
     }
     pub fn remove(&self) -> Result<()> {
         if self.exists() {
@@ -77,7 +80,7 @@ impl<'a> Toolchain<'a> {
         }
         self.cfg
             .notify_handler
-            .call(Notification::ToolchainDirectory(self.prefix.path(), &self.name));
+            .call(Notification::ToolchainDirectory(&self.path, &self.name));
         let handler = self.cfg.notify_handler.as_ref();
         Ok(try!(self.prefix.install(install_method, ntfy!(&handler))))
     }
@@ -203,7 +206,7 @@ impl<'a> Toolchain<'a> {
 
     fn set_env(&self, cmd: &mut Command) {
         let ref cargo_home = self.cfg.multirust_dir.join("cargo");
-        let ref bin_path = self.prefix.path().join("bin");
+        let ref bin_path = self.path.join("bin");
 
         self.set_ldpath(cmd);
 
@@ -213,12 +216,12 @@ impl<'a> Toolchain<'a> {
 
         // FIXME: This should not be a path, but a toolchain name.
         // Not sure what's going on here.
-        cmd.env("MULTIRUST_TOOLCHAIN", self.prefix.path());
+        cmd.env("MULTIRUST_TOOLCHAIN", &self.path);
         cmd.env("MULTIRUST_HOME", &self.cfg.multirust_dir);
     }
 
     pub fn set_ldpath(&self, cmd: &mut Command) {
-        let new_path = self.prefix.path().join("lib");
+        let new_path = self.path.join("lib");
 
         env_var::set_path("LD_LIBRARY_PATH", &new_path, cmd);
         env_var::set_path("DYLD_LIBRARY_PATH", &new_path, cmd);
@@ -228,7 +231,7 @@ impl<'a> Toolchain<'a> {
         try!(self.verify());
 
         let parts = vec!["share", "doc", "rust", "html"];
-        let mut doc_dir = self.prefix.path().to_owned();
+        let mut doc_dir = self.path.clone();
         for part in parts {
             doc_dir.push(part);
         }
@@ -372,7 +375,7 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn binary_file(&self, name: &str) -> PathBuf {
-        let mut path = self.prefix.path().to_owned();
+        let mut path = self.path.clone();
         path.push("bin");
         path.push(name.to_owned() + env::consts::EXE_SUFFIX);
         path
