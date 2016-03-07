@@ -225,11 +225,20 @@ impl<'a> Toolchain<'a> {
 
     pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {
         try!(self.verify());
-        Ok(try!(self.prefix.doc_path(relative)))
+
+        let parts = vec!["share", "doc", "rust", "html"];
+        let mut doc_dir = self.prefix.path().to_owned();
+        for part in parts {
+            doc_dir.push(part);
+        }
+        doc_dir.push(relative);
+
+        Ok(doc_dir)
     }
     pub fn open_docs(&self, relative: &str) -> Result<()> {
         try!(self.verify());
-        Ok(try!(self.prefix.open_docs(relative)))
+
+        Ok(try!(utils::open_browser(&try!(self.doc_path(relative)))))
     }
 
     pub fn make_default(&self) -> Result<()> {

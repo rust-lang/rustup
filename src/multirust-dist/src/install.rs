@@ -123,16 +123,6 @@ impl InstallPrefix {
         path.push(bin_path(name));
         path
     }
-    pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {
-        let parts = vec!["share", "doc", "rust", "html"];
-        let mut doc_dir = self.path.clone();
-        for part in parts {
-            doc_dir.push(part);
-        }
-        doc_dir.push(relative);
-
-        Ok(doc_dir)
-    }
     pub fn is_installed_here(&self) -> bool {
         utils::is_directory(&self.path)
     }
@@ -145,9 +135,5 @@ impl InstallPrefix {
     }
     pub fn install(&self, method: InstallMethod, notify_handler: NotifyHandler) -> Result<()> {
         method.run(self, notify_handler)
-    }
-
-    pub fn open_docs(&self, relative: &str) -> Result<()> {
-        Ok(try!(utils::open_browser(&try!(self.doc_path(relative)))))
     }
 }
