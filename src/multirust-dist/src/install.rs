@@ -150,8 +150,4 @@ impl InstallPrefix {
     pub fn open_docs(&self, relative: &str) -> Result<()> {
         Ok(try!(utils::open_browser(&try!(self.doc_path(relative)))))
     }
-
-    pub fn components(&self) -> Result<Components> {
-        Components::open(self.clone())
-    }
 }
