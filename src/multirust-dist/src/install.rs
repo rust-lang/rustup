@@ -123,7 +123,7 @@ impl InstallPrefix {
         path.push(bin_path(name));
         path
     }
-    pub fn is_installed_here(&self) -> bool {
+    fn is_installed_here(&self) -> bool {
         utils::is_directory(&self.path)
     }
     pub fn uninstall(&self, notify_handler: NotifyHandler) -> Result<()> {
