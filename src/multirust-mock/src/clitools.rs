@@ -304,8 +304,8 @@ pub fn this_host_triple() -> String {
     else if cfg!(target_arch = "x86_64") { "x86_64" }
     else { unimplemented!() };
     let os = if cfg!(target_os = "linux") { "unknown-linux" }
-    else if cfg!(target_os = "windows") { "windows" }
-    else if cfg!(target_os = "macos") { "macos" }
+    else if cfg!(target_os = "windows") { "pc-windows" }
+    else if cfg!(target_os = "macos") { "apple-darwin" }
     else { unimplemented!() };
     let env = if cfg!(target_env = "gnu") { Some("gnu") }
     else if cfg!(target_env = "msvc") { Some("msvc") }
