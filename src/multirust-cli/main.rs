@@ -263,7 +263,8 @@ fn test_proxies() -> bool {
 }
 
 fn test_installed(cfg: &Cfg) -> bool {
-    utils::is_file(cfg.multirust_dir.join(bin_path("multirust")))
+    let bin = format!("bin/multirust{}", env::consts::EXE_SUFFIX);
+    utils::is_file(cfg.multirust_dir.join(bin))
 }
 
 fn maybe_direct_proxy() -> Result<bool> {
@@ -729,8 +730,8 @@ fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
     println!("");
 
     if toolchain.exists() {
-        let rustc_path = toolchain.prefix().binary_file("rustc");
-        let cargo_path = toolchain.prefix().binary_file("cargo");
+        let rustc_path = toolchain.binary_file("rustc");
+        let cargo_path = toolchain.binary_file("cargo");
 
         if utils::is_file(&rustc_path) {
             let mut cmd = Command::new(&rustc_path);

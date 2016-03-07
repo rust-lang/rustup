@@ -10,6 +10,7 @@ use env_var;
 use std::process::Command;
 use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
+use std::env;
 
 use hyper;
 use multirust_dist;
@@ -368,5 +369,12 @@ impl<'a> Toolchain<'a> {
         } else {
             Err(Error::ComponentsUnsupported(self.name.to_string()))
         }
+    }
+
+    pub fn binary_file(&self, name: &str) -> PathBuf {
+        let mut path = self.prefix.path().to_owned();
+        path.push("bin");
+        path.push(name.to_owned() + env::consts::EXE_SUFFIX);
+        path
     }
 }

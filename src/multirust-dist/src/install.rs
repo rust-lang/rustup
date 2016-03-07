@@ -5,7 +5,6 @@ use dist;
 use component::{Components, TarGzPackage, Transaction, Package};
 
 use std::path::{Path, PathBuf};
-use std::env;
 
 const REL_MANIFEST_DIR: &'static str = "lib/rustlib";
 
@@ -85,12 +84,6 @@ impl<'a> InstallMethod<'a> {
     }
 }
 
-pub fn bin_path(name: &str) -> PathBuf {
-    let mut path = PathBuf::from("bin");
-    path.push(name.to_owned() + env::consts::EXE_SUFFIX);
-    path
-}
-
 impl InstallPrefix {
     pub fn from(path: PathBuf) -> Self {
         InstallPrefix {
@@ -116,11 +109,6 @@ impl InstallPrefix {
     pub fn rel_manifest_file(&self, name: &str) -> PathBuf {
         let mut path = PathBuf::from(REL_MANIFEST_DIR);
         path.push(name);
-        path
-    }
-    pub fn binary_file(&self, name: &str) -> PathBuf {
-        let mut path = self.path.clone();
-        path.push(bin_path(name));
         path
     }
     fn is_installed_here(&self) -> bool {

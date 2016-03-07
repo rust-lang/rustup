@@ -146,7 +146,7 @@ impl Cfg {
     pub fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {
 
         if let Some((toolchain, _)) = try!(self.find_override_toolchain_or_default(path)) {
-            Ok(Some(toolchain.prefix().binary_file(binary)))
+            Ok(Some(toolchain.binary_file(binary)))
         } else {
             Ok(None)
         }
