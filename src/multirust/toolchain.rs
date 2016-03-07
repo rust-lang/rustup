@@ -32,9 +32,6 @@ impl<'a> Toolchain<'a> {
             path: path.clone(),
         }
     }
-    pub fn cfg(&self) -> &'a Cfg {
-        self.cfg
-    }
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -63,13 +60,6 @@ impl<'a> Toolchain<'a> {
             self.cfg.notify_handler.call(Notification::UninstalledToolchain(&self.name));
         }
         Ok(try!(result))
-    }
-    pub fn remove_if_exists(&self) -> Result<()> {
-        if self.exists() {
-            self.remove()
-        } else {
-            Ok(())
-        }
     }
     fn install(&self, install_method: InstallMethod) -> Result<()> {
         assert!(self.is_valid_install_method(install_method));
@@ -102,7 +92,7 @@ impl<'a> Toolchain<'a> {
             InstallMethod::Dist(_, _, _) => !self.is_custom(),
         }
     }
-    pub fn update_hash(&self) -> Result<Option<PathBuf>> {
+    fn update_hash(&self) -> Result<Option<PathBuf>> {
         if self.is_custom() {
             Ok(None)
         } else {
@@ -137,7 +127,7 @@ impl<'a> Toolchain<'a> {
         ToolchainDesc::from_str(&self.name).ok().map(|d| d.is_tracking()) == Some(true)
     }
 
-    pub fn ensure_custom(&self) -> Result<()> {
+    fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
             Err(Error::Install(multirust_dist::Error::InvalidToolchainName(self.name.to_string())))
         } else {
@@ -148,7 +138,7 @@ impl<'a> Toolchain<'a> {
     pub fn install_from_installers(&self, installers: &[&OsStr]) -> Result<()> {
         try!(self.ensure_custom());
 
-        try!(self.remove_if_exists());
+        try!(self.remove());
 
         // FIXME: This should do all downloads first, then do
         // installs, and do it all in a single transaction.
