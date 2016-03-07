@@ -657,7 +657,7 @@ fn ctl_default_toolchain(cfg: &Cfg) -> Result<()> {
 fn ctl_toolchain_sysroot(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(get_toolchain(cfg, m, false));
 
-    let toolchain_dir = toolchain.prefix().path();
+    let toolchain_dir = toolchain.path();
     println!("{}", toolchain_dir.display());
     Ok(())
 }
@@ -765,7 +765,7 @@ fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
 fn show_default(cfg: &Cfg) -> Result<()> {
     if let Some(toolchain) = try!(cfg.find_default()) {
         println!("default toolchain: {}", toolchain.name());
-        println!("default location: {}", toolchain.prefix().path().display());
+        println!("default location: {}", toolchain.path().display());
 
         show_tool_versions(&toolchain)
     } else {
@@ -777,7 +777,7 @@ fn show_default(cfg: &Cfg) -> Result<()> {
 fn show_override(cfg: &Cfg) -> Result<()> {
     if let Some((toolchain, reason)) = try!(cfg.find_override(&try!(utils::current_dir()))) {
         println!("override toolchain: {}", toolchain.name());
-        println!("override location: {}", toolchain.prefix().path().display());
+        println!("override location: {}", toolchain.path().display());
         // FIXME: On windows this displays the UNC portion of the
         // windows path, which is pretty ugly
         println!("override reason: {}", reason);

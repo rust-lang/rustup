@@ -39,8 +39,8 @@ impl<'a> Toolchain<'a> {
     pub fn name(&self) -> &str {
         &self.name
     }
-    pub fn prefix(&self) -> &InstallPrefix {
-        &self.prefix
+    pub fn path(&self) -> &Path {
+        &self.path
     }
     pub fn exists(&self) -> bool {
         utils::is_directory(&self.path)
