@@ -264,7 +264,6 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                             remove: &[Component],
                             ) -> Result<Option<String>> {
 
-    let requested_toolchain = toolchain;
     let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
     let trip = toolchain.target_triple();
     let manifestation = try!(Manifestation::open(prefix.clone(), &trip));
@@ -287,8 +286,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
     if can_dl_v2_manifest {
         match dl_v2_manifest(download, update_hash, toolchain) {
             Ok(Some((m, hash))) => {
-                return match try!(manifestation.update(requested_toolchain,
-                                                       &m, changes, &download.temp_cfg,
+                return match try!(manifestation.update(&m, changes, &download.temp_cfg,
                                                        download.notify_handler.clone())) {
                     UpdateStatus::Unchanged => Ok(None),
                     UpdateStatus::Changed => Ok(Some(hash)),
@@ -308,8 +306,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
 
     // If the v2 manifest is not found then try v1
     let manifest = try!(dl_v1_manifest(download, toolchain));
-    match try!(manifestation.update_v1(requested_toolchain,
-                                       &manifest, update_hash,
+    match try!(manifestation.update_v1(&manifest, update_hash,
                                        &download.temp_cfg, download.notify_handler.clone())) {
         None => Ok(None),
         Some(hash) => Ok(Some(hash)),

@@ -71,13 +71,10 @@ impl Manifestation {
     /// configuration containing the component name-target pairs to
     /// "rustlib/rustup-config.toml".
     pub fn update(&self,
-                  requested_toolchain: &str,
                   new_manifest: &Manifest,
                   changes: Changes,
                   temp_cfg: &temp::Cfg,
                   notify_handler: NotifyHandler) -> Result<UpdateStatus> {
-
-        notify_handler.call(Notification::InstallingToolchain(&requested_toolchain));
 
         // Some vars we're going to need a few times
         let prefix = self.installation.prefix();
@@ -285,7 +282,6 @@ impl Manifestation {
 
     /// Installation using the legacy v1 manifest format
     pub fn update_v1(&self,
-                     requested_toolchain: &str,
                      new_manifest: &[String],
                      update_hash: Option<&Path>,
                      temp_cfg: &temp::Cfg,
@@ -313,8 +309,6 @@ impl Manifestation {
         let (installer_file, installer_hash) = dl.unwrap();
 
         let prefix = self.installation.prefix();
-
-        notify_handler.call(Notification::InstallingToolchain(&requested_toolchain));
 
         // Begin transaction
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);

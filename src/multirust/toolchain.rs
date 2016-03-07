@@ -318,8 +318,7 @@ impl<'a> Toolchain<'a> {
                 remove_extensions: vec![]
             };
 
-            try!(manifestation.update(&self.name,
-                                      &manifest,
+            try!(manifestation.update(&manifest,
                                       changes,
                                       self.download_cfg().temp_cfg,
                                       self.download_cfg().notify_handler.clone()));
@@ -363,8 +362,7 @@ impl<'a> Toolchain<'a> {
                 remove_extensions: vec![component]
             };
 
-            try!(manifestation.update(&self.name,
-                                      &manifest,
+            try!(manifestation.update(&manifest,
                                       changes,
                                       self.download_cfg().temp_cfg,
                                       self.download_cfg().notify_handler.clone()));

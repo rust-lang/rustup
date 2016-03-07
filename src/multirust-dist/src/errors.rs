@@ -25,7 +25,6 @@ pub enum Notification<'a> {
     ExtensionNotInstalled(&'a Component),
     NonFatalError(&'a Error),
     MissingInstalledComponent(&'a str),
-    InstallingToolchain(&'a str),
     DownloadingComponent(&'a str, &'a str),
     InstallingComponent(&'a str),
     DownloadingManifest,
@@ -101,7 +100,7 @@ impl<'a> Notification<'a> {
             ChecksumValid(_) => NotificationLevel::Verbose,
             NoUpdateHash(_) => NotificationLevel::Verbose,
             Extracting(_, _) | SignatureValid(_)  |
-            InstallingToolchain(_) | DownloadingComponent(_, _) |
+            DownloadingComponent(_, _) |
             InstallingComponent(_) |
             UpdateHashMatches | ComponentAlreadyInstalled(_)  |
             RollingBack | DownloadingManifest |
@@ -141,7 +140,6 @@ impl<'a> Display for Notification<'a> {
             }
             NonFatalError(e) => write!(f, "{}", e),
             MissingInstalledComponent(c) => write!(f, "during uninstall component {} was not found", c),
-            InstallingToolchain(t) => write!(f, "installing toolchain '{}'", t),
             DownloadingComponent(c, u) => write!(f, "downloading component '{}' from '{}'", c, u),
             InstallingComponent(c) => write!(f, "installing component '{}'", c),
             DownloadingManifest => write!(f, "downloading manifest"),
