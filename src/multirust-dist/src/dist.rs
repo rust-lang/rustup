@@ -283,6 +283,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
     let can_dl_v2_manifest = enable_experimental || already_using_v2;
 
     // TODO: Add a notification about which manifest version is going to be used
+    download.notify_handler.call(Notification::DownloadingManifest);
     if can_dl_v2_manifest {
         match dl_v2_manifest(download, update_hash, toolchain) {
             Ok(Some((m, hash))) => {
@@ -299,6 +300,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                 ..
             })) => {
                 // Proceed to try v1 as a fallback
+                download.notify_handler.call(Notification::DownloadingLegacyManifest);
             }
             Err(e) => return Err(e)
         }

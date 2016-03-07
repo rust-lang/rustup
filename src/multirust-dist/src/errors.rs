@@ -28,6 +28,8 @@ pub enum Notification<'a> {
     InstallingToolchain(&'a str),
     DownloadingComponent(&'a str, &'a str),
     InstallingComponent(&'a str),
+    DownloadingManifest,
+    DownloadingLegacyManifest,
 }
 
 #[derive(Debug)]
@@ -101,7 +103,8 @@ impl<'a> Notification<'a> {
             InstallingToolchain(_) | DownloadingComponent(_, _) |
             InstallingComponent(_) |
             UpdateHashMatches(_) | ComponentAlreadyInstalled(_)  |
-            RollingBack => NotificationLevel::Info,
+            RollingBack | DownloadingManifest |
+            DownloadingLegacyManifest => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
             MissingInstalledComponent(_) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
@@ -140,6 +143,8 @@ impl<'a> Display for Notification<'a> {
             InstallingToolchain(t) => write!(f, "installing toolchain '{}'", t),
             DownloadingComponent(c, u) => write!(f, "downloading component '{}' from '{}'", c, u),
             InstallingComponent(c) => write!(f, "installing component '{}'", c),
+            DownloadingManifest => write!(f, "downloading manifest"),
+            DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
         }
     }
 }
