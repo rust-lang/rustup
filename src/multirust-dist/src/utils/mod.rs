@@ -147,7 +147,7 @@ impl<'a> Notification<'a> {
             DownloadingFile(_, _) |
             DownloadContentLengthReceived(_) |
             DownloadDataReceived(_) |
-            DownloadFinished => NotificationLevel::Info,
+            DownloadFinished => NotificationLevel::Verbose,
             NoCanonicalPath(_) => NotificationLevel::Warn,
         }
     }
