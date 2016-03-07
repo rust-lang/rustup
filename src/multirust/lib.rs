@@ -16,3 +16,4 @@ mod override_db;
 mod toolchain;
 mod config;
 mod env_var;
+mod install;

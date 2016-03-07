@@ -1,11 +1,12 @@
 use errors::*;
 use multirust_dist::{utils, dist};
-use multirust_dist::install::{InstallPrefix, InstallMethod};
+use multirust_dist::install::InstallPrefix;
 use multirust_dist::dist::ToolchainDesc;
 use multirust_dist::manifestation::{Manifestation, Changes};
 use multirust_dist::manifest::Component;
 use config::Cfg;
 use env_var;
+use install::{self, InstallMethod};
 
 use std::process::Command;
 use std::path::{Path, PathBuf};
@@ -59,7 +60,7 @@ impl<'a> Toolchain<'a> {
             try!(utils::remove_file("update hash", &update_hash));
         }
         let handler = self.cfg.notify_handler.as_ref();
-        let result = self.prefix.uninstall(ntfy!(&handler));
+        let result = install::uninstall(&self.path, ntfy!(&handler));
         if !self.exists() {
             self.cfg.notify_handler.call(Notification::UninstalledToolchain(&self.name));
         }
@@ -82,7 +83,7 @@ impl<'a> Toolchain<'a> {
             .notify_handler
             .call(Notification::ToolchainDirectory(&self.path, &self.name));
         let handler = self.cfg.notify_handler.as_ref();
-        Ok(try!(self.prefix.install(install_method, ntfy!(&handler))))
+        Ok(try!(install_method.run(&self.path, ntfy!(&handler))))
     }
     pub fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<()> {
         self.cfg.notify_handler.call(Notification::LookingForToolchain(&self.name));
