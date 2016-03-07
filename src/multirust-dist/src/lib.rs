@@ -29,7 +29,7 @@ pub mod temp;
 
 pub mod dist;
 pub mod errors;
-pub mod install;
+pub mod prefix;
 pub mod component;
 pub mod manifestation;
 pub mod download;

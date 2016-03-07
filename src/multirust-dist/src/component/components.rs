@@ -3,7 +3,7 @@
 /// installation / uninstallation process.
 
 use utils;
-use install::InstallPrefix;
+use prefix::InstallPrefix;
 use errors::*;
 
 use component::transaction::Transaction;

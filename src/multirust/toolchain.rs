@@ -1,6 +1,6 @@
 use errors::*;
 use multirust_dist::{utils, dist};
-use multirust_dist::install::InstallPrefix;
+use multirust_dist::prefix::InstallPrefix;
 use multirust_dist::dist::ToolchainDesc;
 use multirust_dist::manifestation::{Manifestation, Changes};
 use multirust_dist::manifest::Component;

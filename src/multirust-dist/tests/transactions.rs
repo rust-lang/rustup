@@ -2,7 +2,7 @@ extern crate multirust_dist;
 extern crate tempdir;
 
 use multirust_dist::NotifyHandler;
-use multirust_dist::install::InstallPrefix;
+use multirust_dist::prefix::InstallPrefix;
 use multirust_dist::component::Transaction;
 use multirust_dist::{temp, utils};
 use multirust_dist::Error;

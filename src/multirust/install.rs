@@ -3,7 +3,7 @@
 
 use multirust_dist::{NotifyHandler, Notification};
 use multirust_dist::utils;
-use multirust_dist::install::InstallPrefix;
+use multirust_dist::prefix::InstallPrefix;
 use multirust_dist::temp;
 use multirust_dist::dist;
 use multirust_dist::component::{Components, TarGzPackage, Transaction, Package};

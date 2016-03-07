@@ -8,7 +8,7 @@ use multirust_dist::component::Transaction;
 use multirust_dist::temp;
 use multirust_dist::utils;
 use multirust_dist::NotifyHandler;
-use multirust_dist::install::InstallPrefix;
+use multirust_dist::prefix::InstallPrefix;
 use std::fs::File;
 use std::io::Write;
 use tempdir::TempDir;

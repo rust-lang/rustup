@@ -11,7 +11,7 @@
 
 use utils;
 use temp;
-use install::InstallPrefix;
+use prefix::InstallPrefix;
 use errors::*;
 
 use std::fs::File;

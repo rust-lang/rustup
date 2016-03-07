@@ -8,7 +8,7 @@ use component::{Components, Transaction, TarGzPackage, Package};
 use temp;
 use errors::*;
 use utils;
-use install::InstallPrefix;
+use prefix::InstallPrefix;
 use openssl::crypto::hash::{Type, Hasher};
 use itertools::Itertools;
 use std::path::Path;
