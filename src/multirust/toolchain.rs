@@ -14,7 +14,6 @@ use std::ffi::OsStr;
 use std::env;
 
 use hyper;
-use multirust_dist;
 
 #[derive(Debug)]
 pub struct Toolchain<'a> {
@@ -129,7 +128,7 @@ impl<'a> Toolchain<'a> {
 
     fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
-            Err(Error::Install(multirust_dist::Error::InvalidToolchainName(self.name.to_string())))
+            Err(Error::Install(::multirust_dist::Error::InvalidToolchainName(self.name.to_string())))
         } else {
             Ok(())
         }
