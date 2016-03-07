@@ -71,7 +71,7 @@ impl<'a> Toolchain<'a> {
             Ok(())
         }
     }
-    pub fn install(&self, install_method: InstallMethod) -> Result<()> {
+    fn install(&self, install_method: InstallMethod) -> Result<()> {
         if self.exists() {
             self.cfg.notify_handler.call(Notification::UpdatingToolchain(&self.name));
         } else {
@@ -83,7 +83,7 @@ impl<'a> Toolchain<'a> {
         let handler = self.cfg.notify_handler.as_ref();
         Ok(try!(install_method.run(&self.path, ntfy!(&handler))))
     }
-    pub fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<()> {
+    fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<()> {
         self.cfg.notify_handler.call(Notification::LookingForToolchain(&self.name));
         if !self.exists() {
             self.install(install_method)
