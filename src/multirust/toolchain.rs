@@ -21,7 +21,6 @@ pub struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: String,
     path: PathBuf,
-    prefix: InstallPrefix,
 }
 
 impl<'a> Toolchain<'a> {
@@ -31,7 +30,6 @@ impl<'a> Toolchain<'a> {
             cfg: cfg,
             name: name.to_owned(),
             path: path.clone(),
-            prefix: InstallPrefix::from(path),
         }
     }
     pub fn cfg(&self) -> &'a Cfg {
@@ -266,7 +264,8 @@ impl<'a> Toolchain<'a> {
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
         let trip = toolchain.target_triple();
-        let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
+        let prefix = InstallPrefix::from(self.path.to_owned());
+        let manifestation = try!(Manifestation::open(prefix, &trip));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {
             // Return all optional components of the "rust" package for the
@@ -296,7 +295,8 @@ impl<'a> Toolchain<'a> {
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
         let trip = toolchain.target_triple();
-        let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
+        let prefix = InstallPrefix::from(self.path.to_owned());
+        let manifestation = try!(Manifestation::open(prefix, &trip));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {
 
@@ -339,7 +339,8 @@ impl<'a> Toolchain<'a> {
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
         let trip = toolchain.target_triple();
-        let manifestation = try!(Manifestation::open(self.prefix.clone(), &trip));
+        let prefix = InstallPrefix::from(self.path.to_owned());
+        let manifestation = try!(Manifestation::open(prefix, &trip));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {
 
