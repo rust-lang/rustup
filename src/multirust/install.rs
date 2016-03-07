@@ -10,7 +10,7 @@ use multirust_dist::component::{Components, TarGzPackage, Transaction, Package};
 use errors::Result;
 use std::path::Path;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum InstallMethod<'a> {
     Copy(&'a Path),
     Link(&'a Path),

@@ -593,7 +593,9 @@ fn remove_toolchain_args(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(get_toolchain(cfg, m, true));
     if !try!(common_install_args(&toolchain, m)) {
-        try!(toolchain.install_from_dist_if_not_installed());
+        if !toolchain.is_custom() {
+            try!(toolchain.install_from_dist_if_not_installed());
+        }
     }
 
     toolchain.make_default()
@@ -602,7 +604,9 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn override_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(get_toolchain(cfg, m, true));
     if !try!(common_install_args(&toolchain, m)) {
-        try!(toolchain.install_from_dist_if_not_installed());
+        if !toolchain.is_custom() {
+            try!(toolchain.install_from_dist_if_not_installed());
+        }
     }
 
     toolchain.make_override(&try!(utils::current_dir()))

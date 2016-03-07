@@ -72,6 +72,7 @@ impl<'a> Toolchain<'a> {
         }
     }
     fn install(&self, install_method: InstallMethod) -> Result<()> {
+        assert!(self.is_valid_install_method(install_method));
         if self.exists() {
             self.cfg.notify_handler.call(Notification::UpdatingToolchain(&self.name));
         } else {
@@ -84,12 +85,21 @@ impl<'a> Toolchain<'a> {
         Ok(try!(install_method.run(&self.path, ntfy!(&handler))))
     }
     fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<()> {
+        assert!(self.is_valid_install_method(install_method));
         self.cfg.notify_handler.call(Notification::LookingForToolchain(&self.name));
         if !self.exists() {
             self.install(install_method)
         } else {
             self.cfg.notify_handler.call(Notification::UsingExistingToolchain(&self.name));
             Ok(())
+        }
+    }
+    fn is_valid_install_method(&self, install_method: InstallMethod) -> bool {
+        match install_method {
+            InstallMethod::Copy(_) |
+            InstallMethod::Link(_) |
+            InstallMethod::Installer(_, _) => self.is_custom(),
+            InstallMethod::Dist(_, _, _) => !self.is_custom(),
         }
     }
     pub fn update_hash(&self) -> Result<Option<PathBuf>> {
