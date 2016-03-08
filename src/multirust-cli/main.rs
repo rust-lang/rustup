@@ -98,7 +98,6 @@ fn run_multirust() -> Result<()> {
             }
         }
         ("which", Some(m)) => which(&cfg, m),
-        ("ctl", Some(m)) => ctl(&cfg, m),
         ("doc", Some(m)) => doc(&cfg, m),
         _ => {
             let result = maybe_install(&cfg);
@@ -638,43 +637,6 @@ fn doc_url(m: &ArgMatches) -> &'static str {
 
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     cfg.open_docs_for_dir(&try!(utils::current_dir()), doc_url(m))
-}
-
-fn ctl_home(cfg: &Cfg) -> Result<()> {
-    println!("{}", cfg.multirust_dir.display());
-    Ok(())
-}
-
-fn ctl_overide_toolchain(cfg: &Cfg) -> Result<()> {
-    let (toolchain, _) = try!(cfg.toolchain_for_dir(&try!(utils::current_dir())));
-
-    println!("{}", toolchain.name());
-    Ok(())
-}
-
-fn ctl_default_toolchain(cfg: &Cfg) -> Result<()> {
-    let toolchain = try!(try!(cfg.find_default()).ok_or(Error::NoDefaultToolchain));
-
-    println!("{}", toolchain.name());
-    Ok(())
-}
-
-fn ctl_toolchain_sysroot(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let toolchain = try!(get_toolchain(cfg, m, false));
-
-    let toolchain_dir = toolchain.path();
-    println!("{}", toolchain_dir.display());
-    Ok(())
-}
-
-fn ctl(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    match m.subcommand() {
-        ("home", Some(_)) => ctl_home(cfg),
-        ("override-toolchain", Some(_)) => ctl_overide_toolchain(cfg),
-        ("default-toolchain", Some(_)) => ctl_default_toolchain(cfg),
-        ("toolchain-sysroot", Some(m)) => ctl_toolchain_sysroot(cfg, m),
-        _ => Ok(()),
-    }
 }
 
 fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {

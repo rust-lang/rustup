@@ -219,22 +219,6 @@ By default, it opens the API documentation for the standard library.
                 .about("Report location of the currently active Rust tool.")
                 .arg(Arg::with_name("binary").required(true))
         )
-        .subcommand(
-            SubCommand::with_name("ctl")
-                .subcommand(
-                    SubCommand::with_name("home")
-                )
-                .subcommand(
-                    SubCommand::with_name("override-toolchain")
-                )
-                .subcommand(
-                    SubCommand::with_name("default-toolchain")
-                )
-                .subcommand(
-                    SubCommand::with_name("toolchain-sysroot")
-                        .arg(Arg::with_name("toolchain").required(true))
-                )
-        )
 }
 
 fn install_args() -> Vec<Arg<'static, 'static, 'static, 'static, 'static, 'static>> {
