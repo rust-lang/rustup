@@ -126,7 +126,7 @@ impl Manifestation {
         let mut things_to_install: Vec<(Component, temp::File)> = Vec::new();
         for (component, url, hash) in components_urls_and_hashes {
 
-            notify_handler.call(Notification::DownloadingComponent(&component.pkg, &url));
+            notify_handler.call(Notification::DownloadingComponent(&component.pkg));
 
             // Download each package to temp file
             let temp_file = try!(temp_cfg.new_file());

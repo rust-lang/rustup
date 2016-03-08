@@ -127,6 +127,33 @@ pub fn expect_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     assert!(out.stderr.contains(expected), args);
 }
 
+pub fn expect_ok_ex(config: &Config, args: &[&str],
+                    stdout: &str, stderr: &str) {
+    let out = run(config, args[0], &args[1..], &[]);
+    println!("out.ok: {}", out.ok);
+    println!("out.stdout:\n\n{}", out.stdout);
+    println!("out.stderr:\n\n{}", out.stderr);
+    println!("expected.stdout: {}", stdout);
+    println!("expected.stderr: {}", stderr);
+    assert!(out.ok, format!("{:?}", args));
+    assert!(out.stdout == stdout, format!("{:?}", args));
+    assert!(out.stderr == stderr, format!("{:?}", args));
+}
+
+pub fn expect_err_ex(config: &Config, args: &[&str],
+                     stdout: &str, stderr: &str) {
+    let out = run(config, args[0], &args[1..], &[]);
+    println!("out.ok: {}", out.ok);
+    println!("out.stdout:\n\n{}", out.stdout);
+    println!("out.stderr:\n\n{}", out.stderr);
+    println!("expected.stdout: {}", stdout);
+    println!("expected.stderr: {}", stderr);
+    let args = format!("{:?}", args);
+    assert!(out.ok, format!("{:?}", args));
+    assert!(out.stdout == stdout, format!("{:?}", args));
+    assert!(out.stderr == stderr, format!("{:?}", args));
+}
+
 #[derive(Debug)]
 pub struct SanitizedOutput {
     pub ok: bool,

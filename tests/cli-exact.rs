@@ -1,0 +1,44 @@
+//! Yet more cli test cases. These are testing that the output
+//! is exactly as expected.
+
+extern crate multirust_dist;
+extern crate multirust_mock;
+
+use multirust_mock::clitools::{self, Config, Scenario,
+                               expect_ok, expect_ok_ex};
+
+pub fn setup(f: &Fn(&Config)) {
+    clitools::setup(Scenario::SimpleV2, f);
+}
+
+#[test]
+pub fn update() {
+    setup(&|config| {
+        expect_ok_ex(config, &["multirust", "update", "nightly"],
+r"",
+r"info: installing toolchain 'nightly'
+info: downloading manifest
+info: downloading component 'rust-std'
+info: downloading component 'rustc'
+info: downloading component 'cargo'
+info: downloading component 'rust-docs'
+info: installing component 'rust-std'
+info: installing component 'rustc'
+info: installing component 'cargo'
+info: installing component 'rust-docs'
+");
+    });
+}
+
+#[test]
+pub fn update_again() {
+    setup(&|config| {
+        expect_ok(config, &["multirust", "update", "nightly"]);
+        expect_ok_ex(config, &["multirust", "update", "nightly"],
+r"",
+r"info: updating existing install for 'nightly'
+info: downloading manifest
+info: toolchain is already up to date
+");
+    });
+}
