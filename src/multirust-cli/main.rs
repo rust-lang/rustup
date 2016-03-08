@@ -137,7 +137,7 @@ fn set_globals(m: Option<&ArgMatches>) -> Result<Cfg> {
         match n.level() {
             NotificationLevel::Verbose => {
                 if verbose {
-                    println!("{}", n);
+                    verbose!("{}", n);
                 }
             }
             NotificationLevel::Info => {
