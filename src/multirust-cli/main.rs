@@ -566,7 +566,25 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         }
     }
 
-    toolchain.make_default()
+    try!(toolchain.make_default());
+
+    println!("");
+    try!(show_channel_version(cfg, toolchain.name()));
+    Ok(())
+}
+
+fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    if let Some(name) = m.value_of("toolchain") {
+        let toolchain = try!(cfg.get_toolchain(name, true));
+        if !try!(common_install_args(&toolchain, m)) {
+            try!(toolchain.install_from_dist())
+        }
+        println!("");
+        try!(show_channel_version(cfg, name));
+    } else {
+        try!(update_all_channels(cfg))
+    }
+    Ok(())
 }
 
 fn override_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
@@ -577,7 +595,11 @@ fn override_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         }
     }
 
-    toolchain.make_override(&try!(utils::current_dir()))
+    try!(toolchain.make_override(&try!(utils::current_dir())));
+
+    println!("");
+    try!(show_channel_version(cfg, toolchain.name()));
+    Ok(())
 }
 
 fn common_install_args(toolchain: &Toolchain, m: &ArgMatches) -> Result<bool> {
@@ -593,6 +615,17 @@ fn common_install_args(toolchain: &Toolchain, m: &ArgMatches) -> Result<bool> {
         return Ok(false);
     }
     Ok(true)
+}
+
+fn show_channel_version(cfg: &Cfg, name: &str) -> Result<()> {
+    let mut t = term::stdout().unwrap();
+    if tty::stdout_isatty() { let _ = t.fg(term::color::BRIGHT_WHITE); }
+    if tty::stdout_isatty() { let _ = t.bg(term::color::BLACK); }
+    let _ = write!(t, "{}", name);
+    if tty::stdout_isatty() { let _ = t.reset(); }
+    let _ = writeln!(t, " revision:");
+    try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
+    Ok(())
 }
 
 fn doc_url(m: &ArgMatches) -> &'static str {
@@ -827,18 +860,6 @@ fn update_all_channels(cfg: &Cfg) -> Result<()> {
         let _ = t.reset();
         let _ = writeln!(t, " revision:");
         try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
-    }
-    Ok(())
-}
-
-fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    if let Some(name) = m.value_of("toolchain") {
-        let toolchain = try!(cfg.get_toolchain(name, true));
-        if !try!(common_install_args(&toolchain, m)) {
-            try!(toolchain.install_from_dist())
-        }
-    } else {
-        try!(update_all_channels(cfg))
     }
     Ok(())
 }

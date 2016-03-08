@@ -133,11 +133,11 @@ pub fn expect_ok_ex(config: &Config, args: &[&str],
     println!("out.ok: {}", out.ok);
     println!("out.stdout:\n\n{}", out.stdout);
     println!("out.stderr:\n\n{}", out.stderr);
-    println!("expected.stdout: {}", stdout);
-    println!("expected.stderr: {}", stderr);
-    assert!(out.ok, format!("{:?}", args));
-    assert!(out.stdout == stdout, format!("{:?}", args));
-    assert!(out.stderr == stderr, format!("{:?}", args));
+    println!("expected.stdout: \n\n{}", stdout);
+    println!("expected.stderr: \n\n{}", stderr);
+    assert!(out.ok, format!("ok {:?}", args));
+    assert!(out.stdout == stdout, format!("out {:?}", args));
+    assert!(out.stderr == stderr, format!("err {:?}", args));
 }
 
 pub fn expect_err_ex(config: &Config, args: &[&str],
@@ -146,12 +146,12 @@ pub fn expect_err_ex(config: &Config, args: &[&str],
     println!("out.ok: {}", out.ok);
     println!("out.stdout:\n\n{}", out.stdout);
     println!("out.stderr:\n\n{}", out.stderr);
-    println!("expected.stdout: {}", stdout);
-    println!("expected.stderr: {}", stderr);
+    println!("expected.stdout: \n\n{}", stdout);
+    println!("expected.stderr: \n\n{}", stderr);
     let args = format!("{:?}", args);
     assert!(out.ok, format!("{:?}", args));
-    assert!(out.stdout == stdout, format!("{:?}", args));
-    assert!(out.stderr == stderr, format!("{:?}", args));
+    assert!(out.stdout == stdout, format!("out {:?}", args));
+    assert!(out.stderr == stderr, format!("err {:?}", args));
 }
 
 #[derive(Debug)]
