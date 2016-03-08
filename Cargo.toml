@@ -16,11 +16,10 @@ keywords = ["multirust", "install", "proxy"]
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-rust-install = { version = "0.0.5", path = "rust-install" }
-rust-manifest = { version = "0.0.5", path = "rust-manifest" }
+multirust-dist = { version = "0.0.5", path = "src/multirust-dist" }
+multirust-utils = { version = "0.0.5", path = "src/multirust-utils" }
 clap = "1.4.5"
 regex = "0.1.41"
-rand = "0.3.11"
 openssl = "0.7.2"
 hyper = "0.7.0"
 term = "0.2.11"
@@ -49,8 +48,15 @@ winapi = "0.2.4"
 winreg = "0.3.2"
 user32-sys = "0.1.2"
 
+[dev-dependencies]
+multirust-mock = { version = "0.0.5", path = "src/multirust-mock" }
+
 [lib]
 name = "multirust"
+path = "src/multirust/lib.rs"
+test = false # no unit tests
 
 [[bin]]
 name = "multirust-rs"
+path = "src/multirust-cli/main.rs"
+test = false # no unit tests

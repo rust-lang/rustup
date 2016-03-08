@@ -1,16 +1,17 @@
 //! Test cases of the multirust command, using v1 manifests, mostly
 //! derived from multirust/test-v2.sh
 
-extern crate rust_install;
+extern crate multirust_dist;
+extern crate multirust_utils;
+extern crate multirust_mock;
 extern crate tempdir;
 
 use std::fs;
 use tempdir::TempDir;
-use rust_install::mock::clitools::{self, Config, Scenario,
-                                   expect_ok, expect_stdout_ok, expect_err,
-                                   expect_stderr_ok, set_current_dist_date,
-                                   change_dir, run};
-use rust_install::utils;
+use multirust_mock::clitools::{self, Config, Scenario,
+                               expect_ok, expect_stdout_ok, expect_err,
+                               expect_stderr_ok, set_current_dist_date,
+                               change_dir, run};
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV1, f);
@@ -163,11 +164,11 @@ fn remove_override_toolchain_error_handling() {
 fn bad_sha_on_manifest() {
     setup(&|config| {
         let sha_file = config.distdir.path().join("dist/channel-rust-nightly.sha256");
-        let sha_str = utils::raw::read_file(&sha_file).unwrap();
+        let sha_str = multirust_utils::raw::read_file(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         &mut sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
         let sha_str = String::from_utf8(sha_bytes).unwrap();
-        utils::raw::write_file(&sha_file, &sha_str).unwrap();
+        multirust_utils::raw::write_file(&sha_file, &sha_str).unwrap();
         expect_err(config, &["multirust", "default", "nightly"],
                    "checksum failed");
     });
@@ -180,7 +181,7 @@ fn bad_sha_on_installer() {
         for file in fs::read_dir(&dir).unwrap() {
             let file = file.unwrap();
             if file.path().to_string_lossy().ends_with(".tar.gz") {
-                utils::raw::write_file(&file.path(), "xxx").unwrap();
+                multirust_utils::raw::write_file(&file.path(), "xxx").unwrap();
             }
         }
         expect_err(config, &["multirust", "default", "nightly"],
@@ -396,7 +397,7 @@ fn no_update_on_channel_when_date_has_not_changed() {
     setup(&|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_stderr_ok(config, &["multirust", "update", "nightly"],
-                         "skipping update");
+                         "already up to date");
     });
 }
 

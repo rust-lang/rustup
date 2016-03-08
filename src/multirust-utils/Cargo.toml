@@ -1,0 +1,17 @@
+[package]
+
+name = "multirust-utils"
+version = "0.0.5"
+authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
+description = "multirust in rust - manage multiple rust installations with ease"
+
+documentation = "http://diggsey.github.io/multirust-rs/multirust/index.html"
+homepage = "https://github.com/Diggsey/multirust-rs"
+repository = "https://github.com/Diggsey/multirust-rs"
+
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+openssl = "0.7.2"
+hyper = "0.7.0"
+rand = "0.3.11"

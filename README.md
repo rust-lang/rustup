@@ -7,12 +7,12 @@ Multirust-rs is a reimplementation of multirust in rust. It provides both a comm
 
 ## Library Installation
 
-Add [multirust-rs](https://crates.io/crates/multirust-rs) or [rust-install](https://crates.io/crates/rust-install) as a standard cargo dependency to your project, depending on your requirements.
+Add [multirust-rs](https://crates.io/crates/multirust-rs) or [multirust-dist](https://crates.io/crates/multirust-dist) as a standard cargo dependency to your project, depending on your requirements.
 
 ## Library Documentation
 
 - [multirust](http://diggsey.github.io/multirust-rs/multirust/index.html)
-- [rust-install](http://diggsey.github.io/multirust-rs/rust_install/index.html)
+- [multirust-dist](http://diggsey.github.io/multirust-rs/multirust_dist/index.html)
 
 
 ## Tool Installation
