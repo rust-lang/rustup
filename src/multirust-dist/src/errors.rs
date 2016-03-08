@@ -15,7 +15,6 @@ pub enum Notification<'a> {
     Temp(temp::Notification<'a>),
 
     Extracting(&'a Path, &'a Path),
-    UpdateHashMatches,
     ComponentAlreadyInstalled(&'a Component),
     CantReadUpdateHash(&'a Path),
     NoUpdateHash(&'a Path),
@@ -102,7 +101,7 @@ impl<'a> Notification<'a> {
             Extracting(_, _) | SignatureValid(_)  |
             DownloadingComponent(_) |
             InstallingComponent(_) |
-            UpdateHashMatches | ComponentAlreadyInstalled(_)  |
+            ComponentAlreadyInstalled(_)  |
             RollingBack | DownloadingManifest |
             DownloadingLegacyManifest => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
@@ -119,9 +118,6 @@ impl<'a> Display for Notification<'a> {
             Temp(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
             Extracting(_, _) => write!(f, "extracting..."),
-            UpdateHashMatches => {
-                write!(f, "toolchain is already up to date")
-            }
             ComponentAlreadyInstalled(ref c) => {
                 write!(f, "component '{}' for target '{}' is up to date",
                        c.pkg, c.target)

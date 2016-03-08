@@ -71,7 +71,15 @@ impl<'a> Toolchain<'a> {
             .notify_handler
             .call(Notification::ToolchainDirectory(&self.path, &self.name));
         let handler = self.cfg.notify_handler.as_ref();
-        Ok(try!(install_method.run(&self.path, ntfy!(&handler))))
+        let updated = try!(install_method.run(&self.path, ntfy!(&handler)));
+
+        if !updated {
+            self.cfg.notify_handler.call(Notification::UpdateHashMatches);
+        } else {
+            self.cfg.notify_handler.call(Notification::InstalledToolchain(&self.name));
+        }
+
+        Ok(())
     }
     fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<()> {
         assert!(self.is_valid_install_method(install_method));

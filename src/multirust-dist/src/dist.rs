@@ -169,7 +169,6 @@ pub fn download_and_check<'a>(url_str: &str,
             if let Ok(contents) = utils::read_file("update hash", hash_file) {
                 if contents == partial_hash {
                     // Skip download, update hash matches
-                    cfg.notify_handler.call(Notification::UpdateHashMatches);
                     return Ok(None);
                 }
             } else {

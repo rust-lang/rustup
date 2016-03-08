@@ -19,11 +19,12 @@ pub enum Notification<'a> {
     ToolchainDirectory(&'a Path, &'a str),
     UpdatingToolchain(&'a str),
     InstallingToolchain(&'a str),
+    InstalledToolchain(&'a str),
     UsingExistingToolchain(&'a str),
     UninstallingToolchain(&'a str),
     UninstalledToolchain(&'a str),
     ToolchainNotInstalled(&'a str),
-
+    UpdateHashMatches,
     UpgradingMetadata(&'a str, &'a str),
     MetadataUpgradeNotNeeded(&'a str),
     WritingMetadataVersion(&'a str),
@@ -85,12 +86,14 @@ impl<'a> Notification<'a> {
             SetOverrideToolchain(_, _) |
             UpdatingToolchain(_) |
             InstallingToolchain(_) |
+            InstalledToolchain(_) |
             UsingExistingToolchain(_) |
             UninstallingToolchain(_) |
             UninstalledToolchain(_) |
             ToolchainNotInstalled(_) |
             UpgradingMetadata(_, _) |
-            MetadataUpgradeNotNeeded(_) => NotificationLevel::Info,
+            MetadataUpgradeNotNeeded(_) |
+            UpdateHashMatches => NotificationLevel::Info,
             NonFatalError(_) => NotificationLevel::Error,
             UpgradeRemovesToolchains => NotificationLevel::Warn,
         }
@@ -115,10 +118,14 @@ impl<'a> Display for Notification<'a> {
             ToolchainDirectory(path, _) => write!(f, "toolchain directory: '{}'", path.display()),
             UpdatingToolchain(name) => write!(f, "updating existing install for '{}'", name),
             InstallingToolchain(name) => write!(f, "installing toolchain '{}'", name),
+            InstalledToolchain(name) => write!(f, "toolchain '{}' installed", name),
             UsingExistingToolchain(name) => write!(f, "using existing install for '{}'", name),
             UninstallingToolchain(name) => write!(f, "uninstalling toolchain '{}'", name),
             UninstalledToolchain(name) => write!(f, "toolchain '{}' uninstalled", name),
             ToolchainNotInstalled(name) => write!(f, "no toolchain installed for '{}'", name),
+            UpdateHashMatches => {
+                write!(f, "toolchain is already up to date")
+            }
             UpgradingMetadata(from_ver, to_ver) => {
                 write!(f,
                        "upgrading metadata version from '{}' to '{}'",

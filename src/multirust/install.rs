@@ -19,7 +19,7 @@ pub enum InstallMethod<'a> {
 }
 
 impl<'a> InstallMethod<'a> {
-    pub fn run(self, path: &Path, notify_handler: NotifyHandler) -> Result<()> {
+    pub fn run(self, path: &Path, notify_handler: NotifyHandler) -> Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
@@ -34,14 +34,15 @@ impl<'a> InstallMethod<'a> {
         match self {
             InstallMethod::Copy(src) => {
                 try!(utils::copy_dir(src, path, ntfy!(&notify_handler)));
-                Ok(())
+                Ok(true)
             }
             InstallMethod::Link(src) => {
                 try!(utils::symlink_dir(src, &path, ntfy!(&notify_handler)));
-                Ok(())
+                Ok(true)
             }
             InstallMethod::Installer(src, temp_cfg) => {
-                InstallMethod::tar_gz(src, path, &temp_cfg, notify_handler)
+                try!(InstallMethod::tar_gz(src, path, &temp_cfg, notify_handler));
+                Ok(true)
             }
             InstallMethod::Dist(toolchain, update_hash, dl_cfg) => {
                 let ref prefix = InstallPrefix::from(path.to_owned());
@@ -57,9 +58,11 @@ impl<'a> InstallMethod<'a> {
                     if let Some(hash_file) = update_hash {
                         try!(utils::write_file("update hash", hash_file, &hash));
                     }
-                }
 
-                Ok(())
+                    Ok(true)
+                } else {
+                    Ok(false)
+                }
             }
         }
     }
