@@ -54,7 +54,9 @@ multirust-mock = { version = "0.0.5", path = "src/multirust-mock" }
 [lib]
 name = "multirust"
 path = "src/multirust/lib.rs"
+test = false # no unit tests
 
 [[bin]]
 name = "multirust-rs"
 path = "src/multirust-cli/main.rs"
+test = false # no unit tests
