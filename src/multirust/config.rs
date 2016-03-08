@@ -9,7 +9,7 @@ use itertools::Itertools;
 
 use errors::*;
 use multirust_dist::{temp, dist};
-use multirust_utils::{self, utils};
+use multirust_utils::utils;
 use override_db::OverrideDB;
 use toolchain::Toolchain;
 
@@ -185,7 +185,7 @@ impl Cfg {
                 for dir in dirs {
                     let dir = try!(dir.map_err(|e| Error::UpgradeIoError(e)));
                     try!(utils::remove_dir("toolchain", &dir.path(),
-                                           multirust_utils::NotifyHandler::some(&self.notify_handler)));
+                                           ::multirust_utils::NotifyHandler::some(&self.notify_handler)));
                 }
 
                 // Also delete the update hashes
