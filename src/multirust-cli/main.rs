@@ -257,6 +257,10 @@ fn command_requires_metadata() -> Result<bool> {
         (Some("self"), Some("install")) => {
             Ok(false)
         }
+        (None, None) => {
+            // Running multirust in its self-install mode
+            Ok(false)
+        }
         (_, _) => {
             Ok(true)
         }
