@@ -25,29 +25,5 @@ toml = "0.1.27"
 multirust-mock = { path = "../multirust-mock" }
 multirust-utils = { path = "../multirust-utils" }
 
-[target.x86_64-pc-windows-gnu.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-shell32-sys = "0.1.1"
-ole32-sys = "0.2.0"
-
-[target.x86_64-pc-windows-msvc.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-shell32-sys = "0.1.1"
-ole32-sys = "0.2.0"
-
-[target.i686-pc-windows-gnu.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-shell32-sys = "0.1.1"
-ole32-sys = "0.2.0"
-
-[target.i686-pc-windows-msvc.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-shell32-sys = "0.1.1"
-ole32-sys = "0.2.0"
-
 [lib]
 name = "multirust_dist"

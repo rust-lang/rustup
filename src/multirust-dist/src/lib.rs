@@ -2,14 +2,6 @@ extern crate hyper;
 extern crate regex;
 extern crate openssl;
 extern crate itertools;
-#[cfg(windows)]
-extern crate winapi;
-#[cfg(windows)]
-extern crate winreg;
-#[cfg(windows)]
-extern crate shell32;
-#[cfg(windows)]
-extern crate ole32;
 extern crate tempdir;
 extern crate walkdir;
 extern crate toml;
