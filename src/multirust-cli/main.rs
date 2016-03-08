@@ -25,7 +25,7 @@ use clap::ArgMatches;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::io::{Write, BufRead};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::process;
 use std::ffi::OsStr;
 use std::iter;
@@ -71,27 +71,6 @@ fn run_multirust() -> Result<()> {
 
     let app_matches = cli::get().get_matches();
     let cfg = try!(set_globals(Some(&app_matches)));
-
-    // Make sure everything is set-up correctly
-    if need_metadata {
-        match app_matches.subcommand_name() {
-            Some("self") | Some("proxy") => {}
-            _ => {
-                if !test_proxies() {
-                    if !test_installed(&cfg) {
-                        warn!("multirust is not installed for the current user: `rustc` invocations \
-                               will not be proxied.\n\nFor more information, run  `multirust install \
-                               --help`\n");
-                    } else {
-                        warn!("multirust is installed but is not set up correctly: `rustc` \
-                               invocations will not be proxied.\n\nEnsure '{}' is on your PATH, and \
-                               has priority.\n",
-                              cfg.multirust_dir.join("bin").display());
-                    }
-                }
-            }
-        }
-    }
 
     match app_matches.subcommand() {
         ("update", Some(m)) => update(&cfg, m),
@@ -248,15 +227,6 @@ fn shell_cmd(cmdline: &OsStr) -> Command {
     }
 
     inner(cmdline)
-}
-
-fn test_proxies() -> bool {
-    let result = utils::cmd_status("rustc",
-                                   shell_cmd("rustc --multirust".as_ref())
-                                       .stdin(Stdio::null())
-                                       .stdout(Stdio::null())
-                                       .stderr(Stdio::null()));
-    result.is_ok()
 }
 
 fn test_installed(cfg: &Cfg) -> bool {
