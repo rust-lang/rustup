@@ -149,7 +149,7 @@ pub fn expect_err_ex(config: &Config, args: &[&str],
     println!("expected.stdout: \n\n{}", stdout);
     println!("expected.stderr: \n\n{}", stderr);
     let args = format!("{:?}", args);
-    assert!(out.ok, format!("{:?}", args));
+    assert!(!out.ok, format!("not ok {:?}", args));
     assert!(out.stdout == stdout, format!("out {:?}", args));
     assert!(out.stderr == stderr, format!("err {:?}", args));
 }

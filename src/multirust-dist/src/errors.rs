@@ -77,6 +77,7 @@ pub enum Error {
     UnsupportedVersion(String),
     MissingPackageForComponent(Component),
     RequestedComponentsUnavailable(Vec<Component>),
+    NoManifestFound(String, Box<Error>),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -96,14 +97,13 @@ impl<'a> Notification<'a> {
         match *self {
             Temp(ref n) => n.level(),
             Utils(ref n) => n.level(),
-            ChecksumValid(_) => NotificationLevel::Verbose,
-            NoUpdateHash(_) => NotificationLevel::Verbose,
+            ChecksumValid(_) | NoUpdateHash(_) |
+            DownloadingLegacyManifest  => NotificationLevel::Verbose,
             Extracting(_, _) | SignatureValid(_)  |
             DownloadingComponent(_) |
             InstallingComponent(_) |
             ComponentAlreadyInstalled(_)  |
-            RollingBack | DownloadingManifest |
-            DownloadingLegacyManifest => NotificationLevel::Info,
+            RollingBack | DownloadingManifest => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
             MissingInstalledComponent(_) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
@@ -179,6 +179,7 @@ impl error::Error for Error {
             UnsupportedVersion(_) => "unsupported manifest version",
             MissingPackageForComponent(_) => "missing package for component",
             RequestedComponentsUnavailable(_) => "some requested components are unavailable to download",
+            NoManifestFound(_, _) => "no release found",
         }
     }
 
@@ -191,6 +192,7 @@ impl error::Error for Error {
             ComponentDirPermissionsFailed(ref e) => Some(e),
             ExtractingPackage(ref e) => Some(e),
             ComponentDownloadFailed(_, ref e) => Some(e),
+            NoManifestFound(_, ref e) => Some(e),
             InvalidFileExtension |
             InvalidInstaller |
             InvalidToolchainName(_) |
@@ -318,6 +320,23 @@ impl Display for Error {
                         let cs_str = cs_strs.join(", ");
                         write!(f, "some components unavailable for download: {}",
                                cs_str)
+                    }
+                }
+            }
+            NoManifestFound(ref ch, ref e) => {
+                use multirust_utils::raw::DownloadError;
+                use hyper::status::StatusCode::NotFound;
+                match **e {
+                    Error::Utils(multirust_utils::Error::DownloadingFile {
+                        error: DownloadError::Status(NotFound),
+                        ..
+                    }) => {
+                        write!(f, "no release found for '{}'", ch)
+                    }
+                    _ => {
+                        // FIXME: Need handle other common cases nicely,
+                        // like dns lookup, network unavailable.
+                        write!(f, "failed to download manifest for '{}': {}", ch, e)
                     }
                 }
             }

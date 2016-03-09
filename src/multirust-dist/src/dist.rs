@@ -92,6 +92,13 @@ impl ToolchainDesc {
     pub fn manifest_v2_url(&self, dist_root: &str) -> String {
         format!("{}.toml", self.manifest_v1_url(dist_root))
     }
+    /// Either "$channel" or "channel-$date"
+    pub fn manifest_name(&self) -> String {
+        match self.date {
+            None => self.channel.clone(),
+            Some(ref date) => format!("{}-{}", self.channel, date)
+        }
+   }
 
     pub fn package_dir(&self, dist_root: &str) -> String {
         match self.date {
@@ -294,7 +301,8 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
     }
 
     // If the v2 manifest is not found then try v1
-    let manifest = try!(dl_v1_manifest(download, toolchain));
+    let manifest = try!(dl_v1_manifest(download, toolchain)
+                        .map_err(|e| Error::NoManifestFound(toolchain.manifest_name(), Box::new(e))));
     match try!(manifestation.update_v1(&manifest, update_hash,
                                        &download.temp_cfg, download.notify_handler.clone())) {
         None => Ok(None),

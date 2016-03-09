@@ -5,7 +5,8 @@ extern crate multirust_dist;
 extern crate multirust_mock;
 
 use multirust_mock::clitools::{self, Config, Scenario,
-                               expect_ok, expect_ok_ex};
+                               expect_ok, expect_ok_ex,
+                               expect_err_ex};
 use std::env;
 
 pub fn setup(f: &Fn(&Config)) {
@@ -100,5 +101,17 @@ nightly revision:
 r"info: using existing install for 'nightly'
 info: override toolchain for '{}' set to 'nightly'
 ", cwd.display()));
+    });
+}
+
+#[test]
+pub fn update_no_manifest() {
+    setup(&|config| {
+        expect_err_ex(config, &["multirust", "update", "nightly-2016-01-01"],
+r"",
+r"info: installing toolchain 'nightly-2016-01-01'
+info: downloading manifest
+error: no release found for 'nightly-2016-01-01'
+");
     });
 }
