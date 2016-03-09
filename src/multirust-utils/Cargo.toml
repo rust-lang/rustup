@@ -1,6 +1,6 @@
 [package]
 
-name = "multirust-rs"
+name = "multirust-utils"
 version = "0.0.5"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "multirust in rust - manage multiple rust installations with ease"
@@ -9,54 +9,33 @@ documentation = "http://diggsey.github.io/multirust-rs/multirust/index.html"
 homepage = "https://github.com/Diggsey/multirust-rs"
 repository = "https://github.com/Diggsey/multirust-rs"
 
-readme = "README.md"
-
-keywords = ["multirust", "install", "proxy"]
-
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-multirust-dist = { version = "0.0.5", path = "src/multirust-dist" }
-multirust-utils = { version = "0.0.5", path = "src/multirust-utils" }
-clap = "1.4.5"
-regex = "0.1.41"
 openssl = "0.7.2"
 hyper = "0.7.0"
-term = "0.2.11"
-itertools = "0.4.1"
-time = "0.1.34"
-tempdir = "0.3.4"
-libc = "0.2.0"
+rand = "0.3.11"
 
 [target.x86_64-pc-windows-gnu.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
-user32-sys = "0.1.2"
+shell32-sys = "0.1.1"
+ole32-sys = "0.2.0"
 
 [target.x86_64-pc-windows-msvc.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
-user32-sys = "0.1.2"
+shell32-sys = "0.1.1"
+ole32-sys = "0.2.0"
 
 [target.i686-pc-windows-gnu.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
-user32-sys = "0.1.2"
+shell32-sys = "0.1.1"
+ole32-sys = "0.2.0"
 
 [target.i686-pc-windows-msvc.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
-user32-sys = "0.1.2"
-
-[dev-dependencies]
-multirust-mock = { version = "0.0.5", path = "src/multirust-mock" }
-
-[lib]
-name = "multirust"
-path = "src/multirust/lib.rs"
-test = false # no unit tests
-
-[[bin]]
-name = "multirust-rs"
-path = "src/multirust-cli/main.rs"
-test = false # no unit tests
+shell32-sys = "0.1.1"
+ole32-sys = "0.2.0"

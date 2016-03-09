@@ -7,12 +7,12 @@ Multirust-rs is a reimplementation of multirust in rust. It provides both a comm
 
 ## Library Installation
 
-Add [multirust-rs](https://crates.io/crates/multirust-rs) or [rust-install](https://crates.io/crates/rust-install) as a standard cargo dependency to your project, depending on your requirements.
+Add [multirust-rs](https://crates.io/crates/multirust-rs) or [multirust-dist](https://crates.io/crates/multirust-dist) as a standard cargo dependency to your project, depending on your requirements.
 
 ## Library Documentation
 
 - [multirust](http://diggsey.github.io/multirust-rs/multirust/index.html)
-- [rust-install](http://diggsey.github.io/multirust-rs/rust_install/index.html)
+- [multirust-dist](http://diggsey.github.io/multirust-rs/multirust_dist/index.html)
 
 
 ## Tool Installation
@@ -57,7 +57,7 @@ cd multirust-rs && git pull && cargo run --release install
 ### Usage
 
 ```
-multirust 0.0.4
+multirust 0.0.5
 Diggory Blake
 Port of multirust to rust
 
@@ -116,15 +116,15 @@ multirust-rs:
 - `MULTIRUST_TOOLCHAIN` (default: none)
 	If set, will override the toolchain used for all rust tool invocations. A toolchain
 	with this name should be installed, or invocations will fail.
-	
+
 - `MULTIRUST_DIST_ROOT` (default: `https://static.rust-lang.org/dist`)
 	Sets the root URL for downloading packages. You can change this to instead use
 	a local mirror, or to test the binaries from the staging directory.
-	
+
 - `MULTIRUST_HOME` (default: `~/.multirust` or `%LOCALAPPDATA%/.multirust`)
 	Sets the root multirust folder, used for storing installed toolchains and configuration
 	options.
-	
+
 - `MULTIRUST_GPG_KEY` (default: none)
 	Sets the GPG key used to verify the signatures of downloaded files.
 	WARNING: GPG signature verification is not yet implemented.
@@ -147,10 +147,7 @@ multirust-rs:
 - Combine these:
 	`multirust override i686-msvc-nightly-2015-04-01`
 
-- Install a custom toolchain using an installer (windows):
-	`multirust override my_custom_toolchain --install "C:\RustInstaller.msi"`
-
-- Install a custom toolchain using an installer (linux):
+- Install a custom toolchain using an installer:
 	`multirust override my_custom_toolchain --install "/home/user/RustInstaller.tar.gz"`
 
 - Install a custom toolchain using an installer from the internet (linux):
@@ -164,9 +161,19 @@ multirust-rs:
 
 - Switch back to the default toolchain for the current directory:
 	`multirust remove-override`
-	
+
 - See which toolchain will be used in the current directory:
 	`multirust show-override`
+
+
+## License
+
+    Licensed under either of
+
+     * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+     * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+    at your option.
 
 
 ## Contributing
@@ -177,6 +184,6 @@ multirust-rs:
 4. Push to the branch: `git push origin my-new-feature`
 5. Submit a pull request :D
 
-## License
-
-MIT/Apache-2.0
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
+additional terms or conditions.
