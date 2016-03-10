@@ -12,7 +12,7 @@ use multirust_mock::clitools::{self, Config, Scenario,
                                this_host_triple,
                                expect_ok, expect_stdout_ok, expect_err,
                                expect_stderr_ok, set_current_dist_date,
-                               change_dir, run, cmd};
+                               change_dir, run};
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, f);
@@ -501,19 +501,6 @@ fn upgrade_v2_to_v1() {
         fs::remove_file(config.distdir.path().join("dist/channel-rust-nightly.toml.sha256")).unwrap();
         expect_err(config, &["multirust", "update", "nightly"],
                            "the server unexpectedly provided an obsolete version of the distribution manifest");
-    });
-}
-
-// v2 manifests only work with MULTIRUST_ENABLE_EXPERIMENTAL
-#[test]
-fn enable_experimental() {
-    setup(&|config| {
-        let mut cmd = cmd(config, "multirust", &["update", "nightly"]);
-        cmd.env_remove("MULTIRUST_ENABLE_EXPERIMENTAL");
-        let out = cmd.output().unwrap();
-        assert!(!out.status.success());
-        let stderr = String::from_utf8(out.stderr).unwrap();
-        assert!(stderr.contains("could not download file"));
     });
 }
 

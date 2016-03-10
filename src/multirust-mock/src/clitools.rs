@@ -167,7 +167,6 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
     cmd.args(args);
     cmd.env("MULTIRUST_HOME", config.homedir.path().to_string_lossy().to_string());
     cmd.env("MULTIRUST_DIST_ROOT", format!("file://{}", config.distdir.path().join("dist").to_string_lossy()));
-    cmd.env("MULTIRUST_ENABLE_EXPERIMENTAL", "1");
 
     cmd
 }
