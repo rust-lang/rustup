@@ -64,7 +64,7 @@ impl ToolchainDesc {
     }
 
     pub fn target_triple(&self) -> String {
-        let (host_arch, host_os, host_env) = get_host_triple();
+        let (host_arch, host_os, host_env) = get_host_triple_pieces();
         let arch = self.arch.as_ref().map(|s| &**s).unwrap_or(host_arch);
         let os = self.os.as_ref().map(|s| &**s).unwrap_or(host_os);
         // Mixing arbitrary host envs into arbitrary target specs can't work sensibly.
@@ -219,7 +219,16 @@ pub struct DownloadCfg<'a> {
     pub notify_handler: NotifyHandler<'a>,
 }
 
-pub fn get_host_triple() -> (&'static str, &'static str, Option<&'static str>) {
+pub fn get_host_triple() -> String {
+    let (arch, os, maybe_env) = get_host_triple_pieces();
+    if let Some(env) = maybe_env {
+        format!("{}-{}-{}", arch, os, env)
+    } else {
+        format!("{}-{}", arch, os)
+    }
+}
+
+pub fn get_host_triple_pieces() -> (&'static str, &'static str, Option<&'static str>) {
     let arch = match env::consts::ARCH {
         "x86" => "i686", // Why, rust... WHY?
         other => other,

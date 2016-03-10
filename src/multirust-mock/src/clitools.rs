@@ -14,7 +14,6 @@ use dist::{MockDistServer, MockChannel, MockPackage,
            MockTargettedPackage, MockComponent, change_channel_date,
            ManifestVersion};
 use hyper::Url;
-use scopeguard;
 
 /// The configuration used by the tests in this module
 pub struct Config {
@@ -56,13 +55,15 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
 
     let current_exe_path = env::current_exe().map(PathBuf::from).unwrap();
     let exe_dir = current_exe_path.parent().unwrap();
-    let ref multirust_build_path = exe_dir.join(format!("multirust-rs{}", EXE_SUFFIX));
+    let ref multirust_build_path = exe_dir.join(format!("multirust-setup{}", EXE_SUFFIX));
 
+    let setup_path = config.exedir.path().join(format!("multirust-setup{}", EXE_SUFFIX));
     let multirust_path = config.exedir.path().join(format!("multirust{}", EXE_SUFFIX));
     let rustc_path = config.exedir.path().join(format!("rustc{}", EXE_SUFFIX));
 
     fs::copy(multirust_build_path, multirust_path).unwrap();
     fs::copy(multirust_build_path, rustc_path).unwrap();
+    fs::copy(multirust_build_path, setup_path).unwrap();
 
     if s == Scenario::Full {
         let cargo_path = config.exedir.path().join(format!("cargo{}", EXE_SUFFIX));
@@ -165,10 +166,13 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
     let exe_path = config.exedir.path().join(format!("{}{}", name, EXE_SUFFIX));
     let mut cmd = Command::new(exe_path);
     cmd.args(args);
+    env(config, &mut cmd);
+    cmd
+}
+
+pub fn env(config: &Config, cmd: &mut Command) {
     cmd.env("MULTIRUST_HOME", config.homedir.path().to_string_lossy().to_string());
     cmd.env("MULTIRUST_DIST_ROOT", format!("file://{}", config.distdir.path().join("dist").to_string_lossy()));
-
-    cmd
 }
 
 pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> SanitizedOutput {
@@ -188,7 +192,9 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
 pub fn change_dir(path: &Path, f: &Fn()) {
     let cwd = env::current_dir().unwrap();
     env::set_current_dir(path).unwrap();
-    let _g = scopeguard::guard((), move |_| env::set_current_dir(&cwd).unwrap());
+    defer! {
+        env::set_current_dir(&cwd).unwrap()
+    }
     f();
 }
 

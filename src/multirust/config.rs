@@ -50,13 +50,8 @@ pub struct Cfg {
 
 impl Cfg {
     pub fn from_env(notify_handler: SharedNotifyHandler) -> Result<Self> {
-        // Get absolute home directory
-        let data_dir = try!(utils::get_local_data_path());
-
         // Set up the multirust home directory
-        let multirust_dir = env::var_os("MULTIRUST_HOME")
-                                .and_then(utils::if_not_empty)
-                                .map_or_else(|| data_dir.join(".multirust"), PathBuf::from);
+        let multirust_dir = try!(multirust_dir());
 
         try!(utils::ensure_dir_exists("home", &multirust_dir, ntfy!(&notify_handler)));
 
@@ -315,7 +310,6 @@ impl Cfg {
     }
 
     pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
-        println!("{:?} {}", path, binary);
         let (toolchain, _) = try!(self.toolchain_for_dir(path));
         toolchain.create_command(binary)
     }
@@ -329,4 +323,15 @@ impl Cfg {
         let (toolchain, _) = try!(self.toolchain_for_dir(path));
         toolchain.open_docs(relative)
     }
+}
+
+// NB: multirust and cargo use the same scheme for determining
+// their home directory
+pub fn multirust_dir() -> Result<PathBuf> {
+    let cwd = try!(env::current_dir().map_err(|_| Error::MultirustHome));
+    let multirust_home = env::var_os("MULTIRUST_HOME").map(|home| {
+        cwd.join(home)
+    });
+    let user_home = env::home_dir().map(|p| p.join(".multirust"));
+    multirust_home.or(user_home).ok_or(Error::MultirustHome)
 }

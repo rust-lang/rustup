@@ -486,11 +486,6 @@ fn custom_multiple_remote_url() {
 }
 
 #[test]
-#[ignore]
-fn delete_data() {
-}
-
-#[test]
 fn running_with_v2_metadata() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
@@ -526,3 +521,24 @@ fn upgrade_v2_metadata_to_v12() {
     });
 }
 
+#[test]
+fn delete_data() {
+    setup(&|config| {
+        expect_ok(config, &["multirust", "default", "nightly"]);
+        assert!(config.homedir.path().exists());
+        expect_ok(config, &["multirust", "delete-data", "-y"]);
+        assert!(!config.homedir.path().exists());
+    });
+}
+
+#[test]
+fn delete_data_no_data() {
+    setup(&|config| {
+        expect_ok(config, &["multirust", "default", "nightly"]);
+        assert!(config.homedir.path().exists());
+        expect_ok(config, &["multirust", "delete-data", "-y"]);
+        assert!(!config.homedir.path().exists());
+        expect_ok(config, &["multirust", "delete-data", "-y"]);
+        assert!(!config.homedir.path().exists());
+    });
+}

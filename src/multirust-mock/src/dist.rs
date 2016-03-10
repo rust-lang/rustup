@@ -301,12 +301,18 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
     tar.finish().unwrap();
 }
 
-pub fn create_hash(src: &Path, dst: &Path) -> String {
+pub fn calc_hash(src: &Path) -> String {
     let ref mut buf = Vec::new();
     File::open(src).unwrap().read_to_end(buf).unwrap();
     let mut hasher = hash::Hasher::new(hash::Type::SHA256);
     hasher.write_all(&buf).unwrap();
     let hex = hasher.finish().iter().map(|b| format!("{:02x}", b)).join("");
+
+    hex
+}
+
+pub fn create_hash(src: &Path, dst: &Path) -> String {
+    let hex = calc_hash(src);
     let src_file = src.file_name().unwrap();
     let ref file_contents = format!("{} *{}\n", hex, src_file.to_string_lossy());
     write_file(dst, file_contents);

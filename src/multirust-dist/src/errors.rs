@@ -138,7 +138,7 @@ impl<'a> Display for Notification<'a> {
             MissingInstalledComponent(c) => write!(f, "during uninstall component {} was not found", c),
             DownloadingComponent(c) => write!(f, "downloading component '{}'", c),
             InstallingComponent(c) => write!(f, "installing component '{}'", c),
-            DownloadingManifest => write!(f, "downloading manifest"),
+            DownloadingManifest => write!(f, "downloading toolchain manifest"),
             DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
         }
     }

@@ -13,7 +13,7 @@ use errors::{Error, Notification, NotifyHandler};
 
 use raw;
 pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
-                    home_dir, has_cmd, find_cmd};
+                    has_cmd, find_cmd};
 
 pub fn ensure_dir_exists(name: &'static str,
                          path: &Path,
@@ -289,7 +289,7 @@ pub fn make_executable(path: &Path) -> Result<()> {
             }
         }));
         let mut perms = metadata.permissions();
-        let new_mode = perms.mode() | 0o111;
+        let new_mode = (perms.mode() & !0o777) | 0o755;
         perms.set_mode(new_mode);
 
         set_permissions(path, perms)
@@ -313,20 +313,3 @@ pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
     })
 }
 
-pub fn get_local_data_path() -> Result<PathBuf> {
-    #[cfg(windows)]
-    fn inner() -> Result<PathBuf> {
-        raw::windows::get_special_folder(&raw::windows::FOLDERID_LocalAppData)
-            .map_err(|_| Error::LocatingHome)
-    }
-    #[cfg(not(windows))]
-    fn inner() -> Result<PathBuf> {
-        // TODO: consider using ~/.local/ instead
-        home_dir()
-            .ok_or(Error::LocatingHome)
-            .map(PathBuf::from)
-            .and_then(to_absolute)
-    }
-
-    inner()
-}

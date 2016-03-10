@@ -9,12 +9,12 @@ use multirust_mock::clitools::{self, Config, Scenario,
                                expect_err_ex};
 use std::env;
 
-pub fn setup(f: &Fn(&Config)) {
+fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, f);
 }
 
 #[test]
-pub fn update() {
+fn update() {
     setup(&|config| {
         expect_ok_ex(config, &["multirust", "update", "nightly"],
 r"
@@ -25,7 +25,7 @@ nightly revision:
 
 ",
 r"info: installing toolchain 'nightly'
-info: downloading manifest
+info: downloading toolchain manifest
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -40,7 +40,7 @@ info: toolchain 'nightly' installed
 }
 
 #[test]
-pub fn update_again() {
+fn update_again() {
     setup(&|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_ok_ex(config, &["multirust", "update", "nightly"],
@@ -52,14 +52,14 @@ nightly revision:
 
 ",
 r"info: updating existing install for 'nightly'
-info: downloading manifest
+info: downloading toolchain manifest
 info: toolchain is already up to date
 ");
     });
 }
 
 #[test]
-pub fn default() {
+fn default() {
     setup(&|config| {
         expect_ok_ex(config, &["multirust", "update", "nightly"],
 r"
@@ -70,7 +70,7 @@ nightly revision:
 
 ",
 r"info: installing toolchain 'nightly'
-info: downloading manifest
+info: downloading toolchain manifest
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -85,7 +85,7 @@ info: toolchain 'nightly' installed
 }
 
 #[test]
-pub fn override_again() {
+fn override_again() {
     setup(&|config| {
         let cwd = env::current_dir().unwrap();
         expect_ok(config, &["multirust", "override", "nightly"]);
@@ -105,13 +105,49 @@ info: override toolchain for '{}' set to 'nightly'
 }
 
 #[test]
-pub fn update_no_manifest() {
+fn remove_override() {
+    setup(&|config| {
+        let cwd = env::current_dir().unwrap();
+        expect_ok(config, &["multirust", "override", "nightly"]);
+        expect_ok_ex(config, &["multirust", "remove-override"],
+r"",
+&format!(r"info: override toolchain for '{}' removed
+", cwd.display()));
+    });
+}
+
+#[test]
+fn remove_override_none() {
+    setup(&|config| {
+        let cwd = env::current_dir().unwrap();
+        expect_ok_ex(config, &["multirust", "remove-override"],
+r"",
+&format!(r"info: no override toolchain for '{}'
+", cwd.display()));
+    });
+}
+
+#[test]
+fn update_no_manifest() {
     setup(&|config| {
         expect_err_ex(config, &["multirust", "update", "nightly-2016-01-01"],
 r"",
 r"info: installing toolchain 'nightly-2016-01-01'
-info: downloading manifest
+info: downloading toolchain manifest
 error: no release found for 'nightly-2016-01-01'
 ");
+    });
+}
+
+#[test]
+fn delete_data() {
+    setup(&|config| {
+        expect_ok(config, &["multirust", "default", "nightly"]);
+        assert!(config.homedir.path().exists());
+        expect_ok_ex(config, &["multirust", "delete-data", "-y"],
+r"",
+&format!(
+r"info: deleted directory '{}'
+", config.homedir.path().display()));
     });
 }

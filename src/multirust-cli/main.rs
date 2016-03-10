@@ -12,6 +12,10 @@ extern crate term;
 extern crate openssl;
 extern crate itertools;
 extern crate time;
+extern crate rand;
+#[macro_use]
+extern crate scopeguard;
+extern crate tempdir;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -19,6 +23,8 @@ extern crate winapi;
 extern crate winreg;
 #[cfg(windows)]
 extern crate user32;
+#[cfg(windows)]
+extern crate kernel32;
 extern crate libc;
 
 #[macro_use]
@@ -28,6 +34,7 @@ mod common;
 mod download_tracker;
 mod multirust_mode;
 mod proxy_mode;
+mod setup_mode;
 mod self_update;
 mod tty;
 
@@ -50,15 +57,29 @@ fn run_multirust() -> Result<()> {
         return Err(Error::InfiniteRecursion);
     }
 
-    // The namem of arg0 determines how the program is going to behave
+    // The name of arg0 determines how the program is going to behave
     let arg0 = env::args().next().map(|a| PathBuf::from(a));
     let name = arg0.as_ref()
         .and_then(|a| a.file_stem())
         .and_then(|a| a.to_str());
     match name {
-        Some("multirust-rs") |
         Some("multirust") => {
             multirust_mode::main()
+        }
+        Some("multirust-setup") => {
+            setup_mode::main()
+        }
+        Some("multirust-rs") => {
+            // This is for compatibility with previous revisions of multirust-rs
+            // self-update, which expect this file to be available on the
+            // server and execute it with `self install` as the arguments.
+            // FIXME: Verify this works.
+            self_update::install(false, false)
+        }
+        Some(n) if n.starts_with("multirust-gc-") => {
+            // This is the final uninstallation stage on windows where
+            // multirust deletes its own exe
+            self_update::complete_windows_uninstall()
         }
         Some(_) => {
             proxy_mode::main()

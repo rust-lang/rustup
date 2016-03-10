@@ -5,6 +5,8 @@ use std::env;
 use std::path::PathBuf;
 
 pub fn main() -> Result<()> {
+    try!(::self_update::cleanup_self_updater());
+
     let arg0 = env::args().next().map(|a| PathBuf::from(a));
     let arg0 = arg0.as_ref()
         .and_then(|a| a.file_name())
@@ -19,9 +21,8 @@ pub fn main() -> Result<()> {
 }
 
 fn direct_proxy(cfg: &Cfg, arg0: &str) -> Result<()> {
+    let cmd = try!(cfg.create_command_for_dir(&try!(utils::current_dir()), arg0));
     let args: Vec<_> = env::args_os().collect();
-    run_inner(cfg,
-              cfg.create_command_for_dir(&try!(utils::current_dir()), arg0),
-              &args)
+    run_inner(cmd, &args)
 }
 

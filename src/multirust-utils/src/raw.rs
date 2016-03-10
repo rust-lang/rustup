@@ -2,10 +2,10 @@ use errors::NotifyHandler;
 
 use std::error;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::io;
 use std::char::from_u32;
-use std::io::Write;
+use std::io::{Write, ErrorKind};
 use std::process::{Command, Stdio, ExitStatus};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
@@ -355,13 +355,49 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
         // The implementation of `remove_dir_all` is broken on windows,
         // so may need to try multiple times!
         for _ in 0..5 {
-            result = fs::remove_dir_all(path);
+            result = rm_rf(path);
             if !is_directory(path) {
                 return Ok(());
             }
-            thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(16));
         }
         result
+    }
+}
+
+// Again because remove_dir all doesn't delete write-only files on windows,
+// this is a custom implementation, more-or-less copied from cargo.
+// cc rust-lang/rust#31944
+// cc https://github.com/rust-lang/cargo/blob/master/tests/support/paths.rs#L52-L80
+fn rm_rf(path: &Path) -> io::Result<()> {
+    if path.exists() {
+        for file in fs::read_dir(path).unwrap() {
+            let file = try!(file);
+            let is_dir = try!(file.file_type()).is_dir();
+            let ref file = file.path();
+
+            if is_dir {
+                try!(rm_rf(file));
+            } else {
+                // On windows we can't remove a readonly file, and git will
+                // often clone files as readonly. As a result, we have some
+                // special logic to remove readonly files on windows.
+                match fs::remove_file(file) {
+                    Ok(()) => {}
+                    Err(ref e) if cfg!(windows) &&
+                        e.kind() == ErrorKind::PermissionDenied => {
+                            let mut p = file.metadata().unwrap().permissions();
+                            p.set_readonly(false);
+                            fs::set_permissions(file, p).unwrap();
+                            try!(fs::remove_file(file));
+                        }
+                    Err(e) => return Err(e)
+                }
+            }
+        }
+        fs::remove_dir(path)
+    } else {
+        Ok(())
     }
 }
 
@@ -458,18 +494,6 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
             .map(|_| true)
     }
     inner(path)
-}
-pub fn home_dir() -> Option<PathBuf> {
-    #[cfg(not(windows))]
-    fn inner() -> Option<PathBuf> {
-        ::std::env::home_dir()
-    }
-    #[cfg(windows)]
-    fn inner() -> Option<PathBuf> {
-        windows::get_special_folder(&windows::FOLDERID_Profile).ok()
-    }
-
-    inner()
 }
 
 #[cfg(windows)]

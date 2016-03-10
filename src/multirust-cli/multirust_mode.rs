@@ -1,20 +1,20 @@
 use clap::ArgMatches;
 use cli;
-use common::ask;
-use common::{set_globals, run_inner};
+use common::{confirm, show_channel_version,
+             set_globals, run_inner,
+             show_tool_versions};
 use multirust::*;
 use multirust_dist::manifest::Component;
 use self_update;
 use std::env;
-use std::ffi::OsStr;
 use std::io::Write;
 use std::iter;
-use std::path::Path;
-use std::process::Command;
+use std::path::{Path, PathBuf};
 use term;
-use tty;
 
 pub fn main() -> Result<()> {
+    try!(::self_update::cleanup_self_updater());
+
     let need_metadata = try!(command_requires_metadata());
     if need_metadata {
         let cfg = try!(Cfg::from_env(shared_ntfy!(move |_: Notification| { })));
@@ -44,31 +44,15 @@ pub fn main() -> Result<()> {
         ("delete-data", Some(m)) => delete_data(&cfg, m),
         ("self", Some(c)) => {
             match c.subcommand() {
-                ("install", Some(m)) => self_install(&cfg, m),
-                ("uninstall", Some(m)) => self_uninstall(&cfg, m),
-                ("update", Some(m)) => self_update(&cfg, m),
+                ("uninstall", Some(m)) => self_uninstall(m),
+                ("update", Some(_)) => self_update(),
                 _ => Ok(()),
             }
         }
         ("which", Some(m)) => which(&cfg, m),
         ("doc", Some(m)) => doc(&cfg, m),
         _ => {
-            let result = maybe_self_install(&cfg);
-            println!("");
-
-            // Suspend in case we were run from the UI
-            try!(utils::cmd_status("shell",
-                                   &mut shell_cmd((if cfg!(windows) {
-                                                      "pause"
-                                                  } else {
-                                                      "echo -n \"Press any key to continue...\" && \
-                                                       CFG=`stty -g` && stty -echo -icanon && dd \
-                                                       count=1 1>/dev/null 2>&1 && stty $CFG && \
-                                                       echo"
-                                                  })
-                                                  .as_ref())));
-
-            result
+            unreachable!()
         }
     }
 }
@@ -77,32 +61,15 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(get_toolchain(cfg, m, false));
     let args = m.values_of("command").unwrap();
 
-    run_inner(cfg, toolchain.create_command(args[0]), &args)
+    let cmd = try!(toolchain.create_command(args[0]));
+    run_inner(cmd, &args)
 }
 
 fn proxy(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let args = m.values_of("command").unwrap();
 
-    run_inner(cfg,
-              cfg.create_command_for_dir(&try!(utils::current_dir()), args[0]),
-              &args)
-}
-
-fn shell_cmd(cmdline: &OsStr) -> Command {
-    #[cfg(windows)]
-    fn inner(cmdline: &OsStr) -> Command {
-        let mut cmd = Command::new("cmd");
-        cmd.arg("/C").arg(cmdline);
-        cmd
-    }
-    #[cfg(not(windows))]
-    fn inner(cmdline: &OsStr) -> Command {
-        let mut cmd = Command::new("/bin/sh");
-        cmd.arg("-c").arg(cmdline);
-        cmd
-    }
-
-    inner(cmdline)
+    let cmd = try!(cfg.create_command_for_dir(&try!(utils::current_dir()), args[0]));
+    run_inner(cmd, &args)
 }
 
 fn command_requires_metadata() -> Result<bool> {
@@ -126,21 +93,13 @@ fn command_requires_metadata() -> Result<bool> {
     }
 }
 
-fn maybe_self_install(cfg: &Cfg) -> Result<()> {
-    self_update::maybe_install(cfg)
-}
-
-fn self_install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    self_update::install(cfg, m.is_present("move"), m.is_present("add-to-path"))
-}
-
-fn self_uninstall(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn self_uninstall(m: &ArgMatches) -> Result<()> {
     let no_prompt = m.is_present("no-prompt");
-    self_update::uninstall(cfg, no_prompt)
+    self_update::uninstall(no_prompt)
 }
 
-fn self_update(cfg: &Cfg, _m: &ArgMatches) -> Result<()> {
-    self_update::update(cfg)
+fn self_update() -> Result<()> {
+    self_update::update()
 }
 
 fn get_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches, create_parent: bool) -> Result<Toolchain<'a>> {
@@ -210,17 +169,6 @@ fn common_install_args(toolchain: &Toolchain, m: &ArgMatches) -> Result<bool> {
     Ok(true)
 }
 
-fn show_channel_version(cfg: &Cfg, name: &str) -> Result<()> {
-    let mut t = term::stdout().unwrap();
-    if tty::stdout_isatty() { let _ = t.fg(term::color::BRIGHT_WHITE); }
-    if tty::stdout_isatty() { let _ = t.bg(term::color::BLACK); }
-    let _ = write!(t, "{}", name);
-    if tty::stdout_isatty() { let _ = t.reset(); }
-    let _ = writeln!(t, " revision:");
-    try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
-    Ok(())
-}
-
 fn doc_url(m: &ArgMatches) -> &'static str {
     if m.is_present("book") {
         "book/index.html"
@@ -248,61 +196,39 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn delete_data(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    if !m.is_present("no-prompt") &&
-       !ask("This will delete all toolchains, overrides, aliases, and other multirust data \
-             associated with this user. Continue?")
-            .unwrap_or(false) {
-        println!("aborting");
+    let msg =
+r"
+This will delete all toolchains, overrides, aliases, and other
+multirust data associated with this user.
+
+Continue? (y/N)";
+
+    if !m.is_present("no-prompt") && !try!(confirm(msg, false)) {
+        info!("aborting delete-data");
         return Ok(());
     }
 
-    cfg.delete_data()
+    try!(cfg.delete_data());
+
+    info!("deleted directory '{}'", cfg.multirust_dir.display());
+
+    Ok(())
 }
 
 fn remove_override(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    if let Some(path) = m.value_of("override") {
-        cfg.override_db.remove(path.as_ref(), &cfg.temp_cfg, cfg.notify_handler.as_ref())
-    } else {
-        cfg.override_db.remove(&try!(utils::current_dir()),
-                               &cfg.temp_cfg,
-                               cfg.notify_handler.as_ref())
+    let cwd = try!(utils::current_dir());
+    let ref path = m.value_of("override")
+        .map(|p| PathBuf::from(p)).unwrap_or(cwd);
+
+    if try!(cfg.override_db.find(path, cfg.notify_handler.as_ref())).is_none() {
+        info!("no override toolchain for '{}'", path.display());
+        return Ok(());
     }
-    .map(|_| ())
-}
 
-fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
-    println!("");
-
-    if toolchain.exists() {
-        let rustc_path = toolchain.binary_file("rustc");
-        let cargo_path = toolchain.binary_file("cargo");
-
-        if utils::is_file(&rustc_path) {
-            let mut cmd = Command::new(&rustc_path);
-            cmd.arg("--version");
-            toolchain.set_ldpath(&mut cmd);
-
-            if utils::cmd_status("rustc", &mut cmd).is_err() {
-                println!("(failed to run rustc)");
-            }
-        } else {
-            println!("(no rustc command in toolchain?)");
-        }
-        if utils::is_file(&cargo_path) {
-            let mut cmd = Command::new(&cargo_path);
-            cmd.arg("--version");
-            toolchain.set_ldpath(&mut cmd);
-
-            if utils::cmd_status("cargo", &mut cmd).is_err() {
-                println!("(failed to run cargo)");
-            }
-        } else {
-            println!("(no cargo command in toolchain?)");
-        }
-    } else {
-        println!("(toolchain not installed)");
-    }
-    println!("");
+    try!(cfg.override_db.remove(path,
+                                &cfg.temp_cfg,
+                                cfg.notify_handler.as_ref()));
+    info!("override toolchain for '{}' removed", path.display());
     Ok(())
 }
 
