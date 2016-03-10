@@ -211,11 +211,8 @@ open specific pieces of documentation.
 "
                 )
                 .arg(Arg::with_name("book").long("book").help("The Rust Programming Language book"))
-                .arg(Arg::with_name("reference").long("reference").help("Rust language reference"))
                 .arg(Arg::with_name("std").long("std").help("Standard library API documentation"))
-                .arg(Arg::with_name("nomicon").long("nomicon").help("The Rustonomicon book"))
-                .arg(Arg::with_name("error-index").long("error-index").help("Compiler Error Index"))
-                .arg_group(ArgGroup::with_name("page").add_all(&["book", "reference", "std", "nomicon", "error-index"]))
+                .arg_group(ArgGroup::with_name("page").add_all(&["book", "std"]))
         )
         .subcommand(
             SubCommand::with_name("which")
