@@ -632,10 +632,18 @@ fn show_channel_version(cfg: &Cfg, name: &str) -> Result<()> {
 }
 
 fn doc_url(m: &ArgMatches) -> &'static str {
-    if m.is_present("all") {
-        "index.html"
-    } else {
+    if m.is_present("book") {
+        "book/index.html"
+    } else if m.is_present("reference") {
+        "reference.html"
+    } else if m.is_present("std") {
         "std/index.html"
+    } else if m.is_present("nomicon") {
+        "nomicon/index.html"
+    } else if m.is_present("error-index") {
+        "error-index.html"
+    } else {
+        "index.html"
     }
 }
 

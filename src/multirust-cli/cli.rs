@@ -206,13 +206,16 @@ r"Installs multirust for the current user.
 r"Opens the documentation for the currently active toolchain with the
 default browser.
 
-By default, it opens the API documentation for the standard library.
+By default, it opens the documentation index. Use the various flags to
+open specific pieces of documentation.
 "
                 )
-                .arg(Arg::with_name("all").long("all").help(r"
-             Opens the documentation overview page, which
-             gives access to all the installed documentation.
-             "))
+                .arg(Arg::with_name("book").long("book").help("The Rust Programming Language book"))
+                .arg(Arg::with_name("reference").long("reference").help("Rust language reference"))
+                .arg(Arg::with_name("std").long("std").help("Standard library API documentation"))
+                .arg(Arg::with_name("nomicon").long("nomicon").help("The Rustonomicon book"))
+                .arg(Arg::with_name("error-index").long("error-index").help("Compiler Error Index"))
+                .arg_group(ArgGroup::with_name("page").add_all(&["book", "reference", "std", "nomicon", "error-index"]))
         )
         .subcommand(
             SubCommand::with_name("which")
