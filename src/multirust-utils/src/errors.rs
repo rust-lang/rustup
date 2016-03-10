@@ -99,7 +99,7 @@ pub enum Error {
     CopyingDirectory {
         src: PathBuf,
         dest: PathBuf,
-        error: raw::CommandError,
+        error: io::Error,
     },
     CopyingFile {
         src: PathBuf,
@@ -217,10 +217,10 @@ impl error::Error for Error {
             CopyingFile { ref error, .. } |
             RemovingFile { ref error, .. } |
             RemovingDirectory { ref error, .. } |
+            CopyingDirectory { ref error, .. } |
             SettingPermissions { ref error, .. } => Some(error),
             // Variants that carry `error: raw::CommandError`.
-            RunningCommand { ref error, .. } |
-            CopyingDirectory { ref error, .. } => Some(error),
+            RunningCommand { ref error, .. } => Some(error),
             // Variant carrying its own error type.
             DownloadingFile { ref error, .. } => Some(error),
             // Variant carrying `error: Option<io::Error>`.
