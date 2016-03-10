@@ -315,6 +315,7 @@ impl Cfg {
     }
 
     pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
+        println!("{:?} {}", path, binary);
         let (toolchain, _) = try!(self.toolchain_for_dir(path));
         toolchain.create_command(binary)
     }

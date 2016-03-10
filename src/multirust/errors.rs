@@ -54,6 +54,7 @@ pub enum Error {
     UnknownComponent(String, Component),
     AddingRequiredComponent(String, Component),
     RemovingRequiredComponent(String, Component),
+    NoExeName,
     Custom {
         id: String,
         desc: String,
@@ -167,6 +168,7 @@ impl error::Error for Error {
             UnknownComponent(_ ,_) => "toolchain does not contain component",
             AddingRequiredComponent(_, _) => "required component cannot be added",
             RemovingRequiredComponent(_, _) => "required component cannot be removed",
+            NoExeName => "couldn't determine self executable name",
             Custom { ref desc, .. } => desc,
         }
     }
@@ -191,6 +193,7 @@ impl error::Error for Error {
             UnknownComponent(_, _) |
             AddingRequiredComponent(_, _) |
             RemovingRequiredComponent(_, _) |
+            NoExeName |
             Custom {..} => None,
         }
     }
@@ -235,6 +238,7 @@ impl Display for Error {
                 write!(f, "component '{}' for target '{}' is required for toolchain '{}' and cannot be removed",
                        c.pkg, c.target, t)
             }
+            NoExeName => write!(f, "couldn't determine self executable name"),
             Custom { ref desc, .. } => write!(f, "{}", desc),
         }
     }
