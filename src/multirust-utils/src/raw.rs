@@ -1,5 +1,6 @@
 use errors::NotifyHandler;
 
+use std::env;
 use std::error;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -388,24 +389,13 @@ pub fn prefix_arg<S: AsRef<OsStr>>(name: &str, s: S) -> OsString {
 }
 
 pub fn has_cmd(cmd: &str) -> bool {
-    #[cfg(not(windows))]
-    fn inner(cmd: &str) -> bool {
-        cmd_status(Command::new("which")
-                       .arg(cmd)
-                       .stdin(Stdio::null())
-                       .stdout(Stdio::null())
-                       .stderr(Stdio::null()))
-            .is_ok()
-    }
-    #[cfg(windows)]
-    fn inner(cmd: &str) -> bool {
-        cmd_status(Command::new("where")
-                       .arg("/Q")
-                       .arg(cmd))
-            .is_ok()
-    }
-
-    inner(cmd)
+    let cmd = format!("{}{}", cmd, env::consts::EXE_SUFFIX);
+    let path = env::var_os("PATH").unwrap_or(OsString::new());
+    env::split_paths(&path).map(|p| {
+        p.join(&cmd)
+    }).any(|p| {
+        p.exists()
+    })
 }
 
 pub fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
