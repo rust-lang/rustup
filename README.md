@@ -35,7 +35,7 @@ Binaries for other platforms are not yet available. Follow the instructions belo
 
 Run this command in a writable directory:
 ```
-git clone --depth 1 https://github.com/Diggsey/multirust-rs.git multirust-rs && cd multirust-rs && cargo run --release self install -a
+git clone --depth 1 https://github.com/Diggsey/multirust-rs.git multirust-rs && cd multirust-rs && cargo run --release -- self install -a
 ```
 
 This will automatically add `~/.multirust/bin` to your PATH (remove `-a` to disable this behavior).
