@@ -38,8 +38,11 @@ multirust run stable echo "Hello from global command"
 echo "> Testing doc"
 multirust doc
 
-echo "> Testing doc --all"
-multirust doc --all
+echo "> Testing doc --std"
+multirust doc --std
+
+echo "> Testing doc --book"
+multirust doc --book
 
 echo "> Testing self uninstall"
 multirust self uninstall -y
