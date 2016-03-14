@@ -30,7 +30,8 @@ install:
   # Download nightly rust
   - mkdir -p ~/rust
   - echo -e "\033[33;1mDownloading Rust\033[0m"
-  - curl -sL http://static.rust-lang.org/dist/rust-nightly-$TARGET.tar.gz | tar --strip-components=1 -C ~/rust -xzf -
+  # FIXME: Pinned nightly for rust-lang/rust#32247
+  - curl -sL http://static.rust-lang.org/dist/2016-03-11/rust-nightly-$TARGET.tar.gz | tar --strip-components=1 -C ~/rust -xzf -
   # For linux, install required packages
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       if [ "$BITS" == "32" ]; then
