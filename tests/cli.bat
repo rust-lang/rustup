@@ -37,8 +37,11 @@ multirust run stable cmd /c echo "Hello from global command" || (echo FAILED && 
 echo ^> Testing doc
 multirust doc || (echo FAILED && exit /b 1)
 
-echo ^> Testing doc --all
-multirust doc --all || (echo FAILED && exit /b 1)
+echo ^> Testing doc --std
+multirust doc --std || (echo FAILED && exit /b 1)
+
+echo ^> Testing doc --book
+multirust doc --book || (echo FAILED && exit /b 1)
 
 echo ^> Testing self uninstall
 multirust self uninstall -y || (echo FAILED && exit /b 1)
