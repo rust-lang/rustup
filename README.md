@@ -1,7 +1,7 @@
 # multirust-rs
 
-[![Build Status](https://travis-ci.org/Diggsey/multirust-rs.svg?branch=master)](https://travis-ci.org/Diggsey/multirust-rs)
-[![Build status](https://ci.appveyor.com/api/projects/status/au79mlftfkhkpr0v/branch/master?svg=true)](https://ci.appveyor.com/project/Diggsey/multirust-rs/branch/master)
+[![Build Status](https://travis-ci.org/rust-lang-nursery/multirust-rs.svg?branch=master)](https://travis-ci.org/rust-lang-nursery/multirust-rs)
+[![Build status](https://ci.appveyor.com/api/projects/status/vyiu5qfallpo0n6c/branch/master?svg=true)](https://ci.appveyor.com/project/brson/multirust-rs/branch/master)
 
 Multirust-rs is a reimplementation of multirust in rust. It provides both a command line interface, and a rust library, so it's trivial to integrate it with external tools.
 
