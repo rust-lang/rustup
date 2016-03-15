@@ -1,4 +1,4 @@
-# multirust-rs
+d# multirust-rs
 
 [![Build Status](https://travis-ci.org/Diggsey/multirust-rs.svg?branch=master)](https://travis-ci.org/Diggsey/multirust-rs)
 [![Build status](https://ci.appveyor.com/api/projects/status/au79mlftfkhkpr0v/branch/master?svg=true)](https://ci.appveyor.com/project/Diggsey/multirust-rs/branch/master)
