@@ -906,3 +906,19 @@ fn readline_no_stdin() {
                    "unable to read from stdin for confirmation");
     });
 }
+
+#[test]
+fn multirust_setup_works_with_weird_names() {
+    // Browsers often rename bins to e.g. multirust-setup(2).exe.
+
+    setup(&|config, cargo_home, _| {
+        let ref old = config.exedir.path().join(
+            &format!("multirust-setup{}", EXE_SUFFIX));
+        let ref new = config.exedir.path().join(
+            &format!("multirust-setup(2){}", EXE_SUFFIX));
+        fs::rename(old, new).unwrap();
+        expect_ok(config, &["multirust-setup(2)", "-y"]);
+        let multirust = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        assert!(multirust.exists());
+    });
+}
