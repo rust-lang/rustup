@@ -81,7 +81,7 @@ fn run_multirust() -> Result<()> {
             // ~/.multirust/tmp/multirust-$random, and execute it with
             // `self install` as the arguments.  FIXME: Verify this
             // works.
-            self_update::install(false, false)
+            self_update::install(true, false)
         }
         Some(_) => {
             proxy_mode::main()
