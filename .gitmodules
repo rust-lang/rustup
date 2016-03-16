@@ -1,4 +1,4 @@
 [submodule "binaries"]
 	path = binaries
-	url = https://github.com/Diggsey/multirust-rs-binaries.git
+	url = https://github.com/rust-lang-nursery/multirust-rs-binaries.git
 	branch = master
