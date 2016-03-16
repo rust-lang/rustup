@@ -340,8 +340,14 @@ fn list_targets(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = m.value_of("toolchain").unwrap();
     let toolchain = try!(cfg.get_toolchain(toolchain, false));
     for component in try!(toolchain.list_components()) {
-        if component.pkg == "rust-std" {
-            println!("{}", component.target);
+        if component.component.pkg == "rust-std" {
+            if component.required {
+                println!("{} (default)", component.component.target);
+            } else if component.installed {
+                println!("{} (installed)", component.component.target);
+            } else {
+                println!("{}", component.component.target);
+            }
         }
     }
 
