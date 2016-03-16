@@ -7,11 +7,12 @@ environment:
   - TARGET: i686-pc-windows-gnu
     BITS: 32
   access_token:
-    secure: CZlbQEamQxfTbQJlLl/3QfVLhVxk+1sBFMxuCN3dwHKeGHNBSE4tQudXSJ5n0Z6P
+    secure: 49079b5341b992251739bddf748d2ae9304589b0 
 branches:
   only:
     - master
     - new
+
 install:
   - ps: |
       # Install Rust
@@ -45,8 +46,8 @@ install:
 build: false
 test_script:
   - cargo build  --release
-  - cargo test --release -p multirust-dist
-  - cargo test --release
+  #- cargo test --release -p multirust-dist
+  #- cargo test --release
 notifications:
   - provider: Webhook
     url: https://webhooks.gitter.im/e/9907ad94eb7a5ff291c3
