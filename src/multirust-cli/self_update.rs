@@ -223,9 +223,11 @@ pub fn install(no_prompt: bool, verbose: bool) -> Result<()> {
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, require
         // the user to press a key to continue.
-        println!("");
-        println!("Press any key to continue");
-        try!(common::wait_for_keypress());
+        if cfg!(windows) {
+            println!("");
+            println!("Press any key to continue");
+            try!(common::wait_for_keypress());
+        }
     }
 
     Ok(())
