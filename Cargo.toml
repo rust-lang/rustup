@@ -27,33 +27,45 @@ itertools = "0.4.1"
 time = "0.1.34"
 tempdir = "0.3.4"
 libc = "0.2.0"
+rand = "0.3.11"
+scopeguard = "0.1.2"
 
 [target.x86_64-pc-windows-gnu.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
 user32-sys = "0.1.2"
+kernel32-sys = "0.2.1"
 
 [target.x86_64-pc-windows-msvc.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
 user32-sys = "0.1.2"
+kernel32-sys = "0.2.1"
 
 [target.i686-pc-windows-gnu.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
 user32-sys = "0.1.2"
+kernel32-sys = "0.2.1"
 
 [target.i686-pc-windows-msvc.dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
 user32-sys = "0.1.2"
+kernel32-sys = "0.2.1"
 
 [dev-dependencies]
 multirust-mock = { version = "0.0.5", path = "src/multirust-mock" }
+lazy_static = "0.1.15"
 
 [lib]
 name = "multirust"
 path = "src/multirust/lib.rs"
+test = false # no unit tests
+
+[[bin]]
+name = "multirust-setup"
+path = "src/multirust-cli/main.rs"
 test = false # no unit tests
 
 [[bin]]

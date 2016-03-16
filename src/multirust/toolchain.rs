@@ -212,13 +212,11 @@ impl<'a> Toolchain<'a> {
     }
 
     fn set_env(&self, cmd: &mut Command) {
-        let ref cargo_home = self.cfg.multirust_dir.join("cargo");
         let ref bin_path = self.path.join("bin");
 
         self.set_ldpath(cmd);
 
         env_var::set_path("PATH", bin_path, cmd);
-        env_var::set_default("CARGO_HOME", cargo_home.as_ref(), cmd);
         env_var::inc("RUST_RECURSION_COUNT", cmd);
 
         // FIXME: This should not be a path, but a toolchain name.

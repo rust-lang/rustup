@@ -64,7 +64,7 @@ impl ToolchainDesc {
     }
 
     pub fn target_triple(&self) -> String {
-        let (host_arch, host_os, host_env) = get_host_triple();
+        let (host_arch, host_os, host_env) = get_host_triple_pieces();
         let arch = self.arch.as_ref().map(|s| &**s).unwrap_or(host_arch);
         let os = self.os.as_ref().map(|s| &**s).unwrap_or(host_os);
         // Mixing arbitrary host envs into arbitrary target specs can't work sensibly.
@@ -92,6 +92,13 @@ impl ToolchainDesc {
     pub fn manifest_v2_url(&self, dist_root: &str) -> String {
         format!("{}.toml", self.manifest_v1_url(dist_root))
     }
+    /// Either "$channel" or "channel-$date"
+    pub fn manifest_name(&self) -> String {
+        match self.date {
+            None => self.channel.clone(),
+            Some(ref date) => format!("{}-{}", self.channel, date)
+        }
+   }
 
     pub fn package_dir(&self, dist_root: &str) -> String {
         match self.date {
@@ -212,7 +219,16 @@ pub struct DownloadCfg<'a> {
     pub notify_handler: NotifyHandler<'a>,
 }
 
-pub fn get_host_triple() -> (&'static str, &'static str, Option<&'static str>) {
+pub fn get_host_triple() -> String {
+    let (arch, os, maybe_env) = get_host_triple_pieces();
+    if let Some(env) = maybe_env {
+        format!("{}-{}-{}", arch, os, env)
+    } else {
+        format!("{}-{}", arch, os)
+    }
+}
+
+pub fn get_host_triple_pieces() -> (&'static str, &'static str, Option<&'static str>) {
     let arch = match env::consts::ARCH {
         "x86" => "i686", // Why, rust... WHY?
         other => other,
@@ -272,39 +288,30 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
         remove_extensions: remove.to_owned(),
     };
 
-    // Until the v2 dist manifests are actually deployed live they are
-    // not on by default. Putting this env var in Cfg an snaking it
-    // all the way down here didn't seem worth the effort since this
-    // should be short-lived.
-    let enable_experimental = ::std::env::var("MULTIRUST_ENABLE_EXPERIMENTAL").is_ok();
-    let already_using_v2 = try!(manifestation.read_config()).is_some();
-    let can_dl_v2_manifest = enable_experimental || already_using_v2;
-
     // TODO: Add a notification about which manifest version is going to be used
     download.notify_handler.call(Notification::DownloadingManifest);
-    if can_dl_v2_manifest {
-        match dl_v2_manifest(download, update_hash, toolchain) {
-            Ok(Some((m, hash))) => {
-                return match try!(manifestation.update(&m, changes, &download.temp_cfg,
-                                                       download.notify_handler.clone())) {
-                    UpdateStatus::Unchanged => Ok(None),
-                    UpdateStatus::Changed => Ok(Some(hash)),
-                }
+    match dl_v2_manifest(download, update_hash, toolchain) {
+        Ok(Some((m, hash))) => {
+            return match try!(manifestation.update(&m, changes, &download.temp_cfg,
+                                                   download.notify_handler.clone())) {
+                UpdateStatus::Unchanged => Ok(None),
+                UpdateStatus::Changed => Ok(Some(hash)),
             }
-            Ok(None) => return Ok(None),
-            Err(Error::Utils(::multirust_utils::errors::Error::DownloadingFile {
-                error: ::multirust_utils::raw::DownloadError::Status(hyper::status::StatusCode::NotFound),
-                ..
-            })) => {
-                // Proceed to try v1 as a fallback
-                download.notify_handler.call(Notification::DownloadingLegacyManifest);
-            }
-            Err(e) => return Err(e)
         }
+        Ok(None) => return Ok(None),
+        Err(Error::Utils(::multirust_utils::errors::Error::DownloadingFile {
+            error: ::multirust_utils::raw::DownloadError::Status(hyper::status::StatusCode::NotFound),
+            ..
+        })) => {
+            // Proceed to try v1 as a fallback
+            download.notify_handler.call(Notification::DownloadingLegacyManifest);
+        }
+        Err(e) => return Err(e)
     }
 
     // If the v2 manifest is not found then try v1
-    let manifest = try!(dl_v1_manifest(download, toolchain));
+    let manifest = try!(dl_v1_manifest(download, toolchain)
+                        .map_err(|e| Error::NoManifestFound(toolchain.manifest_name(), Box::new(e))));
     match try!(manifestation.update_v1(&manifest, update_hash,
                                        &download.temp_cfg, download.notify_handler.clone())) {
         None => Ok(None),

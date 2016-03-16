@@ -11,7 +11,7 @@ repository = "https://github.com/Diggsey/multirust-rs"
 
 [dependencies]
 hyper = "0.7.0"
-scopeguard = "0.1.1"
+scopeguard = "0.1.2"
 lazy_static = "0.1.15"
 walkdir = "0.1.5"
 flate2 = "0.2.9"

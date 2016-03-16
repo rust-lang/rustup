@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::error;
 use std::fmt::{self, Display};
 use std::io;
@@ -32,6 +32,7 @@ pub enum Notification<'a> {
     ReadMetadataVersion(&'a str),
     NonFatalError(&'a Error),
     UpgradeRemovesToolchains,
+    MissingFileDuringSelfUninstall(PathBuf),
 }
 
 #[derive(Debug)]
@@ -54,6 +55,14 @@ pub enum Error {
     UnknownComponent(String, Component),
     AddingRequiredComponent(String, Component),
     RemovingRequiredComponent(String, Component),
+    NoExeName,
+    CargoHome,
+    MultirustHome,
+    NotSelfInstalled(PathBuf),
+    CantSpawnWindowsGcExe,
+    WindowsUninstallMadness(io::Error),
+    SelfUpdateFailed,
+    ReadStdin,
     Custom {
         id: String,
         desc: String,
@@ -96,7 +105,8 @@ impl<'a> Notification<'a> {
             MetadataUpgradeNotNeeded(_) |
             UpdateHashMatches => NotificationLevel::Info,
             NonFatalError(_) => NotificationLevel::Error,
-            UpgradeRemovesToolchains => NotificationLevel::Warn,
+            UpgradeRemovesToolchains |
+            MissingFileDuringSelfUninstall(_) => NotificationLevel::Warn,
         }
     }
 }
@@ -142,6 +152,9 @@ impl<'a> Display for Notification<'a> {
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{}'", ver),
             NonFatalError(e) => write!(f, "{}", e),
             UpgradeRemovesToolchains => write!(f, "this upgrade will remove all existing toolchains. you will need to reinstall them"),
+            MissingFileDuringSelfUninstall(ref p) => {
+                write!(f, "expected file does not exist to uninstall: {}", p.display())
+            }
         }
     }
 }
@@ -167,6 +180,14 @@ impl error::Error for Error {
             UnknownComponent(_ ,_) => "toolchain does not contain component",
             AddingRequiredComponent(_, _) => "required component cannot be added",
             RemovingRequiredComponent(_, _) => "required component cannot be removed",
+            NoExeName => "couldn't determine self executable name",
+            CargoHome => "couldn't find value of CARGO_HOME",
+            MultirustHome => "couldn't find value of MULTIRUST_HOME",
+            NotSelfInstalled(_) => "multirust is not installed",
+            CantSpawnWindowsGcExe => "failed to spawn cleanup process",
+            WindowsUninstallMadness(_) => "failure during windows uninstall",
+            SelfUpdateFailed => "self-updater failed to replace multirust executable",
+            ReadStdin => "unable to read from stdin for confirmation",
             Custom { ref desc, .. } => desc,
         }
     }
@@ -178,6 +199,7 @@ impl error::Error for Error {
             Utils(ref e) => Some(e),
             Temp(ref e) => Some(e),
             UpgradeIoError(ref e) => Some(e),
+            WindowsUninstallMadness(ref e) => Some(e),
             UnknownMetadataVersion(_) |
             InvalidEnvironment |
             NoDefaultToolchain |
@@ -191,6 +213,13 @@ impl error::Error for Error {
             UnknownComponent(_, _) |
             AddingRequiredComponent(_, _) |
             RemovingRequiredComponent(_, _) |
+            NoExeName |
+            CargoHome |
+            MultirustHome |
+            NotSelfInstalled(_) |
+            CantSpawnWindowsGcExe |
+            SelfUpdateFailed |
+            ReadStdin |
             Custom {..} => None,
         }
     }
@@ -235,6 +264,16 @@ impl Display for Error {
                 write!(f, "component '{}' for target '{}' is required for toolchain '{}' and cannot be removed",
                        c.pkg, c.target, t)
             }
+            NoExeName => write!(f, "couldn't determine self executable name"),
+            CargoHome => write!(f, "{}", self.description()),
+            MultirustHome => write!(f, "{}", self.description()),
+            NotSelfInstalled(ref p) => {
+                write!(f, "multirust is not installed at '{}'", p.display())
+            }
+            CantSpawnWindowsGcExe => write!(f, "{}", self.description()),
+            WindowsUninstallMadness(ref e) => write!(f, "failure during windows uninstall: {}", e),
+            SelfUpdateFailed => write!(f, "{}", self.description()),
+            ReadStdin => write!(f, "{}", self.description()),
             Custom { ref desc, .. } => write!(f, "{}", desc),
         }
     }

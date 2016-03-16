@@ -297,11 +297,14 @@ impl Manifestation {
         }
         let url = url.unwrap();
 
+        notify_handler.call(Notification::DownloadingComponent("rust"));
+
         let dlcfg = DownloadCfg {
             dist_root: "bogus",
             temp_cfg: temp_cfg,
             notify_handler: notify_handler
         };
+
         let dl = try!(download_and_check(&url, update_hash, ".tar.gz", dlcfg));
         if dl.is_none() {
             return Ok(None);
@@ -309,6 +312,8 @@ impl Manifestation {
         let (installer_file, installer_hash) = dl.unwrap();
 
         let prefix = self.installation.prefix();
+
+        notify_handler.call(Notification::InstallingComponent("rust"));
 
         // Begin transaction
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
