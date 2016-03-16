@@ -19,14 +19,14 @@ Add [multirust-rs](https://crates.io/crates/multirust-rs) or [multirust-dist](ht
 
 ### Installing from binaries
 
-- [Windows GNU 64-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/x86_64-pc-windows-gnu/multirust-rs.exe)
-- [Windows MSVC 64-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/x86_64-pc-windows-msvc/multirust-rs.exe)<sup>[\*1](#vs2015)</sup>
-- [Windows GNU 32-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/i686-pc-windows-gnu/multirust-rs.exe)
-- [Windows MSVC 32-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/i686-pc-windows-msvc/multirust-rs.exe)<sup>[\*1](#vs2015)</sup>
-- [Linux 64-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/x86_64-unknown-linux-gnu/multirust-rs)
-- [Linux 32-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/i686-unknown-linux-gnu/multirust-rs)
-- [Mac 64-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/x86_64-apple-darwin/multirust-rs)
-- [Mac 32-bit installer](https://github.com/Diggsey/multirust-rs-binaries/raw/master/i686-apple-darwin/multirust-rs)
+- [Windows GNU 64-bit installer](https://github.com/rust-lang-nursery/multirust-rs-binaries/raw/master/x86_64-pc-windows-gnu/multirust-setup.exe)
+- [Windows MSVC 64-bit installer](https://github.com/rust-lang-nursery/multirust-rs-binaries/raw/master/x86_64-pc-windows-msvc/multirust-setup.exe)<sup>[\*1](#vs2015)</sup>
+- [Windows GNU 32-bit installer](https://github.com/rust-lang-nursery/multirust-rs-binaries/raw/master/i686-pc-windows-gnu/multirust-setup.exe)
+- [Windows MSVC 32-bit installer](https://github.com/rust-lang-nursery/multirust-rs-binaries/raw/master/i686-pc-windows-msvc/multirust-setup.exe)<sup>[\*1](#vs2015)</sup>
+- [Linux 64-bit installer](https://github.com/rust-lang-nursery/multirust-rs-binaries/raw/master/x86_64-unknown-linux-gnu/multirust-setup)
+- [Linux 32-bit installer](https://github.com/rust-lang-nursery/multirust-rs-binaries/raw/master/i686-unknown-linux-gnu/multirust-setup)
+- [Mac 64-bit installer](https://github.com/rust-lang-nursery/multirust-rs-binaries/raw/master/x86_64-apple-darwin/multirust-setup)
+- [Mac 32-bit installer](https://github.com/rust-lang-nursery/multirust-rs-binaries/raw/master/i686-apple-darwin/multirust-setup)
 
 Binaries for other platforms are not yet available. Follow the instructions below for installing from source.
 
