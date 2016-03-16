@@ -7,7 +7,7 @@ environment:
   - TARGET: i686-pc-windows-gnu
     BITS: 32
   access_token:
-    secure: 49079b5341b992251739bddf748d2ae9304589b0 
+    secure: q8Wqx0brgfpOYFQqWauvucE2h0o1WYb41a3gKaCKV9QiE4eTz6qLNlqyC3mdsp4Q
 branches:
   only:
     - master
@@ -46,8 +46,8 @@ install:
 build: false
 test_script:
   - cargo build  --release
-  #- cargo test --release -p multirust-dist
-  #- cargo test --release
+  - cargo test --release -p multirust-dist
+  - cargo test --release
 notifications:
   - provider: Webhook
     url: https://webhooks.gitter.im/e/9907ad94eb7a5ff291c3
