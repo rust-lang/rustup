@@ -67,12 +67,6 @@ script:
     else
       cargo build --release --verbose;
     fi
-  # Compute sha-256 hashes of all build artifacts
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      find "target/release/" -maxdepth 1 -type f -exec sh -c 'shasum -a 256 -b "{}" | cut -d\  -f1 > "{}.sha256"' \;;
-    else
-      find "target/release/" -maxdepth 1 -type f -exec sh -c 'sha256sum -b "{}" | cut -d\  -f1 > "{}.sha256"' \;;
-    fi
   # Run cargo tests
   - cargo test --release -p multirust-dist --verbose
   - cargo test --release --verbose
@@ -88,8 +82,16 @@ after_success:
       find target/debug/*-* -executable ! -name multirust-rs -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
     fi
 
+  # Compute sha-256 hashes of all build artifacts
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      find "target/release/" -maxdepth 1 -type f -exec sh -c 'shasum -a 256 -b "{}" | cut -d\  -f1 > "{}.sha256"' \;;
+    else
+      find "target/release/" -maxdepth 1 -type f -exec sh -c 'sha256sum -b "{}" | cut -d\  -f1 > "{}.sha256"' \;;
+    fi
+
   # Build documentation and push release binaries
   - if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+
       git config --global credential.helper store;
       echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials;
 
