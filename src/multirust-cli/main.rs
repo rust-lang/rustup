@@ -69,17 +69,19 @@ fn run_multirust() -> Result<()> {
         Some("multirust-setup") => {
             setup_mode::main()
         }
-        Some("multirust-rs") => {
-            // This is for compatibility with previous revisions of multirust-rs
-            // self-update, which expect this file to be available on the
-            // server and execute it with `self install` as the arguments.
-            // FIXME: Verify this works.
-            self_update::install(false, false)
-        }
         Some(n) if n.starts_with("multirust-gc-") => {
             // This is the final uninstallation stage on windows where
             // multirust deletes its own exe
             self_update::complete_windows_uninstall()
+        }
+        Some(n) if n.starts_with("multirust-") => {
+            // This is for compatibility with previous revisions of
+            // multirust-rs self-update, which expect multirust-rs to
+            // be available on the server, downloads it to
+            // ~/.multirust/tmp/multirust-$random, and execute it with
+            // `self install` as the arguments.  FIXME: Verify this
+            // works.
+            self_update::install(false, false)
         }
         Some(_) => {
             proxy_mode::main()
