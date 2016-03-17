@@ -38,6 +38,7 @@ pub enum Error {
     InvalidFileExtension,
     InvalidInstaller,
     InvalidToolchainName(String),
+    InvalidCustomToolchainName(String),
     NotInstalledHere,
     UnsupportedHost(String),
     ChecksumFailed {
@@ -152,7 +153,8 @@ impl error::Error for Error {
             Temp(ref e) => error::Error::description(e),
             InvalidFileExtension => "invalid file extension",
             InvalidInstaller => "invalid installer",
-            InvalidToolchainName(_) => "invalid custom toolchain name",
+            InvalidToolchainName(_) => "invalid toolchain name",
+            InvalidCustomToolchainName(_) => "invalid custom toolchain name",
             NotInstalledHere => "not installed here",
             UnsupportedHost(_) => "binary package not provided for host",
             ChecksumFailed {..} => "checksum failed",
@@ -196,6 +198,7 @@ impl error::Error for Error {
             InvalidFileExtension |
             InvalidInstaller |
             InvalidToolchainName(_) |
+            InvalidCustomToolchainName(_) |
             NotInstalledHere |
             UnsupportedHost(_) |
             ChecksumFailed {..} |
@@ -231,7 +234,8 @@ impl Display for Error {
 
             InvalidFileExtension => write!(f, "invalid file extension"),
             InvalidInstaller => write!(f, "invalid installer"),
-            InvalidToolchainName(ref s) => write!(f, "invalid custom toolchain name: '{}'", s),
+            InvalidToolchainName(ref s) => write!(f, "invalid toolchain name: '{}'", s),
+            InvalidCustomToolchainName(ref s) => write!(f, "invalid custom toolchain name: '{}'", s),
             NotInstalledHere => write!(f, "not installed here"),
             UnsupportedHost(ref spec) => {
                 write!(f, "a binary package was not provided for: '{}'", spec)

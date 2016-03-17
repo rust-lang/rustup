@@ -151,3 +151,25 @@ r"info: deleted directory '{}'
 ", config.homedir.path().display()));
     });
 }
+
+// Issue #111
+// multirust update nightly-2016-03-1
+#[test]
+fn update_invalid_toolchain() {
+   setup(&|config| {
+        expect_err_ex(config, &["multirust", "update", "nightly-2016-03-1"],
+r"",
+r"error: toolchain 'nightly-2016-03-1' is not installed
+");
+   });
+ }
+
+#[test]
+fn default_invalid_toolchain() {
+   setup(&|config| {
+        expect_err_ex(config, &["multirust", "default", "nightly-2016-03-1"],
+r"",
+r"error: toolchain 'nightly-2016-03-1' is not installed
+");
+   });
+}

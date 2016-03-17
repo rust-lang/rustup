@@ -137,7 +137,7 @@ impl<'a> Toolchain<'a> {
 
     fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
-            Err(Error::Install(::multirust_dist::Error::InvalidToolchainName(self.name.to_string())))
+            Err(Error::Install(::multirust_dist::Error::InvalidCustomToolchainName(self.name.to_string())))
         } else {
             Ok(())
         }
@@ -276,7 +276,8 @@ impl<'a> Toolchain<'a> {
         // FIXME: This toolchain handling is a mess. Just do it once
         // when the toolchain is created.
         let ref toolchain = self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
+        let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
+                                 .map_err(|_| Error::ComponentsUnsupported(self.name.to_string())));
         let trip = toolchain.target_triple();
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, &trip));
@@ -307,7 +308,8 @@ impl<'a> Toolchain<'a> {
         }
 
         let ref toolchain = self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
+        let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
+                                 .map_err(|_| Error::ComponentsUnsupported(self.name.to_string())));
         let trip = toolchain.target_triple();
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, &trip));
@@ -350,7 +352,8 @@ impl<'a> Toolchain<'a> {
         }
 
         let ref toolchain = self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
+        let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
+                                 .map_err(|_| Error::ComponentsUnsupported(self.name.to_string())));
         let trip = toolchain.target_triple();
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, &trip));
