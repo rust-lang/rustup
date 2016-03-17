@@ -4,7 +4,7 @@ use multirust::{Cfg, Result, Notification, Toolchain, Error};
 use multirust_utils::{self, utils};
 use multirust_utils::notify::NotificationLevel;
 use std::ffi::OsStr;
-use std::io::{self, Write, Read, BufRead};
+use std::io::{Write, Read, BufRead};
 use std::process::{self, Command};
 use std;
 use tty;
