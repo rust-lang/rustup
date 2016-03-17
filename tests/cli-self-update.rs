@@ -887,6 +887,7 @@ fn install_deletes_legacy_multirust_bins() {
 // install to go to the wrong place. Detect this scenario specifically
 // and avoid it.
 #[test]
+#[cfg(unix)] // Can't test on windows without clobbering the home dir
 fn legacy_upgrade_installs_to_correct_location() {
     setup(&|config, _, home| {
         let fake_cargo = config.homedir.path().join(".multirust/cargo");

@@ -4,6 +4,8 @@
 extern crate hyper;
 extern crate openssl;
 extern crate rand;
+#[macro_use]
+extern crate scopeguard;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -13,6 +15,10 @@ extern crate winreg;
 extern crate shell32;
 #[cfg(windows)]
 extern crate ole32;
+#[cfg(windows)]
+extern crate kernel32;
+#[cfg(windows)]
+extern crate advapi32;
 
 pub mod notify;
 pub mod errors;

@@ -33,7 +33,6 @@
 use common::{self, confirm};
 use itertools::Itertools;
 use multirust::{Error, Result, NotifyHandler};
-use multirust::multirust_dir;
 use multirust_dist::dist;
 use multirust_dist;
 use multirust_utils::utils;
@@ -143,42 +142,13 @@ static TOOLS: &'static [&'static str]
 static UPDATE_ROOT: &'static str
     = "https://github.com/Diggsey/multirust-rs-binaries/raw/master";
 
-fn get_cargo_home() -> Result<PathBuf> {
-    let env_var = env::var_os("CARGO_HOME");
-
-    // NB: During the multirust-rs -> rustup transition the install
-    // dir changed from ~/.multirust/bin to ~/.cargo/bin. Because
-    // multirust used to explicitly set CARGO_HOME it's possible to
-    // get here when e.g. installing under `cargo run` and decide to
-    // install to the wrong place. This check is to make the
-    // multirust-rs to rustup upgrade seamless.
-    let env_var = if let Some(v) = env_var {
-       let vv = v.to_string_lossy().to_string();
-       if vv.contains(".multirust/cargo") ||
-            vv.contains(r".multirust\cargo") {
-           None
-       } else {
-           Some(v)
-       }
-    } else {
-        None
-    };
-
-    let cwd = try!(env::current_dir().map_err(|_| Error::CargoHome));
-    let cargo_home = env_var.map(|home| {
-        cwd.join(home)
-    });
-    let user_home = env::home_dir().map(|p| p.join(".cargo"));
-    cargo_home.or(user_home).ok_or(Error::CargoHome)
-}
-
 /// CARGO_HOME suitable for display, possibly with $HOME
 /// substituted for the directory prefix
 fn canonical_cargo_home() -> Result<String> {
-    let path = try!(get_cargo_home());
+    let path = try!(utils::cargo_home());
     let mut path_str = path.to_string_lossy().to_string();
 
-    let default_cargo_home = env::home_dir().unwrap_or(PathBuf::from(".")).join(".cargo");
+    let default_cargo_home = utils::home_dir().unwrap_or(PathBuf::from(".")).join(".cargo");
     if default_cargo_home == path {
         path_str = String::from("$HOME/.cargo");
     }
@@ -205,7 +175,7 @@ pub fn install(no_prompt: bool, verbose: bool) -> Result<()> {
     try!(maybe_install_rust_stable(verbose));
 
     if cfg!(unix) {
-        let ref env_file = try!(get_cargo_home()).join("env");
+        let ref env_file = try!(utils::cargo_home()).join("env");
         let ref env_str = try!(shell_export_string());
         try!(utils::write_file("env", env_file, env_str));
     }
@@ -234,7 +204,7 @@ pub fn install(no_prompt: bool, verbose: bool) -> Result<()> {
 }
 
 fn pre_install_msg() -> Result<String> {
-    let ref cargo_home = try!(get_cargo_home());
+    let ref cargo_home = try!(utils::cargo_home());
     if cfg!(unix) {
         let add_path_methods = get_add_path_methods();
         let rcfiles = add_path_methods.into_iter()
@@ -278,21 +248,21 @@ fn cleanup_legacy() -> Result<()> {
 
     #[cfg(unix)]
     fn legacy_multirust_home_dir() -> Result<PathBuf> {
-        multirust_dir()
+        Ok(try!(utils::multirust_home()))
     }
 
     #[cfg(windows)]
     fn legacy_multirust_home_dir() -> Result<PathBuf> {
         use multirust_utils::raw::windows::{
-            get_special_folder, FOLDERID_Profile
+            get_special_folder, FOLDERID_LocalAppData
         };
 
-        Ok(get_special_folder(&FOLDERID_Profile).unwrap_or(PathBuf::from(".")))
+        Ok(get_special_folder(&FOLDERID_LocalAppData).unwrap_or(PathBuf::from(".")))
     }
 }
 
 fn install_bins() -> Result<()> {
-    let ref bin_path = try!(get_cargo_home()).join("bin");
+    let ref bin_path = try!(utils::cargo_home()).join("bin");
     let ref this_exe_path = try!(utils::current_exe());
     let ref multirust_path = bin_path.join(&format!("multirust{}", EXE_SUFFIX));
 
@@ -334,7 +304,7 @@ fn maybe_install_rust_stable(verbose: bool) -> Result<()> {
 }
 
 pub fn uninstall(no_prompt: bool) -> Result<()> {
-    let ref cargo_home = try!(get_cargo_home());
+    let ref cargo_home = try!(utils::cargo_home());
 
     if !cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX)).exists() {
         return Err(Error::NotSelfInstalled(cargo_home.clone()));
@@ -352,7 +322,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     info!("removing multirust home");
 
     // Delete MULTIRUST_HOME
-    let ref multirust_dir = try!(multirust_dir());
+    let ref multirust_dir = try!(utils::multirust_home());
     if multirust_dir.exists() {
         try!(utils::remove_dir("multirust_home", multirust_dir, ntfy!(&NotifyHandler::none())));
     }
@@ -413,7 +383,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 
 #[cfg(unix)]
 fn delete_multirust_and_cargo_home() -> Result<()> {
-    let ref cargo_home = try!(get_cargo_home());
+    let ref cargo_home = try!(utils::cargo_home());
     try!(utils::remove_dir("cargo_home", cargo_home, ntfy!(&NotifyHandler::none())));
 
     Ok(())
@@ -454,7 +424,7 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
     use rand;
 
     // CARGO_HOME, hopefully empty except for bin/multirust.exe
-    let ref cargo_home = try!(get_cargo_home());
+    let ref cargo_home = try!(utils::cargo_home());
     // The multirust.exe bin
     let ref multirust_path = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
 
@@ -528,7 +498,7 @@ pub fn complete_windows_uninstall() -> Result<()> {
     try!(wait_for_parent());
 
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME
-    let ref cargo_home = try!(get_cargo_home());
+    let ref cargo_home = try!(utils::cargo_home());
     try!(utils::remove_dir("cargo_home", cargo_home, ntfy!(&NotifyHandler::none())));
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
@@ -630,9 +600,9 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
         return vec![PathUpdateMethod::Windows];
     }
 
-    let bashrc = env::home_dir().map(|p| p.join(".bashrc"));
-    let zshrc = env::home_dir().map(|p| p.join(".zshrc"));
-    let kshrc = env::home_dir().map(|p| p.join(".kshrc"));
+    let bashrc = utils::home_dir().map(|p| p.join(".bashrc"));
+    let zshrc = utils::home_dir().map(|p| p.join(".zshrc"));
+    let kshrc = utils::home_dir().map(|p| p.join(".kshrc"));
 
     let rcfiles = vec![bashrc, zshrc, kshrc];
     let existing_rcfiles = rcfiles.into_iter()
@@ -682,7 +652,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 
     let old_path: String = environment.get_value("PATH").expect("non-unicode PATH");
 
-    let mut new_path = try!(get_cargo_home()).join("bin").to_string_lossy().to_string();
+    let mut new_path = try!(utils::cargo_home()).join("bin").to_string_lossy().to_string();
     if old_path.contains(&new_path) {
         return Ok(());
     }
@@ -713,9 +683,9 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
         return Ok(vec![PathUpdateMethod::Windows]);
     }
 
-    let bashrc = env::home_dir().map(|p| p.join(".bashrc"));
-    let zshrc = env::home_dir().map(|p| p.join(".zshrc"));
-    let kshrc = env::home_dir().map(|p| p.join(".kshrc"));
+    let bashrc = utils::home_dir().map(|p| p.join(".bashrc"));
+    let zshrc = utils::home_dir().map(|p| p.join(".zshrc"));
+    let kshrc = utils::home_dir().map(|p| p.join(".kshrc"));
 
     let rcfiles = vec![bashrc, zshrc, kshrc];
     let existing_rcfiles = rcfiles.into_iter()
@@ -747,7 +717,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
                            .map_err(|_| Error::PermissionDenied));
 
     let old_path: String = environment.get_value("PATH").expect("non-unicode PATH");
-    let ref path_str = try!(get_cargo_home()).join("bin").to_string_lossy().to_string();
+    let ref path_str = try!(utils::cargo_home()).join("bin").to_string_lossy().to_string();
     let idx = if let Some(i) = old_path.find(path_str) {
         i
     } else {
@@ -818,7 +788,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 /// multirust-setup is stored in CARGO_HOME/bin, and then deleted next
 /// time multirust runs.
 pub fn update() -> Result<()> {
-    let ref cargo_home = try!(get_cargo_home());
+    let ref cargo_home = try!(utils::cargo_home());
     let ref multirust_path = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
     let ref setup_path = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
 
@@ -960,7 +930,7 @@ pub fn self_replace() -> Result<()> {
 }
 
 pub fn cleanup_self_updater() -> Result<()> {
-    let cargo_home = try!(get_cargo_home());
+    let cargo_home = try!(utils::cargo_home());
     let ref setup = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
 
     if setup.exists() {

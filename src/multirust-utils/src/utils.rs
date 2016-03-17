@@ -7,13 +7,15 @@ use std::ffi::OsString;
 use std::env;
 use hyper;
 use openssl::crypto::hash::Hasher;
-
 use notify::Notifyable;
 use errors::{Error, Notification, NotifyHandler};
-
 use raw;
+#[cfg(windows)]
+use winapi::DWORD;
+
 pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
                     has_cmd, find_cmd};
+
 
 pub fn ensure_dir_exists(name: &'static str,
                          path: &Path,
@@ -313,3 +315,136 @@ pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
     })
 }
 
+// On windows, unlike std and cargo, multirust does *not* consider the
+// HOME variable. If it did then the install dir would change
+// depending on whether you happened to install under msys.
+#[cfg(windows)]
+pub fn home_dir() -> Option<PathBuf> {
+    use std::ptr;
+    use kernel32::{GetCurrentProcess, GetLastError, CloseHandle};
+    use advapi32::OpenProcessToken;
+    use winapi::ERROR_INSUFFICIENT_BUFFER;
+    use winapi::winnt::TOKEN_READ;
+    use winapi::{HANDLE, LPCWSTR, BOOL};
+
+    extern "system" {
+        pub fn GetUserProfileDirectoryW(hToken: HANDLE,
+                                        lpProfileDir: LPCWSTR,
+                                        lpcchSize: *mut DWORD) -> BOOL;
+    }
+
+    ::std::env::var_os("USERPROFILE").map(PathBuf::from).or_else(|| unsafe {
+        let me = GetCurrentProcess();
+        let mut token = ptr::null_mut();
+        if OpenProcessToken(me, TOKEN_READ, &mut token) == 0 {
+            return None
+        }
+        defer! {{ let _ = CloseHandle(token); }}
+        fill_utf16_buf(|buf, mut sz| {
+            match GetUserProfileDirectoryW(token, buf, &mut sz) {
+                0 if GetLastError() != ERROR_INSUFFICIENT_BUFFER => 0,
+                0 => sz,
+                _ => sz - 1, // sz includes the null terminator
+            }
+        }, os2path).ok()
+    })
+}
+
+#[cfg(windows)]
+fn os2path(s: &[u16]) -> PathBuf {
+    use std::os::windows::ffi::OsStringExt;
+    PathBuf::from(OsString::from_wide(s))
+}
+
+#[cfg(windows)]
+fn fill_utf16_buf<F1, F2, T>(mut f1: F1, f2: F2) -> io::Result<T>
+    where F1: FnMut(*mut u16, DWORD) -> DWORD,
+          F2: FnOnce(&[u16]) -> T
+{
+    use kernel32::{GetLastError, SetLastError};
+    use winapi::{ERROR_INSUFFICIENT_BUFFER};
+
+    // Start off with a stack buf but then spill over to the heap if we end up
+    // needing more space.
+    let mut stack_buf = [0u16; 512];
+    let mut heap_buf = Vec::new();
+    unsafe {
+        let mut n = stack_buf.len();
+        loop {
+            let buf = if n <= stack_buf.len() {
+                &mut stack_buf[..]
+            } else {
+                let extra = n - heap_buf.len();
+                heap_buf.reserve(extra);
+                heap_buf.set_len(n);
+                &mut heap_buf[..]
+            };
+
+            // This function is typically called on windows API functions which
+            // will return the correct length of the string, but these functions
+            // also return the `0` on error. In some cases, however, the
+            // returned "correct length" may actually be 0!
+            //
+            // To handle this case we call `SetLastError` to reset it to 0 and
+            // then check it again if we get the "0 error value". If the "last
+            // error" is still 0 then we interpret it as a 0 length buffer and
+            // not an actual error.
+            SetLastError(0);
+            let k = match f1(buf.as_mut_ptr(), n as DWORD) {
+                0 if GetLastError() == 0 => 0,
+                0 => return Err(io::Error::last_os_error()),
+                n => n,
+            } as usize;
+            if k == n && GetLastError() == ERROR_INSUFFICIENT_BUFFER {
+                n *= 2;
+            } else if k >= n {
+                n = k;
+            } else {
+                return Ok(f2(&buf[..k]))
+            }
+        }
+    }
+}
+
+#[cfg(unix)]
+pub fn home_dir() -> Option<PathBuf> {
+    ::std::env::home_dir()
+}
+
+pub fn cargo_home() -> Result<PathBuf> {
+    let env_var = env::var_os("CARGO_HOME");
+
+    // NB: During the multirust-rs -> rustup transition the install
+    // dir changed from ~/.multirust/bin to ~/.cargo/bin. Because
+    // multirust used to explicitly set CARGO_HOME it's possible to
+    // get here when e.g. installing under `cargo run` and decide to
+    // install to the wrong place. This check is to make the
+    // multirust-rs to rustup upgrade seamless.
+    let env_var = if let Some(v) = env_var {
+       let vv = v.to_string_lossy().to_string();
+       if vv.contains(".multirust/cargo") ||
+            vv.contains(r".multirust\cargo") {
+           None
+       } else {
+           Some(v)
+       }
+    } else {
+        None
+    };
+
+    let cwd = try!(env::current_dir().map_err(|_| Error::CargoHome));
+    let cargo_home = env_var.map(|home| {
+        cwd.join(home)
+    });
+    let user_home = home_dir().map(|p| p.join(".cargo"));
+    cargo_home.or(user_home).ok_or(Error::CargoHome)
+}
+
+pub fn multirust_home() -> Result<PathBuf> {
+    let cwd = try!(env::current_dir().map_err(|_| Error::MultirustHome));
+    let multirust_home = env::var_os("MULTIRUST_HOME").map(|home| {
+        cwd.join(home)
+    });
+    let user_home = home_dir().map(|p| p.join(".multirust"));
+    multirust_home.or(user_home).ok_or(Error::MultirustHome)
+}
