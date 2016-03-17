@@ -216,6 +216,14 @@ impl<'a> Toolchain<'a> {
 
         self.set_ldpath(cmd);
 
+        // Because multirust and cargo use slightly different
+        // definitions of cargo home (multirust doesn't read HOME on
+        // windows), we must set it here to ensure cargo and
+        // multirust agree.
+        if let Ok(cargo_home) = utils::cargo_home() {
+            env_var::set_path("CARGO_HOME", &cargo_home, cmd);
+        }
+
         env_var::set_path("PATH", bin_path, cmd);
         env_var::inc("RUST_RECURSION_COUNT", cmd);
 

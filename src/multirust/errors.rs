@@ -56,8 +56,6 @@ pub enum Error {
     AddingRequiredComponent(String, Component),
     RemovingRequiredComponent(String, Component),
     NoExeName,
-    CargoHome,
-    MultirustHome,
     NotSelfInstalled(PathBuf),
     CantSpawnWindowsGcExe,
     WindowsUninstallMadness(io::Error),
@@ -181,8 +179,6 @@ impl error::Error for Error {
             AddingRequiredComponent(_, _) => "required component cannot be added",
             RemovingRequiredComponent(_, _) => "required component cannot be removed",
             NoExeName => "couldn't determine self executable name",
-            CargoHome => "couldn't find value of CARGO_HOME",
-            MultirustHome => "couldn't find value of MULTIRUST_HOME",
             NotSelfInstalled(_) => "multirust is not installed",
             CantSpawnWindowsGcExe => "failed to spawn cleanup process",
             WindowsUninstallMadness(_) => "failure during windows uninstall",
@@ -214,8 +210,6 @@ impl error::Error for Error {
             AddingRequiredComponent(_, _) |
             RemovingRequiredComponent(_, _) |
             NoExeName |
-            CargoHome |
-            MultirustHome |
             NotSelfInstalled(_) |
             CantSpawnWindowsGcExe |
             SelfUpdateFailed |
@@ -265,8 +259,6 @@ impl Display for Error {
                        c.pkg, c.target, t)
             }
             NoExeName => write!(f, "couldn't determine self executable name"),
-            CargoHome => write!(f, "{}", self.description()),
-            MultirustHome => write!(f, "{}", self.description()),
             NotSelfInstalled(ref p) => {
                 write!(f, "multirust is not installed at '{}'", p.display())
             }

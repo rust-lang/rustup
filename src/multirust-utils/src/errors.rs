@@ -123,6 +123,8 @@ pub enum Error {
         path: PathBuf,
         error: io::Error,
     },
+    CargoHome,
+    MultirustHome,
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -192,6 +194,8 @@ impl error::Error for Error {
             OpeningBrowser { error: Some(_) } => "could not open browser",
             OpeningBrowser { error: None } => "could not open browser: no browser installed",
             SettingPermissions {..} => "failed to set permissions",
+            CargoHome => "couldn't find value of CARGO_HOME",
+            MultirustHome => "couldn't find value of MULTIRUST_HOME",
         }
     }
 
@@ -226,6 +230,8 @@ impl error::Error for Error {
             // Variant carrying `error: Option<io::Error>`.
             OpeningBrowser { error: Some(ref e) } => Some(e),
             OpeningBrowser { error: None } => None,
+            CargoHome |
+            MultirustHome => None,
         }
     }
 }
@@ -357,7 +363,9 @@ impl Display for Error {
                        "failed to set permissions for: '{} ({})'",
                        path.display(),
                        error)
-            }
+            },
+            CargoHome => write!(f, "couldn't find value of CARGO_HOME"),
+            MultirustHome => write!(f, "couldn't find value of MULTIRUST_HOME"),
         }
     }
 }
