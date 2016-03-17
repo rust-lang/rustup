@@ -19,6 +19,8 @@ extern crate ole32;
 extern crate kernel32;
 #[cfg(windows)]
 extern crate advapi32;
+#[cfg(windows)]
+extern crate userenv;
 
 pub mod notify;
 pub mod errors;

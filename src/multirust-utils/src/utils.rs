@@ -323,15 +323,9 @@ pub fn home_dir() -> Option<PathBuf> {
     use std::ptr;
     use kernel32::{GetCurrentProcess, GetLastError, CloseHandle};
     use advapi32::OpenProcessToken;
+    use userenv::GetUserProfileDirectoryW;
     use winapi::ERROR_INSUFFICIENT_BUFFER;
     use winapi::winnt::TOKEN_READ;
-    use winapi::{HANDLE, LPCWSTR, BOOL};
-
-    extern "system" {
-        pub fn GetUserProfileDirectoryW(hToken: HANDLE,
-                                        lpProfileDir: LPCWSTR,
-                                        lpcchSize: *mut DWORD) -> BOOL;
-    }
 
     ::std::env::var_os("USERPROFILE").map(PathBuf::from).or_else(|| unsafe {
         let me = GetCurrentProcess();
