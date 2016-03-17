@@ -11,6 +11,7 @@ use std::io::Write;
 use std::iter;
 use std::path::{Path, PathBuf};
 use term;
+use job;
 
 pub fn main() -> Result<()> {
     try!(::self_update::cleanup_self_updater());
@@ -24,6 +25,13 @@ pub fn main() -> Result<()> {
     let app_matches = cli::get().get_matches();
     let verbose = app_matches.is_present("verbose");
     let cfg = try!(set_globals(verbose));
+
+    // On windows, put the process and its children in a job object
+    // so they are all killed together.
+    //
+    // We don't do this for self-uninstall and upgrade because
+    // it interferes with the fragile self-deletion code.
+    maybe_setup_winjob(&app_matches);
 
     match app_matches.subcommand() {
         ("update", Some(m)) => update(&cfg, m),
@@ -53,6 +61,15 @@ pub fn main() -> Result<()> {
         ("doc", Some(m)) => doc(&cfg, m),
         _ => {
             unreachable!()
+        }
+    }
+}
+
+fn maybe_setup_winjob(m: &ArgMatches) {
+    match m.subcommand() {
+        ("self", _) => { }
+        (_, _) => {
+            job::setup();
         }
     }
 }

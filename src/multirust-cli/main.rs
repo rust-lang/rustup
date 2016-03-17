@@ -37,6 +37,7 @@ mod proxy_mode;
 mod setup_mode;
 mod self_update;
 mod tty;
+mod job;
 
 use std::env;
 use std::path::PathBuf;
