@@ -63,13 +63,12 @@ script:
         -e OPENSSL_STATIC=1
         -e OPENSSL_LIB_DIR=/rustroot/cargo$BITS/lib
         -it alexcrichton/rust-slave-dist:2015-10-20b
-        -c "cargo build --release --verbose";
+        -c "cargo build --release --verbose && cargo test --release -p multirust-dist --verbose && cargo test --release --verbose" || exit 1;
     else
-      cargo build --release --verbose;
+      cargo build --release --verbose || exit 1;
+      cargo test --release -p multirust-dist --verbose || exit 1;
+      cargo test --release --verbose || exit 1;
     fi
-  # Run cargo tests
-  - cargo test --release -p multirust-dist --verbose
-  - cargo test --release --verbose
 
 after_success:
   # Install kcov dependencies
