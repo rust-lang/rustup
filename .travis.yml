@@ -89,24 +89,20 @@ after_success:
     fi
 
   # Build documentation and push release binaries
-  - if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+  - if [ "$TRAVIS_PULL_REQUEST" == "false" && "$TRAVIS_BRANCH" == "master" ]; then
 
       git config --global credential.helper store;
       echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials;
 
-      if [ "$TRAVIS_BRANCH" == "master" ]; then
-        if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
-          cargo doc;
-          echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html;
-          sudo pip install ghp-import;
-          ghp-import -n target/doc;
-          git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages;
-        fi;
-
-        bin=./binaries/$TARGET;
-      else
-        bin=./binaries/$TRAVIS_BRANCH/$TARGET;
+      if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
+        cargo doc;
+        echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html;
+        sudo pip install ghp-import;
+        ghp-import -n target/doc;
+        git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages;
       fi;
+
+      bin=./binaries/$TARGET;
 
       git submodule init;
       git submodule update --depth 1 --remote;
