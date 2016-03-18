@@ -12,6 +12,7 @@ branches:
   only:
     - master
     - stable
+    - auto
 
 install:
   - ps: |
