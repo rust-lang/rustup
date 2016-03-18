@@ -787,13 +787,7 @@ fn reinstall_exact() {
     setup(&|config, _, _| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok_ex(config, &["multirust-setup", "-y"],
-r"
-stable revision:
-
-1.1.0 (hash-s-2)
-1.1.0 (hash-s-2)
-
-",
+r"",
 r"info: updating existing installation
 "
                   );

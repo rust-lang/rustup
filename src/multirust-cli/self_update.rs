@@ -106,7 +106,8 @@ modifying the HKEY_CURRENT_USER/Environment/PATH registry key."
 
 macro_rules! post_install_msg_unix {
     () => {
-r"Rust is installed now. Great!
+r"
+Rust is installed now. Great!
 
 To get started you need Cargo's bin directory in your `PATH`
 environment variable. Future shells will be configured automatically.
@@ -117,7 +118,8 @@ To configure your current shell run `source {cargo_home}/env`.
 
 macro_rules! post_install_msg_win {
     () => {
-r"Rust is installed now. Great!
+r"
+Rust is installed now. Great!
 
 To get started you need Cargo's bin directory in your `PATH`
 environment variable. Future applications will automatically have the
@@ -294,11 +296,10 @@ fn maybe_install_rust_stable(verbose: bool) -> Result<()> {
         let stable = try!(cfg.get_toolchain("stable", false));
         try!(stable.install_from_dist());
         try!(cfg.set_default("stable"));
+        try!(common::show_channel_version(cfg, "stable"));
     } else {
         info!("updating existing installation");
     }
-    println!("");
-    try!(common::show_channel_version(cfg, "stable"));
 
     Ok(())
 }

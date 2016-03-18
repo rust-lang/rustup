@@ -122,9 +122,8 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 
     try!(toolchain.make_default());
-
-    println!("");
     try!(show_channel_version(cfg, toolchain.name()));
+
     Ok(())
 }
 
@@ -138,7 +137,6 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
                 return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()));
             }
         }
-        println!("");
         try!(show_channel_version(cfg, name));
     } else {
         try!(update_all_channels(cfg))
@@ -155,8 +153,6 @@ fn override_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     }
 
     try!(toolchain.make_override(&try!(utils::current_dir())));
-
-    println!("");
     try!(show_channel_version(cfg, toolchain.name()));
     Ok(())
 }
@@ -244,11 +240,14 @@ fn show_default(cfg: &Cfg) -> Result<()> {
         println!("default toolchain: {}", toolchain.name());
         println!("default location: {}", toolchain.path().display());
 
-        show_tool_versions(&toolchain)
+        try!(show_tool_versions(&toolchain));
+        println!("");
     } else {
         println!("no default toolchain configured. run `multirust help default`");
-        Ok(())
+        println!("");
     }
+
+    Ok(())
 }
 
 fn show_override(cfg: &Cfg) -> Result<()> {
@@ -259,11 +258,13 @@ fn show_override(cfg: &Cfg) -> Result<()> {
         // windows path, which is pretty ugly
         println!("override reason: {}", reason);
 
-        show_tool_versions(&toolchain)
+        try!(show_tool_versions(&toolchain));
+        println!("");
     } else {
         println!("no override");
-        show_default(cfg)
+        try!(show_default(cfg));
     }
+    Ok(())
 }
 
 fn list_overrides(cfg: &Cfg) -> Result<()> {
@@ -332,6 +333,7 @@ fn update_all_channels(cfg: &Cfg) -> Result<()> {
         let _ = t.reset();
         let _ = writeln!(t, " revision:");
         try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
+        println!("");
     }
     Ok(())
 }

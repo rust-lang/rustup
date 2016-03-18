@@ -99,19 +99,20 @@ pub fn run_inner<S: AsRef<OsStr>>(mut command: Command,
 }
 
 pub fn show_channel_version(cfg: &Cfg, name: &str) -> Result<()> {
+    println!("");
     let mut t = term::stdout().unwrap();
     if tty::stdout_isatty() { let _ = t.fg(term::color::BRIGHT_WHITE); }
     if tty::stdout_isatty() { let _ = t.bg(term::color::BLACK); }
     let _ = write!(t, "{}", name);
     if tty::stdout_isatty() { let _ = t.reset(); }
     let _ = writeln!(t, " revision:");
+    println!("");
     try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
+    println!("");
     Ok(())
 }
 
 pub fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
-    println!("");
-
     if toolchain.exists() {
         let rustc_path = toolchain.binary_file("rustc");
         let cargo_path = toolchain.binary_file("cargo");
@@ -141,7 +142,6 @@ pub fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
     } else {
         println!("(toolchain not installed)");
     }
-    println!("");
     Ok(())
 }
 
