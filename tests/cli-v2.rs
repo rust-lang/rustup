@@ -529,7 +529,7 @@ fn list_targets_custom_toolchain() {
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--copy-local", &path]);
         expect_err(config, &["multirust", "list-targets", "default-from-path"],
-                   "invalid custom toolchain name: 'default-from-path'");
+                   "toolchain 'default-from-path' does not support components");
     });
 }
 
@@ -588,7 +588,7 @@ fn add_target_custom_toolchain() {
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--copy-local", &path]);
         expect_err(config, &["multirust", "add-target", "default-from-path", clitools::CROSS_ARCH1],
-                   "invalid custom toolchain name: 'default-from-path'");
+                   "toolchain 'default-from-path' does not support components");
     });
 }
 
@@ -672,7 +672,7 @@ fn remove_target_custom_toolchain() {
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--copy-local", &path]);
         expect_err(config, &["multirust", "remove-target", "default-from-path", clitools::CROSS_ARCH1],
-                   "invalid custom toolchain name: 'default-from-path'");
+                   "toolchain 'default-from-path' does not support components");
     });
 }
 
