@@ -131,6 +131,11 @@ pub fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
         if utils::is_file(&cargo_path) {
             let mut cmd = Command::new(&cargo_path);
             cmd.arg("--version");
+            // cargo invokes rustc during --version, this
+            // makes sure it can find it since it may not
+            // be on the `PATH` and multirust does not
+            // manipulate `PATH`.
+            cmd.env("RUSTC", rustc_path);
             toolchain.set_ldpath(&mut cmd);
 
             if utils::cmd_status("cargo", &mut cmd).is_err() {
