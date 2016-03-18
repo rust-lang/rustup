@@ -31,11 +31,11 @@ pub struct Config {
 // Building the mock server is slow, so use simple scenario when possible.
 #[derive(PartialEq, Copy, Clone)]
 pub enum Scenario {
-    Full, // Two dates, two manifests, with cargo
-    ArchivesV2, // Two dates, no cargo, v2 manifests
-    ArchivesV1, // Two dates, no cargo, v2 manifests
-    SimpleV2, // One date, no cargo, v2 manifests
-    SimpleV1, // One date, no cargo, v1 manifests
+    Full, // Two dates, two manifests
+    ArchivesV2, // Two dates, v2 manifests
+    ArchivesV1, // Two dates, v1 manifests
+    SimpleV2, // One date, v2 manifests
+    SimpleV1, // One date, v1 manifests
 }
 
 /// Run this to create the test environment containing multirust, and
@@ -57,18 +57,15 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let exe_dir = current_exe_path.parent().unwrap();
     let ref multirust_build_path = exe_dir.join(format!("multirust-setup{}", EXE_SUFFIX));
 
+    let ref multirust_path = config.exedir.path().join(format!("multirust{}", EXE_SUFFIX));
     let setup_path = config.exedir.path().join(format!("multirust-setup{}", EXE_SUFFIX));
-    let multirust_path = config.exedir.path().join(format!("multirust{}", EXE_SUFFIX));
     let rustc_path = config.exedir.path().join(format!("rustc{}", EXE_SUFFIX));
+    let cargo_path = config.exedir.path().join(format!("cargo{}", EXE_SUFFIX));
 
     fs::copy(multirust_build_path, multirust_path).unwrap();
-    fs::copy(multirust_build_path, rustc_path).unwrap();
-    fs::copy(multirust_build_path, setup_path).unwrap();
-
-    if s == Scenario::Full {
-        let cargo_path = config.exedir.path().join(format!("cargo{}", EXE_SUFFIX));
-        fs::copy(multirust_build_path, cargo_path).unwrap();
-    }
+    fs::hard_link(multirust_path, rustc_path).unwrap();
+    fs::hard_link(multirust_path, setup_path).unwrap();
+    fs::hard_link(multirust_path, cargo_path).unwrap();
 
     // Create some custom toolchains
     create_custom_toolchains(config.customdir.path());
