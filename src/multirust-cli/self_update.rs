@@ -139,7 +139,7 @@ Continue? (y/N)"
 }
 
 static TOOLS: &'static [&'static str]
-    = &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
+    = &["rustup", "rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
 
 static UPDATE_ROOT: &'static str
     = "https://github.com/Diggsey/multirust-rs-binaries/raw/master";
@@ -296,6 +296,7 @@ fn maybe_install_rust_stable(verbose: bool) -> Result<()> {
         let stable = try!(cfg.get_toolchain("stable", false));
         try!(stable.install_from_dist());
         try!(cfg.set_default("stable"));
+        println!("");
         try!(common::show_channel_version(cfg, "stable"));
     } else {
         info!("updating existing installation");

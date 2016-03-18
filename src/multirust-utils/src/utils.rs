@@ -427,7 +427,7 @@ pub fn cargo_home() -> Result<PathBuf> {
     };
 
     let cwd = try!(env::current_dir().map_err(|_| Error::CargoHome));
-    let cargo_home = env_var.map(|home| {
+    let cargo_home = env_var.clone().map(|home| {
         cwd.join(home)
     });
     let user_home = home_dir().map(|p| p.join(".cargo"));

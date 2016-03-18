@@ -99,7 +99,6 @@ pub fn run_inner<S: AsRef<OsStr>>(mut command: Command,
 }
 
 pub fn show_channel_version(cfg: &Cfg, name: &str) -> Result<()> {
-    println!("");
     let mut t = term::stdout().unwrap();
     if tty::stdout_isatty() { let _ = t.fg(term::color::BRIGHT_WHITE); }
     if tty::stdout_isatty() { let _ = t.bg(term::color::BLACK); }
@@ -109,6 +108,48 @@ pub fn show_channel_version(cfg: &Cfg, name: &str) -> Result<()> {
     println!("");
     try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
     println!("");
+    Ok(())
+}
+
+pub fn show_channel_update(cfg: &Cfg, name: &str,
+                           updated: Result<bool>) -> Result<()> {
+    let tty = tty::stdout_isatty();
+    let mut t = term::stdout().unwrap();
+    match updated {
+        Ok(true) => {
+            if tty { let _ = t.fg(term::color::BRIGHT_GREEN); }
+            let _ = write!(t, "{} updated", name);
+        }
+        Ok(false) => {
+            if tty { let _ = t.fg(term::color::BRIGHT_WHITE); }
+            let _ = write!(t, "{} unchanged", name);
+        }
+        Err(_) => {
+            if tty { let _ = t.fg(term::color::BRIGHT_RED); }
+            let _ = write!(t, "{} update failed", name);
+        }
+    }
+    if tty {let _ = t.reset(); }
+    println!(":");
+    println!("");
+    try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
+    println!("");
+    Ok(())
+}
+
+pub fn update_all_channels(cfg: &Cfg) -> Result<()> {
+    let toolchains = try!(cfg.update_all_channels());
+
+    if toolchains.is_empty() {
+        info!("no updatable toolchains installed");
+        return Ok(());
+    }
+
+    println!("");
+
+    for (name, result) in toolchains {
+        try!(show_channel_update(cfg, &name, result));
+    }
     Ok(())
 }
 
@@ -146,6 +187,52 @@ pub fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
         }
     } else {
         println!("(toolchain not installed)");
+    }
+    Ok(())
+}
+
+pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
+    for component in try!(toolchain.list_components()) {
+        if component.component.pkg == "rust-std" {
+            if component.required {
+                println!("{} (default)", component.component.target);
+            } else if component.installed {
+                println!("{} (installed)", component.component.target);
+            } else {
+                println!("{}", component.component.target);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
+    let mut toolchains = try!(cfg.list_toolchains());
+
+    toolchains.sort();
+
+    if toolchains.is_empty() {
+        println!("no installed toolchains");
+    } else {
+        for toolchain in toolchains {
+            println!("{}", &toolchain);
+        }
+    }
+    Ok(())
+}
+
+pub fn list_overrides(cfg: &Cfg) -> Result<()> {
+    let mut overrides = try!(cfg.override_db.list());
+
+    overrides.sort();
+
+    if overrides.is_empty() {
+        println!("no overrides");
+    } else {
+        for o in overrides {
+            println!("{}", o);
+        }
     }
     Ok(())
 }

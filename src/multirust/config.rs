@@ -261,25 +261,51 @@ impl Cfg {
         }
     }
 
-    pub fn update_all_channels(&self) -> Result<Vec<(String, Result<()>)>> {
-        let mut toolchains = try!(self.list_toolchains());
-        toolchains.sort();
+    pub fn update_all_channels(&self) -> Result<Vec<(String, Result<bool>)>> {
+        let toolchains = try!(self.list_toolchains());
 
-        Ok(toolchains.into_iter()
-                     .merge(["beta", "nightly", "stable"].into_iter().map(|s| (*s).to_owned()))
-                     .dedup()
-                     .filter(|name| {
-                         dist::ToolchainDesc::from_str(&name).map(|d| d.is_tracking()).ok() == Some(true)
-                     })
-                     .map(|name| {
-                         let result = self.get_toolchain(&name, true)
-                                          .and_then(|t| t.install_from_dist());
-                         if let Err(ref e) = result {
-                             self.notify_handler.call(Notification::NonFatalError(e));
-                         }
-                         (name, result)
-                     })
-                     .collect())
+        let mut toolchains: Vec<(dist::ToolchainDesc, String)> = toolchains.into_iter()
+            .filter_map(|name| {
+                let desc = dist::ToolchainDesc::from_str(&name);
+                let tracked = desc.into_iter().filter(|d| d.is_tracking()).next();
+                tracked.map(|d| (d, name))
+            }).collect();
+
+        fn channel_sort_key(s: &str) -> String {
+            if s == "stable" {
+                String::from("0")
+            } else if s == "beta" {
+                String::from("1")
+            } else if s == "nightly" {
+                String::from("2")
+            } else {
+                format!("3{}", s)
+            }
+        }
+
+        toolchains.sort_by(|&(ref a, _), &(ref b, _)| {
+            let a = format!("{}-{}-{}",
+                            channel_sort_key(&a.channel),
+                            a.date.as_ref().map(String::as_str).unwrap_or(""),
+                            a.target_triple());
+            let b = format!("{}-{}-{}",
+                            channel_sort_key(&b.channel),
+                            b.date.as_ref().map(String::as_str).unwrap_or(""),
+                            b.target_triple());
+            a.cmp(&b)
+        });
+
+        let updates = toolchains.into_iter()
+            .map(|(_, name)| {
+                let result = self.get_toolchain(&name, true)
+                    .and_then(|t| t.install_from_dist());
+                if let Err(ref e) = result {
+                    self.notify_handler.call(Notification::NonFatalError(e));
+                }
+                (name, result)
+            }).collect();
+
+        Ok(updates)
     }
 
     pub fn check_metadata_version(&self) -> Result<()> {

@@ -419,45 +419,6 @@ fn update_on_channel_when_date_has_changed() {
 }
 
 #[test]
-fn update_no_toolchain_means_update_all_toolchains() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
-        set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["multirust", "update"]);
-
-        expect_stderr_ok(config, &["multirust", "default", "nightly"],
-                         "using existing");
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-n-1");
-        expect_stderr_ok(config, &["multirust", "default", "beta"],
-                         "using existing");
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-b-1");
-        expect_stderr_ok(config, &["multirust", "default", "stable"],
-                         "using existing");
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-s-1");
-
-        set_current_dist_date(config, "2015-01-02");
-        expect_stderr_ok(config, &["multirust", "update", "nightly"],
-                         "updating existing");
-        expect_ok(config, &["multirust", "update"]);
-
-        expect_stderr_ok(config, &["multirust", "default", "nightly"],
-                         "using existing");
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-n-2");
-        expect_stderr_ok(config, &["multirust", "default", "beta"],
-                         "using existing");
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-b-2");
-        expect_stderr_ok(config, &["multirust", "default", "stable"],
-                         "using existing");
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-s-2");
-    });
-}
-
-#[test]
 fn run_command() {
     setup(&|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);

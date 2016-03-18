@@ -188,7 +188,6 @@ r"Upgrades the ~/.multirust directory from previous versions.
                 .subcommand(
                     SubCommand::with_name("update")
                         .about("Updates multirust.")
-                        .arg(Arg::with_name("no-prompt").short("y").help("Disable confirmation prompt."))
                 )
         )
         .subcommand(
