@@ -221,7 +221,7 @@ impl<'a> Toolchain<'a> {
         // windows), we must set it here to ensure cargo and
         // multirust agree.
         if let Ok(cargo_home) = utils::cargo_home() {
-            env_var::set_path("CARGO_HOME", &cargo_home, cmd);
+            cmd.env("CARGO_HOME", &cargo_home);
         }
 
         env_var::set_path("PATH", bin_path, cmd);
