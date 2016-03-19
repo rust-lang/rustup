@@ -3,9 +3,12 @@ use multirust::{Cfg, Result, Error};
 use multirust_utils::utils;
 use std::env;
 use std::path::PathBuf;
+use job;
 
 pub fn main() -> Result<()> {
     try!(::self_update::cleanup_self_updater());
+
+    job::setup();
 
     let arg0 = env::args().next().map(|a| PathBuf::from(a));
     let arg0 = arg0.as_ref()
