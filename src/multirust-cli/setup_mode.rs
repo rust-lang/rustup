@@ -1,7 +1,7 @@
 use std::env;
 use self_update;
 use multirust::Result;
-use clap::*;
+use clap::{App, Arg};
 
 pub fn main() -> Result<()> {
     let args: Vec<_> = env::args().collect();

@@ -1,7 +1,7 @@
 
 use clap::*;
 
-pub fn get() -> App<'static, 'static, 'static, 'static, 'static, 'static> {
+pub fn get() -> App<'static, 'static> {
     App::new("multirust-rs")
         .version("0.0.5")
         .author("Diggory Blake")
@@ -28,8 +28,8 @@ reinstalled.
 "
                 )
                 .arg(Arg::with_name("toolchain").required(true))
-                .args(install_args())
-                .arg_group(install_group())
+                .args(&install_args())
+                .group(install_group())
         )
         .subcommand(
             SubCommand::with_name("override")
@@ -48,8 +48,8 @@ To remove an existing override use `multirust remove-override`.
 "
                 )
                 .arg(Arg::with_name("toolchain").required(true))
-                .args(install_args())
-                .arg_group(install_group())
+                .args(&install_args())
+                .group(install_group())
         )
         .subcommand(
             SubCommand::with_name("update")
@@ -61,8 +61,8 @@ channels, plus any other installed toolchains.
 "
                 )
                 .arg(Arg::with_name("toolchain").required(false))
-                .args(install_args())
-                .arg_group(install_group())
+                .args(&install_args())
+                .group(install_group())
         )
         .subcommand(
             SubCommand::with_name("show-override")
@@ -204,7 +204,7 @@ open specific pieces of documentation.
                 )
                 .arg(Arg::with_name("book").long("book").help("The Rust Programming Language book"))
                 .arg(Arg::with_name("std").long("std").help("Standard library API documentation"))
-                .arg_group(ArgGroup::with_name("page").add_all(&["book", "std"]))
+                .group(ArgGroup::with_name("page").args(&["book", "std"]))
         )
         .subcommand(
             SubCommand::with_name("which")
@@ -213,7 +213,7 @@ open specific pieces of documentation.
         )
 }
 
-fn install_args() -> Vec<Arg<'static, 'static, 'static, 'static, 'static, 'static>> {
+fn install_args() -> Vec<Arg<'static, 'static>> {
     vec![
         Arg::with_name("copy-local")
             .long("copy-local")
@@ -253,14 +253,15 @@ fn install_args() -> Vec<Arg<'static, 'static, 'static, 'static, 'static, 'stati
              ")
             .takes_value(true)
             .value_name("toolchain-path")
-            .min_values(1),
+            .number_of_values(1)
+            .multiple(true),
     ]
 }
 
-fn install_group() -> ArgGroup<'static, 'static> {
+fn install_group() -> ArgGroup<'static> {
     ArgGroup::with_name("toolchain-source")
-        .add("copy-local")
-        .add("link-local")
-        .add("installer")
+        .arg("copy-local")
+        .arg("link-local")
+        .arg("installer")
         .requires("toolchain")
 }

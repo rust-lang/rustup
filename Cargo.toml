@@ -18,7 +18,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 multirust-dist = { version = "0.0.5", path = "src/multirust-dist" }
 multirust-utils = { version = "0.0.5", path = "src/multirust-utils" }
-clap = "1.4.5"
+clap = "2.2.1"
 regex = "0.1.41"
 openssl = "0.7.2"
 hyper = "0.7.0"

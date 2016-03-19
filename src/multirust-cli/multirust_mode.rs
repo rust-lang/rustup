@@ -77,14 +77,14 @@ fn maybe_setup_winjob(m: &ArgMatches) {
 fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(get_toolchain(cfg, m, false));
     let args = m.values_of("command").unwrap();
-
+    let args: Vec<_> = args.collect();
     let cmd = try!(toolchain.create_command(args[0]));
     run_inner(cmd, &args)
 }
 
 fn proxy(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let args = m.values_of("command").unwrap();
-
+    let args: Vec<_> = args.collect();
     let cmd = try!(cfg.create_command_for_dir(&try!(utils::current_dir()), args[0]));
     run_inner(cmd, &args)
 }
@@ -177,7 +177,7 @@ fn override_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn common_install_args(toolchain: &Toolchain, m: &ArgMatches) -> Result<bool> {
 
     if let Some(installers) = m.values_of("installer") {
-        let is: Vec<_> = installers.iter().map(|i| i.as_ref()).collect();
+        let is: Vec<_> = installers.map(|i| i.as_ref()).collect();
         try!(toolchain.install_from_installers(&*is));
     } else if let Some(path) = m.value_of("copy-local") {
         try!(toolchain.install_from_dir(Path::new(path), false));
