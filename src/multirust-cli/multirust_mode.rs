@@ -257,6 +257,7 @@ fn show_default(cfg: &Cfg) -> Result<()> {
         println!("default toolchain: {}", toolchain.name());
         println!("default location: {}", toolchain.path().display());
 
+        println!("");
         try!(show_tool_versions(&toolchain));
         println!("");
     } else {
@@ -275,6 +276,7 @@ fn show_override(cfg: &Cfg) -> Result<()> {
         // windows path, which is pretty ugly
         println!("override reason: {}", reason);
 
+        println!("");
         try!(show_tool_versions(&toolchain));
         println!("");
     } else {
@@ -349,6 +351,7 @@ fn update_all_channels(cfg: &Cfg) -> Result<()> {
         let _ = write!(t, "{}", name);
         let _ = t.reset();
         let _ = writeln!(t, " revision:");
+        println!("");
         try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
         println!("");
     }
