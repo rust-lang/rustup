@@ -22,7 +22,10 @@ branches:
 sudo: required
 services:
   - docker
+
 install:
+  - sudo pip install awscli
+  - aws configure set preview.cloudfront true
   # Set git user for pushing binaries
   - git config --global user.email "diggsey@googlemail.com"
   - git config --global user.name "Diggory Blake (via Travis CI)"
@@ -81,40 +84,36 @@ after_success:
       find target/debug/*-* -executable ! -name multirust-rs -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
     fi
 
-  # Compute sha-256 hashes of all build artifacts
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      find "target/release/" -maxdepth 1 -type f -exec sh -c 'shasum -a 256 -b "{}" | cut -d\  -f1 > "{}.sha256"' \;;
-    else
-      find "target/release/" -maxdepth 1 -type f -exec sh -c 'sha256sum -b "{}" | cut -d\  -f1 > "{}.sha256"' \;;
-    fi
+before_deploy:
+  - bash prepare-deploy-travis.sh
 
-  # Build documentation and push release binaries
-  - if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$TRAVIS_BRANCH" == "master" ]]; then
+deploy:
+  - provider: s3
+    bucket: dev-static-rust-lang-org
+    skip_cleanup: true
+    local_dir: deploy
+    upload_dir: rustup
+    acl: public_read
+    region: us-west-1
+    access_key_id: AKIAIZT5ZFS5N2VNRGPA
+    secret_access_key:
+      secure: "CGFWEhkk6siQxW24zJqlXRC4WLQPqXRJ5Rqa6rQNErotorRUn0DnPB+4zYW4KvMTDkv5pPwEv8P6b0IwbY8ZrS7ChfZ6t89xTvuklxsb8PlMwaDXWqkP5cCBT4B/e1S81xSI7ptkQ7Te5bcVbPMVE3MuGYtzhgIaYu+RZMLHSteY2TGnHid7ErmZKmvGoRqootEHYRo4Pv2s2ydZaalzrt8I5uGQPzesJc2T8xWS8VcFAGJTy4p59h5d6Btlo2a5L3Oc8kMLDzsxzwBbrNXQjF7oLZw7g1uf1A7iBrJGsv61GCnggl4+gtEt/BFQ8mtknBLXv3kXBfvrj35YnHAZosZWufSOgsQ9HB7ELjVhRhGRFX2BNKH1Gm/qM0j7WenD3vhOCTzMW21xqEvgY7+KIvyb9XLla7du/0/rZnDoBnCbZNpBOU5NqOV0y6MN6NDL5g168N7M30BeEEcJjbLEXtUTlCp/6jzZj3frDezJNJypniqwRfacf0yKNykVsnpqpcPmQfvxk2I/1BjdukLM5WifAgTEy9IG2/PBUIWr5ikAlhpACxmuKrlExJpOmZRMRjjRjI8tw8bSKu00SbeYT6PO0xazP9oJYKtWi5vkvM9U4R7udeYHTJFAMkeASpOO4Ss6f+dXQzm7OWqFu07Ffm9zHh+WX95PXonlzauEQ1I="
+    on:
+      branch: master
 
-      git config --global credential.helper store;
-      echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials;
+  - provider: s3
+    bucket: static-rust-lang-org
+    skip_cleanup: true
+    local_dir: deploy
+    upload_dir: rustup
+    acl: public_read
+    region: us-west-1
+    access_key_id: AKIAIZT5ZFS5N2VNRGPA
+    secret_access_key:
+      secure: "CGFWEhkk6siQxW24zJqlXRC4WLQPqXRJ5Rqa6rQNErotorRUn0DnPB+4zYW4KvMTDkv5pPwEv8P6b0IwbY8ZrS7ChfZ6t89xTvuklxsb8PlMwaDXWqkP5cCBT4B/e1S81xSI7ptkQ7Te5bcVbPMVE3MuGYtzhgIaYu+RZMLHSteY2TGnHid7ErmZKmvGoRqootEHYRo4Pv2s2ydZaalzrt8I5uGQPzesJc2T8xWS8VcFAGJTy4p59h5d6Btlo2a5L3Oc8kMLDzsxzwBbrNXQjF7oLZw7g1uf1A7iBrJGsv61GCnggl4+gtEt/BFQ8mtknBLXv3kXBfvrj35YnHAZosZWufSOgsQ9HB7ELjVhRhGRFX2BNKH1Gm/qM0j7WenD3vhOCTzMW21xqEvgY7+KIvyb9XLla7du/0/rZnDoBnCbZNpBOU5NqOV0y6MN6NDL5g168N7M30BeEEcJjbLEXtUTlCp/6jzZj3frDezJNJypniqwRfacf0yKNykVsnpqpcPmQfvxk2I/1BjdukLM5WifAgTEy9IG2/PBUIWr5ikAlhpACxmuKrlExJpOmZRMRjjRjI8tw8bSKu00SbeYT6PO0xazP9oJYKtWi5vkvM9U4R7udeYHTJFAMkeASpOO4Ss6f+dXQzm7OWqFu07Ffm9zHh+WX95PXonlzauEQ1I="
+    on:
+     branch: stable
 
-      if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
-        cargo doc;
-        echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html;
-        sudo pip install ghp-import;
-        ghp-import -n target/doc;
-        git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages;
-      fi;
-
-      bin=./binaries/$TARGET;
-
-      git submodule init;
-      git submodule update --depth 1 --remote;
-
-      mkdir -p "$bin";
-      rm $bin/*;
-      find "target/release/" -maxdepth 1 -type f -exec cp "{}" "$bin" \;;
-      git rev-parse HEAD > "$bin/commit.txt";
-
-      cd binaries;
-      git checkout master;
-      git add -A;
-      git commit -m "Auto-update $TRAVIS_BRANCH/$TARGET binaries (Travis CI)";
-      for i in {1..5}; do ./push-changes.sh && break; done;
-    fi
+# FIXME: I don't know if this really works
+after_deploy:
+  - aws cloudfront create-invalidation --paths "rustup/$TARGET/* rustup/dev/$TARGET/* rustup/www/* rustup/dev/www/* rustup/* rustup/dev/*"

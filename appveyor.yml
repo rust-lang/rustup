@@ -44,33 +44,48 @@ install:
       git config --global push.default simple
 
 build: false
+
 test_script:
   - cargo build  --release
   - cargo test --release -p multirust-dist
   - cargo test --release
+
 notifications:
   - provider: Webhook
     url: https://webhooks.gitter.im/e/9907ad94eb7a5ff291c3
-on_success:
-  - ps: |
-      if ((!$env:APPVEYOR_PULL_REQUEST_NUMBER) -and ($env:APPVEYOR_REPO_BRANCH -eq "master")) {
-        cargo build --release
-        # Generate hashes
-        Get-FileHash .\target\release\* | ForEach-Object {[io.file]::WriteAllText($_.Path + ".sha256", $_.Hash.ToLower() + "`n")}
 
-        $bin = "binaries\$env:TARGET"
+after_test:
+  - powershell -File prepare-deploy-appveyor.ps1
 
-        cmd /c "git config --global credential.helper store 2>&1"
-        Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
-        cmd /c "git submodule init 2>&1"
-        cmd /c "git submodule update --depth 1 --remote 2>&1"
-        if (!(Test-Path -Path "$bin")) { mkdir "$bin" }
-        cmd /c "del /Q `"$bin`""
-        cmd /c "copy /B /Y `"target\release\*`" `"$bin`""
-        cmd /c "git rev-parse HEAD > `"$bin\commit.txt`" 2>&1"
-        cd binaries
-        cmd /c "git checkout master 2>&1"
-        cmd /c "git add -A 2>&1"
-        cmd /c "git commit -m `"Auto-update $env:APPVEYOR_REPO_BRANCH/$env:TARGET binaries (Appveyor CI)`" 2>&1"
-        $attempts = 1; do { .\push-changes.bat; $attempts++ } while($lastexitcode -ne '0' -and $attempts -le 5)
-      }
+artifacts:
+  - path: dist\$(TARGET)\rustup-setup.exe
+    name: rustup-setup
+  - path: dist\$(TARGET)\rustup-setup.exe.sha256
+    name: rustup-setup-sha
+
+deploy:
+  - provider: S3
+    skip_cleanup: true
+    access_key_id: AKIAIZT5ZFS5N2VNRGPA
+    secret_access_key:
+      secure: viw7GCfVF0QlY0fghoxO3Lux/Wo4u6PxxgUwEq5cs4w69tlv9KzIIw74Nc7KJdgt
+    bucket: dev-static-rust-lang-org
+    set_public: true
+    region: us-west-1
+    artifact: rustup-setup,rustup-setup-sha
+    folder: rustup
+    on:
+      branch: master
+
+  - provider: S3
+    skip_cleanup: true
+    access_key_id: AKIAIZT5ZFS5N2VNRGPA
+    secret_access_key:
+      secure: viw7GCfVF0QlY0fghoxO3Lux/Wo4u6PxxgUwEq5cs4w69tlv9KzIIw74Nc7KJdgt
+    bucket: static-rust-lang-org
+    set_public: true
+    region: us-west-1
+    artifact: rustup-setup,rustup-setup-sha
+    folder: rustup
+    on:
+      branch: stable
