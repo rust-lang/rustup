@@ -23,6 +23,13 @@ pub struct Toolchain<'a> {
     path: PathBuf,
 }
 
+/// Used by the list_component function
+pub struct ComponentStatus {
+    pub component: Component,
+    pub required: bool,
+    pub installed: bool,
+}
+
 impl<'a> Toolchain<'a> {
     pub fn from(cfg: &'a Cfg, name: &str) -> Self {
         let path = cfg.toolchains_dir.join(name);
@@ -268,13 +275,11 @@ impl<'a> Toolchain<'a> {
                                          self.cfg.notify_handler.as_ref())))
     }
 
-    pub fn list_components(&self) -> Result<Vec<Component>> {
+    pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
         if !self.exists() {
             return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
         }
 
-        // FIXME: This toolchain handling is a mess. Just do it once
-        // when the toolchain is created.
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
                                  .map_err(|_| Error::ComponentsUnsupported(self.name.to_string())));
@@ -283,6 +288,8 @@ impl<'a> Toolchain<'a> {
         let manifestation = try!(Manifestation::open(prefix, &trip));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {
+            let config = try!(manifestation.read_config());
+
             // Return all optional components of the "rust" package for the
             // toolchain's target triple.
             let mut res = Vec::new();
@@ -292,9 +299,29 @@ impl<'a> Toolchain<'a> {
             let targ_pkg = rust_pkg.targets.get(&trip)
                 .expect("installed manifest should have a known target");
 
-            for extension in &targ_pkg.extensions {
-                res.push(extension.clone())
+            for component in &targ_pkg.components {
+                let installed = config.as_ref()
+                    .map(|c| c.components.contains(&component))
+                    .unwrap_or(false);
+                res.push(ComponentStatus {
+                    component: component.clone(),
+                    required: true,
+                    installed: installed,
+                });
             }
+
+            for extension in &targ_pkg.extensions {
+                let installed = config.as_ref()
+                    .map(|c| c.components.contains(&extension))
+                    .unwrap_or(false);
+                res.push(ComponentStatus {
+                    component: extension.clone(),
+                    required: false,
+                    installed: installed,
+                });
+            }
+
+            res.sort_by(|a, b| a.component.cmp(&b.component));
 
             Ok(res)
         } else {
