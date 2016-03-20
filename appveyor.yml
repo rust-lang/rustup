@@ -53,16 +53,12 @@ notifications:
     url: https://webhooks.gitter.im/e/9907ad94eb7a5ff291c3
 on_success:
   - ps: |
-      if (!$env:APPVEYOR_PULL_REQUEST_NUMBER) {
+      if ((!$env:APPVEYOR_PULL_REQUEST_NUMBER) -and ($env:APPVEYOR_REPO_BRANCH -eq "master")) {
         cargo build --release
         # Generate hashes
         Get-FileHash .\target\release\* | ForEach-Object {[io.file]::WriteAllText($_.Path + ".sha256", $_.Hash.ToLower() + "`n")}
 
-        if ($env:APPVEYOR_REPO_BRANCH -eq "master") {
-          $bin = "binaries\$env:TARGET"
-        } else {
-          $bin = "binaries\$env:APPVEYOR_REPO_BRANCH\$env:TARGET"
-        }
+        $bin = "binaries\$env:TARGET"
 
         cmd /c "git config --global credential.helper store 2>&1"
         Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
