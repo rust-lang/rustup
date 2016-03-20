@@ -542,3 +542,19 @@ fn delete_data_no_data() {
         assert!(!config.homedir.path().exists());
     });
 }
+
+// Regression test for newline placement
+#[test]
+fn update_all_no_update_whitespace() {
+    setup(&|config| {
+        expect_stdout_ok(config, &["multirust", "update", "nightly"],
+r"
+nightly revision:
+
+1.3.0 (hash-n-2)
+1.3.0 (hash-n-2)
+");
+    });
+}
+
+
