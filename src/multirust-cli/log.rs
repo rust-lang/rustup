@@ -36,7 +36,7 @@ pub fn err_fmt(args: fmt::Arguments) {
 
 pub fn info_fmt(args: fmt::Arguments) {
     let mut t = term::stderr().unwrap();
-    if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_GREEN); }
+    if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_CYAN); }
     let _ = write!(t, "info: ");
     if tty::stderr_isatty() { let _ = t.reset(); }
     let _ = t.write_fmt(args);

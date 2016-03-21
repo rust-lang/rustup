@@ -68,7 +68,7 @@ impl<'a> Toolchain<'a> {
         }
         Ok(try!(result))
     }
-    fn install(&self, install_method: InstallMethod) -> Result<()> {
+    fn install(&self, install_method: InstallMethod) -> Result<bool> {
         assert!(self.is_valid_install_method(install_method));
         if self.exists() {
             self.cfg.notify_handler.call(Notification::UpdatingToolchain(&self.name));
@@ -87,13 +87,14 @@ impl<'a> Toolchain<'a> {
             self.cfg.notify_handler.call(Notification::InstalledToolchain(&self.name));
         }
 
-        Ok(())
+        Ok(updated)
     }
     fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<()> {
         assert!(self.is_valid_install_method(install_method));
         self.cfg.notify_handler.call(Notification::LookingForToolchain(&self.name));
         if !self.exists() {
-            self.install(install_method)
+            try!(self.install(install_method));
+            Ok(())
         } else {
             self.cfg.notify_handler.call(Notification::UsingExistingToolchain(&self.name));
             Ok(())
@@ -123,7 +124,7 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    pub fn install_from_dist(&self) -> Result<()> {
+    pub fn install_from_dist(&self) -> Result<bool> {
         let update_hash = try!(self.update_hash());
         self.install(InstallMethod::Dist(&self.name,
                                          update_hash.as_ref().map(|p| &**p),
@@ -202,10 +203,12 @@ impl<'a> Toolchain<'a> {
         try!(self.ensure_custom());
 
         if link {
-            self.install(InstallMethod::Link(&try!(utils::to_absolute(src))))
+            try!(self.install(InstallMethod::Link(&try!(utils::to_absolute(src)))));
         } else {
-            self.install(InstallMethod::Copy(src))
+            try!(self.install(InstallMethod::Copy(src)));
         }
+
+        Ok(())
     }
 
     pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {

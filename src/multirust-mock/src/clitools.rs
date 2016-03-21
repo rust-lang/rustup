@@ -61,11 +61,15 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let setup_path = config.exedir.path().join(format!("multirust-setup{}", EXE_SUFFIX));
     let rustc_path = config.exedir.path().join(format!("rustc{}", EXE_SUFFIX));
     let cargo_path = config.exedir.path().join(format!("cargo{}", EXE_SUFFIX));
+    let rustup_setup_path = config.exedir.path().join(format!("rustup-setup{}", EXE_SUFFIX));
+    let rustup_path = config.exedir.path().join(format!("rustup{}", EXE_SUFFIX));
 
     fs::copy(multirust_build_path, multirust_path).unwrap();
     fs::hard_link(multirust_path, rustc_path).unwrap();
     fs::hard_link(multirust_path, setup_path).unwrap();
     fs::hard_link(multirust_path, cargo_path).unwrap();
+    fs::hard_link(multirust_path, rustup_setup_path).unwrap();
+    fs::hard_link(multirust_path, rustup_path).unwrap();
 
     // Create some custom toolchains
     create_custom_toolchains(config.customdir.path());

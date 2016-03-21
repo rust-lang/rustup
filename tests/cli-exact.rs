@@ -62,7 +62,7 @@ info: toolchain is already up to date
 #[test]
 fn default() {
     setup(&|config| {
-        expect_ok_ex(config, &["multirust", "update", "nightly"],
+        expect_ok_ex(config, &["multirust", "default", "nightly"],
 r"
 nightly revision:
 
@@ -81,6 +81,7 @@ info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: toolchain 'nightly' installed
+info: default toolchain set to 'nightly'
 ");
     });
 }
