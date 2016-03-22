@@ -145,7 +145,7 @@ fn bins_are_executable() {
 fn install_creates_cargo_home() {
     setup(&|config, cargo_home, _| {
         fs::remove_dir(cargo_home).unwrap();
-        fs::remove_dir(config.homedir.path()).unwrap();
+        fs::remove_dir(config.rustupdir.path()).unwrap();
         expect_ok(config, &["multirust-setup", "-y"]);
         assert!(cargo_home.exists());
     });
@@ -202,7 +202,7 @@ fn uninstall_deletes_multirust_home() {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
-        assert!(!config.homedir.path().exists());
+        assert!(!config.rustupdir.path().exists());
     });
 }
 
@@ -210,7 +210,7 @@ fn uninstall_deletes_multirust_home() {
 fn uninstall_works_if_multirust_home_doesnt_exist() {
     setup(&|config, _, _| {
         expect_ok(config, &["multirust-setup", "-y"]);
-        fs::remove_dir_all(&config.homedir.path()).unwrap();
+        fs::remove_dir_all(&config.rustupdir.path()).unwrap();
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
     });
 }
@@ -845,7 +845,7 @@ fn install_sets_up_stable_unless_there_is_already_a_default() {
 #[cfg(unix)]
 fn install_deletes_legacy_multirust_bins() {
     setup(&|config, _, _| {
-        let ref multirust_bin_dir = config.homedir.path().join("bin");
+        let ref multirust_bin_dir = config.rustupdir.path().join("bin");
         fs::create_dir_all(multirust_bin_dir).unwrap();
         let ref multirust_bin = multirust_bin_dir.join("multirust");
         let ref rustc_bin = multirust_bin_dir.join("rustc");
@@ -884,7 +884,7 @@ fn install_deletes_legacy_multirust_bins() {
 #[cfg(unix)] // Can't test on windows without clobbering the home dir
 fn legacy_upgrade_installs_to_correct_location() {
     setup(&|config, _, home| {
-        let fake_cargo = config.homedir.path().join(".multirust/cargo");
+        let fake_cargo = config.rustupdir.path().join(".multirust/cargo");
         env::set_var("CARGO_HOME", format!("{}", fake_cargo.display()));
         expect_ok(config, &["multirust-setup", "-y"]);
         let multirust = home.join(&format!(".cargo/bin/multirust{}", EXE_SUFFIX));

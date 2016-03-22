@@ -490,7 +490,7 @@ fn running_with_v2_metadata() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         // Replace the metadata version
-        multirust_utils::raw::write_file(&config.homedir.path().join("version"),
+        multirust_utils::raw::write_file(&config.rustupdir.path().join("version"),
                                "2").unwrap();
         expect_err(config, &["multirust", "default", "nightly"],
                    "multirust's metadata is out of date. run multirust upgrade-data");
@@ -507,7 +507,7 @@ fn upgrade_v2_metadata_to_v12() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         // Replace the metadata version
-        multirust_utils::raw::write_file(&config.homedir.path().join("version"),
+        multirust_utils::raw::write_file(&config.rustupdir.path().join("version"),
                                "2").unwrap();
         expect_stderr_ok(config, &["multirust", "upgrade-data"],
                          "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");
@@ -525,9 +525,9 @@ fn upgrade_v2_metadata_to_v12() {
 fn delete_data() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
-        assert!(config.homedir.path().exists());
+        assert!(config.rustupdir.path().exists());
         expect_ok(config, &["multirust", "delete-data", "-y"]);
-        assert!(!config.homedir.path().exists());
+        assert!(!config.rustupdir.path().exists());
     });
 }
 
@@ -535,11 +535,11 @@ fn delete_data() {
 fn delete_data_no_data() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
-        assert!(config.homedir.path().exists());
+        assert!(config.rustupdir.path().exists());
         expect_ok(config, &["multirust", "delete-data", "-y"]);
-        assert!(!config.homedir.path().exists());
+        assert!(!config.rustupdir.path().exists());
         expect_ok(config, &["multirust", "delete-data", "-y"]);
-        assert!(!config.homedir.path().exists());
+        assert!(!config.rustupdir.path().exists());
     });
 }
 

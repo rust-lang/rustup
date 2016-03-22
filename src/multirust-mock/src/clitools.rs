@@ -22,7 +22,7 @@ pub struct Config {
     /// The distribution server
     pub distdir: TempDir,
     /// MULTIRUST_HOME
-    pub homedir: TempDir,
+    pub rustupdir: TempDir,
     /// Custom toolchains
     pub customdir: TempDir,
 }
@@ -47,7 +47,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let ref config = Config {
         exedir: TempDir::new("multirust").unwrap(),
         distdir: TempDir::new("multirust").unwrap(),
-        homedir: TempDir::new("multirust").unwrap(),
+        rustupdir: TempDir::new("multirust").unwrap(),
         customdir: TempDir::new("multirust").unwrap(),
     };
 
@@ -172,7 +172,7 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
 }
 
 pub fn env(config: &Config, cmd: &mut Command) {
-    cmd.env("MULTIRUST_HOME", config.homedir.path().to_string_lossy().to_string());
+    cmd.env("MULTIRUST_HOME", config.rustupdir.path().to_string_lossy().to_string());
     cmd.env("MULTIRUST_DIST_ROOT", format!("file://{}", config.distdir.path().join("dist").to_string_lossy()));
 }
 

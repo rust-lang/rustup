@@ -288,7 +288,7 @@ fn show_override() {
             expect_ok(config, &["multirust", "override", "nightly"]);
 
             let expected_override_dir = fs::canonicalize(tempdir.path()).unwrap();;
-            let expected_toolchain_dir = config.homedir.path().join("toolchains").join("nightly");
+            let expected_toolchain_dir = config.rustupdir.path().join("toolchains").join("nightly");
 
             expect_stdout_ok(config, &["multirust", "show-override"],
                              "override toolchain: nightly");
@@ -329,7 +329,7 @@ fn show_override_from_multirust_toolchain_env_var() {
         let tempdir = TempDir::new("multirusT").unwrap();
         change_dir(tempdir.path(), &|| {
 
-            let expected_toolchain_dir = config.homedir.path().join("toolchains").join("beta");
+            let expected_toolchain_dir = config.rustupdir.path().join("toolchains").join("beta");
 
             expect_ok(config, &["multirust", "update", "beta"]);
             expect_ok(config, &["multirust", "override", "nightly"]);
@@ -512,7 +512,7 @@ fn add_target() {
         expect_ok(config, &["multirust", "add-target", "nightly", clitools::CROSS_ARCH1]);
         let path = format!("toolchains/nightly/lib/rustlib/{}/lib/libstd.rlib",
                            clitools::CROSS_ARCH1);
-        assert!(config.homedir.path().join(path).exists());
+        assert!(config.rustupdir.path().join(path).exists());
     });
 }
 
@@ -563,7 +563,7 @@ fn add_target_again() {
                                  clitools::CROSS_ARCH1));
         let path = format!("toolchains/nightly/lib/rustlib/{}/lib/libstd.rlib",
                            clitools::CROSS_ARCH1);
-        assert!(config.homedir.path().join(path).exists());
+        assert!(config.rustupdir.path().join(path).exists());
     });
 }
 
@@ -585,7 +585,7 @@ fn remove_target() {
         expect_ok(config, &["multirust", "remove-target", "nightly", clitools::CROSS_ARCH1]);
         let path = format!("toolchains/nightly/lib/rustlib/{}/lib/libstd.rlib",
                            clitools::CROSS_ARCH1);
-        assert!(!config.homedir.path().join(path).exists());
+        assert!(!config.rustupdir.path().join(path).exists());
     });
 }
 
