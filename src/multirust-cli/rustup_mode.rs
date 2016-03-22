@@ -51,7 +51,7 @@ pub fn main() -> Result<()> {
             }
         }
         (_, _) => {
-            try!(update_all_channels(cfg));
+            try!(update_all_channels(cfg, &matches));
         }
     }
 
@@ -66,9 +66,14 @@ pub fn cli() -> App<'static, 'static> {
         .setting(AppSettings::VersionlessSubcommands)
         .setting(AppSettings::DeriveDisplayOrder)
         .arg(Arg::with_name("verbose")
+            .help("Enable verbose output")
             .short("v")
-            .long("verbose")
-            .help("Enable verbose output"))
+            .long("verbose"))
+        .arg(Arg::with_name("no-self-update")
+            .help("Don't perf self update when running the `rustup` command")
+            .long("no-self-update")
+            .takes_value(false)
+            .hidden(true))
         .subcommand(SubCommand::with_name("default")
             .about("Set the default toolchain")
             .arg(Arg::with_name("toolchain")
@@ -133,8 +138,8 @@ pub fn cli() -> App<'static, 'static> {
                 .about("Upgrade the internal data format.")))
 }
 
-fn update_all_channels(cfg: &Cfg) -> Result<()> {
-    common::update_all_channels(cfg)
+fn update_all_channels(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    common::update_all_channels(cfg, !m.is_present("no-self-update"))
 }
 
 fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {

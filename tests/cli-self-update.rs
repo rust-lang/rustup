@@ -531,8 +531,8 @@ fn update_exact() {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok_ex(config, &["multirust", "self", "update"],
 r"",
-r"info: checking for updates
-info: downloading update
+r"info: checking for self-updates
+info: downloading self-update
 info: multirust updated successfully
 ");
     });
@@ -582,7 +582,7 @@ fn update_no_change() {
 
         expect_ok_ex(config, &["multirust", "self", "update"],
 r"",
-r"info: checking for updates
+r"info: checking for self-updates
 info: multirust is already up to date
 ");
 
@@ -666,6 +666,44 @@ fn update_updates_multirust_bin() {
 
         assert!(before_hash != after_hash);
     });
+}
+
+#[test]
+fn rustup_self_updates() {
+    update_setup(&|config, _| {
+        expect_ok(config, &["rustup-setup", "-y"]);
+
+        let ref bin = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let before_hash = calc_hash(bin);
+
+        expect_ok(config, &["rustup"]);
+
+        let after_hash = calc_hash(bin);
+
+        assert!(before_hash != after_hash);
+    })
+}
+
+#[test]
+fn rustup_self_update_exact() {
+    update_setup(&|config, _| {
+        expect_ok(config, &["rustup-setup", "-y"]);
+
+        expect_ok_ex(config, &["rustup"],
+r"
+stable unchanged:
+
+1.1.0 (hash-s-2)
+1.1.0 (hash-s-2)
+
+",
+r"info: updating existing install for 'stable'
+info: downloading toolchain manifest
+info: toolchain is already up to date
+info: checking for self-updates
+info: downloading self-update
+");
+    })
 }
 
 // Because self-delete on windows is hard, multirust-setup doesn't

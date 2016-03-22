@@ -3,6 +3,7 @@
 use multirust::{Cfg, Result, Notification, Toolchain, Error};
 use multirust_utils::{self, utils};
 use multirust_utils::notify::NotificationLevel;
+use self_update;
 use std::ffi::OsStr;
 use std::io::{Write, Read, BufRead};
 use std::process::{self, Command};
@@ -137,19 +138,34 @@ pub fn show_channel_update(cfg: &Cfg, name: &str,
     Ok(())
 }
 
-pub fn update_all_channels(cfg: &Cfg) -> Result<()> {
+pub fn update_all_channels(cfg: &Cfg, self_update: bool) -> Result<()> {
+
     let toolchains = try!(cfg.update_all_channels());
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");
-        return Ok(());
     }
 
-    println!("");
+    let setup_path = if self_update {
+        try!(self_update::prepare_update())
+    } else {
+        None
+    };
 
-    for (name, result) in toolchains {
-        try!(show_channel_update(cfg, &name, result));
+    if !toolchains.is_empty() {
+        println!("");
+
+        for (name, result) in toolchains {
+            try!(show_channel_update(cfg, &name, result));
+        }
     }
+
+    if let Some(ref setup_path) = setup_path {
+        try!(self_update::run_update(setup_path));
+
+        unreachable!(); // update exits on success
+    }
+
     Ok(())
 }
 

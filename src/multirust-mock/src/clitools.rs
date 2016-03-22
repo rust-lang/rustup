@@ -100,6 +100,12 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let _g = LOCK.lock();
 
     f(config);
+
+    // These are the bogus values the test harness sets "HOME" and "CARGO_HOME"
+    // to during testing. If they exist that means a test unexpectedly used
+    // one of these environment variables.
+    assert!(!PathBuf::from("./bogus-home").exists());
+    assert!(!PathBuf::from("./bogus-cargo-home").exists());
 }
 
 /// Change the current distribution manifest to a particular date

@@ -20,9 +20,9 @@ pub fn setup(f: &Fn(&Config)) {
 fn rustup_stable() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup-setup", "-y"]);
+        expect_ok(config, &["rustup", "update", "stable"]);
         set_current_dist_date(config, "2015-01-02");
-        expect_ok_ex(config, &["rustup"],
+        expect_ok_ex(config, &["rustup", "--no-self-update"],
 r"
 stable updated:
 
@@ -49,8 +49,8 @@ info: toolchain 'stable' installed
 fn rustup_stable_no_change() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok_ex(config, &["rustup"],
+        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_ok_ex(config, &["rustup", "--no-self-update"],
 r"
 stable unchanged:
 
@@ -69,11 +69,11 @@ info: toolchain is already up to date
 fn rustup_all_channels() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup-setup", "-y"]);
+        expect_ok(config, &["rustup", "update", "stable"]);
         expect_ok(config, &["multirust", "update", "beta"]);
         expect_ok(config, &["multirust", "update", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
-        expect_ok_ex(config, &["rustup"],
+        expect_ok_ex(config, &["rustup", "--no-self-update"],
 r"
 stable updated:
 
@@ -132,12 +132,12 @@ info: toolchain 'nightly' installed
 fn rustup_some_channels_up_to_date() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup-setup", "-y"]);
+        expect_ok(config, &["rustup", "update", "stable"]);
         expect_ok(config, &["multirust", "update", "beta"]);
         expect_ok(config, &["multirust", "update", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["multirust", "update", "beta"]);
-        expect_ok_ex(config, &["rustup"],
+        expect_ok_ex(config, &["rustup", "--no-self-update"],
 r"
 stable updated:
 
@@ -187,9 +187,9 @@ info: toolchain 'nightly' installed
 #[test]
 fn rustup_no_channels() {
     setup(&|config| {
-        expect_ok(config, &["rustup-setup", "-y"]);
+        expect_ok(config, &["rustup", "update", "stable"]);
         expect_ok(config, &["multirust", "remove-toolchain", "stable"]);
-        expect_ok_ex(config, &["rustup"],
+        expect_ok_ex(config, &["rustup", "--no-self-update"],
 r"",
 r"info: no updatable toolchains installed
 ");

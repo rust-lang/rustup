@@ -154,7 +154,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         println!("");
         try!(show_channel_version(cfg, name));
     } else {
-        try!(update_all_channels(cfg))
+        try!(update_all_channels(cfg, false))
     }
     Ok(())
 }
