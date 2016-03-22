@@ -396,8 +396,8 @@ fn remove_override_with_multiple_overrides() {
 fn no_update_on_channel_when_date_has_not_changed() {
     setup(&|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_stderr_ok(config, &["multirust", "update", "nightly"],
-                         "already up to date");
+        expect_stdout_ok(config, &["multirust", "update", "nightly"],
+                         "unchanged");
     });
 }
 

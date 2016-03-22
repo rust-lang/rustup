@@ -549,10 +549,8 @@ fn update_all_no_update_whitespace() {
     setup(&|config| {
         expect_stdout_ok(config, &["multirust", "update", "nightly"],
 r"
-nightly revision:
+  nightly installed: 1.3.0 (hash-n-2)
 
-1.3.0 (hash-n-2)
-1.3.0 (hash-n-2)
 ");
     });
 }

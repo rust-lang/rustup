@@ -89,19 +89,19 @@ impl<'a> Notification<'a> {
             ToolchainDirectory(_, _) |
             LookingForToolchain(_) |
             WritingMetadataVersion(_) |
-            ReadMetadataVersion(_) => NotificationLevel::Verbose,
+            InstallingToolchain(_) |
+            UpdatingToolchain(_) |
+            ReadMetadataVersion(_) |
+            InstalledToolchain(_) |
+            UpdateHashMatches => NotificationLevel::Verbose,
             SetDefaultToolchain(_) |
             SetOverrideToolchain(_, _) |
-            UpdatingToolchain(_) |
-            InstallingToolchain(_) |
-            InstalledToolchain(_) |
             UsingExistingToolchain(_) |
             UninstallingToolchain(_) |
             UninstalledToolchain(_) |
             ToolchainNotInstalled(_) |
             UpgradingMetadata(_, _) |
-            MetadataUpgradeNotNeeded(_) |
-            UpdateHashMatches => NotificationLevel::Info,
+            MetadataUpgradeNotNeeded(_)  => NotificationLevel::Info,
             NonFatalError(_) => NotificationLevel::Error,
             UpgradeRemovesToolchains |
             MissingFileDuringSelfUninstall(_) => NotificationLevel::Warn,

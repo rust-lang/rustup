@@ -19,14 +19,10 @@ fn update() {
     setup(&|config| {
         expect_ok_ex(config, &["multirust", "update", "nightly"],
 r"
-nightly revision:
-
-1.3.0 (hash-n-2)
-1.3.0 (hash-n-2)
+  nightly installed: 1.3.0 (hash-n-2)
 
 ",
-r"info: installing toolchain 'nightly'
-info: downloading toolchain manifest
+r"info: syncing channel updates for 'nightly'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -35,7 +31,6 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-info: toolchain 'nightly' installed
 ");
     });
 }
@@ -46,15 +41,10 @@ fn update_again() {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_ok_ex(config, &["multirust", "update", "nightly"],
 r"
-nightly revision:
-
-1.3.0 (hash-n-2)
-1.3.0 (hash-n-2)
+  nightly unchanged: 1.3.0 (hash-n-2)
 
 ",
-r"info: updating existing install for 'nightly'
-info: downloading toolchain manifest
-info: toolchain is already up to date
+r"info: syncing channel updates for 'nightly'
 ");
     });
 }
@@ -64,14 +54,10 @@ fn default() {
     setup(&|config| {
         expect_ok_ex(config, &["multirust", "default", "nightly"],
 r"
-nightly revision:
-
-1.3.0 (hash-n-2)
-1.3.0 (hash-n-2)
+  nightly installed: 1.3.0 (hash-n-2)
 
 ",
-r"info: installing toolchain 'nightly'
-info: downloading toolchain manifest
+r"info: syncing channel updates for 'nightly'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -80,7 +66,6 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-info: toolchain 'nightly' installed
 info: default toolchain set to 'nightly'
 ");
     });
@@ -93,10 +78,7 @@ fn override_again() {
         expect_ok(config, &["multirust", "override", "nightly"]);
         expect_ok_ex(config, &["multirust", "override", "nightly"],
 r"
-nightly revision:
-
-1.3.0 (hash-n-2)
-1.3.0 (hash-n-2)
+  nightly unchanged: 1.3.0 (hash-n-2)
 
 ",
 &format!(
@@ -134,8 +116,7 @@ fn update_no_manifest() {
     setup(&|config| {
         expect_err_ex(config, &["multirust", "update", "nightly-2016-01-01"],
 r"",
-r"info: installing toolchain 'nightly-2016-01-01'
-info: downloading toolchain manifest
+r"info: syncing channel updates for 'nightly-2016-01-01'
 error: no release found for 'nightly-2016-01-01'
 ");
     });

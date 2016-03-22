@@ -11,7 +11,7 @@ use errors::*;
 use multirust_dist::{temp, dist};
 use multirust_utils::utils;
 use override_db::OverrideDB;
-use toolchain::Toolchain;
+use toolchain::{Toolchain, UpdateStatus};
 
 // Note: multirust-rs jumped from 2 to 12 to leave multirust.sh room to diverge
 pub const METADATA_VERSION: &'static str = "12";
@@ -261,7 +261,7 @@ impl Cfg {
         }
     }
 
-    pub fn update_all_channels(&self) -> Result<Vec<(String, Result<bool>)>> {
+    pub fn update_all_channels(&self) -> Result<Vec<(String, Result<UpdateStatus>)>> {
         let toolchains = try!(self.list_toolchains());
 
         let mut toolchains: Vec<(dist::ToolchainDesc, String)> = toolchains.into_iter()

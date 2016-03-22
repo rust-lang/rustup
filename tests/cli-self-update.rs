@@ -691,15 +691,10 @@ fn rustup_self_update_exact() {
 
         expect_ok_ex(config, &["rustup"],
 r"
-stable unchanged:
-
-1.1.0 (hash-s-2)
-1.1.0 (hash-s-2)
+  stable unchanged: 1.1.0 (hash-s-2)
 
 ",
-r"info: updating existing install for 'stable'
-info: downloading toolchain manifest
-info: toolchain is already up to date
+r"info: syncing channel updates for 'stable'
 info: checking for self-updates
 info: downloading self-update
 ");
@@ -728,18 +723,7 @@ fn updater_is_deleted_after_running_multirust() {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_ok(config, &["multirust", "self", "update"]);
 
-        expect_ok_ex(config, &["multirust", "update", "nightly"],
-r"
-nightly revision:
-
-1.3.0 (hash-n-2)
-1.3.0 (hash-n-2)
-
-",
-r"info: updating existing install for 'nightly'
-info: downloading toolchain manifest
-info: toolchain is already up to date
-");
+        expect_ok(config, &["multirust", "update", "nightly"]);
 
         let setup = config.cargodir.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
         assert!(!setup.exists());
@@ -785,14 +769,10 @@ fn first_install_exact() {
     setup(&|config| {
         expect_ok_ex(config, &["multirust-setup", "-y"],
 r"
-stable revision:
-
-1.1.0 (hash-s-2)
-1.1.0 (hash-s-2)
+  stable installed: 1.1.0 (hash-s-2)
 
 ",
-r"info: installing toolchain 'stable'
-info: downloading toolchain manifest
+r"info: syncing channel updates for 'stable'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -801,7 +781,6 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-info: toolchain 'stable' installed
 info: default toolchain set to 'stable'
 "
                   );

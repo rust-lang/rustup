@@ -294,10 +294,10 @@ fn maybe_install_rust_stable(verbose: bool) -> Result<()> {
     // then install stable and make it the default.
     if try!(cfg.find_default()).is_none() {
         let stable = try!(cfg.get_toolchain("stable", false));
-        try!(stable.install_from_dist());
+        let status = try!(stable.install_from_dist());
         try!(cfg.set_default("stable"));
         println!("");
-        try!(common::show_channel_version(cfg, "stable"));
+        try!(common::show_channel_update(cfg, "stable", Ok(status)));
     } else {
         info!("updating existing installation");
     }

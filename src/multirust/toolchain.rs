@@ -30,6 +30,12 @@ pub struct ComponentStatus {
     pub installed: bool,
 }
 
+pub enum UpdateStatus {
+    Installed,
+    Updated,
+    Unchanged,
+}
+
 impl<'a> Toolchain<'a> {
     pub fn from(cfg: &'a Cfg, name: &str) -> Self {
         let path = cfg.toolchains_dir.join(name);
@@ -68,9 +74,10 @@ impl<'a> Toolchain<'a> {
         }
         Ok(try!(result))
     }
-    fn install(&self, install_method: InstallMethod) -> Result<bool> {
+    fn install(&self, install_method: InstallMethod) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
-        if self.exists() {
+        let exists = self.exists();
+        if exists {
             self.cfg.notify_handler.call(Notification::UpdatingToolchain(&self.name));
         } else {
             self.cfg.notify_handler.call(Notification::InstallingToolchain(&self.name));
@@ -87,17 +94,23 @@ impl<'a> Toolchain<'a> {
             self.cfg.notify_handler.call(Notification::InstalledToolchain(&self.name));
         }
 
-        Ok(updated)
+        let status = match (updated, exists) {
+            (true, false) => UpdateStatus::Installed,
+            (true, true) => UpdateStatus::Updated,
+            (false, true) => UpdateStatus::Unchanged,
+            (false, false) => unreachable!(),
+        };
+
+        Ok(status)
     }
-    fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<()> {
+    fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
         self.cfg.notify_handler.call(Notification::LookingForToolchain(&self.name));
         if !self.exists() {
-            try!(self.install(install_method));
-            Ok(())
+            Ok(try!(self.install(install_method)))
         } else {
             self.cfg.notify_handler.call(Notification::UsingExistingToolchain(&self.name));
-            Ok(())
+            Ok(UpdateStatus::Unchanged)
         }
     }
     fn is_valid_install_method(&self, install_method: InstallMethod) -> bool {
@@ -124,13 +137,13 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    pub fn install_from_dist(&self) -> Result<bool> {
+    pub fn install_from_dist(&self) -> Result<UpdateStatus> {
         let update_hash = try!(self.update_hash());
         self.install(InstallMethod::Dist(&self.name,
                                          update_hash.as_ref().map(|p| &**p),
                                          self.download_cfg()))
     }
-    pub fn install_from_dist_if_not_installed(&self) -> Result<()> {
+    pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
         let update_hash = try!(self.update_hash());
         self.install_if_not_installed(InstallMethod::Dist(&self.name,
                                                           update_hash.as_ref().map(|p| &**p),
