@@ -89,7 +89,7 @@ after_success:
     fi
 
   # Build documentation and push release binaries
-  - if [ "$TRAVIS_PULL_REQUEST" == "false" && "$TRAVIS_BRANCH" == "master" ]; then
+  - if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$TRAVIS_BRANCH" == "master" ]]; then
 
       git config --global credential.helper store;
       echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials;
