@@ -25,6 +25,10 @@ pub struct Config {
     pub rustupdir: PathBuf,
     /// Custom toolchains
     pub customdir: PathBuf,
+    /// CARGO_HOME
+    pub cargodir: PathBuf,
+    /// ~
+    pub homedir: PathBuf,
 }
 
 // Describes all the features of the mock dist server.
@@ -44,16 +48,25 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     // Unset env variables that will break our testing
     env::remove_var("MULTIRUST_TOOLCHAIN");
 
-    let exedir = TempDir::new("multirust").unwrap();
-    let distdir = TempDir::new("multirust").unwrap();
-    let rustupdir = TempDir::new("multirust").unwrap();
-    let customdir = TempDir::new("multirust").unwrap();
+    let exedir = TempDir::new("rustup-exe").unwrap();
+    let distdir = TempDir::new("rustup-dist").unwrap();
+    let rustupdir = TempDir::new("rustup").unwrap();
+    let customdir = TempDir::new("rustup-custom").unwrap();
+    let cargodir = TempDir::new("rustup-cargo").unwrap();
+    let homedir = TempDir::new("rustup-home").unwrap();
+
+    // The uninstall process on windows involves using the directory above
+    // CARGO_HOME, so make sure it's a subdir of our tempdir
+    let cargodir = cargodir.path().join("ch");
+    fs::create_dir(&cargodir).unwrap();
 
     let ref config = Config {
         exedir: exedir.path().to_owned(),
         distdir: distdir.path().to_owned(),
         rustupdir: rustupdir.path().to_owned(),
         customdir: customdir.path().to_owned(),
+        cargodir: cargodir,
+        homedir: homedir.path().to_owned(),
     };
 
     create_mock_dist_server(&config.distdir, s);
@@ -179,6 +192,11 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
 pub fn env(config: &Config, cmd: &mut Command) {
     cmd.env("MULTIRUST_HOME", config.rustupdir.to_string_lossy().to_string());
     cmd.env("MULTIRUST_DIST_ROOT", format!("file://{}", config.distdir.join("dist").to_string_lossy()));
+    cmd.env("CARGO_HOME", config.cargodir.to_string_lossy().to_string());
+
+    // This is only used for some installation tests on unix where CARGO_HOME
+    // above is unset
+    cmd.env("HOME", config.homedir.to_string_lossy().to_string());
 }
 
 pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> SanitizedOutput {

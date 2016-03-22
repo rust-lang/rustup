@@ -28,7 +28,7 @@ use multirust_mock::clitools::{self, Config, Scenario,
 use multirust_mock::dist::{create_hash, calc_hash};
 use multirust_utils::raw;
 
-pub fn setup(f: &Fn(&Config, &Path, &Path)) {
+pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, &|config| {
         // Lock protects environment variables
         lazy_static! {
@@ -36,30 +36,17 @@ pub fn setup(f: &Fn(&Config, &Path, &Path)) {
         }
         let _g = LOCK.lock();
 
-        let cargo_home_tmp = TempDir::new("cargo_home").unwrap();
-        // The uninstall process on windows involves using the directory above
-        // CARGO_HOME, so make sure it's a subdir of our tempdir
-        let ref cargo_home = cargo_home_tmp.path().join("ch");
-        fs::create_dir(cargo_home).unwrap();
-
-        let home_tmp = TempDir::new("home").unwrap();
-        let home = home_tmp.path();
-
-        // Both of these are only read during install/uninstall
-        env::set_var("CARGO_HOME", &*cargo_home.to_string_lossy());
-        env::set_var("HOME", &*home.to_string_lossy());
-
         // An windows these tests mess with the user's PATH. Save
         // and restore them here to keep from trashing things.
         let ref saved_path = get_path();
         defer! { restore_path(saved_path) }
 
-        f(config, cargo_home, home);
+        f(config);
     });
 }
 
-pub fn update_setup(f: &Fn(&Config, &Path, &Path)) {
-    setup(&|config, cargo_home, _| {
+pub fn update_setup(f: &Fn(&Config, &Path)) {
+    setup(&|config| {
 
         // Create a mock self-update server
         let ref self_dist_tmp = TempDir::new("self_dist").unwrap();
@@ -80,20 +67,20 @@ pub fn update_setup(f: &Fn(&Config, &Path, &Path)) {
         let ref root_url = format!("file://{}", self_dist.display());
         env::set_var("MULTIRUST_UPDATE_ROOT", root_url);
 
-        f(config, cargo_home, self_dist);
+        f(config, self_dist);
     });
 }
 
 #[test]
 fn install_bins_to_cargo_home() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
-        let multirust = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
-        let rustc = cargo_home.join(&format!("bin/rustc{}", EXE_SUFFIX));
-        let rustdoc = cargo_home.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
-        let cargo = cargo_home.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let rust_lldb = cargo_home.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
-        let rust_gdb = cargo_home.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
+        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
+        let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
+        let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
+        let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
+        let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
         assert!(multirust.exists());
         assert!(rustc.exists());
         assert!(rustdoc.exists());
@@ -105,10 +92,10 @@ fn install_bins_to_cargo_home() {
 
 #[test]
 fn install_twice() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust-setup", "-y"]);
-        let multirust = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         assert!(multirust.exists());
     });
 }
@@ -116,14 +103,14 @@ fn install_twice() {
 #[test]
 #[cfg(unix)]
 fn bins_are_executable() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
-        let ref multirust = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
-        let ref rustc = cargo_home.join(&format!("bin/rustc{}", EXE_SUFFIX));
-        let ref rustdoc = cargo_home.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
-        let ref cargo = cargo_home.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let ref rust_lldb = cargo_home.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
-        let ref rust_gdb = cargo_home.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
+        let ref multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let ref rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
+        let ref rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
+        let ref cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
+        let ref rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
+        let ref rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
         assert!(is_exe(multirust));
         assert!(is_exe(rustc));
         assert!(is_exe(rustdoc));
@@ -142,25 +129,25 @@ fn bins_are_executable() {
 
 #[test]
 fn install_creates_cargo_home() {
-    setup(&|config, cargo_home, _| {
-        fs::remove_dir(cargo_home).unwrap();
+    setup(&|config| {
+        fs::remove_dir(&config.cargodir).unwrap();
         fs::remove_dir(&config.rustupdir).unwrap();
         expect_ok(config, &["multirust-setup", "-y"]);
-        assert!(cargo_home.exists());
+        assert!(config.cargodir.exists());
     });
 }
 
 #[test]
 fn uninstall_deletes_bins() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
-        let multirust = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
-        let rustc = cargo_home.join(&format!("bin/rustc{}", EXE_SUFFIX));
-        let rustdoc = cargo_home.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
-        let cargo = cargo_home.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let rust_lldb = cargo_home.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
-        let rust_gdb = cargo_home.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
+        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
+        let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
+        let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
+        let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
+        let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
         assert!(!multirust.exists());
         assert!(!rustc.exists());
         assert!(!rustdoc.exists());
@@ -172,14 +159,14 @@ fn uninstall_deletes_bins() {
 
 #[test]
 fn uninstall_works_if_some_bins_dont_exist() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
-        let multirust = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
-        let rustc = cargo_home.join(&format!("bin/rustc{}", EXE_SUFFIX));
-        let rustdoc = cargo_home.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
-        let cargo = cargo_home.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let rust_lldb = cargo_home.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
-        let rust_gdb = cargo_home.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
+        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
+        let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
+        let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
+        let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
+        let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
 
         fs::remove_file(&rustc).unwrap();
         fs::remove_file(&cargo).unwrap();
@@ -197,7 +184,7 @@ fn uninstall_works_if_some_bins_dont_exist() {
 
 #[test]
 fn uninstall_deletes_multirust_home() {
-    setup(&|config, _, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
@@ -207,7 +194,7 @@ fn uninstall_deletes_multirust_home() {
 
 #[test]
 fn uninstall_works_if_multirust_home_doesnt_exist() {
-    setup(&|config, _, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
         fs::remove_dir_all(&config.rustupdir).unwrap();
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
@@ -216,18 +203,18 @@ fn uninstall_works_if_multirust_home_doesnt_exist() {
 
 #[test]
 fn uninstall_deletes_cargo_home() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
-        assert!(!cargo_home.exists());
+        assert!(!config.cargodir.exists());
     });
 }
 
 #[test]
 fn uninstall_fails_if_not_installed() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
-        let multirust = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         fs::remove_file(&multirust).unwrap();
         expect_err(config, &["multirust", "self", "uninstall", "-y"],
                    "multirust is not installed");
@@ -239,9 +226,9 @@ fn uninstall_fails_if_not_installed() {
 // order to test that it can successfully delete itself.
 #[test]
 fn uninstall_self_delete_works() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
-        let multirust = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         let mut cmd = Command::new(multirust.clone());
         cmd.args(&["self", "uninstall", "-y"]);
         clitools::env(config, &mut cmd);
@@ -251,13 +238,13 @@ fn uninstall_self_delete_works() {
 
         assert!(out.status.success());
         assert!(!multirust.exists());
-        assert!(!cargo_home.exists());
+        assert!(!config.cargodir.exists());
 
-        let rustc = cargo_home.join(&format!("bin/rustc{}", EXE_SUFFIX));
-        let rustdoc = cargo_home.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
-        let cargo = cargo_home.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let rust_lldb = cargo_home.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
-        let rust_gdb = cargo_home.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
+        let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
+        let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
+        let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
+        let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
+        let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
         assert!(!rustc.exists());
         assert!(!rustdoc.exists());
         assert!(!cargo.exists());
@@ -267,14 +254,14 @@ fn uninstall_self_delete_works() {
 }
 
 // On windows multirust self uninstall temporarily puts a multirust-gc-$randomnumber.exe
-// file in CARGO_HOME/.. ; check that it doesn't exist.
+// file in CONFIG.CARGODIR/.. ; check that it doesn't exist.
 #[test]
 fn uninstall_doesnt_leave_gc_file() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
 
-        let ref parent = cargo_home.parent().unwrap();
+        let ref parent = config.cargodir.parent().unwrap();
         // Actually, there just shouldn't be any files here
         for dirent in fs::read_dir(parent).unwrap() {
             let dirent = dirent.unwrap();
@@ -291,15 +278,15 @@ fn uninstall_stress_test() {
 
 #[cfg(unix)]
 fn install_adds_path_to_rc(rcfile: &str) {
-    setup(&|config, cargo_home, home| {
+    setup(&|config| {
         let my_rc = "foo\nbar\nbaz";
-        let ref rc = home.join(rcfile);
+        let ref rc = config.homedir.join(rcfile);
         raw::write_file(rc, my_rc).unwrap();
         expect_ok(config, &["multirust-setup", "-y"]);
 
         let new_rc = raw::read_file(rc).unwrap();
         let addition = format!(r#"export PATH="{}/bin:$PATH""#,
-                               cargo_home.display());
+                               config.cargodir.display());
         let expected = format!("{}\n{}\n", my_rc, addition);
         assert_eq!(new_rc, expected);
     });
@@ -326,14 +313,14 @@ fn install_adds_path_to_kshrc() {
 #[test]
 #[cfg(unix)]
 fn install_does_not_add_paths_to_rcfiles_that_dont_exist() {
-    setup(&|config, _, home| {
+    setup(&|config| {
         let my_bashrc = "foo\nbar\nbaz";
-        let ref bashrc = home.join(".bashrc");
+        let ref bashrc = config.homedir.join(".bashrc");
         raw::write_file(bashrc, my_bashrc).unwrap();
         expect_ok(config, &["multirust-setup", "-y"]);
 
-        let ref zshrc = home.join(".zshrc");
-        let ref kshrc = home.join(".kshrc");
+        let ref zshrc = config.homedir.join(".zshrc");
+        let ref kshrc = config.homedir.join(".kshrc");
         assert!(!zshrc.exists());
         assert!(!kshrc.exists());
     });
@@ -347,16 +334,16 @@ fn install_adds_path_to_bashrc_zshrc_and_kshrc() {
 #[test]
 #[cfg(unix)]
 fn install_adds_path_to_rcfile_just_once() {
-    setup(&|config, cargo_home, home| {
+    setup(&|config| {
         let my_bashrc = "foo\nbar\nbaz";
-        let ref bashrc = home.join(".bashrc");
+        let ref bashrc = config.homedir.join(".bashrc");
         raw::write_file(bashrc, my_bashrc).unwrap();
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust-setup", "-y"]);
 
         let new_bashrc = raw::read_file(bashrc).unwrap();
         let addition = format!(r#"export PATH="{}/bin:$PATH""#,
-                               cargo_home.display());
+                               config.cargodir.display());
         let expected = format!("{}\n{}\n", my_bashrc, addition);
         assert_eq!(new_bashrc, expected);
     });
@@ -366,20 +353,20 @@ fn install_adds_path_to_rcfile_just_once() {
 #[test]
 #[cfg(unix)]
 fn install_when_no_path_methods() {
-    setup(&|config, _, home| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
 
         for rc in &[".bashrc", ".zshrc", ".kshrc"] {
-            assert!(!home.join(rc).exists());
+            assert!(!config.homedir.join(rc).exists());
         }
     });
 }
 
 #[cfg(unix)]
 fn uninstall_removes_path_from_rc(rcfile: &str) {
-    setup(&|config, _, home| {
+    setup(&|config| {
         let my_rc = "foo\nbar\nbaz";
-        let ref rc = home.join(rcfile);
+        let ref rc = config.homedir.join(rcfile);
         raw::write_file(rc, my_rc).unwrap();
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
@@ -410,15 +397,15 @@ fn uninstall_removes_path_from_kshrc() {
 #[test]
 #[cfg(unix)]
 fn uninstall_doesnt_touch_rc_files_that_dont_exist() {
-    setup(&|config, _, home| {
+    setup(&|config| {
         let my_rc = "foo\nbar\nbaz";
-        let ref bashrc = home.join(".bashrc");
+        let ref bashrc = config.homedir.join(".bashrc");
         raw::write_file(bashrc, my_rc).unwrap();
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
 
-        let ref zshrc = home.join(".zshrc");
-        let ref kshrc = home.join(".zshrc");
+        let ref zshrc = config.homedir.join(".zshrc");
+        let ref kshrc = config.homedir.join(".zshrc");
         assert!(!zshrc.exists());
         assert!(!kshrc.exists());
     });
@@ -426,14 +413,14 @@ fn uninstall_doesnt_touch_rc_files_that_dont_exist() {
 
 #[test]
 #[cfg(unix)]
-fn uninstall_doesnt_touch_rc_files_that_dont_contain_cargo_home_path() {
-    setup(&|config, _, home| {
+fn uninstall_doesnt_touch_rc_files_that_dont_contain_cargo_home() {
+    setup(&|config| {
         let my_rc = "foo\nbar\nbaz";
-        let ref bashrc = home.join(".bashrc");
+        let ref bashrc = config.homedir.join(".bashrc");
         raw::write_file(bashrc, my_rc).unwrap();
         expect_ok(config, &["multirust-setup", "-y"]);
 
-        let ref zshrc = home.join(".zshrc");
+        let ref zshrc = config.homedir.join(".zshrc");
         raw::write_file(zshrc, my_rc).unwrap();
 
         let zsh = raw::read_file(zshrc).unwrap();
@@ -449,23 +436,26 @@ fn uninstall_doesnt_touch_rc_files_that_dont_contain_cargo_home_path() {
 #[test]
 #[cfg(unix)]
 fn when_cargo_home_is_the_default_write_path_specially() {
-    setup(&|config, _, home| {
-        // Override the test harness so that cargo home looks
-        // like $HOME/.cargo, otherwise the literal path will
-        // be written to the file
-        env::remove_var("CARGO_HOME");
+    setup(&|config| {
+        // Override the test harness so that cargo home looks like
+        // $HOME/.cargo by removing CARGO_HOME from the environment,
+        // otherwise the literal path will be written to the file.
 
         let my_bashrc = "foo\nbar\nbaz";
-        let ref bashrc = home.join(".bashrc");
+        let ref bashrc = config.homedir.join(".bashrc");
         raw::write_file(bashrc, my_bashrc).unwrap();
-        expect_ok(config, &["multirust-setup", "-y"]);
+        let mut cmd = clitools::cmd(config, "multirust-setup", &["-y"]);
+        cmd.env_remove("CARGO_HOME");
+        assert!(cmd.output().unwrap().status.success());
 
         let new_bashrc = raw::read_file(bashrc).unwrap();
         let addition = format!(r#"export PATH="$HOME/.cargo/bin:$PATH""#);
         let expected = format!("{}\n{}\n", my_bashrc, addition);
         assert_eq!(new_bashrc, expected);
 
-        expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
+        let mut cmd = clitools::cmd(config, "multirust", &["self", "uninstall", "-y"]);
+        cmd.env_remove("CARGO_HOME");
+        assert!(cmd.output().unwrap().status.success());
 
         let new_bashrc = raw::read_file(bashrc).unwrap();
         assert_eq!(new_bashrc, my_bashrc);
@@ -503,10 +493,10 @@ fn restore_path(_: &str) { }
 #[test]
 #[cfg(windows)]
 fn install_adds_path() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
 
-        let path = cargo_home.join("bin").to_string_lossy().to_string();
+        let path = config.cargodir.join("bin").to_string_lossy().to_string();
         assert!(get_path().contains(&path));
     });
 }
@@ -514,11 +504,11 @@ fn install_adds_path() {
 #[test]
 #[cfg(windows)]
 fn install_does_not_add_path_twice() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust-setup", "-y"]);
 
-        let path = cargo_home.join("bin").to_string_lossy().to_string();
+        let path = config.cargodir.join("bin").to_string_lossy().to_string();
         assert_eq!(get_path().matches(&path).count(), 1);
     });
 }
@@ -526,18 +516,18 @@ fn install_does_not_add_path_twice() {
 #[test]
 #[cfg(windows)]
 fn uninstall_removes_path() {
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
 
-        let path = cargo_home.join("bin").to_string_lossy().to_string();
+        let path = config.cargodir.join("bin").to_string_lossy().to_string();
         assert!(!get_path().contains(&path));
     });
 }
 
 #[test]
 fn update_exact() {
-    update_setup(&|config, _, _| {
+    update_setup(&|config, _| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok_ex(config, &["multirust", "self", "update"],
 r"",
@@ -550,20 +540,20 @@ info: multirust updated successfully
 
 #[test]
 fn update_but_not_installed() {
-    update_setup(&|config, cargo_home, _| {
+    update_setup(&|config, _| {
         expect_err_ex(config, &["multirust", "self", "update"],
 r"",
 &format!(
 r"error: multirust is not installed at '{}'
-", cargo_home.display()));
+", config.cargodir.display()));
     });
 }
 
 #[test]
 fn update_but_delete_existing_updater_first() {
-    update_setup(&|config, cargo_home, _| {
+    update_setup(&|config, _| {
         // The updater is stored in a known location
-        let ref setup = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
+        let ref setup = config.cargodir.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
 
         expect_ok(config, &["multirust-setup", "-y"]);
 
@@ -572,14 +562,14 @@ fn update_but_delete_existing_updater_first() {
         raw::write_file(setup, "").unwrap();
         expect_ok(config, &["multirust", "self", "update"]);
 
-        let multirust = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         assert!(multirust.exists());
     });
 }
 
 #[test]
 fn update_no_change() {
-    update_setup(&|config, _, self_dist| {
+    update_setup(&|config, self_dist| {
         expect_ok(config, &["multirust-setup", "-y"]);
 
         let ref trip = this_host_triple();
@@ -601,7 +591,7 @@ info: multirust is already up to date
 
 #[test]
 fn update_bad_hash() {
-    update_setup(&|config, _, self_dist| {
+    update_setup(&|config, self_dist| {
         expect_ok(config, &["multirust-setup", "-y"]);
 
         let ref trip = this_host_triple();
@@ -619,7 +609,7 @@ fn update_bad_hash() {
 
 #[test]
 fn update_hash_file_404() {
-    update_setup(&|config, _, self_dist| {
+    update_setup(&|config, self_dist| {
         expect_ok(config, &["multirust-setup", "-y"]);
 
         let ref trip = this_host_triple();
@@ -635,7 +625,7 @@ fn update_hash_file_404() {
 
 #[test]
 fn update_download_404() {
-    update_setup(&|config, _, self_dist| {
+    update_setup(&|config, self_dist| {
         expect_ok(config, &["multirust-setup", "-y"]);
 
         let ref trip = this_host_triple();
@@ -654,10 +644,10 @@ fn update_download_404() {
 // before the new updater can delete it.
 #[test]
 fn update_updates_multirust_bin() {
-    update_setup(&|config, cargo_home, _| {
+    update_setup(&|config, _| {
         expect_ok(config, &["multirust-setup", "-y"]);
 
-        let ref bin = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let ref bin = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         let before_hash = calc_hash(bin);
 
         // Running the self update command on the installed binary,
@@ -683,19 +673,19 @@ fn update_updates_multirust_bin() {
 // invocations of multirust.
 #[test]
 fn updater_leaves_itself_for_later_deletion() {
-    update_setup(&|config, cargo_home, _| {
+    update_setup(&|config, _| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_ok(config, &["multirust", "self", "update"]);
 
-        let setup = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
+        let setup = config.cargodir.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
         assert!(setup.exists());
     });
 }
 
 #[test]
 fn updater_is_deleted_after_running_multirust() {
-    update_setup(&|config, cargo_home, _| {
+    update_setup(&|config, _| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_ok(config, &["multirust", "self", "update"]);
@@ -713,28 +703,28 @@ info: downloading toolchain manifest
 info: toolchain is already up to date
 ");
 
-        let setup = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
+        let setup = config.cargodir.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
         assert!(!setup.exists());
     });
 }
 
 #[test]
 fn updater_is_deleted_after_running_rustc() {
-    update_setup(&|config, cargo_home, _| {
+    update_setup(&|config, _| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_ok(config, &["multirust", "self", "update"]);
 
         expect_ok(config, &["rustc", "--version"]);
 
-        let setup = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
+        let setup = config.cargodir.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
         assert!(!setup.exists());
     });
 }
 
 #[test]
 fn multirust_still_works_after_update() {
-    update_setup(&|config, _, _| {
+    update_setup(&|config, _| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_ok(config, &["multirust", "self", "update"]);
@@ -754,7 +744,7 @@ fn update_stress_test() {
 
 #[test]
 fn first_install_exact() {
-    setup(&|config, _, _| {
+    setup(&|config| {
         expect_ok_ex(config, &["multirust-setup", "-y"],
 r"
 stable revision:
@@ -782,7 +772,7 @@ info: default toolchain set to 'stable'
 
 #[test]
 fn reinstall_exact() {
-    setup(&|config, _, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok_ex(config, &["multirust-setup", "-y"],
 r"",
@@ -795,14 +785,15 @@ r"info: updating existing installation
 #[test]
 #[cfg(unix)]
 fn produces_env_file_on_unix() {
-    setup(&|config, _, home| {
-        // Override the test harness so that cargo home looks
-        // like $HOME/.cargo, otherwise the literal path will
-        // be written to the file
-        env::remove_var("CARGO_HOME");
+    setup(&|config| {
+        // Override the test harness so that cargo home looks like
+        // $HOME/.cargo by removing CARGO_HOME from the environment,
+        // otherwise the literal path will be written to the file.
 
-        expect_ok(config, &["multirust-setup", "-y"]);
-        let ref envfile = home.join(".cargo/env");
+        let mut cmd = clitools::cmd(config, "multirust-setup", &["-y"]);
+        cmd.env_remove("CARGO_HOME");
+        assert!(cmd.output().unwrap().status.success());
+        let ref envfile = config.homedir.join(".cargo/env");
         let envfile = raw::read_file(envfile).unwrap();
         assert_eq!(r#"export PATH="$HOME/.cargo/bin:$PATH""#, envfile);
     });
@@ -815,7 +806,7 @@ fn doesnt_produce_env_file_on_windows() {
 
 #[test]
 fn install_sets_up_stable() {
-    setup(&|config, _, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-s-2");
@@ -824,7 +815,7 @@ fn install_sets_up_stable() {
 
 #[test]
 fn install_sets_up_stable_unless_there_is_already_a_default() {
-    setup(&|config, _, _| {
+    setup(&|config| {
         expect_ok(config, &["multirust-setup", "-y"]);
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_ok(config, &["multirust", "remove-toolchain", "stable"]);
@@ -842,7 +833,7 @@ fn install_sets_up_stable_unless_there_is_already_a_default() {
 #[test]
 #[cfg(unix)]
 fn install_deletes_legacy_multirust_bins() {
-    setup(&|config, _, _| {
+    setup(&|config| {
         let ref multirust_bin_dir = config.rustupdir.join("bin");
         fs::create_dir_all(multirust_bin_dir).unwrap();
         let ref multirust_bin = multirust_bin_dir.join("multirust");
@@ -872,20 +863,22 @@ fn install_deletes_legacy_multirust_bins() {
     // windows::get_special_folder(&windows::FOLDERID_Profile).unwrap();
 }
 
-// multirust-setup obeys CARGO_HOME, which multirust-rs *used* to set
+// multirust-setup obeys CONFIG.CARGODIR, which multirust-rs *used* to set
 // before installation moved from ~/.multirust/bin to ~/.cargo/bin.
 // If installation running under the old multirust via `cargo run`,
-// then CARGO_HOME will be set during installation, causing the
+// then CONFIG.CARGODIR will be set during installation, causing the
 // install to go to the wrong place. Detect this scenario specifically
 // and avoid it.
 #[test]
 #[cfg(unix)] // Can't test on windows without clobbering the home dir
 fn legacy_upgrade_installs_to_correct_location() {
-    setup(&|config, _, home| {
+    setup(&|config| {
         let fake_cargo = config.rustupdir.join(".multirust/cargo");
-        env::set_var("CARGO_HOME", format!("{}", fake_cargo.display()));
-        expect_ok(config, &["multirust-setup", "-y"]);
-        let multirust = home.join(&format!(".cargo/bin/multirust{}", EXE_SUFFIX));
+        let mut cmd = clitools::cmd(config, "multirust-setup", &["-y"]);
+        cmd.env("CARGO_HOME", format!("{}", fake_cargo.display()));
+        assert!(cmd.output().unwrap().status.success());
+
+        let multirust = config.homedir.join(&format!(".cargo/bin/multirust{}", EXE_SUFFIX));
         assert!(multirust.exists());
     });
 }
@@ -894,7 +887,7 @@ fn legacy_upgrade_installs_to_correct_location() {
 
 #[test]
 fn readline_no_stdin() {
-    setup(&|config, _, _| {
+    setup(&|config| {
         expect_err(config, &["multirust-setup"],
                    "unable to read from stdin for confirmation");
     });
@@ -904,14 +897,14 @@ fn readline_no_stdin() {
 fn multirust_setup_works_with_weird_names() {
     // Browsers often rename bins to e.g. multirust-setup(2).exe.
 
-    setup(&|config, cargo_home, _| {
+    setup(&|config| {
         let ref old = config.exedir.join(
             &format!("multirust-setup{}", EXE_SUFFIX));
         let ref new = config.exedir.join(
             &format!("multirust-setup(2){}", EXE_SUFFIX));
         fs::rename(old, new).unwrap();
         expect_ok(config, &["multirust-setup(2)", "-y"]);
-        let multirust = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         assert!(multirust.exists());
     });
 }
