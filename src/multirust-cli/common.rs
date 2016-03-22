@@ -100,12 +100,7 @@ pub fn run_inner<S: AsRef<OsStr>>(mut command: Command,
 }
 
 pub fn show_channel_version(cfg: &Cfg, name: &str) -> Result<()> {
-    let mut t = term::stdout().unwrap();
-    if tty::stdout_isatty() { let _ = t.fg(term::color::BRIGHT_WHITE); }
-    if tty::stdout_isatty() { let _ = t.bg(term::color::BLACK); }
-    let _ = write!(t, "{}", name);
-    if tty::stdout_isatty() { let _ = t.reset(); }
-    let _ = writeln!(t, " revision:");
+    println!("{} revision:", name);
     println!("");
     try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
     println!("");
@@ -122,7 +117,6 @@ pub fn show_channel_update(cfg: &Cfg, name: &str,
             let _ = write!(t, "{} updated", name);
         }
         Ok(false) => {
-            if tty { let _ = t.fg(term::color::BRIGHT_WHITE); }
             let _ = write!(t, "{} unchanged", name);
         }
         Err(_) => {
