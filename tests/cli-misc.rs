@@ -42,7 +42,7 @@ fn rustc_with_bad_multirust_toolchain_env_var() {
 #[test]
 fn install_toolchain_linking_from_path() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--link-local", &path]);
@@ -54,7 +54,7 @@ fn install_toolchain_linking_from_path() {
 #[test]
 fn install_toolchain_from_path() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--copy-local", &path]);
@@ -66,13 +66,13 @@ fn install_toolchain_from_path() {
 #[test]
 fn install_toolchain_linking_from_path_again() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--link-local", &path]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--link-local", &path]);
@@ -84,13 +84,13 @@ fn install_toolchain_linking_from_path_again() {
 #[test]
 fn install_toolchain_from_path_again() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--copy-local", &path]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--copy-local", &path]);
@@ -102,13 +102,13 @@ fn install_toolchain_from_path_again() {
 #[test]
 fn install_toolchain_change_from_copy_to_link() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--copy-local", &path]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--link-local", &path]);
@@ -120,13 +120,13 @@ fn install_toolchain_change_from_copy_to_link() {
 #[test]
 fn install_toolchain_change_from_link_to_copy() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--link-local", &path]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--copy-local", &path]);
@@ -139,7 +139,7 @@ fn install_toolchain_change_from_link_to_copy() {
 fn install_toolchain_from_custom() {
     setup(&|config| {
         let trip = this_host_triple();
-        let custom_installer = config.distdir.path().join(
+        let custom_installer = config.distdir.join(
             format!("dist/rust-nightly-{}.tar.gz", trip));
         let custom_installer = custom_installer.to_string_lossy();
         expect_ok(config, &["multirust", "default", "custom",
@@ -153,7 +153,7 @@ fn install_toolchain_from_custom() {
 fn install_toolchain_from_custom_wrong_extension() {
     setup(&|config| {
         let trip = this_host_triple();
-        let custom_installer = config.distdir.path().join(
+        let custom_installer = config.distdir.join(
             format!("dist/rust-nightly-{}.msi", trip));
         let custom_installer = custom_installer.to_string_lossy();
         expect_err(config, &["multirust", "default", "custom",
@@ -165,7 +165,7 @@ fn install_toolchain_from_custom_wrong_extension() {
 #[test]
 fn install_override_toolchain_linking_from_path() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "override", "default-from-path",
                             "--link-local", &path]);
@@ -177,7 +177,7 @@ fn install_override_toolchain_linking_from_path() {
 #[test]
 fn install_override_toolchain_from_path() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "override", "default-from-path",
                             "--copy-local", &path]);
@@ -189,13 +189,13 @@ fn install_override_toolchain_from_path() {
 #[test]
 fn install_override_toolchain_linking_from_path_again() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "override", "default-from-path",
                             "--link-local", &path]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "override", "default-from-path",
                             "--link-local", &path]);
@@ -207,13 +207,13 @@ fn install_override_toolchain_linking_from_path_again() {
 #[test]
 fn install_override_toolchain_from_path_again() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "override", "default-from-path",
                             "--copy-local", &path]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "override", "default-from-path",
                             "--copy-local", &path]);
@@ -225,13 +225,13 @@ fn install_override_toolchain_from_path_again() {
 #[test]
 fn install_override_toolchain_change_from_copy_to_link() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--copy-local", &path]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--link-local", &path]);
@@ -243,13 +243,13 @@ fn install_override_toolchain_change_from_copy_to_link() {
 #[test]
 fn install_override_toolchain_change_from_link_to_copy() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--link-local", &path]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "default", "default-from-path",
                             "--copy-local", &path]);
@@ -262,7 +262,7 @@ fn install_override_toolchain_change_from_link_to_copy() {
 fn install_override_toolchain_from_custom() {
     setup(&|config| {
         let trip = this_host_triple();
-        let custom_installer = config.distdir.path().join(
+        let custom_installer = config.distdir.join(
             format!("dist/rust-nightly-{}.tar.gz", trip));
         let custom_installer = custom_installer.to_string_lossy();
         expect_ok(config, &["multirust", "override", "custom",
@@ -275,7 +275,7 @@ fn install_override_toolchain_from_custom() {
 #[test]
 fn update_toolchain_linking_from_path() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--link-local", &path]);
@@ -288,7 +288,7 @@ fn update_toolchain_linking_from_path() {
 #[test]
 fn update_toolchain_from_path() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--copy-local", &path]);
@@ -301,14 +301,14 @@ fn update_toolchain_from_path() {
 #[test]
 fn update_toolchain_linking_from_path_again() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--link-local", &path]);
         expect_ok(config, &["multirust", "default", "default-from-path"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--link-local", &path]);
@@ -320,14 +320,14 @@ fn update_toolchain_linking_from_path_again() {
 #[test]
 fn update_toolchain_from_path_again() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--copy-local", &path]);
         expect_ok(config, &["multirust", "default", "default-from-path"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--copy-local", &path]);
@@ -339,14 +339,14 @@ fn update_toolchain_from_path_again() {
 #[test]
 fn update_toolchain_change_from_copy_to_link() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--copy-local", &path]);
         expect_ok(config, &["multirust", "default", "default-from-path"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--link-local", &path]);
@@ -358,14 +358,14 @@ fn update_toolchain_change_from_copy_to_link() {
 #[test]
 fn update_toolchain_change_from_link_to_copy() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--link-local", &path]);
         expect_ok(config, &["multirust", "default", "default-from-path"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
-        let path = config.customdir.path().join("custom-2");
+        let path = config.customdir.join("custom-2");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--copy-local", &path]);
@@ -432,7 +432,7 @@ fn invalid_names_with_copy_local() {
 fn custom_remote_url() {
     setup(&|config| {
         let trip = this_host_triple();
-        let custom_installer = config.distdir.path().join(
+        let custom_installer = config.distdir.join(
             format!("dist/rust-nightly-{}.tar.gz", trip));
         let custom_installer = custom_installer.to_string_lossy();
         let custom_installer = format!("file://{}", custom_installer);
@@ -447,10 +447,10 @@ fn custom_remote_url() {
 fn custom_multiple_local_path() {
     clitools::setup(Scenario::Full, &|config| {
         let trip = this_host_triple();
-        let custom_installer1 = config.distdir.path().join(
+        let custom_installer1 = config.distdir.join(
             format!("dist/2015-01-01/rustc-nightly-{}.tar.gz", trip));
         let custom_installer1 = custom_installer1.to_string_lossy();
-        let custom_installer2 = config.distdir.path().join(
+        let custom_installer2 = config.distdir.join(
             format!("dist/2015-01-01/cargo-nightly-{}.tar.gz", trip));
         let custom_installer2 = custom_installer2.to_string_lossy();
         expect_ok(config, &["multirust", "default", "custom",
@@ -467,11 +467,11 @@ fn custom_multiple_local_path() {
 fn custom_multiple_remote_url() {
     clitools::setup(Scenario::Full, &|config| {
         let trip = this_host_triple();
-        let custom_installer1 = config.distdir.path().join(
+        let custom_installer1 = config.distdir.join(
             format!("dist/2015-01-01/rustc-nightly-{}.tar.gz", trip));
         let custom_installer1 = custom_installer1.to_string_lossy();
         let custom_installer1 = format!("file://{}", custom_installer1);
-        let custom_installer2 = config.distdir.path().join(
+        let custom_installer2 = config.distdir.join(
             format!("dist/2015-01-01/cargo-nightly-{}.tar.gz", trip));
         let custom_installer2 = custom_installer2.to_string_lossy();
         let custom_installer2 = format!("file://{}", custom_installer2);
@@ -490,7 +490,7 @@ fn running_with_v2_metadata() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         // Replace the metadata version
-        multirust_utils::raw::write_file(&config.rustupdir.path().join("version"),
+        multirust_utils::raw::write_file(&config.rustupdir.join("version"),
                                "2").unwrap();
         expect_err(config, &["multirust", "default", "nightly"],
                    "multirust's metadata is out of date. run multirust upgrade-data");
@@ -507,7 +507,7 @@ fn upgrade_v2_metadata_to_v12() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         // Replace the metadata version
-        multirust_utils::raw::write_file(&config.rustupdir.path().join("version"),
+        multirust_utils::raw::write_file(&config.rustupdir.join("version"),
                                "2").unwrap();
         expect_stderr_ok(config, &["multirust", "upgrade-data"],
                          "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");
@@ -525,9 +525,9 @@ fn upgrade_v2_metadata_to_v12() {
 fn delete_data() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
-        assert!(config.rustupdir.path().exists());
+        assert!(config.rustupdir.exists());
         expect_ok(config, &["multirust", "delete-data", "-y"]);
-        assert!(!config.rustupdir.path().exists());
+        assert!(!config.rustupdir.exists());
     });
 }
 
@@ -535,11 +535,11 @@ fn delete_data() {
 fn delete_data_no_data() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
-        assert!(config.rustupdir.path().exists());
+        assert!(config.rustupdir.exists());
         expect_ok(config, &["multirust", "delete-data", "-y"]);
-        assert!(!config.rustupdir.path().exists());
+        assert!(!config.rustupdir.exists());
         expect_ok(config, &["multirust", "delete-data", "-y"]);
-        assert!(!config.rustupdir.path().exists());
+        assert!(!config.rustupdir.exists());
     });
 }
 

@@ -231,7 +231,7 @@ fn add_target() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "target", "add",
                             clitools::CROSS_ARCH1]);
-        assert!(config.rustupdir.path().join(path).exists());
+        assert!(config.rustupdir.join(path).exists());
     });
 }
 
@@ -243,10 +243,10 @@ fn remove_target() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "target", "add",
                             clitools::CROSS_ARCH1]);
-        assert!(config.rustupdir.path().join(path).exists());
+        assert!(config.rustupdir.join(path).exists());
         expect_ok(config, &["rustup", "target", "remove",
                             clitools::CROSS_ARCH1]);
-        assert!(!config.rustupdir.path().join(path).exists());
+        assert!(!config.rustupdir.join(path).exists());
     });
 }
 
@@ -262,7 +262,7 @@ fn list_targets() {
 #[test]
 fn link() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["rustup", "toolchain", "link", "custom",
                             &path]);

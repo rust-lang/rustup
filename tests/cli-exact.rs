@@ -145,12 +145,12 @@ error: no release found for 'nightly-2016-01-01'
 fn delete_data() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
-        assert!(config.rustupdir.path().exists());
+        assert!(config.rustupdir.exists());
         expect_ok_ex(config, &["multirust", "delete-data", "-y"],
 r"",
 &format!(
 r"info: deleted directory '{}'
-", config.rustupdir.path().display()));
+", config.rustupdir.display()));
     });
 }
 
