@@ -279,6 +279,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                             remove: &[Component],
                             ) -> Result<Option<String>> {
 
+    let toolchain_str = toolchain;
     let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
     let trip = toolchain.target_triple();
     let manifestation = try!(Manifestation::open(prefix.clone(), &trip));
@@ -289,7 +290,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
     };
 
     // TODO: Add a notification about which manifest version is going to be used
-    download.notify_handler.call(Notification::DownloadingManifest);
+    download.notify_handler.call(Notification::DownloadingManifest(toolchain_str));
     match dl_v2_manifest(download, update_hash, toolchain) {
         Ok(Some((m, hash))) => {
             return match try!(manifestation.update(&m, changes, &download.temp_cfg,

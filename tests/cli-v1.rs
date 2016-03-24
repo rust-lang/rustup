@@ -163,7 +163,7 @@ fn remove_override_toolchain_error_handling() {
 #[test]
 fn bad_sha_on_manifest() {
     setup(&|config| {
-        let sha_file = config.distdir.path().join("dist/channel-rust-nightly.sha256");
+        let sha_file = config.distdir.join("dist/channel-rust-nightly.sha256");
         let sha_str = multirust_utils::raw::read_file(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         &mut sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
@@ -177,7 +177,7 @@ fn bad_sha_on_manifest() {
 #[test]
 fn bad_sha_on_installer() {
     setup(&|config| {
-        let dir = config.distdir.path().join("dist");
+        let dir = config.distdir.join("dist");
         for file in fs::read_dir(&dir).unwrap() {
             let file = file.unwrap();
             if file.path().to_string_lossy().ends_with(".tar.gz") {
@@ -285,7 +285,7 @@ fn show_override() {
             expect_ok(config, &["multirust", "override", "nightly"]);
 
             let expected_override_dir = fs::canonicalize(tempdir.path()).unwrap();;
-            let expected_toolchain_dir = config.homedir.path().join("toolchains").join("nightly");
+            let expected_toolchain_dir = config.rustupdir.join("toolchains").join("nightly");
 
             expect_stdout_ok(config, &["multirust", "show-override"],
                              "override toolchain: nightly");
@@ -326,7 +326,7 @@ fn show_override_from_multirust_toolchain_env_var() {
         let tempdir = TempDir::new("multirusT").unwrap();
         change_dir(tempdir.path(), &|| {
 
-            let expected_toolchain_dir = config.homedir.path().join("toolchains").join("beta");
+            let expected_toolchain_dir = config.rustupdir.join("toolchains").join("beta");
 
             expect_ok(config, &["multirust", "update", "beta"]);
             expect_ok(config, &["multirust", "override", "nightly"]);
@@ -396,8 +396,8 @@ fn remove_override_with_multiple_overrides() {
 fn no_update_on_channel_when_date_has_not_changed() {
     setup(&|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_stderr_ok(config, &["multirust", "update", "nightly"],
-                         "already up to date");
+        expect_stdout_ok(config, &["multirust", "update", "nightly"],
+                         "unchanged");
     });
 }
 

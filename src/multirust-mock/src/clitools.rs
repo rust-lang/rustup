@@ -18,13 +18,17 @@ use hyper::Url;
 /// The configuration used by the tests in this module
 pub struct Config {
     /// Where we put the multirust / rustc / cargo bins
-    pub exedir: TempDir,
+    pub exedir: PathBuf,
     /// The distribution server
-    pub distdir: TempDir,
+    pub distdir: PathBuf,
     /// MULTIRUST_HOME
-    pub homedir: TempDir,
+    pub rustupdir: PathBuf,
     /// Custom toolchains
-    pub customdir: TempDir,
+    pub customdir: PathBuf,
+    /// CARGO_HOME
+    pub cargodir: PathBuf,
+    /// ~
+    pub homedir: PathBuf,
 }
 
 // Describes all the features of the mock dist server.
@@ -44,25 +48,39 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     // Unset env variables that will break our testing
     env::remove_var("MULTIRUST_TOOLCHAIN");
 
+    let exedir = TempDir::new("rustup-exe").unwrap();
+    let distdir = TempDir::new("rustup-dist").unwrap();
+    let rustupdir = TempDir::new("rustup").unwrap();
+    let customdir = TempDir::new("rustup-custom").unwrap();
+    let cargodir = TempDir::new("rustup-cargo").unwrap();
+    let homedir = TempDir::new("rustup-home").unwrap();
+
+    // The uninstall process on windows involves using the directory above
+    // CARGO_HOME, so make sure it's a subdir of our tempdir
+    let cargodir = cargodir.path().join("ch");
+    fs::create_dir(&cargodir).unwrap();
+
     let ref config = Config {
-        exedir: TempDir::new("multirust").unwrap(),
-        distdir: TempDir::new("multirust").unwrap(),
-        homedir: TempDir::new("multirust").unwrap(),
-        customdir: TempDir::new("multirust").unwrap(),
+        exedir: exedir.path().to_owned(),
+        distdir: distdir.path().to_owned(),
+        rustupdir: rustupdir.path().to_owned(),
+        customdir: customdir.path().to_owned(),
+        cargodir: cargodir,
+        homedir: homedir.path().to_owned(),
     };
 
-    create_mock_dist_server(&config.distdir.path(), s);
+    create_mock_dist_server(&config.distdir, s);
 
     let current_exe_path = env::current_exe().map(PathBuf::from).unwrap();
     let exe_dir = current_exe_path.parent().unwrap();
     let ref multirust_build_path = exe_dir.join(format!("multirust-setup{}", EXE_SUFFIX));
 
-    let ref multirust_path = config.exedir.path().join(format!("multirust{}", EXE_SUFFIX));
-    let setup_path = config.exedir.path().join(format!("multirust-setup{}", EXE_SUFFIX));
-    let rustc_path = config.exedir.path().join(format!("rustc{}", EXE_SUFFIX));
-    let cargo_path = config.exedir.path().join(format!("cargo{}", EXE_SUFFIX));
-    let rustup_setup_path = config.exedir.path().join(format!("rustup-setup{}", EXE_SUFFIX));
-    let rustup_path = config.exedir.path().join(format!("rustup{}", EXE_SUFFIX));
+    let ref multirust_path = config.exedir.join(format!("multirust{}", EXE_SUFFIX));
+    let setup_path = config.exedir.join(format!("multirust-setup{}", EXE_SUFFIX));
+    let rustc_path = config.exedir.join(format!("rustc{}", EXE_SUFFIX));
+    let cargo_path = config.exedir.join(format!("cargo{}", EXE_SUFFIX));
+    let rustup_setup_path = config.exedir.join(format!("rustup-setup{}", EXE_SUFFIX));
+    let rustup_path = config.exedir.join(format!("rustup{}", EXE_SUFFIX));
 
     fs::copy(multirust_build_path, multirust_path).unwrap();
     fs::hard_link(multirust_path, rustc_path).unwrap();
@@ -72,7 +90,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     fs::hard_link(multirust_path, rustup_path).unwrap();
 
     // Create some custom toolchains
-    create_custom_toolchains(config.customdir.path());
+    create_custom_toolchains(&config.customdir);
 
     // Hold a lock while the test is running because they change directories,
     // causing havok
@@ -82,11 +100,17 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let _g = LOCK.lock();
 
     f(config);
+
+    // These are the bogus values the test harness sets "HOME" and "CARGO_HOME"
+    // to during testing. If they exist that means a test unexpectedly used
+    // one of these environment variables.
+    assert!(!PathBuf::from("./bogus-home").exists());
+    assert!(!PathBuf::from("./bogus-cargo-home").exists());
 }
 
 /// Change the current distribution manifest to a particular date
 pub fn set_current_dist_date(config: &Config, date: &str) {
-    let ref url = Url::from_file_path(config.distdir.path()).unwrap();
+    let ref url = Url::from_file_path(&config.distdir).unwrap();
     for channel in &["nightly", "beta", "stable"] {
         change_channel_date(url, channel, date);
     }
@@ -164,7 +188,7 @@ pub struct SanitizedOutput {
 }
 
 pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
-    let exe_path = config.exedir.path().join(format!("{}{}", name, EXE_SUFFIX));
+    let exe_path = config.exedir.join(format!("{}{}", name, EXE_SUFFIX));
     let mut cmd = Command::new(exe_path);
     cmd.args(args);
     env(config, &mut cmd);
@@ -172,8 +196,13 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
 }
 
 pub fn env(config: &Config, cmd: &mut Command) {
-    cmd.env("MULTIRUST_HOME", config.homedir.path().to_string_lossy().to_string());
-    cmd.env("MULTIRUST_DIST_ROOT", format!("file://{}", config.distdir.path().join("dist").to_string_lossy()));
+    cmd.env("MULTIRUST_HOME", config.rustupdir.to_string_lossy().to_string());
+    cmd.env("MULTIRUST_DIST_ROOT", format!("file://{}", config.distdir.join("dist").to_string_lossy()));
+    cmd.env("CARGO_HOME", config.cargodir.to_string_lossy().to_string());
+
+    // This is only used for some installation tests on unix where CARGO_HOME
+    // above is unset
+    cmd.env("HOME", config.homedir.to_string_lossy().to_string());
 }
 
 pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> SanitizedOutput {

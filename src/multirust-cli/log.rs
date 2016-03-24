@@ -19,8 +19,9 @@ macro_rules! verbose {
 pub fn warn_fmt(args: fmt::Arguments) {
     let mut t = term::stderr().unwrap();
     if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_YELLOW); }
-    let _ = write!(t, "warning: ");
+    let _ = write!(t, "warning");
     if tty::stderr_isatty() { let _ = t.reset(); }
+    let _ = write!(t, ": ");
     let _ = t.write_fmt(args);
     let _ = write!(t, "\n");
 }
@@ -28,8 +29,9 @@ pub fn warn_fmt(args: fmt::Arguments) {
 pub fn err_fmt(args: fmt::Arguments) {
     let mut t = term::stderr().unwrap();
     if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_RED); }
-    let _ = write!(t, "error: ");
+    let _ = write!(t, "error");
     if tty::stderr_isatty() { let _ = t.reset(); }
+    let _ = write!(t, ": ");
     let _ = t.write_fmt(args);
     let _ = write!(t, "\n");
 }
@@ -37,8 +39,9 @@ pub fn err_fmt(args: fmt::Arguments) {
 pub fn info_fmt(args: fmt::Arguments) {
     let mut t = term::stderr().unwrap();
     if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_CYAN); }
-    let _ = write!(t, "info: ");
+    let _ = write!(t, "info");
     if tty::stderr_isatty() { let _ = t.reset(); }
+    let _ = write!(t, ": ");
     let _ = t.write_fmt(args);
     let _ = write!(t, "\n");
 }
@@ -46,8 +49,9 @@ pub fn info_fmt(args: fmt::Arguments) {
 pub fn verbose_fmt(args: fmt::Arguments) {
     let mut t = term::stderr().unwrap();
     if tty::stderr_isatty() { let _ = t.fg(term::color::BRIGHT_MAGENTA); }
-    let _ = write!(t, "verbose: ");
+    let _ = write!(t, "verbose");
     if tty::stderr_isatty() { let _ = t.reset(); }
+    let _ = write!(t, ": ");
     let _ = t.write_fmt(args);
     let _ = write!(t, "\n");
 }

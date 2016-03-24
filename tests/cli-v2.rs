@@ -165,7 +165,7 @@ fn remove_override_toolchain_error_handling() {
 fn bad_sha_on_manifest() {
     setup(&|config| {
         // Corrupt the sha
-        let sha_file = config.distdir.path().join("dist/channel-rust-nightly.toml.sha256");
+        let sha_file = config.distdir.join("dist/channel-rust-nightly.toml.sha256");
         let sha_str = multirust_utils::raw::read_file(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         &mut sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
@@ -180,7 +180,7 @@ fn bad_sha_on_manifest() {
 fn bad_sha_on_installer() {
     setup(&|config| {
         // Since the v2 sha's are contained in the manifest, corrupt the installer
-        let dir = config.distdir.path().join("dist/2015-01-02");
+        let dir = config.distdir.join("dist/2015-01-02");
         for file in fs::read_dir(&dir).unwrap() {
             let file = file.unwrap();
             if file.path().to_string_lossy().ends_with(".tar.gz") {
@@ -288,7 +288,7 @@ fn show_override() {
             expect_ok(config, &["multirust", "override", "nightly"]);
 
             let expected_override_dir = fs::canonicalize(tempdir.path()).unwrap();;
-            let expected_toolchain_dir = config.homedir.path().join("toolchains").join("nightly");
+            let expected_toolchain_dir = config.rustupdir.join("toolchains").join("nightly");
 
             expect_stdout_ok(config, &["multirust", "show-override"],
                              "override toolchain: nightly");
@@ -329,7 +329,7 @@ fn show_override_from_multirust_toolchain_env_var() {
         let tempdir = TempDir::new("multirusT").unwrap();
         change_dir(tempdir.path(), &|| {
 
-            let expected_toolchain_dir = config.homedir.path().join("toolchains").join("beta");
+            let expected_toolchain_dir = config.rustupdir.join("toolchains").join("beta");
 
             expect_ok(config, &["multirust", "update", "beta"]);
             expect_ok(config, &["multirust", "override", "nightly"]);
@@ -399,8 +399,8 @@ fn remove_override_with_multiple_overrides() {
 fn no_update_on_channel_when_date_has_not_changed() {
     setup(&|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_stderr_ok(config, &["multirust", "update", "nightly"],
-                         "already up to date");
+        expect_stdout_ok(config, &["multirust", "update", "nightly"],
+                         "unchanged");
     });
 }
 
@@ -444,7 +444,7 @@ fn upgrade_v1_to_v2() {
     clitools::setup(Scenario::Full, &|config| {
         set_current_dist_date(config, "2015-01-01");
         // Delete the v2 manifest so the first day we install from the v1s
-        fs::remove_file(config.distdir.path().join("dist/channel-rust-nightly.toml.sha256")).unwrap();
+        fs::remove_file(config.distdir.join("dist/channel-rust-nightly.toml.sha256")).unwrap();
         expect_ok(config, &["multirust", "default", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["multirust", "update", "nightly"]);
@@ -459,7 +459,7 @@ fn upgrade_v2_to_v1() {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["multirust", "default", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
-        fs::remove_file(config.distdir.path().join("dist/channel-rust-nightly.toml.sha256")).unwrap();
+        fs::remove_file(config.distdir.join("dist/channel-rust-nightly.toml.sha256")).unwrap();
         expect_err(config, &["multirust", "update", "nightly"],
                            "the server unexpectedly provided an obsolete version of the distribution manifest");
     });
@@ -485,7 +485,7 @@ fn list_targets_v1_toolchain() {
 #[test]
 fn list_targets_custom_toolchain() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--copy-local", &path]);
@@ -512,7 +512,7 @@ fn add_target() {
         expect_ok(config, &["multirust", "add-target", "nightly", clitools::CROSS_ARCH1]);
         let path = format!("toolchains/nightly/lib/rustlib/{}/lib/libstd.rlib",
                            clitools::CROSS_ARCH1);
-        assert!(config.homedir.path().join(path).exists());
+        assert!(config.rustupdir.join(path).exists());
     });
 }
 
@@ -544,7 +544,7 @@ fn add_target_v1_toolchain() {
 #[test]
 fn add_target_custom_toolchain() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--copy-local", &path]);
@@ -563,7 +563,7 @@ fn add_target_again() {
                                  clitools::CROSS_ARCH1));
         let path = format!("toolchains/nightly/lib/rustlib/{}/lib/libstd.rlib",
                            clitools::CROSS_ARCH1);
-        assert!(config.homedir.path().join(path).exists());
+        assert!(config.rustupdir.join(path).exists());
     });
 }
 
@@ -585,7 +585,7 @@ fn remove_target() {
         expect_ok(config, &["multirust", "remove-target", "nightly", clitools::CROSS_ARCH1]);
         let path = format!("toolchains/nightly/lib/rustlib/{}/lib/libstd.rlib",
                            clitools::CROSS_ARCH1);
-        assert!(!config.homedir.path().join(path).exists());
+        assert!(!config.rustupdir.join(path).exists());
     });
 }
 
@@ -628,7 +628,7 @@ fn remove_target_v1_toolchain() {
 #[test]
 fn remove_target_custom_toolchain() {
     setup(&|config| {
-        let path = config.customdir.path().join("custom-1");
+        let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
         expect_ok(config, &["multirust", "update", "default-from-path",
                             "--copy-local", &path]);
@@ -663,7 +663,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &str) {
     use multirust_dist::manifest::Manifest;
     use multirust_mock::dist::create_hash;
 
-    let ref manifest_path = config.distdir.path().join("dist/channel-rust-nightly.toml");
+    let ref manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");
     let ref manifest_str = multirust_utils::raw::read_file(manifest_path).unwrap();
     let mut manifest = Manifest::parse(manifest_str).unwrap();
     {

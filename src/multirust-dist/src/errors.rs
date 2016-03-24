@@ -26,7 +26,7 @@ pub enum Notification<'a> {
     MissingInstalledComponent(&'a str),
     DownloadingComponent(&'a str),
     InstallingComponent(&'a str),
-    DownloadingManifest,
+    DownloadingManifest(&'a str),
     DownloadingLegacyManifest,
 }
 
@@ -104,7 +104,7 @@ impl<'a> Notification<'a> {
             DownloadingComponent(_) |
             InstallingComponent(_) |
             ComponentAlreadyInstalled(_)  |
-            RollingBack | DownloadingManifest => NotificationLevel::Info,
+            RollingBack | DownloadingManifest(_) => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
             MissingInstalledComponent(_) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
@@ -139,7 +139,7 @@ impl<'a> Display for Notification<'a> {
             MissingInstalledComponent(c) => write!(f, "during uninstall component {} was not found", c),
             DownloadingComponent(c) => write!(f, "downloading component '{}'", c),
             InstallingComponent(c) => write!(f, "installing component '{}'", c),
-            DownloadingManifest => write!(f, "downloading toolchain manifest"),
+            DownloadingManifest(t) => write!(f, "syncing channel updates for '{}'", t),
             DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
         }
     }

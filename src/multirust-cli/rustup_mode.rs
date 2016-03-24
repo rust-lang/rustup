@@ -51,7 +51,7 @@ pub fn main() -> Result<()> {
             }
         }
         (_, _) => {
-            try!(update_all_channels(cfg));
+            try!(update_all_channels(cfg, &matches));
         }
     }
 
@@ -66,9 +66,14 @@ pub fn cli() -> App<'static, 'static> {
         .setting(AppSettings::VersionlessSubcommands)
         .setting(AppSettings::DeriveDisplayOrder)
         .arg(Arg::with_name("verbose")
+            .help("Enable verbose output")
             .short("v")
-            .long("verbose")
-            .help("Enable verbose output"))
+            .long("verbose"))
+        .arg(Arg::with_name("no-self-update")
+            .help("Don't perform self update when running the `rustup` command")
+            .long("no-self-update")
+            .takes_value(false)
+            .hidden(true))
         .subcommand(SubCommand::with_name("default")
             .about("Set the default toolchain")
             .arg(Arg::with_name("toolchain")
@@ -133,23 +138,28 @@ pub fn cli() -> App<'static, 'static> {
                 .about("Upgrade the internal data format.")))
 }
 
-fn update_all_channels(cfg: &Cfg) -> Result<()> {
-    common::update_all_channels(cfg)
+fn update_all_channels(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    common::update_all_channels(cfg, !m.is_present("no-self-update"))
 }
 
 fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
     let ref toolchain = try!(cfg.get_toolchain(toolchain, false));
 
-    if !toolchain.is_custom() {
-        try!(toolchain.install_from_dist_if_not_installed());
+    let status = if !toolchain.is_custom() {
+        Some(try!(toolchain.install_from_dist_if_not_installed()))
     } else if !toolchain.exists() {
         return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()));
-    }
+    } else {
+        None
+    };
 
     try!(toolchain.make_default());
-    println!("");
-    try!(common::show_channel_version(cfg, toolchain.name()));
+
+    if let Some(status) = status {
+        println!("");
+        try!(common::show_channel_update(cfg, toolchain.name(), Ok(status)));
+    }
 
     Ok(())
 }
@@ -163,16 +173,18 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         toolchain
     };
 
-    let updated = if !toolchain.is_custom() {
-        try!(toolchain.install_from_dist())
+    let status = if !toolchain.is_custom() {
+        Some(try!(toolchain.install_from_dist()))
     } else if !toolchain.exists() {
         return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()));
     } else {
-        false
+        None
     };
 
-    println!("");
-    try!(common::show_channel_update(cfg, toolchain.name(), Ok(updated)));
+    if let Some(status) = status {
+        println!("");
+        try!(common::show_channel_update(cfg, toolchain.name(), Ok(status)));
+    }
 
     Ok(())
 }
@@ -237,15 +249,20 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
     let toolchain = try!(cfg.get_toolchain(toolchain, false));
 
-    if !toolchain.is_custom() {
-        try!(toolchain.install_from_dist_if_not_installed());
+    let status = if !toolchain.is_custom() {
+        Some(try!(toolchain.install_from_dist_if_not_installed()))
     } else if !toolchain.exists() {
         return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()));
-    }
+    } else {
+        None
+    };
 
     try!(toolchain.make_override(&try!(utils::current_dir())));
-    println!("");
-    try!(common::show_channel_version(cfg, toolchain.name()));
+
+    if let Some(status) = status {
+        println!("");
+        try!(common::show_channel_update(cfg, toolchain.name(), Ok(status)));
+    }
 
     Ok(())
 }

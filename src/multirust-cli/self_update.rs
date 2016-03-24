@@ -294,10 +294,10 @@ fn maybe_install_rust_stable(verbose: bool) -> Result<()> {
     // then install stable and make it the default.
     if try!(cfg.find_default()).is_none() {
         let stable = try!(cfg.get_toolchain("stable", false));
-        try!(stable.install_from_dist());
+        let status = try!(stable.install_from_dist());
         try!(cfg.set_default("stable"));
         println!("");
-        try!(common::show_channel_version(cfg, "stable"));
+        try!(common::show_channel_update(cfg, "stable", Ok(status)));
     } else {
         info!("updating existing installation");
     }
@@ -790,6 +790,17 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 /// multirust-setup is stored in CARGO_HOME/bin, and then deleted next
 /// time multirust runs.
 pub fn update() -> Result<()> {
+
+    let setup_path = try!(prepare_update());
+    if let Some(ref p) = setup_path {
+        info!("multirust updated successfully");
+        try!(run_update(p));
+    }
+
+    Ok(())
+}
+
+pub fn prepare_update() -> Result<Option<PathBuf>> {
     let ref cargo_home = try!(utils::cargo_home());
     let ref multirust_path = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
     let ref setup_path = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
@@ -826,7 +837,7 @@ pub fn update() -> Result<()> {
                              .join("");
 
     // Download latest hash
-    info!("checking for updates");
+    info!("checking for self-updates");
     let hash_url = try!(utils::parse_url(&(url.clone() + ".sha256")));
     let hash_file = tempdir.path().join("hash");
     try!(utils::download_file(hash_url, &hash_file, None, ntfy!(&NotifyHandler::none())));
@@ -836,14 +847,14 @@ pub fn update() -> Result<()> {
     // If up-to-date
     if latest_hash == current_hash {
         info!("multirust is already up to date");
-        return Ok(());
+        return Ok(None);
     }
 
     // Get download path
     let download_url = try!(utils::parse_url(&url));
 
     // Download new version
-    info!("downloading update");
+    info!("downloading self-update");
     let mut hasher = Hasher::new(Type::SHA256);
     try!(utils::download_file(download_url,
                               &setup_path,
@@ -866,26 +877,19 @@ pub fn update() -> Result<()> {
     // Mark as executable
     try!(utils::make_executable(setup_path));
 
-    // FIXME: Before doing the final step of replacing the bins, give
-    // the updater a chance to display messages and do data upgrades.
-
-    // Tell the upgrader to replace the multirust bins, then delete
-    // itself. Like with uninstallation, on Windows we're going to
-    // have to jump through hoops to make everything work right.
-    //
-    // On windows we're not going to wait for it to finish before exiting
-    // successfully, so it should not do much, and it should try
-    // really hard to succeed, because at this point the upgrade is
-    // considered successful.
-    try!(run_update(setup_path));
-
-    info!("multirust updated successfully");
-
-    process::exit(0);
+    Ok(Some(setup_path.to_owned()))
 }
 
+/// Tell the upgrader to replace the multirust bins, then delete
+/// itself. Like with uninstallation, on Windows we're going to
+/// have to jump through hoops to make everything work right.
+///
+/// On windows we're not going to wait for it to finish before exiting
+/// successfully, so it should not do much, and it should try
+/// really hard to succeed, because at this point the upgrade is
+/// considered successful.
 #[cfg(unix)]
-fn run_update(setup_path: &Path) -> Result<()> {
+pub fn run_update(setup_path: &Path) -> Result<()> {
     let status = try!(Command::new(setup_path)
         .arg("--self-replace")
         .status().map_err(|_| Error::Custom {
@@ -897,11 +901,11 @@ fn run_update(setup_path: &Path) -> Result<()> {
         return Err(Error::SelfUpdateFailed);
     }
 
-    Ok(())
+    process::exit(0);
 }
 
 #[cfg(windows)]
-fn run_update(setup_path: &Path) -> Result<()> {
+pub fn run_update(setup_path: &Path) -> Result<()> {
     try!(Command::new(setup_path)
         .arg("--self-replace")
         .spawn().map_err(|_| Error::Custom {
@@ -909,7 +913,7 @@ fn run_update(setup_path: &Path) -> Result<()> {
             desc: "unable to run updater".to_string(),
         }));
 
-    Ok(())
+    process::exit(0);
 }
 
 /// This function is as the final step of a self-upgrade. It replaces

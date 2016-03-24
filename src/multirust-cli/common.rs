@@ -1,11 +1,13 @@
 //! Just a dumping ground for cli stuff
 
-use multirust::{Cfg, Result, Notification, Toolchain, Error};
+use multirust::{Cfg, Result, Notification, Toolchain, Error, UpdateStatus};
 use multirust_utils::{self, utils};
 use multirust_utils::notify::NotificationLevel;
+use self_update;
 use std::ffi::OsStr;
 use std::io::{Write, Read, BufRead};
 use std::process::{self, Command};
+use std::{cmp, iter};
 use std;
 use tty;
 use term;
@@ -98,59 +100,114 @@ pub fn run_inner<S: AsRef<OsStr>>(mut command: Command,
     }
 }
 
-pub fn show_channel_version(cfg: &Cfg, name: &str) -> Result<()> {
-    let mut t = term::stdout().unwrap();
-    if tty::stdout_isatty() { let _ = t.fg(term::color::BRIGHT_WHITE); }
-    if tty::stdout_isatty() { let _ = t.bg(term::color::BLACK); }
-    let _ = write!(t, "{}", name);
-    if tty::stdout_isatty() { let _ = t.reset(); }
-    let _ = writeln!(t, " revision:");
-    println!("");
-    try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
-    println!("");
-    Ok(())
+pub fn show_channel_update(cfg: &Cfg, name: &str,
+                           updated: Result<UpdateStatus>) -> Result<()> {
+    show_channel_updates(cfg, vec![(name.to_string(), updated)])
 }
 
-pub fn show_channel_update(cfg: &Cfg, name: &str,
-                           updated: Result<bool>) -> Result<()> {
+fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>)>) -> Result<()> {
+    let data = toolchains.into_iter().map(|(name, result)| {
+        let ref toolchain = cfg.get_toolchain(&name, false).expect("");
+        let version = rustc_version(toolchain);
+
+        let banner;
+        let color;
+        match result {
+            Ok(UpdateStatus::Installed) => {
+                banner = format!("{} installed", name);
+                color = term::color::BRIGHT_GREEN;
+            }
+            Ok(UpdateStatus::Updated) => {
+                banner = format!("{} updated", name);
+                color = term::color::BRIGHT_GREEN;
+            }
+            Ok(UpdateStatus::Unchanged) => {
+                banner = format!("{} unchanged", name);
+                color = term::color::BRIGHT_CYAN;
+            }
+            Err(_) => {
+                banner = format!("{} update failed", name);
+                color = term::color::BRIGHT_RED;
+            }
+        }
+
+        (banner, color, version)
+    });
+
     let tty = tty::stdout_isatty();
     let mut t = term::stdout().unwrap();
-    match updated {
-        Ok(true) => {
-            if tty { let _ = t.fg(term::color::BRIGHT_GREEN); }
-            let _ = write!(t, "{} updated", name);
-        }
-        Ok(false) => {
-            if tty { let _ = t.fg(term::color::BRIGHT_WHITE); }
-            let _ = write!(t, "{} unchanged", name);
-        }
-        Err(_) => {
-            if tty { let _ = t.fg(term::color::BRIGHT_RED); }
-            let _ = write!(t, "{} update failed", name);
-        }
+
+    let data: Vec<_> = data.collect();
+    let max_width = data.iter().fold(0, |a, &(ref b, _, _)| cmp::max(a, b.len()));
+
+    for (banner, color, version) in data {
+        let padding = max_width - banner.len();
+        let padding: String = iter::repeat(' ').take(padding).collect();
+        let _ = write!(t, "  {}", padding);
+
+        if tty { let _ = t.fg(color); }
+        let _ = write!(t, "{}", banner);
+        if tty { let _ = t.reset(); }
+        let _ = writeln!(t, ": {}", version);
     }
-    if tty {let _ = t.reset(); }
-    println!(":");
-    println!("");
-    try!(show_tool_versions(&try!(cfg.get_toolchain(&name, false))));
-    println!("");
+    let _ = writeln!(t, "");
+
     Ok(())
 }
 
-pub fn update_all_channels(cfg: &Cfg) -> Result<()> {
+pub fn update_all_channels(cfg: &Cfg, self_update: bool) -> Result<()> {
+
     let toolchains = try!(cfg.update_all_channels());
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");
-        return Ok(());
     }
 
-    println!("");
+    let setup_path = if self_update {
+        try!(self_update::prepare_update())
+    } else {
+        None
+    };
 
-    for (name, result) in toolchains {
-        try!(show_channel_update(cfg, &name, result));
+    if !toolchains.is_empty() {
+        println!("");
+
+        try!(show_channel_updates(cfg, toolchains));
     }
+
+    if let Some(ref setup_path) = setup_path {
+        try!(self_update::run_update(setup_path));
+
+        unreachable!(); // update exits on success
+    }
+
     Ok(())
+}
+
+fn rustc_version(toolchain: &Toolchain) -> String {
+    if toolchain.exists() {
+        let rustc_path = toolchain.binary_file("rustc");
+        if utils::is_file(&rustc_path) {
+            let mut cmd = Command::new(&rustc_path);
+            cmd.arg("--version");
+            toolchain.set_ldpath(&mut cmd);
+
+            let out= cmd.output().ok();
+            let out = out.into_iter().filter(|o| o.status.success()).next();
+            let stdout = out.and_then(|o| String::from_utf8(o.stdout).ok());
+            let line1 = stdout.and_then(|o| o.lines().next().map(|l| l.to_owned()));
+
+            if let Some(line1) = line1 {
+                line1.to_owned()
+            } else {
+                String::from("(error reading rustc version)")
+            }
+        } else {
+            String::from("(rustc does not exist)")
+        }
+    } else {
+        String::from("(toolchain not installed)")
+    }
 }
 
 pub fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
