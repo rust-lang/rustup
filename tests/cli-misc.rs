@@ -499,6 +499,20 @@ fn running_with_v2_metadata() {
     });
 }
 
+#[test]
+fn running_with_v2_metadata_rustup() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        // Replace the metadata version
+        multirust_utils::raw::write_file(&config.rustupdir.join("version"),
+                               "2").unwrap();
+        expect_err(config, &["rustup", "default", "nightly"],
+                   "multirust's metadata is out of date. run multirust upgrade-data");
+        expect_err(config, &["rustc", "--version"],
+                   "multirust's metadata is out of date. run multirust upgrade-data");
+    });
+}
+
 // The thing that changed in the version bump from 2 -> 12 was the
 // toolchain format. Check that on the upgrade all the toolchains.
 // are deleted.
@@ -516,6 +530,26 @@ fn upgrade_v2_metadata_to_v12() {
         expect_err(config, &["rustc", "--version"],
                    "toolchain 'nightly' is not installed");
         expect_ok(config, &["multirust", "update", "nightly"]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-n-2");
+    });
+}
+
+// The thing that changed in the version bump from 2 -> 12 was the
+// toolchain format. Check that on the upgrade all the toolchains.
+// are deleted.
+#[test]
+fn upgrade_v2_metadata_to_v12_rustup() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        // Replace the metadata version
+        multirust_utils::raw::write_file(&config.rustupdir.join("version"),
+                               "2").unwrap();
+        expect_stderr_ok(config, &["rustup", "self", "upgrade-data"],
+                         "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");
+        expect_err(config, &["rustc", "--version"],
+                   "toolchain 'nightly' is not installed");
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-2");
     });
