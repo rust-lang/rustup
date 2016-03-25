@@ -9,8 +9,7 @@ use std::io::{Write, Read, BufRead};
 use std::process::{self, Command};
 use std::{cmp, iter};
 use std;
-use tty;
-use term;
+use term2;
 
 pub fn confirm(question: &str, default: bool) -> Result<bool> {
     print!("{} ", question);
@@ -115,27 +114,26 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
         match result {
             Ok(UpdateStatus::Installed) => {
                 banner = format!("{} installed", name);
-                color = term::color::BRIGHT_GREEN;
+                color = term2::color::BRIGHT_GREEN;
             }
             Ok(UpdateStatus::Updated) => {
                 banner = format!("{} updated", name);
-                color = term::color::BRIGHT_GREEN;
+                color = term2::color::BRIGHT_GREEN;
             }
             Ok(UpdateStatus::Unchanged) => {
                 banner = format!("{} unchanged", name);
-                color = term::color::BRIGHT_CYAN;
+                color = term2::color::BRIGHT_CYAN;
             }
             Err(_) => {
                 banner = format!("{} update failed", name);
-                color = term::color::BRIGHT_RED;
+                color = term2::color::BRIGHT_RED;
             }
         }
 
         (banner, color, version)
     });
 
-    let tty = tty::stdout_isatty();
-    let mut t = term::stdout().unwrap();
+    let mut t = term2::stdout();
 
     let data: Vec<_> = data.collect();
     let max_width = data.iter().fold(0, |a, &(ref b, _, _)| cmp::max(a, b.len()));
@@ -144,10 +142,9 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
         let padding = max_width - banner.len();
         let padding: String = iter::repeat(' ').take(padding).collect();
         let _ = write!(t, "  {}", padding);
-
-        if tty { let _ = t.fg(color); }
+        let _ = t.fg(color);
         let _ = write!(t, "{}", banner);
-        if tty { let _ = t.reset(); }
+        let _ = t.reset();
         let _ = writeln!(t, ": {}", version);
     }
     let _ = writeln!(t, "");
