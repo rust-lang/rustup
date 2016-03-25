@@ -9,9 +9,15 @@ use std::path::Path;
 pub fn main() -> Result<()> {
     try!(::self_update::cleanup_self_updater());
 
-    let matches = cli().get_matches();
+    let ref matches = cli().get_matches();
     let verbose = matches.is_present("verbose");
     let ref cfg = try!(common::set_globals(verbose));
+
+    if try!(maybe_upgrade_data(cfg, matches)) {
+        return Ok(())
+    }
+
+    try!(cfg.check_metadata_version());
 
     match matches.subcommand() {
         ("default", Some(m)) => try!(default_(cfg, m)),
@@ -46,7 +52,6 @@ pub fn main() -> Result<()> {
             match c.subcommand() {
                 ("update", Some(_)) => try!(self_update::update()),
                 ("uninstall", Some(m)) => try!(self_uninstall(m)),
-                ("upgrade-data", Some(_)) => try!(cfg.upgrade_data()),
                 (_ ,_) => unreachable!(),
             }
         }
@@ -136,6 +141,21 @@ pub fn cli() -> App<'static, 'static> {
                      .short("y")))
             .subcommand(SubCommand::with_name("upgrade-data")
                 .about("Upgrade the internal data format.")))
+}
+
+fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
+    match m.subcommand() {
+        ("self", Some(c)) => {
+            match c.subcommand() {
+                ("upgrade-data", Some(_)) => {
+                    try!(cfg.upgrade_data());
+                    Ok(true)
+                }
+                _ => Ok(false),
+            }
+        }
+        _ => Ok(false)
+    }
 }
 
 fn update_all_channels(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
