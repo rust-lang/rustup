@@ -26,7 +26,7 @@ pub struct DownloadTracker {
     /// How many seconds have elapsed since the download started
     seconds_elapsed: u32,
     /// The terminal we write the information to.
-    term: Box<term::StdoutTerminal>,
+    term: Option<Box<term::StdoutTerminal>>,
     /// Whether we displayed progress for the download or not.
     ///
     /// If the download is quick enough, we don't have time to
@@ -45,7 +45,7 @@ impl DownloadTracker {
             downloaded_last_few_secs: VecDeque::with_capacity(DOWNLOAD_TRACK_COUNT),
             seconds_elapsed: 0,
             last_sec: None,
-            term: term::stdout().expect("Failed to open terminal"),
+            term: term::stdout(),
             displayed_progress: false,
         }
     }
@@ -54,10 +54,11 @@ impl DownloadTracker {
         match n {
             &Notification::Install(In::Utils(Un::DownloadContentLengthReceived(content_len))) => {
                 self.content_length_received(content_len);
+
                 true
             }
             &Notification::Install(In::Utils(Un::DownloadDataReceived(len))) => {
-                if tty::stderr_isatty() {
+                if tty::stdout_isatty() && self.term.is_some() {
                     self.data_received(len);
                 }
                 true
@@ -104,7 +105,7 @@ impl DownloadTracker {
         if self.displayed_progress {
             // Display the finished state
             self.display();
-            let _ = writeln!(&mut self.term, "");
+            let _ = writeln!(self.term.as_mut().unwrap(), "");
         }
         self.prepare_for_new_download();
     }
@@ -144,7 +145,7 @@ impl DownloadTracker {
                 } else {
                     Cow::Borrowed("Unknown")
                 };
-                let _ = write!(&mut self.term,
+                let _ = write!(self.term.as_mut().unwrap(),
                                "{} / {} ({:.2}%) {}/s ETA: {}",
                                total_h,
                                content_len_h,
@@ -153,14 +154,15 @@ impl DownloadTracker {
                                eta);
             }
             None => {
-                let _ = write!(&mut self.term, "Total: {} Speed: {}/s", total_h, speed_h);
+                let _ = write!(self.term.as_mut().unwrap(),
+                               "Total: {} Speed: {}/s", total_h, speed_h);
             }
         }
         // delete_line() doesn't seem to clear the line properly.
         // Instead, let's just print some whitespace to clear it.
-        let _ = write!(&mut self.term, "                ");
-        let _ = self.term.flush();
-        let _ = self.term.carriage_return();
+        let _ = write!(self.term.as_mut().unwrap(), "                ");
+        let _ = self.term.as_mut().unwrap().flush();
+        let _ = self.term.as_mut().unwrap().carriage_return();
         self.displayed_progress = true;
     }
 }

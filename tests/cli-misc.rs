@@ -589,4 +589,16 @@ r"
     });
 }
 
+// Issue #145
+#[test]
+fn update_works_without_term() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "multirust", &["update", "nightly"]);
+        clitools::env(config, &mut cmd);
+        cmd.env_remove("TERM");
+
+        let out = cmd.output().unwrap();
+        assert!(out.status.success());
+    });
+}
 

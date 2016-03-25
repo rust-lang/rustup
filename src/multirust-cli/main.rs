@@ -39,6 +39,7 @@ mod rustup_mode;
 mod self_update;
 mod tty;
 mod job;
+mod term2;
 
 use std::env;
 use std::path::PathBuf;
