@@ -11,7 +11,7 @@ environment:
 branches:
   only:
     - master
-    - new
+    - stable
 
 install:
   - ps: |

@@ -17,7 +17,7 @@ git:
 branches:
   only:
     - master
-    - new
+    - stable
 
 sudo: required
 services:
