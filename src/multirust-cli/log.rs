@@ -19,6 +19,7 @@ macro_rules! verbose {
 pub fn warn_fmt(args: fmt::Arguments) {
     let mut t = term2::stderr();
     let _ = t.fg(term2::color::BRIGHT_YELLOW);
+    let _ = t.attr(term2::Attr::Bold);
     let _ = write!(t, "warning: ");
     let _ = t.reset();
     let _ = t.write_fmt(args);
@@ -28,6 +29,7 @@ pub fn warn_fmt(args: fmt::Arguments) {
 pub fn err_fmt(args: fmt::Arguments) {
     let mut t = term2::stderr();
     let _ = t.fg(term2::color::BRIGHT_RED);
+    let _ = t.attr(term2::Attr::Bold);
     let _ = write!(t, "error: ");
     let _ = t.reset();
     let _ = t.write_fmt(args);
@@ -36,7 +38,7 @@ pub fn err_fmt(args: fmt::Arguments) {
 
 pub fn info_fmt(args: fmt::Arguments) {
     let mut t = term2::stderr();
-    let _ = t.fg(term2::color::BRIGHT_CYAN);
+    let _ = t.attr(term2::Attr::Bold);
     let _ = write!(t, "info: ");
     let _ = t.reset();
     let _ = t.write_fmt(args);
@@ -46,6 +48,7 @@ pub fn info_fmt(args: fmt::Arguments) {
 pub fn verbose_fmt(args: fmt::Arguments) {
     let mut t = term2::stderr();
     let _ = t.fg(term2::color::BRIGHT_MAGENTA);
+    let _ = t.attr(term2::Attr::Bold);
     let _ = write!(t, "verbose: ");
     let _ = t.reset();
     let _ = t.write_fmt(args);

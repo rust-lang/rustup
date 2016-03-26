@@ -113,39 +113,45 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
         let color;
         match result {
             Ok(UpdateStatus::Installed) => {
-                banner = format!("{} installed", name);
-                color = term2::color::BRIGHT_GREEN;
+                banner = "installed";
+                color = Some(term2::color::BRIGHT_GREEN);
             }
             Ok(UpdateStatus::Updated) => {
-                banner = format!("{} updated", name);
-                color = term2::color::BRIGHT_GREEN;
+                banner = "updated";
+                color = Some(term2::color::BRIGHT_GREEN);
             }
             Ok(UpdateStatus::Unchanged) => {
-                banner = format!("{} unchanged", name);
-                color = term2::color::BRIGHT_CYAN;
+                banner = "unchanged";
+                color = None;
             }
             Err(_) => {
-                banner = format!("{} update failed", name);
-                color = term2::color::BRIGHT_RED;
+                banner = "update failed";
+                color = Some(term2::color::BRIGHT_RED);
             }
         }
 
-        (banner, color, version)
+        let width = name.len() + 1 + banner.len();
+
+        (name, banner, width, color, version)
     });
 
     let mut t = term2::stdout();
 
     let data: Vec<_> = data.collect();
-    let max_width = data.iter().fold(0, |a, &(ref b, _, _)| cmp::max(a, b.len()));
+    let max_width = data.iter().fold(0, |a, &(_, _, width, _, _)| cmp::max(a, width));
 
-    for (banner, color, version) in data {
-        let padding = max_width - banner.len();
+    for (name, banner, width, color, version) in data {
+        let padding = max_width - width;
         let padding: String = iter::repeat(' ').take(padding).collect();
         let _ = write!(t, "  {}", padding);
-        let _ = t.fg(color);
-        let _ = write!(t, "{}:", banner);
+        let _ = t.attr(term2::Attr::Bold);
+        if let Some(color) = color {
+            let _ = t.fg(color);
+        }
+        let _ = write!(t, "{} ", name);
+        let _ = write!(t, "{}", banner);
         let _ = t.reset();
-        let _ = writeln!(t, " {}", version);
+        let _ = writeln!(t, " - {}", version);
     }
     let _ = writeln!(t, "");
 

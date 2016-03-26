@@ -7,6 +7,7 @@ use term;
 use tty;
 
 pub use term::color;
+pub use term::Attr;
 
 pub fn stdout() -> StdoutTerminal {
     StdoutTerminal(term::stdout())
@@ -70,6 +71,16 @@ impl StdoutTerminal {
         }
     }
 
+    pub fn attr(&mut self, attr: Attr) -> Result<(), term::Error> {
+        if !tty::stderr_isatty() { return Ok(()) }
+
+        if let Some(ref mut t) = self.0 {
+            t.attr(attr)
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn reset(&mut self) -> Result<(), term::Error> {
         if !tty::stderr_isatty() { return Ok(()) }
 
@@ -87,6 +98,16 @@ impl StderrTerminal {
 
         if let Some(ref mut t) = self.0 {
             t.fg(color)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn attr(&mut self, attr: Attr) -> Result<(), term::Error> {
+        if !tty::stderr_isatty() { return Ok(()) }
+
+        if let Some(ref mut t) = self.0 {
+            t.attr(attr)
         } else {
             Ok(())
         }

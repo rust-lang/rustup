@@ -25,7 +25,7 @@ fn rustup_stable() {
         set_current_dist_date(config, "2015-01-02");
         expect_ok_ex(config, &["rustup", "--no-self-update"],
 r"
-  stable updated: 1.1.0 (hash-s-2)
+  stable updated - 1.1.0 (hash-s-2)
 
 ",
 r"info: syncing channel updates for 'stable'
@@ -48,7 +48,7 @@ fn rustup_stable_no_change() {
         expect_ok(config, &["rustup", "update", "stable"]);
         expect_ok_ex(config, &["rustup", "--no-self-update"],
 r"
-  stable unchanged: 1.0.0 (hash-s-1)
+  stable unchanged - 1.0.0 (hash-s-1)
 
 ",
 r"info: syncing channel updates for 'stable'
@@ -66,9 +66,9 @@ fn rustup_all_channels() {
         set_current_dist_date(config, "2015-01-02");
         expect_ok_ex(config, &["rustup", "--no-self-update"],
 r"
-   stable updated: 1.1.0 (hash-s-2)
-     beta updated: 1.2.0 (hash-b-2)
-  nightly updated: 1.3.0 (hash-n-2)
+   stable updated - 1.1.0 (hash-s-2)
+     beta updated - 1.2.0 (hash-b-2)
+  nightly updated - 1.3.0 (hash-n-2)
 
 ",
 r"info: syncing channel updates for 'stable'
@@ -113,9 +113,9 @@ fn rustup_some_channels_up_to_date() {
         expect_ok(config, &["multirust", "update", "beta"]);
         expect_ok_ex(config, &["rustup", "--no-self-update"],
 r"
-   stable updated: 1.1.0 (hash-s-2)
-   beta unchanged: 1.2.0 (hash-b-2)
-  nightly updated: 1.3.0 (hash-n-2)
+   stable updated - 1.1.0 (hash-s-2)
+   beta unchanged - 1.2.0 (hash-b-2)
+  nightly updated - 1.3.0 (hash-n-2)
 
 ",
 r"info: syncing channel updates for 'stable'
@@ -158,7 +158,7 @@ fn default() {
     setup(&|config| {
         expect_ok_ex(config, &["rustup", "default", "nightly"],
 r"
-  nightly installed: 1.3.0 (hash-n-2)
+  nightly installed - 1.3.0 (hash-n-2)
 
 ",
 r"info: syncing channel updates for 'nightly'
@@ -246,6 +246,7 @@ r"");
 }
 
 #[test]
+#[ignore(windows)] // FIXME rustup displays UNC paths
 fn show_toolchain_override() {
     setup(&|config| {
         let cwd = ::std::env::current_dir().unwrap();
