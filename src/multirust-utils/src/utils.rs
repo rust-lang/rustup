@@ -436,7 +436,7 @@ pub fn cargo_home() -> Result<PathBuf> {
 
 pub fn multirust_home() -> Result<PathBuf> {
     let cwd = try!(env::current_dir().map_err(|_| Error::MultirustHome));
-    let multirust_home = env::var_os("MULTIRUST_HOME").map(|home| {
+    let multirust_home = env::var_os("RUSTUP_HOME").map(|home| {
         cwd.join(home)
     });
     let user_home = home_dir().map(|p| p.join(".multirust"));

@@ -65,7 +65,7 @@ pub fn update_setup(f: &Fn(&Config, &Path)) {
         create_hash(dist_exe, dist_hash);
 
         let ref root_url = format!("file://{}", self_dist.display());
-        env::set_var("MULTIRUST_UPDATE_ROOT", root_url);
+        env::set_var("RUSTUP_UPDATE_ROOT", root_url);
 
         f(config, self_dist);
     });

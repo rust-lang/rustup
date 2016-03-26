@@ -240,7 +240,7 @@ impl<'a> Toolchain<'a> {
     pub fn create_fallback_command<T: AsRef<OsStr>>(&self, binary: T,
                                                     primary_toolchain: &Toolchain) -> Result<Command> {
         let mut cmd = try!(self.create_command(binary));
-        cmd.env("MULTIRUST_TOOLCHAIN", &primary_toolchain.name);
+        cmd.env("RUSTUP_TOOLCHAIN", &primary_toolchain.name);
         Ok(cmd)
     }
 
@@ -257,8 +257,8 @@ impl<'a> Toolchain<'a> {
 
         env_var::inc("RUST_RECURSION_COUNT", cmd);
 
-        cmd.env("MULTIRUST_TOOLCHAIN", &self.name);
-        cmd.env("MULTIRUST_HOME", &self.cfg.multirust_dir);
+        cmd.env("RUSTUP_TOOLCHAIN", &self.name);
+        cmd.env("RUSTUP_HOME", &self.cfg.multirust_dir);
     }
 
     pub fn set_ldpath(&self, cmd: &mut Command) {

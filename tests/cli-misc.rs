@@ -33,7 +33,7 @@ fn no_colors_in_piped_error_output() {
 #[test]
 fn rustc_with_bad_multirust_toolchain_env_var() {
     setup(&|config| {
-        let out = run(config, "rustc", &[], &[("MULTIRUST_TOOLCHAIN", "bogus")]);
+        let out = run(config, "rustc", &[], &[("RUSTUP_TOOLCHAIN", "bogus")]);
         assert!(!out.ok);
         assert!(out.stderr.contains("toolchain 'bogus' is not installed"));
     });

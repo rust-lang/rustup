@@ -278,11 +278,11 @@ fn show_toolchain_env() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         let mut cmd = clitools::cmd(config, "rustup", &["show"]);
         clitools::env(config, &mut cmd);
-        cmd.env("MULTIRUST_TOOLCHAIN", "nightly");
+        cmd.env("RUSTUP_TOOLCHAIN", "nightly");
         let out = cmd.output().unwrap();
         assert!(out.status.success());
         let stdout = String::from_utf8(out.stdout).unwrap();
-        assert!(stdout == "nightly (environment override by MULTIRUST_TOOLCHAIN)\n");
+        assert!(stdout == "nightly (environment override by RUSTUP_TOOLCHAIN)\n");
     });
 }
 
@@ -291,7 +291,7 @@ fn show_toolchain_env_not_installed() {
     setup(&|config| {
         let mut cmd = clitools::cmd(config, "rustup", &["show"]);
         clitools::env(config, &mut cmd);
-        cmd.env("MULTIRUST_TOOLCHAIN", "nightly");
+        cmd.env("RUSTUP_TOOLCHAIN", "nightly");
         let out = cmd.output().unwrap();
         // I'm not sure this should really be erroring when the toolchain
         // is not installed; just capturing the behavior.

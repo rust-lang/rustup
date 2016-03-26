@@ -23,7 +23,7 @@
 //!
 //! During uninstall (`multirust self uninstall`):
 //!
-//! * Delete `$MULTIRUST_HOME`.
+//! * Delete `$RUSTUP_HOME`.
 //! * Delete everything in `$CARGO_HOME`, including
 //!   the multirust binary and its hardlinks
 //!
@@ -233,7 +233,7 @@ fn pre_install_msg() -> Result<String> {
 }
 
 // Before multirust-rs installed bins to $CARGO_HOME/bin it installed
-// them to $MULTIRUST_HOME/bin. If those bins continue to exist after
+// them to $RUSTUP_HOME/bin. If those bins continue to exist after
 // upgrade and are on the $PATH, it would cause major confusion. This
 // method silently deletes them.
 fn cleanup_legacy() -> Result<()> {
@@ -323,7 +323,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 
     info!("removing multirust home");
 
-    // Delete MULTIRUST_HOME
+    // Delete RUSTUP_HOME
     let ref multirust_dir = try!(utils::multirust_home());
     if multirust_dir.exists() {
         try!(utils::remove_dir("multirust_home", multirust_dir, ntfy!(&NotifyHandler::none())));
@@ -816,7 +816,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     // Get host triple
     let triple = dist::get_host_triple();
 
-    let update_root = env::var("MULTIRUST_UPDATE_ROOT")
+    let update_root = env::var("RUSTUP_UPDATE_ROOT")
         .unwrap_or(String::from(UPDATE_ROOT));
 
     let tempdir = try!(TempDir::new("multirust-update")
