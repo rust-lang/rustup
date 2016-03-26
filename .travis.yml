@@ -17,7 +17,10 @@ git:
 branches:
   only:
     - master
-    - new
+    - auto
+
+notifications:
+  webhooks: http://buildbot.rust-lang.org/homu/travis
 
 sudo: required
 services:
