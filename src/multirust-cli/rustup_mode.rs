@@ -23,6 +23,7 @@ pub fn main() -> Result<()> {
         ("default", Some(m)) => try!(default_(cfg, m)),
         ("update", Some(m)) => try!(update(cfg, m)),
         ("run", Some(m)) => try!(run(cfg, m)),
+        ("which", Some(m)) => try!(which(cfg, m)),
         ("target", Some(c)) => {
             match c.subcommand() {
                 ("list", Some(_)) => try!(target_list(cfg)),
@@ -94,6 +95,10 @@ pub fn cli() -> App<'static, 'static> {
                 .required(true))
             .arg(Arg::with_name("command")
                 .required(true).multiple(true)))
+        .subcommand(SubCommand::with_name("which")
+            .about("Display which binary will be run for a given command")
+            .arg(Arg::with_name("command")
+                .required(true)))
         .subcommand(SubCommand::with_name("target")
             .about("Modify a toolchain's supported targets")
             .subcommand(SubCommand::with_name("list")
@@ -217,6 +222,18 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let cmd = try!(toolchain.create_command(args[0]));
 
     common::run_inner(cmd, &args)
+}
+
+fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let binary = m.value_of("command").expect("");
+
+    let binary_path = try!(cfg.which_binary(&try!(utils::current_dir()), binary))
+                          .expect("binary not found");
+
+    try!(utils::assert_is_file(&binary_path));
+
+    println!("{}", binary_path.display());
+    Ok(())
 }
 
 fn target_list(cfg: &Cfg) -> Result<()> {
