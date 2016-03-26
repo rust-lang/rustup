@@ -24,6 +24,7 @@ pub fn main() -> Result<()> {
         ("update", Some(m)) => try!(update(cfg, m)),
         ("run", Some(m)) => try!(run(cfg, m)),
         ("which", Some(m)) => try!(which(cfg, m)),
+        ("show", Some(_)) => try!(show(cfg)),
         ("target", Some(c)) => {
             match c.subcommand() {
                 ("list", Some(_)) => try!(target_list(cfg)),
@@ -98,6 +99,8 @@ pub fn cli() -> App<'static, 'static> {
             .about("Display which binary will be run for a given command")
             .arg(Arg::with_name("command")
                 .required(true)))
+        .subcommand(SubCommand::with_name("show")
+            .about("Show the active toolchain"))
         .subcommand(SubCommand::with_name("target")
             .about("Modify a toolchain's supported targets")
             .setting(AppSettings::SubcommandRequired)
@@ -113,7 +116,7 @@ pub fn cli() -> App<'static, 'static> {
                     .required(true))
                 .arg(Arg::with_name("toolchain"))))
         .subcommand(SubCommand::with_name("toolchain")
-            .about("Modify the installed toolchains")
+            .about("Modify or query the installed toolchains")
             .setting(AppSettings::SubcommandRequired)
             .subcommand(SubCommand::with_name("list")
                 .about("List installed toolchains"))
@@ -236,6 +239,26 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     try!(utils::assert_is_file(&binary_path));
 
     println!("{}", binary_path.display());
+
+    Ok(())
+}
+
+fn show(cfg: &Cfg) -> Result<()> {
+    let ref cwd = try!(utils::current_dir());
+    let override_ = try!(cfg.find_override(cwd));
+    if let Some((toolchain, reason)) = override_ {
+        println!("{} ({})", toolchain.name(), reason);
+        return Ok(());
+    }
+
+    let toolchain = try!(cfg.find_default());
+    if let Some(toolchain) = toolchain {
+        println!("{} (default toolchain)", toolchain.name());
+        return Ok(());
+    }
+
+    println!("no active toolchain");
+
     Ok(())
 }
 
