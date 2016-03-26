@@ -142,7 +142,7 @@ static TOOLS: &'static [&'static str]
     = &["rustup", "rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
 
 static UPDATE_ROOT: &'static str
-    = "https://github.com/Diggsey/multirust-rs-binaries/raw/master";
+    = "https://static.rust-lang.org/rustup/dist";
 
 /// CARGO_HOME suitable for display, possibly with $HOME
 /// substituted for the directory prefix
@@ -803,7 +803,7 @@ pub fn update() -> Result<()> {
 pub fn prepare_update() -> Result<Option<PathBuf>> {
     let ref cargo_home = try!(utils::cargo_home());
     let ref multirust_path = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
-    let ref setup_path = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
+    let ref setup_path = cargo_home.join(&format!("bin/rustup-setup{}", EXE_SUFFIX));
 
     if !multirust_path.exists() {
         return Err(Error::NotSelfInstalled(cargo_home.clone()));
@@ -826,7 +826,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
         }));
 
     // Get download URL
-    let url = format!("{}/{}/multirust-setup{}", update_root, triple, EXE_SUFFIX);
+    let url = format!("{}/{}/rustup-setup{}", update_root, triple, EXE_SUFFIX);
 
     // Calculate own hash
     let mut hasher = Hasher::new(Type::SHA256);
@@ -937,10 +937,17 @@ pub fn self_replace() -> Result<()> {
 
 pub fn cleanup_self_updater() -> Result<()> {
     let cargo_home = try!(utils::cargo_home());
-    let ref setup = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
+    let ref setup = cargo_home.join(&format!("bin/rustup-setup{}", EXE_SUFFIX));
 
     if setup.exists() {
         try!(utils::remove_file("setup", setup));
+    }
+
+    // Transitional
+    let ref old_setup = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
+
+    if old_setup.exists() {
+        try!(utils::remove_file("setup", old_setup));
     }
 
     Ok(())

@@ -64,11 +64,6 @@ path = "src/multirust/lib.rs"
 test = false # no unit tests
 
 [[bin]]
-name = "multirust-setup"
-path = "src/multirust-cli/main.rs"
-test = false # no unit tests
-
-[[bin]]
-name = "multirust-rs"
+name = "rustup-setup"
 path = "src/multirust-cli/main.rs"
 test = false # no unit tests

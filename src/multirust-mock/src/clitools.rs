@@ -73,7 +73,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
 
     let current_exe_path = env::current_exe().map(PathBuf::from).unwrap();
     let exe_dir = current_exe_path.parent().unwrap();
-    let ref multirust_build_path = exe_dir.join(format!("multirust-setup{}", EXE_SUFFIX));
+    let ref multirust_build_path = exe_dir.join(format!("rustup-setup{}", EXE_SUFFIX));
 
     let ref multirust_path = config.exedir.join(format!("multirust{}", EXE_SUFFIX));
     let setup_path = config.exedir.join(format!("multirust-setup{}", EXE_SUFFIX));

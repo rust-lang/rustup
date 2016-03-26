@@ -1,0 +1,100 @@
+@import url(https://fonts.googleapis.com/css?family=Cutive+Mono:400);
+@import url(https://fonts.googleapis.com/css?family=Work+Sans:700);
+@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:500);
+@import url(https://fonts.googleapis.com/css?family=Montserrat:400);
+
+body {
+    margin-top: 3em;
+    background-color: #343838;
+    color: white;
+    font-family: "Cutive Mono", monospace;
+    font-weight: 400;
+    font-size: 20pt;
+}
+
+pre {
+    font-family: "Source Code Pro", monospace;
+    font-weight: 500;
+}
+
+body#idx p {
+    text-shadow: 2px 2px #242828;
+}
+
+body#idx #pitch > a {
+    margin-top: 0.3em;
+    margin-bottom: 0.3em;
+    display: block;
+    font-family: "Work Sans", monospace;
+    font-variant: small-caps;
+    font-size: 300%;
+    font-weight: 700;
+    text-shadow: 4px 3px #242828;
+    text-transform: lowercase;
+    letter-spacing: 0.2em;
+}
+
+a {
+    color: #70EFFC;
+    text-decoration: none;
+}
+
+body#idx a {
+    text-shadow: 2px 2px #242828;
+}
+
+body#idx > * {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    width: 25em;;
+}
+
+body#idx > #pitch {
+    width: 30em;
+}
+
+body#idx p {
+    margin-top: 2em;
+    margin-bottom: 2em;
+}
+
+body#idx > #platform-instructions-unix {
+    margin-left: auto;
+    margin-right: auto;
+    width: 30em;
+}
+
+#platform-instructions-unix > * {
+    margin-left: auto;
+    margin-right: auto;
+    width: 25em;;
+}
+
+#platform-instructions-unix > pre {
+    margin-left: auto;
+    margin-right: auto;
+    padding-top: 1em;
+    padding-bottom: 1em;
+    width: 30em;
+    background-color: #D0FFFF;
+    color: #002F3B;
+    text-align: center;
+    border-radius: 3px;
+    box-shadow: inset 0px 0px 10px 0px #70EFFC;
+}
+
+#platform-instructions-win a {
+    display: block;
+    padding-top: 0.4em;
+    padding-bottom: 0.6em;
+    font-family: "Source Code Pro", monospace;
+}
+
+#about {
+    font-size: 70%;
+    text-shadow: 1px 1px #242828;
+}
+#about > a {
+    text-shadow: 1px 1px #242828;
+}
