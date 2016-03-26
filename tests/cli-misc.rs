@@ -602,3 +602,54 @@ fn update_works_without_term() {
     });
 }
 
+// Issue #140
+// Don't panic when `target`, `update` etc. are called without subcommands.
+#[test]
+fn subcommand_required_for_target() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "rustup", &["target"]);
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+        assert!(!out.status.success());
+        assert!(out.status.code().unwrap() != 101);
+    });
+}
+
+// Issue #140
+// Don't panic when `target`, `update` etc. are called without subcommands.
+#[test]
+fn subcommand_required_for_toolchain() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "rustup", &["toolchain"]);
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+        assert!(!out.status.success());
+        assert!(out.status.code().unwrap() != 101);
+    });
+}
+
+// Issue #140
+// Don't panic when `target`, `update` etc. are called without subcommands.
+#[test]
+fn subcommand_required_for_override() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "rustup", &["override"]);
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+        assert!(!out.status.success());
+        assert!(out.status.code().unwrap() != 101);
+    });
+}
+
+// Issue #140
+// Don't panic when `target`, `update` etc. are called without subcommands.
+#[test]
+fn subcommand_required_for_self() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "rustup", &["self"]);
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+        assert!(!out.status.success());
+        assert!(out.status.code().unwrap() != 101);
+    });
+}
