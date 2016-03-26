@@ -722,3 +722,15 @@ fn custom_toolchain_cargo_fallback_run() {
     });
 }
 
+fn multirust_env_compat() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly"]);
+        clitools::env(config, &mut cmd);
+        cmd.env_remove("RUSTUP_HOME");
+        cmd.env("MULTIRUST_HOME", &config.rustupdir);
+        let out = cmd.output().unwrap();
+        assert!(out.status.success());
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(stderr.contains("environment variable MULTIRUST_HOME is deprecated. Use RUSTUP_HOME"));
+    });
+}
