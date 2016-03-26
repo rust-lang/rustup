@@ -326,7 +326,7 @@ fn setup(edit: Option<&Fn(&str, &mut MockPackage)>,
     let ref temp_cfg = temp::Cfg::new(work_tempdir.path().to_owned(), temp::SharedNotifyHandler::none());
 
     let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
-    let ref toolchain = ToolchainDesc::from_str("x86_64-apple-darwin-nightly").unwrap();
+    let ref toolchain = ToolchainDesc::from_str("nightly-x86_64-apple-darwin").unwrap();
     let ref prefix = InstallPrefix::from(prefix_tempdir.path().to_owned());
 
     f(url, toolchain, prefix, temp_cfg);
