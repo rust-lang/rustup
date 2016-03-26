@@ -21,26 +21,26 @@ pub const UPDATE_HASH_LEN: usize = 20;
 
 #[derive(Debug)]
 pub struct ToolchainDesc {
-    pub arch: Option<String>,
-    pub os: Option<String>,
-    pub env: Option<String>,
     // Either "nightly", "stable", "beta", or an explicit version number
     pub channel: String,
     pub date: Option<String>,
+    pub arch: Option<String>,
+    pub os: Option<String>,
+    pub env: Option<String>,
 }
 
 impl ToolchainDesc {
     pub fn from_str(name: &str) -> Result<Self> {
-        let archs = ["i686", "x86_64"];
-        let oses = ["pc-windows", "unknown-linux", "apple-darwin"];
-        let envs = ["gnu", "msvc"];
         let channels = ["nightly", "beta", "stable",
                         r"\d{1}\.\d{1}\.\d{1}",
                         r"\d{1}\.\d{2}\.\d{1}"];
+        let archs = ["i686", "x86_64"];
+        let oses = ["pc-windows", "unknown-linux", "apple-darwin"];
+        let envs = ["gnu", "msvc"];
 
         let pattern = format!(
-            r"^(?:({})-)?(?:({})-)?(?:({})-)?({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?$",
-            archs.join("|"), oses.join("|"), envs.join("|"), channels.join("|")
+            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-({}))?(?:-({}))?(?:-({}))?$",
+            channels.join("|"), archs.join("|"), oses.join("|"), envs.join("|")
             );
 
         let re = Regex::new(&pattern).unwrap();
@@ -54,11 +54,11 @@ impl ToolchainDesc {
             }
 
             ToolchainDesc {
-                arch: c.at(1).and_then(fn_map),
-                os: c.at(2).and_then(fn_map),
-                env: c.at(3).and_then(fn_map),
-                channel: c.at(4).unwrap().to_owned(),
-                date: c.at(5).and_then(fn_map),
+                channel: c.at(1).unwrap().to_owned(),
+                date: c.at(2).and_then(fn_map),
+                arch: c.at(3).and_then(fn_map),
+                os: c.at(4).and_then(fn_map),
+                env: c.at(5).and_then(fn_map),
             }
         }).ok_or(Error::InvalidToolchainName(name.to_string()))
     }

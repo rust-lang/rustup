@@ -653,3 +653,21 @@ fn subcommand_required_for_self() {
         assert!(out.status.code().unwrap() != 101);
     });
 }
+
+#[test]
+fn multi_host_smoke_test() {
+    // FIXME: Unfortunately the list of supported hosts is hard-coded,
+    // so we have to use the triple of a host we actually test on. That means
+    // that when we're testing on that host we can't test 'multi-host'.
+    let trip = this_host_triple();
+    if trip == clitools::MULTI_ARCH1 {
+        return;
+    }
+
+    clitools::setup(Scenario::MultiHost, &|config| {
+        let ref toolchain = format!("nightly-{}", clitools::MULTI_ARCH1);
+        expect_ok(config, &["rustup", "default", toolchain]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "xxxx-n-2"); // cross-host mocks have their own versions
+    });
+}

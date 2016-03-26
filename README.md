@@ -95,13 +95,13 @@ SUBCOMMANDS:
 
 Standard toolchain names have the following form:
 ```
-[<arch>-][<os>-][<env>-]<channel>[-<date>]
+<channel>[-<date>][-<arch>][-<os>][-<env>]
 
+<channel>	= stable|beta|nightly
+<date>		= YYYY-MM-DD
 <arch>		= i686|x86_64
 <os>		= pc-windows|unknown-linux|apple-darwin
 <env>		= gnu|msvc
-<channel>	= stable|beta|nightly
-<date>		= YYYY-MM-DD
 ```
 
 Any combination of optional parts are acceptable.
@@ -137,16 +137,16 @@ multirust-rs:
 	`multirust default nightly`
 
 - For the current directory, use the most recent stable build using the MSVC linker:
-	`multirust override msvc-stable`
+	`multirust override stable-msvc`
 
 - For the current directory, use a 32-bit beta build instead:
-	`multirust override i686-beta`
+	`multirust override beta-i686`
 
 - For the current directory, use a nightly from a specific date:
 	`multirust override nightly-2015-04-01`
 
 - Combine these:
-	`multirust override i686-msvc-nightly-2015-04-01`
+	`multirust override nightly-2015-04-01-i686-msvc`
 
 - Install a custom toolchain using an installer:
 	`multirust override my_custom_toolchain --install "/home/user/RustInstaller.tar.gz"`

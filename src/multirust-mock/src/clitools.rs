@@ -40,7 +40,17 @@ pub enum Scenario {
     ArchivesV1, // Two dates, v1 manifests
     SimpleV2, // One date, v2 manifests
     SimpleV1, // One date, v1 manifests
+    MultiHost, // One date, v2 manifests, MULTI_ARCH1 host
 }
+
+pub static CROSS_ARCH1: &'static str = "x86_64-unknown-linux-musl";
+pub static CROSS_ARCH2: &'static str = "arm-linux-androideabi";
+
+// Architecture for testing 'multi-host' installation.
+// FIXME: Unfortunately the list of supported hosts is hard-coded,
+// so we have to use the triple of a host we actually test on. That means
+// that when we're testing on that host we can't test 'multi-host'.
+pub static MULTI_ARCH1: &'static str = "i686-unknown-linux-gnu";
 
 /// Run this to create the test environment containing multirust, and
 /// a mock dist server.
@@ -232,20 +242,21 @@ pub fn change_dir(path: &Path, f: &Fn()) {
 fn create_mock_dist_server(path: &Path, s: Scenario) {
     let mut chans = Vec::new();
     if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
-        let c1 = build_mock_channel("nightly", "2015-01-01", "1.2.0", "hash-n-1");
-        let c2 = build_mock_channel("beta", "2015-01-01", "1.1.0", "hash-b-1");
-        let c3 = build_mock_channel("stable", "2015-01-01", "1.0.0", "hash-s-1");
+        let c1 = build_mock_channel(s, "nightly", "2015-01-01", "1.2.0", "hash-n-1");
+        let c2 = build_mock_channel(s, "beta", "2015-01-01", "1.1.0", "hash-b-1");
+        let c3 = build_mock_channel(s, "stable", "2015-01-01", "1.0.0", "hash-s-1");
         chans.extend(vec![c1, c2, c3]);
     }
-    let c4 = build_mock_channel("nightly", "2015-01-02", "1.3.0", "hash-n-2");
-    let c5 = build_mock_channel("beta", "2015-01-02", "1.2.0", "hash-b-2");
-    let c6 = build_mock_channel("stable", "2015-01-02", "1.1.0", "hash-s-2");
+    let c4 = build_mock_channel(s, "nightly", "2015-01-02", "1.3.0", "hash-n-2");
+    let c5 = build_mock_channel(s, "beta", "2015-01-02", "1.2.0", "hash-b-2");
+    let c6 = build_mock_channel(s, "stable", "2015-01-02", "1.1.0", "hash-s-2");
     chans.extend(vec![c4, c5, c6]);
 
     let ref vs = match s {
         Scenario::Full => vec![ManifestVersion::V1, ManifestVersion::V2],
         Scenario::SimpleV1 | Scenario::ArchivesV1 => vec![ManifestVersion::V1],
-        Scenario::SimpleV2 | Scenario::ArchivesV2 => vec![ManifestVersion::V2],
+        Scenario::SimpleV2 | Scenario::ArchivesV2 |
+        Scenario::MultiHost => vec![ManifestVersion::V2],
     };
 
     MockDistServer {
@@ -279,31 +290,48 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
              path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple))).unwrap();
 }
 
-pub static CROSS_ARCH1: &'static str = "x86_64-unknown-linux-musl";
-pub static CROSS_ARCH2: &'static str = "arm-linux-androideabi";
-
-fn build_mock_channel(channel: &str, date: &str,
+fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                       version: &'static str, version_hash: &str) -> MockChannel {
     // Build the mock installers
-    let std = build_mock_std_installer();
-    let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
-    let cross_std2 = build_mock_cross_std_installer(CROSS_ARCH2, date);
-    let rustc = build_mock_rustc_installer(version, version_hash);
+    let ref host_triple = this_host_triple();
+    let std = build_mock_std_installer(host_triple);
+    let rustc = build_mock_rustc_installer(host_triple, version, version_hash);
     let cargo = build_mock_cargo_installer(version, version_hash);
     let rust_docs = build_mock_rust_doc_installer();
     let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
-
-    let host_triple = this_host_triple();
+    let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
+    let cross_std2 = build_mock_cross_std_installer(CROSS_ARCH2, date);
 
     // Convert the mock installers to mock package definitions for the
     // mock dist server
-    let all = vec![("rust-std", vec![(std, host_triple.clone()),
+    let mut all = vec![("rust-std", vec![(std, host_triple.clone()),
                                      (cross_std1, CROSS_ARCH1.to_string()),
                                      (cross_std2, CROSS_ARCH2.to_string())]),
                    ("rustc", vec![(rustc, host_triple.clone())]),
                    ("cargo", vec![(cargo, host_triple.clone())]),
                    ("rust-docs", vec![(rust_docs, host_triple.clone())]),
                    ("rust", vec![(rust, host_triple.clone())])];
+
+    if s == Scenario::MultiHost {
+        let std = build_mock_std_installer(MULTI_ARCH1);
+        let rustc = build_mock_rustc_installer(MULTI_ARCH1, version, version_hash);
+        let cargo = build_mock_cargo_installer(version, version_hash);
+        let rust_docs = build_mock_rust_doc_installer();
+        let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
+        let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
+        let cross_std2 = build_mock_cross_std_installer(CROSS_ARCH2, date);
+
+        let triple = MULTI_ARCH1.to_string();
+        let more = vec![("rust-std", vec![(std, triple.clone()),
+                                     (cross_std1, CROSS_ARCH1.to_string()),
+                                     (cross_std2, CROSS_ARCH2.to_string())]),
+                        ("rustc", vec![(rustc, triple.clone())]),
+                        ("cargo", vec![(cargo, triple.clone())]),
+                        ("rust-docs", vec![(rust_docs, triple.clone())]),
+                        ("rust", vec![(rust, triple.clone())])];
+
+        all.extend(more);
+    }
 
     let packages = all.into_iter().map(|(name, target_pkgs)| {
         let target_pkgs = target_pkgs.into_iter().map(|(installer, triple)| {
@@ -327,31 +355,33 @@ fn build_mock_channel(channel: &str, date: &str,
     // Add subcomponents of the rust package
     {
         let rust_pkg = packages.last_mut().unwrap();
-        let target_pkg = rust_pkg.targets.first_mut().unwrap();
-        target_pkg.components.push(MockComponent {
-            name: "rust-std".to_string(),
-            target: host_triple.clone()
-        });
-        target_pkg.components.push(MockComponent {
-            name: "rustc".to_string(),
-            target: host_triple.clone()
-        });
-        target_pkg.components.push(MockComponent {
-            name: "cargo".to_string(),
-            target: host_triple.clone()
-        });
-        target_pkg.components.push(MockComponent {
-            name: "rust-docs".to_string(),
-            target: host_triple.clone()
-        });
-        target_pkg.extensions.push(MockComponent {
-            name: "rust-std".to_string(),
-            target: CROSS_ARCH1.to_string(),
-        });
-        target_pkg.extensions.push(MockComponent {
-            name: "rust-std".to_string(),
-            target: CROSS_ARCH2.to_string(),
-        });
+        for target_pkg in rust_pkg.targets.iter_mut() {
+            let ref target = target_pkg.target;
+            target_pkg.components.push(MockComponent {
+                name: "rust-std".to_string(),
+                target: target.to_string()
+            });
+            target_pkg.components.push(MockComponent {
+                name: "rustc".to_string(),
+                target: target.to_string()
+            });
+            target_pkg.components.push(MockComponent {
+                name: "cargo".to_string(),
+                target: target.to_string()
+            });
+            target_pkg.components.push(MockComponent {
+                name: "rust-docs".to_string(),
+                target: target.to_string()
+            });
+            target_pkg.extensions.push(MockComponent {
+                name: "rust-std".to_string(),
+                target: CROSS_ARCH1.to_string(),
+            });
+            target_pkg.extensions.push(MockComponent {
+                name: "rust-std".to_string(),
+                target: CROSS_ARCH2.to_string(),
+            });
+        }
     }
 
     MockChannel {
@@ -380,8 +410,7 @@ pub fn this_host_triple() -> String {
     }
 }
 
-fn build_mock_std_installer() -> MockInstallerBuilder {
-    let trip = this_host_triple();
+fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![
             (format!("rust-std-{}", trip.clone()),
@@ -403,13 +432,23 @@ fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuil
     }
 }
 
-fn build_mock_rustc_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
+fn build_mock_rustc_installer(target: &str, version: &str, version_hash_: &str) -> MockInstallerBuilder {
+    // For cross-host rustc's modify the version_hash so they can be identified from
+    // test cases.
+    let this_host = this_host_triple();
+    let version_hash;
+    if this_host != target {
+        version_hash = format!("xxxx-{}", &version_hash_[5..]);
+    } else {
+        version_hash = version_hash_.to_string();
+    }
+
     let rustc = format!("bin/rustc{}", EXE_SUFFIX);
     MockInstallerBuilder {
         components: vec![
             ("rustc".to_string(),
              vec![MockCommand::File(rustc.clone())],
-             vec![(rustc, mock_bin("rustc", version, version_hash))])
+             vec![(rustc, mock_bin("rustc", version, &version_hash))])
                 ]
     }
 }
