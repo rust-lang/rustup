@@ -8,6 +8,7 @@ extern crate tempdir;
 use multirust_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
+                               expect_err_ex,
                                set_current_dist_date};
 
 pub fn setup(f: &Fn(&Config)) {
@@ -220,5 +221,81 @@ fn link() {
         expect_ok(config, &["rustup", "default", "custom"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
+    });
+}
+
+#[test]
+fn show_toolchain_none() {
+    setup(&|config| {
+        expect_ok_ex(config, &["rustup", "show"],
+r"no active toolchain
+",
+r"");
+    });
+}
+
+#[test]
+fn show_toolchain_default() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok_ex(config, &["rustup", "show"],
+r"nightly (default toolchain)
+",
+r"");
+    });
+}
+
+#[test]
+fn show_toolchain_override() {
+    setup(&|config| {
+        let cwd = ::std::env::current_dir().unwrap();
+        expect_ok(config, &["rustup", "override", "add", "nightly"]);
+        expect_ok_ex(config, &["rustup", "show"],
+&format!(r"nightly (directory override for '{}')
+", cwd.display()),
+r"");
+    });
+}
+
+#[test]
+fn show_toolchain_override_not_installed() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "override", "add", "nightly"]);
+        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
+        // I'm not sure this should really be erroring when the toolchain
+        // is not installed; just capturing the behavior.
+        expect_err_ex(config, &["rustup", "show"],
+r"",
+r"error: toolchain 'nightly' is not installed
+");
+    });
+}
+
+#[test]
+fn show_toolchain_env() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        clitools::env(config, &mut cmd);
+        cmd.env("MULTIRUST_TOOLCHAIN", "nightly");
+        let out = cmd.output().unwrap();
+        assert!(out.status.success());
+        let stdout = String::from_utf8(out.stdout).unwrap();
+        assert!(stdout == "nightly (environment override by MULTIRUST_TOOLCHAIN)\n");
+    });
+}
+
+#[test]
+fn show_toolchain_env_not_installed() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        clitools::env(config, &mut cmd);
+        cmd.env("MULTIRUST_TOOLCHAIN", "nightly");
+        let out = cmd.output().unwrap();
+        // I'm not sure this should really be erroring when the toolchain
+        // is not installed; just capturing the behavior.
+        assert!(!out.status.success());
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(stderr == "error: toolchain 'nightly' is not installed\n");
     });
 }
