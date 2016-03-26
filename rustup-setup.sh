@@ -54,7 +54,16 @@ main() {
     ensure curl -sSfL "$_url" -o "$_file"
     ensure chmod u+x "$_file"
 
-    run "$_file"
+    # The installer is going to want to ask for confirmation by
+    # reading stdin.  This script was piped into `sh` though and
+    # doesn't have stdin to pass to its children. Instead we're going
+    # to explicitly connect /dev/tty to the installer's stdin.
+    if [ ! -e "/dev/tty" ]; then
+        err "/dev/tty does not exist"
+    fi
+
+    run "$_file" < /dev/tty
+
     local _retval=$?
 
     ignore rm "$_file"
