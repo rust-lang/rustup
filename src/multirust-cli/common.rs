@@ -143,9 +143,9 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
         let padding: String = iter::repeat(' ').take(padding).collect();
         let _ = write!(t, "  {}", padding);
         let _ = t.fg(color);
-        let _ = write!(t, "{}", banner);
+        let _ = write!(t, "{}:", banner);
         let _ = t.reset();
-        let _ = writeln!(t, ": {}", version);
+        let _ = writeln!(t, " {}", version);
     }
     let _ = writeln!(t, "");
 
