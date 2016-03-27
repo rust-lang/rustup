@@ -671,3 +671,54 @@ fn multi_host_smoke_test() {
                          "xxxx-n-2"); // cross-host mocks have their own versions
     });
 }
+
+#[test]
+fn custom_toolchain_cargo_fallback_proxy() {
+    setup(&|config| {
+        let path = config.customdir.join("custom-1");
+
+        expect_ok(config, &["rustup", "toolchain", "link", "mytoolchain",
+                            &path.to_string_lossy()]);
+        expect_ok(config, &["rustup", "default", "mytoolchain"]);
+
+        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_stdout_ok(config, &["cargo", "--version"],
+                         "hash-s-2");
+
+        expect_ok(config, &["rustup", "update", "beta"]);
+        expect_stdout_ok(config, &["cargo", "--version"],
+                         "hash-b-2");
+
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_stdout_ok(config, &["cargo", "--version"],
+                         "hash-n-2");
+    });
+}
+
+#[test]
+fn custom_toolchain_cargo_fallback_run() {
+    setup(&|config| {
+        let path = config.customdir.join("custom-1");
+
+        expect_ok(config, &["rustup", "toolchain", "link", "mytoolchain",
+                            &path.to_string_lossy()]);
+        expect_ok(config, &["rustup", "default", "mytoolchain"]);
+
+        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_stdout_ok(config, &["rustup", "run", "mytoolchain",
+                                   "cargo", "--version"],
+                         "hash-s-2");
+
+        expect_ok(config, &["rustup", "update", "beta"]);
+        expect_stdout_ok(config, &["rustup", "run", "mytoolchain",
+                                   "cargo", "--version"],
+                         "hash-b-2");
+
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_stdout_ok(config, &["rustup", "run", "mytoolchain",
+                                   "cargo", "--version"],
+                         "hash-n-2");
+
+    });
+}
+
