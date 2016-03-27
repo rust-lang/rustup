@@ -846,7 +846,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 
     // If up-to-date
     if latest_hash == current_hash {
-        info!("multirust is already up to date");
+        info!("rustup is up to date");
         return Ok(None);
     }
 

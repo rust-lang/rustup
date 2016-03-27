@@ -583,7 +583,7 @@ fn update_no_change() {
         expect_ok_ex(config, &["multirust", "self", "update"],
 r"",
 r"info: checking for self-updates
-info: multirust is already up to date
+info: rustup is up to date
 ");
 
     });
