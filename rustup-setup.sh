@@ -15,7 +15,7 @@
 
 set -u
 
-RUSTUP_UPDATE_ROOT="https://github.com/rust-lang-nursery/multirust-rs-binaries/raw/master"
+RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup/dist"
 
 main() {
     need_cmd curl
@@ -37,7 +37,7 @@ main() {
 	    ;;
     esac
 
-    local _url="$RUSTUP_UPDATE_ROOT/$_arch/multirust-setup$_ext"
+    local _url="$RUSTUP_UPDATE_ROOT/$_arch/rustup-setup$_ext"
 
     local _dir="$(ensure mktemp -d)"
     local _file="$_dir/rustup-setup$_ext"
