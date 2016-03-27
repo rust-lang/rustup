@@ -12,6 +12,7 @@ use errors::{Error, Notification, NotifyHandler};
 use raw;
 #[cfg(windows)]
 use winapi::DWORD;
+use scopeguard;
 
 pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
                     has_cmd, find_cmd};
@@ -333,7 +334,7 @@ pub fn home_dir() -> Option<PathBuf> {
         if OpenProcessToken(me, TOKEN_READ, &mut token) == 0 {
             return None
         }
-        defer! {{ let _ = CloseHandle(token); }}
+        let _g = scopeguard::guard(token, |h| { let _ = CloseHandle(*h); });
         fill_utf16_buf(|buf, mut sz| {
             match GetUserProfileDirectoryW(token, buf, &mut sz) {
                 0 if GetLastError() != ERROR_INSUFFICIENT_BUFFER => 0,

@@ -43,6 +43,7 @@ use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::fs;
 use tempdir::TempDir;
+use scopeguard;
 
 // The big installation messages. These are macros because the first
 // argument of format! needs to be a literal.
@@ -475,7 +476,7 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
             return Err(Error::WindowsUninstallMadness(err));
         }
 
-        defer!{{ let _ = CloseHandle(gc_handle); }}
+        let _g = scopeguard::guard(gc_handle, |h| { let _ = CloseHandle(*h); });
 
         try!(Command::new(gc_exe).spawn()
              .map_err(|e| Error::WindowsUninstallMadness(e)));
@@ -537,7 +538,7 @@ fn wait_for_parent() -> Result<()> {
             return Err(Error::WindowsUninstallMadness(err));
         }
 
-        defer! {{ let _ = CloseHandle(snapshot); }}
+        let _g = scopeguard::guard(snapshot, |h| { let _ = CloseHandle(*h); });
 
         let mut entry: PROCESSENTRY32 = mem::zeroed();
         entry.dwSize = mem::size_of::<PROCESSENTRY32>() as DWORD;
@@ -570,7 +571,7 @@ fn wait_for_parent() -> Result<()> {
             return Ok(());
         }
 
-        defer! {{ let _ = CloseHandle(parent); }}
+        let _g = scopeguard::guard(parent, |h| { let _ = CloseHandle(*h); });
 
         // Wait for our parent to exit
         let res = WaitForSingleObject(parent, INFINITE);

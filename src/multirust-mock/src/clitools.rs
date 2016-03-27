@@ -14,6 +14,7 @@ use dist::{MockDistServer, MockChannel, MockPackage,
            MockTargettedPackage, MockComponent, change_channel_date,
            ManifestVersion};
 use hyper::Url;
+use scopeguard;
 
 /// The configuration used by the tests in this module
 pub struct Config {
@@ -232,9 +233,7 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
 pub fn change_dir(path: &Path, f: &Fn()) {
     let cwd = env::current_dir().unwrap();
     env::set_current_dir(path).unwrap();
-    defer! {
-        env::set_current_dir(&cwd).unwrap()
-    }
+    let _g = scopeguard::guard(cwd, |d| env::set_current_dir(d).unwrap());
     f();
 }
 

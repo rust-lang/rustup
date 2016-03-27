@@ -13,7 +13,6 @@ extern crate openssl;
 extern crate itertools;
 extern crate time;
 extern crate rand;
-#[macro_use]
 extern crate scopeguard;
 extern crate tempdir;
 

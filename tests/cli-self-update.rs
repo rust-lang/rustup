@@ -5,7 +5,6 @@ extern crate multirust_utils;
 #[macro_use]
 extern crate lazy_static;
 extern crate tempdir;
-#[macro_use]
 extern crate scopeguard;
 
 #[cfg(windows)]
@@ -38,8 +37,8 @@ pub fn setup(f: &Fn(&Config)) {
 
         // An windows these tests mess with the user's PATH. Save
         // and restore them here to keep from trashing things.
-        let ref saved_path = get_path();
-        defer! { restore_path(saved_path) }
+        let saved_path = get_path();
+        let _g = scopeguard::guard(saved_path, |p| restore_path(p));
 
         f(config);
     });
