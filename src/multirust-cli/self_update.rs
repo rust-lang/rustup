@@ -70,8 +70,7 @@ $platform_msg
 You can uninstall at any time with `multirust self uninstall` and
 these changes will be reverted.
 
-WARNING: This is beta software and it is known to have an
-         appetite for laundry.
+WARNING: This is an early beta. Expect breakage.
 
 Continue? (Y/n)"
     )};
