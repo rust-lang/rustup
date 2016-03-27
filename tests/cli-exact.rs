@@ -19,7 +19,7 @@ fn update() {
     setup(&|config| {
         expect_ok_ex(config, &["multirust", "update", "nightly"],
 r"
-  nightly installed: 1.3.0 (hash-n-2)
+  nightly installed - 1.3.0 (hash-n-2)
 
 ",
 r"info: syncing channel updates for 'nightly'
@@ -41,7 +41,7 @@ fn update_again() {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_ok_ex(config, &["multirust", "update", "nightly"],
 r"
-  nightly unchanged: 1.3.0 (hash-n-2)
+  nightly unchanged - 1.3.0 (hash-n-2)
 
 ",
 r"info: syncing channel updates for 'nightly'
@@ -54,7 +54,7 @@ fn default() {
     setup(&|config| {
         expect_ok_ex(config, &["multirust", "default", "nightly"],
 r"
-  nightly installed: 1.3.0 (hash-n-2)
+  nightly installed - 1.3.0 (hash-n-2)
 
 ",
 r"info: syncing channel updates for 'nightly'
@@ -78,7 +78,7 @@ fn override_again() {
         expect_ok(config, &["multirust", "override", "nightly"]);
         expect_ok_ex(config, &["multirust", "override", "nightly"],
 r"
-  nightly unchanged: 1.3.0 (hash-n-2)
+  nightly unchanged - 1.3.0 (hash-n-2)
 
 ",
 &format!(

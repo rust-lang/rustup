@@ -691,7 +691,7 @@ fn rustup_self_update_exact() {
 
         expect_ok_ex(config, &["rustup"],
 r"
-  stable unchanged: 1.1.0 (hash-s-2)
+  stable unchanged - 1.1.0 (hash-s-2)
 
 ",
 r"info: syncing channel updates for 'stable'
@@ -769,7 +769,7 @@ fn first_install_exact() {
     setup(&|config| {
         expect_ok_ex(config, &["rustup-setup", "-y"],
 r"
-  stable installed: 1.1.0 (hash-s-2)
+  stable installed - 1.1.0 (hash-s-2)
 
 ",
 r"info: syncing channel updates for 'stable'
