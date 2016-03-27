@@ -229,14 +229,13 @@ impl<'a> Toolchain<'a> {
             return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
         }
 
-        let mut cmd = Command::new(binary);
+        let ref bin_path = self.path.join("bin").join(binary.as_ref());
+        let mut cmd = Command::new(bin_path);
         self.set_env(&mut cmd);
         Ok(cmd)
     }
 
     fn set_env(&self, cmd: &mut Command) {
-        let ref bin_path = self.path.join("bin");
-
         self.set_ldpath(cmd);
 
         // Because multirust and cargo use slightly different
@@ -247,12 +246,9 @@ impl<'a> Toolchain<'a> {
             cmd.env("CARGO_HOME", &cargo_home);
         }
 
-        env_var::set_path("PATH", bin_path, cmd);
         env_var::inc("RUST_RECURSION_COUNT", cmd);
 
-        // FIXME: This should not be a path, but a toolchain name.
-        // Not sure what's going on here.
-        cmd.env("MULTIRUST_TOOLCHAIN", &self.path);
+        cmd.env("MULTIRUST_TOOLCHAIN", &self.name);
         cmd.env("MULTIRUST_HOME", &self.cfg.multirust_dir);
     }
 
