@@ -126,7 +126,9 @@ impl Manifestation {
         let mut things_to_install: Vec<(Component, temp::File)> = Vec::new();
         for (component, url, hash) in components_urls_and_hashes {
 
-            notify_handler.call(Notification::DownloadingComponent(&component.pkg));
+            notify_handler.call(Notification::DownloadingComponent(&component.pkg,
+                                                                   &self.target_triple,
+                                                                   &component.target));
 
             // Download each package to temp file
             let temp_file = try!(temp_cfg.new_file());
@@ -170,7 +172,9 @@ impl Manifestation {
         // Install components
         for (component, installer_file) in things_to_install {
 
-            notify_handler.call(Notification::InstallingComponent(&component.pkg));
+            notify_handler.call(Notification::InstallingComponent(&component.pkg,
+                                                                  &self.target_triple,
+                                                                  &component.target));
 
             let package = try!(TarGzPackage::new_file(&installer_file, temp_cfg));
 
@@ -297,7 +301,9 @@ impl Manifestation {
         }
         let url = url.unwrap();
 
-        notify_handler.call(Notification::DownloadingComponent("rust"));
+        notify_handler.call(Notification::DownloadingComponent("rust",
+                                                               &self.target_triple,
+                                                               &self.target_triple));
 
         let dlcfg = DownloadCfg {
             dist_root: "bogus",
@@ -313,7 +319,9 @@ impl Manifestation {
 
         let prefix = self.installation.prefix();
 
-        notify_handler.call(Notification::InstallingComponent("rust"));
+        notify_handler.call(Notification::InstallingComponent("rust",
+                                                              &self.target_triple,
+                                                              &self.target_triple));
 
         // Begin transaction
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);

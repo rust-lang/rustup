@@ -24,8 +24,8 @@ pub enum Notification<'a> {
     ExtensionNotInstalled(&'a Component),
     NonFatalError(&'a Error),
     MissingInstalledComponent(&'a str),
-    DownloadingComponent(&'a str),
-    InstallingComponent(&'a str),
+    DownloadingComponent(&'a str, &'a str, &'a str),
+    InstallingComponent(&'a str, &'a str, &'a str),
     DownloadingManifest(&'a str),
     DownloadingLegacyManifest,
 }
@@ -101,8 +101,8 @@ impl<'a> Notification<'a> {
             ChecksumValid(_) | NoUpdateHash(_) |
             DownloadingLegacyManifest  => NotificationLevel::Verbose,
             Extracting(_, _) | SignatureValid(_)  |
-            DownloadingComponent(_) |
-            InstallingComponent(_) |
+            DownloadingComponent(_, _, _) |
+            InstallingComponent(_, _, _) |
             ComponentAlreadyInstalled(_)  |
             RollingBack | DownloadingManifest(_) => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
@@ -137,8 +137,20 @@ impl<'a> Display for Notification<'a> {
             }
             NonFatalError(e) => write!(f, "{}", e),
             MissingInstalledComponent(c) => write!(f, "during uninstall component {} was not found", c),
-            DownloadingComponent(c) => write!(f, "downloading component '{}'", c),
-            InstallingComponent(c) => write!(f, "installing component '{}'", c),
+            DownloadingComponent(c, h, t) => {
+                if h == t {
+                    write!(f, "downloading component '{}'", c)
+                } else {
+                    write!(f, "downloading component '{}' for '{}'", c, t)
+                }
+            }
+            InstallingComponent(c, h, t) => {
+                if h == t {
+                    write!(f, "installing component '{}'", c)
+                } else {
+                    write!(f, "installing component '{}' for '{}'", c, t)
+                }
+            }
             DownloadingManifest(t) => write!(f, "syncing channel updates for '{}'", t),
             DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
         }
