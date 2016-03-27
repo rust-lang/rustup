@@ -6,8 +6,8 @@ authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "multirust in rust - manage multiple rust installations with ease"
 
 documentation = "http://diggsey.github.io/multirust-rs/multirust/index.html"
-homepage = "https://github.com/Diggsey/multirust-rs"
-repository = "https://github.com/Diggsey/multirust-rs"
+homepage = "https://github.com/rust-lang-nursery/multirust-rs"
+repository = "https://github.com/rust-lang-nursery/multirust-rs"
 
 readme = "README.md"
 
