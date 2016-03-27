@@ -222,10 +222,9 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
-    let ref toolchain = try!(cfg.get_toolchain(toolchain, false));
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
-    let cmd = try!(toolchain.create_command(args[0]));
+    let cmd = try!(cfg.create_command_for_toolchain(toolchain, args[0]));
 
     common::run_inner(cmd, &args)
 }

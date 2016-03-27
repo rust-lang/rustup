@@ -336,8 +336,52 @@ impl Cfg {
     }
 
     pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
-        let (toolchain, _) = try!(self.toolchain_for_dir(path));
-        toolchain.create_command(binary)
+        let (ref toolchain, _) = try!(self.toolchain_for_dir(path));
+
+        if let Some(cmd) = try!(self.maybe_do_cargo_fallback(toolchain, binary)) {
+            Ok(cmd)
+        } else {
+            toolchain.create_command(binary)
+        }
+    }
+
+    pub fn create_command_for_toolchain(&self, toolchain: &str, binary: &str) -> Result<Command> {
+        let ref toolchain = try!(self.get_toolchain(toolchain, false));
+
+        if let Some(cmd) = try!(self.maybe_do_cargo_fallback(toolchain, binary)) {
+            Ok(cmd)
+        } else {
+            toolchain.create_command(binary)
+        }
+    }
+
+    // Custom toolchains don't have cargo, so here we detect that situation and
+    // try to find a different cargo.
+    fn maybe_do_cargo_fallback(&self, toolchain: &Toolchain, binary: &str) -> Result<Option<Command>> {
+        if !toolchain.is_custom() {
+            return Ok(None);
+        }
+
+        if binary != "cargo" && binary != "cargo.exe" {
+            return Ok(None);
+        }
+
+        let cargo_path = toolchain.path().join("bin/cargo");
+        let cargo_exe_path = toolchain.path().join("bin/cargo.exe");
+
+        if cargo_path.exists() || cargo_exe_path.exists() {
+            return Ok(None);
+        }
+
+        for fallback in &["nightly", "beta", "stable"] {
+            let fallback = try!(self.get_toolchain(fallback, false));
+            if fallback.exists() {
+                let cmd = try!(fallback.create_fallback_command("cargo", toolchain));
+                return Ok(Some(cmd));
+            }
+        }
+
+        Ok(None)
     }
 
     pub fn doc_path_for_dir(&self, path: &Path, relative: &str) -> Result<PathBuf> {

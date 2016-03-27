@@ -235,6 +235,15 @@ impl<'a> Toolchain<'a> {
         Ok(cmd)
     }
 
+    // Create a command as a fallback for another toolchain. This is used
+    // to give custom toolchains access to cargo
+    pub fn create_fallback_command<T: AsRef<OsStr>>(&self, binary: T,
+                                                    primary_toolchain: &Toolchain) -> Result<Command> {
+        let mut cmd = try!(self.create_command(binary));
+        cmd.env("MULTIRUST_TOOLCHAIN", &primary_toolchain.name);
+        Ok(cmd)
+    }
+
     fn set_env(&self, cmd: &mut Command) {
         self.set_ldpath(cmd);
 
