@@ -176,3 +176,15 @@ fn list_targets() {
 r"");
     });
 }
+
+#[test]
+fn cross_install_indicates_target() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok_ex(config, &["rustup", "target", "add", clitools::CROSS_ARCH1],
+r"",
+&format!(r"info: downloading component 'rust-std' for '{0}'
+info: installing component 'rust-std' for '{0}'
+", clitools::CROSS_ARCH1));
+    });
+}
