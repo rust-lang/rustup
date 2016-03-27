@@ -3,17 +3,11 @@
 [![Build Status](https://travis-ci.org/rust-lang-nursery/multirust-rs.svg?branch=master)](https://travis-ci.org/rust-lang-nursery/multirust-rs)
 [![Build status](https://ci.appveyor.com/api/projects/status/vyiu5qfallpo0n6c/branch/master?svg=true)](https://ci.appveyor.com/project/brson/multirust-rs/branch/master)
 
-Multirust-rs is a reimplementation of multirust in rust. It provides both a command line interface, and a rust library, so it's trivial to integrate it with external tools.
+Multirust-rs is a tool for managing multiple installations of the Rust toolchain under your `HOME`
+directory.
 
-## Library Installation
-
-Add [multirust-rs](https://crates.io/crates/multirust-rs) or [multirust-dist](https://crates.io/crates/multirust-dist) as a standard cargo dependency to your project, depending on your requirements.
-
-## Library Documentation
-
-- [multirust](http://diggsey.github.io/multirust-rs/multirust/index.html)
-- [multirust-dist](http://diggsey.github.io/multirust-rs/multirust_dist/index.html)
-
+It is implemented in Rust as a Cargo project. It provides both a command line interface, and a [rust
+library](#library-installation), so it's trivial to integrate it with external tools.
 
 ## Tool Installation
 
@@ -39,12 +33,13 @@ Run this command in a writable directory:
 git clone --depth 1 https://github.com/rust-lang-nursery/multirust-rs.git multirust-rs && cd multirust-rs && cargo run --release -- self install -a
 ```
 
-This will automatically add `~/.multirust/bin` to your PATH (remove `-a` to disable this behavior).
+This will automatically add `~/.multirust/bin` to your `PATH` (remove `-a` to disable this behavior).
 
-On linux, this is done by appending to `~/.profile`.
-On windows, this is done by modifying the registry entry `HKCU\Environment\PATH`.
+On Linux, this is done by appending to `~/.profile`.
+On Windows, this is done by modifying the registry entry `HKCU\Environment\PATH`.
 
-The changes to PATH will not take effect immediately within the same terminal.
+The changes to `PATH` will not take effect immediately within the same terminal.
+You may need to **restart your GUI desktop session**.
 
 The `multirust-rs` directory which is created is no longer required once installation has completed, but keeping it around will make future updates much faster:
 
@@ -167,14 +162,24 @@ multirust-rs:
 	`multirust show-override`
 
 
+## Library Installation
+
+Add [multirust-rs](https://crates.io/crates/multirust-rs) or [multirust-dist](https://crates.io/crates/multirust-dist) as a standard cargo dependency to your project, depending on your requirements.
+
+## Library Documentation
+
+- [multirust](http://diggsey.github.io/multirust-rs/multirust/index.html)
+- [multirust-dist](http://diggsey.github.io/multirust-rs/multirust_dist/index.html)
+
+
 ## License
 
-    Licensed under either of
+Licensed under either of
 
-     * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-     * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
-    at your option.
+at your option.
 
 
 ## Contributing
