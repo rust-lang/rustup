@@ -116,8 +116,13 @@ get_architecture() {
             local _cputype=arm
             ;;
 
-        armv7l)
+        armv6l)
             local _cputype=arm
+            local _ostype="${_ostype}eabihf"
+            ;;
+
+        armv7l)
+            local _cputype=armv7
             local _ostype="${_ostype}eabihf"
             ;;
 
