@@ -332,7 +332,7 @@ fn show_override_from_multirust_toolchain_env_var() {
             expect_ok(config, &["multirust", "override", "nightly"]);
             // change_dir has a lock so it's ok to futz the environment
             let out = run(config, "multirust", &["show-override"],
-                          &[("MULTIRUST_TOOLCHAIN", "beta")]);
+                          &[("RUSTUP_TOOLCHAIN", "beta")]);
             assert!(out.ok);
             assert!(out.stdout.contains("override toolchain: beta"));
             assert!(out.stdout.contains("override reason: environment override"));

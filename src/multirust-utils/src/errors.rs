@@ -195,7 +195,7 @@ impl error::Error for Error {
             OpeningBrowser { error: None } => "could not open browser: no browser installed",
             SettingPermissions {..} => "failed to set permissions",
             CargoHome => "couldn't find value of CARGO_HOME",
-            MultirustHome => "couldn't find value of MULTIRUST_HOME",
+            MultirustHome => "couldn't find value of RUSTUP_HOME",
         }
     }
 
@@ -365,7 +365,7 @@ impl Display for Error {
                        error)
             },
             CargoHome => write!(f, "couldn't find value of CARGO_HOME"),
-            MultirustHome => write!(f, "couldn't find value of MULTIRUST_HOME"),
+            MultirustHome => write!(f, "couldn't find value of RUSTUP_HOME"),
         }
     }
 }

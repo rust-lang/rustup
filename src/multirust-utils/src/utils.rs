@@ -12,6 +12,7 @@ use errors::{Error, Notification, NotifyHandler};
 use raw;
 #[cfg(windows)]
 use winapi::DWORD;
+use scopeguard;
 
 pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
                     has_cmd, find_cmd};
@@ -333,7 +334,7 @@ pub fn home_dir() -> Option<PathBuf> {
         if OpenProcessToken(me, TOKEN_READ, &mut token) == 0 {
             return None
         }
-        defer! {{ let _ = CloseHandle(token); }}
+        let _g = scopeguard::guard(token, |h| { let _ = CloseHandle(*h); });
         fill_utf16_buf(|buf, mut sz| {
             match GetUserProfileDirectoryW(token, buf, &mut sz) {
                 0 if GetLastError() != ERROR_INSUFFICIENT_BUFFER => 0,
@@ -436,7 +437,7 @@ pub fn cargo_home() -> Result<PathBuf> {
 
 pub fn multirust_home() -> Result<PathBuf> {
     let cwd = try!(env::current_dir().map_err(|_| Error::MultirustHome));
-    let multirust_home = env::var_os("MULTIRUST_HOME").map(|home| {
+    let multirust_home = env::var_os("RUSTUP_HOME").map(|home| {
         cwd.join(home)
     });
     let user_home = home_dir().map(|p| p.join(".multirust"));

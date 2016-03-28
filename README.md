@@ -114,6 +114,10 @@ If the date is omitted, the toolchain will track the most recent version.
 The following environment variables can be used to customize the behaviour of
 multirust-rs:
 
+- `MULTIRUST_HOME` (default: `~/.multirust` or `%LOCALAPPDATA%/.multirust`)
+	Sets the root multirust folder, used for storing installed toolchains and configuration
+	options.
+
 - `MULTIRUST_TOOLCHAIN` (default: none)
 	If set, will override the toolchain used for all rust tool invocations. A toolchain
 	with this name should be installed, or invocations will fail.
@@ -122,9 +126,8 @@ multirust-rs:
 	Sets the root URL for downloading packages. You can change this to instead use
 	a local mirror, or to test the binaries from the staging directory.
 
-- `MULTIRUST_HOME` (default: `~/.multirust` or `%LOCALAPPDATA%/.multirust`)
-	Sets the root multirust folder, used for storing installed toolchains and configuration
-	options.
+- `MULTIRUST_UPDATE_ROOT` (default `https://static.rust-lang.org/rustup/dist`)
+        Sets the root URL for downloading self-updates.
 
 - `MULTIRUST_GPG_KEY` (default: none)
 	Sets the GPG key used to verify the signatures of downloaded files.

@@ -3,7 +3,6 @@
 extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
-#[macro_use]
 extern crate scopeguard;
 extern crate walkdir;
 extern crate flate2;

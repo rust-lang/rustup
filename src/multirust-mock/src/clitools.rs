@@ -14,6 +14,7 @@ use dist::{MockDistServer, MockChannel, MockPackage,
            MockTargettedPackage, MockComponent, change_channel_date,
            ManifestVersion};
 use hyper::Url;
+use scopeguard;
 
 /// The configuration used by the tests in this module
 pub struct Config {
@@ -21,7 +22,7 @@ pub struct Config {
     pub exedir: PathBuf,
     /// The distribution server
     pub distdir: PathBuf,
-    /// MULTIRUST_HOME
+    /// RUSTUP_HOME
     pub rustupdir: PathBuf,
     /// Custom toolchains
     pub customdir: PathBuf,
@@ -56,7 +57,7 @@ pub static MULTI_ARCH1: &'static str = "i686-unknown-linux-gnu";
 /// a mock dist server.
 pub fn setup(s: Scenario, f: &Fn(&Config)) {
     // Unset env variables that will break our testing
-    env::remove_var("MULTIRUST_TOOLCHAIN");
+    env::remove_var("RUSTUP_TOOLCHAIN");
 
     let exedir = TempDir::new("rustup-exe").unwrap();
     let distdir = TempDir::new("rustup-dist").unwrap();
@@ -206,8 +207,8 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
 }
 
 pub fn env(config: &Config, cmd: &mut Command) {
-    cmd.env("MULTIRUST_HOME", config.rustupdir.to_string_lossy().to_string());
-    cmd.env("MULTIRUST_DIST_ROOT", format!("file://{}", config.distdir.join("dist").to_string_lossy()));
+    cmd.env("RUSTUP_HOME", config.rustupdir.to_string_lossy().to_string());
+    cmd.env("RUSTUP_DIST_ROOT", format!("file://{}", config.distdir.join("dist").to_string_lossy()));
     cmd.env("CARGO_HOME", config.cargodir.to_string_lossy().to_string());
 
     // This is only used for some installation tests on unix where CARGO_HOME
@@ -232,9 +233,7 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
 pub fn change_dir(path: &Path, f: &Fn()) {
     let cwd = env::current_dir().unwrap();
     env::set_current_dir(path).unwrap();
-    defer! {
-        env::set_current_dir(&cwd).unwrap()
-    }
+    let _g = scopeguard::guard(cwd, |d| env::set_current_dir(d).unwrap());
     f();
 }
 

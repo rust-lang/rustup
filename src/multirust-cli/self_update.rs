@@ -23,7 +23,7 @@
 //!
 //! During uninstall (`multirust self uninstall`):
 //!
-//! * Delete `$MULTIRUST_HOME`.
+//! * Delete `$RUSTUP_HOME`.
 //! * Delete everything in `$CARGO_HOME`, including
 //!   the multirust binary and its hardlinks
 //!
@@ -43,6 +43,7 @@ use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::fs;
 use tempdir::TempDir;
+use scopeguard;
 
 // The big installation messages. These are macros because the first
 // argument of format! needs to be a literal.
@@ -233,7 +234,7 @@ fn pre_install_msg() -> Result<String> {
 }
 
 // Before multirust-rs installed bins to $CARGO_HOME/bin it installed
-// them to $MULTIRUST_HOME/bin. If those bins continue to exist after
+// them to $RUSTUP_HOME/bin. If those bins continue to exist after
 // upgrade and are on the $PATH, it would cause major confusion. This
 // method silently deletes them.
 fn cleanup_legacy() -> Result<()> {
@@ -323,7 +324,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 
     info!("removing multirust home");
 
-    // Delete MULTIRUST_HOME
+    // Delete RUSTUP_HOME
     let ref multirust_dir = try!(utils::multirust_home());
     if multirust_dir.exists() {
         try!(utils::remove_dir("multirust_home", multirust_dir, ntfy!(&NotifyHandler::none())));
@@ -475,7 +476,7 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
             return Err(Error::WindowsUninstallMadness(err));
         }
 
-        defer!{{ let _ = CloseHandle(gc_handle); }}
+        let _g = scopeguard::guard(gc_handle, |h| { let _ = CloseHandle(*h); });
 
         try!(Command::new(gc_exe).spawn()
              .map_err(|e| Error::WindowsUninstallMadness(e)));
@@ -537,7 +538,7 @@ fn wait_for_parent() -> Result<()> {
             return Err(Error::WindowsUninstallMadness(err));
         }
 
-        defer! {{ let _ = CloseHandle(snapshot); }}
+        let _g = scopeguard::guard(snapshot, |h| { let _ = CloseHandle(*h); });
 
         let mut entry: PROCESSENTRY32 = mem::zeroed();
         entry.dwSize = mem::size_of::<PROCESSENTRY32>() as DWORD;
@@ -570,7 +571,7 @@ fn wait_for_parent() -> Result<()> {
             return Ok(());
         }
 
-        defer! {{ let _ = CloseHandle(parent); }}
+        let _g = scopeguard::guard(parent, |h| { let _ = CloseHandle(*h); });
 
         // Wait for our parent to exit
         let res = WaitForSingleObject(parent, INFINITE);
@@ -816,7 +817,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     // Get host triple
     let triple = dist::get_host_triple();
 
-    let update_root = env::var("MULTIRUST_UPDATE_ROOT")
+    let update_root = env::var("RUSTUP_UPDATE_ROOT")
         .unwrap_or(String::from(UPDATE_ROOT));
 
     let tempdir = try!(TempDir::new("multirust-update")

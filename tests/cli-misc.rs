@@ -33,7 +33,7 @@ fn no_colors_in_piped_error_output() {
 #[test]
 fn rustc_with_bad_multirust_toolchain_env_var() {
     setup(&|config| {
-        let out = run(config, "rustc", &[], &[("MULTIRUST_TOOLCHAIN", "bogus")]);
+        let out = run(config, "rustc", &[], &[("RUSTUP_TOOLCHAIN", "bogus")]);
         assert!(!out.ok);
         assert!(out.stderr.contains("toolchain 'bogus' is not installed"));
     });
@@ -722,3 +722,15 @@ fn custom_toolchain_cargo_fallback_run() {
     });
 }
 
+fn multirust_env_compat() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly"]);
+        clitools::env(config, &mut cmd);
+        cmd.env_remove("RUSTUP_HOME");
+        cmd.env("MULTIRUST_HOME", &config.rustupdir);
+        let out = cmd.output().unwrap();
+        assert!(out.status.success());
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(stderr.contains("environment variable MULTIRUST_HOME is deprecated. Use RUSTUP_HOME"));
+    });
+}

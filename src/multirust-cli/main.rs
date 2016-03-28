@@ -13,7 +13,6 @@ extern crate openssl;
 extern crate itertools;
 extern crate time;
 extern crate rand;
-#[macro_use]
 extern crate scopeguard;
 extern crate tempdir;
 
@@ -59,6 +58,10 @@ fn run_multirust() -> Result<()> {
     if recursion_count > 5 {
         return Err(Error::InfiniteRecursion);
     }
+
+    // Map MULTIRUST_ env vars to RUSTUP_
+    // FIXME: Remove this soon to get it out of the proxy path
+    make_environment_compatible();
 
     // The name of arg0 determines how the program is going to behave
     let arg0 = env::args().next().map(|a| PathBuf::from(a));
@@ -108,3 +111,21 @@ fn run_multirust() -> Result<()> {
     }
 }
 
+// Convert any MULTIRUST_ env vars to RUSTUP_ and warn about them
+fn make_environment_compatible() {
+    let ref vars = ["HOME", "TOOLCHAIN", "DIST_ROOT", "UPDATE_ROOT", "GPG_KEY"];
+    for var in vars {
+        let ref mvar = format!("MULTIRUST_{}", var);
+        let ref rvar = format!("RUSTUP_{}", var);
+        let mval = env::var_os(mvar);
+        let rval = env::var_os(rvar);
+
+        match (mval, rval) {
+            (Some(mval), None) => {
+                env::set_var(rvar, mval);
+                warn!("environment variable {} is deprecated. Use {}.", mvar, rvar);
+            }
+            _ => ()
+        }
+    }
+}

@@ -25,7 +25,7 @@ pub enum OverrideReason {
 impl Display for OverrideReason {
     fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
         match *self {
-            OverrideReason::Environment => write!(f, "environment override by MULTIRUST_TOOLCHAIN"),
+            OverrideReason::Environment => write!(f, "environment override by RUSTUP_TOOLCHAIN"),
             OverrideReason::OverrideDB(ref path) => {
                 write!(f, "directory override for '{}'", path.display())
             }
@@ -69,7 +69,7 @@ impl Cfg {
                                       }));
 
         // GPG key
-        let gpg_key = if let Some(path) = env::var_os("MULTIRUST_GPG_KEY")
+        let gpg_key = if let Some(path) = env::var_os("RUSTUP_GPG_KEY")
                                               .and_then(utils::if_not_empty) {
             Cow::Owned(try!(utils::read_file("public key", Path::new(&path))))
         } else {
@@ -77,11 +77,11 @@ impl Cfg {
         };
 
         // Environment override
-        let env_override = env::var("MULTIRUST_TOOLCHAIN")
+        let env_override = env::var("RUSTUP_TOOLCHAIN")
                                .ok()
                                .and_then(utils::if_not_empty);
 
-        let dist_root_url = env::var("MULTIRUST_DIST_ROOT")
+        let dist_root_url = env::var("RUSTUP_DIST_ROOT")
                                 .ok()
                                 .and_then(utils::if_not_empty)
                                 .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT), Cow::Owned);

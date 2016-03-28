@@ -4,7 +4,6 @@
 extern crate hyper;
 extern crate openssl;
 extern crate rand;
-#[macro_use]
 extern crate scopeguard;
 
 #[cfg(windows)]
