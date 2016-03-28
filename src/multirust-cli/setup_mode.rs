@@ -14,7 +14,6 @@ pub fn main() -> Result<()> {
 
     let cli = App::new("multirust-setup")
         .version("0.0.5")
-        .author("Diggory Blake")
         .about("The installer for multirust")
         .arg(Arg::with_name("verbose")
              .short("v")
