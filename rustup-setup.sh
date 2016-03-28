@@ -42,13 +42,7 @@ main() {
     local _dir="$(ensure mktemp -d)"
     local _file="$_dir/rustup-setup$_ext"
 
-    if [ -e /usr/bin/printf ]; then
-	# printf is a shell builtin and won't interpret \x in posix
-	# (sh) mode, so using the actual printf exe if it exists
-	/usr/bin/printf "\x1b[36;1minfo\x1b[0m: downloading installer\n"
-    else
-	printf "info: downloading installer\n"
-    fi
+    printf "\33[1minfo:\33[0m downloading installer\n"
 
     ensure mkdir -p "$_dir"
     ensure curl -sSfL "$_url" -o "$_file"
