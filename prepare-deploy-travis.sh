@@ -14,7 +14,7 @@ fi
 if [[ "$TARGET" == "x86_64-unknown-linux-gnu" && "$TRAVIS_BRANCH" == "stable" ]]; then
     git config --global credential.helper store;
     echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials;
-    cargo doc;
+    cargo doc --release;
     echo '<meta http-equiv=refresh content=0;url=multirust/index.html>' > target/doc/index.html;
     sudo pip install ghp-import;
     ghp-import -n target/doc;
