@@ -1,76 +1,83 @@
+language: rust
+sudo: required
+dist: trusty
+services:
+  - docker
+
 matrix:
   include:
+    # Linux builds use the `rust-slave-dist` image so we link them against a
+    # "super old glibc" to ensure that it runs on as many platforms as possible.
     - os: linux
-      env: TARGET=i686-unknown-linux-gnu BITS=32 CFLAGS=-m32 CXXFLAGS=-m32
-      dist: trusty
+      rust: nightly
+      env: TARGET=i686-unknown-linux-gnu
+           DOCKER=alexcrichton/rust-slave-dist:2015-10-20b
     - os: linux
-      env: TARGET=x86_64-unknown-linux-gnu BITS=64
-      dist: trusty
-    - os: osx
-      env: TARGET=i686-apple-darwin BITS=32 MACOSX_DEPLOYMENT_TARGET=10.7
-    - os: osx
-      env: TARGET=x86_64-apple-darwin BITS=64 MACOSX_DEPLOYMENT_TARGET=10.7
+      rust: nightly
+      env: TARGET=x86_64-unknown-linux-gnu
+           DOCKER=alexcrichton/rust-slave-dist:2015-10-20b
 
-git:
-  submodules: false
+    # Cross builds happen in the `rust-slave-linux-cross` image to ensure that
+    # we use the right cross compilers for these targets. That image should
+    # bundle all the gcc cross compilers to enable us to build OpenSSL
+    - os: linux
+      rust: nightly
+      env: TARGET=arm-unknown-linux-gnueabi
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-03-17b
+           SKIP_TESTS=1
+    - os: linux
+      rust: nightly
+      env: TARGET=arm-unknown-linux-gnueabihf
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-03-17b
+           SKIP_TESTS=1
+    - os: linux
+      rust: nightly
+      env: TARGET=armv7-unknown-linux-gnueabihf
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-03-17b
+           SKIP_TESTS=1
+    - os: linux
+      rust: nightly
+      env: TARGET=x86_64-unknown-freebsd
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-03-17b
+           SKIP_TESTS=1
+
+    # On OSX we want to target 10.7 so we ensure that the appropriate
+    # environment variable is set to tell the linker what we want.
+    - os: osx
+      rust: nightly
+      env: TARGET=i686-apple-darwin
+           MACOSX_DEPLOYMENT_TARGET=10.7
+    - os: osx
+      rust: nightly
+      env: TARGET=x86_64-apple-darwin
+           MACOSX_DEPLOYMENT_TARGET=10.7
 
 branches:
   only:
     - master
     - stable
 
-sudo: required
-services:
-  - docker
-
 install:
   - sudo pip install awscli
   - aws configure set preview.cloudfront true
-  # Set git user for pushing binaries
-  - git config --global user.email "diggsey@googlemail.com"
-  - git config --global user.name "Diggory Blake (via Travis CI)"
-  - git config --global push.default simple
-  # Download nightly rust
-  - mkdir -p ~/rust
-  - echo -e "\033[33;1mDownloading Rust\033[0m"
-  - curl -sL https://static.rust-lang.org/dist/rust-nightly-$TARGET.tar.gz | tar --strip-components=1 -C ~/rust -xzf -
-  # For linux, install required packages
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      if [ "$BITS" == "32" ]; then
-        sudo dpkg --add-architecture i386;
-        sudo apt-get update;
-        sudo apt-get install -y
-          libc6-dev:i386 libstdc++6:i386 zlib1g-dev:i386 libssl-dev:i386 pkg-config:i386
-          gcc-4.8 cpp-4.8 gcc-4.8-multilib gcc-multilib;
-      else
-        sudo apt-get update;
-        sudo apt-get install -y
-          libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev;
-      fi
-    fi
-  # Install nightly rust
-  - echo -e "\033[33;1mInstalling Rust\033[0m"
-  - sudo ~/rust/install.sh
+  - curl https://static.rust-lang.org/rustup.sh |
+    sh -s -- --prefix=$HOME/rust --add-target=$TARGET
 
 script:
-  # Run linux builds in a docker container to improve portability of the resulting binaries
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+  - mkdir target
+  - if [ ! -z "$DOCKER" ]; then
       docker run
         --entrypoint bash
         -u `id -u`:`id -g`
-        -v /usr/local:/usr/local:ro
-        -v `pwd`:/buildslave
-        -v $HOME:/home/rustbuild
-        -e HOME=/home/rustbuild
-        -e LD_LIBRARY_PATH=/usr/local/lib
-        -e OPENSSL_STATIC=1
-        -e OPENSSL_LIB_DIR=/rustroot/cargo$BITS/lib
-        -it alexcrichton/rust-slave-dist:2015-10-20b
-        -c "cargo build --release --verbose && cargo test --release -p multirust-dist --verbose && cargo test --release --verbose" || exit 1;
+        -v `rustc --print sysroot`:/travis-rust:ro
+        -v `pwd`:/buildslave:ro
+        -v `pwd`/target:/buildslave/target
+        -e TARGET=$TARGET
+        -e SKIP_TESTS=$SKIP_TESTS
+        -it $DOCKER
+        ci/run-docker.sh;
     else
-      cargo build --release --verbose || exit 1;
-      cargo test --release -p multirust-dist --verbose || exit 1;
-      cargo test --release --verbose || exit 1;
+      sh ci/run.sh;
     fi
 
 after_success:
@@ -83,9 +90,8 @@ after_success:
       find target/debug/deps/*-* -executable -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
       find target/debug/*-* -executable ! -name multirust-rs -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
     fi
-
-before_deploy:
-  - bash prepare-deploy-travis.sh
+  # prepare for a deploy if this will be a deployment
+  - bash ci/prepare-deploy-travis.sh
 
 deploy:
   - provider: s3
