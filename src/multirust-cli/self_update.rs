@@ -205,7 +205,9 @@ pub fn install(no_prompt: bool, verbose: bool) -> Result<()> {
 }
 
 fn pre_install_msg() -> Result<String> {
-    let ref cargo_home = try!(utils::cargo_home());
+    let cargo_home = try!(utils::cargo_home());
+    let cargo_home_bin = cargo_home.join("bin");
+
     if cfg!(unix) {
         let add_path_methods = get_add_path_methods();
         let rcfiles = add_path_methods.into_iter()
@@ -219,15 +221,15 @@ fn pre_install_msg() -> Result<String> {
         if !rcfiles.is_empty() {
             let rcfiles_str = rcfiles.join("\n");
             Ok(format!(pre_install_msg_unix!(),
-                       cargo_home_bin = cargo_home.display(),
+                       cargo_home_bin = cargo_home_bin.display(),
                        rcfiles = rcfiles_str))
         } else {
             Ok(format!(pre_install_msg_unix_norcfiles!(),
-                       cargo_home_bin = cargo_home.display()))
+                       cargo_home_bin = cargo_home_bin.display()))
         }
     } else {
         Ok(format!(pre_install_msg_win!(),
-                   cargo_home_bin = cargo_home.display()))
+                   cargo_home_bin = cargo_home_bin.display()))
     }
 }
 
