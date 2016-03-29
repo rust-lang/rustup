@@ -1,19 +1,19 @@
 [root]
 name = "multirust-rs"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
- "clap 2.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clap 2.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "multirust-dist 0.1.0",
- "multirust-mock 0.1.0",
- "multirust-utils 0.1.0",
+ "multirust-dist 0.1.1",
+ "multirust-mock 0.1.1",
+ "multirust-utils 0.1.1",
  "openssl 0.7.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex 0.1.59 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.60 (registry+https://github.com/rust-lang/crates.io-index)",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "term 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -61,7 +61,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "clap"
-version = "2.2.2"
+version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "ansi_term 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -248,16 +248,16 @@ dependencies = [
 
 [[package]]
 name = "multirust-dist"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "flate2 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "multirust-mock 0.1.0",
- "multirust-utils 0.1.0",
+ "multirust-mock 0.1.1",
+ "multirust-utils 0.1.1",
  "ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.7.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex 0.1.59 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.60 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -266,7 +266,7 @@ dependencies = [
 
 [[package]]
 name = "multirust-mock"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "flate2 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -282,7 +282,7 @@ dependencies = [
 
 [[package]]
 name = "multirust-utils"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "advapi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -377,7 +377,7 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "0.1.59"
+version = "0.1.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "aho-corasick 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
