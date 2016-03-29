@@ -3,7 +3,7 @@
 
 use config::Config;
 use manifest::{Component, Manifest, TargettedPackage};
-use dist::{download_and_check, DownloadCfg};
+use dist::{download_and_check, DownloadCfg, TargetTriple};
 use component::{Components, Transaction, TarGzPackage, Package};
 use temp;
 use errors::*;
@@ -19,7 +19,7 @@ pub const CONFIG_FILE: &'static str = "multirust-config.toml";
 #[derive(Debug)]
 pub struct Manifestation {
     installation: Components,
-    target_triple: String
+    target_triple: TargetTriple
 }
 
 #[derive(Debug)]
@@ -46,12 +46,12 @@ impl Manifestation {
     /// it will be created as needed. If there's an existing install
     /// then the rust-install installation format will be verified. A
     /// bad installer version is the only reason this will fail.
-    pub fn open(prefix: InstallPrefix, triple: &str) -> Result<Self> {
+    pub fn open(prefix: InstallPrefix, triple: TargetTriple) -> Result<Self> {
         // TODO: validate the triple with the existing install as well
         // as the metadata format of the existing install
         Ok(Manifestation {
             installation: try!(Components::open(prefix)),
-            target_triple: triple.to_string(),
+            target_triple: triple,
         })
     }
 

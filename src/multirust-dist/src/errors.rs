@@ -8,6 +8,7 @@ use toml;
 use multirust_utils;
 use multirust_utils::notify::{self, NotificationLevel, Notifyable};
 use manifest::Component;
+use dist::TargetTriple;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -24,8 +25,8 @@ pub enum Notification<'a> {
     ExtensionNotInstalled(&'a Component),
     NonFatalError(&'a Error),
     MissingInstalledComponent(&'a str),
-    DownloadingComponent(&'a str, &'a str, &'a str),
-    InstallingComponent(&'a str, &'a str, &'a str),
+    DownloadingComponent(&'a str, &'a TargetTriple, &'a TargetTriple),
+    InstallingComponent(&'a str, &'a TargetTriple, &'a TargetTriple),
     DownloadingManifest(&'a str),
     DownloadingLegacyManifest,
 }
@@ -37,6 +38,7 @@ pub enum Error {
 
     InvalidFileExtension,
     InvalidInstaller,
+    InvalidTargetTriple(String),
     InvalidToolchainName(String),
     InvalidCustomToolchainName(String),
     NotInstalledHere,
@@ -73,7 +75,7 @@ pub enum Error {
     MissingKey(String),
     ExpectedType(&'static str, String),
     PackageNotFound(String),
-    TargetNotFound(String),
+    TargetNotFound(TargetTriple),
     MissingRoot,
     UnsupportedVersion(String),
     MissingPackageForComponent(Component),
@@ -165,6 +167,7 @@ impl error::Error for Error {
             Temp(ref e) => error::Error::description(e),
             InvalidFileExtension => "invalid file extension",
             InvalidInstaller => "invalid installer",
+            InvalidTargetTriple(_) => "invalid target triple",
             InvalidToolchainName(_) => "invalid toolchain name",
             InvalidCustomToolchainName(_) => "invalid custom toolchain name",
             NotInstalledHere => "not installed here",
@@ -209,6 +212,7 @@ impl error::Error for Error {
             NoManifestFound(_, ref e) => Some(e),
             InvalidFileExtension |
             InvalidInstaller |
+            InvalidTargetTriple(_) |
             InvalidToolchainName(_) |
             InvalidCustomToolchainName(_) |
             NotInstalledHere |
@@ -246,6 +250,7 @@ impl Display for Error {
 
             InvalidFileExtension => write!(f, "invalid file extension"),
             InvalidInstaller => write!(f, "invalid installer"),
+            InvalidTargetTriple(ref s) => write!(f, "invalid target triple: '{}'", s),
             InvalidToolchainName(ref s) => write!(f, "invalid toolchain name: '{}'", s),
             InvalidCustomToolchainName(ref s) => write!(f, "invalid custom toolchain name: '{}'", s),
             NotInstalledHere => write!(f, "not installed here"),

@@ -2,7 +2,7 @@ use errors::*;
 use multirust_dist::dist;
 use multirust_utils::utils;
 use multirust_dist::prefix::InstallPrefix;
-use multirust_dist::dist::ToolchainDesc;
+use multirust_dist::dist::{ToolchainDesc};
 use multirust_dist::manifestation::{Manifestation, Changes};
 use multirust_dist::manifest::Component;
 use config::Cfg;
@@ -37,16 +37,20 @@ pub enum UpdateStatus {
 }
 
 impl<'a> Toolchain<'a> {
-    pub fn from(cfg: &'a Cfg, name: &str) -> Self {
-        let path = cfg.toolchains_dir.join(name);
-        Toolchain {
+    pub fn from(cfg: &'a Cfg, name: &str) -> Result<Self> {
+        let resolved_name = try!(cfg.resolve_toolchain(name));
+        let path = cfg.toolchains_dir.join(&resolved_name);
+        Ok(Toolchain {
             cfg: cfg,
-            name: name.to_owned(),
+            name: resolved_name,
             path: path.clone(),
-        }
+        })
     }
     pub fn name(&self) -> &str {
         &self.name
+    }
+    pub fn desc(&self) -> Result<ToolchainDesc> {
+        Ok(try!(ToolchainDesc::from_str(&self.name)))
     }
     pub fn path(&self) -> &Path {
         &self.path
@@ -139,13 +143,13 @@ impl<'a> Toolchain<'a> {
 
     pub fn install_from_dist(&self) -> Result<UpdateStatus> {
         let update_hash = try!(self.update_hash());
-        self.install(InstallMethod::Dist(&self.name,
+        self.install(InstallMethod::Dist(&try!(self.desc()),
                                          update_hash.as_ref().map(|p| &**p),
                                          self.download_cfg()))
     }
     pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
         let update_hash = try!(self.update_hash());
-        self.install_if_not_installed(InstallMethod::Dist(&self.name,
+        self.install_if_not_installed(InstallMethod::Dist(&try!(self.desc()),
                                                           update_hash.as_ref().map(|p| &**p),
                                                           self.download_cfg()))
     }
@@ -304,9 +308,8 @@ impl<'a> Toolchain<'a> {
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
                                  .map_err(|_| Error::ComponentsUnsupported(self.name.to_string())));
-        let trip = toolchain.target_triple();
         let prefix = InstallPrefix::from(self.path.to_owned());
-        let manifestation = try!(Manifestation::open(prefix, &trip));
+        let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {
             let config = try!(manifestation.read_config());
@@ -317,7 +320,7 @@ impl<'a> Toolchain<'a> {
 
             let rust_pkg = manifest.packages.get("rust")
                 .expect("manifest should cantain a rust package");
-            let targ_pkg = rust_pkg.targets.get(&trip)
+            let targ_pkg = rust_pkg.targets.get(&toolchain.target)
                 .expect("installed manifest should have a known target");
 
             for component in &targ_pkg.components {
@@ -358,16 +361,15 @@ impl<'a> Toolchain<'a> {
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
                                  .map_err(|_| Error::ComponentsUnsupported(self.name.to_string())));
-        let trip = toolchain.target_triple();
         let prefix = InstallPrefix::from(self.path.to_owned());
-        let manifestation = try!(Manifestation::open(prefix, &trip));
+        let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {
 
             // Validate the component name
             let rust_pkg = manifest.packages.get("rust")
                 .expect("manifest should cantain a rust package");
-            let targ_pkg = rust_pkg.targets.get(&trip)
+            let targ_pkg = rust_pkg.targets.get(&toolchain.target)
                 .expect("installed manifest should have a known target");
 
             if targ_pkg.components.contains(&component) {
@@ -402,16 +404,15 @@ impl<'a> Toolchain<'a> {
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
                                  .map_err(|_| Error::ComponentsUnsupported(self.name.to_string())));
-        let trip = toolchain.target_triple();
         let prefix = InstallPrefix::from(self.path.to_owned());
-        let manifestation = try!(Manifestation::open(prefix, &trip));
+        let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {
 
             // Validate the component name
             let rust_pkg = manifest.packages.get("rust")
                 .expect("manifest should cantain a rust package");
-            let targ_pkg = rust_pkg.targets.get(&trip)
+            let targ_pkg = rust_pkg.targets.get(&toolchain.target)
                 .expect("installed manifest should have a known target");
 
             if targ_pkg.components.contains(&component) {

@@ -5,6 +5,7 @@ use common::{self, confirm, set_globals, run_inner,
              update_all_channels};
 use multirust::*;
 use multirust_dist::manifest::Component;
+use multirust_dist::dist::TargetTriple;
 use self_update;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -321,7 +322,7 @@ fn add_target(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(cfg.get_toolchain(toolchain, false));
     let new_component = Component {
         pkg: "rust-std".to_string(),
-        target: target.to_string(),
+        target: try!(TargetTriple::from_str(target)),
     };
     try!(toolchain.add_component(new_component));
 
@@ -334,7 +335,7 @@ fn remove_target(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(cfg.get_toolchain(toolchain, false));
     let new_component = Component {
         pkg: "rust-std".to_string(),
-        target: target.to_string(),
+        target: try!(TargetTriple::from_str(target)),
     };
     try!(toolchain.remove_component(new_component));
 

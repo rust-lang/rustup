@@ -15,6 +15,7 @@ use toml;
 use toml_utils::*;
 
 use std::collections::HashMap;
+use dist::TargetTriple;
 
 pub const SUPPORTED_MANIFEST_VERSIONS: [&'static str; 1] = ["2"];
 pub const DEFAULT_MANIFEST_VERSION: &'static str = "2";
@@ -29,7 +30,7 @@ pub struct Manifest {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Package {
     pub version: String,
-    pub targets: HashMap<String, TargettedPackage>,
+    pub targets: HashMap<TargetTriple, TargettedPackage>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -44,7 +45,7 @@ pub struct TargettedPackage {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Component {
     pub pkg: String,
-    pub target: String,
+    pub target: TargetTriple,
 }
 
 impl Manifest {
@@ -143,28 +144,28 @@ impl Package {
         result
     }
 
-    fn toml_to_targets(mut table: toml::Table, path: &str) -> Result<HashMap<String, TargettedPackage>> {
+    fn toml_to_targets(mut table: toml::Table, path: &str) -> Result<HashMap<TargetTriple, TargettedPackage>> {
         let mut result = HashMap::new();
         let target_table = try!(get_table(&mut table, "target", path));
 
         for (k, v) in target_table {
             if let toml::Value::Table(t) = v {
-                result.insert(k, try!(TargettedPackage::from_toml(t, &path)));
+                result.insert(try!(TargetTriple::from_str(&k)), try!(TargettedPackage::from_toml(t, &path)));
             }
         }
 
         Ok(result)
     }
-    fn targets_to_toml(targets: HashMap<String, TargettedPackage>) -> toml::Table {
+    fn targets_to_toml(targets: HashMap<TargetTriple, TargettedPackage>) -> toml::Table {
         let mut result = toml::Table::new();
         for (k, v) in targets {
-            result.insert(k, toml::Value::Table(v.to_toml()));
+            result.insert(k.to_string(), toml::Value::Table(v.to_toml()));
         }
         result
     }
 
-    pub fn get_target(&self, target: &str) -> Result<&TargettedPackage> {
-        self.targets.get(target).ok_or_else(|| Error::TargetNotFound(target.to_owned()))
+    pub fn get_target(&self, target: &TargetTriple) -> Result<&TargettedPackage> {
+        self.targets.get(target).ok_or_else(|| Error::TargetNotFound(target.clone()))
     }
 }
 
@@ -223,12 +224,12 @@ impl Component {
     pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
         Ok(Component {
             pkg: try!(get_string(&mut table, "pkg", path)),
-            target: try!(get_string(&mut table, "target", path)),
+            target: try!(get_string(&mut table, "target", path).and_then(|s| TargetTriple::from_str(&s))),
         })
     }
     pub fn to_toml(self) -> toml::Table {
         let mut result = toml::Table::new();
-        result.insert("target".to_owned(), toml::Value::String(self.target));
+        result.insert("target".to_owned(), toml::Value::String(self.target.to_string()));
         result.insert("pkg".to_owned(), toml::Value::String(self.pkg));
         result
     }
@@ -236,4 +237,3 @@ impl Component {
         format!("{}-{}", self.pkg, self.target)
     }
 }
-
