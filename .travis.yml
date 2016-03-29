@@ -79,17 +79,16 @@ script:
     else
       sh ci/run.sh;
     fi
-
-after_success:
   # Install kcov dependencies
-  - if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
-      wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz;
-      tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make;
-      sudo make install && cd ../..;
-      echo "Uploading coverage... $TRAVIS_JOB_ID";
-      find target/debug/deps/*-* -executable -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
-      find target/debug/*-* -executable ! -name multirust-rs -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
-    fi
+  # FIXME: busted!
+  #- if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
+  #    wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz;
+  #    tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make;
+  #    sudo make install && cd ../..;
+  #    echo "Uploading coverage... $TRAVIS_JOB_ID";
+  #    find target/debug/deps/*-* -executable -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
+  #    find target/debug/*-* -executable ! -name multirust-rs -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
+  #  fi
   # prepare for a deploy if this will be a deployment
   - bash ci/prepare-deploy-travis.sh
 
