@@ -12,7 +12,6 @@ use errors::{Error, Notification, NotifyHandler};
 use raw;
 #[cfg(windows)]
 use winapi::DWORD;
-use scopeguard;
 
 pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
                     has_cmd, find_cmd};

@@ -43,7 +43,6 @@ use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::fs;
 use tempdir::TempDir;
-use scopeguard;
 
 // The big installation messages. These are macros because the first
 // argument of format! needs to be a literal.
