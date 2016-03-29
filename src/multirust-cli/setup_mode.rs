@@ -13,7 +13,7 @@ pub fn main() -> Result<()> {
     }
 
     let cli = App::new("multirust-setup")
-        .version("0.1.0")
+        .version("0.1.1")
         .about("The installer for multirust")
         .arg(Arg::with_name("verbose")
              .short("v")
