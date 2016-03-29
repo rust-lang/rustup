@@ -195,7 +195,7 @@ fn uninstall_deletes_multirust_home() {
 fn uninstall_works_if_multirust_home_doesnt_exist() {
     setup(&|config| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        fs::remove_dir_all(&config.rustupdir).unwrap();
+        raw::remove_dir(&config.rustupdir).unwrap();
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
     });
 }
