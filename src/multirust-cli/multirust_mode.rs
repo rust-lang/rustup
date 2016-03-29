@@ -30,6 +30,8 @@ pub fn main() -> Result<()> {
     // it interferes with the fragile self-deletion code.
     maybe_setup_winjob(&app_matches);
 
+    warn!("'multirust' is being renamed to 'rustup'. this command is deprecated. use 'rustup' instead");
+
     match app_matches.subcommand() {
         ("update", Some(m)) => update(&cfg, m),
         ("default", Some(m)) => default_(&cfg, m),

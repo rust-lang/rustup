@@ -171,7 +171,7 @@ impl error::Error for Error {
             ToolchainNotInstalled(_) => "toolchain is not installed",
             UnknownHostTriple => "unknown host triple",
             InfiniteRecursion =>  "infinite recursion detected",
-            NeedMetadataUpgrade => "multirust's metadata is out of date. run multirust upgrade-data.",
+            NeedMetadataUpgrade => "rustup's metadata is out of date. run rustup upgrade-data.",
             UpgradeIoError(_) => "I/O error during upgrade",
             BadInstallerType(_) => "invalid extension for installer",
             ComponentsUnsupported(_) => "toolchain does not support componentsn",
@@ -179,7 +179,7 @@ impl error::Error for Error {
             AddingRequiredComponent(_, _) => "required component cannot be added",
             RemovingRequiredComponent(_, _) => "required component cannot be removed",
             NoExeName => "couldn't determine self executable name",
-            NotSelfInstalled(_) => "multirust is not installed",
+            NotSelfInstalled(_) => "rustup is not installed",
             CantSpawnWindowsGcExe => "failed to spawn cleanup process",
             WindowsUninstallMadness(_) => "failure during windows uninstall",
             SelfUpdateFailed => "self-updater failed to replace multirust executable",
@@ -260,7 +260,7 @@ impl Display for Error {
             }
             NoExeName => write!(f, "couldn't determine self executable name"),
             NotSelfInstalled(ref p) => {
-                write!(f, "multirust is not installed at '{}'", p.display())
+                write!(f, "rustup is not installed at '{}'", p.display())
             }
             CantSpawnWindowsGcExe => write!(f, "{}", self.description()),
             WindowsUninstallMadness(ref e) => write!(f, "failure during windows uninstall: {}", e),

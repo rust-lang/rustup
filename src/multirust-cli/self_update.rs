@@ -66,7 +66,7 @@ $platform_msg
 ,
 "
 
-You can uninstall at any time with `multirust self uninstall` and
+You can uninstall at any time with `rustup self uninstall` and
 these changes will be reverted.
 
 WARNING: This is an early beta. Expect breakage.
@@ -792,7 +792,7 @@ pub fn update() -> Result<()> {
 
     let setup_path = try!(prepare_update());
     if let Some(ref p) = setup_path {
-        info!("multirust updated successfully");
+        info!("rustup updated successfully");
         try!(run_update(p));
     }
 
