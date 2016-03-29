@@ -21,7 +21,7 @@ install:
       $env:PATH="$env:PATH;C:\rust\bin"
 
       New-Item .cargo -type directory
-      Copy-Item .appveyor.cargo-config.toml .cargo/config
+      Copy-Item ci/appveyor-cargo-config.toml .cargo/config
 
       # For -gnu builds
       if ($env:TARGET -match "-gnu$") {
@@ -38,11 +38,6 @@ install:
       rustc -vV
       cargo -vV
 
-      # Configure git
-      git config --global user.email "diggsey@googlemail.com"
-      git config --global user.name "Diggory Blake (via Appveyor CI)"
-      git config --global push.default simple
-
 build: false
 
 test_script:
@@ -55,7 +50,7 @@ notifications:
     url: https://webhooks.gitter.im/e/9907ad94eb7a5ff291c3
 
 after_test:
-  - powershell -File prepare-deploy-appveyor.ps1
+  - powershell -File ci/prepare-deploy-appveyor.ps1
 
 artifacts:
   - path: dist\$(TARGET)\rustup-setup.exe

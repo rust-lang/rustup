@@ -25,9 +25,9 @@ fi;
 
 # Generate hashes
 if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-    find "target/release/" -maxdepth 1 -type f -exec sh -c 'shasum -a 256 -b "{}" > "{}.sha256"' \;;
+    find "target/$TARGET/release/" -maxdepth 1 -type f -exec sh -c 'shasum -a 256 -b "{}" > "{}.sha256"' \;;
 else
-    find "target/release/" -maxdepth 1 -type f -exec sh -c 'sha256sum -b "{}" > "{}.sha256"' \;;
+    find "target/$TARGET/release/" -maxdepth 1 -type f -exec sh -c 'sha256sum -b "{}" > "{}.sha256"' \;;
 fi
 
 # The directory for deployment artifacts
@@ -36,8 +36,8 @@ dest="deploy"
 # Prepare bins for upload
 bindest="$dest/dist/$TARGET"
 mkdir -p "$bindest/"
-cp target/release/rustup-setup "$bindest/"
-cp target/release/rustup-setup.sha256 "$bindest/"
+cp target/$TARGET/release/rustup-setup "$bindest/"
+cp target/$TARGET/release/rustup-setup.sha256 "$bindest/"
 
 if [ "$TARGET" != "x86_64-unknown-linux-gnu" ]; then
     exit 0
