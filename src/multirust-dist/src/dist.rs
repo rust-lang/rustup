@@ -122,12 +122,14 @@ impl PartialToolchainDesc {
     }
 
     pub fn resolve(self, host: &TargetTriple) -> ToolchainDesc {
-        let os = self.os.unwrap_or_else(|| host.os.clone());
-        let env = if os == host.os {
-            self.env.or_else(|| host.env.clone())
+        // If OS was specified, don't default to host environment, even if the OS matches
+        // the host OS, otherwise cannot specify no environment.
+        let env = if self.os.is_some() {
+            self.env
         } else {
-            None
+            self.env.or_else(|| host.env.clone())
         };
+        let os = self.os.unwrap_or_else(|| host.os.clone());
         ToolchainDesc {
             channel: self.channel,
             date: self.date,

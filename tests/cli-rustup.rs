@@ -9,7 +9,10 @@ use multirust_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
                                expect_err_ex,
-                               set_current_dist_date};
+                               set_current_dist_date,
+                               this_host_triple};
+
+macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::ArchivesV2, &|config| {
@@ -24,11 +27,11 @@ fn rustup_stable() {
         expect_ok(config, &["rustup", "update", "stable"]);
         set_current_dist_date(config, "2015-01-02");
         expect_ok_ex(config, &["rustup", "--no-self-update"],
-r"
-  stable updated - 1.1.0 (hash-s-2)
+for_host!(r"
+  stable-{0} updated - 1.1.0 (hash-s-2)
 
-",
-r"info: syncing channel updates for 'stable'
+"),
+for_host!(r"info: syncing channel updates for 'stable-{0}'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -37,7 +40,7 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-");
+"));
     });
 }
 
@@ -47,12 +50,12 @@ fn rustup_stable_no_change() {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "update", "stable"]);
         expect_ok_ex(config, &["rustup", "--no-self-update"],
-r"
-  stable unchanged - 1.0.0 (hash-s-1)
+for_host!(r"
+  stable-{0} unchanged - 1.0.0 (hash-s-1)
 
-",
-r"info: syncing channel updates for 'stable'
-");
+"),
+for_host!(r"info: syncing channel updates for 'stable-{0}'
+"));
     });
 }
 
@@ -65,13 +68,13 @@ fn rustup_all_channels() {
         expect_ok(config, &["multirust", "update", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
         expect_ok_ex(config, &["rustup", "--no-self-update"],
-r"
-   stable updated - 1.1.0 (hash-s-2)
-     beta updated - 1.2.0 (hash-b-2)
-  nightly updated - 1.3.0 (hash-n-2)
+for_host!(r"
+   stable-{0} updated - 1.1.0 (hash-s-2)
+     beta-{0} updated - 1.2.0 (hash-b-2)
+  nightly-{0} updated - 1.3.0 (hash-n-2)
 
-",
-r"info: syncing channel updates for 'stable'
+"),
+for_host!(r"info: syncing channel updates for 'stable-{0}'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -80,7 +83,7 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-info: syncing channel updates for 'beta'
+info: syncing channel updates for 'beta-{0}'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -89,7 +92,7 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-info: syncing channel updates for 'nightly'
+info: syncing channel updates for 'nightly-{0}'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -98,7 +101,7 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-");
+"));
     })
 }
 
@@ -112,13 +115,13 @@ fn rustup_some_channels_up_to_date() {
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["multirust", "update", "beta"]);
         expect_ok_ex(config, &["rustup", "--no-self-update"],
-r"
-   stable updated - 1.1.0 (hash-s-2)
-   beta unchanged - 1.2.0 (hash-b-2)
-  nightly updated - 1.3.0 (hash-n-2)
+for_host!(r"
+   stable-{0} updated - 1.1.0 (hash-s-2)
+   beta-{0} unchanged - 1.2.0 (hash-b-2)
+  nightly-{0} updated - 1.3.0 (hash-n-2)
 
-",
-r"info: syncing channel updates for 'stable'
+"),
+for_host!(r"info: syncing channel updates for 'stable-{0}'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -127,8 +130,8 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-info: syncing channel updates for 'beta'
-info: syncing channel updates for 'nightly'
+info: syncing channel updates for 'beta-{0}'
+info: syncing channel updates for 'nightly-{0}'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -137,7 +140,7 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-");
+"));
     })
 }
 
@@ -157,11 +160,11 @@ r"info: no updatable toolchains installed
 fn default() {
     setup(&|config| {
         expect_ok_ex(config, &["rustup", "default", "nightly"],
-r"
-  nightly installed - 1.3.0 (hash-n-2)
+for_host!(r"
+  nightly-{0} installed - 1.3.0 (hash-n-2)
 
-",
-r"info: syncing channel updates for 'nightly'
+"),
+for_host!(r"info: syncing channel updates for 'nightly-{0}'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -170,16 +173,16 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-info: default toolchain set to 'nightly'
-");
+info: default toolchain set to 'nightly-{0}'
+"));
     });
 }
 
 #[test]
 fn add_target() {
     setup(&|config| {
-        let path = format!("toolchains/nightly/lib/rustlib/{}/lib/libstd.rlib",
-                           clitools::CROSS_ARCH1);
+        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+                           &this_host_triple(), clitools::CROSS_ARCH1);
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "target", "add",
                             clitools::CROSS_ARCH1]);
@@ -190,8 +193,8 @@ fn add_target() {
 #[test]
 fn remove_target() {
     setup(&|config| {
-        let ref path = format!("toolchains/nightly/lib/rustlib/{}/lib/libstd.rlib",
-                           clitools::CROSS_ARCH1);
+        let ref path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+                               &this_host_triple(), clitools::CROSS_ARCH1);
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "target", "add",
                             clitools::CROSS_ARCH1]);
@@ -211,6 +214,7 @@ fn list_targets() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn link() {
     setup(&|config| {
@@ -239,8 +243,8 @@ fn show_toolchain_default() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok_ex(config, &["rustup", "show"],
-r"nightly (default toolchain)
-",
+for_host!(r"nightly-{0} (default toolchain)
+"),
 r"");
     });
 }
@@ -267,8 +271,8 @@ fn show_toolchain_override_not_installed() {
         // is not installed; just capturing the behavior.
         expect_err_ex(config, &["rustup", "show"],
 r"",
-r"error: toolchain 'nightly' is not installed
-");
+for_host!(r"error: toolchain 'nightly-{0}' is not installed
+"));
     });
 }
 
@@ -282,7 +286,7 @@ fn show_toolchain_env() {
         let out = cmd.output().unwrap();
         assert!(out.status.success());
         let stdout = String::from_utf8(out.stdout).unwrap();
-        assert!(stdout == "nightly (environment override by RUSTUP_TOOLCHAIN)\n");
+        assert!(&stdout == for_host!("nightly-{0} (environment override by RUSTUP_TOOLCHAIN)\n"));
     });
 }
 

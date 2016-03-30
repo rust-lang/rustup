@@ -27,6 +27,8 @@ use multirust_mock::clitools::{self, Config, Scenario,
 use multirust_mock::dist::{create_hash, calc_hash};
 use multirust_utils::raw;
 
+macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
+
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, &|config| {
         // Lock protects environment variables
@@ -689,14 +691,14 @@ fn rustup_self_update_exact() {
         expect_ok(config, &["rustup-setup", "-y"]);
 
         expect_ok_ex(config, &["rustup"],
-r"
-  stable unchanged - 1.1.0 (hash-s-2)
+for_host!(r"
+  stable-{0} unchanged - 1.1.0 (hash-s-2)
 
-",
-r"info: syncing channel updates for 'stable'
+"),
+for_host!(r"info: syncing channel updates for 'stable-{0}'
 info: checking for self-updates
 info: downloading self-update
-");
+"));
     })
 }
 
@@ -771,7 +773,7 @@ r"
   stable installed - 1.1.0 (hash-s-2)
 
 ",
-r"info: syncing channel updates for 'stable'
+for_host!(r"info: syncing channel updates for 'stable-{0}'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -781,7 +783,7 @@ info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: default toolchain set to 'stable'
-"
+")
                   );
     });
 }
@@ -839,7 +841,7 @@ fn install_sets_up_stable_unless_there_is_already_a_default() {
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-2");
         expect_err(config, &["multirust", "run", "stable", "rustc", "--version"],
-                   "toolchain 'stable' is not installed");
+                   for_host!("toolchain 'stable-{0}' is not installed"));
     });
 }
 

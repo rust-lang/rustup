@@ -10,6 +10,8 @@ use multirust_mock::clitools::{self, Config, Scenario,
                                this_host_triple};
 use std::env;
 
+macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
+
 fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, f);
 }
@@ -22,7 +24,7 @@ r"
   nightly installed - 1.3.0 (hash-n-2)
 
 ",
-r"info: syncing channel updates for 'nightly'
+for_host!(r"info: syncing channel updates for 'nightly-{0}'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -31,7 +33,7 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-");
+"));
     });
 }
 
@@ -44,8 +46,8 @@ r"
   nightly unchanged - 1.3.0 (hash-n-2)
 
 ",
-r"info: syncing channel updates for 'nightly'
-");
+for_host!(r"info: syncing channel updates for 'nightly-{0}'
+"));
     });
 }
 
@@ -53,11 +55,11 @@ r"info: syncing channel updates for 'nightly'
 fn default() {
     setup(&|config| {
         expect_ok_ex(config, &["multirust", "default", "nightly"],
-r"
-  nightly installed - 1.3.0 (hash-n-2)
+for_host!(r"
+  nightly-{0} installed - 1.3.0 (hash-n-2)
 
-",
-r"info: syncing channel updates for 'nightly'
+"),
+for_host!(r"info: syncing channel updates for 'nightly-{0}'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -66,8 +68,8 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-info: default toolchain set to 'nightly'
-");
+info: default toolchain set to 'nightly-{0}'
+"));
     });
 }
 
@@ -77,14 +79,14 @@ fn override_again() {
         let cwd = env::current_dir().unwrap();
         expect_ok(config, &["multirust", "override", "nightly"]);
         expect_ok_ex(config, &["multirust", "override", "nightly"],
-r"
-  nightly unchanged - 1.3.0 (hash-n-2)
+for_host!(r"
+  nightly-{} unchanged - 1.3.0 (hash-n-2)
 
-",
+"),
 &format!(
-r"info: using existing install for 'nightly'
-info: override toolchain for '{}' set to 'nightly'
-", cwd.display()));
+r"info: using existing install for 'nightly-{1}'
+info: override toolchain for '{}' set to 'nightly-{1}'
+", cwd.display(), &this_host_triple()));
     });
 }
 
@@ -116,9 +118,9 @@ fn update_no_manifest() {
     setup(&|config| {
         expect_err_ex(config, &["multirust", "update", "nightly-2016-01-01"],
 r"",
-r"info: syncing channel updates for 'nightly-2016-01-01'
+for_host!(r"info: syncing channel updates for 'nightly-2016-01-01-{0}'
 error: no release found for 'nightly-2016-01-01'
-");
+"));
     });
 }
 

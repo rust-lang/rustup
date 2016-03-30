@@ -46,9 +46,9 @@ install:
 build: false
 
 test_script:
-  - cargo build  --release
-  - cargo test --release -p multirust-dist
-  - cargo test --release
+  - cargo build  --release --features symlinks
+  - cargo test --release -p multirust-dist --features symlinks
+  - cargo test --release --features symlinks
 
 notifications:
   - provider: Webhook
