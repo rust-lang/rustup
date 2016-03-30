@@ -136,7 +136,7 @@ Now Rust nightly is installed, but not activated. To test it out you
 can run a command from the nightly toolchain like
 
 ```
-$ rustup run rustc --version
+$ rustup run nightly rustc --version
 rustc 1.9.0-nightly (02310fd31 2016-03-19)
 ```
 

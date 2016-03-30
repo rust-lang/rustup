@@ -19,7 +19,7 @@ fn setup(f: &Fn(&Config)) {
 #[test]
 fn update() {
     setup(&|config| {
-        expect_ok_ex(config, &["multirust", "update", "nightly"],
+        expect_ok_ex(config, &["rustup", "update", "nightly"],
 r"
   nightly installed - 1.3.0 (hash-n-2)
 
@@ -40,8 +40,8 @@ info: installing component 'rust-docs'
 #[test]
 fn update_again() {
     setup(&|config| {
-        expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_ok_ex(config, &["multirust", "update", "nightly"],
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok_ex(config, &["rustup", "update", "nightly"],
 r"
   nightly unchanged - 1.3.0 (hash-n-2)
 
@@ -54,7 +54,7 @@ for_host!(r"info: syncing channel updates for 'nightly-{0}'
 #[test]
 fn default() {
     setup(&|config| {
-        expect_ok_ex(config, &["multirust", "default", "nightly"],
+        expect_ok_ex(config, &["rustup", "default", "nightly"],
 for_host!(r"
   nightly-{0} installed - 1.3.0 (hash-n-2)
 
@@ -77,8 +77,8 @@ info: default toolchain set to 'nightly-{0}'
 fn override_again() {
     setup(&|config| {
         let cwd = env::current_dir().unwrap();
-        expect_ok(config, &["multirust", "override", "nightly"]);
-        expect_ok_ex(config, &["multirust", "override", "nightly"],
+        expect_ok(config, &["rustup", "override", "add", "nightly"]);
+        expect_ok_ex(config, &["rustup", "override", "add", "nightly"],
 for_host!(r"
   nightly-{} unchanged - 1.3.0 (hash-n-2)
 
@@ -94,8 +94,8 @@ info: override toolchain for '{}' set to 'nightly-{1}'
 fn remove_override() {
     setup(&|config| {
         let cwd = env::current_dir().unwrap();
-        expect_ok(config, &["multirust", "override", "nightly"]);
-        expect_ok_ex(config, &["multirust", "remove-override"],
+        expect_ok(config, &["rustup", "override", "add", "nightly"]);
+        expect_ok_ex(config, &["rustup", "override", "remove"],
 r"",
 &format!(r"info: override toolchain for '{}' removed
 ", cwd.display()));
@@ -106,7 +106,7 @@ r"",
 fn remove_override_none() {
     setup(&|config| {
         let cwd = env::current_dir().unwrap();
-        expect_ok_ex(config, &["multirust", "remove-override"],
+        expect_ok_ex(config, &["rustup", "override", "remove"],
 r"",
 &format!(r"info: no override toolchain for '{}'
 ", cwd.display()));
@@ -116,7 +116,7 @@ r"",
 #[test]
 fn update_no_manifest() {
     setup(&|config| {
-        expect_err_ex(config, &["multirust", "update", "nightly-2016-01-01"],
+        expect_err_ex(config, &["rustup", "update", "nightly-2016-01-01"],
 r"",
 for_host!(r"info: syncing channel updates for 'nightly-2016-01-01-{0}'
 error: no release found for 'nightly-2016-01-01'
@@ -124,25 +124,11 @@ error: no release found for 'nightly-2016-01-01'
     });
 }
 
-#[test]
-fn delete_data() {
-    setup(&|config| {
-        expect_ok(config, &["multirust", "default", "nightly"]);
-        assert!(config.rustupdir.exists());
-        expect_ok_ex(config, &["multirust", "delete-data", "-y"],
-r"",
-&format!(
-r"info: deleted directory '{}'
-", config.rustupdir.display()));
-    });
-}
-
 // Issue #111
-// multirust update nightly-2016-03-1
 #[test]
 fn update_invalid_toolchain() {
    setup(&|config| {
-        expect_err_ex(config, &["multirust", "update", "nightly-2016-03-1"],
+        expect_err_ex(config, &["rustup", "update", "nightly-2016-03-1"],
 r"",
 r"error: toolchain 'nightly-2016-03-1' is not installed
 ");
@@ -152,7 +138,7 @@ r"error: toolchain 'nightly-2016-03-1' is not installed
 #[test]
 fn default_invalid_toolchain() {
    setup(&|config| {
-        expect_err_ex(config, &["multirust", "default", "nightly-2016-03-1"],
+        expect_err_ex(config, &["rustup", "default", "nightly-2016-03-1"],
 r"",
 r"error: toolchain 'nightly-2016-03-1' is not installed
 ");
@@ -170,10 +156,10 @@ fn list_targets() {
 
         let expected = format!("{}\n{}\n{}\n", sorted[0], sorted[1], sorted[2]);
 
-        expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_ok(config, &["multirust", "add-target", "nightly",
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "target", "add",
                             clitools::CROSS_ARCH1]);
-        expect_ok_ex(config, &["multirust", "list-targets", "nightly"],
+        expect_ok_ex(config, &["rustup", "target", "list"],
 &expected,
 r"");
     });

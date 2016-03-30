@@ -1,7 +1,7 @@
 [package]
 
 name = "multirust-rs"
-version = "0.1.0"
+version = "0.1.1"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "multirust in rust - manage multiple rust installations with ease"
 
@@ -19,8 +19,8 @@ license = "MIT OR Apache-2.0"
 symlinks = []
 
 [dependencies]
-multirust-dist = { version = "0.1.0", path = "src/multirust-dist" }
-multirust-utils = { version = "0.1.0", path = "src/multirust-utils" }
+multirust-dist = { version = "0.1.1", path = "src/multirust-dist" }
+multirust-utils = { version = "0.1.1", path = "src/multirust-utils" }
 clap = "2.2.1"
 regex = "0.1.41"
 openssl = "0.7.2"
@@ -58,7 +58,7 @@ user32-sys = "0.1.2"
 kernel32-sys = "0.2.1"
 
 [dev-dependencies]
-multirust-mock = { version = "0.1.0", path = "src/multirust-mock" }
+multirust-mock = { version = "0.1.1", path = "src/multirust-mock" }
 lazy_static = "0.1.15"
 
 [lib]

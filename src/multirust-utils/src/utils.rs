@@ -12,7 +12,6 @@ use errors::{Error, Notification, NotifyHandler};
 use raw;
 #[cfg(windows)]
 use winapi::DWORD;
-use scopeguard;
 
 pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
                     has_cmd, find_cmd};
@@ -327,6 +326,7 @@ pub fn home_dir() -> Option<PathBuf> {
     use userenv::GetUserProfileDirectoryW;
     use winapi::ERROR_INSUFFICIENT_BUFFER;
     use winapi::winnt::TOKEN_READ;
+    use scopeguard;
 
     ::std::env::var_os("USERPROFILE").map(PathBuf::from).or_else(|| unsafe {
         let me = GetCurrentProcess();

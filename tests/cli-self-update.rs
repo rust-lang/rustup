@@ -197,7 +197,7 @@ fn uninstall_deletes_multirust_home() {
 fn uninstall_works_if_multirust_home_doesnt_exist() {
     setup(&|config| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        fs::remove_dir_all(&config.rustupdir).unwrap();
+        raw::remove_dir(&config.rustupdir).unwrap();
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
     });
 }
@@ -218,7 +218,7 @@ fn uninstall_fails_if_not_installed() {
         let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         fs::remove_file(&multirust).unwrap();
         expect_err(config, &["multirust", "self", "uninstall", "-y"],
-                   "multirust is not installed");
+                   "rustup is not installed");
     });
 }
 
@@ -530,11 +530,11 @@ fn uninstall_removes_path() {
 fn update_exact() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok_ex(config, &["multirust", "self", "update"],
+        expect_ok_ex(config, &["rustup", "self", "update"],
 r"",
 r"info: checking for self-updates
 info: downloading self-update
-info: multirust updated successfully
+info: rustup updated successfully
 ");
     });
 }
@@ -542,10 +542,10 @@ info: multirust updated successfully
 #[test]
 fn update_but_not_installed() {
     update_setup(&|config, _| {
-        expect_err_ex(config, &["multirust", "self", "update"],
+        expect_err_ex(config, &["rustup", "self", "update"],
 r"",
 &format!(
-r"error: multirust is not installed at '{}'
+r"error: rustup is not installed at '{}'
 ", config.cargodir.display()));
     });
 }
@@ -581,7 +581,7 @@ fn update_no_change() {
         fs::copy(multirust_bin, dist_exe).unwrap();
         create_hash(dist_exe, dist_hash);
 
-        expect_ok_ex(config, &["multirust", "self", "update"],
+        expect_ok_ex(config, &["rustup", "self", "update"],
 r"",
 r"info: checking for self-updates
 info: rustup is up to date

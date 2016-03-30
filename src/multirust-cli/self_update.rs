@@ -43,7 +43,6 @@ use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::fs;
 use tempdir::TempDir;
-use scopeguard;
 
 // The big installation messages. These are macros because the first
 // argument of format! needs to be a literal.
@@ -67,7 +66,7 @@ $platform_msg
 ,
 "
 
-You can uninstall at any time with `multirust self uninstall` and
+You can uninstall at any time with `rustup self uninstall` and
 these changes will be reverted.
 
 WARNING: This is an early beta. Expect breakage.
@@ -206,7 +205,9 @@ pub fn install(no_prompt: bool, verbose: bool) -> Result<()> {
 }
 
 fn pre_install_msg() -> Result<String> {
-    let ref cargo_home = try!(utils::cargo_home());
+    let cargo_home = try!(utils::cargo_home());
+    let cargo_home_bin = cargo_home.join("bin");
+
     if cfg!(unix) {
         let add_path_methods = get_add_path_methods();
         let rcfiles = add_path_methods.into_iter()
@@ -220,15 +221,15 @@ fn pre_install_msg() -> Result<String> {
         if !rcfiles.is_empty() {
             let rcfiles_str = rcfiles.join("\n");
             Ok(format!(pre_install_msg_unix!(),
-                       cargo_home_bin = cargo_home.display(),
+                       cargo_home_bin = cargo_home_bin.display(),
                        rcfiles = rcfiles_str))
         } else {
             Ok(format!(pre_install_msg_unix_norcfiles!(),
-                       cargo_home_bin = cargo_home.display()))
+                       cargo_home_bin = cargo_home_bin.display()))
         }
     } else {
         Ok(format!(pre_install_msg_win!(),
-                   cargo_home_bin = cargo_home.display()))
+                   cargo_home_bin = cargo_home_bin.display()))
     }
 }
 
@@ -424,6 +425,7 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
 #[cfg(windows)]
 fn delete_multirust_and_cargo_home() -> Result<()> {
     use rand;
+    use scopeguard;
 
     // CARGO_HOME, hopefully empty except for bin/multirust.exe
     let ref cargo_home = try!(utils::cargo_home());
@@ -527,6 +529,7 @@ fn wait_for_parent() -> Result<()> {
                  TH32CS_SNAPPROCESS, SYNCHRONIZE, WAIT_OBJECT_0};
     use std::io;
     use std::mem;
+    use scopeguard;
 
     unsafe {
         // Take a snapshot of system processes, one of which is ours
@@ -793,7 +796,7 @@ pub fn update() -> Result<()> {
 
     let setup_path = try!(prepare_update());
     if let Some(ref p) = setup_path {
-        info!("multirust updated successfully");
+        info!("rustup updated successfully");
         try!(run_update(p));
     }
 

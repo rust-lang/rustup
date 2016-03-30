@@ -1,7 +1,7 @@
 [package]
 
 name = "multirust-mock"
-version = "0.1.0"
+version = "0.1.1"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Test mocks for multirust"
 
