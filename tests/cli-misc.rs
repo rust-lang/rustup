@@ -734,3 +734,14 @@ fn multirust_env_compat() {
         assert!(stderr.contains("environment variable MULTIRUST_HOME is deprecated. Use RUSTUP_HOME"));
     });
 }
+
+#[test]
+fn toolchains_are_resolved_early() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        let full_toolchain = format!("nightly-{}", this_host_triple());
+        expect_stderr_ok(config, &["rustup", "default", &full_toolchain],
+                         &format!("info: using existing install for '{}'", full_toolchain));
+    });
+}
