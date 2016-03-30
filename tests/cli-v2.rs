@@ -9,10 +9,11 @@ extern crate tempdir;
 use std::fs;
 use tempdir::TempDir;
 use multirust_mock::clitools::{self, Config, Scenario,
-                               this_host_triple,
                                expect_ok, expect_stdout_ok, expect_err,
                                expect_stderr_ok, set_current_dist_date,
                                change_dir, run};
+
+use multirust_dist::dist::TargetTriple;
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, f);
@@ -570,9 +571,9 @@ fn add_target_again() {
 #[test]
 fn add_target_host() {
     setup(&|config| {
-        let trip = this_host_triple();
+        let trip = TargetTriple::from_host();
         expect_ok(config, &["multirust", "default", "nightly"]);
-        expect_err(config, &["multirust", "add-target", "nightly", &trip],
+        expect_err(config, &["multirust", "add-target", "nightly", &trip.to_string()],
                    &format!("component 'rust-std' for target '{}' is required for toolchain 'nightly' and cannot be re-added", trip));
     });
 }
@@ -652,14 +653,14 @@ fn remove_target_again() {
 #[test]
 fn remove_target_host() {
     setup(&|config| {
-        let trip = this_host_triple();
+        let trip = TargetTriple::from_host();
         expect_ok(config, &["multirust", "default", "nightly"]);
-        expect_err(config, &["multirust", "remove-target", "nightly", &trip],
+        expect_err(config, &["multirust", "remove-target", "nightly", &trip.to_string()],
                    &format!("component 'rust-std' for target '{}' is required for toolchain 'nightly' and cannot be removed", trip));
     });
 }
 
-fn make_component_unavailable(config: &Config, name: &str, target: &str) {
+fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple) {
     use multirust_dist::manifest::Manifest;
     use multirust_mock::dist::create_hash;
 
@@ -683,7 +684,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &str) {
 #[test]
 fn update_unavailable_std() {
     setup(&|config| {
-        let ref trip = this_host_triple();
+        let ref trip = TargetTriple::from_host();
         make_component_unavailable(config, "rust-std", trip);
         expect_err(config, &["multirust", "update", "nightly"],
                    &format!("component 'rust-std' for '{}' is unavailable for download", trip));

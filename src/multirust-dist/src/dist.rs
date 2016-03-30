@@ -44,9 +44,17 @@ pub struct ToolchainDesc {
     pub target: TargetTriple,
 }
 
-static LIST_ARCHS: &'static [&'static str] = &["i686", "x86_64"];
-static LIST_OSES: &'static [&'static str] = &["pc-windows", "unknown-linux", "apple-darwin"];
-static LIST_ENVS: &'static [&'static str] = &["gnu", "msvc"];
+static LIST_ARCHS: &'static [&'static str] = &[
+    "i386", "i686", "x86_64", "arm", "armv7", "armv7s", "aarch64", "mips", "mipsel",
+    "powerpc", "powerpc64", "powerpc64le"
+];
+static LIST_OSES: &'static [&'static str] = &[
+    "pc-windows", "unknown-linux", "apple-darwin", "unknown-netbsd", "apple-ios",
+    "linux", "rumprun-netbsd", "unknown-freebsd"
+];
+static LIST_ENVS: &'static [&'static str] = &[
+    "gnu", "msvc", "gnueabi", "gnueabihf", "androideabi", "musl"
+];
 
 impl TargetTriple {
     pub fn from_str(name: &str) -> Result<Self> {
