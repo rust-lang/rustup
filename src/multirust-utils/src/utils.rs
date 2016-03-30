@@ -326,6 +326,7 @@ pub fn home_dir() -> Option<PathBuf> {
     use userenv::GetUserProfileDirectoryW;
     use winapi::ERROR_INSUFFICIENT_BUFFER;
     use winapi::winnt::TOKEN_READ;
+    use scopeguard;
 
     ::std::env::var_os("USERPROFILE").map(PathBuf::from).or_else(|| unsafe {
         let me = GetCurrentProcess();

@@ -423,6 +423,7 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
 #[cfg(windows)]
 fn delete_multirust_and_cargo_home() -> Result<()> {
     use rand;
+    use scopeguard;
 
     // CARGO_HOME, hopefully empty except for bin/multirust.exe
     let ref cargo_home = try!(utils::cargo_home());
@@ -526,6 +527,7 @@ fn wait_for_parent() -> Result<()> {
                  TH32CS_SNAPPROCESS, SYNCHRONIZE, WAIT_OBJECT_0};
     use std::io;
     use std::mem;
+    use scopeguard;
 
     unsafe {
         // Take a snapshot of system processes, one of which is ours
