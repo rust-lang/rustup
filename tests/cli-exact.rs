@@ -20,10 +20,10 @@ fn setup(f: &Fn(&Config)) {
 fn update() {
     setup(&|config| {
         expect_ok_ex(config, &["rustup", "update", "nightly"],
-r"
-  nightly installed - 1.3.0 (hash-n-2)
+for_host!(r"
+  nightly-{0} installed - 1.3.0 (hash-n-2)
 
-",
+"),
 for_host!(r"info: syncing channel updates for 'nightly-{0}'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
@@ -42,10 +42,10 @@ fn update_again() {
     setup(&|config| {
         expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok_ex(config, &["rustup", "update", "nightly"],
-r"
-  nightly unchanged - 1.3.0 (hash-n-2)
+for_host!(r"
+  nightly-{0} unchanged - 1.3.0 (hash-n-2)
 
-",
+"),
 for_host!(r"info: syncing channel updates for 'nightly-{0}'
 "));
     });

@@ -427,14 +427,14 @@ fn update_preserves_extensions() {
 fn update_preserves_extensions_that_became_components() {
     let edit = &|date: &str, pkg: &mut MockPackage| {
         if date == "2016-02-01" {
-            let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "i686-apple-darwin").unwrap();
+            let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.extensions.push(MockComponent {
                 name: "bonus".to_string(),
                 target: "x86_64-apple-darwin".to_string(),
             });
         }
         if date == "2016-02-02" {
-            let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "i686-apple-darwin").unwrap();
+            let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
             tpkg.components.push(MockComponent {
                 name: "bonus".to_string(),
                 target: "x86_64-apple-darwin".to_string(),
@@ -444,7 +444,7 @@ fn update_preserves_extensions_that_became_components() {
     setup(Some(edit), &|url, toolchain, prefix, temp_cfg| {
         let ref adds = vec![
             Component {
-                pkg: "bonus".to_string(), target: TargetTriple::from_str("i686-apple-darwin").unwrap()
+                pkg: "bonus".to_string(), target: TargetTriple::from_str("x86_64-apple-darwin").unwrap()
             },
             ];
 
