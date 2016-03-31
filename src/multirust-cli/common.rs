@@ -28,20 +28,11 @@ pub fn confirm(question: &str, default: bool) -> Result<bool> {
     Ok(r)
 }
 
-fn read_line() -> Result<String> {
+pub fn read_line() -> Result<String> {
     let stdin = std::io::stdin();
     let stdin = stdin.lock();
     let mut lines = stdin.lines();
     lines.next().and_then(|l| l.ok()).ok_or(Error::ReadStdin)
-}
-
-pub fn wait_for_keypress() -> Result<()> {
-    let stdin = std::io::stdin();
-    if stdin.bytes().next().is_some() {
-        Ok(())
-    } else {
-        Err(Error::ReadStdin)
-    }
 }
 
 pub fn set_globals(verbose: bool) -> Result<Cfg> {

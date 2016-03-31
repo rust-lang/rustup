@@ -194,8 +194,8 @@ pub fn install(no_prompt: bool, verbose: bool) -> Result<()> {
         // window closes.
         if cfg!(windows) && !no_prompt {
             println!("");
-            println!("Press any key to continue");
-            try!(common::wait_for_keypress());
+            println!("Press enter to continue");
+            try!(common::read_line());
         }
 
         process::exit(1);
@@ -216,8 +216,8 @@ pub fn install(no_prompt: bool, verbose: bool) -> Result<()> {
         // the user to press a key to continue.
         if cfg!(windows) {
             println!("");
-            println!("Press any key to continue");
-            try!(common::wait_for_keypress());
+            println!("Press enter to continue");
+            try!(common::read_line());
         }
     }
 
