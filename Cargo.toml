@@ -21,7 +21,7 @@ symlinks = []
 [dependencies]
 multirust-dist = { version = "0.1.1", path = "src/multirust-dist" }
 multirust-utils = { version = "0.1.1", path = "src/multirust-utils" }
-clap = "2.2.1"
+clap = "2.2.4"
 regex = "0.1.41"
 openssl = "0.7.2"
 hyper = "0.7.0"
