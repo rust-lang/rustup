@@ -11,7 +11,9 @@ use tempdir::TempDir;
 use multirust_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_stdout_ok, expect_err,
                                expect_stderr_ok, set_current_dist_date,
-                               change_dir, run};
+                               change_dir, run, this_host_triple};
+
+macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV1, f);
@@ -87,7 +89,7 @@ fn default_existing_toolchain() {
     setup(&|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_stderr_ok(config, &["multirust", "default", "nightly"],
-                         "using existing install for 'nightly'");
+                         for_host!("using existing install for 'nightly-{0}'"));
     });
 }
 
@@ -142,7 +144,7 @@ fn remove_default_toolchain_error_handling() {
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_ok(config, &["multirust", "remove-toolchain", "nightly"]);
         expect_err(config, &["rustc"],
-                           "toolchain 'nightly' is not installed");
+                           for_host!("toolchain 'nightly-{0}' is not installed"));
     });
 }
 
@@ -155,7 +157,7 @@ fn remove_override_toolchain_error_handling() {
             expect_ok(config, &["multirust", "override", "beta"]);
             expect_ok(config, &["multirust", "remove-toolchain", "beta"]);
             expect_err(config, &["rustc"],
-                               "toolchain 'beta' is not installed");
+                               for_host!("toolchain 'beta-{0}' is not installed"));
         });
     });
 }
@@ -435,4 +437,3 @@ fn remove_toolchain_then_add_again() {
         expect_ok(config, &["rustc", "--version"]);
     });
 }
-

@@ -2,6 +2,7 @@ extern crate multirust_dist;
 
 use multirust_dist::manifest::Manifest;
 use multirust_dist::Error;
+use multirust_dist::dist::TargetTriple;
 
 // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
 static EXAMPLE: &'static str = include_str!("channel-rust-nightly-example.toml");
@@ -10,6 +11,9 @@ static EXAMPLE2: &'static str = include_str!("channel-rust-nightly-example2.toml
 
 #[test]
 fn parse_smoke_test() {
+    let x86_64_unknown_linux_gnu = TargetTriple::from_str("x86_64-unknown-linux-gnu").unwrap();
+    let x86_64_unknown_linux_musl = TargetTriple::from_str("x86_64-unknown-linux-musl").unwrap();
+
     let pkg = Manifest::parse(EXAMPLE).unwrap();
 
     pkg.get_package("rust").unwrap();
@@ -21,21 +25,21 @@ fn parse_smoke_test() {
     let rust_pkg = pkg.get_package("rust").unwrap();
     assert!(rust_pkg.version.contains("1.3.0"));
 
-    let rust_target_pkg = rust_pkg.get_target("x86_64-unknown-linux-gnu").unwrap();
+    let rust_target_pkg = rust_pkg.get_target(&x86_64_unknown_linux_gnu).unwrap();
     assert_eq!(rust_target_pkg.available, true);
     assert_eq!(rust_target_pkg.url, "example.com");
     assert_eq!(rust_target_pkg.hash, "...");
 
     let ref component = rust_target_pkg.components[0];
     assert_eq!(component.pkg, "rustc");
-    assert_eq!(component.target, "x86_64-unknown-linux-gnu");
+    assert_eq!(component.target, x86_64_unknown_linux_gnu);
 
     let ref component = rust_target_pkg.extensions[0];
     assert_eq!(component.pkg, "rust-std");
-    assert_eq!(component.target, "x86_64-unknown-linux-musl");
+    assert_eq!(component.target, x86_64_unknown_linux_musl);
 
     let docs_pkg = pkg.get_package("rust-docs").unwrap();
-    let docs_target_pkg = docs_pkg.get_target("x86_64-unknown-linux-gnu").unwrap();
+    let docs_target_pkg = docs_pkg.get_target(&x86_64_unknown_linux_gnu).unwrap();
     assert_eq!(docs_target_pkg.url, "example.com");
 }
 

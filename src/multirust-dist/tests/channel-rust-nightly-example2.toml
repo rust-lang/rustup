@@ -71,7 +71,7 @@ pkg = "rust-std"
 target = "arm-linux-androideabi"
 [[pkg.rust.target.i686-apple-darwin.extensions]]
 pkg = "rust-std"
-target = "arm-unknown-linux-gnueabif"
+target = "arm-unknown-linux-gnueabi"
 [[pkg.rust.target.i686-apple-darwin.extensions]]
 pkg = "rust-std"
 target = "arm-unknown-linux-gnueabihf"
@@ -136,7 +136,7 @@ pkg = "rust-std"
 target = "arm-linux-androideabi"
 [[pkg.rust.target.i686-pc-windows-gnu.extensions]]
 pkg = "rust-std"
-target = "arm-unknown-linux-gnueabif"
+target = "arm-unknown-linux-gnueabi"
 [[pkg.rust.target.i686-pc-windows-gnu.extensions]]
 pkg = "rust-std"
 target = "arm-unknown-linux-gnueabihf"
@@ -198,7 +198,7 @@ pkg = "rust-std"
 target = "arm-linux-androideabi"
 [[pkg.rust.target.i686-pc-windows-msvc.extensions]]
 pkg = "rust-std"
-target = "arm-unknown-linux-gnueabif"
+target = "arm-unknown-linux-gnueabi"
 [[pkg.rust.target.i686-pc-windows-msvc.extensions]]
 pkg = "rust-std"
 target = "arm-unknown-linux-gnueabihf"
@@ -260,7 +260,7 @@ pkg = "rust-std"
 target = "arm-linux-androideabi"
 [[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
 pkg = "rust-std"
-target = "arm-unknown-linux-gnueabif"
+target = "arm-unknown-linux-gnueabi"
 [[pkg.rust.target.i686-unknown-linux-gnu.extensions]]
 pkg = "rust-std"
 target = "arm-unknown-linux-gnueabihf"
@@ -322,7 +322,7 @@ pkg = "rust-std"
 target = "arm-linux-androideabi"
 [[pkg.rust.target.x86_64-apple-darwin.extensions]]
 pkg = "rust-std"
-target = "arm-unknown-linux-gnueabif"
+target = "arm-unknown-linux-gnueabi"
 [[pkg.rust.target.x86_64-apple-darwin.extensions]]
 pkg = "rust-std"
 target = "arm-unknown-linux-gnueabihf"
@@ -387,7 +387,7 @@ pkg = "rust-std"
 target = "arm-linux-androideabi"
 [[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
 pkg = "rust-std"
-target = "arm-unknown-linux-gnueabif"
+target = "arm-unknown-linux-gnueabi"
 [[pkg.rust.target.x86_64-pc-windows-gnu.extensions]]
 pkg = "rust-std"
 target = "arm-unknown-linux-gnueabihf"
@@ -449,7 +449,7 @@ pkg = "rust-std"
 target = "arm-linux-androideabi"
 [[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
 pkg = "rust-std"
-target = "arm-unknown-linux-gnueabif"
+target = "arm-unknown-linux-gnueabi"
 [[pkg.rust.target.x86_64-pc-windows-msvc.extensions]]
 pkg = "rust-std"
 target = "arm-unknown-linux-gnueabihf"
@@ -511,7 +511,7 @@ pkg = "rust-std"
 target = "arm-linux-androideabi"
 [[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
 pkg = "rust-std"
-target = "arm-unknown-linux-gnueabif"
+target = "arm-unknown-linux-gnueabi"
 [[pkg.rust.target.x86_64-unknown-linux-gnu.extensions]]
 pkg = "rust-std"
 target = "arm-unknown-linux-gnueabihf"
@@ -618,7 +618,7 @@ available = true
 url = "https://dev-static.rust-lang.org/dist/2016-03-05/rust-std-nightly-arm-linux-androideabi.tar.gz"
 hash = "be7d3d475296ac18d5e52e1cc042d8b9063b9366c5363850479b863bb786c05b"
 
-[pkg.rust-std.target.arm-unknown-linux-gnueabif]
+[pkg.rust-std.target.arm-unknown-linux-gnueabi]
 available = false
 url = ""
 hash = ""
@@ -725,4 +725,3 @@ hash = "a7fe5a58707282186e673863d9518211d61cd29651b49b21d864008c12aeefa5"
 available = true
 url = "https://dev-static.rust-lang.org/dist/2016-03-05/rustc-nightly-x86_64-unknown-linux-gnu.tar.gz"
 hash = "1b0736d7e49652989269017fc8ea224ecd5e2549da7abf7b92109b4e00256b34"
-

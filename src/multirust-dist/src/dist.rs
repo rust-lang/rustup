@@ -19,8 +19,8 @@ use itertools::Itertools;
 pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
 pub const UPDATE_HASH_LEN: usize = 20;
 
-#[derive(Debug)]
-pub struct ToolchainDesc {
+#[derive(Debug, Clone)]
+pub struct PartialToolchainDesc {
     // Either "nightly", "stable", "beta", or an explicit version number
     pub channel: String,
     pub date: Option<String>,
@@ -29,18 +29,128 @@ pub struct ToolchainDesc {
     pub env: Option<String>,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct TargetTriple {
+    pub arch: String,
+    pub os: String,
+    pub env: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ToolchainDesc {
+    // Either "nightly", "stable", "beta", or an explicit version number
+    pub channel: String,
+    pub date: Option<String>,
+    pub target: TargetTriple,
+}
+
+static LIST_ARCHS: &'static [&'static str] = &[
+    "i386", "i686", "x86_64", "arm", "armv7", "armv7s", "aarch64", "mips", "mipsel",
+    "powerpc", "powerpc64", "powerpc64le"
+];
+static LIST_OSES: &'static [&'static str] = &[
+    "pc-windows", "unknown-linux", "apple-darwin", "unknown-netbsd", "apple-ios",
+    "linux", "rumprun-netbsd", "unknown-freebsd"
+];
+static LIST_ENVS: &'static [&'static str] = &[
+    "gnu", "msvc", "gnueabi", "gnueabihf", "androideabi", "musl"
+];
+
+impl TargetTriple {
+    pub fn from_str(name: &str) -> Result<Self> {
+        let pattern = format!(
+            r"^({})-({})(?:-({}))?$",
+            LIST_ARCHS.join("|"), LIST_OSES.join("|"), LIST_ENVS.join("|")
+            );
+        let re = Regex::new(&pattern).unwrap();
+        re.captures(name).map(|c| {
+            fn fn_map(s: &str) -> Option<String> {
+                if s == "" {
+                    None
+                } else {
+                    Some(s.to_owned())
+                }
+            }
+
+            TargetTriple {
+                arch: c.at(1).unwrap().to_owned(),
+                os: c.at(2).unwrap().to_owned(),
+                env: c.at(3).and_then(fn_map),
+            }
+        }).ok_or(Error::InvalidTargetTriple(name.to_string()))
+    }
+
+    pub fn from_host() -> Self {
+        let (arch, os, env) = get_host_triple_pieces();
+        TargetTriple {
+            arch: arch.to_owned(),
+            os: os.to_owned(),
+            env: env.map(ToOwned::to_owned)
+        }
+    }
+}
+
+impl PartialToolchainDesc {
+    pub fn from_str(name: &str) -> Result<Self> {
+        let channels = ["nightly", "beta", "stable",
+                        r"\d{1}\.\d{1}\.\d{1}",
+                        r"\d{1}\.\d{2}\.\d{1}"];
+
+        let pattern = format!(
+            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-({}))?(?:-({}))?(?:-({}))?$",
+            channels.join("|"), LIST_ARCHS.join("|"), LIST_OSES.join("|"), LIST_ENVS.join("|")
+            );
+
+        let re = Regex::new(&pattern).unwrap();
+        re.captures(name).map(|c| {
+            fn fn_map(s: &str) -> Option<String> {
+                if s == "" {
+                    None
+                } else {
+                    Some(s.to_owned())
+                }
+            }
+
+            PartialToolchainDesc {
+                channel: c.at(1).unwrap().to_owned(),
+                date: c.at(2).and_then(fn_map),
+                arch: c.at(3).and_then(fn_map),
+                os: c.at(4).and_then(fn_map),
+                env: c.at(5).and_then(fn_map),
+            }
+        }).ok_or(Error::InvalidToolchainName(name.to_string()))
+    }
+
+    pub fn resolve(self, host: &TargetTriple) -> ToolchainDesc {
+        // If OS was specified, don't default to host environment, even if the OS matches
+        // the host OS, otherwise cannot specify no environment.
+        let env = if self.os.is_some() {
+            self.env
+        } else {
+            self.env.or_else(|| host.env.clone())
+        };
+        let os = self.os.unwrap_or_else(|| host.os.clone());
+        ToolchainDesc {
+            channel: self.channel,
+            date: self.date,
+            target: TargetTriple {
+                arch: self.arch.unwrap_or_else(|| host.arch.clone()),
+                os: os,
+                env: env
+            }
+        }
+    }
+}
+
 impl ToolchainDesc {
     pub fn from_str(name: &str) -> Result<Self> {
         let channels = ["nightly", "beta", "stable",
                         r"\d{1}\.\d{1}\.\d{1}",
                         r"\d{1}\.\d{2}\.\d{1}"];
-        let archs = ["i686", "x86_64"];
-        let oses = ["pc-windows", "unknown-linux", "apple-darwin"];
-        let envs = ["gnu", "msvc"];
 
         let pattern = format!(
-            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-({}))?(?:-({}))?(?:-({}))?$",
-            channels.join("|"), archs.join("|"), oses.join("|"), envs.join("|")
+            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?-({})-({})(?:-({}))?$",
+            channels.join("|"), LIST_ARCHS.join("|"), LIST_OSES.join("|"), LIST_ENVS.join("|")
             );
 
         let re = Regex::new(&pattern).unwrap();
@@ -56,30 +166,13 @@ impl ToolchainDesc {
             ToolchainDesc {
                 channel: c.at(1).unwrap().to_owned(),
                 date: c.at(2).and_then(fn_map),
-                arch: c.at(3).and_then(fn_map),
-                os: c.at(4).and_then(fn_map),
-                env: c.at(5).and_then(fn_map),
+                target: TargetTriple {
+                    arch: c.at(3).unwrap().to_owned(),
+                    os: c.at(4).unwrap().to_owned(),
+                    env: c.at(5).and_then(fn_map)
+                }
             }
         }).ok_or(Error::InvalidToolchainName(name.to_string()))
-    }
-
-    pub fn target_triple(&self) -> String {
-        let (host_arch, host_os, host_env) = get_host_triple_pieces();
-        let arch = self.arch.as_ref().map(|s| &**s).unwrap_or(host_arch);
-        let os = self.os.as_ref().map(|s| &**s).unwrap_or(host_os);
-        // Mixing arbitrary host envs into arbitrary target specs can't work sensibly.
-        // Only provide a default when the operating system matches.
-        let env = if self.env.is_none() && os == host_os {
-            host_env
-        } else {
-            self.env.as_ref().map(|s| &**s)
-        };
-
-        if let Some(ref env) = env {
-            format!("{}-{}-{}", arch, os, env)
-        } else {
-            format!("{}-{}", arch, os)
-        }
     }
 
     pub fn manifest_v1_url(&self, dist_root: &str) -> String {
@@ -108,11 +201,10 @@ impl ToolchainDesc {
     }
 
     pub fn full_spec(&self) -> String {
-        let triple = self.target_triple();
-        if let Some(ref date) = self.date {
-            format!("{}-{}-{}", triple, &self.channel, date)
+        if self.date.is_some() {
+            format!("{}", self)
         } else {
-            format!("{}-{} (tracking)", triple, &self.channel)
+            format!("{} (tracking)", self)
         }
     }
 
@@ -141,23 +233,45 @@ impl<'a> Manifest<'a> {
     }
 }
 
-impl fmt::Display for ToolchainDesc {
+impl fmt::Display for TargetTriple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(ref arch) = self.arch {
-            try!(write!(f, "{}-", arch));
-        }
-        if let Some(ref os) = self.os {
-            try!(write!(f, "{}-", os));
-        }
         if let Some(ref env) = self.env {
-            try!(write!(f, "{}-", env));
+            write!(f, "{}-{}-{}", self.arch, self.os, env)
+        } else {
+            write!(f, "{}-{}", self.arch, self.os)
         }
+    }
+}
 
+impl fmt::Display for PartialToolchainDesc {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "{}", &self.channel));
 
         if let Some(ref date) = self.date {
             try!(write!(f, "-{}", date));
         }
+        if let Some(ref arch) = self.arch {
+            try!(write!(f, "-{}", arch));
+        }
+        if let Some(ref os) = self.os {
+            try!(write!(f, "-{}", os));
+        }
+        if let Some(ref env) = self.env {
+            try!(write!(f, "-{}", env));
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for ToolchainDesc {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f, "{}", &self.channel));
+
+        if let Some(ref date) = self.date {
+            try!(write!(f, "-{}", date));
+        }
+        try!(write!(f, "-{}", self.target));
 
         Ok(())
     }
@@ -273,16 +387,14 @@ pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
 // Returns the manifest's hash if anything changed.
 pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                             update_hash: Option<&Path>,
-                            toolchain: &str,
+                            toolchain: &ToolchainDesc,
                             prefix: &InstallPrefix,
                             add: &[Component],
                             remove: &[Component],
                             ) -> Result<Option<String>> {
 
-    let toolchain_str = toolchain;
-    let ref toolchain = try!(ToolchainDesc::from_str(toolchain));
-    let trip = toolchain.target_triple();
-    let manifestation = try!(Manifestation::open(prefix.clone(), &trip));
+    let toolchain_str = toolchain.to_string();
+    let manifestation = try!(Manifestation::open(prefix.clone(), toolchain.target.clone()));
 
     let changes = Changes {
         add_extensions: add.to_owned(),
@@ -290,7 +402,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
     };
 
     // TODO: Add a notification about which manifest version is going to be used
-    download.notify_handler.call(Notification::DownloadingManifest(toolchain_str));
+    download.notify_handler.call(Notification::DownloadingManifest(&toolchain_str));
     match dl_v2_manifest(download, update_hash, toolchain) {
         Ok(Some((m, hash))) => {
             return match try!(manifestation.update(&m, changes, &download.temp_cfg,
@@ -340,12 +452,11 @@ fn dl_v1_manifest<'a>(download: DownloadCfg<'a>,
     if !["nightly", "beta", "stable"].contains(&&*toolchain.channel) {
         // This is an explicit version. In v1 there was no manifest,
         // you just know the file to download, so synthesize one.
-        let trip = toolchain.target_triple();
         let installer_name = format!("{}/rust-{}-{}.tar.gz",
-                                     root_url, toolchain.channel, trip);
+                                     root_url, toolchain.channel, toolchain.target);
         return Ok(vec![installer_name]);
     }
-    
+
     let manifest_url = toolchain.manifest_v1_url(download.dist_root);
     let manifest_dl = try!(download_and_check(&manifest_url, None, "", download));
     let (manifest_file, _) = manifest_dl.unwrap();

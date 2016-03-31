@@ -2,6 +2,7 @@ use clap::{App, Arg, AppSettings, SubCommand, ArgMatches};
 use common;
 use multirust::{Result, Cfg, Error};
 use multirust_dist::manifest::Component;
+use multirust_dist::dist::TargetTriple;
 use multirust_utils::utils;
 use self_update;
 use std::path::Path;
@@ -274,7 +275,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let (toolchain, _) = try!(cfg.toolchain_for_dir(cwd));
     let new_component = Component {
         pkg: "rust-std".to_string(),
-        target: target.to_string(),
+        target: try!(TargetTriple::from_str(target)),
     };
 
     toolchain.add_component(new_component)
@@ -286,7 +287,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let (toolchain, _) = try!(cfg.toolchain_for_dir(cwd));
     let new_component = Component {
         pkg: "rust-std".to_string(),
-        target: target.to_string(),
+        target: try!(TargetTriple::from_str(target)),
     };
 
     toolchain.remove_component(new_component)

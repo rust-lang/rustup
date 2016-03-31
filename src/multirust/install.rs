@@ -15,7 +15,7 @@ pub enum InstallMethod<'a> {
     Copy(&'a Path),
     Link(&'a Path),
     Installer(&'a Path, &'a temp::Cfg),
-    Dist(&'a str, Option<&'a Path>, dist::DownloadCfg<'a>),
+    Dist(&'a dist::ToolchainDesc, Option<&'a Path>, dist::DownloadCfg<'a>),
 }
 
 impl<'a> InstallMethod<'a> {

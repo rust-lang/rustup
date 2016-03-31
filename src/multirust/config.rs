@@ -120,7 +120,7 @@ impl Cfg {
                                           ntfy!(&self.notify_handler)));
         }
 
-        Ok(Toolchain::from(self, name))
+        Toolchain::from(self, name)
     }
 
     pub fn verify_toolchain(&self, name: &str) -> Result<Toolchain> {
@@ -287,11 +287,11 @@ impl Cfg {
             let a = format!("{}-{}-{}",
                             channel_sort_key(&a.channel),
                             a.date.as_ref().map(String::as_str).unwrap_or(""),
-                            a.target_triple());
+                            a.target);
             let b = format!("{}-{}-{}",
                             channel_sort_key(&b.channel),
                             b.date.as_ref().map(String::as_str).unwrap_or(""),
-                            b.target_triple());
+                            b.target);
             a.cmp(&b)
         });
 
@@ -393,5 +393,13 @@ impl Cfg {
         let (toolchain, _) = try!(self.toolchain_for_dir(path));
         toolchain.open_docs(relative)
     }
-}
 
+    pub fn resolve_toolchain(&self, name: &str) -> Result<String> {
+        if let Ok(desc) = dist::PartialToolchainDesc::from_str(name) {
+            let host = dist::TargetTriple::from_host();
+            Ok(desc.resolve(&host).to_string())
+        } else {
+            Ok(name.to_owned())
+        }
+    }
+}

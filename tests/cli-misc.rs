@@ -10,6 +10,8 @@ use multirust_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_err, run,
                                this_host_triple};
 
+macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
+
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, f);
 }
@@ -39,6 +41,7 @@ fn rustc_with_bad_multirust_toolchain_env_var() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_toolchain_linking_from_path() {
     setup(&|config| {
@@ -63,6 +66,7 @@ fn install_toolchain_from_path() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_toolchain_linking_from_path_again() {
     setup(&|config| {
@@ -99,6 +103,7 @@ fn install_toolchain_from_path_again() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_toolchain_change_from_copy_to_link() {
     setup(&|config| {
@@ -117,6 +122,7 @@ fn install_toolchain_change_from_copy_to_link() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_toolchain_change_from_link_to_copy() {
     setup(&|config| {
@@ -162,6 +168,7 @@ fn install_toolchain_from_custom_wrong_extension() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_override_toolchain_linking_from_path() {
     setup(&|config| {
@@ -186,6 +193,7 @@ fn install_override_toolchain_from_path() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_override_toolchain_linking_from_path_again() {
     setup(&|config| {
@@ -222,6 +230,7 @@ fn install_override_toolchain_from_path_again() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_override_toolchain_change_from_copy_to_link() {
     setup(&|config| {
@@ -240,6 +249,7 @@ fn install_override_toolchain_change_from_copy_to_link() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_override_toolchain_change_from_link_to_copy() {
     setup(&|config| {
@@ -272,6 +282,7 @@ fn install_override_toolchain_from_custom() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn update_toolchain_linking_from_path() {
     setup(&|config| {
@@ -298,6 +309,7 @@ fn update_toolchain_from_path() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn update_toolchain_linking_from_path_again() {
     setup(&|config| {
@@ -336,6 +348,7 @@ fn update_toolchain_from_path_again() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn update_toolchain_change_from_copy_to_link() {
     setup(&|config| {
@@ -355,6 +368,7 @@ fn update_toolchain_change_from_copy_to_link() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn update_toolchain_change_from_link_to_copy() {
     setup(&|config| {
@@ -379,13 +393,13 @@ fn custom_invalid_names() {
     setup(&|config| {
         expect_err(config, &["multirust", "update", "nightly",
                              "--installer", "foo"],
-                   "invalid custom toolchain name: 'nightly'");
+                   for_host!("invalid custom toolchain name: 'nightly-{0}'"));
         expect_err(config, &["multirust", "update", "beta",
                              "--installer", "foo"],
-                   "invalid custom toolchain name: 'beta'");
+                   for_host!("invalid custom toolchain name: 'beta-{0}'"));
         expect_err(config, &["multirust", "update", "stable",
                              "--installer", "foo"],
-                   "invalid custom toolchain name: 'stable'");
+                   for_host!("invalid custom toolchain name: 'stable-{0}'"));
     });
 }
 
@@ -394,13 +408,13 @@ fn custom_invalid_names_with_archive_dates() {
     setup(&|config| {
         expect_err(config, &["multirust", "update", "nightly-2015-01-01",
                              "--installer", "foo"],
-                   "invalid custom toolchain name: 'nightly-2015-01-01'");
+                   for_host!("invalid custom toolchain name: 'nightly-2015-01-01-{0}'"));
         expect_err(config, &["multirust", "update", "beta-2015-01-01",
                              "--installer", "foo"],
-                   "invalid custom toolchain name: 'beta-2015-01-01'");
+                   for_host!("invalid custom toolchain name: 'beta-2015-01-01-{0}'"));
         expect_err(config, &["multirust", "update", "stable-2015-01-01",
                              "--installer", "foo"],
-                   "invalid custom toolchain name: 'stable-2015-01-01'");
+                   for_host!("invalid custom toolchain name: 'stable-2015-01-01-{0}'"));
     });
 }
 
@@ -409,10 +423,10 @@ fn invalid_names_with_link_local() {
     setup(&|config| {
         expect_err(config, &["multirust", "update", "nightly",
                              "--link-local", "foo"],
-                   "invalid custom toolchain name: 'nightly'");
+                   for_host!("invalid custom toolchain name: 'nightly-{0}'"));
         expect_err(config, &["multirust", "update", "nightly-2015-01-01",
                              "--link-local", "foo"],
-                   "invalid custom toolchain name: 'nightly-2015-01-01'");
+                   for_host!("invalid custom toolchain name: 'nightly-2015-01-01-{0}'"));
     });
 }
 
@@ -421,10 +435,10 @@ fn invalid_names_with_copy_local() {
     setup(&|config| {
         expect_err(config, &["multirust", "update", "nightly",
                              "--copy-local", "foo"],
-                   "invalid custom toolchain name: 'nightly'");
+                   for_host!("invalid custom toolchain name: 'nightly-{0}'"));
         expect_err(config, &["multirust", "update", "nightly-2015-01-01",
                              "--copy-local", "foo"],
-                   "invalid custom toolchain name: 'nightly-2015-01-01'");
+                   for_host!("invalid custom toolchain name: 'nightly-2015-01-01-{0}'"));
     });
 }
 
@@ -526,9 +540,9 @@ fn upgrade_v2_metadata_to_v12() {
         expect_stderr_ok(config, &["multirust", "upgrade-data"],
                          "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");
         expect_err(config, &["multirust", "show-default"],
-                   "toolchain 'nightly' is not installed");
+                   for_host!("toolchain 'nightly-{0}' is not installed"));
         expect_err(config, &["rustc", "--version"],
-                   "toolchain 'nightly' is not installed");
+                   for_host!("toolchain 'nightly-{0}' is not installed"));
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-2");
@@ -548,7 +562,7 @@ fn upgrade_v2_metadata_to_v12_rustup() {
         expect_stderr_ok(config, &["rustup", "self", "upgrade-data"],
                          "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");
         expect_err(config, &["rustc", "--version"],
-                   "toolchain 'nightly' is not installed");
+                   for_host!("toolchain 'nightly-{0}' is not installed"));
         expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-2");
@@ -672,6 +686,7 @@ fn multi_host_smoke_test() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn custom_toolchain_cargo_fallback_proxy() {
     setup(&|config| {
@@ -695,6 +710,7 @@ fn custom_toolchain_cargo_fallback_proxy() {
     });
 }
 
+#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn custom_toolchain_cargo_fallback_run() {
     setup(&|config| {
@@ -732,5 +748,16 @@ fn multirust_env_compat() {
         assert!(out.status.success());
         let stderr = String::from_utf8(out.stderr).unwrap();
         assert!(stderr.contains("environment variable MULTIRUST_HOME is deprecated. Use RUSTUP_HOME"));
+    });
+}
+
+#[test]
+fn toolchains_are_resolved_early() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        let full_toolchain = format!("nightly-{}", this_host_triple());
+        expect_stderr_ok(config, &["rustup", "default", &full_toolchain],
+                         &format!("info: using existing install for '{}'", full_toolchain));
     });
 }

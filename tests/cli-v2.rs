@@ -9,10 +9,13 @@ extern crate tempdir;
 use std::fs;
 use tempdir::TempDir;
 use multirust_mock::clitools::{self, Config, Scenario,
-                               this_host_triple,
                                expect_ok, expect_stdout_ok, expect_err,
                                expect_stderr_ok, set_current_dist_date,
-                               change_dir, run};
+                               change_dir, run, this_host_triple};
+
+use multirust_dist::dist::TargetTriple;
+
+macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, f);
@@ -88,7 +91,7 @@ fn default_existing_toolchain() {
     setup(&|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_stderr_ok(config, &["multirust", "default", "nightly"],
-                         "using existing install for 'nightly'");
+                         for_host!("using existing install for 'nightly-{0}'"));
     });
 }
 
@@ -143,7 +146,7 @@ fn remove_default_toolchain_error_handling() {
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_ok(config, &["multirust", "remove-toolchain", "nightly"]);
         expect_err(config, &["rustc"],
-                           "toolchain 'nightly' is not installed");
+                           for_host!("toolchain 'nightly-{0}' is not installed"));
     });
 }
 
@@ -156,7 +159,7 @@ fn remove_override_toolchain_error_handling() {
             expect_ok(config, &["multirust", "override", "beta"]);
             expect_ok(config, &["multirust", "remove-toolchain", "beta"]);
             expect_err(config, &["rustc"],
-                               "toolchain 'beta' is not installed");
+                               for_host!("toolchain 'beta-{0}' is not installed"));
         });
     });
 }
@@ -469,7 +472,7 @@ fn upgrade_v2_to_v1() {
 fn list_targets_no_toolchain() {
     setup(&|config| {
         expect_err(config, &["multirust", "list-targets", "nightly"],
-                   "toolchain 'nightly' is not installed");
+                   for_host!("toolchain 'nightly-{0}' is not installed"));
     });
 }
 
@@ -478,7 +481,7 @@ fn list_targets_v1_toolchain() {
     clitools::setup(Scenario::SimpleV1, &|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_err(config, &["multirust", "list-targets", "nightly"],
-                   "toolchain 'nightly' does not support components");
+                   for_host!("toolchain 'nightly-{0}' does not support components"));
     });
 }
 
@@ -510,8 +513,8 @@ fn add_target() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_ok(config, &["multirust", "add-target", "nightly", clitools::CROSS_ARCH1]);
-        let path = format!("toolchains/nightly/lib/rustlib/{}/lib/libstd.rlib",
-                           clitools::CROSS_ARCH1);
+        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+                           this_host_triple(), clitools::CROSS_ARCH1);
         assert!(config.rustupdir.join(path).exists());
     });
 }
@@ -520,7 +523,7 @@ fn add_target() {
 fn add_target_no_toolchain() {
     setup(&|config| {
         expect_err(config, &["multirust", "add-target", "nightly", clitools::CROSS_ARCH1],
-                   "toolchain 'nightly' is not installed");
+                   for_host!("toolchain 'nightly-{0}' is not installed"));
     });
 }
 #[test]
@@ -528,7 +531,7 @@ fn add_target_bogus() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_err(config, &["multirust", "add-target", "nightly", "bogus"],
-                   "toolchain 'nightly' does not contain component 'rust-std' for target 'bogus'");
+                   "error: invalid target triple: 'bogus'");
     });
 }
 
@@ -537,7 +540,7 @@ fn add_target_v1_toolchain() {
     clitools::setup(Scenario::SimpleV1, &|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_err(config, &["multirust", "add-target", "nightly", clitools::CROSS_ARCH1],
-                   "toolchain 'nightly' does not support components");
+                   for_host!("toolchain 'nightly-{0}' does not support components"));
     });
 }
 
@@ -561,8 +564,8 @@ fn add_target_again() {
         expect_stderr_ok(config, &["multirust", "add-target", "nightly", clitools::CROSS_ARCH1],
                          &format!("component 'rust-std' for target '{}' is up to date",
                                  clitools::CROSS_ARCH1));
-        let path = format!("toolchains/nightly/lib/rustlib/{}/lib/libstd.rlib",
-                           clitools::CROSS_ARCH1);
+        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+                           this_host_triple(), clitools::CROSS_ARCH1);
         assert!(config.rustupdir.join(path).exists());
     });
 }
@@ -570,10 +573,10 @@ fn add_target_again() {
 #[test]
 fn add_target_host() {
     setup(&|config| {
-        let trip = this_host_triple();
+        let trip = TargetTriple::from_host();
         expect_ok(config, &["multirust", "default", "nightly"]);
-        expect_err(config, &["multirust", "add-target", "nightly", &trip],
-                   &format!("component 'rust-std' for target '{}' is required for toolchain 'nightly' and cannot be re-added", trip));
+        expect_err(config, &["multirust", "add-target", "nightly", &trip.to_string()],
+                   for_host!("component 'rust-std' for target '{0}' is required for toolchain 'nightly-{0}' and cannot be re-added"));
     });
 }
 
@@ -583,8 +586,8 @@ fn remove_target() {
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_ok(config, &["multirust", "add-target", "nightly", clitools::CROSS_ARCH1]);
         expect_ok(config, &["multirust", "remove-target", "nightly", clitools::CROSS_ARCH1]);
-        let path = format!("toolchains/nightly/lib/rustlib/{}/lib/libstd.rlib",
-                           clitools::CROSS_ARCH1);
+        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+                           this_host_triple(), clitools::CROSS_ARCH1);
         assert!(!config.rustupdir.join(path).exists());
     });
 }
@@ -594,8 +597,8 @@ fn remove_target_not_installed() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_err(config, &["multirust", "remove-target", "nightly", clitools::CROSS_ARCH1],
-                   &format!("toolchain 'nightly' does not contain component 'rust-std' for target '{}'",
-                            clitools::CROSS_ARCH1));
+                   &format!("toolchain 'nightly-{}' does not contain component 'rust-std' for target '{}'",
+                            this_host_triple(), clitools::CROSS_ARCH1));
     });
 }
 
@@ -603,7 +606,7 @@ fn remove_target_not_installed() {
 fn remove_target_no_toolchain() {
     setup(&|config| {
         expect_err(config, &["multirust", "remove-target", "nightly", clitools::CROSS_ARCH1],
-                   "toolchain 'nightly' is not installed");
+                   for_host!("toolchain 'nightly-{0}' is not installed"));
     });
 }
 
@@ -612,7 +615,7 @@ fn remove_target_bogus() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_err(config, &["multirust", "remove-target", "nightly", "bogus"],
-                   "toolchain 'nightly' does not contain component 'rust-std' for target 'bogus'");
+                   "error: invalid target triple: 'bogus'");
     });
 }
 
@@ -621,7 +624,7 @@ fn remove_target_v1_toolchain() {
     clitools::setup(Scenario::SimpleV1, &|config| {
         expect_ok(config, &["multirust", "update", "nightly"]);
         expect_err(config, &["multirust", "remove-target", "nightly", clitools::CROSS_ARCH1],
-                   "toolchain 'nightly' does not support components");
+                   for_host!("toolchain 'nightly-{0}' does not support components"));
     });
 }
 
@@ -644,22 +647,22 @@ fn remove_target_again() {
         expect_ok(config, &["multirust", "add-target", "nightly", clitools::CROSS_ARCH1]);
         expect_ok(config, &["multirust", "remove-target", "nightly", clitools::CROSS_ARCH1]);
         expect_err(config, &["multirust", "remove-target", "nightly", clitools::CROSS_ARCH1],
-                   &format!("toolchain 'nightly' does not contain component 'rust-std' for target '{}'",
-                            clitools::CROSS_ARCH1));
+                   &format!("toolchain 'nightly-{}' does not contain component 'rust-std' for target '{}'",
+                            this_host_triple(), clitools::CROSS_ARCH1));
     });
 }
 
 #[test]
 fn remove_target_host() {
     setup(&|config| {
-        let trip = this_host_triple();
+        let trip = TargetTriple::from_host();
         expect_ok(config, &["multirust", "default", "nightly"]);
-        expect_err(config, &["multirust", "remove-target", "nightly", &trip],
-                   &format!("component 'rust-std' for target '{}' is required for toolchain 'nightly' and cannot be removed", trip));
+        expect_err(config, &["multirust", "remove-target", "nightly", &trip.to_string()],
+                   for_host!("component 'rust-std' for target '{0}' is required for toolchain 'nightly-{0}' and cannot be removed"));
     });
 }
 
-fn make_component_unavailable(config: &Config, name: &str, target: &str) {
+fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple) {
     use multirust_dist::manifest::Manifest;
     use multirust_mock::dist::create_hash;
 
@@ -683,7 +686,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &str) {
 #[test]
 fn update_unavailable_std() {
     setup(&|config| {
-        let ref trip = this_host_triple();
+        let ref trip = TargetTriple::from_host();
         make_component_unavailable(config, "rust-std", trip);
         expect_err(config, &["multirust", "update", "nightly"],
                    &format!("component 'rust-std' for '{}' is unavailable for download", trip));
