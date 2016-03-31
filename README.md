@@ -85,7 +85,7 @@ and is released every six weeks.
 
 [release channels]: https://github.com/rust-lang/rfcs/blob/master/text/0507-release-channels.md
 
-When a new version of Rust is released, you can type `rustup` to update
+When a new version of Rust is released, you can type `rustup update` to update
 to it:
 
 ```
@@ -155,11 +155,11 @@ info: default toolchain set to 'nightly'
 Now any time you run `cargo` or `rustc` you will be running the
 nightly compiler.
 
-With nightly installed any time you run `rustup`, the nightly channel
-will be updated:
+With nightly installed any time you run `rustup update`, the nightly channel
+will be updated in addition to stable:
 
 ```
-$ rustup
+$ rustup update
 info: syncing channel updates for 'stable'
 info: syncing channel updates for 'nightly'
 info: checking for self-updates
