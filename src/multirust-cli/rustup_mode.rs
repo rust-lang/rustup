@@ -124,7 +124,7 @@ pub fn cli() -> App<'static, 'static> {
         .subcommand(SubCommand::with_name("self")
             .about("Modify the rustup installation")
             .subcommand(SubCommand::with_name("update")
-                .about("Downloadand and install updates to rustup"))
+                .about("Download and install updates to rustup"))
             .subcommand(SubCommand::with_name("uninstall")
                 .about("Uninstall rustup.")
                 .arg(Arg::with_name("no-prompt")
