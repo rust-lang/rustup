@@ -58,9 +58,7 @@ pub fn main() -> Result<()> {
                 (_ ,_) => unreachable!(),
             }
         }
-        (_, _) => {
-            try!(update_all_channels(cfg, &matches));
-        }
+        (_, _) => unreachable!(),
     }
 
     Ok(())
@@ -72,23 +70,24 @@ pub fn cli() -> App<'static, 'static> {
         .about("The Rust toolchain installer")
         .setting(AppSettings::VersionlessSubcommands)
         .setting(AppSettings::DeriveDisplayOrder)
+        .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(Arg::with_name("verbose")
             .help("Enable verbose output")
             .short("v")
             .long("verbose"))
-        .arg(Arg::with_name("no-self-update")
-            .help("Don't perform self update when running the `rustup` command")
-            .long("no-self-update")
-            .takes_value(false)
-            .hidden(true))
         .subcommand(SubCommand::with_name("default")
             .about("Set the default toolchain")
             .arg(Arg::with_name("toolchain")
                 .required(true)))
         .subcommand(SubCommand::with_name("update")
-            .about("Install or update a toolchain from a Rust distribution channel")
+            .about("Update all toolchains, install or update a given toolchain")
             .arg(Arg::with_name("toolchain")
-                .required(false)))
+                .required(false))
+            .arg(Arg::with_name("no-self-update")
+                .help("Don't perform self update when running the `rustup` command")
+                .long("no-self-update")
+                .takes_value(false)
+                .hidden(true)))
         .subcommand(SubCommand::with_name("run")
             .about("Run a command with an environment configured for a given toolchain")
             .setting(AppSettings::TrailingVarArg)
@@ -170,10 +169,6 @@ fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
     }
 }
 
-fn update_all_channels(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    common::update_all_channels(cfg, !m.is_present("no-self-update"))
-}
-
 fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
     let ref toolchain = try!(cfg.get_toolchain(toolchain, false));
@@ -197,25 +192,23 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let toolchain = if let Some(name) = m.value_of("toolchain") {
-        try!(cfg.get_toolchain(name, false))
-    } else {
-        let ref cwd = try!(utils::current_dir());
-        let (toolchain, _) = try!(cfg.toolchain_for_dir(cwd));
-        toolchain
-    };
+    if let Some(name) = m.value_of("toolchain") {
+        let toolchain = try!(cfg.get_toolchain(name, false));
 
-    let status = if !toolchain.is_custom() {
-        Some(try!(toolchain.install_from_dist()))
-    } else if !toolchain.exists() {
-        return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()));
-    } else {
-        None
-    };
+        let status = if !toolchain.is_custom() {
+            Some(try!(toolchain.install_from_dist()))
+        } else if !toolchain.exists() {
+            return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()));
+        } else {
+            None
+        };
 
-    if let Some(status) = status {
-        println!("");
-        try!(common::show_channel_update(cfg, toolchain.name(), Ok(status)));
+        if let Some(status) = status {
+            println!("");
+            try!(common::show_channel_update(cfg, toolchain.name(), Ok(status)));
+        }
+    } else {
+        try!(common::update_all_channels(cfg, !m.is_present("no-self-update")));
     }
 
     Ok(())

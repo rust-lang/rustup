@@ -26,7 +26,7 @@ fn rustup_stable() {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "update", "stable"]);
         set_current_dist_date(config, "2015-01-02");
-        expect_ok_ex(config, &["rustup", "--no-self-update"],
+        expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
 for_host!(r"
   stable-{0} updated - 1.1.0 (hash-s-2)
 
@@ -49,7 +49,7 @@ fn rustup_stable_no_change() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "update", "stable"]);
-        expect_ok_ex(config, &["rustup", "--no-self-update"],
+        expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
 for_host!(r"
   stable-{0} unchanged - 1.0.0 (hash-s-1)
 
@@ -67,7 +67,7 @@ fn rustup_all_channels() {
         expect_ok(config, &["multirust", "update", "beta"]);
         expect_ok(config, &["multirust", "update", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
-        expect_ok_ex(config, &["rustup", "--no-self-update"],
+        expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
 for_host!(r"
    stable-{0} updated - 1.1.0 (hash-s-2)
      beta-{0} updated - 1.2.0 (hash-b-2)
@@ -114,7 +114,7 @@ fn rustup_some_channels_up_to_date() {
         expect_ok(config, &["multirust", "update", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["multirust", "update", "beta"]);
-        expect_ok_ex(config, &["rustup", "--no-self-update"],
+        expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
 for_host!(r"
    stable-{0} updated - 1.1.0 (hash-s-2)
    beta-{0} unchanged - 1.2.0 (hash-b-2)
@@ -149,7 +149,7 @@ fn rustup_no_channels() {
     setup(&|config| {
         expect_ok(config, &["rustup", "update", "stable"]);
         expect_ok(config, &["multirust", "remove-toolchain", "stable"]);
-        expect_ok_ex(config, &["rustup", "--no-self-update"],
+        expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
 r"",
 r"info: no updatable toolchains installed
 ");

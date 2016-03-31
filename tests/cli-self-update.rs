@@ -677,7 +677,7 @@ fn rustup_self_updates() {
         let ref bin = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         let before_hash = calc_hash(bin);
 
-        expect_ok(config, &["rustup"]);
+        expect_ok(config, &["rustup", "update"]);
 
         let after_hash = calc_hash(bin);
 
@@ -690,7 +690,7 @@ fn rustup_self_update_exact() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-setup", "-y"]);
 
-        expect_ok_ex(config, &["rustup"],
+        expect_ok_ex(config, &["rustup", "update"],
 for_host!(r"
   stable-{0} unchanged - 1.1.0 (hash-s-2)
 
