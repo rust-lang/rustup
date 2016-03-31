@@ -171,7 +171,7 @@ impl error::Error for Error {
             ToolchainNotInstalled(_) => "toolchain is not installed",
             UnknownHostTriple => "unknown host triple",
             InfiniteRecursion =>  "infinite recursion detected",
-            NeedMetadataUpgrade => "rustup's metadata is out of date. run rustup upgrade-data.",
+            NeedMetadataUpgrade => "rustup's metadata is out of date. run rustup self upgrade-data.",
             UpgradeIoError(_) => "I/O error during upgrade",
             BadInstallerType(_) => "invalid extension for installer",
             ComponentsUnsupported(_) => "toolchain does not support componentsn",
