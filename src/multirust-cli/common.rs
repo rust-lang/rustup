@@ -8,6 +8,7 @@ use std::ffi::OsStr;
 use std::io::{Write, Read, BufRead};
 use std::process::{self, Command};
 use std::{cmp, iter};
+use std::str::FromStr;
 use std;
 use term2;
 
@@ -282,12 +283,24 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
         println!("no overrides");
     } else {
         for o in overrides {
-            println!("{}", o);
+            split_override::<String>(&o, ';').map(|li| 
+                println!("{:<40}\t{:<20}", li.0, li.1)
+            );
         }
     }
     Ok(())
 }
 
+
 pub fn version() -> &'static str {
     option_env!("CARGO_PKG_VERSION").unwrap_or("unknown")
+}
+
+fn split_override<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
+    s.find(separator).and_then(|index| {
+        match (T::from_str(&s[..index]), T::from_str(&s[index + 1..])) {
+            (Ok(l), Ok(r)) => Some((l, r)),
+            _ => None
+        }
+    })
 }

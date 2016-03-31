@@ -114,6 +114,17 @@ r"",
 }
 
 #[test]
+fn list_overrides() {
+    setup(&|config| {
+        let cwd = std::fs::canonicalize(env::current_dir().unwrap()).unwrap();
+        let trip = this_host_triple();
+        expect_ok(config, &["rustup", "override", "add", "nightly"]);
+        expect_ok_ex(config, &["rustup", "override", "list"], 
+                     &format!("{:<40}\t{:<20}\n", cwd.display(), &format!("nightly-{}", trip)), r""); 
+    });
+}
+
+#[test]
 fn update_no_manifest() {
     setup(&|config| {
         expect_err_ex(config, &["rustup", "update", "nightly-2016-01-01"],
