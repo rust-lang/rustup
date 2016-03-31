@@ -507,9 +507,9 @@ fn running_with_v2_metadata() {
         multirust_utils::raw::write_file(&config.rustupdir.join("version"),
                                "2").unwrap();
         expect_err(config, &["multirust", "default", "nightly"],
-                   "rustup's metadata is out of date. run rustup upgrade-data");
+                   "rustup's metadata is out of date. run rustup self upgrade-data");
         expect_err(config, &["rustc", "--version"],
-                   "rustup's metadata is out of date. run rustup upgrade-data");
+                   "rustup's metadata is out of date. run rustup self upgrade-data");
     });
 }
 
@@ -521,9 +521,9 @@ fn running_with_v2_metadata_rustup() {
         multirust_utils::raw::write_file(&config.rustupdir.join("version"),
                                "2").unwrap();
         expect_err(config, &["rustup", "default", "nightly"],
-                   "rustup's metadata is out of date. run rustup upgrade-data");
+                   "rustup's metadata is out of date. run rustup self upgrade-data");
         expect_err(config, &["rustc", "--version"],
-                   "rustup's metadata is out of date. run rustup upgrade-data");
+                   "rustup's metadata is out of date. run rustup self upgrade-data");
     });
 }
 
