@@ -738,6 +738,7 @@ fn custom_toolchain_cargo_fallback_run() {
     });
 }
 
+#[test]
 fn multirust_env_compat() {
     setup(&|config| {
         let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly"]);
