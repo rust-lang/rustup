@@ -104,7 +104,7 @@ pub fn cli() -> App<'static, 'static> {
             .about("Show the active toolchain"))
         .subcommand(SubCommand::with_name("target")
             .about("Modify a toolchain's supported targets")
-            .setting(AppSettings::SubcommandRequired)
+            .setting(AppSettings::SubcommandRequiredElseHelp)
             .subcommand(SubCommand::with_name("list")
                 .about("List installed and available targets"))
             .subcommand(SubCommand::with_name("add")
