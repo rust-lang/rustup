@@ -66,7 +66,7 @@ pub fn main() -> Result<()> {
 
 pub fn cli() -> App<'static, 'static> {
     App::new("rustup")
-        .version("0.1.1")
+        .version(common::version())
         .about("The Rust toolchain installer")
         .setting(AppSettings::VersionlessSubcommands)
         .setting(AppSettings::DeriveDisplayOrder)
