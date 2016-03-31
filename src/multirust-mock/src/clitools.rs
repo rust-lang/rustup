@@ -391,21 +391,25 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
 }
 
 pub fn this_host_triple() -> String {
-    let arch = if cfg!(target_arch = "x86") { "i686" }
-    else if cfg!(target_arch = "x86_64") { "x86_64" }
-    else { unimplemented!() };
-    let os = if cfg!(target_os = "linux") { "unknown-linux" }
-    else if cfg!(target_os = "windows") { "pc-windows" }
-    else if cfg!(target_os = "macos") { "apple-darwin" }
-    else { unimplemented!() };
-    let env = if cfg!(target_env = "gnu") { Some("gnu") }
-    else if cfg!(target_env = "msvc") { Some("msvc") }
-    else { None };
-
-    if let Some(env) = env {
-        format!("{}-{}-{}", arch, os, env)
+    if let Some(triple) = option_env!("RUSTUP_OVERRIDE_HOST_TRIPLE") {
+        triple.to_owned()
     } else {
-        format!("{}-{}", arch, os)
+        let arch = if cfg!(target_arch = "x86") { "i686" }
+        else if cfg!(target_arch = "x86_64") { "x86_64" }
+        else { unimplemented!() };
+        let os = if cfg!(target_os = "linux") { "unknown-linux" }
+        else if cfg!(target_os = "windows") { "pc-windows" }
+        else if cfg!(target_os = "macos") { "apple-darwin" }
+        else { unimplemented!() };
+        let env = if cfg!(target_env = "gnu") { Some("gnu") }
+        else if cfg!(target_env = "msvc") { Some("msvc") }
+        else { None };
+
+        if let Some(env) = env {
+            format!("{}-{}-{}", arch, os, env)
+        } else {
+            format!("{}-{}", arch, os)
+        }
     }
 }
 

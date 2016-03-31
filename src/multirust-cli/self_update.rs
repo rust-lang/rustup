@@ -481,7 +481,7 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
 
         try!(Command::new(gc_exe).spawn()
              .map_err(|e| Error::WindowsUninstallMadness(e)));
-        
+
         // The catch 22 article says we must sleep here to give
         // Windows a chance to bump the processes file reference
         // count. acrichto though is in disbelief and *demanded* that
@@ -817,7 +817,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     }
 
     // Get host triple
-    let triple = dist::get_host_triple();
+    let triple = dist::TargetTriple::from_host();
 
     let update_root = env::var("RUSTUP_UPDATE_ROOT")
         .unwrap_or(String::from(UPDATE_ROOT));
