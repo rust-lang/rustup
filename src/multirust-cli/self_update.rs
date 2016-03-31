@@ -481,7 +481,7 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
 
         try!(Command::new(gc_exe).spawn()
              .map_err(|e| Error::WindowsUninstallMadness(e)));
-        
+
         // The catch 22 article says we must sleep here to give
         // Windows a chance to bump the processes file reference
         // count. acrichto though is in disbelief and *demanded* that
@@ -529,6 +529,7 @@ fn wait_for_parent() -> Result<()> {
                  TH32CS_SNAPPROCESS, SYNCHRONIZE, WAIT_OBJECT_0};
     use std::io;
     use std::mem;
+    use std::ptr;
     use scopeguard;
 
     unsafe {
@@ -568,7 +569,7 @@ fn wait_for_parent() -> Result<()> {
 
         // Get a handle to the parent process
         let parent = OpenProcess(SYNCHRONIZE, 0, parent_id);
-        if parent == INVALID_HANDLE_VALUE {
+        if parent == ptr::null_mut() {
             // This just means the parent has already exited.
             return Ok(());
         }
