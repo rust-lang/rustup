@@ -170,15 +170,35 @@ pub fn install(no_prompt: bool, verbose: bool) -> Result<()> {
         }
     }
 
-    try!(cleanup_legacy());
-    try!(install_bins());
-    try!(do_add_to_path(&get_add_path_methods()));
-    try!(maybe_install_rust_stable(verbose));
+    let install_res: Result<()> = (|| {
+        try!(cleanup_legacy());
+        try!(install_bins());
+        try!(do_add_to_path(&get_add_path_methods()));
+        try!(maybe_install_rust_stable(verbose));
 
-    if cfg!(unix) {
-        let ref env_file = try!(utils::cargo_home()).join("env");
-        let ref env_str = try!(shell_export_string());
-        try!(utils::write_file("env", env_file, env_str));
+        if cfg!(unix) {
+            let ref env_file = try!(utils::cargo_home()).join("env");
+            let ref env_str = try!(shell_export_string());
+            try!(utils::write_file("env", env_file, env_str));
+        }
+
+        Ok(())
+    })();
+
+    if let Err(e) = install_res {
+        err!("{}", e);
+
+        // On windows, where installation happens in a console
+        // that may have opened just for this purpose, give
+        // the user an opportunity to see the error before the
+        // window closes.
+        if cfg!(windows) && !no_prompt {
+            println!("");
+            println!("Press enter to continue");
+            try!(common::read_line());
+        }
+
+        process::exit(1);
     }
 
     // More helpful advice, skip if -y
@@ -196,8 +216,8 @@ pub fn install(no_prompt: bool, verbose: bool) -> Result<()> {
         // the user to press a key to continue.
         if cfg!(windows) {
             println!("");
-            println!("Press any key to continue");
-            try!(common::wait_for_keypress());
+            println!("Press enter to continue");
+            try!(common::read_line());
         }
     }
 
