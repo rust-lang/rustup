@@ -24,6 +24,11 @@ pub struct PartialToolchainDesc {
     // Either "nightly", "stable", "beta", or an explicit version number
     pub channel: String,
     pub date: Option<String>,
+    pub target: PartialTargetTriple,
+}
+
+#[derive(Debug, Clone)]
+pub struct PartialTargetTriple {
     pub arch: Option<String>,
     pub os: Option<String>,
     pub env: Option<String>,
@@ -95,19 +100,25 @@ impl TargetTriple {
     }
 }
 
-impl PartialToolchainDesc {
-    pub fn from_str(name: &str) -> Result<Self> {
-        let channels = ["nightly", "beta", "stable",
-                        r"\d{1}\.\d{1}\.\d{1}",
-                        r"\d{1}\.\d{2}\.\d{1}"];
+impl PartialTargetTriple {
+    pub fn from_str(name: &str) -> Option<Self> {
+        if name.is_empty() {
+            return Some(PartialTargetTriple {
+                arch: None, os: None, env: None
+            });
+        }
 
+        // Prepending `-` makes this next regex easier since
+        // we can count  on all triple components being
+        // delineated by it.
+        let name = format!("-{}", name);
         let pattern = format!(
-            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-({}))?(?:-({}))?(?:-({}))?$",
-            channels.join("|"), LIST_ARCHS.join("|"), LIST_OSES.join("|"), LIST_ENVS.join("|")
+            r"^(?:-({}))?(?:-({}))?(?:-({}))?$",
+            LIST_ARCHS.join("|"), LIST_OSES.join("|"), LIST_ENVS.join("|")
             );
 
         let re = Regex::new(&pattern).unwrap();
-        re.captures(name).map(|c| {
+        re.captures(&name).map(|c| {
             fn fn_map(s: &str) -> Option<String> {
                 if s == "" {
                     None
@@ -116,30 +127,69 @@ impl PartialToolchainDesc {
                 }
             }
 
-            PartialToolchainDesc {
-                channel: c.at(1).unwrap().to_owned(),
-                date: c.at(2).and_then(fn_map),
-                arch: c.at(3).and_then(fn_map),
-                os: c.at(4).and_then(fn_map),
-                env: c.at(5).and_then(fn_map),
+            PartialTargetTriple {
+                arch: c.at(1).and_then(fn_map),
+                os: c.at(2).and_then(fn_map),
+                env: c.at(3).and_then(fn_map),
             }
-        }).ok_or(Error::InvalidToolchainName(name.to_string()))
+        })
+    }
+}
+
+impl PartialToolchainDesc {
+    pub fn from_str(name: &str) -> Result<Self> {
+        let channels = ["nightly", "beta", "stable",
+                        r"\d{1}\.\d{1}\.\d{1}",
+                        r"\d{1}\.\d{2}\.\d{1}"];
+
+        let pattern = format!(
+            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
+            channels.join("|")
+            );
+
+
+        let re = Regex::new(&pattern).unwrap();
+        let d = re.captures(name).map(|c| {
+            fn fn_map(s: &str) -> Option<String> {
+                if s == "" {
+                    None
+                } else {
+                    Some(s.to_owned())
+                }
+            }
+
+            let trip = c.at(3).unwrap_or("");
+            let trip = PartialTargetTriple::from_str(&trip);
+            trip.map(|t| {
+                PartialToolchainDesc {
+                    channel: c.at(1).unwrap().to_owned(),
+                    date: c.at(2).and_then(fn_map),
+                    target: t,
+                }
+            })
+        });
+
+        if let Some(Some(d)) = d {
+            Ok(d)
+        } else {
+            Err(Error::InvalidToolchainName(name.to_string()))
+        }
     }
 
     pub fn resolve(self, host: &TargetTriple) -> ToolchainDesc {
         // If OS was specified, don't default to host environment, even if the OS matches
         // the host OS, otherwise cannot specify no environment.
-        let env = if self.os.is_some() {
-            self.env
+        let env = if self.target.os.is_some() {
+            self.target.env
         } else {
-            self.env.or_else(|| host.env.clone())
+            self.target.env.or_else(|| host.env.clone())
         };
-        let os = self.os.unwrap_or_else(|| host.os.clone());
+        let os = self.target.os.unwrap_or_else(|| host.os.clone());
         ToolchainDesc {
             channel: self.channel,
             date: self.date,
             target: TargetTriple {
-                arch: self.arch.unwrap_or_else(|| host.arch.clone()),
+                arch: self.target.arch.unwrap_or_else(|| host.arch.clone()),
                 os: os,
                 env: env
             }
@@ -255,13 +305,13 @@ impl fmt::Display for PartialToolchainDesc {
         if let Some(ref date) = self.date {
             try!(write!(f, "-{}", date));
         }
-        if let Some(ref arch) = self.arch {
+        if let Some(ref arch) = self.target.arch {
             try!(write!(f, "-{}", arch));
         }
-        if let Some(ref os) = self.os {
+        if let Some(ref os) = self.target.os {
             try!(write!(f, "-{}", os));
         }
-        if let Some(ref env) = self.env {
+        if let Some(ref env) = self.target.env {
             try!(write!(f, "-{}", env));
         }
 
