@@ -19,6 +19,11 @@ use itertools::Itertools;
 pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
 pub const UPDATE_HASH_LEN: usize = 20;
 
+// A toolchain descriptor from rustup's perspective. These contain
+// 'partial target triples', which allow toolchain names like
+// 'stable-msvc' to work. Partial target triples though are parsed
+// from a hardcoded set of known triples, whereas target triples
+// are nearly-arbitrary strings.
 #[derive(Debug, Clone)]
 pub struct PartialToolchainDesc {
     // Either "nightly", "stable", "beta", or an explicit version number
@@ -34,13 +39,9 @@ pub struct PartialTargetTriple {
     pub env: Option<String>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct TargetTriple {
-    pub arch: String,
-    pub os: String,
-    pub env: Option<String>,
-}
-
+// Fully-resolved toolchain descriptors. These always have full target
+// triples attached to them and are used for canonical identification,
+// such as naming their installation directory.
 #[derive(Debug, Clone)]
 pub struct ToolchainDesc {
     // Either "nightly", "stable", "beta", or an explicit version number
@@ -48,6 +49,12 @@ pub struct ToolchainDesc {
     pub date: Option<String>,
     pub target: TargetTriple,
 }
+
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct TargetTriple(String);
+
+// These lists contain the targets known to rustup, and used to build
+// the PartialTargetTriple.
 
 static LIST_ARCHS: &'static [&'static str] = &[
     "i386", "i586", "i686", "x86_64", "arm", "armv7", "armv7s", "aarch64", "mips", "mipsel",
@@ -62,39 +69,19 @@ static LIST_ENVS: &'static [&'static str] = &[
 ];
 
 impl TargetTriple {
-    pub fn from_str(name: &str) -> Result<Self> {
-        let pattern = format!(
-            r"^({})-({})(?:-({}))?$",
-            LIST_ARCHS.join("|"), LIST_OSES.join("|"), LIST_ENVS.join("|")
-            );
-        let re = Regex::new(&pattern).unwrap();
-        re.captures(name).map(|c| {
-            fn fn_map(s: &str) -> Option<String> {
-                if s == "" {
-                    None
-                } else {
-                    Some(s.to_owned())
-                }
-            }
-
-            TargetTriple {
-                arch: c.at(1).unwrap().to_owned(),
-                os: c.at(2).unwrap().to_owned(),
-                env: c.at(3).and_then(fn_map),
-            }
-        }).ok_or(Error::InvalidTargetTriple(name.to_string()))
+    pub fn from_str(name: &str) -> Self {
+        TargetTriple(name.to_string())
     }
 
     pub fn from_host() -> Self {
         if let Some(triple) = option_env!("RUSTUP_OVERRIDE_HOST_TRIPLE") {
-            // Unwrap here because it's a compile-time constant
-            TargetTriple::from_str(triple).unwrap()
+            TargetTriple::from_str(triple)
         } else {
             let (arch, os, env) = get_original_host_triple();
-            TargetTriple {
-                arch: arch.to_owned(),
-                os: os.to_owned(),
-                env: env.map(ToOwned::to_owned)
+            if let Some(env) = env {
+                TargetTriple(format!("{}-{}-{}", arch, os ,env))
+            } else {
+                TargetTriple(format!("{}-{}", arch, os))
             }
         }
     }
@@ -177,22 +164,32 @@ impl PartialToolchainDesc {
     }
 
     pub fn resolve(self, host: &TargetTriple) -> ToolchainDesc {
+        let host = PartialTargetTriple::from_str(&host.0)
+            .expect("host triple couldn't be converted to partial triple");
+        let host_arch = host.arch.expect("");
+        let host_os = host.os.expect("");
+        let host_env = host.env;
+
         // If OS was specified, don't default to host environment, even if the OS matches
         // the host OS, otherwise cannot specify no environment.
         let env = if self.target.os.is_some() {
             self.target.env
         } else {
-            self.target.env.or_else(|| host.env.clone())
+            self.target.env.or_else(|| host_env)
         };
-        let os = self.target.os.unwrap_or_else(|| host.os.clone());
+        let arch = self.target.arch.unwrap_or_else(|| host_arch);
+        let os = self.target.os.unwrap_or_else(|| host_os);
+
+        let trip = if let Some(env) = env {
+            format!("{}-{}-{}", arch, os, env)
+        } else {
+            format!("{}-{}", arch, os)
+        };
+
         ToolchainDesc {
             channel: self.channel,
             date: self.date,
-            target: TargetTriple {
-                arch: self.target.arch.unwrap_or_else(|| host.arch.clone()),
-                os: os,
-                env: env
-            }
+            target: TargetTriple(trip),
         }
     }
 }
@@ -204,8 +201,8 @@ impl ToolchainDesc {
                         r"\d{1}\.\d{2}\.\d{1}"];
 
         let pattern = format!(
-            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?-({})-({})(?:-({}))?$",
-            channels.join("|"), LIST_ARCHS.join("|"), LIST_OSES.join("|"), LIST_ENVS.join("|")
+            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?-(.*)?$",
+            channels.join("|"),
             );
 
         let re = Regex::new(&pattern).unwrap();
@@ -221,11 +218,7 @@ impl ToolchainDesc {
             ToolchainDesc {
                 channel: c.at(1).unwrap().to_owned(),
                 date: c.at(2).and_then(fn_map),
-                target: TargetTriple {
-                    arch: c.at(3).unwrap().to_owned(),
-                    os: c.at(4).unwrap().to_owned(),
-                    env: c.at(5).and_then(fn_map)
-                }
+                target: TargetTriple(c.at(3).unwrap().to_owned()),
             }
         }).ok_or(Error::InvalidToolchainName(name.to_string()))
     }
@@ -290,11 +283,7 @@ impl<'a> Manifest<'a> {
 
 impl fmt::Display for TargetTriple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(ref env) = self.env {
-            write!(f, "{}-{}-{}", self.arch, self.os, env)
-        } else {
-            write!(f, "{}-{}", self.arch, self.os)
-        }
+        self.0.fmt(f)
     }
 }
 

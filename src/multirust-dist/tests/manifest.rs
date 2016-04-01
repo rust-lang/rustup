@@ -11,8 +11,8 @@ static EXAMPLE2: &'static str = include_str!("channel-rust-nightly-example2.toml
 
 #[test]
 fn parse_smoke_test() {
-    let x86_64_unknown_linux_gnu = TargetTriple::from_str("x86_64-unknown-linux-gnu").unwrap();
-    let x86_64_unknown_linux_musl = TargetTriple::from_str("x86_64-unknown-linux-musl").unwrap();
+    let x86_64_unknown_linux_gnu = TargetTriple::from_str("x86_64-unknown-linux-gnu");
+    let x86_64_unknown_linux_musl = TargetTriple::from_str("x86_64-unknown-linux-musl");
 
     let pkg = Manifest::parse(EXAMPLE).unwrap();
 
@@ -87,4 +87,12 @@ date = "2015-10-10"
         Error::MissingPackageForComponent(_) => {},
         _ => panic!(),
     }
+}
+
+// #248
+#[test]
+fn manifest_can_contain_unknown_targets() {
+    let manifest = EXAMPLE.replace("x86_64-unknown-linux-gnu", "mycpu-myvendor-myos");
+
+    assert!(Manifest::parse(&manifest).is_ok());
 }
