@@ -288,3 +288,6 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
     Ok(())
 }
 
+pub fn version() -> &'static str {
+    option_env!("CARGO_PKG_VERSION").unwrap_or("unknown")
+}

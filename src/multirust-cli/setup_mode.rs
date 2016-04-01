@@ -2,6 +2,7 @@ use std::env;
 use self_update;
 use multirust::Result;
 use clap::{App, Arg};
+use common;
 
 pub fn main() -> Result<()> {
     let args: Vec<_> = env::args().collect();
@@ -13,7 +14,7 @@ pub fn main() -> Result<()> {
     }
 
     let cli = App::new("multirust-setup")
-        .version("0.1.1")
+        .version(common::version())
         .about("The installer for multirust")
         .arg(Arg::with_name("verbose")
              .short("v")
