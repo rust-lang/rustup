@@ -89,7 +89,7 @@ When a new version of Rust is released, you can type `rustup update` to update
 to it:
 
 ```
-$ rustup
+$ rustup update
 info: syncing channel updates for 'stable'
 info: downloading component 'rustc'
 info: downloading component 'rust-std'
