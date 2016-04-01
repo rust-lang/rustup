@@ -364,13 +364,6 @@ pub fn get_host_triple_pieces() -> (&'static str, &'static str, Option<&'static 
     (arch, os, env)
 }
 
-pub fn get_installer_ext() -> &'static str {
-    if cfg!(windows) {
-        return ".msi";
-    }
-    ".tar.gz"
-}
-
 pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
     let hash_url = try!(utils::parse_url(&(url.to_owned() + ".sha256")));
     let hash_file = try!(cfg.temp_cfg.new_file());
