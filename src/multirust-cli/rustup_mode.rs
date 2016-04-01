@@ -1,6 +1,6 @@
 use clap::{App, Arg, AppSettings, SubCommand, ArgMatches};
 use common;
-use multirust::{Result, Cfg, Error};
+use multirust::{Result, Cfg, Error, Toolchain};
 use multirust_dist::manifest::Component;
 use multirust_dist::dist::TargetTriple;
 use multirust_utils::utils;
@@ -28,7 +28,7 @@ pub fn main() -> Result<()> {
         ("show", Some(_)) => try!(show(cfg)),
         ("target", Some(c)) => {
             match c.subcommand() {
-                ("list", Some(_)) => try!(target_list(cfg)),
+                ("list", Some(m)) => try!(target_list(cfg, m)),
                 ("add", Some(m)) => try!(target_add(cfg, m)),
                 ("remove", Some(m)) => try!(target_remove(cfg, m)),
                 (_, _) => unreachable!(),
@@ -105,16 +105,24 @@ pub fn cli() -> App<'static, 'static> {
             .about("Modify a toolchain's supported targets")
             .setting(AppSettings::SubcommandRequiredElseHelp)
             .subcommand(SubCommand::with_name("list")
-                .about("List installed and available targets"))
+                .about("List installed and available targets")
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true)))
             .subcommand(SubCommand::with_name("add")
                 .about("Add a target to a Rust toolchain")
                 .arg(Arg::with_name("target")
-                    .required(true)))
+                    .required(true))
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true)))
             .subcommand(SubCommand::with_name("remove")
                 .about("Remove a target  from a Rust toolchain")
                 .arg(Arg::with_name("target")
                     .required(true))
-                .arg(Arg::with_name("toolchain"))))
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true))))
         .subcommand(SubCommand::with_name("toolchain")
             .about("Modify or query the installed toolchains")
             .setting(AppSettings::SubcommandRequiredElseHelp)
@@ -255,17 +263,15 @@ fn show(cfg: &Cfg) -> Result<()> {
     Ok(())
 }
 
-fn target_list(cfg: &Cfg) -> Result<()> {
-    let ref cwd = try!(utils::current_dir());
-    let (toolchain, _) = try!(cfg.toolchain_for_dir(cwd));
+fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
 
     common::list_targets(&toolchain)
 }
 
 fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
     let target = m.value_of("target").expect("");
-    let ref cwd = try!(utils::current_dir());
-    let (toolchain, _) = try!(cfg.toolchain_for_dir(cwd));
     let new_component = Component {
         pkg: "rust-std".to_string(),
         target: try!(TargetTriple::from_str(target)),
@@ -275,15 +281,27 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
     let target = m.value_of("target").expect("");
-    let ref cwd = try!(utils::current_dir());
-    let (toolchain, _) = try!(cfg.toolchain_for_dir(cwd));
     let new_component = Component {
         pkg: "rust-std".to_string(),
         target: try!(TargetTriple::from_str(target)),
     };
 
     toolchain.remove_component(new_component)
+}
+
+fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
+    let toolchain = m.value_of("toolchain");
+    if let Some(toolchain) = toolchain {
+        let toolchain = try!(cfg.get_toolchain(toolchain, false));
+        return Ok(toolchain);
+    }
+
+    let ref cwd = try!(utils::current_dir());
+    let (toolchain, _) = try!(cfg.toolchain_for_dir(cwd));
+
+    Ok(toolchain)
 }
 
 fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
