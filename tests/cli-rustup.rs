@@ -214,6 +214,42 @@ fn list_targets() {
     });
 }
 
+#[test]
+fn add_target_explicit() {
+    setup(&|config| {
+        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+                           &this_host_triple(), clitools::CROSS_ARCH1);
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "target", "add", "--toolchain", "nightly",
+                            clitools::CROSS_ARCH1]);
+        assert!(config.rustupdir.join(path).exists());
+    });
+}
+
+#[test]
+fn remove_target_explicit() {
+    setup(&|config| {
+        let ref path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+                               &this_host_triple(), clitools::CROSS_ARCH1);
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "target", "add", "--toolchain", "nightly",
+                            clitools::CROSS_ARCH1]);
+        assert!(config.rustupdir.join(path).exists());
+        expect_ok(config, &["rustup", "target", "remove", "--toolchain", "nightly",
+                            clitools::CROSS_ARCH1]);
+        assert!(!config.rustupdir.join(path).exists());
+    });
+}
+
+#[test]
+fn list_targets_explicit() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_stdout_ok(config, &["rustup", "target", "list", "--toolchain", "nightly"],
+                         clitools::CROSS_ARCH1);
+    });
+}
+
 #[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn link() {
