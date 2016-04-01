@@ -195,7 +195,7 @@ and use the default toolchain again, `rustup override remove`.
 
 ## Toolchain specification
 
-Many `rustup` commands deal with 'toolchains', a single installation
+Many `rustup` commands deal with *toolchains*, a single installation
 of the Rust compiler. `rustup` supports multiple types of
 toolchains. The most basic track the official release channels:
 'stable', 'beta' and 'nightly'; but `rustup` can also install
