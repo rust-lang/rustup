@@ -762,3 +762,12 @@ fn toolchains_are_resolved_early() {
                          &format!("info: using existing install for '{}'", full_toolchain));
     });
 }
+
+// #190
+#[test]
+fn proxies_pass_empty_args() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "run", "nightly", "rustc", "--empty-arg-test", ""]);
+    });
+}
