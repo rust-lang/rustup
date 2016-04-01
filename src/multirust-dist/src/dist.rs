@@ -45,7 +45,7 @@ pub struct ToolchainDesc {
 }
 
 static LIST_ARCHS: &'static [&'static str] = &[
-    "i386", "i686", "x86_64", "arm", "armv7", "armv7s", "aarch64", "mips", "mipsel",
+    "i386", "i586", "i686", "x86_64", "arm", "armv7", "armv7s", "aarch64", "mips", "mipsel",
     "powerpc", "powerpc64", "powerpc64le"
 ];
 static LIST_OSES: &'static [&'static str] = &[
