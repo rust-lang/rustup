@@ -81,11 +81,16 @@ impl TargetTriple {
     }
 
     pub fn from_host() -> Self {
-        let (arch, os, env) = get_host_triple_pieces();
-        TargetTriple {
-            arch: arch.to_owned(),
-            os: os.to_owned(),
-            env: env.map(ToOwned::to_owned)
+        if let Some(triple) = option_env!("RUSTUP_OVERRIDE_HOST_TRIPLE") {
+            // Unwrap here because it's a compile-time constant
+            TargetTriple::from_str(triple).unwrap()
+        } else {
+            let (arch, os, env) = get_original_host_triple();
+            TargetTriple {
+                arch: arch.to_owned(),
+                os: os.to_owned(),
+                env: env.map(ToOwned::to_owned)
+            }
         }
     }
 }
@@ -333,16 +338,7 @@ pub struct DownloadCfg<'a> {
     pub notify_handler: NotifyHandler<'a>,
 }
 
-pub fn get_host_triple() -> String {
-    let (arch, os, maybe_env) = get_host_triple_pieces();
-    if let Some(env) = maybe_env {
-        format!("{}-{}-{}", arch, os, env)
-    } else {
-        format!("{}-{}", arch, os)
-    }
-}
-
-pub fn get_host_triple_pieces() -> (&'static str, &'static str, Option<&'static str>) {
+fn get_original_host_triple() -> (&'static str, &'static str, Option<&'static str>) {
     let arch = match env::consts::ARCH {
         "x86" => "i686", // Why, rust... WHY?
         other => other,

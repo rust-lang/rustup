@@ -838,7 +838,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     }
 
     // Get host triple
-    let triple = dist::get_host_triple();
+    let triple = dist::TargetTriple::from_host();
 
     let update_root = env::var("RUSTUP_UPDATE_ROOT")
         .unwrap_or(String::from(UPDATE_ROOT));
