@@ -117,10 +117,16 @@ r"",
 fn list_overrides() {
     setup(&|config| {
         let cwd = std::fs::canonicalize(env::current_dir().unwrap()).unwrap();
+        let mut cwd_formatted = format!("{}", cwd.display()).to_string();
+        
+        if cfg!(windows) {
+            cwd_formatted = cwd_formatted[4..].to_owned();
+        }
+        
         let trip = this_host_triple();
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
         expect_ok_ex(config, &["rustup", "override", "list"], 
-                     &format!("{:<40}\t{:<20}\n", cwd.display(), &format!("nightly-{}", trip)), r""); 
+                     &format!("{:<40}\t{:<20}\n", cwd_formatted, &format!("nightly-{}", trip)), r""); 
     });
 }
 
