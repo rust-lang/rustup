@@ -357,6 +357,8 @@ pub fn get_host_triple_pieces() -> (&'static str, &'static str, Option<&'static 
 
     let env = match () {
         () if cfg!(target_env = "gnu") => Some("gnu"),
+        () if cfg!(target_env = "gnueabi") => Some("gnueabi"),
+        () if cfg!(target_env = "gnueabihf") => Some("gnueabihf"),
         () if cfg!(target_env = "msvc") => Some("msvc"),
         _ => None,
     };
