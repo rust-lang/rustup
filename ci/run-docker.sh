@@ -49,10 +49,20 @@ case $TARGET in
     OPENSSL_CC=armv7-linux-gnueabihf-gcc
     OPENSSL_AR=armv7-linux-gnueabihf-ar
     ;;
+  aarch64-*-linux-gnu)
+    OPENSSL_OS=linux-aarch64
+    OPENSSL_CC=aarch64-linux-gnu-gcc
+    OPENSSL_AR=aarch64-linux-gnu-ar
+    ;;
   x86_64-*-freebsd)
     OPENSSL_OS=BSD-x86_64
     OPENSSL_CC=x86_64-unknown-freebsd10-gcc
     OPENSSL_AR=x86_64-unknown-freebsd10-ar
+    ;;
+  x86_64-*-netbsd)
+    OPENSSL_OS=BSD-x86_64
+    OPENSSL_CC=x86_64-unknown-netbsd-gcc
+    OPENSSL_AR=x86_64-unknown-netbsd-ar
     ;;
   *)
     echo "can't cross compile OpenSSL for $TARGET"
@@ -60,15 +70,15 @@ case $TARGET in
     ;;
 esac
 
-mkdir -p target/openssl
-install=`pwd`/target/openssl/openssl-install
-out=`pwd`/target/openssl/openssl-$OPENSSL_VERS.tar.gz
+mkdir -p target/$TARGET/openssl
+install=`pwd`/target/$TARGET/openssl/openssl-install
+out=`pwd`/target/$TARGET/openssl/openssl-$OPENSSL_VERS.tar.gz
 curl -o $out https://openssl.org/source/openssl-$OPENSSL_VERS.tar.gz
 sha256sum $out > $out.sha256
 test $OPENSSL_SHA256 = `cut -d ' ' -f 1 $out.sha256`
 
-tar xf $out -C target/openssl
-(cd target/openssl/openssl-$OPENSSL_VERS && \
+tar xf $out -C target/$TARGET/openssl
+(cd target/$TARGET/openssl/openssl-$OPENSSL_VERS && \
  CC=$OPENSSL_CC \
  AR=$OPENSSL_AR \
  $SETARCH ./Configure --prefix=$install no-dso $OPENSSL_OS $OPENSSL_CFLAGS -fPIC && \
