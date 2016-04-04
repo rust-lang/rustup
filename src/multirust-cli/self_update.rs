@@ -676,15 +676,17 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
                            .map_err(|_| Error::PermissionDenied));
 
-    let old_path: String = environment.get_value("PATH").expect("non-unicode PATH");
+    let old_path: String = environment.get_value("PATH").unwrap_or(String::new());
 
     let mut new_path = try!(utils::cargo_home()).join("bin").to_string_lossy().to_string();
     if old_path.contains(&new_path) {
         return Ok(());
     }
 
-    new_path.push_str(";");
-    new_path.push_str(&old_path);
+    if !old_path.is_empty() {
+        new_path.push_str(";");
+        new_path.push_str(&old_path);
+    }
     try!(environment.set_value("PATH", &new_path)
          .map_err(|_| Error::PermissionDenied));
 
@@ -742,7 +744,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
                            .map_err(|_| Error::PermissionDenied));
 
-    let old_path: String = environment.get_value("PATH").expect("non-unicode PATH");
+    let old_path: String = environment.get_value("PATH").unwrap_or(String::new());
     let ref path_str = try!(utils::cargo_home()).join("bin").to_string_lossy().to_string();
     let idx = if let Some(i) = old_path.find(path_str) {
         i
@@ -753,8 +755,13 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     let mut new_path = old_path[..idx].to_string();
     new_path.push_str(&old_path[idx + path_str.len() ..]);
 
-    try!(environment.set_value("PATH", &new_path)
-         .map_err(|_| Error::PermissionDenied));
+    if new_path.is_empty() {
+        try!(environment.delete_value("PATH")
+             .map_err(|_| Error::PermissionDenied));
+    } else {
+        try!(environment.set_value("PATH", &new_path)
+             .map_err(|_| Error::PermissionDenied));
+    }
 
     // Tell other processes to update their environment
     unsafe {
