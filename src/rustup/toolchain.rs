@@ -8,6 +8,8 @@ use rustup_dist::manifest::Component;
 use config::Cfg;
 use env_var;
 use install::{self, InstallMethod};
+use telemetry;
+use telemetry::TelemetryEvent;
 
 use std::process::Command;
 use std::path::{Path, PathBuf};
@@ -142,11 +144,38 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn install_from_dist(&self) -> Result<UpdateStatus> {
+        // if self.cfg.telemetry_enabled() {
+        //     return self.install_from_dist_with_telemetry();
+        // }
+        self.install_from_dist_inner()
+    }
+
+    pub fn install_from_dist_inner(&self) -> Result<UpdateStatus> {
         let update_hash = try!(self.update_hash());
         self.install(InstallMethod::Dist(&try!(self.desc()),
                                          update_hash.as_ref().map(|p| &**p),
                                          self.download_cfg()))
+    }   
+
+    pub fn install_from_dist_with_telemetry(&self) -> Result<UpdateStatus> {
+        let result = self.install_from_dist_inner();
+
+        match result {
+            Ok(us) => {
+                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name().to_string() ,
+                                                           success: true };
+                telemetry::log_telemetry(te, &self.cfg);
+                Ok(us)
+            } 
+            Err(e) => {
+                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name().to_string() ,
+                                                           success: true };
+                telemetry::log_telemetry(te, &self.cfg);
+                Err(e)
+            }
+        }
     }
+
     pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
         let update_hash = try!(self.update_hash());
         self.install_if_not_installed(InstallMethod::Dist(&try!(self.desc()),
@@ -353,7 +382,40 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    pub fn add_component(&self, component: Component) -> Result<()> {
+    pub fn add_component(&self, component: Component, cfg: &Cfg) -> Result<()> {
+        if cfg.telemetry_enabled() {
+            return self.telemetry_add_component(component, cfg);
+        }
+        self.add_component_without_telemetry(component)
+    }
+
+    fn telemetry_add_component(&self, component: Component, cfg: &Cfg) -> Result<()> {
+        let output = self.bare_add_component(component);
+
+        match output {
+            Ok(_) => {
+                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(), 
+                                                           success: true };
+
+                telemetry::log_telemetry(te, &cfg);
+
+                Ok(())
+            },
+            Err(e) => {
+                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(), 
+                                                           success: false };
+
+                telemetry::log_telemetry(te, &cfg);
+                Err(e)
+            }
+        }
+    }
+
+    fn add_component_without_telemetry(&self, component: Component) -> Result<()> {
+        self.bare_add_component(component)
+    }
+
+    fn bare_add_component(&self, component: Component) -> Result<()> {
         if !self.exists() {
             return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
         }

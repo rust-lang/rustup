@@ -33,6 +33,7 @@ pub enum Notification<'a> {
     NonFatalError(&'a Error),
     UpgradeRemovesToolchains,
     MissingFileDuringSelfUninstall(PathBuf),
+    SetTelemetry(&'a str),
 }
 
 #[derive(Debug)]
@@ -101,7 +102,8 @@ impl<'a> Notification<'a> {
             UninstalledToolchain(_) |
             ToolchainNotInstalled(_) |
             UpgradingMetadata(_, _) |
-            MetadataUpgradeNotNeeded(_)  => NotificationLevel::Info,
+            MetadataUpgradeNotNeeded(_) |
+            SetTelemetry(_) => NotificationLevel::Info,
             NonFatalError(_) => NotificationLevel::Error,
             UpgradeRemovesToolchains |
             MissingFileDuringSelfUninstall(_) => NotificationLevel::Warn,
@@ -153,6 +155,7 @@ impl<'a> Display for Notification<'a> {
             MissingFileDuringSelfUninstall(ref p) => {
                 write!(f, "expected file does not exist to uninstall: {}", p.display())
             }
+            SetTelemetry(telemetry_status) => write!(f, "telemetry set to '{}'", telemetry_status)
         }
     }
 }

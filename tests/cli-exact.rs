@@ -195,3 +195,24 @@ info: installing component 'rust-std' for '{0}'
 ", clitools::CROSS_ARCH1));
     });
 }
+
+
+#[test]
+fn enable_telemetry() {
+    setup(&|config| {
+        expect_ok_ex(config, 
+                     &["rustup", "telemetry", "on"],
+                     r"",
+                     &format!("info: telemetry set to 'on'\n"));
+    });
+}
+
+#[test]
+fn disable_telemetry() {
+    setup(&|config| {
+        expect_ok_ex(config, 
+                     &["rustup", "telemetry", "off"],
+                     r"",
+                     &format!("info: telemetry set to 'off'\n"));
+    });
+}
