@@ -22,6 +22,7 @@ use std::process::Command;
 use multirust_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
+                               expect_stderr_ok,
                                expect_err, expect_err_ex,
                                this_host_triple};
 use multirust_mock::dist::{create_hash, calc_hash};
@@ -464,32 +465,42 @@ fn when_cargo_home_is_the_default_write_path_specially() {
 }
 
 #[cfg(windows)]
-fn get_path() -> String {
+fn get_path() -> Option<String> {
     use winreg::RegKey;
     use winapi::*;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
 
-    environment.get_value("PATH").unwrap()
+    environment.get_value("PATH").ok()
 }
 
 #[cfg(windows)]
-fn restore_path(p: &str) {
-    use winreg::RegKey;
+fn restore_path(p: &Option<String>) {
+    use winreg::{RegKey, RegValue};
+    use winreg::enums::RegType;
     use winapi::*;
+    use multirust_utils::utils;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
 
-    environment.set_value("PATH", &p).unwrap();
+    if let Some(p) = p.as_ref() {
+        let reg_value = RegValue {
+            bytes: utils::string_to_winreg_bytes(&p),
+            vtype: RegType::REG_EXPAND_SZ,
+        };
+        environment.set_raw_value("PATH", &reg_value).unwrap();
+    } else {
+        let _ = environment.delete_value("PATH");
+    }
 }
 
 #[cfg(unix)]
-fn get_path() -> String { String::new() }
+fn get_path() -> Option<String> { None }
 
 #[cfg(unix)]
-fn restore_path(_: &str) { }
+fn restore_path(_: &Option<String>) { }
 
 #[test]
 #[cfg(windows)]
@@ -498,7 +509,7 @@ fn install_adds_path() {
         expect_ok(config, &["rustup-setup", "-y"]);
 
         let path = config.cargodir.join("bin").to_string_lossy().to_string();
-        assert!(get_path().contains(&path));
+        assert!(get_path().unwrap().contains(&path));
     });
 }
 
@@ -510,7 +521,7 @@ fn install_does_not_add_path_twice() {
         expect_ok(config, &["rustup-setup", "-y"]);
 
         let path = config.cargodir.join("bin").to_string_lossy().to_string();
-        assert_eq!(get_path().matches(&path).count(), 1);
+        assert_eq!(get_path().unwrap().matches(&path).count(), 1);
     });
 }
 
@@ -522,7 +533,7 @@ fn uninstall_removes_path() {
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
 
         let path = config.cargodir.join("bin").to_string_lossy().to_string();
-        assert!(!get_path().contains(&path));
+        assert!(!get_path().unwrap().contains(&path));
     });
 }
 
@@ -933,5 +944,155 @@ fn multirust_setup_works_with_weird_names() {
         expect_ok(config, &["rustup-setup(2)", "-y"]);
         let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         assert!(multirust.exists());
+    });
+}
+
+// # 261
+#[test]
+#[cfg(windows)]
+fn doesnt_write_wrong_path_type_to_reg() {
+    use winreg::RegKey;
+    use winreg::enums::RegType;
+    use winapi::*;
+
+    setup(&|config| {
+        expect_ok(config, &["rustup-setup", "-y"]);
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let path = environment.get_raw_value("PATH").unwrap();
+        assert!(path.vtype == RegType::REG_EXPAND_SZ);
+
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let path = environment.get_raw_value("PATH").unwrap();
+        assert!(path.vtype == RegType::REG_EXPAND_SZ);
+    });
+}
+
+
+// HKCU\Environment\PATH may not exist during install, and it may need to be
+// deleted during uninstall if we remove the last path from it
+#[test]
+#[cfg(windows)]
+fn windows_handle_empty_path_registry_key() {
+    use winreg::RegKey;
+    use winreg::enums::RegType;
+    use winapi::*;
+
+    setup(&|config| {
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let _ = environment.delete_value("PATH");
+
+        expect_ok(config, &["rustup-setup", "-y"]);
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let path = environment.get_raw_value("PATH").unwrap();
+        assert!(path.vtype == RegType::REG_EXPAND_SZ);
+
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let path = environment.get_raw_value("PATH");
+
+        assert!(path.is_err());
+    });
+}
+
+#[test]
+#[cfg(windows)]
+fn windows_uninstall_removes_semicolon_from_path() {
+    use winreg::RegKey;
+    use winreg::enums::RegType;
+    use winapi::*;
+
+    setup(&|config| {
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+
+        // This time set the value of PATH and make sure it's restored exactly after uninstall,
+        // not leaving behind any semi-colons
+        environment.set_value("PATH", &"foo").unwrap();
+
+        expect_ok(config, &["rustup-setup", "-y"]);
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let path = environment.get_raw_value("PATH").unwrap();
+        assert!(path.vtype == RegType::REG_EXPAND_SZ);
+
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let path: String = environment.get_value("PATH").unwrap();
+        assert!(path == "foo");
+    });
+}
+
+#[test]
+#[cfg(windows)]
+fn install_doesnt_mess_with_a_non_unicode_path() {
+    use winreg::{RegKey, RegValue};
+    use winreg::enums::RegType;
+    use winapi::*;
+
+    setup(&|config| {
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+
+        let reg_value = RegValue {
+            bytes: vec![0x00, 0xD8,  // leading surrogate
+                        0x01, 0x01,  // bogus trailing surrogate
+                        0x00, 0x00], // null
+            vtype: RegType::REG_EXPAND_SZ
+        };
+        environment.set_raw_value("PATH", &reg_value).unwrap();
+
+        expect_stderr_ok(config, &["rustup-setup", "-y"],
+                         "the registry key HKEY_CURRENT_USER\\Environment\\PATH does not contain valid Unicode. \
+                          Not modifying the PATH variable");
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let path = environment.get_raw_value("PATH").unwrap();
+        assert!(path.bytes == reg_value.bytes);
+    });
+}
+
+#[test]
+#[cfg(windows)]
+fn uninstall_doesnt_mess_with_a_non_unicode_path() {
+    use winreg::{RegKey, RegValue};
+    use winreg::enums::RegType;
+    use winapi::*;
+
+    setup(&|config| {
+        expect_ok(config, &["rustup-setup", "-y"]);
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+
+        let reg_value = RegValue {
+            bytes: vec![0x00, 0xD8,  // leading surrogate
+                        0x01, 0x01,  // bogus trailing surrogate
+                        0x00, 0x00], // null
+            vtype: RegType::REG_EXPAND_SZ
+        };
+        environment.set_raw_value("PATH", &reg_value).unwrap();
+
+        expect_stderr_ok(config, &["rustup", "self", "uninstall", "-y"],
+                         "the registry key HKEY_CURRENT_USER\\Environment\\PATH does not contain valid Unicode. \
+                          Not modifying the PATH variable");
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let path = environment.get_raw_value("PATH").unwrap();
+        assert!(path.bytes == reg_value.bytes);
     });
 }
