@@ -667,7 +667,8 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
-    use winreg::RegKey;
+    use winreg::{RegKey, RegValue};
+    use winreg::enums::RegType;
     use winapi::*;
     use user32::*;
     use std::ptr;
@@ -685,7 +686,12 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 
     new_path.push_str(";");
     new_path.push_str(&old_path);
-    try!(environment.set_value("PATH", &new_path)
+
+    let reg_value = RegValue {
+        bytes: new_path.into_bytes(),
+        vtype: RegType::REG_EXPAND_SZ,
+    };
+    try!(environment.set_raw_value("PATH", &reg_value)
          .map_err(|_| Error::PermissionDenied));
 
     // Tell other processes to update their environment
@@ -733,7 +739,8 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
 fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
-    use winreg::RegKey;
+    use winreg::{RegKey, RegValue};
+    use winreg::enums::RegType;
     use winapi::*;
     use user32::*;
     use std::ptr;
@@ -753,7 +760,11 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     let mut new_path = old_path[..idx].to_string();
     new_path.push_str(&old_path[idx + path_str.len() ..]);
 
-    try!(environment.set_value("PATH", &new_path)
+    let reg_value = RegValue {
+        bytes: new_path.into_bytes(),
+        vtype: RegType::REG_EXPAND_SZ,
+    };
+    try!(environment.set_raw_value("PATH", &reg_value)
          .map_err(|_| Error::PermissionDenied));
 
     // Tell other processes to update their environment
