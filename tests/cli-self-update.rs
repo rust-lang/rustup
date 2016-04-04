@@ -476,13 +476,18 @@ fn get_path() -> String {
 
 #[cfg(windows)]
 fn restore_path(p: &str) {
-    use winreg::RegKey;
+    use winreg::{RegKey, RegValue};
+    use winreg::enums::RegType;
     use winapi::*;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
 
-    environment.set_value("PATH", &p).unwrap();
+    let reg_value = RegValue {
+        bytes: p.to_string().into_bytes(),
+        vtype: RegType::REG_EXPAND_SZ,
+    };
+    environment.set_raw_value("PATH", &reg_value).unwrap();
 }
 
 #[cfg(unix)]
@@ -925,4 +930,29 @@ fn multirust_setup_works_with_weird_names() {
         let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         assert!(multirust.exists());
     });
+}
+
+// # 261
+#[test]
+#[cfg(windows)]
+fn doesnt_write_wrong_path_type_to_reg() {
+    use winreg::RegKey;
+    use winreg::enums::RegType;
+    use winapi::*;
+
+    setup(&|config| {
+        expect_ok(config, &["rustup-setup", "-y"]);
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let path = environment.get_raw_value("PATH").unwrap();
+        assert!(path.vtype == RegType::REG_EXPAND_SZ);
+
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let path = environment.get_raw_value("PATH").unwrap();
+        assert!(path.vtype == RegType::REG_EXPAND_SZ);
+});
 }
