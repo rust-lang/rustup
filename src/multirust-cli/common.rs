@@ -284,7 +284,9 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
     } else {
         for o in overrides {
             split_override::<String>(&o, ';').map(|li| 
-                println!("{:<40}\t{:<20}", li.0, li.1)
+                println!("{:<40}\t{:<20}", 
+                         utils::format_path_for_display(&li.0), 
+                         li.1)
             );
         }
     }

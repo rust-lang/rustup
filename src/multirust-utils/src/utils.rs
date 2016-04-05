@@ -443,3 +443,12 @@ pub fn multirust_home() -> Result<PathBuf> {
     let user_home = home_dir().map(|p| p.join(".multirust"));
     multirust_home.or(user_home).ok_or(Error::MultirustHome)
 }
+
+pub fn format_path_for_display(path: &str) -> String {
+    let unc_present = path.find(r"\\?\");
+    
+    match unc_present {
+        None => path.to_owned(),
+        Some(_) => path[4..].to_owned(),
+    }
+}
