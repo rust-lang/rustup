@@ -392,6 +392,8 @@ fn get_original_host_triple() -> (&'static str, &'static str, Option<&'static st
 
     let env = match () {
         () if cfg!(target_env = "gnu") => Some("gnu"),
+        () if cfg!(target_env = "gnueabi") => Some("gnueabi"),
+        () if cfg!(target_env = "gnueabihf") => Some("gnueabihf"),
         () if cfg!(target_env = "msvc") => Some("msvc"),
         _ => None,
     };
