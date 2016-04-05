@@ -160,7 +160,7 @@ fn canonical_cargo_home() -> Result<String> {
 /// Installing is a simple matter of coping the running binary to
 /// CARGO_HOME/bin, hardlinking the various Rust tools to it,
 /// and and adding CARGO_HOME/bin to PATH.
-pub fn install(no_prompt: bool, verbose: bool) -> Result<()> {
+pub fn install(no_prompt: bool, verbose: bool, default: &str) -> Result<()> {
 
     if !no_prompt {
         let ref msg = try!(pre_install_msg());
@@ -174,7 +174,7 @@ pub fn install(no_prompt: bool, verbose: bool) -> Result<()> {
         try!(cleanup_legacy());
         try!(install_bins());
         try!(do_add_to_path(&get_add_path_methods()));
-        try!(maybe_install_rust_stable(verbose));
+        try!(maybe_install_rust(default, verbose));
 
         if cfg!(unix) {
             let ref env_file = try!(utils::cargo_home()).join("env");
@@ -308,17 +308,17 @@ fn install_bins() -> Result<()> {
     Ok(())
 }
 
-fn maybe_install_rust_stable(verbose: bool) -> Result<()> {
+fn maybe_install_rust(toolchain_str: &str, verbose: bool) -> Result<()> {
     let ref cfg = try!(common::set_globals(verbose));
 
     // If this is a fresh install (there is no default yet)
-    // then install stable and make it the default.
+    // then install the requested toolchain and make it the default.
     if try!(cfg.find_default()).is_none() {
-        let stable = try!(cfg.get_toolchain("stable", false));
-        let status = try!(stable.install_from_dist());
-        try!(cfg.set_default("stable"));
+        let toolchain = try!(cfg.get_toolchain(toolchain_str, false));
+        let status = try!(toolchain.install_from_dist());
+        try!(cfg.set_default(toolchain_str));
         println!("");
-        try!(common::show_channel_update(cfg, "stable", Ok(status)));
+        try!(common::show_channel_update(cfg, toolchain_str, Ok(status)));
     } else {
         info!("updating existing installation");
     }

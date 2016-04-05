@@ -832,6 +832,15 @@ fn install_sets_up_stable() {
 }
 
 #[test]
+fn install_sets_up_stable_unless_a_different_default_is_requested() {
+    setup(&|config| {
+        expect_ok(config, &["rustup-setup", "-y", "--default-toolchain", "nightly"]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-n-2");
+    });
+}
+
+#[test]
 fn install_sets_up_stable_unless_there_is_already_a_default() {
     setup(&|config| {
         expect_ok(config, &["rustup-setup", "-y"]);

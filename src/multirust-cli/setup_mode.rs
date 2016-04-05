@@ -22,13 +22,19 @@ pub fn main() -> Result<()> {
              .help("Enable verbose output"))
         .arg(Arg::with_name("no-prompt")
              .short("y")
-             .help("Disable confirmation prompt."));
+             .help("Disable confirmation prompt."))
+        .arg(Arg::with_name("default-toolchain")
+             .long("default-toolchain")
+             .takes_value(true)
+             .possible_values(&["stable", "beta", "nightly"])
+             .help("Choose a default toolchain to install"));
 
     let matches = cli.get_matches();
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
+    let default = matches.value_of("default-toolchain").unwrap_or("stable");
 
-    try!(self_update::install(no_prompt, verbose));
+    try!(self_update::install(no_prompt, verbose, default));
 
     Ok(())
 }
