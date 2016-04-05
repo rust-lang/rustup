@@ -274,7 +274,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let target = m.value_of("target").expect("");
     let new_component = Component {
         pkg: "rust-std".to_string(),
-        target: try!(TargetTriple::from_str(target)),
+        target: TargetTriple::from_str(target),
     };
 
     toolchain.add_component(new_component)
@@ -285,7 +285,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let target = m.value_of("target").expect("");
     let new_component = Component {
         pkg: "rust-std".to_string(),
-        target: try!(TargetTriple::from_str(target)),
+        target: TargetTriple::from_str(target),
     };
 
     toolchain.remove_component(new_component)

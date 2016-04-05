@@ -531,7 +531,7 @@ fn add_target_bogus() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_err(config, &["multirust", "add-target", "nightly", "bogus"],
-                   "error: invalid target triple: 'bogus'");
+                   "does not contain component 'rust-std' for target 'bogus'");
     });
 }
 
@@ -615,7 +615,7 @@ fn remove_target_bogus() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         expect_err(config, &["multirust", "remove-target", "nightly", "bogus"],
-                   "error: invalid target triple: 'bogus'");
+                   "does not contain component 'rust-std' for target 'bogus'");
     });
 }
 

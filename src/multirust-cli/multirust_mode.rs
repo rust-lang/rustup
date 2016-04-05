@@ -324,7 +324,7 @@ fn add_target(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(cfg.get_toolchain(toolchain, false));
     let new_component = Component {
         pkg: "rust-std".to_string(),
-        target: try!(TargetTriple::from_str(target)),
+        target: TargetTriple::from_str(target),
     };
     try!(toolchain.add_component(new_component));
 
@@ -337,7 +337,7 @@ fn remove_target(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(cfg.get_toolchain(toolchain, false));
     let new_component = Component {
         pkg: "rust-std".to_string(),
-        target: try!(TargetTriple::from_str(target)),
+        target: TargetTriple::from_str(target),
     };
     try!(toolchain.remove_component(new_component));
 

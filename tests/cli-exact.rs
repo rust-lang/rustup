@@ -141,7 +141,8 @@ fn update_invalid_toolchain() {
    setup(&|config| {
         expect_err_ex(config, &["rustup", "update", "nightly-2016-03-1"],
 r"",
-r"error: toolchain 'nightly-2016-03-1' is not installed
+r"info: syncing channel updates for 'nightly-2016-03-1'
+error: target not found: '2016-03-1'
 ");
    });
  }
@@ -151,7 +152,8 @@ fn default_invalid_toolchain() {
    setup(&|config| {
         expect_err_ex(config, &["rustup", "default", "nightly-2016-03-1"],
 r"",
-r"error: toolchain 'nightly-2016-03-1' is not installed
+r"info: syncing channel updates for 'nightly-2016-03-1'
+error: target not found: '2016-03-1'
 ");
    });
 }

@@ -150,7 +150,7 @@ impl Package {
 
         for (k, v) in target_table {
             if let toml::Value::Table(t) = v {
-                result.insert(try!(TargetTriple::from_str(&k)), try!(TargettedPackage::from_toml(t, &path)));
+                result.insert(TargetTriple::from_str(&k), try!(TargettedPackage::from_toml(t, &path)));
             }
         }
 
@@ -224,7 +224,7 @@ impl Component {
     pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
         Ok(Component {
             pkg: try!(get_string(&mut table, "pkg", path)),
-            target: try!(get_string(&mut table, "target", path).and_then(|s| TargetTriple::from_str(&s))),
+            target: try!(get_string(&mut table, "target", path).map(|s| TargetTriple::from_str(&s))),
         })
     }
     pub fn to_toml(self) -> toml::Table {
