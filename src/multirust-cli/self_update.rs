@@ -79,19 +79,9 @@ macro_rules! pre_install_msg_unix {
     () => {
 pre_install_msg_template!(
 "This path will then be added to your `PATH` environment variable by
-modifying the shell startup files located at:
+modifying the profile file located at:
 
 {rcfiles}"
-    )};
-}
-
-macro_rules! pre_install_msg_unix_norcfiles {
-    () => {
-pre_install_msg_template!(
-"This path needs to be added to your `PATH` environment variable so
-that the Rust toolchain commands can be executed, but neither
-`.bashrc`, `.zshrc`, nor `.kshrc` files were detected in your home
-directory. You must take your own measures to configure `PATH`."
     )};
 }
 
@@ -109,8 +99,9 @@ r"
 Rust is installed now. Great!
 
 To get started you need Cargo's bin directory in your `PATH`
-environment variable. Future shells will be configured automatically.
-To configure your current shell run `source {cargo_home}/env`.
+environment variable. Next time you log in this will be done
+automatically. To configure your current shell without logging out
+run `source {cargo_home}/env`.
 "
     };
 }
@@ -238,15 +229,10 @@ fn pre_install_msg() -> Result<String> {
                     None
                 }
             }).collect::<Vec<_>>();
-        if !rcfiles.is_empty() {
-            let rcfiles_str = rcfiles.join("\n");
-            Ok(format!(pre_install_msg_unix!(),
-                       cargo_home_bin = cargo_home_bin.display(),
-                       rcfiles = rcfiles_str))
-        } else {
-            Ok(format!(pre_install_msg_unix_norcfiles!(),
-                       cargo_home_bin = cargo_home_bin.display()))
-        }
+        assert!(rcfiles.len() == 1); // Only modifying .profile
+        Ok(format!(pre_install_msg_unix!(),
+                   cargo_home_bin = cargo_home_bin.display(),
+                   rcfiles = rcfiles[0]))
     } else {
         Ok(format!(pre_install_msg_win!(),
                    cargo_home_bin = cargo_home_bin.display()))
@@ -626,16 +612,10 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
         return vec![PathUpdateMethod::Windows];
     }
 
-    let bashrc = utils::home_dir().map(|p| p.join(".bashrc"));
-    let zshrc = utils::home_dir().map(|p| p.join(".zshrc"));
-    let kshrc = utils::home_dir().map(|p| p.join(".kshrc"));
+    let profile = utils::home_dir().map(|p| p.join(".profile"));
+    let rcfiles = vec![profile].into_iter().filter_map(|f|f);
 
-    let rcfiles = vec![bashrc, zshrc, kshrc];
-    let existing_rcfiles = rcfiles.into_iter()
-        .filter_map(|f|f)
-        .filter(|f| f.exists());
-
-    existing_rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect()
+    rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect()
 }
 
 fn shell_export_string() -> Result<String> {
@@ -650,7 +630,11 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 
     for method in methods {
         if let PathUpdateMethod::RcFile(ref rcpath) = *method {
-            let file = try!(utils::read_file("rcfile", rcpath));
+            let file = if rcpath.exists() {
+                try!(utils::read_file("rcfile", rcpath))
+            } else {
+                String::new()
+            };
             let ref addition = format!("\n{}", try!(shell_export_string()));
             if !file.contains(addition) {
                 try!(utils::append_file("rcfile", rcpath, addition));
@@ -754,11 +738,9 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
         return Ok(vec![PathUpdateMethod::Windows]);
     }
 
-    let bashrc = utils::home_dir().map(|p| p.join(".bashrc"));
-    let zshrc = utils::home_dir().map(|p| p.join(".zshrc"));
-    let kshrc = utils::home_dir().map(|p| p.join(".kshrc"));
+    let profile = utils::home_dir().map(|p| p.join(".profile"));
 
-    let rcfiles = vec![bashrc, zshrc, kshrc];
+    let rcfiles = vec![profile];
     let existing_rcfiles = rcfiles.into_iter()
         .filter_map(|f|f)
         .filter(|f| f.exists());

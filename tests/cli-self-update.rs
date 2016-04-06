@@ -296,71 +296,25 @@ fn install_adds_path_to_rc(rcfile: &str) {
 
 #[test]
 #[cfg(unix)]
-fn install_adds_path_to_bashrc() {
-    install_adds_path_to_rc(".bashrc");
-}
-
-#[test]
-#[cfg(unix)]
-fn install_adds_path_to_zshrc() {
-    install_adds_path_to_rc(".zshrc");
-}
-
-#[test]
-#[cfg(unix)]
-fn install_adds_path_to_kshrc() {
-    install_adds_path_to_rc(".kshrc");
-}
-
-#[test]
-#[cfg(unix)]
-fn install_does_not_add_paths_to_rcfiles_that_dont_exist() {
-    setup(&|config| {
-        let my_bashrc = "foo\nbar\nbaz";
-        let ref bashrc = config.homedir.join(".bashrc");
-        raw::write_file(bashrc, my_bashrc).unwrap();
-        expect_ok(config, &["rustup-setup", "-y"]);
-
-        let ref zshrc = config.homedir.join(".zshrc");
-        let ref kshrc = config.homedir.join(".kshrc");
-        assert!(!zshrc.exists());
-        assert!(!kshrc.exists());
-    });
-}
-
-#[test]
-#[cfg(unix)]
-fn install_adds_path_to_bashrc_zshrc_and_kshrc() {
+fn install_adds_path_to_profile() {
+    install_adds_path_to_rc(".profile");
 }
 
 #[test]
 #[cfg(unix)]
 fn install_adds_path_to_rcfile_just_once() {
     setup(&|config| {
-        let my_bashrc = "foo\nbar\nbaz";
-        let ref bashrc = config.homedir.join(".bashrc");
-        raw::write_file(bashrc, my_bashrc).unwrap();
+        let my_profile = "foo\nbar\nbaz";
+        let ref profile = config.homedir.join(".profile");
+        raw::write_file(profile, my_profile).unwrap();
         expect_ok(config, &["rustup-setup", "-y"]);
         expect_ok(config, &["rustup-setup", "-y"]);
 
-        let new_bashrc = raw::read_file(bashrc).unwrap();
+        let new_profile = raw::read_file(profile).unwrap();
         let addition = format!(r#"export PATH="{}/bin:$PATH""#,
                                config.cargodir.display());
-        let expected = format!("{}\n{}\n", my_bashrc, addition);
-        assert_eq!(new_bashrc, expected);
-    });
-}
-
-// What happens when install can't find any shells to add the PATH to?
-#[test]
-#[cfg(unix)]
-fn install_when_no_path_methods() {
-    setup(&|config| {
-        expect_ok(config, &["rustup-setup", "-y"]);
-
-        for rc in &[".bashrc", ".zshrc", ".kshrc"] {
-            assert!(!config.homedir.join(rc).exists());
-        }
+        let expected = format!("{}\n{}\n", my_profile, addition);
+        assert_eq!(new_profile, expected);
     });
 }
 
@@ -381,36 +335,7 @@ fn uninstall_removes_path_from_rc(rcfile: &str) {
 #[test]
 #[cfg(unix)]
 fn uninstall_removes_path_from_bashrc() {
-    uninstall_removes_path_from_rc(".bashrc");
-}
-
-#[test]
-#[cfg(unix)]
-fn uninstall_removes_path_from_zshrc() {
-    uninstall_removes_path_from_rc(".zshrc");
-}
-
-#[test]
-#[cfg(unix)]
-fn uninstall_removes_path_from_kshrc() {
-    uninstall_removes_path_from_rc(".kshrc");
-}
-
-#[test]
-#[cfg(unix)]
-fn uninstall_doesnt_touch_rc_files_that_dont_exist() {
-    setup(&|config| {
-        let my_rc = "foo\nbar\nbaz";
-        let ref bashrc = config.homedir.join(".bashrc");
-        raw::write_file(bashrc, my_rc).unwrap();
-        expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
-
-        let ref zshrc = config.homedir.join(".zshrc");
-        let ref kshrc = config.homedir.join(".zshrc");
-        assert!(!zshrc.exists());
-        assert!(!kshrc.exists());
-    });
+    uninstall_removes_path_from_rc(".profile");
 }
 
 #[test]
@@ -418,18 +343,15 @@ fn uninstall_doesnt_touch_rc_files_that_dont_exist() {
 fn uninstall_doesnt_touch_rc_files_that_dont_contain_cargo_home() {
     setup(&|config| {
         let my_rc = "foo\nbar\nbaz";
-        let ref bashrc = config.homedir.join(".bashrc");
-        raw::write_file(bashrc, my_rc).unwrap();
         expect_ok(config, &["rustup-setup", "-y"]);
-
-        let ref zshrc = config.homedir.join(".zshrc");
-        raw::write_file(zshrc, my_rc).unwrap();
-
-        let zsh = raw::read_file(zshrc).unwrap();
-
-        assert_eq!(zsh, my_rc);
-
         expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
+
+        let ref profile = config.homedir.join(".profile");
+        raw::write_file(profile, my_rc).unwrap();
+
+        let profile = raw::read_file(profile).unwrap();
+
+        assert_eq!(profile, my_rc);
     });
 }
 
@@ -443,24 +365,24 @@ fn when_cargo_home_is_the_default_write_path_specially() {
         // $HOME/.cargo by removing CARGO_HOME from the environment,
         // otherwise the literal path will be written to the file.
 
-        let my_bashrc = "foo\nbar\nbaz";
-        let ref bashrc = config.homedir.join(".bashrc");
-        raw::write_file(bashrc, my_bashrc).unwrap();
+        let my_profile = "foo\nbar\nbaz";
+        let ref profile = config.homedir.join(".profile");
+        raw::write_file(profile, my_profile).unwrap();
         let mut cmd = clitools::cmd(config, "rustup-setup", &["-y"]);
         cmd.env_remove("CARGO_HOME");
         assert!(cmd.output().unwrap().status.success());
 
-        let new_bashrc = raw::read_file(bashrc).unwrap();
+        let new_profile = raw::read_file(profile).unwrap();
         let addition = format!(r#"export PATH="$HOME/.cargo/bin:$PATH""#);
-        let expected = format!("{}\n{}\n", my_bashrc, addition);
-        assert_eq!(new_bashrc, expected);
+        let expected = format!("{}\n{}\n", my_profile, addition);
+        assert_eq!(new_profile, expected);
 
         let mut cmd = clitools::cmd(config, "multirust", &["self", "uninstall", "-y"]);
         cmd.env_remove("CARGO_HOME");
         assert!(cmd.output().unwrap().status.success());
 
-        let new_bashrc = raw::read_file(bashrc).unwrap();
-        assert_eq!(new_bashrc, my_bashrc);
+        let new_profile = raw::read_file(profile).unwrap();
+        assert_eq!(new_profile, my_profile);
     });
 }
 
