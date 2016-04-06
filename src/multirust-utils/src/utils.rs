@@ -12,6 +12,8 @@ use errors::{Error, Notification, NotifyHandler};
 use raw;
 #[cfg(windows)]
 use winapi::DWORD;
+#[cfg(windows)]
+use winreg;
 
 pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
                     has_cmd, find_cmd};
@@ -440,5 +442,41 @@ pub fn format_path_for_display(path: &str) -> String {
     match unc_present {
         None => path.to_owned(),
         Some(_) => path[4..].to_owned(),
+    }
+}
+
+/// Encodes a utf-8 string as a null-terminated UCS-2 string in bytes
+#[cfg(windows)]
+pub fn string_to_winreg_bytes(s: &str) -> Vec<u8> {
+    use std::ffi::OsString;
+    use std::os::windows::ffi::OsStrExt;
+    let v: Vec<_> = OsString::from(format!("{}\x00", s)).encode_wide().collect();
+    unsafe { ::std::slice::from_raw_parts(v.as_ptr() as *const u8, v.len() * 2).to_vec() }
+}
+
+// This is used to decode the value of HKCU\Environment\PATH. If that
+// key is not unicode (or not REG_SZ | REG_EXPAND_SZ) then this
+// returns null.  The winreg library itself does a lossy unicode
+// conversion.
+#[cfg(windows)]
+pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<String> {
+    use winreg::enums::RegType;
+    use std::slice;
+
+    match val.vtype {
+        RegType::REG_SZ | RegType::REG_EXPAND_SZ => {
+            // Copied from winreg
+            let words = unsafe {
+                slice::from_raw_parts(val.bytes.as_ptr() as *const u16, val.bytes.len() / 2)
+            };
+            let mut s = if let Ok(s) = String::from_utf16(words) {
+                s
+            } else {
+                return None;
+            };
+            while s.ends_with('\u{0}') {s.pop();}
+            Some(s)
+        }
+        _ => None
     }
 }

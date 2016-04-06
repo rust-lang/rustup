@@ -59,9 +59,9 @@ fn run_multirust() -> Result<()> {
         return Err(Error::InfiniteRecursion);
     }
 
-    // Map MULTIRUST_ env vars to RUSTUP_
+    // Do various things to clean up past messes
     // FIXME: Remove this soon to get it out of the proxy path
-    make_environment_compatible();
+    do_compatibility_hacks();
 
     // The name of arg0 determines how the program is going to behave
     let arg0 = env::args().next().map(|a| PathBuf::from(a));
@@ -111,6 +111,11 @@ fn run_multirust() -> Result<()> {
     }
 }
 
+fn do_compatibility_hacks() {
+    make_environment_compatible();
+    fix_windows_reg_key();
+}
+
 // Convert any MULTIRUST_ env vars to RUSTUP_ and warn about them
 fn make_environment_compatible() {
     let ref vars = ["HOME", "TOOLCHAIN", "DIST_ROOT", "UPDATE_ROOT", "GPG_KEY"];
@@ -129,3 +134,30 @@ fn make_environment_compatible() {
         }
     }
 }
+
+// #261 We previously incorrectly set HKCU/Environment/PATH to a
+// REG_SZ type, when it should be REG_EXPAND_SZ. Silently fix it.
+#[cfg(windows)]
+fn fix_windows_reg_key() {
+    use winreg::RegKey;
+    use winreg::enums::RegType;
+    use winapi::*;
+
+    let root = RegKey::predef(HKEY_CURRENT_USER);
+    let env = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE);
+
+    let env = if let Ok(e) = env { e } else { return };
+
+    let path = env.get_raw_value("PATH");
+
+    let mut path = if let Ok(p) = path { p } else { return };
+
+    if path.vtype == RegType::REG_EXPAND_SZ { return }
+
+    path.vtype = RegType::REG_EXPAND_SZ;
+
+    let _ = env.set_raw_value("PATH", &path);
+}
+
+#[cfg(not(windows))]
+fn fix_windows_reg_key() { }

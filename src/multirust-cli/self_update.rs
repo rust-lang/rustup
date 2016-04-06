@@ -667,25 +667,37 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
-    use winreg::RegKey;
+    use winreg::{RegKey, RegValue};
+    use winreg::enums::RegType;
     use winapi::*;
     use user32::*;
     use std::ptr;
 
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                           .map_err(|_| Error::PermissionDenied));
-
-    let old_path: String = environment.get_value("PATH").expect("non-unicode PATH");
+    let old_path = if let Some(s) = try!(get_windows_path_var()) {
+        s
+    } else {
+        // Non-unicode path
+        return Ok(());
+    };
 
     let mut new_path = try!(utils::cargo_home()).join("bin").to_string_lossy().to_string();
     if old_path.contains(&new_path) {
         return Ok(());
     }
 
-    new_path.push_str(";");
-    new_path.push_str(&old_path);
-    try!(environment.set_value("PATH", &new_path)
+    if !old_path.is_empty() {
+        new_path.push_str(";");
+        new_path.push_str(&old_path);
+    }
+
+    let root = RegKey::predef(HKEY_CURRENT_USER);
+    let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+                           .map_err(|_| Error::PermissionDenied));
+    let reg_value = RegValue {
+        bytes: utils::string_to_winreg_bytes(&new_path),
+        vtype: RegType::REG_EXPAND_SZ,
+    };
+    try!(environment.set_raw_value("PATH", &reg_value)
          .map_err(|_| Error::PermissionDenied));
 
     // Tell other processes to update their environment
@@ -700,6 +712,39 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     }
 
     Ok(())
+}
+
+// Get the windows PATH variable out of the registry as a String. If
+// this returns None then the PATH varible is not unicode and we
+// should not mess with it.
+#[cfg(windows)]
+fn get_windows_path_var() -> Result<Option<String>> {
+    use winreg::RegKey;
+    use winapi::*;
+    use std::io;
+
+    let root = RegKey::predef(HKEY_CURRENT_USER);
+    let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+                           .map_err(|_| Error::PermissionDenied));
+
+    let reg_value = environment.get_raw_value("PATH");
+    match reg_value {
+        Ok(val) => {
+            if let Some(s) = utils::string_from_winreg_value(&val) {
+                Ok(Some(s))
+            } else {
+                warn!("the registry key HKEY_CURRENT_USER\\Environment\\PATH does not contain valid Unicode. \
+                       Not modifying the PATH variable");
+                return Ok(None);
+            }
+        }
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
+            Ok(Some(String::new()))
+        }
+        Err(e) => {
+            Err(Error::WindowsUninstallMadness(e))
+        }
+    }
 }
 
 /// Decide which rcfiles we're going to update, so we
@@ -733,16 +778,19 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
 fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
-    use winreg::RegKey;
+    use winreg::{RegKey, RegValue};
+    use winreg::enums::RegType;
     use winapi::*;
     use user32::*;
     use std::ptr;
 
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                           .map_err(|_| Error::PermissionDenied));
+    let old_path = if let Some(s) = try!(get_windows_path_var()) {
+        s
+    } else {
+        // Non-unicode path
+        return Ok(());
+    };
 
-    let old_path: String = environment.get_value("PATH").expect("non-unicode PATH");
     let ref path_str = try!(utils::cargo_home()).join("bin").to_string_lossy().to_string();
     let idx = if let Some(i) = old_path.find(path_str) {
         i
@@ -750,11 +798,30 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
         return Ok(());
     };
 
-    let mut new_path = old_path[..idx].to_string();
-    new_path.push_str(&old_path[idx + path_str.len() ..]);
+    // If there's a trailing semicolon (likely, since we added one during install),
+    // include that in the substring to remove.
+    let mut len = path_str.len();
+    if old_path.as_bytes().get(idx + path_str.len()) == Some(&b';') {
+        len += 1;
+    }
 
-    try!(environment.set_value("PATH", &new_path)
-         .map_err(|_| Error::PermissionDenied));
+    let mut new_path = old_path[..idx].to_string();
+    new_path.push_str(&old_path[idx + len ..]);
+
+    let root = RegKey::predef(HKEY_CURRENT_USER);
+    let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+                           .map_err(|_| Error::PermissionDenied));
+    if new_path.is_empty() {
+        try!(environment.delete_value("PATH")
+             .map_err(|_| Error::PermissionDenied));
+    } else {
+        let reg_value = RegValue {
+            bytes: utils::string_to_winreg_bytes(&new_path),
+            vtype: RegType::REG_EXPAND_SZ,
+        };
+        try!(environment.set_raw_value("PATH", &reg_value)
+        .map_err(|_| Error::PermissionDenied));
+    }
 
     // Tell other processes to update their environment
     unsafe {
