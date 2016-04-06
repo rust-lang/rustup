@@ -41,7 +41,6 @@ fn rustc_with_bad_multirust_toolchain_env_var() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_toolchain_linking_from_path() {
     setup(&|config| {
@@ -66,7 +65,6 @@ fn install_toolchain_from_path() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_toolchain_linking_from_path_again() {
     setup(&|config| {
@@ -103,7 +101,6 @@ fn install_toolchain_from_path_again() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_toolchain_change_from_copy_to_link() {
     setup(&|config| {
@@ -122,7 +119,6 @@ fn install_toolchain_change_from_copy_to_link() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_toolchain_change_from_link_to_copy() {
     setup(&|config| {
@@ -168,7 +164,6 @@ fn install_toolchain_from_custom_wrong_extension() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_override_toolchain_linking_from_path() {
     setup(&|config| {
@@ -193,7 +188,6 @@ fn install_override_toolchain_from_path() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_override_toolchain_linking_from_path_again() {
     setup(&|config| {
@@ -230,7 +224,6 @@ fn install_override_toolchain_from_path_again() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_override_toolchain_change_from_copy_to_link() {
     setup(&|config| {
@@ -249,7 +242,6 @@ fn install_override_toolchain_change_from_copy_to_link() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn install_override_toolchain_change_from_link_to_copy() {
     setup(&|config| {
@@ -282,7 +274,6 @@ fn install_override_toolchain_from_custom() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn update_toolchain_linking_from_path() {
     setup(&|config| {
@@ -309,7 +300,6 @@ fn update_toolchain_from_path() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn update_toolchain_linking_from_path_again() {
     setup(&|config| {
@@ -348,7 +338,6 @@ fn update_toolchain_from_path_again() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn update_toolchain_change_from_copy_to_link() {
     setup(&|config| {
@@ -368,7 +357,6 @@ fn update_toolchain_change_from_copy_to_link() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn update_toolchain_change_from_link_to_copy() {
     setup(&|config| {
@@ -686,7 +674,6 @@ fn multi_host_smoke_test() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn custom_toolchain_cargo_fallback_proxy() {
     setup(&|config| {
@@ -710,7 +697,6 @@ fn custom_toolchain_cargo_fallback_proxy() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn custom_toolchain_cargo_fallback_run() {
     setup(&|config| {

@@ -268,7 +268,7 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
     #[cfg(windows)]
     fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
         // std's symlink uses Windows's symlink function, which requires
-        // admin. We can create a directory junctions the hard way without
+        // admin. We can create directory junctions the hard way without
         // though.
         symlink_junction_inner(src, dest)
     }
