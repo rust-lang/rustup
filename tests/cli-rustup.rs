@@ -250,7 +250,6 @@ fn list_targets_explicit() {
     });
 }
 
-#[cfg_attr(all(not(feature="symlinks"), windows), ignore)]
 #[test]
 fn link() {
     setup(&|config| {

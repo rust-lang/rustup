@@ -15,9 +15,6 @@ keywords = ["multirust", "install", "proxy"]
 
 license = "MIT OR Apache-2.0"
 
-[features]
-symlinks = []
-
 [dependencies]
 multirust-dist = { path = "src/multirust-dist" }
 multirust-utils = { path = "src/multirust-utils" }

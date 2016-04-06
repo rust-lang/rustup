@@ -184,16 +184,6 @@ pub fn symlink_dir(src: &Path, dest: &Path, notify_handler: NotifyHandler) -> Re
     })
 }
 
-pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
-    raw::symlink_file(src, dest).map_err(|e| {
-        Error::LinkingFile {
-            src: PathBuf::from(src),
-            dest: PathBuf::from(dest),
-            error: e,
-        }
-    })
-}
-
 pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
     raw::hardlink(src, dest).map_err(|e| {
         Error::LinkingFile {
