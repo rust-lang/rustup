@@ -460,6 +460,35 @@ fn uninstall_removes_path() {
     });
 }
 
+
+#[test]
+#[cfg(unix)]
+fn install_doesnt_modify_path_if_passed_no_modify_path() {
+    setup(&|config| {
+        let ref profile = config.homedir.join(".profile");
+        expect_ok(config, &["rustup-setup", "-y", "--no-modify-path"]);
+        assert!(!profile.exists());
+    });
+}
+
+#[test]
+#[cfg(windows)]
+fn install_doesnt_modify_path_if_passed_no_modify_path() {
+    setup(&|config| {
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let old_path = environment.get_raw_value("PATH").unwrap();
+
+        expect_ok(config, &["rustup-setup", "-y", "--no-modify-path"]);
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let new_path = environment.get_raw_value("PATH").unwrap();
+
+        assert!(old_path == new_path);
+    });
+}
+
 #[test]
 fn update_exact() {
     update_setup(&|config, _| {

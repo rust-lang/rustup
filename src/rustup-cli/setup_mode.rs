@@ -27,14 +27,18 @@ pub fn main() -> Result<()> {
              .long("default-toolchain")
              .takes_value(true)
              .possible_values(&["stable", "beta", "nightly"])
-             .help("Choose a default toolchain to install"));
+             .help("Choose a default toolchain to install"))
+        .arg(Arg::with_name("no-modify-path")
+             .long("no-modify-path")
+             .help("Don't configure the PATH environment variable"));
 
     let matches = cli.get_matches();
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
     let default = matches.value_of("default-toolchain").unwrap_or("stable");
+    let no_modify_path = matches.is_present("no-modify-path");
 
-    try!(self_update::install(no_prompt, verbose, default));
+    try!(self_update::install(no_prompt, verbose, default, no_modify_path));
 
     Ok(())
 }

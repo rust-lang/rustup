@@ -148,7 +148,8 @@ fn canonical_cargo_home() -> Result<String> {
 /// Installing is a simple matter of coping the running binary to
 /// CARGO_HOME/bin, hardlinking the various Rust tools to it,
 /// and and adding CARGO_HOME/bin to PATH.
-pub fn install(no_prompt: bool, verbose: bool, default: &str) -> Result<()> {
+pub fn install(no_prompt: bool, verbose: bool,
+               default: &str, no_modify_path: bool) -> Result<()> {
 
     if !no_prompt {
         let ref msg = try!(pre_install_msg());
@@ -161,7 +162,9 @@ pub fn install(no_prompt: bool, verbose: bool, default: &str) -> Result<()> {
     let install_res: Result<()> = (|| {
         try!(cleanup_legacy());
         try!(install_bins());
-        try!(do_add_to_path(&get_add_path_methods()));
+        if !no_modify_path {
+            try!(do_add_to_path(&get_add_path_methods()));
+        }
         try!(maybe_install_rust(default, verbose));
 
         if cfg!(unix) {

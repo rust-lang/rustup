@@ -97,9 +97,9 @@ fn run_multirust() -> Result<()> {
             // `self install` as the arguments.  FIXME: Verify this
             // works.
             if cfg!(windows) {
-                self_update::install(false, false, "stable")
+                self_update::install(false, false, "stable", false)
             } else {
-                self_update::install(true, false, "stable")
+                self_update::install(true, false, "stable", false)
             }
         }
         Some(_) => {
