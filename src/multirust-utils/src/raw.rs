@@ -278,20 +278,6 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
     symlink_dir_inner(src, dest)
 }
 
-pub fn symlink_file(src: &Path, dest: &Path) -> io::Result<()> {
-    #[cfg(windows)]
-    fn symlink_file_inner(src: &Path, dest: &Path) -> io::Result<()> {
-        ::std::os::windows::fs::symlink_file(src, dest)
-    }
-    #[cfg(not(windows))]
-    fn symlink_file_inner(src: &Path, dest: &Path) -> io::Result<()> {
-        ::std::os::unix::fs::symlink(src, dest)
-    }
-
-    let _ = fs::remove_file(dest);
-    symlink_file_inner(src, dest)
-}
-
 pub fn hardlink(src: &Path, dest: &Path) -> io::Result<()> {
     let _ = fs::remove_file(dest);
     fs::hard_link(src, dest)
