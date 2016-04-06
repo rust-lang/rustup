@@ -323,7 +323,7 @@ impl Display for Error {
             MissingRoot => write!(f, "manifest has no root package"),
             UnsupportedVersion(ref v) => write!(f, "manifest version '{}' is not supported", v),
             MissingPackageForComponent(ref c) => {
-                write!(f,"server sent a broken manifest: missing package for component {}", c.name()),
+                write!(f,"server sent a broken manifest: missing package for component {}", c.name())
             }
             RequestedComponentsUnavailable(ref cs) => {
                 assert!(!cs.is_empty());
