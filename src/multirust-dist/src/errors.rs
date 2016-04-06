@@ -322,7 +322,9 @@ impl Display for Error {
             TargetNotFound(ref n) => write!(f, "target not found: '{}'", n),
             MissingRoot => write!(f, "manifest has no root package"),
             UnsupportedVersion(ref v) => write!(f, "manifest version '{}' is not supported", v),
-            MissingPackageForComponent(ref c) => write!(f,"manifest missing package for component {}", c.name()),
+            MissingPackageForComponent(ref c) => {
+                write!(f,"server sent a broken manifest: missing package for component {}", c.name()),
+            }
             RequestedComponentsUnavailable(ref cs) => {
                 assert!(!cs.is_empty());
                 if cs.len() == 1 {
