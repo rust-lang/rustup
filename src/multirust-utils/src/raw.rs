@@ -267,7 +267,10 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
 pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
     #[cfg(windows)]
     fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
-        ::std::os::windows::fs::symlink_dir(src, dest)
+        // std's symlink uses Windows's symlink function, which requires
+        // admin. We can create a directory junctions the hard way without
+        // though.
+        symlink_junction_inner(src, dest)
     }
     #[cfg(not(windows))]
     fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
@@ -276,6 +279,97 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
 
     let _ = remove_dir(dest);
     symlink_dir_inner(src, dest)
+}
+
+// Creating a directory junction on windows involves dealing with reparse
+// points and the DeviceIoControl function, and this code is a skeleton of
+// what can be found here:
+//
+// http://www.flexhex.com/docs/articles/hard-links.phtml
+//
+// Copied from std
+#[cfg(windows)]
+#[allow(non_snake_case)]
+fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
+    use winapi::*;
+    use kernel32::*;
+    use std::ptr;
+    use std::os::windows::ffi::OsStrExt;
+
+    const MAXIMUM_REPARSE_DATA_BUFFER_SIZE: usize = 16 * 1024;
+
+    #[repr(C)]
+    pub struct REPARSE_MOUNTPOINT_DATA_BUFFER {
+        pub ReparseTag: DWORD,
+        pub ReparseDataLength: DWORD,
+        pub Reserved: WORD,
+        pub ReparseTargetLength: WORD,
+        pub ReparseTargetMaximumLength: WORD,
+        pub Reserved1: WORD,
+        pub ReparseTarget: WCHAR,
+    }
+
+    fn to_u16s<S: AsRef<OsStr>>(s: S) -> io::Result<Vec<u16>> {
+        fn inner(s: &OsStr) -> io::Result<Vec<u16>> {
+            let mut maybe_result: Vec<u16> = s.encode_wide().collect();
+            if maybe_result.iter().any(|&u| u == 0) {
+                return Err(io::Error::new(io::ErrorKind::InvalidInput,
+                                          "strings passed to WinAPI cannot contain NULs"));
+            }
+            maybe_result.push(0);
+            Ok(maybe_result)
+        }
+        inner(s.as_ref())
+    }
+
+    try!(fs::create_dir(junction));
+
+    let path = try!(to_u16s(junction));
+
+    unsafe {
+        let h = CreateFileW(path.as_ptr(),
+                            GENERIC_WRITE,
+                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                            0 as *mut _,
+                            OPEN_EXISTING,
+                            FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+                            ptr::null_mut());
+    
+        let mut data = [0u8; MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
+        let mut db = data.as_mut_ptr()
+                        as *mut REPARSE_MOUNTPOINT_DATA_BUFFER;
+        let buf = &mut (*db).ReparseTarget as *mut _;
+        let mut i = 0;
+        // FIXME: this conversion is very hacky
+        let v = br"\??\";
+        let v = v.iter().map(|x| *x as u16);
+        for c in v.chain(target.as_os_str().encode_wide()) {
+            *buf.offset(i) = c;
+            i += 1;
+        }
+        *buf.offset(i) = 0;
+        i += 1;
+        (*db).ReparseTag = IO_REPARSE_TAG_MOUNT_POINT;
+        (*db).ReparseTargetMaximumLength = (i * 2) as WORD;
+        (*db).ReparseTargetLength = ((i - 1) * 2) as WORD;
+        (*db).ReparseDataLength =
+                (*db).ReparseTargetLength as DWORD + 12;
+
+        let mut ret = 0;
+        let res = DeviceIoControl(h as *mut _,
+                                  FSCTL_SET_REPARSE_POINT,
+                                  data.as_ptr() as *mut _,
+                                  (*db).ReparseDataLength + 8,
+                                  ptr::null_mut(), 0,
+                                  &mut ret,
+                                  ptr::null_mut());
+    
+        if res == 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(())
+        }
+    }
 }
 
 pub fn hardlink(src: &Path, dest: &Path) -> io::Result<()> {
