@@ -23,32 +23,32 @@ matrix:
     - os: linux
       rust: nightly
       env: TARGET=arm-unknown-linux-gnueabi
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-03-29
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
       rust: nightly
       env: TARGET=arm-unknown-linux-gnueabihf
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-03-29
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
       rust: nightly
       env: TARGET=armv7-unknown-linux-gnueabihf
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-03-29
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
       rust: nightly
       env: TARGET=aarch64-unknown-linux-gnu
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-03-29
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
       rust: nightly
       env: TARGET=x86_64-unknown-freebsd
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-03-29
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
       rust: nightly
       env: TARGET=x86_64-unknown-netbsd
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-03-29
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
 
     # On OSX we want to target 10.7 so we ensure that the appropriate
