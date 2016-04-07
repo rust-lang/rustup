@@ -726,7 +726,8 @@ fn reinstall_exact() {
     setup(&|config| {
         expect_ok(config, &["rustup-setup", "-y"]);
         expect_ok_ex(config, &["rustup-setup", "-y"],
-r"",
+r"
+",
 r"info: updating existing installation
 "
                   );

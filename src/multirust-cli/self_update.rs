@@ -95,8 +95,7 @@ modifying the HKEY_CURRENT_USER/Environment/PATH registry key."
 
 macro_rules! post_install_msg_unix {
     () => {
-r"
-Rust is installed now. Great!
+r"Rust is installed now. Great!
 
 To get started you need Cargo's bin directory in your `PATH`
 environment variable. Next time you log in this will be done
@@ -108,8 +107,7 @@ run `source {cargo_home}/env`.
 
 macro_rules! post_install_msg_win {
     () => {
-r"
-Rust is installed now. Great!
+r"Rust is installed now. Great!
 
 To get started you need Cargo's bin directory in your `PATH`
 environment variable. Future applications will automatically have the
@@ -118,8 +116,7 @@ correct environment, but you may need to restart your current shell.
 
 macro_rules! pre_uninstall_msg {
     () => {
-r"
-Thanks for hacking in Rust!
+r"Thanks for hacking in Rust!
 
 This will uninstall all Rust toolchains and data, and remove
 `{cargo_home}/bin` from your `PATH` environment variable.
@@ -307,6 +304,7 @@ fn maybe_install_rust(toolchain_str: &str, verbose: bool) -> Result<()> {
         try!(common::show_channel_update(cfg, toolchain_str, Ok(status)));
     } else {
         info!("updating existing installation");
+        println!("");
     }
 
     Ok(())
@@ -320,6 +318,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     }
 
     if !no_prompt {
+        println!("");
         let ref msg = format!(pre_uninstall_msg!(),
                               cargo_home = try!(canonical_cargo_home()));
         if !try!(confirm(msg, false)) {
