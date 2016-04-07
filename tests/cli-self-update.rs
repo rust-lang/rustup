@@ -27,6 +27,7 @@ use rustup_mock::clitools::{self, Config, Scenario,
 #[cfg(windows)]
 use rustup_mock::clitools::expect_stderr_ok;
 use rustup_mock::dist::{create_hash, calc_hash};
+use rustup_mock::{get_path, restore_path};
 use rustup_utils::raw;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
@@ -386,44 +387,6 @@ fn when_cargo_home_is_the_default_write_path_specially() {
         assert_eq!(new_profile, my_profile);
     });
 }
-
-#[cfg(windows)]
-fn get_path() -> Option<String> {
-    use winreg::RegKey;
-    use winapi::*;
-
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
-
-    environment.get_value("PATH").ok()
-}
-
-#[cfg(windows)]
-fn restore_path(p: &Option<String>) {
-    use winreg::{RegKey, RegValue};
-    use winreg::enums::RegType;
-    use winapi::*;
-    use rustup_utils::utils;
-
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
-
-    if let Some(p) = p.as_ref() {
-        let reg_value = RegValue {
-            bytes: utils::string_to_winreg_bytes(&p),
-            vtype: RegType::REG_EXPAND_SZ,
-        };
-        environment.set_raw_value("PATH", &reg_value).unwrap();
-    } else {
-        let _ = environment.delete_value("PATH");
-    }
-}
-
-#[cfg(unix)]
-fn get_path() -> Option<String> { None }
-
-#[cfg(unix)]
-fn restore_path(_: &Option<String>) { }
 
 #[test]
 #[cfg(windows)]
