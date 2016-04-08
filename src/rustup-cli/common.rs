@@ -29,6 +29,28 @@ pub fn confirm(question: &str, default: bool) -> Result<bool> {
     Ok(r)
 }
 
+pub enum Confirm {
+    Yes, No, Advanced
+}
+
+pub fn confirm_advanced(question: &str, default: Confirm) -> Result<Confirm> {
+    print!("{} ", question);
+    let _ = std::io::stdout().flush();
+    let input = try!(read_line());
+
+    let r = match &*input {
+        "y" | "Y" => Confirm::Yes,
+        "n" | "N" => Confirm::No,
+        "a" | "A" => Confirm::Advanced,
+        "" => default,
+        _ => Confirm::No,
+    };
+
+    println!("");
+
+    Ok(r)
+}
+
 pub fn read_line() -> Result<String> {
     let stdin = std::io::stdin();
     let stdin = stdin.lock();

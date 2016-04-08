@@ -78,7 +78,7 @@ fn blank_lines_around_stderr_log_output_install() {
         // then log output on stderr, then an explicit blank line on stdout
         // before printing $toolchain installed
         assert!(out.stdout.contains(r"
-Continue? (Y/n) 
+Press the Enter key to install Rust. 
 
   stable installed - 1.1.0 (hash-s-2)
 
@@ -88,7 +88,7 @@ Rust is installed now. Great!
 }
 
 #[test]
-fn blank_lines_around_log_output_update() {
+fn blank_lines_around_stderr_log_output_update() {
     setup(&|config| {
         run_input(config, &["rustup-setup"], "\n\n");
         let out = run_input(config, &["rustup-setup"], "\n\n");
@@ -96,7 +96,9 @@ fn blank_lines_around_log_output_update() {
         // Here again the user generates one blank line, then there
         // are lines of stderr logs, then one blank line on stdout.
         assert!(out.stdout.contains(r"
-Continue? (Y/n) 
+Press the Enter key to install Rust. 
+
+  stable unchanged - 1.1.0 (hash-s-2)
 
 Rust is installed now. Great!
 "));

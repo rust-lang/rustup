@@ -30,7 +30,7 @@
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
-use common::{self, confirm};
+use common::{self, Confirm};
 use itertools::Itertools;
 use rustup::{Error, Result, NotifyHandler};
 use rustup_dist::dist;
@@ -43,6 +43,11 @@ use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::fs;
 use tempdir::TempDir;
+
+pub struct InstallOpts {
+    pub default_toolchain: String,
+    pub no_modify_path: bool,
+}
 
 // The big installation messages. These are macros because the first
 // argument of format! needs to be a literal.
@@ -64,14 +69,18 @@ Cargo's bin directory, located at:
 ",
 $platform_msg
 ,
-"
+r#"
 
 You can uninstall at any time with `rustup self uninstall` and
 these changes will be reverted.
 
 WARNING: This is an early beta. Expect breakage.
 
-Continue? (Y/n)"
+To cancel installation, type "n" (for "nah, I don't want to install Rust"),
+or for more options type "a" (for "awesome advanced options"),
+then press the Enter key to continue.
+
+Press the Enter key to install Rust."#
     )};
 }
 
@@ -157,23 +166,40 @@ fn canonical_cargo_home() -> Result<String> {
 /// CARGO_HOME/bin, hardlinking the various Rust tools to it,
 /// and and adding CARGO_HOME/bin to PATH.
 pub fn install(no_prompt: bool, verbose: bool,
-               default: &str, no_modify_path: bool) -> Result<()> {
+               opts: InstallOpts) -> Result<()> {
+
+    let selected_opts;
 
     if !no_prompt {
-        let ref msg = try!(pre_install_msg(no_modify_path));
-        if !try!(confirm(msg, true)) {
-            info!("aborting installation");
-            return Ok(());
+        let ref msg = try!(pre_install_msg(opts.no_modify_path));
+        match try!(common::confirm_advanced(msg, Confirm::Yes)) {
+            Confirm::No => {
+                info!("aborting installation");
+                return Ok(());
+            }
+            Confirm::Yes => {
+                selected_opts = opts;
+            }
+            Confirm::Advanced => {
+                if let Some(opts) = try!(advanced_install(opts)) {
+                    selected_opts = opts;
+                } else {
+                    info!("aborting installation");
+                    return Ok(());
+                }
+            }
         }
+    } else {
+        selected_opts = opts;
     }
 
     let install_res: Result<()> = (|| {
         try!(cleanup_legacy());
         try!(install_bins());
-        if !no_modify_path {
+        if !selected_opts.no_modify_path {
             try!(do_add_to_path(&get_add_path_methods()));
         }
-        try!(maybe_install_rust(default, verbose));
+        try!(maybe_install_rust(&selected_opts.default_toolchain, verbose));
 
         if cfg!(unix) {
             let ref env_file = try!(utils::cargo_home()).join("env");
@@ -193,7 +219,7 @@ pub fn install(no_prompt: bool, verbose: bool,
         // window closes.
         if cfg!(windows) && !no_prompt {
             println!("");
-            println!("Press enter to continue");
+            println!("Press the Enter key to continue.");
             try!(common::read_line());
         }
 
@@ -215,7 +241,7 @@ pub fn install(no_prompt: bool, verbose: bool,
         // the user to press a key to continue.
         if cfg!(windows) {
             println!("");
-            println!("Press enter to continue");
+            println!("Press the Enter key to continue.");
             try!(common::read_line());
         }
     }
@@ -250,6 +276,11 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
         Ok(format!(pre_install_msg_no_modify_path!(),
                    cargo_home_bin = cargo_home_bin.display()))
     }
+}
+
+// Interactive editing of the install options
+fn advanced_install(opts: InstallOpts) -> Result<Option<InstallOpts>> {
+    unimplemented!()
 }
 
 // Before multirust-rs installed bins to $CARGO_HOME/bin it installed
@@ -309,19 +340,11 @@ fn install_bins() -> Result<()> {
 
 fn maybe_install_rust(toolchain_str: &str, verbose: bool) -> Result<()> {
     let ref cfg = try!(common::set_globals(verbose));
-
-    // If this is a fresh install (there is no default yet)
-    // then install the requested toolchain and make it the default.
-    if try!(cfg.find_default()).is_none() {
-        let toolchain = try!(cfg.get_toolchain(toolchain_str, false));
-        let status = try!(toolchain.install_from_dist());
-        try!(cfg.set_default(toolchain_str));
-        println!("");
-        try!(common::show_channel_update(cfg, toolchain_str, Ok(status)));
-    } else {
-        info!("updating existing installation");
-        println!("");
-    }
+    let toolchain = try!(cfg.get_toolchain(toolchain_str, false));
+    let status = try!(toolchain.install_from_dist());
+    try!(cfg.set_default(toolchain_str));
+    println!("");
+    try!(common::show_channel_update(cfg, toolchain_str, Ok(status)));
 
     Ok(())
 }
@@ -337,7 +360,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         println!("");
         let ref msg = format!(pre_uninstall_msg!(),
                               cargo_home = try!(canonical_cargo_home()));
-        if !try!(confirm(msg, false)) {
+        if !try!(common::confirm(msg, false)) {
             info!("aborting uninstallation");
             return Ok(());
         }

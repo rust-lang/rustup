@@ -1,5 +1,5 @@
 use std::env;
-use self_update;
+use self_update::{self, InstallOpts};
 use rustup::Result;
 use clap::{App, Arg};
 use common;
@@ -35,10 +35,15 @@ pub fn main() -> Result<()> {
     let matches = cli.get_matches();
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
-    let default = matches.value_of("default-toolchain").unwrap_or("stable");
+    let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
     let no_modify_path = matches.is_present("no-modify-path");
 
-    try!(self_update::install(no_prompt, verbose, default, no_modify_path));
+    let opts = InstallOpts {
+        default_toolchain: default_toolchain.to_owned(),
+        no_modify_path: no_modify_path,
+    };
+
+    try!(self_update::install(no_prompt, verbose, opts));
 
     Ok(())
 }
