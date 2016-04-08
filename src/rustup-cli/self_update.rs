@@ -93,6 +93,14 @@ modifying the HKEY_CURRENT_USER/Environment/PATH registry key."
     )};
 }
 
+macro_rules! pre_install_msg_no_modify_path {
+    () => {
+pre_install_msg_template!(
+"This path needs to be in your PATH environment variable,
+but will not be added automatically."
+    )};
+}
+
 macro_rules! post_install_msg_unix {
     () => {
 r"Rust is installed now. Great!
@@ -152,7 +160,7 @@ pub fn install(no_prompt: bool, verbose: bool,
                default: &str, no_modify_path: bool) -> Result<()> {
 
     if !no_prompt {
-        let ref msg = try!(pre_install_msg());
+        let ref msg = try!(pre_install_msg(no_modify_path));
         if !try!(confirm(msg, true)) {
             info!("aborting installation");
             return Ok(());
@@ -215,26 +223,31 @@ pub fn install(no_prompt: bool, verbose: bool,
     Ok(())
 }
 
-fn pre_install_msg() -> Result<String> {
+fn pre_install_msg(no_modify_path: bool) -> Result<String> {
     let cargo_home = try!(utils::cargo_home());
     let cargo_home_bin = cargo_home.join("bin");
 
-    if cfg!(unix) {
-        let add_path_methods = get_add_path_methods();
-        let rcfiles = add_path_methods.into_iter()
-            .filter_map(|m| {
-                if let PathUpdateMethod::RcFile(path) = m {
-                    Some(format!("{}", path.display()))
-                } else {
-                    None
-                }
-            }).collect::<Vec<_>>();
-        assert!(rcfiles.len() == 1); // Only modifying .profile
-        Ok(format!(pre_install_msg_unix!(),
-                   cargo_home_bin = cargo_home_bin.display(),
-                   rcfiles = rcfiles[0]))
+    if !no_modify_path {
+        if cfg!(unix) {
+            let add_path_methods = get_add_path_methods();
+            let rcfiles = add_path_methods.into_iter()
+                .filter_map(|m| {
+                    if let PathUpdateMethod::RcFile(path) = m {
+                        Some(format!("{}", path.display()))
+                    } else {
+                        None
+                    }
+                }).collect::<Vec<_>>();
+            assert!(rcfiles.len() == 1); // Only modifying .profile
+            Ok(format!(pre_install_msg_unix!(),
+                       cargo_home_bin = cargo_home_bin.display(),
+                       rcfiles = rcfiles[0]))
+        } else {
+            Ok(format!(pre_install_msg_win!(),
+                       cargo_home_bin = cargo_home_bin.display()))
+        }
     } else {
-        Ok(format!(pre_install_msg_win!(),
+        Ok(format!(pre_install_msg_no_modify_path!(),
                    cargo_home_bin = cargo_home_bin.display()))
     }
 }

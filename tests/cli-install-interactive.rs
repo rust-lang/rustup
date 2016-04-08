@@ -114,6 +114,15 @@ fn user_says_nope() {
 
 #[test]
 fn with_no_modify_path() {
+    setup(&|config| {
+        let out = run_input(config, &["rustup-setup", "--no-modify-path"], "\n\n");
+        assert!(out.ok);
+        assert!(out.stdout.contains("This path needs to be in your PATH environment variable"));
+
+        if cfg!(unix) {
+            assert!(!config.homedir.join(".profile").exists());
+        }
+    });
 }
 
 #[test]
