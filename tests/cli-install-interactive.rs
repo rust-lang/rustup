@@ -10,7 +10,8 @@ use std::sync::Mutex;
 use std::process::Stdio;
 use std::io::Write;
 use rustup_mock::clitools::{self, Config, Scenario,
-                               SanitizedOutput};
+                            SanitizedOutput,
+                            expect_stdout_ok};
 use rustup_mock::{get_path, restore_path};
 
 pub fn setup(f: &Fn(&Config)) {
@@ -52,7 +53,7 @@ fn run_input(config: &Config, args: &[&str], input: &str) -> SanitizedOutput {
 #[test]
 fn smoke_test() {
     setup(&|config| {
-        let out = run_input(config, &["rustup-setup"], "\n\n");
+        let out = run_input(config, &["rustup-init"], "\n\n");
         assert!(out.ok);
     });
 }
@@ -60,8 +61,8 @@ fn smoke_test() {
 #[test]
 fn update() {
     setup(&|config| {
-        run_input(config, &["rustup-setup"], "\n\n");
-        let out = run_input(config, &["rustup-setup"], "\n\n");
+        run_input(config, &["rustup-init"], "\n\n");
+        let out = run_input(config, &["rustup-init"], "\n\n");
         assert!(out.ok);
     });
 }
@@ -71,14 +72,16 @@ fn update() {
 #[test]
 fn blank_lines_around_stderr_log_output_install() {
     setup(&|config| {
-        let out = run_input(config, &["rustup-setup"], "\n\n");
+        let out = run_input(config, &["rustup-init"], "\n\n");
 
-        // During an interactive session, after "Continue?"
-        // there is a blank line that comes from the user pressing enter,
-        // then log output on stderr, then an explicit blank line on stdout
+        // During an interactive session, after "Press the Enter
+        // key..."  the UI emits a blank line, then there is a blank
+        // line that comes from the user pressing enter, then log
+        // output on stderr, then an explicit blank line on stdout
         // before printing $toolchain installed
         assert!(out.stdout.contains(r"
-Press the Enter key to install Rust. 
+Press the Enter key to install Rust.
+
 
   stable installed - 1.1.0 (hash-s-2)
 
@@ -90,15 +93,12 @@ Rust is installed now. Great!
 #[test]
 fn blank_lines_around_stderr_log_output_update() {
     setup(&|config| {
-        run_input(config, &["rustup-setup"], "\n\n");
-        let out = run_input(config, &["rustup-setup"], "\n\n");
+        run_input(config, &["rustup-init"], "\n\n");
+        let out = run_input(config, &["rustup-init"], "\n\n");
 
-        // Here again the user generates one blank line, then there
-        // are lines of stderr logs, then one blank line on stdout.
         assert!(out.stdout.contains(r"
-Press the Enter key to install Rust. 
+Press the Enter key to install Rust.
 
-  stable unchanged - 1.1.0 (hash-s-2)
 
 Rust is installed now. Great!
 "));
@@ -108,7 +108,7 @@ Rust is installed now. Great!
 #[test]
 fn user_says_nope() {
     setup(&|config| {
-        let out = run_input(config, &["rustup-setup"], "n\n\n");
+        let out = run_input(config, &["rustup-init"], "n\n\n");
         assert!(out.ok);
         assert!(!config.cargodir.join("bin").exists());
     });
@@ -117,7 +117,7 @@ fn user_says_nope() {
 #[test]
 fn with_no_modify_path() {
     setup(&|config| {
-        let out = run_input(config, &["rustup-setup", "--no-modify-path"], "\n\n");
+        let out = run_input(config, &["rustup-init", "--no-modify-path"], "\n\n");
         assert!(out.ok);
         assert!(out.stdout.contains("This path needs to be in your PATH environment variable"));
 
@@ -129,8 +129,55 @@ fn with_no_modify_path() {
 
 #[test]
 fn with_non_default_toolchain() {
+    setup(&|config| {
+        let out = run_input(config, &["rustup-init", "--default-toolchain=nightly"], "\n\n");
+        assert!(out.ok);
+
+        expect_stdout_ok(config, &["rustup", "show"], "nightly");
+    });
 }
 
 #[test]
-fn with_no_modify_path_and_non_default_toolchain() {
+fn set_nightly_toolchain() {
+    setup(&|config| {
+        let out = run_input(config, &["rustup-init"],
+                            "a\nnightly\n\n\n\n");
+        assert!(out.ok);
+
+        expect_stdout_ok(config, &["rustup", "show"], "nightly");
+    });
+}
+
+#[test]
+fn set_no_modify_path() {
+    setup(&|config| {
+        let out = run_input(config, &["rustup-init"],
+                            "a\n\nno\n\n\n");
+        assert!(out.ok);
+
+        if cfg!(unix) {
+            assert!(!config.homedir.join(".profile").exists());
+        }
+    });
+}
+
+#[test]
+fn set_nightly_toolchain_and_unset() {
+    setup(&|config| {
+        let out = run_input(config, &["rustup-init"],
+                            "a\nnightly\n\na\nbeta\n\n\n\n");
+        assert!(out.ok);
+
+        expect_stdout_ok(config, &["rustup", "show"], "beta");
+    });
+}
+
+#[test]
+fn user_says_nope_after_advanced_install() {
+    setup(&|config| {
+        let out = run_input(config, &["rustup-init"],
+                            "a\n\n\nn\n\n");
+        assert!(out.ok);
+        assert!(!config.cargodir.join("bin").exists());
+    });
 }

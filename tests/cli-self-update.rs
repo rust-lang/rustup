@@ -429,7 +429,7 @@ fn uninstall_removes_path() {
 fn install_doesnt_modify_path_if_passed_no_modify_path() {
     setup(&|config| {
         let ref profile = config.homedir.join(".profile");
-        expect_ok(config, &["rustup-setup", "-y", "--no-modify-path"]);
+        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
         assert!(!profile.exists());
     });
 }
@@ -437,12 +437,15 @@ fn install_doesnt_modify_path_if_passed_no_modify_path() {
 #[test]
 #[cfg(windows)]
 fn install_doesnt_modify_path_if_passed_no_modify_path() {
+    use winreg::RegKey;
+    use winapi::*;
+
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
         let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
         let old_path = environment.get_raw_value("PATH").unwrap();
 
-        expect_ok(config, &["rustup-setup", "-y", "--no-modify-path"]);
+        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
         let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
@@ -733,7 +736,7 @@ fn reinstall_exact() {
         expect_ok_ex(config, &["rustup-init", "-y"],
 r"
 ",
-r"info: updating existing installation
+r"info: updating existing rustup installation
 "
                   );
     });
@@ -752,7 +755,7 @@ fn produces_env_file_on_unix() {
         assert!(cmd.output().unwrap().status.success());
         let ref envfile = config.homedir.join(".cargo/env");
         let envfile = raw::read_file(envfile).unwrap();
-        assert_eq!(r#"export PATH="$HOME/.cargo/bin:$PATH""#, envfile);
+        assert!(envfile.contains(r#"export PATH="$HOME/.cargo/bin:$PATH""#));
     });
 }
 

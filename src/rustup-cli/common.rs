@@ -33,15 +33,14 @@ pub enum Confirm {
     Yes, No, Advanced
 }
 
-pub fn confirm_advanced(question: &str, default: Confirm) -> Result<Confirm> {
-    print!("{} ", question);
+pub fn confirm_advanced(default: Confirm) -> Result<Confirm> {
     let _ = std::io::stdout().flush();
     let input = try!(read_line());
 
     let r = match &*input {
-        "y" | "Y" => Confirm::Yes,
-        "n" | "N" => Confirm::No,
-        "a" | "A" => Confirm::Advanced,
+        "y" | "Y" | "yes" => Confirm::Yes,
+        "n" | "N" | "no" => Confirm::No,
+        "a" | "A" | "advanced" => Confirm::Advanced,
         "" => default,
         _ => Confirm::No,
     };
@@ -49,6 +48,40 @@ pub fn confirm_advanced(question: &str, default: Confirm) -> Result<Confirm> {
     println!("");
 
     Ok(r)
+}
+
+pub fn question_str(question: &str, default: &str) -> Result<String> {
+    println!("{}", question);
+    let _ = std::io::stdout().flush();
+    let input = try!(read_line());
+
+    println!("");
+
+    if input.is_empty() {
+        Ok(default.to_string())
+    } else {
+        Ok(input)
+    }
+}
+
+pub fn question_bool(question: &str, default: bool) -> Result<bool> {
+    println!("{}", question);
+
+    let _ = std::io::stdout().flush();
+    let input = try!(read_line());
+
+    println!("");
+
+    if input.is_empty() {
+        Ok(default)
+    } else {
+        match &*input {
+            "y" | "Y" | "yes" => Ok(true),
+            "n" | "N" | "no" => Ok(false),
+            _ => Ok(default)
+        }
+    }
+
 }
 
 pub fn read_line() -> Result<String> {
