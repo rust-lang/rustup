@@ -285,6 +285,17 @@ r"");
 }
 
 #[test]
+fn list_default_toolchain() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok_ex(config, &["rustup", "toolchain", "list"],
+for_host!(r"nightly-{0} (default)
+"),
+r"");
+    });
+}
+
+#[test]
 #[ignore(windows)] // FIXME rustup displays UNC paths
 fn show_toolchain_override() {
     setup(&|config| {
