@@ -12,7 +12,7 @@ Get-FileHash .\target\release\* | ForEach-Object {[io.file]::WriteAllText($_.Pat
 # Prepare bins for upload
 $dest = "dist\$env:TARGET"
 md -Force "$dest"
-cp target\release\rustup-setup.exe "$dest/"
-cp target\release\rustup-setup.exe.sha256 "$dest/"
+cp target\release\rustup-init.exe "$dest/"
+cp target\release\rustup-init.exe.sha256 "$dest/"
 
 ls "$dest"

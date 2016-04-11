@@ -37,10 +37,10 @@ main() {
 	    ;;
     esac
 
-    local _url="$RUSTUP_UPDATE_ROOT/$_arch/rustup-setup$_ext"
+    local _url="$RUSTUP_UPDATE_ROOT/$_arch/rustup-init$_ext"
 
     local _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
-    local _file="$_dir/rustup-setup$_ext"
+    local _file="$_dir/rustup-init$_ext"
 
     printf "\33[1minfo:\33[0m downloading installer\n"
 

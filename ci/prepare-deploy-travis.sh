@@ -36,14 +36,14 @@ dest="deploy"
 # Prepare bins for upload
 bindest="$dest/dist/$TARGET"
 mkdir -p "$bindest/"
-cp target/$TARGET/release/rustup-setup "$bindest/"
-cp target/$TARGET/release/rustup-setup.sha256 "$bindest/"
+cp target/$TARGET/release/rustup-init "$bindest/"
+cp target/$TARGET/release/rustup-init.sha256 "$bindest/"
 
 if [ "$TARGET" != "x86_64-unknown-linux-gnu" ]; then
     exit 0
 fi
 
-cp rustup-setup.sh "$dest/"
+cp rustup-init.sh "$dest/"
 
 # Prepare website for upload
 cp -R www "$dest/www"

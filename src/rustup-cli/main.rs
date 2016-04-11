@@ -76,7 +76,7 @@ fn run_multirust() -> Result<()> {
             multirust_mode::main()
         }
         Some(n) if n.starts_with("multirust-setup")||
-                   n.starts_with("rustup-setup") => {
+                   n.starts_with("rustup-init") => {
             // NB: The above check is only for the prefix of the file
             // name. Browsers rename duplicates to
             // e.g. multirust-setup(2), and this allows all variations
