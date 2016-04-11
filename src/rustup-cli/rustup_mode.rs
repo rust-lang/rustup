@@ -374,3 +374,15 @@ fn self_uninstall(m: &ArgMatches) -> Result<()> {
 
     self_update::uninstall(no_prompt)
 }
+<<<<<<< a5128e8b36acb156594bca2ef502bb66999cff7a:src/rustup-cli/rustup_mode.rs
+=======
+
+fn telemetry(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let telemetry_string = m.value_of("enabled").unwrap();
+    match telemetry_string {
+        "on" => cfg.set_telemetry(true),
+        "off" => cfg.set_telemetry(false),
+        _ => Err(Error::Custom { id: "Telemetry".to_string(), desc: "Incorrect telemetry setting".to_string() }),
+    }
+}
+>>>>>>> Improving modularization, telemetry checks:src/multirust-cli/rustup_mode.rs

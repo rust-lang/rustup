@@ -326,7 +326,7 @@ fn add_target(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         pkg: "rust-std".to_string(),
         target: TargetTriple::from_str(target),
     };
-    try!(toolchain.add_component(new_component, &cfg));
+    try!(toolchain.add_component(new_component));
 
     Ok(())
 }

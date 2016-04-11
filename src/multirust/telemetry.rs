@@ -1,7 +1,9 @@
 use time;
-use config::Cfg;
 use multirust_utils::utils;
 use rustc_serialize::json;
+
+use std::collections::HashSet;
+use std::path::PathBuf;
 
 #[derive(Debug, PartialEq)]
 pub enum TelemetryMode {
@@ -11,7 +13,7 @@ pub enum TelemetryMode {
 
 #[derive(RustcDecodable, RustcEncodable, Debug)]
 pub enum TelemetryEvent {
-    RustcRun { duration_ms: u64, exit_code: i32, errors: Option<String> },
+    RustcRun { duration_ms: u64, exit_code: i32, errors: Option<HashSet<String>> },
     ToolchainUpdate { toolchain: String, success: bool } ,
     TargetAdd { toolchain: String, target: String, success: bool },
 }
@@ -22,13 +24,24 @@ struct LogMessage {
     event: TelemetryEvent,
 }
 
-pub fn log_telemetry(event: TelemetryEvent, cfg: &Cfg) {
-    let ln = LogMessage { log_time_s: time::get_time().sec, event: event };
+#[derive(Debug)]
+pub struct Telemetry {
+    telemetry_dir: PathBuf
+}
 
-    let json = json::encode(&ln).unwrap();
+impl Telemetry {
+    pub fn new(telemetry_dir: PathBuf) -> Telemetry {
+        Telemetry { telemetry_dir: telemetry_dir }
+    }   
 
-    let now = time::now_utc();
-    let filename = format!("telemetry-{}-{:02}-{:02}", now.tm_year + 1900, now.tm_mon, now.tm_mday);
+    pub fn log_telemetry(&self, event: TelemetryEvent) {
+        let current_time = time::now_utc();
+        let ln = LogMessage { log_time_s: current_time.to_timespec().sec, event: event };
 
-    let _ = utils::append_file("telemetry", &cfg.multirust_dir.join(&filename), &json);
+        let json = json::encode(&ln).unwrap();
+
+        let filename = format!("log-{}-{:02}-{:02}.json", current_time.tm_year + 1900, current_time.tm_mon + 1, current_time.tm_mday);
+
+        let _ = utils::append_file("telemetry", &self.telemetry_dir.join(&filename), &json);
+    }
 }

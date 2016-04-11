@@ -1,16 +1,16 @@
-use std;
+use std::collections::HashSet;
 use std::env;
 use std::ffi::OsStr;
-use std::io::{self, Write};
+use std::io::{self, Write, BufRead, BufReader};
 use std::path::PathBuf;
-use std::process::{self, Command, Output};
+use std::process::{self, Command, Stdio};
 use std::time::Instant;
+use regex::Regex;
 
 use Cfg;
 use errors::*;
 use multirust_utils;
-use telemetry;
-use telemetry::TelemetryEvent;
+use telemetry::{Telemetry, TelemetryEvent};
 
 
 pub fn run_command_for_dir<S: AsRef<OsStr>>(cmd: Command,
@@ -28,41 +28,75 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(cmd: Command,
     run_command_for_dir_without_telemetry(cmd, &args)
 }
 
-fn telemetry_rustc<S: AsRef<OsStr>>(cmd: Command, args: &[S], cfg: &Cfg) -> Result<()> {
+fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> Result<()> {
     let now = Instant::now();
 
-    let output = bare_run_command_for_dir(cmd, &args);
+    cmd.args(&args[1..]);
+
+    // FIXME rust-lang/rust#32254. It's not clear to me
+    // when and why this is needed.
+    let mut cmd = cmd.stdin(Stdio::inherit())
+                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::piped())
+                    .spawn()
+                    .unwrap();
+
+    let mut buffered_stderr = BufReader::new(cmd.stderr.take().unwrap());
+    let status = cmd.wait();
 
     let duration = now.elapsed();
 
     let ms = (duration.as_secs() as u64 * 1000) + (duration.subsec_nanos() as u64 / 1000 / 1000);
 
-    match output {
-        Ok(out) => {
-            let exit_code = out.status.code().unwrap_or(1);
+    let t = Telemetry::new(cfg.multirust_dir.join("telemetry"));
 
-            let errors = match out.status.success() {
-                true => None,
-                _ => Some(String::from_utf8_lossy(&out.stderr).to_string()),
+    match status {
+        Ok(status) => {
+            let exit_code = status.code().unwrap_or(1);
+
+            let re = Regex::new(r"\[(?P<error>E.{4})\]").unwrap();
+
+            let mut buffer = String::new();
+            // Chose a HashSet instead of a Vec to avoid calls to sort() and dedup().
+            // The HashSet should be faster if there are a lot of errors, too.
+            let mut errors: HashSet<String> = HashSet::new();
+
+            let stderr = io::stderr();
+            let mut handle = stderr.lock();
+
+            while buffered_stderr.read_line(&mut buffer).unwrap() > 0 {
+                let b = buffer.to_owned();
+                buffer.clear();                
+                let _ = handle.write(b.as_bytes());
+
+                let c = re.captures(&b);
+                match c {
+                    None => continue,
+                    Some(caps) => {
+                        if caps.len() > 0 {
+                            let _ = errors.insert(caps.name("error").unwrap_or("").to_owned());
+                        }
+                    }
+                };
+            }
+
+            let e = match errors.len() { 
+                0 => None,
+                _ => Some(errors),
             };
-
-            let _ = io::stdout().write(&out.stdout);
-            let _ = io::stdout().flush();
-            let _ = io::stderr().write(&out.stderr);
-            let _ = io::stderr().flush();
 
             let te = TelemetryEvent::RustcRun { duration_ms: ms, 
                                                 exit_code: exit_code,
-                                                errors: errors };
-            telemetry::log_telemetry(te, cfg);
+                                                errors: e };
+            t.log_telemetry(te);
             process::exit(exit_code);
         },
         Err(e) => {
             let exit_code = e.raw_os_error().unwrap_or(1);
             let te = TelemetryEvent::RustcRun { duration_ms: ms,
                                                 exit_code: exit_code,
-                                                errors: Some(format!("{}", e)) };
-            telemetry::log_telemetry(te, cfg);
+                                                errors: None };
+            t.log_telemetry(te);
             Err(multirust_utils::Error::RunningCommand {    
                 name: args[0].as_ref().to_owned(),
                 error: multirust_utils::raw::CommandError::Io(e),
@@ -71,17 +105,15 @@ fn telemetry_rustc<S: AsRef<OsStr>>(cmd: Command, args: &[S], cfg: &Cfg) -> Resu
     }
 }
 
-fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(cmd: Command, args: &[S]) -> Result<()>  {
-    let output = bare_run_command_for_dir(cmd, &args);
+fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(mut cmd: Command, args: &[S]) -> Result<()>  {
+    cmd.args(&args[1..]);
 
-    match output {
-        Ok(out) => {
-            let _ = io::stdout().write(&out.stdout);
-            let _ = io::stdout().flush();
-            let _ = io::stderr().write(&out.stderr);
-            let _ = io::stderr().flush();
+    // FIXME rust-lang/rust#32254. It's not clear to me
+    // when and why this is needed.
+    cmd.stdin(process::Stdio::inherit());
 
-            let status = out.status;
+    match cmd.status() {
+        Ok(status) => {
             // Ensure correct exit code is returned
             let code = status.code().unwrap_or(1);
             process::exit(code);
@@ -94,16 +126,3 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(cmd: Command, args: &[
         }
     }    
 }
-
-fn bare_run_command_for_dir<S: AsRef<OsStr>>(mut cmd: Command, args: &[S]) -> std::result::Result<Output, std::io::Error> {
-    cmd.args(&args[1..]);
-
-    // FIXME rust-lang/rust#32254. It's not clear to me
-    // when and why this is needed.
-    cmd.stdin(process::Stdio::inherit());
-
-    cmd.output()
-}
-
-
-

@@ -91,7 +91,7 @@ impl Cfg {
                                 .and_then(utils::if_not_empty)
                                 .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT), Cow::Owned);
 
-        let telemetry_mode = Cfg::find_telemetry(&multirust_dir.join("telemetry"));
+        let telemetry_mode = Cfg::find_telemetry(&multirust_dir);
 
         Ok(Cfg {
             multirust_dir: multirust_dir,
@@ -411,14 +411,31 @@ impl Cfg {
         }
     }
 
-    pub fn set_telemetry(&self, telemetry: &str) -> Result<()> {
+    pub fn set_telemetry(&self, telemetry_enabled: bool) -> Result<()> {
+        match telemetry_enabled {
+            true => self.enable_telemetry(),
+            false => self.disable_telemetry(),
+        }
+    }
+
+    fn enable_telemetry(&self) -> Result<()> {
         let work_file = try!(self.temp_cfg.new_file());
+        
+        let _ = utils::ensure_dir_exists("telemetry", &self.multirust_dir.join("telemetry"), ntfy!(&NotifyHandler::none()));
 
-        try!(utils::write_file("temp", &work_file, telemetry));
+        try!(utils::write_file("temp", &work_file, ""));
 
-        try!(utils::rename_file("telemetry", &*work_file, &self.multirust_dir.join("telemetry")));
+        try!(utils::rename_file("telemetry", &*work_file, &self.multirust_dir.join("telemetry_on")));
 
-        self.notify_handler.call(Notification::SetTelemetry(telemetry));
+        self.notify_handler.call(Notification::SetTelemetry("on"));
+
+        Ok(())
+    }
+
+    fn disable_telemetry(&self) -> Result<()> {
+        let _ = utils::remove_file("telemetry_on", &self.multirust_dir.join("telemetry_on"));
+
+        self.notify_handler.call(Notification::SetTelemetry("off"));
 
         Ok(())
     }
@@ -430,28 +447,14 @@ impl Cfg {
         }
     }
 
-    fn find_telemetry(telemetry_file: &PathBuf) -> TelemetryMode {
+    fn find_telemetry(multirust_dir: &PathBuf) -> TelemetryMode {
         // default telemetry should be off - if no telemetry file is found, it's off
-        if !utils::is_file(telemetry_file) {
-            return TelemetryMode::Off;
+        let telemetry_file = multirust_dir.join("telemetry_on");
+
+        if utils::is_file(telemetry_file) {
+            return TelemetryMode::On;
         }
 
-        let content = utils::read_file("telemetry", telemetry_file);
-        let telemetry_string = content.unwrap_or("off".to_string());
-
-        // If the telemetry file is empty, for some reason, assume that the user
-        // would prefer no telemetry and set telemetry to off.
-        if telemetry_string.is_empty() {
-            return TelemetryMode::Off;
-        }
-
-        // Finally, match any remaining string - if this is anything but 'on',
-        // assume that the user would prefer no telemetry be collected and set
-        // telemetry to off.
-        if !telemetry_string.starts_with("on") {
-            return TelemetryMode::Off;
-        }
-        
-        TelemetryMode::On
+        TelemetryMode::Off
     }
 }

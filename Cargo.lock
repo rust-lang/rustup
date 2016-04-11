@@ -12,11 +12,14 @@ dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.65 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
+<<<<<<< a5128e8b36acb156594bca2ef502bb66999cff7a
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustup-dist 0.1.7",
  "rustup-mock 0.1.7",
  "rustup-utils 0.1.7",
+=======
+>>>>>>> Improving modularization, telemetry checks
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "term 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",

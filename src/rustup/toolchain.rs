@@ -9,7 +9,7 @@ use config::Cfg;
 use env_var;
 use install::{self, InstallMethod};
 use telemetry;
-use telemetry::TelemetryEvent;
+use telemetry::{Telemetry, TelemetryEvent};
 
 use std::process::Command;
 use std::path::{Path, PathBuf};
@@ -23,6 +23,7 @@ pub struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: String,
     path: PathBuf,
+    telemetry: telemetry::Telemetry,
 }
 
 /// Used by the list_component function
@@ -46,6 +47,7 @@ impl<'a> Toolchain<'a> {
             cfg: cfg,
             name: resolved_name,
             path: path.clone(),
+            telemetry: Telemetry::new(cfg.multirust_dir.join("telemetry")),
         })
     }
     pub fn name(&self) -> &str {
@@ -164,13 +166,13 @@ impl<'a> Toolchain<'a> {
             Ok(us) => {
                 let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name().to_string() ,
                                                            success: true };
-                telemetry::log_telemetry(te, &self.cfg);
+                self.telemetry.log_telemetry(te);
                 Ok(us)
             } 
             Err(e) => {
                 let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name().to_string() ,
                                                            success: true };
-                telemetry::log_telemetry(te, &self.cfg);
+                self.telemetry.log_telemetry(te);
                 Err(e)
             }
         }
@@ -382,14 +384,14 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    pub fn add_component(&self, component: Component, cfg: &Cfg) -> Result<()> {
-        if cfg.telemetry_enabled() {
-            return self.telemetry_add_component(component, cfg);
+    pub fn add_component(&self, component: Component) -> Result<()> {
+        if self.cfg.telemetry_enabled() {
+            return self.telemetry_add_component(component);
         }
         self.add_component_without_telemetry(component)
     }
 
-    fn telemetry_add_component(&self, component: Component, cfg: &Cfg) -> Result<()> {
+    fn telemetry_add_component(&self, component: Component) -> Result<()> {
         let output = self.bare_add_component(component);
 
         match output {
@@ -397,7 +399,7 @@ impl<'a> Toolchain<'a> {
                 let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(), 
                                                            success: true };
 
-                telemetry::log_telemetry(te, &cfg);
+                self.telemetry.log_telemetry(te);
 
                 Ok(())
             },
@@ -405,7 +407,7 @@ impl<'a> Toolchain<'a> {
                 let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(), 
                                                            success: false };
 
-                telemetry::log_telemetry(te, &cfg);
+                self.telemetry.log_telemetry(te);
                 Err(e)
             }
         }
