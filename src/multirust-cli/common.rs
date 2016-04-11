@@ -267,8 +267,20 @@ pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
     if toolchains.is_empty() {
         println!("no installed toolchains");
     } else {
-        for toolchain in toolchains {
-            println!("{}", &toolchain);
+        if let Ok(Some(def_toolchain)) = cfg.find_default() {
+            for toolchain in toolchains {
+                let if_default = if def_toolchain.name() == &*toolchain { 
+                    " (default)" 
+                } else { 
+                    "" 
+                };
+                println!("{}{}", &toolchain, if_default);
+            }
+
+        } else {
+            for toolchain in toolchains {
+                println!("{}", &toolchain);
+            }
         }
     }
     Ok(())
