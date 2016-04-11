@@ -699,6 +699,18 @@ fn multirust_still_works_after_update() {
 fn update_stress_test() {
 }
 
+// The installer used to be called rustup-setup. For compatibility it
+// still needs to work in that mode.
+#[test]
+fn as_rustup_setup() {
+    update_setup(&|config, _| {
+        let init = config.exedir.join(format!("rustup-init{}", EXE_SUFFIX));
+        let setup = config.exedir.join(format!("rustup-setup{}", EXE_SUFFIX));
+        fs::copy(&init, &setup).unwrap();
+        expect_ok(config, &["rustup-setup", "-y"]);
+    });
+}
+
 #[test]
 fn first_install_exact() {
     setup(&|config| {
