@@ -1,10 +1,10 @@
 //! Yet more cli test cases. These are testing that the output
 //! is exactly as expected.
 
-extern crate multirust_dist;
-extern crate multirust_mock;
+extern crate rustup_dist;
+extern crate rustup_mock;
 
-use multirust_mock::clitools::{self, Config, Scenario,
+use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_err_ex,
                                this_host_triple};

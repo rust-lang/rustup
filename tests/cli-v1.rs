@@ -1,14 +1,14 @@
 //! Test cases of the multirust command, using v1 manifests, mostly
 //! derived from multirust/test-v2.sh
 
-extern crate multirust_dist;
-extern crate multirust_utils;
-extern crate multirust_mock;
+extern crate rustup_dist;
+extern crate rustup_utils;
+extern crate rustup_mock;
 extern crate tempdir;
 
 use std::fs;
 use tempdir::TempDir;
-use multirust_mock::clitools::{self, Config, Scenario,
+use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_stdout_ok, expect_err,
                                expect_stderr_ok, set_current_dist_date,
                                change_dir, run, this_host_triple};
@@ -166,11 +166,11 @@ fn remove_override_toolchain_error_handling() {
 fn bad_sha_on_manifest() {
     setup(&|config| {
         let sha_file = config.distdir.join("dist/channel-rust-nightly.sha256");
-        let sha_str = multirust_utils::raw::read_file(&sha_file).unwrap();
+        let sha_str = rustup_utils::raw::read_file(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         &mut sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
         let sha_str = String::from_utf8(sha_bytes).unwrap();
-        multirust_utils::raw::write_file(&sha_file, &sha_str).unwrap();
+        rustup_utils::raw::write_file(&sha_file, &sha_str).unwrap();
         expect_err(config, &["multirust", "default", "nightly"],
                    "checksum failed");
     });
@@ -183,7 +183,7 @@ fn bad_sha_on_installer() {
         for file in fs::read_dir(&dir).unwrap() {
             let file = file.unwrap();
             if file.path().to_string_lossy().ends_with(".tar.gz") {
-                multirust_utils::raw::write_file(&file.path(), "xxx").unwrap();
+                rustup_utils::raw::write_file(&file.path(), "xxx").unwrap();
             }
         }
         expect_err(config, &["multirust", "default", "nightly"],

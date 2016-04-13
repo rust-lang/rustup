@@ -1,0 +1,22 @@
+[package]
+
+name = "rustup-mock"
+version = "0.1.6"
+authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
+description = "Test mocks for multirust"
+
+documentation = "http://diggsey.github.io/multirust-rs"
+homepage = "https://github.com/rust-lang-nursery/multirust-rs"
+repository = "https://github.com/rust-lang-nursery/multirust-rs"
+
+[dependencies]
+hyper = "0.7.0"
+scopeguard = "0.1.2"
+lazy_static = "0.1.15"
+walkdir = "0.1.5"
+flate2 = "0.2.9"
+tempdir = "0.3.4"
+openssl = "0.7.2"
+itertools = "0.4.1"
+tar = "0.4.0"
+toml = "0.1.27"

@@ -1,5 +1,5 @@
 [root]
-name = "multirust-rs"
+name = "rustup"
 version = "0.1.6"
 dependencies = [
  "clap 2.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -8,12 +8,12 @@ dependencies = [
  "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "multirust-dist 0.1.6",
- "multirust-mock 0.1.6",
- "multirust-utils 0.1.6",
  "openssl 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.66 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustup-dist 0.1.6",
+ "rustup-mock 0.1.6",
+ "rustup-utils 0.1.6",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "term 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -239,57 +239,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "multirust-dist"
-version = "0.1.6"
-dependencies = [
- "flate2 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "itertools 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "multirust-mock 0.1.6",
- "multirust-utils 0.1.6",
- "ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "regex 0.1.66 (registry+https://github.com/rust-lang/crates.io-index)",
- "tar 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "toml 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
- "walkdir 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "multirust-mock"
-version = "0.1.6"
-dependencies = [
- "flate2 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "itertools 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tar 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "toml 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
- "walkdir 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "multirust-utils"
-version = "0.1.6"
-dependencies = [
- "advapi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "shell32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "userenv-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "winreg 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "num"
 version = "0.1.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -422,6 +371,57 @@ version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "semver 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rustup-dist"
+version = "0.1.6"
+dependencies = [
+ "flate2 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "itertools 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.66 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustup-mock 0.1.6",
+ "rustup-utils 0.1.6",
+ "tar 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "toml 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "walkdir 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rustup-mock"
+version = "0.1.6"
+dependencies = [
+ "flate2 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "itertools 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tar 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "toml 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "walkdir 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rustup-utils"
+version = "0.1.6"
+dependencies = [
+ "advapi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shell32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "userenv-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winreg 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

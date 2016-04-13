@@ -1,11 +1,11 @@
 //! Test cases of the multirust command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 
-extern crate multirust_dist;
-extern crate multirust_utils;
-extern crate multirust_mock;
+extern crate rustup_dist;
+extern crate rustup_utils;
+extern crate rustup_mock;
 
-use multirust_mock::clitools::{self, Config, Scenario,
+use rustup_mock::clitools::{self, Config, Scenario,
                                expect_stdout_ok, expect_stderr_ok,
                                expect_ok, expect_err, run,
                                this_host_triple};
@@ -492,7 +492,7 @@ fn running_with_v2_metadata() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         // Replace the metadata version
-        multirust_utils::raw::write_file(&config.rustupdir.join("version"),
+        rustup_utils::raw::write_file(&config.rustupdir.join("version"),
                                "2").unwrap();
         expect_err(config, &["multirust", "default", "nightly"],
                    "rustup's metadata is out of date. run `rustup self upgrade-data`");
@@ -506,7 +506,7 @@ fn running_with_v2_metadata_rustup() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         // Replace the metadata version
-        multirust_utils::raw::write_file(&config.rustupdir.join("version"),
+        rustup_utils::raw::write_file(&config.rustupdir.join("version"),
                                "2").unwrap();
         expect_err(config, &["rustup", "default", "nightly"],
                    "rustup's metadata is out of date. run `rustup self upgrade-data`");
@@ -523,7 +523,7 @@ fn upgrade_v2_metadata_to_v12() {
     setup(&|config| {
         expect_ok(config, &["multirust", "default", "nightly"]);
         // Replace the metadata version
-        multirust_utils::raw::write_file(&config.rustupdir.join("version"),
+        rustup_utils::raw::write_file(&config.rustupdir.join("version"),
                                "2").unwrap();
         expect_stderr_ok(config, &["multirust", "upgrade-data"],
                          "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");
@@ -545,7 +545,7 @@ fn upgrade_v2_metadata_to_v12_rustup() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         // Replace the metadata version
-        multirust_utils::raw::write_file(&config.rustupdir.join("version"),
+        rustup_utils::raw::write_file(&config.rustupdir.join("version"),
                                "2").unwrap();
         expect_stderr_ok(config, &["rustup", "self", "upgrade-data"],
                          "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");

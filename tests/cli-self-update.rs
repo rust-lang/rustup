@@ -1,7 +1,7 @@
 //! Testing self install, uninstall and update
 
-extern crate multirust_mock;
-extern crate multirust_utils;
+extern crate rustup_mock;
+extern crate rustup_utils;
 #[macro_use]
 extern crate lazy_static;
 extern crate tempdir;
@@ -19,15 +19,15 @@ use std::env::consts::EXE_SUFFIX;
 use std::path::Path;
 use std::fs;
 use std::process::Command;
-use multirust_mock::clitools::{self, Config, Scenario,
+use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
                                expect_err, expect_err_ex,
                                this_host_triple};
 #[cfg(windows)]
-use multirust_mock::clitools::expect_stderr_ok;
-use multirust_mock::dist::{create_hash, calc_hash};
-use multirust_utils::raw;
+use rustup_mock::clitools::expect_stderr_ok;
+use rustup_mock::dist::{create_hash, calc_hash};
+use rustup_utils::raw;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -403,7 +403,7 @@ fn restore_path(p: &Option<String>) {
     use winreg::{RegKey, RegValue};
     use winreg::enums::RegType;
     use winapi::*;
-    use multirust_utils::utils;
+    use rustup_utils::utils;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();

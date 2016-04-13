@@ -1,11 +1,11 @@
 //! Test cases for new rustup UI
 
-extern crate multirust_dist;
-extern crate multirust_utils;
-extern crate multirust_mock;
+extern crate rustup_dist;
+extern crate rustup_utils;
+extern crate rustup_mock;
 extern crate tempdir;
 
-use multirust_mock::clitools::{self, Config, Scenario,
+use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
                                expect_err_ex,
