@@ -126,6 +126,10 @@ get_architecture() {
             local _ostype="${_ostype}eabihf"
             ;;
 
+	aarch64)
+	    local _cputype=aarch64
+	    ;;
+
         x86_64 | x86-64 | x64 | amd64)
             local _cputype=x86_64
             ;;
