@@ -131,7 +131,7 @@ get_architecture() {
             ;;
 
         *)
-            err "unknown CPU type: $CFG_CPUTYPE"
+            err "unknown CPU type: $_cputype"
 
     esac
 
