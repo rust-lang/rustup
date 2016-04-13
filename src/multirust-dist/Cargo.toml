@@ -4,6 +4,7 @@ name = "multirust-dist"
 version = "0.1.5"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Installation from a Rust distribution server"
+build = "build.rs"
 
 documentation = "http://diggsey.github.io/multirust-rs/rust_install/index.html"
 homepage = "https://github.com/rust-lang-nursery/multirust-rs"
