@@ -144,7 +144,7 @@ fn install_creates_cargo_home() {
 fn uninstall_deletes_bins() {
     setup(&|config| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
         let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
         let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
@@ -174,7 +174,7 @@ fn uninstall_works_if_some_bins_dont_exist() {
         fs::remove_file(&rustc).unwrap();
         fs::remove_file(&cargo).unwrap();
 
-        expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         assert!(!multirust.exists());
         assert!(!rustc.exists());
@@ -189,8 +189,8 @@ fn uninstall_works_if_some_bins_dont_exist() {
 fn uninstall_deletes_multirust_home() {
     setup(&|config| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "default", "nightly"]);
-        expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
         assert!(!config.rustupdir.exists());
     });
 }
@@ -200,7 +200,7 @@ fn uninstall_works_if_multirust_home_doesnt_exist() {
     setup(&|config| {
         expect_ok(config, &["rustup-setup", "-y"]);
         raw::remove_dir(&config.rustupdir).unwrap();
-        expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
     });
 }
 
@@ -208,7 +208,7 @@ fn uninstall_works_if_multirust_home_doesnt_exist() {
 fn uninstall_deletes_cargo_home() {
     setup(&|config| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
         assert!(!config.cargodir.exists());
     });
 }
@@ -219,7 +219,7 @@ fn uninstall_fails_if_not_installed() {
         expect_ok(config, &["rustup-setup", "-y"]);
         let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         fs::remove_file(&multirust).unwrap();
-        expect_err(config, &["multirust", "self", "uninstall", "-y"],
+        expect_err(config, &["rustup", "self", "uninstall", "-y"],
                    "rustup is not installed");
     });
 }
@@ -262,7 +262,7 @@ fn uninstall_self_delete_works() {
 fn uninstall_doesnt_leave_gc_file() {
     setup(&|config| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         let ref parent = config.cargodir.parent().unwrap();
         // Actually, there just shouldn't be any files here
@@ -326,7 +326,7 @@ fn uninstall_removes_path_from_rc(rcfile: &str) {
         let ref rc = config.homedir.join(rcfile);
         raw::write_file(rc, my_rc).unwrap();
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         let new_rc = raw::read_file(rc).unwrap();
         assert_eq!(new_rc, my_rc);
@@ -345,7 +345,7 @@ fn uninstall_doesnt_touch_rc_files_that_dont_contain_cargo_home() {
     setup(&|config| {
         let my_rc = "foo\nbar\nbaz";
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         let ref profile = config.homedir.join(".profile");
         raw::write_file(profile, my_rc).unwrap();
@@ -378,7 +378,7 @@ fn when_cargo_home_is_the_default_write_path_specially() {
         let expected = format!("{}\n{}\n", my_profile, addition);
         assert_eq!(new_profile, expected);
 
-        let mut cmd = clitools::cmd(config, "multirust", &["self", "uninstall", "-y"]);
+        let mut cmd = clitools::cmd(config, "rustup", &["self", "uninstall", "-y"]);
         cmd.env_remove("CARGO_HOME");
         assert!(cmd.output().unwrap().status.success());
 
@@ -453,7 +453,7 @@ fn install_does_not_add_path_twice() {
 fn uninstall_removes_path() {
     setup(&|config| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "self", "uninstall", "-y"]);
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         let path = config.cargodir.join("bin").to_string_lossy().to_string();
         assert!(!get_path().unwrap().contains(&path));
@@ -495,7 +495,7 @@ fn update_but_delete_existing_updater_first() {
         // If it happens to already exist for some reason it
         // should just be deleted.
         raw::write_file(setup, "").unwrap();
-        expect_ok(config, &["multirust", "self", "update"]);
+        expect_ok(config, &["rustup", "self", "update"]);
 
         let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
         assert!(multirust.exists());
@@ -511,8 +511,8 @@ fn update_no_change() {
         let ref dist_dir = self_dist.join(&format!("{}", trip));
         let ref dist_exe = dist_dir.join(&format!("rustup-setup{}", EXE_SUFFIX));
         let ref dist_hash = dist_dir.join(&format!("rustup-setup{}.sha256", EXE_SUFFIX));
-        let ref multirust_bin = config.exedir.join(&format!("multirust{}", EXE_SUFFIX));
-        fs::copy(multirust_bin, dist_exe).unwrap();
+        let ref rustup_bin = config.exedir.join(&format!("rustup{}", EXE_SUFFIX));
+        fs::copy(rustup_bin, dist_exe).unwrap();
         create_hash(dist_exe, dist_hash);
 
         expect_ok_ex(config, &["rustup", "self", "update"],
@@ -537,7 +537,7 @@ fn update_bad_hash() {
 
         create_hash(some_other_file, dist_hash);
 
-        expect_err(config, &["multirust", "self", "update"],
+        expect_err(config, &["rustup", "self", "update"],
                    "checksum failed");
     });
 }
@@ -553,7 +553,7 @@ fn update_hash_file_404() {
 
         fs::remove_file(dist_hash).unwrap();
 
-        expect_err(config, &["multirust", "self", "update"],
+        expect_err(config, &["rustup", "self", "update"],
                    "could not download file");
     });
 }
@@ -569,7 +569,7 @@ fn update_download_404() {
 
         fs::remove_file(dist_exe).unwrap();
 
-        expect_err(config, &["multirust", "self", "update"],
+        expect_err(config, &["rustup", "self", "update"],
                    "could not download file");
     });
 }
@@ -643,8 +643,8 @@ info: downloading self-update
 fn updater_leaves_itself_for_later_deletion() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_ok(config, &["multirust", "self", "update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "self", "update"]);
 
         let setup = config.cargodir.join(&format!("bin/rustup-setup{}", EXE_SUFFIX));
         assert!(setup.exists());
@@ -655,10 +655,10 @@ fn updater_leaves_itself_for_later_deletion() {
 fn updater_is_deleted_after_running_multirust() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_ok(config, &["multirust", "self", "update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "self", "update"]);
 
-        expect_ok(config, &["multirust", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
 
         let setup = config.cargodir.join(&format!("bin/rustup-setup{}", EXE_SUFFIX));
         assert!(!setup.exists());
@@ -669,8 +669,8 @@ fn updater_is_deleted_after_running_multirust() {
 fn updater_is_deleted_after_running_rustc() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "default", "nightly"]);
-        expect_ok(config, &["multirust", "self", "update"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "self", "update"]);
 
         expect_ok(config, &["rustc", "--version"]);
 
@@ -683,10 +683,10 @@ fn updater_is_deleted_after_running_rustc() {
 fn multirust_still_works_after_update() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "default", "nightly"]);
-        expect_ok(config, &["multirust", "self", "update"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "self", "update"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
-        expect_ok(config, &["multirust", "default", "beta"]);
+        expect_ok(config, &["rustup", "default", "beta"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
     });
 }
@@ -779,12 +779,12 @@ fn install_sets_up_stable_unless_a_different_default_is_requested() {
 fn install_sets_up_stable_unless_there_is_already_a_default() {
     setup(&|config| {
         expect_ok(config, &["rustup-setup", "-y"]);
-        expect_ok(config, &["multirust", "default", "nightly"]);
-        expect_ok(config, &["multirust", "remove-toolchain", "stable"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "toolchain", "remove", "stable"]);
         expect_ok(config, &["rustup-setup", "-y"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-2");
-        expect_err(config, &["multirust", "run", "stable", "rustc", "--version"],
+        expect_err(config, &["rustup", "run", "stable", "rustc", "--version"],
                    for_host!("toolchain 'stable-{0}' is not installed"));
     });
 }
@@ -798,7 +798,7 @@ fn install_deletes_legacy_multirust_bins() {
     setup(&|config| {
         let ref multirust_bin_dir = config.rustupdir.join("bin");
         fs::create_dir_all(multirust_bin_dir).unwrap();
-        let ref multirust_bin = multirust_bin_dir.join("multirust");
+        let ref multirust_bin = multirust_bin_dir.join("rustup");
         let ref rustc_bin = multirust_bin_dir.join("rustc");
         raw::write_file(multirust_bin, "").unwrap();
         raw::write_file(rustc_bin, "").unwrap();
