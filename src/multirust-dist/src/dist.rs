@@ -10,7 +10,6 @@ use hyper;
 
 use std::path::Path;
 use std::fmt;
-use std::env;
 
 use regex::Regex;
 use openssl::crypto::hash::{Type, Hasher};
@@ -77,12 +76,7 @@ impl TargetTriple {
         if let Some(triple) = option_env!("RUSTUP_OVERRIDE_HOST_TRIPLE") {
             TargetTriple::from_str(triple)
         } else {
-            let (arch, os, env) = get_original_host_triple();
-            if let Some(env) = env {
-                TargetTriple(format!("{}-{}-{}", arch, os ,env))
-            } else {
-                TargetTriple(format!("{}-{}", arch, os))
-            }
+            TargetTriple::from_str(include_str!(concat!(env!("OUT_DIR"), "/target.txt"))) 
         }
     }
 }
@@ -375,30 +369,6 @@ pub struct DownloadCfg<'a> {
     pub dist_root: &'a str,
     pub temp_cfg: &'a temp::Cfg,
     pub notify_handler: NotifyHandler<'a>,
-}
-
-fn get_original_host_triple() -> (&'static str, &'static str, Option<&'static str>) {
-    let arch = match env::consts::ARCH {
-        "x86" => "i686", // Why, rust... WHY?
-        other => other,
-    };
-
-    let os = match env::consts::OS {
-        "windows" => "pc-windows",
-        "linux" => "unknown-linux",
-        "macos" => "apple-darwin",
-        _ => unimplemented!()
-    };
-
-    let env = match () {
-        () if cfg!(target_env = "gnu") => Some("gnu"),
-        () if cfg!(target_env = "gnueabi") => Some("gnueabi"),
-        () if cfg!(target_env = "gnueabihf") => Some("gnueabihf"),
-        () if cfg!(target_env = "msvc") => Some("msvc"),
-        _ => None,
-    };
-
-    (arch, os, env)
 }
 
 pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
