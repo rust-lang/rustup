@@ -22,9 +22,10 @@ use std::process::Command;
 use multirust_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
-                               expect_stderr_ok,
                                expect_err, expect_err_ex,
                                this_host_triple};
+#[cfg(windows)]
+use multirust_mock::clitools::expect_stderr_ok;
 use multirust_mock::dist::{create_hash, calc_hash};
 use multirust_utils::raw;
 
