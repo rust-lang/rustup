@@ -391,14 +391,20 @@ The primary installation method, as described at
 If you prefer you can directly download `rustup-setup` for the
 platform of your choice:
 
-- [Windows GNU 64-bit](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-setup.exe)
-- [Windows MSVC 64-bit](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-setup.exe)<sup>[†](#vs2015)</sup>
-- [Windows GNU 32-bit](https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-setup.exe)
-- [Windows MSVC 32-bit](https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-setup.exe)<sup>[†](#vs2015)</sup>
-- [Linux 64-bit](https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-setup)
-- [Linux 32-bit](https://static.rust-lang.org/rustup/dist/i686-unknown-linux-gnu/rustup-setup)
-- [Mac 64-bit](https://static.rust-lang.org/rustup/dist/x86_64-apple-darwin/rustup-setup)
-- [Mac 32-bit](https://static.rust-lang.org/rustup/dist/i686-apple-darwin/rustup-setup)
+- [aarch64-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-setup)
+- [arm-unknown-linux-gnueabi](https://static.rust-lang.org/rustup/dist/arm-unknown-linux/rustup-setup)
+- [arm-unknown-linux-gnueabihf](https://static.rust-lang.org/rustup/dist/arm-unknown-linux-gnueabihf/rustup-setup)
+- [armv7-unknown-linux-gnueabihf](https://static.rust-lang.org/rustup/dist/armv7-unknown-linux-gnueabihf/rustup-setup)
+- [i686-apple-darwin](https://static.rust-lang.org/rustup/dist/i686-apple-darwin/rustup-setup)
+- [i686-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-setup.exe)
+- [i686-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-setup.exe)<sup>[†](#vs2015)</sup>
+- [i686-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/i686-unknown-linux-gnu/rustup-setup)
+- [x86_64-apple-darwin](https://static.rust-lang.org/rustup/dist/x86_64-apple-darwin/rustup-setup)
+- [x86_64-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-setup.exe)
+- [x86_64-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-setup.exe)<sup>[†](#vs2015)</sup>
+- [x86_64-unknown-freebsd](https://static.rust-lang.org/rustup/dist/x86_64-unknown-freebsd/rustup-setup)
+- [x86_64-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-setup)
+- [x86_64-unknown-netbsd](https://static.rust-lang.org/rustup/dist/x86_64-unknown-netbsd/rustup-setup)
 
 <a name="vs2015">†</a>
 MSVC builds of `rustup` additionally require an [installation of
