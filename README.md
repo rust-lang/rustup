@@ -460,5 +460,5 @@ additional terms or conditions.
 <!-- Badges -->
 [travis-build-status]: https://travis-ci.org/rust-lang-nursery/rustup.rs
 [travis-build-status-svg]: https://img.shields.io/travis/rust-lang-nursery/rustup.rs.svg
-[appveyor-build-status]: https://ci.appveyor.com/project/diggsey/multirust-rs
-[appveyor-build-status-svg]: https://img.shields.io/appveyor/ci/diggsey/multirust-rs.svg
+[appveyor-build-status]: https://ci.appveyor.com/project/brson/rustup-rs
+[appveyor-build-status-svg]: https://img.shields.io/appveyor/ci/brson/rustup-rs.svg
