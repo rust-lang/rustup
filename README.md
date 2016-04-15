@@ -275,9 +275,6 @@ will provide assistence installing the NDK components as well.
 Too see a list of available targets, `rustup target list`. To remove a
 previously-added target `rustup target remove`.
 
-**NOTE: The cross-compilation features of rustup will not be available
-  for the stable toolchain until the 1.8 release.**
-
 ## Working with Rust on Windows
 
 `rustup` works the same on Windows as it does on Unix, but there are
