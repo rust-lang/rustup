@@ -56,7 +56,7 @@ main() {
         err "/dev/tty does not exist"
     fi
 
-    run "$_file" < /dev/tty
+    run "$_file" "$@" < /dev/tty
 
     local _retval=$?
 
