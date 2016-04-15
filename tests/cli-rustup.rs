@@ -1,11 +1,11 @@
 //! Test cases for new rustup UI
 
-extern crate multirust_dist;
-extern crate multirust_utils;
-extern crate multirust_mock;
+extern crate rustup_dist;
+extern crate rustup_utils;
+extern crate rustup_mock;
 extern crate tempdir;
 
-use multirust_mock::clitools::{self, Config, Scenario,
+use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
                                expect_err_ex,
@@ -64,8 +64,8 @@ fn rustup_all_channels() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "update", "stable"]);
-        expect_ok(config, &["multirust", "update", "beta"]);
-        expect_ok(config, &["multirust", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "beta"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
         expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
 for_host!(r"
@@ -110,10 +110,10 @@ fn rustup_some_channels_up_to_date() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "update", "stable"]);
-        expect_ok(config, &["multirust", "update", "beta"]);
-        expect_ok(config, &["multirust", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "beta"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["multirust", "update", "beta"]);
+        expect_ok(config, &["rustup", "update", "beta"]);
         expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
 for_host!(r"
    stable-{0} updated - 1.1.0 (hash-s-2)
@@ -148,7 +148,7 @@ info: installing component 'rust-docs'
 fn rustup_no_channels() {
     setup(&|config| {
         expect_ok(config, &["rustup", "update", "stable"]);
-        expect_ok(config, &["multirust", "remove-toolchain", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "remove", "stable"]);
         expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
 r"",
 r"info: no updatable toolchains installed

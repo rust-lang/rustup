@@ -1,0 +1,30 @@
+[package]
+
+name = "rustup-dist"
+version = "0.1.6"
+authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
+description = "Installation from a Rust distribution server"
+build = "build.rs"
+
+documentation = "http://diggsey.github.io/multirust-rs/rust_install/index.html"
+homepage = "https://github.com/rust-lang-nursery/multirust-rs"
+repository = "https://github.com/rust-lang-nursery/multirust-rs"
+
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+regex = "0.1.41"
+hyper = "0.7.0"
+openssl = "0.7.2"
+itertools = "0.4.1"
+ole32-sys = "0.2.0"
+tar = "0.4.0"
+flate2 = "0.2.9"
+tempdir = "0.3.4"
+walkdir = "0.1.5"
+toml = "0.1.27"
+rustup-mock = { path = "../rustup-mock" }
+rustup-utils = { path = "../rustup-utils" }
+
+[lib]
+name = "rustup_dist"

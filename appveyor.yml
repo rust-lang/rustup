@@ -43,7 +43,7 @@ build: false
 
 test_script:
   - cargo build  --release
-  - cargo test --release -p multirust-dist
+  - cargo test --release -p rustup-dist
   - cargo test --release
 
 notifications:

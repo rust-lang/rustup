@@ -1,17 +1,17 @@
 //! Test cases of the multirust command, using v1 manifests, mostly
 //! derived from multirust/test-v2.sh
 
-extern crate multirust_dist;
-extern crate multirust_utils;
-extern crate multirust_mock;
+extern crate rustup_dist;
+extern crate rustup_utils;
+extern crate rustup_mock;
 extern crate tempdir;
 
 use std::fs;
 use tempdir::TempDir;
-use multirust_mock::clitools::{self, Config, Scenario,
+use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_stdout_ok, expect_err,
                                expect_stderr_ok, set_current_dist_date,
-                               change_dir, run, this_host_triple};
+                               change_dir, this_host_triple};
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -28,26 +28,9 @@ fn rustc_no_default_toolchain() {
 }
 
 #[test]
-fn show_default_no_default_toolchain() {
-    setup(&|config| {
-        expect_stdout_ok(config, &["multirust", "show-default"],
-                         "no default toolchain configured");
-    });
-}
-
-#[test]
-fn default_toolchain() {
-    setup(&|config| {
-        expect_ok(config, &["multirust", "default", "nightly"]);
-        expect_stdout_ok(config, &["multirust", "show-default"],
-                         "default toolchain: nightly");
-    });
-}
-
-#[test]
 fn expected_bins_exist() {
     setup(&|config| {
-        expect_ok(config, &["multirust", "default", "nightly"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "1.3.0");
     });
 }
@@ -55,11 +38,11 @@ fn expected_bins_exist() {
 #[test]
 fn install_toolchain_from_channel() {
     setup(&|config| {
-        expect_ok(config, &["multirust", "default", "nightly"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
-        expect_ok(config, &["multirust", "default", "beta"]);
+        expect_ok(config, &["rustup", "default", "beta"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
-        expect_ok(config, &["multirust", "default", "stable"]);
+        expect_ok(config, &["rustup", "default", "stable"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
     });
 }
@@ -67,11 +50,11 @@ fn install_toolchain_from_channel() {
 #[test]
 fn install_toolchain_from_archive() {
     clitools::setup(Scenario::ArchivesV1, &|config| {
-        expect_ok(config, &["multirust", "default" , "nightly-2015-01-01"]);
+        expect_ok(config, &["rustup", "default" , "nightly-2015-01-01"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
-        expect_ok(config, &["multirust", "default" , "beta-2015-01-01"]);
+        expect_ok(config, &["rustup", "default" , "beta-2015-01-01"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-1");
-        expect_ok(config, &["multirust", "default" , "stable-2015-01-01"]);
+        expect_ok(config, &["rustup", "default" , "stable-2015-01-01"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-1");
     });
 }
@@ -79,7 +62,7 @@ fn install_toolchain_from_archive() {
 #[test]
 fn install_toolchain_from_version() {
     setup(&|config| {
-        expect_ok(config, &["multirust", "default" , "1.1.0"]);
+        expect_ok(config, &["rustup", "default" , "1.1.0"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
     });
 }
@@ -87,8 +70,8 @@ fn install_toolchain_from_version() {
 #[test]
 fn default_existing_toolchain() {
     setup(&|config| {
-        expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_stderr_ok(config, &["multirust", "default", "nightly"],
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_stderr_ok(config, &["rustup", "default", "nightly"],
                          for_host!("using existing install for 'nightly-{0}'"));
     });
 }
@@ -97,11 +80,11 @@ fn default_existing_toolchain() {
 fn update_channel() {
     clitools::setup(Scenario::ArchivesV1, &|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["multirust", "default", "nightly"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-1");
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["multirust", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-2");
     });
@@ -110,11 +93,11 @@ fn update_channel() {
 #[test]
 fn list_toolchains() {
     clitools::setup(Scenario::ArchivesV1, &|config| {
-        expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_ok(config, &["multirust", "update", "beta-2015-01-01"]);
-        expect_stdout_ok(config, &["multirust", "list-toolchains"],
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "beta-2015-01-01"]);
+        expect_stdout_ok(config, &["rustup", "toolchain", "list"],
                          "nightly");
-        expect_stdout_ok(config, &["multirust", "list-toolchains"],
+        expect_stdout_ok(config, &["rustup", "toolchain", "list"],
                          "beta-2015-01-01");
     });
 }
@@ -122,7 +105,7 @@ fn list_toolchains() {
 #[test]
 fn list_toolchains_with_none() {
     setup(&|config| {
-        expect_stdout_ok(config, &["multirust", "list-toolchains"],
+        expect_stdout_ok(config, &["rustup", "toolchain", "list"],
                          "no installed toolchains");
     });
 }
@@ -130,10 +113,10 @@ fn list_toolchains_with_none() {
 #[test]
 fn remove_toolchain() {
     setup(&|config| {
-        expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_ok(config, &["multirust", "remove-toolchain", "nightly"]);
-        expect_ok(config, &["multirust", "list-toolchains"]);
-        expect_stdout_ok(config, &["multirust", "list-toolchains"],
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
+        expect_ok(config, &["rustup", "toolchain", "list"]);
+        expect_stdout_ok(config, &["rustup", "toolchain", "list"],
                          "no installed toolchains");
     });
 }
@@ -141,8 +124,8 @@ fn remove_toolchain() {
 #[test]
 fn remove_default_toolchain_error_handling() {
     setup(&|config| {
-        expect_ok(config, &["multirust", "default", "nightly"]);
-        expect_ok(config, &["multirust", "remove-toolchain", "nightly"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
         expect_err(config, &["rustc"],
                            for_host!("toolchain 'nightly-{0}' is not installed"));
     });
@@ -151,11 +134,11 @@ fn remove_default_toolchain_error_handling() {
 #[test]
 fn remove_override_toolchain_error_handling() {
     setup(&|config| {
-        let tempdir = TempDir::new("multirust").unwrap();
+        let tempdir = TempDir::new("rustup").unwrap();
         change_dir(tempdir.path(), &|| {
-            expect_ok(config, &["multirust", "default", "nightly"]);
-            expect_ok(config, &["multirust", "override", "beta"]);
-            expect_ok(config, &["multirust", "remove-toolchain", "beta"]);
+            expect_ok(config, &["rustup", "default", "nightly"]);
+            expect_ok(config, &["rustup", "override", "add", "beta"]);
+            expect_ok(config, &["rustup", "toolchain", "remove", "beta"]);
             expect_err(config, &["rustc"],
                                for_host!("toolchain 'beta-{0}' is not installed"));
         });
@@ -166,12 +149,12 @@ fn remove_override_toolchain_error_handling() {
 fn bad_sha_on_manifest() {
     setup(&|config| {
         let sha_file = config.distdir.join("dist/channel-rust-nightly.sha256");
-        let sha_str = multirust_utils::raw::read_file(&sha_file).unwrap();
+        let sha_str = rustup_utils::raw::read_file(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         &mut sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
         let sha_str = String::from_utf8(sha_bytes).unwrap();
-        multirust_utils::raw::write_file(&sha_file, &sha_str).unwrap();
-        expect_err(config, &["multirust", "default", "nightly"],
+        rustup_utils::raw::write_file(&sha_file, &sha_str).unwrap();
+        expect_err(config, &["rustup", "default", "nightly"],
                    "checksum failed");
     });
 }
@@ -183,10 +166,10 @@ fn bad_sha_on_installer() {
         for file in fs::read_dir(&dir).unwrap() {
             let file = file.unwrap();
             if file.path().to_string_lossy().ends_with(".tar.gz") {
-                multirust_utils::raw::write_file(&file.path(), "xxx").unwrap();
+                rustup_utils::raw::write_file(&file.path(), "xxx").unwrap();
             }
         }
-        expect_err(config, &["multirust", "default", "nightly"],
+        expect_err(config, &["rustup", "default", "nightly"],
                    "checksum failed");
     });
 }
@@ -194,13 +177,13 @@ fn bad_sha_on_installer() {
 #[test]
 fn install_override_toolchain_from_channel() {
     setup(&|config| {
-        expect_ok(config, &["multirust", "override", "nightly"]);
+        expect_ok(config, &["rustup", "override", "add", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-2");
-        expect_ok(config, &["multirust", "override", "beta"]);
+        expect_ok(config, &["rustup", "override", "add", "beta"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-b-2");
-        expect_ok(config, &["multirust", "override", "stable"]);
+        expect_ok(config, &["rustup", "override", "add", "stable"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-s-2");
     });
@@ -209,13 +192,13 @@ fn install_override_toolchain_from_channel() {
 #[test]
 fn install_override_toolchain_from_archive() {
     clitools::setup(Scenario::ArchivesV1, &|config| {
-        expect_ok(config, &["multirust", "override", "nightly-2015-01-01"]);
+        expect_ok(config, &["rustup", "override", "add", "nightly-2015-01-01"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-1");
-        expect_ok(config, &["multirust", "override", "beta-2015-01-01"]);
+        expect_ok(config, &["rustup", "override", "add", "beta-2015-01-01"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-b-1");
-        expect_ok(config, &["multirust", "override", "stable-2015-01-01"]);
+        expect_ok(config, &["rustup", "override", "add", "stable-2015-01-01"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-s-1");
     });
@@ -224,7 +207,7 @@ fn install_override_toolchain_from_archive() {
 #[test]
 fn install_override_toolchain_from_version() {
     setup(&|config| {
-        expect_ok(config, &["multirust", "override", "1.1.0"]);
+        expect_ok(config, &["rustup", "override", "add", "1.1.0"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-s-2");
     });
@@ -233,10 +216,10 @@ fn install_override_toolchain_from_version() {
 #[test]
 fn override_overrides_default() {
     setup(&|config| {
-        let tempdir = TempDir::new("multirust").unwrap();
-        expect_ok(config, &["multirust", "default" , "nightly"]);
+        let tempdir = TempDir::new("rustup").unwrap();
+        expect_ok(config, &["rustup", "default" , "nightly"]);
         change_dir(tempdir.path(), &|| {
-            expect_ok(config, &["multirust", "override" , "beta"]);
+            expect_ok(config, &["rustup", "override" , "add", "beta"]);
             expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
         });
     });
@@ -245,15 +228,15 @@ fn override_overrides_default() {
 #[test]
 fn multiple_overrides() {
     setup(&|config| {
-        let tempdir1 = TempDir::new("multirust").unwrap();
-        let tempdir2 = TempDir::new("multirust").unwrap();
+        let tempdir1 = TempDir::new("rustup").unwrap();
+        let tempdir2 = TempDir::new("rustup").unwrap();
 
-        expect_ok(config, &["multirust", "default", "nightly"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
         change_dir(tempdir1.path(), &|| {
-            expect_ok(config, &["multirust", "override", "beta"]);
+            expect_ok(config, &["rustup", "override", "add", "beta"]);
         });
         change_dir(tempdir2.path(), &|| {
-            expect_ok(config, &["multirust", "override", "stable"]);
+            expect_ok(config, &["rustup", "override", "add", "stable"]);
         });
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
@@ -270,77 +253,11 @@ fn multiple_overrides() {
 #[test]
 fn change_override() {
     setup(&|config| {
-        let tempdir = TempDir::new("multirust").unwrap();
+        let tempdir = TempDir::new("rustup").unwrap();
         change_dir(tempdir.path(), &|| {
-            expect_ok(config, &["multirust", "override", "nightly"]);
-            expect_ok(config, &["multirust", "override", "beta"]);
+            expect_ok(config, &["rustup", "override", "add", "nightly"]);
+            expect_ok(config, &["rustup", "override", "add", "beta"]);
             expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
-        });
-    });
-}
-
-#[test]
-fn show_override() {
-    setup(&|config| {
-        let tempdir = TempDir::new("multirust").unwrap();
-        change_dir(tempdir.path(), &|| {
-            expect_ok(config, &["multirust", "override", "nightly"]);
-
-            let expected_override_dir = fs::canonicalize(tempdir.path()).unwrap();;
-            let expected_toolchain_dir = config.rustupdir.join("toolchains").join("nightly");
-
-            expect_stdout_ok(config, &["multirust", "show-override"],
-                             "override toolchain: nightly");
-            expect_stdout_ok(config, &["multirust", "show-override"],
-                             &format!("override reason: directory override for '{}'",
-                                      expected_override_dir.to_string_lossy()));
-            expect_stdout_ok(config, &["multirust", "show-override"],
-                             &format!("override location: {}",
-                                      expected_toolchain_dir.to_string_lossy()));
-            expect_stdout_ok(config, &["multirust", "show-override"],
-                             "hash-n-2");
-        });
-    });
-}
-
-#[test]
-fn show_override_no_default() {
-    setup(&|config| {
-        expect_stdout_ok(config, &["multirust", "show-override"],
-                         "no override");
-    });
-}
-
-#[test]
-fn show_override_show_default() {
-    setup(&|config| {
-        expect_ok(config, &["multirust", "default", "nightly"]);
-        expect_stdout_ok(config, &["multirust", "show-override"],
-                         "no override");
-        expect_stdout_ok(config, &["multirust", "show-override"],
-                         "default toolchain: nightly");
-    });
-}
-
-#[test]
-fn show_override_from_multirust_toolchain_env_var() {
-    setup(&|config| {
-        let tempdir = TempDir::new("multirusT").unwrap();
-        change_dir(tempdir.path(), &|| {
-
-            let expected_toolchain_dir = config.rustupdir.join("toolchains").join("beta");
-
-            expect_ok(config, &["multirust", "update", "beta"]);
-            expect_ok(config, &["multirust", "override", "nightly"]);
-            // change_dir has a lock so it's ok to futz the environment
-            let out = run(config, "multirust", &["show-override"],
-                          &[("RUSTUP_TOOLCHAIN", "beta")]);
-            assert!(out.ok);
-            assert!(out.stdout.contains("override toolchain: beta"));
-            assert!(out.stdout.contains("override reason: environment override"));
-            assert!(out.stdout.contains(&format!("override location: {}",
-                                                 expected_toolchain_dir.to_string_lossy())));
-            assert!(out.stdout.contains("override toolchain: beta"));
         });
     });
 }
@@ -348,10 +265,10 @@ fn show_override_from_multirust_toolchain_env_var() {
 #[test]
 fn remove_override_no_default() {
     setup(&|config| {
-        let tempdir = TempDir::new("multirust").unwrap();
+        let tempdir = TempDir::new("rustup").unwrap();
         change_dir(tempdir.path(), &|| {
-            expect_ok(config, &["multirust", "override", "nightly"]);
-            expect_ok(config, &["multirust", "remove-override"]);
+            expect_ok(config, &["rustup", "override", "add", "nightly"]);
+            expect_ok(config, &["rustup", "override", "remove"]);
             expect_err(config, &["rustc"],
                                "no default toolchain configured");
         });
@@ -361,11 +278,11 @@ fn remove_override_no_default() {
 #[test]
 fn remove_override_with_default() {
     setup(&|config| {
-        let tempdir = TempDir::new("multirust").unwrap();
+        let tempdir = TempDir::new("rustup").unwrap();
         change_dir(tempdir.path(), &|| {
-            expect_ok(config, &["multirust", "default", "nightly"]);
-            expect_ok(config, &["multirust", "override", "beta"]);
-            expect_ok(config, &["multirust", "remove-override"]);
+            expect_ok(config, &["rustup", "default", "nightly"]);
+            expect_ok(config, &["rustup", "override", "add", "beta"]);
+            expect_ok(config, &["rustup", "override", "remove"]);
             expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
         });
     });
@@ -374,18 +291,18 @@ fn remove_override_with_default() {
 #[test]
 fn remove_override_with_multiple_overrides() {
     setup(&|config| {
-        let tempdir1 = TempDir::new("multirust").unwrap();
-        let tempdir2 = TempDir::new("multirust").unwrap();
-        expect_ok(config, &["multirust", "default", "nightly"]);
+        let tempdir1 = TempDir::new("rustup").unwrap();
+        let tempdir2 = TempDir::new("rustup").unwrap();
+        expect_ok(config, &["rustup", "default", "nightly"]);
         change_dir(tempdir1.path(), &|| {
-            expect_ok(config, &["multirust", "override", "beta"]);
+            expect_ok(config, &["rustup", "override", "add", "beta"]);
         });
         change_dir(tempdir2.path(), &|| {
-            expect_ok(config, &["multirust", "override", "stable"]);
+            expect_ok(config, &["rustup", "override", "add", "stable"]);
         });
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
         change_dir(tempdir1.path(), &|| {
-            expect_ok(config, &["multirust", "remove-override"]);
+            expect_ok(config, &["rustup", "override", "remove"]);
             expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
         });
         change_dir(tempdir2.path(), &|| {
@@ -397,8 +314,8 @@ fn remove_override_with_multiple_overrides() {
 #[test]
 fn no_update_on_channel_when_date_has_not_changed() {
     setup(&|config| {
-        expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_stdout_ok(config, &["multirust", "update", "nightly"],
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_stdout_ok(config, &["rustup", "update", "nightly"],
                          "unchanged");
     });
 }
@@ -407,11 +324,11 @@ fn no_update_on_channel_when_date_has_not_changed() {
 fn update_on_channel_when_date_has_changed() {
     clitools::setup(Scenario::ArchivesV1, &|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["multirust", "default", "nightly"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-1");
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["multirust", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-n-2");
     });
@@ -420,9 +337,9 @@ fn update_on_channel_when_date_has_changed() {
 #[test]
 fn run_command() {
     setup(&|config| {
-        expect_ok(config, &["multirust", "update", "nightly"]);
-        expect_ok(config, &["multirust", "default", "beta"]);
-        expect_stdout_ok(config, &["multirust", "run", "nightly", "rustc" , "--version"],
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "default", "beta"]);
+        expect_stdout_ok(config, &["rustup", "run", "nightly", "rustc" , "--version"],
                          "hash-n-2");
     });
 }
@@ -431,9 +348,9 @@ fn run_command() {
 fn remove_toolchain_then_add_again() {
     // Issue brson/multirust #53
     setup(&|config| {
-        expect_ok(config, &["multirust", "default", "beta"]);
-        expect_ok(config, &["multirust", "remove-toolchain", "beta"]);
-        expect_ok(config, &["multirust", "update", "beta"]);
+        expect_ok(config, &["rustup", "default", "beta"]);
+        expect_ok(config, &["rustup", "toolchain", "remove", "beta"]);
+        expect_ok(config, &["rustup", "update", "beta"]);
         expect_ok(config, &["rustc", "--version"]);
     });
 }
