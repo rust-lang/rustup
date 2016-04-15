@@ -81,8 +81,8 @@ impl OverrideDB {
         }
 
         let dir = utils::canonicalize_path(dir_unresolved, ntfy!(&notify_handler));
-        let mut path = &*dir;
-        while let Some(parent) = path.parent() {
+        let mut maybe_path = Some(&*dir);
+        while let Some(path) = maybe_path {
             let key = try!(self.path_to_db_key(path, notify_handler));
             if let Some(toolchain) = try!(utils::match_file("override db", &self.0, |line| {
                 if line.starts_with(&key) {
@@ -94,7 +94,7 @@ impl OverrideDB {
                 return Ok(Some((toolchain, path.to_owned())));
             }
 
-            path = parent;
+            maybe_path = path.parent();
         }
 
         Ok(None)

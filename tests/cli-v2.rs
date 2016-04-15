@@ -271,6 +271,34 @@ fn multiple_overrides() {
     });
 }
 
+// #316
+#[test]
+#[cfg(windows)]
+fn override_windows_root() {
+    setup(&|config| {
+        use std::path::{PathBuf, Component};
+
+        let cwd = ::std::env::current_dir().unwrap();
+        let prefix = cwd.components().next().unwrap();
+        let prefix = match prefix {
+            Component::Prefix(p) => p,
+            _ => panic!()
+        };
+
+        // This value is probably "C:"
+        // Really sketchy to be messing with C:\ in a test...
+        let prefix = prefix.as_os_str().to_str().unwrap();
+        let prefix = format!("{}\\", prefix);
+        change_dir(&PathBuf::from(&prefix), &|| {
+            expect_ok(config, &["rustup", "default", "stable"]);
+            expect_ok(config, &["rustup", "override", "add", "nightly"]);
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+            expect_ok(config, &["rustup", "override", "remove"]);
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+        });
+    });
+}
+
 #[test]
 fn change_override() {
     setup(&|config| {
