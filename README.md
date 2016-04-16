@@ -1,7 +1,9 @@
 # rustup: the Rust toolchain installer
 
-[![Build Status](https://travis-ci.org/rust-lang-nursery/multirust-rs.svg?branch=master)](https://travis-ci.org/rust-lang-nursery/multirust-rs)
-[![Build status](https://ci.appveyor.com/api/projects/status/vyiu5qfallpo0n6c/branch/master?svg=true)](https://ci.appveyor.com/project/brson/multirust-rs/branch/master)
+| Build Status |                                                                              |
+|--------------|------------------------------------------------------------------------------|
+| Travis       | [![Travis Build Status][travis-build-status-svg]][travis-build-status]       |
+| AppVeyor     | [![AppVeyor Build Status][appveyor-build-status-svg]][appveyor-build-status] |
 
 *rustup* installs [The Rust Programming Language] from the official
 release channels, enabling you to easily switch between stable, beta,
@@ -457,3 +459,9 @@ Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the
 Apache-2.0 license, shall be dual licensed as above, without any
 additional terms or conditions.
+
+<!-- Badges -->
+[travis-build-status]: https://travis-ci.org/rust-lang-nursery/rustup.rs
+[travis-build-status-svg]: https://img.shields.io/travis/rust-lang-nursery/rustup.rs.svg
+[appveyor-build-status]: https://ci.appveyor.com/project/brson/rustup-rs
+[appveyor-build-status-svg]: https://img.shields.io/appveyor/ci/brson/rustup-rs.svg
