@@ -64,6 +64,6 @@ path = "src/rustup/lib.rs"
 test = false # no unit tests
 
 [[bin]]
-name = "rustup-setup"
+name = "rustup-init"
 path = "src/rustup-cli/main.rs"
 test = false # no unit tests

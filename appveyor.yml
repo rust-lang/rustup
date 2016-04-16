@@ -54,6 +54,10 @@ after_test:
   - powershell -File ci/prepare-deploy-appveyor.ps1
 
 artifacts:
+  - path: dist\$(TARGET)\rustup-init.exe
+    name: rustup-init
+  - path: dist\$(TARGET)\rustup-init.exe.sha256
+    name: rustup-init-sha
   - path: dist\$(TARGET)\rustup-setup.exe
     name: rustup-setup
   - path: dist\$(TARGET)\rustup-setup.exe.sha256
@@ -68,7 +72,7 @@ deploy:
     bucket: dev-static-rust-lang-org
     set_public: true
     region: us-west-1
-    artifact: rustup-setup,rustup-setup-sha
+    artifact: rustup-init,rustup-init-sha,rustup-setup,rustup-setup-sha
     folder: rustup
     on:
       branch: master
@@ -81,7 +85,7 @@ deploy:
     bucket: static-rust-lang-org
     set_public: true
     region: us-west-1
-    artifact: rustup-setup,rustup-setup-sha
+    artifact: rustup-init,rustup-init-sha,rustup-setup,rustup-setup-sha
     folder: rustup
     on:
       branch: stable
