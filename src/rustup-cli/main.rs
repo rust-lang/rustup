@@ -96,10 +96,14 @@ fn run_multirust() -> Result<()> {
             // ~/.multirust/tmp/multirust-$random, and execute it with
             // `self install` as the arguments.  FIXME: Verify this
             // works.
+            let opts = self_update::InstallOpts {
+                default_toolchain: "stable".to_string(),
+                no_modify_path: false,
+            };
             if cfg!(windows) {
-                self_update::install(false, false, "stable")
+                self_update::install(false, false, opts)
             } else {
-                self_update::install(true, false, "stable")
+                self_update::install(true, false, opts)
             }
         }
         Some(_) => {

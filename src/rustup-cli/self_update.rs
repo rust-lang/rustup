@@ -30,7 +30,7 @@
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
-use common::{self, confirm};
+use common::{self, Confirm};
 use itertools::Itertools;
 use rustup::{Error, Result, NotifyHandler};
 use rustup_dist::dist;
@@ -43,6 +43,11 @@ use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::fs;
 use tempdir::TempDir;
+
+pub struct InstallOpts {
+    pub default_toolchain: String,
+    pub no_modify_path: bool,
+}
 
 // The big installation messages. These are macros because the first
 // argument of format! needs to be a literal.
@@ -64,14 +69,17 @@ Cargo's bin directory, located at:
 ",
 $platform_msg
 ,
-"
+r#"
 
 You can uninstall at any time with `rustup self uninstall` and
 these changes will be reverted.
 
 WARNING: This is an early beta. Expect breakage.
 
-Continue? (Y/n)"
+To cancel installation, type "n", or for more options type "a",
+then press the Enter key to continue.
+
+Press the Enter key to install Rust."#
     )};
 }
 
@@ -93,14 +101,23 @@ modifying the HKEY_CURRENT_USER/Environment/PATH registry key."
     )};
 }
 
+macro_rules! pre_install_msg_no_modify_path {
+    () => {
+pre_install_msg_template!(
+"This path needs to be in your PATH environment variable,
+but will not be added automatically."
+    )};
+}
+
 macro_rules! post_install_msg_unix {
     () => {
 r"Rust is installed now. Great!
 
 To get started you need Cargo's bin directory in your `PATH`
 environment variable. Next time you log in this will be done
-automatically. To configure your current shell without logging out
-run `source {cargo_home}/env`.
+automatically.
+
+To configure your current shell run `source {cargo_home}/env`.
 "
     };
 }
@@ -112,7 +129,31 @@ r"Rust is installed now. Great!
 To get started you need Cargo's bin directory in your `PATH`
 environment variable. Future applications will automatically have the
 correct environment, but you may need to restart your current shell.
-" }; }
+"
+    };
+}
+
+macro_rules! post_install_msg_unix_no_modify_path {
+    () => {
+r"Rust is installed now. Great!
+
+To get started you need Cargo's bin directory in your `PATH`
+environment variable.
+
+To configure your current shell run `source {cargo_home}/env`.
+"
+    };
+}
+
+macro_rules! post_install_msg_win_no_modify_path {
+    () => {
+r"Rust is installed now. Great!
+
+To get started you need Cargo's bin directory in your `PATH`
+environment variable. This has not been done automatically.
+"
+    };
+}
 
 macro_rules! pre_uninstall_msg {
     () => {
@@ -148,25 +189,50 @@ fn canonical_cargo_home() -> Result<String> {
 /// Installing is a simple matter of coping the running binary to
 /// CARGO_HOME/bin, hardlinking the various Rust tools to it,
 /// and and adding CARGO_HOME/bin to PATH.
-pub fn install(no_prompt: bool, verbose: bool, default: &str) -> Result<()> {
+pub fn install(no_prompt: bool, verbose: bool,
+               opts: InstallOpts) -> Result<()> {
+
+    let selected_opts;
 
     if !no_prompt {
-        let ref msg = try!(pre_install_msg());
-        if !try!(confirm(msg, true)) {
-            info!("aborting installation");
-            return Ok(());
+        let ref msg = try!(pre_install_msg(opts.no_modify_path));
+        println!("{}", msg);
+        match try!(common::confirm_advanced(Confirm::Yes)) {
+            Confirm::No => {
+                info!("aborting installation");
+                return Ok(());
+            }
+            Confirm::Yes => {
+                selected_opts = opts;
+            }
+            Confirm::Advanced => {
+                if let Some(opts) = try!(advanced_install(opts)) {
+                    selected_opts = opts;
+                } else {
+                    info!("aborting installation");
+                    return Ok(());
+                }
+            }
         }
+    } else {
+        selected_opts = opts;
     }
 
     let install_res: Result<()> = (|| {
         try!(cleanup_legacy());
         try!(install_bins());
-        try!(do_add_to_path(&get_add_path_methods()));
-        try!(maybe_install_rust(default, verbose));
+        if !selected_opts.no_modify_path {
+            try!(do_add_to_path(&get_add_path_methods()));
+        }
+        try!(maybe_install_rust(&selected_opts.default_toolchain, verbose));
 
         if cfg!(unix) {
             let ref env_file = try!(utils::cargo_home()).join("env");
-            let ref env_str = try!(shell_export_string());
+            let ref env_str = format!(
+                "{}\n\
+                 printf \"PATH environment variable set.\\n\"
+                 printf \"You're ready to Rust!\\n\\n\"",
+                try!(shell_export_string()));
             try!(utils::write_file("env", env_file, env_str));
         }
 
@@ -182,7 +248,7 @@ pub fn install(no_prompt: bool, verbose: bool, default: &str) -> Result<()> {
         // window closes.
         if cfg!(windows) && !no_prompt {
             println!("");
-            println!("Press enter to continue");
+            println!("Press the Enter key to continue.");
             try!(common::read_line());
         }
 
@@ -191,12 +257,22 @@ pub fn install(no_prompt: bool, verbose: bool, default: &str) -> Result<()> {
 
     // More helpful advice, skip if -y
     if !no_prompt {
-        if cfg!(unix) {
-            let cargo_home = try!(canonical_cargo_home());
-            println!(post_install_msg_unix!(),
-                     cargo_home = cargo_home);
+        if !selected_opts.no_modify_path {
+            if cfg!(unix) {
+                let cargo_home = try!(canonical_cargo_home());
+                println!(post_install_msg_unix!(),
+                         cargo_home = cargo_home);
+            } else {
+                println!(post_install_msg_win!());
+            }
         } else {
-            println!(post_install_msg_win!());
+            if cfg!(unix) {
+                let cargo_home = try!(canonical_cargo_home());
+                println!(post_install_msg_unix_no_modify_path!(),
+                         cargo_home = cargo_home);
+            } else {
+                println!(post_install_msg_win_no_modify_path!());
+            }
         }
 
         // On windows, where installation happens in a console
@@ -204,7 +280,7 @@ pub fn install(no_prompt: bool, verbose: bool, default: &str) -> Result<()> {
         // the user to press a key to continue.
         if cfg!(windows) {
             println!("");
-            println!("Press enter to continue");
+            println!("Press the Enter key to continue.");
             try!(common::read_line());
         }
     }
@@ -212,27 +288,91 @@ pub fn install(no_prompt: bool, verbose: bool, default: &str) -> Result<()> {
     Ok(())
 }
 
-fn pre_install_msg() -> Result<String> {
+fn pre_install_msg(no_modify_path: bool) -> Result<String> {
     let cargo_home = try!(utils::cargo_home());
     let cargo_home_bin = cargo_home.join("bin");
 
-    if cfg!(unix) {
-        let add_path_methods = get_add_path_methods();
-        let rcfiles = add_path_methods.into_iter()
-            .filter_map(|m| {
-                if let PathUpdateMethod::RcFile(path) = m {
-                    Some(format!("{}", path.display()))
-                } else {
-                    None
-                }
-            }).collect::<Vec<_>>();
-        assert!(rcfiles.len() == 1); // Only modifying .profile
-        Ok(format!(pre_install_msg_unix!(),
-                   cargo_home_bin = cargo_home_bin.display(),
-                   rcfiles = rcfiles[0]))
+    if !no_modify_path {
+        if cfg!(unix) {
+            let add_path_methods = get_add_path_methods();
+            let rcfiles = add_path_methods.into_iter()
+                .filter_map(|m| {
+                    if let PathUpdateMethod::RcFile(path) = m {
+                        Some(format!("{}", path.display()))
+                    } else {
+                        None
+                    }
+                }).collect::<Vec<_>>();
+            assert!(rcfiles.len() == 1); // Only modifying .profile
+            Ok(format!(pre_install_msg_unix!(),
+                       cargo_home_bin = cargo_home_bin.display(),
+                       rcfiles = rcfiles[0]))
+        } else {
+            Ok(format!(pre_install_msg_win!(),
+                       cargo_home_bin = cargo_home_bin.display()))
+        }
     } else {
-        Ok(format!(pre_install_msg_win!(),
+        Ok(format!(pre_install_msg_no_modify_path!(),
                    cargo_home_bin = cargo_home_bin.display()))
+    }
+}
+
+// Interactive editing of the install options
+fn advanced_install(mut opts: InstallOpts) -> Result<Option<InstallOpts>> {
+
+    fn print_opts(opts: &InstallOpts) {
+        println!(
+            r"Selected installation options:
+
+     default toolchain: {}
+  modify PATH variable: {}
+",
+            opts.default_toolchain,
+            if !opts.no_modify_path { "yes" } else { "no" }
+            );
+    }
+
+    loop {
+
+        print_opts(&opts);
+
+        println!(
+            "I'm going to ask you the value of each these installation options.\n\
+             You may simply press the Enter key to accept the default.");
+
+        println!("");
+
+        opts.default_toolchain = try!(common::question_str(
+            "Default toolchain? (stable/beta/nightly)",
+            &opts.default_toolchain));
+
+        opts.no_modify_path = !try!(common::question_bool(
+            "Modify PATH variable? (y/n)",
+            !opts.no_modify_path));
+
+        println!("That's it! We're ready to install Rust.");
+        println!("");
+
+        print_opts(&opts);
+
+        println!(
+r#"To cancel installation, type "n", or for more options type "a",
+then press the Enter key to continue.
+
+Press the Enter key to install Rust. "#);
+
+        match try!(common::confirm_advanced(Confirm::Yes)) {
+            Confirm::No => {
+                info!("aborting installation");
+                return Ok(None);
+            }
+            Confirm::Yes => {
+                return Ok(Some(opts));
+            }
+            Confirm::Advanced => {
+                continue;
+            }
+        }
     }
 }
 
@@ -294,8 +434,10 @@ fn install_bins() -> Result<()> {
 fn maybe_install_rust(toolchain_str: &str, verbose: bool) -> Result<()> {
     let ref cfg = try!(common::set_globals(verbose));
 
-    // If this is a fresh install (there is no default yet)
-    // then install the requested toolchain and make it the default.
+    // If there is already an install, then `toolchain_str` may not be
+    // a toolchain the user actually wants. Don't do anything.  FIXME:
+    // This logic should be part of InstallOpts so that it isn't
+    // possible to select a toolchain then have it not be installed.
     if try!(cfg.find_default()).is_none() {
         let toolchain = try!(cfg.get_toolchain(toolchain_str, false));
         let status = try!(toolchain.install_from_dist());
@@ -303,7 +445,7 @@ fn maybe_install_rust(toolchain_str: &str, verbose: bool) -> Result<()> {
         println!("");
         try!(common::show_channel_update(cfg, toolchain_str, Ok(status)));
     } else {
-        info!("updating existing installation");
+        info!("updating existing rustup installation");
         println!("");
     }
 
@@ -321,7 +463,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         println!("");
         let ref msg = format!(pre_uninstall_msg!(),
                               cargo_home = try!(canonical_cargo_home()));
-        if !try!(confirm(msg, false)) {
+        if !try!(common::confirm(msg, false)) {
             info!("aborting uninstallation");
             return Ok(());
         }

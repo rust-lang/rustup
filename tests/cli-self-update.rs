@@ -27,6 +27,7 @@ use rustup_mock::clitools::{self, Config, Scenario,
 #[cfg(windows)]
 use rustup_mock::clitools::expect_stderr_ok;
 use rustup_mock::dist::{create_hash, calc_hash};
+use rustup_mock::{get_path, restore_path};
 use rustup_utils::raw;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
@@ -387,44 +388,6 @@ fn when_cargo_home_is_the_default_write_path_specially() {
     });
 }
 
-#[cfg(windows)]
-fn get_path() -> Option<String> {
-    use winreg::RegKey;
-    use winapi::*;
-
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
-
-    environment.get_value("PATH").ok()
-}
-
-#[cfg(windows)]
-fn restore_path(p: &Option<String>) {
-    use winreg::{RegKey, RegValue};
-    use winreg::enums::RegType;
-    use winapi::*;
-    use rustup_utils::utils;
-
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
-
-    if let Some(p) = p.as_ref() {
-        let reg_value = RegValue {
-            bytes: utils::string_to_winreg_bytes(&p),
-            vtype: RegType::REG_EXPAND_SZ,
-        };
-        environment.set_raw_value("PATH", &reg_value).unwrap();
-    } else {
-        let _ = environment.delete_value("PATH");
-    }
-}
-
-#[cfg(unix)]
-fn get_path() -> Option<String> { None }
-
-#[cfg(unix)]
-fn restore_path(_: &Option<String>) { }
-
 #[test]
 #[cfg(windows)]
 fn install_adds_path() {
@@ -457,6 +420,38 @@ fn uninstall_removes_path() {
 
         let path = config.cargodir.join("bin").to_string_lossy().to_string();
         assert!(!get_path().unwrap().contains(&path));
+    });
+}
+
+
+#[test]
+#[cfg(unix)]
+fn install_doesnt_modify_path_if_passed_no_modify_path() {
+    setup(&|config| {
+        let ref profile = config.homedir.join(".profile");
+        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        assert!(!profile.exists());
+    });
+}
+
+#[test]
+#[cfg(windows)]
+fn install_doesnt_modify_path_if_passed_no_modify_path() {
+    use winreg::RegKey;
+    use winapi::*;
+
+    setup(&|config| {
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let old_path = environment.get_raw_value("PATH").unwrap();
+
+        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let new_path = environment.get_raw_value("PATH").unwrap();
+
+        assert!(old_path == new_path);
     });
 }
 
@@ -741,7 +736,7 @@ fn reinstall_exact() {
         expect_ok_ex(config, &["rustup-init", "-y"],
 r"
 ",
-r"info: updating existing installation
+r"info: updating existing rustup installation
 "
                   );
     });
@@ -760,7 +755,7 @@ fn produces_env_file_on_unix() {
         assert!(cmd.output().unwrap().status.success());
         let ref envfile = config.homedir.join(".cargo/env");
         let envfile = raw::read_file(envfile).unwrap();
-        assert_eq!(r#"export PATH="$HOME/.cargo/bin:$PATH""#, envfile);
+        assert!(envfile.contains(r#"export PATH="$HOME/.cargo/bin:$PATH""#));
     });
 }
 

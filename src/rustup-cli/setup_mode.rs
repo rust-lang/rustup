@@ -1,5 +1,5 @@
 use std::env;
-use self_update;
+use self_update::{self, InstallOpts};
 use rustup::Result;
 use clap::{App, Arg};
 use common;
@@ -27,14 +27,23 @@ pub fn main() -> Result<()> {
              .long("default-toolchain")
              .takes_value(true)
              .possible_values(&["stable", "beta", "nightly"])
-             .help("Choose a default toolchain to install"));
+             .help("Choose a default toolchain to install"))
+        .arg(Arg::with_name("no-modify-path")
+             .long("no-modify-path")
+             .help("Don't configure the PATH environment variable"));
 
     let matches = cli.get_matches();
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
-    let default = matches.value_of("default-toolchain").unwrap_or("stable");
+    let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
+    let no_modify_path = matches.is_present("no-modify-path");
 
-    try!(self_update::install(no_prompt, verbose, default));
+    let opts = InstallOpts {
+        default_toolchain: default_toolchain.to_owned(),
+        no_modify_path: no_modify_path,
+    };
+
+    try!(self_update::install(no_prompt, verbose, opts));
 
     Ok(())
 }

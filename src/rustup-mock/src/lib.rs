@@ -12,6 +12,11 @@ extern crate itertools;
 extern crate tar;
 extern crate toml;
 
+#[cfg(windows)]
+extern crate winapi;
+#[cfg(windows)]
+extern crate winreg;
+
 pub mod dist;
 pub mod clitools;
 
@@ -73,3 +78,48 @@ impl MockInstallerBuilder {
         writeln!(ver, "3").unwrap();
     }
 }
+
+#[cfg(windows)]
+pub fn get_path() -> Option<String> {
+    use winreg::RegKey;
+    use winapi::*;
+
+    let root = RegKey::predef(HKEY_CURRENT_USER);
+    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+
+    environment.get_value("PATH").ok()
+}
+
+#[cfg(windows)]
+pub fn restore_path(p: &Option<String>) {
+    use winreg::{RegKey, RegValue};
+    use winreg::enums::RegType;
+    use winapi::*;
+
+    let root = RegKey::predef(HKEY_CURRENT_USER);
+    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+
+    if let Some(p) = p.as_ref() {
+        let reg_value = RegValue {
+            bytes: string_to_winreg_bytes(&p),
+            vtype: RegType::REG_EXPAND_SZ,
+        };
+        environment.set_raw_value("PATH", &reg_value).unwrap();
+    } else {
+        let _ = environment.delete_value("PATH");
+    }
+
+    fn string_to_winreg_bytes(s: &str) -> Vec<u8> {
+        use std::ffi::OsString;
+        use std::os::windows::ffi::OsStrExt;
+        let v: Vec<_> = OsString::from(format!("{}\x00", s)).encode_wide().collect();
+        unsafe { ::std::slice::from_raw_parts(v.as_ptr() as *const u8, v.len() * 2).to_vec() }
+    }
+}
+
+#[cfg(unix)]
+pub fn get_path() -> Option<String> { None }
+
+#[cfg(unix)]
+pub fn restore_path(_: &Option<String>) { }
+
