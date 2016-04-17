@@ -291,7 +291,7 @@ toolchain] use the GNU build.
 
 MSVC builds of Rust additionally require an [installation of Visual
 Studio 2013 (or later) or the Visual C++ Build Tools 2015][vs] so
-rustc can use its linker. for Visual Studio, make sure to check
+rustc can use its linker. For Visual Studio, make sure to check
 the "C++ tools" option. No additional software installation is
 necessary for basic use of the GNU build.
 
