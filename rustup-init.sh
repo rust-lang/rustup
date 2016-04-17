@@ -48,15 +48,33 @@ main() {
     ensure curl -sSfL "$_url" -o "$_file"
     ensure chmod u+x "$_file"
 
-    # The installer is going to want to ask for confirmation by
-    # reading stdin.  This script was piped into `sh` though and
-    # doesn't have stdin to pass to its children. Instead we're going
-    # to explicitly connect /dev/tty to the installer's stdin.
-    if [ ! -e "/dev/tty" ]; then
-        err "/dev/tty does not exist"
-    fi
+    # check if we have to use /dev/tty to prompt the user
+    local need_tty=yes
+    for arg in "$@"; do
+        case "$arg" in
+            -y)
+                # user wants to skip the prompt -- we don't need /dev/tty
+                need_tty=no
+                ;;
+            *)
+                ;;
+        esac
+    done
 
-    run "$_file" "$@" < /dev/tty
+
+    if [ "$need_tty" = "yes" ]; then
+        # The installer is going to want to ask for confirmation by
+        # reading stdin.  This script was piped into `sh` though and
+        # doesn't have stdin to pass to its children. Instead we're going
+        # to explicitly connect /dev/tty to the installer's stdin.
+        if [ ! -e "/dev/tty" ]; then
+            err "/dev/tty does not exist"
+        fi
+
+        run "$_file" "$@" < /dev/tty
+    else
+        run "$_file" "$@"
+    fi
 
     local _retval=$?
 
