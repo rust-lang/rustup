@@ -146,9 +146,9 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn install_from_dist(&self) -> Result<UpdateStatus> {
-        // if self.cfg.telemetry_enabled() {
-        //     return self.install_from_dist_with_telemetry();
-        // }
+        if self.cfg.telemetry_enabled() {
+            return self.install_from_dist_with_telemetry();
+        }
         self.install_from_dist_inner()
     }
 

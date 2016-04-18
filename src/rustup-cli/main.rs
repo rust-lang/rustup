@@ -1,8 +1,4 @@
-<<<<<<< a5128e8b36acb156594bca2ef502bb66999cff7a:src/rustup-cli/main.rs
 extern crate rustup_dist;
-=======
-extern crate multirust_dist;
->>>>>>> Improving modularization, telemetry checks:src/multirust-cli/main.rs
 #[macro_use]
 extern crate rustup_utils;
 

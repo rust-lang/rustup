@@ -1,4 +1,4 @@
-use common::{run_inner, set_globals};
+use common::set_globals;
 use rustup::{Cfg, Result, Error};
 use rustup_utils::utils;
 use rustup::command::run_command_for_dir;

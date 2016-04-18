@@ -9,6 +9,7 @@ use rustup_mock::clitools::{self, Config, Scenario,
                                expect_stdout_ok, expect_stderr_ok,
                                expect_ok, expect_err, run,
                                this_host_triple};
+use rustup_utils::utils;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -281,5 +282,23 @@ fn proxies_pass_empty_args() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "run", "nightly", "rustc", "--empty-arg-test", ""]);
+    });
+}
+
+#[test]
+fn enabling_telemetry_and_compiling_creates_log() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "telemetry", "on"]);
+        expect_ok(config, &["rustc", "--version"]);
+
+        let telemetry_dir = config.rustupdir.join("telemetry");
+        let _ = utils::assert_is_directory(telemetry_dir.as_path());
+
+        let out = telemetry_dir.read_dir();
+        assert!(out.is_ok());
+
+        let contents = out.unwrap();
+        assert!(contents.count() > 0);
     });
 }

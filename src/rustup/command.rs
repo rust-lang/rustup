@@ -9,7 +9,7 @@ use regex::Regex;
 
 use Cfg;
 use errors::*;
-use multirust_utils;
+use rustup_utils;
 use telemetry::{Telemetry, TelemetryEvent};
 
 
@@ -97,9 +97,9 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
                                                 exit_code: exit_code,
                                                 errors: None };
             t.log_telemetry(te);
-            Err(multirust_utils::Error::RunningCommand {    
+            Err(rustup_utils::Error::RunningCommand {    
                 name: args[0].as_ref().to_owned(),
-                error: multirust_utils::raw::CommandError::Io(e),
+                error: rustup_utils::raw::CommandError::Io(e),
             }.into())
         },
     }
@@ -119,9 +119,9 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(mut cmd: Command, args
             process::exit(code);
         }
         Err(e) => {
-            Err(multirust_utils::Error::RunningCommand {
+            Err(rustup_utils::Error::RunningCommand {
                 name: args[0].as_ref().to_owned(),
-                error: multirust_utils::raw::CommandError::Io(e),
+                error: rustup_utils::raw::CommandError::Io(e),
             }.into())
         }
     }    

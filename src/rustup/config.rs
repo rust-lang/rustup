@@ -425,7 +425,7 @@ impl Cfg {
 
         try!(utils::write_file("temp", &work_file, ""));
 
-        try!(utils::rename_file("telemetry", &*work_file, &self.multirust_dir.join("telemetry_on")));
+        try!(utils::rename_file("telemetry", &*work_file, &self.multirust_dir.join("telemetry-on")));
 
         self.notify_handler.call(Notification::SetTelemetry("on"));
 
@@ -433,7 +433,7 @@ impl Cfg {
     }
 
     fn disable_telemetry(&self) -> Result<()> {
-        let _ = utils::remove_file("telemetry_on", &self.multirust_dir.join("telemetry_on"));
+        let _ = utils::remove_file("telemetry-on", &self.multirust_dir.join("telemetry-on"));
 
         self.notify_handler.call(Notification::SetTelemetry("off"));
 
@@ -449,7 +449,7 @@ impl Cfg {
 
     fn find_telemetry(multirust_dir: &PathBuf) -> TelemetryMode {
         // default telemetry should be off - if no telemetry file is found, it's off
-        let telemetry_file = multirust_dir.join("telemetry_on");
+        let telemetry_file = multirust_dir.join("telemetry-on");
 
         if utils::is_file(telemetry_file) {
             return TelemetryMode::On;

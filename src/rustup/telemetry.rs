@@ -1,5 +1,5 @@
 use time;
-use multirust_utils::utils;
+use rustup_utils::utils;
 use rustc_serialize::json;
 
 use std::collections::HashSet;
@@ -22,6 +22,7 @@ pub enum TelemetryEvent {
 struct LogMessage {
     log_time_s: i64,
     event: TelemetryEvent,
+    version: i32,
 }
 
 #[derive(Debug)]
@@ -29,14 +30,18 @@ pub struct Telemetry {
     telemetry_dir: PathBuf
 }
 
+const LOG_FILE_VERSION: i32 = 1;
+
 impl Telemetry {
     pub fn new(telemetry_dir: PathBuf) -> Telemetry {
         Telemetry { telemetry_dir: telemetry_dir }
-    }   
+    }
 
     pub fn log_telemetry(&self, event: TelemetryEvent) {
         let current_time = time::now_utc();
-        let ln = LogMessage { log_time_s: current_time.to_timespec().sec, event: event };
+        let ln = LogMessage { log_time_s: current_time.to_timespec().sec,
+                              event: event,
+                              version: LOG_FILE_VERSION };
 
         let json = json::encode(&ln).unwrap();
 
