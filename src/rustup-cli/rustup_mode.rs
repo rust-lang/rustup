@@ -1,6 +1,6 @@
 use clap::{App, Arg, AppSettings, SubCommand, ArgMatches};
 use common;
-use rustup::{Result, Cfg, Error, Toolchain};
+use rustup::{Result, Cfg, Error, Toolchain, command};
 use rustup_dist::manifest::Component;
 use rustup_dist::dist::TargetTriple;
 use rustup_utils::utils;
@@ -58,6 +58,7 @@ pub fn main() -> Result<()> {
                 (_ ,_) => unreachable!(),
             }
         }
+        ("telemetry", Some(m)) => try!(telemetry(&cfg, m)),
         (_, _) => unreachable!(),
     }
 
@@ -160,6 +161,14 @@ pub fn cli() -> App<'static, 'static> {
                      .short("y")))
             .subcommand(SubCommand::with_name("upgrade-data")
                 .about("Upgrade the internal data format.")))
+        .subcommand(SubCommand::with_name("telemetry")
+                .about("Enable or disable rust telemetry")
+                .arg(Arg::with_name("enabled")
+                        .hidden(true)
+                        .takes_value(true)
+                        .value_name("telemetry")
+                        .help("Set telemetry 'on' or 'off'")
+                        .possible_values(&["on", "off"])))
 }
 
 fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
@@ -228,7 +237,7 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let args: Vec<_> = args.collect();
     let cmd = try!(cfg.create_command_for_toolchain(toolchain, args[0]));
 
-    common::run_inner(cmd, &args)
+    command::run_command_for_dir(cmd, &args, &cfg)
 }
 
 fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
@@ -373,4 +382,13 @@ fn self_uninstall(m: &ArgMatches) -> Result<()> {
     let no_prompt = m.is_present("no-prompt");
 
     self_update::uninstall(no_prompt)
+}
+
+fn telemetry(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let telemetry_string = m.value_of("enabled").unwrap();
+    match telemetry_string {
+        "on" => cfg.set_telemetry(true),
+        "off" => cfg.set_telemetry(false),
+        _ => Err(Error::Custom { id: "Telemetry".to_string(), desc: "Incorrect telemetry setting".to_string() }),
+    }
 }

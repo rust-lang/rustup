@@ -1,6 +1,6 @@
 use clap::ArgMatches;
 use cli;
-use common::{self, confirm, set_globals, run_inner,
+use common::{self, confirm, set_globals,
              show_channel_update, show_tool_versions,
              update_all_channels};
 use rustup::*;
@@ -79,14 +79,14 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
     let cmd = try!(toolchain.create_command(args[0]));
-    run_inner(cmd, &args)
+    command::run_command_for_dir(cmd, &args, &cfg)
 }
 
 fn proxy(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
     let cmd = try!(cfg.create_command_for_dir(&try!(utils::current_dir()), args[0]));
-    run_inner(cmd, &args)
+    command::run_command_for_dir(cmd, &args, &cfg)
 }
 
 fn command_requires_metadata() -> Result<bool> {

@@ -18,7 +18,6 @@ use winreg;
 pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
                     has_cmd, find_cmd};
 
-
 pub fn ensure_dir_exists(name: &'static str,
                          path: &Path,
                          notify_handler: NotifyHandler)

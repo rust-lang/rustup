@@ -4,6 +4,8 @@ extern crate rustup_utils;
 extern crate hyper;
 extern crate regex;
 extern crate itertools;
+extern crate rustc_serialize;
+extern crate time;
 
 pub use errors::*;
 pub use config::*;
@@ -17,3 +19,5 @@ mod toolchain;
 mod config;
 mod env_var;
 mod install;
+pub mod telemetry;
+pub mod command;

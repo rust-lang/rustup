@@ -118,15 +118,15 @@ fn list_overrides() {
     setup(&|config| {
         let cwd = std::fs::canonicalize(env::current_dir().unwrap()).unwrap();
         let mut cwd_formatted = format!("{}", cwd.display()).to_string();
-        
+
         if cfg!(windows) {
             cwd_formatted = cwd_formatted[4..].to_owned();
         }
-        
+
         let trip = this_host_triple();
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
-        expect_ok_ex(config, &["rustup", "override", "list"], 
-                     &format!("{:<40}\t{:<20}\n", cwd_formatted, &format!("nightly-{}", trip)), r""); 
+        expect_ok_ex(config, &["rustup", "override", "list"],
+                     &format!("{:<40}\t{:<20}\n", cwd_formatted, &format!("nightly-{}", trip)), r"");
     });
 }
 
@@ -193,5 +193,26 @@ r"",
 &format!(r"info: downloading component 'rust-std' for '{0}'
 info: installing component 'rust-std' for '{0}'
 ", clitools::CROSS_ARCH1));
+    });
+}
+
+
+#[test]
+fn enable_telemetry() {
+    setup(&|config| {
+        expect_ok_ex(config,
+                     &["rustup", "telemetry", "on"],
+                     r"",
+                     &format!("info: telemetry set to 'on'\n"));
+    });
+}
+
+#[test]
+fn disable_telemetry() {
+    setup(&|config| {
+        expect_ok_ex(config,
+                     &["rustup", "telemetry", "off"],
+                     r"",
+                     &format!("info: telemetry set to 'off'\n"));
     });
 }

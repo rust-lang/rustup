@@ -1,12 +1,11 @@
 //! Just a dumping ground for cli stuff
 
 use rustup::{Cfg, Result, Notification, Toolchain, Error, UpdateStatus};
-use rustup_utils::{self, utils};
+use rustup_utils::utils;
 use rustup_utils::notify::NotificationLevel;
 use self_update;
-use std::ffi::OsStr;
 use std::io::{Write, Read, BufRead};
-use std::process::{self, Command};
+use std::process::Command;
 use std::{cmp, iter};
 use std::str::FromStr;
 use std;
@@ -120,30 +119,6 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
         }
     }))
 
-}
-
-pub fn run_inner<S: AsRef<OsStr>>(mut command: Command,
-                                  args: &[S]) -> Result<()> {
-    command.args(&args[1..]);
-    // FIXME rust-lang/rust#32254. It's not clear to me
-    // when and why this is needed.
-    command.stdin(process::Stdio::inherit());
-
-    let status = command.status();
-
-    match status {
-        Ok(status) => {
-            // Ensure correct exit code is returned
-            let code = status.code().unwrap_or(1);
-            process::exit(code);
-        }
-        Err(e) => {
-            Err(rustup_utils::Error::RunningCommand {
-                name: args[0].as_ref().to_owned(),
-                error: rustup_utils::raw::CommandError::Io(e),
-            }.into())
-        }
-    }
 }
 
 pub fn show_channel_update(cfg: &Cfg, name: &str,
