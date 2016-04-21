@@ -1,3 +1,4 @@
+use errors::*;
 use time;
 use rustup_utils::{raw, utils};
 use rustc_serialize::json;
@@ -39,7 +40,7 @@ impl Telemetry {
         Telemetry { telemetry_dir: telemetry_dir }
     }
 
-    pub fn log_telemetry(&self, event: TelemetryEvent) {
+    pub fn log_telemetry(&self, event: TelemetryEvent) -> Result<()> {
         let current_time = time::now_utc();
         let ln = LogMessage { log_time_s: current_time.to_timespec().sec,
                               event: event,
@@ -52,14 +53,25 @@ impl Telemetry {
         // Check for the telemetry file. If it doesn't exist, it's a new day.
         // If it is a new day, then attempt to clean the telemetry directory.
         if !raw::is_file(&self.telemetry_dir.join(&filename)) {
-            self.clean_telemetry_dir();
+            try!(self.clean_telemetry_dir());
         }
 
-        let _ = utils::append_file("telemetry", &self.telemetry_dir.join(&filename), &json);
+        let _ = utils::append_file("telemetry", 
+                                   &self.telemetry_dir.join(&filename), 
+                                   &json);
+
+        Ok(())
     }
 
-    pub fn clean_telemetry_dir(&self) {
-        let contents = self.telemetry_dir.read_dir().unwrap();
+    pub fn clean_telemetry_dir(&self) -> Result<()> {
+        let telemetry_dir_contents = self.telemetry_dir.read_dir();
+
+        let contents = match telemetry_dir_contents {
+            Ok(c) => c,
+            Err(e) => {
+                return Err(Error::TelemetryCleanupError(e));
+            }
+        };
 
         let mut telemetry_files: Vec<PathBuf> = Vec::new();
 
@@ -71,10 +83,8 @@ impl Telemetry {
             }
         }
 
-        println!("found {:?} files to delete", telemetry_files.len());
-
         if telemetry_files.len() < MAX_TELEMETRY_FILES {
-            return;
+            return Ok(());
         }
 
         let dl: usize = telemetry_files.len() - MAX_TELEMETRY_FILES;
@@ -85,7 +95,11 @@ impl Telemetry {
 
         for i in 0..dl {
             let i = i as usize;
-            let _ = fs::remove_file(&telemetry_files[i]);
+            try!(fs::remove_file(&telemetry_files[i]).map_err(|e| {
+                Error::TelemetryCleanupError(e)
+            }));
         }
+
+        Ok(())
     }
 }

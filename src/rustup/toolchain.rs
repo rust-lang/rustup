@@ -166,13 +166,20 @@ impl<'a> Toolchain<'a> {
             Ok(us) => {
                 let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name().to_string() ,
                                                            success: true };
-                self.telemetry.log_telemetry(te);
-                Ok(us)
+                match self.telemetry.log_telemetry(te) {
+                    Ok(_) => Ok(us),
+                    Err(e) => { 
+                        self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&e));
+                        Ok(us)
+                    }
+                }
             } 
             Err(e) => {
                 let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name().to_string() ,
                                                            success: true };
-                self.telemetry.log_telemetry(te);
+                let _ = self.telemetry.log_telemetry(te).map_err(|xe| {
+                    self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
+                });
                 Err(e)
             }
         }
@@ -399,15 +406,21 @@ impl<'a> Toolchain<'a> {
                 let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(), 
                                                            success: true };
 
-                self.telemetry.log_telemetry(te);
-
-                Ok(())
+                match self.telemetry.log_telemetry(te) {
+                    Ok(_) => Ok(()),
+                    Err(e) => { 
+                        self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&e));
+                        Ok(())
+                    }
+                }
             },
             Err(e) => {
                 let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(), 
                                                            success: false };
 
-                self.telemetry.log_telemetry(te);
+                let _ = self.telemetry.log_telemetry(te).map_err(|xe| {
+                    self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
+                });
                 Err(e)
             }
         }
