@@ -7,6 +7,7 @@ use dist::{download_and_check, DownloadCfg, TargetTriple};
 use component::{Components, Transaction, TarGzPackage, Package};
 use temp;
 use errors::*;
+use notifications::*;
 use rustup_utils::utils;
 use prefix::InstallPrefix;
 use openssl::crypto::hash::{Type, Hasher};

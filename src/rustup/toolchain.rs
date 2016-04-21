@@ -1,4 +1,5 @@
 use errors::*;
+use notifications::*;
 use rustup_dist::dist;
 use rustup_utils::utils;
 use rustup_dist::prefix::InstallPrefix;

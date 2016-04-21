@@ -9,6 +9,7 @@ use regex::Regex;
 
 use Cfg;
 use errors::*;
+use notifications::*;
 use rustup_utils;
 use telemetry::{Telemetry, TelemetryEvent};
 

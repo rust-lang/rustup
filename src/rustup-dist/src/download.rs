@@ -1,4 +1,5 @@
 use errors::*;
+use notifications::*;
 use rustup_utils::utils;
 use temp;
 

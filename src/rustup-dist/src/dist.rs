@@ -1,6 +1,7 @@
 
 use temp;
 use errors::*;
+use notifications::*;
 use rustup_utils::utils;
 use prefix::InstallPrefix;
 use manifest::Component;

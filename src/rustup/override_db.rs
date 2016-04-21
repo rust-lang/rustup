@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use errors::*;
+use notifications::*;
 use rustup_dist::temp;
 use rustup_utils::utils;
 

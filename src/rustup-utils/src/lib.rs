@@ -23,7 +23,9 @@ extern crate userenv;
 
 pub mod notify;
 pub mod errors;
+pub mod notifications;
 pub mod raw;
 pub mod utils;
 
-pub use errors::{Error, Notification, NotifyHandler};
+pub use errors::{Error};
+pub use notifications::{Notification, NotifyHandler};

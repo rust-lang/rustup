@@ -13,6 +13,7 @@ use rustup_utils::{self, utils};
 use temp;
 use prefix::InstallPrefix;
 use errors::*;
+use notifications::*;
 
 use std::fs::File;
 use std::io::Write;

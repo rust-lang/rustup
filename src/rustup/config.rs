@@ -9,6 +9,7 @@ use std::str::FromStr;
 use itertools::Itertools;
 
 use errors::*;
+use notifications::*;
 use rustup_dist::{temp, dist};
 use rustup_utils::utils;
 use override_db::OverrideDB;

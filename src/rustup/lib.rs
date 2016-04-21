@@ -8,12 +8,14 @@ extern crate rustc_serialize;
 extern crate time;
 
 pub use errors::*;
+pub use notifications::*;
 pub use config::*;
 pub use toolchain::*;
 pub use override_db::*;
 pub use rustup_utils::{utils, notify};
 
 mod errors;
+mod notifications;
 mod override_db;
 mod toolchain;
 mod config;

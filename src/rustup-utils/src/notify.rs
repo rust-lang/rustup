@@ -118,16 +118,7 @@ pub enum NotificationLevel {
     Warn,
     Error,
 }
-#[macro_export]
-macro_rules! extend_error {
-    ($cur:ty: $base:ty, $p:ident => $e:expr) => (
-        impl From<$base> for $cur {
-            fn from($p: $base) -> $cur {
-                $e
-            }
-        }
-    )
-}
+
 #[macro_export]
 macro_rules! extend_notification {
     ($( $cur:ident )::*: $( $base:ident )::*, $p:ident => $e:expr) => (

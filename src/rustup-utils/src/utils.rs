@@ -8,7 +8,8 @@ use std::env;
 use hyper;
 use openssl::crypto::hash::Hasher;
 use notify::Notifyable;
-use errors::{Error, Notification, NotifyHandler};
+use errors::{Error};
+use notifications::{Notification, NotifyHandler};
 use raw;
 #[cfg(windows)]
 use winapi::DWORD;

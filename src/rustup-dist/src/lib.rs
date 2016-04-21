@@ -10,12 +10,14 @@ extern crate tar;
 #[macro_use]
 extern crate rustup_utils;
 
-pub use errors::{Error, Notification, NotifyHandler};
+pub use errors::{Error};
+pub use notifications::{Notification, NotifyHandler};
 
 pub mod temp;
 
 pub mod dist;
 pub mod errors;
+pub mod notifications;
 pub mod prefix;
 pub mod component;
 pub mod manifestation;
