@@ -337,7 +337,7 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
 
 
 pub fn version() -> &'static str {
-    option_env!("CARGO_PKG_VERSION").unwrap_or("unknown")
+    concat!(env!("CARGO_PKG_VERSION"), include_str!(concat!(env!("OUT_DIR"), "/commit-info.txt")))
 }
 
 fn split_override<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
