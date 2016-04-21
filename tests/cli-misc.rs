@@ -4,12 +4,16 @@
 extern crate rustup_dist;
 extern crate rustup_utils;
 extern crate rustup_mock;
-
+extern crate time;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_stdout_ok, expect_stderr_ok,
                                expect_ok, expect_err, run,
                                this_host_triple};
-use rustup_utils::utils;
+use rustup_utils::{raw, utils};
+
+use time::Duration;
+use std::ops::Sub;
+use std::ops::Add;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -300,5 +304,34 @@ fn enabling_telemetry_and_compiling_creates_log() {
 
         let contents = out.unwrap();
         assert!(contents.count() > 0);
+    });
+}
+
+#[test]
+fn telemetry_cleanup_removes_old_files() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "telemetry", "on"]);
+
+        let telemetry_dir = config.rustupdir.join("telemetry");
+
+        let mut d = time::now_utc().sub(Duration::days(120));
+        let one_day = time::Duration::days(1);
+
+        for x in 0..110 {
+            let file_name = format!("log-{}-{:02}-{:02}.json", d.tm_year + 1900, d.tm_mon + 1, d.tm_mday);
+            let _ = raw::write_file(&telemetry_dir.join(&file_name), "");
+            d = d.add(one_day);
+        }
+
+        expect_ok(config, &["rustc", "--version"]);
+
+        let out = telemetry_dir.read_dir();
+        assert!(out.is_ok());
+
+        let contents = out.unwrap();
+        let count = contents.count();
+
+        assert!(count == 100);
     });
 }

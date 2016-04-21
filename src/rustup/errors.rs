@@ -34,6 +34,7 @@ pub enum Notification<'a> {
     UpgradeRemovesToolchains,
     MissingFileDuringSelfUninstall(PathBuf),
     SetTelemetry(&'a str),
+    TelemetryCleanupError(&'a Error),
 }
 
 #[derive(Debug)]
@@ -66,6 +67,7 @@ pub enum Error {
         id: String,
         desc: String,
     },
+    TelemetryCleanupError(io::Error),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -94,7 +96,8 @@ impl<'a> Notification<'a> {
             UpdatingToolchain(_) |
             ReadMetadataVersion(_) |
             InstalledToolchain(_) |
-            UpdateHashMatches => NotificationLevel::Verbose,
+            UpdateHashMatches | 
+            TelemetryCleanupError(_) => NotificationLevel::Verbose,
             SetDefaultToolchain(_) |
             SetOverrideToolchain(_, _) |
             UsingExistingToolchain(_) |
@@ -155,7 +158,8 @@ impl<'a> Display for Notification<'a> {
             MissingFileDuringSelfUninstall(ref p) => {
                 write!(f, "expected file does not exist to uninstall: {}", p.display())
             }
-            SetTelemetry(telemetry_status) => write!(f, "telemetry set to '{}'", telemetry_status)
+            SetTelemetry(telemetry_status) => write!(f, "telemetry set to '{}'", telemetry_status),
+            TelemetryCleanupError(e) => write!(f, "unable to remove old telemetry files: '{}'", e),
         }
     }
 }
@@ -188,6 +192,7 @@ impl error::Error for Error {
             SelfUpdateFailed => "self-updater failed to replace multirust executable",
             ReadStdin => "unable to read from stdin for confirmation",
             Custom { ref desc, .. } => desc,
+            TelemetryCleanupError(_) => "unable to remove old telemetry files"
         }
     }
 
@@ -199,6 +204,7 @@ impl error::Error for Error {
             Temp(ref e) => Some(e),
             UpgradeIoError(ref e) => Some(e),
             WindowsUninstallMadness(ref e) => Some(e),
+            TelemetryCleanupError(ref e) => Some(e),
             UnknownMetadataVersion(_) |
             InvalidEnvironment |
             NoDefaultToolchain |
@@ -270,6 +276,7 @@ impl Display for Error {
             SelfUpdateFailed => write!(f, "{}", self.description()),
             ReadStdin => write!(f, "{}", self.description()),
             Custom { ref desc, .. } => write!(f, "{}", desc),
+            TelemetryCleanupError(ref e) => write!(f, "Unable to delete telemetry files {}", e.description()),
         }
     }
 }

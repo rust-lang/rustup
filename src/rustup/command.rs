@@ -88,7 +88,11 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
             let te = TelemetryEvent::RustcRun { duration_ms: ms, 
                                                 exit_code: exit_code,
                                                 errors: e };
-            t.log_telemetry(te);
+            
+            let _ = t.log_telemetry(te).map_err(|xe| {
+                cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
+            });
+
             process::exit(exit_code);
         },
         Err(e) => {
@@ -96,7 +100,11 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
             let te = TelemetryEvent::RustcRun { duration_ms: ms,
                                                 exit_code: exit_code,
                                                 errors: None };
-            t.log_telemetry(te);
+            
+            let _ = t.log_telemetry(te).map_err(|xe| {
+                cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
+            });
+
             Err(rustup_utils::Error::RunningCommand {    
                 name: args[0].as_ref().to_owned(),
                 error: rustup_utils::raw::CommandError::Io(e),
