@@ -2,12 +2,11 @@
 use temp;
 use errors::*;
 use notifications::*;
-use rustup_utils::utils;
+use rustup_utils::{self, utils};
 use prefix::InstallPrefix;
 use manifest::Component;
 use manifest::Manifest as ManifestV2;
 use manifestation::{Manifestation, UpdateStatus, Changes};
-use rustup_error::ErrorChain;
 
 use std::path::Path;
 use std::fmt;
@@ -413,7 +412,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
             }
         }
         Ok(None) => return Ok(None),
-        Err(Error::Utils(ErrorChain(::rustup_utils::Error::Download404 { .. }, _))) => {
+        Err(Error::Utils(rustup_utils::ErrorChain(::rustup_utils::Error::Download404 { .. }, _))) => {
             // Proceed to try v1 as a fallback
             download.notify_handler.call(Notification::DownloadingLegacyManifest);
         }

@@ -6,15 +6,13 @@ use temp;
 use walkdir;
 use toml;
 use rustup_utils;
-use rustup_error;
 use manifest::Component;
 use dist::TargetTriple;
-use rustup_error::ErrorChain;
 
 easy_error! {
     #[derive(Debug)]
     pub enum Error2 {
-        Utils(e: ErrorChain<rustup_utils::Error>) {
+        Utils(e: rustup_utils::ErrorChain<rustup_utils::Error>) {
             description(e.description())
             display("{}", e)
             cause(e)
@@ -167,7 +165,7 @@ easy_error! {
             description("some requested components are unavailable to download")
             display("{}", component_unavailable_msg(&c))
         }
-        NoManifestFound(ch: String, e: Box<Error>) {
+        NoManifestFound(ch: String, e: Box<Error2>) {
             description("no release found")
             display("{}", no_manifest_found_msg(&ch, &e))
             cause(e)
@@ -207,12 +205,12 @@ fn component_unavailable_msg(cs: &[Component]) -> String {
 }
 
 // FIXME This should be two different errors
-fn no_manifest_found_msg(ch: &str, e: &Error) -> String {
+fn no_manifest_found_msg(ch: &str, e: &Error2) -> String {
 
     let mut buf = vec![];
 
     match *e {
-        Error::Utils(rustup_error::ErrorChain(rustup_utils::Error::Download404 { .. }, _)) => {
+        Error2::Utils(rustup_utils::ErrorChain(rustup_utils::Error::Download404 { .. }, _)) => {
             let _ = write!(buf, "no release found for '{}'", ch);
         }
         _ => {
@@ -227,7 +225,7 @@ fn no_manifest_found_msg(ch: &str, e: &Error) -> String {
 
 #[derive(Debug)]
 pub enum Error {
-    Utils(ErrorChain<rustup_utils::Error>),
+    Utils(rustup_utils::ErrorChain<rustup_utils::Error>),
     Temp(temp::Error),
 
     InvalidFileExtension,
@@ -263,7 +261,7 @@ pub enum Error {
     BadInstalledMetadataVersion(String),
     ComponentDirPermissionsFailed(walkdir::Error),
     ComponentFilePermissionsFailed(io::Error),
-    ComponentDownloadFailed(Component, Box<ErrorChain<rustup_utils::Error>>),
+    ComponentDownloadFailed(Component, Box<rustup_utils::ErrorChain<rustup_utils::Error>>),
     ObsoleteDistManifest,
     Parsing(Vec<toml::ParserError>),
     MissingKey(String),
@@ -275,15 +273,14 @@ pub enum Error {
     MissingPackageForComponent(Component),
     RequestedComponentsUnavailable(Vec<Component>),
     NoManifestFound(String, Box<Error>),
-    Chained(Box<rustup_error::ErrorChain<Error>>),
+    Chained(Box<rustup_utils::ErrorChain<rustup_utils::Error>>),
     CreatingFile(PathBuf),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
 extend_error!(Error: temp::Error, e => Error::Temp(e));
-extend_error!(Error: rustup_error::ErrorChain<rustup_utils::Error>, e => Error::Utils(e));
-extend_error!(Error: rustup_error::ErrorChain<Error>, e => Error::Chained(Box::new(e)));
+extend_error!(Error: rustup_utils::ErrorChain<rustup_utils::Error>, e => Error::Utils(e));
 
 impl error::Error for Error {
     fn description(&self) -> &str {
@@ -478,7 +475,7 @@ impl Display for Error {
             }
             NoManifestFound(ref ch, ref e) => {
                 match **e {
-                    Error::Utils(rustup_error::ErrorChain(rustup_utils::Error::Download404 { .. }, _)) => {
+                    Error::Utils(rustup_utils::ErrorChain(rustup_utils::Error::Download404 { .. }, _)) => {
                         write!(f, "no release found for '{}'", ch)
                     }
                     _ => {

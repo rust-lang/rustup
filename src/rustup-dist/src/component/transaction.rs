@@ -9,7 +9,6 @@
 //! FIXME: This uses ensure_dir_exists in some places but rollback
 //! does not remove any dirs created by it.
 
-use rustup_error::ChainError;
 use rustup_utils::{self, utils};
 use temp;
 use prefix::InstallPrefix;
@@ -201,7 +200,7 @@ impl<'a> ChangedItem<'a> {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
             }
-            let file = try!(File::create(&abs_path).chain_error(|| Error::CreatingFile(abs_path)));
+            let file = try!(File::create(&abs_path).map_err(|_| Error::CreatingFile(abs_path)));
             Ok((ChangedItem::AddedFile(relpath), file))
         }
     }

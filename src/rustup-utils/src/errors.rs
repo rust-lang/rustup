@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 use std::ffi::OsString;
 use hyper;
-use rustup_error::ErrorChain;
 
 pub type Result<T> = ::std::result::Result<T, ErrorChain<Error>>;
 
