@@ -11,7 +11,7 @@ use dist::TargetTriple;
 
 easy_error! {
     #[derive(Debug)]
-    pub enum Error2 {
+    pub error Error2 {
         Utils(e: rustup_utils::ErrorChain<rustup_utils::Error>) {
             description(e.description())
             display("{}", e)

@@ -33,22 +33,22 @@ impl<T, E> ChainError<T> for StdResult<T, E>
 
 #[macro_export]
 macro_rules! easy_error {
-    (   $(#[$meta:meta])*
-        pub enum $name:ident { $($chunks:tt)* }
+    (   $(#[$error_meta:meta])*
+        pub error $error_name:ident { $($error_chunks:tt)* }
     ) => {
         quick_error! {
-            $(#[$meta])*
-            pub enum $name {
-                $($chunks)*
+            $(#[$error_meta])*
+            pub enum $error_name {
+                $($error_chunks)*
             }
         }
 
-        impl $name {
-            pub fn unchained(self) -> ErrorChain<$name> {
+        impl $error_name {
+            pub fn unchained(self) -> ErrorChain<Self> {
                 $crate::BuildChain::new_chain(self)
             }
 
-            pub fn chained<E>(self, e: E) -> ErrorChain<$name>
+            pub fn chained<E>(self, e: E) -> ErrorChain<Self>
                 where E: ::std::error::Error + Send + 'static
             {
                 $crate::BuildChain::extend_chain(self, e)
