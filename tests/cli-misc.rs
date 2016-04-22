@@ -318,7 +318,7 @@ fn telemetry_cleanup_removes_old_files() {
         let mut d = time::now_utc().sub(Duration::days(120));
         let one_day = time::Duration::days(1);
 
-        for x in 0..110 {
+        for _ in 0..110 {
             let file_name = format!("log-{}-{:02}-{:02}.json", d.tm_year + 1900, d.tm_mon + 1, d.tm_mday);
             let _ = raw::write_file(&telemetry_dir.join(&file_name), "");
             d = d.add(one_day);
