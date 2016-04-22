@@ -5,6 +5,7 @@ function detect_platform() {
     if (os == "unknown") {
 	if (navigator.platform == "Linux x86_64") {os = "unix";}
 	if (navigator.platform == "Linux i686") {os = "unix";}
+	if (navigator.platform == "Linux armv7l") { os = "unix";}
     }
 
     // I wish I knew by now, but I don't. Try harder.
