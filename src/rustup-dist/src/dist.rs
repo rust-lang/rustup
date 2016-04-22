@@ -7,7 +7,7 @@ use prefix::InstallPrefix;
 use manifest::Component;
 use manifest::Manifest as ManifestV2;
 use manifestation::{Manifestation, UpdateStatus, Changes};
-use hyper;
+use rustup_error::ErrorChain;
 
 use std::path::Path;
 use std::fmt;
@@ -413,10 +413,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
             }
         }
         Ok(None) => return Ok(None),
-        Err(Error::Utils(::rustup_utils::errors::Error::DownloadingFile {
-            error: ::rustup_utils::raw::DownloadError::Status(hyper::status::StatusCode::NotFound),
-            ..
-        })) => {
+        Err(Error::Utils(ErrorChain(::rustup_utils::Error::Download404 { .. }, _))) => {
             // Proceed to try v1 as a fallback
             download.notify_handler.call(Notification::DownloadingLegacyManifest);
         }

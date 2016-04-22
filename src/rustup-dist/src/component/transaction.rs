@@ -9,6 +9,7 @@
 //! FIXME: This uses ensure_dir_exists in some places but rollback
 //! does not remove any dirs created by it.
 
+use rustup_error::ChainError;
 use rustup_utils::{self, utils};
 use temp;
 use prefix::InstallPrefix;
@@ -16,7 +17,6 @@ use errors::*;
 use notifications::*;
 
 use std::fs::File;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
 /// A Transaction tracks changes to the file system, allowing them to
@@ -114,13 +114,7 @@ impl<'a> Transaction<'a> {
         assert!(relpath.is_relative());
         let (item, mut file) = try!(ChangedItem::add_file(&self.prefix, component, relpath.clone()));
         self.change(item);
-        try!(write!(file, "{}", content).map_err(|e| {
-            rustup_utils::Error::WritingFile {
-                name: "component",
-                path: self.prefix.abs_path(&relpath),
-                error: e,
-            }
-        }));
+        try!(utils::write_str("component", &mut file, &self.prefix.abs_path(&relpath), &content));
         Ok(())
     }
 
@@ -207,13 +201,7 @@ impl<'a> ChangedItem<'a> {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
             }
-            let file = try!(File::create(&abs_path).map_err(|e| {
-                rustup_utils::Error::WritingFile {
-                    name: "component",
-                    path: abs_path,
-                    error: e,
-                }
-            }));
+            let file = try!(File::create(&abs_path).chain_error(|| Error::CreatingFile(abs_path)));
             Ok((ChangedItem::AddedFile(relpath), file))
         }
     }

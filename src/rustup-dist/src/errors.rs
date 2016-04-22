@@ -6,12 +6,14 @@ use temp;
 use walkdir;
 use toml;
 use rustup_utils;
+use rustup_error;
 use manifest::Component;
 use dist::TargetTriple;
+use rustup_error::ErrorChain;
 
 #[derive(Debug)]
 pub enum Error {
-    Utils(rustup_utils::Error),
+    Utils(ErrorChain<rustup_utils::Error>),
     Temp(temp::Error),
 
     InvalidFileExtension,
@@ -47,7 +49,7 @@ pub enum Error {
     BadInstalledMetadataVersion(String),
     ComponentDirPermissionsFailed(walkdir::Error),
     ComponentFilePermissionsFailed(io::Error),
-    ComponentDownloadFailed(Component, rustup_utils::Error),
+    ComponentDownloadFailed(Component, Box<ErrorChain<rustup_utils::Error>>),
     ObsoleteDistManifest,
     Parsing(Vec<toml::ParserError>),
     MissingKey(String),
@@ -59,12 +61,15 @@ pub enum Error {
     MissingPackageForComponent(Component),
     RequestedComponentsUnavailable(Vec<Component>),
     NoManifestFound(String, Box<Error>),
+    Chained(Box<rustup_error::ErrorChain<Error>>),
+    CreatingFile(PathBuf),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
 extend_error!(Error: temp::Error, e => Error::Temp(e));
-extend_error!(Error: rustup_utils::Error, e => Error::Utils(e));
+extend_error!(Error: rustup_error::ErrorChain<rustup_utils::Error>, e => Error::Utils(e));
+extend_error!(Error: rustup_error::ErrorChain<Error>, e => Error::Chained(Box::new(e)));
 
 impl error::Error for Error {
     fn description(&self) -> &str {
@@ -104,6 +109,8 @@ impl error::Error for Error {
             MissingPackageForComponent(_) => "missing package for component",
             RequestedComponentsUnavailable(_) => "some requested components are unavailable to download",
             NoManifestFound(_, _) => "no release found",
+            CreatingFile(_) => "error creating file",
+            Chained(ref e) => e.description(),
         }
     }
 
@@ -117,6 +124,7 @@ impl error::Error for Error {
             ExtractingPackage(ref e) => Some(e),
             ComponentDownloadFailed(_, ref e) => Some(e),
             NoManifestFound(_, ref e) => Some(e),
+            Chained(ref e) => Some(e),
             InvalidFileExtension |
             InvalidInstaller |
             InvalidTargetTriple(_) |
@@ -143,6 +151,7 @@ impl error::Error for Error {
             MissingRoot |
             UnsupportedVersion(_) |
             MissingPackageForComponent(_) |
+            CreatingFile(_) |
             RequestedComponentsUnavailable(_) => None
         }
     }
@@ -254,13 +263,8 @@ impl Display for Error {
                 }
             }
             NoManifestFound(ref ch, ref e) => {
-                use rustup_utils::raw::DownloadError;
-                use hyper::status::StatusCode::NotFound;
                 match **e {
-                    Error::Utils(rustup_utils::Error::DownloadingFile {
-                        error: DownloadError::Status(NotFound),
-                        ..
-                    }) => {
+                    Error::Utils(rustup_error::ErrorChain(rustup_utils::Error::Download404 { .. }, _)) => {
                         write!(f, "no release found for '{}'", ch)
                     }
                     _ => {
@@ -270,6 +274,8 @@ impl Display for Error {
                     }
                 }
             }
+            CreatingFile(ref p) => write!(f, "error creating file '{}'", p.display()),
+            Chained(ref e) => write!(f, "{}", e),
         }
     }
 }

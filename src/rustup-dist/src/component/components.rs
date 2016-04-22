@@ -2,7 +2,7 @@
 /// `Components` and `DirectoryPackage` are the two sides of the
 /// installation / uninstallation process.
 
-use rustup_utils::{self, utils};
+use rustup_utils::utils;
 use prefix::InstallPrefix;
 use errors::*;
 
@@ -11,7 +11,6 @@ use component::package::{INSTALLER_VERSION, VERSION_FILE};
 
 use std::path::{Path, PathBuf};
 use std::fs::File;
-use std::io::Write;
 
 const COMPONENTS_FILE: &'static str = "components";
 
@@ -117,13 +116,7 @@ impl<'a> ComponentBuilder<'a> {
         for part in self.parts {
             // FIXME: This writes relative paths to the component manifest,
             // but rust-installer writes absolute paths.
-            try!(writeln!(file, "{}", part.encode()).map_err(|e| {
-                rustup_utils::Error::WritingFile {
-                    name: "component",
-                    path: abs_path.clone(),
-                    error: e,
-                }
-            }));
+            try!(utils::write_line("component", &mut file, &abs_path, &part.encode()));
         }
 
         // Add component to components file

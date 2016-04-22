@@ -1,3 +1,5 @@
+#![feature(box_patterns)]
+
 extern crate hyper;
 extern crate regex;
 extern crate openssl;
@@ -9,6 +11,8 @@ extern crate flate2;
 extern crate tar;
 #[macro_use]
 extern crate rustup_utils;
+#[macro_use]
+extern crate rustup_error;
 
 pub use errors::{Error};
 pub use notifications::{Notification, NotifyHandler};

@@ -1,6 +1,8 @@
 extern crate rustup_dist;
 #[macro_use]
 extern crate rustup_utils;
+#[macro_use]
+extern crate rustup_error;
 extern crate hyper;
 extern crate regex;
 extern crate itertools;

@@ -108,8 +108,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
 
             Err(rustup_utils::Error::RunningCommand {    
                 name: args[0].as_ref().to_owned(),
-                error: rustup_utils::raw::CommandError::Io(e),
-            }.into())
+            }.chained(e).into())
         },
     }
 }
@@ -130,8 +129,7 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(mut cmd: Command, args
         Err(e) => {
             Err(rustup_utils::Error::RunningCommand {
                 name: args[0].as_ref().to_owned(),
-                error: rustup_utils::raw::CommandError::Io(e),
-            }.into())
+            }.chained(e).into())
         }
     }    
 }

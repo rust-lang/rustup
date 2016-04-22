@@ -6,11 +6,12 @@ use std::io;
 use rustup_dist::{self, temp};
 use rustup_utils;
 use rustup_dist::manifest::Component;
+use rustup_error::ErrorChain;
 
 #[derive(Debug)]
 pub enum Error {
     Install(rustup_dist::Error),
-    Utils(rustup_utils::Error),
+    Utils(ErrorChain<rustup_utils::Error>),
     Temp(temp::Error),
 
     UnknownMetadataVersion(String),
@@ -43,7 +44,7 @@ pub enum Error {
 pub type Result<T> = ::std::result::Result<T, Error>;
 
 extend_error!(Error: rustup_dist::Error, e => Error::Install(e));
-extend_error!(Error: rustup_utils::Error, e => Error::Utils(e));
+extend_error!(Error: ErrorChain<rustup_utils::Error>, e => Error::Utils(e));
 extend_error!(Error: temp::Error, e => Error::Temp(e));
 
 impl error::Error for Error {
