@@ -1,10 +1,13 @@
 #![feature(core_intrinsics)] // For type_name().
 #![feature(fundamental)]
+#![recursion_limit = "1024"] // for easy_error!
 
 extern crate hyper;
 extern crate openssl;
 extern crate rand;
 extern crate scopeguard;
+#[macro_use]
+extern crate rustup_error;
 
 #[cfg(windows)]
 extern crate winapi;

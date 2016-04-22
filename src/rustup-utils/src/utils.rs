@@ -253,8 +253,8 @@ pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
 pub fn open_browser(path: &Path) -> Result<()> {
     match raw::open_browser(path) {
         Ok(true) => Ok(()),
-        Ok(false) => Err(Error::OpeningBrowser { error: None }),
-        Err(e) => Err(Error::OpeningBrowser { error: Some(e) }),
+        Ok(false) => Err(Error::NoBrowser),
+        Err(e) => Err(Error::OpeningBrowser { error: e }),
     }
 }
 
