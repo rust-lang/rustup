@@ -1,4 +1,4 @@
-#![feature(box_patterns)]
+#![recursion_limit = "1024"]
 
 extern crate hyper;
 extern crate regex;
