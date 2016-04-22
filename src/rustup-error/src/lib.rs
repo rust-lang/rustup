@@ -91,26 +91,4 @@ macro_rules! easy_error {
         }
 
     };
-    (   $(#[$meta:meta])*
-        enum $name:ident { $($chunks:tt)* }
-    ) => {
-        quick_error! {
-            $(#[$meta])*
-            enum $name {
-                $($chunks)*
-            }
-        }
-
-        impl $name {
-            fn unchained(self) -> ErrorChain<$name> {
-                $crate::ErrorChain::new_chain(self)
-            }
-
-            fn chained<E>(self, e: E) -> ErrorChain<$name>
-                where E: ::std::error::Error + Send + 'static
-            {
-                $crate::ErrorChain::extend_chain(self, e)
-            }
-        }
-    };
 }
