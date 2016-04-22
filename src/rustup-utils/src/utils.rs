@@ -1,3 +1,4 @@
+use rustup_error::ChainError;
 use errors::Result;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -147,7 +148,8 @@ pub fn download_file(url: hyper::Url,
 }
 
 pub fn parse_url(url: &str) -> Result<hyper::Url> {
-    hyper::Url::parse(url).map_err(|_| Error::InvalidUrl { url: url.to_owned() })
+    Ok(try!(hyper::Url::parse(url)
+            .chain_error(|| Error::InvalidUrl { url: url.to_owned() })))
 }
 
 pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
@@ -419,7 +421,7 @@ pub fn cargo_home() -> Result<PathBuf> {
         None
     };
 
-    let cwd = try!(env::current_dir().map_err(|_| Error::CargoHome));
+    let cwd = try!(env::current_dir().chain_error(|| Error::CargoHome));
     let cargo_home = env_var.clone().map(|home| {
         cwd.join(home)
     });
@@ -428,7 +430,7 @@ pub fn cargo_home() -> Result<PathBuf> {
 }
 
 pub fn multirust_home() -> Result<PathBuf> {
-    let cwd = try!(env::current_dir().map_err(|_| Error::MultirustHome));
+    let cwd = try!(env::current_dir().chain_error(|| Error::MultirustHome));
     let multirust_home = env::var_os("RUSTUP_HOME").map(|home| {
         cwd.join(home)
     });
