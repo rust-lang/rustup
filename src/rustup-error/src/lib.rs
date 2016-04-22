@@ -33,44 +33,32 @@ impl<T, E> ChainError<T> for StdResult<T, E>
 
 #[macro_export]
 macro_rules! easy_error {
-    (   $(#[$error_meta:meta])*
+    (
+
+        $(#[$error_chain_meta:meta])*
+        pub error_chain $error_chain_name:ident;
+
+        $(#[$error_meta:meta])*
         pub error $error_name:ident { $($error_chunks:tt)* }
+
     ) => {
-        quick_error! {
-            $(#[$error_meta])*
-            pub enum $error_name {
-                $($error_chunks)*
-            }
-        }
 
-        impl $error_name {
-            pub fn unchained(self) -> ErrorChain<Self> {
-                $crate::BuildChain::new_chain(self)
-            }
+        $(#[$error_chain_meta])*
+        pub struct $error_chain_name<E>(pub E, pub Option<Box<::std::error::Error + Send>>);
 
-            pub fn chained<E>(self, e: E) -> ErrorChain<Self>
-                where E: ::std::error::Error + Send + 'static
-            {
-                $crate::BuildChain::extend_chain(self, e)
-            }
-        }
-
-        #[derive(Debug)]
-        pub struct ErrorChain<E>(pub E, pub Option<Box<::std::error::Error + Send>>);
-
-        impl<E> $crate::BuildChain<E> for ErrorChain<E> {
+        impl<E> $crate::BuildChain<E> for $error_chain_name<E> {
             fn new_chain(e: E) -> Self {
-                ErrorChain(e, None)
+                $error_chain_name(e, None)
             }
 
             fn extend_chain<SE>(e: E, c: SE) -> Self
                 where SE: ::std::error::Error + Send + 'static
             {
-                ErrorChain(e, Some(Box::new(c)))
+                $error_chain_name(e, Some(Box::new(c)))
             }
         }
 
-        impl<E> ::std::error::Error for ErrorChain<E>
+        impl<E> ::std::error::Error for $error_chain_name<E>
             where E: ::std::error::Error
         {
             fn description(&self) -> &str { self.0.description() }
@@ -82,11 +70,30 @@ macro_rules! easy_error {
             }
         }
 
-        impl<E> ::std::fmt::Display for ErrorChain<E>
+        impl<E> ::std::fmt::Display for $error_chain_name<E>
             where E: ::std::fmt::Display
         {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 ::std::fmt::Display::fmt(&self.0, f)
+            }
+        }
+
+        quick_error! {
+            $(#[$error_meta])*
+            pub enum $error_name {
+                $($error_chunks)*
+            }
+        }
+
+        impl $error_name {
+            pub fn unchained(self) -> $error_chain_name<Self> {
+                $crate::BuildChain::new_chain(self)
+            }
+
+            pub fn chained<E>(self, e: E) -> $error_chain_name<Self>
+                where E: ::std::error::Error + Send + 'static
+            {
+                $crate::BuildChain::extend_chain(self, e)
             }
         }
 

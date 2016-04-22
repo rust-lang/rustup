@@ -11,6 +11,9 @@ use dist::TargetTriple;
 
 easy_error! {
     #[derive(Debug)]
+    pub error_chain ErrorChain;
+
+    #[derive(Debug)]
     pub error Error2 {
         Utils(e: rustup_utils::ErrorChain<rustup_utils::Error>) {
             description(e.description())

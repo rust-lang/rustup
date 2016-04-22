@@ -6,6 +6,9 @@ pub type Result<T> = ::std::result::Result<T, ErrorChain<Error>>;
 
 easy_error! {
     #[derive(Debug)]
+    pub error_chain ErrorChain;
+
+    #[derive(Debug)]
     pub error Error {
         LocatingHome {
             description("could not locate home directory")
