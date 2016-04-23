@@ -21,7 +21,6 @@ easy_error! {
         Utils(e: rustup_utils::Error) {
             description(e.description())
             display("{}", e)
-            from()
         }
         Temp(e: ForeignError) {
             description(&e.description)
