@@ -5,6 +5,7 @@ use toml;
 use rustup_utils;
 use manifest::Component;
 use dist::TargetTriple;
+use rustup_error::ForeignError;
 
 pub type Result<T> = ::std::result::Result<T, ErrorChain>;
 
@@ -22,8 +23,9 @@ easy_error! {
             display("{}", e)
             from()
         }
-        Temp {
-            description("temporary file error")
+        Temp(e: ForeignError) {
+            description(&e.description)
+            display("{}", e.display)
         }
         InvalidFileExtension {
             description("invalid file extension")
@@ -224,6 +226,6 @@ impl From<rustup_utils::ErrorChain> for ErrorChain {
 
 impl From<temp::Error> for ErrorChain {
     fn from(e: temp::Error) -> Self {
-        ErrorChain(Error::Temp, Some(Box::new(e)))
+        ErrorChain(Error::Temp(ForeignError::new(&e)), Some(Box::new(e)))
     }
 }

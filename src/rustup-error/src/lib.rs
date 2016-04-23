@@ -1,5 +1,22 @@
 mod quick_error;
 
+#[derive(Debug)]
+pub struct ForeignError {
+    pub description: String,
+    pub display: String,
+}
+
+impl ForeignError {
+    pub fn new<E>(e: &E) -> ForeignError
+        where E: ::std::error::Error
+    {
+        ForeignError {
+            description: e.description().to_string(),
+            display: format!("{}", e)
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! easy_error {
     (
