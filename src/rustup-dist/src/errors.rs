@@ -6,10 +6,8 @@ use rustup_utils;
 use manifest::Component;
 use dist::TargetTriple;
 
-pub type Result<T> = ::std::result::Result<T, ErrorChain>;
-
 easy_error! {
-    ErrorChain / ChainError;
+    ErrorChain / ChainError / Result;
 
     from_links {
         rustup_utils::ErrorChain, rustup_utils::Error, Utils;

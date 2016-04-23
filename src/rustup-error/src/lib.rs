@@ -20,7 +20,7 @@ impl ForeignError {
 #[macro_export]
 macro_rules! easy_error {
     (
-        $error_chain_name:ident / $chain_error_name:ident;
+        $error_chain_name:ident / $chain_error_name:ident / $result_name:ident;
 
         from_links {
             $( $from_link_chain_path:path, $from_link_error_path:path, $from_link_variant:ident;  ) *
@@ -33,6 +33,8 @@ macro_rules! easy_error {
         $error_name:ident { $($error_chunks:tt)* }
 
     ) => {
+
+        pub type $result_name<T> = ::std::result::Result<T, $error_chain_name>;
 
         pub trait $chain_error_name<T> {
             fn chain_error<F>(self, callback: F) -> ::std::result::Result<T, $error_chain_name>

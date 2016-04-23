@@ -4,10 +4,8 @@ use rustup_dist::{self, temp};
 use rustup_utils;
 use rustup_dist::manifest::Component;
 
-pub type Result<T> = ::std::result::Result<T, ErrorChain>;
-
 easy_error! {
-    ErrorChain / ChainError;
+    ErrorChain / ChainError / Result;
 
     from_links {
         rustup_dist::ErrorChain, rustup_dist::Error, Install;
