@@ -66,12 +66,7 @@ impl Telemetry {
     pub fn clean_telemetry_dir(&self) -> Result<()> {
         let telemetry_dir_contents = self.telemetry_dir.read_dir();
 
-        let contents = match telemetry_dir_contents {
-            Ok(c) => c,
-            Err(e) => {
-                return Err(Error::TelemetryCleanupError(e));
-            }
-        };
+        let contents = try!(telemetry_dir_contents.chain_error(|| Error::TelemetryCleanupError));
 
         let mut telemetry_files: Vec<PathBuf> = Vec::new();
 
@@ -95,9 +90,7 @@ impl Telemetry {
 
         for i in 0..dl {
             let i = i as usize;
-            try!(fs::remove_file(&telemetry_files[i]).map_err(|e| {
-                Error::TelemetryCleanupError(e)
-            }));
+            try!(fs::remove_file(&telemetry_files[i]).chain_error(|| Error::TelemetryCleanupError));
         }
 
         Ok(())

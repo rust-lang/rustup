@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::fmt::{self, Display};
 
-use errors::Error;
+use errors::ErrorChain;
 
 use rustup_dist::{self, temp};
 use rustup_utils;
@@ -29,11 +29,12 @@ pub enum Notification<'a> {
     MetadataUpgradeNotNeeded(&'a str),
     WritingMetadataVersion(&'a str),
     ReadMetadataVersion(&'a str),
-    NonFatalError(&'a Error),
+    NonFatalError(&'a ErrorChain),
     UpgradeRemovesToolchains,
     MissingFileDuringSelfUninstall(PathBuf),
     SetTelemetry(&'a str),
-    TelemetryCleanupError(&'a Error),
+
+    TelemetryCleanupError(&'a ErrorChain),
 }
 
 pub type NotifyHandler<'a> = notify::NotifyHandler<'a, for<'b> Notifyable<Notification<'b>>>;

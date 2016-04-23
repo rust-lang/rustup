@@ -178,7 +178,7 @@ impl Cfg {
         match &*current_version {
             "1" => {
                 // This corresponds to an old version of multirust.sh.
-                Err(Error::UnknownMetadataVersion(current_version))
+                Err(Error::UnknownMetadataVersion(current_version).unchained())
             }
             "2" => {
                 // The toolchain installation format changed. Just delete them all.
@@ -187,7 +187,7 @@ impl Cfg {
 
                 let dirs = try!(utils::read_dir("toolchains", &self.toolchains_dir));
                 for dir in dirs {
-                    let dir = try!(dir.map_err(|e| Error::UpgradeIoError(e)));
+                    let dir = try!(dir.chain_error(|| Error::UpgradeIoError));
                     try!(utils::remove_dir("toolchain", &dir.path(),
                                            ::rustup_utils::NotifyHandler::some(&self.notify_handler)));
                 }
@@ -195,7 +195,7 @@ impl Cfg {
                 // Also delete the update hashes
                 let files = try!(utils::read_dir("update hashes", &self.update_hash_dir));
                 for file in files {
-                    let file = try!(file.map_err(|e| Error::UpgradeIoError(e)));
+                    let file = try!(file.chain_error(|| Error::UpgradeIoError));
                     try!(utils::remove_file("update hash", &file.path()));
                 }
 
@@ -203,7 +203,7 @@ impl Cfg {
 
                 Ok(())
             }
-            _ => Err(Error::UnknownMetadataVersion(current_version)),
+            _ => Err(Error::UnknownMetadataVersion(current_version).unchained()),
         }
     }
 
@@ -225,21 +225,22 @@ impl Cfg {
             return Ok(None);
         }
 
-        let toolchain = try!(self.verify_toolchain(name).map_err(|_| Error::ToolchainNotInstalled(name.to_string())));
+        let toolchain = try!(self.verify_toolchain(name)
+                             .chain_error(|| Error::ToolchainNotInstalled(name.to_string())));
 
         Ok(Some(toolchain))
     }
 
     pub fn find_override(&self, path: &Path) -> Result<Option<(Toolchain, OverrideReason)>> {
         if let Some(ref name) = self.env_override {
-            let toolchain = try!(self.verify_toolchain(name).map_err(|_| Error::ToolchainNotInstalled(name.to_string())));
+            let toolchain = try!(self.verify_toolchain(name).chain_error(|| Error::ToolchainNotInstalled(name.to_string())));
 
             return Ok(Some((toolchain, OverrideReason::Environment)));
         }
 
         if let Some((name, reason_path)) = try!(self.override_db
                                                     .find(path, self.notify_handler.as_ref())) {
-            let toolchain = try!(self.verify_toolchain(&name).map_err(|_| Error::ToolchainNotInstalled(name.to_string())));
+            let toolchain = try!(self.verify_toolchain(&name).chain_error(|| Error::ToolchainNotInstalled(name.to_string())));
             return Ok(Some((toolchain, OverrideReason::OverrideDB(reason_path))));
         }
 
@@ -334,14 +335,14 @@ impl Cfg {
             if &*current_version == METADATA_VERSION {
                 Ok(())
             } else {
-                Err(Error::NeedMetadataUpgrade)
+                Err(Error::NeedMetadataUpgrade.unchained())
             }
         }
     }
 
     pub fn toolchain_for_dir(&self, path: &Path) -> Result<(Toolchain, Option<OverrideReason>)> {
         self.find_override_toolchain_or_default(path)
-            .and_then(|r| r.ok_or(Error::NoDefaultToolchain))
+            .and_then(|r| r.ok_or(Error::NoDefaultToolchain.unchained()))
     }
 
     pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {

@@ -15,7 +15,7 @@ pub fn main() -> Result<()> {
     let arg0 = arg0.as_ref()
         .and_then(|a| a.file_name())
         .and_then(|a| a.to_str());
-    let ref arg0 = try!(arg0.ok_or(Error::NoExeName));
+    let ref arg0 = try!(arg0.ok_or(Error::NoExeName.unchained()));
 
     let cfg = try!(set_globals(false));
     try!(cfg.check_metadata_version());

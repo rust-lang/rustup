@@ -32,7 +32,7 @@
 
 use common::{self, Confirm};
 use itertools::Itertools;
-use rustup::{Error, Result, NotifyHandler};
+use rustup::{Error, Result, NotifyHandler, ChainError};
 use rustup_dist::dist;
 use rustup_dist;
 use rustup_utils::utils;
@@ -456,7 +456,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     let ref cargo_home = try!(utils::cargo_home());
 
     if !cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX)).exists() {
-        return Err(Error::NotSelfInstalled(cargo_home.clone()));
+        return Err(Error::NotSelfInstalled(cargo_home.clone()).unchained());
     }
 
     if !no_prompt {
@@ -491,8 +491,8 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     // Delete everything in CARGO_HOME *except* the multirust bin
 
     // First everything except the bin directory
-    for dirent in try!(fs::read_dir(cargo_home).map_err(|_| read_dir_err())) {
-        let dirent = try!(dirent.map_err(|_| read_dir_err()));
+    for dirent in try!(fs::read_dir(cargo_home).chain_error(|| read_dir_err())) {
+        let dirent = try!(dirent.chain_error(|| read_dir_err()));
         if dirent.file_name().to_str() != Some("bin") {
             if dirent.path().is_dir() {
                 try!(utils::remove_dir("cargo_home", &dirent.path(), ntfy!(&NotifyHandler::none())));
@@ -506,8 +506,8 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     // until this process exits (on windows).
     let tools = TOOLS.iter().map(|t| format!("{}{}", t, EXE_SUFFIX));
     let tools: Vec<_> = tools.chain(vec![format!("multirust{}", EXE_SUFFIX)]).collect();
-    for dirent in try!(fs::read_dir(&cargo_home.join("bin")).map_err(|_| read_dir_err())) {
-        let dirent = try!(dirent.map_err(|_| read_dir_err()));
+    for dirent in try!(fs::read_dir(&cargo_home.join("bin")).chain_error(|| read_dir_err())) {
+        let dirent = try!(dirent.chain_error(|| read_dir_err()));
         let name = dirent.file_name();
         let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));
         if file_is_tool == Some(false) {
@@ -621,13 +621,13 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
 
         if gc_handle == INVALID_HANDLE_VALUE {
             let err = io::Error::last_os_error();
-            return Err(Error::WindowsUninstallMadness(err));
+            return Err(Error::WindowsUninstallMadness.chained(err));
         }
 
         let _g = scopeguard::guard(gc_handle, |h| { let _ = CloseHandle(*h); });
 
         try!(Command::new(gc_exe).spawn()
-             .map_err(|e| Error::WindowsUninstallMadness(e)));
+             .chain_error(|| Error::WindowsUninstallMadness));
 
         // The catch 22 article says we must sleep here to give
         // Windows a chance to bump the processes file reference
@@ -662,7 +662,7 @@ pub fn complete_windows_uninstall() -> Result<()> {
          .stdout(Stdio::null())
          .stderr(Stdio::null())
          .spawn()
-         .map_err(|e| Error::WindowsUninstallMadness(e)));
+         .chain_error(|| Error::WindowsUninstallMadness));
 
     process::exit(0);
 }
@@ -685,7 +685,7 @@ fn wait_for_parent() -> Result<()> {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if snapshot == INVALID_HANDLE_VALUE {
             let err = io::Error::last_os_error();
-            return Err(Error::WindowsUninstallMadness(err));
+            return Err(Error::WindowsUninstallMadness.chained(err));
         }
 
         let _g = scopeguard::guard(snapshot, |h| { let _ = CloseHandle(*h); });
@@ -697,7 +697,7 @@ fn wait_for_parent() -> Result<()> {
         let success = Process32First(snapshot, &mut entry);
         if success == 0 {
             let err = io::Error::last_os_error();
-            return Err(Error::WindowsUninstallMadness(err));
+            return Err(Error::WindowsUninstallMadness.chained(err));
         }
 
         let this_pid = GetCurrentProcessId();
@@ -705,7 +705,7 @@ fn wait_for_parent() -> Result<()> {
             let success = Process32Next(snapshot, &mut entry);
             if success == 0 {
                 let err = io::Error::last_os_error();
-                return Err(Error::WindowsUninstallMadness(err));
+                return Err(Error::WindowsUninstallMadness.chained(err));
             }
         }
 
@@ -728,7 +728,7 @@ fn wait_for_parent() -> Result<()> {
 
         if res != WAIT_OBJECT_0 {
             let err = io::Error::last_os_error();
-            return Err(Error::WindowsUninstallMadness(err));
+            return Err(Error::WindowsUninstallMadness.chained(err));
         }
     }
 
@@ -817,13 +817,13 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                           .map_err(|_| Error::PermissionDenied));
+                           .chain_error(|| Error::PermissionDenied));
     let reg_value = RegValue {
         bytes: utils::string_to_winreg_bytes(&new_path),
         vtype: RegType::REG_EXPAND_SZ,
     };
     try!(environment.set_raw_value("PATH", &reg_value)
-         .map_err(|_| Error::PermissionDenied));
+         .chain_error(|| Error::PermissionDenied));
 
     // Tell other processes to update their environment
     unsafe {
@@ -850,7 +850,7 @@ fn get_windows_path_var() -> Result<Option<String>> {
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                           .map_err(|_| Error::PermissionDenied));
+                           .chain_error(|| Error::PermissionDenied));
 
     let reg_value = environment.get_raw_value("PATH");
     match reg_value {
@@ -867,7 +867,7 @@ fn get_windows_path_var() -> Result<Option<String>> {
             Ok(Some(String::new()))
         }
         Err(e) => {
-            Err(Error::WindowsUninstallMadness(e))
+            Err(Error::WindowsUninstallMadness.chained(e))
         }
     }
 }
@@ -933,17 +933,17 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                           .map_err(|_| Error::PermissionDenied));
+                           .chain_error(|| Error::PermissionDenied));
     if new_path.is_empty() {
         try!(environment.delete_value("PATH")
-             .map_err(|_| Error::PermissionDenied));
+             .chain_error(|| Error::PermissionDenied));
     } else {
         let reg_value = RegValue {
             bytes: utils::string_to_winreg_bytes(&new_path),
             vtype: RegType::REG_EXPAND_SZ,
         };
         try!(environment.set_raw_value("PATH", &reg_value)
-        .map_err(|_| Error::PermissionDenied));
+        .chain_error(|| Error::PermissionDenied));
     }
 
     // Tell other processes to update their environment
@@ -1020,7 +1020,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let ref setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
     if !multirust_path.exists() {
-        return Err(Error::NotSelfInstalled(cargo_home.clone()));
+        return Err(Error::NotSelfInstalled(cargo_home.clone()).unchained());
     }
 
     if setup_path.exists() {
@@ -1034,7 +1034,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
         .unwrap_or(String::from(UPDATE_ROOT));
 
     let tempdir = try!(TempDir::new("multirust-update")
-        .map_err(|_| Error::Custom {
+        .chain_error(|| Error::Custom {
             id: String::new(),
             desc: "error creating temp directory".to_string()
         }));
@@ -1081,11 +1081,11 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Check that hash is correct
     if latest_hash != download_hash {
-        return Err(Error::Install(rustup_dist::Error::ChecksumFailed {
+        return Err(rustup_dist::Error::ChecksumFailed {
             url: url,
             expected: latest_hash,
             calculated: download_hash,
-        }.unchained()));
+        }.unchained().into());
     }
 
     // Mark as executable
@@ -1122,7 +1122,7 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
 pub fn run_update(setup_path: &Path) -> Result<()> {
     try!(Command::new(setup_path)
         .arg("--self-replace")
-        .spawn().map_err(|_| Error::Custom {
+        .spawn().chain_error(|| Error::Custom {
             id: String::new(),
             desc: "unable to run updater".to_string(),
         }));

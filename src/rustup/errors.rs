@@ -1,164 +1,130 @@
 use std::path::PathBuf;
-use std::error;
-use std::fmt::{self, Display};
-use std::io;
 
 use rustup_dist::{self, temp};
 use rustup_utils;
 use rustup_dist::manifest::Component;
+use rustup_error::ForeignError;
 
-#[derive(Debug)]
-pub enum Error {
-    Install(rustup_dist::ErrorChain),
-    Utils(rustup_utils::ErrorChain),
-    Temp(temp::Error),
+pub type Result<T> = ::std::result::Result<T, ErrorChain>;
 
-    UnknownMetadataVersion(String),
-    InvalidEnvironment,
-    NoDefaultToolchain,
-    PermissionDenied,
-    ToolchainNotInstalled(String),
-    UnknownHostTriple,
-    InfiniteRecursion,
-    NeedMetadataUpgrade,
-    UpgradeIoError(io::Error),
-    BadInstallerType(String),
-    ComponentsUnsupported(String),
-    UnknownComponent(String, Component),
-    AddingRequiredComponent(String, Component),
-    RemovingRequiredComponent(String, Component),
-    NoExeName,
-    NotSelfInstalled(PathBuf),
-    CantSpawnWindowsGcExe,
-    WindowsUninstallMadness(io::Error),
-    SelfUpdateFailed,
-    ReadStdin,
-    Custom {
-        id: String,
-        desc: String,
-    },
-    TelemetryCleanupError(io::Error),
-}
+easy_error! {
+    #[derive(Debug)]
+    pub chain_error ChainError;
 
-pub type Result<T> = ::std::result::Result<T, Error>;
+    #[derive(Debug)]
+    pub error_chain ErrorChain;
 
-extend_error!(Error: rustup_dist::ErrorChain, e => Error::Install(e));
-extend_error!(Error: rustup_utils::ErrorChain, e => Error::Utils(e));
-extend_error!(Error: temp::Error, e => Error::Temp(e));
+    #[derive(Debug)]
+    pub error Error {
+        Install(e: rustup_dist::Error) {
+            description(e.description())
+            display("{}", e)
+        }
+        Utils(e: rustup_utils::Error) {
+            description(e.description())
+            display("{}", e)
+        }
+        Temp(e: ForeignError) {
+            description(&e.description)
+            display("{}", e.display)
+        }
 
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        use self::Error::*;
-        match *self {
-            Install(ref e) => error::Error::description(e),
-            Utils(ref e) => error::Error::description(e),
-            Temp(ref e) => error::Error::description(e),
-            UnknownMetadataVersion(_) => "unknown metadata version",
-            InvalidEnvironment => "invalid environment",
-            NoDefaultToolchain => "no default toolchain configured",
-            PermissionDenied => "permission denied",
-            ToolchainNotInstalled(_) => "toolchain is not installed",
-            UnknownHostTriple => "unknown host triple",
-            InfiniteRecursion =>  "infinite recursion detected",
-            NeedMetadataUpgrade => "rustup's metadata is out of date. run `rustup self upgrade-data`",
-            UpgradeIoError(_) => "I/O error during upgrade",
-            BadInstallerType(_) => "invalid extension for installer",
-            ComponentsUnsupported(_) => "toolchain does not support componentsn",
-            UnknownComponent(_ ,_) => "toolchain does not contain component",
-            AddingRequiredComponent(_, _) => "required component cannot be added",
-            RemovingRequiredComponent(_, _) => "required component cannot be removed",
-            NoExeName => "couldn't determine self executable name",
-            NotSelfInstalled(_) => "rustup is not installed",
-            CantSpawnWindowsGcExe => "failed to spawn cleanup process",
-            WindowsUninstallMadness(_) => "failure during windows uninstall",
-            SelfUpdateFailed => "self-updater failed to replace multirust executable",
-            ReadStdin => "unable to read from stdin for confirmation",
-            Custom { ref desc, .. } => desc,
-            TelemetryCleanupError(_) => "unable to remove old telemetry files"
+        UnknownMetadataVersion(v: String) {
+            description("unknown metadata version")
+            display("unknown metadata version: '{}'", v)
+        }
+        InvalidEnvironment {
+            description("invalid environment")
+        }
+        NoDefaultToolchain {
+            description("no default toolchain configured")
+        }
+        PermissionDenied {
+            description("permission denied")
+        }
+        ToolchainNotInstalled(t: String) {
+            description("toolchain is not installed")
+            display("toolchain '{}' is not installed", t)
+        }
+        UnknownHostTriple {
+            description("unknown host triple")
+        }
+        InfiniteRecursion {
+            description("infinite recursion detected")
+        }
+        NeedMetadataUpgrade {
+            description("rustup's metadata is out of date. run `rustup self upgrade-data`")
+        }
+        UpgradeIoError {
+            description("I/O error during upgrade")
+        }
+        BadInstallerType(s: String) {
+            description("invalid extension for installer")
+            display("invalid extension for installer: '{}'", s)
+        }
+        ComponentsUnsupported(t: String) {
+            description("toolchain does not support components")
+            display("toolchain '{}' does not support components", t)
+        }
+        UnknownComponent(t: String, c: Component) {
+            description("toolchain does not contain component")
+            display("toolchain '{}' does not contain component '{}' for target '{}'", t, c.pkg, c.target)
+        }
+        AddingRequiredComponent(t: String, c: Component) {
+            description("required component cannot be added")
+            display("component '{}' for target '{}' is required for toolchain '{}' and cannot be re-added",
+                    c.pkg, c.target, t)
+        }
+        RemovingRequiredComponent(t: String, c: Component) {
+            description("required component cannot be removed")
+            display("component '{}' for target '{}' is required for toolchain '{}' and cannot be removed",
+                    c.pkg, c.target, t)
+        }
+        NoExeName {
+            description("couldn't determine self executable name")
+        }
+        NotSelfInstalled(p: PathBuf) {
+            description("rustup is not installed")
+            display("rustup is not installed at '{}'", p.display())
+        }
+        CantSpawnWindowsGcExe {
+            description("failed to spawn cleanup process")
+        }
+        WindowsUninstallMadness {
+            description("failure during windows uninstall")
+        }
+        SelfUpdateFailed {
+            description("self-updater failed to replace multirust executable")
+        }
+        ReadStdin {
+            description("unable to read from stdin for confirmation")
+        }
+        Custom {
+            id: String,
+            desc: String,
+        } {
+            description(&desc)
+        }
+        TelemetryCleanupError {
+            description("unable to remove old telemetry files")
         }
     }
+}
 
-    fn cause(&self) -> Option<&error::Error> {
-        use Error::*;
-        match *self {
-            Install(ref e) => Some(e),
-            Utils(ref e) => Some(e),
-            Temp(ref e) => Some(e),
-            UpgradeIoError(ref e) => Some(e),
-            WindowsUninstallMadness(ref e) => Some(e),
-            TelemetryCleanupError(ref e) => Some(e),
-            UnknownMetadataVersion(_) |
-            InvalidEnvironment |
-            NoDefaultToolchain |
-            PermissionDenied |
-            ToolchainNotInstalled(_) |
-            UnknownHostTriple |
-            InfiniteRecursion |
-            NeedMetadataUpgrade |
-            BadInstallerType(_) |
-            ComponentsUnsupported(_) |
-            UnknownComponent(_, _) |
-            AddingRequiredComponent(_, _) |
-            RemovingRequiredComponent(_, _) |
-            NoExeName |
-            NotSelfInstalled(_) |
-            CantSpawnWindowsGcExe |
-            SelfUpdateFailed |
-            ReadStdin |
-            Custom {..} => None,
-        }
+impl From<rustup_dist::ErrorChain> for ErrorChain {
+    fn from(e: rustup_dist::ErrorChain) -> Self {
+        ErrorChain(Error::Install(e.0), e.1)
     }
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
-        use std::error::Error;
-        use self::Error::*;
-        match *self {
-            Install(ref n) => n.fmt(f),
-            Utils(ref n) => n.fmt(f),
-            Temp(ref n) => n.fmt(f),
-            UnknownMetadataVersion(ref ver) => write!(f, "unknown metadata version: '{}'", ver),
-            InvalidEnvironment => write!(f, "invalid environment"),
-            NoDefaultToolchain => write!(f, "no default toolchain configured"),
-            PermissionDenied => write!(f, "permission denied"),
-            ToolchainNotInstalled(ref name) => write!(f, "toolchain '{}' is not installed", name),
-            UnknownHostTriple => write!(f, "unknown host triple"),
-            InfiniteRecursion => {
-                write!(f,
-                       "infinite recursion detected: the command may not exist for this toolchain")
-            }
-            NeedMetadataUpgrade => write!(f, "{}", self.description()),
-            UpgradeIoError(ref e) => {
-                write!(f, "I/O error during upgrade: {}", e.description())
-            }
-            BadInstallerType(ref s) => {
-                write!(f, "invalid extension for installer: '{}'", s)
-            }
-            ComponentsUnsupported(ref t) => {
-                write!(f, "toolchain '{}' does not support components", t)
-            }
-            UnknownComponent(ref t, ref c) => {
-                write!(f, "toolchain '{}' does not contain component '{}' for target '{}'", t, c.pkg, c.target)
-            }
-            AddingRequiredComponent(ref t, ref c) => {
-                write!(f, "component '{}' for target '{}' is required for toolchain '{}' and cannot be re-added",
-                       c.pkg, c.target, t)
-            }
-            RemovingRequiredComponent(ref t, ref c) => {
-                write!(f, "component '{}' for target '{}' is required for toolchain '{}' and cannot be removed",
-                       c.pkg, c.target, t)
-            }
-            NoExeName => write!(f, "couldn't determine self executable name"),
-            NotSelfInstalled(ref p) => {
-                write!(f, "rustup is not installed at '{}'", p.display())
-            }
-            CantSpawnWindowsGcExe => write!(f, "{}", self.description()),
-            WindowsUninstallMadness(ref e) => write!(f, "failure during windows uninstall: {}", e),
-            SelfUpdateFailed => write!(f, "{}", self.description()),
-            ReadStdin => write!(f, "{}", self.description()),
-            Custom { ref desc, .. } => write!(f, "{}", desc),
-            TelemetryCleanupError(ref e) => write!(f, "Unable to delete telemetry files {}", e.description()),
-        }
+impl From<rustup_utils::ErrorChain> for ErrorChain {
+    fn from(e: rustup_utils::ErrorChain) -> Self {
+        ErrorChain(Error::Utils(e.0), e.1)
+    }
+}
+
+impl From<temp::Error> for ErrorChain {
+    fn from(e: temp::Error) -> Self {
+        ErrorChain(Error::Temp(ForeignError::new(&e)), Some(Box::new(e)))
     }
 }

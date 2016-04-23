@@ -56,7 +56,7 @@ fn run_multirust() -> Result<()> {
     let recursion_count = env::var("RUST_RECURSION_COUNT").ok()
         .and_then(|s| s.parse().ok()).unwrap_or(0);
     if recursion_count > 5 {
-        return Err(Error::InfiniteRecursion);
+        return Err(Error::InfiniteRecursion.unchained());
     }
 
     // Do various things to clean up past messes
@@ -111,7 +111,7 @@ fn run_multirust() -> Result<()> {
         }
         None => {
             // Weird case. No arg0, or it's unparsable.
-            Err(Error::NoExeName)
+            Err(Error::NoExeName.unchained())
         }
     }
 }

@@ -21,7 +21,7 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(cmd: Command,
     let arg0 = arg0.as_ref()
         .and_then(|a| a.file_name())
         .and_then(|a| a.to_str());
-    let arg0 = try!(arg0.ok_or(Error::NoExeName));
+    let arg0 = try!(arg0.ok_or(Error::NoExeName.unchained()));
     if (arg0 == "rustc" || arg0 == "rustc.exe") && cfg.telemetry_enabled() {
         return telemetry_rustc(cmd, &args, &cfg);
     }
