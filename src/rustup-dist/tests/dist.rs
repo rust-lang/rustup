@@ -16,7 +16,7 @@ extern crate hyper;
 use rustup_mock::dist::*;
 use rustup_mock::{MockCommand, MockInstallerBuilder};
 use rustup_dist::prefix::InstallPrefix;
-use rustup_dist::{Error, NotifyHandler};
+use rustup_dist::{ErrorKind, NotifyHandler};
 use rustup_dist::errors::Result;
 use rustup_dist::dist::{ToolchainDesc, TargetTriple};
 use rustup_dist::download::DownloadCfg;
@@ -903,7 +903,7 @@ fn bad_component_hash() {
         let err = update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap_err();
 
         match *err.inner() {
-            Error::ChecksumFailed { .. } => (),
+            ErrorKind::ChecksumFailed { .. } => (),
             _ => panic!()
         }
     });
@@ -919,7 +919,7 @@ fn unable_to_download_component() {
         let err = update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap_err();
 
         match *err.inner() {
-            Error::ComponentDownloadFailed(..) => (),
+            ErrorKind::ComponentDownloadFailed(..) => (),
             _ => panic!()
         }
     });

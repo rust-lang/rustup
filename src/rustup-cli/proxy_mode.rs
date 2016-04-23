@@ -1,5 +1,6 @@
 use common::set_globals;
-use rustup::{Cfg, Result, Error};
+use rustup::{Cfg};
+use rustup::{ErrorKind, Result};
 use rustup_utils::utils;
 use rustup::command::run_command_for_dir;
 use std::env;
@@ -15,7 +16,7 @@ pub fn main() -> Result<()> {
     let arg0 = arg0.as_ref()
         .and_then(|a| a.file_name())
         .and_then(|a| a.to_str());
-    let ref arg0 = try!(arg0.ok_or(Error::NoExeName.unchained()));
+    let ref arg0 = try!(arg0.ok_or(ErrorKind::NoExeName.unchained()));
 
     let cfg = try!(set_globals(false));
     try!(cfg.check_metadata_version());

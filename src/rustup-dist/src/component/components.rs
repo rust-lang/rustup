@@ -26,7 +26,7 @@ impl Components {
         // Validate that the metadata uses a format we know
         if let Some(v) = try!(c.read_version()) {
             if v != INSTALLER_VERSION {
-                return Err(Error::BadInstalledMetadataVersion(v).unchained());
+                return Err(ErrorKind::BadInstalledMetadataVersion(v).unchained());
             }
         }
 
@@ -169,7 +169,7 @@ impl Component {
         let mut result = Vec::new();
         for line in try!(utils::read_file("component", &self.manifest_file())).lines() {
             result.push(try!(ComponentPart::decode(line)
-                                 .ok_or_else(|| Error::CorruptComponent(self.name.clone()).unchained())));
+                                 .ok_or_else(|| ErrorKind::CorruptComponent(self.name.clone()).unchained())));
         }
         Ok(result)
     }
@@ -190,7 +190,7 @@ impl Component {
             match &*part.0 {
                 "file" => try!(tx.remove_file(&self.name, part.1)),
                 "dir" => try!(tx.remove_dir(&self.name, part.1)),
-                _ => return Err(Error::CorruptComponent(self.name.clone()).unchained()),
+                _ => return Err(ErrorKind::CorruptComponent(self.name.clone()).unchained()),
             }
         }
 

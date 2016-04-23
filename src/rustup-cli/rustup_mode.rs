@@ -1,6 +1,7 @@
 use clap::{App, Arg, AppSettings, SubCommand, ArgMatches};
 use common;
-use rustup::{Result, Cfg, Error, Toolchain, command};
+use rustup::{Cfg, Toolchain, command};
+use rustup::{ErrorKind, Result};
 use rustup_dist::manifest::Component;
 use rustup_dist::dist::TargetTriple;
 use rustup_utils::utils;
@@ -193,7 +194,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let status = if !toolchain.is_custom() {
         Some(try!(toolchain.install_from_dist_if_not_installed()))
     } else if !toolchain.exists() {
-        return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()).unchained());
+        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).unchained());
     } else {
         None
     };
@@ -215,7 +216,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         let status = if !toolchain.is_custom() {
             Some(try!(toolchain.install_from_dist()))
         } else if !toolchain.exists() {
-            return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()).unchained());
+            return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).unchained());
         } else {
             None
         };
@@ -335,7 +336,7 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let status = if !toolchain.is_custom() {
         Some(try!(toolchain.install_from_dist_if_not_installed()))
     } else if !toolchain.exists() {
-        return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()).unchained());
+        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).unchained());
     } else {
         None
     };
@@ -389,6 +390,6 @@ fn telemetry(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     match telemetry_string {
         "on" => cfg.set_telemetry(true),
          "off" => cfg.set_telemetry(false),
-        _ => Err(Error::Custom { id: "Telemetry".to_string(), desc: "Incorrect telemetry setting".to_string() }.unchained()),
+        _ => Err(ErrorKind::Custom { id: "Telemetry".to_string(), desc: "Incorrect telemetry setting".to_string() }.unchained()),
     }
 }

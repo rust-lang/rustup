@@ -6,12 +6,12 @@ use rustup_dist::manifest::Component;
 
 declare_errors! {
     types {
-        ErrorChain, Error, ChainError, Result;
+        Error, ErrorKind, ChainError, Result;
     }
 
     from_links {
-        rustup_dist::ErrorChain, rustup_dist::Error, Dist;
-        rustup_utils::ErrorChain, rustup_utils::Error, Utils;
+        rustup_dist::Error, rustup_dist::ErrorKind, Dist;
+        rustup_utils::Error, rustup_utils::ErrorKind, Utils;
     }
 
     foreign_links {

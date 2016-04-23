@@ -192,7 +192,7 @@ impl<'a> ChangedItem<'a> {
     fn add_file(prefix: &InstallPrefix, component: &str, relpath: PathBuf) -> Result<(Self, File)> {
         let abs_path = prefix.abs_path(&relpath);
         if utils::path_exists(&abs_path) {
-            Err(Error::ComponentConflict {
+            Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
             }.unchained())
@@ -200,7 +200,7 @@ impl<'a> ChangedItem<'a> {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
             }
-            let file = try!(File::create(&abs_path).chain_error(|| Error::CreatingFile(abs_path)));
+            let file = try!(File::create(&abs_path).chain_error(|| ErrorKind::CreatingFile(abs_path)));
             Ok((ChangedItem::AddedFile(relpath), file))
         }
     }
@@ -211,7 +211,7 @@ impl<'a> ChangedItem<'a> {
                  -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
         if utils::path_exists(&abs_path) {
-            Err(Error::ComponentConflict {
+            Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
             }.unchained())
@@ -226,7 +226,7 @@ impl<'a> ChangedItem<'a> {
     fn copy_dir(prefix: &InstallPrefix, component: &str, relpath: PathBuf, src: &Path) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
         if utils::path_exists(&abs_path) {
-            Err(Error::ComponentConflict {
+            Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
             }.unchained())
@@ -242,7 +242,7 @@ impl<'a> ChangedItem<'a> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = try!(temp_cfg.new_file());
         if !utils::path_exists(&abs_path) {
-            Err(Error::ComponentMissingFile {
+            Err(ErrorKind::ComponentMissingFile {
                 name: component.to_owned(),
                 path: relpath.clone(),
             }.unchained())
@@ -255,7 +255,7 @@ impl<'a> ChangedItem<'a> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = try!(temp_cfg.new_directory());
         if !utils::path_exists(&abs_path) {
-            Err(Error::ComponentMissingDir {
+            Err(ErrorKind::ComponentMissingDir {
                 name: component.to_owned(),
                 path: relpath.clone(),
             }.unchained())

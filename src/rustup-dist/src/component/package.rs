@@ -58,7 +58,7 @@ fn validate_installer_version(path: &Path) -> Result<()> {
     if v == INSTALLER_VERSION {
         Ok(())
     } else {
-        Err(Error::BadInstallerVersion(v.to_owned()).unchained())
+        Err(ErrorKind::BadInstallerVersion(v.to_owned()).unchained())
     }
 }
 
@@ -92,7 +92,7 @@ impl Package for DirectoryPackage {
 
         for l in manifest.lines() {
             let part = try!(ComponentPart::decode(l)
-                            .ok_or_else(|| Error::CorruptComponent(name.to_owned()).unchained()));
+                            .ok_or_else(|| ErrorKind::CorruptComponent(name.to_owned()).unchained()));
 
             let path = part.1;
             let src_path = root.join(&path);
@@ -100,7 +100,7 @@ impl Package for DirectoryPackage {
             match &*part.0 {
                 "file" => try!(builder.copy_file(path.clone(), &src_path)),
                 "dir" => try!(builder.copy_dir(path.clone(), &src_path)),
-                _ => return Err(Error::CorruptComponent(name.to_owned()).unchained()),
+                _ => return Err(ErrorKind::CorruptComponent(name.to_owned()).unchained()),
             }
 
             try!(set_file_perms(&target.prefix().path().join(path), &src_path));
@@ -138,28 +138,28 @@ fn set_file_perms(dest_path: &Path, src_path: &Path) -> Result<()> {
     if is_dir {
         // Walk the directory setting everything
         for entry in WalkDir::new(dest_path) {
-            let entry = try!(entry.chain_error(|| Error::ComponentDirPermissionsFailed));
-            let meta = try!(entry.metadata().chain_error(|| Error::ComponentDirPermissionsFailed));
+            let entry = try!(entry.chain_error(|| ErrorKind::ComponentDirPermissionsFailed));
+            let meta = try!(entry.metadata().chain_error(|| ErrorKind::ComponentDirPermissionsFailed));
             if meta.is_dir() {
                 let mut perm = meta.permissions();
                 perm.set_mode(0o755);
-                try!(fs::set_permissions(entry.path(), perm).chain_error(|| Error::ComponentFilePermissionsFailed));
+                try!(fs::set_permissions(entry.path(), perm).chain_error(|| ErrorKind::ComponentFilePermissionsFailed));
             } else {
                 let mut perm = meta.permissions();
                 perm.set_mode(0o644);
-                try!(fs::set_permissions(entry.path(), perm).chain_error(|| Error::ComponentFilePermissionsFailed));
+                try!(fs::set_permissions(entry.path(), perm).chain_error(|| ErrorKind::ComponentFilePermissionsFailed));
             }
         }
     } else if is_bin {
-        let mut perm = try!(fs::metadata(dest_path).chain_error(|| Error::ComponentFilePermissionsFailed))
+        let mut perm = try!(fs::metadata(dest_path).chain_error(|| ErrorKind::ComponentFilePermissionsFailed))
                            .permissions();
         perm.set_mode(0o755);
-        try!(fs::set_permissions(dest_path, perm).chain_error(|| Error::ComponentFilePermissionsFailed));
+        try!(fs::set_permissions(dest_path, perm).chain_error(|| ErrorKind::ComponentFilePermissionsFailed));
     } else {
-        let mut perm = try!(fs::metadata(dest_path).chain_error(|| Error::ComponentFilePermissionsFailed))
+        let mut perm = try!(fs::metadata(dest_path).chain_error(|| ErrorKind::ComponentFilePermissionsFailed))
                            .permissions();
         perm.set_mode(0o644);
-        try!(fs::set_permissions(dest_path, perm).chain_error(|| Error::ComponentFilePermissionsFailed));
+        try!(fs::set_permissions(dest_path, perm).chain_error(|| ErrorKind::ComponentFilePermissionsFailed));
     }
 
     Ok(())
@@ -187,19 +187,19 @@ impl<'a> TarPackage<'a> {
 }
 
 fn unpack_without_first_dir<R: Read>(archive: &mut tar::Archive<R>, path: &Path) -> Result<()> {
-    let entries = try!(archive.entries().chain_error(|| Error::ExtractingPackage));
+    let entries = try!(archive.entries().chain_error(|| ErrorKind::ExtractingPackage));
     for entry in entries {
-        let mut entry = try!(entry.chain_error(|| Error::ExtractingPackage));
+        let mut entry = try!(entry.chain_error(|| ErrorKind::ExtractingPackage));
         let relpath = {
             let path = entry.path();
-            let path = try!(path.chain_error(|| Error::ExtractingPackage));
+            let path = try!(path.chain_error(|| ErrorKind::ExtractingPackage));
             path.into_owned()
         };
         let mut components = relpath.components();
         // Throw away the first path component
         components.next();
         let full_path = path.join(&components.as_path());
-        try!(entry.unpack(&full_path).chain_error(|| Error::ExtractingPackage));
+        try!(entry.unpack(&full_path).chain_error(|| ErrorKind::ExtractingPackage));
     }
 
     Ok(())
@@ -227,12 +227,12 @@ pub struct TarGzPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarGzPackage<'a> {
     pub fn new<R: Read>(stream: R, temp_cfg: &'a temp::Cfg) -> Result<Self> {
-        let stream = try!(flate2::read::GzDecoder::new(stream).chain_error(|| Error::ExtractingPackage));
+        let stream = try!(flate2::read::GzDecoder::new(stream).chain_error(|| ErrorKind::ExtractingPackage));
 
         Ok(TarGzPackage(try!(TarPackage::new(stream, temp_cfg))))
     }
     pub fn new_file(path: &Path, temp_cfg: &'a temp::Cfg) -> Result<Self> {
-        let file = try!(File::open(path).chain_error(|| Error::ExtractingPackage));
+        let file = try!(File::open(path).chain_error(|| ErrorKind::ExtractingPackage));
         Self::new(file, temp_cfg)
     }
 }

@@ -1,4 +1,4 @@
-use errors::{Result, ChainError};
+use errors::*;
 use std::path::{Path, PathBuf};
 use std::fs::{self, File};
 use std::io::{self, Write};
@@ -8,7 +8,6 @@ use std::env;
 use hyper;
 use openssl::crypto::hash::Hasher;
 use notify::Notifyable;
-use errors::{Error};
 use notifications::{Notification, NotifyHandler};
 use raw;
 #[cfg(windows)]
@@ -26,7 +25,7 @@ pub fn ensure_dir_exists(name: &'static str,
     Ok(try!(raw::ensure_dir_exists(path,
                            |p| notify_handler.call(Notification::CreatingDirectory(name, p)))
         .chain_error(|| {
-            Error::CreatingDirectory {
+            ErrorKind::CreatingDirectory {
                 name: name,
                 path: PathBuf::from(path),
             }
@@ -35,7 +34,7 @@ pub fn ensure_dir_exists(name: &'static str,
 
 pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
     Ok(try!(raw::read_file(path).chain_error(|| {
-        Error::ReadingFile {
+        ErrorKind::ReadingFile {
             name: name,
             path: PathBuf::from(path),
         }
@@ -44,7 +43,7 @@ pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
 
 pub fn write_file(name: &'static str, path: &Path, contents: &str) -> Result<()> {
     Ok(try!(raw::write_file(path, contents).chain_error(|| {
-        Error::WritingFile {
+        ErrorKind::WritingFile {
             name: name,
             path: PathBuf::from(path),
         }
@@ -53,7 +52,7 @@ pub fn write_file(name: &'static str, path: &Path, contents: &str) -> Result<()>
 
 pub fn append_file(name: &'static str, path: &Path, line: &str) -> Result<()> {
     Ok(try!(raw::append_file(path, line).chain_error(|| {
-        Error::WritingFile {
+        ErrorKind::WritingFile {
             name: name,
             path: PathBuf::from(path),
         }
@@ -62,7 +61,7 @@ pub fn append_file(name: &'static str, path: &Path, line: &str) -> Result<()> {
 
 pub fn write_line(name: &'static str, file: &mut File, path: &Path, line: &str) -> Result<()> {
     Ok(try!(writeln!(file, "{}", line).chain_error(|| {
-        Error::WritingFile {
+        ErrorKind::WritingFile {
             name: name,
             path: path.to_path_buf(),
         }
@@ -71,7 +70,7 @@ pub fn write_line(name: &'static str, file: &mut File, path: &Path, line: &str) 
 
 pub fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> Result<()> {
     Ok(try!(write!(file, "{}", s).chain_error(|| {
-        Error::WritingFile {
+        ErrorKind::WritingFile {
             name: name,
             path: path.to_path_buf(),
         }
@@ -80,7 +79,7 @@ pub fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> R
 
 pub fn rename_file(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
     Ok(try!(fs::rename(src, dest).chain_error(|| {
-        Error::RenamingFile {
+        ErrorKind::RenamingFile {
             name: name,
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
@@ -90,7 +89,7 @@ pub fn rename_file(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
 
 pub fn rename_dir(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
     Ok(try!(fs::rename(src, dest).chain_error(|| {
-        Error::RenamingDirectory {
+        ErrorKind::RenamingDirectory {
             name: name,
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
@@ -104,7 +103,7 @@ pub fn filter_file<F: FnMut(&str) -> bool>(name: &'static str,
                                            filter: F)
                                            -> Result<usize> {
     Ok(try!(raw::filter_file(src, dest, filter).chain_error(|| {
-        Error::FilteringFile {
+        ErrorKind::FilteringFile {
             name: name,
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
@@ -117,7 +116,7 @@ pub fn match_file<T, F: FnMut(&str) -> Option<T>>(name: &'static str,
                                                   f: F)
                                                   -> Result<Option<T>> {
     Ok(try!(raw::match_file(src, f).chain_error(|| {
-        Error::ReadingFile {
+        ErrorKind::ReadingFile {
             name: name,
             path: PathBuf::from(src),
         }
@@ -133,7 +132,7 @@ pub fn canonicalize_path(path: &Path, notify_handler: NotifyHandler) -> PathBuf 
 
 pub fn tee_file<W: io::Write>(name: &'static str, path: &Path, w: &mut W) -> Result<()> {
     Ok(try!(raw::tee_file(path, w).chain_error(|| {
-        Error::ReadingFile {
+        ErrorKind::ReadingFile {
             name: name,
             path: PathBuf::from(path),
         }
@@ -151,13 +150,13 @@ pub fn download_file(url: hyper::Url,
     match raw::download_file(url.clone(), path, hasher, notify_handler) {
         Ok(_) => Ok(()),
         Err(e @ raw::DownloadError::Status(NotFound)) => {
-            Err(Error::Download404 {
+            Err(ErrorKind::Download404 {
                 url: url,
                 path: path.to_path_buf(),
             }.chained(e))
         }
         Err(e) => {
-            Err(Error::DownloadingFile {
+            Err(ErrorKind::DownloadingFile {
                 url: url,
                 path: path.to_path_buf(),
             }.chained(e))
@@ -167,12 +166,12 @@ pub fn download_file(url: hyper::Url,
 
 pub fn parse_url(url: &str) -> Result<hyper::Url> {
     Ok(try!(hyper::Url::parse(url)
-            .chain_error(|| Error::InvalidUrl { url: url.to_owned() })))
+            .chain_error(|| ErrorKind::InvalidUrl { url: url.to_owned() })))
 }
 
 pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
     Ok(try!(raw::cmd_status(cmd).chain_error(|| {
-        Error::RunningCommand {
+        ErrorKind::RunningCommand {
             name: OsString::from(name),
         }
     })))
@@ -180,7 +179,7 @@ pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
 
 pub fn assert_is_file(path: &Path) -> Result<()> {
     if !is_file(path) {
-        Err(Error::NotAFile { path: PathBuf::from(path) }.unchained())
+        Err(ErrorKind::NotAFile { path: PathBuf::from(path) }.unchained())
     } else {
         Ok(())
     }
@@ -188,7 +187,7 @@ pub fn assert_is_file(path: &Path) -> Result<()> {
 
 pub fn assert_is_directory(path: &Path) -> Result<()> {
     if !is_directory(path) {
-        Err(Error::NotADirectory { path: PathBuf::from(path) }.unchained())
+        Err(ErrorKind::NotADirectory { path: PathBuf::from(path) }.unchained())
     } else {
         Ok(())
     }
@@ -197,7 +196,7 @@ pub fn assert_is_directory(path: &Path) -> Result<()> {
 pub fn symlink_dir(src: &Path, dest: &Path, notify_handler: NotifyHandler) -> Result<()> {
     notify_handler.call(Notification::LinkingDirectory(src, dest));
     Ok(try!(raw::symlink_dir(src, dest).chain_error(|| {
-        Error::LinkingDirectory {
+        ErrorKind::LinkingDirectory {
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
         }
@@ -206,7 +205,7 @@ pub fn symlink_dir(src: &Path, dest: &Path, notify_handler: NotifyHandler) -> Re
 
 pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
     Ok(try!(raw::hardlink(src, dest).chain_error(|| {
-        Error::LinkingFile {
+        ErrorKind::LinkingFile {
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
         }
@@ -216,7 +215,7 @@ pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
 pub fn copy_dir(src: &Path, dest: &Path, notify_handler: NotifyHandler) -> Result<()> {
     notify_handler.call(Notification::CopyingDirectory(src, dest));
     Ok(try!(raw::copy_dir(src, dest).chain_error(|| {
-        Error::CopyingDirectory {
+        ErrorKind::CopyingDirectory {
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
         }
@@ -226,7 +225,7 @@ pub fn copy_dir(src: &Path, dest: &Path, notify_handler: NotifyHandler) -> Resul
 pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
     Ok(try!(fs::copy(src, dest)
         .chain_error(|| {
-            Error::CopyingFile {
+            ErrorKind::CopyingFile {
                 src: PathBuf::from(src),
                 dest: PathBuf::from(dest),
             }
@@ -237,7 +236,7 @@ pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
 pub fn remove_dir(name: &'static str, path: &Path, notify_handler: NotifyHandler) -> Result<()> {
     notify_handler.call(Notification::RemovingDirectory(name, path));
     Ok(try!(raw::remove_dir(path).chain_error(|| {
-        Error::RemovingDirectory {
+        ErrorKind::RemovingDirectory {
             name: name,
             path: PathBuf::from(path),
         }
@@ -246,7 +245,7 @@ pub fn remove_dir(name: &'static str, path: &Path, notify_handler: NotifyHandler
 
 pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
     Ok(try!(fs::remove_file(path).chain_error(|| {
-        Error::RemovingFile {
+        ErrorKind::RemovingFile {
             name: name,
             path: PathBuf::from(path),
         }
@@ -255,7 +254,7 @@ pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
 
 pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
     Ok(try!(fs::read_dir(path).chain_error(|| {
-        Error::ReadingDirectory {
+        ErrorKind::ReadingDirectory {
             name: name,
             path: PathBuf::from(path),
         }
@@ -265,14 +264,14 @@ pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
 pub fn open_browser(path: &Path) -> Result<()> {
     match raw::open_browser(path) {
         Ok(true) => Ok(()),
-        Ok(false) => Err(Error::NoBrowser.unchained()),
-        Err(e) => Err(e).chain_error(|| Error::OpeningBrowser).map_err(From::from),
+        Ok(false) => Err(ErrorKind::NoBrowser.unchained()),
+        Err(e) => Err(e).chain_error(|| ErrorKind::OpeningBrowser).map_err(From::from),
     }
 }
 
 pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
     Ok(try!(fs::set_permissions(path, perms).chain_error(|| {
-        Error::SettingPermissions {
+        ErrorKind::SettingPermissions {
             path: PathBuf::from(path),
         }
     })))
@@ -288,7 +287,7 @@ pub fn make_executable(path: &Path) -> Result<()> {
         use std::os::unix::fs::PermissionsExt;
 
         let metadata = try!(fs::metadata(path).chain_error(|| {
-            Error::SettingPermissions {
+            ErrorKind::SettingPermissions {
                 path: PathBuf::from(path),
             }
         }));
@@ -303,11 +302,11 @@ pub fn make_executable(path: &Path) -> Result<()> {
 }
 
 pub fn current_dir() -> Result<PathBuf> {
-    Ok(try!(env::current_dir().chain_error(|| Error::LocatingWorkingDir)))
+    Ok(try!(env::current_dir().chain_error(|| ErrorKind::LocatingWorkingDir)))
 }
 
 pub fn current_exe() -> Result<PathBuf> {
-    Ok(try!(env::current_exe().chain_error(|| Error::LocatingWorkingDir)))
+    Ok(try!(env::current_exe().chain_error(|| ErrorKind::LocatingWorkingDir)))
 }
 
 pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
@@ -429,21 +428,21 @@ pub fn cargo_home() -> Result<PathBuf> {
         None
     };
 
-    let cwd = try!(env::current_dir().chain_error(|| Error::CargoHome));
+    let cwd = try!(env::current_dir().chain_error(|| ErrorKind::CargoHome));
     let cargo_home = env_var.clone().map(|home| {
         cwd.join(home)
     });
     let user_home = home_dir().map(|p| p.join(".cargo"));
-    cargo_home.or(user_home).ok_or(Error::CargoHome.unchained())
+    cargo_home.or(user_home).ok_or(ErrorKind::CargoHome.unchained())
 }
 
 pub fn multirust_home() -> Result<PathBuf> {
-    let cwd = try!(env::current_dir().chain_error(|| Error::MultirustHome));
+    let cwd = try!(env::current_dir().chain_error(|| ErrorKind::MultirustHome));
     let multirust_home = env::var_os("RUSTUP_HOME").map(|home| {
         cwd.join(home)
     });
     let user_home = home_dir().map(|p| p.join(".multirust"));
-    multirust_home.or(user_home).ok_or(Error::MultirustHome.unchained())
+    multirust_home.or(user_home).ok_or(ErrorKind::MultirustHome.unchained())
 }
 
 pub fn format_path_for_display(path: &str) -> String {

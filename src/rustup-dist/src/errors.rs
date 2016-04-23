@@ -8,11 +8,11 @@ use dist::TargetTriple;
 
 declare_errors! {
     types {
-        ErrorChain, Error, ChainError, Result;
+        Error, ErrorKind, ChainError, Result;
     }
 
     from_links {
-        rustup_utils::ErrorChain, rustup_utils::Error, Utils;
+        rustup_utils::Error, rustup_utils::ErrorKind, Utils;
     }
 
     foreign_links {
@@ -154,7 +154,7 @@ declare_errors! {
             description("some requested components are unavailable to download")
             display("{}", component_unavailable_msg(&c))
         }
-        NoManifestFound(ch: String, e: Box<ErrorChain>) {
+        NoManifestFound(ch: String, e: Box<Error>) {
             description("no release found")
             display("{}", no_manifest_found_msg(&ch, &e))
         }
@@ -193,12 +193,12 @@ fn component_unavailable_msg(cs: &[Component]) -> String {
 }
 
 // FIXME This should be two different errors
-fn no_manifest_found_msg(ch: &str, e: &ErrorChain) -> String {
+fn no_manifest_found_msg(ch: &str, e: &Error) -> String {
 
     let mut buf = vec![];
 
     match *e {
-        ErrorChain(Error::Utils(rustup_utils::Error::Download404 { .. }), _ ) => {
+        Error(ErrorKind::Utils(rustup_utils::ErrorKind::Download404 { .. }), _ ) => {
             let _ = write!(buf, "no release found for '{}'", ch);
         }
         _ => {

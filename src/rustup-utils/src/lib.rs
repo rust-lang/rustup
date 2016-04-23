@@ -30,5 +30,5 @@ pub mod notifications;
 pub mod raw;
 pub mod utils;
 
-pub use errors::{Error, ErrorChain, ChainError};
+pub use errors::*;
 pub use notifications::{Notification, NotifyHandler};

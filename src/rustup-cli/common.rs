@@ -1,6 +1,7 @@
 //! Just a dumping ground for cli stuff
 
-use rustup::{Cfg, Result, Notification, Toolchain, Error, UpdateStatus};
+use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
+use rustup::{ErrorKind, Result};
 use rustup_utils::utils;
 use rustup_utils::notify::NotificationLevel;
 use self_update;
@@ -87,7 +88,7 @@ pub fn read_line() -> Result<String> {
     let stdin = std::io::stdin();
     let stdin = stdin.lock();
     let mut lines = stdin.lines();
-    lines.next().and_then(|l| l.ok()).ok_or(Error::ReadStdin.unchained())
+    lines.next().and_then(|l| l.ok()).ok_or(ErrorKind::ReadStdin.unchained())
 }
 
 pub fn set_globals(verbose: bool) -> Result<Cfg> {
