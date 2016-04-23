@@ -7,6 +7,10 @@ pub type Result<T> = ::std::result::Result<T, ErrorChain>;
 easy_error! {
     ErrorChain / ChainError;
 
+    from_links { }
+
+    foreign_links { }
+
     Error {
         LocatingHome {
             description("could not locate home directory")

@@ -5,22 +5,21 @@ use toml;
 use rustup_utils;
 use manifest::Component;
 use dist::TargetTriple;
-use rustup_error::ForeignError;
 
 pub type Result<T> = ::std::result::Result<T, ErrorChain>;
 
 easy_error! {
     ErrorChain / ChainError;
 
+    from_links {
+        rustup_utils::ErrorChain, rustup_utils::Error, Utils;
+    }
+
+    foreign_links {
+        temp::Error, Temp;
+    }
+
     Error {
-        Utils(e: rustup_utils::Error) {
-            description(e.description())
-            display("{}", e)
-        }
-        Temp(e: ForeignError) {
-            description(&e.description)
-            display("{}", e.display)
-        }
         InvalidFileExtension {
             description("invalid file extension")
         }
@@ -210,16 +209,4 @@ fn no_manifest_found_msg(ch: &str, e: &ErrorChain) -> String {
     }
 
     String::from_utf8(buf).expect("")
-}
-
-impl From<rustup_utils::ErrorChain> for ErrorChain {
-    fn from(e: rustup_utils::ErrorChain) -> Self {
-        ErrorChain(Error::Utils(e.0), e.1)
-    }
-}
-
-impl From<temp::Error> for ErrorChain {
-    fn from(e: temp::Error) -> Self {
-        ErrorChain(Error::Temp(ForeignError::new(&e)), Some(Box::new(e)))
-    }
 }

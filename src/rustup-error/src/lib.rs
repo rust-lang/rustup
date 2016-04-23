@@ -22,6 +22,14 @@ macro_rules! easy_error {
     (
         $error_chain_name:ident / $chain_error_name:ident;
 
+        from_links {
+            $( $from_link_chain_path:path, $from_link_error_path:path, $from_link_variant:ident;  ) *
+        }
+
+        foreign_links {
+            $( $foreign_link_error_path:path, $foreign_link_variant:ident;  ) *
+        }
+
         $error_name:ident { $($error_chunks:tt)* }
 
     ) => {
@@ -77,6 +85,20 @@ macro_rules! easy_error {
         quick_error! {
             #[derive(Debug)]
             pub enum $error_name {
+                $(
+                    $from_link_variant(e: $from_link_error_path) {
+                        description(e.description())
+                        display("{}", e)
+                    }
+                ) *
+
+                $(
+                    $foreign_link_variant(e: $crate::ForeignError) {
+                        description(&e.description)
+                        display("{}", e.display)
+                    }
+                ) *
+
                 $($error_chunks)*
             }
         }
@@ -92,6 +114,23 @@ macro_rules! easy_error {
                 $error_chain_name::extend_chain(self, e)
             }
         }
+
+        $(
+            impl From<$from_link_chain_path> for $error_chain_name {
+                fn from(e: $from_link_chain_path) -> Self {
+                    $error_chain_name($error_name::$from_link_variant(e.0), e.1)
+                }
+            }
+        ) *
+
+        $(
+            impl From<$foreign_link_error_path> for $error_chain_name {
+                fn from(e: $foreign_link_error_path) -> Self {
+                    $error_chain_name($error_name::$foreign_link_variant(
+                        $crate::ForeignError::new(&e)), Some(Box::new(e)))
+                }
+            }
+        ) *
 
     };
 }

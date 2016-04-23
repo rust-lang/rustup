@@ -3,27 +3,22 @@ use std::path::PathBuf;
 use rustup_dist::{self, temp};
 use rustup_utils;
 use rustup_dist::manifest::Component;
-use rustup_error::ForeignError;
 
 pub type Result<T> = ::std::result::Result<T, ErrorChain>;
 
 easy_error! {
     ErrorChain / ChainError;
 
-    Error {
-        Install(e: rustup_dist::Error) {
-            description(e.description())
-            display("{}", e)
-        }
-        Utils(e: rustup_utils::Error) {
-            description(e.description())
-            display("{}", e)
-        }
-        Temp(e: ForeignError) {
-            description(&e.description)
-            display("{}", e.display)
-        }
+    from_links {
+        rustup_dist::ErrorChain, rustup_dist::Error, Install;
+        rustup_utils::ErrorChain, rustup_utils::Error, Utils;
+    }
 
+    foreign_links {
+        temp::Error, Temp;
+    }
+
+    Error {
         UnknownMetadataVersion(v: String) {
             description("unknown metadata version")
             display("unknown metadata version: '{}'", v)
@@ -103,23 +98,5 @@ easy_error! {
         TelemetryCleanupError {
             description("unable to remove old telemetry files")
         }
-    }
-}
-
-impl From<rustup_dist::ErrorChain> for ErrorChain {
-    fn from(e: rustup_dist::ErrorChain) -> Self {
-        ErrorChain(Error::Install(e.0), e.1)
-    }
-}
-
-impl From<rustup_utils::ErrorChain> for ErrorChain {
-    fn from(e: rustup_utils::ErrorChain) -> Self {
-        ErrorChain(Error::Utils(e.0), e.1)
-    }
-}
-
-impl From<temp::Error> for ErrorChain {
-    fn from(e: temp::Error) -> Self {
-        ErrorChain(Error::Temp(ForeignError::new(&e)), Some(Box::new(e)))
     }
 }
