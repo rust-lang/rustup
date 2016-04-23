@@ -15,7 +15,7 @@ easy_error! {
 
     #[derive(Debug)]
     pub error Error2 {
-        Utils(e: rustup_utils::ErrorChain<rustup_utils::Error>) {
+        Utils(e: rustup_utils::ErrorChain) {
             description(e.description())
             display("{}", e)
             cause(e)
@@ -126,7 +126,7 @@ easy_error! {
             display("error setting file permissions during install: {}", e)
             cause(e)
         }
-        ComponentDownloadFailed(c: Component, e: Box<ErrorChain<rustup_utils::Error>>) {
+        ComponentDownloadFailed(c: Component, e: Box<ErrorChain>) {
             description("component download failed")
             display("component download failed for {}-{}: {}", c.pkg, c.target, e)
             cause(e)
@@ -228,7 +228,7 @@ fn no_manifest_found_msg(ch: &str, e: &Error2) -> String {
 
 #[derive(Debug)]
 pub enum Error {
-    Utils(rustup_utils::ErrorChain<rustup_utils::Error>),
+    Utils(rustup_utils::ErrorChain),
     Temp(temp::Error),
 
     InvalidFileExtension,
@@ -264,7 +264,7 @@ pub enum Error {
     BadInstalledMetadataVersion(String),
     ComponentDirPermissionsFailed(walkdir::Error),
     ComponentFilePermissionsFailed(io::Error),
-    ComponentDownloadFailed(Component, Box<rustup_utils::ErrorChain<rustup_utils::Error>>),
+    ComponentDownloadFailed(Component, Box<rustup_utils::ErrorChain>),
     ObsoleteDistManifest,
     Parsing(Vec<toml::ParserError>),
     MissingKey(String),
@@ -276,14 +276,14 @@ pub enum Error {
     MissingPackageForComponent(Component),
     RequestedComponentsUnavailable(Vec<Component>),
     NoManifestFound(String, Box<Error>),
-    Chained(Box<rustup_utils::ErrorChain<rustup_utils::Error>>),
+    Chained(Box<rustup_utils::ErrorChain>),
     CreatingFile(PathBuf),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
 extend_error!(Error: temp::Error, e => Error::Temp(e));
-extend_error!(Error: rustup_utils::ErrorChain<rustup_utils::Error>, e => Error::Utils(e));
+extend_error!(Error: rustup_utils::ErrorChain, e => Error::Utils(e));
 
 impl error::Error for Error {
     fn description(&self) -> &str {

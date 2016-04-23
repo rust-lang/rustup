@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::ffi::OsString;
 use hyper;
 
-pub type Result<T> = ::std::result::Result<T, ErrorChain<Error>>;
+pub type Result<T> = ::std::result::Result<T, ErrorChain>;
 
 easy_error! {
     #[derive(Debug)]

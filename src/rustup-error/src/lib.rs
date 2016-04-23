@@ -3,7 +3,6 @@ mod quick_error;
 use std::result::Result as StdResult;
 use std::error::Error as StdError;
 
-
 pub trait BuildChain<E> {
     fn new_chain(e: E) -> Self;
     fn extend_chain<SE>(e: E, c: SE) -> Self
@@ -44,23 +43,21 @@ macro_rules! easy_error {
     ) => {
 
         $(#[$error_chain_meta])*
-        pub struct $error_chain_name<E>(pub E, pub Option<Box<::std::error::Error + Send>>);
+        pub struct $error_chain_name(pub $error_name, pub Option<Box<::std::error::Error + Send>>);
 
-        impl<E> $crate::BuildChain<E> for $error_chain_name<E> {
-            fn new_chain(e: E) -> Self {
+        impl $crate::BuildChain<$error_name> for $error_chain_name {
+            fn new_chain(e: $error_name) -> Self {
                 $error_chain_name(e, None)
             }
 
-            fn extend_chain<SE>(e: E, c: SE) -> Self
+            fn extend_chain<SE>(e: $error_name, c: SE) -> Self
                 where SE: ::std::error::Error + Send + 'static
             {
                 $error_chain_name(e, Some(Box::new(c)))
             }
         }
 
-        impl<E> ::std::error::Error for $error_chain_name<E>
-            where E: ::std::error::Error
-        {
+        impl ::std::error::Error for $error_chain_name {
             fn description(&self) -> &str { self.0.description() }
             fn cause(&self) -> Option<&::std::error::Error> {
                 match self.1 {
@@ -70,9 +67,7 @@ macro_rules! easy_error {
             }
         }
 
-        impl<E> ::std::fmt::Display for $error_chain_name<E>
-            where E: ::std::fmt::Display
-        {
+        impl ::std::fmt::Display for $error_chain_name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 ::std::fmt::Display::fmt(&self.0, f)
             }
@@ -86,11 +81,11 @@ macro_rules! easy_error {
         }
 
         impl $error_name {
-            pub fn unchained(self) -> $error_chain_name<Self> {
+            pub fn unchained(self) -> $error_chain_name {
                 $crate::BuildChain::new_chain(self)
             }
 
-            pub fn chained<E>(self, e: E) -> $error_chain_name<Self>
+            pub fn chained<E>(self, e: E) -> $error_chain_name
                 where E: ::std::error::Error + Send + 'static
             {
                 $crate::BuildChain::extend_chain(self, e)
