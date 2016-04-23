@@ -20,11 +20,11 @@ impl ForeignError {
 #[macro_export]
 macro_rules! easy_error {
     (
-        pub chain_error $chain_error_name:ident;
+        chain_error $chain_error_name:ident;
 
-        pub error_chain $error_chain_name:ident;
+        error_chain $error_chain_name:ident;
 
-        pub error $error_name:ident { $($error_chunks:tt)* }
+        error $error_name:ident { $($error_chunks:tt)* }
 
     ) => {
 
