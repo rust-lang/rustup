@@ -17,7 +17,7 @@ impl Config {
     pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
         let version = try!(get_string(&mut table, "config_version", path));
         if !SUPPORTED_CONFIG_VERSIONS.contains(&&*version) {
-            return Err(Error::UnsupportedVersion(version));
+            return Err(Error::UnsupportedVersion(version).unchained());
         }
 
         let components = try!(get_array(&mut table, "components", path));
@@ -42,7 +42,7 @@ impl Config {
 
     pub fn parse(data: &str) -> Result<Self> {
         let mut parser = toml::Parser::new(data);
-        let value = try!(parser.parse().ok_or_else(move || Error::Parsing(parser.errors)));
+        let value = try!(parser.parse().ok_or_else(move || Error::Parsing(parser.errors).unchained()));
 
         Self::from_toml(value, "")
     }

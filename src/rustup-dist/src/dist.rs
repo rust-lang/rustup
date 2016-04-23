@@ -2,7 +2,7 @@
 use temp;
 use errors::*;
 use notifications::*;
-use rustup_utils::{self, utils};
+use rustup_utils::utils;
 use prefix::InstallPrefix;
 use manifest::Component;
 use manifest::Manifest as ManifestV2;
@@ -153,7 +153,7 @@ impl PartialToolchainDesc {
         if let Some(Some(d)) = d {
             Ok(d)
         } else {
-            Err(Error::InvalidToolchainName(name.to_string()))
+            Err(Error::InvalidToolchainName(name.to_string()).unchained())
         }
     }
 
@@ -214,7 +214,7 @@ impl ToolchainDesc {
                 date: c.at(2).and_then(fn_map),
                 target: TargetTriple(c.at(3).unwrap().to_owned()),
             }
-        }).ok_or(Error::InvalidToolchainName(name.to_string()))
+        }).ok_or(Error::InvalidToolchainName(name.to_string()).unchained())
     }
 
     pub fn manifest_v1_url(&self, dist_root: &str) -> String {
@@ -354,7 +354,7 @@ pub fn download_and_check<'a>(url_str: &str,
             url: url_str.to_owned(),
             expected: hash,
             calculated: actual_hash,
-        });
+        }.unchained());
     } else {
         cfg.notify_handler.call(Notification::ChecksumValid(url_str));
     }
@@ -412,7 +412,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
             }
         }
         Ok(None) => return Ok(None),
-        Err(Error::Utils(rustup_utils::ErrorChain(::rustup_utils::Error::Download404 { .. }, _))) => {
+        Err(ErrorChain(Error::Utils(::rustup_utils::Error::Download404 { .. }), _)) => {
             // Proceed to try v1 as a fallback
             download.notify_handler.call(Notification::DownloadingLegacyManifest);
         }
@@ -421,7 +421,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
 
     // If the v2 manifest is not found then try v1
     let manifest = try!(dl_v1_manifest(download, toolchain)
-                        .map_err(|e| Error::NoManifestFound(toolchain.manifest_name(), Box::new(e))));
+                        .map_err(|e| Error::NoManifestFound(toolchain.manifest_name(), Box::new(e)).unchained()));
     match try!(manifestation.update_v1(&manifest, update_hash,
                                        &download.temp_cfg, download.notify_handler.clone())) {
         None => Ok(None),

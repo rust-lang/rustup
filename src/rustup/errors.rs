@@ -9,7 +9,7 @@ use rustup_dist::manifest::Component;
 
 #[derive(Debug)]
 pub enum Error {
-    Install(rustup_dist::Error),
+    Install(rustup_dist::ErrorChain),
     Utils(rustup_utils::ErrorChain),
     Temp(temp::Error),
 
@@ -42,7 +42,7 @@ pub enum Error {
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
-extend_error!(Error: rustup_dist::Error, e => Error::Install(e));
+extend_error!(Error: rustup_dist::ErrorChain, e => Error::Install(e));
 extend_error!(Error: rustup_utils::ErrorChain, e => Error::Utils(e));
 extend_error!(Error: temp::Error, e => Error::Temp(e));
 

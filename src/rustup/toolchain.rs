@@ -201,7 +201,7 @@ impl<'a> Toolchain<'a> {
 
     fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
-            Err(Error::Install(::rustup_dist::Error::InvalidCustomToolchainName(self.name.to_string())))
+            Err(Error::Install(::rustup_dist::Error::InvalidCustomToolchainName(self.name.to_string()).unchained()))
         } else {
             Ok(())
         }

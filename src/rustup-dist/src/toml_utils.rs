@@ -2,7 +2,7 @@ use toml;
 use errors::*;
 
 pub fn get_value(table: &mut toml::Table, key: &str, path: &str) -> Result<toml::Value> {
-    table.remove(key).ok_or_else(|| Error::MissingKey(path.to_owned() + key))
+    table.remove(key).ok_or_else(|| Error::MissingKey(path.to_owned() + key).unchained())
 }
 
 pub fn get_string(table: &mut toml::Table, key: &str, path: &str) -> Result<String> {
@@ -10,7 +10,7 @@ pub fn get_string(table: &mut toml::Table, key: &str, path: &str) -> Result<Stri
         if let toml::Value::String(s) = v {
             Ok(s)
         } else {
-            Err(Error::ExpectedType("string", path.to_owned() + key))
+            Err(Error::ExpectedType("string", path.to_owned() + key).unchained())
         }
     })
 }
@@ -20,7 +20,7 @@ pub fn get_bool(table: &mut toml::Table, key: &str, path: &str) -> Result<bool> 
         if let toml::Value::Boolean(b) = v {
             Ok(b)
         } else {
-            Err(Error::ExpectedType("string", path.to_owned() + key))
+            Err(Error::ExpectedType("string", path.to_owned() + key).unchained())
         }
     })
 }
@@ -30,7 +30,7 @@ pub fn get_table(table: &mut toml::Table, key: &str, path: &str) -> Result<toml:
         if let toml::Value::Table(t) = v {
             Ok(t)
         } else {
-            Err(Error::ExpectedType("table", path.to_owned() + key))
+            Err(Error::ExpectedType("table", path.to_owned() + key).unchained())
         }
     } else {
         Ok(toml::Table::new())
@@ -42,7 +42,7 @@ pub fn get_array(table: &mut toml::Table, key: &str, path: &str) -> Result<toml:
         if let toml::Value::Array(s) = v {
             Ok(s)
         } else {
-            Err(Error::ExpectedType("table", path.to_owned() + key))
+            Err(Error::ExpectedType("table", path.to_owned() + key).unchained())
         }
     } else {
         Ok(toml::Array::new())

@@ -5,7 +5,7 @@ use rustup_utils;
 use rustup_utils::notify::{self, NotificationLevel, Notifyable};
 use manifest::Component;
 use dist::TargetTriple;
-use errors::Error;
+use errors::ErrorChain;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -20,7 +20,7 @@ pub enum Notification<'a> {
     SignatureValid(&'a str),
     RollingBack,
     ExtensionNotInstalled(&'a Component),
-    NonFatalError(&'a Error),
+    NonFatalError(&'a ErrorChain),
     MissingInstalledComponent(&'a str),
     DownloadingComponent(&'a str, &'a TargetTriple, &'a TargetTriple),
     InstallingComponent(&'a str, &'a TargetTriple, &'a TargetTriple),

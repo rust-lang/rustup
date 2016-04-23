@@ -1085,7 +1085,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
             url: url,
             expected: latest_hash,
             calculated: download_hash,
-        }));
+        }.unchained()));
     }
 
     // Mark as executable

@@ -195,12 +195,12 @@ impl<'a> ChangedItem<'a> {
             Err(Error::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            })
+            }.unchained())
         } else {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
             }
-            let file = try!(File::create(&abs_path).map_err(|_| Error::CreatingFile(abs_path)));
+            let file = try!(File::create(&abs_path).chain_error(|| Error::CreatingFile(abs_path)));
             Ok((ChangedItem::AddedFile(relpath), file))
         }
     }
@@ -214,7 +214,7 @@ impl<'a> ChangedItem<'a> {
             Err(Error::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            })
+            }.unchained())
         } else {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
@@ -229,7 +229,7 @@ impl<'a> ChangedItem<'a> {
             Err(Error::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            })
+            }.unchained())
         } else {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
@@ -245,7 +245,7 @@ impl<'a> ChangedItem<'a> {
             Err(Error::ComponentMissingFile {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            })
+            }.unchained())
         } else {
             try!(utils::rename_file("component", &abs_path, &backup));
             Ok(ChangedItem::RemovedFile(relpath, backup))
@@ -258,7 +258,7 @@ impl<'a> ChangedItem<'a> {
             Err(Error::ComponentMissingDir {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            })
+            }.unchained())
         } else {
             try!(utils::rename_dir("component", &abs_path, &backup.join("bk")));
             Ok(ChangedItem::RemovedDir(relpath, backup))

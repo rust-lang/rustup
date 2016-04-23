@@ -14,7 +14,7 @@ extern crate rustup_utils;
 #[macro_use]
 extern crate rustup_error;
 
-pub use errors::{Error};
+pub use errors::{Error, ErrorChain, ChainError};
 pub use notifications::{Notification, NotifyHandler};
 
 pub mod temp;

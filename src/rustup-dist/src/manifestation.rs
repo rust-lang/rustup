@@ -111,7 +111,7 @@ impl Manifestation {
         }).cloned().collect();
 
         if !unavailable_components.is_empty() {
-            return Err(Error::RequestedComponentsUnavailable(unavailable_components));
+            return Err(Error::RequestedComponentsUnavailable(unavailable_components).unchained());
         }
 
         // Map components to urls and hashes
@@ -137,7 +137,7 @@ impl Manifestation {
 
             let mut hasher = Hasher::new(Type::SHA256);
             try!(utils::download_file(url_url, &temp_file, Some(&mut hasher), ntfy!(&notify_handler))
-                 .map_err(|e| Error::ComponentDownloadFailed(component.clone(), Box::new(e))));
+                 .chain_error(|| Error::ComponentDownloadFailed(component.clone())));
 
             let actual_hash = hasher.finish()
                                     .iter()
@@ -150,7 +150,7 @@ impl Manifestation {
                     url: url,
                     expected: hash,
                     calculated: actual_hash,
-                });
+                }.unchained());
             } else {
                 notify_handler.call(Notification::ChecksumValid(&url));
             }
@@ -189,7 +189,7 @@ impl Manifestation {
             // If the package doesn't contain the component that the
             // manifest says it does the somebody must be playing a joke on us.
             if !package.contains(name, Some(short_name)) {
-                return Err(Error::CorruptComponent(component.pkg.clone()));
+                return Err(Error::CorruptComponent(component.pkg.clone()).unchained());
             }
 
             tx = try!(package.install(&self.installation,
@@ -293,12 +293,12 @@ impl Manifestation {
                      notify_handler: NotifyHandler) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if try!(self.read_config()).is_some() {
-            return Err(Error::ObsoleteDistManifest);
+            return Err(Error::ObsoleteDistManifest.unchained());
         }
 
         let url = new_manifest.iter().find(|u| u.contains(&format!("{}{}", self.target_triple, ".tar.gz")));
         if url.is_none() {
-            return Err(Error::UnsupportedHost(self.target_triple.to_string()));
+            return Err(Error::UnsupportedHost(self.target_triple.to_string()).unchained());
         }
         let url = url.unwrap();
 
