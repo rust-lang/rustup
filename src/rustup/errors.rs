@@ -10,7 +10,7 @@ declare_errors! {
     }
 
     from_links {
-        rustup_dist::ErrorChain, rustup_dist::Error, Install;
+        rustup_dist::ErrorChain, rustup_dist::Error, Dist;
         rustup_utils::ErrorChain, rustup_utils::Error, Utils;
     }
 
