@@ -277,7 +277,7 @@ macro_rules! quick_error {
                 }
             }
         }
-        #[allow(unused)]
+        /*#[allow(unused)]
         impl ::std::error::Error for $name {
             fn description(&self) -> &str {
                 match *self {
@@ -300,6 +300,22 @@ macro_rules! quick_error {
                         ) => {
                             quick_error!(FIND_CAUSE_IMPL
                                 $item: $imode [$( $var ),*]
+                                {$( $funcs )*})
+                        }
+                    )*
+                }
+            }
+        }*/
+        #[allow(unused)]
+        impl $name {
+            pub fn description(&self) -> &str {
+                match *self {
+                    $(
+                        quick_error!(ITEM_PATTERN
+                            $name $item: $imode [$( ref $var ),*]
+                        ) => {
+                            quick_error!(FIND_DESCRIPTION_IMPL
+                                $item: $imode self fmt [$( $var ),*]
                                 {$( $funcs )*})
                         }
                     )*
@@ -338,7 +354,7 @@ macro_rules! quick_error {
         { }
     ) => {
         |self_: &$name, f: &mut ::std::fmt::Formatter| {
-            write!(f, "{}", ::std::error::Error::description(self_))
+            write!(f, "{}", self_.description())
         }
     };
     (FIND_DESCRIPTION_IMPL $item:ident: $imode:tt $me:ident $fmt:ident
