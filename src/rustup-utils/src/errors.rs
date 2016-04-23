@@ -147,12 +147,6 @@ declare_errors! {
             description("could not remove directory")
             display("could not remove '{}' directory: '{}'", name, path.display())
         }
-        OpeningBrowser {
-            description("could not open browser")
-        }
-        NoBrowser {
-            description("could not open browser: no browser installed")
-        }
         SettingPermissions {
             path: PathBuf,
         } {

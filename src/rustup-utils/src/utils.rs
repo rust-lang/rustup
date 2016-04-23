@@ -264,8 +264,8 @@ pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
 pub fn open_browser(path: &Path) -> Result<()> {
     match raw::open_browser(path) {
         Ok(true) => Ok(()),
-        Ok(false) => Err(ErrorKind::NoBrowser.unchained()),
-        Err(e) => Err(e).chain_error(|| ErrorKind::OpeningBrowser).map_err(From::from),
+        Ok(false) => Err(ErrorKind::Msg("no browser installed".to_string()).unchained()),
+        Err(e) => Err(e).chain_error(|| "could not open browser")
     }
 }
 

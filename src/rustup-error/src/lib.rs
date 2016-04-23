@@ -101,6 +101,12 @@ macro_rules! declare_errors {
         quick_error! {
             #[derive(Debug)]
             pub enum $error_kind_name {
+
+                Msg(s: String) {
+                    description(&s)
+                    display("{}", s)
+                }
+
                 $(
                     $link_variant(e: $link_error_path) {
                         description(e.description())
@@ -128,6 +134,18 @@ macro_rules! declare_errors {
                 where E: ::std::error::Error + Send + 'static
             {
                 $error_name::extend_chain(self, e)
+            }
+        }
+
+        impl<'a> From<&'a str> for $error_kind_name {
+            fn from(s: &'a str) -> Self {
+                $error_kind_name::Msg(s.to_string())
+            }
+        }
+
+        impl From<String> for $error_kind_name {
+            fn from(s: String) -> Self {
+                $error_kind_name::Msg(s)
             }
         }
 
