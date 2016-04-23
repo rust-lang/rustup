@@ -12,9 +12,6 @@ declare_errors! {
     foreign_links { }
 
     errors {
-        LocatingHome {
-            description("could not locate home directory")
-        }
         LocatingWorkingDir {
             description("could not locate working directory")
         }
