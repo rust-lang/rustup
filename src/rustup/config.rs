@@ -187,7 +187,7 @@ impl Cfg {
 
                 let dirs = try!(utils::read_dir("toolchains", &self.toolchains_dir));
                 for dir in dirs {
-                    let dir = try!(dir.chain_error(|| ErrorKind::UpgradeIoError));
+                    let dir = try!(dir.chain_err(|| ErrorKind::UpgradeIoError));
                     try!(utils::remove_dir("toolchain", &dir.path(),
                                            ::rustup_utils::NotifyHandler::some(&self.notify_handler)));
                 }
@@ -195,7 +195,7 @@ impl Cfg {
                 // Also delete the update hashes
                 let files = try!(utils::read_dir("update hashes", &self.update_hash_dir));
                 for file in files {
-                    let file = try!(file.chain_error(|| ErrorKind::UpgradeIoError));
+                    let file = try!(file.chain_err(|| ErrorKind::UpgradeIoError));
                     try!(utils::remove_file("update hash", &file.path()));
                 }
 
@@ -226,21 +226,21 @@ impl Cfg {
         }
 
         let toolchain = try!(self.verify_toolchain(name)
-                             .chain_error(|| ErrorKind::ToolchainNotInstalled(name.to_string())));
+                             .chain_err(|| ErrorKind::ToolchainNotInstalled(name.to_string())));
 
         Ok(Some(toolchain))
     }
 
     pub fn find_override(&self, path: &Path) -> Result<Option<(Toolchain, OverrideReason)>> {
         if let Some(ref name) = self.env_override {
-            let toolchain = try!(self.verify_toolchain(name).chain_error(|| ErrorKind::ToolchainNotInstalled(name.to_string())));
+            let toolchain = try!(self.verify_toolchain(name).chain_err(|| ErrorKind::ToolchainNotInstalled(name.to_string())));
 
             return Ok(Some((toolchain, OverrideReason::Environment)));
         }
 
         if let Some((name, reason_path)) = try!(self.override_db
                                                     .find(path, self.notify_handler.as_ref())) {
-            let toolchain = try!(self.verify_toolchain(&name).chain_error(|| ErrorKind::ToolchainNotInstalled(name.to_string())));
+            let toolchain = try!(self.verify_toolchain(&name).chain_err(|| ErrorKind::ToolchainNotInstalled(name.to_string())));
             return Ok(Some((toolchain, OverrideReason::OverrideDB(reason_path))));
         }
 

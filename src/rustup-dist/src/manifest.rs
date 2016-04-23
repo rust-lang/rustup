@@ -116,8 +116,8 @@ impl Manifest {
         for (_, pkg) in &self.packages {
             for (_, tpkg) in &pkg.targets {
                 for c in tpkg.components.iter().chain(tpkg.extensions.iter()) {
-                    let cpkg = try!(self.get_package(&c.pkg).chain_error(|| ErrorKind::MissingPackageForComponent(c.clone())));
-                    let _ctpkg = try!(cpkg.get_target(&c.target).chain_error(|| ErrorKind::MissingPackageForComponent(c.clone())));
+                    let cpkg = try!(self.get_package(&c.pkg).chain_err(|| ErrorKind::MissingPackageForComponent(c.clone())));
+                    let _ctpkg = try!(cpkg.get_target(&c.target).chain_err(|| ErrorKind::MissingPackageForComponent(c.clone())));
                 }
             }
         }

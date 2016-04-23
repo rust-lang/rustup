@@ -4,7 +4,7 @@ use hyper;
 
 declare_errors! {
     types {
-        Error, ErrorKind, ChainError, Result;
+        Error, ErrorKind, ChainErr, Result;
     }
 
     links { }

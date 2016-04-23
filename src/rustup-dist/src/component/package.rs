@@ -138,28 +138,28 @@ fn set_file_perms(dest_path: &Path, src_path: &Path) -> Result<()> {
     if is_dir {
         // Walk the directory setting everything
         for entry in WalkDir::new(dest_path) {
-            let entry = try!(entry.chain_error(|| ErrorKind::ComponentDirPermissionsFailed));
-            let meta = try!(entry.metadata().chain_error(|| ErrorKind::ComponentDirPermissionsFailed));
+            let entry = try!(entry.chain_err(|| ErrorKind::ComponentDirPermissionsFailed));
+            let meta = try!(entry.metadata().chain_err(|| ErrorKind::ComponentDirPermissionsFailed));
             if meta.is_dir() {
                 let mut perm = meta.permissions();
                 perm.set_mode(0o755);
-                try!(fs::set_permissions(entry.path(), perm).chain_error(|| ErrorKind::ComponentFilePermissionsFailed));
+                try!(fs::set_permissions(entry.path(), perm).chain_err(|| ErrorKind::ComponentFilePermissionsFailed));
             } else {
                 let mut perm = meta.permissions();
                 perm.set_mode(0o644);
-                try!(fs::set_permissions(entry.path(), perm).chain_error(|| ErrorKind::ComponentFilePermissionsFailed));
+                try!(fs::set_permissions(entry.path(), perm).chain_err(|| ErrorKind::ComponentFilePermissionsFailed));
             }
         }
     } else if is_bin {
-        let mut perm = try!(fs::metadata(dest_path).chain_error(|| ErrorKind::ComponentFilePermissionsFailed))
+        let mut perm = try!(fs::metadata(dest_path).chain_err(|| ErrorKind::ComponentFilePermissionsFailed))
                            .permissions();
         perm.set_mode(0o755);
-        try!(fs::set_permissions(dest_path, perm).chain_error(|| ErrorKind::ComponentFilePermissionsFailed));
+        try!(fs::set_permissions(dest_path, perm).chain_err(|| ErrorKind::ComponentFilePermissionsFailed));
     } else {
-        let mut perm = try!(fs::metadata(dest_path).chain_error(|| ErrorKind::ComponentFilePermissionsFailed))
+        let mut perm = try!(fs::metadata(dest_path).chain_err(|| ErrorKind::ComponentFilePermissionsFailed))
                            .permissions();
         perm.set_mode(0o644);
-        try!(fs::set_permissions(dest_path, perm).chain_error(|| ErrorKind::ComponentFilePermissionsFailed));
+        try!(fs::set_permissions(dest_path, perm).chain_err(|| ErrorKind::ComponentFilePermissionsFailed));
     }
 
     Ok(())
@@ -187,19 +187,19 @@ impl<'a> TarPackage<'a> {
 }
 
 fn unpack_without_first_dir<R: Read>(archive: &mut tar::Archive<R>, path: &Path) -> Result<()> {
-    let entries = try!(archive.entries().chain_error(|| ErrorKind::ExtractingPackage));
+    let entries = try!(archive.entries().chain_err(|| ErrorKind::ExtractingPackage));
     for entry in entries {
-        let mut entry = try!(entry.chain_error(|| ErrorKind::ExtractingPackage));
+        let mut entry = try!(entry.chain_err(|| ErrorKind::ExtractingPackage));
         let relpath = {
             let path = entry.path();
-            let path = try!(path.chain_error(|| ErrorKind::ExtractingPackage));
+            let path = try!(path.chain_err(|| ErrorKind::ExtractingPackage));
             path.into_owned()
         };
         let mut components = relpath.components();
         // Throw away the first path component
         components.next();
         let full_path = path.join(&components.as_path());
-        try!(entry.unpack(&full_path).chain_error(|| ErrorKind::ExtractingPackage));
+        try!(entry.unpack(&full_path).chain_err(|| ErrorKind::ExtractingPackage));
     }
 
     Ok(())
@@ -227,12 +227,12 @@ pub struct TarGzPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarGzPackage<'a> {
     pub fn new<R: Read>(stream: R, temp_cfg: &'a temp::Cfg) -> Result<Self> {
-        let stream = try!(flate2::read::GzDecoder::new(stream).chain_error(|| ErrorKind::ExtractingPackage));
+        let stream = try!(flate2::read::GzDecoder::new(stream).chain_err(|| ErrorKind::ExtractingPackage));
 
         Ok(TarGzPackage(try!(TarPackage::new(stream, temp_cfg))))
     }
     pub fn new_file(path: &Path, temp_cfg: &'a temp::Cfg) -> Result<Self> {
-        let file = try!(File::open(path).chain_error(|| ErrorKind::ExtractingPackage));
+        let file = try!(File::open(path).chain_err(|| ErrorKind::ExtractingPackage));
         Self::new(file, temp_cfg)
     }
 }

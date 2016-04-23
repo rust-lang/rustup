@@ -124,7 +124,7 @@ fn remove_toolchain() {
 }
 
 #[test]
-fn remove_default_toolchain_error_handling() {
+fn remove_default_toolchain_err_handling() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
@@ -134,7 +134,7 @@ fn remove_default_toolchain_error_handling() {
 }
 
 #[test]
-fn remove_override_toolchain_error_handling() {
+fn remove_override_toolchain_err_handling() {
     setup(&|config| {
         let tempdir = TempDir::new("rustup").unwrap();
         change_dir(tempdir.path(), &|| {

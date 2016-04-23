@@ -137,7 +137,7 @@ impl Manifestation {
 
             let mut hasher = Hasher::new(Type::SHA256);
             try!(utils::download_file(url_url, &temp_file, Some(&mut hasher), ntfy!(&notify_handler))
-                 .chain_error(|| ErrorKind::ComponentDownloadFailed(component.clone())));
+                 .chain_err(|| ErrorKind::ComponentDownloadFailed(component.clone())));
 
             let actual_hash = hasher.finish()
                                     .iter()

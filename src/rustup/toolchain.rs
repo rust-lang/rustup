@@ -346,7 +346,7 @@ impl<'a> Toolchain<'a> {
 
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
-                                 .chain_error(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
+                                 .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 
@@ -438,7 +438,7 @@ impl<'a> Toolchain<'a> {
 
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
-                                 .chain_error(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
+                                 .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 
@@ -481,7 +481,7 @@ impl<'a> Toolchain<'a> {
 
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
-                                 .chain_error(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
+                                 .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 

@@ -41,7 +41,7 @@ macro_rules! declare_errors {
         pub type $result_name<T> = ::std::result::Result<T, $error_name>;
 
         pub trait $chain_error_name<T> {
-            fn chain_error<F, EK>(self, callback: F) -> ::std::result::Result<T, $error_name>
+            fn chain_err<F, EK>(self, callback: F) -> ::std::result::Result<T, $error_name>
                 where F: FnOnce() -> EK,
                       EK: Into<$error_kind_name>;
         }
@@ -49,7 +49,7 @@ macro_rules! declare_errors {
         impl<T, E> $chain_error_name<T> for ::std::result::Result<T, E>
             where E: ::std::error::Error + Send + 'static
         {
-            fn chain_error<F, EK>(self, callback: F) -> ::std::result::Result<T, $error_name>
+            fn chain_err<F, EK>(self, callback: F) -> ::std::result::Result<T, $error_name>
                 where F: FnOnce() -> EK,
                       EK: Into<$error_kind_name>
             {
