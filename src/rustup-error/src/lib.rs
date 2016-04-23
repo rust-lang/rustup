@@ -21,7 +21,7 @@ impl ForeignError {
 macro_rules! declare_errors {
     (
         types {
-            $error_name:ident, $error_chain_name:ident, $chain_error_name:ident, $result_name:ident;
+            $error_chain_name:ident, $error_name:ident, $chain_error_name:ident, $result_name:ident;
         }
 
         from_links {

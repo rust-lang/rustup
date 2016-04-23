@@ -8,7 +8,7 @@ use dist::TargetTriple;
 
 declare_errors! {
     types {
-        Error, ErrorChain, ChainError, Result;
+        ErrorChain, Error, ChainError, Result;
     }
 
     from_links {
