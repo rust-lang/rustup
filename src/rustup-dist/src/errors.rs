@@ -20,16 +20,6 @@ declare_errors! {
     }
 
     errors {
-        InvalidFileExtension {
-            description("invalid file extension")
-        }
-        InvalidInstaller {
-            description("invalid installer")
-        }
-        InvalidTargetTriple(t: String) {
-            description("invalid target triple")
-            display("invalid target triple: '{}'", t)
-        }
         InvalidToolchainName(t: String) {
             description("invalid toolchain name")
             display("invalid toolchain name: '{}'", t)
@@ -37,9 +27,6 @@ declare_errors! {
         InvalidCustomToolchainName(t: String) {
             description("invalid custom toolchain name")
             display("invalid custom toolchain name: '{}'", t)
-        }
-        NotInstalledHere {
-            description("not installed here")
         }
         UnsupportedHost(h: String) {
             description("binary package not provided for fost")
@@ -89,13 +76,6 @@ declare_errors! {
         ExtractingPackage {
             description("failed to extract package")
         }
-        ExtensionNotFound(c: Component) {
-            description("could not find extension")
-            display("could not find extension: '{}-{}'", c.pkg, c.target)
-        }
-        InvalidChangeSet {
-            description("invalid change-set")
-        }
         NoGPG {
             description("could not find 'gpg' on PATH")
         }
@@ -138,9 +118,6 @@ declare_errors! {
         TargetNotFound(t: TargetTriple) {
             description("target not found")
             display("target not found: '{}'", t)
-        }
-        MissingRoot {
-            description("mamnifest has no root package")
         }
         UnsupportedVersion(v: String) {
             description("unsupported manifest version")
