@@ -166,14 +166,3 @@ easy_error! {
         }
     }
 }
-
-#[macro_export]
-macro_rules! extend_error {
-    ($cur:ty: $base:ty, $p:ident => $e:expr) => (
-        impl From<$base> for $cur {
-            fn from($p: $base) -> $cur {
-                $e
-            }
-        }
-    )
-}
