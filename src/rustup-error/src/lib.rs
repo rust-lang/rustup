@@ -24,7 +24,7 @@ macro_rules! declare_errors {
             $error_name:ident, $error_kind_name:ident, $chain_error_name:ident, $result_name:ident;
         }
 
-        from_links {
+        links {
             $( $from_link_chain_path:path, $from_link_error_path:path, $from_link_variant:ident;  ) *
         }
 

@@ -7,7 +7,7 @@ declare_errors! {
         Error, ErrorKind, ChainError, Result;
     }
 
-    from_links { }
+    links { }
 
     foreign_links { }
 

@@ -11,7 +11,7 @@ declare_errors! {
         Error, ErrorKind, ChainError, Result;
     }
 
-    from_links {
+    links {
         rustup_utils::Error, rustup_utils::ErrorKind, Utils;
     }
 

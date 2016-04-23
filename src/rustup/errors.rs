@@ -9,7 +9,7 @@ declare_errors! {
         Error, ErrorKind, ChainError, Result;
     }
 
-    from_links {
+    links {
         rustup_dist::Error, rustup_dist::ErrorKind, Dist;
         rustup_utils::Error, rustup_utils::ErrorKind, Utils;
     }
