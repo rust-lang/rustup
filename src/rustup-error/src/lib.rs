@@ -25,7 +25,7 @@ macro_rules! declare_errors {
         }
 
         links {
-            $( $from_link_chain_path:path, $from_link_error_path:path, $from_link_variant:ident;  ) *
+            $( $link_chain_path:path, $link_error_path:path, $link_variant:ident;  ) *
         }
 
         foreign_links {
@@ -102,7 +102,7 @@ macro_rules! declare_errors {
             #[derive(Debug)]
             pub enum $error_kind_name {
                 $(
-                    $from_link_variant(e: $from_link_error_path) {
+                    $link_variant(e: $link_error_path) {
                         description(e.description())
                         display("{}", e)
                     }
@@ -132,9 +132,9 @@ macro_rules! declare_errors {
         }
 
         $(
-            impl From<$from_link_chain_path> for $error_name {
-                fn from(e: $from_link_chain_path) -> Self {
-                    $error_name($error_kind_name::$from_link_variant(e.0), e.1)
+            impl From<$link_chain_path> for $error_name {
+                fn from(e: $link_chain_path) -> Self {
+                    $error_name($error_kind_name::$link_variant(e.0), e.1)
                 }
             }
         ) *
