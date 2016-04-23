@@ -1,5 +1,4 @@
-use rustup_error::ChainError;
-use errors::Result;
+use errors::{Result, ChainError};
 use std::path::{Path, PathBuf};
 use std::fs::{self, File};
 use std::io::{self, Write};

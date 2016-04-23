@@ -11,6 +11,9 @@ use dist::TargetTriple;
 
 easy_error! {
     #[derive(Debug)]
+    pub chain_error ChainError;
+
+    #[derive(Debug)]
     pub error_chain ErrorChain;
 
     #[derive(Debug)]
