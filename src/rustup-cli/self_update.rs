@@ -1106,13 +1106,13 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 pub fn run_update(setup_path: &Path) -> Result<()> {
     let status = try!(Command::new(setup_path)
         .arg("--self-replace")
-        .status().map_err(|_| Error::Custom {
+        .status().chain_error(|| Error::Custom {
             id: String::new(),
             desc: "unable to run updater".to_string(),
         }));
 
     if !status.success() {
-        return Err(Error::SelfUpdateFailed);
+        return Err(Error::SelfUpdateFailed.unchained());
     }
 
     process::exit(0);
