@@ -5,11 +5,9 @@ use hyper;
 pub type Result<T> = ::std::result::Result<T, ErrorChain>;
 
 easy_error! {
-    chain_error ChainError;
+    ErrorChain / ChainError;
 
-    error_chain ErrorChain;
-
-    error Error {
+    Error {
         LocatingHome {
             description("could not locate home directory")
         }
