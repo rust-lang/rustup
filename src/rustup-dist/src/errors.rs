@@ -6,8 +6,10 @@ use rustup_utils;
 use manifest::Component;
 use dist::TargetTriple;
 
-easy_error! {
-    ErrorChain / ChainError / Result;
+declare_errors! {
+    types {
+        Error, ErrorChain, ChainError, Result;
+    }
 
     from_links {
         rustup_utils::ErrorChain, rustup_utils::Error, Utils;
@@ -17,7 +19,7 @@ easy_error! {
         temp::Error, Temp;
     }
 
-    Error {
+    errors {
         InvalidFileExtension {
             description("invalid file extension")
         }

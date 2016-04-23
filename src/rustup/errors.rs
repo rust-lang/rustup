@@ -4,8 +4,10 @@ use rustup_dist::{self, temp};
 use rustup_utils;
 use rustup_dist::manifest::Component;
 
-easy_error! {
-    ErrorChain / ChainError / Result;
+declare_errors! {
+    types {
+        Error, ErrorChain, ChainError, Result;
+    }
 
     from_links {
         rustup_dist::ErrorChain, rustup_dist::Error, Install;
@@ -16,7 +18,7 @@ easy_error! {
         temp::Error, Temp;
     }
 
-    Error {
+    errors {
         UnknownMetadataVersion(v: String) {
             description("unknown metadata version")
             display("unknown metadata version: '{}'", v)

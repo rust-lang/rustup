@@ -18,9 +18,11 @@ impl ForeignError {
 }
 
 #[macro_export]
-macro_rules! easy_error {
+macro_rules! declare_errors {
     (
-        $error_chain_name:ident / $chain_error_name:ident / $result_name:ident;
+        types {
+            $error_name:ident, $error_chain_name:ident, $chain_error_name:ident, $result_name:ident;
+        }
 
         from_links {
             $( $from_link_chain_path:path, $from_link_error_path:path, $from_link_variant:ident;  ) *
@@ -30,7 +32,9 @@ macro_rules! easy_error {
             $( $foreign_link_error_path:path, $foreign_link_variant:ident;  ) *
         }
 
-        $error_name:ident { $($error_chunks:tt)* }
+        errors {
+            $( $error_chunks:tt ) *
+        }
 
     ) => {
 

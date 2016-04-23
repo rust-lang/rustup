@@ -2,14 +2,16 @@ use std::path::PathBuf;
 use std::ffi::OsString;
 use hyper;
 
-easy_error! {
-    ErrorChain / ChainError / Result;
+declare_errors! {
+    types {
+        Error, ErrorChain, ChainError, Result;
+    }
 
     from_links { }
 
     foreign_links { }
 
-    Error {
+    errors {
         LocatingHome {
             description("could not locate home directory")
         }
