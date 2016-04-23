@@ -6,7 +6,7 @@ use rustup_dist::manifest::Component;
 
 declare_errors! {
     types {
-        Error, ErrorKind, ChainErr, Result;
+        Error, ErrorKind, ChainErr, Result, err;
     }
 
     links {

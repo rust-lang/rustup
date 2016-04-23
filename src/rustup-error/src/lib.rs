@@ -21,7 +21,9 @@ impl ForeignError {
 macro_rules! declare_errors {
     (
         types {
-            $error_name:ident, $error_kind_name:ident, $chain_error_name:ident, $result_name:ident;
+            $error_name:ident, $error_kind_name:ident,
+            $chain_error_name:ident, $result_name:ident,
+            $err_fn:ident;
         }
 
         links {
@@ -58,6 +60,13 @@ macro_rules! declare_errors {
                 })
             }
         }
+
+        pub fn $err_fn<T, EK>(e: EK) -> ::std::result::Result<T, $error_name>
+            where EK: Into<$error_kind_name>
+        {
+            Err($error_name::new_chain(e.into()))
+        }
+
 
         #[derive(Debug)]
         pub struct $error_name(pub $error_kind_name, pub Option<Box<::std::error::Error + Send>>);
