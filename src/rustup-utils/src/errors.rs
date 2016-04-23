@@ -5,13 +5,10 @@ use hyper;
 pub type Result<T> = ::std::result::Result<T, ErrorChain>;
 
 easy_error! {
-    #[derive(Debug)]
     pub chain_error ChainError;
 
-    #[derive(Debug)]
     pub error_chain ErrorChain;
 
-    #[derive(Debug)]
     pub error Error {
         LocatingHome {
             description("could not locate home directory")

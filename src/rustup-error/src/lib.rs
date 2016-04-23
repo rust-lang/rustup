@@ -20,13 +20,10 @@ impl ForeignError {
 #[macro_export]
 macro_rules! easy_error {
     (
-        $(#[$chain_error_meta:meta])*
         pub chain_error $chain_error_name:ident;
 
-        $(#[$error_chain_meta:meta])*
         pub error_chain $error_chain_name:ident;
 
-        $(#[$error_meta:meta])*
         pub error $error_name:ident { $($error_chunks:tt)* }
 
     ) => {
@@ -48,7 +45,7 @@ macro_rules! easy_error {
             }
         }
 
-        $(#[$error_chain_meta])*
+        #[derive(Debug)]
         pub struct $error_chain_name(pub $error_name, pub Option<Box<::std::error::Error + Send>>);
 
         impl $error_chain_name {
@@ -80,7 +77,7 @@ macro_rules! easy_error {
         }
 
         quick_error! {
-            $(#[$error_meta])*
+            #[derive(Debug)]
             pub enum $error_name {
                 $($error_chunks)*
             }

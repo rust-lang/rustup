@@ -8,13 +8,10 @@ use rustup_error::ForeignError;
 pub type Result<T> = ::std::result::Result<T, ErrorChain>;
 
 easy_error! {
-    #[derive(Debug)]
     pub chain_error ChainError;
 
-    #[derive(Debug)]
     pub error_chain ErrorChain;
 
-    #[derive(Debug)]
     pub error Error {
         Install(e: rustup_dist::Error) {
             description(e.description())
