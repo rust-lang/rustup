@@ -7,6 +7,7 @@ use rustup_dist::component::Components;
 use rustup_dist::component::{DirectoryPackage, Package};
 use rustup_dist::component::Transaction;
 use rustup_dist::temp;
+use rustup_dist::Error;
 use rustup_utils::utils;
 use rustup_dist::NotifyHandler;
 use rustup_dist::prefix::InstallPrefix;
@@ -261,7 +262,7 @@ fn component_bad_version() {
 
     // Can't open components now
     let e = Components::open(prefix.clone()).unwrap_err();
-    if let rustup_dist::Error::BadInstalledMetadataVersion(_) = e { } else { panic!() }
+    if let Error::BadInstalledMetadataVersion(_) = *e.inner() { } else { panic!() }
 }
 
 // Directories should be 0755, normal files 0644, files that come

@@ -17,6 +17,7 @@ use rustup_mock::dist::*;
 use rustup_mock::{MockCommand, MockInstallerBuilder};
 use rustup_dist::prefix::InstallPrefix;
 use rustup_dist::{Error, NotifyHandler};
+use rustup_dist::errors::Result;
 use rustup_dist::dist::{ToolchainDesc, TargetTriple};
 use rustup_dist::download::DownloadCfg;
 use rustup_utils::utils;
@@ -268,7 +269,7 @@ fn update_from_dist(dist_server: &Url,
                     add: &[Component],
                     remove: &[Component],
                     temp_cfg: &temp::Cfg,
-                    notify_handler: NotifyHandler) -> Result<UpdateStatus, Error> {
+                    notify_handler: NotifyHandler) -> Result<UpdateStatus> {
 
     // Download the dist manifest and place it into the installation prefix
     let ref manifest_url = try!(make_manifest_url(dist_server, toolchain));
@@ -293,7 +294,7 @@ fn update_from_dist(dist_server: &Url,
     manifestation.update(&manifest, changes, temp_cfg, notify_handler.clone())
 }
 
-fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url, Error> {
+fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url> {
     let mut url = dist_server.clone();
     if let Some(mut p) = url.path_mut() {
         p.push(format!("dist/channel-rust-{}.toml", toolchain.channel));
@@ -306,7 +307,7 @@ fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url
 }
 
 fn uninstall(toolchain: &ToolchainDesc, prefix: &InstallPrefix, temp_cfg: &temp::Cfg,
-             notify_handler: NotifyHandler) -> Result<(), Error> {
+             notify_handler: NotifyHandler) -> Result<()> {
     let trip = toolchain.target.clone();
     let manifestation = try!(Manifestation::open(prefix.clone(), trip));
 
@@ -901,7 +902,7 @@ fn bad_component_hash() {
 
         let err = update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap_err();
 
-        match err {
+        match *err.inner() {
             Error::ChecksumFailed { .. } => (),
             _ => panic!()
         }
@@ -917,7 +918,7 @@ fn unable_to_download_component() {
 
         let err = update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap_err();
 
-        match err {
+        match *err.inner() {
             Error::ComponentDownloadFailed(..) => (),
             _ => panic!()
         }

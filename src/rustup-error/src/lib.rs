@@ -55,14 +55,22 @@ macro_rules! easy_error {
         pub struct $error_chain_name(pub $error_name, pub Option<Box<::std::error::Error + Send>>);
 
         impl $error_chain_name {
-            fn new_chain(e: $error_name) -> Self {
+            pub fn new_chain(e: $error_name) -> Self {
                 $error_chain_name(e, None)
             }
 
-            fn extend_chain<SE>(e: $error_name, c: SE) -> Self
+            pub fn extend_chain<SE>(e: $error_name, c: SE) -> Self
                 where SE: ::std::error::Error + Send + 'static
             {
                 $error_chain_name(e, Some(Box::new(c)))
+            }
+
+            pub fn inner(&self) -> &$error_name {
+                &self.0
+            }
+
+            pub fn into_inner(self) -> $error_name {
+                self.0
             }
         }
 

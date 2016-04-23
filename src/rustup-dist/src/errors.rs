@@ -36,7 +36,7 @@ easy_error! {
         }
         InvalidCustomToolchainName(t: String) {
             description("invalid custom toolchain name")
-            display("invalid toolchain name: '{}'", t)
+            display("invalid custom toolchain name: '{}'", t)
         }
         NotInstalledHere {
             description("not installed here")
