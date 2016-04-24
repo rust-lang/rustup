@@ -200,7 +200,8 @@ impl<'a> ChangedItem<'a> {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
             }
-            let file = try!(File::create(&abs_path).chain_err(|| ErrorKind::CreatingFile(abs_path)));
+            let file = try!(File::create(&abs_path)
+                            .chain_err(|| format!("error creating file '{}'", abs_path.display())));
             Ok((ChangedItem::AddedFile(relpath), file))
         }
     }

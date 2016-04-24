@@ -2,7 +2,8 @@ use toml;
 use errors::*;
 
 pub fn get_value(table: &mut toml::Table, key: &str, path: &str) -> Result<toml::Value> {
-    table.remove(key).ok_or_else(|| ErrorKind::MissingKey(path.to_owned() + key).unchained())
+    table.remove(key).ok_or_else(
+        || format!("missing key: '{}'", path.to_owned() + key).into())
 }
 
 pub fn get_string(table: &mut toml::Table, key: &str, path: &str) -> Result<String> {

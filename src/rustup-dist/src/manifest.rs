@@ -108,7 +108,8 @@ impl Manifest {
 
 
     pub fn get_package(&self, name: &str) -> Result<&Package> {
-        self.packages.get(name).ok_or_else(|| ErrorKind::PackageNotFound(name.to_owned()).unchained())
+        self.packages.get(name).ok_or_else(
+            || format!("package not found: '{}'", name).into())
     }
 
     fn validate(&self) -> Result<()> {
@@ -165,7 +166,8 @@ impl Package {
     }
 
     pub fn get_target(&self, target: &TargetTriple) -> Result<&TargettedPackage> {
-        self.targets.get(target).ok_or_else(|| ErrorKind::TargetNotFound(target.clone()).unchained())
+        self.targets.get(target).ok_or_else(
+            || format!("target not found: '{}'", target).into())
     }
 }
 

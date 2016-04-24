@@ -293,12 +293,13 @@ impl Manifestation {
                      notify_handler: NotifyHandler) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if try!(self.read_config()).is_some() {
-            return Err(ErrorKind::ObsoleteDistManifest.unchained());
+            return Err("the server unexpectedly provided an obsolete version of the distribution manifest".into());
         }
 
         let url = new_manifest.iter().find(|u| u.contains(&format!("{}{}", self.target_triple, ".tar.gz")));
         if url.is_none() {
-            return Err(ErrorKind::UnsupportedHost(self.target_triple.to_string()).unchained());
+            return Err(format!("binary package was not provided for '{}'",
+                               self.target_triple.to_string()).into());
         }
         let url = url.unwrap();
 

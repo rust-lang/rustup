@@ -89,8 +89,20 @@ macro_rules! declare_errors {
             }
         ) *
 
+        impl From<$error_kind_name> for $error_name {
+            fn from(e: $error_kind_name) -> Self {
+                $error_name(e, None)
+            }
+        }
+
         impl<'a> From<&'a str> for $error_name {
             fn from(s: &'a str) -> Self {
+                $error_name(s.into(), None)
+            }
+        }
+
+        impl From<String> for $error_name {
+            fn from(s: String) -> Self {
                 $error_name(s.into(), None)
             }
         }

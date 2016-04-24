@@ -2,7 +2,7 @@
 use temp;
 use errors::*;
 use notifications::*;
-use rustup_utils::utils;
+use rustup_utils::{self, utils};
 use prefix::InstallPrefix;
 use manifest::Component;
 use manifest::Manifest as ManifestV2;
@@ -420,8 +420,18 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
     }
 
     // If the v2 manifest is not found then try v1
-    let manifest = try!(dl_v1_manifest(download, toolchain)
-                        .map_err(|e| ErrorKind::NoManifestFound(toolchain.manifest_name(), Box::new(e)).unchained()));
+    let manifest = match dl_v1_manifest(download, toolchain) {
+        Ok(m) => m,
+        Err(Error(ErrorKind::Utils(rustup_utils::ErrorKind::Download404 { .. }), _ )) => {
+            return Err(format!("no release found for '{}'",
+                               toolchain.manifest_name()).into());
+        }
+        Err(e) => {
+            return Err(e).chain_err(
+                || format!("failed to download manifest for '{}'",
+                           toolchain.manifest_name()));
+        }
+    };
     match try!(manifestation.update_v1(&manifest, update_hash,
                                        &download.temp_cfg, download.notify_handler.clone())) {
         None => Ok(None),

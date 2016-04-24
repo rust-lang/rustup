@@ -39,7 +39,8 @@ impl<'a> DownloadCfg<'a> {
                 let key_filename: &Path = &key_file;
                 try!(utils::write_file("key", &key_file, key));
 
-                let gpg = try!(utils::find_cmd(&["gpg2", "gpg"]).ok_or(ErrorKind::NoGPG.unchained()));
+                let gpg = try!(utils::find_cmd(&["gpg2", "gpg"])
+                               .ok_or(Error::from("could not find 'gpg' on PATH")));
 
                 try!(utils::cmd_status("gpg",
                                        Command::new(gpg)
