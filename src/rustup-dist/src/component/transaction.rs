@@ -195,7 +195,7 @@ impl<'a> ChangedItem<'a> {
             Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            }.unchained())
+            }.into())
         } else {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
@@ -215,7 +215,7 @@ impl<'a> ChangedItem<'a> {
             Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            }.unchained())
+            }.into())
         } else {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
@@ -230,7 +230,7 @@ impl<'a> ChangedItem<'a> {
             Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            }.unchained())
+            }.into())
         } else {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
@@ -246,7 +246,7 @@ impl<'a> ChangedItem<'a> {
             Err(ErrorKind::ComponentMissingFile {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            }.unchained())
+            }.into())
         } else {
             try!(utils::rename_file("component", &abs_path, &backup));
             Ok(ChangedItem::RemovedFile(relpath, backup))
@@ -259,7 +259,7 @@ impl<'a> ChangedItem<'a> {
             Err(ErrorKind::ComponentMissingDir {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            }.unchained())
+            }.into())
         } else {
             try!(utils::rename_dir("component", &abs_path, &backup.join("bk")));
             Ok(ChangedItem::RemovedDir(relpath, backup))

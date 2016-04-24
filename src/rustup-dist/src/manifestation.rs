@@ -111,7 +111,7 @@ impl Manifestation {
         }).cloned().collect();
 
         if !unavailable_components.is_empty() {
-            return Err(ErrorKind::RequestedComponentsUnavailable(unavailable_components).unchained());
+            return Err(ErrorKind::RequestedComponentsUnavailable(unavailable_components).into());
         }
 
         // Map components to urls and hashes
@@ -150,7 +150,7 @@ impl Manifestation {
                     url: url,
                     expected: hash,
                     calculated: actual_hash,
-                }.unchained());
+                }.into());
             } else {
                 notify_handler.call(Notification::ChecksumValid(&url));
             }
@@ -189,7 +189,7 @@ impl Manifestation {
             // If the package doesn't contain the component that the
             // manifest says it does the somebody must be playing a joke on us.
             if !package.contains(name, Some(short_name)) {
-                return Err(ErrorKind::CorruptComponent(component.pkg.clone()).unchained());
+                return Err(ErrorKind::CorruptComponent(component.pkg.clone()).into());
             }
 
             tx = try!(package.install(&self.installation,

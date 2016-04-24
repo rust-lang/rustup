@@ -201,7 +201,7 @@ impl<'a> Toolchain<'a> {
 
     fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
-            Err(ErrorKind::Dist(::rustup_dist::ErrorKind::InvalidCustomToolchainName(self.name.to_string())).unchained())
+            Err(ErrorKind::Dist(::rustup_dist::ErrorKind::InvalidCustomToolchainName(self.name.to_string())).into())
         } else {
             Ok(())
         }
@@ -220,10 +220,10 @@ impl<'a> Toolchain<'a> {
                 Some(i) => {
                     let extension = &installer_str[i+1..];
                     if extension != "gz" {
-                        return Err(ErrorKind::BadInstallerType(extension.to_string()).unchained());
+                        return Err(ErrorKind::BadInstallerType(extension.to_string()).into());
                     }
                 }
-                None => return Err(ErrorKind::BadInstallerType(String::from("(none)")).unchained())
+                None => return Err(ErrorKind::BadInstallerType(String::from("(none)")).into())
             }
 
             // FIXME: Pretty hacky
@@ -269,7 +269,7 @@ impl<'a> Toolchain<'a> {
 
     pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
         if !self.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).unchained());
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
         let ref bin_path = self.path.join("bin").join(binary.as_ref());
@@ -341,7 +341,7 @@ impl<'a> Toolchain<'a> {
 
     pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
         if !self.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).unchained());
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
         let ref toolchain = self.name;
@@ -388,7 +388,7 @@ impl<'a> Toolchain<'a> {
 
             Ok(res)
         } else {
-            Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).unchained())
+            Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
     }
 
@@ -433,7 +433,7 @@ impl<'a> Toolchain<'a> {
 
     fn bare_add_component(&self, component: Component) -> Result<()> {
         if !self.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).unchained());
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
         let ref toolchain = self.name;
@@ -451,11 +451,11 @@ impl<'a> Toolchain<'a> {
                 .expect("installed manifest should have a known target");
 
             if targ_pkg.components.contains(&component) {
-                return Err(ErrorKind::AddingRequiredComponent(self.name.to_string(), component).unchained());
+                return Err(ErrorKind::AddingRequiredComponent(self.name.to_string(), component).into());
             }
 
             if !targ_pkg.extensions.contains(&component) {
-                return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).unchained());
+                return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).into());
             }
 
             let changes = Changes {
@@ -470,13 +470,13 @@ impl<'a> Toolchain<'a> {
 
             Ok(())
         } else {
-            Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).unchained())
+            Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
     }
 
     pub fn remove_component(&self, component: Component) -> Result<()> {
         if !self.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).unchained());
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
         let ref toolchain = self.name;
@@ -494,12 +494,12 @@ impl<'a> Toolchain<'a> {
                 .expect("installed manifest should have a known target");
 
             if targ_pkg.components.contains(&component) {
-                return Err(ErrorKind::RemovingRequiredComponent(self.name.to_string(), component).unchained());
+                return Err(ErrorKind::RemovingRequiredComponent(self.name.to_string(), component).into());
             }
 
             let dist_config = try!(manifestation.read_config()).unwrap();
             if !dist_config.components.contains(&component) {
-                return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).unchained());
+                return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).into());
             }
 
             let changes = Changes {
@@ -514,7 +514,7 @@ impl<'a> Toolchain<'a> {
 
             Ok(())
         } else {
-            Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).unchained())
+            Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
     }
 

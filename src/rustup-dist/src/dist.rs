@@ -153,7 +153,7 @@ impl PartialToolchainDesc {
         if let Some(Some(d)) = d {
             Ok(d)
         } else {
-            Err(ErrorKind::InvalidToolchainName(name.to_string()).unchained())
+            Err(ErrorKind::InvalidToolchainName(name.to_string()).into())
         }
     }
 
@@ -214,7 +214,7 @@ impl ToolchainDesc {
                 date: c.at(2).and_then(fn_map),
                 target: TargetTriple(c.at(3).unwrap().to_owned()),
             }
-        }).ok_or(ErrorKind::InvalidToolchainName(name.to_string()).unchained())
+        }).ok_or(ErrorKind::InvalidToolchainName(name.to_string()).into())
     }
 
     pub fn manifest_v1_url(&self, dist_root: &str) -> String {
@@ -354,7 +354,7 @@ pub fn download_and_check<'a>(url_str: &str,
             url: url_str.to_owned(),
             expected: hash,
             calculated: actual_hash,
-        }.unchained());
+        }.into());
     } else {
         cfg.notify_handler.call(Notification::ChecksumValid(url_str));
     }

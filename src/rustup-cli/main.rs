@@ -116,7 +116,7 @@ fn run_multirust() -> Result<()> {
         }
         None => {
             // Weird case. No arg0, or it's unparsable.
-            Err(ErrorKind::NoExeName.unchained())
+            Err(ErrorKind::NoExeName.into())
         }
     }
 }

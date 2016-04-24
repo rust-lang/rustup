@@ -179,7 +179,7 @@ pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
 
 pub fn assert_is_file(path: &Path) -> Result<()> {
     if !is_file(path) {
-        Err(ErrorKind::NotAFile { path: PathBuf::from(path) }.unchained())
+        Err(ErrorKind::NotAFile { path: PathBuf::from(path) }.into())
     } else {
         Ok(())
     }
@@ -187,7 +187,7 @@ pub fn assert_is_file(path: &Path) -> Result<()> {
 
 pub fn assert_is_directory(path: &Path) -> Result<()> {
     if !is_directory(path) {
-        Err(ErrorKind::NotADirectory { path: PathBuf::from(path) }.unchained())
+        Err(ErrorKind::NotADirectory { path: PathBuf::from(path) }.into())
     } else {
         Ok(())
     }
@@ -433,7 +433,7 @@ pub fn cargo_home() -> Result<PathBuf> {
         cwd.join(home)
     });
     let user_home = home_dir().map(|p| p.join(".cargo"));
-    cargo_home.or(user_home).ok_or(ErrorKind::CargoHome.unchained())
+    cargo_home.or(user_home).ok_or(ErrorKind::CargoHome.into())
 }
 
 pub fn multirust_home() -> Result<PathBuf> {
@@ -442,7 +442,7 @@ pub fn multirust_home() -> Result<PathBuf> {
         cwd.join(home)
     });
     let user_home = home_dir().map(|p| p.join(".multirust"));
-    multirust_home.or(user_home).ok_or(ErrorKind::MultirustHome.unchained())
+    multirust_home.or(user_home).ok_or(ErrorKind::MultirustHome.into())
 }
 
 pub fn format_path_for_display(path: &str) -> String {

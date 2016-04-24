@@ -194,7 +194,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let status = if !toolchain.is_custom() {
         Some(try!(toolchain.install_from_dist_if_not_installed()))
     } else if !toolchain.exists() {
-        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).unchained());
+        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
     } else {
         None
     };
@@ -216,7 +216,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         let status = if !toolchain.is_custom() {
             Some(try!(toolchain.install_from_dist()))
         } else if !toolchain.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).unchained());
+            return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
         } else {
             None
         };
@@ -336,7 +336,7 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let status = if !toolchain.is_custom() {
         Some(try!(toolchain.install_from_dist_if_not_installed()))
     } else if !toolchain.exists() {
-        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).unchained());
+        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
     } else {
         None
     };

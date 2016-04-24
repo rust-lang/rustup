@@ -51,7 +51,7 @@ pub struct Component {
 impl Manifest {
     pub fn parse(data: &str) -> Result<Self> {
         let mut parser = toml::Parser::new(data);
-        let value = try!(parser.parse().ok_or_else(move || ErrorKind::Parsing(parser.errors).unchained()));
+        let value = try!(parser.parse().ok_or_else(move || ErrorKind::Parsing(parser.errors)));
 
         let manifest = try!(Self::from_toml(value, ""));
         try!(manifest.validate());
@@ -65,7 +65,7 @@ impl Manifest {
     pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
         let version = try!(get_string(&mut table, "manifest-version", path));
         if !SUPPORTED_MANIFEST_VERSIONS.contains(&&*version) {
-            return Err(ErrorKind::UnsupportedVersion(version).unchained());
+            return Err(ErrorKind::UnsupportedVersion(version).into());
         }
         Ok(Manifest {
             manifest_version: version,

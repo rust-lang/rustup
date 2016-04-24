@@ -86,7 +86,7 @@ impl<'a> DownloadCfg<'a> {
                     url: url.to_owned(),
                     expected: hash,
                     calculated: actual_hash,
-                }.unchained());
+                }.into());
             } else {
                 self.notify_handler.call(Notification::ChecksumValid(url));
             }

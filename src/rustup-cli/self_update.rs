@@ -457,7 +457,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     let ref cargo_home = try!(utils::cargo_home());
 
     if !cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX)).exists() {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).unchained());
+        return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
     }
 
     if !no_prompt {
@@ -1018,7 +1018,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let ref setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
     if !multirust_path.exists() {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).unchained());
+        return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
     }
 
     if setup_path.exists() {
@@ -1076,11 +1076,11 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Check that hash is correct
     if latest_hash != download_hash {
-        return Err(rustup_dist::ErrorKind::ChecksumFailed {
+        return Err(ErrorKind::Dist(rustup_dist::ErrorKind::ChecksumFailed {
             url: url,
             expected: latest_hash,
             calculated: download_hash,
-        }.unchained().into());
+        }).into());
     }
 
     // Mark as executable

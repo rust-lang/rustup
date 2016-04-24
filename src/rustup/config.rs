@@ -178,7 +178,7 @@ impl Cfg {
         match &*current_version {
             "1" => {
                 // This corresponds to an old version of multirust.sh.
-                Err(ErrorKind::UnknownMetadataVersion(current_version).unchained())
+                Err(ErrorKind::UnknownMetadataVersion(current_version).into())
             }
             "2" => {
                 // The toolchain installation format changed. Just delete them all.
@@ -203,7 +203,7 @@ impl Cfg {
 
                 Ok(())
             }
-            _ => Err(ErrorKind::UnknownMetadataVersion(current_version).unchained()),
+            _ => Err(ErrorKind::UnknownMetadataVersion(current_version).into()),
         }
     }
 
@@ -335,7 +335,7 @@ impl Cfg {
             if &*current_version == METADATA_VERSION {
                 Ok(())
             } else {
-                Err(ErrorKind::NeedMetadataUpgrade.unchained())
+                Err(ErrorKind::NeedMetadataUpgrade.into())
             }
         }
     }

@@ -58,7 +58,7 @@ fn validate_installer_version(path: &Path) -> Result<()> {
     if v == INSTALLER_VERSION {
         Ok(())
     } else {
-        Err(ErrorKind::BadInstallerVersion(v.to_owned()).unchained())
+        Err(ErrorKind::BadInstallerVersion(v.to_owned()).into())
     }
 }
 
@@ -92,7 +92,7 @@ impl Package for DirectoryPackage {
 
         for l in manifest.lines() {
             let part = try!(ComponentPart::decode(l)
-                            .ok_or_else(|| ErrorKind::CorruptComponent(name.to_owned()).unchained()));
+                            .ok_or_else(|| ErrorKind::CorruptComponent(name.to_owned())));
 
             let path = part.1;
             let src_path = root.join(&path);
@@ -100,7 +100,7 @@ impl Package for DirectoryPackage {
             match &*part.0 {
                 "file" => try!(builder.copy_file(path.clone(), &src_path)),
                 "dir" => try!(builder.copy_dir(path.clone(), &src_path)),
-                _ => return Err(ErrorKind::CorruptComponent(name.to_owned()).unchained()),
+                _ => return Err(ErrorKind::CorruptComponent(name.to_owned()).into()),
             }
 
             try!(set_file_perms(&target.prefix().path().join(path), &src_path));

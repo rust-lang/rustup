@@ -11,7 +11,7 @@ pub fn get_string(table: &mut toml::Table, key: &str, path: &str) -> Result<Stri
         if let toml::Value::String(s) = v {
             Ok(s)
         } else {
-            Err(ErrorKind::ExpectedType("string", path.to_owned() + key).unchained())
+            Err(ErrorKind::ExpectedType("string", path.to_owned() + key).into())
         }
     })
 }
@@ -21,7 +21,7 @@ pub fn get_bool(table: &mut toml::Table, key: &str, path: &str) -> Result<bool> 
         if let toml::Value::Boolean(b) = v {
             Ok(b)
         } else {
-            Err(ErrorKind::ExpectedType("string", path.to_owned() + key).unchained())
+            Err(ErrorKind::ExpectedType("string", path.to_owned() + key).into())
         }
     })
 }
@@ -31,7 +31,7 @@ pub fn get_table(table: &mut toml::Table, key: &str, path: &str) -> Result<toml:
         if let toml::Value::Table(t) = v {
             Ok(t)
         } else {
-            Err(ErrorKind::ExpectedType("table", path.to_owned() + key).unchained())
+            Err(ErrorKind::ExpectedType("table", path.to_owned() + key).into())
         }
     } else {
         Ok(toml::Table::new())
@@ -43,7 +43,7 @@ pub fn get_array(table: &mut toml::Table, key: &str, path: &str) -> Result<toml:
         if let toml::Value::Array(s) = v {
             Ok(s)
         } else {
-            Err(ErrorKind::ExpectedType("table", path.to_owned() + key).unchained())
+            Err(ErrorKind::ExpectedType("table", path.to_owned() + key).into())
         }
     } else {
         Ok(toml::Array::new())

@@ -147,10 +147,6 @@ macro_rules! declare_errors {
         }
 
         impl $error_kind_name {
-            pub fn unchained(self) -> $error_name {
-                $error_name(self, None, $crate::Backtrace::new())
-            }
-
             pub fn chained<E>(self, e: E) -> $error_name
                 where E: ::std::error::Error + Send + 'static
             {
