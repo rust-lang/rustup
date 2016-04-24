@@ -902,7 +902,7 @@ fn bad_component_hash() {
 
         let err = update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap_err();
 
-        match *err.inner() {
+        match *err.kind() {
             ErrorKind::ChecksumFailed { .. } => (),
             _ => panic!()
         }
@@ -918,7 +918,7 @@ fn unable_to_download_component() {
 
         let err = update_from_dist(url, toolchain, prefix, &[], &[], temp_cfg, NotifyHandler::none()).unwrap_err();
 
-        match *err.inner() {
+        match *err.kind() {
             ErrorKind::ComponentDownloadFailed(..) => (),
             _ => panic!()
         }

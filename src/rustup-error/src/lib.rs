@@ -228,11 +228,11 @@ macro_rules! declare_errors {
 
         #[allow(unused)]
         impl $error_name {
-            pub fn inner(&self) -> &$error_kind_name {
+            pub fn kind(&self) -> &$error_kind_name {
                 &self.0
             }
 
-            pub fn into_inner(self) -> $error_kind_name {
+            pub fn into_kind(self) -> $error_kind_name {
                 self.0
             }
 

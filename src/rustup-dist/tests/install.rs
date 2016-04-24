@@ -262,7 +262,7 @@ fn component_bad_version() {
 
     // Can't open components now
     let e = Components::open(prefix.clone()).unwrap_err();
-    if let ErrorKind::BadInstalledMetadataVersion(_) = *e.inner() { } else { panic!() }
+    if let ErrorKind::BadInstalledMetadataVersion(_) = *e.kind() { } else { panic!() }
 }
 
 // Directories should be 0755, normal files 0644, files that come

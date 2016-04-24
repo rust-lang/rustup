@@ -83,7 +83,7 @@ date = "2015-10-10"
 
     let err = Manifest::parse(manifest).unwrap_err();
 
-    match *err.inner() {
+    match *err.kind() {
         ErrorKind::MissingPackageForComponent(_) => {},
         _ => panic!(),
     }
