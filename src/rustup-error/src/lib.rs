@@ -1,3 +1,149 @@
+//! A library for consistent and reliable error handling
+//!
+//! Based on quick_error! and Cargo's chain_error method.
+//!
+//! This crate defines an opinionated strategy for error handling in Rust,
+//! built on the following principles:
+//!
+//! * No error should ever be discarded. This library primarily
+//!   makes it easy to "chain" errors with the `chain_err` method.
+//! * Introducing new errors is trivial. Simple errors can be introduced
+//!   at the error site with just a string.
+//! * Handling errors is possible with pattern matching.
+//! * Conversions between error types are done in an automatic and
+//!   consistent way - `From` conversion behavior is never specified
+//!   explicitly.
+//! * Errors implement Send.
+//! * Errors carry backtraces.
+//!
+//! Similar to other libraries like error-type and quick-error, this
+//! library defines a macro, `declare_errors!` that declares the types
+//! and implementation boilerplate necessary for fulfilling a
+//! particular error-hadling strategy. Most importantly it defines
+//! a custom error type (called `Error` by convention) and the `From`
+//! conversions that let the `try!` macro and `?` operator work.
+//!
+//! This library differs in a few ways:
+//!
+//! * Instead of defining the custom `Error` type as an enum, it is a
+//!   struct containing an `ErrorKind` (which defines the
+//!   `description` and `display` methods for the error), an opaque,
+//!   optional, boxed `std::error::Error + Send + 'static` object
+//!   (which defines the `cause`, and establishes the links in the
+//!   error chain), and a `Backtrace`.
+//! * The macro additionally defines a trait, by convention called
+//!   `ChainErr`, that defines a `chain_err` method. This method
+//!   on all `std::error::Error + Send + 'static` types extends
+//!   the error chain by boxing the current error into an opaque
+//!   object and putting it inside a new concrete error.
+//! * It provides automatic `From` conversions between other error types
+//!   defined by the `declare_errors!` that preserve type information.
+//! * It provides automatic `From` conversions between any other error
+//!   type that hide the type of the other error in the `cause` box.
+//! * It collects a single backtrace at the earliest opportunity and
+//!   propagates it down the stack through `From` and `ChainErr`
+//!   conversions.
+//!
+//! To accomplish its goals it makes some tradeoffs:
+//!
+//! * The split between the `Error` and `ErrorKind` types can make it
+//!   slightly more cumbersome to introduce new, unchained,
+//!   errors, requiring an `Into` or `From` conversion; as well as
+//!   slightly more cumbersome to match on errors with another layer
+//!   of types to match.
+//! * Because the error type contains `std::error::Error + Send + 'static` objects,
+//!   it can't implement `PartialEq` for easy comparisons.
+//!
+//! ## Declaring error types
+//!
+//! Generally, you define one family of error types per crate, though
+//! it's also perfectly fine to define error types on a finer-grained
+//! basis, such as per module.
+//!
+//! Assuming you are using crate-level error types, typically you will
+//! define an `errors` module and inside it call `declare_errors!`:
+//!
+//! ```rust
+//! declare_errors! {
+//!     // The type defined for this error. These are the conventional
+//!     // and recommended names, but they can be arbitrarily chosen.
+//!     types {
+//!         Error, ErrorKind, ChainErr, Result;
+//!     }
+//!
+//!     // Automatic conversions between this error chain and other
+//!     // error chains. In this case, it will generate an
+//!     // `ErrorKind` variant in turn containing `rustup_utils::ErrorKind`,
+//!     // with conversions from `rustup_utils::Error`.
+//!     //
+//!     // This section can be empty.
+//!     links {
+//!         rustup_dist::Error, rustup_dist::ErrorKind, Dist;
+//!         rustup_utils::Error, rustup_utils::ErrorKind, Utils;
+//!     }
+//!
+//!     // Automatic conversions between this error chain and other
+//!     // error types not defined by this macro. These will be boxed
+//!     // as the error cause, and their descriptions and display text
+//!     // reused.
+//!
+//!     // This section can be empty.
+//!     foreign_links {
+//!         temp::Error, Temp;
+//!     }
+//!
+//!     // Define the `ErrorKind` variants. The syntax here is the
+//!     // same as quick_error!, but the `from()` and `cause()`
+//!     // syntax is not supported.
+//!     errors {
+//!         InvalidToolchainName(t: String) {
+//!             description("invalid toolchain name")
+//!             display("invalid toolchain name: '{}'", t)
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! ## Returning new errors
+//!
+//! Introducing new error chains, with a string message:
+//!
+//! ```rust
+//! fn foo() -> Result<()> {
+//!     Err("foo error!".into())
+//! }
+//! ```
+//!
+//! Introducing new error chains, with an `ErrorKind`:
+//!
+//! ```rust
+//! fn foo() -> Result<()> {
+//!     Err(ErrorKind::FooError.into())
+//! }
+//! ```
+//!
+//! Note that the return type is is the typedef `Result`, which is
+//! defined by the macro as `pub type Result<T> =
+//! ::std::result::Result<T, Error>`. Note that in both cases
+//! `.into()` is called to convert a type into the `Error` type: both
+//! strings and `ErrorKind` have `From` conversions to turn them into
+//! `Error`.
+//!
+//! When the error is emitted inside a `try!` macro or behind the
+//! `?` operator, then the explicit conversion isn't needed, since
+//! the behavior of `try!` will automatically convert `Err(ErrorKind)`
+//! to `Err(Error)`. So the below is equivalent to the previous:
+//!
+//! ```rust
+//! fn foo() -> Result<()> {
+//!     Ok(try!(Err(ErrorKind::FooError)))
+//! }
+//! ```
+//!
+//! # Chaining errors
+//!
+//! TODO
+
 extern crate backtrace;
 
 pub use backtrace::Backtrace;
@@ -194,6 +340,10 @@ macro_rules! declare_errors {
             }
         }
 
+        // Use downcasts to extract the backtrace from types we know,
+        // to avoid generating a new one. It would be better to not
+        // define this in the macro, but types need some additional
+        // machinery to make it work.
         fn backtrace_from_box(mut e: Box<::std::error::Error + Send + 'static>)
                               -> (Box<::std::error::Error + Send + 'static>, Option<$crate::Backtrace>) {
             let mut backtrace = None;
