@@ -40,48 +40,14 @@ macro_rules! declare_errors {
 
     ) => {
 
-        pub type $result_name<T> = ::std::result::Result<T, $error_name>;
 
-        pub trait $chain_error_name<T> {
-            fn chain_err<F, EK>(self, callback: F) -> ::std::result::Result<T, $error_name>
-                where F: FnOnce() -> EK,
-                      EK: Into<$error_kind_name>;
-        }
-
-        impl<T, E> $chain_error_name<T> for ::std::result::Result<T, E>
-            where E: ::std::error::Error + Send + 'static
-        {
-            fn chain_err<F, EK>(self, callback: F) -> ::std::result::Result<T, $error_name>
-                where F: FnOnce() -> EK,
-                      EK: Into<$error_kind_name>
-            {
-                self.map_err(move |e| {
-                    $error_name::extend_chain(callback().into(), e)
-                })
-            }
-        }
-
-        pub fn $err_fn<T, EK>(e: EK) -> ::std::result::Result<T, $error_name>
-            where EK: Into<$error_kind_name>
-        {
-            Err($error_name::new_chain(e.into()))
-        }
-
+        // The Error type
+        // --------------
 
         #[derive(Debug)]
         pub struct $error_name(pub $error_kind_name, pub Option<Box<::std::error::Error + Send>>);
 
         impl $error_name {
-            pub fn new_chain(e: $error_kind_name) -> Self {
-                $error_name(e, None)
-            }
-
-            pub fn extend_chain<SE>(e: $error_kind_name, c: SE) -> Self
-                where SE: ::std::error::Error + Send + 'static
-            {
-                $error_name(e, Some(Box::new(c)))
-            }
-
             pub fn inner(&self) -> &$error_kind_name {
                 &self.0
             }
@@ -106,6 +72,28 @@ macro_rules! declare_errors {
                 ::std::fmt::Display::fmt(&self.0, f)
             }
         }
+
+        $(
+            impl From<$link_chain_path> for $error_name {
+                fn from(e: $link_chain_path) -> Self {
+                    $error_name($error_kind_name::$link_variant(e.0), e.1)
+                }
+            }
+        ) *
+
+        $(
+            impl From<$foreign_link_error_path> for $error_name {
+                fn from(e: $foreign_link_error_path) -> Self {
+                    $error_name($error_kind_name::$foreign_link_variant(
+                        $crate::ForeignError::new(&e)), Some(Box::new(e)))
+                }
+            }
+        ) *
+
+
+
+        // The ErrorKind type
+        // --------------
 
         quick_error! {
             #[derive(Debug)]
@@ -136,15 +124,16 @@ macro_rules! declare_errors {
 
         impl $error_kind_name {
             pub fn unchained(self) -> $error_name {
-                $error_name::new_chain(self)
+                $error_name(self, None)
             }
 
             pub fn chained<E>(self, e: E) -> $error_name
                 where E: ::std::error::Error + Send + 'static
             {
-                $error_name::extend_chain(self, e)
+                $error_name(self, Some(Box::new(e)))
             }
         }
+
 
         impl<'a> From<&'a str> for $error_kind_name {
             fn from(s: &'a str) -> Self {
@@ -158,22 +147,37 @@ macro_rules! declare_errors {
             }
         }
 
-        $(
-            impl From<$link_chain_path> for $error_name {
-                fn from(e: $link_chain_path) -> Self {
-                    $error_name($error_kind_name::$link_variant(e.0), e.1)
-                }
-            }
-        ) *
 
-        $(
-            impl From<$foreign_link_error_path> for $error_name {
-                fn from(e: $foreign_link_error_path) -> Self {
-                    $error_name($error_kind_name::$foreign_link_variant(
-                        $crate::ForeignError::new(&e)), Some(Box::new(e)))
-                }
+
+        // Lesser types
+        // ------------
+
+        pub trait $chain_error_name<T> {
+            fn chain_err<F, EK>(self, callback: F) -> ::std::result::Result<T, $error_name>
+                where F: FnOnce() -> EK,
+                      EK: Into<$error_kind_name>;
+        }
+
+        impl<T, E> $chain_error_name<T> for ::std::result::Result<T, E>
+            where E: ::std::error::Error + Send + 'static
+        {
+            fn chain_err<F, EK>(self, callback: F) -> ::std::result::Result<T, $error_name>
+                where F: FnOnce() -> EK,
+                      EK: Into<$error_kind_name>
+            {
+                self.map_err(move |e| {
+                    $error_name(callback().into(), Some(Box::new(e)))
+                })
             }
-        ) *
+        }
+
+        pub type $result_name<T> = ::std::result::Result<T, $error_name>;
+
+        pub fn $err_fn<T, EK>(e: EK) -> ::std::result::Result<T, $error_name>
+            where EK: Into<$error_kind_name>
+        {
+            Err($error_name(e.into(), None))
+        }
 
     };
 }
