@@ -12,3 +12,6 @@ homepage = "https://github.com/rust-lang-nursery/multirust-rs"
 repository = "https://github.com/rust-lang-nursery/multirust-rs"
 
 license = "MIT OR Apache-2.0"
+
+[dependencies]
+backtrace = "0.2.1"

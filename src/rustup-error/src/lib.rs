@@ -1,3 +1,7 @@
+extern crate backtrace;
+
+pub use backtrace::Backtrace;
+
 mod quick_error;
 
 #[derive(Debug)]
@@ -44,7 +48,9 @@ macro_rules! declare_errors {
         // --------------
 
         #[derive(Debug)]
-        pub struct $error_name(pub $error_kind_name, pub Option<Box<::std::error::Error + Send>>);
+        pub struct $error_name(pub $error_kind_name,
+                               pub Option<Box<::std::error::Error + Send>>,
+                               pub $crate::Backtrace);
 
         #[allow(unused)]
         impl $error_name {
@@ -76,7 +82,7 @@ macro_rules! declare_errors {
         $(
             impl From<$link_chain_path> for $error_name {
                 fn from(e: $link_chain_path) -> Self {
-                    $error_name($error_kind_name::$link_variant(e.0), e.1)
+                    $error_name($error_kind_name::$link_variant(e.0), e.1, e.2)
                 }
             }
         ) *
@@ -84,27 +90,29 @@ macro_rules! declare_errors {
         $(
             impl From<$foreign_link_error_path> for $error_name {
                 fn from(e: $foreign_link_error_path) -> Self {
-                    $error_name($error_kind_name::$foreign_link_variant(
-                        $crate::ForeignError::new(&e)), Some(Box::new(e)))
+                    $error_name(
+                        $error_kind_name::$foreign_link_variant($crate::ForeignError::new(&e)),
+                        Some(Box::new(e)),
+                        $crate::Backtrace::new())
                 }
             }
         ) *
 
         impl From<$error_kind_name> for $error_name {
             fn from(e: $error_kind_name) -> Self {
-                $error_name(e, None)
+                $error_name(e, None, $crate::Backtrace::new())
             }
         }
 
         impl<'a> From<&'a str> for $error_name {
             fn from(s: &'a str) -> Self {
-                $error_name(s.into(), None)
+                $error_name(s.into(), None, $crate::Backtrace::new())
             }
         }
 
         impl From<String> for $error_name {
             fn from(s: String) -> Self {
-                $error_name(s.into(), None)
+                $error_name(s.into(), None, $crate::Backtrace::new())
             }
         }
 
@@ -140,13 +148,14 @@ macro_rules! declare_errors {
 
         impl $error_kind_name {
             pub fn unchained(self) -> $error_name {
-                $error_name(self, None)
+                $error_name(self, None, $crate::Backtrace::new())
             }
 
             pub fn chained<E>(self, e: E) -> $error_name
                 where E: ::std::error::Error + Send + 'static
             {
-                $error_name(self, Some(Box::new(e)))
+                // FIXME: Unfortunate backtrace if E already has one
+                $error_name(self, Some(Box::new(e)), $crate::Backtrace::new())
             }
         }
 
@@ -182,7 +191,8 @@ macro_rules! declare_errors {
                       EK: Into<$error_kind_name>
             {
                 self.map_err(move |e| {
-                    $error_name(callback().into(), Some(Box::new(e)))
+                    // FIXME: Unfortunate backtrace if E already has one
+                    $error_name(callback().into(), Some(Box::new(e)), $crate::Backtrace::new())
                 })
             }
         }
