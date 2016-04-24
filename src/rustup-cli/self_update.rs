@@ -619,7 +619,7 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
 
         if gc_handle == INVALID_HANDLE_VALUE {
             let err = io::Error::last_os_error();
-            return Err(ErrorKind::WindowsUninstallMadness.chained(err));
+            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
         }
 
         let _g = scopeguard::guard(gc_handle, |h| { let _ = CloseHandle(*h); });
@@ -683,7 +683,7 @@ fn wait_for_parent() -> Result<()> {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if snapshot == INVALID_HANDLE_VALUE {
             let err = io::Error::last_os_error();
-            return Err(ErrorKind::WindowsUninstallMadness.chained(err));
+            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
         }
 
         let _g = scopeguard::guard(snapshot, |h| { let _ = CloseHandle(*h); });
@@ -695,7 +695,7 @@ fn wait_for_parent() -> Result<()> {
         let success = Process32First(snapshot, &mut entry);
         if success == 0 {
             let err = io::Error::last_os_error();
-            return Err(ErrorKind::WindowsUninstallMadness.chained(err));
+            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
         }
 
         let this_pid = GetCurrentProcessId();
@@ -703,7 +703,7 @@ fn wait_for_parent() -> Result<()> {
             let success = Process32Next(snapshot, &mut entry);
             if success == 0 {
                 let err = io::Error::last_os_error();
-                return Err(ErrorKind::WindowsUninstallMadness.chained(err));
+                return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
             }
         }
 
@@ -726,7 +726,7 @@ fn wait_for_parent() -> Result<()> {
 
         if res != WAIT_OBJECT_0 {
             let err = io::Error::last_os_error();
-            return Err(ErrorKind::WindowsUninstallMadness.chained(err));
+            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
         }
     }
 
@@ -865,7 +865,7 @@ fn get_windows_path_var() -> Result<Option<String>> {
             Ok(Some(String::new()))
         }
         Err(e) => {
-            Err(ErrorKind::WindowsUninstallMadness.chained(e))
+            Err(e).chain_err(|| ErrorKind::WindowsUninstallMadness)
         }
     }
 }

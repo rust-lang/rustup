@@ -146,15 +146,6 @@ macro_rules! declare_errors {
             }
         }
 
-        impl $error_kind_name {
-            pub fn chained<E>(self, e: E) -> $error_name
-                where E: ::std::error::Error + Send + 'static
-            {
-                // FIXME: Unfortunate backtrace if E already has one
-                $error_name(self, Some(Box::new(e)), $crate::Backtrace::new())
-            }
-        }
-
         $(
             impl From<$link_error_path> for $error_kind_name {
                 fn from(e: $link_error_path) -> Self {
