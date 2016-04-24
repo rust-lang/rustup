@@ -116,6 +116,7 @@ macro_rules! declare_errors {
             }
         }
 
+
         // The ErrorKind type
         // --------------
 
@@ -167,9 +168,8 @@ macro_rules! declare_errors {
         }
 
 
-
-        // Lesser types
-        // ------------
+        // The ChainErr trait
+        // ------------------
 
         pub trait $chain_error_name<T> {
             fn chain_err<F, EK>(self, callback: F) -> ::std::result::Result<T, $error_name>
@@ -190,6 +190,10 @@ macro_rules! declare_errors {
                 })
             }
         }
+
+
+        // The Result type
+        // ---------------
 
         pub type $result_name<T> = ::std::result::Result<T, $error_name>;
     };
