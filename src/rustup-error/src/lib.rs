@@ -185,12 +185,89 @@ macro_rules! declare_errors {
                       EK: Into<$error_kind_name>
             {
                 self.map_err(move |e| {
-                    // FIXME: Unfortunate backtrace if E already has one
-                    $error_name(callback().into(), Some(Box::new(e)), $crate::Backtrace::new())
+                    let e = Box::new(e) as Box<::std::error::Error + Send + 'static>;
+                    let (e, backtrace) = backtrace_from_box(e);
+                    let backtrace = backtrace.unwrap_or_else(|| $crate::Backtrace::new());
+
+                    $error_name(callback().into(), Some(e), backtrace)
                 })
             }
         }
 
+        fn backtrace_from_box(mut e: Box<::std::error::Error + Send + 'static>)
+                              -> (Box<::std::error::Error + Send + 'static>, Option<$crate::Backtrace>) {
+            let mut backtrace = None;
+
+            e = match e.downcast::<$error_name>() {
+                Err(e) => {
+                    e as Box<::std::error::Error + Send + 'static>
+                }
+                Ok(e) => {
+                    #[derive(Debug)]
+                    struct ChainedError($error_kind_name,
+                                        Option<Box<::std::error::Error + Send>>);
+
+                    impl ::std::error::Error for ChainedError {
+                        fn description(&self) -> &str { self.0.description() }
+                        fn cause(&self) -> Option<&::std::error::Error> {
+                            match self.1 {
+                                Some(ref c) => Some(&**c),
+                                None => None
+                            }
+                        }
+                    }
+
+                    impl ::std::fmt::Display for ChainedError {
+                        fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                            ::std::fmt::Display::fmt(&self.0, f)
+                        }
+                    }
+
+                    let e = *e;
+                    backtrace = Some(e.2);
+                    let e2 = ChainedError(e.0, e.1);
+                    Box::new(e2) as Box<::std::error::Error + Send + 'static>
+                }
+            };
+
+            $(
+
+                e = match e.downcast::<$link_error_path>() {
+                    Err(e) => {
+                        e as Box<::std::error::Error + Send + 'static>
+                    }
+                    Ok(e) => {
+                        #[derive(Debug)]
+                        struct ChainedError($link_kind_path,
+                                            Option<Box<::std::error::Error + Send>>);
+
+                        impl ::std::error::Error for ChainedError {
+                            fn description(&self) -> &str { self.0.description() }
+                            fn cause(&self) -> Option<&::std::error::Error> {
+                                match self.1 {
+                                    Some(ref c) => Some(&**c),
+                                    None => None
+                                }
+                            }
+                        }
+
+                        impl ::std::fmt::Display for ChainedError {
+                            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                                ::std::fmt::Display::fmt(&self.0, f)
+                            }
+                        }
+
+                        let e = *e;
+                        backtrace = Some(e.2);
+                        let e2 = ChainedError(e.0, e.1);
+                        Box::new(e2) as Box<::std::error::Error + Send + 'static>
+                    }
+                };
+
+            ) *
+
+            (e, backtrace)
+        }
 
         // The Result type
         // ---------------
