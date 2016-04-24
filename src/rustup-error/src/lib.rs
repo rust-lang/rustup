@@ -138,13 +138,24 @@
 //! fn foo() -> Result<()> {
 //!     Ok(try!(Err(ErrorKind::FooError)))
 //! }
+//!
+//! fn bar() -> Result<()> {
+//!     Ok(try!(Err("bogus!")))
 //! ```
 //!
-//! # Chaining errors
+//! ## Chaining errors
 //!
 //! TODO
+//!
+//! ## Misc
+//!
+//! iteration, backtraces, foreign errors
+//!
 
 extern crate backtrace;
+
+use std::error::Error as StdError;
+use std::iter::Iterator;
 
 pub use backtrace::Backtrace;
 
@@ -158,11 +169,28 @@ pub struct ForeignError {
 
 impl ForeignError {
     pub fn new<E>(e: &E) -> ForeignError
-        where E: ::std::error::Error
+        where E: StdError
     {
         ForeignError {
             description: e.description().to_string(),
             display: format!("{}", e)
+        }
+    }
+}
+
+pub struct ErrorChainIter<'a>(pub Option<&'a StdError>);
+
+impl<'a> Iterator for ErrorChainIter<'a> {
+
+    type Item = &'a StdError;
+
+    fn next<'b>(&'b mut self) -> Option<&'a StdError> {
+        match self.0.take() {
+            Some(e) => {
+                self.0 = e.cause();
+                Some(e)
+            }
+            None => None
         }
     }
 }
@@ -206,6 +234,10 @@ macro_rules! declare_errors {
 
             pub fn into_inner(self) -> $error_kind_name {
                 self.0
+            }
+
+            pub fn iter<'a>(&'a self) -> $crate::ErrorChainIter<'a> {
+                $crate::ErrorChainIter(Some(self))
             }
         }
 

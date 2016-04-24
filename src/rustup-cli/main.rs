@@ -51,7 +51,7 @@ use errors::*;
 
 fn main() {
     if let Err(e) = run_multirust() {
-        err!("{}", e);
+        report_error(e);
         std::process::exit(1);
     }
 }
@@ -171,3 +171,8 @@ fn fix_windows_reg_key() {
 
 #[cfg(not(windows))]
 fn fix_windows_reg_key() { }
+
+fn report_error(e: Error) {
+    for e in e.iter() {
+    }
+}
