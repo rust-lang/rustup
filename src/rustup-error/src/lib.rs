@@ -22,8 +22,7 @@ macro_rules! declare_errors {
     (
         types {
             $error_name:ident, $error_kind_name:ident,
-            $chain_error_name:ident, $result_name:ident,
-            $err_fn:ident;
+            $chain_error_name:ident, $result_name:ident;
         }
 
         links {
@@ -90,7 +89,11 @@ macro_rules! declare_errors {
             }
         ) *
 
-
+        impl<'a> From<&'a str> for $error_name {
+            fn from(s: &'a str) -> Self {
+                $error_name(s.into(), None)
+            }
+        }
 
         // The ErrorKind type
         // --------------
@@ -172,12 +175,5 @@ macro_rules! declare_errors {
         }
 
         pub type $result_name<T> = ::std::result::Result<T, $error_name>;
-
-        pub fn $err_fn<T, EK>(e: EK) -> ::std::result::Result<T, $error_name>
-            where EK: Into<$error_kind_name>
-        {
-            Err($error_name(e.into(), None))
-        }
-
     };
 }
