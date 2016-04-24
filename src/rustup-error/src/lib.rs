@@ -236,8 +236,12 @@ macro_rules! declare_errors {
                 self.0
             }
 
-            pub fn iter<'a>(&'a self) -> $crate::ErrorChainIter<'a> {
+            pub fn iter(&self) -> $crate::ErrorChainIter {
                 $crate::ErrorChainIter(Some(self))
+            }
+
+            pub fn backtrace(&self) -> &$crate::Backtrace {
+                &self.2
             }
         }
 
