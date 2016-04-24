@@ -150,16 +150,16 @@ pub fn download_file(url: hyper::Url,
     match raw::download_file(url.clone(), path, hasher, notify_handler) {
         Ok(_) => Ok(()),
         Err(e @ raw::DownloadError::Status(NotFound)) => {
-            Err(ErrorKind::Download404 {
+            Err(e).chain_err(|| ErrorKind::Download404 {
                 url: url,
                 path: path.to_path_buf(),
-            }.chained(e))
+            })
         }
         Err(e) => {
-            Err(ErrorKind::DownloadingFile {
+            Err(e).chain_err(|| ErrorKind::DownloadingFile {
                 url: url,
                 path: path.to_path_buf(),
-            }.chained(e))
+            })
         }
     }
 }

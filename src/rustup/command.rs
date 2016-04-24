@@ -106,9 +106,9 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
                 cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
             });
 
-            Err(rustup_utils::ErrorKind::RunningCommand {    
+            Err(e).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
                 name: args[0].as_ref().to_owned(),
-            }.chained(e).into())
+            })
         },
     }
 }
@@ -127,9 +127,9 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(mut cmd: Command, args
             process::exit(code);
         }
         Err(e) => {
-            Err(rustup_utils::ErrorKind::RunningCommand {
+            Err(e).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
                 name: args[0].as_ref().to_owned(),
-            }.chained(e).into())
+            })
         }
     }    
 }

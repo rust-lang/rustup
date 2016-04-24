@@ -155,6 +155,13 @@ macro_rules! declare_errors {
             }
         }
 
+        $(
+            impl From<$link_error_path> for $error_kind_name {
+                fn from(e: $link_error_path) -> Self {
+                    $error_kind_name::$link_variant(e)
+                }
+            }
+        ) *
 
         impl<'a> From<&'a str> for $error_kind_name {
             fn from(s: &'a str) -> Self {
