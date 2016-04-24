@@ -224,7 +224,7 @@ macro_rules! declare_errors {
         #[derive(Debug)]
         pub struct $error_name(pub $error_kind_name,
                                pub Option<Box<::std::error::Error + Send>>,
-                               pub $crate::Backtrace);
+                               pub ::std::sync::Arc<$crate::Backtrace>);
 
         #[allow(unused)]
         impl $error_name {
@@ -275,26 +275,29 @@ macro_rules! declare_errors {
                     $error_name(
                         $error_kind_name::$foreign_link_variant($crate::ForeignError::new(&e)),
                         Some(Box::new(e)),
-                        $crate::Backtrace::new())
+                        ::std::sync::Arc::new($crate::Backtrace::new()))
                 }
             }
         ) *
 
         impl From<$error_kind_name> for $error_name {
             fn from(e: $error_kind_name) -> Self {
-                $error_name(e, None, $crate::Backtrace::new())
+                $error_name(e, None,
+                            ::std::sync::Arc::new($crate::Backtrace::new()))
             }
         }
 
         impl<'a> From<&'a str> for $error_name {
             fn from(s: &'a str) -> Self {
-                $error_name(s.into(), None, $crate::Backtrace::new())
+                $error_name(s.into(), None,
+                            ::std::sync::Arc::new($crate::Backtrace::new()))
             }
         }
 
         impl From<String> for $error_name {
             fn from(s: String) -> Self {
-                $error_name(s.into(), None, $crate::Backtrace::new())
+                $error_name(s.into(), None,
+                            ::std::sync::Arc::new($crate::Backtrace::new()))
             }
         }
 
@@ -369,7 +372,8 @@ macro_rules! declare_errors {
                 self.map_err(move |e| {
                     let e = Box::new(e) as Box<::std::error::Error + Send + 'static>;
                     let (e, backtrace) = backtrace_from_box(e);
-                    let backtrace = backtrace.unwrap_or_else(|| $crate::Backtrace::new());
+                    let backtrace = backtrace.unwrap_or_else(
+                        || ::std::sync::Arc::new($crate::Backtrace::new()));
 
                     $error_name(callback().into(), Some(e), backtrace)
                 })
@@ -381,7 +385,8 @@ macro_rules! declare_errors {
         // define this in the macro, but types need some additional
         // machinery to make it work.
         fn backtrace_from_box(mut e: Box<::std::error::Error + Send + 'static>)
-                              -> (Box<::std::error::Error + Send + 'static>, Option<$crate::Backtrace>) {
+                              -> (Box<::std::error::Error + Send + 'static>,
+                                  Option<::std::sync::Arc<$crate::Backtrace>>) {
             let mut backtrace = None;
 
             e = match e.downcast::<$error_name>() {
