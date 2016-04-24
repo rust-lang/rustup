@@ -30,7 +30,7 @@ macro_rules! declare_errors {
         }
 
         links {
-            $( $link_chain_path:path, $link_error_path:path, $link_variant:ident;  ) *
+            $( $link_error_path:path, $link_kind_path:path, $link_variant:ident;  ) *
         }
 
         foreign_links {
@@ -80,8 +80,8 @@ macro_rules! declare_errors {
         }
 
         $(
-            impl From<$link_chain_path> for $error_name {
-                fn from(e: $link_chain_path) -> Self {
+            impl From<$link_error_path> for $error_name {
+                fn from(e: $link_error_path) -> Self {
                     $error_name($error_kind_name::$link_variant(e.0), e.1, e.2)
                 }
             }
@@ -129,7 +129,7 @@ macro_rules! declare_errors {
                 }
 
                 $(
-                    $link_variant(e: $link_error_path) {
+                    $link_variant(e: $link_kind_path) {
                         description(e.description())
                         display("{}", e)
                     }
@@ -147,8 +147,8 @@ macro_rules! declare_errors {
         }
 
         $(
-            impl From<$link_error_path> for $error_kind_name {
-                fn from(e: $link_error_path) -> Self {
+            impl From<$link_kind_path> for $error_kind_name {
+                fn from(e: $link_kind_path) -> Self {
                     $error_kind_name::$link_variant(e)
                 }
             }
