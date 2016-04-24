@@ -46,6 +46,7 @@ macro_rules! declare_errors {
         #[derive(Debug)]
         pub struct $error_name(pub $error_kind_name, pub Option<Box<::std::error::Error + Send>>);
 
+        #[allow(unused)]
         impl $error_name {
             pub fn inner(&self) -> &$error_kind_name {
                 &self.0

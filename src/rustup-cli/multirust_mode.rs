@@ -3,7 +3,8 @@ use cli;
 use common::{self, confirm, set_globals,
              show_channel_update, show_tool_versions,
              update_all_channels};
-use rustup::*;
+use errors::*;
+use rustup::{Cfg, Notification, command, utils, Toolchain};
 use rustup_dist::manifest::Component;
 use rustup_dist::dist::TargetTriple;
 use self_update;
@@ -48,7 +49,7 @@ pub fn main() -> Result<()> {
         ("remove-target", Some(m)) => remove_target(&cfg, m),
         ("run", Some(m)) => run(&cfg, m),
         ("proxy", Some(m)) => proxy(&cfg, m),
-        ("upgrade-data", Some(_)) => cfg.upgrade_data().map(|_| ()),
+        ("upgrade-data", Some(_)) => Ok(try!(cfg.upgrade_data().map(|_| ()))),
         ("delete-data", Some(m)) => delete_data(&cfg, m),
         ("self", Some(c)) => {
             match c.subcommand() {
@@ -79,14 +80,14 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
     let cmd = try!(toolchain.create_command(args[0]));
-    command::run_command_for_dir(cmd, &args, &cfg)
+    Ok(try!(command::run_command_for_dir(cmd, &args, &cfg)))
 }
 
 fn proxy(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
     let cmd = try!(cfg.create_command_for_dir(&try!(utils::current_dir()), args[0]));
-    command::run_command_for_dir(cmd, &args, &cfg)
+    Ok(try!(command::run_command_for_dir(cmd, &args, &cfg)))
 }
 
 fn command_requires_metadata() -> Result<bool> {
@@ -120,11 +121,11 @@ fn self_update() -> Result<()> {
 }
 
 fn get_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches, create_parent: bool) -> Result<Toolchain<'a>> {
-    cfg.get_toolchain(m.value_of("toolchain").unwrap(), create_parent)
+    Ok(try!(cfg.get_toolchain(m.value_of("toolchain").unwrap(), create_parent)))
 }
 
 fn remove_toolchain_args(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    try!(get_toolchain(cfg, m, false)).remove()
+    Ok(try!(try!(get_toolchain(cfg, m, false)).remove()))
 }
 
 fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
@@ -224,7 +225,7 @@ fn doc_url(m: &ArgMatches) -> &'static str {
 }
 
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    cfg.open_docs_for_dir(&try!(utils::current_dir()), doc_url(m))
+    Ok(try!(cfg.open_docs_for_dir(&try!(utils::current_dir()), doc_url(m))))
 }
 
 fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {

@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use rustup_dist::{self, temp};
 use rustup_utils;
 use rustup_dist::manifest::Component;
@@ -23,24 +21,9 @@ declare_errors! {
             description("unknown metadata version")
             display("unknown metadata version: '{}'", v)
         }
-        InvalidEnvironment {
-            description("invalid environment")
-        }
-        NoDefaultToolchain {
-            description("no default toolchain configured")
-        }
-        PermissionDenied {
-            description("permission denied")
-        }
         ToolchainNotInstalled(t: String) {
             description("toolchain is not installed")
             display("toolchain '{}' is not installed", t)
-        }
-        UnknownHostTriple {
-            description("unknown host triple")
-        }
-        InfiniteRecursion {
-            description("infinite recursion detected")
         }
         NeedMetadataUpgrade {
             description("rustup's metadata is out of date. run `rustup self upgrade-data`")
@@ -72,28 +55,6 @@ declare_errors! {
         }
         NoExeName {
             description("couldn't determine self executable name")
-        }
-        NotSelfInstalled(p: PathBuf) {
-            description("rustup is not installed")
-            display("rustup is not installed at '{}'", p.display())
-        }
-        CantSpawnWindowsGcExe {
-            description("failed to spawn cleanup process")
-        }
-        WindowsUninstallMadness {
-            description("failure during windows uninstall")
-        }
-        SelfUpdateFailed {
-            description("self-updater failed to replace multirust executable")
-        }
-        ReadStdin {
-            description("unable to read from stdin for confirmation")
-        }
-        Custom {
-            id: String,
-            desc: String,
-        } {
-            description(&desc)
         }
         TelemetryCleanupError {
             description("unable to remove old telemetry files")

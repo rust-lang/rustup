@@ -426,6 +426,9 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
             return Err(format!("no release found for '{}'",
                                toolchain.manifest_name()).into());
         }
+        Err(e @ Error(ErrorKind::ChecksumFailed { .. }, _)) => {
+            return Err(e);
+        }
         Err(e) => {
             return Err(e).chain_err(
                 || format!("failed to download manifest for '{}'",

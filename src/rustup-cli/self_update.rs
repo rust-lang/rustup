@@ -33,7 +33,7 @@
 use common::{self, Confirm};
 use itertools::Itertools;
 use rustup::{NotifyHandler};
-use rustup::{ErrorKind, Result, ChainErr};
+use errors::*;
 use rustup_dist::dist;
 use rustup_dist;
 use rustup_utils::utils;
@@ -478,10 +478,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         try!(utils::remove_dir("multirust_home", multirust_dir, ntfy!(&NotifyHandler::none())));
     }
 
-    let read_dir_err = || ErrorKind::Custom {
-        id: "read_dir".to_string(),
-        desc: "failure reading directory".to_string()
-    };
+    let read_dir_err = "failure reading directory";
 
     info!("removing cargo home");
 
@@ -492,8 +489,8 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     // Delete everything in CARGO_HOME *except* the multirust bin
 
     // First everything except the bin directory
-    for dirent in try!(fs::read_dir(cargo_home).chain_err(|| read_dir_err())) {
-        let dirent = try!(dirent.chain_err(|| read_dir_err()));
+    for dirent in try!(fs::read_dir(cargo_home).chain_err(|| read_dir_err)) {
+        let dirent = try!(dirent.chain_err(|| read_dir_err));
         if dirent.file_name().to_str() != Some("bin") {
             if dirent.path().is_dir() {
                 try!(utils::remove_dir("cargo_home", &dirent.path(), ntfy!(&NotifyHandler::none())));
@@ -507,8 +504,8 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     // until this process exits (on windows).
     let tools = TOOLS.iter().map(|t| format!("{}{}", t, EXE_SUFFIX));
     let tools: Vec<_> = tools.chain(vec![format!("multirust{}", EXE_SUFFIX)]).collect();
-    for dirent in try!(fs::read_dir(&cargo_home.join("bin")).chain_err(|| read_dir_err())) {
-        let dirent = try!(dirent.chain_err(|| read_dir_err()));
+    for dirent in try!(fs::read_dir(&cargo_home.join("bin")).chain_err(|| read_dir_err)) {
+        let dirent = try!(dirent.chain_err(|| read_dir_err));
         let name = dirent.file_name();
         let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));
         if file_is_tool == Some(false) {
@@ -1035,10 +1032,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
         .unwrap_or(String::from(UPDATE_ROOT));
 
     let tempdir = try!(TempDir::new("multirust-update")
-        .chain_err(|| ErrorKind::Custom {
-            id: String::new(),
-            desc: "error creating temp directory".to_string()
-        }));
+        .chain_err(|| "error creating temp directory"));
 
     // Get download URL
     let url = format!("{}/{}/rustup-init{}", update_root, triple, EXE_SUFFIX);
@@ -1107,13 +1101,10 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 pub fn run_update(setup_path: &Path) -> Result<()> {
     let status = try!(Command::new(setup_path)
         .arg("--self-replace")
-        .status().chain_err(|| ErrorKind::Custom {
-            id: String::new(),
-            desc: "unable to run updater".to_string(),
-        }));
+        .status().chain_err(|| "unable to run updater"));
 
     if !status.success() {
-        return Err(ErrorKind::SelfUpdateFailed.unchained());
+        return Err("self-updated failed to replace multirust executable".into());
     }
 
     process::exit(0);
@@ -1123,10 +1114,7 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
 pub fn run_update(setup_path: &Path) -> Result<()> {
     try!(Command::new(setup_path)
         .arg("--self-replace")
-        .spawn().chain_err(|| ErrorKind::Custom {
-            id: String::new(),
-            desc: "unable to run updater".to_string(),
-        }));
+        .spawn().chain_err(|| "unable to run updater"));
 
     process::exit(0);
 }

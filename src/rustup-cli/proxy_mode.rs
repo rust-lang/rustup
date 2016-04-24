@@ -1,6 +1,6 @@
 use common::set_globals;
 use rustup::{Cfg};
-use rustup::{ErrorKind, Result};
+use errors::*;
 use rustup_utils::utils;
 use rustup::command::run_command_for_dir;
 use std::env;
@@ -29,6 +29,6 @@ fn direct_proxy(cfg: &Cfg, arg0: &str) -> Result<()> {
     let cmd = try!(cfg.create_command_for_dir(&try!(utils::current_dir()), arg0));
     let args: Vec<_> = env::args_os().collect();
 
-    run_command_for_dir(cmd, &args, &cfg)
+    Ok(try!(run_command_for_dir(cmd, &args, &cfg)))
 }
 

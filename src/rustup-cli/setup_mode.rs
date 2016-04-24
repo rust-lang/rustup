@@ -1,6 +1,6 @@
 use std::env;
 use self_update::{self, InstallOpts};
-use rustup::Result;
+use errors::*;
 use clap::{App, Arg};
 use common;
 

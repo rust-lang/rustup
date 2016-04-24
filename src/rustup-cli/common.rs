@@ -1,7 +1,7 @@
 //! Just a dumping ground for cli stuff
 
-use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
-use rustup::{ErrorKind, Result};
+use rustup::{self, Cfg, Notification, Toolchain, UpdateStatus};
+use errors::*;
 use rustup_utils::utils;
 use rustup_utils::notify::NotificationLevel;
 use self_update;
@@ -88,7 +88,8 @@ pub fn read_line() -> Result<String> {
     let stdin = std::io::stdin();
     let stdin = stdin.lock();
     let mut lines = stdin.lines();
-    lines.next().and_then(|l| l.ok()).ok_or(ErrorKind::ReadStdin.unchained())
+    lines.next().and_then(|l| l.ok()).ok_or(
+        "unable to read from stdin for confirmation".into())
 }
 
 pub fn set_globals(verbose: bool) -> Result<Cfg> {
@@ -97,8 +98,8 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
 
     let download_tracker = RefCell::new(DownloadTracker::new());
 
-    Cfg::from_env(shared_ntfy!(move |n: Notification| {
-        if download_tracker.borrow_mut().handle_notification(&n) {
+    Ok(try!(Cfg::from_env(shared_ntfy!(move |n: Notification| { 
+       if download_tracker.borrow_mut().handle_notification(&n) {
             return;
         }
 
@@ -118,16 +119,16 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
                 err!("{}", n);
             }
         }
-    }))
+    }))))
 
 }
 
 pub fn show_channel_update(cfg: &Cfg, name: &str,
-                           updated: Result<UpdateStatus>) -> Result<()> {
+                           updated: rustup::Result<UpdateStatus>) -> Result<()> {
     show_channel_updates(cfg, vec![(name.to_string(), updated)])
 }
 
-fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>)>) -> Result<()> {
+fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, rustup::Result<UpdateStatus>)>) -> Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
         let ref toolchain = cfg.get_toolchain(&name, false).expect("");
         let version = rustc_version(toolchain);
