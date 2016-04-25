@@ -117,13 +117,13 @@
 //! #[derive(Debug)]
 //! pub struct Error(pub ErrorKind,
 //!                  pub Option<Box<StdError + Send>>,
-//!                  pub Arc<rustup_error::Backtrace>);
+//!                  pub Arc<error_chain::Backtrace>);
 //!
 //! impl Error {
 //!     pub fn kind(&self) -> &ErrorKind { ... }
 //!     pub fn into_kind(self) -> ErrorKind { ... }
-//!     pub fn iter(&self) -> rustup_error::ErrorChainIter { ... }
-//!     pub fn backtrace(&self) -> &rustup_error::Backtrace { ... }
+//!     pub fn iter(&self) -> error_chain::ErrorChainIter { ... }
+//!     pub fn backtrace(&self) -> &error_chain::Backtrace { ... }
 //! }
 //!
 //! impl StdError for Error { ... }

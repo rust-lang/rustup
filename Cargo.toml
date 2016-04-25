@@ -20,7 +20,7 @@ build = "build.rs"
 [dependencies]
 rustup-dist = { path = "src/rustup-dist" }
 rustup-utils = { path = "src/rustup-utils" }
-rustup-error = { path = "src/rustup-error" }
+error-chain = { path = "src/error-chain" }
 clap = "2.2.4"
 regex = "0.1.41"
 openssl = "0.7.2"

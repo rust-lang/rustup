@@ -12,7 +12,7 @@ extern crate tar;
 #[macro_use]
 extern crate rustup_utils;
 #[macro_use]
-extern crate rustup_error;
+extern crate error_chain;
 
 pub use errors::*;
 pub use notifications::{Notification, NotifyHandler};

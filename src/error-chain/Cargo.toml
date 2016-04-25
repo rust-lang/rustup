@@ -1,6 +1,6 @@
 [package]
 
-name = "rustup-error"
+name = "error-chain"
 version = "0.1.7"
 authors = [ "Brian Anderson <banderson@mozilla.com",
             "Paul Colomiets <paul@colomiets.name>",

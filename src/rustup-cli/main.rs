@@ -4,7 +4,7 @@ extern crate rustup_dist;
 #[macro_use]
 extern crate rustup_utils;
 #[macro_use]
-extern crate rustup_error;
+extern crate error_chain;
 
 #[macro_use]
 extern crate clap;

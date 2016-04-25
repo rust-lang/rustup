@@ -7,7 +7,7 @@ extern crate openssl;
 extern crate rand;
 extern crate scopeguard;
 #[macro_use]
-extern crate rustup_error;
+extern crate error_chain;
 
 #[cfg(windows)]
 extern crate winapi;
