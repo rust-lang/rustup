@@ -15,6 +15,7 @@ use rustup_utils::utils;
 use override_db::OverrideDB;
 use toolchain::{Toolchain, UpdateStatus};
 use telemetry::{TelemetryMode};
+use telemetry_analysis::*;
 
 // Note: multirust-rs jumped from 2 to 12 to leave multirust.sh room to diverge
 pub const METADATA_VERSION: &'static str = "12";
@@ -458,5 +459,14 @@ impl Cfg {
         }
 
         TelemetryMode::Off
+    }
+
+    pub fn analyze_telemetry(&self) -> Result<TelemetryAnalysis> {
+        let mut t = TelemetryAnalysis::new(self.multirust_dir.join("telemetry"));
+
+        let events = try!(t.import_telemery());
+        try!(t.analyze_telemetry_events(&events));
+
+        Ok(t)
     }
 }

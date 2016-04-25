@@ -1,6 +1,7 @@
 use clap::{App, Arg, AppSettings, SubCommand, ArgMatches};
 use common;
 use rustup::{Cfg, Toolchain, command};
+use rustup::telemetry::TelemetryMode;
 use errors::*;
 use rustup_dist::manifest::Component;
 use rustup_dist::dist::TargetTriple;
@@ -59,7 +60,14 @@ pub fn main() -> Result<()> {
                 (_ ,_) => unreachable!(),
             }
         }
-        ("telemetry", Some(m)) => try!(telemetry(&cfg, m)),
+        ("telemetry", Some(c)) => {
+            match c.subcommand() {
+                ("enable", Some(_)) => try!(set_telemetry(&cfg, TelemetryMode::On)),
+                ("disable", Some(_)) => try!(set_telemetry(&cfg, TelemetryMode::Off)),
+                ("analyze", Some(_)) => try!(analyze_telemetry(&cfg)),
+                (_, _) => unreachable!(),
+            }
+        }
         (_, _) => unreachable!(),
     }
 
@@ -163,13 +171,13 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("upgrade-data")
                 .about("Upgrade the internal data format.")))
         .subcommand(SubCommand::with_name("telemetry")
-                .about("Enable or disable rust telemetry")
-                .arg(Arg::with_name("enabled")
-                        .hidden(true)
-                        .takes_value(true)
-                        .value_name("telemetry")
-                        .help("Set telemetry 'on' or 'off'")
-                        .possible_values(&["on", "off"])))
+            .about("rustup telemetry commands")
+            .subcommand(SubCommand::with_name("enable")
+                            .about("Enable rustup telemetry"))
+            .subcommand(SubCommand::with_name("disable")
+                            .about("Disable rustup telemetry"))
+            .subcommand(SubCommand::with_name("analyze")
+                            .about("Analyze stored telemetry")))
 }
 
 fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
@@ -385,11 +393,14 @@ fn self_uninstall(m: &ArgMatches) -> Result<()> {
     self_update::uninstall(no_prompt)
 }
 
-fn telemetry(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let telemetry_string = m.value_of("enabled").unwrap();
-    match telemetry_string {
-        "on" => Ok(try!(cfg.set_telemetry(true))),
-         "off" => Ok(try!(cfg.set_telemetry(false))),
-        _ => Err("incorrect telemetry setting".into())
+fn set_telemetry(cfg: &Cfg, t: TelemetryMode) -> Result<()> {
+    match t {
+        TelemetryMode::On => Ok(try!(cfg.set_telemetry(true))),
+        TelemetryMode::Off => Ok(try!(cfg.set_telemetry(false))),
     }
+}
+
+fn analyze_telemetry(cfg: &Cfg) -> Result<()> {
+    let analysis = try!(cfg.analyze_telemetry());
+    common::show_telemetry(analysis)
 }

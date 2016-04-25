@@ -201,7 +201,7 @@ info: installing component 'rust-std' for '{0}'
 fn enable_telemetry() {
     setup(&|config| {
         expect_ok_ex(config,
-                     &["rustup", "telemetry", "on"],
+                     &["rustup", "telemetry", "enable"],
                      r"",
                      &format!("info: telemetry set to 'on'\n"));
     });
@@ -211,7 +211,7 @@ fn enable_telemetry() {
 fn disable_telemetry() {
     setup(&|config| {
         expect_ok_ex(config,
-                     &["rustup", "telemetry", "off"],
+                     &["rustup", "telemetry", "disable"],
                      r"",
                      &format!("info: telemetry set to 'off'\n"));
     });

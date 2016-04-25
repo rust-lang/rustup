@@ -1,6 +1,7 @@
 //! Just a dumping ground for cli stuff
 
 use rustup::{self, Cfg, Notification, Toolchain, UpdateStatus};
+use rustup::telemetry_analysis::TelemetryAnalysis;
 use errors::*;
 use rustup_utils::utils;
 use rustup_utils::notify::NotificationLevel;
@@ -351,6 +352,7 @@ fn split_override<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
     })
 }
 
+
 pub fn report_error(e: &Error) {
     err!("{}", e);
 
@@ -381,4 +383,12 @@ pub fn report_error(e: &Error) {
 
         return false;
     }
+}
+
+pub fn show_telemetry(analysis: TelemetryAnalysis) -> Result<()> {
+    println!("Telemetry Analysis");
+
+    println!("{}", analysis);
+
+    Ok(())
 }

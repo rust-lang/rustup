@@ -60,5 +60,8 @@ error_chain! {
         TelemetryCleanupError {
             description("unable to remove old telemetry files")
         }
+        TelemetryAnalysisError {
+            description("error analyzing telemetry files")
+        }
     }
 }

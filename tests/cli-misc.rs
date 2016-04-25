@@ -293,7 +293,7 @@ fn proxies_pass_empty_args() {
 fn enabling_telemetry_and_compiling_creates_log() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "telemetry", "on"]);
+        expect_ok(config, &["rustup", "telemetry", "enable"]);
         expect_ok(config, &["rustc", "--version"]);
 
         let telemetry_dir = config.rustupdir.join("telemetry");
@@ -311,7 +311,7 @@ fn enabling_telemetry_and_compiling_creates_log() {
 fn telemetry_cleanup_removes_old_files() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "telemetry", "on"]);
+        expect_ok(config, &["rustup", "telemetry", "enable"]);
 
         let telemetry_dir = config.rustupdir.join("telemetry");
 
