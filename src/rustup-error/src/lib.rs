@@ -47,7 +47,7 @@
 //! To accomplish its goals it makes some tradeoffs:
 //!
 //! * The split between the `Error` and `ErrorKind` types can make it
-//!   slightly more cumbersome to introduce new, unchained,
+//!   slightly more cumbersome to instantiate new (unchained) errors
 //!   errors, requiring an `Into` or `From` conversion; as well as
 //!   slightly more cumbersome to match on errors with another layer
 //!   of types to match.
@@ -150,7 +150,7 @@
 //! can be created from the corresponding `ErrorKind`s of the link
 //! types, as wall as from `&str` and `String`.
 //!
-//! `into() and `From::from` are used heavily to massage types into
+//! `into()` and `From::from` are used heavily to massage types into
 //! the right shape. Which one to use in any specific case depends on
 //! the influence of type inference, but there are some patterns that
 //! arise frequently.
