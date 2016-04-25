@@ -22,79 +22,79 @@ pub fn ensure_dir_exists(name: &'static str,
                          path: &Path,
                          notify_handler: NotifyHandler)
                          -> Result<bool> {
-    Ok(try!(raw::ensure_dir_exists(path,
+    raw::ensure_dir_exists(path,
                            |p| notify_handler.call(Notification::CreatingDirectory(name, p)))
         .chain_err(|| {
             ErrorKind::CreatingDirectory {
                 name: name,
                 path: PathBuf::from(path),
             }
-        })))
+        })
 }
 
 pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
-    Ok(try!(raw::read_file(path).chain_err(|| {
+    raw::read_file(path).chain_err(|| {
         ErrorKind::ReadingFile {
             name: name,
             path: PathBuf::from(path),
         }
-    })))
+    })
 }
 
 pub fn write_file(name: &'static str, path: &Path, contents: &str) -> Result<()> {
-    Ok(try!(raw::write_file(path, contents).chain_err(|| {
+    raw::write_file(path, contents).chain_err(|| {
         ErrorKind::WritingFile {
             name: name,
             path: PathBuf::from(path),
         }
-    })))
+    })
 }
 
 pub fn append_file(name: &'static str, path: &Path, line: &str) -> Result<()> {
-    Ok(try!(raw::append_file(path, line).chain_err(|| {
+    raw::append_file(path, line).chain_err(|| {
         ErrorKind::WritingFile {
             name: name,
             path: PathBuf::from(path),
         }
-    })))
+    })
 }
 
 pub fn write_line(name: &'static str, file: &mut File, path: &Path, line: &str) -> Result<()> {
-    Ok(try!(writeln!(file, "{}", line).chain_err(|| {
+    writeln!(file, "{}", line).chain_err(|| {
         ErrorKind::WritingFile {
             name: name,
             path: path.to_path_buf(),
         }
-    })))
+    })
 }
 
 pub fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> Result<()> {
-    Ok(try!(write!(file, "{}", s).chain_err(|| {
+    write!(file, "{}", s).chain_err(|| {
         ErrorKind::WritingFile {
             name: name,
             path: path.to_path_buf(),
         }
-    })))
+    })
 }
 
 pub fn rename_file(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
-    Ok(try!(fs::rename(src, dest).chain_err(|| {
+    fs::rename(src, dest).chain_err(|| {
         ErrorKind::RenamingFile {
             name: name,
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
         }
-    })))
+    })
 }
 
 pub fn rename_dir(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
-    Ok(try!(fs::rename(src, dest).chain_err(|| {
+    fs::rename(src, dest).chain_err(|| {
         ErrorKind::RenamingDirectory {
             name: name,
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
         }
-    })))
+    })
 }
 
 pub fn filter_file<F: FnMut(&str) -> bool>(name: &'static str,
@@ -102,25 +102,25 @@ pub fn filter_file<F: FnMut(&str) -> bool>(name: &'static str,
                                            dest: &Path,
                                            filter: F)
                                            -> Result<usize> {
-    Ok(try!(raw::filter_file(src, dest, filter).chain_err(|| {
+    raw::filter_file(src, dest, filter).chain_err(|| {
         ErrorKind::FilteringFile {
             name: name,
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
         }
-    })))
+    })
 }
 
 pub fn match_file<T, F: FnMut(&str) -> Option<T>>(name: &'static str,
                                                   src: &Path,
                                                   f: F)
                                                   -> Result<Option<T>> {
-    Ok(try!(raw::match_file(src, f).chain_err(|| {
+    raw::match_file(src, f).chain_err(|| {
         ErrorKind::ReadingFile {
             name: name,
             path: PathBuf::from(src),
         }
-    })))
+    })
 }
 
 pub fn canonicalize_path(path: &Path, notify_handler: NotifyHandler) -> PathBuf {
@@ -131,12 +131,12 @@ pub fn canonicalize_path(path: &Path, notify_handler: NotifyHandler) -> PathBuf 
 }
 
 pub fn tee_file<W: io::Write>(name: &'static str, path: &Path, w: &mut W) -> Result<()> {
-    Ok(try!(raw::tee_file(path, w).chain_err(|| {
+    raw::tee_file(path, w).chain_err(|| {
         ErrorKind::ReadingFile {
             name: name,
             path: PathBuf::from(path),
         }
-    })))
+    })
 }
 
 pub fn download_file(url: hyper::Url,
@@ -165,16 +165,16 @@ pub fn download_file(url: hyper::Url,
 }
 
 pub fn parse_url(url: &str) -> Result<hyper::Url> {
-    Ok(try!(hyper::Url::parse(url)
-            .chain_err(|| ErrorKind::InvalidUrl { url: url.to_owned() })))
+    hyper::Url::parse(url)
+            .chain_err(|| ErrorKind::InvalidUrl { url: url.to_owned() })
 }
 
 pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
-    Ok(try!(raw::cmd_status(cmd).chain_err(|| {
+    raw::cmd_status(cmd).chain_err(|| {
         ErrorKind::RunningCommand {
             name: OsString::from(name),
         }
-    })))
+    })
 }
 
 pub fn assert_is_file(path: &Path) -> Result<()> {
@@ -195,70 +195,70 @@ pub fn assert_is_directory(path: &Path) -> Result<()> {
 
 pub fn symlink_dir(src: &Path, dest: &Path, notify_handler: NotifyHandler) -> Result<()> {
     notify_handler.call(Notification::LinkingDirectory(src, dest));
-    Ok(try!(raw::symlink_dir(src, dest).chain_err(|| {
+    raw::symlink_dir(src, dest).chain_err(|| {
         ErrorKind::LinkingDirectory {
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
         }
-    })))
+    })
 }
 
 pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
-    Ok(try!(raw::hardlink(src, dest).chain_err(|| {
+    raw::hardlink(src, dest).chain_err(|| {
         ErrorKind::LinkingFile {
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
         }
-    })))
+    })
 }
 
 pub fn copy_dir(src: &Path, dest: &Path, notify_handler: NotifyHandler) -> Result<()> {
     notify_handler.call(Notification::CopyingDirectory(src, dest));
-    Ok(try!(raw::copy_dir(src, dest).chain_err(|| {
+    raw::copy_dir(src, dest).chain_err(|| {
         ErrorKind::CopyingDirectory {
             src: PathBuf::from(src),
             dest: PathBuf::from(dest),
         }
-    })))
+    })
 }
 
 pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
-    Ok(try!(fs::copy(src, dest)
+    fs::copy(src, dest)
         .chain_err(|| {
             ErrorKind::CopyingFile {
                 src: PathBuf::from(src),
                 dest: PathBuf::from(dest),
             }
-        })))
+        })
         .map(|_| ())
 }
 
 pub fn remove_dir(name: &'static str, path: &Path, notify_handler: NotifyHandler) -> Result<()> {
     notify_handler.call(Notification::RemovingDirectory(name, path));
-    Ok(try!(raw::remove_dir(path).chain_err(|| {
+    raw::remove_dir(path).chain_err(|| {
         ErrorKind::RemovingDirectory {
             name: name,
             path: PathBuf::from(path),
         }
-    })))
+    })
 }
 
 pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
-    Ok(try!(fs::remove_file(path).chain_err(|| {
+    fs::remove_file(path).chain_err(|| {
         ErrorKind::RemovingFile {
             name: name,
             path: PathBuf::from(path),
         }
-    })))
+    })
 }
 
 pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
-    Ok(try!(fs::read_dir(path).chain_err(|| {
+    fs::read_dir(path).chain_err(|| {
         ErrorKind::ReadingDirectory {
             name: name,
             path: PathBuf::from(path),
         }
-    })))
+    })
 }
 
 pub fn open_browser(path: &Path) -> Result<()> {
@@ -270,11 +270,11 @@ pub fn open_browser(path: &Path) -> Result<()> {
 }
 
 pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
-    Ok(try!(fs::set_permissions(path, perms).chain_err(|| {
+    fs::set_permissions(path, perms).chain_err(|| {
         ErrorKind::SettingPermissions {
             path: PathBuf::from(path),
         }
-    })))
+    })
 }
 
 pub fn make_executable(path: &Path) -> Result<()> {
@@ -302,11 +302,11 @@ pub fn make_executable(path: &Path) -> Result<()> {
 }
 
 pub fn current_dir() -> Result<PathBuf> {
-    Ok(try!(env::current_dir().chain_err(|| ErrorKind::LocatingWorkingDir)))
+    env::current_dir().chain_err(|| ErrorKind::LocatingWorkingDir)
 }
 
 pub fn current_exe() -> Result<PathBuf> {
-    Ok(try!(env::current_exe().chain_err(|| ErrorKind::LocatingWorkingDir)))
+    env::current_exe().chain_err(|| ErrorKind::LocatingWorkingDir)
 }
 
 pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
