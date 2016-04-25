@@ -2,17 +2,24 @@ function detect_platform() {
     "use strict";
     var os = "unknown";
 
-    if (os == "unknown") {
-	if (navigator.platform == "Linux x86_64") {os = "unix";}
-	if (navigator.platform == "Linux i686") {os = "unix";}
-	if (navigator.platform == "Linux armv7l") { os = "unix";}
+    if (navigator.platform == "Linux x86_64") {os = "unix";}
+    if (navigator.platform == "Linux i686") {os = "unix";}
+    if (navigator.platform == "Linux i686 on x86_64") {os = "unix";}
+    if (navigator.platform == "Linux aarch64") {os = "unix";}
+    if (navigator.platform == "Linux armv6l") {os = "unix";}
+    if (navigator.platform == "Linux armv7l") {os = "unix";}
+    if (navigator.platform == "Win32") {os = "win";}
+    if (navigator.platform == "FreeBSD x86_64") {os = "unix";}
+
+    if (navigator.platform == "Linux armv7l"
+	&& navigator.appVersion.indexOf("Android") != -1 ) {
+	os = "android";
     }
 
     // I wish I knew by now, but I don't. Try harder.
     if (os == "unknown") {
 	if (navigator.appVersion.indexOf("Win")!=-1) {os = "win";}
 	if (navigator.appVersion.indexOf("Mac")!=-1) {os = "unix";}
-	if (navigator.appVersion.indexOf("Linux")!=-1) {os = "unix";}
     }
 
     return os;
