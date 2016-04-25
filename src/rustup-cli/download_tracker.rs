@@ -121,37 +121,31 @@ impl DownloadTracker {
     }
     /// Display the tracked download information to the terminal.
     fn display(&mut self) {
-        let total_h = HumanReadable(self.total_downloaded as u64);
+        let total_h = HumanReadable(self.total_downloaded as f64);
         let sum = self.downloaded_last_few_secs
                       .iter()
-                      .fold(0usize, |a, &v| a + v);
+                      .fold(0., |a, &v| a + v as f64);
         let len = self.downloaded_last_few_secs.len();
         let speed = if len > 0 {
-            (sum / len) as u64
+            sum / len as f64
         } else {
-            0
+            0.
         };
         let speed_h = HumanReadable(speed);
 
         match self.content_len {
             Some(content_len) => {
-                use std::borrow::Cow;
-
                 let percent = (self.total_downloaded as f64 / content_len as f64) * 100.;
-                let content_len_h = HumanReadable(content_len);
+                let content_len_h = HumanReadable(content_len as f64);
                 let remaining = content_len - self.total_downloaded as u64;
-                let eta = if speed > 0 {
-                    Cow::Owned(format!("{}s", remaining / speed))
-                } else {
-                    Cow::Borrowed("Unknown")
-                };
+                let eta_h = HumanReadable(remaining as f64 / speed);
                 let _ = write!(self.term.as_mut().unwrap(),
-                               "{} / {} ({:.2}%) {}/s ETA: {}",
+                               "{} / {} ({:3.0} %) {}/s ETA: {:#}",
                                total_h,
                                content_len_h,
                                percent,
                                speed_h,
-                               eta);
+                               eta_h);
             }
             None => {
                 let _ = write!(self.term.as_mut().unwrap(),
@@ -168,20 +162,36 @@ impl DownloadTracker {
 }
 
 /// Human readable representation of data size in bytes
-struct HumanReadable(u64);
+struct HumanReadable(f64);
 
 impl fmt::Display for HumanReadable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KIB: f64 = 1024.0;
-        const MIB: f64 = 1048576.0;
-        let size = self.0 as f64;
+        if f.alternate() {  // repurposing the alternate mode for ETA
+            let sec = self.0;
 
-        if size >= MIB {
-            write!(f, "{:.2} MiB", size / MIB)
-        } else if size >= KIB {
-            write!(f, "{:.2} KiB", size / KIB)
+            if sec <= 0. {
+                write!(f, "Unknown")
+            } else if sec > 1e3 {
+                let sec = self.0 as u64;
+                let min = sec / 60;
+                let sec = sec % 60;
+
+                write!(f, "{:3} min {:2} s", min, sec)  // XYZ min PQ s
+            } else {
+                write!(f, "{:3.0} s", self.0)  // XYZ s
+            }
         } else {
-            write!(f, "{} B", size)
+            const KIB: f64 = 1024.0;
+            const MIB: f64 = KIB * KIB;
+            let size = self.0;
+
+            if size >= MIB {
+                write!(f, "{:5.1} MiB", size / MIB)  // XYZ.P MiB
+            } else if size >= KIB {
+                write!(f, "{:5.1} KiB", size / KIB)
+            } else {
+                write!(f, "{:3.0} B", size)
+            }
         }
     }
 }
