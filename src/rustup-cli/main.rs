@@ -1,6 +1,10 @@
+#![recursion_limit = "1024"]
+
 extern crate rustup_dist;
 #[macro_use]
 extern crate rustup_utils;
+#[macro_use]
+extern crate error_chain;
 
 #[macro_use]
 extern crate clap;
@@ -39,14 +43,15 @@ mod self_update;
 mod tty;
 mod job;
 mod term2;
+mod errors;
 
 use std::env;
 use std::path::PathBuf;
-use rustup::{Error, Result};
+use errors::*;
 
 fn main() {
-    if let Err(e) = run_multirust() {
-        err!("{}", e);
+    if let Err(ref e) = run_multirust() {
+        common::report_error(e);
         std::process::exit(1);
     }
 }
@@ -56,7 +61,7 @@ fn run_multirust() -> Result<()> {
     let recursion_count = env::var("RUST_RECURSION_COUNT").ok()
         .and_then(|s| s.parse().ok()).unwrap_or(0);
     if recursion_count > 5 {
-        return Err(Error::InfiniteRecursion);
+        return Err(ErrorKind::InfiniteRecursion.into());
     }
 
     // Do various things to clean up past messes
@@ -111,7 +116,7 @@ fn run_multirust() -> Result<()> {
         }
         None => {
             // Weird case. No arg0, or it's unparsable.
-            Err(Error::NoExeName)
+            Err(ErrorKind::NoExeName.into())
         }
     }
 }
@@ -166,3 +171,4 @@ fn fix_windows_reg_key() {
 
 #[cfg(not(windows))]
 fn fix_windows_reg_key() { }
+

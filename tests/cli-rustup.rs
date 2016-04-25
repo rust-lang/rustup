@@ -8,7 +8,7 @@ extern crate tempdir;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
-                               expect_err_ex,
+                               expect_err,
                                set_current_dist_date,
                                this_host_triple};
 
@@ -315,10 +315,8 @@ fn show_toolchain_override_not_installed() {
         expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
         // I'm not sure this should really be erroring when the toolchain
         // is not installed; just capturing the behavior.
-        expect_err_ex(config, &["rustup", "show"],
-r"",
-for_host!(r"error: toolchain 'nightly-{0}' is not installed
-"));
+        expect_err(config, &["rustup", "show"],
+                   for_host!(r"error: toolchain 'nightly-{0}' is not installed"));
     });
 }
 
@@ -347,6 +345,6 @@ fn show_toolchain_env_not_installed() {
         // is not installed; just capturing the behavior.
         assert!(!out.status.success());
         let stderr = String::from_utf8(out.stderr).unwrap();
-        assert!(stderr == "error: toolchain 'nightly' is not installed\n");
+        assert!(stderr.starts_with("error: toolchain 'nightly' is not installed\n"));
     });
 }

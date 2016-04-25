@@ -9,6 +9,7 @@ use regex::Regex;
 
 use Cfg;
 use errors::*;
+use notifications::*;
 use rustup_utils;
 use telemetry::{Telemetry, TelemetryEvent};
 
@@ -20,7 +21,7 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(cmd: Command,
     let arg0 = arg0.as_ref()
         .and_then(|a| a.file_name())
         .and_then(|a| a.to_str());
-    let arg0 = try!(arg0.ok_or(Error::NoExeName));
+    let arg0 = try!(arg0.ok_or(ErrorKind::NoExeName));
     if (arg0 == "rustc" || arg0 == "rustc.exe") && cfg.telemetry_enabled() {
         return telemetry_rustc(cmd, &args, &cfg);
     }
@@ -105,10 +106,9 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
                 cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
             });
 
-            Err(rustup_utils::Error::RunningCommand {    
+            Err(e).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
                 name: args[0].as_ref().to_owned(),
-                error: rustup_utils::raw::CommandError::Io(e),
-            }.into())
+            })
         },
     }
 }
@@ -127,10 +127,9 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(mut cmd: Command, args
             process::exit(code);
         }
         Err(e) => {
-            Err(rustup_utils::Error::RunningCommand {
+            Err(e).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
                 name: args[0].as_ref().to_owned(),
-                error: rustup_utils::raw::CommandError::Io(e),
-            }.into())
+            })
         }
     }    
 }

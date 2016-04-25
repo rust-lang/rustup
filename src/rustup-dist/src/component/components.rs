@@ -2,7 +2,7 @@
 /// `Components` and `DirectoryPackage` are the two sides of the
 /// installation / uninstallation process.
 
-use rustup_utils::{self, utils};
+use rustup_utils::utils;
 use prefix::InstallPrefix;
 use errors::*;
 
@@ -11,7 +11,6 @@ use component::package::{INSTALLER_VERSION, VERSION_FILE};
 
 use std::path::{Path, PathBuf};
 use std::fs::File;
-use std::io::Write;
 
 const COMPONENTS_FILE: &'static str = "components";
 
@@ -27,7 +26,7 @@ impl Components {
         // Validate that the metadata uses a format we know
         if let Some(v) = try!(c.read_version()) {
             if v != INSTALLER_VERSION {
-                return Err(Error::BadInstalledMetadataVersion(v));
+                return Err(ErrorKind::BadInstalledMetadataVersion(v).into());
             }
         }
 
@@ -117,13 +116,7 @@ impl<'a> ComponentBuilder<'a> {
         for part in self.parts {
             // FIXME: This writes relative paths to the component manifest,
             // but rust-installer writes absolute paths.
-            try!(writeln!(file, "{}", part.encode()).map_err(|e| {
-                rustup_utils::Error::WritingFile {
-                    name: "component",
-                    path: abs_path.clone(),
-                    error: e,
-                }
-            }));
+            try!(utils::write_line("component", &mut file, &abs_path, &part.encode()));
         }
 
         // Add component to components file
@@ -176,7 +169,7 @@ impl Component {
         let mut result = Vec::new();
         for line in try!(utils::read_file("component", &self.manifest_file())).lines() {
             result.push(try!(ComponentPart::decode(line)
-                                 .ok_or_else(|| Error::CorruptComponent(self.name.clone()))));
+                                 .ok_or_else(|| ErrorKind::CorruptComponent(self.name.clone()))));
         }
         Ok(result)
     }
@@ -197,7 +190,7 @@ impl Component {
             match &*part.0 {
                 "file" => try!(tx.remove_file(&self.name, part.1)),
                 "dir" => try!(tx.remove_dir(&self.name, part.1)),
-                _ => return Err(Error::CorruptComponent(self.name.clone())),
+                _ => return Err(ErrorKind::CorruptComponent(self.name.clone()).into()),
             }
         }
 

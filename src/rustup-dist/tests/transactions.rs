@@ -8,7 +8,7 @@ use rustup_dist::component::Transaction;
 use rustup_dist::temp;
 use rustup_utils::utils;
 use rustup_utils::raw as utils_raw;
-use rustup_dist::Error;
+use rustup_dist::ErrorKind;
 use tempdir::TempDir;
 use std::fs;
 use std::io::Write;
@@ -74,8 +74,8 @@ fn add_file_that_exists() {
 
     let err = tx.add_file("c", PathBuf::from("foo/bar")).unwrap_err();
 
-    match err {
-        Error::ComponentConflict { name, path } => {
+    match err.into_kind() {
+        ErrorKind::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo/bar"));
         }
@@ -151,8 +151,8 @@ fn copy_file_that_exists() {
 
     let err = tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath).unwrap_err();
 
-    match err {
-        Error::ComponentConflict { name, path } => {
+    match err.into_kind() {
+        ErrorKind::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo/bar"));
         }
@@ -240,8 +240,8 @@ fn copy_dir_that_exists() {
 
     let err = tx.copy_dir("c", PathBuf::from("a"), srcdir.path()).unwrap_err();
 
-    match err {
-        Error::ComponentConflict { name, path } => {
+    match err.into_kind() {
+        ErrorKind::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("a"));
         }
@@ -308,8 +308,8 @@ fn remove_file_that_not_exists() {
 
     let err = tx.remove_file("c", PathBuf::from("foo")).unwrap_err();
 
-    match err {
-        Error::ComponentMissingFile { name, path } => {
+    match err.into_kind() {
+        ErrorKind::ComponentMissingFile { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo"));
         }
@@ -378,8 +378,8 @@ fn remove_dir_that_not_exists() {
 
     let err = tx.remove_dir("c", PathBuf::from("foo")).unwrap_err();
 
-    match err {
-        Error::ComponentMissingDir { name, path } => {
+    match err.into_kind() {
+        ErrorKind::ComponentMissingDir { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo"));
         }
@@ -447,8 +447,8 @@ fn write_file_that_exists() {
     utils_raw::write_file(&prefix.path().join("a"), &content).unwrap();
     let err = tx.write_file("c", PathBuf::from("a"), content.clone()).unwrap_err();
 
-    match err {
-        Error::ComponentConflict { name, path } => {
+    match err.into_kind() {
+        ErrorKind::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("a"));
         }

@@ -51,7 +51,7 @@ pub struct Component {
 impl Manifest {
     pub fn parse(data: &str) -> Result<Self> {
         let mut parser = toml::Parser::new(data);
-        let value = try!(parser.parse().ok_or_else(move || Error::Parsing(parser.errors)));
+        let value = try!(parser.parse().ok_or_else(move || ErrorKind::Parsing(parser.errors)));
 
         let manifest = try!(Self::from_toml(value, ""));
         try!(manifest.validate());
@@ -65,7 +65,7 @@ impl Manifest {
     pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
         let version = try!(get_string(&mut table, "manifest-version", path));
         if !SUPPORTED_MANIFEST_VERSIONS.contains(&&*version) {
-            return Err(Error::UnsupportedVersion(version));
+            return Err(ErrorKind::UnsupportedVersion(version).into());
         }
         Ok(Manifest {
             manifest_version: version,
@@ -108,7 +108,8 @@ impl Manifest {
 
 
     pub fn get_package(&self, name: &str) -> Result<&Package> {
-        self.packages.get(name).ok_or_else(|| Error::PackageNotFound(name.to_owned()))
+        self.packages.get(name).ok_or_else(
+            || format!("package not found: '{}'", name).into())
     }
 
     fn validate(&self) -> Result<()> {
@@ -116,8 +117,8 @@ impl Manifest {
         for (_, pkg) in &self.packages {
             for (_, tpkg) in &pkg.targets {
                 for c in tpkg.components.iter().chain(tpkg.extensions.iter()) {
-                    let cpkg = try!(self.get_package(&c.pkg).map_err(|_| Error::MissingPackageForComponent(c.clone())));
-                    let _ctpkg = try!(cpkg.get_target(&c.target).map_err(|_| Error::MissingPackageForComponent(c.clone())));
+                    let cpkg = try!(self.get_package(&c.pkg).chain_err(|| ErrorKind::MissingPackageForComponent(c.clone())));
+                    let _ctpkg = try!(cpkg.get_target(&c.target).chain_err(|| ErrorKind::MissingPackageForComponent(c.clone())));
                 }
             }
         }
@@ -165,7 +166,8 @@ impl Package {
     }
 
     pub fn get_target(&self, target: &TargetTriple) -> Result<&TargettedPackage> {
-        self.targets.get(target).ok_or_else(|| Error::TargetNotFound(target.clone()))
+        self.targets.get(target).ok_or_else(
+            || format!("target not found: '{}'", target).into())
     }
 }
 

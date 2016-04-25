@@ -1,4 +1,4 @@
-use errors::NotifyHandler;
+use notifications::NotifyHandler;
 
 use std::error;
 use std::fs;
@@ -199,7 +199,7 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
                                      notify_handler: NotifyHandler)
                                      -> DownloadResult<()> {
     use hyper::header::ContentLength;
-    use errors::Notification;
+    use notifications::Notification;
 
     // The file scheme is mostly for use by tests to mock the dist server
     if url.scheme == "file" {

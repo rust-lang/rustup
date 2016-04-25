@@ -13,9 +13,9 @@ use rustup_utils::{self, utils};
 use temp;
 use prefix::InstallPrefix;
 use errors::*;
+use notifications::*;
 
 use std::fs::File;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
 /// A Transaction tracks changes to the file system, allowing them to
@@ -113,13 +113,7 @@ impl<'a> Transaction<'a> {
         assert!(relpath.is_relative());
         let (item, mut file) = try!(ChangedItem::add_file(&self.prefix, component, relpath.clone()));
         self.change(item);
-        try!(write!(file, "{}", content).map_err(|e| {
-            rustup_utils::Error::WritingFile {
-                name: "component",
-                path: self.prefix.abs_path(&relpath),
-                error: e,
-            }
-        }));
+        try!(utils::write_str("component", &mut file, &self.prefix.abs_path(&relpath), &content));
         Ok(())
     }
 
@@ -198,21 +192,16 @@ impl<'a> ChangedItem<'a> {
     fn add_file(prefix: &InstallPrefix, component: &str, relpath: PathBuf) -> Result<(Self, File)> {
         let abs_path = prefix.abs_path(&relpath);
         if utils::path_exists(&abs_path) {
-            Err(Error::ComponentConflict {
+            Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            })
+            }.into())
         } else {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
             }
-            let file = try!(File::create(&abs_path).map_err(|e| {
-                rustup_utils::Error::WritingFile {
-                    name: "component",
-                    path: abs_path,
-                    error: e,
-                }
-            }));
+            let file = try!(File::create(&abs_path)
+                            .chain_err(|| format!("error creating file '{}'", abs_path.display())));
             Ok((ChangedItem::AddedFile(relpath), file))
         }
     }
@@ -223,10 +212,10 @@ impl<'a> ChangedItem<'a> {
                  -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
         if utils::path_exists(&abs_path) {
-            Err(Error::ComponentConflict {
+            Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            })
+            }.into())
         } else {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
@@ -238,10 +227,10 @@ impl<'a> ChangedItem<'a> {
     fn copy_dir(prefix: &InstallPrefix, component: &str, relpath: PathBuf, src: &Path) -> Result<Self> {
         let abs_path = prefix.abs_path(&relpath);
         if utils::path_exists(&abs_path) {
-            Err(Error::ComponentConflict {
+            Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            })
+            }.into())
         } else {
             if let Some(p) = abs_path.parent() {
                 try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
@@ -254,10 +243,10 @@ impl<'a> ChangedItem<'a> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = try!(temp_cfg.new_file());
         if !utils::path_exists(&abs_path) {
-            Err(Error::ComponentMissingFile {
+            Err(ErrorKind::ComponentMissingFile {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            })
+            }.into())
         } else {
             try!(utils::rename_file("component", &abs_path, &backup));
             Ok(ChangedItem::RemovedFile(relpath, backup))
@@ -267,10 +256,10 @@ impl<'a> ChangedItem<'a> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = try!(temp_cfg.new_directory());
         if !utils::path_exists(&abs_path) {
-            Err(Error::ComponentMissingDir {
+            Err(ErrorKind::ComponentMissingDir {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            })
+            }.into())
         } else {
             try!(utils::rename_dir("component", &abs_path, &backup.join("bk")));
             Ok(ChangedItem::RemovedDir(relpath, backup))

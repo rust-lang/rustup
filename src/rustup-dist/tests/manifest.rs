@@ -1,7 +1,7 @@
 extern crate rustup_dist;
 
 use rustup_dist::manifest::Manifest;
-use rustup_dist::Error;
+use rustup_dist::ErrorKind;
 use rustup_dist::dist::TargetTriple;
 
 // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
@@ -83,8 +83,8 @@ date = "2015-10-10"
 
     let err = Manifest::parse(manifest).unwrap_err();
 
-    match err {
-        Error::MissingPackageForComponent(_) => {},
+    match *err.kind() {
+        ErrorKind::MissingPackageForComponent(_) => {},
         _ => panic!(),
     }
 }

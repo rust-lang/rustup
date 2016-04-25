@@ -1,4 +1,5 @@
 use errors::*;
+use notifications::*;
 use rustup_dist::dist;
 use rustup_utils::utils;
 use rustup_dist::prefix::InstallPrefix;
@@ -200,7 +201,7 @@ impl<'a> Toolchain<'a> {
 
     fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
-            Err(Error::Install(::rustup_dist::Error::InvalidCustomToolchainName(self.name.to_string())))
+            Err(ErrorKind::Dist(::rustup_dist::ErrorKind::InvalidCustomToolchainName(self.name.to_string())).into())
         } else {
             Ok(())
         }
@@ -219,10 +220,10 @@ impl<'a> Toolchain<'a> {
                 Some(i) => {
                     let extension = &installer_str[i+1..];
                     if extension != "gz" {
-                        return Err(Error::BadInstallerType(extension.to_string()));
+                        return Err(ErrorKind::BadInstallerType(extension.to_string()).into());
                     }
                 }
-                None => return Err(Error::BadInstallerType(String::from("(none)")))
+                None => return Err(ErrorKind::BadInstallerType(String::from("(none)")).into())
             }
 
             // FIXME: Pretty hacky
@@ -268,7 +269,7 @@ impl<'a> Toolchain<'a> {
 
     pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
         if !self.exists() {
-            return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
         let ref bin_path = self.path.join("bin").join(binary.as_ref());
@@ -340,12 +341,12 @@ impl<'a> Toolchain<'a> {
 
     pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
         if !self.exists() {
-            return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
-                                 .map_err(|_| Error::ComponentsUnsupported(self.name.to_string())));
+                                 .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 
@@ -387,7 +388,7 @@ impl<'a> Toolchain<'a> {
 
             Ok(res)
         } else {
-            Err(Error::ComponentsUnsupported(self.name.to_string()))
+            Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
     }
 
@@ -432,12 +433,12 @@ impl<'a> Toolchain<'a> {
 
     fn bare_add_component(&self, component: Component) -> Result<()> {
         if !self.exists() {
-            return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
-                                 .map_err(|_| Error::ComponentsUnsupported(self.name.to_string())));
+                                 .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 
@@ -450,11 +451,11 @@ impl<'a> Toolchain<'a> {
                 .expect("installed manifest should have a known target");
 
             if targ_pkg.components.contains(&component) {
-                return Err(Error::AddingRequiredComponent(self.name.to_string(), component));
+                return Err(ErrorKind::AddingRequiredComponent(self.name.to_string(), component).into());
             }
 
             if !targ_pkg.extensions.contains(&component) {
-                return Err(Error::UnknownComponent(self.name.to_string(), component));
+                return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).into());
             }
 
             let changes = Changes {
@@ -469,18 +470,18 @@ impl<'a> Toolchain<'a> {
 
             Ok(())
         } else {
-            Err(Error::ComponentsUnsupported(self.name.to_string()))
+            Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
     }
 
     pub fn remove_component(&self, component: Component) -> Result<()> {
         if !self.exists() {
-            return Err(Error::ToolchainNotInstalled(self.name.to_owned()));
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
         let ref toolchain = self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
-                                 .map_err(|_| Error::ComponentsUnsupported(self.name.to_string())));
+                                 .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 
@@ -493,12 +494,12 @@ impl<'a> Toolchain<'a> {
                 .expect("installed manifest should have a known target");
 
             if targ_pkg.components.contains(&component) {
-                return Err(Error::RemovingRequiredComponent(self.name.to_string(), component));
+                return Err(ErrorKind::RemovingRequiredComponent(self.name.to_string(), component).into());
             }
 
             let dist_config = try!(manifestation.read_config()).unwrap();
             if !dist_config.components.contains(&component) {
-                return Err(Error::UnknownComponent(self.name.to_string(), component));
+                return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).into());
             }
 
             let changes = Changes {
@@ -513,7 +514,7 @@ impl<'a> Toolchain<'a> {
 
             Ok(())
         } else {
-            Err(Error::ComponentsUnsupported(self.name.to_string()))
+            Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
     }
 

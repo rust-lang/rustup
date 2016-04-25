@@ -1,3 +1,5 @@
+#![recursion_limit = "1024"]
+
 extern crate hyper;
 extern crate regex;
 extern crate openssl;
@@ -9,13 +11,17 @@ extern crate flate2;
 extern crate tar;
 #[macro_use]
 extern crate rustup_utils;
+#[macro_use]
+extern crate error_chain;
 
-pub use errors::{Error, Notification, NotifyHandler};
+pub use errors::*;
+pub use notifications::{Notification, NotifyHandler};
 
 pub mod temp;
 
 pub mod dist;
 pub mod errors;
+pub mod notifications;
 pub mod prefix;
 pub mod component;
 pub mod manifestation;

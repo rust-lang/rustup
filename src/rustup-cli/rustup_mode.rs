@@ -1,6 +1,7 @@
 use clap::{App, Arg, AppSettings, SubCommand, ArgMatches};
 use common;
-use rustup::{Result, Cfg, Error, Toolchain, command};
+use rustup::{Cfg, Toolchain, command};
+use errors::*;
 use rustup_dist::manifest::Component;
 use rustup_dist::dist::TargetTriple;
 use rustup_utils::utils;
@@ -193,7 +194,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let status = if !toolchain.is_custom() {
         Some(try!(toolchain.install_from_dist_if_not_installed()))
     } else if !toolchain.exists() {
-        return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()));
+        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
     } else {
         None
     };
@@ -215,7 +216,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         let status = if !toolchain.is_custom() {
             Some(try!(toolchain.install_from_dist()))
         } else if !toolchain.exists() {
-            return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()));
+            return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
         } else {
             None
         };
@@ -237,7 +238,7 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let args: Vec<_> = args.collect();
     let cmd = try!(cfg.create_command_for_toolchain(toolchain, args[0]));
 
-    command::run_command_for_dir(cmd, &args, &cfg)
+    Ok(try!(command::run_command_for_dir(cmd, &args, &cfg)))
 }
 
 fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
@@ -286,7 +287,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         target: TargetTriple::from_str(target),
     };
 
-    toolchain.add_component(new_component)
+    Ok(try!(toolchain.add_component(new_component)))
 }
 
 fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
@@ -297,7 +298,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         target: TargetTriple::from_str(target),
     };
 
-    toolchain.remove_component(new_component)
+    Ok(try!(toolchain.remove_component(new_component)))
 }
 
 fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
@@ -318,14 +319,14 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let ref path = m.value_of("path").expect("");
     let toolchain = try!(cfg.get_toolchain(toolchain, true));
 
-    toolchain.install_from_dir(Path::new(path), true)
+    Ok(try!(toolchain.install_from_dir(Path::new(path), true)))
 }
 
 fn toolchain_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
     let toolchain = try!(cfg.get_toolchain(toolchain, false));
 
-    toolchain.remove()
+    Ok(try!(toolchain.remove()))
 }
 
 fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
@@ -335,7 +336,7 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let status = if !toolchain.is_custom() {
         Some(try!(toolchain.install_from_dist_if_not_installed()))
     } else if !toolchain.exists() {
-        return Err(Error::ToolchainNotInstalled(toolchain.name().to_string()));
+        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
     } else {
         None
     };
@@ -375,7 +376,7 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         "index.html"
     };
 
-    cfg.open_docs_for_dir(&try!(utils::current_dir()), doc_url)
+    Ok(try!(cfg.open_docs_for_dir(&try!(utils::current_dir()), doc_url)))
 }
 
 fn self_uninstall(m: &ArgMatches) -> Result<()> {
@@ -387,8 +388,8 @@ fn self_uninstall(m: &ArgMatches) -> Result<()> {
 fn telemetry(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let telemetry_string = m.value_of("enabled").unwrap();
     match telemetry_string {
-        "on" => cfg.set_telemetry(true),
-        "off" => cfg.set_telemetry(false),
-        _ => Err(Error::Custom { id: "Telemetry".to_string(), desc: "Incorrect telemetry setting".to_string() }),
+        "on" => Ok(try!(cfg.set_telemetry(true))),
+         "off" => Ok(try!(cfg.set_telemetry(false))),
+        _ => Err("incorrect telemetry setting".into())
     }
 }

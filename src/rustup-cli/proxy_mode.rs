@@ -1,5 +1,6 @@
 use common::set_globals;
-use rustup::{Cfg, Result, Error};
+use rustup::{Cfg};
+use errors::*;
 use rustup_utils::utils;
 use rustup::command::run_command_for_dir;
 use std::env;
@@ -15,7 +16,7 @@ pub fn main() -> Result<()> {
     let arg0 = arg0.as_ref()
         .and_then(|a| a.file_name())
         .and_then(|a| a.to_str());
-    let ref arg0 = try!(arg0.ok_or(Error::NoExeName));
+    let ref arg0 = try!(arg0.ok_or(ErrorKind::NoExeName));
 
     let cfg = try!(set_globals(false));
     try!(cfg.check_metadata_version());
@@ -28,6 +29,6 @@ fn direct_proxy(cfg: &Cfg, arg0: &str) -> Result<()> {
     let cmd = try!(cfg.create_command_for_dir(&try!(utils::current_dir()), arg0));
     let args: Vec<_> = env::args_os().collect();
 
-    run_command_for_dir(cmd, &args, &cfg)
+    Ok(try!(run_command_for_dir(cmd, &args, &cfg)))
 }
 

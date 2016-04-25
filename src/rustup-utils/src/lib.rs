@@ -1,10 +1,13 @@
 #![feature(core_intrinsics)] // For type_name().
 #![feature(fundamental)]
+#![recursion_limit = "1024"] // for error_chain!
 
 extern crate hyper;
 extern crate openssl;
 extern crate rand;
 extern crate scopeguard;
+#[macro_use]
+extern crate error_chain;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -23,7 +26,9 @@ extern crate userenv;
 
 pub mod notify;
 pub mod errors;
+pub mod notifications;
 pub mod raw;
 pub mod utils;
 
-pub use errors::{Error, Notification, NotifyHandler};
+pub use errors::*;
+pub use notifications::{Notification, NotifyHandler};

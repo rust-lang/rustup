@@ -16,6 +16,7 @@ openssl = "0.7.2"
 hyper = "0.7.0"
 rand = "0.3.11"
 scopeguard = "0.1.2"
+error-chain = { path = "../error-chain" }
 
 [target.x86_64-pc-windows-gnu.dependencies]
 winapi = "0.2.4"
