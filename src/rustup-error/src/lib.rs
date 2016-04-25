@@ -114,6 +114,7 @@
 //! use std::error::Error as StdError;
 //! use std::sync::Arc;
 //!
+//! #[derive(Debug)]
 //! pub struct Error(pub ErrorKind,
 //!                  pub Option<Box<StdError + Send>>,
 //!                  pub Arc<rustup_error::Backtrace>);
@@ -128,6 +129,7 @@
 //! impl StdError for Error { ... }
 //! impl Display for Error { ... }
 //!
+//! #[derive(Debug)]
 //! pub enum ErrorKind {
 //!     Msg(String),
 //!     Dist(rustup_dist::ErrorKind),
@@ -277,10 +279,13 @@ macro_rules! declare_errors {
         // The Error type
         // --------------
 
+        // This has a simple structure to support pattern matching
+        // during error handling. The second field is internal state
+        // that is mostly irrelevant for error handling purposes.
         #[derive(Debug)]
         pub struct $error_name(pub $error_kind_name,
-                               pub Option<Box<::std::error::Error + Send>>,
-                               pub ::std::sync::Arc<$crate::Backtrace>);
+                               pub (Option<Box<::std::error::Error + Send>>,
+                                    ::std::sync::Arc<$crate::Backtrace>));
 
         #[allow(unused)]
         impl $error_name {
@@ -297,14 +302,14 @@ macro_rules! declare_errors {
             }
 
             pub fn backtrace(&self) -> &$crate::Backtrace {
-                &self.2
+                &(self.1).1
             }
         }
 
         impl ::std::error::Error for $error_name {
             fn description(&self) -> &str { self.0.description() }
             fn cause(&self) -> Option<&::std::error::Error> {
-                match self.1 {
+                match (self.1).0 {
                     Some(ref c) => Some(&**c),
                     None => None
                 }
@@ -320,7 +325,7 @@ macro_rules! declare_errors {
         $(
             impl From<$link_error_path> for $error_name {
                 fn from(e: $link_error_path) -> Self {
-                    $error_name($error_kind_name::$link_variant(e.0), e.1, e.2)
+                    $error_name($error_kind_name::$link_variant(e.0), e.1)
                 }
             }
         ) *
@@ -330,30 +335,30 @@ macro_rules! declare_errors {
                 fn from(e: $foreign_link_error_path) -> Self {
                     $error_name(
                         $error_kind_name::$foreign_link_variant,
-                        Some(Box::new(e)),
-                        ::std::sync::Arc::new($crate::Backtrace::new()))
+                        (Some(Box::new(e)),
+                         ::std::sync::Arc::new($crate::Backtrace::new())))
                 }
             }
         ) *
 
         impl From<$error_kind_name> for $error_name {
             fn from(e: $error_kind_name) -> Self {
-                $error_name(e, None,
-                            ::std::sync::Arc::new($crate::Backtrace::new()))
+                $error_name(e,
+                            (None, ::std::sync::Arc::new($crate::Backtrace::new())))
             }
         }
 
         impl<'a> From<&'a str> for $error_name {
             fn from(s: &'a str) -> Self {
-                $error_name(s.into(), None,
-                            ::std::sync::Arc::new($crate::Backtrace::new()))
+                $error_name(s.into(),
+                            (None, ::std::sync::Arc::new($crate::Backtrace::new())))
             }
         }
 
         impl From<String> for $error_name {
             fn from(s: String) -> Self {
-                $error_name(s.into(), None,
-                            ::std::sync::Arc::new($crate::Backtrace::new()))
+                $error_name(s.into(),
+                            (None, ::std::sync::Arc::new($crate::Backtrace::new())))
             }
         }
 
@@ -430,7 +435,7 @@ macro_rules! declare_errors {
                     let backtrace = backtrace.unwrap_or_else(
                         || ::std::sync::Arc::new($crate::Backtrace::new()));
 
-                    $error_name(callback().into(), Some(e), backtrace)
+                    $error_name(callback().into(), (Some(e), backtrace))
                 })
             }
         }
@@ -447,7 +452,7 @@ macro_rules! declare_errors {
             e = match e.downcast::<$error_name>() {
                 Err(e) => e,
                 Ok(e) => {
-                    backtrace = Some(e.2.clone());
+                    backtrace = Some((e.1).1.clone());
                     e as Box<::std::error::Error + Send + 'static>
                 }
             };
@@ -457,7 +462,7 @@ macro_rules! declare_errors {
                 e = match e.downcast::<$link_error_path>() {
                     Err(e) => e,
                     Ok(e) => {
-                        backtrace = Some(e.2.clone());
+                        backtrace = Some((e.1).1.clone());
                         e as Box<::std::error::Error + Send + 'static>
                     }
                 };
