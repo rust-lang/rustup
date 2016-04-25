@@ -105,6 +105,56 @@
 //! }
 //! ```
 //!
+//! This populates the the module with a number of definitions,
+//! the most of important of which are the `Error` type
+//! and the `ErrorKind` type. They look something like the
+//! following:
+//!
+//! ```rust
+//! use std::error::Error as StdError;
+//! use std::sync::Arc;
+//!
+//! pub struct Error(pub ErrorKind,
+//!                  pub Option<Box<StdError + Send>>,
+//!                  pub Arc<rustup_error::Backtrace>);
+//!
+//! impl Error {
+//!     pub fn kind(&self) -> &ErrorKind { ... }
+//!     pub fn into_kind(self) -> ErrorKind { ... }
+//!     pub fn iter(&self) -> rustup_error::ErrorChainIter { ... }
+//!     pub fn backtrace(&self) -> &rustup_error::Backtrace { ... }
+//! }
+//!
+//! impl StdError for Error { ... }
+//! impl Display for Error { ... }
+//!
+//! pub enum ErrorKind {
+//!     Msg(String),
+//!     Dist(rustup_dist::ErrorKind),
+//!     Utils(rustup_utils::ErrorKind),
+//!     Temp,
+//!     InvalidToolchainName(String),
+//! }
+//! ```
+//!
+//! This is the basic error structure. You can see that `ErrorKind`
+//! has been populated in a variety of ways. All `ErrorKind`s get a
+//! `Msg` variant for basic errors. When strings are converted to
+//! `ErrorKind`s they become `ErrorKind::Msg`. The "links" defined in
+//! the macro are expanded to `Dist` and `Utils` variants, and the
+//! "foreign links" to the `Temp` variant.
+//!
+//! Both types come with a variety of `From` conversians as well:
+//! `Error` can be created from `ErrorKind`, from `&str` and `String`,
+//! and from the "link" and "foreign_link" error types. `ErrorKind`
+//! can be created from the corresponding `ErrorKind`s of the link
+//! types, as wall as from `&str` and `String`.
+//!
+//! `into() and `From::from` are used heavily to massage types into
+//! the right shape. Which one to use in any specific case depends on
+//! the influence of type inference, but there are some patterns that
+//! arise frequently.
+//!
 //! ## Returning new errors
 //!
 //! Introducing new error chains, with a string message:
@@ -146,12 +196,50 @@
 //!
 //! ## Chaining errors
 //!
-//! TODO
+//! To extend the error chain:
 //!
-//! ## Misc
+//! ```
+//! use errors::ChainErr;
+//! try!(do_something().chain_err(|| "something went wrong"));
+//! ```
 //!
-//! iteration, backtraces, foreign errors
+//! `chain_err` can be called on any `Result` type where the contained
+//! error type implements `std::error::Error + Send + 'static`.  If
+//! the `Result` is an `Err` then `chain_err` evaluates the closure,
+//! which returns *some type that can be converted to `ErrorKind`*,
+//! boxes the original error to store as the cause, then returns a new
+//! error containing the original error.
 //!
+//! ## Foreign links
+//!
+//! Errors that do not conform to the same conventions as this library
+//! can still be included in the error chain. They are considered "foreign
+//! errors", and are declared using the `foreign_links` block of the
+//! `declare_errors!` macro. `Error`s are automatically created from
+//! foreign errors by the `try!` macro.
+//!
+//! Foreign links and regular links have one crucial difference:
+//! `From` conversions for regular links *do not introduce a new error
+//! into the error chain*, while conversions for foreign links *always
+//! introduce a new error into the error chain*. So for the example
+//! above all errors deriving from the `temp::Error` type will be
+//! presented to the user as a new `ErrorKind::Temp` variant, and the
+//! cause will be the original `temp::Error` error. In contrast, when
+//! `rustup_utils::Error` is converted to `Error` the two `ErrorKinds`
+//! are converted between each other to create a new `Error` but the
+//! old error is discarded; there is no "cause" created from the
+//! original error.
+//!
+//! ## Backtraces
+//!
+//! The earliest non-foreign error to be generated creates a single
+//! backtrace, which is passed through all `From` conversions and
+//! `chain_err` invocations of compatible types. To read the backtrace
+//! just call the `backtrace()` method.
+//!
+//! ## Iteration
+//!
+//! The `iter` method returns an iterator over the chain of error boxes.
 
 extern crate backtrace;
 
@@ -161,23 +249,6 @@ use std::iter::Iterator;
 pub use backtrace::Backtrace;
 
 mod quick_error;
-
-pub struct ErrorChainIter<'a>(pub Option<&'a StdError>);
-
-impl<'a> Iterator for ErrorChainIter<'a> {
-
-    type Item = &'a StdError;
-
-    fn next<'b>(&'b mut self) -> Option<&'a StdError> {
-        match self.0.take() {
-            Some(e) => {
-                self.0 = e.cause();
-                Some(e)
-            }
-            None => None
-        }
-    }
-}
 
 #[macro_export]
 macro_rules! declare_errors {
@@ -402,3 +473,22 @@ macro_rules! declare_errors {
         pub type $result_name<T> = ::std::result::Result<T, $error_name>;
     };
 }
+
+
+pub struct ErrorChainIter<'a>(pub Option<&'a StdError>);
+
+impl<'a> Iterator for ErrorChainIter<'a> {
+
+    type Item = &'a StdError;
+
+    fn next<'b>(&'b mut self) -> Option<&'a StdError> {
+        match self.0.take() {
+            Some(e) => {
+                self.0 = e.cause();
+                Some(e)
+            }
+            None => None
+        }
+    }
+}
+
