@@ -15,7 +15,8 @@ declare_errors! {
     }
 
     foreign_links {
-        temp::Error, Temp;
+        temp::Error, Temp,
+        "temporary file error";
     }
 
     errors {

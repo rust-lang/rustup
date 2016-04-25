@@ -89,7 +89,8 @@
 //!
 //!     // This section can be empty.
 //!     foreign_links {
-//!         temp::Error, Temp;
+//!         temp::Error, Temp,
+//!         "temporary file error";
 //!     }
 //!
 //!     // Define the `ErrorKind` variants. The syntax here is the
@@ -161,23 +162,6 @@ pub use backtrace::Backtrace;
 
 mod quick_error;
 
-#[derive(Debug)]
-pub struct ForeignError {
-    pub description: String,
-    pub display: String,
-}
-
-impl ForeignError {
-    pub fn new<E>(e: &E) -> ForeignError
-        where E: StdError
-    {
-        ForeignError {
-            description: e.description().to_string(),
-            display: format!("{}", e)
-        }
-    }
-}
-
 pub struct ErrorChainIter<'a>(pub Option<&'a StdError>);
 
 impl<'a> Iterator for ErrorChainIter<'a> {
@@ -208,7 +192,8 @@ macro_rules! declare_errors {
         }
 
         foreign_links {
-            $( $foreign_link_error_path:path, $foreign_link_variant:ident;  ) *
+            $( $foreign_link_error_path:path, $foreign_link_variant:ident,
+               $foreign_link_desc:expr;  ) *
         }
 
         errors {
@@ -273,7 +258,7 @@ macro_rules! declare_errors {
             impl From<$foreign_link_error_path> for $error_name {
                 fn from(e: $foreign_link_error_path) -> Self {
                     $error_name(
-                        $error_kind_name::$foreign_link_variant($crate::ForeignError::new(&e)),
+                        $error_kind_name::$foreign_link_variant,
                         Some(Box::new(e)),
                         ::std::sync::Arc::new($crate::Backtrace::new()))
                 }
@@ -322,9 +307,8 @@ macro_rules! declare_errors {
                 ) *
 
                 $(
-                    $foreign_link_variant(e: $crate::ForeignError) {
-                        description(&e.description)
-                        display("{}", e.display)
+                    $foreign_link_variant {
+                        description(&$foreign_link_desc)
                     }
                 ) *
 
