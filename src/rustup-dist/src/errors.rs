@@ -5,7 +5,7 @@ use toml;
 use rustup_utils;
 use manifest::Component;
 
-declare_errors! {
+error_chain! {
     types {
         Error, ErrorKind, ChainErr, Result;
     }

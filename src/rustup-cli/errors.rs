@@ -6,7 +6,7 @@ use rustup;
 use rustup_dist::{self, temp};
 use rustup_utils;
 
-declare_errors! {
+error_chain! {
     types {
         Error, ErrorKind, ChainErr, Result;
     }

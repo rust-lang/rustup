@@ -1,6 +1,6 @@
 #![feature(core_intrinsics)] // For type_name().
 #![feature(fundamental)]
-#![recursion_limit = "1024"] // for declare_errors!
+#![recursion_limit = "1024"] // for error_chain!
 
 extern crate hyper;
 extern crate openssl;

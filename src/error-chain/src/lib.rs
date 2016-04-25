@@ -17,7 +17,7 @@
 //! * Errors carry backtraces.
 //!
 //! Similar to other libraries like error-type and quick-error, this
-//! library defines a macro, `declare_errors!` that declares the types
+//! library defines a macro, `error_chain!` that declares the types
 //! and implementation boilerplate necessary for fulfilling a
 //! particular error-hadling strategy. Most importantly it defines
 //! a custom error type (called `Error` by convention) and the `From`
@@ -37,7 +37,7 @@
 //!   the error chain by boxing the current error into an opaque
 //!   object and putting it inside a new concrete error.
 //! * It provides automatic `From` conversions between other error types
-//!   defined by the `declare_errors!` that preserve type information.
+//!   defined by the `error_chain!` that preserve type information.
 //! * It provides automatic `From` conversions between any other error
 //!   type that hide the type of the other error in the `cause` box.
 //! * It collects a single backtrace at the earliest opportunity and
@@ -61,10 +61,10 @@
 //! basis, such as per module.
 //!
 //! Assuming you are using crate-level error types, typically you will
-//! define an `errors` module and inside it call `declare_errors!`:
+//! define an `errors` module and inside it call `error_chain!`:
 //!
 //! ```rust
-//! declare_errors! {
+//! error_chain! {
 //!     // The type defined for this error. These are the conventional
 //!     // and recommended names, but they can be arbitrarily chosen.
 //!     types {
@@ -217,7 +217,7 @@
 //! Errors that do not conform to the same conventions as this library
 //! can still be included in the error chain. They are considered "foreign
 //! errors", and are declared using the `foreign_links` block of the
-//! `declare_errors!` macro. `Error`s are automatically created from
+//! `error_chain!` macro. `Error`s are automatically created from
 //! foreign errors by the `try!` macro.
 //!
 //! Foreign links and regular links have one crucial difference:
@@ -250,7 +250,7 @@ pub use backtrace::Backtrace;
 mod quick_error;
 
 #[macro_export]
-macro_rules! declare_errors {
+macro_rules! error_chain {
     (
         types {
             $error_name:ident, $error_kind_name:ident,

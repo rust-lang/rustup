@@ -2,7 +2,7 @@ use rustup_dist::{self, temp};
 use rustup_utils;
 use rustup_dist::manifest::Component;
 
-declare_errors! {
+error_chain! {
     types {
         Error, ErrorKind, ChainErr, Result;
     }

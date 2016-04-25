@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::ffi::OsString;
 use hyper;
 
-declare_errors! {
+error_chain! {
     types {
         Error, ErrorKind, ChainErr, Result;
     }
