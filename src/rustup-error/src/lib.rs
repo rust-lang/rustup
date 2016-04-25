@@ -86,7 +86,7 @@
 //!     // error types not defined by this macro. These will be boxed
 //!     // as the error cause, and their descriptions and display text
 //!     // reused.
-//!
+//!     //
 //!     // This section can be empty.
 //!     foreign_links {
 //!         temp::Error, Temp,
@@ -244,9 +244,6 @@
 //! The `iter` method returns an iterator over the chain of error boxes.
 
 extern crate backtrace;
-
-use std::error::Error as StdError;
-use std::iter::Iterator;
 
 pub use backtrace::Backtrace;
 
@@ -479,6 +476,9 @@ macro_rules! declare_errors {
     };
 }
 
+
+use std::error::Error as StdError;
+use std::iter::Iterator;
 
 pub struct ErrorChainIter<'a>(pub Option<&'a StdError>);
 
