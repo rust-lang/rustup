@@ -1,7 +1,5 @@
 //! A library for consistent and reliable error handling
 //!
-//! Based on quick_error! and Cargo's chain_error method.
-//!
 //! This crate defines an opinionated strategy for error handling in Rust,
 //! built on the following principles:
 //!
@@ -16,14 +14,14 @@
 //! * Errors implement Send.
 //! * Errors carry backtraces.
 //!
-//! Similar to other libraries like error-type and quick-error, this
+//! Similar to other libraries like [error-type] and [quick-error], this
 //! library defines a macro, `error_chain!` that declares the types
 //! and implementation boilerplate necessary for fulfilling a
 //! particular error-hadling strategy. Most importantly it defines
 //! a custom error type (called `Error` by convention) and the `From`
 //! conversions that let the `try!` macro and `?` operator work.
 //!
-//! This library differs in a few ways:
+//! This library differs in a few ways from previous error libs:
 //!
 //! * Instead of defining the custom `Error` type as an enum, it is a
 //!   struct containing an `ErrorKind` (which defines the
@@ -37,9 +35,11 @@
 //!   the error chain by boxing the current error into an opaque
 //!   object and putting it inside a new concrete error.
 //! * It provides automatic `From` conversions between other error types
-//!   defined by the `error_chain!` that preserve type information.
+//!   defined by the `error_chain!` that preserve type information,
+//!   and facilitate seamless error composition and matching of composed
+//!   errors.
 //! * It provides automatic `From` conversions between any other error
-//!   type that hide the type of the other error in the `cause` box.
+//!   type that hides the type of the other error in the `cause` box.
 //! * It collects a single backtrace at the earliest opportunity and
 //!   propagates it down the stack through `From` and `ChainErr`
 //!   conversions.
@@ -72,9 +72,10 @@
 //!     }
 //!
 //!     // Automatic conversions between this error chain and other
-//!     // error chains. In this case, it will generate an
-//!     // `ErrorKind` variant in turn containing `rustup_utils::ErrorKind`,
-//!     // with conversions from `rustup_utils::Error`.
+//!     // error chains. In this case, it will e.g. generate an
+//!     // `ErrorKind` variant called `Dist` which in turn contains
+//!     // the `rustup_dist::ErrorKind`, with conversions from
+//!     // `rustup_dist::Error`.
 //!     //
 //!     // This section can be empty.
 //!     links {
@@ -83,9 +84,9 @@
 //!     }
 //!
 //!     // Automatic conversions between this error chain and other
-//!     // error types not defined by this macro. These will be boxed
-//!     // as the error cause, and their descriptions and display text
-//!     // reused.
+//!     // error types not defined by the `error_chain!`. These will be
+//!     // boxed as the error cause and wrapped in a new error with,
+//!     // in this case, the `ErrorKind::Temp` variant.
 //!     //
 //!     // This section can be empty.
 //!     foreign_links {
@@ -93,8 +94,8 @@
 //!         "temporary file error";
 //!     }
 //!
-//!     // Define the `ErrorKind` variants. The syntax here is the
-//!     // same as quick_error!, but the `from()` and `cause()`
+//!     // Define additional `ErrorKind` variants. The syntax here is
+//!     // the same as `quick_error!`, but the `from()` and `cause()`
 //!     // syntax is not supported.
 //!     errors {
 //!         InvalidToolchainName(t: String) {
@@ -106,7 +107,7 @@
 //! ```
 //!
 //! This populates the the module with a number of definitions,
-//! the most of important of which are the `Error` type
+//! the most important of which are the `Error` type
 //! and the `ErrorKind` type. They look something like the
 //! following:
 //!
@@ -146,7 +147,7 @@
 //! the macro are expanded to `Dist` and `Utils` variants, and the
 //! "foreign links" to the `Temp` variant.
 //!
-//! Both types come with a variety of `From` conversians as well:
+//! Both types come with a variety of `From` conversiaos as well:
 //! `Error` can be created from `ErrorKind`, from `&str` and `String`,
 //! and from the "link" and "foreign_link" error types. `ErrorKind`
 //! can be created from the corresponding `ErrorKind`s of the link
@@ -242,6 +243,9 @@
 //! ## Iteration
 //!
 //! The `iter` method returns an iterator over the chain of error boxes.
+//!
+//! [error-type]: https://github.com/DanielKeep/rust-error-type
+//! [quick-error]: https://github.com/tailhook/quick-error
 
 extern crate backtrace;
 
