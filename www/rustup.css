@@ -1,56 +1,52 @@
-@import url(https://fonts.googleapis.com/css?family=Cutive+Mono:400);
+@import url(https://fonts.googleapis.com/css?family=Fira+Sans:300);
+@import url(https://fonts.googleapis.com/css?family=Fira+Sans:400);
+@import url(https://fonts.googleapis.com/css?family=Fira+Sans:500);
+@import url(https://fonts.googleapis.com/css?family=Work+Sans:500);
 @import url(https://fonts.googleapis.com/css?family=Work+Sans:700);
-@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:500);
+@import url(https://fonts.googleapis.com/css?family=Inconsolata:400);
 
 body {
-    margin-top: 3em;
-    background-color: #343838;
-    color: white;
-    font-family: "Cutive Mono", monospace;
-    font-weight: 400;
-    font-size: 20pt;
+    margin-top: 2em;
+    background-color: white;
+    color: #515151;
+    font-family: "Fira Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-weight: 300;
+    font-size: 25px;
 }
 
 pre {
-    font-family: "Source Code Pro", monospace;
-    font-weight: 500;
-}
-
-body#idx p {
-    text-shadow: 2px 2px #242828;
+    font-family: Inconsolata,Menlo,Monaco,Consolas,"Courier New",monospace;
+    font-weight: 400;
 }
 
 body#idx #pitch > a {
-    margin-top: 0.3em;
-    margin-bottom: 0.3em;
-    display: block;
-    font-family: "Work Sans", monospace;
-    font-variant: small-caps;
-    font-size: 300%;
-    font-weight: 700;
-    text-shadow: 4px 3px #242828;
-    text-transform: lowercase;
-    letter-spacing: 0.2em;
+    font-weight: 500;
+    line-height: 2em;
 }
 
 a {
-    color: #70EFFC;
+    color: #428bca;
     text-decoration: none;
 }
 
-body#idx a {
-    text-shadow: 2px 2px #242828;
+a:hover {
+    color: rgb(42, 100, 150);
 }
 
 body#idx > * {
     margin-left: auto;
     margin-right: auto;
     text-align: center;
-    width: 25em;;
+    width: 25em;
 }
 
 body#idx > #pitch {
     width: 30em;
+}
+
+#pitch em {
+    font-style: normal;
+    font-weight: 400;
 }
 
 body#idx p {
@@ -58,41 +54,67 @@ body#idx p {
     margin-bottom: 2em;
 }
 
-body#idx > #platform-instructions-unix {
+.instructions {
+    background-color: rgb(250, 250, 250);
     margin-left: auto;
     margin-right: auto;
-    padding-bottom: 1em;
     width: 30em;
+    text-align: center;
+    border-radius: 3px;
+    border: 1px solid rgb(204, 204, 204);
+    box-shadow: 0px 1px 4px 0px rgb(204, 204, 204);
 }
 
-#platform-instructions-unix > * {
+.instructions > * {
+    width: 22em;
     margin-left: auto;
     margin-right: auto;
-    width: 25em;;
 }
 
-#platform-instructions-unix > pre {
+hr {
+    margin-top: 2em;
+    margin-bottom: 2em;
+}
+
+#platform-instructions-unix > pre,
+#platform-instructions-default > div > pre {
+    background-color: #515151;
+    color: white;
     margin-left: auto;
     margin-right: auto;
     padding-top: 1em;
     padding-bottom: 1em;
-    width: 30em;
-    background-color: #D0FFFF;
-    color: #002F3B;
     text-align: center;
     border-radius: 3px;
-    box-shadow: inset 0px 0px 10px 0px #70EFFC;
+    box-shadow: inset 0px 0px 20px 0px #333333;
 }
 
-#platform-instructions-win a {
+#platform-instructions-win a,
+#platform-instructions-default a {
     display: block;
     padding-top: 0.4em;
     padding-bottom: 0.6em;
-    font-family: "Source Code Pro", monospace;
+    font-family: "Work Sans", "Fira Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.1em;
 }
 
-#warning {
-    color: red;
-    font-family: "Work Sans", monospace;
+#about {
+    font-size: 16px;
+    line-height: 2em;
 }
 
+#about > img {
+    width: 30px;
+    height: 30px;
+    transform: translateY(11px);
+}
+
+#platform-button {
+    background-color: #515151;
+    color: white;
+    width: 10em;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1em;
+}

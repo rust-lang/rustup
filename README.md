@@ -28,7 +28,7 @@ And it runs on all platforms Rust supports, especially Windows.
 * [Environment variables](#environment-variables)
 * [Other installation methods](#other-installation-methods)
 * [Security](#security)
-* [How is this related to multirust?](#how-is-this-related-to-multirust)
+* [FAQ](#faq)
 * [License](#license)
 * [Contributing](#contributing)
 
@@ -419,7 +419,15 @@ variable.
 work. `rustup` performs all downloads over HTTPS, but does not
 yet validate signatures of downloads.
 
-## How is this related to multirust?
+## FAQ
+
+### Is this an official Rust project?
+
+Yes. rustup is an official Rust project. Once it is complete it will
+be the recommended way to install Rust and www.rust-lang.org will be
+updated to reflect that.
+
+### How is this related to multirust?
 
 rustup is the successor to [multirust]. rustup began as multirust-rs,
 a rewrite of multirust from shell script to Rust, by [Diggory Blake],
