@@ -31,6 +31,7 @@ function detect_platform() {
 
     var unix_div = document.getElementById("platform-instructions-unix");
     var win_div = document.getElementById("platform-instructions-win");
+    var android_div = document.getElementById("platform-instructions-android");
     var unknown_div = document.getElementById("platform-instructions-unknown");
 
     if (platform == "unix") {
@@ -38,6 +39,9 @@ function detect_platform() {
 	unknown_div.style.display = "none";
     } else if (platform == "win") {
 	win_div.style.display = "block";
+	unknown_div.style.display = "none";
+    } else if (platform == "android") {
+	android_div.style.display = "block";
 	unknown_div.style.display = "none";
     }
 }());

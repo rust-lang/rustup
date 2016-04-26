@@ -61,6 +61,7 @@ body#idx p {
 body#idx > #platform-instructions-unix {
     margin-left: auto;
     margin-right: auto;
+    padding-bottom: 1em;
     width: 30em;
 }
 
@@ -90,10 +91,8 @@ body#idx > #platform-instructions-unix {
     font-family: "Source Code Pro", monospace;
 }
 
-#about {
-    font-size: 70%;
-    text-shadow: 1px 1px #242828;
+#warning {
+    color: red;
+    font-family: "Work Sans", monospace;
 }
-#about > a {
-    text-shadow: 1px 1px #242828;
-}
+
