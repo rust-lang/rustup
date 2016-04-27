@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::env;
 use std::ffi::OsStr;
 use std::io::{self, Write, BufRead, BufReader};
@@ -60,7 +59,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
             let mut buffer = String::new();
             // Chose a HashSet instead of a Vec to avoid calls to sort() and dedup().
             // The HashSet should be faster if there are a lot of errors, too.
-            let mut errors: HashSet<String> = HashSet::new();
+            let mut errors: Vec<String> = Vec::new();
 
             let stderr = io::stderr();
             let mut handle = stderr.lock();
@@ -75,7 +74,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
                     None => continue,
                     Some(caps) => {
                         if caps.len() > 0 {
-                            let _ = errors.insert(caps.name("error").unwrap_or("").to_owned());
+                            let _ = errors.push(caps.name("error").unwrap_or("").to_owned());
                         }
                     }
                 };

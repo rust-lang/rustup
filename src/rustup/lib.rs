@@ -27,3 +27,4 @@ mod env_var;
 mod install;
 pub mod telemetry;
 pub mod command;
+pub mod telemetry_analysis;

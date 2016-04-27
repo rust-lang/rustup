@@ -3,7 +3,6 @@ use time;
 use rustup_utils::{raw, utils};
 use rustc_serialize::json;
 
-use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 
@@ -13,18 +12,24 @@ pub enum TelemetryMode {
     Off,
 }
 
-#[derive(RustcDecodable, RustcEncodable, Debug)]
+#[derive(RustcDecodable, RustcEncodable, Debug, Clone)]
 pub enum TelemetryEvent {
-    RustcRun { duration_ms: u64, exit_code: i32, errors: Option<HashSet<String>> },
+    RustcRun { duration_ms: u64, exit_code: i32, errors: Option<Vec<String>> },
     ToolchainUpdate { toolchain: String, success: bool } ,
     TargetAdd { toolchain: String, target: String, success: bool },
 }
 
 #[derive(RustcDecodable, RustcEncodable, Debug)]
-struct LogMessage {
+pub struct LogMessage {
     log_time_s: i64,
     event: TelemetryEvent,
     version: i32,
+}
+
+impl LogMessage {
+    pub fn get_event(&self) -> TelemetryEvent {
+        self.event.clone()
+    }
 }
 
 #[derive(Debug)]
