@@ -135,10 +135,11 @@ impl DownloadTracker {
 
         match self.content_len {
             Some(content_len) => {
-                let percent = (self.total_downloaded as f64 / content_len as f64) * 100.;
-                let content_len_h = HumanReadable(content_len as f64);
-                let remaining = content_len - self.total_downloaded as u64;
-                let eta_h = HumanReadable(remaining as f64 / speed);
+                let content_len = content_len as f64;
+                let percent = (self.total_downloaded as f64 / content_len) * 100.;
+                let content_len_h = HumanReadable(content_len);
+                let remaining = content_len - self.total_downloaded as f64;
+                let eta_h = HumanReadable(remaining / speed);
                 let _ = write!(self.term.as_mut().unwrap(),
                                "{} / {} ({:3.0} %) {}/s ETA: {:#}",
                                total_h,
@@ -169,7 +170,7 @@ impl fmt::Display for HumanReadable {
         if f.alternate() {  // repurposing the alternate mode for ETA
             let sec = self.0;
 
-            if sec <= 0. {
+            if sec.is_infinite() {
                 write!(f, "Unknown")
             } else if sec > 1e3 {
                 let sec = self.0 as u64;
