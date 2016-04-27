@@ -274,8 +274,8 @@ will provide assistence installing the NDK components as well.
 
 [Android NDK]: https://developer.android.com/tools/sdk/ndk/index.html
 
-Too see a list of available targets, `rustup target list`. To remove a
-previously-added target `rustup target remove`.
+To see a list of available targets, `rustup target list`. To remove a
+previously-added target, `rustup target remove`.
 
 ## Working with Rust on Windows
 
