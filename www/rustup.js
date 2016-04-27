@@ -85,13 +85,19 @@ function set_up_cycle_button() {
 
     var key="test";
     var idx=0;
+    var unlocked=false;
 
     document.onkeypress = function(event) {
+	if (event.key == "n" && unlocked) {
+	    cycle_platform();
+	}
+
 	if (event.key == key[idx]) {
 	    idx += 1;
 
 	    if (idx == key.length) {
 		cycle_button.style.display = "block";
+		unlocked = true;
 	    }
 	} else if (event.key == key[0]) {
 	    idx = 1;
@@ -101,7 +107,15 @@ function set_up_cycle_button() {
     };
 }
 
+function fill_in_bug_report_values() {
+    var nav_plat = document.getElementById("nav-plat");
+    var nav_app = document.getElementById("nav-app");
+    nav_plat.textContent = navigator.platform;
+    nav_app.textContent = navigator.appVersion;
+}
+
 (function () {
     adjust_for_platform();
     set_up_cycle_button();
+    fill_in_bug_report_values();
 }());

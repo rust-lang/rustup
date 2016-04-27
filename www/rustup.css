@@ -99,6 +99,11 @@ hr {
     letter-spacing: 0.1em;
 }
 
+#platform-instructions-unknown div {
+    font-size: 16px;
+    line-height: 2em;
+}
+
 #about {
     font-size: 16px;
     line-height: 2em;
