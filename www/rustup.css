@@ -104,6 +104,11 @@ hr {
     line-height: 2em;
 }
 
+#warning {
+    color: red;
+    font-weight: 500;
+}
+
 #about {
     font-size: 16px;
     line-height: 2em;
