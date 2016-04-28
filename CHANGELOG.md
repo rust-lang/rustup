@@ -1,3 +1,12 @@
+# 0.1.8
+
+* [Initial telemetry implementation (disabled)](https://github.com/rust-lang-nursery/rustup.rs/pull/289)
+* [Add hash to `--version`](https://github.com/rust-lang-nursery/rustup.rs/pull/347)
+* [Improve download progress](https://github.com/rust-lang-nursery/rustup.rs/pull/355)
+* [Completely overhaul error handling](https://github.com/rust-lang-nursery/rustup.rs/pull/358)
+* [Add armv7l support to www](https://github.com/rust-lang-nursery/rustup.rs/pull/359)
+* [Overhaul website](https://github.com/rust-lang-nursery/rustup.rs/pull/363)
+
 # 0.1.7
 
 * [Fix overrides for C:\](https://github.com/rust-lang-nursery/rustup.rs/pull/317).
