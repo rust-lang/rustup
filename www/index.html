@@ -2,7 +2,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>rustup.rs - Update your Rust</title>
+  <title>rustup.rs - The Rust toolchain installer</title>
   <meta name="keywords" content="Rust, Rust programming language, rustlang, rust-lang, Mozilla Rust, rustup">
   <meta name="description" content="The Rust toolchain installer">
 
@@ -13,21 +13,22 @@
 
 <body id="idx">
 
+<a id="platform-button" style="display: none;" href="#">
+  click or press "n" to cycle platforms
+</a>
+
 <p id="pitch">
-  This is the ultimate way to install
+  <em>rustup</em> is an installer for<br/>
+  the systems programming language
   <a href="https://www.rust-lang.org">Rust</a>
-  the systems programming language<br/>
-  that runs blazingly fast,<br/>
-  prevents segfaults,<br/>
-  and guarantees thread safety.
 </p>
 
-<div id="platform-instructions-unix" style="display: none;">
+<div id="platform-instructions-unix" class="instructions" style="display: none;">
   <p>Run the following in your terminal, then follow the onscreen instructions.</p>
   <pre>curl https://sh.rustup.rs -sSf | sh</pre>
 </div>
 
-<div id="platform-instructions-win" style="display: none;">
+<div id="platform-instructions-win" class="instructions" style="display: none;">
   <p>
     Download and run
     <a href="https://win.rustup.rs">rustup&#x2011;init.exe</a>
@@ -35,26 +36,67 @@
   </p>
 </div>
 
-<div id="platform-instructions-unknown">
-  <p>I don't recognize your platform.</p>
+<div id="platform-instructions-android" class="instructions" style="display: none;">
+  <p>It looks like you are running Android.</p>
   <p>
-    rustup supports Windows, Linux, and Mac OS X. If you <em>are</em>
-    on one of these platforms and are seeing this then either
-    JavaScript is disabled or this website is drunk and
-    <a href="https://github.com/rust-lang-nursery/rustup.rs/issues/new">should be reported.</a>
+    rustup does not run on Android directly (yet),
+    but it does make it easy to cross-compile <em>to</em> Android.
+    Install rustup on a supported host platform and
+    <a href="https://github.com/rust-lang-nursery/rustup.rs/#cross-compilation">
+      follow the cross-compilation instructions
+    </a>
+    to build Rust applications for Android.
   </p>
 </div>
 
-<p id="warning" style="font-size: 100%; color: red; font-family: 'Work Sans', monospace;">
-  WARNING: This is an early beta. Expect breakage.
+<div id="platform-instructions-unknown" class="instructions" style="display: none;">
+  <p>I don't recognize your platform.</p>
+  <p>
+    rustup runs on Windows, Linux, Mac OS X, FreeBSD and NetBSD. If
+    you are on one of these platforms and are seeing this then please
+    <a href="https://github.com/rust-lang-nursery/rustup.rs/issues/new">report an issue</a>,
+    along with the following values:
+    <div>
+      <div>navigator.platform:</div>
+      <div id="nav-plat"></div>
+      <div>navigator.appVersion:</div>
+      <div id="nav-app"></div>
+    </div>
+  </p>
+</div>
+
+<div id="platform-instructions-default" class="instructions">
+  <div>
+    <p>If you are running Unix,<br/>run the following in your terminal, then follow the onscreen instructions.</p>
+    <pre>curl https://sh.rustup.rs -sSf | sh</pre>
+  </div>
+
+  <hr/>
+
+  <div>
+    <p>
+      If you are running Windows,<br/>download and run
+      <a href="https://win.rustup.rs">rustup&#x2011;init.exe</a>
+      then follow the onscreen instructions.
+    </p>
+  </div>
+</div>
+
+<p id="warning">
+WARNING: This is beta software.
 </p>
 
-<p id="help">
-  Need help?<br/><a href="https://client00.chat.mibbit.com/?server=irc.mozilla.org&channel=%23rust-beginners">Ask on #rust-beginners</a>.
+<p>
+  Need help? <a href="https://client00.chat.mibbit.com/?server=irc.mozilla.org&channel=%23rust-beginners">Ask on #rust-beginners</a>.
 </p>
 
 <p id="about">
-  <a href="https://github.com/rust-lang-nursery/rustup.rs/blob/master/README.md">More about rustup</a>.
+  <img src="https://www.rust-lang.org/logos/rust-logo-blk.svg" alt="" />
+  rustup is an official Rust project.
+  <br/>
+  <a href="https://github.com/rust-lang-nursery/rustup.rs/#other-installation-methods">other installation options</a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/rust-lang-nursery/rustup.rs">about rustup</a>
 </p>
 
 <script type="text/javascript" src="rustup.js"></script>
