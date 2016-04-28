@@ -35,7 +35,6 @@ use itertools::Itertools;
 use rustup::{NotifyHandler};
 use errors::*;
 use rustup_dist::dist;
-use rustup_dist;
 use rustup_utils::utils;
 use openssl::crypto::hash::{Type, Hasher};
 use std::env;
@@ -1077,11 +1076,8 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Check that hash is correct
     if latest_hash != download_hash {
-        return Err(ErrorKind::Dist(rustup_dist::ErrorKind::ChecksumFailed {
-            url: url,
-            expected: latest_hash,
-            calculated: download_hash,
-        }).into());
+        info!("update not yet available. bug #364");
+        return Ok(None);
     }
 
     // Mark as executable
