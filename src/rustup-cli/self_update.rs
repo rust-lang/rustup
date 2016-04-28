@@ -75,7 +75,7 @@ r#"
 You can uninstall at any time with `rustup self uninstall` and
 these changes will be reverted.
 
-WARNING: This is an early beta. Expect breakage.
+WARNING: This is beta software.
 
 To cancel installation, type "n", or for more options type "a",
 then press the Enter key to continue.
