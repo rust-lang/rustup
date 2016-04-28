@@ -26,7 +26,6 @@ And it runs on all platforms Rust supports, especially Windows.
 * [Working with custom toolchains](#working-with-custom-toolchains)
 * [Examples](#examples)
 * [Environment variables](#environment-variables)
-* [API](#api)
 * [Other installation methods](#other-installation-methods)
 * [Security](#security)
 * [How is this related to multirust?](#how-is-this-related-to-multirust)
@@ -364,16 +363,6 @@ Command | Description
 
 - `RUSTUP_UPDATE_ROOT` (default `https://static.rust-lang.org/rustup/dist`)
   Sets the root URL for downloading self-updates.
-
-## API
-
-rustup is published as a library for use by other tools. see the
-documentation for [multirust] and [multirust-dist].
-
-**WARNING: The rustup APIs are not ready.**
-
-[multirust]: http://diggsey.github.io/multirust-rs/multirust/index.html
-[multirust-dist]: http://diggsey.github.io/multirust-rs/multirust_dist/index.html
 
 ## Other installation methods
 
