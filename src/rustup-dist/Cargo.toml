@@ -25,9 +25,7 @@ walkdir = "0.1.5"
 toml = "0.1.27"
 rustup-utils = { path = "../rustup-utils", version = "0.1.9" }
 error-chain = { path = "../error-chain", version = "0.1.9" }
+rustup-mock = { path = "../rustup-mock", version = "0.1.9" }
 
 [lib]
 name = "rustup_dist"
-
-[dev-dependencies]
-rustup-mock = { path = "../rustup-mock", version = "0.1.9" }
