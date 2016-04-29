@@ -1,14 +1,14 @@
 [package]
 
 name = "rustup-dist"
-version = "0.1.8"
+version = "0.1.9"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Installation from a Rust distribution server"
 build = "build.rs"
 
-documentation = "http://diggsey.github.io/multirust-rs/rust_install/index.html"
-homepage = "https://github.com/rust-lang-nursery/multirust-rs"
-repository = "https://github.com/rust-lang-nursery/multirust-rs"
+documentation = "http://rust-lang-nursery.github.io/rustup.rs/rustup-dist/index.html"
+homepage = "https://github.com/rust-lang-nursery/rustup.rs"
+repository = "https://github.com/rust-lang-nursery/rustup.rs"
 
 license = "MIT OR Apache-2.0"
 
@@ -23,9 +23,11 @@ flate2 = "0.2.9"
 tempdir = "0.3.4"
 walkdir = "0.1.5"
 toml = "0.1.27"
-rustup-mock = { path = "../rustup-mock" }
-rustup-utils = { path = "../rustup-utils" }
-error-chain = { path = "../error-chain" }
+rustup-utils = { path = "../rustup-utils", version = "0.1.9" }
+error-chain = { path = "../error-chain", version = "0.1.9" }
 
 [lib]
 name = "rustup_dist"
+
+[dev-dependencies]
+rustup-mock = { path = "../rustup-mock", version = "0.1.9" }

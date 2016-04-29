@@ -1,15 +1,15 @@
 [package]
 
 name = "error-chain"
-version = "0.1.8"
-authors = [ "Brian Anderson <banderson@mozilla.com",
+version = "0.1.9"
+authors = [ "Brian Anderson <banderson@mozilla.com>",
             "Paul Colomiets <paul@colomiets.name>",
             "Colin Kiegel <kiegel@gmx.de>"]
 description = "Yet another error boilerplate library"
 
-documentation = "http://diggsey.github.io/multirust-rs/multirust/index.html"
-homepage = "https://github.com/rust-lang-nursery/multirust-rs"
-repository = "https://github.com/rust-lang-nursery/multirust-rs"
+documentation = "http://rust-lang-nursery.github.io/rustup.rs/error-chain/index.html"
+homepage = "https://github.com/rust-lang-nursery/rustup.rs"
+repository = "https://github.com/rust-lang-nursery/rustup.rs"
 
 license = "MIT OR Apache-2.0"
 
