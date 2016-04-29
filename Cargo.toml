@@ -18,9 +18,9 @@ license = "MIT OR Apache-2.0"
 build = "build.rs"
 
 [dependencies]
-rustup-dist = { path = "src/rustup-dist" }
-rustup-utils = { path = "src/rustup-utils" }
-error-chain = { path = "src/error-chain" }
+rustup-dist = { path = "src/rustup-dist", version = "0.1.8" }
+rustup-utils = { path = "src/rustup-utils", version = "0.1.8" }
+error-chain = { path = "src/error-chain", version = "0.1.8" }
 clap = "2.2.4"
 regex = "0.1.41"
 openssl = "0.7.2"
@@ -59,7 +59,7 @@ user32-sys = "0.1.2"
 kernel32-sys = "0.2.1"
 
 [dev-dependencies]
-rustup-mock = { path = "src/rustup-mock" }
+rustup-mock = { path = "src/rustup-mock", version = "0.1.8" }
 lazy_static = "0.1.15"
 
 [lib]
