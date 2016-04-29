@@ -172,6 +172,7 @@ pub fn cli() -> App<'static, 'static> {
                 .about("Upgrade the internal data format.")))
         .subcommand(SubCommand::with_name("telemetry")
             .about("rustup telemetry commands")
+            .setting(AppSettings::SubcommandRequiredElseHelp)
             .subcommand(SubCommand::with_name("enable")
                             .about("Enable rustup telemetry"))
             .subcommand(SubCommand::with_name("disable")
