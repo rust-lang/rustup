@@ -2,7 +2,7 @@
 
 name = "error-chain"
 version = "0.1.8"
-authors = [ "Brian Anderson <banderson@mozilla.com",
+authors = [ "Brian Anderson <banderson@mozilla.com>",
             "Paul Colomiets <paul@colomiets.name>",
             "Colin Kiegel <kiegel@gmx.de>"]
 description = "Yet another error boilerplate library"
