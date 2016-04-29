@@ -23,9 +23,11 @@ flate2 = "0.2.9"
 tempdir = "0.3.4"
 walkdir = "0.1.5"
 toml = "0.1.27"
-rustup-mock = { path = "../rustup-mock", version = "0.1.8" }
 rustup-utils = { path = "../rustup-utils", version = "0.1.8" }
 error-chain = { path = "../error-chain", version = "0.1.8" }
 
 [lib]
 name = "rustup_dist"
+
+[dev-dependencies]
+rustup-mock = { path = "../rustup-mock", version = "0.1.8" }
