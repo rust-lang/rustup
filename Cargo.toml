@@ -5,9 +5,9 @@ version = "0.1.8"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "multirust in rust - manage multiple rust installations with ease"
 
-documentation = "http://diggsey.github.io/multirust-rs/multirust/index.html"
-homepage = "https://github.com/rust-lang-nursery/multirust-rs"
-repository = "https://github.com/rust-lang-nursery/multirust-rs"
+documentation = "http://rust-lang-nursery.github.io/rustup.rs/rustup/index.html"
+homepage = "https://github.com/rust-lang-nursery/rustup.rs"
+repository = "https://github.com/rust-lang-nursery/rustup.rs"
 
 readme = "README.md"
 

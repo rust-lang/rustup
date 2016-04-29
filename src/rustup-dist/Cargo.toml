@@ -6,9 +6,9 @@ authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Installation from a Rust distribution server"
 build = "build.rs"
 
-documentation = "http://diggsey.github.io/multirust-rs/rust_install/index.html"
-homepage = "https://github.com/rust-lang-nursery/multirust-rs"
-repository = "https://github.com/rust-lang-nursery/multirust-rs"
+documentation = "http://rust-lang-nursery.github.io/rustup.rs/rustup-dist/index.html"
+homepage = "https://github.com/rust-lang-nursery/rustup.rs"
+repository = "https://github.com/rust-lang-nursery/rustup.rs"
 
 license = "MIT OR Apache-2.0"
 
