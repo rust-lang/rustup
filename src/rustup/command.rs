@@ -30,8 +30,17 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(cmd: Command,
 
 fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> Result<()> {
     let now = Instant::now();
-
+    
     cmd.args(&args[1..]);
+    
+    if stderr_isatty() && !(&args).iter().any(|e| {
+            let e = e.as_ref().to_str().unwrap_or("");
+            e == "--color"
+        }) 
+    {
+        cmd.arg("--color");
+        cmd.arg("always"); 
+    }
 
     // FIXME rust-lang/rust#32254. It's not clear to me
     // when and why this is needed.
@@ -131,4 +140,28 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(mut cmd: Command, args
             })
         }
     }    
+}
+
+#[cfg(unix)]
+fn stderr_isatty() -> bool {
+    use libc;
+    unsafe { libc::isatty(libc::STDERR_FILENO) != 0 }
+}
+
+#[cfg(windows)]
+fn stderr_isatty() -> bool {
+    type DWORD = u32;
+    type BOOL = i32;
+    type HANDLE = *mut u8;
+    const STD_ERROR_HANDLE: DWORD = -12i32 as DWORD;
+    extern "system" {
+        fn GetStdHandle(which: DWORD) -> HANDLE;
+        fn GetConsoleMode(hConsoleHandle: HANDLE,
+                          lpMode: *mut DWORD) -> BOOL;
+    }
+    unsafe {
+        let handle = GetStdHandle(STD_ERROR_HANDLE);
+        let mut out = 0;
+        GetConsoleMode(handle, &mut out) != 0
+    }
 }
