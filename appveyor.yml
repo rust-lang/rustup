@@ -31,7 +31,7 @@ install:
 
       # For -msvc builds
       if ($env:TARGET -match "-msvc$") {
-        Start-FileDownload "http://www.npcglib.org/~stathis/downloads/openssl-1.0.2d-vs2015.7z" -FileName "openssl.7z"
+        Start-FileDownload "http://www.npcglib.org/~stathis/downloads/openssl-1.0.2g-vs2015.7z" -FileName "openssl.7z"
         7z x openssl.7z -o"C:\OpenSSL" | Out-Null
       }
 
