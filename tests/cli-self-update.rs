@@ -22,10 +22,9 @@ use std::process::Command;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
+                               expect_stderr_ok,
                                expect_err, expect_err_ex,
                                this_host_triple};
-#[cfg(windows)]
-use rustup_mock::clitools::expect_stderr_ok;
 use rustup_mock::dist::{create_hash, calc_hash};
 use rustup_mock::{get_path, restore_path};
 use rustup_utils::raw;
@@ -520,6 +519,7 @@ info: rustup is up to date
 }
 
 #[test]
+#[ignore] // Workaround for #346
 fn update_bad_hash() {
     update_setup(&|config, self_dist| {
         expect_ok(config, &["rustup-init", "-y"]);
@@ -534,6 +534,25 @@ fn update_bad_hash() {
 
         expect_err(config, &["rustup", "self", "update"],
                    "checksum failed");
+    });
+}
+
+// Workaround for #346
+#[test]
+fn update_hash_drift() {
+    update_setup(&|config, self_dist| {
+        expect_ok(config, &["rustup-init", "-y"]);
+
+        let ref trip = this_host_triple();
+        let ref dist_dir = self_dist.join(&format!("{}", trip));
+        let ref dist_hash = dist_dir.join(&format!("rustup-init{}.sha256", EXE_SUFFIX));
+
+        let ref some_other_file = config.distdir.join("dist/channel-rust-nightly.toml");
+
+        create_hash(some_other_file, dist_hash);
+
+        expect_stderr_ok(config, &["rustup", "self", "update"],
+                         "update not yet available");
     });
 }
 
