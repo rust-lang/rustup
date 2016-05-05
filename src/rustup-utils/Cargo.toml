@@ -19,7 +19,7 @@ scopeguard = "0.1.2"
 error-chain = { path = "../error-chain", version = "0.1.9" }
 libc = "0.2.0"
 
-[target.x86_64-pc-windows-gnu.dependencies]
+[target."cfg(windows)".dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
 shell32-sys = "0.1.1"
@@ -28,29 +28,3 @@ kernel32-sys = "0.2.1"
 advapi32-sys = "0.2.0"
 userenv-sys = "0.2.0"
 
-[target.x86_64-pc-windows-msvc.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-shell32-sys = "0.1.1"
-ole32-sys = "0.2.0"
-kernel32-sys = "0.2.1"
-advapi32-sys = "0.2.0"
-userenv-sys = "0.2.0"
-
-[target.i686-pc-windows-gnu.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-shell32-sys = "0.1.1"
-ole32-sys = "0.2.0"
-kernel32-sys = "0.2.1"
-advapi32-sys = "0.2.0"
-userenv-sys = "0.2.0"
-
-[target.i686-pc-windows-msvc.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-shell32-sys = "0.1.1"
-ole32-sys = "0.2.0"
-kernel32-sys = "0.2.1"
-advapi32-sys = "0.2.0"
-userenv-sys = "0.2.0"

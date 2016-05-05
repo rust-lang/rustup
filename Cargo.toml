@@ -34,25 +34,7 @@ rand = "0.3.11"
 scopeguard = "0.1.2"
 rustc-serialize = "0.3"
 
-[target.x86_64-pc-windows-gnu.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-user32-sys = "0.1.2"
-kernel32-sys = "0.2.1"
-
-[target.x86_64-pc-windows-msvc.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-user32-sys = "0.1.2"
-kernel32-sys = "0.2.1"
-
-[target.i686-pc-windows-gnu.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-user32-sys = "0.1.2"
-kernel32-sys = "0.2.1"
-
-[target.i686-pc-windows-msvc.dependencies]
+[target."cfg(windows)".dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
 user32-sys = "0.1.2"

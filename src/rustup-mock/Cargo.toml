@@ -21,18 +21,6 @@ itertools = "0.4.1"
 tar = "0.4.0"
 toml = "0.1.27"
 
-[target.x86_64-pc-windows-gnu.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-
-[target.x86_64-pc-windows-msvc.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-
-[target.i686-pc-windows-gnu.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-
-[target.i686-pc-windows-msvc.dependencies]
+[target."cfg(windows)".dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
