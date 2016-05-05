@@ -11,7 +11,7 @@ extern crate toml;
 extern crate flate2;
 extern crate walkdir;
 extern crate itertools;
-extern crate hyper;
+extern crate url;
 
 use rustup_mock::dist::*;
 use rustup_mock::{MockCommand, MockInstallerBuilder};
@@ -25,7 +25,7 @@ use rustup_utils::raw as utils_raw;
 use rustup_dist::temp;
 use rustup_dist::manifestation::{Manifestation, UpdateStatus, Changes};
 use rustup_dist::manifest::{Manifest, Component};
-use hyper::Url;
+use url::Url;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
