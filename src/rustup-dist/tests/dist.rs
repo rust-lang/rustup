@@ -278,7 +278,7 @@ fn update_from_dist(dist_server: &Url,
         notify_handler: notify_handler.clone(),
         gpg_key: None,
     };
-    let manifest_file = try!(download.get(&manifest_url.serialize()));
+    let manifest_file = try!(download.get(manifest_url.as_str()));
     let manifest_str = try!(utils::read_file("manifest", &manifest_file));
     let manifest = try!(Manifest::parse(&manifest_str));
 
@@ -295,15 +295,9 @@ fn update_from_dist(dist_server: &Url,
 }
 
 fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url> {
-    let mut url = dist_server.clone();
-    if let Some(mut p) = url.path_mut() {
-        p.push(format!("dist/channel-rust-{}.toml", toolchain.channel));
-    } else {
-        // FIXME
-        panic!()
-    }
+    let url = format!("{}/dist/channel-rust-{}.toml", dist_server, toolchain.channel);
 
-    Ok(url)
+    Ok(Url::parse(&url).unwrap())
 }
 
 fn uninstall(toolchain: &ToolchainDesc, prefix: &InstallPrefix, temp_cfg: &temp::Cfg,

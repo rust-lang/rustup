@@ -202,7 +202,7 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
     use notifications::Notification;
 
     // The file scheme is mostly for use by tests to mock the dist server
-    if url.scheme == "file" {
+    if url.scheme() == "file" {
         let src = try!(url.to_file_path().map_err(|_| DownloadError::FilePathParse));
         if !is_file(&src) {
             // Because some of multirust's logic depends on checking
