@@ -17,6 +17,7 @@ function detect_platform() {
     if (navigator.platform == "Linux armv7l") {os = "unix";}
     if (navigator.platform == "Win32") {os = "win";}
     if (navigator.platform == "FreeBSD x86_64") {os = "unix";}
+    if (navigator.platform == "FreeBSD amd64") {os = "unix";}
 
     if (navigator.platform == "Linux armv7l"
 	&& navigator.appVersion.indexOf("Android") != -1 ) {
