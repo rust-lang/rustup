@@ -5,7 +5,7 @@ use time::precise_time_s;
 use rustup::Notification;
 use rustup_dist::Notification as In;
 use rustup_utils::Notification as Un;
-use tty;
+use rustup_utils::tty;
 
 /// Keep track of this many past download amounts
 const DOWNLOAD_TRACK_COUNT: usize = 5;

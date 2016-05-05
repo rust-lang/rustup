@@ -33,10 +33,12 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
     
     cmd.args(&args[1..]);
     
-    if stderr_isatty() && !(&args).iter().any(|e| {
-            let e = e.as_ref().to_str().unwrap_or("");
-            e == "--color"
-        }) 
+    let has_color_args = (&args).iter().any(|e| {
+        let e = e.as_ref().to_str().unwrap_or("");
+        e.starts_with("--color")
+    });
+    
+    if stderr_isatty() && !has_color_args
     {
         cmd.arg("--color");
         cmd.arg("always"); 

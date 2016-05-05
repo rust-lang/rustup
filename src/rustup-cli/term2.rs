@@ -4,7 +4,7 @@
 
 use std::io;
 use term;
-use tty;
+use rustup_utils::tty;
 
 pub use term::color;
 pub use term::Attr;

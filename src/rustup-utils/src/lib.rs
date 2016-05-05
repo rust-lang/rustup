@@ -24,10 +24,14 @@ extern crate advapi32;
 #[cfg(windows)]
 extern crate userenv;
 
+#[cfg(unix)]
+extern crate libc;
+
 pub mod notify;
 pub mod errors;
 pub mod notifications;
 pub mod raw;
+pub mod tty;
 pub mod utils;
 
 pub use errors::*;
