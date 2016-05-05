@@ -5,7 +5,7 @@ extern crate rustup_dist;
 extern crate rustup_utils;
 #[macro_use]
 extern crate error_chain;
-extern crate hyper;
+extern crate url;
 extern crate regex;
 extern crate itertools;
 extern crate rustc_serialize;

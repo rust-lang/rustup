@@ -24,7 +24,7 @@ error-chain = { path = "src/error-chain", version = "0.1.9" }
 clap = "2.2.4"
 regex = "0.1.41"
 openssl = "0.7.2"
-hyper = "0.9.2"
+url = "1.1.0"
 term = "0.4.4"
 itertools = "0.4.1"
 time = "0.1.34"
