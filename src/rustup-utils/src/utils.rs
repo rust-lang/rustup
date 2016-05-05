@@ -149,7 +149,7 @@ pub fn download_file(url: hyper::Url,
     notify_handler.call(Notification::DownloadingFile(&url, path));
     match raw::download_file(url.clone(), path, hasher, notify_handler) {
         Ok(_) => Ok(()),
-        Err(e @ raw::DownloadError::Status(NotFound)) => {
+        Err(e @ Error(ErrorKind::HttpStatus(NotFound), _)) => {
             Err(e).chain_err(|| ErrorKind::Download404 {
                 url: url,
                 path: path.to_path_buf(),
