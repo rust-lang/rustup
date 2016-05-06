@@ -10,7 +10,7 @@ use errors::*;
 use notifications::*;
 use rustup_utils::utils;
 use prefix::InstallPrefix;
-use rustup_utils::sha2::{Sha256, Digest};
+use sha2::{Sha256, Digest};
 use itertools::Itertools;
 use std::path::Path;
 

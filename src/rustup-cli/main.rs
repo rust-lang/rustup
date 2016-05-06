@@ -17,6 +17,7 @@ extern crate time;
 extern crate rand;
 extern crate scopeguard;
 extern crate tempdir;
+extern crate sha2;
 
 #[cfg(windows)]
 extern crate winapi;

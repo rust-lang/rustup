@@ -11,6 +11,7 @@ extern crate tar;
 extern crate rustup_utils;
 #[macro_use]
 extern crate error_chain;
+extern crate sha2;
 
 pub use errors::*;
 pub use notifications::{Notification, NotifyHandler};
