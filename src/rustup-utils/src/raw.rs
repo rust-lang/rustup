@@ -170,7 +170,7 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
     use notifications::Notification;
     use std::io::Result as IoResult;
     use std::io::{Read, Write};
-    use std::net::{SocketAddr};
+    use std::net::{SocketAddr, Shutdown};
     use std::sync::{Arc, Mutex};
 
     // This is just a defensive measure to make sure I'm not sending
@@ -213,6 +213,9 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
         }
         fn set_write_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
             self.0.lock().expect("").get_ref().set_read_timeout(dur)
+        }
+        fn close(&mut self, how: Shutdown) -> IoResult<()> {
+            self.0.lock().expect("").get_mut().close(how)
         }
     }
 
