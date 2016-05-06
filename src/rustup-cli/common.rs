@@ -295,8 +295,6 @@ pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
 pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
     let mut toolchains = try!(cfg.list_toolchains());
 
-    toolchains.sort();
-
     if toolchains.is_empty() {
         println!("no installed toolchains");
     } else {

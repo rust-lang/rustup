@@ -261,10 +261,12 @@ impl Cfg {
 
     pub fn list_toolchains(&self) -> Result<Vec<String>> {
         if utils::is_directory(&self.toolchains_dir) {
-            let toolchains: Vec<_> = try!(utils::read_dir("toolchains", &self.toolchains_dir))
+            let mut toolchains: Vec<_> = try!(utils::read_dir("toolchains", &self.toolchains_dir))
                                          .filter_map(io::Result::ok)
                                          .filter_map(|e| e.file_name().into_string().ok())
                                          .collect();
+
+            utils::toolchain_sort(&mut toolchains);
 
             Ok(toolchains)
         } else {
@@ -275,39 +277,8 @@ impl Cfg {
     pub fn update_all_channels(&self) -> Result<Vec<(String, Result<UpdateStatus>)>> {
         let toolchains = try!(self.list_toolchains());
 
-        let mut toolchains: Vec<(dist::ToolchainDesc, String)> = toolchains.into_iter()
-            .filter_map(|name| {
-                let desc = dist::ToolchainDesc::from_str(&name);
-                let tracked = desc.into_iter().filter(|d| d.is_tracking()).next();
-                tracked.map(|d| (d, name))
-            }).collect();
-
-        fn channel_sort_key(s: &str) -> String {
-            if s == "stable" {
-                String::from("0")
-            } else if s == "beta" {
-                String::from("1")
-            } else if s == "nightly" {
-                String::from("2")
-            } else {
-                format!("3{}", s)
-            }
-        }
-
-        toolchains.sort_by(|&(ref a, _), &(ref b, _)| {
-            let a = format!("{}-{}-{}",
-                            channel_sort_key(&a.channel),
-                            a.date.as_ref().map(String::as_str).unwrap_or(""),
-                            a.target);
-            let b = format!("{}-{}-{}",
-                            channel_sort_key(&b.channel),
-                            b.date.as_ref().map(String::as_str).unwrap_or(""),
-                            b.target);
-            a.cmp(&b)
-        });
-
         let updates = toolchains.into_iter()
-            .map(|(_, name)| {
+            .map(|name| {
                 let result = self.get_toolchain(&name, true)
                     .and_then(|t| t.install_from_dist());
                 if let Err(ref e) = result {
