@@ -158,14 +158,86 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
                                      notify_handler: NotifyHandler)
                                      -> Result<()> {
 
+    // Short-circuit hyper for the "file:" URL scheme
     if try!(download_from_file_url(&url, &path, &mut hasher)) {
         return Ok(());
     }
 
+    use hyper::error::Result as HyperResult;
     use hyper::header::ContentLength;
+    use hyper::net::{SslClient, NetworkStream, HttpsConnector};
+    use native_tls;
     use notifications::Notification;
+    use std::io::Result as IoResult;
+    use std::io::{Read, Write};
+    use std::net::{SocketAddr};
+    use std::sync::{Arc, Mutex};
 
-    let client = Client::new();
+    // This is just a defensive measure to make sure I'm not sending
+    // anything through hyper I haven't tested.
+    if url.scheme() != "https" {
+        return Err(format!("unsupported URL scheme: '{}'", url.scheme()).into());
+    }
+
+    // All the following is adapter code to use native_tls with hyper.
+
+    struct NativeSslClient;
+    
+    impl<T: NetworkStream + Send + Clone> SslClient<T> for NativeSslClient {
+        type Stream = NativeSslStream<T>;
+
+        fn wrap_client(&self, stream: T, host: &str) -> HyperResult<Self::Stream> {
+            use native_tls::ClientBuilder as TlsClientBuilder;
+            use hyper::error::Error as HyperError;
+
+            let mut ssl_builder = try!(TlsClientBuilder::new()
+                                       .map_err(|e| HyperError::Ssl(Box::new(e))));
+            let ssl_stream = try!(ssl_builder.handshake(host, stream)
+                                  .map_err(|e| HyperError::Ssl(Box::new(e))));
+
+            Ok(NativeSslStream(Arc::new(Mutex::new(ssl_stream))))
+        }
+    }
+
+    #[derive(Clone)]
+    struct NativeSslStream<T>(Arc<Mutex<native_tls::TlsStream<T>>>);
+
+    impl<T> NetworkStream for NativeSslStream<T>
+        where T: NetworkStream
+    {
+        fn peer_addr(&mut self) -> IoResult<SocketAddr> {
+            self.0.lock().expect("").get_mut().peer_addr()
+        }
+        fn set_read_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
+            self.0.lock().expect("").get_ref().set_read_timeout(dur)
+        }
+        fn set_write_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
+            self.0.lock().expect("").get_ref().set_read_timeout(dur)
+        }
+    }
+
+    impl<T> Read for NativeSslStream<T>
+        where T: Read + Write
+    {
+        fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+            self.0.lock().expect("").read(buf)
+        }
+    }
+
+    impl<T> Write for NativeSslStream<T>
+        where T: Read + Write
+    {
+        fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+            self.0.lock().expect("").write(buf)
+        }
+        fn flush(&mut self) -> IoResult<()> {
+            self.0.lock().expect("").flush()
+        }
+    }
+
+    // Connect with hyper + native_tls
+
+    let client = Client::with_connector(HttpsConnector::new(NativeSslClient));
 
     let mut res = try!(client.get(url).send()
                        .chain_err(|| "failed to make network request"));

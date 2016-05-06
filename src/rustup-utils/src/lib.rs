@@ -8,6 +8,7 @@ extern crate rand;
 extern crate scopeguard;
 #[macro_use]
 extern crate error_chain;
+extern crate native_tls;
 
 #[cfg(windows)]
 extern crate winapi;
