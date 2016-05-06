@@ -10,6 +10,8 @@ extern crate regex;
 extern crate itertools;
 extern crate rustc_serialize;
 extern crate time;
+#[cfg(unix)]
+extern crate libc;
 
 pub use errors::*;
 pub use notifications::*;

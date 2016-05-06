@@ -40,7 +40,6 @@ mod proxy_mode;
 mod setup_mode;
 mod rustup_mode;
 mod self_update;
-mod tty;
 mod job;
 mod term2;
 mod errors;

@@ -17,6 +17,7 @@ hyper = "0.7.0"
 rand = "0.3.11"
 scopeguard = "0.1.2"
 error-chain = { path = "../error-chain", version = "0.1.9" }
+libc = "0.2.0"
 
 [target.x86_64-pc-windows-gnu.dependencies]
 winapi = "0.2.4"
