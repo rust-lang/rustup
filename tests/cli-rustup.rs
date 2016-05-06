@@ -278,8 +278,88 @@ fn show_toolchain_default() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok_ex(config, &["rustup", "show"],
-for_host!(r"nightly-{0} (default toolchain)
+for_host!(r"nightly-{0} (default)
+1.3.0 (hash-n-2)
 "),
+r"");
+    });
+}
+
+#[test]
+fn show_multiple_toolchains() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_ok_ex(config, &["rustup", "show"],
+for_host!(r"installed toolchains
+--------------------
+
+stable-{0}
+nightly-{0} (default)
+
+active toolchain
+----------------
+
+nightly-{0} (default)
+1.3.0 (hash-n-2)
+
+"),
+r"");
+    });
+}
+
+#[test]
+fn show_multiple_targets() {
+    clitools::setup(Scenario::MultiHost, &|config| {
+        expect_ok(config, &["rustup", "default",
+                            &format!("nightly-{}", clitools::MULTI_ARCH1)]);
+        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH2]);
+        expect_ok_ex(config, &["rustup", "show"],
+&format!(r"installed targets for active toolchain
+--------------------------------------
+
+{1}
+{0}
+
+active toolchain
+----------------
+
+nightly-{0} (default)
+1.3.0 (xxxx-n-2)
+
+", clitools::MULTI_ARCH1, clitools::CROSS_ARCH2),
+r"");
+    });
+}
+
+#[test]
+fn show_multiple_toolchains_and_targets() {
+    clitools::setup(Scenario::MultiHost, &|config| {
+        expect_ok(config, &["rustup", "default",
+                            &format!("nightly-{}", clitools::MULTI_ARCH1)]);
+        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH2]);
+        expect_ok(config, &["rustup", "update",
+                            &format!("stable-{}", clitools::MULTI_ARCH1)]);
+        expect_ok_ex(config, &["rustup", "show"],
+&format!(r"installed toolchains
+--------------------
+
+stable-{0}
+nightly-{0} (default)
+
+installed targets for active toolchain
+--------------------------------------
+
+{1}
+{0}
+
+active toolchain
+----------------
+
+nightly-{0} (default)
+1.3.0 (xxxx-n-2)
+
+", clitools::MULTI_ARCH1, clitools::CROSS_ARCH2),
 r"");
     });
 }
@@ -296,14 +376,17 @@ r"");
 }
 
 #[test]
-#[ignore(windows)] // FIXME rustup displays UNC paths
 fn show_toolchain_override() {
+    // FIXME rustup displays UNC paths
+    if cfg!(windows) { return }
+
     setup(&|config| {
         let cwd = ::std::env::current_dir().unwrap();
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
         expect_ok_ex(config, &["rustup", "show"],
-&format!(r"nightly (directory override for '{}')
-", cwd.display()),
+&format!(r"nightly-{} (directory override for '{}')
+1.3.0 (hash-n-2)
+", this_host_triple(), cwd.display()),
 r"");
     });
 }
@@ -330,7 +413,9 @@ fn show_toolchain_env() {
         let out = cmd.output().unwrap();
         assert!(out.status.success());
         let stdout = String::from_utf8(out.stdout).unwrap();
-        assert!(&stdout == for_host!("nightly-{0} (environment override by RUSTUP_TOOLCHAIN)\n"));
+        assert!(&stdout == for_host!(r"nightly-{0} (environment override by RUSTUP_TOOLCHAIN)
+1.3.0 (hash-n-2)
+"));
     });
 }
 

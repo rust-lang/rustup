@@ -492,7 +492,7 @@ pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<String> {
 }
 
 pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
-    fn channel_sort_key(s: &str) -> String {
+    fn toolchain_sort_key(s: &str) -> String {
         if s.starts_with("stable") {
             format!("0{}", s)
         } else if s.starts_with("beta") {
@@ -507,8 +507,8 @@ pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
     v.sort_by(|a, b| {
         let a_str: &str = a.as_ref();
         let b_str: &str = b.as_ref();
-        let a_key = channel_sort_key(a_str);
-        let b_key = channel_sort_key(b_str);
+        let a_key = toolchain_sort_key(a_str);
+        let b_key = toolchain_sort_key(b_str);
         a_key.cmp(&b_key)
     });
 }
