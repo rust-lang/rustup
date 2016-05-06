@@ -1,6 +1,5 @@
 #![feature(core_intrinsics)] // For type_name().
 #![feature(fundamental)]
-#![feature(step_by)]
 #![recursion_limit = "1024"] // for error_chain!
 
 extern crate hyper;
