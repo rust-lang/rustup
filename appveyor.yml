@@ -21,18 +21,9 @@ install:
       .\rust-nightly.exe /VERYSILENT /NORESTART /DIR="C:\rust" | Out-Null
       $env:PATH="$env:PATH;C:\rust\bin"
 
-      New-Item .cargo -type directory
-      Copy-Item ci/appveyor-cargo-config.toml .cargo/config
-
       # For -gnu builds
       if ($env:TARGET -match "-gnu$") {
         $env:PATH="$env:PATH;C:\msys64\mingw${env:BITS}\bin"
-      }
-
-      # For -msvc builds
-      if ($env:TARGET -match "-msvc$") {
-        Start-FileDownload "http://www.npcglib.org/~stathis/downloads/openssl-1.0.2d-vs2015.7z" -FileName "openssl.7z"
-        7z x openssl.7z -o"C:\OpenSSL" | Out-Null
       }
 
       # Print version info

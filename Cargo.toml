@@ -23,8 +23,7 @@ rustup-utils = { path = "src/rustup-utils", version = "0.1.9" }
 error-chain = { path = "src/error-chain", version = "0.1.9" }
 clap = "2.2.4"
 regex = "0.1.41"
-openssl = "0.7.2"
-hyper = "0.7.0"
+url = "1.1.0"
 term = "0.4.4"
 itertools = "0.4.1"
 time = "0.1.34"
@@ -34,25 +33,7 @@ rand = "0.3.11"
 scopeguard = "0.1.2"
 rustc-serialize = "0.3"
 
-[target.x86_64-pc-windows-gnu.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-user32-sys = "0.1.2"
-kernel32-sys = "0.2.1"
-
-[target.x86_64-pc-windows-msvc.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-user32-sys = "0.1.2"
-kernel32-sys = "0.2.1"
-
-[target.i686-pc-windows-gnu.dependencies]
-winapi = "0.2.4"
-winreg = "0.3.2"
-user32-sys = "0.1.2"
-kernel32-sys = "0.2.1"
-
-[target.i686-pc-windows-msvc.dependencies]
+[target."cfg(windows)".dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
 user32-sys = "0.1.2"

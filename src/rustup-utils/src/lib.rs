@@ -3,11 +3,12 @@
 #![recursion_limit = "1024"] // for error_chain!
 
 extern crate hyper;
-extern crate openssl;
 extern crate rand;
 extern crate scopeguard;
 #[macro_use]
 extern crate error_chain;
+extern crate native_tls;
+extern crate rustc_serialize;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -33,6 +34,7 @@ pub mod notifications;
 pub mod raw;
 pub mod tty;
 pub mod utils;
+pub mod sha2;
 
 pub use errors::*;
 pub use notifications::{Notification, NotifyHandler};

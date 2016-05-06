@@ -14,10 +14,9 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 regex = "0.1.41"
-hyper = "0.7.0"
-openssl = "0.7.2"
 itertools = "0.4.1"
 ole32-sys = "0.2.0"
+url = "1.1.0"
 tar = "0.4.0"
 flate2 = "0.2.9"
 tempdir = "0.3.4"

@@ -9,11 +9,9 @@ extern crate error_chain;
 #[macro_use]
 extern crate clap;
 extern crate regex;
-extern crate hyper;
 #[macro_use]
 extern crate rustup;
 extern crate term;
-extern crate openssl;
 extern crate itertools;
 extern crate time;
 extern crate rand;

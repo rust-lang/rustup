@@ -67,6 +67,10 @@ error_chain! {
             description("could not rename directory")
             display("could not rename {} directory from '{}' to '{}'", name, src.display(), dest.display())
         }
+        HttpStatus(e: hyper::status::StatusCode) {
+            description("http request returned an unsuccessful status code")
+            display("http request returned an unsuccessful status code: {}", e)
+        }
         DownloadingFile {
             url: hyper::Url,
             path: PathBuf,

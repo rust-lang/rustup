@@ -13,7 +13,7 @@ use {MockInstallerBuilder, MockCommand};
 use dist::{MockDistServer, MockChannel, MockPackage,
            MockTargettedPackage, MockComponent, change_channel_date,
            ManifestVersion};
-use hyper::Url;
+use url::Url;
 use scopeguard;
 
 /// The configuration used by the tests in this module

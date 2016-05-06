@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 use std::env;
 
-use hyper;
+use url::Url;
 
 #[derive(Debug)]
 pub struct Toolchain<'a> {
@@ -230,7 +230,7 @@ impl<'a> Toolchain<'a> {
             let is_url = installer_str.starts_with("file://")
                 || installer_str.starts_with("http://")
                 || installer_str.starts_with("https://");
-            let url = hyper::Url::parse(installer_str).ok();
+            let url = Url::parse(installer_str).ok();
             let url = if is_url { url } else { None };
             if let Some(url) = url {
 

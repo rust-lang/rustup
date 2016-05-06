@@ -2,13 +2,13 @@
 //! distribution server, with v1 and v2 manifests.
 
 use MockInstallerBuilder;
-use hyper::Url;
+use url::Url;
 use std::path::{PathBuf, Path};
 use std::fs::{self, File};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use tempdir::TempDir;
-use openssl::crypto::hash;
+use rustup_utils::sha2::{Sha256, Digest};
 use itertools::Itertools;
 use toml;
 use flate2;
@@ -304,9 +304,9 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
 pub fn calc_hash(src: &Path) -> String {
     let ref mut buf = Vec::new();
     File::open(src).unwrap().read_to_end(buf).unwrap();
-    let mut hasher = hash::Hasher::new(hash::Type::SHA256);
-    hasher.write_all(&buf).unwrap();
-    let hex = hasher.finish().iter().map(|b| format!("{:02x}", b)).join("");
+    let mut hasher = Sha256::new();
+    hasher.input(buf);
+    let hex = hasher.result_str();
 
     hex
 }
