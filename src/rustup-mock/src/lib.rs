@@ -7,7 +7,7 @@ extern crate scopeguard;
 extern crate walkdir;
 extern crate flate2;
 extern crate tempdir;
-extern crate openssl;
+extern crate crypto;
 extern crate itertools;
 extern crate tar;
 extern crate toml;

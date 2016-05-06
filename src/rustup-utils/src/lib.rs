@@ -3,7 +3,7 @@
 #![recursion_limit = "1024"] // for error_chain!
 
 extern crate hyper;
-extern crate openssl;
+extern crate crypto;
 extern crate rand;
 extern crate scopeguard;
 #[macro_use]

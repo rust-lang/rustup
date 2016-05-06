@@ -6,7 +6,6 @@ extern crate rustup_utils;
 extern crate rustup_mock;
 extern crate tempdir;
 extern crate tar;
-extern crate openssl;
 extern crate toml;
 extern crate flate2;
 extern crate walkdir;

@@ -12,7 +12,8 @@ use std::fmt;
 use std::thread;
 use std::time::Duration;
 use hyper::{self, Client};
-use openssl::crypto::hash::Hasher;
+use crypto::sha2::Sha256;
+use crypto::digest::Digest;
 use errors::*;
 
 use rand::random;
@@ -154,7 +155,7 @@ pub fn tee_file<W: io::Write>(path: &Path, mut w: &mut W) -> io::Result<()> {
 
 pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
                                      path: P,
-                                     mut hasher: Option<&mut Hasher>,
+                                     mut hasher: Option<&mut Sha256>,
                                      notify_handler: NotifyHandler)
                                      -> Result<()> {
 
@@ -261,8 +262,7 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
 
         if bytes_read != 0 {
             if let Some(ref mut h) = hasher {
-                try!(io::Write::write_all(*h, &mut buffer[0..bytes_read])
-                     .chain_err(|| "unable to hash download"));
+                h.input(&buffer[0..bytes_read]);
             }
             try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read])
                  .chain_err(|| "unable to write download to disk"));
@@ -277,7 +277,7 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
 
 fn download_from_file_url<P: AsRef<Path>>(url: &hyper::Url,
                                           path: P,
-                                          hasher: &mut Option<&mut Hasher>)
+                                          hasher: &mut Option<&mut Sha256>)
                                           -> Result<bool> {
     // The file scheme is mostly for use by tests to mock the dist server
     if url.scheme() == "file" {
@@ -301,8 +301,7 @@ fn download_from_file_url<P: AsRef<Path>>(url: &hyper::Url,
                 let bytes_read = try!(io::Read::read(f, buffer)
                                       .chain_err(|| "unable to read downloaded file"));
                 if bytes_read == 0 { break }
-                try!(io::Write::write_all(*h, &buffer[0..bytes_read])
-                     .chain_err(|| "unable to write to hasher"));
+                h.input(&buffer[0..bytes_read]);
             }
         }
 

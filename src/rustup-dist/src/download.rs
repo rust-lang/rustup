@@ -3,8 +3,8 @@ use notifications::*;
 use rustup_utils::utils;
 use temp;
 
-use openssl::crypto::hash::{Type, Hasher};
-use itertools::Itertools;
+use crypto::sha2::Sha256;
+use crypto::digest::Digest;
 
 use std::path::Path;
 use std::process::Command;
@@ -66,7 +66,7 @@ impl<'a> DownloadCfg<'a> {
             try!(utils::download_file(hash_url, &hash_file, None, ntfy!(&self.notify_handler)));
 
             let hash = try!(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned()));
-            let mut hasher = Hasher::new(Type::SHA256);
+            let mut hasher = Sha256::new();
 
             let target_url = try!(utils::parse_url(url));
             let target_file = try!(self.temp_cfg.new_file());
@@ -75,10 +75,7 @@ impl<'a> DownloadCfg<'a> {
                                       Some(&mut hasher),
                                       ntfy!(&self.notify_handler)));
 
-            let actual_hash = hasher.finish()
-                                    .iter()
-                                    .map(|b| format!("{:02x}", b))
-                                    .join("");
+            let actual_hash = hasher.result_str();
 
             if hash != actual_hash {
                 // Incorrect hash

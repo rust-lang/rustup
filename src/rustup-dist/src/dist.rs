@@ -12,7 +12,8 @@ use std::path::Path;
 use std::fmt;
 
 use regex::Regex;
-use openssl::crypto::hash::{Type, Hasher};
+use crypto::sha2::Sha256;
+use crypto::digest::Digest;
 use itertools::Itertools;
 
 pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
@@ -341,12 +342,9 @@ pub fn download_and_check<'a>(url_str: &str,
     let url = try!(utils::parse_url(url_str));
     let file = try!(cfg.temp_cfg.new_file_with_ext("", ext));
 
-    let mut hasher = Hasher::new(Type::SHA256);
+    let mut hasher = Sha256::new();
     try!(utils::download_file(url, &file, Some(&mut hasher), ntfy!(&cfg.notify_handler)));
-    let actual_hash = hasher.finish()
-                            .iter()
-                            .map(|b| format!("{:02x}", b))
-                            .join("");
+    let actual_hash = hasher.result_str();
 
     if hash != actual_hash {
         // Incorrect hash

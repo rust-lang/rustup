@@ -10,7 +10,8 @@ use errors::*;
 use notifications::*;
 use rustup_utils::utils;
 use prefix::InstallPrefix;
-use openssl::crypto::hash::{Type, Hasher};
+use crypto::sha2::Sha256;
+use crypto::digest::Digest;
 use itertools::Itertools;
 use std::path::Path;
 
@@ -135,14 +136,11 @@ impl Manifestation {
             let temp_file = try!(temp_cfg.new_file());
             let url_url = try!(utils::parse_url(&url));
 
-            let mut hasher = Hasher::new(Type::SHA256);
+            let mut hasher = Sha256::new();
             try!(utils::download_file(url_url, &temp_file, Some(&mut hasher), ntfy!(&notify_handler))
                  .chain_err(|| ErrorKind::ComponentDownloadFailed(component.clone())));
 
-            let actual_hash = hasher.finish()
-                                    .iter()
-                                    .map(|b| format!("{:02x}", b))
-                                    .join("");
+            let actual_hash = hasher.result_str();
 
             if hash != actual_hash {
                 // Incorrect hash

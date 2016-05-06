@@ -36,12 +36,14 @@ use rustup::{NotifyHandler};
 use errors::*;
 use rustup_dist::dist;
 use rustup_utils::utils;
-use openssl::crypto::hash::{Type, Hasher};
+use crypto::sha2::Sha256;
+use crypto::digest::Digest;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
-use std::fs;
+use std::fs::{self, File};
+use std::io::Read;
 use tempdir::TempDir;
 
 pub struct InstallOpts {
@@ -1038,12 +1040,18 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let url = format!("{}/{}/rustup-init{}", update_root, triple, EXE_SUFFIX);
 
     // Calculate own hash
-    let mut hasher = Hasher::new(Type::SHA256);
-    try!(utils::tee_file("self", multirust_path, &mut hasher));
-    let current_hash = hasher.finish()
-                             .iter()
-                             .map(|b| format!("{:02x}", b))
-                             .join("");
+    let mut hasher = Sha256::new();
+    let mut self_exe = try!(File::open(multirust_path)
+                        .chain_err(|| "can't open self exe to calculate hash"));
+    let ref mut buf = [0; 4096];
+    loop {
+        let bytes = try!(self_exe.read(buf)
+                         .chain_err(|| "failed to read from self exe while calculating hash"));
+        if bytes == 0 { break; }
+        hasher.input(&buf[0..bytes]);
+    }
+    let current_hash = hasher.result_str();
+    drop(self_exe);
 
     // Download latest hash
     info!("checking for self-updates");
@@ -1064,15 +1072,12 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Download new version
     info!("downloading self-update");
-    let mut hasher = Hasher::new(Type::SHA256);
+    let mut hasher = Sha256::new();
     try!(utils::download_file(download_url,
                               &setup_path,
                               Some(&mut hasher),
                               ntfy!(&NotifyHandler::none())));
-    let download_hash = hasher.finish()
-                              .iter()
-                              .map(|b| format!("{:02x}", b))
-                              .join("");
+    let download_hash = hasher.result_str();
 
     // Check that hash is correct
     if latest_hash != download_hash {

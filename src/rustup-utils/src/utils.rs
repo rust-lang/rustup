@@ -6,7 +6,7 @@ use std::process::Command;
 use std::ffi::OsString;
 use std::env;
 use hyper;
-use openssl::crypto::hash::Hasher;
+use crypto::sha2::Sha256;
 use notify::Notifyable;
 use notifications::{Notification, NotifyHandler};
 use raw;
@@ -141,7 +141,7 @@ pub fn tee_file<W: io::Write>(name: &'static str, path: &Path, w: &mut W) -> Res
 
 pub fn download_file(url: hyper::Url,
                      path: &Path,
-                     hasher: Option<&mut Hasher>,
+                     hasher: Option<&mut Sha256>,
                      notify_handler: NotifyHandler)
                      -> Result<()> {
     use hyper::status::StatusCode::NotFound;
