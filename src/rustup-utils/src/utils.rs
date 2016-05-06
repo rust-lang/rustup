@@ -6,7 +6,7 @@ use std::process::Command;
 use std::ffi::OsString;
 use std::env;
 use hyper;
-use crypto::sha2::Sha256;
+use sha2::Sha256;
 use notify::Notifyable;
 use notifications::{Notification, NotifyHandler};
 use raw;

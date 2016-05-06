@@ -12,8 +12,7 @@ use std::path::Path;
 use std::fmt;
 
 use regex::Regex;
-use crypto::sha2::Sha256;
-use crypto::digest::Digest;
+use rustup_utils::sha2::{Sha256, Digest};
 use itertools::Itertools;
 
 pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";

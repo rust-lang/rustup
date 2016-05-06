@@ -7,10 +7,10 @@ extern crate scopeguard;
 extern crate walkdir;
 extern crate flate2;
 extern crate tempdir;
-extern crate crypto;
 extern crate itertools;
 extern crate tar;
 extern crate toml;
+extern crate rustup_utils;
 
 #[cfg(windows)]
 extern crate winapi;

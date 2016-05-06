@@ -12,7 +12,6 @@ extern crate regex;
 #[macro_use]
 extern crate rustup;
 extern crate term;
-extern crate crypto;
 extern crate itertools;
 extern crate time;
 extern crate rand;

@@ -12,12 +12,12 @@ repository = "https://github.com/rust-lang-nursery/rustup.rs"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-rust-crypto = "0.2.35"
 rand = "0.3.11"
 scopeguard = "0.1.2"
 error-chain = { path = "../error-chain", version = "0.1.9" }
 libc = "0.2.0"
 native-tls = { git = "https://github.com/sfackler/rust-native-tls.git" }
+rustc-serialize = "0.3.19"
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.4"

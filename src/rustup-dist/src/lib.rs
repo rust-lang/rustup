@@ -1,7 +1,6 @@
 #![recursion_limit = "1024"]
 
 extern crate regex;
-extern crate crypto;
 extern crate itertools;
 extern crate tempdir;
 extern crate walkdir;

@@ -23,7 +23,6 @@ rustup-utils = { path = "src/rustup-utils", version = "0.1.9" }
 error-chain = { path = "src/error-chain", version = "0.1.9" }
 clap = "2.2.4"
 regex = "0.1.41"
-rust-crypto = "0.2.35"
 url = "1.1.0"
 term = "0.4.4"
 itertools = "0.4.1"

@@ -3,8 +3,7 @@ use notifications::*;
 use rustup_utils::utils;
 use temp;
 
-use crypto::sha2::Sha256;
-use crypto::digest::Digest;
+use rustup_utils::sha2::{Sha256, Digest};
 
 use std::path::Path;
 use std::process::Command;

@@ -12,8 +12,7 @@ use std::fmt;
 use std::thread;
 use std::time::Duration;
 use hyper::{self, Client};
-use crypto::sha2::Sha256;
-use crypto::digest::Digest;
+use sha2::{Sha256, Digest};
 use errors::*;
 
 use rand::random;
