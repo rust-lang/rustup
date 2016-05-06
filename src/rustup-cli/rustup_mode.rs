@@ -1,4 +1,4 @@
-use clap::{App, Arg, AppSettings, SubCommand, ArgMatches};
+use clap::{App, Arg, ArgGroup, AppSettings, SubCommand, ArgMatches};
 use common;
 use rustup::{Cfg, Toolchain, command};
 use rustup::telemetry::TelemetryMode;
@@ -159,6 +159,17 @@ pub fn cli() -> App<'static, 'static> {
                      .required(true)))
             .subcommand(SubCommand::with_name("remove")
                 .about("Remove the override toolchain for a directory")))
+        .subcommand(SubCommand::with_name("doc")
+            .about("Open the documentation for the current toolchain.")
+            .arg(Arg::with_name("book")
+                 .long("book")
+                 .help("The Rust Programming Language book"))
+            .arg(Arg::with_name("std")
+                 .long("std")
+                 .help("Standard library API documentation"))
+            .group(ArgGroup::with_name("page")
+                 .args(&["book", "std"]))
+        )
         .subcommand(SubCommand::with_name("self")
             .about("Modify the rustup installation")
             .setting(AppSettings::SubcommandRequiredElseHelp)
