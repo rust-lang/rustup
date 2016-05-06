@@ -1,6 +1,6 @@
 //! Mocks for testing
 
-extern crate hyper;
+extern crate url;
 #[macro_use]
 extern crate lazy_static;
 extern crate scopeguard;

@@ -2,7 +2,7 @@
 //! distribution server, with v1 and v2 manifests.
 
 use MockInstallerBuilder;
-use hyper::Url;
+use url::Url;
 use std::path::{PathBuf, Path};
 use std::fs::{self, File};
 use std::collections::HashMap;
