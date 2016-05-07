@@ -238,43 +238,89 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
         }
     }
 
-    // Connect with hyper + native_tls
+    with_certs(|| {
+        // Connect with hyper + native_tls
 
-    let client = Client::with_connector(HttpsConnector::new(NativeSslClient));
+        let client = Client::with_connector(HttpsConnector::new(NativeSslClient));
 
-    let mut res = try!(client.get(url).send()
-                       .chain_err(|| "failed to make network request"));
-    if res.status != hyper::Ok {
-        return Err(ErrorKind::HttpStatus(res.status).into());
-    }
-
-    let buffer_size = 0x10000;
-    let mut buffer = vec![0u8; buffer_size];
-
-    let mut file = try!(fs::File::create(&path).chain_err(
-        || "error creating file for download"));
-
-    if let Some(len) = res.headers.get::<ContentLength>().cloned() {
-        notify_handler.call(Notification::DownloadContentLengthReceived(len.0));
-    }
-
-    loop {
-        let bytes_read = try!(io::Read::read(&mut res, &mut buffer)
-                              .chain_err(|| "error reading from socket"));
-
-        if bytes_read != 0 {
-            if let Some(ref mut h) = hasher {
-                h.input(&buffer[0..bytes_read]);
-            }
-            try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read])
-                 .chain_err(|| "unable to write download to disk"));
-            notify_handler.call(Notification::DownloadDataReceived(bytes_read));
-        } else {
-            try!(file.sync_data().chain_err(|| "unable to sync download to disk"));
-            notify_handler.call(Notification::DownloadFinished);
-            return Ok(());
+        let mut res = try!(client.get(url).send()
+                           .chain_err(|| "failed to make network request"));
+        if res.status != hyper::Ok {
+            return Err(ErrorKind::HttpStatus(res.status).into());
         }
+
+        let buffer_size = 0x10000;
+        let mut buffer = vec![0u8; buffer_size];
+
+        let mut file = try!(fs::File::create(&path).chain_err(
+            || "error creating file for download"));
+
+        if let Some(len) = res.headers.get::<ContentLength>().cloned() {
+            notify_handler.call(Notification::DownloadContentLengthReceived(len.0));
+        }
+
+        loop {
+            let bytes_read = try!(io::Read::read(&mut res, &mut buffer)
+                                  .chain_err(|| "error reading from socket"));
+
+            if bytes_read != 0 {
+                if let Some(ref mut h) = hasher {
+                    h.input(&buffer[0..bytes_read]);
+                }
+                try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read])
+                     .chain_err(|| "unable to write download to disk"));
+                notify_handler.call(Notification::DownloadDataReceived(bytes_read));
+            } else {
+                try!(file.sync_data().chain_err(|| "unable to sync download to disk"));
+                notify_handler.call(Notification::DownloadFinished);
+                break;
+            }
+        }
+
+        Ok(())
+    })
+}
+
+// Our statically-linked OpenSSL doesn't know where to find the root
+// CA's. Here we dump the COMODO cert to a temp file and tell OpenSSL
+// how to find it.
+#[cfg(not(any(windows, target_os = "macos")))]
+fn with_certs<F>(f: F) -> Result<()>
+    where F: FnOnce() -> Result<()>
+{
+    use tempdir::TempDir;
+    use std::env;
+    use scopeguard;
+    use std::sync::Mutex;
+
+    let cert = include_str!("COMODO_RSA_Certification_Authority.crt");
+    let tempdir = try!(TempDir::new("rustup-cert")
+                       .chain_err(|| "failed to create temp dir for certificate"));
+    let cert_path = tempdir.path().join("rustup-ca.crt");
+    try!(write_file(&cert_path, cert)
+         .chain_err(|| "unable to write root certificate to file"));
+    let old_env_val = env::var_os("SSL_CERT_FILE");
+    // Since this is messing with the environment, I'm putting a lock
+    // around it to future-proof against parallel bugs.
+    lazy_static! {
+        static ref LOCK: Mutex<()> = Mutex::new(());
     }
+    let _g = LOCK.lock();
+    env::set_var("SSL_CERT_FILE", cert_path);
+    scopeguard::guard(old_env_val, |old| {
+        if let Some(ref old) = *old {
+            env::set_var("SSL_CERT_FILE", old);
+        }
+    });
+
+    f()
+}
+
+#[cfg(any(windows, target_os = "macos"))]
+fn with_certs<F>(f: F) -> Result<()>
+    where F: FnOnce() -> Result<()>
+{
+    f()
 }
 
 fn download_from_file_url<P: AsRef<Path>>(url: &hyper::Url,
