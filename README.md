@@ -380,6 +380,15 @@ The primary installation method, as described at
 
 [setup]: https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe
 
+`rustup-init` accepts arguments, which can be passed through
+the shell script. Some examples:
+
+```
+$ curl https://sh.rustup.rs -sSf | sh -s -- --help
+$ curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
+$ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
+```
+
 If you prefer you can directly download `rustup-init` for the
 platform of your choice:
 
@@ -405,13 +414,13 @@ Visual Studio, make sure to check the "C++ tools" option. No
 additional software installation is necessary for basic use of
 the GNU build.
 
+[vs]: https://www.visualstudio.com/downloads
+
 To install from source just run `cargo run --release`. Note that
 currently rustup only builds on nightly Rust, and that after
 installation the rustup toolchains will supercede any pre-existing
 toolchains by prepending `~/.cargo/bin` to the `PATH` environment
 variable.
-
-[vs]: https://www.visualstudio.com/downloads
 
 ## Security
 
