@@ -1046,3 +1046,25 @@ fn uninstall_doesnt_mess_with_a_non_unicode_path() {
         assert!(path.bytes == reg_value.bytes);
     });
 }
+
+#[test]
+#[ignore] // untestable
+fn install_but_multirust_is_installed() {
+}
+
+#[test]
+#[ignore] // untestable
+fn install_but_rustc_is_installed() {
+}
+
+#[test]
+fn install_but_rustup_sh_is_installed() {
+    setup(&|config| {
+        let rustup_dir = config.homedir.join(".rustup");
+        fs::create_dir_all(&rustup_dir).unwrap();
+        let version_file = rustup_dir.join("rustup-version");
+        raw::write_file(&version_file, "").unwrap();
+        expect_err(config, &["rustup-init", "-y"],
+                   "cannot install while rustup.sh is installed");
+    });
+}
