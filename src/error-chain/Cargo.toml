@@ -7,7 +7,7 @@ authors = [ "Brian Anderson <banderson@mozilla.com>",
             "Colin Kiegel <kiegel@gmx.de>"]
 description = "Yet another error boilerplate library"
 
-documentation = "http://rust-lang-nursery.github.io/rustup.rs/error-chain/index.html"
+documentation = "http://rust-lang-nursery.github.io/rustup.rs/error_chain/index.html"
 homepage = "https://github.com/rust-lang-nursery/rustup.rs"
 repository = "https://github.com/rust-lang-nursery/rustup.rs"
 

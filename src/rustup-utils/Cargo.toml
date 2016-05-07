@@ -5,7 +5,7 @@ version = "0.1.9"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "multirust in rust - manage multiple rust installations with ease"
 
-documentation = "http://rust-lang-nursery.github.io/rustup.rs/rustup-utils/index.html"
+documentation = "http://rust-lang-nursery.github.io/rustup.rs/rustup_utils/index.html"
 homepage = "https://github.com/rust-lang-nursery/rustup.rs"
 repository = "https://github.com/rust-lang-nursery/rustup.rs"
 
