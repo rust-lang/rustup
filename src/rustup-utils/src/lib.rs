@@ -10,6 +10,8 @@ extern crate error_chain;
 extern crate native_tls;
 extern crate rustc_serialize;
 extern crate sha2;
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+extern crate openssl_sys;
 
 #[cfg(windows)]
 extern crate winapi;
