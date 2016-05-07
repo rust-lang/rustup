@@ -112,12 +112,13 @@ This is the essense of `rustup`.
 ## Working with nightly Rust
 
 Rustup gives you easy access to the nightly compiler and its
-[experimental features]. To add it just run `rustup update nightly`:
+[experimental features]. To add it just run `rustup toolchain install
+nightly`:
 
 [experimental features]: http://doc.rust-lang.org/nightly/book/nightly-rust.html
 
 ```
-$ rustup update nightly
+$ rustup toolchain install nightly
 info: syncing channel updates for 'nightly'
 info: downloading toolchain manifest
 info: downloading component 'rustc'
@@ -373,7 +374,7 @@ The primary installation method, as described at
   `i686-pc-windows-gnu` target][setup]. Although this build of
   `rustup` installs compilers targeting the GNU ABI by default,
   compilers targetting the MSVC ABI can be installed with e.g. `rustup
-  update stable-msvc`.
+  toolchain install stable-msvc`.
 * On Unix, run `curl https://sh.rustup.rs -sSf | sh` in your
   shell. This downloads and runs the correct version of
   `rustup-init` for your platform.
