@@ -310,6 +310,9 @@ r"");
 
 #[test]
 fn show_multiple_targets() {
+    // Using the MULTI_ARCH1 target doesn't work on i686 linux
+    if cfg!(target_os = "linux") && cfg!(target_arch = "x86") { return }
+
     clitools::setup(Scenario::MultiHost, &|config| {
         expect_ok(config, &["rustup", "default",
                             &format!("nightly-{}", clitools::MULTI_ARCH1)]);
@@ -334,6 +337,8 @@ r"");
 
 #[test]
 fn show_multiple_toolchains_and_targets() {
+    if cfg!(target_os = "linux") && cfg!(target_arch = "x86") { return }
+
     clitools::setup(Scenario::MultiHost, &|config| {
         expect_ok(config, &["rustup", "default",
                             &format!("nightly-{}", clitools::MULTI_ARCH1)]);
