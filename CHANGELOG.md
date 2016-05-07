@@ -1,3 +1,13 @@
+# 0.1.9
+
+* [Do TLS hostname verification](https://github.com/rust-lang-nursery/rustup.rs/pull/400).
+* [Expand `rustup show`](https://github.com/rust-lang-nursery/rustup.rs/pull/406).
+* [Add `rustup doc`](https://github.com/rust-lang-nursery/rustup.rs/pull/403).
+* [Refuse to install if it looks like other Rust installations are present](https://github.com/rust-lang-nursery/rustup.rs/pull/408).
+* [Update www platform detection for FreeBSD](https://github.com/rust-lang-nursery/rustup.rs/pull/399).
+* [Fix color display during telemetry capture](https://github.com/rust-lang-nursery/rustup.rs/pull/394).
+* [Make it less of an error for the self-update hash to be wrong](https://github.com/rust-lang-nursery/rustup.rs/pull/372).
+
 # 0.1.8
 
 * [Initial telemetry implementation (disabled)](https://github.com/rust-lang-nursery/rustup.rs/pull/289)
