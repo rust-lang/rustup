@@ -8,6 +8,9 @@ use rustup_dist::dist::TargetTriple;
 use rustup_utils::utils;
 use self_update;
 use std::path::Path;
+use std::iter;
+use term2;
+use std::io::Write;
 
 pub fn main() -> Result<()> {
     try!(::self_update::cleanup_self_updater());
@@ -276,19 +279,82 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn show(cfg: &Cfg) -> Result<()> {
     let ref cwd = try!(utils::current_dir());
-    let override_ = try!(cfg.find_override(cwd));
-    if let Some((toolchain, reason)) = override_ {
-        println!("{} ({})", toolchain.name(), reason);
-        return Ok(());
+    let installed_toolchains = try!(cfg.list_toolchains());
+    let active_toolchain = try!(cfg.find_override_toolchain_or_default(cwd));
+    let active_targets = if let Some((ref t, _)) = active_toolchain {
+        try!(t.list_components())
+            .into_iter()
+            .filter(|c| c.component.pkg == "rust-std")
+            .filter(|c| c.installed)
+            .collect()
+    } else {
+        vec![]
+    };
+
+    let show_installed_toolchains = installed_toolchains.len() > 1;
+    let show_active_targets = active_targets.len() > 1;
+    let show_active_toolchain = true;
+
+    // Only need to display headers if we have multiple sections
+    let show_headers = [
+        show_installed_toolchains,
+        show_active_targets,
+        show_active_toolchain
+    ].iter().filter(|x| **x).count() > 1;
+
+    if show_installed_toolchains {
+        if show_headers { print_header("installed toolchains") }
+        let default = try!(cfg.find_default());
+        let default_name = default.map(|t| t.name().to_string())
+                           .unwrap_or("".into());
+        for t in installed_toolchains {
+            if default_name == t {
+                println!("{} (default)", t);
+            } else {
+                println!("{}", t);
+            }
+        }
+        if show_headers { println!("") };
     }
 
-    let toolchain = try!(cfg.find_default());
-    if let Some(toolchain) = toolchain {
-        println!("{} (default toolchain)", toolchain.name());
-        return Ok(());
+    if show_active_targets {
+        if show_headers {
+            print_header("installed targets for active toolchain");
+        }
+        for t in active_targets {
+            println!("{}", t.component.target);
+        }
+        if show_headers { println!("") };
     }
 
-    println!("no active toolchain");
+    if show_active_toolchain {
+        if show_headers { print_header("active toolchain") }
+
+        match active_toolchain {
+            Some((ref toolchain, Some(ref reason))) => {
+                println!("{} ({})", toolchain.name(), reason);
+                println!("{}", common::rustc_version(toolchain));
+            }
+            Some((ref toolchain, None)) => {
+                println!("{} (default)", toolchain.name());
+                println!("{}", common::rustc_version(toolchain));
+            }
+            None => {
+                println!("no active toolchain");
+            }
+        }
+
+        if show_headers { println!("") };
+    }
+
+    fn print_header(s: &str) {
+        let mut t = term2::stdout();
+        let _ = t.attr(term2::Attr::Bold);
+        let _ = writeln!(t, "{}", s);
+        let _ = writeln!(t, "{}", iter::repeat("-").take(s.len()).collect::<String>());
+        let _ = writeln!(t, "");
+        let _ = t.reset();
+    }
 
     Ok(())
 }

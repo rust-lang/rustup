@@ -14,6 +14,7 @@ use raw;
 use winapi::DWORD;
 #[cfg(windows)]
 use winreg;
+use std::cmp::Ord;
 
 pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
                     has_cmd, find_cmd};
@@ -488,4 +489,26 @@ pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<String> {
         }
         _ => None
     }
+}
+
+pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
+    fn toolchain_sort_key(s: &str) -> String {
+        if s.starts_with("stable") {
+            format!("0{}", s)
+        } else if s.starts_with("beta") {
+            format!("1{}", s)
+        } else if s.starts_with("nightly") {
+            format!("2{}", s)
+        } else {
+            format!("3{}", s)
+        }
+    }
+
+    v.sort_by(|a, b| {
+        let a_str: &str = a.as_ref();
+        let b_str: &str = b.as_ref();
+        let a_key = toolchain_sort_key(a_str);
+        let b_key = toolchain_sort_key(b_str);
+        a_key.cmp(&b_key)
+    });
 }

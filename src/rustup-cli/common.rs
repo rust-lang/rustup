@@ -212,7 +212,7 @@ pub fn update_all_channels(cfg: &Cfg, self_update: bool) -> Result<()> {
     Ok(())
 }
 
-fn rustc_version(toolchain: &Toolchain) -> String {
+pub fn rustc_version(toolchain: &Toolchain) -> String {
     if toolchain.exists() {
         let rustc_path = toolchain.binary_file("rustc");
         if utils::is_file(&rustc_path) {
@@ -293,9 +293,7 @@ pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
 }
 
 pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
-    let mut toolchains = try!(cfg.list_toolchains());
-
-    toolchains.sort();
+    let toolchains = try!(cfg.list_toolchains());
 
     if toolchains.is_empty() {
         println!("no installed toolchains");
