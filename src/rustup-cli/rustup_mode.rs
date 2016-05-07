@@ -41,6 +41,8 @@ pub fn main() -> Result<()> {
         }
         ("toolchain", Some(c)) => {
             match c.subcommand() {
+                ("install", Some(m)) => try!(update(cfg, m)),
+                ("update", Some(m)) => try!(update(cfg, m)),
                 ("list", Some(_)) => try!(common::list_toolchains(cfg)),
                 ("link", Some(m)) => try!(toolchain_link(cfg, m)),
                 ("remove", Some(m)) => try!(toolchain_remove(cfg, m)),
@@ -139,6 +141,14 @@ pub fn cli() -> App<'static, 'static> {
         .subcommand(SubCommand::with_name("toolchain")
             .about("Modify or query the installed toolchains")
             .setting(AppSettings::SubcommandRequiredElseHelp)
+            .subcommand(SubCommand::with_name("install")
+                .about("Install or update a given toolchain")
+                .arg(Arg::with_name("toolchain")
+                .required(true)))
+            .subcommand(SubCommand::with_name("update")
+                .about("Install or update a given toolchain")
+                .arg(Arg::with_name("toolchain")
+                .required(true)))
             .subcommand(SubCommand::with_name("list")
                 .about("List installed toolchains"))
             .subcommand(SubCommand::with_name("link")

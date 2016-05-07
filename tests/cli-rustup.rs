@@ -453,3 +453,37 @@ fn update_doesnt_update_non_tracking_channels() {
             for_host!("syncing channel updates for 'nightly-2015-01-01-{}'")));
     });
 }
+    
+#[test]
+fn toolchain_install_is_like_update() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "toolchain", "install" , "nightly"]);
+        expect_stdout_ok(config, &["rustup", "run", "nightly", "rustc", "--version"],
+                         "hash-n-2");
+    });
+}
+
+#[test]
+fn toolchain_install_is_like_update_except_that_bare_install_is_an_error() {
+    setup(&|config| {
+        expect_err(config, &["rustup", "toolchain", "install"],
+                   "arguments were not provided");
+    });
+}
+
+#[test]
+fn toolchain_update_is_like_update() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "toolchain", "update" , "nightly"]);
+        expect_stdout_ok(config, &["rustup", "run", "nightly", "rustc", "--version"],
+                         "hash-n-2");
+    });
+}
+
+#[test]
+fn toolchain_update_is_like_update_except_that_bare_install_is_an_error() {
+    setup(&|config| {
+        expect_err(config, &["rustup", "toolchain", "update"],
+                   "arguments were not provided");
+    });
+}
