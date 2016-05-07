@@ -9,6 +9,9 @@ extern crate scopeguard;
 extern crate error_chain;
 extern crate native_tls;
 extern crate rustc_serialize;
+extern crate tempdir;
+#[macro_use]
+extern crate lazy_static;
 
 #[cfg(windows)]
 extern crate winapi;

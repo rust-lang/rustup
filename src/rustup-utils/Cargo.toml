@@ -18,6 +18,8 @@ error-chain = { path = "../error-chain", version = "0.1.9" }
 libc = "0.2.0"
 native-tls = { git = "https://github.com/sfackler/rust-native-tls.git" }
 rustc-serialize = "0.3.19"
+tempdir = "0.3.4"
+lazy_static = "0.1.15"
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.4"
