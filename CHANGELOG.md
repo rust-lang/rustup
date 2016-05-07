@@ -1,3 +1,7 @@
+# 0.1.10
+
+* [Fix URLs to docs](https://github.com/rust-lang-nursery/rustup.rs/pull/414).
+
 # 0.1.9
 
 * [Do TLS hostname verification](https://github.com/rust-lang-nursery/rustup.rs/pull/400).
