@@ -20,6 +20,9 @@ native-tls = { git = "https://github.com/sfackler/rust-native-tls.git" }
 rustc-serialize = "0.3.19"
 sha2 = "0.1.2"
 
+[target.'cfg(not(any(target_os = "windows", target_os = "macos")))'.dependencies]
+openssl-sys = "0.7.11"
+
 [target."cfg(windows)".dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"

@@ -238,8 +238,9 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
         }
     }
 
-    // Connect with hyper + native_tls
+    maybe_init_certs();
 
+    // Connect with hyper + native_tls
     let client = Client::with_connector(HttpsConnector::new(NativeSslClient));
 
     let mut res = try!(client.get(url).send()
@@ -276,6 +277,20 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
         }
     }
 }
+
+// Tell our statically-linked OpenSSL where to find root certs
+// cc https://github.com/alexcrichton/git2-rs/blob/master/libgit2-sys/lib.rs#L1267
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+fn maybe_init_certs() {
+    use std::sync::{Once, ONCE_INIT};
+    static INIT: Once = ONCE_INIT;
+    INIT.call_once(|| {
+        ::openssl_sys::probe::init_ssl_cert_env_vars();
+    });
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+fn maybe_init_certs() { }
 
 fn download_from_file_url<P: AsRef<Path>>(url: &hyper::Url,
                                           path: P,
