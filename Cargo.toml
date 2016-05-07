@@ -1,7 +1,7 @@
 [package]
 
 name = "rustup"
-version = "0.1.10"
+version = "0.1.11-pre"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "multirust in rust - manage multiple rust installations with ease"
 
@@ -18,9 +18,9 @@ license = "MIT OR Apache-2.0"
 build = "build.rs"
 
 [dependencies]
-rustup-dist = { path = "src/rustup-dist", version = "0.1.10" }
-rustup-utils = { path = "src/rustup-utils", version = "0.1.10" }
-error-chain = { path = "src/error-chain", version = "0.1.10" }
+rustup-dist = { path = "src/rustup-dist", version = "0.1.11-pre" }
+rustup-utils = { path = "src/rustup-utils", version = "0.1.11-pre" }
+error-chain = { path = "src/error-chain", version = "0.1.11-pre" }
 clap = "2.2.4"
 regex = "0.1.41"
 url = "1.1.0"
@@ -41,7 +41,7 @@ user32-sys = "0.1.2"
 kernel32-sys = "0.2.1"
 
 [dev-dependencies]
-rustup-mock = { path = "src/rustup-mock", version = "0.1.10" }
+rustup-mock = { path = "src/rustup-mock", version = "0.1.11-pre" }
 lazy_static = "0.1.15"
 
 [lib]
