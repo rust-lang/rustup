@@ -193,6 +193,8 @@ fn canonical_cargo_home() -> Result<String> {
 pub fn install(no_prompt: bool, verbose: bool,
                opts: InstallOpts) -> Result<()> {
 
+    try!(do_pre_install_sanity_checks());
+
     let selected_opts;
 
     if !no_prompt {
@@ -285,6 +287,49 @@ pub fn install(no_prompt: bool, verbose: bool,
             println!("Press the Enter key to continue.");
             try!(common::read_line());
         }
+    }
+
+    Ok(())
+}
+
+fn do_pre_install_sanity_checks() -> Result<()> {
+
+    let multirust_manifest_path
+        = PathBuf::from("/usr/local/lib/rustlib/manifest-multirust");
+    let rustc_manifest_path
+        = PathBuf::from("/usr/local/lib/rustlib/manifest-rustc");
+    let uninstaller_path
+        = PathBuf::from("/usr/local/lib/rustlib/uninstall.sh");
+    let rustup_sh_path
+        = env::home_dir().map(|d| d.join(".rustup"));
+    let rustup_sh_version_path = rustup_sh_path.as_ref().map(|p| p.join("rustup-version"));
+
+    let multirust_exists =
+        multirust_manifest_path.exists() && uninstaller_path.exists();
+    let rustc_exists =
+        rustc_manifest_path.exists() && uninstaller_path.exists();
+    let rustup_sh_exists =
+        rustup_sh_version_path.map(|p| p.exists()) == Some(true);
+
+    if multirust_exists {
+        warn!("it looks like you have an existing installation of multirust");
+        warn!("rustup cannot be installed alongside multirust. Please uninstall first");
+        warn!("run `{}` as root to uninstall multirust", uninstaller_path.display());
+        return Err("cannot install while multirust is installed".into());
+    }
+
+    if rustc_exists {
+        warn!("it looks like you have an existing installation of Rust");
+        warn!("rustup cannot be installed alongside Rust. Please uninstall first");
+        warn!("run `{}` as root to uninstall Rust", uninstaller_path.display());
+        return Err("cannot install while Rust is installed".into());
+    }
+
+    if rustup_sh_exists {
+        warn!("it looks like you have existing rustup.sh metadata");
+        warn!("rustup cannot be installed while rustup.sh metadata exists");
+        warn!("delete `{}` to remove rustup.sh", rustup_sh_path.expect("").display());
+        return Err("cannot install while rustup.sh is installed".into());
     }
 
     Ok(())
