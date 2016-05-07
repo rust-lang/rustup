@@ -6,7 +6,7 @@ authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Installation from a Rust distribution server"
 build = "build.rs"
 
-documentation = "http://rust-lang-nursery.github.io/rustup.rs/rustup-dist/index.html"
+documentation = "http://rust-lang-nursery.github.io/rustup.rs/rustup_dist/index.html"
 homepage = "https://github.com/rust-lang-nursery/rustup.rs"
 repository = "https://github.com/rust-lang-nursery/rustup.rs"
 
