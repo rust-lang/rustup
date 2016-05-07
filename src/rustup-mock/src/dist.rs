@@ -8,7 +8,7 @@ use std::fs::{self, File};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use tempdir::TempDir;
-use rustup_utils::sha2::{Sha256, Digest};
+use sha2::{Sha256, Digest};
 use itertools::Itertools;
 use toml;
 use flate2;

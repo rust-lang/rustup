@@ -9,6 +9,7 @@ extern crate scopeguard;
 extern crate error_chain;
 extern crate native_tls;
 extern crate rustc_serialize;
+extern crate sha2;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -34,7 +35,6 @@ pub mod notifications;
 pub mod raw;
 pub mod tty;
 pub mod utils;
-pub mod sha2;
 
 pub use errors::*;
 pub use notifications::{Notification, NotifyHandler};

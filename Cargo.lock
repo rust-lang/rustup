@@ -15,6 +15,7 @@ dependencies = [
  "rustup-mock 0.1.9",
  "rustup-utils 0.1.9",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "term 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -457,6 +458,7 @@ dependencies = [
  "regex 0.1.69 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustup-mock 0.1.9",
  "rustup-utils 0.1.9",
+ "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -473,6 +475,7 @@ dependencies = [
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustup-utils 0.1.9",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.1.28 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -496,6 +499,7 @@ dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "shell32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "userenv-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -552,6 +556,14 @@ dependencies = [
 name = "semver"
 version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "sha2"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "shell32-sys"

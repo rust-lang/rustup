@@ -20,6 +20,7 @@ itertools = "0.4.1"
 tar = "0.4.0"
 toml = "0.1.27"
 rustup-utils = { path = "../rustup-utils", version = "0.1.9" }
+sha2 = "0.1.2"
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.4"
