@@ -33,10 +33,11 @@ pub fn main() -> Result<()> {
         ("toolchain", Some(c)) => {
             match c.subcommand() {
                 ("install", Some(m)) => try!(update(cfg, m)),
-                ("update", Some(m)) => try!(update(cfg, m)),
                 ("list", Some(_)) => try!(common::list_toolchains(cfg)),
                 ("link", Some(m)) => try!(toolchain_link(cfg, m)),
                 ("remove", Some(m)) => try!(toolchain_remove(cfg, m)),
+                // Synonyms
+                ("update", Some(m)) => try!(update(cfg, m)),
                 (_, _) => unreachable!(),
             }
         }
@@ -45,12 +46,18 @@ pub fn main() -> Result<()> {
                 ("list", Some(m)) => try!(target_list(cfg, m)),
                 ("add", Some(m)) => try!(target_add(cfg, m)),
                 ("remove", Some(m)) => try!(target_remove(cfg, m)),
+                // Synonyms
+                ("install", Some(m)) => try!(target_add(cfg, m)),
+                ("uninstall", Some(m)) => try!(target_remove(cfg, m)),
                 (_, _) => unreachable!(),
             }
         }
         ("override", Some(c)) => {
             match c.subcommand() {
                 ("list", Some(_)) => try!(common::list_overrides(cfg)),
+                ("set", Some(m)) => try!(override_add(cfg, m)),
+                ("unset", Some(_)) => try!(override_remove(cfg)),
+                // Synonyms
                 ("add", Some(m)) => try!(override_add(cfg, m)),
                 ("remove", Some(_)) => try!(override_remove(cfg)),
                 (_ ,_) => unreachable!(),
@@ -96,7 +103,7 @@ pub fn cli() -> App<'static, 'static> {
             .about("Show the active and installed toolchains")
             .after_help(SHOW_HELP))
         .subcommand(SubCommand::with_name("update")
-            .about("Update all toolchains, install or update a given toolchain")
+            .about("Update Rust toolchains")
             .after_help(UPDATE_HELP)
             .arg(Arg::with_name("toolchain")
                 .required(false))
@@ -116,24 +123,32 @@ pub fn cli() -> App<'static, 'static> {
             .setting(AppSettings::VersionlessSubcommands)
             .setting(AppSettings::DeriveDisplayOrder)
             .setting(AppSettings::SubcommandRequiredElseHelp)
+            .subcommand(SubCommand::with_name("list")
+                .about("List installed toolchains"))
             .subcommand(SubCommand::with_name("install")
                 .about("Install or update a given toolchain")
                 .arg(Arg::with_name("toolchain")
                 .required(true)))
-            .subcommand(SubCommand::with_name("update")
-                .about("Install or update a given toolchain")
+            .subcommand(SubCommand::with_name("uninstall")
+                .about("Uninstall a toolchain")
                 .arg(Arg::with_name("toolchain")
-                .required(true)))
-            .subcommand(SubCommand::with_name("list")
-                .about("List installed toolchains"))
+                     .required(true)))
             .subcommand(SubCommand::with_name("link")
                 .about("Create a custom toolchain by symlinking to a directory")
                 .arg(Arg::with_name("toolchain")
                     .required(true))
                 .arg(Arg::with_name("path")
                     .required(true)))
+            .subcommand(SubCommand::with_name("update")
+                .setting(AppSettings::Hidden) // synonym for 'install'
+                .arg(Arg::with_name("toolchain")
+                .required(true)))
+            .subcommand(SubCommand::with_name("add")
+                .setting(AppSettings::Hidden) // synonym for 'install'
+                .arg(Arg::with_name("toolchain")
+                     .required(true)))
             .subcommand(SubCommand::with_name("remove")
-                .about("Uninstall a toolchain")
+                .setting(AppSettings::Hidden) // synonym for 'uninstall'
                 .arg(Arg::with_name("toolchain")
                      .required(true))))
         .subcommand(SubCommand::with_name("target")
@@ -159,6 +174,20 @@ pub fn cli() -> App<'static, 'static> {
                     .required(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
+                    .takes_value(true)))
+            .subcommand(SubCommand::with_name("install")
+                .setting(AppSettings::Hidden) // synonym for 'add'
+                .arg(Arg::with_name("target")
+                    .required(true))
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true)))
+            .subcommand(SubCommand::with_name("uninstall")
+                .setting(AppSettings::Hidden) // synonym for 'remove'
+                .arg(Arg::with_name("target")
+                    .required(true))
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
                     .takes_value(true))))
         .subcommand(SubCommand::with_name("override")
             .about("Modify directory toolchain overrides")
@@ -168,11 +197,18 @@ pub fn cli() -> App<'static, 'static> {
             .setting(AppSettings::SubcommandRequiredElseHelp)
             .subcommand(SubCommand::with_name("list")
                 .about("List directory toolchain overrides"))
-            .subcommand(SubCommand::with_name("add")
+            .subcommand(SubCommand::with_name("set")
                 .about("Set the override toolchain for a directory")
                 .arg(Arg::with_name("toolchain")
                      .required(true)))
+            .subcommand(SubCommand::with_name("unset")
+                .about("Remove the override toolchain for a directory"))
+            .subcommand(SubCommand::with_name("add")
+                .setting(AppSettings::Hidden) // synonym for 'set'
+                .arg(Arg::with_name("toolchain")
+                     .required(true)))
             .subcommand(SubCommand::with_name("remove")
+                .setting(AppSettings::Hidden) // synonym for 'unset'
                 .about("Remove the override toolchain for a directory")))
         .subcommand(SubCommand::with_name("run")
             .about("Run a command with an environment configured for a given toolchain")
