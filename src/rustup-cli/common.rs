@@ -9,7 +9,6 @@ use self_update;
 use std::io::{Write, Read, BufRead};
 use std::process::Command;
 use std::{cmp, iter};
-use std::str::FromStr;
 use std;
 use term2;
 
@@ -321,19 +320,15 @@ pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
 }
 
 pub fn list_overrides(cfg: &Cfg) -> Result<()> {
-    let mut overrides = try!(cfg.override_db.list());
-
-    overrides.sort();
+    let overrides = try!(cfg.settings_file.with(|s| Ok(s.overrides.clone())));
 
     if overrides.is_empty() {
         println!("no overrides");
     } else {
-        for o in overrides {
-            split_override::<String>(&o, ';').map(|li|
-                println!("{:<40}\t{:<20}",
-                         utils::format_path_for_display(&li.0),
-                         li.1)
-            );
+        for (k, v) in overrides {
+            println!("{:<40}\t{:<20}",
+                     utils::format_path_for_display(&k),
+                     v)
         }
     }
     Ok(())
@@ -342,15 +337,6 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
 
 pub fn version() -> &'static str {
     concat!(env!("CARGO_PKG_VERSION"), include_str!(concat!(env!("OUT_DIR"), "/commit-info.txt")))
-}
-
-fn split_override<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
-    s.find(separator).and_then(|index| {
-        match (T::from_str(&s[..index]), T::from_str(&s[index + 1..])) {
-            (Ok(l), Ok(r)) => Some((l, r)),
-            _ => None
-        }
-    })
 }
 
 

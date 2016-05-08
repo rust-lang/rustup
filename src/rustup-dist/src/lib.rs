@@ -27,4 +27,3 @@ pub mod manifestation;
 pub mod download;
 pub mod manifest;
 pub mod config;
-mod toml_utils;

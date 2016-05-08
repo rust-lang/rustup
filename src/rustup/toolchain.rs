@@ -158,7 +158,7 @@ impl<'a> Toolchain<'a> {
         self.install(InstallMethod::Dist(&try!(self.desc()),
                                          update_hash.as_ref().map(|p| &**p),
                                          self.download_cfg()))
-    }   
+    }
 
     pub fn install_from_dist_with_telemetry(&self) -> Result<UpdateStatus> {
         let result = self.install_from_dist_inner();
@@ -169,12 +169,12 @@ impl<'a> Toolchain<'a> {
                                                            success: true };
                 match self.telemetry.log_telemetry(te) {
                     Ok(_) => Ok(us),
-                    Err(e) => { 
+                    Err(e) => {
                         self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&e));
                         Ok(us)
                     }
                 }
-            } 
+            }
             Err(e) => {
                 let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name().to_string() ,
                                                            success: true };
@@ -333,10 +333,10 @@ impl<'a> Toolchain<'a> {
         self.cfg.set_default(&self.name)
     }
     pub fn make_override(&self, path: &Path) -> Result<()> {
-        Ok(try!(self.cfg.override_db.set(path,
-                                         &self.name,
-                                         &self.cfg.temp_cfg,
-                                         self.cfg.notify_handler.as_ref())))
+        Ok(try!(self.cfg.settings_file.with_mut(|s| {
+            s.add_override(path, self.name.clone(), self.cfg.notify_handler.as_ref());
+            Ok(())
+        })))
     }
 
     pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
@@ -404,19 +404,19 @@ impl<'a> Toolchain<'a> {
 
         match output {
             Ok(_) => {
-                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(), 
+                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(),
                                                            success: true };
 
                 match self.telemetry.log_telemetry(te) {
                     Ok(_) => Ok(()),
-                    Err(e) => { 
+                    Err(e) => {
                         self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&e));
                         Ok(())
                     }
                 }
             },
             Err(e) => {
-                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(), 
+                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(),
                                                            success: false };
 
                 let _ = self.telemetry.log_telemetry(te).map_err(|xe| {

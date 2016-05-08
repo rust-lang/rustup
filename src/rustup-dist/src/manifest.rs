@@ -12,7 +12,7 @@
 
 use errors::*;
 use toml;
-use toml_utils::*;
+use rustup_utils::toml_utils::*;
 
 use std::collections::HashMap;
 use dist::TargetTriple;

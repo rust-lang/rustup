@@ -43,6 +43,10 @@ error_chain! {
             description("could not create directory")
             display("could not crate {} directory: '{}'", name, path.display())
         }
+        ExpectedType(t: &'static str, n: String) {
+            description("expected type")
+            display("expected type: '{}' for '{}'", t, n)
+        }
         FilteringFile {
             name: &'static str,
             src: PathBuf,

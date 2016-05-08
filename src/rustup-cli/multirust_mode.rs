@@ -265,15 +265,13 @@ fn remove_override(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let ref path = m.value_of("override")
         .map(|p| PathBuf::from(p)).unwrap_or(cwd);
 
-    if try!(cfg.override_db.find(path, cfg.notify_handler.as_ref())).is_none() {
+    if try!(cfg.settings_file.with_mut(|s| {
+        Ok(s.remove_override(path, cfg.notify_handler.as_ref()))
+    })) {
+        info!("override toolchain for '{}' removed", path.display());
+    } else {
         info!("no override toolchain for '{}'", path.display());
-        return Ok(());
     }
-
-    try!(cfg.override_db.remove(path,
-                                &cfg.temp_cfg,
-                                cfg.notify_handler.as_ref()));
-    info!("override toolchain for '{}' removed", path.display());
     Ok(())
 }
 

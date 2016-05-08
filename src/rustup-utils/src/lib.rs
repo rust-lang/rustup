@@ -10,6 +10,7 @@ extern crate error_chain;
 extern crate native_tls;
 extern crate rustc_serialize;
 extern crate sha2;
+extern crate toml;
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 extern crate openssl_sys;
 
@@ -37,6 +38,7 @@ pub mod notifications;
 pub mod raw;
 pub mod tty;
 pub mod utils;
+pub mod toml_utils;
 
 pub use errors::*;
 pub use notifications::{Notification, NotifyHandler};

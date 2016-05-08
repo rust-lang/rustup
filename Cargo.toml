@@ -34,6 +34,7 @@ scopeguard = "0.1.2"
 rustc-serialize = "0.3"
 sha2 = "0.1.2"
 markdown = { git="https://github.com/Diggsey/markdown.rs.git" }
+toml = "0.1.27"
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.4"
