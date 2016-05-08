@@ -1,7 +1,7 @@
 [package]
 
 name = "rustup-utils"
-version = "0.1.9"
+version = "0.1.10-pre"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "multirust in rust - manage multiple rust installations with ease"
 
@@ -14,7 +14,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 rand = "0.3.11"
 scopeguard = "0.1.2"
-error-chain = { path = "../error-chain", version = "0.1.9" }
+error-chain = { path = "../error-chain", version = "0.1.10-pre" }
 libc = "0.2.0"
 native-tls = { git = "https://github.com/sfackler/rust-native-tls.git" }
 rustc-serialize = "0.3.19"
