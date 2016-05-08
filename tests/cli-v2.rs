@@ -520,7 +520,7 @@ fn add_target_again() {
 #[test]
 fn add_target_host() {
     setup(&|config| {
-        let trip = TargetTriple::from_host();
+        let trip = TargetTriple::from_build();
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_err(config, &["rustup", "target", "add", &trip.to_string()],
                    for_host!("component 'rust-std' for target '{0}' is required for toolchain 'nightly-{0}' and cannot be re-added"));
@@ -603,7 +603,7 @@ fn remove_target_again() {
 #[test]
 fn remove_target_host() {
     setup(&|config| {
-        let trip = TargetTriple::from_host();
+        let trip = TargetTriple::from_build();
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_err(config, &["rustup", "target", "remove", &trip.to_string()],
                    for_host!("component 'rust-std' for target '{0}' is required for toolchain 'nightly-{0}' and cannot be removed"));
@@ -634,7 +634,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple
 #[test]
 fn update_unavailable_std() {
     setup(&|config| {
-        let ref trip = TargetTriple::from_host();
+        let ref trip = TargetTriple::from_build();
         make_component_unavailable(config, "rust-std", trip);
         expect_err(config, &["rustup", "update", "nightly"],
                    &format!("component 'rust-std' for '{}' is unavailable for download", trip));
