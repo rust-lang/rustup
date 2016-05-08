@@ -11,6 +11,7 @@ use std::path::Path;
 use std::iter;
 use term2;
 use std::io::Write;
+use help::*;
 
 pub fn main() -> Result<()> {
     try!(::self_update::cleanup_self_updater());
@@ -83,6 +84,7 @@ pub fn cli() -> App<'static, 'static> {
     App::new("rustup")
         .version(common::version())
         .about("The Rust toolchain installer")
+        .after_help(RUSTUP_HELP)
         .setting(AppSettings::VersionlessSubcommands)
         .setting(AppSettings::DeriveDisplayOrder)
         .setting(AppSettings::SubcommandRequiredElseHelp)
@@ -92,10 +94,12 @@ pub fn cli() -> App<'static, 'static> {
             .long("verbose"))
         .subcommand(SubCommand::with_name("default")
             .about("Set the default toolchain")
+            .after_help(DEFAULT_HELP)
             .arg(Arg::with_name("toolchain")
                 .required(true)))
         .subcommand(SubCommand::with_name("update")
             .about("Update all toolchains, install or update a given toolchain")
+            .after_help(UPDATE_HELP)
             .arg(Arg::with_name("toolchain")
                 .required(false))
             .arg(Arg::with_name("no-self-update")
@@ -105,6 +109,7 @@ pub fn cli() -> App<'static, 'static> {
                 .hidden(true)))
         .subcommand(SubCommand::with_name("run")
             .about("Run a command with an environment configured for a given toolchain")
+            .after_help(RUN_HELP)
             .setting(AppSettings::TrailingVarArg)
             .arg(Arg::with_name("toolchain")
                 .required(true))
@@ -115,7 +120,8 @@ pub fn cli() -> App<'static, 'static> {
             .arg(Arg::with_name("command")
                 .required(true)))
         .subcommand(SubCommand::with_name("show")
-            .about("Show the active toolchain"))
+            .about("Show the active and installed toolchains")
+            .after_help(SHOW_HELP))
         .subcommand(SubCommand::with_name("target")
             .about("Modify a toolchain's supported targets")
             .setting(AppSettings::SubcommandRequiredElseHelp)
@@ -140,6 +146,7 @@ pub fn cli() -> App<'static, 'static> {
                     .takes_value(true))))
         .subcommand(SubCommand::with_name("toolchain")
             .about("Modify or query the installed toolchains")
+            .after_help(TOOLCHAIN_HELP)
             .setting(AppSettings::SubcommandRequiredElseHelp)
             .subcommand(SubCommand::with_name("install")
                 .about("Install or update a given toolchain")
@@ -163,6 +170,7 @@ pub fn cli() -> App<'static, 'static> {
                      .required(true))))
         .subcommand(SubCommand::with_name("override")
             .about("Modify directory toolchain overrides")
+            .after_help(OVERRIDE_HELP)
             .setting(AppSettings::SubcommandRequiredElseHelp)
             .subcommand(SubCommand::with_name("list")
                 .about("List directory toolchain overrides"))
@@ -174,6 +182,7 @@ pub fn cli() -> App<'static, 'static> {
                 .about("Remove the override toolchain for a directory")))
         .subcommand(SubCommand::with_name("doc")
             .about("Open the documentation for the current toolchain.")
+            .after_help(DOC_HELP)
             .arg(Arg::with_name("book")
                  .long("book")
                  .help("The Rust Programming Language book"))
@@ -181,8 +190,7 @@ pub fn cli() -> App<'static, 'static> {
                  .long("std")
                  .help("Standard library API documentation"))
             .group(ArgGroup::with_name("page")
-                 .args(&["book", "std"]))
-        )
+                 .args(&["book", "std"])))
         .subcommand(SubCommand::with_name("self")
             .about("Modify the rustup installation")
             .setting(AppSettings::SubcommandRequiredElseHelp)

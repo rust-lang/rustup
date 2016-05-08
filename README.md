@@ -224,14 +224,14 @@ useful for installing a 32-bit compiler on a 64-bit platform, or for
 installing the [MSVC-based toolchain] on Windows. For example:
 
 ```
-$ rustup default stable-x86_64-pc-windows-msvc
+$ rustup toolchain install stable-x86_64-pc-windows-msvc
 ```
 
 For convenience, elements of the target triple that are omitted will be
 inferred, so the above could be written:
 
 ```
-$ rustup default stable-msvc
+$ rustup toolchain install stable-msvc
 ```
 
 Toolchain names that don't name a channel instead can be used to name
