@@ -13,6 +13,19 @@ extern crate rustup_utils;
 extern crate error_chain;
 extern crate sha2;
 
+#[cfg(windows)]
+extern crate winapi;
+#[cfg(windows)]
+extern crate winreg;
+#[cfg(windows)]
+extern crate user32;
+#[cfg(windows)]
+extern crate kernel32;
+#[cfg(windows)]
+extern crate gcc;
+#[cfg(not(windows))]
+extern crate libc;
+
 pub use errors::*;
 pub use notifications::{Notification, NotifyHandler};
 

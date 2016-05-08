@@ -1,6 +1,7 @@
 use std::env;
 use self_update::{self, InstallOpts};
 use errors::*;
+use rustup_dist::dist::TargetTriple;
 use clap::{App, Arg};
 use common;
 
@@ -39,6 +40,7 @@ pub fn main() -> Result<()> {
     let no_modify_path = matches.is_present("no-modify-path");
 
     let opts = InstallOpts {
+        host_triple: TargetTriple::from_host_or_build().to_string(),
         default_toolchain: default_toolchain.to_owned(),
         no_modify_path: no_modify_path,
     };

@@ -47,6 +47,7 @@ use tempdir::TempDir;
 use term2;
 
 pub struct InstallOpts {
+    pub host_triple: String,
     pub default_toolchain: String,
     pub no_modify_path: bool,
 }
@@ -220,7 +221,7 @@ pub fn install(no_prompt: bool, verbose: bool,
         if !opts.no_modify_path {
             try!(do_add_to_path(&get_add_path_methods()));
         }
-        try!(maybe_install_rust(&opts.default_toolchain, verbose));
+        try!(maybe_install_rust(&opts.default_toolchain, &opts.host_triple, verbose));
 
         if cfg!(unix) {
             let ref env_file = try!(utils::cargo_home()).join("env");
@@ -362,9 +363,11 @@ fn current_install_opts(opts: &InstallOpts) -> String {
     format!(
         r"Current installation options:
 
+- `         `host triple: `{}`
 - `   `default toolchain: `{}`
 - modify PATH variable: `{}`
 ",
+        opts.host_triple,
         opts.default_toolchain,
         if !opts.no_modify_path { "yes" } else { "no" }
     )
@@ -378,6 +381,10 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
          You may simply press the Enter key to leave unchanged.");
 
     println!("");
+
+    opts.host_triple = try!(common::question_str(
+        "Host triple?",
+        &opts.host_triple));
 
     opts.default_toolchain = try!(common::question_str(
         "Default toolchain? (stable/beta/nightly)",
@@ -445,7 +452,7 @@ fn install_bins() -> Result<()> {
     Ok(())
 }
 
-fn maybe_install_rust(toolchain_str: &str, verbose: bool) -> Result<()> {
+fn maybe_install_rust(toolchain_str: &str, host_triple: &str, verbose: bool) -> Result<()> {
     let ref cfg = try!(common::set_globals(verbose));
 
     // If there is already an install, then `toolchain_str` may not be
@@ -453,6 +460,8 @@ fn maybe_install_rust(toolchain_str: &str, verbose: bool) -> Result<()> {
     // This logic should be part of InstallOpts so that it isn't
     // possible to select a toolchain then have it not be installed.
     if try!(cfg.find_default()).is_none() {
+        // Set host triple first as it will affect resolution of toolchain_str
+        try!(cfg.set_host_triple(host_triple));
         let toolchain = try!(cfg.get_toolchain(toolchain_str, false));
         let status = try!(toolchain.install_from_dist());
         try!(cfg.set_default(toolchain_str));
@@ -1039,8 +1048,8 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
         try!(utils::remove_file("setup", setup_path));
     }
 
-    // Get host triple
-    let triple = dist::TargetTriple::from_host();
+    // Get build triple
+    let triple = dist::TargetTriple::from_build();
 
     let update_root = env::var("RUSTUP_UPDATE_ROOT")
         .unwrap_or(String::from(UPDATE_ROOT));

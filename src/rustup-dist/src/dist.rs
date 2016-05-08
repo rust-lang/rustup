@@ -72,12 +72,95 @@ impl TargetTriple {
         TargetTriple(name.to_string())
     }
 
-    pub fn from_host() -> Self {
+    pub fn from_build() -> Self {
         if let Some(triple) = option_env!("RUSTUP_OVERRIDE_HOST_TRIPLE") {
             TargetTriple::from_str(triple)
         } else {
-            TargetTriple::from_str(include_str!(concat!(env!("OUT_DIR"), "/target.txt"))) 
+            TargetTriple::from_str(include_str!(concat!(env!("OUT_DIR"), "/target.txt")))
         }
+    }
+
+    pub fn from_host() -> Option<Self> {
+        #[cfg(windows)]
+        fn inner() -> Option<TargetTriple> {
+            use gcc::windows_registry;
+            use kernel32::GetNativeSystemInfo;
+            use std::mem;
+
+            // First detect architecture
+            const PROCESSOR_ARCHITECTURE_AMD64: u16 = 9;
+            const PROCESSOR_ARCHITECTURE_INTEL: u16 = 0;
+
+            let mut sys_info;
+            unsafe {
+                sys_info = mem::zeroed();
+                GetNativeSystemInfo(&mut sys_info);
+            }
+
+            let arch = match sys_info.wProcessorArchitecture {
+                PROCESSOR_ARCHITECTURE_AMD64 => "x86_64",
+                PROCESSOR_ARCHITECTURE_INTEL => "i686",
+                _ => return None
+            };
+
+            // Now try to find an installation of msvc, using the gcc crate to do the hard work
+            let msvc_triple = format!("{}-pc-windows-msvc", arch);
+            let gnu_triple = format!("{}-pc-windows-gnu", arch);
+            if let Some(_) = windows_registry::find_tool(&msvc_triple, "cl.exe") {
+                // Found msvc, so default to the msvc triple
+                Some(TargetTriple(msvc_triple))
+            } else {
+                // No msvc found, so use gnu triple as a fallback
+                Some(TargetTriple(gnu_triple))
+            }
+        }
+
+        #[cfg(not(windows))]
+        fn inner() -> Option<TargetTriple> {
+            use libc;
+            use std::mem;
+            use std::ffi::CStr;
+
+            let mut sys_info;
+            let (sysname, machine) = unsafe {
+                sys_info = mem::zeroed();
+                if libc::uname(&mut sys_info) != 0 {
+                    return None;
+                }
+
+                (
+                    CStr::from_ptr(sys_info.sysname.as_ptr()).to_bytes(),
+                    CStr::from_ptr(sys_info.machine.as_ptr()).to_bytes(),
+                )
+            };
+
+            let host_triple = match (sysname, machine) {
+                (b"Linux", b"x86_64") => Some("x86_64-unknown-linux-gnu"),
+                (b"Linux", b"i686") => Some("i686-unknown-linux-gnu"),
+                (b"Linux", b"mips") => Some("mips-unknown-linux-gnu"),
+                (b"Linux", b"mipsel") => Some("mipsel-unknown-linux-gnu"),
+                (b"Linux", b"arm") => Some("arm-unknown-linux-gnueabi"),
+                (b"Linux", b"aarch64") => Some("aarch64-unknown-linux-gnu"),
+                (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
+                (b"Darwin", b"i686") => Some("i686-apple-darwin"),
+                (b"FreeBSD", b"x86_64") => Some("x86_64-unknown-freebsd"),
+                (b"FreeBSD", b"i686") => Some("i686-unknown-freebsd"),
+                (b"OpenBSD", b"x86_64") => Some("x86_64-unknown-openbsd"),
+                (b"OpenBSD", b"i686") => Some("i686-unknown-openbsd"),
+                (b"NetBSD", b"x86_64") => Some("x86_64-unknown-netbsd"),
+                (b"NetBSD", b"i686") => Some("i686-unknown-netbsd"),
+                (b"DragonFly", b"x86_64") => Some("x86_64-unknown-dragonfly"),
+                _ => None
+            };
+
+            host_triple.map(TargetTriple::from_str)
+        }
+
+        inner()
+    }
+
+    pub fn from_host_or_build() -> Self {
+        Self::from_host().unwrap_or_else(Self::from_build)
     }
 }
 
