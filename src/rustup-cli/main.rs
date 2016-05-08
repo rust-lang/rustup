@@ -18,6 +18,7 @@ extern crate rand;
 extern crate scopeguard;
 extern crate tempdir;
 extern crate sha2;
+extern crate markdown;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -169,4 +170,3 @@ fn fix_windows_reg_key() {
 
 #[cfg(not(windows))]
 fn fix_windows_reg_key() { }
-

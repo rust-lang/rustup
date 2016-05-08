@@ -33,6 +33,7 @@ rand = "0.3.11"
 scopeguard = "0.1.2"
 rustc-serialize = "0.3"
 sha2 = "0.1.2"
+markdown = { git="https://github.com/Diggsey/markdown.rs.git" }
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.4"

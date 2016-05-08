@@ -34,15 +34,18 @@ pub enum Confirm {
     Yes, No, Advanced
 }
 
-pub fn confirm_advanced(default: Confirm) -> Result<Confirm> {
+pub fn confirm_advanced() -> Result<Confirm> {
+    println!("");
+    println!("1) Proceed with installation (default)");
+    println!("2) Customize installation");
+    println!("3) Cancel installation");
+
     let _ = std::io::stdout().flush();
     let input = try!(read_line());
 
     let r = match &*input {
-        "y" | "Y" | "yes" => Confirm::Yes,
-        "n" | "N" | "no" => Confirm::No,
-        "a" | "A" | "advanced" => Confirm::Advanced,
-        "" => default,
+        "1"|"" => Confirm::Yes,
+        "2" => Confirm::Advanced,
         _ => Confirm::No,
     };
 
@@ -99,7 +102,7 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
 
     let download_tracker = RefCell::new(DownloadTracker::new());
 
-    Ok(try!(Cfg::from_env(shared_ntfy!(move |n: Notification| { 
+    Ok(try!(Cfg::from_env(shared_ntfy!(move |n: Notification| {
        if download_tracker.borrow_mut().handle_notification(&n) {
             return;
         }
@@ -300,10 +303,10 @@ pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
     } else {
         if let Ok(Some(def_toolchain)) = cfg.find_default() {
             for toolchain in toolchains {
-                let if_default = if def_toolchain.name() == &*toolchain { 
-                    " (default)" 
-                } else { 
-                    "" 
+                let if_default = if def_toolchain.name() == &*toolchain {
+                    " (default)"
+                } else {
+                    ""
                 };
                 println!("{}{}", &toolchain, if_default);
             }
@@ -326,9 +329,9 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
         println!("no overrides");
     } else {
         for o in overrides {
-            split_override::<String>(&o, ';').map(|li| 
-                println!("{:<40}\t{:<20}", 
-                         utils::format_path_for_display(&li.0), 
+            split_override::<String>(&o, ';').map(|li|
+                println!("{:<40}\t{:<20}",
+                         utils::format_path_for_display(&li.0),
                          li.1)
             );
         }
