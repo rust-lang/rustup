@@ -87,7 +87,7 @@ pre_install_msg_template!(
 "This path will then be added to your `PATH` environment variable by
 modifying the profile file located at:
 
-{rcfiles}"
+    {rcfiles}"
     )};
 }
 
