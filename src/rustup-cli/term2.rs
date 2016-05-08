@@ -82,7 +82,11 @@ impl<'a, T: io::Write + 'a> LineWrapper<'a, T> {
     }
     fn write_space(&mut self) {
         if self.pos > self.indent {
-            self.write_word(" ");
+            if self.pos < self.margin {
+                self.write_word(" ");
+            } else {
+                self.write_line();
+            }
         }
     }
     // Writes a span of text which wraps at the margin

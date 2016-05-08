@@ -160,7 +160,7 @@ r"# Thanks for hacking in Rust!
 This will uninstall all Rust toolchains and data, and remove
 `{cargo_home}/bin` from your `PATH` environment variable.
 
-Continue? (y/N)"
+"
     }
 }
 
@@ -254,23 +254,24 @@ pub fn install(no_prompt: bool, verbose: bool,
 
     // More helpful advice, skip if -y
     if !no_prompt {
-        if !opts.no_modify_path {
+        let msg = if !opts.no_modify_path {
             if cfg!(unix) {
                 let cargo_home = try!(canonical_cargo_home());
-                println!(post_install_msg_unix!(),
-                         cargo_home = cargo_home);
+                format!(post_install_msg_unix!(),
+                         cargo_home = cargo_home)
             } else {
-                println!(post_install_msg_win!());
+                format!(post_install_msg_win!())
             }
         } else {
             if cfg!(unix) {
                 let cargo_home = try!(canonical_cargo_home());
-                println!(post_install_msg_unix_no_modify_path!(),
-                         cargo_home = cargo_home);
+                format!(post_install_msg_unix_no_modify_path!(),
+                         cargo_home = cargo_home)
             } else {
-                println!(post_install_msg_win_no_modify_path!());
+                format!(post_install_msg_win_no_modify_path!())
             }
-        }
+        };
+        term2::stdout().md(msg);
 
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, require
@@ -476,7 +477,8 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         println!("");
         let ref msg = format!(pre_uninstall_msg!(),
                               cargo_home = try!(canonical_cargo_home()));
-        if !try!(common::confirm(msg, false)) {
+        term2::stdout().md(msg);
+        if !try!(common::confirm("\nContinue? (y/N)", false)) {
             info!("aborting uninstallation");
             return Ok(());
         }
