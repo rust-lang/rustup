@@ -27,19 +27,9 @@ pub fn main() -> Result<()> {
     try!(cfg.check_metadata_version());
 
     match matches.subcommand() {
-        ("default", Some(m)) => try!(default_(cfg, m)),
-        ("update", Some(m)) => try!(update(cfg, m)),
-        ("run", Some(m)) => try!(run(cfg, m)),
-        ("which", Some(m)) => try!(which(cfg, m)),
         ("show", Some(_)) => try!(show(cfg)),
-        ("target", Some(c)) => {
-            match c.subcommand() {
-                ("list", Some(m)) => try!(target_list(cfg, m)),
-                ("add", Some(m)) => try!(target_add(cfg, m)),
-                ("remove", Some(m)) => try!(target_remove(cfg, m)),
-                (_, _) => unreachable!(),
-            }
-        }
+        ("update", Some(m)) => try!(update(cfg, m)),
+        ("default", Some(m)) => try!(default_(cfg, m)),
         ("toolchain", Some(c)) => {
             match c.subcommand() {
                 ("install", Some(m)) => try!(update(cfg, m)),
@@ -47,6 +37,14 @@ pub fn main() -> Result<()> {
                 ("list", Some(_)) => try!(common::list_toolchains(cfg)),
                 ("link", Some(m)) => try!(toolchain_link(cfg, m)),
                 ("remove", Some(m)) => try!(toolchain_remove(cfg, m)),
+                (_, _) => unreachable!(),
+            }
+        }
+        ("target", Some(c)) => {
+            match c.subcommand() {
+                ("list", Some(m)) => try!(target_list(cfg, m)),
+                ("add", Some(m)) => try!(target_add(cfg, m)),
+                ("remove", Some(m)) => try!(target_remove(cfg, m)),
                 (_, _) => unreachable!(),
             }
         }
@@ -58,6 +56,8 @@ pub fn main() -> Result<()> {
                 (_ ,_) => unreachable!(),
             }
         }
+        ("run", Some(m)) => try!(run(cfg, m)),
+        ("which", Some(m)) => try!(which(cfg, m)),
         ("doc", Some(m)) => try!(doc(cfg, m)),
         ("self", Some(c)) => {
             match c.subcommand() {
@@ -92,11 +92,9 @@ pub fn cli() -> App<'static, 'static> {
             .help("Enable verbose output")
             .short("v")
             .long("verbose"))
-        .subcommand(SubCommand::with_name("default")
-            .about("Set the default toolchain")
-            .after_help(DEFAULT_HELP)
-            .arg(Arg::with_name("toolchain")
-                .required(true)))
+        .subcommand(SubCommand::with_name("show")
+            .about("Show the active and installed toolchains")
+            .after_help(SHOW_HELP))
         .subcommand(SubCommand::with_name("update")
             .about("Update all toolchains, install or update a given toolchain")
             .after_help(UPDATE_HELP)
@@ -107,44 +105,11 @@ pub fn cli() -> App<'static, 'static> {
                 .long("no-self-update")
                 .takes_value(false)
                 .hidden(true)))
-        .subcommand(SubCommand::with_name("run")
-            .about("Run a command with an environment configured for a given toolchain")
-            .after_help(RUN_HELP)
-            .setting(AppSettings::TrailingVarArg)
+        .subcommand(SubCommand::with_name("default")
+            .about("Set the default toolchain")
+            .after_help(DEFAULT_HELP)
             .arg(Arg::with_name("toolchain")
-                .required(true))
-            .arg(Arg::with_name("command")
-                .required(true).multiple(true)))
-        .subcommand(SubCommand::with_name("which")
-            .about("Display which binary will be run for a given command")
-            .arg(Arg::with_name("command")
                 .required(true)))
-        .subcommand(SubCommand::with_name("show")
-            .about("Show the active and installed toolchains")
-            .after_help(SHOW_HELP))
-        .subcommand(SubCommand::with_name("target")
-            .about("Modify a toolchain's supported targets")
-            .setting(AppSettings::DeriveDisplayOrder)
-            .setting(AppSettings::SubcommandRequiredElseHelp)
-            .subcommand(SubCommand::with_name("list")
-                .about("List installed and available targets")
-                .arg(Arg::with_name("toolchain")
-                    .long("toolchain")
-                    .takes_value(true)))
-            .subcommand(SubCommand::with_name("add")
-                .about("Add a target to a Rust toolchain")
-                .arg(Arg::with_name("target")
-                    .required(true))
-                .arg(Arg::with_name("toolchain")
-                    .long("toolchain")
-                    .takes_value(true)))
-            .subcommand(SubCommand::with_name("remove")
-                .about("Remove a target  from a Rust toolchain")
-                .arg(Arg::with_name("target")
-                    .required(true))
-                .arg(Arg::with_name("toolchain")
-                    .long("toolchain")
-                    .takes_value(true))))
         .subcommand(SubCommand::with_name("toolchain")
             .about("Modify or query the installed toolchains")
             .after_help(TOOLCHAIN_HELP)
@@ -170,6 +135,29 @@ pub fn cli() -> App<'static, 'static> {
                 .about("Uninstall a toolchain")
                 .arg(Arg::with_name("toolchain")
                      .required(true))))
+        .subcommand(SubCommand::with_name("target")
+            .about("Modify a toolchain's supported targets")
+            .setting(AppSettings::DeriveDisplayOrder)
+            .setting(AppSettings::SubcommandRequiredElseHelp)
+            .subcommand(SubCommand::with_name("list")
+                .about("List installed and available targets")
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true)))
+            .subcommand(SubCommand::with_name("add")
+                .about("Add a target to a Rust toolchain")
+                .arg(Arg::with_name("target")
+                    .required(true))
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true)))
+            .subcommand(SubCommand::with_name("remove")
+                .about("Remove a target  from a Rust toolchain")
+                .arg(Arg::with_name("target")
+                    .required(true))
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true))))
         .subcommand(SubCommand::with_name("override")
             .about("Modify directory toolchain overrides")
             .after_help(OVERRIDE_HELP)
@@ -183,6 +171,18 @@ pub fn cli() -> App<'static, 'static> {
                      .required(true)))
             .subcommand(SubCommand::with_name("remove")
                 .about("Remove the override toolchain for a directory")))
+        .subcommand(SubCommand::with_name("run")
+            .about("Run a command with an environment configured for a given toolchain")
+            .after_help(RUN_HELP)
+            .setting(AppSettings::TrailingVarArg)
+            .arg(Arg::with_name("toolchain")
+                .required(true))
+            .arg(Arg::with_name("command")
+                .required(true).multiple(true)))
+        .subcommand(SubCommand::with_name("which")
+            .about("Display which binary will be run for a given command")
+            .arg(Arg::with_name("command")
+                .required(true)))
         .subcommand(SubCommand::with_name("doc")
             .about("Open the documentation for the current toolchain.")
             .after_help(DOC_HELP)

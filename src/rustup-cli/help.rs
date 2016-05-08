@@ -8,10 +8,15 @@ simpler with binary builds of the standard library for common platforms.
 If you are new to Rust consider running `rustup doc --book`
 to learn Rust.";
 
-pub static DEFAULT_HELP: &'static str =
+pub static SHOW_HELP: &'static str =
 r"
-Sets the default toolchain to the one specified. If the toolchain is
-not already installed then it is installed first.";
+Shows the name of the active toolchain and the version of `rustc`.
+
+If the active toolchain has installed support for additional
+compilation targets, then they are listed as well.
+
+If there are multiple toolchains installed then all installed
+toolchains are listed as well.";
 
 pub static UPDATE_HELP: &'static str =
 r"
@@ -22,22 +27,10 @@ channels, then updates rustup itself.
 If given a toolchain argument then `update` updates that toolchain,
 the same as `rustup toolchain update`.";
 
-pub static RUN_HELP: &'static str =
+pub static DEFAULT_HELP: &'static str =
 r"
-Configures an environment to use the given toolchain and then runs
-the specified program. The command may be any program, not just
-rustc or cargo. This can be used for testing arbitrary toolchains
-without setting an override.";
-
-pub static SHOW_HELP: &'static str =
-r"
-Shows the name of the active toolchain and the version of `rustc`.
-
-If the active toolchain has installed support for additional
-compilation targets, then they are listed as well.
-
-If there are multiple toolchains installed then all installed
-toolchains are listed as well.";
+Sets the default toolchain to the one specified. If the toolchain is
+not already installed then it is installed first.";
 
 pub static TOOLCHAIN_HELP: &'static str =
 r"
@@ -96,6 +89,13 @@ Or a specific stable release:
 
 To see the active toolchain use `rustup show`. To remove the override
 and use the default toolchain again, `rustup override remove`.";
+
+pub static RUN_HELP: &'static str =
+r"
+Configures an environment to use the given toolchain and then runs
+the specified program. The command may be any program, not just
+rustc or cargo. This can be used for testing arbitrary toolchains
+without setting an override.";
 
 pub static DOC_HELP: &'static str =
 r"
