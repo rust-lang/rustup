@@ -102,6 +102,11 @@ pub fn cli() -> App<'static, 'static> {
         .subcommand(SubCommand::with_name("show")
             .about("Show the active and installed toolchains")
             .after_help(SHOW_HELP))
+        .subcommand(SubCommand::with_name("install")
+            .about("Update Rust toolchains")
+            .setting(AppSettings::Hidden) // synonym for 'toolchain install'
+            .arg(Arg::with_name("toolchain")
+                .required(true)))
         .subcommand(SubCommand::with_name("update")
             .about("Update Rust toolchains")
             .after_help(UPDATE_HELP)
