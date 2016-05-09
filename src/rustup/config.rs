@@ -277,17 +277,29 @@ impl Cfg {
     pub fn update_all_channels(&self) -> Result<Vec<(String, Result<UpdateStatus>)>> {
         let toolchains = try!(self.list_toolchains());
 
-        let updates = toolchains.into_iter()
-            .map(|name| {
-                let result = self.get_toolchain(&name, true)
-                    .and_then(|t| t.install_from_dist());
-                if let Err(ref e) = result {
+        // Convert the toolchain strings to Toolchain values
+        let toolchains = toolchains.into_iter();
+        let toolchains = toolchains.map(|n| (n.clone(), self.get_toolchain(&n, true)));
+
+        // Filter out toolchains that don't track a release channel
+        let toolchains = toolchains.filter(|&(_, ref t)| {
+            t.as_ref().map(|t| t.is_tracking()).unwrap_or(false)
+        });
+
+        // Update toolchains and collect the results
+        let toolchains = toolchains.map(|(n, t)| {
+            let t = t.and_then(|t| {
+                let t = t.install_from_dist();
+                if let Err(ref e) = t {
                     self.notify_handler.call(Notification::NonFatalError(e));
                 }
-                (name, result)
-            }).collect();
+                t
+            });
 
-        Ok(updates)
+            (n, t)
+        });
+
+        Ok(toolchains.collect())
     }
 
     pub fn check_metadata_version(&self) -> Result<()> {
