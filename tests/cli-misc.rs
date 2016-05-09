@@ -110,6 +110,33 @@ fn upgrade_v2_metadata_to_v12() {
     });
 }
 
+// Verifies the conversion from separate files to a single settings.toml
+#[test]
+fn upgrade_toml_settings() {
+    setup(&|config| {
+        rustup_utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
+        rustup_utils::raw::write_file(&config.rustupdir.join("default"), "beta").unwrap();
+        rustup_utils::raw::write_file(&config.rustupdir.join("overrides"),
+                                      "a;nightly\nb;stable").unwrap();
+        rustup_utils::raw::write_file(&config.rustupdir.join("telemetry-on"), "").unwrap();
+        expect_err(config, &["rustup", "default", "nightly"],
+                   "rustup's metadata is out of date. run `rustup self upgrade-data`");
+        // Replace the metadata version
+        assert!(!rustup_utils::raw::is_file(&config.rustupdir.join("version")));
+        assert!(!rustup_utils::raw::is_file(&config.rustupdir.join("default")));
+        assert!(!rustup_utils::raw::is_file(&config.rustupdir.join("overrides")));
+        assert!(!rustup_utils::raw::is_file(&config.rustupdir.join("telemetry-on")));
+        assert!(rustup_utils::raw::is_file(&config.rustupdir.join("settings.toml")));
+
+        let content = rustup_utils::raw::read_file(&config.rustupdir.join("settings.toml")).unwrap();
+        assert!(content.contains("version = \"2\""));
+        assert!(content.contains("[overrides]"));
+        assert!(content.contains("a = \"nightly"));
+        assert!(content.contains("b = \"stable"));
+        assert!(content.contains("telemetry = true"));
+    });
+}
+
 // Regression test for newline placement
 #[test]
 fn update_all_no_update_whitespace() {

@@ -6,6 +6,7 @@ use toml;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::cell::RefCell;
+use std::str::FromStr;
 
 pub const SUPPORTED_METADATA_VERSIONS: [&'static str; 2] = ["2", "12"];
 pub const DEFAULT_METADATA_VERSION: &'static str = "12";
@@ -63,6 +64,53 @@ impl SettingsFile {
         };
         try!(self.write_settings());
         Ok(result)
+    }
+    pub fn maybe_upgrade_from_legacy(&self, multirust_dir: &Path) -> Result<()> {
+        // Data locations
+        let legacy_version_file = multirust_dir.join("version");
+        if utils::is_file(&legacy_version_file) {
+            fn split_override<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
+                s.find(separator).and_then(|index| {
+                    match (T::from_str(&s[..index]), T::from_str(&s[index + 1..])) {
+                        (Ok(l), Ok(r)) => Some((l, r)),
+                        _ => None
+                    }
+                })
+            }
+
+            let override_db = multirust_dir.join("overrides");
+            let default_file = multirust_dir.join("default");
+            let telemetry_file = multirust_dir.join("telemetry-on");
+            // Legacy upgrade
+            try!(self.with_mut(|s| {
+                s.version = try!(utils::read_file("version", &legacy_version_file))
+                    .trim().to_owned();
+
+                if utils::is_file(&default_file) {
+                    s.default_toolchain = Some(try!(utils::read_file("default", &default_file))
+                        .trim().to_owned());
+                }
+                if utils::is_file(&override_db) {
+                    let overrides = try!(utils::read_file("overrides", &override_db));
+                    for o in overrides.lines() {
+                        if let Some((k, v)) = split_override(o, ';') {
+                            s.overrides.insert(k, v);
+                        }
+                    }
+                }
+                if utils::is_file(&telemetry_file) {
+                    s.telemetry = TelemetryMode::On;
+                }
+                Ok(())
+            }));
+
+            // Failure to delete these is not a fatal error
+            let _ = utils::remove_file("version", &legacy_version_file);
+            let _ = utils::remove_file("default", &default_file);
+            let _ = utils::remove_file("overrides", &override_db);
+            let _ = utils::remove_file("telemetry", &telemetry_file);
+        }
+        Ok(())
     }
 }
 

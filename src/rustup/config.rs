@@ -4,7 +4,6 @@ use std::env;
 use std::io;
 use std::process::Command;
 use std::fmt::{self, Display};
-use std::str::FromStr;
 
 use itertools::Itertools;
 
@@ -56,51 +55,9 @@ impl Cfg {
         try!(utils::ensure_dir_exists("home", &multirust_dir, ntfy!(&notify_handler)));
 
         let settings_file = SettingsFile::new(multirust_dir.join("settings.toml"));
+        // Convert from old settings format if necessary
+        try!(settings_file.maybe_upgrade_from_legacy(&multirust_dir));
 
-        // Data locations
-        let legacy_version_file = multirust_dir.join("version");
-        if utils::is_file(&legacy_version_file) {
-            fn split_override<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
-                s.find(separator).and_then(|index| {
-                    match (T::from_str(&s[..index]), T::from_str(&s[index + 1..])) {
-                        (Ok(l), Ok(r)) => Some((l, r)),
-                        _ => None
-                    }
-                })
-            }
-
-            let override_db = multirust_dir.join("overrides");
-            let default_file = multirust_dir.join("default");
-            let telemetry_file = multirust_dir.join("telemetry-on");
-            // Legacy upgrade
-            try!(settings_file.with_mut(|s| {
-                s.version = try!(utils::read_file("version", &legacy_version_file))
-                    .trim().to_owned();
-
-                if utils::is_file(&default_file) {
-                    s.default_toolchain = Some(try!(utils::read_file("default", &default_file))
-                        .trim().to_owned());
-                }
-                if utils::is_file(&override_db) {
-                    let overrides = try!(utils::read_file("overrides", &override_db));
-                    for o in overrides.lines() {
-                        if let Some((k, v)) = split_override(o, ';') {
-                            s.overrides.insert(k, v);
-                        }
-                    }
-                }
-                if utils::is_file(&telemetry_file) {
-                    s.telemetry = TelemetryMode::On;
-                }
-                Ok(())
-            }));
-
-            // Failure to delete these is not a fatal error
-            let _ = utils::remove_file("version", &legacy_version_file);
-            let _ = utils::remove_file("default", &default_file);
-            let _ = utils::remove_file("overrides", &override_db);
-            let _ = utils::remove_file("telemetry", &telemetry_file);
-        }
         let toolchains_dir = multirust_dir.join("toolchains");
         let update_hash_dir = multirust_dir.join("update-hashes");
 
