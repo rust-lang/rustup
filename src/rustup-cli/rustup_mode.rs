@@ -1,7 +1,7 @@
 use clap::{App, Arg, ArgGroup, AppSettings, SubCommand, ArgMatches};
 use common;
 use rustup::{Cfg, Toolchain, command};
-use rustup::telemetry::TelemetryMode;
+use rustup::settings::TelemetryMode;
 use errors::*;
 use rustup_dist::manifest::Component;
 use rustup_dist::dist::TargetTriple;

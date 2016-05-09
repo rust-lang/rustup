@@ -5,43 +5,80 @@ use utils;
 use toml;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::cell::RefCell;
 
 pub const SUPPORTED_METADATA_VERSIONS: [&'static str; 2] = ["2", "12"];
 pub const DEFAULT_METADATA_VERSION: &'static str = "12";
 
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct SettingsFile(pub PathBuf);
+pub struct SettingsFile {
+    path: PathBuf,
+    cache: RefCell<Option<Settings>>
+}
 
 impl SettingsFile {
-    fn write_settings(&self, settings: Settings) -> Result<()> {
-        try!(utils::write_file("settings", &self.0, &settings.stringify()));
+    pub fn new(path: PathBuf) -> Self {
+        SettingsFile {
+            path: path,
+            cache: RefCell::new(None)
+        }
+    }
+    fn write_settings(&self) -> Result<()> {
+        let s = self.cache.borrow().as_ref().unwrap().clone();
+        try!(utils::write_file("settings", &self.path, &s.stringify()));
         Ok(())
     }
-    fn read_settings(&self) -> Result<Settings> {
-        if !utils::is_file(&self.0) {
-            try!(self.write_settings(Default::default()));
+    fn read_settings(&self) -> Result<()> {
+        let mut needs_save = false;
+        {
+            let mut b = self.cache.borrow_mut();
+            if b.is_none() {
+                *b = Some(if utils::is_file(&self.path) {
+                    let content = try!(utils::read_file("settings", &self.path));
+                    try!(Settings::parse(&content))
+                } else {
+                    needs_save = true;
+                    Default::default()
+                });
+            }
         }
-        let content = try!(utils::read_file("settings", &self.0));
-        Settings::parse(&content)
+        if needs_save {
+            try!(self.write_settings());
+        }
+        Ok(())
     }
     pub fn with<T, F: FnOnce(&Settings) -> Result<T>>(&self, f: F) -> Result<T> {
-        f(&try!(self.read_settings()))
+        try!(self.read_settings());
+
+        // Settings can no longer be None so it's OK to unwrap
+        f(self.cache.borrow().as_ref().unwrap())
     }
     pub fn with_mut<T, F: FnOnce(&mut Settings) -> Result<T>>(&self, f: F) -> Result<T> {
-        let mut settings = try!(self.read_settings());
-        let result = try!(f(&mut settings));
-        try!(self.write_settings(settings));
+        try!(self.read_settings());
+
+        // Settings can no longer be None so it's OK to unwrap
+        let result = {
+            try!(f(self.cache.borrow_mut().as_mut().unwrap()))
+        };
+        try!(self.write_settings());
         Ok(result)
     }
 }
 
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum TelemetryMode {
+    On,
+    Off,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Settings {
     pub version: String,
     pub default_toolchain: Option<String>,
     pub overrides: BTreeMap<String, String>,
+    pub telemetry: TelemetryMode
 }
 
 impl Default for Settings {
@@ -49,7 +86,8 @@ impl Default for Settings {
         Settings {
             version: DEFAULT_METADATA_VERSION.to_owned(),
             default_toolchain: None,
-            overrides: BTreeMap::new()
+            overrides: BTreeMap::new(),
+            telemetry: TelemetryMode::Off
         }
     }
 }
@@ -104,7 +142,12 @@ impl Settings {
         Ok(Settings {
             version: version,
             default_toolchain: try!(get_opt_string(&mut table, "default_toolchain", path)),
-            overrides: try!(Self::table_to_overrides(table, path)),
+            overrides: try!(Self::table_to_overrides(&mut table, path)),
+            telemetry: if try!(get_opt_bool(&mut table, "telemetry", path)).unwrap_or(false) {
+                TelemetryMode::On
+            } else {
+                TelemetryMode::Off
+            }
         })
     }
     pub fn to_toml(self) -> toml::Table {
@@ -120,12 +163,15 @@ impl Settings {
         let overrides = Self::overrides_to_table(self.overrides);
         result.insert("overrides".to_owned(), toml::Value::Table(overrides));
 
+        let telemetry = self.telemetry == TelemetryMode::On;
+        result.insert("telemetry".to_owned(), toml::Value::Boolean(telemetry));
+
         result
     }
 
-    fn table_to_overrides(mut table: toml::Table, path: &str) -> Result<BTreeMap<String, String>> {
+    fn table_to_overrides(table: &mut toml::Table, path: &str) -> Result<BTreeMap<String, String>> {
         let mut result = BTreeMap::new();
-        let pkg_table = try!(get_table(&mut table, "overrides", path));
+        let pkg_table = try!(get_table(table, "overrides", path));
 
         for (k, v) in pkg_table {
             if let toml::Value::String(t) = v {

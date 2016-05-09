@@ -26,7 +26,7 @@ mod toolchain;
 mod config;
 mod env_var;
 mod install;
-mod settings;
+pub mod settings;
 pub mod telemetry;
 pub mod command;
 pub mod telemetry_analysis;

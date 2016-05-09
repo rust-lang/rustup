@@ -13,9 +13,8 @@ use notifications::*;
 use rustup_dist::{temp, dist};
 use rustup_utils::utils;
 use toolchain::{Toolchain, UpdateStatus};
-use telemetry::{TelemetryMode};
 use telemetry_analysis::*;
-use settings::{SettingsFile, DEFAULT_METADATA_VERSION};
+use settings::{TelemetryMode, SettingsFile, DEFAULT_METADATA_VERSION};
 
 #[derive(Debug)]
 pub enum OverrideReason {
@@ -47,7 +46,6 @@ pub struct Cfg {
     pub env_override: Option<String>,
     pub dist_root_url: Cow<'static, str>,
     pub notify_handler: SharedNotifyHandler,
-    pub telemetry_mode: TelemetryMode,
 }
 
 impl Cfg {
@@ -57,7 +55,7 @@ impl Cfg {
 
         try!(utils::ensure_dir_exists("home", &multirust_dir, ntfy!(&notify_handler)));
 
-        let settings_file = SettingsFile(multirust_dir.join("settings.toml"));
+        let settings_file = SettingsFile::new(multirust_dir.join("settings.toml"));
 
         // Data locations
         let legacy_version_file = multirust_dir.join("version");
@@ -73,6 +71,7 @@ impl Cfg {
 
             let override_db = multirust_dir.join("overrides");
             let default_file = multirust_dir.join("default");
+            let telemetry_file = multirust_dir.join("telemetry-on");
             // Legacy upgrade
             try!(settings_file.with_mut(|s| {
                 s.version = try!(utils::read_file("version", &legacy_version_file))
@@ -90,6 +89,9 @@ impl Cfg {
                         }
                     }
                 }
+                if utils::is_file(&telemetry_file) {
+                    s.telemetry = TelemetryMode::On;
+                }
                 Ok(())
             }));
 
@@ -97,6 +99,7 @@ impl Cfg {
             let _ = utils::remove_file("version", &legacy_version_file);
             let _ = utils::remove_file("default", &default_file);
             let _ = utils::remove_file("overrides", &override_db);
+            let _ = utils::remove_file("telemetry", &telemetry_file);
         }
         let toolchains_dir = multirust_dir.join("toolchains");
         let update_hash_dir = multirust_dir.join("update-hashes");
@@ -125,8 +128,6 @@ impl Cfg {
                                 .and_then(utils::if_not_empty)
                                 .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT), Cow::Owned);
 
-        let telemetry_mode = Cfg::find_telemetry(&multirust_dir);
-
         Ok(Cfg {
             multirust_dir: multirust_dir,
             settings_file: settings_file,
@@ -136,7 +137,6 @@ impl Cfg {
             gpg_key: gpg_key,
             notify_handler: notify_handler,
             env_override: env_override,
-            telemetry_mode: telemetry_mode,
             dist_root_url: dist_root_url,
         })
     }
@@ -402,13 +402,13 @@ impl Cfg {
     }
 
     fn enable_telemetry(&self) -> Result<()> {
-        let work_file = try!(self.temp_cfg.new_file());
+        try!(self.settings_file.with_mut(|s| {
+            s.telemetry = TelemetryMode::On;
+            Ok(())
+        }));
 
-        let _ = utils::ensure_dir_exists("telemetry", &self.multirust_dir.join("telemetry"), ntfy!(&NotifyHandler::none()));
-
-        try!(utils::write_file("temp", &work_file, ""));
-
-        try!(utils::rename_file("telemetry", &*work_file, &self.multirust_dir.join("telemetry-on")));
+        let _ = utils::ensure_dir_exists("telemetry", &self.multirust_dir.join("telemetry"),
+            ntfy!(&NotifyHandler::none()));
 
         self.notify_handler.call(Notification::SetTelemetry("on"));
 
@@ -416,29 +416,21 @@ impl Cfg {
     }
 
     fn disable_telemetry(&self) -> Result<()> {
-        let _ = utils::remove_file("telemetry-on", &self.multirust_dir.join("telemetry-on"));
+        try!(self.settings_file.with_mut(|s| {
+            s.telemetry = TelemetryMode::Off;
+            Ok(())
+        }));
 
         self.notify_handler.call(Notification::SetTelemetry("off"));
 
         Ok(())
     }
 
-    pub fn telemetry_enabled(&self) -> bool {
-        match self.telemetry_mode {
+    pub fn telemetry_enabled(&self) -> Result<bool> {
+        Ok(match try!(self.settings_file.with(|s| Ok(s.telemetry))) {
             TelemetryMode::On => true,
             TelemetryMode::Off => false,
-        }
-    }
-
-    fn find_telemetry(multirust_dir: &PathBuf) -> TelemetryMode {
-        // default telemetry should be off - if no telemetry file is found, it's off
-        let telemetry_file = multirust_dir.join("telemetry-on");
-
-        if utils::is_file(telemetry_file) {
-            return TelemetryMode::On;
-        }
-
-        TelemetryMode::Off
+        })
     }
 
     pub fn analyze_telemetry(&self) -> Result<TelemetryAnalysis> {

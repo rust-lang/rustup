@@ -21,27 +21,27 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(cmd: Command,
         .and_then(|a| a.file_name())
         .and_then(|a| a.to_str());
     let arg0 = try!(arg0.ok_or(ErrorKind::NoExeName));
-    if (arg0 == "rustc" || arg0 == "rustc.exe") && cfg.telemetry_enabled() {
+    if (arg0 == "rustc" || arg0 == "rustc.exe") && try!(cfg.telemetry_enabled()) {
         return telemetry_rustc(cmd, &args, &cfg);
     }
-    
+
     run_command_for_dir_without_telemetry(cmd, &args)
 }
 
 fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> Result<()> {
     let now = Instant::now();
-    
+
     cmd.args(&args[1..]);
-    
+
     let has_color_args = (&args).iter().any(|e| {
         let e = e.as_ref().to_str().unwrap_or("");
         e.starts_with("--color")
     });
-    
+
     if stderr_isatty() && !has_color_args
     {
         cmd.arg("--color");
-        cmd.arg("always"); 
+        cmd.arg("always");
     }
 
     // FIXME rust-lang/rust#32254. It's not clear to me
@@ -77,7 +77,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
 
             while buffered_stderr.read_line(&mut buffer).unwrap() > 0 {
                 let b = buffer.to_owned();
-                buffer.clear();                
+                buffer.clear();
                 let _ = handle.write(b.as_bytes());
 
                 let c = re.captures(&b);
@@ -91,15 +91,15 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
                 };
             }
 
-            let e = match errors.len() { 
+            let e = match errors.len() {
                 0 => None,
                 _ => Some(errors),
             };
 
-            let te = TelemetryEvent::RustcRun { duration_ms: ms, 
+            let te = TelemetryEvent::RustcRun { duration_ms: ms,
                                                 exit_code: exit_code,
                                                 errors: e };
-            
+
             let _ = t.log_telemetry(te).map_err(|xe| {
                 cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
             });
@@ -111,7 +111,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
             let te = TelemetryEvent::RustcRun { duration_ms: ms,
                                                 exit_code: exit_code,
                                                 errors: None };
-            
+
             let _ = t.log_telemetry(te).map_err(|xe| {
                 cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
             });
@@ -141,7 +141,7 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(mut cmd: Command, args
                 name: args[0].as_ref().to_owned(),
             })
         }
-    }    
+    }
 }
 
 #[cfg(unix)]
