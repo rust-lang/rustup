@@ -202,20 +202,41 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
     #[derive(Clone)]
     struct NativeSslStream<T>(Arc<Mutex<native_tls::TlsStream<T>>>);
 
+    #[derive(Debug)]
+    struct NativeSslPoisonError;
+
+    impl ::std::error::Error for NativeSslPoisonError {
+        fn description(&self) -> &str { "mutex poisoned during TLS operation" }
+    }
+
+    impl ::std::fmt::Display for NativeSslPoisonError {
+        fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
+            f.write_str(::std::error::Error::description(self))
+        }
+    }
+
     impl<T> NetworkStream for NativeSslStream<T>
         where T: NetworkStream
     {
         fn peer_addr(&mut self) -> IoResult<SocketAddr> {
-            self.0.lock().expect("").get_mut().peer_addr()
+            self.0.lock()
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                .and_then(|mut t| t.get_mut().peer_addr())
         }
         fn set_read_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
-            self.0.lock().expect("").get_ref().set_read_timeout(dur)
+            self.0.lock()
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                .and_then(|t| t.get_ref().set_read_timeout(dur))
         }
         fn set_write_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
-            self.0.lock().expect("").get_ref().set_read_timeout(dur)
+            self.0.lock()
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                .and_then(|t| t.get_ref().set_write_timeout(dur))
         }
         fn close(&mut self, how: Shutdown) -> IoResult<()> {
-            self.0.lock().expect("").get_mut().close(how)
+            self.0.lock()
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                .and_then(|mut t| t.get_mut().close(how))
         }
     }
 
@@ -223,7 +244,9 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
         where T: Read + Write
     {
         fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
-            self.0.lock().expect("").read(buf)
+            self.0.lock()
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                .and_then(|mut t| t.read(buf))
         }
     }
 
@@ -231,10 +254,14 @@ pub fn download_file<P: AsRef<Path>>(url: hyper::Url,
         where T: Read + Write
     {
         fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-            self.0.lock().expect("").write(buf)
+            self.0.lock()
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                .and_then(|mut t| t.write(buf))
         }
         fn flush(&mut self) -> IoResult<()> {
-            self.0.lock().expect("").flush()
+            self.0.lock()
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                .and_then(|mut t| t.flush())
         }
     }
 
