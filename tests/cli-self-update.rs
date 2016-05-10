@@ -588,6 +588,15 @@ fn update_download_404() {
     });
 }
 
+#[test]
+fn update_bogus_version() {
+    update_setup(&|config, self_dist| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        expect_err(config, &["rustup", "update", "1.0.0-alpha"],
+            "could not download nonexistent rust version `1.0.0-alpha`");
+    });
+}
+
 // Check that multirust.exe has changed after the update. This
 // is hard for windows because the running process needs to exit
 // before the new updater can delete it.
