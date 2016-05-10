@@ -1,5 +1,7 @@
 # 0.1.10
 
+* [Multiple cli improvements](https://github.com/rust-lang-nursery/rustup.rs/pull/419).
+* [Support HTTP protocol again](https://github.com/rust-lang-nursery/rustup.rs/pull/431).
 * [Improvements to welcome screen](https://github.com/rust-lang-nursery/rustup.rs/pull/418).
 * [Don't try to update non-tracking channels](https://github.com/rust-lang-nursery/rustup.rs/pull/425).
 * [Don't panic when NativeSslStream lock is poisoned](https://github.com/rust-lang-nursery/rustup.rs/pull/429).
