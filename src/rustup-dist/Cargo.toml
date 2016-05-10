@@ -1,7 +1,7 @@
 [package]
 
 name = "rustup-dist"
-version = "0.1.11-pre"
+version = "0.1.10"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Installation from a Rust distribution server"
 build = "build.rs"
@@ -23,9 +23,9 @@ tempdir = "0.3.4"
 walkdir = "0.1.5"
 toml = "0.1.27"
 sha2 = "0.1.2"
-rustup-utils = { path = "../rustup-utils", version = "0.1.11-pre" }
-error-chain = { path = "../error-chain", version = "0.1.11-pre" }
-rustup-mock = { path = "../rustup-mock", version = "0.1.11-pre" }
+rustup-utils = { path = "../rustup-utils", version = "0.1.10" }
+error-chain = { path = "../error-chain", version = "0.1.10" }
+rustup-mock = { path = "../rustup-mock", version = "0.1.10" }
 
 [lib]
 name = "rustup_dist"
