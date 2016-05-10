@@ -11,7 +11,6 @@ use notifications::*;
 use rustup_utils::utils;
 use prefix::InstallPrefix;
 use sha2::{Sha256, Digest};
-use itertools::Itertools;
 use std::path::Path;
 
 pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
@@ -136,7 +135,7 @@ impl Manifestation {
             let url_url = try!(utils::parse_url(&url));
 
             let mut hasher = Sha256::new();
-            try!(utils::download_file(url_url, &temp_file, Some(&mut hasher), ntfy!(&notify_handler))
+            try!(utils::download_file(&url_url, &temp_file, Some(&mut hasher), ntfy!(&notify_handler))
                  .chain_err(|| ErrorKind::ComponentDownloadFailed(component.clone())));
 
             let actual_hash = hasher.result_str();

@@ -4,9 +4,6 @@ use std::env;
 use std::io;
 use std::process::Command;
 use std::fmt::{self, Display};
-use std::str::FromStr;
-
-use itertools::Itertools;
 
 use errors::*;
 use notifications::*;
@@ -406,7 +403,7 @@ impl Cfg {
 
     fn enable_telemetry(&self) -> Result<()> {
         let work_file = try!(self.temp_cfg.new_file());
-        
+
         let _ = utils::ensure_dir_exists("telemetry", &self.multirust_dir.join("telemetry"), ntfy!(&NotifyHandler::none()));
 
         try!(utils::write_file("temp", &work_file, ""));

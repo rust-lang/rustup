@@ -31,7 +31,6 @@
 //! and racy on Windows.
 
 use common::{self, Confirm};
-use itertools::Itertools;
 use rustup::{NotifyHandler};
 use errors::*;
 use rustup_dist::dist;
@@ -1069,7 +1068,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     info!("checking for self-updates");
     let hash_url = try!(utils::parse_url(&(url.clone() + ".sha256")));
     let hash_file = tempdir.path().join("hash");
-    try!(utils::download_file(hash_url, &hash_file, None, ntfy!(&NotifyHandler::none())));
+    try!(utils::download_file(&hash_url, &hash_file, None, ntfy!(&NotifyHandler::none())));
     let mut latest_hash = try!(utils::read_file("hash", &hash_file));
     latest_hash.truncate(64);
 
@@ -1085,7 +1084,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     // Download new version
     info!("downloading self-update");
     let mut hasher = Sha256::new();
-    try!(utils::download_file(download_url,
+    try!(utils::download_file(&download_url,
                               &setup_path,
                               Some(&mut hasher),
                               ntfy!(&NotifyHandler::none())));
