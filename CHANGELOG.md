@@ -1,3 +1,10 @@
+# 0.1.10
+
+* [Improvements to welcome screen](https://github.com/rust-lang-nursery/rustup.rs/pull/418).
+* [Don't try to update non-tracking channels](https://github.com/rust-lang-nursery/rustup.rs/pull/425).
+* [Don't panic when NativeSslStream lock is poisoned](https://github.com/rust-lang-nursery/rustup.rs/pull/429).
+* [Fix multiple issues in schannel bindings](https://github.com/sfackler/schannel-rs/pull/1)
+
 # 0.1.9
 
 * [Do TLS hostname verification](https://github.com/rust-lang-nursery/rustup.rs/pull/400).
