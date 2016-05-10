@@ -13,7 +13,6 @@ use std::fmt;
 
 use regex::Regex;
 use sha2::{Sha256, Digest};
-use itertools::Itertools;
 
 pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
 pub const UPDATE_HASH_LEN: usize = 20;
@@ -76,7 +75,7 @@ impl TargetTriple {
         if let Some(triple) = option_env!("RUSTUP_OVERRIDE_HOST_TRIPLE") {
             TargetTriple::from_str(triple)
         } else {
-            TargetTriple::from_str(include_str!(concat!(env!("OUT_DIR"), "/target.txt"))) 
+            TargetTriple::from_str(include_str!(concat!(env!("OUT_DIR"), "/target.txt")))
         }
     }
 }
@@ -342,7 +341,7 @@ pub fn download_and_check<'a>(url_str: &str,
     let file = try!(cfg.temp_cfg.new_file_with_ext("", ext));
 
     let mut hasher = Sha256::new();
-    try!(utils::download_file(url, &file, Some(&mut hasher), ntfy!(&cfg.notify_handler)));
+    try!(utils::download_file(&url, &file, Some(&mut hasher), ntfy!(&cfg.notify_handler)));
     let actual_hash = hasher.result_str();
 
     if hash != actual_hash {
@@ -372,7 +371,7 @@ pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
     let hash_url = try!(utils::parse_url(&(url.to_owned() + ".sha256")));
     let hash_file = try!(cfg.temp_cfg.new_file());
 
-    try!(utils::download_file(hash_url, &hash_file, None, ntfy!(&cfg.notify_handler)));
+    try!(utils::download_file(&hash_url, &hash_file, None, ntfy!(&cfg.notify_handler)));
 
     Ok(try!(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())))
 }

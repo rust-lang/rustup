@@ -5,9 +5,7 @@ use std::io::{self, Write};
 use std::process::Command;
 use std::ffi::OsString;
 use std::env;
-use hyper;
 use sha2::Sha256;
-use notify::Notifyable;
 use notifications::{Notification, NotifyHandler};
 use raw;
 #[cfg(windows)]
@@ -15,6 +13,7 @@ use winapi::DWORD;
 #[cfg(windows)]
 use winreg;
 use std::cmp::Ord;
+use url::Url;
 
 pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
                     has_cmd, find_cmd};
@@ -140,34 +139,41 @@ pub fn tee_file<W: io::Write>(name: &'static str, path: &Path, w: &mut W) -> Res
     })
 }
 
-pub fn download_file(url: hyper::Url,
+pub fn download_file(url: &Url,
                      path: &Path,
                      hasher: Option<&mut Sha256>,
                      notify_handler: NotifyHandler)
                      -> Result<()> {
-    use hyper::status::StatusCode::NotFound;
-
-    notify_handler.call(Notification::DownloadingFile(&url, path));
-    match raw::download_file(url.clone(), path, hasher, notify_handler) {
+    notify_handler.call(Notification::DownloadingFile(url, path));
+    match raw::download_file(url, path, hasher, notify_handler) {
         Ok(_) => Ok(()),
-        Err(e @ Error(ErrorKind::HttpStatus(NotFound), _)) => {
-            Err(e).chain_err(|| ErrorKind::Download404 {
-                url: url,
-                path: path.to_path_buf(),
+        Err(Error(ErrorKind::HttpError(e), d)) => {
+            if e.is_file_couldnt_read_file() {
+                return Err(Error(ErrorKind::HttpError(e), d)).chain_err(|| {
+                    ErrorKind::Download404 {
+                        url: url.clone(),
+                        path: path.to_path_buf(),
+                    }
+                })
+            }
+            Err(Error(ErrorKind::HttpError(e), d)).chain_err(|| {
+                ErrorKind::DownloadingFile {
+                    url: url.clone(),
+                    path: path.to_path_buf(),
+                }
             })
         }
         Err(e) => {
             Err(e).chain_err(|| ErrorKind::DownloadingFile {
-                url: url,
+                url: url.clone(),
                 path: path.to_path_buf(),
             })
         }
     }
 }
 
-pub fn parse_url(url: &str) -> Result<hyper::Url> {
-    hyper::Url::parse(url)
-            .chain_err(|| ErrorKind::InvalidUrl { url: url.to_owned() })
+pub fn parse_url(url: &str) -> Result<Url> {
+    Url::parse(url).chain_err(|| format!("failed to parse url: {}", url))
 }
 
 pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
@@ -448,7 +454,7 @@ pub fn multirust_home() -> Result<PathBuf> {
 
 pub fn format_path_for_display(path: &str) -> String {
     let unc_present = path.find(r"\\?\");
-    
+
     match unc_present {
         None => path.to_owned(),
         Some(_) => path[4..].to_owned(),
