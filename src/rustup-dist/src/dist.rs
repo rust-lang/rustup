@@ -76,7 +76,7 @@ impl TargetTriple {
         if let Some(triple) = option_env!("RUSTUP_OVERRIDE_HOST_TRIPLE") {
             TargetTriple::from_str(triple)
         } else {
-            TargetTriple::from_str(include_str!(concat!(env!("OUT_DIR"), "/target.txt"))) 
+            TargetTriple::from_str(include_str!(concat!(env!("OUT_DIR"), "/target.txt")))
         }
     }
 }
@@ -432,10 +432,14 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                            toolchain.manifest_name()));
         }
     };
-    match try!(manifestation.update_v1(&manifest, update_hash,
-                                       &download.temp_cfg, download.notify_handler.clone())) {
-        None => Ok(None),
-        Some(hash) => Ok(Some(hash)),
+    match manifestation.update_v1(&manifest, update_hash,
+                                       &download.temp_cfg, download.notify_handler.clone()) {
+        Ok(None) => Ok(None),
+        Ok(Some(hash)) => Ok(Some(hash)),
+        e @ Err(Error(ErrorKind::Utils(rustup_utils::ErrorKind::Download404 { .. }), _)) => {
+           e.chain_err(|| format!("could not download nonexistent rust version `{}`", toolchain_str))
+        }
+        Err(e) => Err(e)
     }
 }
 
