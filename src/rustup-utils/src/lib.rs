@@ -2,16 +2,16 @@
 #![feature(fundamental)]
 #![recursion_limit = "1024"] // for error_chain!
 
-extern crate hyper;
+extern crate curl;
 extern crate rand;
 extern crate scopeguard;
 #[macro_use]
 extern crate error_chain;
-extern crate native_tls;
 extern crate rustc_serialize;
 extern crate sha2;
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 extern crate openssl_sys;
+extern crate url;
 
 #[cfg(windows)]
 extern crate winapi;

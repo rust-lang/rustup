@@ -1,11 +1,14 @@
 environment:
   matrix:
-  - TARGET: x86_64-pc-windows-msvc
-  - TARGET: i686-pc-windows-msvc
-  - TARGET: x86_64-pc-windows-gnu
-    BITS: 64
+  #- TARGET: x86_64-pc-windows-msvc
+  #- TARGET: i686-pc-windows-msvc
   - TARGET: i686-pc-windows-gnu
     BITS: 32
+    MINGW_URL: https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/4.9.2/threads-win32/dwarf/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z/download
+    MINGW_ARCHIVE: i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z
+    MINGW_DIR: mingw32
+  - TARGET: x86_64-pc-windows-gnu
+    BITS: 64
   access_token:
     secure: q8Wqx0brgfpOYFQqWauvucE2h0o1WYb41a3gKaCKV9QiE4eTz6qLNlqyC3mdsp4Q
 branches:
@@ -14,7 +17,19 @@ branches:
     - stable
     - auto
 
+init:
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+on_finish:
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
 install:
+  - if defined BITS set PATH=C:\msys64\mingw%BITS%\bin;C:\msys64\usr\bin;%PATH%
+  - if defined MINGW_ARCHIVE appveyor DownloadFile "%MINGW_URL%" -FileName "%MINGW_ARCHIVE%"
+  - if defined MINGW_ARCHIVE 7z x -y "%MINGW_ARCHIVE%" > nul
+  - if defined MINGW_ARCHIVE set PATH=%CD%\%MINGW_DIR%\bin;%PATH%
+  - if defined MINGW_ARCHIVE where gcc
+  - if defined MINGW_ARCHIVE gcc -v
   - ps: |
       # Install Rust
       Start-FileDownload "https://static.rust-lang.org/dist/rust-nightly-${env:TARGET}.exe" -FileName "rust-nightly.exe"
@@ -23,7 +38,8 @@ install:
 
       # For -gnu builds
       if ($env:TARGET -match "-gnu$") {
-        $env:PATH="$env:PATH;C:\msys64\mingw${env:BITS}\bin"
+        # Remove the mingw gcc to keep it from interfering with the build
+        Remove-Item -Recurse -Force "C:\rust\lib\rustlib\$env:TARGET\bin\"
       }
 
       # Print version info

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::ffi::OsString;
-use hyper;
+use curl;
+use url::Url;
 
 error_chain! {
     types {
@@ -67,19 +68,23 @@ error_chain! {
             description("could not rename directory")
             display("could not rename {} directory from '{}' to '{}'", name, src.display(), dest.display())
         }
-        HttpStatus(e: hyper::status::StatusCode) {
+        HttpError(e: curl::Error) {
+            description("http request did not succeed")
+            display("http request returned failure: {}", e)
+        }
+        HttpStatus(e: u32) {
             description("http request returned an unsuccessful status code")
             display("http request returned an unsuccessful status code: {}", e)
         }
         DownloadingFile {
-            url: hyper::Url,
+            url: Url,
             path: PathBuf,
         } {
             description("could not download file")
             display("could not download file from '{}' to '{}", url, path.display())
         }
         Download404 {
-            url: hyper::Url,
+            url: Url,
             path: PathBuf,
         } {
             description("could not download file")
