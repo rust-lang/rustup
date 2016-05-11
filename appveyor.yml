@@ -23,8 +23,8 @@ install:
 
       # For -gnu builds
       if ($env:TARGET -match "-gnu$") {
-        $env:PATH="$env:PATH;C:\msys64\usr\bin"
-        $env:PATH="$env:PATH;C:\msys64\mingw${env:BITS}\bin"
+        $env:PATH="C:\msys64\usr\bin;$env:PATH"
+        $env:PATH="C:\msys64\mingw${env:BITS}\bin;$env:PATH"
         # Remove the mingw gcc to keep it from interfering with the build
         Remove-Item -Recurse -Force "C:\rust\lib\rustlib\$env:TARGET\bin\"
       }
