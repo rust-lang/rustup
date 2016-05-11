@@ -67,7 +67,7 @@ body#idx > * {
 }
 
 body#idx > #pitch {
-    width: 30em;
+    width: 30rem;
 }
 
 #pitch em {
@@ -84,7 +84,7 @@ body#idx p {
     background-color: rgb(250, 250, 250);
     margin-left: auto;
     margin-right: auto;
-    width: 30em;
+    width: 30rem;
     text-align: center;
     border-radius: 3px;
     border: 1px solid rgb(204, 204, 204);
@@ -92,7 +92,7 @@ body#idx p {
 }
 
 .instructions > * {
-    width: 22em;
+    width: 34rem;
     margin-left: auto;
     margin-right: auto;
 }
@@ -108,8 +108,8 @@ hr {
     color: white;
     margin-left: auto;
     margin-right: auto;
-    padding-top: 1em;
-    padding-bottom: 1em;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
     text-align: center;
     border-radius: 3px;
     box-shadow: inset 0px 0px 20px 0px #333333;
@@ -118,16 +118,16 @@ hr {
 #platform-instructions-win a,
 #platform-instructions-default a {
     display: block;
-    padding-top: 0.4em;
-    padding-bottom: 0.6em;
+    padding-top: 0.4rem;
+    padding-bottom: 0.6rem;
     font-family: "Work Sans", "Fira Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
     font-weight: 500;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.1rem;
 }
 
 #platform-instructions-unknown div {
     font-size: 16px;
-    line-height: 2em;
+    line-height: 2rem;
 }
 
 #warning {
@@ -149,7 +149,6 @@ hr {
 #platform-button {
     background-color: #515151;
     color: white;
-    width: 10em;
     margin-left: auto;
     margin-right: auto;
     padding: 1em;
