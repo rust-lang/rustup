@@ -1,7 +1,7 @@
 environment:
   matrix:
-  - TARGET: x86_64-pc-windows-msvc
-  - TARGET: i686-pc-windows-msvc
+  #- TARGET: x86_64-pc-windows-msvc
+  #- TARGET: i686-pc-windows-msvc
   - TARGET: x86_64-pc-windows-gnu
     BITS: 64
   - TARGET: i686-pc-windows-gnu
@@ -13,6 +13,12 @@ branches:
     - master
     - stable
     - auto
+
+init:
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+on_finish:
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 install:
   - ps: |
