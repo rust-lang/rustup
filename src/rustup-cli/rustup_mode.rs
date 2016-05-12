@@ -28,6 +28,7 @@ pub fn main() -> Result<()> {
 
     match matches.subcommand() {
         ("show", Some(_)) => try!(show(cfg)),
+        ("install", Some(m)) => try!(update(cfg, m)),
         ("update", Some(m)) => try!(update(cfg, m)),
         ("default", Some(m)) => try!(default_(cfg, m)),
         ("toolchain", Some(c)) => {
