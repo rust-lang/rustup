@@ -425,9 +425,11 @@ variable.
 
 ## Security
 
-`rustup` is secure enough for the non-paranoid, but it still needs
-work. `rustup` performs all downloads over HTTPS, but does not
+`rustup` is secure enough for the non-paranoid, but it [still needs
+work][s]. `rustup` performs all downloads over HTTPS, but does not
 yet validate signatures of downloads.
+
+[s]: https://github.com/rust-lang-nursery/rustup.rs/issues?q=is%3Aopen+is%3Aissue+label%3Asecurity
 
 ## FAQ
 
