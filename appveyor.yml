@@ -18,7 +18,8 @@ branches:
 
 install:
   # Install rust, x86_64-pc-windows-msvc host
-  - curl -sSf -o rustup-init.exe https://win.rustup.rs/
+  # FIXME: switch back to win.rustup.rs
+  - curl -sSf -o rustup-init.exe https://dev-static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe
   - rustup-init.exe -y
   - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
   - rustup default nightly-x86_64-pc-windows-msvc
