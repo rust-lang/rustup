@@ -1,3 +1,9 @@
+# 0.1.11
+
+* [Actually dispatch the `rustup install` command](https://github.com/rust-lang-nursery/rustup.rs/pull/444).
+* [Migrate to libcurl instead of hyper](https://github.com/rust-lang-nursery/rustup.rs/pull/443).
+* [Add error for downloading bogus versions](https://github.com/rust-lang-nursery/rustup.rs/pull/428).
+
 # 0.1.10
 
 * [Multiple cli improvements](https://github.com/rust-lang-nursery/rustup.rs/pull/419).
