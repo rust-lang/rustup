@@ -6,7 +6,7 @@ use errors::*;
 use rustup_utils::utils;
 use rustup_utils::notify::NotificationLevel;
 use self_update;
-use std::io::{Write, Read, BufRead};
+use std::io::{Write, BufRead};
 use std::process::Command;
 use std::{cmp, iter};
 use std::str::FromStr;

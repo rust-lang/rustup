@@ -158,7 +158,7 @@ impl<'a> Toolchain<'a> {
         self.install(InstallMethod::Dist(&try!(self.desc()),
                                          update_hash.as_ref().map(|p| &**p),
                                          self.download_cfg()))
-    }   
+    }
 
     pub fn install_from_dist_with_telemetry(&self) -> Result<UpdateStatus> {
         let result = self.install_from_dist_inner();
@@ -169,12 +169,12 @@ impl<'a> Toolchain<'a> {
                                                            success: true };
                 match self.telemetry.log_telemetry(te) {
                     Ok(_) => Ok(us),
-                    Err(e) => { 
+                    Err(e) => {
                         self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&e));
                         Ok(us)
                     }
                 }
-            } 
+            }
             Err(e) => {
                 let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name().to_string() ,
                                                            success: true };
@@ -236,7 +236,7 @@ impl<'a> Toolchain<'a> {
 
                 // Download to a local file
                 let local_installer = try!(self.cfg.temp_cfg.new_file_with_ext("", ".tar.gz"));
-                try!(utils::download_file(url,
+                try!(utils::download_file(&url,
                                           &local_installer,
                                           None,
                                           ntfy!(&self.cfg.notify_handler)));
@@ -404,19 +404,19 @@ impl<'a> Toolchain<'a> {
 
         match output {
             Ok(_) => {
-                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(), 
+                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(),
                                                            success: true };
 
                 match self.telemetry.log_telemetry(te) {
                     Ok(_) => Ok(()),
-                    Err(e) => { 
+                    Err(e) => {
                         self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&e));
                         Ok(())
                     }
                 }
             },
             Err(e) => {
-                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(), 
+                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(),
                                                            success: false };
 
                 let _ = self.telemetry.log_telemetry(te).map_err(|xe| {

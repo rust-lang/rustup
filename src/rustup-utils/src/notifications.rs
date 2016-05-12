@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::fmt::{self, Display};
-use hyper;
+
+use url::Url;
 
 use notify::{self, NotificationLevel, Notifyable};
 
@@ -10,7 +11,7 @@ pub enum Notification<'a> {
     LinkingDirectory(&'a Path, &'a Path),
     CopyingDirectory(&'a Path, &'a Path),
     RemovingDirectory(&'a str, &'a Path),
-    DownloadingFile(&'a hyper::Url, &'a Path),
+    DownloadingFile(&'a Url, &'a Path),
     /// Received the Content-Length of the to-be downloaded data.
     DownloadContentLengthReceived(u64),
     /// Received some data.
