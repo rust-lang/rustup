@@ -22,7 +22,7 @@ install:
   - curl -sSf -o rustup-init.exe https://dev-static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe
   - rustup-init.exe -y
   - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
-  - rustup default nightly-x86_64-pc-windows-msvc
+  - rustup default nightly-2016-05-10-x86_64-pc-windows-msvc
 
   # Install the target we're compiling for
   - if NOT "%TARGET%" == "x86_64-pc-windows-msvc" rustup target add %TARGET%
