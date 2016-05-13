@@ -590,7 +590,7 @@ fn update_download_404() {
 
 #[test]
 fn update_bogus_version() {
-    update_setup(&|config, self_dist| {
+    update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_err(config, &["rustup", "update", "1.0.0-alpha"],
             "could not download nonexistent rust version `1.0.0-alpha`");
