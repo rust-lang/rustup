@@ -1,3 +1,7 @@
+# 0.1.12
+
+* [Don't install when multirust metadata exists](https://github.com/rust-lang-nursery/rustup.rs/pull/456).
+
 # 0.1.11
 
 * [Actually dispatch the `rustup install` command](https://github.com/rust-lang-nursery/rustup.rs/pull/444).
