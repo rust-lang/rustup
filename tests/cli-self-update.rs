@@ -1077,3 +1077,15 @@ fn install_but_rustup_sh_is_installed() {
                    "cannot install while rustup.sh is installed");
     });
 }
+
+#[test]
+fn install_but_multirust_metadata() {
+    setup(&|config| {
+        let multirust_dir = config.homedir.join(".multirust");
+        fs::create_dir_all(&multirust_dir).unwrap();
+        let version_file = multirust_dir.join("version");
+        raw::write_file(&version_file, "2").unwrap();
+        expect_err(config, &["rustup-init", "-y"],
+                   "cannot install while multirust is installed");
+    });
+}
