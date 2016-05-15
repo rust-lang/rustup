@@ -10,6 +10,7 @@ use manifestation::{Manifestation, UpdateStatus, Changes};
 
 use std::path::Path;
 use std::fmt;
+use std::env;
 
 use regex::Regex;
 use sha2::{Sha256, Digest};
@@ -72,7 +73,7 @@ impl TargetTriple {
     }
 
     pub fn from_build() -> Self {
-        if let Some(triple) = option_env!("RUSTUP_OVERRIDE_HOST_TRIPLE") {
+        if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
             TargetTriple::from_str(triple)
         } else {
             TargetTriple::from_str(include_str!(concat!(env!("OUT_DIR"), "/target.txt")))
@@ -155,7 +156,11 @@ impl TargetTriple {
             host_triple.map(TargetTriple::from_str)
         }
 
-        inner()
+        if let Ok(triple) = env::var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
+            Some(TargetTriple(triple))
+        } else {
+            inner()
+        }
     }
 
     pub fn from_host_or_build() -> Self {

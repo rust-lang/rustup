@@ -213,6 +213,7 @@ pub fn env(config: &Config, cmd: &mut Command) {
     cmd.env("RUSTUP_HOME", config.rustupdir.to_string_lossy().to_string());
     cmd.env("RUSTUP_DIST_ROOT", format!("file://{}", config.distdir.join("dist").to_string_lossy()));
     cmd.env("CARGO_HOME", config.cargodir.to_string_lossy().to_string());
+    cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_triple());
 
     // This is only used for some installation tests on unix where CARGO_HOME
     // above is unset
@@ -394,7 +395,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
 }
 
 pub fn this_host_triple() -> String {
-    if let Some(triple) = option_env!("RUSTUP_OVERRIDE_HOST_TRIPLE") {
+    if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
         triple.to_owned()
     } else {
         let arch = if cfg!(target_arch = "x86") { "i686" }
