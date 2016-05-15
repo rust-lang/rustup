@@ -352,22 +352,22 @@ impl Cfg {
         toolchain.open_docs(relative)
     }
 
-    pub fn set_host_triple(&self, host_triple: &str) -> Result<()> {
+    pub fn set_default_host_triple(&self, host_triple: &str) -> Result<()> {
         self.settings_file.with_mut(|s| {
-            s.host_triple = Some(host_triple.to_owned());
+            s.default_host_triple = Some(host_triple.to_owned());
             Ok(())
         })
     }
 
-    pub fn get_host_triple(&self) -> Result<dist::TargetTriple> {
+    pub fn get_default_host_triple(&self) -> Result<dist::TargetTriple> {
         Ok(try!(self.settings_file.with(|s| {
-            Ok(s.host_triple.as_ref().map(|s| dist::TargetTriple::from_str(&s)))
+            Ok(s.default_host_triple.as_ref().map(|s| dist::TargetTriple::from_str(&s)))
         })).unwrap_or_else(dist::TargetTriple::from_build))
     }
 
     pub fn resolve_toolchain(&self, name: &str) -> Result<String> {
         if let Ok(desc) = dist::PartialToolchainDesc::from_str(name) {
-            let host = try!(self.get_host_triple());
+            let host = try!(self.get_default_host_triple());
             Ok(desc.resolve(&host).to_string())
         } else {
             Ok(name.to_owned())

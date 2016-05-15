@@ -103,7 +103,7 @@ fn run_multirust() -> Result<()> {
             // `self install` as the arguments.  FIXME: Verify this
             // works.
             let opts = self_update::InstallOpts {
-                host_triple: TargetTriple::from_host_or_build().to_string(),
+                default_host_triple: TargetTriple::from_host_or_build().to_string(),
                 default_toolchain: "stable".to_string(),
                 no_modify_path: false,
             };

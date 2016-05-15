@@ -84,7 +84,7 @@ pub fn main() -> Result<()> {
         }
         ("set", Some(c)) => {
             match c.subcommand() {
-                ("host", Some(m)) => try!(set_host_triple(&cfg, m)),
+                ("default-host", Some(m)) => try!(set_default_host_triple(&cfg, m)),
                 (_, _) => unreachable!(),
             }
         }
@@ -272,7 +272,7 @@ pub fn cli() -> App<'static, 'static> {
         .subcommand(SubCommand::with_name("set")
             .about("Alter rustup settings")
             .setting(AppSettings::SubcommandRequiredElseHelp)
-            .subcommand(SubCommand::with_name("host")
+            .subcommand(SubCommand::with_name("default-host")
                 .about("Set host triple.")
                 .arg(Arg::with_name("host_triple")
                     .required(true))))
@@ -365,9 +365,9 @@ fn show(cfg: &Cfg) -> Result<()> {
     {
         let mut t = term2::stdout();
         let _ = t.attr(term2::Attr::Bold);
-        let _ = write!(t, "Host: ");
+        let _ = write!(t, "Default host: ");
         let _ = t.reset();
-        println!("{}", try!(cfg.get_host_triple()));
+        println!("{}", try!(cfg.get_default_host_triple()));
         println!("");
     }
 
@@ -573,7 +573,7 @@ fn analyze_telemetry(cfg: &Cfg) -> Result<()> {
     common::show_telemetry(analysis)
 }
 
-fn set_host_triple(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    try!(cfg.set_host_triple(m.value_of("host_triple").expect("")));
+fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    try!(cfg.set_default_host_triple(m.value_of("host_triple").expect("")));
     Ok(())
 }

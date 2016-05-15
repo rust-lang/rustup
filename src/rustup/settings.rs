@@ -124,7 +124,7 @@ pub enum TelemetryMode {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Settings {
     pub version: String,
-    pub host_triple: Option<String>,
+    pub default_host_triple: Option<String>,
     pub default_toolchain: Option<String>,
     pub overrides: BTreeMap<String, String>,
     pub telemetry: TelemetryMode
@@ -134,7 +134,7 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             version: DEFAULT_METADATA_VERSION.to_owned(),
-            host_triple: None,
+            default_host_triple: None,
             default_toolchain: None,
             overrides: BTreeMap::new(),
             telemetry: TelemetryMode::Off
@@ -191,7 +191,7 @@ impl Settings {
         }
         Ok(Settings {
             version: version,
-            host_triple: try!(get_opt_string(&mut table, "host_triple", path)),
+            default_host_triple: try!(get_opt_string(&mut table, "default_host_triple", path)),
             default_toolchain: try!(get_opt_string(&mut table, "default_toolchain", path)),
             overrides: try!(Self::table_to_overrides(&mut table, path)),
             telemetry: if try!(get_opt_bool(&mut table, "telemetry", path)).unwrap_or(false) {
@@ -207,8 +207,8 @@ impl Settings {
         result.insert("version".to_owned(),
                       toml::Value::String(self.version));
 
-        if let Some(v) = self.host_triple {
-            result.insert("host_triple".to_owned(), toml::Value::String(v));
+        if let Some(v) = self.default_host_triple {
+            result.insert("default_host_triple".to_owned(), toml::Value::String(v));
         }
 
         if let Some(v) = self.default_toolchain {

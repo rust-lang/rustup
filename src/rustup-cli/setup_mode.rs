@@ -14,9 +14,9 @@ pub fn main() -> Result<()> {
         return self_update::self_replace();
     }
 
-    let cli = App::new("multirust-setup")
+    let cli = App::new("rustup-init")
         .version(common::version())
-        .about("The installer for multirust")
+        .about("The installer for rustup")
         .setting(AppSettings::DeriveDisplayOrder)
         .arg(Arg::with_name("verbose")
              .short("v")
@@ -25,6 +25,10 @@ pub fn main() -> Result<()> {
         .arg(Arg::with_name("no-prompt")
              .short("y")
              .help("Disable confirmation prompt."))
+        .arg(Arg::with_name("default-host")
+             .long("default-host")
+             .takes_value(true)
+             .help("Choose a default host triple"))
         .arg(Arg::with_name("default-toolchain")
              .long("default-toolchain")
              .takes_value(true)
@@ -37,11 +41,14 @@ pub fn main() -> Result<()> {
     let matches = cli.get_matches();
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
+    let default_host = matches.value_of("default-host").map(|s| s.to_owned()).unwrap_or_else(|| {
+        TargetTriple::from_host_or_build().to_string()
+    });
     let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
     let no_modify_path = matches.is_present("no-modify-path");
 
     let opts = InstallOpts {
-        host_triple: TargetTriple::from_host_or_build().to_string(),
+        default_host_triple: default_host,
         default_toolchain: default_toolchain.to_owned(),
         no_modify_path: no_modify_path,
     };
