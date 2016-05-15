@@ -795,7 +795,16 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
         return vec![PathUpdateMethod::Windows];
     }
 
-    let profile = utils::home_dir().map(|p| p.join(".profile"));
+    let mut bash_profile = utils::home_dir().unwrap();
+    bash_profile.push(".bash_profile");
+
+    let profile;
+    match bash_profile.exists()
+    {
+        true => profile = utils::home_dir().map(|p| p.join(".bash_profile")),
+        _ => profile = utils::home_dir().map(|p| p.join(".profile"))
+    }
+        
     let rcfiles = vec![profile].into_iter().filter_map(|f|f);
 
     rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect()
