@@ -98,6 +98,11 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     fs::hard_link(rustup_path, rustc_path).unwrap();
     fs::hard_link(rustup_path, cargo_path).unwrap();
 
+    // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
+    // rustup on a 64-bit machine will fail, because the tests do not have the host detection
+    // functionality built in.
+    run(&config, "rustup", &["set", "host", &this_host_triple()], &[]);
+
     // Create some custom toolchains
     create_custom_toolchains(&config.customdir);
 

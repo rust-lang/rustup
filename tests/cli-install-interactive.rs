@@ -63,7 +63,7 @@ fn update() {
     setup(&|config| {
         run_input(config, &["rustup-init"], "\n\n");
         let out = run_input(config, &["rustup-init"], "\n\n");
-        assert!(out.ok);
+        assert!(out.ok, "stdout:\n{}\nstderr:\n{}", out.stdout, out.stderr);
     });
 }
 
