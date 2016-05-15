@@ -112,12 +112,13 @@ This is the essense of `rustup`.
 ## Working with nightly Rust
 
 Rustup gives you easy access to the nightly compiler and its
-[experimental features]. To add it just run `rustup update nightly`:
+[experimental features]. To add it just run `rustup install
+nightly`:
 
 [experimental features]: http://doc.rust-lang.org/nightly/book/nightly-rust.html
 
 ```
-$ rustup update nightly
+$ rustup install nightly
 info: syncing channel updates for 'nightly'
 info: downloading toolchain manifest
 info: downloading component 'rustc'
@@ -223,14 +224,14 @@ useful for installing a 32-bit compiler on a 64-bit platform, or for
 installing the [MSVC-based toolchain] on Windows. For example:
 
 ```
-$ rustup default stable-x86_64-pc-windows-msvc
+$ rustup install stable-x86_64-pc-windows-msvc
 ```
 
 For convenience, elements of the target triple that are omitted will be
 inferred, so the above could be written:
 
 ```
-$ rustup default stable-msvc
+$ rustup install stable-msvc
 ```
 
 Toolchain names that don't name a channel instead can be used to name
@@ -373,7 +374,7 @@ The primary installation method, as described at
   `i686-pc-windows-gnu` target][setup]. Although this build of
   `rustup` installs compilers targeting the GNU ABI by default,
   compilers targetting the MSVC ABI can be installed with e.g. `rustup
-  update stable-msvc`.
+  install stable-msvc`.
 * On Unix, run `curl https://sh.rustup.rs -sSf | sh` in your
   shell. This downloads and runs the correct version of
   `rustup-init` for your platform.
@@ -424,9 +425,11 @@ variable.
 
 ## Security
 
-`rustup` is secure enough for the non-paranoid, but it still needs
-work. `rustup` performs all downloads over HTTPS, but does not
+`rustup` is secure enough for the non-paranoid, but it [still needs
+work][s]. `rustup` performs all downloads over HTTPS, but does not
 yet validate signatures of downloads.
+
+[s]: https://github.com/rust-lang-nursery/rustup.rs/issues?q=is%3Aopen+is%3Aissue+label%3Asecurity
 
 ## FAQ
 

@@ -43,6 +43,7 @@ mod self_update;
 mod job;
 mod term2;
 mod errors;
+mod help;
 
 use std::env;
 use std::path::PathBuf;

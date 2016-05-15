@@ -13,7 +13,6 @@ use std::fmt;
 
 use regex::Regex;
 use sha2::{Sha256, Digest};
-use itertools::Itertools;
 
 pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
 pub const UPDATE_HASH_LEN: usize = 20;
@@ -425,7 +424,7 @@ pub fn download_and_check<'a>(url_str: &str,
     let file = try!(cfg.temp_cfg.new_file_with_ext("", ext));
 
     let mut hasher = Sha256::new();
-    try!(utils::download_file(url, &file, Some(&mut hasher), ntfy!(&cfg.notify_handler)));
+    try!(utils::download_file(&url, &file, Some(&mut hasher), ntfy!(&cfg.notify_handler)));
     let actual_hash = hasher.result_str();
 
     if hash != actual_hash {
@@ -455,7 +454,7 @@ pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
     let hash_url = try!(utils::parse_url(&(url.to_owned() + ".sha256")));
     let hash_file = try!(cfg.temp_cfg.new_file());
 
-    try!(utils::download_file(hash_url, &hash_file, None, ntfy!(&cfg.notify_handler)));
+    try!(utils::download_file(&hash_url, &hash_file, None, ntfy!(&cfg.notify_handler)));
 
     Ok(try!(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())))
 }
@@ -515,10 +514,14 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                            toolchain.manifest_name()));
         }
     };
-    match try!(manifestation.update_v1(&manifest, update_hash,
-                                       &download.temp_cfg, download.notify_handler.clone())) {
-        None => Ok(None),
-        Some(hash) => Ok(Some(hash)),
+    match manifestation.update_v1(&manifest, update_hash,
+                                       &download.temp_cfg, download.notify_handler.clone()) {
+        Ok(None) => Ok(None),
+        Ok(Some(hash)) => Ok(Some(hash)),
+        e @ Err(Error(ErrorKind::Utils(rustup_utils::ErrorKind::Download404 { .. }), _)) => {
+           e.chain_err(|| format!("could not download nonexistent rust version `{}`", toolchain_str))
+        }
+        Err(e) => Err(e)
     }
 }
 

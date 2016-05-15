@@ -1,8 +1,8 @@
 use std::env;
 use self_update::{self, InstallOpts};
 use errors::*;
+use clap::{App, Arg, AppSettings};
 use rustup_dist::dist::TargetTriple;
-use clap::{App, Arg};
 use common;
 
 pub fn main() -> Result<()> {
@@ -17,6 +17,7 @@ pub fn main() -> Result<()> {
     let cli = App::new("multirust-setup")
         .version(common::version())
         .about("The installer for multirust")
+        .setting(AppSettings::DeriveDisplayOrder)
         .arg(Arg::with_name("verbose")
              .short("v")
              .long("verbose")

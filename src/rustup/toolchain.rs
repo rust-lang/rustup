@@ -236,7 +236,7 @@ impl<'a> Toolchain<'a> {
 
                 // Download to a local file
                 let local_installer = try!(self.cfg.temp_cfg.new_file_with_ext("", ".tar.gz"));
-                try!(utils::download_file(url,
+                try!(utils::download_file(&url,
                                           &local_installer,
                                           None,
                                           ntfy!(&self.cfg.notify_handler)));
