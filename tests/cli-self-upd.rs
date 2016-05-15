@@ -588,6 +588,15 @@ fn update_download_404() {
     });
 }
 
+#[test]
+fn update_bogus_version() {
+    update_setup(&|config, _| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        expect_err(config, &["rustup", "update", "1.0.0-alpha"],
+            "could not download nonexistent rust version `1.0.0-alpha`");
+    });
+}
+
 // Check that multirust.exe has changed after the update. This
 // is hard for windows because the running process needs to exit
 // before the new updater can delete it.
@@ -716,6 +725,7 @@ fn update_stress_test() {
 // The installer used to be called rustup-setup. For compatibility it
 // still needs to work in that mode.
 #[test]
+#[cfg(not(windows))]
 fn as_rustup_setup() {
     update_setup(&|config, _| {
         let init = config.exedir.join(format!("rustup-init{}", EXE_SUFFIX));
@@ -1066,5 +1076,17 @@ fn install_but_rustup_sh_is_installed() {
         raw::write_file(&version_file, "").unwrap();
         expect_err(config, &["rustup-init", "-y"],
                    "cannot install while rustup.sh is installed");
+    });
+}
+
+#[test]
+fn install_but_multirust_metadata() {
+    setup(&|config| {
+        let multirust_dir = config.homedir.join(".multirust");
+        fs::create_dir_all(&multirust_dir).unwrap();
+        let version_file = multirust_dir.join("version");
+        raw::write_file(&version_file, "2").unwrap();
+        expect_err(config, &["rustup-init", "-y"],
+                   "cannot install while multirust is installed");
     });
 }

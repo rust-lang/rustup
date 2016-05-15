@@ -9,7 +9,6 @@ use std::collections::HashMap;
 use std::io::{Read, Write};
 use tempdir::TempDir;
 use sha2::{Sha256, Digest};
-use itertools::Itertools;
 use toml;
 use flate2;
 use tar;

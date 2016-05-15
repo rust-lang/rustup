@@ -438,3 +438,52 @@ fn show_toolchain_env_not_installed() {
         assert!(stderr.starts_with("error: toolchain 'nightly' is not installed\n"));
     });
 }
+
+// #422
+#[test]
+fn update_doesnt_update_non_tracking_channels() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly-2015-01-01"]);
+        let mut cmd = clitools::cmd(config, "rustup", &["update"]);
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(!stderr.contains(
+            for_host!("syncing channel updates for 'nightly-2015-01-01-{}'")));
+    });
+}
+    
+#[test]
+fn toolchain_install_is_like_update() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "toolchain", "install" , "nightly"]);
+        expect_stdout_ok(config, &["rustup", "run", "nightly", "rustc", "--version"],
+                         "hash-n-2");
+    });
+}
+
+#[test]
+fn toolchain_install_is_like_update_except_that_bare_install_is_an_error() {
+    setup(&|config| {
+        expect_err(config, &["rustup", "toolchain", "install"],
+                   "arguments were not provided");
+    });
+}
+
+#[test]
+fn toolchain_update_is_like_update() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "toolchain", "update" , "nightly"]);
+        expect_stdout_ok(config, &["rustup", "run", "nightly", "rustc", "--version"],
+                         "hash-n-2");
+    });
+}
+
+#[test]
+fn toolchain_update_is_like_update_except_that_bare_install_is_an_error() {
+    setup(&|config| {
+        expect_err(config, &["rustup", "toolchain", "update"],
+                   "arguments were not provided");
+    });
+}

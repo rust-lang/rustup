@@ -24,14 +24,20 @@
 </p>
 
 <div id="platform-instructions-unix" class="instructions" style="display: none;">
-  <p>Run the following in your terminal, then follow the onscreen instructions.</p>
+  <p>Run the following in your terminal<sup>†</sup>, then follow the onscreen instructions.</p>
   <pre>curl https://sh.rustup.rs -sSf | sh</pre>
+  <p id="sh-disclaimer">
+    <sup>†</sup>
+    <a href="https://sandstorm.io/news/2015-09-24-is-curl-bash-insecure-pgp-verified-install">
+      On the security of <code>curl | sh</code>
+    </a>
+  </p>
 </div>
 
 <div id="platform-instructions-win" class="instructions" style="display: none;">
   <p>
     Download and run
-    <a href="https://win.rustup.rs">rustup&#x2011;init.exe</a>
+    <a class="rustup-link" href="https://win.rustup.rs">rustup&#x2011;init.exe</a>
     then follow the onscreen instructions.
   </p>
 </div>
@@ -67,8 +73,14 @@
 
 <div id="platform-instructions-default" class="instructions">
   <div>
-    <p>If you are running Unix,<br/>run the following in your terminal, then follow the onscreen instructions.</p>
+    <p>If you are running Unix,<br/>run the following in your terminal<sup>†</sup>, then follow the onscreen instructions.</p>
     <pre>curl https://sh.rustup.rs -sSf | sh</pre>
+    <p id="sh-disclaimer">
+      <sup>†</sup>
+      <a href="https://sandstorm.io/news/2015-09-24-is-curl-bash-insecure-pgp-verified-install">
+        On the security of <code>curl | sh</code>
+      </a>
+    </p>
   </div>
 
   <hr/>
@@ -76,7 +88,7 @@
   <div>
     <p>
       If you are running Windows,<br/>download and run
-      <a href="https://win.rustup.rs">rustup&#x2011;init.exe</a>
+      <a class="rustup-link" href="https://win.rustup.rs">rustup&#x2011;init.exe</a>
       then follow the onscreen instructions.
     </p>
   </div>
