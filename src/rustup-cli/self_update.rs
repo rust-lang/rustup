@@ -374,10 +374,9 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
                         None
                     }
                 }).collect::<Vec<_>>();
-            assert!(rcfiles.len() == 1); // Only modifying .profile
             Ok(format!(pre_install_msg_unix!(),
                        cargo_home_bin = cargo_home_bin.display(),
-                       rcfiles = rcfiles[0]))
+                       rcfiles = rcfiles.join(", ")))
         } else {
             Ok(format!(pre_install_msg_win!(),
                        cargo_home_bin = cargo_home_bin.display()))
