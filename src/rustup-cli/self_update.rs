@@ -795,19 +795,23 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
         return vec![PathUpdateMethod::Windows];
     }
 
-    let mut bash_profile = utils::home_dir().unwrap();
-    bash_profile.push(".bash_profile");
+    let profiles = vec![".bash_profile", ".bash_login", ".profile"];
 
-    let profile;
-    match bash_profile.exists()
+    let mut rcfiles: Vec<PathUpdateMethod> = vec![];
+    for filename in profiles 
     {
-        true => profile = utils::home_dir().map(|p| p.join(".bash_profile")),
-        _ => profile = utils::home_dir().map(|p| p.join(".profile"))
-    }
-        
-    let rcfiles = vec![profile].into_iter().filter_map(|f|f);
+        let mut path = utils::home_dir().unwrap();
+        path.push(filename);
 
-    rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect()
+        if path.exists()
+        {
+            let profile = utils::home_dir().map(|p| p.join(filename));
+
+            rcfiles.push(PathUpdateMethod::RcFile(profile.unwrap()));
+        }
+    }
+
+    rcfiles
 }
 
 fn shell_export_string() -> Result<String> {
