@@ -6,7 +6,7 @@ use std::ops;
 use std::fmt::{self, Display};
 use rustup_utils::raw;
 
-use rustup_utils::notify::{self, NotificationLevel, Notifyable};
+use rustup_utils::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub enum Error {
@@ -25,8 +25,6 @@ pub enum Error {
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
-pub type NotifyHandler<'a> = notify::NotifyHandler<'a, for<'b> Notifyable<Notification<'b>>>;
-pub type SharedNotifyHandler = notify::SharedNotifyHandler<for<'b> Notifyable<Notification<'b>>>;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -37,10 +35,9 @@ pub enum Notification<'a> {
     DirectoryDeletion(&'a Path, io::Result<()>),
 }
 
-#[derive(Debug)]
 pub struct Cfg {
     root_directory: PathBuf,
-    notify_handler: SharedNotifyHandler,
+    notify_handler: Box<Fn(Notification)>,
 }
 
 #[derive(Debug)]
@@ -134,7 +131,7 @@ impl Display for Error {
 }
 
 impl Cfg {
-    pub fn new(root_directory: PathBuf, notify_handler: SharedNotifyHandler) -> Self {
+    pub fn new(root_directory: PathBuf, notify_handler: Box<Fn(Notification)>) -> Self {
         Cfg {
             root_directory: root_directory,
             notify_handler: notify_handler,
@@ -143,7 +140,7 @@ impl Cfg {
 
     pub fn create_root(&self) -> Result<bool> {
         raw::ensure_dir_exists(&self.root_directory, |p| {
-            self.notify_handler.call(Notification::CreatingRoot(p));
+            (self.notify_handler)(Notification::CreatingRoot(p));
         })
             .map_err(|e| {
                 Error::CreatingRoot {
@@ -164,7 +161,7 @@ impl Cfg {
             // This is technically racey, but the probability of getting the same
             // random names at exactly the same time is... low.
             if !raw::path_exists(&temp_dir) {
-                self.notify_handler.call(Notification::CreatingDirectory(&temp_dir));
+                (self.notify_handler)(Notification::CreatingDirectory(&temp_dir));
                 try!(fs::create_dir(&temp_dir).map_err(|e| {
                     Error::CreatingDirectory {
                         path: PathBuf::from(&temp_dir),
@@ -194,7 +191,7 @@ impl Cfg {
             // This is technically racey, but the probability of getting the same
             // random names at exactly the same time is... low.
             if !raw::path_exists(&temp_file) {
-                self.notify_handler.call(Notification::CreatingFile(&temp_file));
+                (self.notify_handler)(Notification::CreatingFile(&temp_file));
                 try!(fs::File::create(&temp_file).map_err(|e| {
                     Error::CreatingFile {
                         path: PathBuf::from(&temp_file),
@@ -207,6 +204,15 @@ impl Cfg {
                 });
             }
         }
+    }
+}
+
+impl fmt::Debug for Cfg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Cfg")
+         .field("root_directory", &self.root_directory)
+         .field("notify_handler", &"...")
+         .finish()
     }
 }
 
@@ -229,9 +235,8 @@ impl<'a> ops::Deref for File<'a> {
 impl<'a> Drop for Dir<'a> {
     fn drop(&mut self) {
         if raw::is_directory(&self.path) {
-            self.cfg
-                .notify_handler
-                .call(Notification::DirectoryDeletion(&self.path, fs::remove_dir_all(&self.path)));
+            let n = Notification::DirectoryDeletion(&self.path, fs::remove_dir_all(&self.path));
+            (self.cfg.notify_handler)(n);
         }
     }
 }
@@ -239,9 +244,8 @@ impl<'a> Drop for Dir<'a> {
 impl<'a> Drop for File<'a> {
     fn drop(&mut self) {
         if raw::is_file(&self.path) {
-            self.cfg
-                .notify_handler
-                .call(Notification::FileDeletion(&self.path, fs::remove_file(&self.path)));
+            let n = Notification::FileDeletion(&self.path, fs::remove_file(&self.path));
+            (self.cfg.notify_handler)(n);
         }
     }
 }

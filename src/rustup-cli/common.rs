@@ -9,6 +9,7 @@ use self_update;
 use std::io::{Write, BufRead};
 use std::process::Command;
 use std::{cmp, iter};
+use std::sync::Arc;
 use std;
 use term2;
 
@@ -101,7 +102,7 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
 
     let download_tracker = RefCell::new(DownloadTracker::new());
 
-    Ok(try!(Cfg::from_env(shared_ntfy!(move |n: Notification| {
+    Ok(try!(Cfg::from_env(Arc::new(move |n: Notification| {
        if download_tracker.borrow_mut().handle_notification(&n) {
             return;
         }

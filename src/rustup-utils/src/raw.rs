@@ -1,5 +1,3 @@
-use notifications::NotifyHandler;
-
 use std::cell::RefCell;
 use std::char::from_u32;
 use std::error;
@@ -19,6 +17,8 @@ use errors::*;
 use url::Url;
 
 use rand::random;
+
+use notifications::Notification;
 
 pub fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(path: P,
                                                            callback: F)
@@ -158,7 +158,7 @@ pub fn tee_file<W: io::Write>(path: &Path, mut w: &mut W) -> io::Result<()> {
 pub fn download_file(url: &Url,
                      path: &Path,
                      mut hasher: Option<&mut Sha256>,
-                     notify_handler: NotifyHandler)
+                     notify_handler: &Fn(Notification))
                      -> Result<()> {
     use notifications::Notification;
     use std::io::Write;
@@ -173,7 +173,7 @@ pub fn download_file(url: &Url,
         if let Some(ref mut h) = hasher {
             h.input(data);
         }
-        notify_handler.call(Notification::DownloadDataReceived(data.len()));
+        notify_handler(Notification::DownloadDataReceived(data.len()));
         match file.write_all(data) {
             Ok(()) => data.len(),
             Err(e) => {
@@ -190,7 +190,7 @@ pub fn download_file(url: &Url,
             let prefix = "Content-Length: ";
             if data.starts_with(prefix) {
                 if let Ok(s) = data[prefix.len()..].trim().parse() {
-                    notify_handler.call(Notification::DownloadContentLengthReceived(s));
+                    notify_handler(Notification::DownloadContentLengthReceived(s));
                 }
             }
         }
@@ -238,7 +238,7 @@ pub fn download_file(url: &Url,
     EASY.with(|e| {
         *e.borrow_mut() = Some(handle.reset_lifetime());
     });
-    notify_handler.call(Notification::DownloadFinished);
+    notify_handler(Notification::DownloadFinished);
     Ok(())
 }
 

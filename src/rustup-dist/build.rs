@@ -8,4 +8,5 @@ fn main() {
     let target = env::var("TARGET").unwrap();
 
     File::create(out_dir.join("target.txt")).unwrap().write_all(target.as_bytes()).unwrap();
+    println!("cargo:rerun-if-changed=build.rs");
 }

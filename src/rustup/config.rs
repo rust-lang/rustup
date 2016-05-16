@@ -4,6 +4,7 @@ use std::env;
 use std::io;
 use std::process::Command;
 use std::fmt::{self, Display};
+use std::sync::Arc;
 
 use errors::*;
 use notifications::*;
@@ -32,7 +33,6 @@ impl Display for OverrideReason {
     }
 }
 
-#[derive(Debug)]
 pub struct Cfg {
     pub multirust_dir: PathBuf,
     pub settings_file: SettingsFile,
@@ -42,15 +42,16 @@ pub struct Cfg {
     pub gpg_key: Cow<'static, str>,
     pub env_override: Option<String>,
     pub dist_root_url: Cow<'static, str>,
-    pub notify_handler: SharedNotifyHandler,
+    pub notify_handler: Arc<Fn(Notification)>,
 }
 
 impl Cfg {
-    pub fn from_env(notify_handler: SharedNotifyHandler) -> Result<Self> {
+    pub fn from_env(notify_handler: Arc<Fn(Notification)>) -> Result<Self> {
         // Set up the multirust home directory
         let multirust_dir = try!(utils::multirust_home());
 
-        try!(utils::ensure_dir_exists("home", &multirust_dir, ntfy!(&notify_handler)));
+        try!(utils::ensure_dir_exists("home", &multirust_dir,
+                                      &|n| notify_handler(n.into())));
 
         let settings_file = SettingsFile::new(multirust_dir.join("settings.toml"));
         // Convert from old settings format if necessary
@@ -61,8 +62,8 @@ impl Cfg {
 
         let notify_clone = notify_handler.clone();
         let temp_cfg = temp::Cfg::new(multirust_dir.join("tmp"),
-                                      shared_ntfy!(move |n: temp::Notification| {
-                                          notify_clone.call(Notification::Temp(n));
+                                      Box::new(move |n| {
+                                          (notify_clone)(n.into())
                                       }));
 
         // GPG key
@@ -101,7 +102,7 @@ impl Cfg {
             s.default_toolchain = Some(toolchain.to_owned());
             Ok(())
         }));
-        self.notify_handler.call(Notification::SetDefaultToolchain(toolchain));
+        (self.notify_handler)(Notification::SetDefaultToolchain(toolchain));
         Ok(())
     }
 
@@ -109,7 +110,7 @@ impl Cfg {
         if create_parent {
             try!(utils::ensure_dir_exists("toolchains",
                                           &self.toolchains_dir,
-                                          ntfy!(&self.notify_handler)));
+                                          &|n| (self.notify_handler)(n.into())));
         }
 
         Toolchain::from(self, name)
@@ -125,7 +126,7 @@ impl Cfg {
         if create_parent {
             try!(utils::ensure_dir_exists("update-hash",
                                           &self.update_hash_dir,
-                                          ntfy!(&self.notify_handler)));
+                                          &|n| (self.notify_handler)(n.into())));
         }
 
         Ok(self.update_hash_dir.join(toolchain))
@@ -145,25 +146,24 @@ impl Cfg {
         let current_version = try!(self.settings_file.with(|s| Ok(s.version.clone())));
 
         if current_version == DEFAULT_METADATA_VERSION {
-            self.notify_handler
-                .call(Notification::MetadataUpgradeNotNeeded(&current_version));
+            (self.notify_handler)
+                (Notification::MetadataUpgradeNotNeeded(&current_version));
             return Ok(());
         }
 
-        self.notify_handler
-            .call(Notification::UpgradingMetadata(&current_version, DEFAULT_METADATA_VERSION));
+        (self.notify_handler)
+            (Notification::UpgradingMetadata(&current_version, DEFAULT_METADATA_VERSION));
 
         match &*current_version {
             "2" => {
                 // The toolchain installation format changed. Just delete them all.
-                self.notify_handler
-                    .call(Notification::UpgradeRemovesToolchains);
+                (self.notify_handler)(Notification::UpgradeRemovesToolchains);
 
                 let dirs = try!(utils::read_dir("toolchains", &self.toolchains_dir));
                 for dir in dirs {
                     let dir = try!(dir.chain_err(|| ErrorKind::UpgradeIoError));
                     try!(utils::remove_dir("toolchain", &dir.path(),
-                                           ::rustup_utils::NotifyHandler::some(&self.notify_handler)));
+                                           &|n| (self.notify_handler)(n.into())));
                 }
 
                 // Also delete the update hashes
@@ -184,7 +184,8 @@ impl Cfg {
 
     pub fn delete_data(&self) -> Result<()> {
         if utils::path_exists(&self.multirust_dir) {
-            Ok(try!(utils::remove_dir("home", &self.multirust_dir, ntfy!(&self.notify_handler))))
+            Ok(try!(utils::remove_dir("home", &self.multirust_dir,
+                                      &|n| (self.notify_handler)(n.into()))))
         } else {
             Ok(())
         }
@@ -264,7 +265,7 @@ impl Cfg {
             let t = t.and_then(|t| {
                 let t = t.install_from_dist();
                 if let Err(ref e) = t {
-                    self.notify_handler.call(Notification::NonFatalError(e));
+                    (self.notify_handler)(Notification::NonFatalError(e));
                 }
                 t
             });
@@ -279,7 +280,7 @@ impl Cfg {
         try!(utils::assert_is_directory(&self.multirust_dir));
 
         self.settings_file.with(|s| {
-            self.notify_handler.call(Notification::ReadMetadataVersion(&s.version));
+            (self.notify_handler)(Notification::ReadMetadataVersion(&s.version));
             if s.version == DEFAULT_METADATA_VERSION {
                 Ok(())
             } else {
@@ -388,9 +389,9 @@ impl Cfg {
         }));
 
         let _ = utils::ensure_dir_exists("telemetry", &self.multirust_dir.join("telemetry"),
-            ntfy!(&NotifyHandler::none()));
+                                         &|_| ());
 
-        self.notify_handler.call(Notification::SetTelemetry("on"));
+        (self.notify_handler)(Notification::SetTelemetry("on"));
 
         Ok(())
     }
@@ -401,7 +402,7 @@ impl Cfg {
             Ok(())
         }));
 
-        self.notify_handler.call(Notification::SetTelemetry("off"));
+        (self.notify_handler)(Notification::SetTelemetry("off"));
 
         Ok(())
     }

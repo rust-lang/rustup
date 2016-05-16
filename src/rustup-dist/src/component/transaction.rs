@@ -9,7 +9,7 @@
 //! FIXME: This uses ensure_dir_exists in some places but rollback
 //! does not remove any dirs created by it.
 
-use rustup_utils::{self, utils};
+use rustup_utils::utils;
 use temp;
 use prefix::InstallPrefix;
 use errors::*;
@@ -31,19 +31,18 @@ use std::path::{Path, PathBuf};
 ///
 /// All operations that create files will fail if the destination
 /// already exists.
-#[derive(Debug)]
 pub struct Transaction<'a> {
     prefix: InstallPrefix,
     changes: Vec<ChangedItem<'a>>,
     temp_cfg: &'a temp::Cfg,
-    notify_handler: NotifyHandler<'a>,
+    notify_handler: &'a Fn(Notification),
     committed: bool,
 }
 
 impl<'a> Transaction<'a> {
     pub fn new(prefix: InstallPrefix,
                temp_cfg: &'a temp::Cfg,
-               notify_handler: NotifyHandler<'a>)
+               notify_handler: &'a Fn(Notification))
                -> Self {
         Transaction {
             prefix: prefix,
@@ -131,7 +130,7 @@ impl<'a> Transaction<'a> {
     pub fn temp(&self) -> &'a temp::Cfg {
         self.temp_cfg
     }
-    pub fn notify_handler(&self) -> NotifyHandler<'a> {
+    pub fn notify_handler(&self) -> &'a Fn(Notification) {
         self.notify_handler
     }
 }
@@ -141,11 +140,16 @@ impl<'a> Transaction<'a> {
 impl<'a> Drop for Transaction<'a> {
     fn drop(&mut self) {
         if !self.committed {
-            self.notify_handler.call(Notification::RollingBack);
+            (self.notify_handler)(Notification::RollingBack);
             for item in self.changes.iter().rev() {
-                ok_ntfy!(self.notify_handler,
-                         Notification::NonFatalError,
-                         item.roll_back(&self.prefix));
+                // ok_ntfy!(self.notify_handler,
+                //          Notification::NonFatalError,
+                match item.roll_back(&self.prefix) {
+                    Ok(()) => {}
+                    Err(e) => {
+                        (self.notify_handler)(Notification::NonFatalError(&e));
+                    }
+                }
             }
         }
     }
@@ -172,7 +176,7 @@ impl<'a> ChangedItem<'a> {
             AddedDir(ref path) => {
                 try!(utils::remove_dir("component",
                                        &prefix.abs_path(path),
-                                       rustup_utils::NotifyHandler::none()))
+                                       &|_| ()))
             }
             RemovedFile(ref path, ref tmp) | ModifiedFile(ref path, Some(ref tmp)) => {
                 try!(utils::rename_file("component", &tmp, &prefix.abs_path(path)))
@@ -198,7 +202,7 @@ impl<'a> ChangedItem<'a> {
             }.into())
         } else {
             if let Some(p) = abs_path.parent() {
-                try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
+                try!(utils::ensure_dir_exists("component", p, &|_| ()));
             }
             let file = try!(File::create(&abs_path)
                             .chain_err(|| format!("error creating file '{}'", abs_path.display())));
@@ -218,7 +222,7 @@ impl<'a> ChangedItem<'a> {
             }.into())
         } else {
             if let Some(p) = abs_path.parent() {
-                try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
+                try!(utils::ensure_dir_exists("component", p, &|_| ()));
             }
             try!(utils::copy_file(src, &abs_path));
             Ok(ChangedItem::AddedFile(relpath))
@@ -233,9 +237,9 @@ impl<'a> ChangedItem<'a> {
             }.into())
         } else {
             if let Some(p) = abs_path.parent() {
-                try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
+                try!(utils::ensure_dir_exists("component", p, &|_| ()));
             }
-            try!(utils::copy_dir(src, &abs_path, rustup_utils::NotifyHandler::none()));
+            try!(utils::copy_dir(src, &abs_path, &|_| ()));
             Ok(ChangedItem::AddedDir(relpath))
         }
     }
@@ -274,7 +278,7 @@ impl<'a> ChangedItem<'a> {
             Ok(ChangedItem::ModifiedFile(relpath, Some(backup)))
         } else {
             if let Some(p) = abs_path.parent() {
-                try!(utils::ensure_dir_exists("component", p, rustup_utils::NotifyHandler::none()));
+                try!(utils::ensure_dir_exists("component", p, &|_| {}));
             }
             Ok(ChangedItem::ModifiedFile(relpath, None))
         }

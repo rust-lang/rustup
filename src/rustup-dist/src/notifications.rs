@@ -2,7 +2,7 @@ use std::path::Path;
 use std::fmt::{self, Display};
 use temp;
 use rustup_utils;
-use rustup_utils::notify::{self, NotificationLevel, Notifyable};
+use rustup_utils::notify::{NotificationLevel};
 use manifest::Component;
 use dist::TargetTriple;
 use errors::*;
@@ -28,12 +28,17 @@ pub enum Notification<'a> {
     DownloadingLegacyManifest,
 }
 
-pub type NotifyHandler<'a> = notify::NotifyHandler<'a, for<'b> Notifyable<Notification<'b>>>;
-pub type SharedNotifyHandler =
-    notify::SharedNotifyHandler<for<'b> Notifyable<Notification<'b>>>;
+impl<'a> From<rustup_utils::Notification<'a>> for Notification<'a> {
+    fn from(n: rustup_utils::Notification<'a>) -> Notification<'a> {
+        Notification::Utils(n)
+    }
+}
 
-extend_notification!(Notification: rustup_utils::Notification, n => Notification::Utils(n));
-extend_notification!(Notification: temp::Notification, n => Notification::Temp(n));
+impl<'a> From<temp::Notification<'a>> for Notification<'a> {
+    fn from(n: temp::Notification<'a>) -> Notification<'a> {
+        Notification::Temp(n)
+    }
+}
 
 impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {

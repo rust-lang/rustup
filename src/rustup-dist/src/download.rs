@@ -8,10 +8,9 @@ use sha2::{Sha256, Digest};
 use std::path::Path;
 use std::process::Command;
 
-#[derive(Debug)]
 pub struct DownloadCfg<'a> {
     pub temp_cfg: &'a temp::Cfg,
-    pub notify_handler: NotifyHandler<'a>,
+    pub notify_handler: &'a Fn(Notification),
     pub gpg_key: Option<&'a str>,
 }
 
@@ -22,7 +21,8 @@ impl<'a> DownloadCfg<'a> {
 
             let sig_url = try!(utils::parse_url(&format!("{}.asc", url)));
             let sig_file = try!(self.temp_cfg.new_file());
-            try!(utils::download_file(&sig_url, &sig_file, None, ntfy!(&self.notify_handler)));
+            try!(utils::download_file(&sig_url, &sig_file, None,
+                                      &|n| (self.notify_handler)(n.into())));
 
             let target_url = try!(utils::parse_url(url));
             let target_file = try!(self.temp_cfg.new_file());
@@ -32,7 +32,7 @@ impl<'a> DownloadCfg<'a> {
                 try!(utils::download_file(&target_url,
                                           &target_file,
                                           None,
-                                          ntfy!(&self.notify_handler)));
+                                          &|n| (self.notify_handler)(n.into())));
 
                 let key_file = try!(self.temp_cfg.new_file());
                 let key_filename: &Path = &key_file;
@@ -62,7 +62,8 @@ impl<'a> DownloadCfg<'a> {
 
             let hash_url = try!(utils::parse_url(&format!("{}.sha256", url)));
             let hash_file = try!(self.temp_cfg.new_file());
-            try!(utils::download_file(&hash_url, &hash_file, None, ntfy!(&self.notify_handler)));
+            try!(utils::download_file(&hash_url, &hash_file, None,
+                                      &|n| (self.notify_handler)(n.into())));
 
             let hash = try!(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned()));
             let mut hasher = Sha256::new();
@@ -72,7 +73,7 @@ impl<'a> DownloadCfg<'a> {
             try!(utils::download_file(&target_url,
                                       &target_file,
                                       Some(&mut hasher),
-                                      ntfy!(&self.notify_handler)));
+                                      &|n| (self.notify_handler)(n.into())));
 
             let actual_hash = hasher.result_str();
 
@@ -84,7 +85,7 @@ impl<'a> DownloadCfg<'a> {
                     calculated: actual_hash,
                 }.into());
             } else {
-                self.notify_handler.call(Notification::ChecksumValid(url));
+                (self.notify_handler)(Notification::ChecksumValid(url));
             }
 
             Ok(target_file)

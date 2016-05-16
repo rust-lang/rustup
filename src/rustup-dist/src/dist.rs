@@ -418,10 +418,10 @@ pub fn download_and_check<'a>(url_str: &str,
                     return Ok(None);
                 }
             } else {
-                cfg.notify_handler.call(Notification::CantReadUpdateHash(hash_file));
+                (cfg.notify_handler)(Notification::CantReadUpdateHash(hash_file));
             }
         } else {
-            cfg.notify_handler.call(Notification::NoUpdateHash(hash_file));
+            (cfg.notify_handler)(Notification::NoUpdateHash(hash_file));
         }
     }
 
@@ -429,7 +429,8 @@ pub fn download_and_check<'a>(url_str: &str,
     let file = try!(cfg.temp_cfg.new_file_with_ext("", ext));
 
     let mut hasher = Sha256::new();
-    try!(utils::download_file(&url, &file, Some(&mut hasher), ntfy!(&cfg.notify_handler)));
+    try!(utils::download_file(&url, &file, Some(&mut hasher),
+                              &|n| (cfg.notify_handler)(n.into())));
     let actual_hash = hasher.result_str();
 
     if hash != actual_hash {
@@ -440,7 +441,7 @@ pub fn download_and_check<'a>(url_str: &str,
             calculated: actual_hash,
         }.into());
     } else {
-        cfg.notify_handler.call(Notification::ChecksumValid(url_str));
+        (cfg.notify_handler)(Notification::ChecksumValid(url_str));
     }
 
     // TODO: Check the signature of the file
@@ -448,18 +449,19 @@ pub fn download_and_check<'a>(url_str: &str,
     Ok(Some((file, partial_hash)))
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub struct DownloadCfg<'a> {
     pub dist_root: &'a str,
     pub temp_cfg: &'a temp::Cfg,
-    pub notify_handler: NotifyHandler<'a>,
+    pub notify_handler: &'a Fn(Notification),
 }
 
 pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
     let hash_url = try!(utils::parse_url(&(url.to_owned() + ".sha256")));
     let hash_file = try!(cfg.temp_cfg.new_file());
 
-    try!(utils::download_file(&hash_url, &hash_file, None, ntfy!(&cfg.notify_handler)));
+    try!(utils::download_file(&hash_url, &hash_file, None,
+                              &|n| (cfg.notify_handler)(n.into())));
 
     Ok(try!(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())))
 }
@@ -486,7 +488,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
     };
 
     // TODO: Add a notification about which manifest version is going to be used
-    download.notify_handler.call(Notification::DownloadingManifest(&toolchain_str));
+    (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
     match dl_v2_manifest(download, update_hash, toolchain) {
         Ok(Some((m, hash))) => {
             return match try!(manifestation.update(&m, changes, &download.temp_cfg,
@@ -498,7 +500,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
         Ok(None) => return Ok(None),
         Err(Error(ErrorKind::Utils(::rustup_utils::ErrorKind::Download404 { .. }), _)) => {
             // Proceed to try v1 as a fallback
-            download.notify_handler.call(Notification::DownloadingLegacyManifest);
+            (download.notify_handler)(Notification::DownloadingLegacyManifest);
         }
         Err(e) => return Err(e)
     }

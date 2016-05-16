@@ -6,7 +6,7 @@ use std::process::Command;
 use std::ffi::OsString;
 use std::env;
 use sha2::Sha256;
-use notifications::{Notification, NotifyHandler};
+use notifications::{Notification};
 use raw;
 #[cfg(windows)]
 use winapi::DWORD;
@@ -20,10 +20,10 @@ pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, p
 
 pub fn ensure_dir_exists(name: &'static str,
                          path: &Path,
-                         notify_handler: NotifyHandler)
+                         notify_handler: &Fn(Notification))
                          -> Result<bool> {
     raw::ensure_dir_exists(path,
-                           |p| notify_handler.call(Notification::CreatingDirectory(name, p)))
+                           |p| notify_handler(Notification::CreatingDirectory(name, p)))
         .chain_err(|| {
             ErrorKind::CreatingDirectory {
                 name: name,
@@ -123,9 +123,9 @@ pub fn match_file<T, F: FnMut(&str) -> Option<T>>(name: &'static str,
     })
 }
 
-pub fn canonicalize_path(path: &Path, notify_handler: NotifyHandler) -> PathBuf {
+pub fn canonicalize_path(path: &Path, notify_handler: &Fn(Notification)) -> PathBuf {
     fs::canonicalize(path).unwrap_or_else(|_| {
-        notify_handler.call(Notification::NoCanonicalPath(path));
+        notify_handler(Notification::NoCanonicalPath(path));
         PathBuf::from(path)
     })
 }
@@ -142,9 +142,9 @@ pub fn tee_file<W: io::Write>(name: &'static str, path: &Path, w: &mut W) -> Res
 pub fn download_file(url: &Url,
                      path: &Path,
                      hasher: Option<&mut Sha256>,
-                     notify_handler: NotifyHandler)
+                     notify_handler: &Fn(Notification))
                      -> Result<()> {
-    notify_handler.call(Notification::DownloadingFile(url, path));
+    notify_handler(Notification::DownloadingFile(url, path));
     match raw::download_file(url, path, hasher, notify_handler) {
         Ok(_) => Ok(()),
         Err(Error(ErrorKind::HttpError(e), d)) => {
@@ -200,8 +200,8 @@ pub fn assert_is_directory(path: &Path) -> Result<()> {
     }
 }
 
-pub fn symlink_dir(src: &Path, dest: &Path, notify_handler: NotifyHandler) -> Result<()> {
-    notify_handler.call(Notification::LinkingDirectory(src, dest));
+pub fn symlink_dir(src: &Path, dest: &Path, notify_handler: &Fn(Notification)) -> Result<()> {
+    notify_handler(Notification::LinkingDirectory(src, dest));
     raw::symlink_dir(src, dest).chain_err(|| {
         ErrorKind::LinkingDirectory {
             src: PathBuf::from(src),
@@ -219,8 +219,8 @@ pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
     })
 }
 
-pub fn copy_dir(src: &Path, dest: &Path, notify_handler: NotifyHandler) -> Result<()> {
-    notify_handler.call(Notification::CopyingDirectory(src, dest));
+pub fn copy_dir(src: &Path, dest: &Path, notify_handler: &Fn(Notification)) -> Result<()> {
+    notify_handler(Notification::CopyingDirectory(src, dest));
     raw::copy_dir(src, dest).chain_err(|| {
         ErrorKind::CopyingDirectory {
             src: PathBuf::from(src),
@@ -240,8 +240,8 @@ pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
         .map(|_| ())
 }
 
-pub fn remove_dir(name: &'static str, path: &Path, notify_handler: NotifyHandler) -> Result<()> {
-    notify_handler.call(Notification::RemovingDirectory(name, path));
+pub fn remove_dir(name: &'static str, path: &Path, notify_handler: &Fn(Notification)) -> Result<()> {
+    notify_handler(Notification::RemovingDirectory(name, path));
     raw::remove_dir(path).chain_err(|| {
         ErrorKind::RemovingDirectory {
             name: name,
