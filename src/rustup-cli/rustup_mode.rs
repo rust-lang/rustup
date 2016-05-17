@@ -36,9 +36,11 @@ pub fn main() -> Result<()> {
                 ("install", Some(m)) => try!(update(cfg, m)),
                 ("list", Some(_)) => try!(common::list_toolchains(cfg)),
                 ("link", Some(m)) => try!(toolchain_link(cfg, m)),
-                ("remove", Some(m)) => try!(toolchain_remove(cfg, m)),
+                ("uninstall", Some(m)) => try!(toolchain_remove(cfg, m)),
                 // Synonyms
                 ("update", Some(m)) => try!(update(cfg, m)),
+                ("add", Some(m)) => try!(update(cfg, m)),
+                ("remove", Some(m)) => try!(toolchain_remove(cfg, m)),
                 (_, _) => unreachable!(),
             }
         }
