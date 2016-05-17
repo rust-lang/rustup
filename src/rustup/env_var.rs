@@ -1,9 +1,23 @@
 use std::ffi::OsString;
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub fn set_path(name: &str, value: &Path, cmd: &mut Command) {
+pub fn append_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
+    let old_value = env::var_os(name);
+    let mut parts: Vec<PathBuf>;
+    if let Some(ref v) = old_value {
+        parts = env::split_paths(v).collect();
+        parts.extend(value);
+    } else {
+        parts = value;
+    }
+    if let Ok(new_value) = env::join_paths(parts) {
+        cmd.env(name, new_value);
+    }
+}
+
+pub fn prepend_path(name: &str, value: &Path, cmd: &mut Command) {
     let old_value = env::var_os(name);
     let mut parts = vec![value.to_owned()];
     if let Some(ref v) = old_value {
