@@ -147,7 +147,7 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn install_from_dist(&self) -> Result<UpdateStatus> {
-        if self.cfg.telemetry_enabled() {
+        if try!(self.cfg.telemetry_enabled()) {
             return self.install_from_dist_with_telemetry();
         }
         self.install_from_dist_inner()
@@ -341,10 +341,10 @@ impl<'a> Toolchain<'a> {
         self.cfg.set_default(&self.name)
     }
     pub fn make_override(&self, path: &Path) -> Result<()> {
-        Ok(try!(self.cfg.override_db.set(path,
-                                         &self.name,
-                                         &self.cfg.temp_cfg,
-                                         self.cfg.notify_handler.as_ref())))
+        Ok(try!(self.cfg.settings_file.with_mut(|s| {
+            s.add_override(path, self.name.clone(), self.cfg.notify_handler.as_ref());
+            Ok(())
+        })))
     }
 
     pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
@@ -401,7 +401,7 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn add_component(&self, component: Component) -> Result<()> {
-        if self.cfg.telemetry_enabled() {
+        if try!(self.cfg.telemetry_enabled()) {
             return self.telemetry_add_component(component);
         }
         self.add_component_without_telemetry(component)

@@ -10,6 +10,7 @@ extern crate error_chain;
 extern crate rustc_serialize;
 extern crate sha2;
 extern crate url;
+extern crate toml;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -35,6 +36,7 @@ pub mod notifications;
 pub mod raw;
 pub mod tty;
 pub mod utils;
+pub mod toml_utils;
 
 pub use errors::*;
 pub use notifications::{Notification, NotifyHandler};

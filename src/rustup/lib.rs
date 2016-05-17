@@ -10,6 +10,7 @@ extern crate regex;
 extern crate itertools;
 extern crate rustc_serialize;
 extern crate time;
+extern crate toml;
 #[cfg(unix)]
 extern crate libc;
 
@@ -17,16 +18,15 @@ pub use errors::*;
 pub use notifications::*;
 pub use config::*;
 pub use toolchain::*;
-pub use override_db::*;
-pub use rustup_utils::{utils, notify};
+pub use rustup_utils::{utils, notify, toml_utils};
 
 mod errors;
 mod notifications;
-mod override_db;
 mod toolchain;
 mod config;
 mod env_var;
 mod install;
+pub mod settings;
 pub mod telemetry;
 pub mod command;
 pub mod telemetry_analysis;

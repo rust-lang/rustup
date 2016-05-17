@@ -6,12 +6,6 @@ use rustc_serialize::json;
 use std::fs;
 use std::path::PathBuf;
 
-#[derive(Debug, PartialEq)]
-pub enum TelemetryMode {
-    On,
-    Off,
-}
-
 #[derive(RustcDecodable, RustcEncodable, Debug, Clone)]
 pub enum TelemetryEvent {
     RustcRun { duration_ms: u64, exit_code: i32, errors: Option<Vec<String>> },
@@ -61,8 +55,8 @@ impl Telemetry {
             try!(self.clean_telemetry_dir());
         }
 
-        let _ = utils::append_file("telemetry", 
-                                   &self.telemetry_dir.join(&filename), 
+        let _ = utils::append_file("telemetry",
+                                   &self.telemetry_dir.join(&filename),
                                    &json);
 
         Ok(())

@@ -16,14 +16,38 @@ pub fn get_string(table: &mut toml::Table, key: &str, path: &str) -> Result<Stri
     })
 }
 
+pub fn get_opt_string(table: &mut toml::Table, key: &str, path: &str) -> Result<Option<String>> {
+    if let Ok(v) = get_value(table, key, path) {
+        if let toml::Value::String(s) = v {
+            Ok(Some(s))
+        } else {
+            Err(ErrorKind::ExpectedType("string", path.to_owned() + key).into())
+        }
+    } else {
+        Ok(None)
+    }
+}
+
 pub fn get_bool(table: &mut toml::Table, key: &str, path: &str) -> Result<bool> {
     get_value(table, key, path).and_then(|v| {
         if let toml::Value::Boolean(b) = v {
             Ok(b)
         } else {
-            Err(ErrorKind::ExpectedType("string", path.to_owned() + key).into())
+            Err(ErrorKind::ExpectedType("bool", path.to_owned() + key).into())
         }
     })
+}
+
+pub fn get_opt_bool(table: &mut toml::Table, key: &str, path: &str) -> Result<Option<bool>> {
+    if let Ok(v) = get_value(table, key, path) {
+        if let toml::Value::Boolean(b) = v {
+            Ok(Some(b))
+        } else {
+            Err(ErrorKind::ExpectedType("bool", path.to_owned() + key).into())
+        }
+    } else {
+        Ok(None)
+    }
 }
 
 pub fn get_table(table: &mut toml::Table, key: &str, path: &str) -> Result<toml::Table> {

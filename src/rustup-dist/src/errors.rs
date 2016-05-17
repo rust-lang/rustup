@@ -93,10 +93,6 @@ error_chain! {
         Parsing(e: Vec<toml::ParserError>) {
             description("error parsing manifest")
         }
-        ExpectedType(t: &'static str, n: String) {
-            description("expected type")
-            display("expected type: '{}' for '{}'", t, n)
-        }
         UnsupportedVersion(v: String) {
             description("unsupported manifest version")
             display("manifest version '{}' is not supported", v)
@@ -116,7 +112,7 @@ fn component_unavailable_msg(cs: &[Component]) -> String {
     assert!(!cs.is_empty());
 
     let mut buf = vec![];
-    
+
     if cs.len() == 1 {
         let _ = write!(buf, "component '{}' for '{}' is unavailable for download",
                        cs[0].pkg, cs[0].target);

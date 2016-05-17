@@ -725,6 +725,7 @@ fn update_stress_test() {
 // The installer used to be called rustup-setup. For compatibility it
 // still needs to work in that mode.
 #[test]
+#[cfg(not(windows))]
 fn as_rustup_setup() {
     update_setup(&|config, _| {
         let init = config.exedir.join(format!("rustup-init{}", EXE_SUFFIX));

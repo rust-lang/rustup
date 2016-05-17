@@ -1,6 +1,7 @@
 use rustup_dist::{self, temp};
 use rustup_utils;
 use rustup_dist::manifest::Component;
+use toml;
 
 error_chain! {
     types {
@@ -48,6 +49,9 @@ error_chain! {
             description("required component cannot be added")
             display("component '{}' for target '{}' is required for toolchain '{}' and cannot be re-added",
                     c.pkg, c.target, t)
+        }
+        ParsingSettings(e: Vec<toml::ParserError>) {
+            description("error parsing settings")
         }
         RemovingRequiredComponent(t: String, c: Component) {
             description("required component cannot be removed")

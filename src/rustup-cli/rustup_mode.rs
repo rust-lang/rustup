@@ -1,7 +1,7 @@
 use clap::{App, Arg, ArgGroup, AppSettings, SubCommand, ArgMatches};
 use common;
 use rustup::{Cfg, Toolchain, command};
-use rustup::telemetry::TelemetryMode;
+use rustup::settings::TelemetryMode;
 use errors::*;
 use rustup_dist::manifest::Component;
 use rustup_dist::dist::TargetTriple;
@@ -510,16 +510,13 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn override_remove(cfg: &Cfg) -> Result<()> {
     let ref path = try!(utils::current_dir());
 
-    let ref override_db = cfg.override_db;
-    let notify_handler = cfg.notify_handler.as_ref();
-
-    if try!(override_db.find(path, notify_handler)).is_none() {
+    if try!(cfg.settings_file.with_mut(|s| {
+        Ok(s.remove_override(path, cfg.notify_handler.as_ref()))
+    })) {
+        info!("override toolchain for '{}' removed", path.display());
+    } else {
         info!("no override toolchain for '{}'", path.display());
-        return Ok(());
     }
-
-    try!(override_db.remove(path, &cfg.temp_cfg, notify_handler));
-    info!("override toolchain for '{}' removed", path.display());
     Ok(())
 }
 
