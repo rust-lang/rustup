@@ -133,8 +133,8 @@ fn bins_are_executable() {
 #[test]
 fn install_creates_cargo_home() {
     setup(&|config| {
-        fs::remove_dir(&config.cargodir).unwrap();
-        fs::remove_dir(&config.rustupdir).unwrap();
+        fs::remove_dir_all(&config.cargodir).unwrap();
+        fs::remove_dir_all(&config.rustupdir).unwrap();
         expect_ok(config, &["rustup-init", "-y"]);
         assert!(config.cargodir.exists());
     });

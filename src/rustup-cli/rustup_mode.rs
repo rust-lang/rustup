@@ -82,6 +82,12 @@ pub fn main() -> Result<()> {
                 (_, _) => unreachable!(),
             }
         }
+        ("set", Some(c)) => {
+            match c.subcommand() {
+                ("default-host", Some(m)) => try!(set_default_host_triple(&cfg, m)),
+                (_, _) => unreachable!(),
+            }
+        }
         (_, _) => unreachable!(),
     }
 
@@ -263,6 +269,13 @@ pub fn cli() -> App<'static, 'static> {
                             .about("Disable rustup telemetry"))
             .subcommand(SubCommand::with_name("analyze")
                             .about("Analyze stored telemetry")))
+        .subcommand(SubCommand::with_name("set")
+            .about("Alter rustup settings")
+            .setting(AppSettings::SubcommandRequiredElseHelp)
+            .subcommand(SubCommand::with_name("default-host")
+                .about("Set host triple.")
+                .arg(Arg::with_name("host_triple")
+                    .required(true))))
 }
 
 fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
@@ -348,6 +361,16 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn show(cfg: &Cfg) -> Result<()> {
+    // Print host triple
+    {
+        let mut t = term2::stdout();
+        let _ = t.attr(term2::Attr::Bold);
+        let _ = write!(t, "Default host: ");
+        let _ = t.reset();
+        println!("{}", try!(cfg.get_default_host_triple()));
+        println!("");
+    }
+
     let ref cwd = try!(utils::current_dir());
     let installed_toolchains = try!(cfg.list_toolchains());
     let active_toolchain = try!(cfg.find_override_toolchain_or_default(cwd));
@@ -548,4 +571,9 @@ fn set_telemetry(cfg: &Cfg, t: TelemetryMode) -> Result<()> {
 fn analyze_telemetry(cfg: &Cfg) -> Result<()> {
     let analysis = try!(cfg.analyze_telemetry());
     common::show_telemetry(analysis)
+}
+
+fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    try!(cfg.set_default_host_triple(m.value_of("host_triple").expect("")));
+    Ok(())
 }

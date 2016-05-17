@@ -267,8 +267,10 @@ fn link() {
 fn show_toolchain_none() {
     setup(&|config| {
         expect_ok_ex(config, &["rustup", "show"],
-r"no active toolchain
-",
+for_host!(r"Default host: {0}
+
+no active toolchain
+"),
 r"");
     });
 }
@@ -278,7 +280,9 @@ fn show_toolchain_default() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok_ex(config, &["rustup", "show"],
-for_host!(r"nightly-{0} (default)
+for_host!(r"Default host: {0}
+
+nightly-{0} (default)
 1.3.0 (hash-n-2)
 "),
 r"");
@@ -291,7 +295,9 @@ fn show_multiple_toolchains() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "update", "stable"]);
         expect_ok_ex(config, &["rustup", "show"],
-for_host!(r"installed toolchains
+for_host!(r"Default host: {0}
+
+installed toolchains
 --------------------
 
 stable-{0}
@@ -318,7 +324,9 @@ fn show_multiple_targets() {
                             &format!("nightly-{}", clitools::MULTI_ARCH1)]);
         expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH2]);
         expect_ok_ex(config, &["rustup", "show"],
-&format!(r"installed targets for active toolchain
+&format!(r"Default host: {2}
+
+installed targets for active toolchain
 --------------------------------------
 
 {1}
@@ -330,7 +338,7 @@ active toolchain
 nightly-{0} (default)
 1.3.0 (xxxx-n-2)
 
-", clitools::MULTI_ARCH1, clitools::CROSS_ARCH2),
+", clitools::MULTI_ARCH1, clitools::CROSS_ARCH2, this_host_triple()),
 r"");
     });
 }
@@ -346,7 +354,9 @@ fn show_multiple_toolchains_and_targets() {
         expect_ok(config, &["rustup", "update",
                             &format!("stable-{}", clitools::MULTI_ARCH1)]);
         expect_ok_ex(config, &["rustup", "show"],
-&format!(r"installed toolchains
+&format!(r"Default host: {2}
+
+installed toolchains
 --------------------
 
 stable-{0}
@@ -364,7 +374,7 @@ active toolchain
 nightly-{0} (default)
 1.3.0 (xxxx-n-2)
 
-", clitools::MULTI_ARCH1, clitools::CROSS_ARCH2),
+", clitools::MULTI_ARCH1, clitools::CROSS_ARCH2, this_host_triple()),
 r"");
     });
 }
@@ -389,7 +399,9 @@ fn show_toolchain_override() {
         let cwd = ::std::env::current_dir().unwrap();
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
         expect_ok_ex(config, &["rustup", "show"],
-&format!(r"nightly-{} (directory override for '{}')
+&format!(r"Default host: {0}
+
+nightly-{0} (directory override for '{1}')
 1.3.0 (hash-n-2)
 ", this_host_triple(), cwd.display()),
 r"");
@@ -418,7 +430,9 @@ fn show_toolchain_env() {
         let out = cmd.output().unwrap();
         assert!(out.status.success());
         let stdout = String::from_utf8(out.stdout).unwrap();
-        assert!(&stdout == for_host!(r"nightly-{0} (environment override by RUSTUP_TOOLCHAIN)
+        assert!(&stdout == for_host!(r"Default host: {0}
+
+nightly-{0} (environment override by RUSTUP_TOOLCHAIN)
 1.3.0 (hash-n-2)
 "));
     });
@@ -453,7 +467,7 @@ fn update_doesnt_update_non_tracking_channels() {
             for_host!("syncing channel updates for 'nightly-2015-01-01-{}'")));
     });
 }
-    
+
 #[test]
 fn toolchain_install_is_like_update() {
     setup(&|config| {
