@@ -229,7 +229,7 @@ pub fn cli() -> App<'static, 'static> {
             .arg(Arg::with_name("command")
                 .required(true)))
         .subcommand(SubCommand::with_name("doc")
-            .about("Open the documentation for the current toolchain.")
+            .about("Open the documentation for the current toolchain")
             .after_help(DOC_HELP)
             .arg(Arg::with_name("book")
                  .long("book")
