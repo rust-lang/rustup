@@ -160,7 +160,7 @@ may be any program, not just rustc or cargo.
             SubCommand::with_name("delete-data")
                 .about("Delete all user metadata.")
                 .after_help(
-r"Rremoves all installed toolchains, overrides, and aliases for the
+r"Removes all installed toolchains, overrides, and aliases for the
 current user.
 
 Prompts for confirmation, unless disabled.
