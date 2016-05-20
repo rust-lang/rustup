@@ -107,7 +107,7 @@ info: downloading self-updates
 
 ```
 
-This is the essense of `rustup`.
+This is the essence of `rustup`.
 
 ## Working with nightly Rust
 
@@ -270,7 +270,7 @@ Note that `rustup target add` only installs the Rust standard library
 for a given target. There are typically other tools necessary to
 cross-compile, particularly a linker. For example, to cross compile
 to Android the [Android NDK] must be installed. In the future, `rustup`
-will provide assistence installing the NDK components as well.
+will provide assistance installing the NDK components as well.
 
 [Android NDK]: https://developer.android.com/tools/sdk/ndk/index.html
 
@@ -328,7 +328,7 @@ my-toolchain rustc`.
 Because the `rust-lang/rust` tree does not include Cargo, *when `cargo`
 is invoked for a custom toolchain and it is not available, `rustup`
 will attempt to use `cargo` from one of the release channels*,
-prefering 'nightly', then 'beta' or 'stable'.
+preferring 'nightly', then 'beta' or 'stable'.
 
 ## Examples
 
@@ -354,7 +354,7 @@ Command | Description
 
 - `RUSTUP_TOOLCHAIN` (default: none)
   If set, will override the toolchain used for all rust tool
-  nvocations. A toolchain with this name should be installed, or
+  invocations. A toolchain with this name should be installed, or
   invocations will fail.
 
 - `RUSTUP_DIST_ROOT` (default: `https://static.rust-lang.org/dist`)
@@ -373,7 +373,7 @@ The primary installation method, as described at
 * On Windows, download and run the [rustup-init.exe for the
   `i686-pc-windows-gnu` target][setup]. Although this build of
   `rustup` installs compilers targeting the GNU ABI by default,
-  compilers targetting the MSVC ABI can be installed with e.g. `rustup
+  compilers targeting the MSVC ABI can be installed with e.g. `rustup
   install stable-msvc`.
 * On Unix, run `curl https://sh.rustup.rs -sSf | sh` in your
   shell. This downloads and runs the correct version of
@@ -419,7 +419,7 @@ the GNU build.
 
 To install from source just run `cargo run --release`. Note that
 currently rustup only builds on nightly Rust, and that after
-installation the rustup toolchains will supercede any pre-existing
+installation the rustup toolchains will supersede any pre-existing
 toolchains by prepending `~/.cargo/bin` to the `PATH` environment
 variable.
 
