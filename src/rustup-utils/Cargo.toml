@@ -18,7 +18,7 @@ error-chain = { path = "../error-chain", version = "0.1.12" }
 libc = "0.2.0"
 rustc-serialize = "0.3.19"
 sha2 = "0.1.2"
-curl = { git = "https://github.com/alexcrichton/curl-rust", rev = "ccf35d3e" }
+curl = "0.3"
 url = "1.1"
 toml = "0.1.27"
 
