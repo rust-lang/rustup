@@ -6,7 +6,7 @@ use std::env;
 use std::process::Command;
 use std::env::consts::EXE_SUFFIX;
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 use std::sync::Mutex;
 use tempdir::TempDir;
 use {MockInstallerBuilder, MockCommand};
@@ -92,7 +92,22 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let rustc_path = config.exedir.join(format!("rustc{}", EXE_SUFFIX));
     let cargo_path = config.exedir.join(format!("cargo{}", EXE_SUFFIX));
 
-    fs::copy(build_path, rustup_path).unwrap();
+    // Don't copy an executable via `fs::copy` on Unix because that'll require
+    // opening up the destination for writing. If one thread in our process then
+    // forks the child will have the destination open as well (fd inheritance)
+    // which will prevent us from then executing that binary.
+    //
+    // On Windows, however, handles aren't inherited across processes so we can
+    // do fs::copy there, and on Unix we just do symlinks.
+    #[cfg(windows)]
+    fn copy_binary(src: &Path, dst: &Path) -> io::Result<()> {
+        fs::copy(src, dst).map(|_| ())
+    }
+    #[cfg(unix)]
+    fn copy_binary(src: &Path, dst: &Path) -> io::Result<()> {
+        ::std::os::unix::fs::symlink(src, dst)
+    }
+    copy_binary(&build_path, &rustup_path).unwrap();
     fs::hard_link(rustup_path, setup_path).unwrap();
     fs::hard_link(rustup_path, multirust_setup_path).unwrap();
     fs::hard_link(rustup_path, rustc_path).unwrap();

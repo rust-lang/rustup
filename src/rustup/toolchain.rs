@@ -1,5 +1,6 @@
 use errors::*;
 use notifications::*;
+use rustup_dist;
 use rustup_dist::dist;
 use rustup_utils::utils;
 use rustup_dist::prefix::InstallPrefix;
@@ -19,12 +20,12 @@ use std::env;
 
 use url::Url;
 
-#[derive(Debug)]
 pub struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: String,
     path: PathBuf,
     telemetry: telemetry::Telemetry,
+    dist_handler: Box<Fn(rustup_dist::Notification) + 'a>,
 }
 
 /// Used by the list_component function
@@ -49,6 +50,9 @@ impl<'a> Toolchain<'a> {
             name: resolved_name,
             path: path.clone(),
             telemetry: Telemetry::new(cfg.multirust_dir.join("telemetry")),
+            dist_handler: Box::new(move |n| {
+                (cfg.notify_handler)(n.into())
+            })
         })
     }
     pub fn name(&self) -> &str {
@@ -68,18 +72,18 @@ impl<'a> Toolchain<'a> {
     }
     pub fn remove(&self) -> Result<()> {
         if self.exists() {
-            self.cfg.notify_handler.call(Notification::UninstallingToolchain(&self.name));
+            (self.cfg.notify_handler)(Notification::UninstallingToolchain(&self.name));
         } else {
-            self.cfg.notify_handler.call(Notification::ToolchainNotInstalled(&self.name));
+            (self.cfg.notify_handler)(Notification::ToolchainNotInstalled(&self.name));
             return Ok(());
         }
         if let Some(update_hash) = try!(self.update_hash()) {
             try!(utils::remove_file("update hash", &update_hash));
         }
-        let handler = self.cfg.notify_handler.as_ref();
-        let result = install::uninstall(&self.path, ntfy!(&handler));
+        let result = install::uninstall(&self.path,
+                                        &|n| (self.cfg.notify_handler)(n.into()));
         if !self.exists() {
-            self.cfg.notify_handler.call(Notification::UninstalledToolchain(&self.name));
+            (self.cfg.notify_handler)(Notification::UninstalledToolchain(&self.name));
         }
         Ok(try!(result))
     }
@@ -87,20 +91,19 @@ impl<'a> Toolchain<'a> {
         assert!(self.is_valid_install_method(install_method));
         let exists = self.exists();
         if exists {
-            self.cfg.notify_handler.call(Notification::UpdatingToolchain(&self.name));
+            (self.cfg.notify_handler)(Notification::UpdatingToolchain(&self.name));
         } else {
-            self.cfg.notify_handler.call(Notification::InstallingToolchain(&self.name));
+            (self.cfg.notify_handler)(Notification::InstallingToolchain(&self.name));
         }
-        self.cfg
-            .notify_handler
-            .call(Notification::ToolchainDirectory(&self.path, &self.name));
-        let handler = self.cfg.notify_handler.as_ref();
-        let updated = try!(install_method.run(&self.path, ntfy!(&handler)));
+        (self.cfg.notify_handler)
+            (Notification::ToolchainDirectory(&self.path, &self.name));
+        let updated = try!(install_method.run(&self.path,
+                                              &|n| (self.cfg.notify_handler)(n.into())));
 
         if !updated {
-            self.cfg.notify_handler.call(Notification::UpdateHashMatches);
+            (self.cfg.notify_handler)(Notification::UpdateHashMatches);
         } else {
-            self.cfg.notify_handler.call(Notification::InstalledToolchain(&self.name));
+            (self.cfg.notify_handler)(Notification::InstalledToolchain(&self.name));
         }
 
         let status = match (updated, exists) {
@@ -114,11 +117,11 @@ impl<'a> Toolchain<'a> {
     }
     fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
-        self.cfg.notify_handler.call(Notification::LookingForToolchain(&self.name));
+        (self.cfg.notify_handler)(Notification::LookingForToolchain(&self.name));
         if !self.exists() {
             Ok(try!(self.install(install_method)))
         } else {
-            self.cfg.notify_handler.call(Notification::UsingExistingToolchain(&self.name));
+            (self.cfg.notify_handler)(Notification::UsingExistingToolchain(&self.name));
             Ok(UpdateStatus::Unchanged)
         }
     }
@@ -138,11 +141,11 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    fn download_cfg(&self) -> dist::DownloadCfg {
+    fn download_cfg<'b>(&'b self) -> dist::DownloadCfg<'b> {
         dist::DownloadCfg {
             dist_root: &self.cfg.dist_root_url,
             temp_cfg: &self.cfg.temp_cfg,
-            notify_handler: ntfy!(&self.cfg.notify_handler),
+            notify_handler: &*self.dist_handler,
         }
     }
 
@@ -170,7 +173,7 @@ impl<'a> Toolchain<'a> {
                 match self.telemetry.log_telemetry(te) {
                     Ok(_) => Ok(us),
                     Err(e) => {
-                        self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&e));
+                        (self.cfg.notify_handler)(Notification::TelemetryCleanupError(&e));
                         Ok(us)
                     }
                 }
@@ -179,7 +182,7 @@ impl<'a> Toolchain<'a> {
                 let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name().to_string() ,
                                                            success: true };
                 let _ = self.telemetry.log_telemetry(te).map_err(|xe| {
-                    self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
+                    (self.cfg.notify_handler)(Notification::TelemetryCleanupError(&xe));
                 });
                 Err(e)
             }
@@ -239,7 +242,7 @@ impl<'a> Toolchain<'a> {
                 try!(utils::download_file(&url,
                                           &local_installer,
                                           None,
-                                          ntfy!(&self.cfg.notify_handler)));
+                                          &|n| (self.cfg.notify_handler)(n.into())));
                 try!(self.install(InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg)));
             } else {
                 // If installer is a filename
@@ -418,7 +421,7 @@ impl<'a> Toolchain<'a> {
                 match self.telemetry.log_telemetry(te) {
                     Ok(_) => Ok(()),
                     Err(e) => {
-                        self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&e));
+                        (self.cfg.notify_handler)(Notification::TelemetryCleanupError(&e));
                         Ok(())
                     }
                 }
@@ -428,7 +431,7 @@ impl<'a> Toolchain<'a> {
                                                            success: false };
 
                 let _ = self.telemetry.log_telemetry(te).map_err(|xe| {
-                    self.cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
+                    (self.cfg.notify_handler)(Notification::TelemetryCleanupError(&xe));
                 });
                 Err(e)
             }

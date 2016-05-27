@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 
 use url::Url;
 
-use notify::{self, NotificationLevel, Notifyable};
+use notify::NotificationLevel;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -20,8 +20,6 @@ pub enum Notification<'a> {
     DownloadFinished,
     NoCanonicalPath(&'a Path),
 }
-
-pub type NotifyHandler<'a> = notify::NotifyHandler<'a, for<'b> Notifyable<Notification<'b>>>;
 
 impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {

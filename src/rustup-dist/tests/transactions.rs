@@ -2,10 +2,10 @@ extern crate rustup_dist;
 extern crate rustup_utils;
 extern crate tempdir;
 
-use rustup_dist::NotifyHandler;
 use rustup_dist::prefix::InstallPrefix;
 use rustup_dist::component::Transaction;
 use rustup_dist::temp;
+use rustup_dist::Notification;
 use rustup_utils::utils;
 use rustup_utils::raw as utils_raw;
 use rustup_dist::ErrorKind;
@@ -21,11 +21,10 @@ fn add_file() {
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let mut file = tx.add_file("c", PathBuf::from("foo/bar")).unwrap();
     write!(&mut file, "test").unwrap();
@@ -44,11 +43,10 @@ fn add_file_then_rollback() {
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     tx.add_file("c", PathBuf::from("foo/bar")).unwrap();
     drop(tx);
@@ -61,13 +59,12 @@ fn add_file_that_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     fs::create_dir_all(&prefixdir.path().join("foo")).unwrap();
     utils::write_file("", &prefixdir.path().join("foo/bar"), "").unwrap();
@@ -89,13 +86,12 @@ fn copy_file() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let srcpath = srcdir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
@@ -112,13 +108,12 @@ fn copy_file_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let srcpath = srcdir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
@@ -135,13 +130,12 @@ fn copy_file_that_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let srcpath = srcdir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
@@ -166,13 +160,12 @@ fn copy_dir() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let srcpath1 = srcdir.path().join("foo");
     let srcpath2 = srcdir.path().join("bar/baz");
@@ -197,13 +190,12 @@ fn copy_dir_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let srcpath1 = srcdir.path().join("foo");
     let srcpath2 = srcdir.path().join("bar/baz");
@@ -228,13 +220,12 @@ fn copy_dir_that_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     fs::create_dir_all(prefix.path().join("a")).unwrap();
 
@@ -254,13 +245,12 @@ fn remove_file() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let filepath = prefixdir.path().join("foo");
     utils::write_file("", &filepath, "").unwrap();
@@ -276,13 +266,12 @@ fn remove_file_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let filepath = prefixdir.path().join("foo");
     utils::write_file("", &filepath, "").unwrap();
@@ -298,13 +287,12 @@ fn remove_file_that_not_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let err = tx.remove_file("c", PathBuf::from("foo")).unwrap_err();
 
@@ -322,13 +310,12 @@ fn remove_dir() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let filepath = prefixdir.path().join("foo/bar");
     fs::create_dir_all(filepath.parent().unwrap()).unwrap();
@@ -345,13 +332,12 @@ fn remove_dir_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let filepath = prefixdir.path().join("foo/bar");
     fs::create_dir_all(filepath.parent().unwrap()).unwrap();
@@ -368,13 +354,12 @@ fn remove_dir_that_not_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let err = tx.remove_dir("c", PathBuf::from("foo")).unwrap_err();
 
@@ -392,13 +377,12 @@ fn write_file() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let content = "hi".to_string();
     tx.write_file("c", PathBuf::from("foo/bar"), content.clone()).unwrap();
@@ -415,13 +399,12 @@ fn write_file_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let content = "hi".to_string();
     tx.write_file("c", PathBuf::from("foo/bar"), content.clone()).unwrap();
@@ -435,13 +418,12 @@ fn write_file_that_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let content = "hi".to_string();
     utils_raw::write_file(&prefix.path().join("a"), &content).unwrap();
@@ -463,13 +445,12 @@ fn modify_file_that_not_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     tx.modify_file(PathBuf::from("foo/bar")).unwrap();
     tx.commit();
@@ -484,13 +465,12 @@ fn modify_file_that_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let ref path = prefix.path().join("foo");
     utils_raw::write_file(path, "wow").unwrap();
@@ -505,13 +485,12 @@ fn modify_file_that_not_exists_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     tx.modify_file(PathBuf::from("foo/bar")).unwrap();
     drop(tx);
@@ -524,13 +503,12 @@ fn modify_file_that_exists_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let ref path = prefix.path().join("foo");
     utils_raw::write_file(path, "wow").unwrap();
@@ -548,13 +526,12 @@ fn modify_twice_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let ref path = prefix.path().join("foo");
     utils_raw::write_file(path, "wow").unwrap();
@@ -572,13 +549,12 @@ fn do_multiple_op_transaction(rollback: bool) {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     // copy_file
     let relpath1 = PathBuf::from("bin/rustc");
@@ -669,13 +645,12 @@ fn rollback_failure_keeps_going() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpnotify = temp::SharedNotifyHandler::none();
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), tmpnotify);
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let notify = NotifyHandler::none();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, notify);
+    let notify = |_: Notification| ();
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     write!(&mut tx.add_file("", PathBuf::from("foo")).unwrap(), "").unwrap();
     write!(&mut tx.add_file("", PathBuf::from("bar")).unwrap(), "").unwrap();

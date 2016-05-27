@@ -31,7 +31,6 @@
 //! and racy on Windows.
 
 use common::{self, Confirm};
-use rustup::{NotifyHandler};
 use errors::*;
 use rustup_dist::dist;
 use rustup_utils::utils;
@@ -463,7 +462,7 @@ fn install_bins() -> Result<()> {
     let ref this_exe_path = try!(utils::current_exe());
     let ref multirust_path = bin_path.join(&format!("multirust{}", EXE_SUFFIX));
 
-    try!(utils::ensure_dir_exists("bin", bin_path, ntfy!(&NotifyHandler::none())));
+    try!(utils::ensure_dir_exists("bin", bin_path, &|_| {}));
     // NB: Even on Linux we can't just copy the new binary over the (running)
     // old binary; we must unlink it first.
     if multirust_path.exists() {
@@ -528,7 +527,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     // Delete RUSTUP_HOME
     let ref multirust_dir = try!(utils::multirust_home());
     if multirust_dir.exists() {
-        try!(utils::remove_dir("multirust_home", multirust_dir, ntfy!(&NotifyHandler::none())));
+        try!(utils::remove_dir("multirust_home", multirust_dir, &|_| {}));
     }
 
     let read_dir_err = "failure reading directory";
@@ -546,7 +545,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         let dirent = try!(dirent.chain_err(|| read_dir_err));
         if dirent.file_name().to_str() != Some("bin") {
             if dirent.path().is_dir() {
-                try!(utils::remove_dir("cargo_home", &dirent.path(), ntfy!(&NotifyHandler::none())));
+                try!(utils::remove_dir("cargo_home", &dirent.path(), &|_| {}));
             } else {
                 try!(utils::remove_file("cargo_home", &dirent.path()));
             }
@@ -563,7 +562,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));
         if file_is_tool == Some(false) {
             if dirent.path().is_dir() {
-                try!(utils::remove_dir("cargo_home", &dirent.path(), ntfy!(&NotifyHandler::none())));
+                try!(utils::remove_dir("cargo_home", &dirent.path(), &|_| {}));
             } else {
                 try!(utils::remove_file("cargo_home", &dirent.path()));
             }
@@ -585,7 +584,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 #[cfg(unix)]
 fn delete_multirust_and_cargo_home() -> Result<()> {
     let ref cargo_home = try!(utils::cargo_home());
-    try!(utils::remove_dir("cargo_home", cargo_home, ntfy!(&NotifyHandler::none())));
+    try!(utils::remove_dir("cargo_home", cargo_home, &|_| ()));
 
     Ok(())
 }
@@ -693,7 +692,6 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
 /// Run by multirust-gc-$num.exe to delete CARGO_HOME
 #[cfg(windows)]
 pub fn complete_windows_uninstall() -> Result<()> {
-    use rustup::NotifyHandler;
     use std::ffi::OsStr;
     use std::process::Stdio;
 
@@ -701,7 +699,7 @@ pub fn complete_windows_uninstall() -> Result<()> {
 
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME
     let ref cargo_home = try!(utils::cargo_home());
-    try!(utils::remove_dir("cargo_home", cargo_home, ntfy!(&NotifyHandler::none())));
+    try!(utils::remove_dir("cargo_home", cargo_home, &|_| ()));
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc
@@ -1108,7 +1106,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     info!("checking for self-updates");
     let hash_url = try!(utils::parse_url(&(url.clone() + ".sha256")));
     let hash_file = tempdir.path().join("hash");
-    try!(utils::download_file(&hash_url, &hash_file, None, ntfy!(&NotifyHandler::none())));
+    try!(utils::download_file(&hash_url, &hash_file, None, &|_| ()));
     let mut latest_hash = try!(utils::read_file("hash", &hash_file));
     latest_hash.truncate(64);
 
@@ -1127,7 +1125,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     try!(utils::download_file(&download_url,
                               &setup_path,
                               Some(&mut hasher),
-                              ntfy!(&NotifyHandler::none())));
+                              &|_| ()));
     let download_hash = hasher.result_str();
 
     // Check that hash is correct

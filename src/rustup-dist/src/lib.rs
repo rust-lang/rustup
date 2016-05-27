@@ -27,7 +27,7 @@ extern crate gcc;
 extern crate libc;
 
 pub use errors::*;
-pub use notifications::{Notification, NotifyHandler};
+pub use notifications::{Notification};
 
 pub mod temp;
 

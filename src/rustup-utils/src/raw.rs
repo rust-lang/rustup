@@ -1,5 +1,3 @@
-use notifications::NotifyHandler;
-
 use std::cell::RefCell;
 use std::char::from_u32;
 use std::error;
@@ -19,6 +17,8 @@ use errors::*;
 use url::Url;
 
 use rand::random;
+
+use notifications::Notification;
 
 pub fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(path: P,
                                                            callback: F)
@@ -158,88 +158,88 @@ pub fn tee_file<W: io::Write>(path: &Path, mut w: &mut W) -> io::Result<()> {
 pub fn download_file(url: &Url,
                      path: &Path,
                      mut hasher: Option<&mut Sha256>,
-                     notify_handler: NotifyHandler)
+                     notify_handler: &Fn(Notification))
                      -> Result<()> {
     use notifications::Notification;
     use std::io::Write;
 
     let mut file = try!(fs::File::create(&path).chain_err(
         || "error creating file for download"));
-    let fserr = RefCell::new(None);
-
-    // Data callback for libcurl which is called with data that's downloaded. We
-    // just feed it into our hasher and also write it out to disk.
-    let mut ondata = |data: &[u8]| {
-        if let Some(ref mut h) = hasher {
-            h.input(data);
-        }
-        notify_handler.call(Notification::DownloadDataReceived(data.len()));
-        match file.write_all(data) {
-            Ok(()) => data.len(),
-            Err(e) => {
-                *fserr.borrow_mut() = Some(e);
-                0
-            }
-        }
-    };
-
-    // Listen for headers and parse out a `Content-Length` if it comes so we
-    // know how much we're downloading.
-    let mut onheader = |data: &[u8]| {
-        if let Ok(data) = str::from_utf8(data) {
-            let prefix = "Content-Length: ";
-            if data.starts_with(prefix) {
-                if let Ok(s) = data[prefix.len()..].trim().parse() {
-                    notify_handler.call(Notification::DownloadContentLengthReceived(s));
-                }
-            }
-        }
-        true
-    };
 
     // Fetch either a cached libcurl handle (which will preserve open
     // connections) or create a new one if it isn't listed.
     //
     // Once we've acquired it, reset the lifetime from 'static to our local
     // scope.
-    thread_local!(static EASY: RefCell<Option<Easy<'static>>> = RefCell::new(None));
-    let handle = EASY.with(|e| e.borrow_mut().take()).unwrap_or(Easy::new());
-    let mut handle = handle.reset_lifetime();
+    thread_local!(static EASY: RefCell<Easy> = RefCell::new(Easy::new()));
+    EASY.with(|handle| {
+        let mut handle = handle.borrow_mut();
 
-    try!(handle.url(&url.to_string()).chain_err(|| "failed to set url"));
-    try!(handle.follow_location(true).chain_err(|| "failed to set follow redirects"));
-    try!(handle.write_function(&mut ondata).chain_err(|| "failed to set write"));
-    try!(handle.header_function(&mut onheader).chain_err(|| "failed to set header"));
+        try!(handle.url(&url.to_string()).chain_err(|| "failed to set url"));
+        try!(handle.follow_location(true).chain_err(|| "failed to set follow redirects"));
 
-    // Take at most 30s to connect
-    try!(handle.connect_timeout(Duration::new(30, 0)).chain_err(|| "failed to set connect timeout"));
+        // Take at most 30s to connect
+        try!(handle.connect_timeout(Duration::new(30, 0)).chain_err(|| "failed to set connect timeout"));
 
-    // Fail if less than 10 bytes are transferred every 30 seconds
-    try!(handle.low_speed_limit(10).chain_err(|| "failed to set low speed limit"));
-    try!(handle.low_speed_time(Duration::new(30, 0)).chain_err(|| "failed to set low speed time"));
+        // Fail if less than 10 bytes are transferred every 30 seconds
+        try!(handle.low_speed_limit(10).chain_err(|| "failed to set low speed limit"));
+        try!(handle.low_speed_time(Duration::new(30, 0)).chain_err(|| "failed to set low speed time"));
 
-    // If an error happens check to see if we had a filesystem error up in
-    // `fserr`, but we always want to punt it up.
-    try!(handle.perform().or_else(|e| {
-        match fserr.borrow_mut().take() {
-            Some(fs) => Err(fs).chain_err(|| ErrorKind::HttpError(e)),
-            None => Err(ErrorKind::HttpError(e).into())
+        {
+            let fserr = RefCell::new(None);
+            let mut transfer = handle.transfer();
+
+            // Data callback for libcurl which is called with data that's
+            // downloaded. We just feed it into our hasher and also write it out
+            // to disk.
+            try!(transfer.write_function(|data| {
+                if let Some(ref mut h) = hasher {
+                    h.input(data);
+                }
+                notify_handler(Notification::DownloadDataReceived(data.len()));
+                match file.write_all(data) {
+                    Ok(()) => Ok(data.len()),
+                    Err(e) => {
+                        *fserr.borrow_mut() = Some(e);
+                        Ok(0)
+                    }
+                }
+            }).chain_err(|| "failed to set write"));
+
+            // Listen for headers and parse out a `Content-Length` if it comes
+            // so we know how much we're downloading.
+            try!(transfer.header_function(|header| {
+                if let Ok(data) = str::from_utf8(header) {
+                    let prefix = "Content-Length: ";
+                    if data.starts_with(prefix) {
+                        if let Ok(s) = data[prefix.len()..].trim().parse() {
+                            let msg = Notification::DownloadContentLengthReceived(s);
+                            notify_handler(msg);
+                        }
+                    }
+                }
+                true
+            }).chain_err(|| "failed to set header"));
+
+            // If an error happens check to see if we had a filesystem error up
+            // in `fserr`, but we always want to punt it up.
+            try!(transfer.perform().or_else(|e| {
+                match fserr.borrow_mut().take() {
+                    Some(fs) => Err(fs).chain_err(|| ErrorKind::HttpError(e)),
+                    None => Err(ErrorKind::HttpError(e).into())
+                }
+            }));
         }
-    }));
 
-    // If we didn't get a 200 or 0 ("OK" for files) then return an error
-    let code = try!(handle.response_code().chain_err(|| "failed to get response code"));
-    if code != 200 && code != 0 {
-        return Err(ErrorKind::HttpStatus(code).into());
-    }
+        // If we didn't get a 200 or 0 ("OK" for files) then return an error
+        let code = try!(handle.response_code().chain_err(|| "failed to get response code"));
+        if code != 200 && code != 0 {
+            return Err(ErrorKind::HttpStatus(code).into());
+        }
 
-    // If everything worked out, put our handle back (with a reset to 'static)
-    // and then send off a notification for the completed download.
-    EASY.with(|e| {
-        *e.borrow_mut() = Some(handle.reset_lifetime());
-    });
-    notify_handler.call(Notification::DownloadFinished);
-    Ok(())
+        notify_handler(Notification::DownloadFinished);
+        Ok(())
+    })
 }
 
 pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {

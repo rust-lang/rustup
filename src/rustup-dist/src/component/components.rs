@@ -86,7 +86,6 @@ impl Components {
     }
 }
 
-#[derive(Debug)]
 pub struct ComponentBuilder<'a> {
     components: Components,
     name: String,

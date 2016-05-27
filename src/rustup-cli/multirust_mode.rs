@@ -10,6 +10,7 @@ use rustup_dist::dist::TargetTriple;
 use self_update;
 use std::env;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use job;
 
 pub fn main() -> Result<()> {
@@ -17,7 +18,7 @@ pub fn main() -> Result<()> {
 
     let need_metadata = try!(command_requires_metadata());
     if need_metadata {
-        let cfg = try!(Cfg::from_env(shared_ntfy!(move |_: Notification| { })));
+        let cfg = try!(Cfg::from_env(Arc::new(move |_: Notification| { })));
         try!(cfg.check_metadata_version());
     }
 

@@ -101,7 +101,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
                                                 errors: e };
 
             let _ = t.log_telemetry(te).map_err(|xe| {
-                cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
+                (cfg.notify_handler)(Notification::TelemetryCleanupError(&xe));
             });
 
             process::exit(exit_code);
@@ -113,7 +113,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
                                                 errors: None };
 
             let _ = t.log_telemetry(te).map_err(|xe| {
-                cfg.notify_handler.call(Notification::TelemetryCleanupError(&xe));
+                (cfg.notify_handler)(Notification::TelemetryCleanupError(&xe));
             });
 
             Err(e).chain_err(|| rustup_utils::ErrorKind::RunningCommand {

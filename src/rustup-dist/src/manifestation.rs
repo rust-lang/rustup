@@ -74,7 +74,7 @@ impl Manifestation {
                   new_manifest: &Manifest,
                   changes: Changes,
                   temp_cfg: &temp::Cfg,
-                  notify_handler: NotifyHandler) -> Result<UpdateStatus> {
+                  notify_handler: &Fn(Notification)) -> Result<UpdateStatus> {
 
         // Some vars we're going to need a few times
         let prefix = self.installation.prefix();
@@ -126,17 +126,21 @@ impl Manifestation {
         let mut things_to_install: Vec<(Component, temp::File)> = Vec::new();
         for (component, url, hash) in components_urls_and_hashes {
 
-            notify_handler.call(Notification::DownloadingComponent(&component.pkg,
-                                                                   &self.target_triple,
-                                                                   &component.target));
+            notify_handler(Notification::DownloadingComponent(&component.pkg,
+                                                              &self.target_triple,
+                                                              &component.target));
 
             // Download each package to temp file
             let temp_file = try!(temp_cfg.new_file());
             let url_url = try!(utils::parse_url(&url));
 
             let mut hasher = Sha256::new();
-            try!(utils::download_file(&url_url, &temp_file, Some(&mut hasher), ntfy!(&notify_handler))
-                 .chain_err(|| ErrorKind::ComponentDownloadFailed(component.clone())));
+            try!(utils::download_file(&url_url,
+                                      &temp_file,
+                                      Some(&mut hasher),
+                                      &|n| notify_handler(n.into())).chain_err(|| {
+                ErrorKind::ComponentDownloadFailed(component.clone())
+            }));
 
             let actual_hash = hasher.result_str();
 
@@ -148,7 +152,7 @@ impl Manifestation {
                     calculated: actual_hash,
                 }.into());
             } else {
-                notify_handler.call(Notification::ChecksumValid(&url));
+                notify_handler(Notification::ChecksumValid(&url));
             }
 
             things_to_install.push((component, temp_file));
@@ -169,9 +173,9 @@ impl Manifestation {
         // Install components
         for (component, installer_file) in things_to_install {
 
-            notify_handler.call(Notification::InstallingComponent(&component.pkg,
-                                                                  &self.target_triple,
-                                                                  &component.target));
+            notify_handler(Notification::InstallingComponent(&component.pkg,
+                                                             &self.target_triple,
+                                                             &component.target));
 
             let package = try!(TarGzPackage::new_file(&installer_file, temp_cfg));
 
@@ -218,7 +222,7 @@ impl Manifestation {
         Ok(UpdateStatus::Changed)
     }
 
-    pub fn uninstall(&self, temp_cfg: &temp::Cfg, notify_handler: NotifyHandler) -> Result<()> {
+    pub fn uninstall(&self, temp_cfg: &temp::Cfg, notify_handler: &Fn(Notification)) -> Result<()> {
         let prefix = self.installation.prefix();
 
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
@@ -238,7 +242,7 @@ impl Manifestation {
     }
 
     fn uninstall_component<'a>(&self, component: &Component, mut tx: Transaction<'a>,
-                               notify_handler: NotifyHandler) -> Result<Transaction<'a>> {
+                               notify_handler: &Fn(Notification)) -> Result<Transaction<'a>> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
@@ -250,7 +254,7 @@ impl Manifestation {
         } else if let Some(c) = try!(self.installation.find(&short_name)) {
             tx = try!(c.uninstall(tx));
         } else {
-            notify_handler.call(Notification::MissingInstalledComponent(&name));
+            notify_handler(Notification::MissingInstalledComponent(&name));
         }
 
         Ok(tx)
@@ -286,7 +290,7 @@ impl Manifestation {
                      new_manifest: &[String],
                      update_hash: Option<&Path>,
                      temp_cfg: &temp::Cfg,
-                     notify_handler: NotifyHandler) -> Result<Option<String>> {
+                     notify_handler: &Fn(Notification)) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if try!(self.read_config()).is_some() {
             return Err("the server unexpectedly provided an obsolete version of the distribution manifest".into());
@@ -299,9 +303,9 @@ impl Manifestation {
         }
         let url = url.unwrap();
 
-        notify_handler.call(Notification::DownloadingComponent("rust",
-                                                               &self.target_triple,
-                                                               &self.target_triple));
+        notify_handler(Notification::DownloadingComponent("rust",
+                                                          &self.target_triple,
+                                                          &self.target_triple));
 
         let dlcfg = DownloadCfg {
             dist_root: "bogus",
@@ -317,9 +321,9 @@ impl Manifestation {
 
         let prefix = self.installation.prefix();
 
-        notify_handler.call(Notification::InstallingComponent("rust",
-                                                              &self.target_triple,
-                                                              &self.target_triple));
+        notify_handler(Notification::InstallingComponent("rust",
+                                                         &self.target_triple,
+                                                         &self.target_triple));
 
         // Begin transaction
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
@@ -372,7 +376,7 @@ fn build_update_component_lists(
     config: &Option<Config>,
     changes: Changes,
     rust_target_package: &TargettedPackage,
-    notify_handler: NotifyHandler,
+    notify_handler: &Fn(Notification),
     ) -> Result<(Vec<Component>, Vec<Component>, Vec<Component>)> {
 
     // Check some invariantns
@@ -449,7 +453,7 @@ fn build_update_component_lists(
                 components_to_install.push(component.clone());
             } else {
                 if changes.add_extensions.contains(&component) {
-                    notify_handler.call(Notification::ComponentAlreadyInstalled(&component));
+                    notify_handler(Notification::ComponentAlreadyInstalled(&component));
                 }
             }
         }

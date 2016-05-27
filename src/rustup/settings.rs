@@ -143,26 +143,26 @@ impl Default for Settings {
 }
 
 impl Settings {
-    fn path_to_key(path: &Path, notify_handler: NotifyHandler) -> String {
-        utils::canonicalize_path(path, ntfy!(&notify_handler))
+    fn path_to_key(path: &Path, notify_handler: &Fn(Notification)) -> String {
+        utils::canonicalize_path(path, &|n| notify_handler(n.into()))
                .display()
                .to_string()
     }
 
-    pub fn remove_override(&mut self, path: &Path, notify_handler: NotifyHandler) -> bool {
+    pub fn remove_override(&mut self, path: &Path, notify_handler: &Fn(Notification)) -> bool {
         let key = Self::path_to_key(path, notify_handler);
         self.overrides.remove(&key).is_some()
     }
 
-    pub fn add_override(&mut self, path: &Path, toolchain: String, notify_handler: NotifyHandler) {
+    pub fn add_override(&mut self, path: &Path, toolchain: String, notify_handler: &Fn(Notification)) {
         let key = Self::path_to_key(path, notify_handler);
-        notify_handler.call(Notification::SetOverrideToolchain(path, &toolchain));
+        notify_handler(Notification::SetOverrideToolchain(path, &toolchain));
         self.overrides.insert(key, toolchain);
     }
 
-    pub fn find_override(&self, dir_unresolved: &Path, notify_handler: NotifyHandler)
+    pub fn find_override(&self, dir_unresolved: &Path, notify_handler: &Fn(Notification))
             -> Option<(String, PathBuf)> {
-        let dir = utils::canonicalize_path(dir_unresolved, ntfy!(&notify_handler));
+        let dir = utils::canonicalize_path(dir_unresolved, &|n| notify_handler(n.into()));
         let mut maybe_path = Some(&*dir);
         while let Some(path) = maybe_path {
             let key = Self::path_to_key(path, notify_handler);

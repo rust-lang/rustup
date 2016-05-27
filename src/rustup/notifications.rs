@@ -5,7 +5,7 @@ use errors::*;
 
 use rustup_dist::{self, temp};
 use rustup_utils;
-use rustup_utils::notify::{self, NotificationLevel, Notifyable};
+use rustup_utils::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -37,12 +37,21 @@ pub enum Notification<'a> {
     TelemetryCleanupError(&'a Error),
 }
 
-pub type NotifyHandler<'a> = notify::NotifyHandler<'a, for<'b> Notifyable<Notification<'b>>>;
-pub type SharedNotifyHandler = notify::SharedNotifyHandler<for<'b> Notifyable<Notification<'b>>>;
-
-extend_notification!(Notification: rustup_dist::Notification, n => Notification::Install(n));
-extend_notification!(Notification: rustup_utils::Notification, n => Notification::Utils(n));
-extend_notification!(Notification: temp::Notification, n => Notification::Temp(n));
+impl<'a> From<rustup_dist::Notification<'a>> for Notification<'a> {
+    fn from(n: rustup_dist::Notification<'a>) -> Notification<'a> {
+        Notification::Install(n)
+    }
+}
+impl<'a> From<rustup_utils::Notification<'a>> for Notification<'a> {
+    fn from(n: rustup_utils::Notification<'a>) -> Notification<'a> {
+        Notification::Utils(n)
+    }
+}
+impl<'a> From<temp::Notification<'a>> for Notification<'a> {
+    fn from(n: temp::Notification<'a>) -> Notification<'a> {
+        Notification::Temp(n)
+    }
+}
 
 impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
@@ -58,7 +67,7 @@ impl<'a> Notification<'a> {
             UpdatingToolchain(_) |
             ReadMetadataVersion(_) |
             InstalledToolchain(_) |
-            UpdateHashMatches | 
+            UpdateHashMatches |
             TelemetryCleanupError(_) => NotificationLevel::Verbose,
             SetDefaultToolchain(_) |
             SetOverrideToolchain(_, _) |

@@ -1,7 +1,7 @@
 //! Installation and upgrade of both distribution-managed and local
 //! toolchains
 
-use rustup_dist::{NotifyHandler, Notification};
+use rustup_dist::{Notification};
 use rustup_dist::prefix::InstallPrefix;
 use rustup_utils::utils;
 use rustup_dist::temp;
@@ -10,7 +10,7 @@ use rustup_dist::component::{Components, TarGzPackage, Transaction, Package};
 use errors::Result;
 use std::path::Path;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub enum InstallMethod<'a> {
     Copy(&'a Path),
     Link(&'a Path),
@@ -19,7 +19,7 @@ pub enum InstallMethod<'a> {
 }
 
 impl<'a> InstallMethod<'a> {
-    pub fn run(self, path: &Path, notify_handler: NotifyHandler) -> Result<bool> {
+    pub fn run(self, path: &Path, notify_handler: &Fn(Notification)) -> Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
@@ -33,11 +33,11 @@ impl<'a> InstallMethod<'a> {
 
         match self {
             InstallMethod::Copy(src) => {
-                try!(utils::copy_dir(src, path, ntfy!(&notify_handler)));
+                try!(utils::copy_dir(src, path, &|n| notify_handler(n.into())));
                 Ok(true)
             }
             InstallMethod::Link(src) => {
-                try!(utils::symlink_dir(src, &path, ntfy!(&notify_handler)));
+                try!(utils::symlink_dir(src, &path, &|n| notify_handler(n.into())));
                 Ok(true)
             }
             InstallMethod::Installer(src, temp_cfg) => {
@@ -68,8 +68,8 @@ impl<'a> InstallMethod<'a> {
     }
 
     fn tar_gz(src: &Path, path: &Path, temp_cfg: &temp::Cfg,
-              notify_handler: NotifyHandler) -> Result<()> {
-        notify_handler.call(Notification::Extracting(src, path));
+              notify_handler: &Fn(Notification)) -> Result<()> {
+        notify_handler(Notification::Extracting(src, path));
 
         let prefix = InstallPrefix::from(path.to_owned());
         let installation = try!(Components::open(prefix.clone()));
@@ -87,6 +87,7 @@ impl<'a> InstallMethod<'a> {
     }
 }
 
-pub fn uninstall(path: &Path, notify_handler: NotifyHandler) -> Result<()> {
-    Ok(try!(utils::remove_dir("install", path, ntfy!(&notify_handler))))
+pub fn uninstall(path: &Path, notify_handler: &Fn(Notification)) -> Result<()> {
+    Ok(try!(utils::remove_dir("install", path,
+                              &|n| notify_handler(n.into()))))
 }
