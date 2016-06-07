@@ -25,7 +25,19 @@ stable, beta, and nightly toolchains from the official release
 channels, then updates rustup itself.
 
 If given a toolchain argument then `update` updates that toolchain,
-the same as `rustup toolchain update`.";
+the same as `rustup toolchain update`.
+
+'toolchain' specifies a toolchain name, such as 'stable', 'nightly',
+or '1.8.0'. For more information see `rustup help toolchain`.";
+
+pub static TOOLCHAIN_INSTALL_HELP: &'static str =
+r"
+Installs a specific rust toolchain.
+
+The 'install' command is an alias for 'rustup update <toolchain>'.
+
+'toolchain' specifies a toolchain name, such as 'stable', 'nightly',
+or '1.8.0'. For more information see `rustup help toolchain`.";
 
 pub static DEFAULT_HELP: &'static str =
 r"
