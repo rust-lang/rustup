@@ -330,13 +330,13 @@ fn do_pre_install_sanity_checks() -> Result<()> {
         (false, true) => {
             warn!("it looks like you have existing multirust metadata");
             warn!("rustup cannot be installed alongside multirust");
-            warn!("delete `{}` before installing rustup", multirust_version_path.expect("").display());
+            warn!("delete `{}` before installing rustup", multirust_meta_path.expect("").display());
             return Err("cannot install while multirust is installed".into());
         }
         (true, true) => {
             warn!("it looks like you have an existing installation of multirust");
             warn!("rustup cannot be installed alongside multirust");
-            warn!("run `{}` as root and delete `{}` before installing rustup", uninstaller_path.display(), multirust_version_path.expect("").display());
+            warn!("run `{}` as root and delete `{}` before installing rustup", uninstaller_path.display(), multirust_meta_path.expect("").display());
             return Err("cannot install while multirust is installed".into());
         }
         (false, false) => ()
