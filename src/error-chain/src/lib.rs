@@ -17,7 +17,7 @@
 //! Similar to other libraries like [error-type] and [quick-error], this
 //! library defines a macro, `error_chain!` that declares the types
 //! and implementation boilerplate necessary for fulfilling a
-//! particular error-hadling strategy. Most importantly it defines
+//! particular error-handling strategy. Most importantly it defines
 //! a custom error type (called `Error` by convention) and the `From`
 //! conversions that let the `try!` macro and `?` operator work.
 //!
@@ -106,7 +106,7 @@
 //! }
 //! ```
 //!
-//! This populates the the module with a number of definitions,
+//! This populates the module with a number of definitions,
 //! the most important of which are the `Error` type
 //! and the `ErrorKind` type. They look something like the
 //! following:
@@ -147,11 +147,11 @@
 //! the macro are expanded to `Dist` and `Utils` variants, and the
 //! "foreign links" to the `Temp` variant.
 //!
-//! Both types come with a variety of `From` conversiaos as well:
-//! `Error` can be created from `ErrorKind`, from `&str` and `String`,
-//! and from the "link" and "foreign_link" error types. `ErrorKind`
+//! Both types come with a variety of `From` conversions as well:
+//! `Error` can be created from `ErrorKind`, `&str` and `String`,
+//! and the "link" and "foreign_link" error types. `ErrorKind`
 //! can be created from the corresponding `ErrorKind`s of the link
-//! types, as wall as from `&str` and `String`.
+//! types, as well as from `&str` and `String`.
 //!
 //! `into()` and `From::from` are used heavily to massage types into
 //! the right shape. Which one to use in any specific case depends on
@@ -176,17 +176,17 @@
 //! }
 //! ```
 //!
-//! Note that the return type is is the typedef `Result`, which is
+//! Note that the return type is the typedef `Result`, which is
 //! defined by the macro as `pub type Result<T> =
 //! ::std::result::Result<T, Error>`. Note that in both cases
-//! `.into()` is called to convert a type into the `Error` type: both
+//! `.into()` is called to convert a type into the `Error` type; both
 //! strings and `ErrorKind` have `From` conversions to turn them into
 //! `Error`.
 //!
 //! When the error is emitted inside a `try!` macro or behind the
-//! `?` operator, then the explicit conversion isn't needed, since
-//! the behavior of `try!` will automatically convert `Err(ErrorKind)`
-//! to `Err(Error)`. So the below is equivalent to the previous:
+//! `?` operator, the explicit conversion isn't needed; `try!` will
+//! automatically convert `Err(ErrorKind)` to `Err(Error)`. So the
+//! below is equivalent to the previous:
 //!
 //! ```rust
 //! fn foo() -> Result<()> {
