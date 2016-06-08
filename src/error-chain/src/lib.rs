@@ -195,6 +195,7 @@
 //!
 //! fn bar() -> Result<()> {
 //!     Ok(try!(Err("bogus!")))
+//! }
 //! ```
 //!
 //! ## Chaining errors
