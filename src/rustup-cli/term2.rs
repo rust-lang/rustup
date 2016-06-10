@@ -265,7 +265,7 @@ impl<T: Instantiable + io::Write> Terminal<T> {
     }
 
     pub fn md<S: AsRef<str>>(&mut self, content: S) {
-        let mut f = LineFormatter::new(self, 0, 80);
+        let mut f = LineFormatter::new(self, 0, 79);
         let blocks = tokenize(content.as_ref());
         for b in blocks {
             f.do_block(b);
