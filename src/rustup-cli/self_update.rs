@@ -224,9 +224,7 @@ pub fn install(no_prompt: bool, verbose: bool,
         if cfg!(unix) {
             let ref env_file = try!(utils::cargo_home()).join("env");
             let ref env_str = format!(
-                "{}\n\
-                 printf \"PATH environment variable set.\\n\"
-                 printf \"You're ready to Rust!\\n\\n\"",
+                "{}\n",
                 try!(shell_export_string()));
             try!(utils::write_file("env", env_file, env_str));
         }
