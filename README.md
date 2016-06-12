@@ -357,10 +357,13 @@ Command | Description
   invocations. A toolchain with this name should be installed, or
   invocations will fail.
 
-- `RUSTUP_DIST_ROOT` (default: `https://static.rust-lang.org/dist`)
-  Sets the root URL for downloading Rust toolchains and release
-  channel updates. You can change this to instead use a local mirror,
+- `RUSTUP_DIST_SERVER` (default: `https://static.rust-lang.org`)
+  Sets the root URL for downloading static resources related to Rust.
+  You can change this to instead use a local mirror,
   or to test the binaries from the staging directory.
+
+- `RUSTUP_DIST_ROOT` (default: `https://static.rust-lang.org/dist`)
+  Deprecated. Use `RUSTUP_DIST_SERVER` instead.
 
 - `RUSTUP_UPDATE_ROOT` (default `https://static.rust-lang.org/rustup/dist`)
   Sets the root URL for downloading self-updates.
