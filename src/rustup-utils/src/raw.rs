@@ -155,6 +155,265 @@ pub fn tee_file<W: io::Write>(path: &Path, mut w: &mut W) -> io::Result<()> {
     }
 }
 
+mod hyper {
+    use hyper;
+    use notifications::Notification;
+    use sha2::{Digest, Sha256};
+    use std::fs;
+    use std::io;
+    use std::path::Path;
+    use std::time::Duration;
+    use url::Url;
+    use errors::*;
+
+    fn proxy_from_env(url: &Url) -> Option<(String, u16)> {
+        use std::env::var_os;
+
+        let mut maybe_https_proxy = var_os("https_proxy").map(|ref v| v.to_str().unwrap_or("").to_string());
+        if maybe_https_proxy.is_none() {
+            maybe_https_proxy = var_os("HTTPS_PROXY").map(|ref v| v.to_str().unwrap_or("").to_string());
+        }
+        let maybe_http_proxy = var_os("http_proxy").map(|ref v| v.to_str().unwrap_or("").to_string());
+        let mut maybe_all_proxy = var_os("all_proxy").map(|ref v| v.to_str().unwrap_or("").to_string());
+        if maybe_all_proxy.is_none() {
+            maybe_all_proxy = var_os("ALL_PROXY").map(|ref v| v.to_str().unwrap_or("").to_string());
+        }
+        if let Some(url_value) = match url.scheme() {
+                                     "https" => maybe_https_proxy.or(maybe_http_proxy.or(maybe_all_proxy)),
+                                     "http" => maybe_http_proxy.or(maybe_all_proxy),
+                                     _ => maybe_all_proxy,
+                                 } {
+            if let Ok(proxy_url) = Url::parse(&url_value) {
+                if let Some(host) = proxy_url.host_str() {
+                    let port = proxy_url.port().unwrap_or(8080);
+                    return Some((host.to_string(), port));
+                }
+            }
+        }
+        None
+    }
+
+    pub fn download_file(url: &Url,
+                         path: &Path,
+                         mut hasher: Option<&mut Sha256>,
+                         notify_handler: &Fn(Notification))
+                         -> Result<()> {
+
+        // Short-circuit hyper for the "file:" URL scheme
+        if try!(download_from_file_url(url, path, &mut hasher)) {
+            return Ok(());
+        }
+
+        use hyper::client::{Client, ProxyConfig};
+        use hyper::error::Result as HyperResult;
+        use hyper::header::ContentLength;
+        use hyper::net::{SslClient, NetworkStream, HttpsConnector};
+        use native_tls;
+        use std::io::Result as IoResult;
+        use std::io::{Read, Write};
+        use std::net::{SocketAddr, Shutdown};
+        use std::sync::{Arc, Mutex};
+
+        // The Hyper HTTP client
+        let client;
+
+        let maybe_proxy = proxy_from_env(url);
+        if url.scheme() == "https" {
+
+            // All the following is adapter code to use native_tls with hyper.
+
+            struct NativeSslClient;
+
+            impl<T: NetworkStream + Send + Clone> SslClient<T> for NativeSslClient {
+                type Stream = NativeSslStream<T>;
+
+                fn wrap_client(&self, stream: T, host: &str) -> HyperResult<Self::Stream> {
+                    use native_tls::ClientBuilder as TlsClientBuilder;
+                    use hyper::error::Error as HyperError;
+
+                    let mut ssl_builder = try!(TlsClientBuilder::new()
+                                               .map_err(|e| HyperError::Ssl(Box::new(e))));
+                    let ssl_stream = try!(ssl_builder.handshake(host, stream)
+                                          .map_err(|e| HyperError::Ssl(Box::new(e))));
+
+                    Ok(NativeSslStream(Arc::new(Mutex::new(ssl_stream))))
+                }
+            }
+
+            #[derive(Clone)]
+            struct NativeSslStream<T>(Arc<Mutex<native_tls::TlsStream<T>>>);
+
+            #[derive(Debug)]
+            struct NativeSslPoisonError;
+
+            impl ::std::error::Error for NativeSslPoisonError {
+                fn description(&self) -> &str { "mutex poisoned during TLS operation" }
+            }
+
+            impl ::std::fmt::Display for NativeSslPoisonError {
+                fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
+                    f.write_str(::std::error::Error::description(self))
+                }
+            }
+
+            impl<T> NetworkStream for NativeSslStream<T>
+                where T: NetworkStream
+            {
+                fn peer_addr(&mut self) -> IoResult<SocketAddr> {
+                    self.0.lock()
+                        .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                        .and_then(|mut t| t.get_mut().peer_addr())
+                }
+                fn set_read_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
+                    self.0.lock()
+                        .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                        .and_then(|t| t.get_ref().set_read_timeout(dur))
+                }
+                fn set_write_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
+                    self.0.lock()
+                        .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                        .and_then(|t| t.get_ref().set_write_timeout(dur))
+                }
+                fn close(&mut self, how: Shutdown) -> IoResult<()> {
+                    self.0.lock()
+                        .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                        .and_then(|mut t| t.get_mut().close(how))
+                }
+            }
+
+            impl<T> Read for NativeSslStream<T>
+                where T: Read + Write
+            {
+                fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+                    self.0.lock()
+                        .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                        .and_then(|mut t| t.read(buf))
+                }
+            }
+
+            impl<T> Write for NativeSslStream<T>
+                where T: Read + Write
+            {
+                fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+                    self.0.lock()
+                        .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                        .and_then(|mut t| t.write(buf))
+                }
+                fn flush(&mut self) -> IoResult<()> {
+                    self.0.lock()
+                        .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+                        .and_then(|mut t| t.flush())
+                }
+            }
+
+            maybe_init_certs();
+
+            if maybe_proxy.is_none() {
+                // Connect with hyper + native_tls
+                client = Client::with_connector(HttpsConnector::new(NativeSslClient));
+            } else {
+                let proxy_host_port = maybe_proxy.unwrap();
+                client = Client::with_proxy_config(ProxyConfig(proxy_host_port.0, proxy_host_port.1, NativeSslClient));
+            }
+        } else if url.scheme() == "http" {
+            if maybe_proxy.is_none() {
+                client = Client::new();
+            } else {
+                let proxy_host_port = maybe_proxy.unwrap();
+                client = Client::with_http_proxy(proxy_host_port.0, proxy_host_port.1);
+            }
+        } else {
+            return Err(format!("unsupported URL scheme: '{}'", url.scheme()).into());
+        }
+
+        let mut res = try!(client.get(url.clone()).send()
+                           .chain_err(|| "failed to make network request"));
+        if res.status != hyper::Ok {
+            return Err(ErrorKind::HttpStatus(res.status.to_u16() as u32).into());
+        }
+
+        let buffer_size = 0x10000;
+        let mut buffer = vec![0u8; buffer_size];
+
+        let mut file = try!(fs::File::create(path).chain_err(
+            || "error creating file for download"));
+
+        if let Some(len) = res.headers.get::<ContentLength>().cloned() {
+            notify_handler(Notification::DownloadContentLengthReceived(len.0));
+        }
+
+        loop {
+            let bytes_read = try!(io::Read::read(&mut res, &mut buffer)
+                                  .chain_err(|| "error reading from socket"));
+
+            if bytes_read != 0 {
+                if let Some(ref mut h) = hasher {
+                    h.input(&buffer[0..bytes_read]);
+                }
+                try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read])
+                     .chain_err(|| "unable to write download to disk"));
+                notify_handler(Notification::DownloadDataReceived(bytes_read));
+            } else {
+                try!(file.sync_data().chain_err(|| "unable to sync download to disk"));
+                notify_handler(Notification::DownloadFinished);
+                return Ok(());
+            }
+        }
+    }
+
+    // Tell our statically-linked OpenSSL where to find root certs
+    // cc https://github.com/alexcrichton/git2-rs/blob/master/libgit2-sys/lib.rs#L1267
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    fn maybe_init_certs() {
+        use std::sync::{Once, ONCE_INIT};
+        static INIT: Once = ONCE_INIT;
+        INIT.call_once(|| {
+            ::openssl_sys::probe::init_ssl_cert_env_vars();
+        });
+    }
+
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    fn maybe_init_certs() { }
+
+    fn download_from_file_url(url: &Url,
+                              path: &Path,
+                              hasher: &mut Option<&mut Sha256>)
+                              -> Result<bool> {
+        use super::is_file;
+
+        // The file scheme is mostly for use by tests to mock the dist server
+        if url.scheme() == "file" {
+            let src = try!(url.to_file_path()
+                           .map_err(|_| Error::from(format!("bogus file url: '{}'", url))));
+            if !is_file(&src) {
+                // Because some of multirust's logic depends on checking
+                // the error when a downloaded file doesn't exist, make
+                // the file case return the same error value as the
+                // network case.
+                return Err(ErrorKind::HttpStatus(hyper::status::StatusCode::NotFound.to_u16() as u32).into());
+            }
+            try!(fs::copy(&src, path).chain_err(|| "failure copying file"));
+
+            if let Some(ref mut h) = *hasher {
+                let ref mut f = try!(fs::File::open(path)
+                                     .chain_err(|| "unable to open downloaded file"));
+
+                let ref mut buffer = vec![0u8; 0x10000];
+                loop {
+                    let bytes_read = try!(io::Read::read(f, buffer)
+                                          .chain_err(|| "unable to read downloaded file"));
+                    if bytes_read == 0 { break }
+                    h.input(&buffer[0..bytes_read]);
+                }
+            }
+
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+}
+
 pub fn download_file(url: &Url,
                      path: &Path,
                      mut hasher: Option<&mut Sha256>,
@@ -162,6 +421,10 @@ pub fn download_file(url: &Url,
                      -> Result<()> {
     use notifications::Notification;
     use std::io::Write;
+
+    if ::std::env::var_os("RUSTUP_USE_HYPER").is_some() {
+        return self::hyper::download_file(url, path, hasher, notify_handler);
+    }
 
     let mut file = try!(fs::File::create(&path).chain_err(
         || "error creating file for download"));
