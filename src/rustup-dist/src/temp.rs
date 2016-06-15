@@ -37,6 +37,7 @@ pub enum Notification<'a> {
 
 pub struct Cfg {
     root_directory: PathBuf,
+    pub dist_server: String,
     notify_handler: Box<Fn(Notification)>,
 }
 
@@ -131,9 +132,10 @@ impl Display for Error {
 }
 
 impl Cfg {
-    pub fn new(root_directory: PathBuf, notify_handler: Box<Fn(Notification)>) -> Self {
+    pub fn new(root_directory: PathBuf, dist_server: &str, notify_handler: Box<Fn(Notification)>) -> Self {
         Cfg {
             root_directory: root_directory,
+            dist_server: dist_server.to_owned(),
             notify_handler: notify_handler,
         }
     }
