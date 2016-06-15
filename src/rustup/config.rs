@@ -41,7 +41,8 @@ pub struct Cfg {
     pub temp_cfg: temp::Cfg,
     pub gpg_key: Cow<'static, str>,
     pub env_override: Option<String>,
-    pub dist_root_url: Cow<'static, str>,
+    pub dist_root_url: String,
+    pub dist_root_server: String,
     pub notify_handler: Arc<Fn(Notification)>,
 }
 
@@ -60,12 +61,6 @@ impl Cfg {
         let toolchains_dir = multirust_dir.join("toolchains");
         let update_hash_dir = multirust_dir.join("update-hashes");
 
-        let notify_clone = notify_handler.clone();
-        let temp_cfg = temp::Cfg::new(multirust_dir.join("tmp"),
-                                      Box::new(move |n| {
-                                          (notify_clone)(n.into())
-                                      }));
-
         // GPG key
         let gpg_key = if let Some(path) = env::var_os("RUSTUP_GPG_KEY")
                                               .and_then(utils::if_not_empty) {
@@ -79,10 +74,29 @@ impl Cfg {
                                .ok()
                                .and_then(utils::if_not_empty);
 
-        let dist_root_url = env::var("RUSTUP_DIST_ROOT")
-                                .ok()
-                                .and_then(utils::if_not_empty)
-                                .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT), Cow::Owned);
+        let dist_root_server = match env::var("RUSTUP_DIST_SERVER") {
+            Ok(ref s) if !s.is_empty() => {
+                s.clone()
+            }
+            _ => {
+                // For backward compatibility
+                env::var("RUSTUP_DIST_ROOT")
+                    .ok()
+                    .and_then(utils::if_not_empty)
+                    .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT), Cow::Owned)
+                    .as_ref()
+                    .trim_right_matches("/dist")
+                    .to_owned()
+            }
+        };
+
+        let notify_clone = notify_handler.clone();
+        let temp_cfg = temp::Cfg::new(multirust_dir.join("tmp"),
+                                      dist_root_server.as_str(),
+                                      Box::new(move |n| {
+                                          (notify_clone)(n.into())
+                                      }));
+        let dist_root = dist_root_server.clone() + "/dist";
 
         Ok(Cfg {
             multirust_dir: multirust_dir,
@@ -93,7 +107,8 @@ impl Cfg {
             gpg_key: gpg_key,
             notify_handler: notify_handler,
             env_override: env_override,
-            dist_root_url: dist_root_url,
+            dist_root_url: dist_root,
+            dist_root_server: dist_root_server,
         })
     }
 
