@@ -17,7 +17,7 @@ use rustup_mock::{MockCommand, MockInstallerBuilder};
 use rustup_dist::prefix::InstallPrefix;
 use rustup_dist::ErrorKind;
 use rustup_dist::errors::Result;
-use rustup_dist::dist::{ToolchainDesc, TargetTriple};
+use rustup_dist::dist::{ToolchainDesc, TargetTriple, DEFAULT_DIST_SERVER};
 use rustup_dist::download::DownloadCfg;
 use rustup_dist::Notification;
 use rustup_utils::utils;
@@ -319,6 +319,7 @@ fn setup(edit: Option<&Fn(&str, &mut MockPackage)>,
 
     let work_tempdir = TempDir::new("multirust").unwrap();
     let ref temp_cfg = temp::Cfg::new(work_tempdir.path().to_owned(),
+                                      DEFAULT_DIST_SERVER,
                                       Box::new(|_| ()));
 
     let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
