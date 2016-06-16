@@ -39,3 +39,6 @@ libc = "0.2.0"
 
 [lib]
 name = "rustup_dist"
+
+[replace]
+"winapi:0.2.7" = { git = "https://github.com/sfackler/winapi-rs" }

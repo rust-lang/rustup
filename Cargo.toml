@@ -55,3 +55,6 @@ test = false # no unit tests
 name = "rustup-init"
 path = "src/rustup-cli/main.rs"
 test = false # no unit tests
+
+[replace]
+"winapi:0.2.7" = { git = "https://github.com/sfackler/winapi-rs" }
