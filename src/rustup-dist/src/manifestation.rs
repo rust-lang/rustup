@@ -3,7 +3,7 @@
 
 use config::Config;
 use manifest::{Component, Manifest, TargettedPackage};
-use dist::{download_and_check, DownloadCfg, TargetTriple};
+use dist::{download_and_check, DownloadCfg, TargetTriple, DEFAULT_DIST_SERVER};
 use component::{Components, Transaction, TarGzPackage, Package};
 use temp;
 use errors::*;
@@ -122,6 +122,8 @@ impl Manifestation {
             components_urls_and_hashes.push(c_u_h);
         }
 
+        let altered = temp_cfg.dist_server != DEFAULT_DIST_SERVER;
+
         // Download component packages and validate hashes
         let mut things_to_install: Vec<(Component, temp::File)> = Vec::new();
         for (component, url, hash) in components_urls_and_hashes {
@@ -129,6 +131,11 @@ impl Manifestation {
             notify_handler(Notification::DownloadingComponent(&component.pkg,
                                                               &self.target_triple,
                                                               &component.target));
+            let url = if altered {
+                url.replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str())
+            } else {
+                url
+            };
 
             // Download each package to temp file
             let temp_file = try!(temp_cfg.new_file());
@@ -301,7 +308,8 @@ impl Manifestation {
             return Err(format!("binary package was not provided for '{}'",
                                self.target_triple.to_string()).into());
         }
-        let url = url.unwrap();
+        // Only replace once. The cost is inexpensive.
+        let url = url.unwrap().replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str());
 
         notify_handler(Notification::DownloadingComponent("rust",
                                                           &self.target_triple,

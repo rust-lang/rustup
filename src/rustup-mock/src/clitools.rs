@@ -226,7 +226,7 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
 
 pub fn env(config: &Config, cmd: &mut Command) {
     cmd.env("RUSTUP_HOME", config.rustupdir.to_string_lossy().to_string());
-    cmd.env("RUSTUP_DIST_ROOT", format!("file://{}", config.distdir.join("dist").to_string_lossy()));
+    cmd.env("RUSTUP_DIST_SERVER", format!("file://{}", config.distdir.to_string_lossy()));
     cmd.env("CARGO_HOME", config.cargodir.to_string_lossy().to_string());
     cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_triple());
 

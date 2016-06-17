@@ -15,8 +15,11 @@ use std::env;
 use regex::Regex;
 use sha2::{Sha256, Digest};
 
-pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
+pub const DEFAULT_DIST_SERVER: &'static str = "https://static.rust-lang.org";
 pub const UPDATE_HASH_LEN: usize = 20;
+
+// Deprecated
+pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
 
 // A toolchain descriptor from rustup's perspective. These contain
 // 'partial target triples', which allow toolchain names like
