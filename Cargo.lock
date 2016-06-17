@@ -562,7 +562,7 @@ dependencies = [
 [[package]]
 name = "schannel"
 version = "0.0.2"
-source = "git+https://github.com/sfackler/schannel-rs?branch=rewrite#f4ee623b61a5c24f46631503080fbb9479db0b5c"
+source = "git+https://github.com/sfackler/schannel-rs?branch=rewrite#fa053fe4deb459fed77ddaa1289927c4dc32ad88"
 dependencies = [
  "crypt32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
