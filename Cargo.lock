@@ -787,7 +787,13 @@ dependencies = [
 [[package]]
 name = "winapi"
 version = "0.2.7"
+source = "git+https://github.com/sfackler/winapi-rs#e8473a5ec1ae02302fa2a749eeda9c3d3aa066ed"
+
+[[package]]
+name = "winapi"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "winapi 0.2.7 (git+https://github.com/sfackler/winapi-rs)"
 
 [[package]]
 name = "winapi-build"
