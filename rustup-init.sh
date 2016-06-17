@@ -47,6 +47,11 @@ main() {
     ensure mkdir -p "$_dir"
     ensure curl -sSfL "$_url" -o "$_file"
     ensure chmod u+x "$_file"
+    if [ ! -x "$_file" ]; then
+    	echo "Cannot execute $_file (likely because of mounting /tmp as noexec)."
+    	echo "Please copy the file to a location where you can execute binaries and run ./rustup-init$_ext."
+    	exit 1
+    fi
 
     # check if we have to use /dev/tty to prompt the user
     local need_tty=yes
