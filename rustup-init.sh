@@ -25,6 +25,7 @@ main() {
     need_cmd rm
     need_cmd rmdir
     need_cmd printf
+    need_cmd file
 
     get_architecture || return 1
     local _arch="$RETVAL"
