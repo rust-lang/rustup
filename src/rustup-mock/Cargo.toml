@@ -25,3 +25,6 @@ sha2 = "0.1.2"
 [target."cfg(windows)".dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
+
+[replace]
+"winapi:0.2.7" = { git = "https://github.com/sfackler/winapi-rs" }
