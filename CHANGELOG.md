@@ -1,3 +1,29 @@
+# 0.2.0
+
+* [Indicate correct path to remove in multirust upgrade instructions](https://github.com/rust-lang-nursery/rustup.rs/pull/518).
+* [Bring back optional hyper with proxy support](https://github.com/rust-lang-nursery/rustup.rs/pull/532).
+* ['default' and 'update' heuristics for bare triples](https://github.com/rust-lang-nursery/rustup.rs/pull/516).
+* [Change upstream via $RUSTUP_DIST_SERVER](https://github.com/rust-lang-nursery/rustup.rs/pull/521).
+* [Fail with a nicer error message if /tmp is mounted noexec](https://github.com/rust-lang-nursery/rustup.rs/pull/523).
+* [Remove printfs from ~/.cargo/env](https://github.com/rust-lang-nursery/rustup.rs/pull/527).
+* [Reduce margin in installer text to 79 columns](https://github.com/rust-lang-nursery/rustup.rs/pull/526).
+* [Fix typos](https://github.com/rust-lang-nursery/rustup.rs/pull/519).
+* [Fix missing curly braces in error-chain docs](https://github.com/rust-lang-nursery/rustup.rs/pull/522).
+* [Fix downloads of builds without v2 manifests](https://github.com/rust-lang-nursery/rustup.rs/pull/515).
+* [Explain toolchains in `help install`](https://github.com/rust-lang-nursery/rustup.rs/pull/496).
+* [Compile on stable Rust](https://github.com/rust-lang-nursery/rustup.rs/pull/476).
+* [Fix spelling mistakes](https://github.com/rust-lang-nursery/rustup.rs/pull/489).
+* [Fix the toolchain command synonyms](https://github.com/rust-lang-nursery/rustup.rs/pull/477).
+* [Configurable host triples](https://github.com/rust-lang-nursery/rustup.rs/pull/421).
+* [Use a .toml file to store settings](https://github.com/rust-lang-nursery/rustup.rs/pull/420).
+* [Point PATH to toolchain/bin on Windows](https://github.com/rust-lang-nursery/rustup.rs/pull/402).
+* [Remove extra '.' in docs](https://github.com/rust-lang-nursery/rustup.rs/pull/472).
+
+Contributors: Alex Crichton, benaryorg, Benedikt Reinartz, Boutin,
+Michael, Brian Anderson, Diggory Blake, Erick Tryzelaar, Ivan
+Nejgebauer, Jeremiah Peschka, Josh Stone, Knight, mdinger, Ryan Kung,
+Tad Hardesty
+
 # 0.1.12
 
 * [Don't install when multirust metadata exists](https://github.com/rust-lang-nursery/rustup.rs/pull/456).
