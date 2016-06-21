@@ -1,9 +1,9 @@
 [root]
 name = "rustup"
-version = "0.1.12"
+version = "0.2.0"
 dependencies = [
  "clap 2.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "error-chain 0.1.12",
+ "error-chain 0.2.0",
  "itertools 0.4.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -12,9 +12,9 @@ dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.69 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup-dist 0.1.12",
- "rustup-mock 0.1.12",
- "rustup-utils 0.1.12",
+ "rustup-dist 0.2.0",
+ "rustup-mock 0.2.0",
+ "rustup-utils 0.2.0",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -171,7 +171,7 @@ dependencies = [
 
 [[package]]
 name = "error-chain"
-version = "0.1.12"
+version = "0.2.0"
 dependencies = [
  "backtrace 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -492,9 +492,9 @@ dependencies = [
 
 [[package]]
 name = "rustup-dist"
-version = "0.1.12"
+version = "0.2.0"
 dependencies = [
- "error-chain 0.1.12",
+ "error-chain 0.2.0",
  "flate2 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.4.15 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -502,8 +502,8 @@ dependencies = [
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.69 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup-mock 0.1.12",
- "rustup-utils 0.1.12",
+ "rustup-mock 0.2.0",
+ "rustup-utils 0.2.0",
  "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -517,12 +517,12 @@ dependencies = [
 
 [[package]]
 name = "rustup-mock"
-version = "0.1.12"
+version = "0.2.0"
 dependencies = [
  "flate2 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.4.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup-utils 0.1.12",
+ "rustup-utils 0.2.0",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -536,11 +536,11 @@ dependencies = [
 
 [[package]]
 name = "rustup-utils"
-version = "0.1.12"
+version = "0.2.0"
 dependencies = [
  "advapi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "curl 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "error-chain 0.1.12",
+ "error-chain 0.2.0",
  "hyper 0.9.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
