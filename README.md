@@ -289,18 +289,44 @@ interop with software produced by Visual Studio use the MSVC build of
 Rust; for interop with GNU software built using the [MinGW/MSYS2
 toolchain] use the GNU build.
 
-MSVC builds of Rust additionally require an [installation of Visual
-Studio 2013 (or later) or the Visual C++ Build Tools 2015][vs] so
-rustc can use its linker. For Visual Studio, make sure to check
-the "C++ tools" option. No additional software installation is
+When target the MSVC ABI, Rust additionally require an [installation
+of Visual Studio 2013 (or later) or the Visual C++ Build Tools
+2015][vs] so rustc can use its linker. For Visual Studio, make sure to
+check the "C++ tools" option. No additional software installation is
 necessary for basic use of the GNU build.
+
+By default rustup on Windows configures Rust to target the 32-bit GNU
+ABI, that is the `i686-pc-windows-gnu` target triple. More
+specifically, the toolchains that rustup chooses to install, unless
+told otherwise through the [toolchain specification], will be compiled
+to run on a `i686-pc-windows-gnu` host, and will target that platform
+by default. When you write `rustup update nightly`, rustup interprets
+it as `rustup update nightly-i686-pc-windows-gnu`. You can change this
+behavior with `rustup set default-host` or during installation.
+
+```
+$ rustup set default-host x86_64-pc-windows-msvc
+```
+
+[toolchain specification]: #toolchain-specification
 
 Rust's support for the GNU ABI is more mature, and is recommended for
 typical uses, so that's what `rustup` installs by default. The MSVC
-toolchain is always available. To switch to it just
+toolchain is always available, even if you don't use it by
+default. Just install it with `rustup install`:
 
 ```
-$ rustup default stable-msvc
+$ rustup install stable-msvc
+```
+
+You don't need to switch toolchains to support all windows targets though;
+a single toolchain supports all four x86 windows targets:
+
+```
+$ rustup target add x86_64-pc-windows-msvc
+$ rustup target add x86_64-pc-windows-gnu
+$ rustup target add i686-pc-windows-msvc
+$ rustup target add i686-pc-windows-gnu # this one's installed by default
 ```
 
 [d]: https://www.rust-lang.org/downloads.html#win-foot

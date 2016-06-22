@@ -276,7 +276,7 @@ pub fn cli() -> App<'static, 'static> {
             .about("Alter rustup settings")
             .setting(AppSettings::SubcommandRequiredElseHelp)
             .subcommand(SubCommand::with_name("default-host")
-                .about("Set host triple.")
+                .about("The triple used to identify toolchains when not specified")
                 .arg(Arg::with_name("host_triple")
                     .required(true))))
 }
