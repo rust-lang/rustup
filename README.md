@@ -405,10 +405,12 @@ The primary installation method, as described at
   compilers targeting the MSVC ABI can be installed with e.g. `rustup
   install stable-msvc`.
 * On Unix, run `curl https://sh.rustup.rs -sSf | sh` in your
-  shell. This downloads and runs the correct version of
-  `rustup-init` for your platform.
+  shell. This downloads and runs [`rustup-init.sh`], which in turn
+  downloads and runs the correct version of the `rustup-init`
+  executable for your platform.
 
 [setup]: https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe
+[`rustup-init.sh`]: https://static.rust-lang.org/rustup/rustup-init.sh
 
 `rustup-init` accepts arguments, which can be passed through
 the shell script. Some examples:
