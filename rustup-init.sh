@@ -164,13 +164,16 @@ get_architecture() {
 
     # Detect 64-bit linux with 32-bit userland
     if [ $_ostype = unknown-linux-gnu -a $_cputype = x86_64 ]; then
-        local _bin_to_probe="/usr/bin/env"
-        if [ -e "$_bin_to_probe" ]; then
-            need_cmd file
-            file -L "$_bin_to_probe" | grep -q "x86[_-]64"
-            if [ $? != 0 ]; then
-                local _cputype=i686
-            fi
+        need_cmd head
+        # Architecture detection without dependencies beyond coreutils.
+        # ELF files start out "\x7fELF", and the following byte is
+        #   0x01 for 32-bit and
+        #   0x02 for 64-bit.
+        # The printf builtin on some shells like dash only supports octal
+        # escape sequences, so we use those.
+        local _current_exe_head=$(head -c 5 /proc/self/exe )
+        if [ "$_current_exe_head" = "$(printf '\177ELF\001')" ]; then
+            local _cputype=i686
         fi
     fi
 
