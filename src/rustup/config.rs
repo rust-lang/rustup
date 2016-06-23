@@ -252,6 +252,7 @@ impl Cfg {
         if utils::is_directory(&self.toolchains_dir) {
             let mut toolchains: Vec<_> = try!(utils::read_dir("toolchains", &self.toolchains_dir))
                                          .filter_map(io::Result::ok)
+                                         .filter(|e| e.file_type().map(|f| f.is_dir()).unwrap_or(false))
                                          .filter_map(|e| e.file_name().into_string().ok())
                                          .collect();
 

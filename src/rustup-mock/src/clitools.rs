@@ -171,6 +171,17 @@ pub fn expect_stdout_ok(config: &Config, args: &[&str], expected: &str) {
     assert!(out.stdout.contains(expected), args);
 }
 
+pub fn expect_not_stdout_ok(config: &Config, args: &[&str], expected: &str) {
+    let out = run(config, args[0], &args[1..], &[]);
+    println!("out.ok: {}", out.ok);
+    println!("out.stdout:\n\n{}", out.stdout);
+    println!("out.stderr:\n\n{}", out.stderr);
+    println!("expected: {}", expected);
+    let args = format!("{:?}", args);
+    assert!(out.ok, args);
+    assert!(! out.stdout.contains(expected), args);
+}
+
 pub fn expect_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     println!("out.ok: {}", out.ok);

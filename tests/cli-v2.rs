@@ -10,8 +10,9 @@ use std::fs;
 use tempdir::TempDir;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_stdout_ok, expect_err,
-                               expect_stderr_ok, set_current_dist_date,
-                               change_dir, this_host_triple};
+                               expect_stderr_ok, expect_not_stdout_ok,
+                               set_current_dist_date, change_dir,
+                               this_host_triple};
 
 use rustup_dist::dist::TargetTriple;
 
@@ -101,6 +102,20 @@ fn list_toolchains() {
                          "nightly");
         expect_stdout_ok(config, &["rustup", "toolchain", "list"],
                          "beta-2015-01-01");
+    });
+}
+
+#[test]
+fn list_toolchains_with_bogus_file() {
+    // #520
+    setup(&|config| {
+        expect_ok(config, &["rustup", "update", "nightly"]);
+
+        let name = "bogus_regular_file.txt";
+        let path = config.rustupdir.join("toolchains").join(name);
+        rustup_utils::utils::write_file(name, &path, "").unwrap();
+        expect_stdout_ok(config, &["rustup", "toolchain", "list"], "nightly");
+        expect_not_stdout_ok(config, &["rustup", "toolchain", "list"], name);
     });
 }
 
