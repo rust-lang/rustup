@@ -115,8 +115,8 @@ hr {
     box-shadow: inset 0px 0px 20px 0px #333333;
 }
 
-#platform-instructions-win .rustup-link,
-#platform-instructions-default .rustup-link {
+#platform-instructions-win a,
+#platform-instructions-default a {
     display: block;
     padding-top: 0.4rem;
     padding-bottom: 0.6rem;
@@ -128,12 +128,6 @@ hr {
 #platform-instructions-unknown div {
     font-size: 16px;
     line-height: 2rem;
-}
-
-#sh-disclaimer {
-    font-size: 14px;
-    padding-top: 20px;
-    padding-bottom: 10px;
 }
 
 #warning {
