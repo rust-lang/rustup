@@ -21,7 +21,7 @@ toolchains are listed as well.";
 pub static UPDATE_HELP: &'static str =
 r"
 With no toolchain specified, the `update` command updates each of the
-installed toolchains from the official releasechannels, then updates
+installed toolchains from the official release channels, then updates
 rustup itself.
 
 If given a toolchain argument then `update` updates that toolchain,
