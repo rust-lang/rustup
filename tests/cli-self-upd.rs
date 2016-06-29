@@ -512,7 +512,6 @@ fn update_no_change() {
         expect_ok_ex(config, &["rustup", "self", "update"],
 r"",
 r"info: checking for self-updates
-info: rustup is up to date
 ");
 
     });

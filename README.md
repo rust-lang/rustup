@@ -374,9 +374,10 @@ Command | Description
 
 ## Environment variables
 
-- `RUSTUP_HOME` (default: `~/.rustup` or `%USERPROFILE%/.rustup`)
+- `RUSTUP_HOME` (default: `~/.multirust` or `%USERPROFILE%/.multirust`)
   Sets the root rustup folder, used for storing installed
-  toolchains and configuration options.
+  toolchains and configuration options. (rustup used to be called multirust. Use
+  of `.multirust` is a holdover from that. See #537.)
 
 - `RUSTUP_TOOLCHAIN` (default: none)
   If set, will override the toolchain used for all rust tool
