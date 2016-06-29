@@ -33,6 +33,7 @@ pub struct ComponentStatus {
     pub component: Component,
     pub required: bool,
     pub installed: bool,
+    pub available: bool,
 }
 
 pub enum UpdateStatus {
@@ -381,6 +382,7 @@ impl<'a> Toolchain<'a> {
                     component: component.clone(),
                     required: true,
                     installed: installed,
+                    available: targ_pkg.available,
                 });
             }
 
@@ -392,6 +394,7 @@ impl<'a> Toolchain<'a> {
                     component: extension.clone(),
                     required: false,
                     installed: installed,
+                    available: targ_pkg.available,
                 });
             }
 
