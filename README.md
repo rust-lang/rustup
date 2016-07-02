@@ -9,7 +9,7 @@
 release channels, enabling you to easily switch between stable, beta,
 and nightly compilers and keep them updated. It makes cross-compiling
 simpler with binary builds of the standard library for common platforms.
-And it runs on all platforms Rust supports, especially Windows.
+And it runs on all platforms Rust supports, including Windows.
 
 [The Rust Programming Language]: https://www.rust-lang.org
 
