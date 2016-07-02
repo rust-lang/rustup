@@ -64,6 +64,22 @@ case $TARGET in
     OPENSSL_CC=x86_64-unknown-netbsd-gcc
     OPENSSL_AR=x86_64-unknown-netbsd-ar
     ;;
+  powerpc-*-linux-*)
+    OPENSSL_OS=linux-ppc
+    OPENSSL_CC=powerpc-linux-gnu-gcc
+    OPENSSL_AR=powerpc-linux-gnu-ar
+    ;;
+  powerpc64-*-linux-*)
+    OPENSSL_OS=linux-ppc64
+    OPENSSL_CC=powerpc-linux-gnu-gcc
+    OPENSSL_AR=powerpc-linux-gnu-ar
+    OPENSSL_CFLAGS=-m64
+    ;;
+  powerpc64le-*-linux-*)
+    OPENSSL_OS=linux-ppc64le
+    OPENSSL_CC=powerpc64le-linux-gnu-gcc
+    OPENSSL_AR=powerpc64le-linux-gnu-ar
+    ;;
   *)
     echo "can't cross compile OpenSSL for $TARGET"
     exit 1

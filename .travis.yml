@@ -50,6 +50,21 @@ matrix:
       env: TARGET=x86_64-unknown-netbsd
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
+    - os: linux
+      rust: nightly
+      env: TARGET=powerpc-unknown-linux-gnu
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
+           SKIP_TESTS=1
+    - os: linux
+      rust: nightly
+      env: TARGET=powerpc64-unknown-linux-gnu
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
+           SKIP_TESTS=1
+    - os: linux
+      rust: nightly
+      env: TARGET=powerpc64le-unknown-linux-gnu
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
+           SKIP_TESTS=1
 
     # On OSX we want to target 10.7 so we ensure that the appropriate
     # environment variable is set to tell the linker what we want.
