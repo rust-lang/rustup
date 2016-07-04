@@ -381,8 +381,8 @@ impl<'a> Toolchain<'a> {
 
                 // Get the component so we can check if it is available
                 let component_pkg = manifest.get_package(&component.pkg)
-                    .expect(format!("manifest should contain component {}", &component.pkg));
-                let component_target_pkg = component_pkg.get(&toolchain.target)
+                    .expect(&format!("manifest should contain component {}", &component.pkg));
+                let component_target_pkg = component_pkg.targets.get(&toolchain.target)
                     .expect("component should have target toolchain");
 
                 res.push(ComponentStatus {
@@ -400,8 +400,8 @@ impl<'a> Toolchain<'a> {
 
                 // Get the component so we can check if it is available
                 let extension_pkg = manifest.get_package(&extension.pkg)
-                    .expect(format!("manifest should contain extension {}", &extension.pkg));
-                let extension_target_pkg = extension_pkg.get(&toolchain.target)
+                    .expect(&format!("manifest should contain extension {}", &extension.pkg));
+                let extension_target_pkg = extension_pkg.targets.get(&toolchain.target)
                     .expect("extension should have target toolchain");
 
                 res.push(ComponentStatus {
