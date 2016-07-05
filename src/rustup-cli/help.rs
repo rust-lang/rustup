@@ -25,7 +25,7 @@ installed toolchains from the official release channels, then updates
 rustup itself.
 
 If given a toolchain argument then `update` updates that toolchain,
-the same as `rustup toolchain update`.
+the same as `rustup toolchain install`.
 
 'toolchain' specifies a toolchain name, such as 'stable', 'nightly',
 or '1.8.0'. For more information see `rustup help toolchain`.";
@@ -93,14 +93,14 @@ will be invoked.
 
 To pin to a specific nightly:
 
-    rustup override add nightly-2014-12-18
+    rustup override set nightly-2014-12-18
 
 Or a specific stable release:
 
-    rustup override add 1.0.0
+    rustup override set 1.0.0
 
 To see the active toolchain use `rustup show`. To remove the override
-and use the default toolchain again, `rustup override remove`.";
+and use the default toolchain again, `rustup override unset`.";
 
 pub static RUN_HELP: &'static str =
 r"

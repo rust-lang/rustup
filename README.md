@@ -183,17 +183,17 @@ will be invoked.
 To pin to a specific nightly:
 
 ```
-rustup override add nightly-2014-12-18
+rustup override set nightly-2014-12-18
 ```
 
 Or a specific stable release:
 
 ```
-rustup override add 1.0.0
+rustup override set 1.0.0
 ```
 
 To see the active toolchain use `rustup show`. To remove the override
-and use the default toolchain again, `rustup override remove`.
+and use the default toolchain again, `rustup override unset`.
 
 ## Toolchain specification
 
