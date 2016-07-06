@@ -539,13 +539,25 @@ fn dl_v2_manifest<'a>(download: DownloadCfg<'a>,
                       update_hash: Option<&Path>,
                       toolchain: &ToolchainDesc) -> Result<Option<(ManifestV2, String)>> {
     let manifest_url = toolchain.manifest_v2_url(download.dist_root);
-    let manifest_dl = try!(download_and_check(&manifest_url,
-                                              update_hash, ".toml", download));
-    let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl { m } else { return Ok(None) };
-    let manifest_str = try!(utils::read_file("manifest", &manifest_file));
-    let manifest = try!(ManifestV2::parse(&manifest_str));
+    let manifest_dl_res = download_and_check(&manifest_url,
+                                              update_hash, ".toml", download);
 
-    Ok(Some((manifest, manifest_hash)))
+    if let Ok(manifest_dl) = manifest_dl_res {
+        // Downloaded ok!
+        let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl { m } else { return Ok(None) };
+        let manifest_str = try!(utils::read_file("manifest", &manifest_file));
+        let manifest = try!(ManifestV2::parse(&manifest_str));
+
+        Ok(Some((manifest, manifest_hash)))
+    } else {
+        match *manifest_dl_res.as_ref().unwrap_err().kind() {
+            // Checksum failed - issue warning to try again later
+            ErrorKind::ChecksumFailed{url: _, expected: _, calculated: _} => (download.notify_handler)(Notification::ManifestChecksumFailedHack),
+            _ => {},
+        }
+        Err(manifest_dl_res.unwrap_err())
+    }
+    
 }
 
 fn dl_v1_manifest<'a>(download: DownloadCfg<'a>,
