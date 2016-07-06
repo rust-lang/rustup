@@ -168,7 +168,12 @@ Prompts for confirmation, unless disabled.
 Does not uninstall multirust.
 "
                 )
-                .arg(Arg::with_name("no-prompt").short("y").help("Disable confirmation prompt."))
+                .arg(
+                   Arg::with_name("no-prompt")
+                      .short("y")
+                      .long("yes")
+                      .help("Disable confirmation prompt.")
+                )
         )
         .subcommand(
             SubCommand::with_name("upgrade-data")
@@ -184,7 +189,12 @@ r"Upgrades the ~/.multirust directory from previous versions.
                 .subcommand(
                     SubCommand::with_name("uninstall")
                         .about("Uninstalls multirust.")
-                        .arg(Arg::with_name("no-prompt").short("y").help("Disable confirmation prompt."))
+                        .arg(
+                           Arg::with_name("no-prompt")
+                              .short("y")
+                              .long("yes")
+                              .help("Disable confirmation prompt.")
+                        )
                 )
                 .subcommand(
                     SubCommand::with_name("update")
