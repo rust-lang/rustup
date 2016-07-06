@@ -578,7 +578,7 @@ fn dl_v2_manifest<'a>(download: DownloadCfg<'a>,
     } else {
         match *manifest_dl_res.as_ref().unwrap_err().kind() {
             // Checksum failed - issue warning to try again later
-            ErrorKind::ChecksumFailed { url: _, expected: _, calculated: _ } => {
+            ErrorKind::ChecksumFailed { .. } => {
                 (download.notify_handler)(Notification::ManifestChecksumFailedHack)
             }
             _ => {}
