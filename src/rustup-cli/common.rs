@@ -286,7 +286,7 @@ pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
                 println!("{} (default)", component.component.target);
             } else if component.installed {
                 println!("{} (installed)", component.component.target);
-            } else {
+            } else if component.available {
                 println!("{}", component.component.target);
             }
         }

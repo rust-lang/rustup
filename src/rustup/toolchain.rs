@@ -33,6 +33,7 @@ pub struct ComponentStatus {
     pub component: Component,
     pub required: bool,
     pub installed: bool,
+    pub available: bool,
 }
 
 pub enum UpdateStatus {
@@ -377,10 +378,18 @@ impl<'a> Toolchain<'a> {
                 let installed = config.as_ref()
                     .map(|c| c.components.contains(&component))
                     .unwrap_or(false);
+
+                // Get the component so we can check if it is available
+                let component_pkg = manifest.get_package(&component.pkg)
+                    .expect(&format!("manifest should contain component {}", &component.pkg));
+                let component_target_pkg = component_pkg.targets.get(&toolchain.target)
+                    .expect("component should have target toolchain");
+
                 res.push(ComponentStatus {
                     component: component.clone(),
                     required: true,
                     installed: installed,
+                    available: component_target_pkg.available,
                 });
             }
 
@@ -388,10 +397,18 @@ impl<'a> Toolchain<'a> {
                 let installed = config.as_ref()
                     .map(|c| c.components.contains(&extension))
                     .unwrap_or(false);
+
+                // Get the component so we can check if it is available
+                let extension_pkg = manifest.get_package(&extension.pkg)
+                    .expect(&format!("manifest should contain extension {}", &extension.pkg));
+                let extension_target_pkg = extension_pkg.targets.get(&toolchain.target)
+                    .expect("extension should have target toolchain");
+
                 res.push(ComponentStatus {
                     component: extension.clone(),
                     required: false,
                     installed: installed,
+                    available: extension_target_pkg.available,
                 });
             }
 
