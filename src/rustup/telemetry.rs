@@ -8,9 +8,20 @@ use std::path::PathBuf;
 
 #[derive(RustcDecodable, RustcEncodable, Debug, Clone)]
 pub enum TelemetryEvent {
-    RustcRun { duration_ms: u64, exit_code: i32, errors: Option<Vec<String>> },
-    ToolchainUpdate { toolchain: String, success: bool } ,
-    TargetAdd { toolchain: String, target: String, success: bool },
+    RustcRun {
+        duration_ms: u64,
+        exit_code: i32,
+        errors: Option<Vec<String>>,
+    },
+    ToolchainUpdate {
+        toolchain: String,
+        success: bool,
+    },
+    TargetAdd {
+        toolchain: String,
+        target: String,
+        success: bool,
+    },
 }
 
 #[derive(RustcDecodable, RustcEncodable, Debug)]
@@ -28,7 +39,7 @@ impl LogMessage {
 
 #[derive(Debug)]
 pub struct Telemetry {
-    telemetry_dir: PathBuf
+    telemetry_dir: PathBuf,
 }
 
 const LOG_FILE_VERSION: i32 = 1;
@@ -41,13 +52,18 @@ impl Telemetry {
 
     pub fn log_telemetry(&self, event: TelemetryEvent) -> Result<()> {
         let current_time = time::now_utc();
-        let ln = LogMessage { log_time_s: current_time.to_timespec().sec,
-                              event: event,
-                              version: LOG_FILE_VERSION };
+        let ln = LogMessage {
+            log_time_s: current_time.to_timespec().sec,
+            event: event,
+            version: LOG_FILE_VERSION,
+        };
 
         let json = json::encode(&ln).unwrap();
 
-        let filename = format!("log-{}-{:02}-{:02}.json", current_time.tm_year + 1900, current_time.tm_mon + 1, current_time.tm_mday);
+        let filename = format!("log-{}-{:02}-{:02}.json",
+                               current_time.tm_year + 1900,
+                               current_time.tm_mon + 1,
+                               current_time.tm_mday);
 
         // Check for the telemetry file. If it doesn't exist, it's a new day.
         // If it is a new day, then attempt to clean the telemetry directory.
@@ -55,9 +71,7 @@ impl Telemetry {
             try!(self.clean_telemetry_dir());
         }
 
-        let _ = utils::append_file("telemetry",
-                                   &self.telemetry_dir.join(&filename),
-                                   &json);
+        let _ = utils::append_file("telemetry", &self.telemetry_dir.join(&filename), &json);
 
         Ok(())
     }
@@ -89,7 +103,8 @@ impl Telemetry {
 
         for i in 0..dl {
             let i = i as usize;
-            try!(fs::remove_file(&telemetry_files[i]).chain_err(|| ErrorKind::TelemetryCleanupError));
+            try!(fs::remove_file(&telemetry_files[i])
+                .chain_err(|| ErrorKind::TelemetryCleanupError));
         }
 
         Ok(())

@@ -19,31 +19,31 @@ pub fn main() -> Result<()> {
         .about("The installer for rustup")
         .setting(AppSettings::DeriveDisplayOrder)
         .arg(Arg::with_name("verbose")
-             .short("v")
-             .long("verbose")
-             .help("Enable verbose output"))
+            .short("v")
+            .long("verbose")
+            .help("Enable verbose output"))
         .arg(Arg::with_name("no-prompt")
-             .short("y")
-             .help("Disable confirmation prompt."))
+            .short("y")
+            .help("Disable confirmation prompt."))
         .arg(Arg::with_name("default-host")
-             .long("default-host")
-             .takes_value(true)
-             .help("Choose a default host triple"))
+            .long("default-host")
+            .takes_value(true)
+            .help("Choose a default host triple"))
         .arg(Arg::with_name("default-toolchain")
-             .long("default-toolchain")
-             .takes_value(true)
-             .possible_values(&["stable", "beta", "nightly"])
-             .help("Choose a default toolchain to install"))
+            .long("default-toolchain")
+            .takes_value(true)
+            .possible_values(&["stable", "beta", "nightly"])
+            .help("Choose a default toolchain to install"))
         .arg(Arg::with_name("no-modify-path")
-             .long("no-modify-path")
-             .help("Don't configure the PATH environment variable"));
+            .long("no-modify-path")
+            .help("Don't configure the PATH environment variable"));
 
     let matches = cli.get_matches();
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
-    let default_host = matches.value_of("default-host").map(|s| s.to_owned()).unwrap_or_else(|| {
-        TargetTriple::from_host_or_build().to_string()
-    });
+    let default_host = matches.value_of("default-host")
+        .map(|s| s.to_owned())
+        .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string());
     let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
     let no_modify_path = matches.is_present("no-modify-path");
 

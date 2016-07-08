@@ -1,5 +1,4 @@
-pub static RUSTUP_HELP: &'static str =
-r"
+pub static RUSTUP_HELP: &'static str = r"
 rustup installs The Rust Programming Language from the official
 release channels, enabling you to easily switch between stable, beta,
 and nightly compilers and keep them updated. It makes cross-compiling
@@ -8,8 +7,7 @@ simpler with binary builds of the standard library for common platforms.
 If you are new to Rust consider running `rustup doc --book`
 to learn Rust.";
 
-pub static SHOW_HELP: &'static str =
-r"
+pub static SHOW_HELP: &'static str = r"
 Shows the name of the active toolchain and the version of `rustc`.
 
 If the active toolchain has installed support for additional
@@ -18,8 +16,7 @@ compilation targets, then they are listed as well.
 If there are multiple toolchains installed then all installed
 toolchains are listed as well.";
 
-pub static UPDATE_HELP: &'static str =
-r"
+pub static UPDATE_HELP: &'static str = r"
 With no toolchain specified, the `update` command updates each of the
 installed toolchains from the official release channels, then updates
 rustup itself.
@@ -30,8 +27,7 @@ the same as `rustup toolchain install`.
 'toolchain' specifies a toolchain name, such as 'stable', 'nightly',
 or '1.8.0'. For more information see `rustup help toolchain`.";
 
-pub static TOOLCHAIN_INSTALL_HELP: &'static str =
-r"
+pub static TOOLCHAIN_INSTALL_HELP: &'static str = r"
 Installs a specific rust toolchain.
 
 The 'install' command is an alias for 'rustup update <toolchain>'.
@@ -39,13 +35,11 @@ The 'install' command is an alias for 'rustup update <toolchain>'.
 'toolchain' specifies a toolchain name, such as 'stable', 'nightly',
 or '1.8.0'. For more information see `rustup help toolchain`.";
 
-pub static DEFAULT_HELP: &'static str =
-r"
+pub static DEFAULT_HELP: &'static str = r"
 Sets the default toolchain to the one specified. If the toolchain is
 not already installed then it is installed first.";
 
-pub static TOOLCHAIN_HELP: &'static str =
-r"
+pub static TOOLCHAIN_HELP: &'static str = r"
 Many `rustup` commands deal with *toolchains*, a single installation
 of the Rust compiler. `rustup` supports multiple types of
 toolchains. The most basic track the official release channels:
@@ -80,8 +74,7 @@ inferred, so the above could be written:
 Toolchain names that don't name a channel instead can be used to name
 custom toolchains with the `rustup toolchain link` command.";
 
-pub static OVERRIDE_HELP: &'static str =
-r"
+pub static OVERRIDE_HELP: &'static str = r"
 Overrides configure rustup to use a specific toolchain when
 running in a specific directory.
 
@@ -102,15 +95,13 @@ Or a specific stable release:
 To see the active toolchain use `rustup show`. To remove the override
 and use the default toolchain again, `rustup override unset`.";
 
-pub static RUN_HELP: &'static str =
-r"
+pub static RUN_HELP: &'static str = r"
 Configures an environment to use the given toolchain and then runs
 the specified program. The command may be any program, not just
 rustc or cargo. This can be used for testing arbitrary toolchains
 without setting an override.";
 
-pub static DOC_HELP: &'static str =
-r"
+pub static DOC_HELP: &'static str = r"
 Opens the documentation for the currently active toolchain with the
 default browser.
 

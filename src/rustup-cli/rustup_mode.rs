@@ -21,7 +21,7 @@ pub fn main() -> Result<()> {
     let ref cfg = try!(common::set_globals(verbose));
 
     if try!(maybe_upgrade_data(cfg, matches)) {
-        return Ok(())
+        return Ok(());
     }
 
     try!(cfg.check_metadata_version());
@@ -63,7 +63,7 @@ pub fn main() -> Result<()> {
                 // Synonyms
                 ("add", Some(m)) => try!(override_add(cfg, m)),
                 ("remove", Some(_)) => try!(override_remove(cfg)),
-                (_ ,_) => unreachable!(),
+                (_, _) => unreachable!(),
             }
         }
         ("run", Some(m)) => try!(run(cfg, m)),
@@ -73,7 +73,7 @@ pub fn main() -> Result<()> {
             match c.subcommand() {
                 ("update", Some(_)) => try!(self_update::update()),
                 ("uninstall", Some(m)) => try!(self_uninstall(m)),
-                (_ ,_) => unreachable!(),
+                (_, _) => unreachable!(),
             }
         }
         ("telemetry", Some(c)) => {
@@ -120,8 +120,7 @@ pub fn cli() -> App<'static, 'static> {
         .subcommand(SubCommand::with_name("update")
             .about("Update Rust toolchains")
             .after_help(UPDATE_HELP)
-            .arg(Arg::with_name("toolchain")
-                .required(false))
+            .arg(Arg::with_name("toolchain").required(false))
             .arg(Arg::with_name("no-self-update")
                 .help("Don't perform self update when running the `rustup` command")
                 .long("no-self-update")
@@ -130,30 +129,24 @@ pub fn cli() -> App<'static, 'static> {
         .subcommand(SubCommand::with_name("default")
             .about("Set the default toolchain")
             .after_help(DEFAULT_HELP)
-            .arg(Arg::with_name("toolchain")
-                .required(true)))
+            .arg(Arg::with_name("toolchain").required(true)))
         .subcommand(SubCommand::with_name("toolchain")
             .about("Modify or query the installed toolchains")
             .after_help(TOOLCHAIN_HELP)
             .setting(AppSettings::VersionlessSubcommands)
             .setting(AppSettings::DeriveDisplayOrder)
             .setting(AppSettings::SubcommandRequiredElseHelp)
-            .subcommand(SubCommand::with_name("list")
-                .about("List installed toolchains"))
+            .subcommand(SubCommand::with_name("list").about("List installed toolchains"))
             .subcommand(SubCommand::with_name("install")
                 .about("Install or update a given toolchain")
-                .arg(Arg::with_name("toolchain")
-                .required(true)))
+                .arg(Arg::with_name("toolchain").required(true)))
             .subcommand(SubCommand::with_name("uninstall")
                 .about("Uninstall a toolchain")
-                .arg(Arg::with_name("toolchain")
-                     .required(true)))
+                .arg(Arg::with_name("toolchain").required(true)))
             .subcommand(SubCommand::with_name("link")
                 .about("Create a custom toolchain by symlinking to a directory")
-                .arg(Arg::with_name("toolchain")
-                    .required(true))
-                .arg(Arg::with_name("path")
-                    .required(true)))
+                .arg(Arg::with_name("toolchain").required(true))
+                .arg(Arg::with_name("path").required(true)))
             .subcommand(SubCommand::with_name("update")
                 .setting(AppSettings::Hidden) // synonym for 'install'
                 .arg(Arg::with_name("toolchain")
@@ -178,15 +171,13 @@ pub fn cli() -> App<'static, 'static> {
                     .takes_value(true)))
             .subcommand(SubCommand::with_name("add")
                 .about("Add a target to a Rust toolchain")
-                .arg(Arg::with_name("target")
-                    .required(true))
+                .arg(Arg::with_name("target").required(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
                     .takes_value(true)))
             .subcommand(SubCommand::with_name("remove")
                 .about("Remove a target  from a Rust toolchain")
-                .arg(Arg::with_name("target")
-                    .required(true))
+                .arg(Arg::with_name("target").required(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
                     .takes_value(true)))
@@ -210,12 +201,10 @@ pub fn cli() -> App<'static, 'static> {
             .setting(AppSettings::VersionlessSubcommands)
             .setting(AppSettings::DeriveDisplayOrder)
             .setting(AppSettings::SubcommandRequiredElseHelp)
-            .subcommand(SubCommand::with_name("list")
-                .about("List directory toolchain overrides"))
+            .subcommand(SubCommand::with_name("list").about("List directory toolchain overrides"))
             .subcommand(SubCommand::with_name("set")
                 .about("Set the override toolchain for a directory")
-                .arg(Arg::with_name("toolchain")
-                     .required(true)))
+                .arg(Arg::with_name("toolchain").required(true)))
             .subcommand(SubCommand::with_name("unset")
                 .about("Remove the override toolchain for a directory"))
             .subcommand(SubCommand::with_name("add")
@@ -229,25 +218,23 @@ pub fn cli() -> App<'static, 'static> {
             .about("Run a command with an environment configured for a given toolchain")
             .after_help(RUN_HELP)
             .setting(AppSettings::TrailingVarArg)
-            .arg(Arg::with_name("toolchain")
-                .required(true))
+            .arg(Arg::with_name("toolchain").required(true))
             .arg(Arg::with_name("command")
-                .required(true).multiple(true)))
+                .required(true)
+                .multiple(true)))
         .subcommand(SubCommand::with_name("which")
             .about("Display which binary will be run for a given command")
-            .arg(Arg::with_name("command")
-                .required(true)))
+            .arg(Arg::with_name("command").required(true)))
         .subcommand(SubCommand::with_name("doc")
             .about("Open the documentation for the current toolchain")
             .after_help(DOC_HELP)
             .arg(Arg::with_name("book")
-                 .long("book")
-                 .help("The Rust Programming Language book"))
+                .long("book")
+                .help("The Rust Programming Language book"))
             .arg(Arg::with_name("std")
-                 .long("std")
-                 .help("Standard library API documentation"))
-            .group(ArgGroup::with_name("page")
-                 .args(&["book", "std"])))
+                .long("std")
+                .help("Standard library API documentation"))
+            .group(ArgGroup::with_name("page").args(&["book", "std"])))
         .subcommand(SubCommand::with_name("self")
             .about("Modify the rustup installation")
             .setting(AppSettings::VersionlessSubcommands)
@@ -257,8 +244,7 @@ pub fn cli() -> App<'static, 'static> {
                 .about("Download and install updates to rustup"))
             .subcommand(SubCommand::with_name("uninstall")
                 .about("Uninstall rustup.")
-                .arg(Arg::with_name("no-prompt")
-                     .short("y")))
+                .arg(Arg::with_name("no-prompt").short("y")))
             .subcommand(SubCommand::with_name("upgrade-data")
                 .about("Upgrade the internal data format.")))
         .subcommand(SubCommand::with_name("telemetry")
@@ -266,19 +252,15 @@ pub fn cli() -> App<'static, 'static> {
             .setting(AppSettings::VersionlessSubcommands)
             .setting(AppSettings::DeriveDisplayOrder)
             .setting(AppSettings::SubcommandRequiredElseHelp)
-            .subcommand(SubCommand::with_name("enable")
-                            .about("Enable rustup telemetry"))
-            .subcommand(SubCommand::with_name("disable")
-                            .about("Disable rustup telemetry"))
-            .subcommand(SubCommand::with_name("analyze")
-                            .about("Analyze stored telemetry")))
+            .subcommand(SubCommand::with_name("enable").about("Enable rustup telemetry"))
+            .subcommand(SubCommand::with_name("disable").about("Disable rustup telemetry"))
+            .subcommand(SubCommand::with_name("analyze").about("Analyze stored telemetry")))
         .subcommand(SubCommand::with_name("set")
             .about("Alter rustup settings")
             .setting(AppSettings::SubcommandRequiredElseHelp)
             .subcommand(SubCommand::with_name("default-host")
                 .about("The triple used to identify toolchains when not specified")
-                .arg(Arg::with_name("host_triple")
-                    .required(true))))
+                .arg(Arg::with_name("host_triple").required(true))))
 }
 
 fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
@@ -292,47 +274,52 @@ fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
                 _ => Ok(false),
             }
         }
-        _ => Ok(false)
+        _ => Ok(false),
     }
 }
 
 fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
     if let Some(triple) = PartialTargetTriple::from_str(name) {
-	warn!("(partial) target triple specified instead of toolchain name");
+        warn!("(partial) target triple specified instead of toolchain name");
         let installed_toolchains = try!(cfg.list_toolchains());
         let default = try!(cfg.find_default());
         let default_name = default.map(|t| t.name().to_string())
-                           .unwrap_or("".into());
+            .unwrap_or("".into());
         let mut candidates = vec![];
         for t in installed_toolchains {
             if t == default_name {
-		continue;
-	    }
+                continue;
+            }
             if let Ok(desc) = PartialToolchainDesc::from_str(&t) {
                 fn triple_comp_eq(given: &String, from_desc: Option<&String>) -> bool {
                     from_desc.map_or(false, |s| *s == *given)
                 }
 
-                let triple_matches =
-                    triple.arch.as_ref().map_or(true, |s| triple_comp_eq(s, desc.target.arch.as_ref()))
-                    && triple.os.as_ref().map_or(true, |s| triple_comp_eq(s, desc.target.os.as_ref()))
-                    && triple.env.as_ref().map_or(true, |s| triple_comp_eq(s, desc.target.env.as_ref()));
+                let triple_matches = triple.arch
+                    .as_ref()
+                    .map_or(true, |s| triple_comp_eq(s, desc.target.arch.as_ref())) &&
+                                     triple.os
+                    .as_ref()
+                    .map_or(true, |s| triple_comp_eq(s, desc.target.os.as_ref())) &&
+                                     triple.env
+                    .as_ref()
+                    .map_or(true, |s| triple_comp_eq(s, desc.target.env.as_ref()));
                 if triple_matches {
                     candidates.push(t);
                 }
             }
         }
-	match candidates.len() {
-	    0 => err!("no candidate toolchains found"),
-	    1 => println!("\nyou may use the following toolchain: {}\n", candidates[0]),
-	    _ => {
-		println!("\nyou may use one of the following toolchains:");
-		for n in candidates.iter() {
-		    println!("{}", n);
-		}
-		println!("");
-	    }
-	}
+        match candidates.len() {
+            0 => err!("no candidate toolchains found"),
+            1 => println!("\nyou may use the following toolchain: {}\n", candidates[0]),
+            _ => {
+                println!("\nyou may use one of the following toolchains:");
+                for n in candidates.iter() {
+                    println!("{}", n);
+                }
+                println!("");
+            }
+        }
         return Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into());
     }
     Ok(())
@@ -343,18 +330,20 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
         warn!("(partial) target triple specified instead of toolchain name");
         let default = try!(cfg.find_default());
         let default_name = default.map(|t| t.name().to_string())
-                           .unwrap_or("".into());
-	if let Ok(mut desc) = PartialToolchainDesc::from_str(&default_name) {
-	    desc.target = triple;
-	    let maybe_toolchain = format!("{}", desc);
-	    let ref toolchain = try!(cfg.get_toolchain(maybe_toolchain.as_ref(), false));
-	    if toolchain.name() == default_name {
-		warn!("(partial) triple '{}' resolves to a toolchain that is already default", name);
-	    } else {
-		println!("\nyou may use the following toolchain: {}\n", toolchain.name());
-	    }
-	    return Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into());
-	}
+            .unwrap_or("".into());
+        if let Ok(mut desc) = PartialToolchainDesc::from_str(&default_name) {
+            desc.target = triple;
+            let maybe_toolchain = format!("{}", desc);
+            let ref toolchain = try!(cfg.get_toolchain(maybe_toolchain.as_ref(), false));
+            if toolchain.name() == default_name {
+                warn!("(partial) triple '{}' resolves to a toolchain that is already default",
+                      name);
+            } else {
+                println!("\nyou may use the following toolchain: {}\n",
+                         toolchain.name());
+            }
+            return Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into());
+        }
     }
     Ok(())
 }
@@ -419,7 +408,7 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let binary = m.value_of("command").expect("");
 
     let binary_path = try!(cfg.which_binary(&try!(utils::current_dir()), binary))
-                          .expect("binary not found");
+        .expect("binary not found");
 
     try!(utils::assert_is_file(&binary_path));
 
@@ -457,17 +446,18 @@ fn show(cfg: &Cfg) -> Result<()> {
     let show_active_toolchain = true;
 
     // Only need to display headers if we have multiple sections
-    let show_headers = [
-        show_installed_toolchains,
-        show_active_targets,
-        show_active_toolchain
-    ].iter().filter(|x| **x).count() > 1;
+    let show_headers = [show_installed_toolchains, show_active_targets, show_active_toolchain]
+        .iter()
+        .filter(|x| **x)
+        .count() > 1;
 
     if show_installed_toolchains {
-        if show_headers { print_header("installed toolchains") }
+        if show_headers {
+            print_header("installed toolchains")
+        }
         let default = try!(cfg.find_default());
         let default_name = default.map(|t| t.name().to_string())
-                           .unwrap_or("".into());
+            .unwrap_or("".into());
         for t in installed_toolchains {
             if default_name == t {
                 println!("{} (default)", t);
@@ -475,7 +465,9 @@ fn show(cfg: &Cfg) -> Result<()> {
                 println!("{}", t);
             }
         }
-        if show_headers { println!("") };
+        if show_headers {
+            println!("")
+        };
     }
 
     if show_active_targets {
@@ -485,11 +477,15 @@ fn show(cfg: &Cfg) -> Result<()> {
         for t in active_targets {
             println!("{}", t.component.target);
         }
-        if show_headers { println!("") };
+        if show_headers {
+            println!("")
+        };
     }
 
     if show_active_toolchain {
-        if show_headers { print_header("active toolchain") }
+        if show_headers {
+            print_header("active toolchain")
+        }
 
         match active_toolchain {
             Some((ref toolchain, Some(ref reason))) => {
@@ -505,7 +501,9 @@ fn show(cfg: &Cfg) -> Result<()> {
             }
         }
 
-        if show_headers { println!("") };
+        if show_headers {
+            println!("")
+        };
     }
 
     fn print_header(s: &str) {
@@ -601,9 +599,8 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn override_remove(cfg: &Cfg) -> Result<()> {
     let ref path = try!(utils::current_dir());
 
-    if try!(cfg.settings_file.with_mut(|s| {
-        Ok(s.remove_override(path, cfg.notify_handler.as_ref()))
-    })) {
+    if try!(cfg.settings_file
+        .with_mut(|s| Ok(s.remove_override(path, cfg.notify_handler.as_ref())))) {
         info!("override toolchain for '{}' removed", path.display());
     } else {
         info!("no override toolchain for '{}'", path.display());

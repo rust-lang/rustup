@@ -67,7 +67,7 @@ impl DownloadTracker {
                 self.download_finished();
                 true
             }
-            _ => false
+            _ => false,
         }
     }
 
@@ -123,8 +123,8 @@ impl DownloadTracker {
     fn display(&mut self) {
         let total_h = HumanReadable(self.total_downloaded as f64);
         let sum = self.downloaded_last_few_secs
-                      .iter()
-                      .fold(0., |a, &v| a + v as f64);
+            .iter()
+            .fold(0., |a, &v| a + v as f64);
         let len = self.downloaded_last_few_secs.len();
         let speed = if len > 0 {
             sum / len as f64
@@ -150,7 +150,9 @@ impl DownloadTracker {
             }
             None => {
                 let _ = write!(self.term.as_mut().unwrap(),
-                               "Total: {} Speed: {}/s", total_h, speed_h);
+                               "Total: {} Speed: {}/s",
+                               total_h,
+                               speed_h);
             }
         }
         // delete_line() doesn't seem to clear the line properly.
@@ -167,7 +169,8 @@ struct HumanReadable(f64);
 
 impl fmt::Display for HumanReadable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if f.alternate() {  // repurposing the alternate mode for ETA
+        if f.alternate() {
+            // repurposing the alternate mode for ETA
             let sec = self.0;
 
             if sec.is_infinite() {

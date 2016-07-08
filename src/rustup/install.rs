@@ -1,7 +1,7 @@
 //! Installation and upgrade of both distribution-managed and local
 //! toolchains
 
-use rustup_dist::{Notification};
+use rustup_dist::Notification;
 use rustup_dist::prefix::InstallPrefix;
 use rustup_utils::utils;
 use rustup_dist::temp;
@@ -47,12 +47,7 @@ impl<'a> InstallMethod<'a> {
             InstallMethod::Dist(toolchain, update_hash, dl_cfg) => {
                 let ref prefix = InstallPrefix::from(path.to_owned());
                 let maybe_new_hash =
-                    try!(dist::update_from_dist(
-                        dl_cfg,
-                        update_hash,
-                        toolchain,
-                        prefix,
-                        &[], &[]));
+                    try!(dist::update_from_dist(dl_cfg, update_hash, toolchain, prefix, &[], &[]));
 
                 if let Some(hash) = maybe_new_hash {
                     if let Some(hash_file) = update_hash {
@@ -67,8 +62,11 @@ impl<'a> InstallMethod<'a> {
         }
     }
 
-    fn tar_gz(src: &Path, path: &Path, temp_cfg: &temp::Cfg,
-              notify_handler: &Fn(Notification)) -> Result<()> {
+    fn tar_gz(src: &Path,
+              path: &Path,
+              temp_cfg: &temp::Cfg,
+              notify_handler: &Fn(Notification))
+              -> Result<()> {
         notify_handler(Notification::Extracting(src, path));
 
         let prefix = InstallPrefix::from(path.to_owned());
@@ -88,6 +86,5 @@ impl<'a> InstallMethod<'a> {
 }
 
 pub fn uninstall(path: &Path, notify_handler: &Fn(Notification)) -> Result<()> {
-    Ok(try!(utils::remove_dir("install", path,
-                              &|n| notify_handler(n.into()))))
+    Ok(try!(utils::remove_dir("install", path, &|n| notify_handler(n.into()))))
 }

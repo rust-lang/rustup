@@ -1,5 +1,5 @@
 use common::set_globals;
-use rustup::{Cfg};
+use rustup::Cfg;
 use errors::*;
 use rustup_utils::utils;
 use rustup::command::run_command_for_dir;
@@ -31,4 +31,3 @@ fn direct_proxy(cfg: &Cfg, arg0: &str) -> Result<()> {
 
     Ok(try!(run_command_for_dir(cmd, &args, &cfg)))
 }
-

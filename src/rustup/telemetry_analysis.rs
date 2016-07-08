@@ -42,7 +42,7 @@ impl RustcStatistics {
             compile_time_ms_ntile_99: 0u64,
             compile_time_ms_stdev: 0f64,
             exit_codes_with_count: HashMap::new(),
-            error_codes_with_counts: HashMap::new()
+            error_codes_with_counts: HashMap::new(),
         }
     }
 }
@@ -50,7 +50,7 @@ impl RustcStatistics {
 impl fmt::Display for RustcStatistics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut errors: String = String::new();
-        
+
         if self.error_codes_with_counts.len() > 0 {
             errors = "  rustc errors\n".to_owned();
             for (error, count) in &self.error_codes_with_counts {
@@ -68,7 +68,8 @@ impl fmt::Display for RustcStatistics {
             }
         }
 
-        write!(f, r"
+        write!(f,
+               r"
   Total compiles: {}
   Compile Time (ms)
     Total : {}
@@ -82,23 +83,23 @@ impl fmt::Display for RustcStatistics {
 {}
 
 {}",
-            self.rustc_execution_count,
-            self.compile_time_ms_total,
-            self.compile_time_ms_mean,
-            self.compile_time_ms_stdev,
-            self.compile_time_ms_ntile_75,
-            self.compile_time_ms_ntile_90,
-            self.compile_time_ms_ntile_95,
-            self.compile_time_ms_ntile_99,
-            errors,
-            exits
-        )
+               self.rustc_execution_count,
+               self.compile_time_ms_total,
+               self.compile_time_ms_mean,
+               self.compile_time_ms_stdev,
+               self.compile_time_ms_ntile_75,
+               self.compile_time_ms_ntile_90,
+               self.compile_time_ms_ntile_95,
+               self.compile_time_ms_ntile_99,
+               errors,
+               exits)
     }
 }
 
 impl fmt::Display for TelemetryAnalysis {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, r"
+        write!(f,
+               r"
 Overall rustc statistics:
 {}
 
@@ -107,16 +108,15 @@ rustc successful execution statistics
 
 rustc error statistics
 {}",
-            self.rustc_statistics,
-            self.rustc_success_statistics,
-            self.rustc_error_statistics
-        )
+               self.rustc_statistics,
+               self.rustc_success_statistics,
+               self.rustc_error_statistics)
     }
 }
 
 impl TelemetryAnalysis {
     pub fn new(telemetry_dir: PathBuf) -> TelemetryAnalysis {
-        TelemetryAnalysis { 
+        TelemetryAnalysis {
             telemetry_dir: telemetry_dir,
             rustc_statistics: RustcStatistics::new(),
             rustc_success_statistics: RustcStatistics::new(),
@@ -126,7 +126,8 @@ impl TelemetryAnalysis {
 
     pub fn import_telemery(&mut self) -> Result<Vec<TelemetryEvent>> {
         let mut events: Vec<TelemetryEvent> = Vec::new();
-        let contents = try!(self.telemetry_dir.read_dir().chain_err(|| ErrorKind::TelemetryAnalysisError));
+        let contents =
+            try!(self.telemetry_dir.read_dir().chain_err(|| ErrorKind::TelemetryAnalysisError));
 
         let mut telemetry_files: Vec<PathBuf> = Vec::new();
 
@@ -175,58 +176,60 @@ impl TelemetryAnalysis {
         let mut rustc_exit_codes = Vec::new();
 
         let mut rustc_successful_durations = Vec::new();
-        
+
         let mut rustc_error_durations = Vec::new();
         let mut error_list: Vec<Vec<String>> = Vec::new();
         let mut error_codes_with_counts: HashMap<String, i32> = HashMap::new();
-        
+
         let mut toolchains = Vec::new();
         let mut toolchains_with_errors = Vec::new();
         let mut targets = Vec::new();
-        
+
         let mut updated_toolchains = Vec::new();
         let mut updated_toolchains_with_errors = Vec::new();
 
         for event in events {
             match event {
-                &TelemetryEvent::RustcRun{ duration_ms, ref exit_code, ref errors } => {
+                &TelemetryEvent::RustcRun { duration_ms, ref exit_code, ref errors } => {
                     self.rustc_statistics.rustc_execution_count += 1;
                     rustc_durations.push(duration_ms);
 
-                    let exit_count = self.rustc_statistics.exit_codes_with_count.entry(*exit_code).or_insert(0);
+                    let exit_count =
+                        self.rustc_statistics.exit_codes_with_count.entry(*exit_code).or_insert(0);
                     *exit_count += 1;
 
                     rustc_exit_codes.push(exit_code);
-                    
+
                     if errors.is_some() {
                         let errors = errors.clone().unwrap();
 
                         for e in &errors {
-                            let error_count = error_codes_with_counts.entry(e.to_owned()).or_insert(0);
+                            let error_count = error_codes_with_counts.entry(e.to_owned())
+                                .or_insert(0);
                             *error_count += 1;
                         }
 
                         error_list.push(errors);
-                        rustc_error_durations.push(duration_ms);                        
+                        rustc_error_durations.push(duration_ms);
                     } else {
                         rustc_successful_durations.push(duration_ms);
                     }
-                },
-                &TelemetryEvent::TargetAdd{ ref toolchain, ref target, success } => {
+                }
+                &TelemetryEvent::TargetAdd { ref toolchain, ref target, success } => {
                     toolchains.push(toolchain.to_owned());
                     targets.push(target.to_owned());
                     if !success {
                         toolchains_with_errors.push(toolchain.to_owned());
                     }
-                },
-                &TelemetryEvent::ToolchainUpdate{ ref toolchain, success } => {
+                }
+                &TelemetryEvent::ToolchainUpdate { ref toolchain, success } => {
                     updated_toolchains.push(toolchain.to_owned());
                     if !success {
                         updated_toolchains_with_errors.push(toolchain.to_owned());
                     }
-                },
+                }
             }
-        };
+        }
 
         self.rustc_statistics = compute_rustc_percentiles(&rustc_durations);
         self.rustc_error_statistics = compute_rustc_percentiles(&rustc_error_durations);
@@ -255,7 +258,7 @@ pub fn compute_rustc_percentiles(values: &Vec<u64>) -> RustcStatistics {
         compile_time_ms_ntile_99: ntile(99, &values),
         compile_time_ms_stdev: stdev(&values),
         exit_codes_with_count: HashMap::new(),
-        error_codes_with_counts: HashMap::new()
+        error_codes_with_counts: HashMap::new(),
     }
 }
 
