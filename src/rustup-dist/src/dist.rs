@@ -58,17 +58,29 @@ pub struct TargetTriple(String);
 // These lists contain the targets known to rustup, and used to build
 // the PartialTargetTriple.
 
-static LIST_ARCHS: &'static [&'static str] = &[
-    "i386", "i586", "i686", "x86_64", "arm", "armv7", "armv7s", "aarch64", "mips", "mipsel",
-    "powerpc", "powerpc64", "powerpc64le"
-];
-static LIST_OSES: &'static [&'static str] = &[
-    "pc-windows", "unknown-linux", "apple-darwin", "unknown-netbsd", "apple-ios",
-    "linux", "rumprun-netbsd", "unknown-freebsd"
-];
-static LIST_ENVS: &'static [&'static str] = &[
-    "gnu", "msvc", "gnueabi", "gnueabihf", "androideabi", "musl"
-];
+static LIST_ARCHS: &'static [&'static str] = &["i386",
+                                               "i586",
+                                               "i686",
+                                               "x86_64",
+                                               "arm",
+                                               "armv7",
+                                               "armv7s",
+                                               "aarch64",
+                                               "mips",
+                                               "mipsel",
+                                               "powerpc",
+                                               "powerpc64",
+                                               "powerpc64le"];
+static LIST_OSES: &'static [&'static str] = &["pc-windows",
+                                              "unknown-linux",
+                                              "apple-darwin",
+                                              "unknown-netbsd",
+                                              "apple-ios",
+                                              "linux",
+                                              "rumprun-netbsd",
+                                              "unknown-freebsd"];
+static LIST_ENVS: &'static [&'static str] =
+    &["gnu", "msvc", "gnueabi", "gnueabihf", "androideabi", "musl"];
 
 impl TargetTriple {
     pub fn from_str(name: &str) -> Self {
@@ -103,7 +115,7 @@ impl TargetTriple {
             let arch = match sys_info.wProcessorArchitecture {
                 PROCESSOR_ARCHITECTURE_AMD64 => "x86_64",
                 PROCESSOR_ARCHITECTURE_INTEL => "i686",
-                _ => return None
+                _ => return None,
             };
 
             // Now try to find an installation of msvc, using the gcc crate to do the hard work
@@ -131,10 +143,8 @@ impl TargetTriple {
                     return None;
                 }
 
-                (
-                    CStr::from_ptr(sys_info.sysname.as_ptr()).to_bytes(),
-                    CStr::from_ptr(sys_info.machine.as_ptr()).to_bytes(),
-                )
+                (CStr::from_ptr(sys_info.sysname.as_ptr()).to_bytes(),
+                 CStr::from_ptr(sys_info.machine.as_ptr()).to_bytes())
             };
 
             let host_triple = match (sysname, machine) {
@@ -153,7 +163,7 @@ impl TargetTriple {
                 (b"NetBSD", b"x86_64") => Some("x86_64-unknown-netbsd"),
                 (b"NetBSD", b"i686") => Some("i686-unknown-netbsd"),
                 (b"DragonFly", b"x86_64") => Some("x86_64-unknown-dragonfly"),
-                _ => None
+                _ => None,
             };
 
             host_triple.map(TargetTriple::from_str)
@@ -175,7 +185,9 @@ impl PartialTargetTriple {
     pub fn from_str(name: &str) -> Option<Self> {
         if name.is_empty() {
             return Some(PartialTargetTriple {
-                arch: None, os: None, env: None
+                arch: None,
+                os: None,
+                env: None,
             });
         }
 
@@ -183,10 +195,10 @@ impl PartialTargetTriple {
         // we can count  on all triple components being
         // delineated by it.
         let name = format!("-{}", name);
-        let pattern = format!(
-            r"^(?:-({}))?(?:-({}))?(?:-({}))?$",
-            LIST_ARCHS.join("|"), LIST_OSES.join("|"), LIST_ENVS.join("|")
-            );
+        let pattern = format!(r"^(?:-({}))?(?:-({}))?(?:-({}))?$",
+                              LIST_ARCHS.join("|"),
+                              LIST_OSES.join("|"),
+                              LIST_ENVS.join("|"));
 
         let re = Regex::new(&pattern).unwrap();
         re.captures(&name).map(|c| {
@@ -209,14 +221,11 @@ impl PartialTargetTriple {
 
 impl PartialToolchainDesc {
     pub fn from_str(name: &str) -> Result<Self> {
-        let channels = ["nightly", "beta", "stable",
-                        r"\d{1}\.\d{1}\.\d{1}",
-                        r"\d{1}\.\d{2}\.\d{1}"];
+        let channels =
+            ["nightly", "beta", "stable", r"\d{1}\.\d{1}\.\d{1}", r"\d{1}\.\d{2}\.\d{1}"];
 
-        let pattern = format!(
-            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
-            channels.join("|")
-            );
+        let pattern = format!(r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
+                              channels.join("|"));
 
 
         let re = Regex::new(&pattern).unwrap();
@@ -280,9 +289,8 @@ impl PartialToolchainDesc {
 
 impl ToolchainDesc {
     pub fn from_str(name: &str) -> Result<Self> {
-        let channels = ["nightly", "beta", "stable",
-                        r"\d{1}\.\d{1}\.\d{1}",
-                        r"\d{1}\.\d{2}\.\d{1}"];
+        let channels =
+            ["nightly", "beta", "stable", r"\d{1}\.\d{1}\.\d{1}", r"\d{1}\.\d{2}\.\d{1}"];
 
         let pattern = format!(
             r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?-(.*)?$",
@@ -290,21 +298,23 @@ impl ToolchainDesc {
             );
 
         let re = Regex::new(&pattern).unwrap();
-        re.captures(name).map(|c| {
-            fn fn_map(s: &str) -> Option<String> {
-                if s == "" {
-                    None
-                } else {
-                    Some(s.to_owned())
+        re.captures(name)
+            .map(|c| {
+                fn fn_map(s: &str) -> Option<String> {
+                    if s == "" {
+                        None
+                    } else {
+                        Some(s.to_owned())
+                    }
                 }
-            }
 
-            ToolchainDesc {
-                channel: c.at(1).unwrap().to_owned(),
-                date: c.at(2).and_then(fn_map),
-                target: TargetTriple(c.at(3).unwrap().to_owned()),
-            }
-        }).ok_or(ErrorKind::InvalidToolchainName(name.to_string()).into())
+                ToolchainDesc {
+                    channel: c.at(1).unwrap().to_owned(),
+                    date: c.at(2).and_then(fn_map),
+                    target: TargetTriple(c.at(3).unwrap().to_owned()),
+                }
+            })
+            .ok_or(ErrorKind::InvalidToolchainName(name.to_string()).into())
     }
 
     pub fn manifest_v1_url(&self, dist_root: &str) -> String {
@@ -321,9 +331,9 @@ impl ToolchainDesc {
     pub fn manifest_name(&self) -> String {
         match self.date {
             None => self.channel.clone(),
-            Some(ref date) => format!("{}-{}", self.channel, date)
+            Some(ref date) => format!("{}-{}", self.channel, date),
         }
-   }
+    }
 
     pub fn package_dir(&self, dist_root: &str) -> String {
         match self.date {
@@ -432,17 +442,20 @@ pub fn download_and_check<'a>(url_str: &str,
     let file = try!(cfg.temp_cfg.new_file_with_ext("", ext));
 
     let mut hasher = Sha256::new();
-    try!(utils::download_file(&url, &file, Some(&mut hasher),
+    try!(utils::download_file(&url,
+                              &file,
+                              Some(&mut hasher),
                               &|n| (cfg.notify_handler)(n.into())));
     let actual_hash = hasher.result_str();
 
     if hash != actual_hash {
         // Incorrect hash
         return Err(ErrorKind::ChecksumFailed {
-            url: url_str.to_owned(),
-            expected: hash,
-            calculated: actual_hash,
-        }.into());
+                url: url_str.to_owned(),
+                expected: hash,
+                calculated: actual_hash,
+            }
+            .into());
     } else {
         (cfg.notify_handler)(Notification::ChecksumValid(url_str));
     }
@@ -463,7 +476,9 @@ pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
     let hash_url = try!(utils::parse_url(&(url.to_owned() + ".sha256")));
     let hash_file = try!(cfg.temp_cfg.new_file());
 
-    try!(utils::download_file(&hash_url, &hash_file, None,
+    try!(utils::download_file(&hash_url,
+                              &hash_file,
+                              None,
                               &|n| (cfg.notify_handler)(n.into())));
 
     Ok(try!(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())))
@@ -479,8 +494,8 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                             toolchain: &ToolchainDesc,
                             prefix: &InstallPrefix,
                             add: &[Component],
-                            remove: &[Component],
-                            ) -> Result<Option<String>> {
+                            remove: &[Component])
+                            -> Result<Option<String>> {
 
     let toolchain_str = toolchain.to_string();
     let manifestation = try!(Manifestation::open(prefix.clone(), toolchain.target.clone()));
@@ -494,7 +509,9 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
     (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
     match dl_v2_manifest(download, update_hash, toolchain) {
         Ok(Some((m, hash))) => {
-            return match try!(manifestation.update(&m, changes, &download.temp_cfg,
+            return match try!(manifestation.update(&m,
+                                                   changes,
+                                                   &download.temp_cfg,
                                                    download.notify_handler.clone())) {
                 UpdateStatus::Unchanged => Ok(None),
                 UpdateStatus::Changed => Ok(Some(hash)),
@@ -505,58 +522,82 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
             // Proceed to try v1 as a fallback
             (download.notify_handler)(Notification::DownloadingLegacyManifest);
         }
-        Err(e) => return Err(e)
+        Err(e) => return Err(e),
     }
 
     // If the v2 manifest is not found then try v1
     let manifest = match dl_v1_manifest(download, toolchain) {
         Ok(m) => m,
         Err(Error(ErrorKind::Utils(rustup_utils::ErrorKind::Download404 { .. }), _)) => {
-            return Err(format!("no release found for '{}'",
-                               toolchain.manifest_name()).into());
+            return Err(format!("no release found for '{}'", toolchain.manifest_name()).into());
         }
         Err(e @ Error(ErrorKind::ChecksumFailed { .. }, _)) => {
             return Err(e);
         }
         Err(e) => {
-            return Err(e).chain_err(
-                || format!("failed to download manifest for '{}'",
-                           toolchain.manifest_name()));
+            return Err(e).chain_err(|| {
+                format!("failed to download manifest for '{}'",
+                        toolchain.manifest_name())
+            });
         }
     };
-    match manifestation.update_v1(&manifest, update_hash,
-                                       &download.temp_cfg, download.notify_handler.clone()) {
+    match manifestation.update_v1(&manifest,
+                                  update_hash,
+                                  &download.temp_cfg,
+                                  download.notify_handler.clone()) {
         Ok(None) => Ok(None),
         Ok(Some(hash)) => Ok(Some(hash)),
         e @ Err(Error(ErrorKind::Utils(rustup_utils::ErrorKind::Download404 { .. }), _)) => {
-           e.chain_err(|| format!("could not download nonexistent rust version `{}`", toolchain_str))
+            e.chain_err(|| {
+                format!("could not download nonexistent rust version `{}`",
+                        toolchain_str)
+            })
         }
-        Err(e) => Err(e)
+        Err(e) => Err(e),
     }
 }
 
 fn dl_v2_manifest<'a>(download: DownloadCfg<'a>,
                       update_hash: Option<&Path>,
-                      toolchain: &ToolchainDesc) -> Result<Option<(ManifestV2, String)>> {
+                      toolchain: &ToolchainDesc)
+                      -> Result<Option<(ManifestV2, String)>> {
     let manifest_url = toolchain.manifest_v2_url(download.dist_root);
-    let manifest_dl = try!(download_and_check(&manifest_url,
-                                              update_hash, ".toml", download));
-    let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl { m } else { return Ok(None) };
-    let manifest_str = try!(utils::read_file("manifest", &manifest_file));
-    let manifest = try!(ManifestV2::parse(&manifest_str));
+    let manifest_dl_res = download_and_check(&manifest_url, update_hash, ".toml", download);
 
-    Ok(Some((manifest, manifest_hash)))
+    if let Ok(manifest_dl) = manifest_dl_res {
+        // Downloaded ok!
+        let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl {
+            m
+        } else {
+            return Ok(None);
+        };
+        let manifest_str = try!(utils::read_file("manifest", &manifest_file));
+        let manifest = try!(ManifestV2::parse(&manifest_str));
+
+        Ok(Some((manifest, manifest_hash)))
+    } else {
+        match *manifest_dl_res.as_ref().unwrap_err().kind() {
+            // Checksum failed - issue warning to try again later
+            ErrorKind::ChecksumFailed { .. } => {
+                (download.notify_handler)(Notification::ManifestChecksumFailedHack)
+            }
+            _ => {}
+        }
+        Err(manifest_dl_res.unwrap_err())
+    }
+
 }
 
-fn dl_v1_manifest<'a>(download: DownloadCfg<'a>,
-                      toolchain: &ToolchainDesc) -> Result<Vec<String>> {
+fn dl_v1_manifest<'a>(download: DownloadCfg<'a>, toolchain: &ToolchainDesc) -> Result<Vec<String>> {
     let root_url = toolchain.package_dir(download.dist_root);
 
     if !["nightly", "beta", "stable"].contains(&&*toolchain.channel) {
         // This is an explicit version. In v1 there was no manifest,
         // you just know the file to download, so synthesize one.
         let installer_name = format!("{}/rust-{}-{}.tar.gz",
-                                     root_url, toolchain.channel, toolchain.target);
+                                     root_url,
+                                     toolchain.channel,
+                                     toolchain.target);
         return Ok(vec![installer_name]);
     }
 

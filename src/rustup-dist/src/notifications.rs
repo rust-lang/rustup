@@ -26,6 +26,7 @@ pub enum Notification<'a> {
     InstallingComponent(&'a str, &'a TargetTriple, &'a TargetTriple),
     DownloadingManifest(&'a str),
     DownloadingLegacyManifest,
+    ManifestChecksumFailedHack,
 }
 
 impl<'a> From<rustup_utils::Notification<'a>> for Notification<'a> {
@@ -54,7 +55,8 @@ impl<'a> Notification<'a> {
             ComponentAlreadyInstalled(_)  |
             RollingBack | DownloadingManifest(_) => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
-            MissingInstalledComponent(_) => NotificationLevel::Warn,
+            MissingInstalledComponent(_) |
+            ManifestChecksumFailedHack => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
         }
     }
@@ -101,6 +103,7 @@ impl<'a> Display for Notification<'a> {
             }
             DownloadingManifest(t) => write!(f, "syncing channel updates for '{}'", t),
             DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
+            ManifestChecksumFailedHack => write!(f, "update not yet available, sorry! try again later"),
         }
     }
 }
