@@ -45,7 +45,7 @@ impl<'a> InstallMethod<'a> {
                 Ok(true)
             }
             InstallMethod::Dist(toolchain, update_hash, dl_cfg) => {
-                let ref prefix = InstallPrefix::from(path.to_owned());
+                let prefix = &InstallPrefix::from(path.to_owned());
                 let maybe_new_hash =
                     try!(dist::update_from_dist(
                         dl_cfg,

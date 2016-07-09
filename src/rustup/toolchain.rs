@@ -28,7 +28,7 @@ pub struct Toolchain<'a> {
     dist_handler: Box<Fn(rustup_dist::Notification) + 'a>,
 }
 
-/// Used by the list_component function
+/// Used by the `list_component` function
 pub struct ComponentStatus {
     pub component: Component,
     pub required: bool,
@@ -142,7 +142,7 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    fn download_cfg<'b>(&'b self) -> dist::DownloadCfg<'b> {
+    fn download_cfg(&self) -> dist::DownloadCfg {
         dist::DownloadCfg {
             dist_root: &self.cfg.dist_root_url,
             temp_cfg: &self.cfg.temp_cfg,
@@ -220,7 +220,7 @@ impl<'a> Toolchain<'a> {
         // installs, and do it all in a single transaction.
         for installer in installers {
             let installer_str = installer.to_str().unwrap_or("bogus");
-            match installer_str.rfind(".") {
+            match installer_str.rfind('.') {
                 Some(i) => {
                     let extension = &installer_str[i+1..];
                     if extension != "gz" {
@@ -276,7 +276,7 @@ impl<'a> Toolchain<'a> {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
-        let ref bin_path = self.path.join("bin").join(binary.as_ref());
+        let bin_path = &self.path.join("bin").join(binary.as_ref());
         let mut cmd = Command::new(bin_path);
         self.set_env(&mut cmd);
         Ok(cmd)
@@ -356,7 +356,7 @@ impl<'a> Toolchain<'a> {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
-        let ref toolchain = self.name;
+        let toolchain = &self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
                                  .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());
@@ -376,7 +376,7 @@ impl<'a> Toolchain<'a> {
 
             for component in &targ_pkg.components {
                 let installed = config.as_ref()
-                    .map(|c| c.components.contains(&component))
+                    .map(|c| c.components.contains(component))
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
@@ -395,7 +395,7 @@ impl<'a> Toolchain<'a> {
 
             for extension in &targ_pkg.extensions {
                 let installed = config.as_ref()
-                    .map(|c| c.components.contains(&extension))
+                    .map(|c| c.components.contains(extension))
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
@@ -464,7 +464,7 @@ impl<'a> Toolchain<'a> {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
-        let ref toolchain = self.name;
+        let toolchain = &self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
                                  .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());
@@ -507,7 +507,7 @@ impl<'a> Toolchain<'a> {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
-        let ref toolchain = self.name;
+        let toolchain = &self.name;
         let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
                                  .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());

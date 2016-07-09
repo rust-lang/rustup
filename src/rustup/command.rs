@@ -16,16 +16,16 @@ use telemetry::{Telemetry, TelemetryEvent};
 pub fn run_command_for_dir<S: AsRef<OsStr>>(cmd: Command,
                                             args: &[S],
                                             cfg: &Cfg) -> Result<()> {
-    let arg0 = env::args().next().map(|a| PathBuf::from(a));
+    let arg0 = env::args().next().map(PathBuf::from);
     let arg0 = arg0.as_ref()
         .and_then(|a| a.file_name())
         .and_then(|a| a.to_str());
     let arg0 = try!(arg0.ok_or(ErrorKind::NoExeName));
     if (arg0 == "rustc" || arg0 == "rustc.exe") && try!(cfg.telemetry_enabled()) {
-        return telemetry_rustc(cmd, &args, &cfg);
+        return telemetry_rustc(cmd, args, cfg);
     }
 
-    run_command_for_dir_without_telemetry(cmd, &args)
+    run_command_for_dir_without_telemetry(cmd, args)
 }
 
 fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> Result<()> {
@@ -33,7 +33,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
 
     cmd.args(&args[1..]);
 
-    let has_color_args = (&args).iter().any(|e| {
+    let has_color_args = args.iter().any(|e| {
         let e = e.as_ref().to_str().unwrap_or("");
         e.starts_with("--color")
     });
@@ -80,21 +80,14 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
                 buffer.clear();
                 let _ = handle.write(b.as_bytes());
 
-                let c = re.captures(&b);
-                match c {
-                    None => continue,
-                    Some(caps) => {
-                        if caps.len() > 0 {
-                            let _ = errors.push(caps.name("error").unwrap_or("").to_owned());
-                        }
+                if let Some(caps) = re.captures(&b) {
+                    if !caps.is_empty() {
+                        errors.push(caps.name("error").unwrap_or("").to_owned());
                     }
                 };
             }
 
-            let e = match errors.len() {
-                0 => None,
-                _ => Some(errors),
-            };
+            let e = if errors.is_empty() { None } else { Some(errors) };
 
             let te = TelemetryEvent::RustcRun { duration_ms: ms,
                                                 exit_code: exit_code,
