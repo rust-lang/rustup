@@ -1,6 +1,5 @@
 #![recursion_limit = "1024"] // for error_chain!
 
-extern crate curl;
 extern crate rand;
 extern crate scopeguard;
 #[macro_use]
@@ -9,10 +8,7 @@ extern crate rustc_serialize;
 extern crate sha2;
 extern crate url;
 extern crate toml;
-extern crate hyper;
-extern crate native_tls;
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
-extern crate openssl_sys;
+extern crate download;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -38,7 +34,6 @@ pub mod raw;
 pub mod tty;
 pub mod utils;
 pub mod toml_utils;
-mod download;
 
 pub use errors::*;
 pub use notifications::{Notification};

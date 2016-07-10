@@ -7,7 +7,6 @@ use std::ffi::OsString;
 use std::env;
 use sha2::Sha256;
 use notifications::{Notification};
-use download;
 use raw;
 #[cfg(windows)]
 use winapi::DWORD;
@@ -145,13 +144,13 @@ pub fn download_file(url: &Url,
                      hasher: Option<&mut Sha256>,
                      notify_handler: &Fn(Notification))
                      -> Result<()> {
-    notify_handler(Notification::DownloadingFile(url, path));
-    match download::download_file(url, path, hasher, notify_handler) {
+    use download::ErrorKind as DEK;
+    match download_file_(url, path, hasher, notify_handler) {
         Ok(_) => Ok(()),
         Err(e) => {
             let is404 = match e.kind() {
-                &ErrorKind::HttpStatus(404) => true,
-                &ErrorKind::HttpError(ref e) => e.is_file_couldnt_read_file(),
+                &ErrorKind::Download(DEK::HttpStatus(404)) => true,
+                &ErrorKind::Download(DEK::FileNotFound) => true,
                 _ => false
             };
             Err(e).chain_err(|| if is404 {
@@ -167,6 +166,67 @@ pub fn download_file(url: &Url,
             })
         }
     }
+}
+
+fn download_file_(url: &Url,
+                  path: &Path,
+                  hasher: Option<&mut Sha256>,
+                  notify_handler: &Fn(Notification))
+                  -> Result<()> {
+
+    use sha2::Digest;
+    use std::cell::RefCell;
+    use download::{self, Event, hyper, curl};
+
+    notify_handler(Notification::DownloadingFile(url, path));
+
+    let file = RefCell::new(try!(fs::File::create(&path).chain_err(
+        || "error creating file for download")));
+    let hasher = RefCell::new(hasher);
+
+    // This callback will write the download to disk and optionally
+    // hash the contents, then forward the notification up the stack
+    let callback: &Fn(Event) -> download::Result<()> = &|msg| {
+        use download::ChainErr;
+
+        match msg {
+            Event::DownloadDataReceived(data) => {
+                try!(ChainErr::chain_err(
+                    io::Write::write_all(&mut *file.borrow_mut(), data),
+                    || "unable to write download to disk"));
+                if let Some(ref mut h) = *hasher.borrow_mut() {
+                    h.input(data);
+                }
+            }
+            _ => ()
+        }
+
+        match msg {
+            Event::DownloadContentLengthReceived(len) => {
+                notify_handler(Notification::DownloadContentLengthReceived(len));
+            }
+            Event::DownloadDataReceived(data) => {
+                notify_handler(Notification::DownloadDataReceived(data));
+            }
+        }
+
+        Ok(())
+    };
+
+    // Download the file
+    if env::var_os("RUSTUP_USE_HYPER").is_some() {
+        notify_handler(Notification::UsingHyper);
+         try!(hyper::download(url, callback));
+    } else {
+        notify_handler(Notification::UsingCurl);
+        try!(curl::download(url, callback));
+    }
+
+    try!(file.borrow_mut().sync_data().chain_err(|| "unable to sync download to disk"));
+
+    notify_handler(Notification::DownloadFinished);
+
+    Ok(())
 }
 
 pub fn parse_url(url: &str) -> Result<Url> {

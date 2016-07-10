@@ -1,75 +1,38 @@
 //! Easy file downloading
 
-use errors::*;
-use notifications::Notification;
-use sha2::{Sha256, Digest};
-use std::cell::RefCell;
-use std::fs;
-use std::io;
-use std::env;
-use std::path::Path;
-use url::Url;
+#[macro_use]
+extern crate error_chain;
+extern crate url;
 
-pub fn download_file(url: &Url,
-                     path: &Path,
-                     hasher: Option<&mut Sha256>,
-                     notify_handler: &Fn(Notification))
-                     -> Result<()> {
+mod errors;
+pub use errors::*;
 
-    let file = RefCell::new(try!(fs::File::create(&path).chain_err(
-        || "error creating file for download")));
-    let hasher = RefCell::new(hasher);
-
-    // This callback will write the download to disk and optionally
-    // hash the contents, then forward the notification up the stack
-    let handler: &Fn(Notification) -> Result<()> = &|notice| {
-        match notice {
-            Notification::DownloadDataReceived(data) => {
-                try!(io::Write::write_all(&mut *file.borrow_mut(), data)
-                     .chain_err(|| "unable to write download to disk"));
-                if let Some(ref mut h) = *hasher.borrow_mut() {
-                    h.input(data);
-                }
-            }
-            _ => ()
-        }
-
-        notify_handler(notice);
-
-        Ok(())
-    };
-
-    // Download the file
-    if env::var_os("RUSTUP_USE_HYPER").is_some() {
-        notify_handler(Notification::UsingHyper);
-         try!(self::hyper::download_file(url, handler));
-    } else {
-        notify_handler(Notification::UsingCurl);
-        try!(self::curl::download_file(url, handler));
-    }
-
-    try!(file.borrow_mut().sync_data().chain_err(|| "unable to sync download to disk"));
-
-    notify_handler(Notification::DownloadFinished);
-
-    Ok(())
+#[derive(Debug)]
+pub enum Event<'a> {
+    /// Received the Content-Length of the to-be downloaded data.
+    DownloadContentLengthReceived(u64),
+    /// Received some data.
+    DownloadDataReceived(&'a [u8]),
 }
-
 
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
-mod curl {
-    use curl::easy::Easy;
+#[cfg(feature = "curl-mode")]
+pub mod curl {
+
+    extern crate curl;
+
+    use self::curl::easy::Easy;
     use errors::*;
-    use notifications::Notification;
     use std::cell::RefCell;
     use std::str;
     use std::time::Duration;
     use url::Url;
+    use super::Event;
 
-    pub fn download_file(url: &Url,
-                         notify_handler: &Fn(Notification) -> Result<()> )
-                         -> Result<()> {
+    pub fn download(url: &Url,
+                    callback: &Fn(Event) -> Result<()> )
+                    -> Result<()> {
         // Fetch either a cached libcurl handle (which will preserve open
         // connections) or create a new one if it isn't listed.
         //
@@ -90,17 +53,17 @@ mod curl {
             try!(handle.low_speed_time(Duration::new(30, 0)).chain_err(|| "failed to set low speed time"));
 
             {
-                let fserr = RefCell::new(None);
+                let cberr = RefCell::new(None);
                 let mut transfer = handle.transfer();
 
                 // Data callback for libcurl which is called with data that's
                 // downloaded. We just feed it into our hasher and also write it out
                 // to disk.
                 try!(transfer.write_function(|data| {
-                    match notify_handler(Notification::DownloadDataReceived(data)) {
+                    match callback(Event::DownloadDataReceived(data)) {
                         Ok(()) => Ok(data.len()),
                         Err(e) => {
-                            *fserr.borrow_mut() = Some(e);
+                            *cberr.borrow_mut() = Some(e);
                             Ok(0)
                         }
                     }
@@ -113,11 +76,11 @@ mod curl {
                         let prefix = "Content-Length: ";
                         if data.starts_with(prefix) {
                             if let Ok(s) = data[prefix.len()..].trim().parse() {
-                                let msg = Notification::DownloadContentLengthReceived(s);
-                                match notify_handler(msg) {
+                                let msg = Event::DownloadContentLengthReceived(s);
+                                match callback(msg) {
                                     Ok(()) => (),
-                                    Err(_e) => {
-                                        // FIXME: discarding error _e
+                                    Err(e) => {
+                                        *cberr.borrow_mut() = Some(e);
                                         return false;
                                     }
                                 }
@@ -128,11 +91,20 @@ mod curl {
                 }).chain_err(|| "failed to set header"));
 
                 // If an error happens check to see if we had a filesystem error up
-                // in `fserr`, but we always want to punt it up.
+                // in `cberr`, but we always want to punt it up.
                 try!(transfer.perform().or_else(|e| {
-                    match fserr.borrow_mut().take() {
-                        Some(fs) => Err(fs).chain_err(|| ErrorKind::HttpError(e)),
-                        None => Err(ErrorKind::HttpError(e).into())
+                    // If the original error was generated by one of our
+                    // callbacks, return it.
+                    match cberr.borrow_mut().take() {
+                        Some(cberr) => Err(cberr),
+                        None => {
+                            // Otherwise, return the error from curl
+                            if e.is_file_couldnt_read_file() {
+                                Err(e).chain_err(|| ErrorKind::FileNotFound)
+                            } else {
+                                Err(e).chain_err(|| "error during download")
+                            }
+                        }
                     }
                 }));
             }
@@ -150,9 +122,15 @@ mod curl {
 
 /// Download via hyper; encrypt with the native (or OpenSSl) TLS
 /// stack via native-tls
-mod hyper {
-    use hyper;
-    use notifications::Notification;
+#[cfg(feature = "hyper-mode")]
+pub mod hyper {
+
+    extern crate hyper;
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    extern crate openssl_sys;
+    extern crate native_tls;
+
+    use super::Event;
     use std::fs;
     use std::io;
     use std::time::Duration;
@@ -186,20 +164,19 @@ mod hyper {
         None
     }
 
-    pub fn download_file(url: &Url,
-                         notify_handler: &Fn(Notification) -> Result<()>)
-                         -> Result<()> {
+    pub fn download(url: &Url,
+                    callback: &Fn(Event) -> Result<()>)
+                    -> Result<()> {
 
         // Short-circuit hyper for the "file:" URL scheme
-        if try!(download_from_file_url(url, notify_handler)) {
+        if try!(download_from_file_url(url, callback)) {
             return Ok(());
         }
 
-        use hyper::client::{Client, ProxyConfig};
-        use hyper::error::Result as HyperResult;
-        use hyper::header::ContentLength;
-        use hyper::net::{SslClient, NetworkStream, HttpsConnector};
-        use native_tls;
+        use self::hyper::client::{Client, ProxyConfig};
+        use self::hyper::error::Result as HyperResult;
+        use self::hyper::header::ContentLength;
+        use self::hyper::net::{SslClient, NetworkStream, HttpsConnector};
         use std::io::Result as IoResult;
         use std::io::{Read, Write};
         use std::net::{SocketAddr, Shutdown};
@@ -219,8 +196,8 @@ mod hyper {
                 type Stream = NativeSslStream<T>;
 
                 fn wrap_client(&self, stream: T, host: &str) -> HyperResult<Self::Stream> {
-                    use native_tls::ClientBuilder as TlsClientBuilder;
-                    use hyper::error::Error as HyperError;
+                    use self::native_tls::ClientBuilder as TlsClientBuilder;
+                    use self::hyper::error::Error as HyperError;
 
                     let mut ssl_builder = try!(TlsClientBuilder::new()
                                                .map_err(|e| HyperError::Ssl(Box::new(e))));
@@ -319,7 +296,7 @@ mod hyper {
 
         let mut res = try!(client.get(url.clone()).send()
                            .chain_err(|| "failed to make network request"));
-        if res.status != hyper::Ok {
+        if res.status != self::hyper::Ok {
             return Err(ErrorKind::HttpStatus(res.status.to_u16() as u32).into());
         }
 
@@ -327,7 +304,7 @@ mod hyper {
         let mut buffer = vec![0u8; buffer_size];
 
         if let Some(len) = res.headers.get::<ContentLength>().cloned() {
-            try!(notify_handler(Notification::DownloadContentLengthReceived(len.0)));
+            try!(callback(Event::DownloadContentLengthReceived(len.0)));
         }
 
         loop {
@@ -335,7 +312,7 @@ mod hyper {
                                   .chain_err(|| "error reading from socket"));
 
             if bytes_read != 0 {
-                try!(notify_handler(Notification::DownloadDataReceived(&buffer[0..bytes_read])));
+                try!(callback(Event::DownloadDataReceived(&buffer[0..bytes_read])));
             } else {
                 return Ok(());
             }
@@ -349,7 +326,7 @@ mod hyper {
         use std::sync::{Once, ONCE_INIT};
         static INIT: Once = ONCE_INIT;
         INIT.call_once(|| {
-            ::openssl_sys::probe::init_ssl_cert_env_vars();
+            openssl_sys::probe::init_ssl_cert_env_vars();
         });
     }
 
@@ -357,20 +334,18 @@ mod hyper {
     fn maybe_init_certs() { }
 
     fn download_from_file_url(url: &Url,
-                              notify_handler: &Fn(Notification) -> Result<()>)
+                              callback: &Fn(Event) -> Result<()>)
                               -> Result<bool> {
-        use raw::is_file;
-
         // The file scheme is mostly for use by tests to mock the dist server
         if url.scheme() == "file" {
             let src = try!(url.to_file_path()
                            .map_err(|_| Error::from(format!("bogus file url: '{}'", url))));
-            if !is_file(&src) {
+            if !src.is_file() {
                 // Because some of multirust's logic depends on checking
                 // the error when a downloaded file doesn't exist, make
                 // the file case return the same error value as the
                 // network case.
-                return Err(ErrorKind::HttpStatus(hyper::status::StatusCode::NotFound.to_u16() as u32).into());
+                return Err(ErrorKind::FileNotFound.into());
             }
 
             let ref mut f = try!(fs::File::open(src)
@@ -381,12 +356,40 @@ mod hyper {
                 let bytes_read = try!(io::Read::read(f, buffer)
                                       .chain_err(|| "unable to read downloaded file"));
                 if bytes_read == 0 { break }
-                try!(notify_handler(Notification::DownloadDataReceived(&buffer[0..bytes_read])));
+                try!(callback(Event::DownloadDataReceived(&buffer[0..bytes_read])));
             }
 
             Ok(true)
         } else {
             Ok(false)
         }
+    }
+}
+
+#[cfg(not(feature = "curl-mode"))]
+pub mod curl {
+
+    use errors::*;
+    use url::Url;
+    use super::Event;
+
+    pub fn download(_url: &Url,
+                    _callback: &Fn(Event) -> Result<()> )
+                    -> Result<()> {
+        Err(ErrorKind::BackendUnavailable("curl").into())
+    }
+}
+
+#[cfg(not(feature = "hyper-mode"))]
+pub mod hyper {
+
+    use errors::*;
+    use url::Url;
+    use super::Event;
+
+    pub fn download(_url: &Url,
+                    _callback: &Fn(Event) -> Result<()> )
+                    -> Result<()> {
+        Err(ErrorKind::BackendUnavailable("hyper").into())
     }
 }

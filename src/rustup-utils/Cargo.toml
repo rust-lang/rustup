@@ -18,17 +18,9 @@ error-chain = "0.2.1"
 libc = "0.2.0"
 rustc-serialize = "0.3.19"
 sha2 = "0.1.2"
-curl = "0.3"
 url = "1.1"
 toml = "0.1.27"
-native-tls = { git = "https://github.com/sfackler/rust-native-tls.git" }
-
-[target.'cfg(not(any(target_os = "windows", target_os = "macos")))'.dependencies]
-openssl-sys = "0.7.11"
-
-[dependencies.hyper]
-version = "0.9.8"
-default-features = false
+download = { path = "../download" }
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.4"

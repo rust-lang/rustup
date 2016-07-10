@@ -1,0 +1,35 @@
+[package]
+
+name = "download"
+version = "0.2.0"
+authors = [ "Brian Anderson <banderson@mozilla.com>" ]
+
+license = "MIT/Apache-2.0"
+
+[features]
+
+default = ["hyper-mode", "curl-mode"]
+
+curl-mode = ["curl"]
+hyper-mode = ["hyper", "native-tls", "openssl-sys"]
+
+[dependencies]
+error-chain = "0.2.1"
+url = "1.1"
+
+[dependencies.curl]
+version = "0.3"
+optional = true
+
+[dependencies.hyper]
+version = "0.9.8"
+default-features = false
+optional = true
+
+[dependencies.native-tls]
+git = "https://github.com/sfackler/rust-native-tls.git"
+optional = true
+
+[target.'cfg(not(any(target_os = "windows", target_os = "macos")))'.dependencies]
+openssl-sys = { version = "0.7.11", optional = true }
+
