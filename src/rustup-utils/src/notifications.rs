@@ -21,6 +21,7 @@ pub enum Notification<'a> {
     NoCanonicalPath(&'a Path),
     UsingCurl,
     UsingHyper,
+    UsingRustls,
 }
 
 impl<'a> Notification<'a> {
@@ -34,7 +35,7 @@ impl<'a> Notification<'a> {
             DownloadContentLengthReceived(_) |
             DownloadDataReceived(_) |
             DownloadFinished |
-            UsingCurl | UsingHyper => NotificationLevel::Verbose,
+            UsingCurl | UsingHyper | UsingRustls => NotificationLevel::Verbose,
             NoCanonicalPath(_) => NotificationLevel::Warn,
         }
     }
@@ -58,7 +59,8 @@ impl<'a> Display for Notification<'a> {
             DownloadFinished => write!(f, "download finished"),
             NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
             UsingCurl => write!(f, "downloading with curl"),
-            UsingHyper => write!(f, "downloading with hyper"),
+            UsingHyper => write!(f, "downloading with hyper + native_tls"),
+            UsingRustls => write!(f, "downloading with hyper + rustls"),
         }
     }
 }

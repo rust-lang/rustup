@@ -176,7 +176,7 @@ fn download_file_(url: &Url,
 
     use sha2::Digest;
     use std::cell::RefCell;
-    use download::{self, Event, hyper, curl};
+    use download::{self, Event, hyper, curl, rustls};
 
     notify_handler(Notification::DownloadingFile(url, path));
 
@@ -216,7 +216,10 @@ fn download_file_(url: &Url,
     // Download the file
     if env::var_os("RUSTUP_USE_HYPER").is_some() {
         notify_handler(Notification::UsingHyper);
-         try!(hyper::download(url, callback));
+        try!(hyper::download(url, callback));
+    } else if env::var_os("RUSTUP_USE_RUSTLS").is_some() {
+        notify_handler(Notification::UsingRustls);
+         try!(rustls::download(url, callback));
     } else {
         notify_handler(Notification::UsingCurl);
         try!(curl::download(url, callback));

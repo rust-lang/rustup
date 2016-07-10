@@ -12,6 +12,7 @@ default = ["hyper-mode", "curl-mode"]
 
 curl-mode = ["curl"]
 hyper-mode = ["hyper", "native-tls", "openssl-sys"]
+rustls-mode = ["hyper", "rustls"]
 
 [dependencies]
 error-chain = "0.2.1"
@@ -33,3 +34,6 @@ optional = true
 [target.'cfg(not(any(target_os = "windows", target_os = "macos")))'.dependencies]
 openssl-sys = { version = "0.7.11", optional = true }
 
+[dependencies.rustls]
+path = "../../../rustls"
+optional = true
