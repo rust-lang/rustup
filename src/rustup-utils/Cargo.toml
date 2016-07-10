@@ -20,7 +20,7 @@ rustc-serialize = "0.3.19"
 sha2 = "0.1.2"
 url = "1.1"
 toml = "0.1.27"
-download = { path = "../download", features = ["rustls-mode"] }
+download = { path = "../download" }
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.4"

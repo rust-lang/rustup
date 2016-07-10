@@ -4,8 +4,13 @@
 extern crate error_chain;
 extern crate url;
 
+use url::Url;
+
 mod errors;
 pub use errors::*;
+
+#[derive(Debug)]
+pub enum Backend { Curl, Hyper, Rustls }
 
 #[derive(Debug)]
 pub enum Event<'a> {
@@ -15,9 +20,20 @@ pub enum Event<'a> {
     DownloadDataReceived(&'a [u8]),
 }
 
+pub fn download_with_backend(url: &Url,
+                             backend: Backend,
+                             callback: &Fn(Event) -> Result<()>)
+                             -> Result<()> {
+    match backend {
+        Backend::Curl => curl::download(url, callback),
+        Backend::Hyper => hyper::download(url, callback),
+        Backend::Rustls => rustls::download(url, callback),
+    }
+}
+
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
-#[cfg(feature = "curl-mode")]
+#[cfg(feature = "curl-backend")]
 pub mod curl {
 
     extern crate curl;
@@ -122,7 +138,7 @@ pub mod curl {
 
 /// Download via hyper; encrypt with the native (or OpenSSl) TLS
 /// stack via native-tls
-#[cfg(feature = "hyper-mode")]
+#[cfg(feature = "hyper-backend")]
 pub mod hyper {
 
     extern crate hyper;
@@ -254,7 +270,7 @@ pub mod hyper {
 }
 
 /// Download via hyper; encrypt with rustls
-#[cfg(feature = "rustls-mode")]
+#[cfg(feature = "rustls-backend")]
 pub mod rustls {
 
     extern crate hyper;
@@ -533,7 +549,7 @@ pub mod hyper_base {
 
 }
 
-#[cfg(not(feature = "curl-mode"))]
+#[cfg(not(feature = "curl-backend"))]
 pub mod curl {
 
     use errors::*;
@@ -547,7 +563,7 @@ pub mod curl {
     }
 }
 
-#[cfg(not(feature = "hyper-mode"))]
+#[cfg(not(feature = "hyper-backend"))]
 pub mod hyper {
 
     use errors::*;
@@ -561,7 +577,7 @@ pub mod hyper {
     }
 }
 
-#[cfg(not(feature = "rustls-mode"))]
+#[cfg(not(feature = "rustls-backend"))]
 pub mod rustls {
 
     use errors::*;

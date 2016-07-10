@@ -176,7 +176,7 @@ fn download_file_(url: &Url,
 
     use sha2::Digest;
     use std::cell::RefCell;
-    use download::{self, Event, hyper, curl, rustls};
+    use download::{self, download_with_backend, Event, Backend};
 
     notify_handler(Notification::DownloadingFile(url, path));
 
@@ -216,13 +216,13 @@ fn download_file_(url: &Url,
     // Download the file
     if env::var_os("RUSTUP_USE_HYPER").is_some() {
         notify_handler(Notification::UsingHyper);
-        try!(hyper::download(url, callback));
+        try!(download_with_backend(url, Backend::Hyper, callback));
     } else if env::var_os("RUSTUP_USE_RUSTLS").is_some() {
         notify_handler(Notification::UsingRustls);
-         try!(rustls::download(url, callback));
+         try!(download_with_backend(url, Backend::Rustls, callback));
     } else {
         notify_handler(Notification::UsingCurl);
-        try!(curl::download(url, callback));
+        try!(download_with_backend(url, Backend::Curl, callback));
     }
 
     try!(file.borrow_mut().sync_data().chain_err(|| "unable to sync download to disk"));
