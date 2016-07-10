@@ -1,67 +1,5 @@
 //! Easy file downloading
 
-use errors::*;
-use notifications::Notification;
-use sha2::{Sha256, Digest};
-use std::cell::RefCell;
-use std::fs;
-use std::io;
-use std::env;
-use std::path::Path;
-use url::Url;
-
-pub fn download_file(url: &Url,
-                     path: &Path,
-                     hasher: Option<&mut Sha256>,
-                     notify_handler: &Fn(Notification))
-                     -> Result<()> {
-
-    let file = RefCell::new(try!(fs::File::create(&path).chain_err(
-        || "error creating file for download")));
-    let hasher = RefCell::new(hasher);
-
-    // This callback will write the download to disk and optionally
-    // hash the contents, then forward the notification up the stack
-    let callback: &Fn(Event) -> Result<()> = &|msg| {
-        match msg {
-            Event::DownloadDataReceived(data) => {
-                try!(io::Write::write_all(&mut *file.borrow_mut(), data)
-                     .chain_err(|| "unable to write download to disk"));
-                if let Some(ref mut h) = *hasher.borrow_mut() {
-                    h.input(data);
-                }
-            }
-            _ => ()
-        }
-
-        match msg {
-            Event::DownloadContentLengthReceived(len) => {
-                notify_handler(Notification::DownloadContentLengthReceived(len));
-            }
-            Event::DownloadDataReceived(data) => {
-                notify_handler(Notification::DownloadDataReceived(data));
-            }
-        }
-
-        Ok(())
-    };
-
-    // Download the file
-    if env::var_os("RUSTUP_USE_HYPER").is_some() {
-        notify_handler(Notification::UsingHyper);
-         try!(self::hyper::download_file(url, callback));
-    } else {
-        notify_handler(Notification::UsingCurl);
-        try!(self::curl::download_file(url, callback));
-    }
-
-    try!(file.borrow_mut().sync_data().chain_err(|| "unable to sync download to disk"));
-
-    notify_handler(Notification::DownloadFinished);
-
-    Ok(())
-}
-
 #[derive(Debug)]
 pub enum Event<'a> {
     /// Received the Content-Length of the to-be downloaded data.
@@ -72,7 +10,7 @@ pub enum Event<'a> {
 
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
-mod curl {
+pub mod curl {
     use curl::easy::Easy;
     use errors::*;
     use std::cell::RefCell;
@@ -164,7 +102,7 @@ mod curl {
 
 /// Download via hyper; encrypt with the native (or OpenSSl) TLS
 /// stack via native-tls
-mod hyper {
+pub mod hyper {
     use hyper;
     use super::Event;
     use std::fs;
