@@ -13,10 +13,14 @@ pub fn download_file(url: &Url,
                      notify_handler: &Fn(Notification))
                      -> Result<()> {
     if env::var_os("RUSTUP_USE_HYPER").is_some() {
-        self::hyper::download_file(url, path, hasher, notify_handler)
+        notify_handler(Notification::UsingHyper);
+        try!(self::hyper::download_file(url, path, hasher, notify_handler));
     } else {
-        self::curl::download_file(url, path, hasher, notify_handler)
+        notify_handler(Notification::UsingCurl);
+        try!(self::curl::download_file(url, path, hasher, notify_handler));
     }
+
+    Ok(())
 }
 
 
