@@ -4,7 +4,8 @@
 extern crate error_chain;
 extern crate url;
 
-pub mod errors;
+mod errors;
+pub use errors::*;
 
 #[derive(Debug)]
 pub enum Event<'a> {

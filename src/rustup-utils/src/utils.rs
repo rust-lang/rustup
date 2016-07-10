@@ -144,7 +144,7 @@ pub fn download_file(url: &Url,
                      hasher: Option<&mut Sha256>,
                      notify_handler: &Fn(Notification))
                      -> Result<()> {
-    use download::errors::ErrorKind as DEK;
+    use download::ErrorKind as DEK;
     match download_file_(url, path, hasher, notify_handler) {
         Ok(_) => Ok(()),
         Err(e) => {
@@ -186,8 +186,8 @@ fn download_file_(url: &Url,
 
     // This callback will write the download to disk and optionally
     // hash the contents, then forward the notification up the stack
-    let callback: &Fn(Event) -> download::errors::Result<()> = &|msg| {
-        use download::errors::ChainErr;
+    let callback: &Fn(Event) -> download::Result<()> = &|msg| {
+        use download::ChainErr;
 
         match msg {
             Event::DownloadDataReceived(data) => {

@@ -9,7 +9,7 @@ error_chain! {
     }
 
     links {
-        download::errors::Error, download::errors::ErrorKind, Download;
+        download::Error, download::ErrorKind, Download;
     }
 
     foreign_links { }
