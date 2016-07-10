@@ -1,0 +1,20 @@
+[package]
+
+name = "download"
+version = "0.2.0"
+authors = [ "Brian Anderson <banderson@mozilla.com>" ]
+
+license = "MIT/Apache-2.0"
+
+[dependencies]
+error-chain = "0.2.1"
+curl = "0.3"
+url = "1.1"
+native-tls = { git = "https://github.com/sfackler/rust-native-tls.git" }
+
+[target.'cfg(not(any(target_os = "windows", target_os = "macos")))'.dependencies]
+openssl-sys = "0.7.11"
+
+[dependencies.hyper]
+version = "0.9.8"
+default-features = false

@@ -1,5 +1,11 @@
 //! Easy file downloading
 
+#[macro_use]
+extern crate error_chain;
+extern crate url;
+
+pub mod errors;
+
 #[derive(Debug)]
 pub enum Event<'a> {
     /// Received the Content-Length of the to-be downloaded data.
@@ -11,7 +17,10 @@ pub enum Event<'a> {
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
 pub mod curl {
-    use curl::easy::Easy;
+
+    extern crate curl;
+
+    use self::curl::easy::Easy;
     use errors::*;
     use std::cell::RefCell;
     use std::str;
@@ -103,7 +112,12 @@ pub mod curl {
 /// Download via hyper; encrypt with the native (or OpenSSl) TLS
 /// stack via native-tls
 pub mod hyper {
-    use hyper;
+
+    extern crate hyper;
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    extern crate openssl_sys;
+    extern crate native_tls;
+
     use super::Event;
     use std::fs;
     use std::io;
@@ -147,11 +161,10 @@ pub mod hyper {
             return Ok(());
         }
 
-        use hyper::client::{Client, ProxyConfig};
-        use hyper::error::Result as HyperResult;
-        use hyper::header::ContentLength;
-        use hyper::net::{SslClient, NetworkStream, HttpsConnector};
-        use native_tls;
+        use self::hyper::client::{Client, ProxyConfig};
+        use self::hyper::error::Result as HyperResult;
+        use self::hyper::header::ContentLength;
+        use self::hyper::net::{SslClient, NetworkStream, HttpsConnector};
         use std::io::Result as IoResult;
         use std::io::{Read, Write};
         use std::net::{SocketAddr, Shutdown};
@@ -171,8 +184,8 @@ pub mod hyper {
                 type Stream = NativeSslStream<T>;
 
                 fn wrap_client(&self, stream: T, host: &str) -> HyperResult<Self::Stream> {
-                    use native_tls::ClientBuilder as TlsClientBuilder;
-                    use hyper::error::Error as HyperError;
+                    use self::native_tls::ClientBuilder as TlsClientBuilder;
+                    use self::hyper::error::Error as HyperError;
 
                     let mut ssl_builder = try!(TlsClientBuilder::new()
                                                .map_err(|e| HyperError::Ssl(Box::new(e))));
@@ -271,7 +284,7 @@ pub mod hyper {
 
         let mut res = try!(client.get(url.clone()).send()
                            .chain_err(|| "failed to make network request"));
-        if res.status != hyper::Ok {
+        if res.status != self::hyper::Ok {
             return Err(ErrorKind::HttpStatus(res.status.to_u16() as u32).into());
         }
 
@@ -301,7 +314,7 @@ pub mod hyper {
         use std::sync::{Once, ONCE_INIT};
         static INIT: Once = ONCE_INIT;
         INIT.call_once(|| {
-            ::openssl_sys::probe::init_ssl_cert_env_vars();
+            openssl_sys::probe::init_ssl_cert_env_vars();
         });
     }
 
@@ -311,18 +324,16 @@ pub mod hyper {
     fn download_from_file_url(url: &Url,
                               callback: &Fn(Event) -> Result<()>)
                               -> Result<bool> {
-        use raw::is_file;
-
         // The file scheme is mostly for use by tests to mock the dist server
         if url.scheme() == "file" {
             let src = try!(url.to_file_path()
                            .map_err(|_| Error::from(format!("bogus file url: '{}'", url))));
-            if !is_file(&src) {
+            if !src.is_file() {
                 // Because some of multirust's logic depends on checking
                 // the error when a downloaded file doesn't exist, make
                 // the file case return the same error value as the
                 // network case.
-                return Err(ErrorKind::HttpStatus(hyper::status::StatusCode::NotFound.to_u16() as u32).into());
+                return Err(ErrorKind::HttpStatus(self::hyper::status::StatusCode::NotFound.to_u16() as u32).into());
             }
 
             let ref mut f = try!(fs::File::open(src)

@@ -144,12 +144,13 @@ pub fn download_file(url: &Url,
                      hasher: Option<&mut Sha256>,
                      notify_handler: &Fn(Notification))
                      -> Result<()> {
+    use download::errors::ErrorKind as DEK;
     match download_file_(url, path, hasher, notify_handler) {
         Ok(_) => Ok(()),
         Err(e) => {
             let is404 = match e.kind() {
-                &ErrorKind::HttpStatus(404) => true,
-                &ErrorKind::HttpError(ref e) => e.is_file_couldnt_read_file(),
+                &ErrorKind::Download(DEK::HttpStatus(404)) => true,
+                &ErrorKind::Download(DEK::HttpError(ref e)) => e.is_file_couldnt_read_file(),
                 _ => false
             };
             Err(e).chain_err(|| if is404 {
@@ -175,7 +176,7 @@ fn download_file_(url: &Url,
 
     use sha2::Digest;
     use std::cell::RefCell;
-    use download::{Event, hyper, curl};
+    use download::{self, Event, hyper, curl};
 
     notify_handler(Notification::DownloadingFile(url, path));
 
@@ -185,11 +186,14 @@ fn download_file_(url: &Url,
 
     // This callback will write the download to disk and optionally
     // hash the contents, then forward the notification up the stack
-    let callback: &Fn(Event) -> Result<()> = &|msg| {
+    let callback: &Fn(Event) -> download::errors::Result<()> = &|msg| {
+        use download::errors::ChainErr;
+
         match msg {
             Event::DownloadDataReceived(data) => {
-                try!(io::Write::write_all(&mut *file.borrow_mut(), data)
-                     .chain_err(|| "unable to write download to disk"));
+                try!(ChainErr::chain_err(
+                    io::Write::write_all(&mut *file.borrow_mut(), data),
+                    || "unable to write download to disk"));
                 if let Some(ref mut h) = *hasher.borrow_mut() {
                     h.input(data);
                 }

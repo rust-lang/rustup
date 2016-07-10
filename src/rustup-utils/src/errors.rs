@@ -1,14 +1,16 @@
 use std::path::PathBuf;
 use std::ffi::OsString;
-use curl;
 use url::Url;
+use download;
 
 error_chain! {
     types {
         Error, ErrorKind, ChainErr, Result;
     }
 
-    links { }
+    links {
+        download::errors::Error, download::errors::ErrorKind, Download;
+    }
 
     foreign_links { }
 
@@ -71,14 +73,6 @@ error_chain! {
         } {
             description("could not rename directory")
             display("could not rename {} directory from '{}' to '{}'", name, src.display(), dest.display())
-        }
-        HttpError(e: curl::Error) {
-            description("http request did not succeed")
-            display("http request returned failure: {}", e)
-        }
-        HttpStatus(e: u32) {
-            description("http request returned an unsuccessful status code")
-            display("http request returned an unsuccessful status code: {}", e)
         }
         DownloadingFile {
             url: Url,
