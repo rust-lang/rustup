@@ -2,7 +2,8 @@
 
 use errors::*;
 use notifications::Notification;
-use sha2::Sha256;
+use sha2::{Sha256, Digest};
+use std::cell::RefCell;
 use std::env;
 use std::path::Path;
 use url::Url;
@@ -12,12 +13,34 @@ pub fn download_file(url: &Url,
                      hasher: Option<&mut Sha256>,
                      notify_handler: &Fn(Notification))
                      -> Result<()> {
+
+    let hasher = RefCell::new(hasher);
     if env::var_os("RUSTUP_USE_HYPER").is_some() {
         notify_handler(Notification::UsingHyper);
-        try!(self::hyper::download_file(url, path, hasher, notify_handler));
+        try!(self::hyper::download_file(url, path, &|notice| {
+            match notice {
+                Notification::DownloadDataReceived(data) => {
+                    if let Some(ref mut h) = *hasher.borrow_mut() {
+                        h.input(data);
+                    }
+                }
+                _ => ()
+            }
+            notify_handler(notice);
+        }));
     } else {
         notify_handler(Notification::UsingCurl);
-        try!(self::curl::download_file(url, path, hasher, notify_handler));
+        try!(self::curl::download_file(url, path, &|notice| {
+            match notice {
+                Notification::DownloadDataReceived(data) => {
+                    if let Some(ref mut h) = *hasher.borrow_mut() {
+                        h.input(data);
+                    }
+                }
+                _ => ()
+            }
+            notify_handler(notice);
+        }));
     }
 
     notify_handler(Notification::DownloadFinished);
@@ -32,7 +55,6 @@ mod curl {
     use curl::easy::Easy;
     use errors::*;
     use notifications::Notification;
-    use sha2::{Sha256, Digest};
     use std::cell::RefCell;
     use std::fs;
     use std::path::Path;
@@ -42,7 +64,6 @@ mod curl {
 
     pub fn download_file(url: &Url,
                          path: &Path,
-                         mut hasher: Option<&mut Sha256>,
                          notify_handler: &Fn(Notification))
                          -> Result<()> {
         use notifications::Notification;
@@ -78,9 +99,6 @@ mod curl {
                 // downloaded. We just feed it into our hasher and also write it out
                 // to disk.
                 try!(transfer.write_function(|data| {
-                    if let Some(ref mut h) = hasher {
-                        h.input(data);
-                    }
                     notify_handler(Notification::DownloadDataReceived(data));
                     match file.write_all(data) {
                         Ok(()) => Ok(data.len()),
@@ -132,7 +150,6 @@ mod curl {
 mod hyper {
     use hyper;
     use notifications::Notification;
-    use sha2::{Digest, Sha256};
     use std::fs;
     use std::io;
     use std::path::Path;
@@ -169,12 +186,11 @@ mod hyper {
 
     pub fn download_file(url: &Url,
                          path: &Path,
-                         mut hasher: Option<&mut Sha256>,
                          notify_handler: &Fn(Notification))
                          -> Result<()> {
 
         // Short-circuit hyper for the "file:" URL scheme
-        if try!(download_from_file_url(url, path, &mut hasher)) {
+        if try!(download_from_file_url(url, path, notify_handler)) {
             return Ok(());
         }
 
@@ -321,9 +337,6 @@ mod hyper {
                                   .chain_err(|| "error reading from socket"));
 
             if bytes_read != 0 {
-                if let Some(ref mut h) = hasher {
-                    h.input(&buffer[0..bytes_read]);
-                }
                 try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read])
                      .chain_err(|| "unable to write download to disk"));
                 notify_handler(Notification::DownloadDataReceived(&buffer[0..bytes_read]));
@@ -350,7 +363,7 @@ mod hyper {
 
     fn download_from_file_url(url: &Url,
                               path: &Path,
-                              hasher: &mut Option<&mut Sha256>)
+                              notify_handler: &Fn(Notification))
                               -> Result<bool> {
         use raw::is_file;
 
@@ -367,7 +380,7 @@ mod hyper {
             }
             try!(fs::copy(&src, path).chain_err(|| "failure copying file"));
 
-            if let Some(ref mut h) = *hasher {
+            {
                 let ref mut f = try!(fs::File::open(path)
                                      .chain_err(|| "unable to open downloaded file"));
 
@@ -376,7 +389,7 @@ mod hyper {
                     let bytes_read = try!(io::Read::read(f, buffer)
                                           .chain_err(|| "unable to read downloaded file"));
                     if bytes_read == 0 { break }
-                    h.input(&buffer[0..bytes_read]);
+                    notify_handler(Notification::DownloadDataReceived(&buffer[0..bytes_read]));
                 }
             }
 
