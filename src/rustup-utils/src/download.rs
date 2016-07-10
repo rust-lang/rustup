@@ -22,9 +22,9 @@ pub fn download_file(url: &Url,
 
     // This callback will write the download to disk and optionally
     // hash the contents, then forward the notification up the stack
-    let handler: &Fn(Notification) -> Result<()> = &|notice| {
-        match notice {
-            Notification::DownloadDataReceived(data) => {
+    let callback: &Fn(Event) -> Result<()> = &|msg| {
+        match msg {
+            Event::DownloadDataReceived(data) => {
                 try!(io::Write::write_all(&mut *file.borrow_mut(), data)
                      .chain_err(|| "unable to write download to disk"));
                 if let Some(ref mut h) = *hasher.borrow_mut() {
@@ -34,7 +34,14 @@ pub fn download_file(url: &Url,
             _ => ()
         }
 
-        notify_handler(notice);
+        match msg {
+            Event::DownloadContentLengthReceived(len) => {
+                notify_handler(Notification::DownloadContentLengthReceived(len));
+            }
+            Event::DownloadDataReceived(data) => {
+                notify_handler(Notification::DownloadDataReceived(data));
+            }
+        }
 
         Ok(())
     };
@@ -42,10 +49,10 @@ pub fn download_file(url: &Url,
     // Download the file
     if env::var_os("RUSTUP_USE_HYPER").is_some() {
         notify_handler(Notification::UsingHyper);
-         try!(self::hyper::download_file(url, handler));
+         try!(self::hyper::download_file(url, callback));
     } else {
         notify_handler(Notification::UsingCurl);
-        try!(self::curl::download_file(url, handler));
+        try!(self::curl::download_file(url, callback));
     }
 
     try!(file.borrow_mut().sync_data().chain_err(|| "unable to sync download to disk"));
@@ -55,20 +62,27 @@ pub fn download_file(url: &Url,
     Ok(())
 }
 
+#[derive(Debug)]
+pub enum Event<'a> {
+    /// Received the Content-Length of the to-be downloaded data.
+    DownloadContentLengthReceived(u64),
+    /// Received some data.
+    DownloadDataReceived(&'a [u8]),
+}
 
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
 mod curl {
     use curl::easy::Easy;
     use errors::*;
-    use notifications::Notification;
     use std::cell::RefCell;
     use std::str;
     use std::time::Duration;
     use url::Url;
+    use super::Event;
 
     pub fn download_file(url: &Url,
-                         notify_handler: &Fn(Notification) -> Result<()> )
+                         callback: &Fn(Event) -> Result<()> )
                          -> Result<()> {
         // Fetch either a cached libcurl handle (which will preserve open
         // connections) or create a new one if it isn't listed.
@@ -97,7 +111,7 @@ mod curl {
                 // downloaded. We just feed it into our hasher and also write it out
                 // to disk.
                 try!(transfer.write_function(|data| {
-                    match notify_handler(Notification::DownloadDataReceived(data)) {
+                    match callback(Event::DownloadDataReceived(data)) {
                         Ok(()) => Ok(data.len()),
                         Err(e) => {
                             *fserr.borrow_mut() = Some(e);
@@ -113,8 +127,8 @@ mod curl {
                         let prefix = "Content-Length: ";
                         if data.starts_with(prefix) {
                             if let Ok(s) = data[prefix.len()..].trim().parse() {
-                                let msg = Notification::DownloadContentLengthReceived(s);
-                                match notify_handler(msg) {
+                                let msg = Event::DownloadContentLengthReceived(s);
+                                match callback(msg) {
                                     Ok(()) => (),
                                     Err(_e) => {
                                         // FIXME: discarding error _e
@@ -152,7 +166,7 @@ mod curl {
 /// stack via native-tls
 mod hyper {
     use hyper;
-    use notifications::Notification;
+    use super::Event;
     use std::fs;
     use std::io;
     use std::time::Duration;
@@ -187,11 +201,11 @@ mod hyper {
     }
 
     pub fn download_file(url: &Url,
-                         notify_handler: &Fn(Notification) -> Result<()>)
+                         callback: &Fn(Event) -> Result<()>)
                          -> Result<()> {
 
         // Short-circuit hyper for the "file:" URL scheme
-        if try!(download_from_file_url(url, notify_handler)) {
+        if try!(download_from_file_url(url, callback)) {
             return Ok(());
         }
 
@@ -327,7 +341,7 @@ mod hyper {
         let mut buffer = vec![0u8; buffer_size];
 
         if let Some(len) = res.headers.get::<ContentLength>().cloned() {
-            try!(notify_handler(Notification::DownloadContentLengthReceived(len.0)));
+            try!(callback(Event::DownloadContentLengthReceived(len.0)));
         }
 
         loop {
@@ -335,7 +349,7 @@ mod hyper {
                                   .chain_err(|| "error reading from socket"));
 
             if bytes_read != 0 {
-                try!(notify_handler(Notification::DownloadDataReceived(&buffer[0..bytes_read])));
+                try!(callback(Event::DownloadDataReceived(&buffer[0..bytes_read])));
             } else {
                 return Ok(());
             }
@@ -357,7 +371,7 @@ mod hyper {
     fn maybe_init_certs() { }
 
     fn download_from_file_url(url: &Url,
-                              notify_handler: &Fn(Notification) -> Result<()>)
+                              callback: &Fn(Event) -> Result<()>)
                               -> Result<bool> {
         use raw::is_file;
 
@@ -381,7 +395,7 @@ mod hyper {
                 let bytes_read = try!(io::Read::read(f, buffer)
                                       .chain_err(|| "unable to read downloaded file"));
                 if bytes_read == 0 { break }
-                try!(notify_handler(Notification::DownloadDataReceived(&buffer[0..bytes_read])));
+                try!(callback(Event::DownloadDataReceived(&buffer[0..bytes_read])));
             }
 
             Ok(true)
