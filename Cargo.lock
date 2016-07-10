@@ -178,7 +178,7 @@ dependencies = [
  "hyper 0.9.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "native-tls 0.1.0 (git+https://github.com/sfackler/rust-native-tls.git)",
  "openssl-sys 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustls 0.1.0",
+ "rustls 0.1.0 (git+https://github.com/brson/rustls.git?branch=next)",
  "url 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -517,6 +517,7 @@ dependencies = [
 [[package]]
 name = "rustls"
 version = "0.1.0"
+source = "git+https://github.com/brson/rustls.git?branch=next#b386cbf92f458837df2256460f2100d4f84f514a"
 dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ring 0.1.0 (git+https://github.com/ctz/ring)",
