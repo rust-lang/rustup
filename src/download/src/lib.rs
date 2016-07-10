@@ -16,6 +16,7 @@ pub enum Event<'a> {
 
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
+#[cfg(feature = "curl-mode")]
 pub mod curl {
 
     extern crate curl;
@@ -120,6 +121,7 @@ pub mod curl {
 
 /// Download via hyper; encrypt with the native (or OpenSSl) TLS
 /// stack via native-tls
+#[cfg(feature = "hyper-mode")]
 pub mod hyper {
 
     extern crate hyper;
@@ -360,5 +362,33 @@ pub mod hyper {
         } else {
             Ok(false)
         }
+    }
+}
+
+#[cfg(not(feature = "curl-mode"))]
+pub mod curl {
+
+    use errors::*;
+    use url::Url;
+    use super::Event;
+
+    pub fn download_file(_url: &Url,
+                         _callback: &Fn(Event) -> Result<()> )
+                         -> Result<()> {
+        Err(ErrorKind::BackendUnavailable("curl").into())
+    }
+}
+
+#[cfg(not(feature = "hyper-mode"))]
+pub mod hyper {
+
+    use errors::*;
+    use url::Url;
+    use super::Event;
+
+    pub fn download_file(_url: &Url,
+                         _callback: &Fn(Event) -> Result<()> )
+                         -> Result<()> {
+        Err(ErrorKind::BackendUnavailable("hyper").into())
     }
 }
