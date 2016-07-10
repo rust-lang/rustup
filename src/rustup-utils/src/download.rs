@@ -81,7 +81,7 @@ mod curl {
                     if let Some(ref mut h) = hasher {
                         h.input(data);
                     }
-                    notify_handler(Notification::DownloadDataReceived(data.len()));
+                    notify_handler(Notification::DownloadDataReceived(data));
                     match file.write_all(data) {
                         Ok(()) => Ok(data.len()),
                         Err(e) => {
@@ -326,7 +326,7 @@ mod hyper {
                 }
                 try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read])
                      .chain_err(|| "unable to write download to disk"));
-                notify_handler(Notification::DownloadDataReceived(bytes_read));
+                notify_handler(Notification::DownloadDataReceived(&buffer[0..bytes_read]));
             } else {
                 try!(file.sync_data().chain_err(|| "unable to sync download to disk"));
                 return Ok(());
