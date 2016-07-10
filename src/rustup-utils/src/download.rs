@@ -20,6 +20,8 @@ pub fn download_file(url: &Url,
         try!(self::curl::download_file(url, path, hasher, notify_handler));
     }
 
+    notify_handler(Notification::DownloadFinished);
+
     Ok(())
 }
 
@@ -120,7 +122,6 @@ mod curl {
                 return Err(ErrorKind::HttpStatus(code).into());
             }
 
-            notify_handler(Notification::DownloadFinished);
             Ok(())
         })
     }
@@ -328,7 +329,6 @@ mod hyper {
                 notify_handler(Notification::DownloadDataReceived(bytes_read));
             } else {
                 try!(file.sync_data().chain_err(|| "unable to sync download to disk"));
-                notify_handler(Notification::DownloadFinished);
                 return Ok(());
             }
         }
