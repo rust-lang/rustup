@@ -1,4 +1,4 @@
-
+//! Easy file downloading
 
 use errors::*;
 use notifications::Notification;
@@ -19,6 +19,9 @@ pub fn download_file(url: &Url,
     }
 }
 
+
+/// Download via libcurl; encrypt with the native (or OpenSSl) TLS
+/// stack via libcurl
 mod curl {
     use curl::easy::Easy;
     use errors::*;
@@ -119,6 +122,8 @@ mod curl {
     }
 }
 
+/// Download via hyper; encrypt with the native (or OpenSSl) TLS
+/// stack via native-tls
 mod hyper {
     use hyper;
     use notifications::Notification;
