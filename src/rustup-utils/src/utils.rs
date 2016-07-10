@@ -7,6 +7,7 @@ use std::ffi::OsString;
 use std::env;
 use sha2::Sha256;
 use notifications::{Notification};
+use download;
 use raw;
 #[cfg(windows)]
 use winapi::DWORD;
@@ -145,7 +146,7 @@ pub fn download_file(url: &Url,
                      notify_handler: &Fn(Notification))
                      -> Result<()> {
     notify_handler(Notification::DownloadingFile(url, path));
-    match raw::download_file(url, path, hasher, notify_handler) {
+    match download::download_file(url, path, hasher, notify_handler) {
         Ok(_) => Ok(()),
         Err(e) => {
             let is404 = match e.kind() {
