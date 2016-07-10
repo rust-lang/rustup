@@ -22,9 +22,6 @@ url = "1.1"
 toml = "0.1.27"
 download = { path = "../download" }
 
-[target.'cfg(not(any(target_os = "windows", target_os = "macos")))'.dependencies]
-openssl-sys = "0.7.11"
-
 [target."cfg(windows)".dependencies]
 winapi = "0.2.4"
 winreg = "0.3.2"
