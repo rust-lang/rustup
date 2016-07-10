@@ -216,10 +216,10 @@ fn download_file_(url: &Url,
     // Download the file
     if env::var_os("RUSTUP_USE_HYPER").is_some() {
         notify_handler(Notification::UsingHyper);
-         try!(hyper::download_file(url, callback));
+         try!(hyper::download(url, callback));
     } else {
         notify_handler(Notification::UsingCurl);
-        try!(curl::download_file(url, callback));
+        try!(curl::download(url, callback));
     }
 
     try!(file.borrow_mut().sync_data().chain_err(|| "unable to sync download to disk"));

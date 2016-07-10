@@ -30,9 +30,9 @@ pub mod curl {
     use url::Url;
     use super::Event;
 
-    pub fn download_file(url: &Url,
-                         callback: &Fn(Event) -> Result<()> )
-                         -> Result<()> {
+    pub fn download(url: &Url,
+                    callback: &Fn(Event) -> Result<()> )
+                    -> Result<()> {
         // Fetch either a cached libcurl handle (which will preserve open
         // connections) or create a new one if it isn't listed.
         //
@@ -164,9 +164,9 @@ pub mod hyper {
         None
     }
 
-    pub fn download_file(url: &Url,
-                         callback: &Fn(Event) -> Result<()>)
-                         -> Result<()> {
+    pub fn download(url: &Url,
+                    callback: &Fn(Event) -> Result<()>)
+                    -> Result<()> {
 
         // Short-circuit hyper for the "file:" URL scheme
         if try!(download_from_file_url(url, callback)) {
@@ -373,9 +373,9 @@ pub mod curl {
     use url::Url;
     use super::Event;
 
-    pub fn download_file(_url: &Url,
-                         _callback: &Fn(Event) -> Result<()> )
-                         -> Result<()> {
+    pub fn download(_url: &Url,
+                    _callback: &Fn(Event) -> Result<()> )
+                    -> Result<()> {
         Err(ErrorKind::BackendUnavailable("curl").into())
     }
 }
@@ -387,9 +387,9 @@ pub mod hyper {
     use url::Url;
     use super::Event;
 
-    pub fn download_file(_url: &Url,
-                         _callback: &Fn(Event) -> Result<()> )
-                         -> Result<()> {
+    pub fn download(_url: &Url,
+                    _callback: &Fn(Event) -> Result<()> )
+                    -> Result<()> {
         Err(ErrorKind::BackendUnavailable("hyper").into())
     }
 }
