@@ -38,6 +38,7 @@ pub mod raw;
 pub mod tty;
 pub mod utils;
 pub mod toml_utils;
+mod download;
 
 pub use errors::*;
 pub use notifications::{Notification};

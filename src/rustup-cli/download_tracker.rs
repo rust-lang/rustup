@@ -57,9 +57,9 @@ impl DownloadTracker {
 
                 true
             }
-            &Notification::Install(In::Utils(Un::DownloadDataReceived(len))) => {
+            &Notification::Install(In::Utils(Un::DownloadDataReceived(data))) => {
                 if tty::stdout_isatty() && self.term.is_some() {
-                    self.data_received(len);
+                    self.data_received(data.len());
                 }
                 true
             }
