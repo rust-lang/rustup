@@ -177,6 +177,7 @@ dependencies = [
  "curl 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "native-tls 0.1.0 (git+https://github.com/sfackler/rust-native-tls.git)",
  "openssl-sys 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustls 0.1.0 (git+https://github.com/brson/rustls.git?branch=next)",

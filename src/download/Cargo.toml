@@ -12,15 +12,13 @@ default = ["hyper-backend"]
 
 curl-backend = ["curl"]
 hyper-backend = ["hyper", "native-tls", "openssl-sys"]
-rustls-backend = ["hyper", "rustls"]
+rustls-backend = ["hyper", "rustls", "lazy_static"]
 
 [dependencies]
 error-chain = "0.2.1"
 url = "1.1"
-
-[dependencies.curl]
-version = "0.3"
-optional = true
+curl = { version = "0.3", optional = true }
+lazy_static = { version = "0.2", optional = true }
 
 [dependencies.hyper]
 version = "0.9.8"

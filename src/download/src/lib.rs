@@ -4,6 +4,10 @@
 extern crate error_chain;
 extern crate url;
 
+#[cfg(feature = "rustls-backend")]
+#[macro_use]
+extern crate lazy_static;
+
 use url::Url;
 
 mod errors;
@@ -306,13 +310,36 @@ pub mod rustls {
         type Stream = NativeSslStream<T>;
 
         fn wrap_client(&self, stream: T, host: &str) -> HyperResult<Self::Stream> {
-            let config = rustls::ClientConfig::new();
-            // todo init certs
-            let config = Arc::new(config);
+            let config = global_config();
             let tls_client = rustls::ClientSession::new(&config, host);
 
             Ok(NativeSslStream(Arc::new(Mutex::new((stream, tls_client)))))
         }
+    }
+
+    fn global_config() -> Arc<rustls::ClientConfig> {
+        use std::fs::File;
+        use std::io::BufReader;
+
+        lazy_static! {
+            static ref CONFIG: Arc<rustls::ClientConfig> = init();
+        }
+
+        fn init() -> Arc<rustls::ClientConfig> {
+            let mut config = rustls::ClientConfig::new();
+            for cert in find_root_cert_paths() {
+                let certfile = File::open(cert).unwrap(); // FIXME
+                let mut reader = BufReader::new(certfile);
+                config.root_store.add_pem_file(&mut reader).unwrap(); // FIXME
+            }
+            Arc::new(config)
+        }
+
+        CONFIG.clone()
+    }
+
+    fn find_root_cert_paths() -> Vec<String> {
+        panic!("FIXME: load root certs")
     }
 
     #[derive(Clone)]
