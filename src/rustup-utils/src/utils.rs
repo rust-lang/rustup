@@ -150,7 +150,7 @@ pub fn download_file(url: &Url,
         Err(e) => {
             let is404 = match e.kind() {
                 &ErrorKind::Download(DEK::HttpStatus(404)) => true,
-                &ErrorKind::Download(DEK::HttpError(ref e)) => e.is_file_couldnt_read_file(),
+                &ErrorKind::Download(DEK::FileNotFound) => true,
                 _ => false
             };
             Err(e).chain_err(|| if is404 {

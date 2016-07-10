@@ -91,9 +91,16 @@ pub mod curl {
                 // If an error happens check to see if we had a filesystem error up
                 // in `fserr`, but we always want to punt it up.
                 try!(transfer.perform().or_else(|e| {
-                    match fserr.borrow_mut().take() {
-                        Some(fs) => Err(fs).chain_err(|| ErrorKind::HttpError(e)),
-                        None => Err(ErrorKind::HttpError(e).into())
+                    let file_not_found = e.is_file_couldnt_read_file();
+                    let e = match fserr.borrow_mut().take() {
+                        Some(fs) => Err(fs).chain_err(|| ErrorKind::DownloadError(Box::new(e))),
+                        None => Err(ErrorKind::DownloadError(Box::new(e)).into())
+                    };
+
+                    if file_not_found {
+                        e.chain_err(|| ErrorKind::FileNotFound)
+                    } else {
+                        e
                     }
                 }));
             }
@@ -333,7 +340,7 @@ pub mod hyper {
                 // the error when a downloaded file doesn't exist, make
                 // the file case return the same error value as the
                 // network case.
-                return Err(ErrorKind::HttpStatus(self::hyper::status::StatusCode::NotFound.to_u16() as u32).into());
+                return Err(ErrorKind::FileNotFound.into());
             }
 
             let ref mut f = try!(fs::File::open(src)
