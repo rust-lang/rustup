@@ -4,6 +4,8 @@ use errors::*;
 use notifications::Notification;
 use sha2::{Sha256, Digest};
 use std::cell::RefCell;
+use std::fs;
+use std::io;
 use std::env;
 use std::path::Path;
 use url::Url;
@@ -14,34 +16,39 @@ pub fn download_file(url: &Url,
                      notify_handler: &Fn(Notification))
                      -> Result<()> {
 
+    let file = RefCell::new(try!(fs::File::create(&path).chain_err(
+        || "error creating file for download")));
     let hasher = RefCell::new(hasher);
+
+    // This callback will write the download to disk and optionally
+    // hash the contents, then forward the notification up the stack
+    let handler: &Fn(Notification) -> Result<()> = &|notice| {
+        match notice {
+            Notification::DownloadDataReceived(data) => {
+                try!(io::Write::write_all(&mut *file.borrow_mut(), data)
+                     .chain_err(|| "unable to write download to disk"));
+                if let Some(ref mut h) = *hasher.borrow_mut() {
+                    h.input(data);
+                }
+            }
+            _ => ()
+        }
+
+        notify_handler(notice);
+
+        Ok(())
+    };
+
+    // Download the file
     if env::var_os("RUSTUP_USE_HYPER").is_some() {
         notify_handler(Notification::UsingHyper);
-        try!(self::hyper::download_file(url, path, &|notice| {
-            match notice {
-                Notification::DownloadDataReceived(data) => {
-                    if let Some(ref mut h) = *hasher.borrow_mut() {
-                        h.input(data);
-                    }
-                }
-                _ => ()
-            }
-            notify_handler(notice);
-        }));
+         try!(self::hyper::download_file(url, handler));
     } else {
         notify_handler(Notification::UsingCurl);
-        try!(self::curl::download_file(url, path, &|notice| {
-            match notice {
-                Notification::DownloadDataReceived(data) => {
-                    if let Some(ref mut h) = *hasher.borrow_mut() {
-                        h.input(data);
-                    }
-                }
-                _ => ()
-            }
-            notify_handler(notice);
-        }));
+        try!(self::curl::download_file(url, handler));
     }
+
+    try!(file.borrow_mut().sync_data().chain_err(|| "unable to sync download to disk"));
 
     notify_handler(Notification::DownloadFinished);
 
@@ -56,22 +63,13 @@ mod curl {
     use errors::*;
     use notifications::Notification;
     use std::cell::RefCell;
-    use std::fs;
-    use std::path::Path;
     use std::str;
     use std::time::Duration;
     use url::Url;
 
     pub fn download_file(url: &Url,
-                         path: &Path,
-                         notify_handler: &Fn(Notification))
+                         notify_handler: &Fn(Notification) -> Result<()> )
                          -> Result<()> {
-        use notifications::Notification;
-        use std::io::Write;
-
-        let mut file = try!(fs::File::create(&path).chain_err(
-            || "error creating file for download"));
-
         // Fetch either a cached libcurl handle (which will preserve open
         // connections) or create a new one if it isn't listed.
         //
@@ -99,8 +97,7 @@ mod curl {
                 // downloaded. We just feed it into our hasher and also write it out
                 // to disk.
                 try!(transfer.write_function(|data| {
-                    notify_handler(Notification::DownloadDataReceived(data));
-                    match file.write_all(data) {
+                    match notify_handler(Notification::DownloadDataReceived(data)) {
                         Ok(()) => Ok(data.len()),
                         Err(e) => {
                             *fserr.borrow_mut() = Some(e);
@@ -117,7 +114,13 @@ mod curl {
                         if data.starts_with(prefix) {
                             if let Ok(s) = data[prefix.len()..].trim().parse() {
                                 let msg = Notification::DownloadContentLengthReceived(s);
-                                notify_handler(msg);
+                                match notify_handler(msg) {
+                                    Ok(()) => (),
+                                    Err(_e) => {
+                                        // FIXME: discarding error _e
+                                        return false;
+                                    }
+                                }
                             }
                         }
                     }
@@ -152,7 +155,6 @@ mod hyper {
     use notifications::Notification;
     use std::fs;
     use std::io;
-    use std::path::Path;
     use std::time::Duration;
     use url::Url;
     use errors::*;
@@ -185,12 +187,11 @@ mod hyper {
     }
 
     pub fn download_file(url: &Url,
-                         path: &Path,
-                         notify_handler: &Fn(Notification))
+                         notify_handler: &Fn(Notification) -> Result<()>)
                          -> Result<()> {
 
         // Short-circuit hyper for the "file:" URL scheme
-        if try!(download_from_file_url(url, path, notify_handler)) {
+        if try!(download_from_file_url(url, notify_handler)) {
             return Ok(());
         }
 
@@ -325,11 +326,8 @@ mod hyper {
         let buffer_size = 0x10000;
         let mut buffer = vec![0u8; buffer_size];
 
-        let mut file = try!(fs::File::create(path).chain_err(
-            || "error creating file for download"));
-
         if let Some(len) = res.headers.get::<ContentLength>().cloned() {
-            notify_handler(Notification::DownloadContentLengthReceived(len.0));
+            try!(notify_handler(Notification::DownloadContentLengthReceived(len.0)));
         }
 
         loop {
@@ -337,11 +335,8 @@ mod hyper {
                                   .chain_err(|| "error reading from socket"));
 
             if bytes_read != 0 {
-                try!(io::Write::write_all(&mut file, &mut buffer[0..bytes_read])
-                     .chain_err(|| "unable to write download to disk"));
-                notify_handler(Notification::DownloadDataReceived(&buffer[0..bytes_read]));
+                try!(notify_handler(Notification::DownloadDataReceived(&buffer[0..bytes_read])));
             } else {
-                try!(file.sync_data().chain_err(|| "unable to sync download to disk"));
                 return Ok(());
             }
         }
@@ -362,8 +357,7 @@ mod hyper {
     fn maybe_init_certs() { }
 
     fn download_from_file_url(url: &Url,
-                              path: &Path,
-                              notify_handler: &Fn(Notification))
+                              notify_handler: &Fn(Notification) -> Result<()>)
                               -> Result<bool> {
         use raw::is_file;
 
@@ -378,19 +372,16 @@ mod hyper {
                 // network case.
                 return Err(ErrorKind::HttpStatus(hyper::status::StatusCode::NotFound.to_u16() as u32).into());
             }
-            try!(fs::copy(&src, path).chain_err(|| "failure copying file"));
 
-            {
-                let ref mut f = try!(fs::File::open(path)
-                                     .chain_err(|| "unable to open downloaded file"));
+            let ref mut f = try!(fs::File::open(src)
+                                 .chain_err(|| "unable to open downloaded file"));
 
-                let ref mut buffer = vec![0u8; 0x10000];
-                loop {
-                    let bytes_read = try!(io::Read::read(f, buffer)
-                                          .chain_err(|| "unable to read downloaded file"));
-                    if bytes_read == 0 { break }
-                    notify_handler(Notification::DownloadDataReceived(&buffer[0..bytes_read]));
-                }
+            let ref mut buffer = vec![0u8; 0x10000];
+            loop {
+                let bytes_read = try!(io::Read::read(f, buffer)
+                                      .chain_err(|| "unable to read downloaded file"));
+                if bytes_read == 0 { break }
+                try!(notify_handler(Notification::DownloadDataReceived(&buffer[0..bytes_read])));
             }
 
             Ok(true)
