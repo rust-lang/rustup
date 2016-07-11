@@ -237,7 +237,7 @@ pub mod hyper {
     use std::io::Result as IoResult;
     use std::io::{Read, Write};
     use std::net::{SocketAddr, Shutdown};
-    use std::sync::{Arc, Mutex};
+    use std::sync::{Arc, Mutex, MutexGuard};
 
     pub fn download(url: &Url,
                     callback: &Fn(Event) -> Result<()>)
@@ -284,27 +284,30 @@ pub mod hyper {
         }
     }
 
+    impl<T> NativeSslStream<T> {
+        fn lock<'a>(&'a self) -> IoResult<MutexGuard<'a, native_tls::TlsStream<T>>> {
+            self.0.lock()
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+        }
+    }
+
     impl<T> NetworkStream for NativeSslStream<T>
         where T: NetworkStream
     {
         fn peer_addr(&mut self) -> IoResult<SocketAddr> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|mut t| t.get_mut().peer_addr())
         }
         fn set_read_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|t| t.get_ref().set_read_timeout(dur))
         }
         fn set_write_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|t| t.get_ref().set_write_timeout(dur))
         }
         fn close(&mut self, how: Shutdown) -> IoResult<()> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|mut t| t.get_mut().close(how))
         }
     }
@@ -313,8 +316,7 @@ pub mod hyper {
         where T: Read + Write
     {
         fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|mut t| t.read(buf))
         }
     }
@@ -323,13 +325,11 @@ pub mod hyper {
         where T: Read + Write
     {
         fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|mut t| t.write(buf))
         }
         fn flush(&mut self) -> IoResult<()> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|mut t| t.flush())
         }
     }
@@ -367,7 +367,7 @@ pub mod rustls {
     use std::io::Result as IoResult;
     use std::io::{Read, Write};
     use std::net::{SocketAddr, Shutdown};
-    use std::sync::{Arc, Mutex};
+    use std::sync::{Arc, Mutex, MutexGuard};
 
     pub fn download(url: &Url,
                     callback: &Fn(Event) -> Result<()>)
@@ -434,27 +434,30 @@ pub mod rustls {
         }
     }
 
+    impl<T> NativeSslStream<T> {
+        fn lock<'a>(&'a self) -> IoResult<MutexGuard<'a, (T, rustls::ClientSession)>> {
+            self.0.lock()
+                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+        }
+    }
+
     impl<T> NetworkStream for NativeSslStream<T>
         where T: NetworkStream
     {
         fn peer_addr(&mut self) -> IoResult<SocketAddr> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|mut t| t.0.peer_addr())
         }
         fn set_read_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|t| t.0.set_read_timeout(dur))
         }
         fn set_write_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|t| t.0.set_write_timeout(dur))
         }
         fn close(&mut self, how: Shutdown) -> IoResult<()> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|mut t| t.0.close(how))
         }
     }
@@ -463,8 +466,7 @@ pub mod rustls {
         where T: Read + Write
     {
         fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|mut t| {
                     let (ref mut stream, ref mut tls) = *t;
                     while tls.wants_read() {
@@ -481,8 +483,7 @@ pub mod rustls {
         where T: Read + Write
     {
         fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|mut t| {
                     let (ref mut stream, ref mut tls) = *t;
 
@@ -496,8 +497,7 @@ pub mod rustls {
                 })
         }
         fn flush(&mut self) -> IoResult<()> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
+            self.lock()
                 .and_then(|mut t| {
                     t.0.flush()
                 })
