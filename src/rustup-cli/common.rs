@@ -31,7 +31,9 @@ pub fn confirm(question: &str, default: bool) -> Result<bool> {
 }
 
 pub enum Confirm {
-    Yes, No, Advanced
+    Yes,
+    No,
+    Advanced,
 }
 
 pub fn confirm_advanced() -> Result<Confirm> {
@@ -44,7 +46,7 @@ pub fn confirm_advanced() -> Result<Confirm> {
     let input = try!(read_line());
 
     let r = match &*input {
-        "1"|"" => Confirm::Yes,
+        "1" | "" => Confirm::Yes,
         "2" => Confirm::Advanced,
         _ => Confirm::No,
     };
@@ -82,7 +84,7 @@ pub fn question_bool(question: &str, default: bool) -> Result<bool> {
         match &*input {
             "y" | "Y" | "yes" => Ok(true),
             "n" | "N" | "no" => Ok(false),
-            _ => Ok(default)
+            _ => Ok(default),
         }
     }
 
@@ -92,8 +94,7 @@ pub fn read_line() -> Result<String> {
     let stdin = std::io::stdin();
     let stdin = stdin.lock();
     let mut lines = stdin.lines();
-    lines.next().and_then(|l| l.ok()).ok_or(
-        "unable to read from stdin for confirmation".into())
+    lines.next().and_then(|l| l.ok()).ok_or("unable to read from stdin for confirmation".into())
 }
 
 pub fn set_globals(verbose: bool) -> Result<Cfg> {
@@ -103,7 +104,7 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
     let download_tracker = RefCell::new(DownloadTracker::new());
 
     Ok(try!(Cfg::from_env(Arc::new(move |n: Notification| {
-       if download_tracker.borrow_mut().handle_notification(&n) {
+        if download_tracker.borrow_mut().handle_notification(&n) {
             return;
         }
 
@@ -127,12 +128,16 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
 
 }
 
-pub fn show_channel_update(cfg: &Cfg, name: &str,
-                           updated: rustup::Result<UpdateStatus>) -> Result<()> {
+pub fn show_channel_update(cfg: &Cfg,
+                           name: &str,
+                           updated: rustup::Result<UpdateStatus>)
+                           -> Result<()> {
     show_channel_updates(cfg, vec![(name.to_string(), updated)])
 }
 
-fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, rustup::Result<UpdateStatus>)>) -> Result<()> {
+fn show_channel_updates(cfg: &Cfg,
+                        toolchains: Vec<(String, rustup::Result<UpdateStatus>)>)
+                        -> Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
         let ref toolchain = cfg.get_toolchain(&name, false).expect("");
         let version = rustc_version(toolchain);
@@ -223,7 +228,7 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
             cmd.arg("--version");
             toolchain.set_ldpath(&mut cmd);
 
-            let out= cmd.output().ok();
+            let out = cmd.output().ok();
             let out = out.into_iter().filter(|o| o.status.success()).next();
             let stdout = out.and_then(|o| String::from_utf8(o.stdout).ok());
             let line1 = stdout.and_then(|o| o.lines().next().map(|l| l.to_owned()));
@@ -327,9 +332,7 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
         println!("no overrides");
     } else {
         for (k, v) in overrides {
-            println!("{:<40}\t{:<20}",
-                     utils::format_path_for_display(&k),
-                     v)
+            println!("{:<40}\t{:<20}", utils::format_path_for_display(&k), v)
         }
     }
     Ok(())
@@ -337,7 +340,8 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
 
 
 pub fn version() -> &'static str {
-    concat!(env!("CARGO_PKG_VERSION"), include_str!(concat!(env!("OUT_DIR"), "/commit-info.txt")))
+    concat!(env!("CARGO_PKG_VERSION"),
+            include_str!(concat!(env!("OUT_DIR"), "/commit-info.txt")))
 }
 
 

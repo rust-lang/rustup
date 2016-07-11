@@ -15,14 +15,14 @@ pub const DEFAULT_METADATA_VERSION: &'static str = "12";
 #[derive(Clone, Debug, PartialEq)]
 pub struct SettingsFile {
     path: PathBuf,
-    cache: RefCell<Option<Settings>>
+    cache: RefCell<Option<Settings>>,
 }
 
 impl SettingsFile {
     pub fn new(path: PathBuf) -> Self {
         SettingsFile {
             path: path,
-            cache: RefCell::new(None)
+            cache: RefCell::new(None),
         }
     }
     fn write_settings(&self) -> Result<()> {
@@ -73,7 +73,7 @@ impl SettingsFile {
                 s.find(separator).and_then(|index| {
                     match (T::from_str(&s[..index]), T::from_str(&s[index + 1..])) {
                         (Ok(l), Ok(r)) => Some((l, r)),
-                        _ => None
+                        _ => None,
                     }
                 })
             }
@@ -84,11 +84,13 @@ impl SettingsFile {
             // Legacy upgrade
             try!(self.with_mut(|s| {
                 s.version = try!(utils::read_file("version", &legacy_version_file))
-                    .trim().to_owned();
+                    .trim()
+                    .to_owned();
 
                 if utils::is_file(&default_file) {
                     s.default_toolchain = Some(try!(utils::read_file("default", &default_file))
-                        .trim().to_owned());
+                        .trim()
+                        .to_owned());
                 }
                 if utils::is_file(&override_db) {
                     let overrides = try!(utils::read_file("overrides", &override_db));
@@ -127,7 +129,7 @@ pub struct Settings {
     pub default_host_triple: Option<String>,
     pub default_toolchain: Option<String>,
     pub overrides: BTreeMap<String, String>,
-    pub telemetry: TelemetryMode
+    pub telemetry: TelemetryMode,
 }
 
 impl Default for Settings {
@@ -137,7 +139,7 @@ impl Default for Settings {
             default_host_triple: None,
             default_toolchain: None,
             overrides: BTreeMap::new(),
-            telemetry: TelemetryMode::Off
+            telemetry: TelemetryMode::Off,
         }
     }
 }
@@ -145,8 +147,8 @@ impl Default for Settings {
 impl Settings {
     fn path_to_key(path: &Path, notify_handler: &Fn(Notification)) -> String {
         utils::canonicalize_path(path, &|n| notify_handler(n.into()))
-               .display()
-               .to_string()
+            .display()
+            .to_string()
     }
 
     pub fn remove_override(&mut self, path: &Path, notify_handler: &Fn(Notification)) -> bool {
@@ -154,14 +156,19 @@ impl Settings {
         self.overrides.remove(&key).is_some()
     }
 
-    pub fn add_override(&mut self, path: &Path, toolchain: String, notify_handler: &Fn(Notification)) {
+    pub fn add_override(&mut self,
+                        path: &Path,
+                        toolchain: String,
+                        notify_handler: &Fn(Notification)) {
         let key = Self::path_to_key(path, notify_handler);
         notify_handler(Notification::SetOverrideToolchain(path, &toolchain));
         self.overrides.insert(key, toolchain);
     }
 
-    pub fn find_override(&self, dir_unresolved: &Path, notify_handler: &Fn(Notification))
-            -> Option<(String, PathBuf)> {
+    pub fn find_override(&self,
+                         dir_unresolved: &Path,
+                         notify_handler: &Fn(Notification))
+                         -> Option<(String, PathBuf)> {
         let dir = utils::canonicalize_path(dir_unresolved, &|n| notify_handler(n.into()));
         let mut maybe_path = Some(&*dir);
         while let Some(path) = maybe_path {
@@ -176,7 +183,8 @@ impl Settings {
 
     pub fn parse(data: &str) -> Result<Self> {
         let mut parser = toml::Parser::new(data);
-        let value = try!(parser.parse().ok_or_else(move || ErrorKind::ParsingSettings(parser.errors)));
+        let value = try!(parser.parse()
+            .ok_or_else(move || ErrorKind::ParsingSettings(parser.errors)));
 
         Self::from_toml(value, "")
     }
@@ -198,14 +206,13 @@ impl Settings {
                 TelemetryMode::On
             } else {
                 TelemetryMode::Off
-            }
+            },
         })
     }
     pub fn to_toml(self) -> toml::Table {
         let mut result = toml::Table::new();
 
-        result.insert("version".to_owned(),
-                      toml::Value::String(self.version));
+        result.insert("version".to_owned(), toml::Value::String(self.version));
 
         if let Some(v) = self.default_host_triple {
             result.insert("default_host_triple".to_owned(), toml::Value::String(v));

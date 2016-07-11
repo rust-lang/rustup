@@ -1,7 +1,6 @@
 use clap::ArgMatches;
 use cli;
-use common::{self, confirm, set_globals,
-             show_channel_update, show_tool_versions,
+use common::{self, confirm, set_globals, show_channel_update, show_tool_versions,
              update_all_channels};
 use errors::*;
 use rustup::{Cfg, Notification, command, utils, Toolchain};
@@ -18,7 +17,8 @@ pub fn main() -> Result<()> {
 
     let need_metadata = try!(command_requires_metadata());
     if need_metadata {
-        let cfg = try!(Cfg::from_env(Arc::new(move |_: Notification| { })));
+        let cfg = try!(Cfg::from_env(Arc::new(move |_: Notification| {
+        })));
         try!(cfg.check_metadata_version());
     }
 
@@ -33,7 +33,8 @@ pub fn main() -> Result<()> {
     // it interferes with the fragile self-deletion code.
     maybe_setup_winjob(&app_matches);
 
-    warn!("'multirust' is being renamed to 'rustup'. this command is deprecated. use 'rustup' instead");
+    warn!("'multirust' is being renamed to 'rustup'. this command is deprecated. use 'rustup' \
+           instead");
 
     match app_matches.subcommand() {
         ("update", Some(m)) => update(&cfg, m),
@@ -61,15 +62,13 @@ pub fn main() -> Result<()> {
         }
         ("which", Some(m)) => which(&cfg, m),
         ("doc", Some(m)) => doc(&cfg, m),
-        _ => {
-            unreachable!()
-        }
+        _ => unreachable!(),
     }
 }
 
 fn maybe_setup_winjob(m: &ArgMatches) {
     match m.subcommand() {
-        ("self", _) => { }
+        ("self", _) => {}
         (_, _) => {
             job::setup();
         }
@@ -99,16 +98,12 @@ fn command_requires_metadata() -> Result<bool> {
     match (arg1, arg2) {
         (Some("upgrade-data"), _) |
         (Some("delete-data"), _) |
-        (Some("self"), Some("install")) => {
-            Ok(false)
-        }
+        (Some("self"), Some("install")) => Ok(false),
         (None, None) => {
             // Running multirust in its self-install mode
             Ok(false)
         }
-        (_, _) => {
-            Ok(true)
-        }
+        (_, _) => Ok(true),
     }
 }
 
@@ -233,7 +228,7 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let binary = m.value_of("binary").unwrap();
 
     let binary_path = try!(cfg.which_binary(&try!(utils::current_dir()), binary))
-                          .expect("binary not found");
+        .expect("binary not found");
 
     try!(utils::assert_is_file(&binary_path));
 
@@ -242,8 +237,7 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn delete_data(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let msg =
-r"
+    let msg = r"
 This will delete all toolchains, overrides, aliases, and other
 multirust data associated with this user.
 
@@ -264,11 +258,11 @@ Continue? (y/N)";
 fn remove_override(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let cwd = try!(utils::current_dir());
     let ref path = m.value_of("override")
-        .map(|p| PathBuf::from(p)).unwrap_or(cwd);
+        .map(|p| PathBuf::from(p))
+        .unwrap_or(cwd);
 
-    if try!(cfg.settings_file.with_mut(|s| {
-        Ok(s.remove_override(path, cfg.notify_handler.as_ref()))
-    })) {
+    if try!(cfg.settings_file
+        .with_mut(|s| Ok(s.remove_override(path, cfg.notify_handler.as_ref())))) {
         info!("override toolchain for '{}' removed", path.display());
     } else {
         info!("no override toolchain for '{}'", path.display());

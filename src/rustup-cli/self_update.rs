@@ -163,11 +163,10 @@ This will uninstall all Rust toolchains and data, and remove
     }
 }
 
-static TOOLS: &'static [&'static str]
-    = &["rustup", "rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
+static TOOLS: &'static [&'static str] =
+    &["rustup", "rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
 
-static UPDATE_ROOT: &'static str
-    = "https://static.rust-lang.org/rustup/dist";
+static UPDATE_ROOT: &'static str = "https://static.rust-lang.org/rustup/dist";
 
 /// CARGO_HOME suitable for display, possibly with $HOME
 /// substituted for the directory prefix
@@ -186,8 +185,7 @@ fn canonical_cargo_home() -> Result<String> {
 /// Installing is a simple matter of coping the running binary to
 /// CARGO_HOME/bin, hardlinking the various Rust tools to it,
 /// and and adding CARGO_HOME/bin to PATH.
-pub fn install(no_prompt: bool, verbose: bool,
-               mut opts: InstallOpts) -> Result<()> {
+pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<()> {
 
     try!(do_pre_install_sanity_checks());
 
@@ -202,10 +200,10 @@ pub fn install(no_prompt: bool, verbose: bool,
                 Confirm::No => {
                     info!("aborting installation");
                     return Ok(());
-                },
+                }
                 Confirm::Yes => {
                     break;
-                },
+                }
                 Confirm::Advanced => {
                     opts = try!(customize_install(opts));
                 }
@@ -213,24 +211,23 @@ pub fn install(no_prompt: bool, verbose: bool,
         }
     }
 
-    let install_res: Result<()> = (|| {
-        try!(cleanup_legacy());
-        try!(install_bins());
-        if !opts.no_modify_path {
-            try!(do_add_to_path(&get_add_path_methods()));
-        }
-        try!(maybe_install_rust(&opts.default_toolchain, &opts.default_host_triple, verbose));
+    let install_res: Result<()> =
+        (|| {
+            try!(cleanup_legacy());
+            try!(install_bins());
+            if !opts.no_modify_path {
+                try!(do_add_to_path(&get_add_path_methods()));
+            }
+            try!(maybe_install_rust(&opts.default_toolchain, &opts.default_host_triple, verbose));
 
-        if cfg!(unix) {
-            let ref env_file = try!(utils::cargo_home()).join("env");
-            let ref env_str = format!(
-                "{}\n",
-                try!(shell_export_string()));
-            try!(utils::write_file("env", env_file, env_str));
-        }
+            if cfg!(unix) {
+                let ref env_file = try!(utils::cargo_home()).join("env");
+                let ref env_str = format!("{}\n", try!(shell_export_string()));
+                try!(utils::write_file("env", env_file, env_str));
+            }
 
-        Ok(())
-    })();
+            Ok(())
+        })();
 
 
     if let Err(ref e) = install_res {
@@ -254,8 +251,7 @@ pub fn install(no_prompt: bool, verbose: bool,
         let msg = if !opts.no_modify_path {
             if cfg!(unix) {
                 let cargo_home = try!(canonical_cargo_home());
-                format!(post_install_msg_unix!(),
-                         cargo_home = cargo_home)
+                format!(post_install_msg_unix!(), cargo_home = cargo_home)
             } else {
                 format!(post_install_msg_win!())
             }
@@ -263,7 +259,7 @@ pub fn install(no_prompt: bool, verbose: bool,
             if cfg!(unix) {
                 let cargo_home = try!(canonical_cargo_home());
                 format!(post_install_msg_unix_no_modify_path!(),
-                         cargo_home = cargo_home)
+                        cargo_home = cargo_home)
             } else {
                 format!(post_install_msg_win_no_modify_path!())
             }
@@ -285,28 +281,21 @@ pub fn install(no_prompt: bool, verbose: bool,
 
 fn do_pre_install_sanity_checks() -> Result<()> {
 
-    let multirust_manifest_path
-        = PathBuf::from("/usr/local/lib/rustlib/manifest-multirust");
-    let rustc_manifest_path
-        = PathBuf::from("/usr/local/lib/rustlib/manifest-rustc");
-    let uninstaller_path
-        = PathBuf::from("/usr/local/lib/rustlib/uninstall.sh");
-    let multirust_meta_path
-        = env::home_dir().map(|d| d.join(".multirust"));
-    let multirust_version_path
-        = multirust_meta_path.as_ref().map(|p| p.join("version"));
-    let rustup_sh_path
-        = env::home_dir().map(|d| d.join(".rustup"));
+    let multirust_manifest_path = PathBuf::from("/usr/local/lib/rustlib/manifest-multirust");
+    let rustc_manifest_path = PathBuf::from("/usr/local/lib/rustlib/manifest-rustc");
+    let uninstaller_path = PathBuf::from("/usr/local/lib/rustlib/uninstall.sh");
+    let multirust_meta_path = env::home_dir().map(|d| d.join(".multirust"));
+    let multirust_version_path = multirust_meta_path.as_ref().map(|p| p.join("version"));
+    let rustup_sh_path = env::home_dir().map(|d| d.join(".rustup"));
     let rustup_sh_version_path = rustup_sh_path.as_ref().map(|p| p.join("rustup-version"));
 
-    let multirust_exists =
-        multirust_manifest_path.exists() && uninstaller_path.exists();
-    let rustc_exists =
-        rustc_manifest_path.exists() && uninstaller_path.exists();
-    let rustup_sh_exists =
-        rustup_sh_version_path.map(|p| p.exists()) == Some(true);
-    let old_multirust_meta_exists = if let Some(ref multirust_version_path) = multirust_version_path {
-        multirust_version_path.exists() && {
+    let multirust_exists = multirust_manifest_path.exists() && uninstaller_path.exists();
+    let rustc_exists = rustc_manifest_path.exists() && uninstaller_path.exists();
+    let rustup_sh_exists = rustup_sh_version_path.map(|p| p.exists()) == Some(true);
+    let old_multirust_meta_exists = if let Some(ref multirust_version_path) =
+                                           multirust_version_path {
+        multirust_version_path.exists() &&
+        {
             let version = utils::read_file("old-multirust", &multirust_version_path);
             let version = version.unwrap_or(String::new());
             let version = version.parse().unwrap_or(0);
@@ -322,35 +311,41 @@ fn do_pre_install_sanity_checks() -> Result<()> {
         (true, false) => {
             warn!("it looks like you have an existing installation of multirust");
             warn!("rustup cannot be installed alongside multirust");
-            warn!("run `{}` as root to uninstall multirust before installing rustup", uninstaller_path.display());
+            warn!("run `{}` as root to uninstall multirust before installing rustup",
+                  uninstaller_path.display());
             return Err("cannot install while multirust is installed".into());
         }
         (false, true) => {
             warn!("it looks like you have existing multirust metadata");
             warn!("rustup cannot be installed alongside multirust");
-            warn!("delete `{}` before installing rustup", multirust_meta_path.expect("").display());
+            warn!("delete `{}` before installing rustup",
+                  multirust_meta_path.expect("").display());
             return Err("cannot install while multirust is installed".into());
         }
         (true, true) => {
             warn!("it looks like you have an existing installation of multirust");
             warn!("rustup cannot be installed alongside multirust");
-            warn!("run `{}` as root and delete `{}` before installing rustup", uninstaller_path.display(), multirust_meta_path.expect("").display());
+            warn!("run `{}` as root and delete `{}` before installing rustup",
+                  uninstaller_path.display(),
+                  multirust_meta_path.expect("").display());
             return Err("cannot install while multirust is installed".into());
         }
-        (false, false) => ()
+        (false, false) => (),
     }
 
     if rustc_exists {
         warn!("it looks like you have an existing installation of Rust");
         warn!("rustup cannot be installed alongside Rust. Please uninstall first");
-        warn!("run `{}` as root to uninstall Rust", uninstaller_path.display());
+        warn!("run `{}` as root to uninstall Rust",
+              uninstaller_path.display());
         return Err("cannot install while Rust is installed".into());
     }
 
     if rustup_sh_exists {
         warn!("it looks like you have existing rustup.sh metadata");
         warn!("rustup cannot be installed while rustup.sh metadata exists");
-        warn!("delete `{}` to remove rustup.sh", rustup_sh_path.expect("").display());
+        warn!("delete `{}` to remove rustup.sh",
+              rustup_sh_path.expect("").display());
         return Err("cannot install while rustup.sh is installed".into());
     }
 
@@ -371,7 +366,8 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
                     } else {
                         None
                     }
-                }).collect::<Vec<_>>();
+                })
+                .collect::<Vec<_>>();
             assert!(rcfiles.len() == 1); // Only modifying .profile
             Ok(format!(pre_install_msg_unix!(),
                        cargo_home_bin = cargo_home_bin.display(),
@@ -387,39 +383,37 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
 }
 
 fn current_install_opts(opts: &InstallOpts) -> String {
-    format!(
-        r"Current installation options:
+    format!(r"Current installation options:
 
 - ` `default host triple: `{}`
 - `   `default toolchain: `{}`
 - modify PATH variable: `{}`
 ",
-        opts.default_host_triple,
-        opts.default_toolchain,
-        if !opts.no_modify_path { "yes" } else { "no" }
-    )
+            opts.default_host_triple,
+            opts.default_toolchain,
+            if !opts.no_modify_path {
+                "yes"
+            } else {
+                "no"
+            })
 }
 
 // Interactive editing of the install options
 fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
 
-    println!(
-        "I'm going to ask you the value of each these installation options.\n\
-         You may simply press the Enter key to leave unchanged.");
+    println!("I'm going to ask you the value of each these installation options.\nYou may simply \
+              press the Enter key to leave unchanged.");
 
     println!("");
 
-    opts.default_host_triple = try!(common::question_str(
-        "Default host triple?",
-        &opts.default_host_triple));
+    opts.default_host_triple = try!(common::question_str("Default host triple?",
+                                                         &opts.default_host_triple));
 
-    opts.default_toolchain = try!(common::question_str(
-        "Default toolchain? (stable/beta/nightly)",
-        &opts.default_toolchain));
+    opts.default_toolchain = try!(common::question_str("Default toolchain? (stable/beta/nightly)",
+                                                       &opts.default_toolchain));
 
-    opts.no_modify_path = !try!(common::question_bool(
-        "Modify PATH variable? (y/n)",
-        !opts.no_modify_path));
+    opts.no_modify_path = !try!(common::question_bool("Modify PATH variable? (y/n)",
+                                                      !opts.no_modify_path));
 
     Ok(opts)
 }
@@ -447,9 +441,7 @@ fn cleanup_legacy() -> Result<()> {
 
     #[cfg(windows)]
     fn legacy_multirust_home_dir() -> Result<PathBuf> {
-        use rustup_utils::raw::windows::{
-            get_special_folder, FOLDERID_LocalAppData
-        };
+        use rustup_utils::raw::windows::{get_special_folder, FOLDERID_LocalAppData};
 
         Ok(get_special_folder(&FOLDERID_LocalAppData).unwrap_or(PathBuf::from(".")))
     }
@@ -635,9 +627,8 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
     let numbah: u32 = rand::random();
     let gc_exe = work_path.join(&format!("multirust-gc-{:x}.exe", numbah));
 
-    use winapi::{FILE_SHARE_DELETE, FILE_SHARE_READ,
-                 INVALID_HANDLE_VALUE, FILE_FLAG_DELETE_ON_CLOSE,
-                 DWORD, SECURITY_ATTRIBUTES, OPEN_EXISTING,
+    use winapi::{FILE_SHARE_DELETE, FILE_SHARE_READ, INVALID_HANDLE_VALUE,
+                 FILE_FLAG_DELETE_ON_CLOSE, DWORD, SECURITY_ATTRIBUTES, OPEN_EXISTING,
                  GENERIC_READ};
     use kernel32::{CreateFileW, CloseHandle};
     use std::os::windows::ffi::OsStrExt;
@@ -672,10 +663,13 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
             return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
         }
 
-        let _g = scopeguard::guard(gc_handle, |h| { let _ = CloseHandle(*h); });
+        let _g = scopeguard::guard(gc_handle, |h| {
+            let _ = CloseHandle(*h);
+        });
 
-        try!(Command::new(gc_exe).spawn()
-             .chain_err(|| ErrorKind::WindowsUninstallMadness));
+        try!(Command::new(gc_exe)
+            .spawn()
+            .chain_err(|| ErrorKind::WindowsUninstallMadness));
 
         // The catch 22 article says we must sleep here to give
         // Windows a chance to bump the processes file reference
@@ -705,22 +699,21 @@ pub fn complete_windows_uninstall() -> Result<()> {
     let rm_gc_exe = OsStr::new("net");
 
     try!(Command::new(rm_gc_exe)
-         .stdin(Stdio::null())
-         .stdout(Stdio::null())
-         .stderr(Stdio::null())
-         .spawn()
-         .chain_err(|| ErrorKind::WindowsUninstallMadness));
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .chain_err(|| ErrorKind::WindowsUninstallMadness));
 
     process::exit(0);
 }
 
 #[cfg(windows)]
 fn wait_for_parent() -> Result<()> {
-    use kernel32::{Process32First, Process32Next,
-                   CreateToolhelp32Snapshot, CloseHandle, OpenProcess,
-                   GetCurrentProcessId, WaitForSingleObject};
-    use winapi::{PROCESSENTRY32, INVALID_HANDLE_VALUE, DWORD, INFINITE,
-                 TH32CS_SNAPPROCESS, SYNCHRONIZE, WAIT_OBJECT_0};
+    use kernel32::{Process32First, Process32Next, CreateToolhelp32Snapshot, CloseHandle,
+                   OpenProcess, GetCurrentProcessId, WaitForSingleObject};
+    use winapi::{PROCESSENTRY32, INVALID_HANDLE_VALUE, DWORD, INFINITE, TH32CS_SNAPPROCESS,
+                 SYNCHRONIZE, WAIT_OBJECT_0};
     use std::io;
     use std::mem;
     use std::ptr;
@@ -735,7 +728,9 @@ fn wait_for_parent() -> Result<()> {
             return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
         }
 
-        let _g = scopeguard::guard(snapshot, |h| { let _ = CloseHandle(*h); });
+        let _g = scopeguard::guard(snapshot, |h| {
+            let _ = CloseHandle(*h);
+        });
 
         let mut entry: PROCESSENTRY32 = mem::zeroed();
         entry.dwSize = mem::size_of::<PROCESSENTRY32>() as DWORD;
@@ -768,7 +763,9 @@ fn wait_for_parent() -> Result<()> {
             return Ok(());
         }
 
-        let _g = scopeguard::guard(parent, |h| { let _ = CloseHandle(*h); });
+        let _g = scopeguard::guard(parent, |h| {
+            let _ = CloseHandle(*h);
+        });
 
         // Wait for our parent to exit
         let res = WaitForSingleObject(parent, INFINITE);
@@ -801,7 +798,7 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
     }
 
     let profile = utils::home_dir().map(|p| p.join(".profile"));
-    let rcfiles = vec![profile].into_iter().filter_map(|f|f);
+    let rcfiles = vec![profile].into_iter().filter_map(|f| f);
 
     rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect()
 }
@@ -864,13 +861,13 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                           .chain_err(|| ErrorKind::PermissionDenied));
+        .chain_err(|| ErrorKind::PermissionDenied));
     let reg_value = RegValue {
         bytes: utils::string_to_winreg_bytes(&new_path),
         vtype: RegType::REG_EXPAND_SZ,
     };
     try!(environment.set_raw_value("PATH", &reg_value)
-         .chain_err(|| ErrorKind::PermissionDenied));
+        .chain_err(|| ErrorKind::PermissionDenied));
 
     // Tell other processes to update their environment
     unsafe {
@@ -897,7 +894,7 @@ fn get_windows_path_var() -> Result<Option<String>> {
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                           .chain_err(|| ErrorKind::PermissionDenied));
+        .chain_err(|| ErrorKind::PermissionDenied));
 
     let reg_value = environment.get_raw_value("PATH");
     match reg_value {
@@ -905,17 +902,13 @@ fn get_windows_path_var() -> Result<Option<String>> {
             if let Some(s) = utils::string_from_winreg_value(&val) {
                 Ok(Some(s))
             } else {
-                warn!("the registry key HKEY_CURRENT_USER\\Environment\\PATH does not contain valid Unicode. \
-                       Not modifying the PATH variable");
+                warn!("the registry key HKEY_CURRENT_USER\\Environment\\PATH does not contain \
+                       valid Unicode. Not modifying the PATH variable");
                 return Ok(None);
             }
         }
-        Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
-            Ok(Some(String::new()))
-        }
-        Err(e) => {
-            Err(e).chain_err(|| ErrorKind::WindowsUninstallMadness)
-        }
+        Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Some(String::new())),
+        Err(e) => Err(e).chain_err(|| ErrorKind::WindowsUninstallMadness),
     }
 }
 
@@ -930,16 +923,15 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
 
     let rcfiles = vec![profile];
     let existing_rcfiles = rcfiles.into_iter()
-        .filter_map(|f|f)
+        .filter_map(|f| f)
         .filter(|f| f.exists());
 
     let export_str = try!(shell_export_string());
-    let matching_rcfiles = existing_rcfiles
-        .filter(|f| {
-            let file = utils::read_file("rcfile", f).unwrap_or(String::new());
-            let ref addition = format!("\n{}", export_str);
-            file.contains(addition)
-        });
+    let matching_rcfiles = existing_rcfiles.filter(|f| {
+        let file = utils::read_file("rcfile", f).unwrap_or(String::new());
+        let ref addition = format!("\n{}", export_str);
+        file.contains(addition)
+    });
 
     Ok(matching_rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect())
 }
@@ -976,21 +968,21 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     }
 
     let mut new_path = old_path[..idx].to_string();
-    new_path.push_str(&old_path[idx + len ..]);
+    new_path.push_str(&old_path[idx + len..]);
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = try!(root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                           .chain_err(|| ErrorKind::PermissionDenied));
+        .chain_err(|| ErrorKind::PermissionDenied));
     if new_path.is_empty() {
         try!(environment.delete_value("PATH")
-             .chain_err(|| ErrorKind::PermissionDenied));
+            .chain_err(|| ErrorKind::PermissionDenied));
     } else {
         let reg_value = RegValue {
             bytes: utils::string_to_winreg_bytes(&new_path),
             vtype: RegType::REG_EXPAND_SZ,
         };
         try!(environment.set_raw_value("PATH", &reg_value)
-        .chain_err(|| ErrorKind::PermissionDenied));
+            .chain_err(|| ErrorKind::PermissionDenied));
     }
 
     // Tell other processes to update their environment
@@ -1077,8 +1069,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     // Get build triple
     let triple = dist::TargetTriple::from_build();
 
-    let update_root = env::var("RUSTUP_UPDATE_ROOT")
-        .unwrap_or(String::from(UPDATE_ROOT));
+    let update_root = env::var("RUSTUP_UPDATE_ROOT").unwrap_or(String::from(UPDATE_ROOT));
 
     let tempdir = try!(TempDir::new("multirust-update")
         .chain_err(|| "error creating temp directory"));
@@ -1089,12 +1080,14 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     // Calculate own hash
     let mut hasher = Sha256::new();
     let mut self_exe = try!(File::open(multirust_path)
-                        .chain_err(|| "can't open self exe to calculate hash"));
+        .chain_err(|| "can't open self exe to calculate hash"));
     let ref mut buf = [0; 4096];
     loop {
         let bytes = try!(self_exe.read(buf)
-                         .chain_err(|| "failed to read from self exe while calculating hash"));
-        if bytes == 0 { break; }
+            .chain_err(|| "failed to read from self exe while calculating hash"));
+        if bytes == 0 {
+            break;
+        }
         hasher.input(&buf[0..bytes]);
     }
     let current_hash = hasher.result_str();
@@ -1119,10 +1112,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     // Download new version
     info!("downloading self-update");
     let mut hasher = Sha256::new();
-    try!(utils::download_file(&download_url,
-                              &setup_path,
-                              Some(&mut hasher),
-                              &|_| ()));
+    try!(utils::download_file(&download_url, &setup_path, Some(&mut hasher), &|_| ()));
     let download_hash = hasher.result_str();
 
     // Check that hash is correct
@@ -1149,7 +1139,8 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 pub fn run_update(setup_path: &Path) -> Result<()> {
     let status = try!(Command::new(setup_path)
         .arg("--self-replace")
-        .status().chain_err(|| "unable to run updater"));
+        .status()
+        .chain_err(|| "unable to run updater"));
 
     if !status.success() {
         return Err("self-updated failed to replace multirust executable".into());
@@ -1162,7 +1153,8 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
 pub fn run_update(setup_path: &Path) -> Result<()> {
     try!(Command::new(setup_path)
         .arg("--self-replace")
-        .spawn().chain_err(|| "unable to run updater"));
+        .spawn()
+        .chain_err(|| "unable to run updater"));
 
     process::exit(0);
 }

@@ -59,8 +59,10 @@ fn main() {
 
 fn run_multirust() -> Result<()> {
     // Guard against infinite recursion
-    let recursion_count = env::var("RUST_RECURSION_COUNT").ok()
-        .and_then(|s| s.parse().ok()).unwrap_or(0);
+    let recursion_count = env::var("RUST_RECURSION_COUNT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
     if recursion_count > 5 {
         return Err(ErrorKind::InfiniteRecursion.into());
     }
@@ -75,14 +77,9 @@ fn run_multirust() -> Result<()> {
         .and_then(|a| a.file_stem())
         .and_then(|a| a.to_str());
     match name {
-        Some("rustup") => {
-            rustup_mode::main()
-        }
-        Some("multirust") => {
-            multirust_mode::main()
-        }
-        Some(n) if n.starts_with("multirust-setup")||
-                   n.starts_with("rustup-setup") ||
+        Some("rustup") => rustup_mode::main(),
+        Some("multirust") => multirust_mode::main(),
+        Some(n) if n.starts_with("multirust-setup") || n.starts_with("rustup-setup") ||
                    n.starts_with("rustup-init") => {
             // NB: The above check is only for the prefix of the file
             // name. Browsers rename duplicates to
@@ -113,9 +110,7 @@ fn run_multirust() -> Result<()> {
                 self_update::install(true, false, opts)
             }
         }
-        Some(_) => {
-            proxy_mode::main()
-        }
+        Some(_) => proxy_mode::main(),
         None => {
             // Weird case. No arg0, or it's unparsable.
             Err(ErrorKind::NoExeName.into())
@@ -142,7 +137,7 @@ fn make_environment_compatible() {
                 env::set_var(rvar, mval);
                 warn!("environment variable {} is deprecated. Use {}.", mvar, rvar);
             }
-            _ => ()
+            _ => (),
         }
     }
 }
@@ -158,13 +153,23 @@ fn fix_windows_reg_key() {
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let env = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE);
 
-    let env = if let Ok(e) = env { e } else { return };
+    let env = if let Ok(e) = env {
+        e
+    } else {
+        return;
+    };
 
     let path = env.get_raw_value("PATH");
 
-    let mut path = if let Ok(p) = path { p } else { return };
+    let mut path = if let Ok(p) = path {
+        p
+    } else {
+        return;
+    };
 
-    if path.vtype == RegType::REG_EXPAND_SZ { return }
+    if path.vtype == RegType::REG_EXPAND_SZ {
+        return;
+    }
 
     path.vtype = RegType::REG_EXPAND_SZ;
 
@@ -172,4 +177,4 @@ fn fix_windows_reg_key() {
 }
 
 #[cfg(not(windows))]
-fn fix_windows_reg_key() { }
+fn fix_windows_reg_key() {}

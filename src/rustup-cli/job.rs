@@ -23,8 +23,7 @@ pub fn setup() {
 
 #[cfg(unix)]
 mod imp {
-    pub unsafe fn setup() {
-    }
+    pub unsafe fn setup() {}
 }
 
 #[cfg(windows)]
@@ -46,7 +45,7 @@ mod imp {
 
         let job = kernel32::CreateJobObjectW(0 as *mut _, 0 as *const _);
         if job.is_null() {
-            return
+            return;
         }
 
         // Indicate that when all handles to the job object are gone that all
@@ -55,15 +54,14 @@ mod imp {
         // our children will reside in the job once we spawn a process.
         let mut info: winapi::JOBOBJECT_EXTENDED_LIMIT_INFORMATION;
         info = mem::zeroed();
-        info.BasicLimitInformation.LimitFlags =
-            winapi::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        info.BasicLimitInformation.LimitFlags = winapi::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
         let r = kernel32::SetInformationJobObject(job,
-                        winapi::JobObjectExtendedLimitInformation,
-                        &mut info as *mut _ as winapi::LPVOID,
-                        mem::size_of_val(&info) as winapi::DWORD);
+                                                  winapi::JobObjectExtendedLimitInformation,
+                                                  &mut info as *mut _ as winapi::LPVOID,
+                                                  mem::size_of_val(&info) as winapi::DWORD);
         if r == 0 {
             kernel32::CloseHandle(job);
-            return
+            return;
         }
 
         // Assign our process to this job object, meaning that our children will
@@ -72,7 +70,7 @@ mod imp {
         let r = kernel32::AssignProcessToJobObject(job, me);
         if r == 0 {
             kernel32::CloseHandle(job);
-            return
+            return;
         }
 
         // Intentionally leak the `job` handle here. We've got the only

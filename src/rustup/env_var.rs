@@ -30,9 +30,9 @@ pub fn prepend_path(name: &str, value: &Path, cmd: &mut Command) {
 
 pub fn inc(name: &str, cmd: &mut Command) {
     let old_value = env::var(name)
-                        .ok()
-                        .and_then(|v| v.parse().ok())
-                        .unwrap_or(0);
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
 
     cmd.env(name, (old_value + 1).to_string());
 }

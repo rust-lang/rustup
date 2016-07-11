@@ -108,9 +108,7 @@ impl<'a> Display for Notification<'a> {
             UninstallingToolchain(name) => write!(f, "uninstalling toolchain '{}'", name),
             UninstalledToolchain(name) => write!(f, "toolchain '{}' uninstalled", name),
             ToolchainNotInstalled(name) => write!(f, "no toolchain installed for '{}'", name),
-            UpdateHashMatches => {
-                write!(f, "toolchain is already up to date")
-            }
+            UpdateHashMatches => write!(f, "toolchain is already up to date"),
             UpgradingMetadata(from_ver, to_ver) => {
                 write!(f,
                        "upgrading metadata version from '{}' to '{}'",
@@ -125,9 +123,15 @@ impl<'a> Display for Notification<'a> {
             WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{}'", ver),
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{}'", ver),
             NonFatalError(e) => write!(f, "{}", e),
-            UpgradeRemovesToolchains => write!(f, "this upgrade will remove all existing toolchains. you will need to reinstall them"),
+            UpgradeRemovesToolchains => {
+                write!(f,
+                       "this upgrade will remove all existing toolchains. you will need to \
+                        reinstall them")
+            }
             MissingFileDuringSelfUninstall(ref p) => {
-                write!(f, "expected file does not exist to uninstall: {}", p.display())
+                write!(f,
+                       "expected file does not exist to uninstall: {}",
+                       p.display())
             }
             SetTelemetry(telemetry_status) => write!(f, "telemetry set to '{}'", telemetry_status),
             TelemetryCleanupError(e) => write!(f, "unable to remove old telemetry files: '{}'", e),
