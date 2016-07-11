@@ -176,24 +176,18 @@ fn download_file_(url: &Url,
 
     use sha2::Digest;
     use std::cell::RefCell;
-    use download::{self, download_with_backend, Event, Backend};
+    use download::download_to_path_with_backend;
+    use download::{self, Event, Backend};
 
     notify_handler(Notification::DownloadingFile(url, path));
 
-    let file = RefCell::new(try!(fs::File::create(&path).chain_err(
-        || "error creating file for download")));
     let hasher = RefCell::new(hasher);
 
     // This callback will write the download to disk and optionally
     // hash the contents, then forward the notification up the stack
     let callback: &Fn(Event) -> download::Result<()> = &|msg| {
-        use download::ChainErr;
-
         match msg {
             Event::DownloadDataReceived(data) => {
-                try!(ChainErr::chain_err(
-                    io::Write::write_all(&mut *file.borrow_mut(), data),
-                    || "unable to write download to disk"));
                 if let Some(ref mut h) = *hasher.borrow_mut() {
                     h.input(data);
                 }
@@ -214,18 +208,17 @@ fn download_file_(url: &Url,
     };
 
     // Download the file
-    if env::var_os("RUSTUP_USE_HYPER").is_some() {
-        notify_handler(Notification::UsingHyper);
-        try!(download_with_backend(url, Backend::Hyper, callback));
-    } else if env::var_os("RUSTUP_USE_RUSTLS").is_some() {
-        notify_handler(Notification::UsingRustls);
-         try!(download_with_backend(url, Backend::Rustls, callback));
+    let use_hyper_backend = env::var_os("RUSTUP_USE_HYPER").is_some();
+    let use_rustls_backend = env::var_os("RUSTUP_USE_RUSTLS").is_some();
+    let (backend, notification) = if use_hyper_backend {
+        (Backend::Hyper, Notification::UsingHyper)
+    } else if use_rustls_backend {
+        (Backend::Rustls, Notification::UsingRustls)
     } else {
-        notify_handler(Notification::UsingCurl);
-        try!(download_with_backend(url, Backend::Curl, callback));
-    }
-
-    try!(file.borrow_mut().sync_data().chain_err(|| "unable to sync download to disk"));
+        (Backend::Curl, Notification::UsingCurl)
+    };
+    notify_handler(notification);
+    try!(download_to_path_with_backend(backend, url, path, Some(callback)));
 
     notify_handler(Notification::DownloadFinished);
 

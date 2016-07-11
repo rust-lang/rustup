@@ -9,14 +9,15 @@ extern crate url;
 extern crate lazy_static;
 
 use url::Url;
+use std::path::Path;
 
 mod errors;
 pub use errors::*;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Backend { Curl, Hyper, Rustls }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Event<'a> {
     /// Received the Content-Length of the to-be downloaded data.
     DownloadContentLengthReceived(u64),
@@ -24,8 +25,43 @@ pub enum Event<'a> {
     DownloadDataReceived(&'a [u8]),
 }
 
-pub fn download_with_backend(url: &Url,
-                             backend: Backend,
+const BACKENDS: &'static [Backend] = &[
+    Backend::Curl,
+    Backend::Hyper,
+    Backend::Rustls
+];
+
+pub fn download(url: &Url,
+                callback: &Fn(Event) -> Result<()>)
+                -> Result<()> {
+    for &backend in BACKENDS {
+        match download_with_backend(backend, url, callback) {
+            Err(Error(ErrorKind::BackendUnavailable(_), _)) => (),
+            Err(e) => return Err(e),
+            Ok(()) => return Ok(()),
+        }
+    }
+
+    Err("no working backends".into())
+}
+
+pub fn download_to_path(url: &Url,
+                        path: &Path,
+                        callback: Option<&Fn(Event) -> Result<()>>)
+                        -> Result<()> {
+    for &backend in BACKENDS {
+        match download_to_path_with_backend(backend, url, path, callback) {
+            Err(Error(ErrorKind::BackendUnavailable(_), _)) => (),
+            Err(e) => return Err(e),
+            Ok(()) => return Ok(()),
+        }
+    }
+
+    Err("no working backends".into())
+}
+
+pub fn download_with_backend(backend: Backend,
+                             url: &Url,
                              callback: &Fn(Event) -> Result<()>)
                              -> Result<()> {
     match backend {
@@ -33,6 +69,46 @@ pub fn download_with_backend(url: &Url,
         Backend::Hyper => hyper::download(url, callback),
         Backend::Rustls => rustls::download(url, callback),
     }
+}
+
+pub fn download_to_path_with_backend(
+    backend: Backend,
+    url: &Url,
+    path: &Path,
+    callback: Option<&Fn(Event) -> Result<()>>)
+    -> Result<()>
+{
+    use std::cell::RefCell;
+    use std::fs::{self, File};
+    use std::io::Write;
+
+    || -> Result<()> {
+        let file = RefCell::new(try!(File::create(&path).chain_err(
+            || "error creating file for download")));
+
+        try!(download_with_backend(backend, url, &|event| {
+            if let Event::DownloadDataReceived(data) = event {
+                try!(file.borrow_mut().write_all(data)
+                     .chain_err(|| "unable to write download to disk"));
+            }
+            match callback {
+                Some(cb) => cb(event),
+                None => Ok(())
+            }
+        }));
+
+        try!(file.borrow_mut().sync_data()
+             .chain_err(|| "unable to sync download to disk"));
+
+        Ok(())
+    }().map_err(|e| {
+        if path.is_file() {
+            // FIXME ignoring compound errors
+            let _ = fs::remove_file(path);
+        }
+
+        e
+    })
 }
 
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
