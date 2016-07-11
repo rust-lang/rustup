@@ -17,9 +17,18 @@ license = "MIT OR Apache-2.0"
 
 build = "build.rs"
 
+[features]
+
+default = ["curl-backend", "hyper-backend"]
+
+curl-backend = ["download/curl-backend"]
+hyper-backend = ["download/hyper-backend"]
+rustls-backend = ["download/rustls-backend"]
+
 [dependencies]
 rustup-dist = { path = "src/rustup-dist", version = "0.2.0" }
 rustup-utils = { path = "src/rustup-utils", version = "0.2.0" }
+download = { path = "src/download" }
 error-chain = "0.2.1"
 clap = "2.2.4"
 regex = "0.1.41"
