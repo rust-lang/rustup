@@ -33,6 +33,5 @@ optional = true
 openssl-sys = { version = "0.7.11", optional = true }
 
 [dependencies.rustls]
-git = "https://github.com/brson/rustls.git"
-branch = "next"
+git = "https://github.com/ctz/rustls.git"
 optional = true
