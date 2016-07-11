@@ -392,10 +392,7 @@ impl Cfg {
     }
 
     pub fn set_telemetry(&self, telemetry_enabled: bool) -> Result<()> {
-        match telemetry_enabled {
-            true => self.enable_telemetry(),
-            false => self.disable_telemetry(),
-        }
+        if telemetry_enabled { self.enable_telemetry() } else { self.disable_telemetry() }
     }
 
     fn enable_telemetry(&self) -> Result<()> {

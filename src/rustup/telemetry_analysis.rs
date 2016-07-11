@@ -17,6 +17,7 @@ pub struct TelemetryAnalysis {
     rustc_error_statistics: RustcStatistics,
 }
 
+#[derive(Default)]
 pub struct RustcStatistics {
     rustc_execution_count: u32,
     compile_time_ms_total: u64,
@@ -32,26 +33,15 @@ pub struct RustcStatistics {
 
 impl RustcStatistics {
     pub fn new() -> RustcStatistics {
-        RustcStatistics {
-            rustc_execution_count: 0u32,
-            compile_time_ms_total: 0u64,
-            compile_time_ms_mean: 0u64,
-            compile_time_ms_ntile_75: 0u64,
-            compile_time_ms_ntile_90: 0u64,
-            compile_time_ms_ntile_95: 0u64,
-            compile_time_ms_ntile_99: 0u64,
-            compile_time_ms_stdev: 0f64,
-            exit_codes_with_count: HashMap::new(),
-            error_codes_with_counts: HashMap::new()
-        }
+        Default::default()
     }
 }
 
 impl fmt::Display for RustcStatistics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut errors: String = String::new();
-        
-        if self.error_codes_with_counts.len() > 0 {
+
+        if !self.error_codes_with_counts.is_empty() {
             errors = "  rustc errors\n".to_owned();
             for (error, count) in &self.error_codes_with_counts {
                 errors = errors + &format!("    '{}': {}\n", error, count);
@@ -60,7 +50,7 @@ impl fmt::Display for RustcStatistics {
 
         let mut exits: String = String::new();
 
-        if self.exit_codes_with_count.len() > 0 {
+        if !self.exit_codes_with_count.is_empty() {
             exits = "  rustc exit codes\n".to_owned();
 
             for (exit, count) in &self.exit_codes_with_count {
@@ -116,7 +106,7 @@ rustc error statistics
 
 impl TelemetryAnalysis {
     pub fn new(telemetry_dir: PathBuf) -> TelemetryAnalysis {
-        TelemetryAnalysis { 
+        TelemetryAnalysis {
             telemetry_dir: telemetry_dir,
             rustc_statistics: RustcStatistics::new(),
             rustc_success_statistics: RustcStatistics::new(),
@@ -170,26 +160,26 @@ impl TelemetryAnalysis {
         Ok(events)
     }
 
-    pub fn analyze_telemetry_events(&mut self, events: &Vec<TelemetryEvent>) -> Result<()> {
+    pub fn analyze_telemetry_events(&mut self, events: &[TelemetryEvent]) -> Result<()> {
         let mut rustc_durations = Vec::new();
         let mut rustc_exit_codes = Vec::new();
 
         let mut rustc_successful_durations = Vec::new();
-        
+
         let mut rustc_error_durations = Vec::new();
         let mut error_list: Vec<Vec<String>> = Vec::new();
         let mut error_codes_with_counts: HashMap<String, i32> = HashMap::new();
-        
+
         let mut toolchains = Vec::new();
         let mut toolchains_with_errors = Vec::new();
         let mut targets = Vec::new();
-        
+
         let mut updated_toolchains = Vec::new();
         let mut updated_toolchains_with_errors = Vec::new();
 
         for event in events {
-            match event {
-                &TelemetryEvent::RustcRun{ duration_ms, ref exit_code, ref errors } => {
+            match *event {
+                TelemetryEvent::RustcRun{ duration_ms, ref exit_code, ref errors } => {
                     self.rustc_statistics.rustc_execution_count += 1;
                     rustc_durations.push(duration_ms);
 
@@ -197,7 +187,7 @@ impl TelemetryAnalysis {
                     *exit_count += 1;
 
                     rustc_exit_codes.push(exit_code);
-                    
+
                     if errors.is_some() {
                         let errors = errors.clone().unwrap();
 
@@ -207,19 +197,19 @@ impl TelemetryAnalysis {
                         }
 
                         error_list.push(errors);
-                        rustc_error_durations.push(duration_ms);                        
+                        rustc_error_durations.push(duration_ms);
                     } else {
                         rustc_successful_durations.push(duration_ms);
                     }
                 },
-                &TelemetryEvent::TargetAdd{ ref toolchain, ref target, success } => {
+                TelemetryEvent::TargetAdd{ ref toolchain, ref target, success } => {
                     toolchains.push(toolchain.to_owned());
                     targets.push(target.to_owned());
                     if !success {
                         toolchains_with_errors.push(toolchain.to_owned());
                     }
                 },
-                &TelemetryEvent::ToolchainUpdate{ ref toolchain, success } => {
+                TelemetryEvent::ToolchainUpdate{ ref toolchain, success } => {
                     updated_toolchains.push(toolchain.to_owned());
                     if !success {
                         updated_toolchains_with_errors.push(toolchain.to_owned());
@@ -244,27 +234,27 @@ impl TelemetryAnalysis {
     }
 }
 
-pub fn compute_rustc_percentiles(values: &Vec<u64>) -> RustcStatistics {
+pub fn compute_rustc_percentiles(values: &[u64]) -> RustcStatistics {
     RustcStatistics {
         rustc_execution_count: (values.len() as u32),
         compile_time_ms_total: values.iter().fold(0, |sum, val| sum + val),
-        compile_time_ms_mean: mean(&values),
-        compile_time_ms_ntile_75: ntile(75, &values),
-        compile_time_ms_ntile_90: ntile(90, &values),
-        compile_time_ms_ntile_95: ntile(95, &values),
-        compile_time_ms_ntile_99: ntile(99, &values),
-        compile_time_ms_stdev: stdev(&values),
+        compile_time_ms_mean: mean(values),
+        compile_time_ms_ntile_75: ntile(75, values),
+        compile_time_ms_ntile_90: ntile(90, values),
+        compile_time_ms_ntile_95: ntile(95, values),
+        compile_time_ms_ntile_99: ntile(99, values),
+        compile_time_ms_stdev: stdev(values),
         exit_codes_with_count: HashMap::new(),
         error_codes_with_counts: HashMap::new()
     }
 }
 
-pub fn ntile(percentile: i32, values: &Vec<u64>) -> u64 {
-    if values.len() == 0 {
+pub fn ntile(percentile: i32, values: &[u64]) -> u64 {
+    if values.is_empty() {
         return 0u64;
     }
 
-    let mut values = values.clone();
+    let mut values = values.to_owned();
     values.sort();
 
     let count = values.len() as f32;
@@ -276,9 +266,9 @@ pub fn ntile(percentile: i32, values: &Vec<u64>) -> u64 {
     values[n]
 }
 
-pub fn mean(values: &Vec<u64>) -> u64 {
-    if values.len() == 0 {
-        return 0u64;
+pub fn mean(values: &[u64]) -> u64 {
+    if values.is_empty() {
+        return 0;
     }
 
     let count = values.len() as f64;
@@ -288,12 +278,12 @@ pub fn mean(values: &Vec<u64>) -> u64 {
     (sum / count) as u64
 }
 
-pub fn variance(values: &Vec<u64>) -> f64 {
-    if values.len() == 0 {
+pub fn variance(values: &[u64]) -> f64 {
+    if values.is_empty() {
         return 0f64;
     }
 
-    let mean = mean(&values);
+    let mean = mean(values);
 
     let mut deviations: Vec<i64> = Vec::new();
 
@@ -308,12 +298,12 @@ pub fn variance(values: &Vec<u64>) -> f64 {
     sum / (values.len() as f64)
 }
 
-pub fn stdev(values: &Vec<u64>) -> f64 {
-    if values.len() == 0 {
+pub fn stdev(values: &[u64]) -> f64 {
+    if values.is_empty() {
         return 0f64;
     }
 
-    let variance = variance(&values);
+    let variance = variance(values);
 
     variance.sqrt()
 }
