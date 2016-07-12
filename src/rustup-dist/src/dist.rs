@@ -518,7 +518,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
             }
         }
         Ok(None) => return Ok(None),
-        Err(Error(ErrorKind::Utils(::rustup_utils::ErrorKind::Download404 { .. }), _)) => {
+        Err(Error(ErrorKind::Utils(::rustup_utils::ErrorKind::DownloadNotExists { .. }), _)) => {
             // Proceed to try v1 as a fallback
             (download.notify_handler)(Notification::DownloadingLegacyManifest);
         }
@@ -528,7 +528,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
     // If the v2 manifest is not found then try v1
     let manifest = match dl_v1_manifest(download, toolchain) {
         Ok(m) => m,
-        Err(Error(ErrorKind::Utils(rustup_utils::ErrorKind::Download404 { .. }), _)) => {
+        Err(Error(ErrorKind::Utils(rustup_utils::ErrorKind::DownloadNotExists { .. }), _)) => {
             return Err(format!("no release found for '{}'", toolchain.manifest_name()).into());
         }
         Err(e @ Error(ErrorKind::ChecksumFailed { .. }, _)) => {
@@ -547,7 +547,7 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                                   download.notify_handler.clone()) {
         Ok(None) => Ok(None),
         Ok(Some(hash)) => Ok(Some(hash)),
-        e @ Err(Error(ErrorKind::Utils(rustup_utils::ErrorKind::Download404 { .. }), _)) => {
+        e @ Err(Error(ErrorKind::Utils(rustup_utils::ErrorKind::DownloadNotExists { .. }), _)) => {
             e.chain_err(|| {
                 format!("could not download nonexistent rust version `{}`",
                         toolchain_str)

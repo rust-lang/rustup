@@ -81,7 +81,7 @@ error_chain! {
             description("could not download file")
             display("could not download file from '{}' to '{}", url, path.display())
         }
-        Download404 {
+        DownloadNotExists {
             url: Url,
             path: PathBuf,
         } {
