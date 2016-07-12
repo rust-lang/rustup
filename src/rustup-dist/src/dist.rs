@@ -497,6 +497,33 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                             remove: &[Component])
                             -> Result<Option<String>> {
 
+    let fresh_install = !prefix.path().exists();
+
+    let res = update_from_dist_(download,
+                                update_hash,
+                                toolchain,
+                                prefix,
+                                add,
+                                remove);
+
+    // Don't leave behind an empty / broken installation directory
+    if res.is_err() && fresh_install {
+        // FIXME Ignoring cascading errors
+        let _ = utils::remove_dir("toolchain", prefix.path(),
+                                  &|n| (download.notify_handler)(n.into()));
+    }
+
+    res
+}
+
+pub fn update_from_dist_<'a>(download: DownloadCfg<'a>,
+                            update_hash: Option<&Path>,
+                            toolchain: &ToolchainDesc,
+                            prefix: &InstallPrefix,
+                            add: &[Component],
+                            remove: &[Component])
+                            -> Result<Option<String>> {
+
     let toolchain_str = toolchain.to_string();
     let manifestation = try!(Manifestation::open(prefix.clone(), toolchain.target.clone()));
 
