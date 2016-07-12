@@ -150,11 +150,13 @@ pub fn download_file(url: &Url,
         Err(e) => {
             let is404 = match e.kind() {
                 &ErrorKind::Download(DEK::HttpStatus(404)) => true,
+                // 403 is what static.rlo returns for bogus URLs as of 2016/07/11
+                &ErrorKind::Download(DEK::HttpStatus(403)) => true,
                 &ErrorKind::Download(DEK::FileNotFound) => true,
                 _ => false
             };
             Err(e).chain_err(|| if is404 {
-                ErrorKind::Download404 {
+                ErrorKind::DownloadNotExists {
                     url: url.clone(),
                     path: path.to_path_buf(),
                 }
