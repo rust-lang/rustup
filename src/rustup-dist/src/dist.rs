@@ -318,9 +318,12 @@ impl ToolchainDesc {
     }
 
     pub fn manifest_v1_url(&self, dist_root: &str) -> String {
-        match self.date {
-            None => format!("{}/channel-rust-{}", dist_root, self.channel),
-            Some(ref date) => format!("{}/{}/channel-rust-{}", dist_root, date, self.channel),
+        let do_manifest_staging = env::var("RUSTUP_STAGED_MANIFEST").is_ok();
+        match (self.date.as_ref(), do_manifest_staging) {
+            (None, false) => format!("{}/channel-rust-{}", dist_root, self.channel),
+            (Some(date), false) => format!("{}/{}/channel-rust-{}", dist_root, date, self.channel),
+            (None, true) => format!("{}/staging/channel-rust-{}", dist_root, self.channel),
+            (Some(_), true) => panic!("not a real-world case"),
         }
     }
 
