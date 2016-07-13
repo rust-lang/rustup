@@ -28,7 +28,7 @@ error-chain = "0.2.1"
 rustup-mock = { path = "../rustup-mock", version = "0.2.0" }
 
 [target."cfg(windows)".dependencies]
-winapi = "0.2.4"
+winapi = "0.2.8"
 winreg = "0.3.2"
 user32-sys = "0.1.2"
 kernel32-sys = "0.2.1"
@@ -40,5 +40,3 @@ libc = "0.2.0"
 [lib]
 name = "rustup_dist"
 
-[replace]
-"winapi:0.2.7" = { git = "https://github.com/sfackler/winapi-rs" }

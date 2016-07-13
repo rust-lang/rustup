@@ -46,7 +46,7 @@ markdown = { git="https://github.com/Diggsey/markdown.rs.git" }
 toml = "0.1.27"
 
 [target."cfg(windows)".dependencies]
-winapi = "0.2.4"
+winapi = "0.2.8"
 winreg = "0.3.2"
 user32-sys = "0.1.2"
 kernel32-sys = "0.2.1"
@@ -65,5 +65,3 @@ name = "rustup-init"
 path = "src/rustup-cli/main.rs"
 test = false # no unit tests
 
-[replace]
-"winapi:0.2.7" = { git = "https://github.com/sfackler/winapi-rs" }
