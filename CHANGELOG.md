@@ -1,3 +1,29 @@
+# 0.3.0
+
+* [Teach rustup to download manifests from the `/staging/` directory](https://github.com/rust-lang-nursery/rustup.rs/pull/579).
+* [Treat all HTTP client errors the same](https://github.com/rust-lang-nursery/rustup.rs/pull/578).
+* [Remove winapi replacement](https://github.com/rust-lang-nursery/rustup.rs/pull/577).
+* [Remove toolchain directory if initial toolchain install fails](https://github.com/rust-lang-nursery/rustup.rs/pull/574).
+* [Fallback to old download methods if server returns 403](https://github.com/rust-lang-nursery/rustup.rs/pull/573).
+* [Add preliminary rustls support](https://github.com/rust-lang-nursery/rustup.rs/pull/572).
+* [Add a hack to remediate checksum failure issues](https://github.com/rust-lang-nursery/rustup.rs/pull/562).
+* [Move error-chain out of tree](https://github.com/rust-lang-nursery/rustup.rs/pull/564).
+* [Remove uses of subcommand synonyms in the examples](https://github.com/rust-lang-nursery/rustup.rs/pull/560).
+* [Add `--yes` as alias for `-y`](https://github.com/rust-lang-nursery/rustup.rs/pull/563).
+* [Remove unavailable toolchains from `target list`](https://github.com/rust-lang-nursery/rustup.rs/pull/553).
+* [Add powerpc builds](https://github.com/rust-lang-nursery/rustup.rs/pull/534).
+* [Fix help text for `rustup update`](https://github.com/rust-lang-nursery/rustup.rs/pull/552).
+* [Remove noisy "rustup is up to date" message](https://github.com/rust-lang-nursery/rustup.rs/pull/550).
+* [Fix references to non-existent `.rustup` directory](https://github.com/rust-lang-nursery/rustup.rs/pull/545).
+* [When listing toolchains only list directories](https://github.com/rust-lang-nursery/rustup.rs/pull/544).
+* [rustup-init: remove dependency on `file` command](https://github.com/rust-lang-nursery/rustup.rs/pull/543).
+* [Link to rustup-init.sh in README](https://github.com/rust-lang-nursery/rustup.rs/pull/541).
+* [Improve docs for `set default-host`](https://github.com/rust-lang-nursery/rustup.rs/pull/540).
+
+Contributors: Alex Crichton, Brian Anderson, Drew Fisher, geemili,
+Ivan Petkov, James Lucas, jethrogb, Kevin Yap, leonardo.yvens, Michael
+DeWitt, Nate Mara, Virgile Andreani
+
 # 0.2.0
 
 * [Indicate correct path to remove in multirust upgrade instructions](https://github.com/rust-lang-nursery/rustup.rs/pull/518).
