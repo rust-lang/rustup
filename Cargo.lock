@@ -3,7 +3,7 @@ name = "rustup"
 version = "0.2.0"
 dependencies = [
  "clap 2.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "download 0.2.0",
+ "download 0.3.0",
  "error-chain 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.4.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -13,9 +13,9 @@ dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.73 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup-dist 0.2.0",
- "rustup-mock 0.2.0",
- "rustup-utils 0.2.0",
+ "rustup-dist 0.3.0",
+ "rustup-mock 0.3.0",
+ "rustup-utils 0.3.0",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -78,7 +78,7 @@ name = "backtrace-sys"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gcc 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -161,7 +161,7 @@ name = "curl-sys"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gcc 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-sys 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -179,7 +179,7 @@ dependencies = [
 
 [[package]]
 name = "download"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "curl 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -218,7 +218,7 @@ dependencies = [
 
 [[package]]
 name = "gcc"
-version = "0.3.28"
+version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -338,7 +338,7 @@ name = "libz-sys"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gcc 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -383,14 +383,14 @@ name = "miniz-sys"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gcc 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "native-tls"
 version = "0.1.0"
-source = "git+https://github.com/sfackler/rust-native-tls.git#efce706069da9333235c6b821070d98227b442e9"
+source = "git+https://github.com/sfackler/rust-native-tls.git#d49d9d964e2c18e4898424aa8afa0226f083ed79"
 dependencies = [
  "openssl 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-verify 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -421,7 +421,7 @@ version = "0.7.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gcc 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-sys 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -445,7 +445,7 @@ name = "openssl-sys-extras"
 version = "0.7.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gcc 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-sys 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -543,18 +543,18 @@ dependencies = [
 
 [[package]]
 name = "rustup-dist"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "error-chain 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gcc 0.3.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.4.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.73 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup-mock 0.2.0",
- "rustup-utils 0.2.0",
+ "rustup-mock 0.3.0",
+ "rustup-utils 0.3.0",
  "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -568,12 +568,12 @@ dependencies = [
 
 [[package]]
 name = "rustup-mock"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "flate2 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.4.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup-utils 0.2.0",
+ "rustup-utils 0.3.0",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -587,10 +587,10 @@ dependencies = [
 
 [[package]]
 name = "rustup-utils"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "advapi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "download 0.2.0",
+ "download 0.3.0",
  "error-chain 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -610,7 +610,7 @@ dependencies = [
 [[package]]
 name = "schannel"
 version = "0.0.2"
-source = "git+https://github.com/sfackler/schannel-rs?branch=rewrite#dea27222c4f7ffea41c9ccc963e5f9ec4e7da9f1"
+source = "git+https://github.com/sfackler/schannel-rs?branch=rewrite#0a7c50cc31229bb302c6175977b27d62b2b21fc0"
 dependencies = [
  "crypt32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
