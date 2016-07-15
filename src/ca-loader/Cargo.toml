@@ -1,0 +1,14 @@
+[package]
+name = "ca-loader"
+version = "0.1.0"
+authors = [ "Ivan Nejgebauer <inejge@gmail.com>" ]
+
+[dependencies]
+libc = "0.2"
+
+[target."cfg(windows)".dependencies]
+winapi = "0.2.8"
+crypt32-sys = "0.2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "0.1.5"
