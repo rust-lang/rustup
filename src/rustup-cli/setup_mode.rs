@@ -32,7 +32,6 @@ pub fn main() -> Result<()> {
         .arg(Arg::with_name("default-toolchain")
              .long("default-toolchain")
              .takes_value(true)
-             .possible_values(&["stable", "beta", "nightly"])
              .help("Choose a default toolchain to install"))
         .arg(Arg::with_name("no-modify-path")
              .long("no-modify-path")
