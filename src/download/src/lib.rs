@@ -7,6 +7,8 @@ extern crate url;
 #[cfg(feature = "rustls-backend")]
 #[macro_use]
 extern crate lazy_static;
+#[cfg(feature = "rustls-backend")]
+extern crate ca_loader;
 
 use url::Url;
 use std::path::Path;
@@ -394,6 +396,7 @@ pub mod rustls {
     }
 
     fn global_config() -> Arc<rustls::ClientConfig> {
+	use ca_loader::{CertBundle, CertItem};
         use std::fs::File;
         use std::io::BufReader;
 
@@ -403,19 +406,37 @@ pub mod rustls {
 
         fn init() -> Arc<rustls::ClientConfig> {
             let mut config = rustls::ClientConfig::new();
-            for cert in find_root_cert_paths() {
-                let certfile = File::open(cert).unwrap(); // FIXME
-                let mut reader = BufReader::new(certfile);
-                config.root_store.add_pem_file(&mut reader).unwrap(); // FIXME
-            }
+	    let bundle = CertBundle::new().expect("cannot initialize CA cert bundle");
+	    let mut added = 0;
+	    let mut invalid = 0;
+	    for cert in bundle {
+		let (c_added, c_invalid) = match cert {
+		    CertItem::Blob(blob) => match config.root_store.add(&blob) {
+			Ok(_) => (1, 0),
+			Err(_) => (0, 1)
+		    },
+		    CertItem::File(name) => {
+			if let Ok(cf) = File::open(name) {
+			    let mut reader = BufReader::new(cf);
+			    match config.root_store.add_pem_file(&mut reader) {
+				Ok(pair) => pair,
+				Err(_) => (0, 1)
+			    }
+			} else {
+			    (0, 1)
+			}
+		    }
+		};
+		added += c_added;
+		invalid += c_invalid;
+	    }
+	    if added == 0 {
+		panic!("no CA certs added, {} were invalid", invalid);
+	    }
             Arc::new(config)
         }
 
         CONFIG.clone()
-    }
-
-    fn find_root_cert_paths() -> Vec<String> {
-        panic!("FIXME: load root certs")
     }
 
     #[derive(Clone)]
