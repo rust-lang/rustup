@@ -109,6 +109,19 @@ info: downloading self-updates
 
 This is the essence of `rustup`.
 
+### Keeping rustup up to date
+
+Running `rustup update` also checks for updates to `rustup` and automatically
+installs the latest version. To manually check for updates and install the
+latest version of `rustup` without updating installed toolchains type `rustup
+self update`:
+
+```
+$ rustup self update
+info: checking for self-updates
+info: downloading self-updates
+```
+
 ## Working with nightly Rust
 
 Rustup gives you easy access to the nightly compiler and its
