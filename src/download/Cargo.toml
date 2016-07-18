@@ -33,7 +33,8 @@ optional = true
 openssl-sys = { version = "0.7.11", optional = true }
 
 [dependencies.rustls]
-git = "https://github.com/ctz/rustls.git"
+git = "https://github.com/inejge/rustls.git"
+branch = "new-wantsread"
 optional = true
 
 [dependencies.ca-loader]
