@@ -491,8 +491,18 @@ pub mod rustls {
                 .and_then(|mut t| {
                     let (ref mut stream, ref mut tls) = *t;
                     while tls.wants_read() {
-                        tls.read_tls(stream).unwrap(); // FIXME
-                        tls.process_new_packets().unwrap(); // FIXME
+                        match tls.read_tls(stream) {
+			    Ok(_) => {
+				match tls.process_new_packets() {
+				    Ok(_) => (),
+				    Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!("{:?}", e)))
+				}
+				while tls.wants_write() {
+				    try!(tls.write_tls(stream));
+				}
+			    },
+			    Err(e) => return Err(e),
+			}
                     }
 
                     tls.read(buf)
@@ -507,11 +517,9 @@ pub mod rustls {
             self.lock()
                 .and_then(|mut t| {
                     let (ref mut stream, ref mut tls) = *t;
-
                     let res = tls.write(buf);
-
                     while tls.wants_write() {
-                        tls.write_tls(stream).unwrap(); // FIXME
+                        try!(tls.write_tls(stream));
                     }
 
                     res
