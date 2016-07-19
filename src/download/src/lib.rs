@@ -559,30 +559,21 @@ pub mod hyper_base {
         use self::hyper::header::ContentLength;
         use self::hyper::net::{HttpsConnector};
 
-        // The Hyper HTTP client
-        let client;
-
         S::maybe_init_certs();
 
+        // The Hyper HTTP client
         let maybe_proxy = env_proxy::for_url(url);
-        if url.scheme() == "https" {
-            if maybe_proxy.is_none() {
-                // Connect with hyper + native_tls
-                client = Client::with_connector(HttpsConnector::new(S::new()));
-            } else {
-                let proxy_host_port = maybe_proxy.unwrap();
-                client = Client::with_proxy_config(ProxyConfig(proxy_host_port.0, proxy_host_port.1, S::new()));
-            }
-        } else if url.scheme() == "http" {
-            if maybe_proxy.is_none() {
-                client = Client::new();
-            } else {
-                let proxy_host_port = maybe_proxy.unwrap();
-                client = Client::with_http_proxy(proxy_host_port.0, proxy_host_port.1);
-            }
-        } else {
-            return Err(format!("unsupported URL scheme: '{}'", url.scheme()).into());
-        }
+        let client = match url.scheme() {
+            "https" => match maybe_proxy {
+                None => Client::with_connector(HttpsConnector::new(S::new())),
+                Some(host_port) => Client::with_proxy_config(ProxyConfig(host_port.0, host_port.1, S::new()))
+            },
+            "http" => match maybe_proxy {
+                None => Client::new(),
+                Some(host_port) => Client::with_http_proxy(host_port.0, host_port.1)
+            },
+            _ => return Err(format!("unsupported URL scheme: '{}'", url.scheme()).into())
+        };
 
         let mut res = try!(client.get(url.clone()).send()
                            .chain_err(|| "failed to make network request"));
