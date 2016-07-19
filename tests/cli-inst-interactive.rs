@@ -140,6 +140,18 @@ fn with_non_default_toolchain() {
 }
 
 #[test]
+fn with_non_release_channel_non_default_toolchain() {
+    setup(&|config| {
+        let out = run_input(config, &["rustup-init", "--default-toolchain=nightly-2015-01-02"],
+                            "\n\n");
+        assert!(out.ok);
+
+        expect_stdout_ok(config, &["rustup", "show"], "nightly");
+        expect_stdout_ok(config, &["rustup", "show"], "2015-01-02");
+    });
+}
+
+#[test]
 fn set_nightly_toolchain() {
     setup(&|config| {
         let out = run_input(config, &["rustup-init"],
