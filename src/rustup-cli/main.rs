@@ -32,10 +32,8 @@ extern crate libc;
 
 #[macro_use]
 mod log;
-mod cli;
 mod common;
 mod download_tracker;
-mod multirust_mode;
 mod proxy_mode;
 mod setup_mode;
 mod rustup_mode;
@@ -78,9 +76,6 @@ fn run_multirust() -> Result<()> {
         Some("rustup") => {
             rustup_mode::main()
         }
-        Some("multirust") => {
-            multirust_mode::main()
-        }
         Some(n) if n.starts_with("multirust-setup")||
                    n.starts_with("rustup-setup") ||
                    n.starts_with("rustup-init") => {
@@ -90,7 +85,7 @@ fn run_multirust() -> Result<()> {
             // to work.
             setup_mode::main()
         }
-        Some(n) if n.starts_with("multirust-gc-") => {
+        Some(n) if n.starts_with("rustup-gc-") => {
             // This is the final uninstallation stage on windows where
             // multirust deletes its own exe
             self_update::complete_windows_uninstall()
@@ -126,6 +121,7 @@ fn run_multirust() -> Result<()> {
 fn do_compatibility_hacks() {
     make_environment_compatible();
     fix_windows_reg_key();
+    delete_multirust_bin();
 }
 
 // Convert any MULTIRUST_ env vars to RUSTUP_ and warn about them
@@ -173,3 +169,17 @@ fn fix_windows_reg_key() {
 
 #[cfg(not(windows))]
 fn fix_windows_reg_key() { }
+
+// rustup used to be called 'multirust'. This deletes the old bin.
+fn delete_multirust_bin() {
+    use rustup_utils::utils;
+    use std::env::consts::EXE_SUFFIX;
+    use std::fs;
+
+    if let Ok(home) = utils::cargo_home() {
+        let legacy_bin = home.join(format!("bin/multirust{}", EXE_SUFFIX));
+        if legacy_bin.exists() {
+            let _ = fs::remove_file(legacy_bin);
+        }
+    }
+}

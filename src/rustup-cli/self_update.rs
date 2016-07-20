@@ -1,31 +1,31 @@
 //! Self-installation and updating
 //!
 //! This is the installer at the heart of Rust. If it breaks
-//! everything breaks. It is conceptually very simple, as multirust is
+//! everything breaks. It is conceptually very simple, as rustup is
 //! distributed as a single binary, and installation mostly requires
 //! copying it into place. There are some tricky bits though, mostly
 //! because of workarounds to self-delete an exe on Windows.
 //!
-//! During install (as `multirust-setup`):
+//! During install (as `rustup-init`):
 //!
 //! * copy the self exe to $CARGO_HOME/bin
 //! * hardlink rustc, etc to *that*
 //! * update the PATH in a system-specific way
-//! * run the equivalent of `multirust default stable`
+//! * run the equivalent of `rustup default stable`
 //!
-//! During upgrade (`multirust self upgrade`):
+//! During upgrade (`rustup self upgrade`):
 //!
-//! * download multirust-setup to $CARGO_HOME/bin/multirust-setup
-//! * run multirust-setup with appropriate flags to indicate
+//! * download rustup-init to $CARGO_HOME/bin/rustup-init
+//! * run rustu-init with appropriate flags to indicate
 //!   this is a self-upgrade
-//! * multirust-setup copies bins and hardlinks into place. On windows
+//! * rustup-init copies bins and hardlinks into place. On windows
 //!   this happens *after* the upgrade command exits successfully.
 //!
-//! During uninstall (`multirust self uninstall`):
+//! During uninstall (`rustup self uninstall`):
 //!
 //! * Delete `$RUSTUP_HOME`.
 //! * Delete everything in `$CARGO_HOME`, including
-//!   the multirust binary and its hardlinks
+//!   the rustup binary and its hardlinks
 //!
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
@@ -164,7 +164,7 @@ This will uninstall all Rust toolchains and data, and remove
 }
 
 static TOOLS: &'static [&'static str]
-    = &["rustup", "rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
+    = &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
 
 static UPDATE_ROOT: &'static str
     = "https://static.rust-lang.org/rustup/dist";
@@ -424,14 +424,14 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
     Ok(opts)
 }
 
-// Before multirust-rs installed bins to $CARGO_HOME/bin it installed
+// Before rustup-rs installed bins to $CARGO_HOME/bin it installed
 // them to $RUSTUP_HOME/bin. If those bins continue to exist after
 // upgrade and are on the $PATH, it would cause major confusion. This
 // method silently deletes them.
 fn cleanup_legacy() -> Result<()> {
     let legacy_bin_dir = try!(legacy_multirust_home_dir()).join("bin");
 
-    for tool in TOOLS.iter().cloned().chain(Some("multirust")) {
+    for tool in TOOLS.iter().cloned().chain(vec!["multirust", "rustup"]) {
         let ref file = legacy_bin_dir.join(&format!("{}{}", tool, EXE_SUFFIX));
         if file.exists() {
             try!(utils::remove_file("legacy-bin", file));
@@ -451,6 +451,7 @@ fn cleanup_legacy() -> Result<()> {
             get_special_folder, FOLDERID_LocalAppData
         };
 
+        // FIXME: This looks bogus. Where is the .multirust dir?
         Ok(get_special_folder(&FOLDERID_LocalAppData).unwrap_or(PathBuf::from(".")))
     }
 }
@@ -458,22 +459,22 @@ fn cleanup_legacy() -> Result<()> {
 fn install_bins() -> Result<()> {
     let ref bin_path = try!(utils::cargo_home()).join("bin");
     let ref this_exe_path = try!(utils::current_exe());
-    let ref multirust_path = bin_path.join(&format!("multirust{}", EXE_SUFFIX));
+    let ref rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
 
     try!(utils::ensure_dir_exists("bin", bin_path, &|_| {}));
     // NB: Even on Linux we can't just copy the new binary over the (running)
     // old binary; we must unlink it first.
-    if multirust_path.exists() {
-        try!(utils::remove_file("multirust-bin", multirust_path));
+    if rustup_path.exists() {
+        try!(utils::remove_file("rustup-bin", rustup_path));
     }
-    try!(utils::copy_file(this_exe_path, multirust_path));
-    try!(utils::make_executable(multirust_path));
+    try!(utils::copy_file(this_exe_path, rustup_path));
+    try!(utils::make_executable(rustup_path));
 
-    // Hardlink all the Rust exes to the multirust exe. Using hardlinks
+    // Hardlink all the Rust exes to the rustup exe. Using hardlinks
     // because they work on Windows.
     for tool in TOOLS {
         let ref tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
-        try!(utils::hardlink_file(multirust_path, tool_path))
+        try!(utils::hardlink_file(rustup_path, tool_path))
     }
 
     Ok(())
@@ -505,7 +506,7 @@ fn maybe_install_rust(toolchain_str: &str, default_host_triple: &str, verbose: b
 pub fn uninstall(no_prompt: bool) -> Result<()> {
     let ref cargo_home = try!(utils::cargo_home());
 
-    if !cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX)).exists() {
+    if !cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX)).exists() {
         return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
     }
 
@@ -520,12 +521,12 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         }
     }
 
-    info!("removing multirust home");
+    info!("removing rustup home");
 
     // Delete RUSTUP_HOME
-    let ref multirust_dir = try!(utils::multirust_home());
-    if multirust_dir.exists() {
-        try!(utils::remove_dir("multirust_home", multirust_dir, &|_| {}));
+    let ref rustup_dir = try!(utils::multirust_home());
+    if rustup_dir.exists() {
+        try!(utils::remove_dir("rustup_home", rustup_dir, &|_| {}));
     }
 
     let read_dir_err = "failure reading directory";
@@ -536,7 +537,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     let ref remove_path_methods = try!(get_remove_path_methods());
     try!(do_remove_from_path(remove_path_methods));
 
-    // Delete everything in CARGO_HOME *except* the multirust bin
+    // Delete everything in CARGO_HOME *except* the rustup bin
 
     // First everything except the bin directory
     for dirent in try!(fs::read_dir(cargo_home).chain_err(|| read_dir_err)) {
@@ -550,10 +551,10 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         }
     }
 
-    // Then everything in bin except multirust and tools. These can't be unlinked
+    // Then everything in bin except rustup and tools. These can't be unlinked
     // until this process exits (on windows).
     let tools = TOOLS.iter().map(|t| format!("{}{}", t, EXE_SUFFIX));
-    let tools: Vec<_> = tools.chain(vec![format!("multirust{}", EXE_SUFFIX)]).collect();
+    let tools: Vec<_> = tools.chain(vec![format!("rustup{}", EXE_SUFFIX)]).collect();
     for dirent in try!(fs::read_dir(&cargo_home.join("bin")).chain_err(|| read_dir_err)) {
         let dirent = try!(dirent.chain_err(|| read_dir_err));
         let name = dirent.file_name();
@@ -567,20 +568,20 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         }
     }
 
-    info!("removing multirust binaries");
+    info!("removing rustup binaries");
 
-    // Delete multirust. This is tricky because this is *probably*
+    // Delete rustup. This is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
-    try!(delete_multirust_and_cargo_home());
+    try!(delete_rustup_and_cargo_home());
 
-    info!("multirust is uninstalled");
+    info!("rustup is uninstalled");
 
     process::exit(0);
 }
 
 #[cfg(unix)]
-fn delete_multirust_and_cargo_home() -> Result<()> {
+fn delete_rustup_and_cargo_home() -> Result<()> {
     let ref cargo_home = try!(utils::cargo_home());
     try!(utils::remove_dir("cargo_home", cargo_home, &|_| ()));
 
@@ -588,20 +589,20 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
 }
 
 // The last step of uninstallation is to delete *this binary*,
-// multirust.exe and the CARGO_HOME that contains it. On Unix, this
+// rustup.exe and the CARGO_HOME that contains it. On Unix, this
 // works fine. On Windows you can't delete files while they are open,
 // like when they are running.
 //
 // Here's what we're going to do:
-// - Copy multirust to a temporary file in
-//   CARGO_HOME/../multirust-gc-$random.exe.
+// - Copy rustup to a temporary file in
+//   CARGO_HOME/../rustup-gc-$random.exe.
 // - Open the gc exe with the FILE_FLAG_DELETE_ON_CLOSE and
 //   FILE_SHARE_DELETE flags. This is going to be the last
 //   file to remove, and the OS is going to do it for us.
 //   This file is opened as inheritable so that subsequent
 //   processes created with the option to inherit handles
 //   will also keep them open.
-// - Run the gc exe, which waits for the original multirust
+// - Run the gc exe, which waits for the original rustup
 //   process to close, then deletes CARGO_HOME. This process
 //   has inherited a FILE_FLAG_DELETE_ON_CLOSE handle to itself.
 // - Finally, spawn yet another system binary with the inherit handles
@@ -618,14 +619,14 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
 // .. augmented with this SO answer
 // http://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 #[cfg(windows)]
-fn delete_multirust_and_cargo_home() -> Result<()> {
+fn delete_rustup_and_cargo_home() -> Result<()> {
     use rand;
     use scopeguard;
 
-    // CARGO_HOME, hopefully empty except for bin/multirust.exe
+    // CARGO_HOME, hopefully empty except for bin/rustup.exe
     let ref cargo_home = try!(utils::cargo_home());
-    // The multirust.exe bin
-    let ref multirust_path = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
+    // The rustup.exe bin
+    let ref rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
 
     // The directory containing CARGO_HOME
     let work_path = cargo_home.parent().expect("CARGO_HOME doesn't have a parent?");
@@ -633,7 +634,7 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
     // Generate a unique name for the files we're about to move out
     // of CARGO_HOME.
     let numbah: u32 = rand::random();
-    let gc_exe = work_path.join(&format!("multirust-gc-{:x}.exe", numbah));
+    let gc_exe = work_path.join(&format!("rustup-gc-{:x}.exe", numbah));
 
     use winapi::{FILE_SHARE_DELETE, FILE_SHARE_READ,
                  INVALID_HANDLE_VALUE, FILE_FLAG_DELETE_ON_CLOSE,
@@ -646,8 +647,8 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
     use std::mem;
 
     unsafe {
-        // Copy multirust (probably this process's exe) to the gc exe
-        try!(utils::copy_file(multirust_path, &gc_exe));
+        // Copy rustup (probably this process's exe) to the gc exe
+        try!(utils::copy_file(rustup_path, &gc_exe));
 
         let mut gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().collect();
         gc_exe_win.push(0);
@@ -687,7 +688,7 @@ fn delete_multirust_and_cargo_home() -> Result<()> {
     Ok(())
 }
 
-/// Run by multirust-gc-$num.exe to delete CARGO_HOME
+/// Run by rustup-gc-$num.exe to delete CARGO_HOME
 #[cfg(windows)]
 pub fn complete_windows_uninstall() -> Result<()> {
     use std::ffi::OsStr;
@@ -1035,21 +1036,21 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     Ok(())
 }
 
-/// Self update downloads multirust-setup to CARGO_HOME/bin/multirust-setup
+/// Self update downloads rustup-init to CARGO_HOME/bin/rustup-init
 /// and runs it.
 ///
 /// It does a few things to accomodate self-delete problems on windows:
 ///
-/// multirust-setup is run in two stages, first with `--self-upgrade`,
+/// rustup-init is run in two stages, first with `--self-upgrade`,
 /// which displays update messages and asks for confirmations, etc;
-/// then with `--self-replace`, which replaces the multirust binary and
+/// then with `--self-replace`, which replaces the rustup binary and
 /// hardlinks. The last step is done without waiting for confirmation
 /// on windows so that the running exe can be deleted.
 ///
-/// Because it's again difficult for multirust-setup to delete itself
+/// Because it's again difficult for rustup-init to delete itself
 /// (and on windows this process will not be running to do it),
-/// multirust-setup is stored in CARGO_HOME/bin, and then deleted next
-/// time multirust runs.
+/// rustup-init is stored in CARGO_HOME/bin, and then deleted next
+/// time rustup runs.
 pub fn update() -> Result<()> {
 
     let setup_path = try!(prepare_update());
@@ -1063,10 +1064,10 @@ pub fn update() -> Result<()> {
 
 pub fn prepare_update() -> Result<Option<PathBuf>> {
     let ref cargo_home = try!(utils::cargo_home());
-    let ref multirust_path = cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX));
+    let ref rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
     let ref setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
-    if !multirust_path.exists() {
+    if !rustup_path.exists() {
         return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
     }
 
@@ -1080,7 +1081,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let update_root = env::var("RUSTUP_UPDATE_ROOT")
         .unwrap_or(String::from(UPDATE_ROOT));
 
-    let tempdir = try!(TempDir::new("multirust-update")
+    let tempdir = try!(TempDir::new("rustup-update")
         .chain_err(|| "error creating temp directory"));
 
     // Get download URL
@@ -1088,7 +1089,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Calculate own hash
     let mut hasher = Sha256::new();
-    let mut self_exe = try!(File::open(multirust_path)
+    let mut self_exe = try!(File::open(rustup_path)
                         .chain_err(|| "can't open self exe to calculate hash"));
     let ref mut buf = [0; 4096];
     loop {
@@ -1137,7 +1138,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     Ok(Some(setup_path.to_owned()))
 }
 
-/// Tell the upgrader to replace the multirust bins, then delete
+/// Tell the upgrader to replace the rustup bins, then delete
 /// itself. Like with uninstallation, on Windows we're going to
 /// have to jump through hoops to make everything work right.
 ///
@@ -1152,7 +1153,7 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
         .status().chain_err(|| "unable to run updater"));
 
     if !status.success() {
-        return Err("self-updated failed to replace multirust executable".into());
+        return Err("self-updated failed to replace rustup executable".into());
     }
 
     process::exit(0);
@@ -1168,9 +1169,9 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
 }
 
 /// This function is as the final step of a self-upgrade. It replaces
-/// CARGO_HOME/bin/multirust with the running exe, and updates the the
+/// CARGO_HOME/bin/rustup with the running exe, and updates the the
 /// links to it. On windows this will run *after* the original
-/// multirust process exits.
+/// rustup process exits.
 #[cfg(unix)]
 pub fn self_replace() -> Result<()> {
     try!(install_bins());
