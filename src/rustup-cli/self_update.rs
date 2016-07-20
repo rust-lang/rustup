@@ -50,6 +50,11 @@ pub struct InstallOpts {
     pub no_modify_path: bool,
 }
 
+#[cfg(feature = "no-self-update")]
+pub const NEVER_SELF_UPDATE: bool = true;
+#[cfg(not(feature = "no-self-update"))]
+pub const NEVER_SELF_UPDATE: bool = false;
+
 // The big installation messages. These are macros because the first
 // argument of format! needs to be a literal.
 
@@ -503,6 +508,11 @@ fn maybe_install_rust(toolchain_str: &str, default_host_triple: &str, verbose: b
 }
 
 pub fn uninstall(no_prompt: bool) -> Result<()> {
+    if NEVER_SELF_UPDATE {
+        err!("self-uninstall is disabled for this build of rustup");
+        err!("you should probably use your system package manager to uninstall rustup");
+        process::exit(1);
+    }
     let ref cargo_home = try!(utils::cargo_home());
 
     if !cargo_home.join(&format!("bin/multirust{}", EXE_SUFFIX)).exists() {
@@ -1051,7 +1061,11 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 /// multirust-setup is stored in CARGO_HOME/bin, and then deleted next
 /// time multirust runs.
 pub fn update() -> Result<()> {
-
+    if NEVER_SELF_UPDATE {
+        err!("self-update is disabled for this build of rustup");
+        err!("you should probably use your system package manager to update rustup");
+        process::exit(1);
+    }
     let setup_path = try!(prepare_update());
     if let Some(ref p) = setup_path {
         info!("rustup updated successfully");

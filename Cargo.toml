@@ -25,6 +25,9 @@ curl-backend = ["download/curl-backend"]
 hyper-backend = ["download/hyper-backend"]
 rustls-backend = ["download/rustls-backend"]
 
+# Include in the default set to disable self-update and uninstall.
+no-self-update = []
+
 [dependencies]
 rustup-dist = { path = "src/rustup-dist", version = "0.3.0" }
 rustup-utils = { path = "src/rustup-utils", version = "0.3.0" }
