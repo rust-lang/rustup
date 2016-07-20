@@ -18,7 +18,7 @@ use scopeguard;
 
 /// The configuration used by the tests in this module
 pub struct Config {
-    /// Where we put the multirust / rustc / cargo bins
+    /// Where we put the rustup / rustc / cargo bins
     pub exedir: PathBuf,
     /// The distribution server
     pub distdir: PathBuf,
@@ -53,7 +53,7 @@ pub static CROSS_ARCH2: &'static str = "arm-linux-androideabi";
 // that when we're testing on that host we can't test 'multi-host'.
 pub static MULTI_ARCH1: &'static str = "i686-unknown-linux-gnu";
 
-/// Run this to create the test environment containing multirust, and
+/// Run this to create the test environment containing rustup, and
 /// a mock dist server.
 pub fn setup(s: Scenario, f: &Fn(&Config)) {
     // Unset env variables that will break our testing
@@ -88,7 +88,6 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
 
     let ref rustup_path = config.exedir.join(format!("rustup{}", EXE_SUFFIX));
     let setup_path = config.exedir.join(format!("rustup-init{}", EXE_SUFFIX));
-    let multirust_setup_path = config.exedir.join(format!("multirust-setup{}", EXE_SUFFIX));
     let rustc_path = config.exedir.join(format!("rustc{}", EXE_SUFFIX));
     let cargo_path = config.exedir.join(format!("cargo{}", EXE_SUFFIX));
 
@@ -109,7 +108,6 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     }
     copy_binary(&build_path, &rustup_path).unwrap();
     fs::hard_link(rustup_path, setup_path).unwrap();
-    fs::hard_link(rustup_path, multirust_setup_path).unwrap();
     fs::hard_link(rustup_path, rustc_path).unwrap();
     fs::hard_link(rustup_path, cargo_path).unwrap();
 
@@ -515,7 +513,7 @@ fn build_combined_installer(components: &[&MockInstallerBuilder]) -> MockInstall
 
 /// This is going to run the compiler to create an executable that
 /// prints some version information. These binaries are stuffed into
-/// the mock installers so we have executables for multirust to run.
+/// the mock installers so we have executables for rustup to run.
 ///
 /// This does a really crazy thing. Because we need to generate a lot
 /// of these, and running rustc is slow, it does it once, stuffs the
@@ -539,7 +537,7 @@ fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Vec<u8> {
 
     fn make_mock_bin_template() -> Vec<u8> {
         // Create a temp directory to hold the source and the output
-        let ref tempdir = TempDir::new("multirust").unwrap();
+        let ref tempdir = TempDir::new("rustup").unwrap();
         let ref source_path = tempdir.path().join("in.rs");
         let ref dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
 

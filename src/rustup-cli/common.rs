@@ -241,44 +241,6 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
     }
 }
 
-pub fn show_tool_versions(toolchain: &Toolchain) -> Result<()> {
-    if toolchain.exists() {
-        let rustc_path = toolchain.binary_file("rustc");
-        let cargo_path = toolchain.binary_file("cargo");
-
-        if utils::is_file(&rustc_path) {
-            let mut cmd = Command::new(&rustc_path);
-            cmd.arg("--version");
-            toolchain.set_ldpath(&mut cmd);
-
-            if utils::cmd_status("rustc", &mut cmd).is_err() {
-                println!("(failed to run rustc)");
-            }
-        } else {
-            println!("(no rustc command in toolchain?)");
-        }
-        if utils::is_file(&cargo_path) {
-            let mut cmd = Command::new(&cargo_path);
-            cmd.arg("--version");
-            // cargo invokes rustc during --version, this
-            // makes sure it can find it since it may not
-            // be on the `PATH` and multirust does not
-            // manipulate `PATH`.
-            cmd.env("RUSTC", rustc_path);
-            toolchain.set_ldpath(&mut cmd);
-
-            if utils::cmd_status("cargo", &mut cmd).is_err() {
-                println!("(failed to run cargo)");
-            }
-        } else {
-            println!("(no cargo command in toolchain?)");
-        }
-    } else {
-        println!("(toolchain not installed)");
-    }
-    Ok(())
-}
-
 pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
     for component in try!(toolchain.list_components()) {
         if component.component.pkg == "rust-std" {

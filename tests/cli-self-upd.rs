@@ -59,10 +59,10 @@ pub fn update_setup(f: &Fn(&Config, &Path)) {
         let ref dist_dir = self_dist.join(&format!("{}", trip));
         let ref dist_exe = dist_dir.join(&format!("rustup-init{}", EXE_SUFFIX));
         let ref dist_hash = dist_dir.join(&format!("rustup-init{}.sha256", EXE_SUFFIX));
-        let ref multirust_bin = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
+        let ref rustup_bin = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
 
         fs::create_dir_all(dist_dir).unwrap();
-        fs::copy(multirust_bin, dist_exe).unwrap();
+        fs::copy(rustup_bin, dist_exe).unwrap();
         // Modify the exe so it hashes different
         raw::append_file(dist_exe, "").unwrap();
         create_hash(dist_exe, dist_hash);
@@ -78,13 +78,13 @@ pub fn update_setup(f: &Fn(&Config, &Path)) {
 fn install_bins_to_cargo_home() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
         let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
         let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
         let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
-        assert!(multirust.exists());
+        assert!(rustup.exists());
         assert!(rustc.exists());
         assert!(rustdoc.exists());
         assert!(cargo.exists());
@@ -98,8 +98,8 @@ fn install_twice() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup-init", "-y"]);
-        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
-        assert!(multirust.exists());
+        let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
+        assert!(rustup.exists());
     });
 }
 
@@ -108,13 +108,13 @@ fn install_twice() {
 fn bins_are_executable() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        let ref multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let ref rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         let ref rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
         let ref rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
         let ref cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
         let ref rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let ref rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
-        assert!(is_exe(multirust));
+        assert!(is_exe(rustup));
         assert!(is_exe(rustc));
         assert!(is_exe(rustdoc));
         assert!(is_exe(cargo));
@@ -145,13 +145,13 @@ fn uninstall_deletes_bins() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
         let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
         let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
         let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
-        assert!(!multirust.exists());
+        assert!(!rustup.exists());
         assert!(!rustc.exists());
         assert!(!rustdoc.exists());
         assert!(!cargo.exists());
@@ -164,7 +164,7 @@ fn uninstall_deletes_bins() {
 fn uninstall_works_if_some_bins_dont_exist() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
         let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
         let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
@@ -176,7 +176,7 @@ fn uninstall_works_if_some_bins_dont_exist() {
 
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
-        assert!(!multirust.exists());
+        assert!(!rustup.exists());
         assert!(!rustc.exists());
         assert!(!rustdoc.exists());
         assert!(!cargo.exists());
@@ -186,7 +186,7 @@ fn uninstall_works_if_some_bins_dont_exist() {
 }
 
 #[test]
-fn uninstall_deletes_multirust_home() {
+fn uninstall_deletes_rustup_home() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup", "default", "nightly"]);
@@ -196,7 +196,7 @@ fn uninstall_deletes_multirust_home() {
 }
 
 #[test]
-fn uninstall_works_if_multirust_home_doesnt_exist() {
+fn uninstall_works_if_rustup_home_doesnt_exist() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
         raw::remove_dir(&config.rustupdir).unwrap();
@@ -217,22 +217,22 @@ fn uninstall_deletes_cargo_home() {
 fn uninstall_fails_if_not_installed() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
-        fs::remove_file(&multirust).unwrap();
+        let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
+        fs::remove_file(&rustup).unwrap();
         expect_err(config, &["rustup", "self", "uninstall", "-y"],
                    "rustup is not installed");
     });
 }
 
-// The other tests here just run multirust from a temp directory. This
+// The other tests here just run rustup from a temp directory. This
 // does the uninstall by actually invoking the installed binary in
 // order to test that it can successfully delete itself.
 #[test]
 fn uninstall_self_delete_works() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
-        let mut cmd = Command::new(multirust.clone());
+        let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
+        let mut cmd = Command::new(rustup.clone());
         cmd.args(&["self", "uninstall", "-y"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
@@ -240,7 +240,7 @@ fn uninstall_self_delete_works() {
         println!("err: {}", String::from_utf8(out.stderr).unwrap());
 
         assert!(out.status.success());
-        assert!(!multirust.exists());
+        assert!(!rustup.exists());
         assert!(!config.cargodir.exists());
 
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
@@ -256,7 +256,7 @@ fn uninstall_self_delete_works() {
     });
 }
 
-// On windows multirust self uninstall temporarily puts a multirust-gc-$randomnumber.exe
+// On windows rustup self uninstall temporarily puts a rustup-gc-$randomnumber.exe
 // file in CONFIG.CARGODIR/.. ; check that it doesn't exist.
 #[test]
 fn uninstall_doesnt_leave_gc_file() {
@@ -491,8 +491,8 @@ fn update_but_delete_existing_updater_first() {
         raw::write_file(setup, "").unwrap();
         expect_ok(config, &["rustup", "self", "update"]);
 
-        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
-        assert!(multirust.exists());
+        let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
+        assert!(rustup.exists());
     });
 }
 
@@ -596,15 +596,15 @@ fn update_bogus_version() {
     });
 }
 
-// Check that multirust.exe has changed after the update. This
+// Check that rustup.exe has changed after the update. This
 // is hard for windows because the running process needs to exit
 // before the new updater can delete it.
 #[test]
-fn update_updates_multirust_bin() {
+fn update_updates_rustup_bin() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
 
-        let ref bin = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let ref bin = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         let before_hash = calc_hash(bin);
 
         // Running the self update command on the installed binary,
@@ -630,7 +630,7 @@ fn rustup_self_updates() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
 
-        let ref bin = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
+        let ref bin = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         let before_hash = calc_hash(bin);
 
         expect_ok(config, &["rustup", "update"]);
@@ -660,7 +660,7 @@ info: downloading self-update
 
 // Because self-delete on windows is hard, rustup-init doesn't
 // do it. It instead leaves itself installed for cleanup by later
-// invocations of multirust.
+// invocations of rustup.
 #[test]
 fn updater_leaves_itself_for_later_deletion() {
     update_setup(&|config, _| {
@@ -674,7 +674,7 @@ fn updater_leaves_itself_for_later_deletion() {
 }
 
 #[test]
-fn updater_is_deleted_after_running_multirust() {
+fn updater_is_deleted_after_running_rustup() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup", "update", "nightly"]);
@@ -702,7 +702,7 @@ fn updater_is_deleted_after_running_rustc() {
 }
 
 #[test]
-fn multirust_still_works_after_update() {
+fn rustup_still_works_after_update() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup", "default", "nightly"]);
@@ -714,8 +714,8 @@ fn multirust_still_works_after_update() {
 }
 
 // There's a race condition between the updater replacing
-// the multirust binary and tool hardlinks and subsequent
-// invocations of multirust and rustc (on windows).
+// the rustup binary and tool hardlinks and subsequent
+// invocations of rustup and rustc (on windows).
 #[test]
 #[ignore]
 fn update_stress_test() {
@@ -875,12 +875,10 @@ fn legacy_upgrade_installs_to_correct_location() {
         cmd.env("CARGO_HOME", format!("{}", fake_cargo.display()));
         assert!(cmd.output().unwrap().status.success());
 
-        let multirust = config.homedir.join(&format!(".cargo/bin/multirust{}", EXE_SUFFIX));
-        assert!(multirust.exists());
+        let rustup = config.homedir.join(&format!(".cargo/bin/rustup{}", EXE_SUFFIX));
+        assert!(rustup.exists());
     });
 }
-
-
 
 #[test]
 fn readline_no_stdin() {
@@ -891,7 +889,7 @@ fn readline_no_stdin() {
 }
 
 #[test]
-fn multirust_setup_works_with_weird_names() {
+fn rustup_init_works_with_weird_names() {
     // Browsers often rename bins to e.g. rustup-init(2).exe.
 
     setup(&|config| {
@@ -901,8 +899,8 @@ fn multirust_setup_works_with_weird_names() {
             &format!("rustup-init(2){}", EXE_SUFFIX));
         fs::rename(old, new).unwrap();
         expect_ok(config, &["rustup-init(2)", "-y"]);
-        let multirust = config.cargodir.join(&format!("bin/multirust{}", EXE_SUFFIX));
-        assert!(multirust.exists());
+        let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
+        assert!(rustup.exists());
     });
 }
 
@@ -1058,7 +1056,7 @@ fn uninstall_doesnt_mess_with_a_non_unicode_path() {
 
 #[test]
 #[ignore] // untestable
-fn install_but_multirust_is_installed() {
+fn install_but_rustup_is_installed() {
 }
 
 #[test]
@@ -1079,7 +1077,7 @@ fn install_but_rustup_sh_is_installed() {
 }
 
 #[test]
-fn install_but_multirust_metadata() {
+fn install_but_rustup_metadata() {
     setup(&|config| {
         let multirust_dir = config.homedir.join(".multirust");
         fs::create_dir_all(&multirust_dir).unwrap();
@@ -1087,5 +1085,23 @@ fn install_but_multirust_metadata() {
         raw::write_file(&version_file, "2").unwrap();
         expect_err(config, &["rustup-init", "-y"],
                    "cannot install while multirust is installed");
+    });
+}
+
+#[test]
+fn legacy_upgrade_removes_multirust_bin() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+        assert!(cmd.output().unwrap().status.success());
+
+        let rustup_bin = config.cargodir.join(format!("bin/rustup{}", EXE_SUFFIX));
+        let multirust_bin = config.cargodir.join(format!("bin/multirust{}", EXE_SUFFIX));
+        fs::copy(&rustup_bin, &multirust_bin).unwrap();
+        assert!(multirust_bin.exists());
+
+        let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+        assert!(cmd.output().unwrap().status.success());
+
+        assert!(!multirust_bin.exists());
     });
 }
