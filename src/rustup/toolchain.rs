@@ -311,8 +311,15 @@ impl<'a> Toolchain<'a> {
     pub fn set_ldpath(&self, cmd: &mut Command) {
         let new_path = self.path.join("lib");
 
-        env_var::prepend_path("LD_LIBRARY_PATH", &new_path, cmd);
-        env_var::prepend_path("DYLD_LIBRARY_PATH", &new_path, cmd);
+	#[cfg(not(target_os = "macos"))]
+	mod sysenv {
+	    pub const LOADER_PATH: &'static str = "LD_LIBRARY_PATH";
+	}
+	#[cfg(target_os = "macos")]
+	mod sysenv {
+	    pub const LOADER_PATH: &'static str = "DYLD_LIBRARY_PATH";
+	}
+	env_var::prepend_path(sysenv::LOADER_PATH, &new_path, cmd);
 
         // Append first cargo_home, then toolchain/bin to the PATH
         let mut path_to_append = Vec::with_capacity(2);
