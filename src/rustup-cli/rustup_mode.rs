@@ -401,7 +401,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
             try!(common::show_channel_update(cfg, toolchain.name(), Ok(status)));
         }
     } else {
-        try!(common::update_all_channels(cfg, !m.is_present("no-self-update")));
+        try!(common::update_all_channels(cfg, !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE));
     }
 
     Ok(())
