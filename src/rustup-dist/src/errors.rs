@@ -6,10 +6,6 @@ use rustup_utils;
 use manifest::Component;
 
 error_chain! {
-    types {
-        Error, ErrorKind, ChainErr, Result;
-    }
-
     links {
         rustup_utils::Error, rustup_utils::ErrorKind, Utils;
     }
