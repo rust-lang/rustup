@@ -4,10 +4,6 @@ use rustup_dist::manifest::Component;
 use toml;
 
 error_chain! {
-    types {
-        Error, ErrorKind, ChainErr, Result;
-    }
-
     links {
         rustup_dist::Error, rustup_dist::ErrorKind, Dist;
         rustup_utils::Error, rustup_utils::ErrorKind, Utils;

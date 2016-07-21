@@ -4,10 +4,6 @@ use url::Url;
 use download;
 
 error_chain! {
-    types {
-        Error, ErrorKind, ChainErr, Result;
-    }
-
     links {
         download::Error, download::ErrorKind, Download;
     }

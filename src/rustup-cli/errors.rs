@@ -7,10 +7,6 @@ use rustup_dist::{self, temp};
 use rustup_utils;
 
 error_chain! {
-    types {
-        Error, ErrorKind, ChainErr, Result;
-    }
-
     links {
         rustup::Error, rustup::ErrorKind, Rustup;
         rustup_dist::Error, rustup_dist::ErrorKind, Dist;
