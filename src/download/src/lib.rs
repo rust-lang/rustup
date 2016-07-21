@@ -531,6 +531,7 @@ pub mod rustls {
 pub mod hyper_base {
 
     extern crate hyper;
+    extern crate env_proxy;
 
     use super::Event;
     use std::io;
@@ -558,30 +559,21 @@ pub mod hyper_base {
         use self::hyper::header::ContentLength;
         use self::hyper::net::{HttpsConnector};
 
-        // The Hyper HTTP client
-        let client;
-
         S::maybe_init_certs();
 
-        let maybe_proxy = proxy_from_env(url);
-        if url.scheme() == "https" {
-            if maybe_proxy.is_none() {
-                // Connect with hyper + native_tls
-                client = Client::with_connector(HttpsConnector::new(S::new()));
-            } else {
-                let proxy_host_port = maybe_proxy.unwrap();
-                client = Client::with_proxy_config(ProxyConfig(proxy_host_port.0, proxy_host_port.1, S::new()));
-            }
-        } else if url.scheme() == "http" {
-            if maybe_proxy.is_none() {
-                client = Client::new();
-            } else {
-                let proxy_host_port = maybe_proxy.unwrap();
-                client = Client::with_http_proxy(proxy_host_port.0, proxy_host_port.1);
-            }
-        } else {
-            return Err(format!("unsupported URL scheme: '{}'", url.scheme()).into());
-        }
+        // The Hyper HTTP client
+        let maybe_proxy = env_proxy::for_url(url);
+        let client = match url.scheme() {
+            "https" => match maybe_proxy {
+                None => Client::with_connector(HttpsConnector::new(S::new())),
+                Some(host_port) => Client::with_proxy_config(ProxyConfig(host_port.0, host_port.1, S::new()))
+            },
+            "http" => match maybe_proxy {
+                None => Client::new(),
+                Some(host_port) => Client::with_http_proxy(host_port.0, host_port.1)
+            },
+            _ => return Err(format!("unsupported URL scheme: '{}'", url.scheme()).into())
+        };
 
         let mut res = try!(client.get(url.clone()).send()
                            .chain_err(|| "failed to make network request"));
@@ -606,33 +598,6 @@ pub mod hyper_base {
                 return Ok(());
             }
         }
-    }
-
-    fn proxy_from_env(url: &Url) -> Option<(String, u16)> {
-        use std::env::var_os;
-
-        let mut maybe_https_proxy = var_os("https_proxy").map(|ref v| v.to_str().unwrap_or("").to_string());
-        if maybe_https_proxy.is_none() {
-            maybe_https_proxy = var_os("HTTPS_PROXY").map(|ref v| v.to_str().unwrap_or("").to_string());
-        }
-        let maybe_http_proxy = var_os("http_proxy").map(|ref v| v.to_str().unwrap_or("").to_string());
-        let mut maybe_all_proxy = var_os("all_proxy").map(|ref v| v.to_str().unwrap_or("").to_string());
-        if maybe_all_proxy.is_none() {
-            maybe_all_proxy = var_os("ALL_PROXY").map(|ref v| v.to_str().unwrap_or("").to_string());
-        }
-        if let Some(url_value) = match url.scheme() {
-            "https" => maybe_https_proxy.or(maybe_http_proxy.or(maybe_all_proxy)),
-            "http" => maybe_http_proxy.or(maybe_all_proxy),
-            _ => maybe_all_proxy,
-        } {
-            if let Ok(proxy_url) = Url::parse(&url_value) {
-                if let Some(host) = proxy_url.host_str() {
-                    let port = proxy_url.port().unwrap_or(8080);
-                    return Some((host.to_string(), port));
-                }
-            }
-        }
-        None
     }
 
     fn download_from_file_url(url: &Url,
