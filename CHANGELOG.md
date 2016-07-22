@@ -1,3 +1,22 @@
+# 0.4.0
+
+* [Improve rustls CA certificate loading](https://github.com/rust-lang-nursery/rustup.rs/pull/585)
+* [Detect ARMv7 CPUs without NEON extensions and treat as ARMv6](https://github.com/rust-lang-nursery/rustup.rs/pull/593)
+* [Allow any toolchain to be specified as the default during rustup installation](https://github.com/rust-lang-nursery/rustup.rs/pull/586)
+* [Add details about updating rustup to README](https://github.com/rust-lang-nursery/rustup.rs/pull/590)
+* [Update libbacktrace to generate less filesystem thrashing on Windows](https://github.com/rust-lang-nursery/rustup.rs/pull/604)
+* [Update gcc dep to fix building on MSVC](https://github.com/rust-lang-nursery/rustup.rs/pull/605)
+* [Remove the multirust binary](https://github.com/rust-lang-nursery/rustup.rs/pull/606)
+* [Use the env_proxy crate for proxy environment variable handling](https://github.com/rust-lang-nursery/rustup.rs/pull/598)
+* [Set system-specific dynamic loader env var for command execution](https://github.com/rust-lang-nursery/rustup.rs/pull/600)
+* [Hide telemetry command from top level help](https://github.com/rust-lang-nursery/rustup.rs/pull/601)
+* [Add the "no-self-update" feature](https://github.com/rust-lang-nursery/rustup.rs/pull/602)
+* [Update to error-chain 0.2.2](https://github.com/rust-lang-nursery/rustup.rs/pull/602)
+* [Add HTTP proxy documentation to README](https://github.com/rust-lang-nursery/rustup.rs/pull/610)
+
+Contributors: Alex Crichton, Brian Anderson, Ivan Nejgebauer, Jimmy
+Cuadra, Martin Pool, Wesley Moore
+
 # 0.3.0
 
 * [Teach rustup to download manifests from the `/staging/` directory](https://github.com/rust-lang-nursery/rustup.rs/pull/579).
