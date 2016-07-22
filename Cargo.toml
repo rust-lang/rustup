@@ -1,7 +1,7 @@
 [package]
 
 name = "rustup"
-version = "0.3.0"
+version = "0.4.0"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "multirust in rust - manage multiple rust installations with ease"
 
@@ -29,8 +29,8 @@ rustls-backend = ["download/rustls-backend"]
 no-self-update = []
 
 [dependencies]
-rustup-dist = { path = "src/rustup-dist", version = "0.3.0" }
-rustup-utils = { path = "src/rustup-utils", version = "0.3.0" }
+rustup-dist = { path = "src/rustup-dist", version = "0.4.0" }
+rustup-utils = { path = "src/rustup-utils", version = "0.4.0" }
 download = { path = "src/download" }
 error-chain = "0.2.1"
 clap = "2.2.4"
@@ -55,7 +55,7 @@ user32-sys = "0.1.2"
 kernel32-sys = "0.2.1"
 
 [dev-dependencies]
-rustup-mock = { path = "src/rustup-mock", version = "0.3.0" }
+rustup-mock = { path = "src/rustup-mock", version = "0.4.0" }
 lazy_static = "0.1.15"
 
 [lib]
