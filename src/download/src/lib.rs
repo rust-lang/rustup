@@ -366,6 +366,7 @@ pub mod rustls {
     use hyper_base;
     use self::hyper::error::Result as HyperResult;
     use self::hyper::net::{SslClient, NetworkStream};
+    use self::rustls::Session;
     use std::io::Result as IoResult;
     use std::io::{Read, Write};
     use std::net::{SocketAddr, Shutdown};
