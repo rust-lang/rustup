@@ -83,6 +83,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "base64"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "bitflags"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -198,7 +203,7 @@ dependencies = [
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "native-tls 0.1.0 (git+https://github.com/sfackler/rust-native-tls.git)",
  "openssl-sys 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustls 0.1.0 (git+https://github.com/inejge/rustls.git?branch=new-wantsread)",
+ "rustls 0.1.0 (git+https://github.com/ctz/rustls.git)",
  "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -542,11 +547,11 @@ dependencies = [
 [[package]]
 name = "rustls"
 version = "0.1.0"
-source = "git+https://github.com/inejge/rustls.git?branch=new-wantsread#3b97e2018ca103a7d98691a7c6c97a097c82da96"
+source = "git+https://github.com/ctz/rustls.git#5b96b9c5ea7e0d45ee31387c488ecd2a6a02266f"
 dependencies = [
+ "base64 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ring 0.1.0 (git+https://github.com/ctz/ring)",
- "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "untrusted 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webpki 0.1.0 (git+https://github.com/ctz/webpki)",
