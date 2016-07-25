@@ -43,6 +43,7 @@ use std::fs::{self, File};
 use std::io::Read;
 use tempdir::TempDir;
 use term2;
+use regex::Regex;
 
 pub struct InstallOpts {
     pub default_host_triple: String,
@@ -1125,11 +1126,39 @@ pub fn update() -> Result<()> {
     }
     let setup_path = try!(prepare_update());
     if let Some(ref p) = setup_path {
-        info!("rustup updated successfully");
+        let version = match get_new_rustup_version(&p) {
+            Some(new_version) => parse_new_rustup_version(new_version),
+            None => {
+                err!("failed to get rustup version");
+                process::exit(1);
+            }
+        };
+
+        info!("rustup updated successfully to {}", version);
         try!(run_update(p));
     }
 
     Ok(())
+}
+
+fn get_new_rustup_version(path: &Path) -> Option<String> {
+    match Command::new(path).arg("--version").output() {
+        Err(_) => None,
+        Ok(output) => match String::from_utf8(output.stdout) {
+            Ok(version) => Some(version),
+            Err(_) => None
+        }
+    }
+}
+
+fn parse_new_rustup_version(version: String) -> String {
+    let re = Regex::new(r"\d+.\d+.\d+[0-9a-zA-Z-]*").unwrap();
+    let capture = re.captures(&version);
+    let matched_version = match capture {
+        Some(cap) => cap.at(0).unwrap(),
+        None => "(unknown)"
+    };
+    String::from(matched_version)
 }
 
 pub fn prepare_update() -> Result<Option<PathBuf>> {
