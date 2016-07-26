@@ -501,3 +501,14 @@ fn toolchain_update_is_like_update_except_that_bare_install_is_an_error() {
                    "arguments were not provided");
     });
 }
+
+#[test]
+fn proxy_toolchain_shorthand() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "update" , "nightly"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+        expect_stdout_ok(config, &["rustc", "+stable", "--version"], "hash-s-2");
+        expect_stdout_ok(config, &["rustc", "+nightly", "--version"], "hash-n-2");
+    });
+}

@@ -107,7 +107,15 @@ r"
 Configures an environment to use the given toolchain and then runs
 the specified program. The command may be any program, not just
 rustc or cargo. This can be used for testing arbitrary toolchains
-without setting an override.";
+without setting an override.
+
+Commands explicitly proxied by `rustup` (such as `rustc` and `cargo`)
+also have a shorthand for this available. The toolchain can be set by
+using `+toolchain` as the first argument. These are equivalent:
+
+    cargo +nightly build
+
+    rustup run nightly cargo build";
 
 pub static DOC_HELP: &'static str =
 r"
