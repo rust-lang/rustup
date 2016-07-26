@@ -17,6 +17,10 @@ mod sys_check {
 	use std::ops::Deref;
 	use std::ptr;
 
+	// test runner should set this, nothing else
+	if env::var("RUSTUP_INIT_SKIP_SUDO_CHECK").as_ref().map(Deref::deref).ok() == Some("yes") {
+	    return false;
+	}
 	let mut pwd = unsafe { mem::uninitialized::<c::passwd>() };
 	let mut pwdp: *mut c::passwd = ptr::null_mut();
 	let mut buf = [0u8; 1024];
