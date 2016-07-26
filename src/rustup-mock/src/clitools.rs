@@ -242,6 +242,9 @@ pub fn env(config: &Config, cmd: &mut Command) {
     // This is only used for some installation tests on unix where CARGO_HOME
     // above is unset
     cmd.env("HOME", config.homedir.to_string_lossy().to_string());
+
+    // Setting HOME will confuse the sudo check for rustup-init. Override it
+    cmd.env("RUSTUP_INIT_SKIP_SUDO_CHECK", "yes");
 }
 
 pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> SanitizedOutput {
