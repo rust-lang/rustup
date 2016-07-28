@@ -453,11 +453,14 @@ fn show(cfg: &Cfg) -> Result<()> {
     let installed_toolchains = try!(cfg.list_toolchains());
     let active_toolchain = try!(cfg.find_override_toolchain_or_default(cwd));
     let active_targets = if let Some((ref t, _)) = active_toolchain {
-        try!(t.list_components())
-            .into_iter()
-            .filter(|c| c.component.pkg == "rust-std")
-            .filter(|c| c.installed)
-            .collect()
+        match t.list_components() {
+	    Ok(cs_vec) => cs_vec
+		.into_iter()
+		.filter(|c| c.component.pkg == "rust-std")
+		.filter(|c| c.installed)
+		.collect(),
+	    Err(_) => vec![]
+	}
     } else {
         vec![]
     };
