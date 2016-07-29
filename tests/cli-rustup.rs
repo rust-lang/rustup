@@ -260,6 +260,8 @@ fn link() {
         expect_ok(config, &["rustup", "default", "custom"]);
         expect_stdout_ok(config, &["rustc", "--version"],
                          "hash-c-1");
+        expect_stdout_ok(config, &["rustup", "show"],
+                         "custom (default)");
         expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustup", "show"],
