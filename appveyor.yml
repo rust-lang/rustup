@@ -31,7 +31,7 @@ install:
   - if defined MSYS_BITS set PATH=C:\msys64\mingw%MSYS_BITS%\bin;C:\msys64\usr\bin;%PATH%
 
   # download a custom compiler otherwise
-  - if defined MINGW_ARCHIVE appveyor DownloadFile "%MINGW_URL%" -FileName "%MINGW_ARCHIVE%"
+  - if defined MINGW_ARCHIVE curl -L --retry 4 "%MINGW_URL%" -o "%MINGW_ARCHIVE%"
   - if defined MINGW_ARCHIVE 7z x -y "%MINGW_ARCHIVE%" > nul
   - if defined MINGW_ARCHIVE set PATH=%CD%\%MINGW_DIR%\bin;C:\msys64\usr\bin;%PATH%
 
