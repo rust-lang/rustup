@@ -5,9 +5,6 @@ use clap::{App, Arg, AppSettings};
 use rustup_dist::dist::TargetTriple;
 use common;
 
-mod sys_check {
-}
-
 pub fn main() -> Result<()> {
     let args: Vec<_> = env::args().collect();
     let arg1 = args.get(1).map(|a| &**a);
