@@ -1,3 +1,16 @@
+# 0.5.0
+
+* [List custom toolchains in `rustup show`](https://github.com/rust-lang-nursery/rustup.rs/pull/620)
+* [Add a usage example for local builds](https://github.com/rust-lang-nursery/rustup.rs/pull/622)
+* [Read/Write impl rework for rustls](https://github.com/rust-lang-nursery/rustup.rs/pull/592)
+* [Introduce `+TOOLCHAIN` syntax for proxies](https://github.com/rust-lang-nursery/rustup.rs/pull/615)
+* [Add `rustup man`](https://github.com/rust-lang-nursery/rustup.rs/pull/616)
+* [Try detecting sudo when running `rustup-init`](https://github.com/rust-lang-nursery/rustup.rs/pull/617)
+* [Handle active custom toolchain in `rustup show`](https://github.com/rust-lang-nursery/rustup.rs/pull/621)
+
+Contributors: Brian Anderson, Cam Swords, Daniel Keep, Diggory Blake,
+Florian Gilcher, Ivan Nejgebauer, theindigamer
+
 # 0.4.0
 
 * [Improve rustls CA certificate loading](https://github.com/rust-lang-nursery/rustup.rs/pull/585)
