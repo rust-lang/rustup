@@ -83,6 +83,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "base64"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "bitflags"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -551,11 +556,11 @@ dependencies = [
 [[package]]
 name = "rustls"
 version = "0.1.0"
-source = "git+https://github.com/ctz/rustls.git#622dce5fdbd3b644e4e79d5d6e3dc891590121dc"
+source = "git+https://github.com/ctz/rustls.git#5b96b9c5ea7e0d45ee31387c488ecd2a6a02266f"
 dependencies = [
+ "base64 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ring 0.1.0 (git+https://github.com/ctz/ring)",
- "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "untrusted 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webpki 0.1.0 (git+https://github.com/ctz/webpki)",
