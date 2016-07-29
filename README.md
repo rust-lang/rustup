@@ -412,6 +412,7 @@ Command | Description
 `rustup target add arm-linux-androideabi` | Install the Android target
 `rustup target remove arm-linux-androideabi` | Remove the Android target
 `rustup run nightly rustc foo.rs` | Run the nightly regardless of the active toolchain
+`rustc +nightly foo.rs` | Shorthand way to run a nightly compiler
 `rustup run nightly bash` | Run a shell configured for the nightly compiler
 `rustup default stable-msvc` | On Windows, use the MSVC toolchain instead of GNU
 `rustup override nightly-2015-04-01` | For the current directory, use a nightly from a specific date
