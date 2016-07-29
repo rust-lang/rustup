@@ -11,7 +11,7 @@
 * [Set system-specific dynamic loader env var for command execution](https://github.com/rust-lang-nursery/rustup.rs/pull/600)
 * [Hide telemetry command from top level help](https://github.com/rust-lang-nursery/rustup.rs/pull/601)
 * [Add the "no-self-update" feature](https://github.com/rust-lang-nursery/rustup.rs/pull/602)
-* [Update to error-chain 0.2.2](https://github.com/rust-lang-nursery/rustup.rs/pull/602)
+* [Update to error-chain 0.2.2](https://github.com/rust-lang-nursery/rustup.rs/pull/609)
 * [Add HTTP proxy documentation to README](https://github.com/rust-lang-nursery/rustup.rs/pull/610)
 
 Contributors: Alex Crichton, Brian Anderson, Ivan Nejgebauer, Jimmy
