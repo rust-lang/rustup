@@ -8,6 +8,7 @@ use rustup_dist::dist::{TargetTriple, PartialToolchainDesc, PartialTargetTriple}
 use rustup_utils::utils;
 use self_update;
 use std::path::Path;
+use std::process::Command;
 use std::iter;
 use term2;
 use std::io::Write;
@@ -69,6 +70,7 @@ pub fn main() -> Result<()> {
         ("run", Some(m)) => try!(run(cfg, m)),
         ("which", Some(m)) => try!(which(cfg, m)),
         ("doc", Some(m)) => try!(doc(cfg, m)),
+        ("man", Some(m)) => try!(man(cfg,m)),
         ("self", Some(c)) => {
             match c.subcommand() {
                 ("update", Some(_)) => try!(self_update::update()),
@@ -248,6 +250,13 @@ pub fn cli() -> App<'static, 'static> {
                  .help("Standard library API documentation"))
             .group(ArgGroup::with_name("page")
                  .args(&["book", "std"])))
+        .subcommand(SubCommand::with_name("man")
+                    .about("View the man page for a given command")
+                    .arg(Arg::with_name("command")
+                         .required(true))
+                    .arg(Arg::with_name("toolchain")
+                         .long("toolchain")
+                         .takes_value(true)))
         .subcommand(SubCommand::with_name("self")
             .about("Modify the rustup installation")
             .setting(AppSettings::VersionlessSubcommands)
@@ -622,6 +631,22 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     };
 
     Ok(try!(cfg.open_docs_for_dir(&try!(utils::current_dir()), doc_url)))
+}
+
+fn man(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+let manpage = m.value_of("command").expect("");
+let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
+let mut man_path = toolchain.path().to_path_buf();
+man_path.push("share");
+man_path.push("man");
+man_path.push("man1");
+man_path.push(manpage.to_owned() + ".1");
+try!(utils::assert_is_file(&man_path));
+Command::new("man")
+    .arg(man_path)
+    .status()
+    .expect("failed to open man page");
+Ok(())
 }
 
 fn self_uninstall(m: &ArgMatches) -> Result<()> {
