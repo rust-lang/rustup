@@ -634,19 +634,19 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn man(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-let manpage = m.value_of("command").expect("");
-let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
-let mut man_path = toolchain.path().to_path_buf();
-man_path.push("share");
-man_path.push("man");
-man_path.push("man1");
-man_path.push(manpage.to_owned() + ".1");
-try!(utils::assert_is_file(&man_path));
-Command::new("man")
-    .arg(man_path)
-    .status()
-    .expect("failed to open man page");
-Ok(())
+    let manpage = m.value_of("command").expect("");
+    let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
+    let mut man_path = toolchain.path().to_path_buf();
+    man_path.push("share");
+    man_path.push("man");
+    man_path.push("man1");
+    man_path.push(manpage.to_owned() + ".1");
+    try!(utils::assert_is_file(&man_path));
+    Command::new("man")
+        .arg(man_path)
+        .status()
+        .expect("failed to open man page");
+    Ok(())
 }
 
 fn self_uninstall(m: &ArgMatches) -> Result<()> {
