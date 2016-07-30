@@ -1,4 +1,5 @@
 use std::char::from_u32;
+use std::env;
 use std::error;
 use std::ffi::{OsStr, OsString};
 use std::fmt;
@@ -365,37 +366,20 @@ fn rm_rf(path: &Path) -> io::Result<()> {
     }
 }
 
-pub fn copy_dir(src: &Path, dest: &Path) -> CommandResult<()> {
-    #[cfg(windows)]
-    fn copy_dir_inner(src: &Path, dest: &Path) -> CommandResult<()> {
-        Command::new("robocopy")
-            .arg(src)
-            .arg(dest)
-            .arg("/E")
-            .arg("/NFL")
-            .arg("/NDL")
-            .arg("/NJH")
-            .arg("/NJS")
-            .arg("/nc")
-            .arg("/ns")
-            .arg("/np")
-            .status()
-            .map_err(CommandError::Io)
-            .and_then(|s| {
-                match s.code() {
-                    // Robocopy has non-zero exit codes for successful copies...
-                    Some(value) if value < 8 => Ok(()),
-                    _ => Err(CommandError::Status(s)),
-                }
-            })
+pub fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
+    try!(fs::create_dir(dest));
+    for entry in try!(src.read_dir()) {
+        let entry = try!(entry);
+        let kind = try!(entry.file_type());
+        let src = entry.path();
+        let dest = dest.join(entry.file_name());
+        if kind.is_dir() {
+            try!(copy_dir(&src, &dest));
+        } else {
+            try!(fs::copy(&src, &dest));
+        }
     }
-    #[cfg(not(windows))]
-    fn copy_dir_inner(src: &Path, dest: &Path) -> CommandResult<()> {
-        cmd_status(Command::new("cp").arg("-R").arg(src).arg(dest))
-    }
-
-    let _ = remove_dir(dest);
-    copy_dir_inner(src, dest)
+    Ok(())
 }
 
 pub fn prefix_arg<S: AsRef<OsStr>>(name: &str, s: S) -> OsString {
@@ -405,24 +389,13 @@ pub fn prefix_arg<S: AsRef<OsStr>>(name: &str, s: S) -> OsString {
 }
 
 pub fn has_cmd(cmd: &str) -> bool {
-    #[cfg(not(windows))]
-    fn inner(cmd: &str) -> bool {
-        cmd_status(Command::new("which")
-                       .arg(cmd)
-                       .stdin(Stdio::null())
-                       .stdout(Stdio::null())
-                       .stderr(Stdio::null()))
-            .is_ok()
-    }
-    #[cfg(windows)]
-    fn inner(cmd: &str) -> bool {
-        cmd_status(Command::new("where")
-                       .arg("/Q")
-                       .arg(cmd))
-            .is_ok()
-    }
-
-    inner(cmd)
+    let cmd = format!("{}{}", cmd, env::consts::EXE_SUFFIX);
+    let path = env::var_os("PATH").unwrap_or(OsString::new());
+    env::split_paths(&path).map(|p| {
+        p.join(&cmd)
+    }).any(|p| {
+        p.exists()
+    })
 }
 
 pub fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
