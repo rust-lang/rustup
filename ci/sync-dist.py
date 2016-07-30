@@ -10,11 +10,11 @@
 # * Sync local bins to dev archives
 #   python sync-dist.py local-to-dev-archives 0.2.0
 #
-# * Sync local bins to prod
-#   python sync-dist.py local-to-prod
-#
 # * Sync local bins to prod archives
 #   python sync-dist.py local-to-prod-archives 0.2.0
+#
+# * Sync local bins to prod
+#   python sync-dist.py local-to-prod
 
 import sys
 import os
