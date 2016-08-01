@@ -456,14 +456,17 @@ fn install_doesnt_modify_path_if_passed_no_modify_path() {
 
 #[test]
 fn update_exact() {
+    let version = env!("CARGO_PKG_VERSION");
+    let expected_output = &(
+r"info: checking for self-updates
+info: downloading self-update
+info: rustup updated successfully to ".to_owned() + version + "
+");
+
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_ok_ex(config, &["rustup", "self", "update"],
-r"",
-r"info: checking for self-updates
-info: downloading self-update
-info: rustup updated successfully
-");
+                     r"", expected_output)
     });
 }
 
