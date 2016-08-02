@@ -23,6 +23,10 @@
         <Property Id="ARPURLINFOABOUT" Value="http://www.rustup.rs" />
         <!--<Property Id="ARPHELPLINK" Value="http://www.rustup.rs" />-->
         <Property Id="ARPPRODUCTICON" Value="rust.ico" />
+
+        <!-- Disable Modify and Repair options (our custom actions based install model does not support repairing) -->
+        <Property Id="ARPNOMODIFY" Value="1" />
+        <Property Id="ARPNOREPAIR" Value="1" />
         
         <Icon Id="rust.ico" SourceFile="rust-logo.ico"/>
 
@@ -62,14 +66,15 @@
         <!-- Propagate the value of `RustupInstallLocation` (set by custom action) to `INSTALLLOCATION` -->
         <CustomAction Id="AssignInstallLocation" Directory="INSTALLLOCATION" Value="[RustupInstallLocation]"/>
         <CustomAction Id="RustupInstall" BinaryKey="RustupCustomActionDll" DllEntry="RustupInstall" Execute="deferred" Return="check" Impersonate="yes"/>
+        <CustomAction Id="RustupUninstall" BinaryKey="RustupCustomActionDll" DllEntry="RustupUninstall" Execute="deferred" Return="check" Impersonate="yes"/>
         
         <InstallExecuteSequence>
             <DisableRollback Before="InstallInitialize"/>
             <Custom Action="RustupSetInstallLocation" After="CostFinalize"/>
             <Custom Action="AssignInstallLocation" After="RustupSetInstallLocation"/>
-            <!-- The next two will not be run on uninstall (TODO: add RustupUninstall and also handle upgrade) -->
             <Custom Action="SetInstallOptions" Before="InstallInitialize">NOT Installed</Custom>
             <Custom Action="RustupInstall" After="InstallFiles">NOT Installed</Custom>
+            <Custom Action="RustupUninstall" Before="RemoveFiles">Installed</Custom>
         </InstallExecuteSequence>
 
         <!-- Send a WM_SETTINGCHANGE message to tell processes like explorer to update their

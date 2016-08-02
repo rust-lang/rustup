@@ -39,6 +39,20 @@ pub unsafe extern "system" fn RustupInstall(hInstall: MSIHANDLE) -> UINT {
     WcaFinalize(hr)
 }
 
+#[no_mangle]
+/// This is be run as a `deferred` action before `RemoveFiles` on uninstall
+pub unsafe extern "system" fn RustupUninstall(hInstall: MSIHANDLE) -> UINT {
+    let name = CString::new("RustupUninstall").unwrap();
+    let hr = WcaInitialize(hInstall, name.as_ptr());
+    // For deferred custom actions, all data must be passed through the `CustomActionData` property
+    let custom_action_data = get_property("CustomActionData");
+    // TODO: use rustup_utils::cargo_home() or pass through CustomActionData
+    let path = PathBuf::from(::std::env::var_os("USERPROFILE").unwrap()).join(".rustup-test");
+    let exe_installed = path.join("bin").join("rustup.exe").exists(); 
+    log(&format!("Hello World from RustupUninstall, confirming that rustup.exe has not yet been removed: {}! CustomActionData: {}", exe_installed, custom_action_data));
+    WcaFinalize(hr)
+}
+
 // wrapper for WcaGetProperty (TODO: error handling)
 fn get_property(name: &str) -> String {
     let encoded_name = to_wide_chars(name);
