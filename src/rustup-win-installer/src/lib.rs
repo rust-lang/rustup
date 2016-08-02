@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 extern crate winapi;
+extern crate rustup;
 
 use std::ffi::CString;
 use std::path::PathBuf;
@@ -15,9 +16,10 @@ pub const LOGMSG_STANDARD: i32 = 2;
 #[no_mangle]
 /// This is run as an `immediate` action early in the install sequence
 pub unsafe extern "system" fn RustupSetInstallLocation(hInstall: MSIHANDLE) -> UINT {
+    // TODO: error handling (get rid of unwrap)
     let name = CString::new("RustupSetInstallLocation").unwrap();
     let hr = WcaInitialize(hInstall, name.as_ptr());
-    // TODO: use rustup_utils::cargo_home()
+    //let path = ::rustup::utils::cargo_home().unwrap();
     let path = PathBuf::from(::std::env::var_os("USERPROFILE").unwrap()).join(".rustup-test");
     set_property("RustupInstallLocation", path.to_str().unwrap());
     WcaFinalize(hr)
