@@ -551,6 +551,12 @@ fn remove_target() {
         let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
                            this_host_triple(), clitools::CROSS_ARCH1);
         assert!(!config.rustupdir.join(path).exists());
+        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib",
+                           this_host_triple(), clitools::CROSS_ARCH1);
+        assert!(!config.rustupdir.join(path).exists());
+        let path = format!("toolchains/nightly-{}/lib/rustlib/{}",
+                           this_host_triple(), clitools::CROSS_ARCH1);
+        assert!(!config.rustupdir.join(path).exists());
     });
 }
 
