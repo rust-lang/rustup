@@ -5,9 +5,11 @@ $env:CFG_VER_MINOR = $version[1]
 $env:CFG_VER_PATCH = $version[2]
 
 foreach($file in Get-ChildItem *.wxs) {
-    &'C:\Program Files (x86)\WiX Toolset v3.10\bin\candle.exe' -nologo -arch x86 -ext WixUIExtension -ext WixUtilExtension -out "target\$($file.Name.Replace(".wxs",".wixobj"))" $($file.Name)
+    $in = $file.Name
+    $out = $($file.Name.Replace(".wxs",".wixobj"))
+    &"$($env:WIX)bin\candle.exe" -nologo -arch x86 -ext WixUIExtension -ext WixUtilExtension -out "target\$out" $in
     if ($LASTEXITCODE -ne 0) { exit }
 }
 
 # ICE57 wrongly complains about per-machine data in per-user install, because it doesn't know that INSTALLLOCATION is in per-user directory
-&'C:\Program Files (x86)\WiX Toolset v3.10\bin\light.exe' -nologo -ext WixUIExtension -ext WixUtilExtension -out "target\rustup.msi" -sice:ICE57 $(Get-ChildItem target\*.wixobj)
+&"$($env:WIX)\bin\light.exe" -nologo -ext WixUIExtension -ext WixUtilExtension -out "target\rustup.msi" -sice:ICE57 $(Get-ChildItem target\*.wixobj)

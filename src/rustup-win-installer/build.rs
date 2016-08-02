@@ -1,3 +1,5 @@
+use std::env;
+
 fn main() {
     println!("cargo:rustc-link-lib=dylib=msi");
     println!("cargo:rustc-link-lib=dylib=wcautil");
@@ -5,6 +7,7 @@ fn main() {
     println!("cargo:rustc-link-lib=dylib=user32");
     println!("cargo:rustc-link-lib=dylib=mincore");
 
-    // TODO: maybe don't hardcode path to WiX 3.10
-    println!("cargo:rustc-link-search=native=C:\\Program Files (x86)\\WiX Toolset v3.10\\SDK\\VS2015\\lib\\x86");
+    let wix_path = env::var("WIX").unwrap();
+    // x86 target is hard-coded because we only build an x86 installer (works just fine on x64)
+    println!("cargo:rustc-link-search=native={}SDK\\VS2015\\lib\\x86", wix_path);
 }
