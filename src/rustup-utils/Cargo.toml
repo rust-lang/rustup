@@ -14,7 +14,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 rand = "0.3.11"
 scopeguard = "0.1.2"
-error-chain = "0.2.1"
+error-chain = "0.4.0"
 libc = "0.2.0"
 rustc-serialize = "0.3.19"
 sha2 = "0.1.2"

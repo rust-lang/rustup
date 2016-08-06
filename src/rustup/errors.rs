@@ -10,8 +10,7 @@ error_chain! {
     }
 
     foreign_links {
-        temp::Error, Temp,
-        "temporary file error";
+        temp::Error, Temp;
     }
 
     errors {

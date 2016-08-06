@@ -15,7 +15,7 @@ hyper-backend = ["hyper", "env_proxy", "native-tls", "openssl-sys"]
 rustls-backend = ["hyper", "env_proxy", "rustls", "lazy_static", "ca-loader"]
 
 [dependencies]
-error-chain = "0.2.1"
+error-chain = "0.4.0"
 url = "1.1"
 curl = { version = "0.3", optional = true }
 lazy_static = { version = "0.2", optional = true }
