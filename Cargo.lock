@@ -4,7 +4,7 @@ version = "0.5.0"
 dependencies = [
  "clap 2.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "download 0.3.0",
- "error-chain 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-chain 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.4.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -194,7 +194,7 @@ dependencies = [
  "ca-loader 0.1.0",
  "curl 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_proxy 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "error-chain 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-chain 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "native-tls 0.1.0 (git+https://github.com/sfackler/rust-native-tls.git)",
@@ -213,7 +213,7 @@ dependencies = [
 
 [[package]]
 name = "error-chain"
-version = "0.3.0"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "backtrace 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -565,7 +565,7 @@ dependencies = [
 name = "rustup-dist"
 version = "0.5.0"
 dependencies = [
- "error-chain 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-chain 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "gcc 0.3.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.4.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -611,7 +611,7 @@ version = "0.5.0"
 dependencies = [
  "advapi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "download 0.3.0",
- "error-chain 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "error-chain 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
