@@ -209,15 +209,15 @@ impl Component {
                 self.dirs.insert(path.clone());
                 while path.pop() {
                     if path.file_name().is_none() {
-			break;
-		    }
-		    if self.dirs.contains(&path) {
-			self.dirs.remove(&path);
-		    }
-		    if self.ancestors.contains(&path) {
-			break;
-		    }
-		    self.ancestors.insert(path.clone());
+                        break;
+                    }
+                    if self.dirs.contains(&path) {
+                        self.dirs.remove(&path);
+                    }
+                    if self.ancestors.contains(&path) {
+                        break;
+                    }
+                    self.ancestors.insert(path.clone());
                 }
             }
         }
@@ -267,6 +267,8 @@ impl Component {
                 if empty {
                     self.path_buf.clone()
                 } else {
+                    // No dir above can be empty, go to next path in dirs
+                    self.path_buf = None;
                     self.next()
                 }
             }
@@ -280,16 +282,11 @@ impl Component {
         };
         for part in try!(self.parts()).into_iter().rev() {
             match &*part.0 {
-                "file" => {
-                    try!(tx.remove_file(&self.name, part.1.clone()));
-                    pset.seen(part.1);
-                },
-                "dir" => {
-                    try!(tx.remove_dir(&self.name, part.1.clone()));
-                    pset.seen(part.1);
-                },
+                "file" => try!(tx.remove_file(&self.name, part.1.clone())),
+                "dir" => try!(tx.remove_dir(&self.name, part.1.clone())),
                 _ => return Err(ErrorKind::CorruptComponent(self.name.clone()).into()),
             }
+            pset.seen(part.1);
         }
         for empty_dir in pset {
             try!(tx.remove_dir(&self.name, empty_dir));
