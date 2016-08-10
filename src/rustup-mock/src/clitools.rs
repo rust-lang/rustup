@@ -3,7 +3,7 @@
 
 use std::path::{PathBuf, Path};
 use std::env;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::env::consts::EXE_SUFFIX;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
@@ -221,7 +221,10 @@ pub fn expect_err_ex(config: &Config, args: &[&str],
 }
 
 pub fn expect_timeout_ok(config: &Config, timeout: Duration, args: &[&str]) {
-    let mut child = cmd(config, args[0], &args[1..]).spawn().unwrap();
+    let mut child = cmd(config, args[0], &args[1..])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn().unwrap();
 
     match child.wait_timeout(timeout).unwrap() {
         Some(status) => {
