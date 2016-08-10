@@ -545,18 +545,10 @@ fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Vec<u8> {
         let ref dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
 
         // Write the source
-        let ref source = format!(r#"
-            fn main() {{
-                let args: Vec<_> = ::std::env::args().collect();
-                if args.get(1) == Some(&"--version".to_string()) {{
-                    println!("{} ({})");
-                }} else if args.get(1) == Some(&"--empty-arg-test".to_string()) {{
-                    assert!(args.get(2) == Some(&"".to_string()));
-                }} else {{
-                    panic!("bad mock proxy commandline");
-                }}
-            }}
-            "#, EXAMPLE_VERSION, EXAMPLE_VERSION_HASH);
+        let source = include_str!("mock_bin_src.rs")
+            .replace("%EXAMPLE_VERSION%", EXAMPLE_VERSION)
+            .replace("%EXAMPLE_VERSION_HASH%", EXAMPLE_VERSION_HASH);
+
         File::create(source_path).and_then(|mut f| f.write_all(source.as_bytes())).unwrap();
 
         // Create the executable
