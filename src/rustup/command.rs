@@ -1,10 +1,12 @@
 use std::env;
 use std::ffi::OsStr;
-use std::io::{self, Write, BufRead, BufReader};
+use std::fs::File;
+use std::io::{self, Write, BufRead, BufReader, Seek, SeekFrom};
 use std::path::PathBuf;
 use std::process::{self, Command, Stdio};
 use std::time::Instant;
 use regex::Regex;
+use tempfile::tempfile;
 
 use Cfg;
 use errors::*;
@@ -29,6 +31,18 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(cmd: Command,
 }
 
 fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> Result<()> {
+    #[cfg(unix)]
+    fn file_as_stdio(file: &File) -> Stdio {
+        use std::os::unix::io::{AsRawFd, FromRawFd};
+        unsafe { Stdio::from_raw_fd(file.as_raw_fd()) }
+    }
+
+    #[cfg(windows)]
+    fn file_as_stdio(file: &File) -> Stdio {
+        use std::os::windows::io::{AsRawHandle, FromRawHandle};
+        unsafe { Stdio::from_raw_handle(file.as_raw_handle()) }
+    }
+
     let now = Instant::now();
 
     cmd.args(&args[1..]);
@@ -44,15 +58,17 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
         cmd.arg("always");
     }
 
+    let mut cmd_err_file = tempfile().unwrap();
+    let cmd_err_stdio = file_as_stdio(&cmd_err_file);
+
     // FIXME rust-lang/rust#32254. It's not clear to me
     // when and why this is needed.
     let mut cmd = cmd.stdin(Stdio::inherit())
                     .stdout(Stdio::inherit())
-                    .stderr(Stdio::piped())
+                    .stderr(cmd_err_stdio)
                     .spawn()
                     .unwrap();
 
-    let mut buffered_stderr = BufReader::new(cmd.stderr.take().unwrap());
     let status = cmd.wait();
 
     let duration = now.elapsed();
@@ -74,6 +90,10 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
 
             let stderr = io::stderr();
             let mut handle = stderr.lock();
+
+            cmd_err_file.seek(SeekFrom::Start(0)).unwrap();
+
+            let mut buffered_stderr = BufReader::new(cmd_err_file);
 
             while buffered_stderr.read_line(&mut buffer).unwrap() > 0 {
                 let b = buffer.to_owned();

@@ -7,13 +7,14 @@ extern crate rustup_mock;
 extern crate time;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_stdout_ok, expect_stderr_ok,
-                               expect_ok, expect_err, run,
-                               this_host_triple};
+                               expect_ok, expect_err, expect_timeout_ok,
+                               run, this_host_triple};
 use rustup_utils::{raw, utils};
 
 use time::Duration;
 use std::ops::Sub;
 use std::ops::Add;
+use std::time::Duration as StdDuration;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -332,6 +333,16 @@ fn enabling_telemetry_and_compiling_creates_log() {
         let contents = out.unwrap();
         assert!(contents.count() > 0);
     });
+}
+
+#[test]
+fn telemetry_supports_huge_output() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "telemetry", "enable"]);
+        expect_timeout_ok(&config, StdDuration::from_secs(5), &["rustc", "--huge-output"]);
+        expect_stdout_ok(config, &["rustup", "telemetry", "analyze"], "'E0428': 10000")
+    })
 }
 
 #[test]

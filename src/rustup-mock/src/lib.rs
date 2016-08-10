@@ -12,6 +12,7 @@ extern crate tar;
 extern crate toml;
 extern crate rustup_utils;
 extern crate sha2;
+extern crate wait_timeout;
 
 #[cfg(windows)]
 extern crate winapi;

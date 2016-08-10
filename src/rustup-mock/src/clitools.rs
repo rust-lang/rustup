@@ -3,11 +3,12 @@
 
 use std::path::{PathBuf, Path};
 use std::env;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::env::consts::EXE_SUFFIX;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::sync::Mutex;
+use std::time::Duration;
 use tempdir::TempDir;
 use {MockInstallerBuilder, MockCommand};
 use dist::{MockDistServer, MockChannel, MockPackage,
@@ -15,6 +16,7 @@ use dist::{MockDistServer, MockChannel, MockPackage,
            ManifestVersion};
 use url::Url;
 use scopeguard;
+use wait_timeout::ChildExt;
 
 /// The configuration used by the tests in this module
 pub struct Config {
@@ -216,6 +218,24 @@ pub fn expect_err_ex(config: &Config, args: &[&str],
     assert!(!out.ok, format!("not ok {:?}", args));
     assert!(out.stdout == stdout, format!("out {:?}", args));
     assert!(out.stderr == stderr, format!("err {:?}", args));
+}
+
+pub fn expect_timeout_ok(config: &Config, timeout: Duration, args: &[&str]) {
+    let mut child = cmd(config, args[0], &args[1..])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn().unwrap();
+
+    match child.wait_timeout(timeout).unwrap() {
+        Some(status) => {
+            assert!(status.success(), "not ok {:?}", args);
+        }
+        None => {
+            // child hasn't exited yet
+            child.kill().unwrap();
+            panic!("command timed out: {:?}", args);
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -545,18 +565,10 @@ fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Vec<u8> {
         let ref dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
 
         // Write the source
-        let ref source = format!(r#"
-            fn main() {{
-                let args: Vec<_> = ::std::env::args().collect();
-                if args.get(1) == Some(&"--version".to_string()) {{
-                    println!("{} ({})");
-                }} else if args.get(1) == Some(&"--empty-arg-test".to_string()) {{
-                    assert!(args.get(2) == Some(&"".to_string()));
-                }} else {{
-                    panic!("bad mock proxy commandline");
-                }}
-            }}
-            "#, EXAMPLE_VERSION, EXAMPLE_VERSION_HASH);
+        let source = include_str!("mock_bin_src.rs")
+            .replace("%EXAMPLE_VERSION%", EXAMPLE_VERSION)
+            .replace("%EXAMPLE_VERSION_HASH%", EXAMPLE_VERSION_HASH);
+
         File::create(source_path).and_then(|mut f| f.write_all(source.as_bytes())).unwrap();
 
         // Create the executable
