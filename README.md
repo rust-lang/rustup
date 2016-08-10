@@ -276,7 +276,7 @@ info: downloading component 'rust-std' for 'arm-linux-androideabi'
 info: installing component 'rust-std' for 'arm-linux-androideabi'
 ```
 
-With the `arm-linux-andoideabi` target installed you can then build
+With the `arm-linux-androideabi` target installed you can then build
 for Android with Cargo by passing the `--target` flag, as in `cargo
 build --target=arm-linux-androideabi`.
 
