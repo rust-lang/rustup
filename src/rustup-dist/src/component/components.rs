@@ -184,13 +184,112 @@ impl Component {
         // TODO: If this is the last component remove the components file
         // and the version file.
 
+        // Track visited directories
+        use std::collections::HashSet;
+        use std::collections::hash_set::IntoIter;
+        use std::fs::read_dir;
+
+        // dirs will contain the set of longest disjoint directory paths seen
+        // ancestors help in filtering seen paths and constructing dirs
+        // All seen paths must be relative to avoid surprises
+        struct PruneSet {
+            dirs: HashSet<PathBuf>,
+            ancestors: HashSet<PathBuf>,
+            prefix: PathBuf,
+        }
+
+        impl PruneSet {
+            fn seen(&mut self, mut path: PathBuf) {
+                if !path.is_relative() || !path.pop() {
+                    return;
+                }
+                if self.dirs.contains(&path) || self.ancestors.contains(&path) {
+                    return;
+                }
+                self.dirs.insert(path.clone());
+                while path.pop() {
+                    if path.file_name().is_none() {
+                        break;
+                    }
+                    if self.dirs.contains(&path) {
+                        self.dirs.remove(&path);
+                    }
+                    if self.ancestors.contains(&path) {
+                        break;
+                    }
+                    self.ancestors.insert(path.clone());
+                }
+            }
+        }
+
+        struct PruneIter {
+            iter: IntoIter<PathBuf>,
+            path_buf: Option<PathBuf>,
+            prefix: PathBuf,
+        }
+
+        impl IntoIterator for PruneSet {
+            type Item = PathBuf;
+            type IntoIter = PruneIter;
+
+            fn into_iter(self) -> Self::IntoIter {
+                PruneIter {
+                    iter: self.dirs.into_iter(),
+                    path_buf: None,
+                    prefix: self.prefix,
+                }
+            }
+        }
+
+        // Returns only empty directories
+        impl Iterator for PruneIter {
+            type Item = PathBuf;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                self.path_buf = match self.path_buf {
+                    None => self.iter.next(),
+                    Some(_) => {
+                        let mut path_buf = self.path_buf.take().unwrap();
+                        match path_buf.file_name() {
+                            Some(_) => if path_buf.pop() { Some(path_buf) } else { None },
+                            None => self.iter.next(),
+                        }
+                    },
+                };
+                if self.path_buf.is_none() {
+                    return None;
+                }
+                let full_path = self.prefix.join(self.path_buf.as_ref().unwrap());
+                let empty = match read_dir(full_path) {
+                    Ok(dir) => dir.count() == 0,
+                    Err(_) => false,
+                };
+                if empty {
+                    self.path_buf.clone()
+                } else {
+                    // No dir above can be empty, go to next path in dirs
+                    self.path_buf = None;
+                    self.next()
+                }
+            }
+        }
+
         // Remove parts
+        let mut pset = PruneSet {
+            dirs: HashSet::new(),
+            ancestors: HashSet::new(),
+            prefix: self.components.prefix.abs_path(""),
+        };
         for part in try!(self.parts()).into_iter().rev() {
             match &*part.0 {
-                "file" => try!(tx.remove_file(&self.name, part.1)),
-                "dir" => try!(tx.remove_dir(&self.name, part.1)),
+                "file" => try!(tx.remove_file(&self.name, part.1.clone())),
+                "dir" => try!(tx.remove_dir(&self.name, part.1.clone())),
                 _ => return Err(ErrorKind::CorruptComponent(self.name.clone()).into()),
             }
+            pset.seen(part.1);
+        }
+        for empty_dir in pset {
+            try!(tx.remove_dir(&self.name, empty_dir));
         }
 
         // Remove component manifest
