@@ -8,6 +8,7 @@ use std::env::consts::EXE_SUFFIX;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::sync::Mutex;
+use std::time::Duration;
 use tempdir::TempDir;
 use {MockInstallerBuilder, MockCommand};
 use dist::{MockDistServer, MockChannel, MockPackage,
@@ -15,6 +16,7 @@ use dist::{MockDistServer, MockChannel, MockPackage,
            ManifestVersion};
 use url::Url;
 use scopeguard;
+use wait_timeout::ChildExt;
 
 /// The configuration used by the tests in this module
 pub struct Config {
@@ -216,6 +218,21 @@ pub fn expect_err_ex(config: &Config, args: &[&str],
     assert!(!out.ok, format!("not ok {:?}", args));
     assert!(out.stdout == stdout, format!("out {:?}", args));
     assert!(out.stderr == stderr, format!("err {:?}", args));
+}
+
+pub fn expect_timeout_ok(config: &Config, timeout: Duration, args: &[&str]) {
+    let mut child = cmd(config, args[0], &args[1..]).spawn().unwrap();
+
+    match child.wait_timeout(timeout).unwrap() {
+        Some(status) => {
+            assert!(status.success(), "not ok {:?}", args);
+        }
+        None => {
+            // child hasn't exited yet
+            child.kill().unwrap();
+            panic!("command timed out: {:?}", args);
+        }
+    }
 }
 
 #[derive(Debug)]
