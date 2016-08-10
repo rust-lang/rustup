@@ -9,6 +9,7 @@ extern crate url;
 extern crate regex;
 extern crate itertools;
 extern crate rustc_serialize;
+extern crate tempfile;
 extern crate time;
 extern crate toml;
 #[cfg(unix)]
