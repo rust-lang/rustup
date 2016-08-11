@@ -1,5 +1,9 @@
 //! Testing self install, uninstall and update
 
+// Disable these tests for MSI-based installation.
+// The `self update` and `self uninstall` commands just call `msiexec`.
+#![cfg(not(feature = "msi-installed"))]
+
 extern crate rustup_mock;
 extern crate rustup_utils;
 #[macro_use]

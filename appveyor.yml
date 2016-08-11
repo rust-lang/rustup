@@ -1,5 +1,7 @@
 environment:
   matrix:
+  - TARGET: i686-pc-windows-msvc
+    BUILD_MSI: 1
   - TARGET: i686-pc-windows-gnu
     MINGW_URL: https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/4.9.2/threads-win32/dwarf/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z/download
     MINGW_ARCHIVE: i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z
@@ -8,8 +10,6 @@ environment:
     MSYS_BITS: 64
   - TARGET: i686-pc-windows-msvc
   - TARGET: x86_64-pc-windows-msvc
-  - TARGET: i686-pc-windows-msvc
-    BUILD_MSI: 1
   access_token:
     secure: q8Wqx0brgfpOYFQqWauvucE2h0o1WYb41a3gKaCKV9QiE4eTz6qLNlqyC3mdsp4Q
 branches:
