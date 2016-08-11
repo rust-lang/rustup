@@ -157,6 +157,18 @@ get_architecture() {
             local _cputype=x86_64
             ;;
 
+        ppc)
+            local _cputype=powerpc
+            ;;
+
+        ppc64)
+            local _cputype=powerpc64
+            ;;
+
+        ppc64le)
+            local _cputype=powerpc64le
+            ;;
+
         *)
             err "unknown CPU type: $_cputype"
 
