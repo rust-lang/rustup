@@ -60,10 +60,10 @@ pub fn main() -> Result<()> {
             match c.subcommand() {
                 ("list", Some(_)) => try!(common::list_overrides(cfg)),
                 ("set", Some(m)) => try!(override_add(cfg, m)),
-                ("unset", Some(_)) => try!(override_remove(cfg)),
+                ("unset", Some(m)) => try!(override_remove(cfg, m)),
                 // Synonyms
                 ("add", Some(m)) => try!(override_add(cfg, m)),
-                ("remove", Some(_)) => try!(override_remove(cfg)),
+                ("remove", Some(m)) => try!(override_remove(cfg, m)),
                 (_ ,_) => unreachable!(),
             }
         }
@@ -219,14 +219,33 @@ pub fn cli() -> App<'static, 'static> {
                 .arg(Arg::with_name("toolchain")
                      .required(true)))
             .subcommand(SubCommand::with_name("unset")
-                .about("Remove the override toolchain for a directory"))
+                .about("Remove the override toolchain for a directory")
+                .after_help("If \"--path\" argument is present, removes the override toolchain for \
+                specified directory. If \"--nonexistent\" argument is present, removes the override \
+                toolchain for all nonexistent directories. Otherwise, removes the override toolchain \
+                for current directory.")
+                .arg(Arg::with_name("path")
+                    .long("path")
+                    .takes_value(true)
+                    .help("Path to the directory"))
+                .arg(Arg::with_name("nonexistent")
+                    .long("nonexistent")
+                    .takes_value(false)
+                    .help("Remove override toolchain for all nonexistent directories")))
             .subcommand(SubCommand::with_name("add")
                 .setting(AppSettings::Hidden) // synonym for 'set'
                 .arg(Arg::with_name("toolchain")
                      .required(true)))
             .subcommand(SubCommand::with_name("remove")
                 .setting(AppSettings::Hidden) // synonym for 'unset'
-                .about("Remove the override toolchain for a directory")))
+                .about("Remove the override toolchain for a directory")
+                .arg(Arg::with_name("path")
+                    .long("path")
+                    .takes_value(true))
+                .arg(Arg::with_name("nonexistent")
+                    .long("nonexistent")
+                    .takes_value(false)
+                    .help("Remove override toolchain for all nonexistent directories"))))
         .subcommand(SubCommand::with_name("run")
             .about("Run a command with an environment configured for a given toolchain")
             .after_help(RUN_HELP)
@@ -611,15 +630,38 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn override_remove(cfg: &Cfg) -> Result<()> {
-    let ref path = try!(utils::current_dir());
-
-    if try!(cfg.settings_file.with_mut(|s| {
-        Ok(s.remove_override(path, cfg.notify_handler.as_ref()))
-    })) {
-        info!("override toolchain for '{}' removed", path.display());
+fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let paths = if m.is_present("nonexistent") {
+        let list: Vec<_> = try!(cfg.settings_file.with(|s| Ok(s.overrides.iter().filter_map(|(k, _)|
+            if Path::new(k).is_dir() {
+                None
+            } else {
+                Some(k.clone())
+            }
+        ).collect())));
+        if list.is_empty() {
+            println!("No nonexistent paths detected.");
+        }
+        list
     } else {
-        info!("no override toolchain for '{}'", path.display());
+        if m.is_present("path") {
+            vec![m.value_of("path").unwrap().to_string()]
+        } else {
+            vec![try!(utils::current_dir()).to_str().unwrap().to_string()]
+        }
+    };
+
+    for path in paths {
+        if try!(cfg.settings_file.with_mut(|s| {
+            Ok(s.remove_override(&Path::new(&path), cfg.notify_handler.as_ref()))
+        })) {
+            info!("override toolchain for '{}' removed", path);
+        } else {
+            info!("no override toolchain for '{}'", path);
+            if !m.is_present("path") && !m.is_present("nonexistent") {
+                info!("you may use \"--path <path>\" option to remove override toolchain for a specific path");
+            }
+        }
     }
     Ok(())
 }
