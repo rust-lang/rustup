@@ -287,16 +287,15 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
     let overrides = try!(cfg.settings_file.with(|s| Ok(s.overrides.clone())));
 
     if overrides.is_empty() {
-        println!("No overrides.");
+        println!("no overrides");
     } else {
-        println!("Overrides:");
         let mut any_not_exist = false;
         for (k, v) in overrides {
             let dir_exists = Path::new(&k).is_dir();
             if !dir_exists {
                 any_not_exist = true;
             }
-            println!("  {:<40}\t{:<20}",
+            println!("{:<40}\t{:<20}",
                      utils::format_path_for_display(&k) +
                      if dir_exists {
                          ""
@@ -306,7 +305,9 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
                      v)
         }
         if any_not_exist {
-            info!("you may remove overrides for non-existent directories with `rustup override unset --nonexistent`");
+            println!("");
+            info!("you may remove overrides for non-existent directories with \
+                   `rustup override unset --nonexistent`");
         }
     }
     Ok(())

@@ -102,6 +102,13 @@ Or a specific stable release:
 To see the active toolchain use `rustup show`. To remove the override
 and use the default toolchain again, `rustup override unset`.";
 
+pub static OVERRIDE_UNSET_HELP: &'static str =
+r"
+If `--path` argument is present, removes the override toolchain for
+the specified directory. If `--nonexistent` argument is present, removes
+the override toolchain for all nonexistent directories. Otherwise,
+removes the override toolchain for the current directory.";
+
 pub static RUN_HELP: &'static str =
 r"
 Configures an environment to use the given toolchain and then runs

@@ -109,7 +109,7 @@ fn remove_override_none() {
         expect_ok_ex(config, &["rustup", "override", "remove"],
 r"",
 &format!("info: no override toolchain for '{}'
-info: you may use \"--path <path>\" option to remove override toolchain for a specific path
+info: you may use `--path <path>` option to remove override toolchain for a specific path
 ", cwd.display()));
     });
 }
@@ -127,7 +127,7 @@ fn list_overrides() {
         let trip = this_host_triple();
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
         expect_ok_ex(config, &["rustup", "override", "list"],
-                     &format!("Overrides:\n  {:<40}\t{:<20}\n", cwd_formatted, &format!("nightly-{}", trip)), r"");
+                     &format!("{:<40}\t{:<20}\n", cwd_formatted, &format!("nightly-{}", trip)), r"");
     });
 }
 

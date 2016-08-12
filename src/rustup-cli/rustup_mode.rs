@@ -220,10 +220,7 @@ pub fn cli() -> App<'static, 'static> {
                      .required(true)))
             .subcommand(SubCommand::with_name("unset")
                 .about("Remove the override toolchain for a directory")
-                .after_help("If \"--path\" argument is present, removes the override toolchain for \
-                specified directory. If \"--nonexistent\" argument is present, removes the override \
-                toolchain for all nonexistent directories. Otherwise, removes the override toolchain \
-                for current directory.")
+                .after_help(OVERRIDE_UNSET_HELP)
                 .arg(Arg::with_name("path")
                     .long("path")
                     .takes_value(true)
@@ -640,7 +637,7 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
             }
         ).collect())));
         if list.is_empty() {
-            println!("No nonexistent paths detected.");
+            info!("no nonexistent paths detected");
         }
         list
     } else {
@@ -659,7 +656,8 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         } else {
             info!("no override toolchain for '{}'", path);
             if !m.is_present("path") && !m.is_present("nonexistent") {
-                info!("you may use \"--path <path>\" option to remove override toolchain for a specific path");
+                info!("you may use `--path <path>` option to remove override toolchain \
+                       for a specific path");
             }
         }
     }
