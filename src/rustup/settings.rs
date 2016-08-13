@@ -144,9 +144,11 @@ impl Default for Settings {
 
 impl Settings {
     fn path_to_key(path: &Path, notify_handler: &Fn(Notification)) -> String {
-        utils::canonicalize_path(path, &|n| notify_handler(n.into()))
-               .display()
-               .to_string()
+        if path.exists() {
+            utils::canonicalize_path(path, &|n| notify_handler(n.into())).display().to_string()
+        } else {
+            path.display().to_string()
+        }
     }
 
     pub fn remove_override(&mut self, path: &Path, notify_handler: &Fn(Notification)) -> bool {
