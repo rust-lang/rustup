@@ -95,11 +95,11 @@ info: override toolchain for '{}' set to 'nightly-{1}'
 fn remove_override() {
     for keyword in &["remove", "unset"] {
         setup(&|config| {
-          let cwd = env::current_dir().unwrap();
-          expect_ok(config, &["rustup", "override", "add", "nightly"]);
-          expect_ok_ex(config, &["rustup", "override", keyword],
-                       r"",
-                       &format!("info: override toolchain for '{}' removed\n", cwd.display()));
+            let cwd = env::current_dir().unwrap();
+            expect_ok(config, &["rustup", "override", "add", "nightly"]);
+            expect_ok_ex(config, &["rustup", "override", keyword],
+                         r"",
+                         &format!("info: override toolchain for '{}' removed\n", cwd.display()));
         });
 
     }
@@ -121,38 +121,55 @@ info: you may use `--path <path>` option to remove override toolchain for a spec
 
 #[test]
 fn remove_override_with_path() {
-  for keyword in &["remove", "unset"] {
-    setup(&|config| {
-      let dir = tempdir::TempDir::new("rustup-test").unwrap();
-      change_dir(dir.path(), &|| {
-        expect_ok(config, &["rustup", "override", "add", "nightly"]);
-      });
-      expect_ok_ex(config, &["rustup", "override", keyword, "--path", dir.path().to_str().unwrap()],
-                   r"",
-                   &format!("info: override toolchain for '{}' removed\n", dir.path().display()));
-    });
+    for keyword in &["remove", "unset"] {
+        setup(&|config| {
+            let dir = tempdir::TempDir::new("rustup-test").unwrap();
+            change_dir(dir.path(), &|| {
+                expect_ok(config, &["rustup", "override", "add", "nightly"]);
+            });
+            expect_ok_ex(config, &["rustup", "override", keyword, "--path", dir.path().to_str().unwrap()],
+                         r"",
+                         &format!("info: override toolchain for '{}' removed\n", dir.path().display()));
+        });
 
-  }
+    }
 }
 
 #[test]
 fn remove_override_with_path_deleted() {
-  for keyword in &["remove", "unset"] {
-    setup(&|config| {
-      let path = {
-        let dir = tempdir::TempDir::new("rustup-test").unwrap();
-        change_dir(dir.path(), &|| {
-          expect_ok(config, &["rustup", "override", "add", "nightly"]);
+    for keyword in &["remove", "unset"] {
+        setup(&|config| {
+            let path = {
+                let dir = tempdir::TempDir::new("rustup-test").unwrap();
+                change_dir(dir.path(), &|| {
+                  expect_ok(config, &["rustup", "override", "add", "nightly"]);
+                });
+                dir.path().to_path_buf()
+            };
+            expect_ok_ex(config, &["rustup", "override", keyword, "--path", path.to_str().unwrap()],
+                         r"",
+                         &format!("info: override toolchain for '{}' removed\n", path.display()));
         });
-        dir.path().to_path_buf()
-      };
-      expect_ok_ex(config, &["rustup", "override", keyword, "--path", path.to_str().unwrap()],
-                   r"",
-                   &format!("info: override toolchain for '{}' removed\n", path.display()));
-    });
-  }
+    }
 }
 
+#[test]
+fn remove_override_nonexistent() {
+    for keyword in &["remove", "unset"] {
+        setup(&|config| {
+            let path = {
+                let dir = tempdir::TempDir::new("rustup-test").unwrap();
+                change_dir(dir.path(), &|| {
+                  expect_ok(config, &["rustup", "override", "add", "nightly"]);
+                });
+                dir.path().to_path_buf()
+            };
+            expect_ok_ex(config, &["rustup", "override", keyword, "--nonexistent"],
+                         r"",
+                         &format!("info: override toolchain for '{}' removed\n", path.display()));
+        });
+    }
+}
 
 
 #[test]
@@ -175,30 +192,30 @@ fn list_overrides() {
 
 #[test]
 fn list_overrides_with_nonexistent() {
-  setup(&|config| {
+    setup(&|config| {
 
-    let trip = this_host_triple();
+        let trip = this_host_triple();
 
-    let nonexistent_path = {
-        let dir = tempdir::TempDir::new("rustup-test").unwrap();
-        change_dir(dir.path(), &|| {
-            expect_ok(config, &["rustup", "override", "add", "nightly"]);
-        });
-        std::fs::canonicalize(dir.path()).unwrap()
-    };
-    let mut path_formatted = format!("{}", nonexistent_path.display()).to_string();
+        let nonexistent_path = {
+            let dir = tempdir::TempDir::new("rustup-test").unwrap();
+            change_dir(dir.path(), &|| {
+                expect_ok(config, &["rustup", "override", "add", "nightly"]);
+            });
+            std::fs::canonicalize(dir.path()).unwrap()
+        };
+        let mut path_formatted = format!("{}", nonexistent_path.display()).to_string();
 
-    if cfg!(windows) {
-      path_formatted = path_formatted[4..].to_owned();
-    }
+        if cfg!(windows) {
+            path_formatted = path_formatted[4..].to_owned();
+        }
 
-    expect_ok_ex(config, &["rustup", "override", "list"],
-                 &format!("{:<40}\t{:<20}\n\n",
-                          path_formatted + " (not a directory)",
-                          &format!("nightly-{}", trip)),
-                          "info: you may remove overrides for non-existent directories with
+        expect_ok_ex(config, &["rustup", "override", "list"],
+                     &format!("{:<40}\t{:<20}\n\n",
+                              path_formatted + " (not a directory)",
+                              &format!("nightly-{}", trip)),
+                              "info: you may remove overrides for non-existent directories with
 `rustup override unset --nonexistent`\n");
-  });
+    });
 }
 
 
