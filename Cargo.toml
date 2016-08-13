@@ -62,6 +62,9 @@ kernel32-sys = "0.2.1"
 rustup-mock = { path = "src/rustup-mock", version = "0.5.0" }
 lazy_static = "0.1.15"
 
+[workspace]
+members = ["src/ca-loader", "src/download", "src/rustup-dist", "src/rustup-mock", "src/rustup-utils", "src/rustup-win-installer"]
+
 [lib]
 name = "rustup"
 path = "src/rustup/lib.rs"

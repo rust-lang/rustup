@@ -56,10 +56,11 @@ test_script:
   - ps: |
       if($env:BUILD_MSI) {
         cd src\rustup-win-installer
-        cargo build --release
+        cargo build --release --target %TARGET%
         cd msi
-        .\build.ps1
+        .\build.ps1 -Target %TARGET%
         cd ..\..\..
+        if($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
       }
 
 notifications:
