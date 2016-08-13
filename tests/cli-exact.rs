@@ -3,11 +3,12 @@
 
 extern crate rustup_dist;
 extern crate rustup_mock;
+extern crate tempdir;
 
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_err_ex,
-                               this_host_triple};
+                               this_host_triple, change_dir};
 use std::env;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
@@ -92,27 +93,67 @@ info: override toolchain for '{}' set to 'nightly-{1}'
 
 #[test]
 fn remove_override() {
-    setup(&|config| {
-        let cwd = env::current_dir().unwrap();
-        expect_ok(config, &["rustup", "override", "add", "nightly"]);
-        expect_ok_ex(config, &["rustup", "override", "remove"],
-r"",
-&format!(r"info: override toolchain for '{}' removed
-", cwd.display()));
-    });
+    for keyword in &["remove", "unset"] {
+        setup(&|config| {
+          let cwd = env::current_dir().unwrap();
+          expect_ok(config, &["rustup", "override", "add", "nightly"]);
+          expect_ok_ex(config, &["rustup", "override", keyword],
+                       r"",
+                       &format!("info: override toolchain for '{}' removed\n", cwd.display()));
+        });
+
+    }
 }
 
 #[test]
 fn remove_override_none() {
-    setup(&|config| {
-        let cwd = env::current_dir().unwrap();
-        expect_ok_ex(config, &["rustup", "override", "remove"],
-r"",
-&format!("info: no override toolchain for '{}'
-info: you may use `--path <path>` option to remove override toolchain for a specific path
-", cwd.display()));
-    });
+    for keyword in &["remove", "unset"] {
+        setup(&|config| {
+            let cwd = env::current_dir().unwrap();
+            expect_ok_ex(config, &["rustup", "override", keyword],
+                         r"",
+                         &format!("info: no override toolchain for '{}'
+info: you may use `--path <path>` option to remove override toolchain for a specific path\n",
+                                  cwd.display()));
+        });
+    }
 }
+
+#[test]
+fn remove_override_with_path() {
+  for keyword in &["remove", "unset"] {
+    setup(&|config| {
+      let dir = tempdir::TempDir::new("rustup-test").unwrap();
+      change_dir(dir.path(), &|| {
+        expect_ok(config, &["rustup", "override", "add", "nightly"]);
+      });
+      expect_ok_ex(config, &["rustup", "override", keyword, "--path", dir.path().to_str().unwrap()],
+                   r"",
+                   &format!("info: override toolchain for '{}' removed\n", dir.path().display()));
+    });
+
+  }
+}
+
+#[test]
+fn remove_override_with_path_deleted() {
+  for keyword in &["remove", "unset"] {
+    setup(&|config| {
+      let path = {
+        let dir = tempdir::TempDir::new("rustup-test").unwrap();
+        change_dir(dir.path(), &|| {
+          expect_ok(config, &["rustup", "override", "add", "nightly"]);
+        });
+        dir.path().to_path_buf()
+      };
+      expect_ok_ex(config, &["rustup", "override", keyword, "--path", path.to_str().unwrap()],
+                   r"",
+                   &format!("info: override toolchain for '{}' removed\n", path.display()));
+    });
+  }
+}
+
+
 
 #[test]
 fn list_overrides() {
@@ -130,6 +171,37 @@ fn list_overrides() {
                      &format!("{:<40}\t{:<20}\n", cwd_formatted, &format!("nightly-{}", trip)), r"");
     });
 }
+
+
+#[test]
+fn list_overrides_with_nonexistent() {
+  setup(&|config| {
+
+    let trip = this_host_triple();
+
+    let nonexistent_path = {
+        let dir = tempdir::TempDir::new("rustup-test").unwrap();
+        change_dir(dir.path(), &|| {
+            expect_ok(config, &["rustup", "override", "add", "nightly"]);
+        });
+        std::fs::canonicalize(dir.path()).unwrap()
+    };
+    let mut path_formatted = format!("{}", nonexistent_path.display()).to_string();
+
+    if cfg!(windows) {
+      path_formatted = path_formatted[4..].to_owned();
+    }
+
+    expect_ok_ex(config, &["rustup", "override", "list"],
+                 &format!("{:<40}\t{:<20}\n\n",
+                          path_formatted + " (not a directory)",
+                          &format!("nightly-{}", trip)),
+                          "info: you may remove overrides for non-existent directories with
+`rustup override unset --nonexistent`\n");
+  });
+}
+
+
 
 #[test]
 fn update_no_manifest() {

@@ -306,8 +306,8 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
         }
         if any_not_exist {
             println!("");
-            info!("you may remove overrides for non-existent directories with \
-                   `rustup override unset --nonexistent`");
+            info!("you may remove overrides for non-existent directories with
+`rustup override unset --nonexistent`");
         }
     }
     Ok(())
