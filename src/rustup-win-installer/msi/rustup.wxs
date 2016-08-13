@@ -75,7 +75,8 @@
             <Custom Action="AssignInstallLocation" After="RustupSetInstallLocation"/>
             <Custom Action="SetInstallOptions" Before="InstallInitialize">NOT Installed</Custom>
             <Custom Action="RustupInstall" After="InstallFiles">NOT Installed</Custom>
-            <Custom Action="RustupUninstall" Before="RemoveFiles">Installed</Custom>
+            <!-- Run RustupUninstall only on true uninstall, not on upgrade -->
+            <Custom Action="RustupUninstall" After="RemoveFiles">Installed AND (NOT UPGRADINGPRODUCTCODE)</Custom>
         </InstallExecuteSequence>
 
         <!-- Send a WM_SETTINGCHANGE message to tell processes like explorer to update their

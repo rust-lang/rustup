@@ -1,9 +1,9 @@
 use std::env;
 
 fn main() {
+    println!("cargo:rustc-link-lib=static=wcautil");
+    println!("cargo:rustc-link-lib=static=dutil");
     println!("cargo:rustc-link-lib=dylib=msi");
-    println!("cargo:rustc-link-lib=dylib=wcautil");
-    println!("cargo:rustc-link-lib=dylib=dutil");
     println!("cargo:rustc-link-lib=dylib=user32");
     println!("cargo:rustc-link-lib=dylib=mincore");
 
