@@ -1,0 +1,15 @@
+[package]
+name = "rustup-plugin-target-android"
+version = "0.1.0"
+authors = ["Diggory Blake <diggsey@googlemail.com>"]
+description = "cross-compile to android with ease"
+
+homepage = "https://github.com/rust-lang-nursery/rustup.rs"
+repository = "https://github.com/rust-lang-nursery/rustup.rs"
+
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "target-android"
+
+[dependencies]

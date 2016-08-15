@@ -62,5 +62,9 @@ error_chain! {
         TelemetryAnalysisError {
             description("error analyzing telemetry files")
         }
+        PluginNotInstalled(p: String, t: String) {
+            description("plugin is not installed for toolchain")
+            display("plugin '{}' is not installed for toolchain '{}'", p, t)
+        }
     }
 }

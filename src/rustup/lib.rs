@@ -19,11 +19,13 @@ pub use errors::*;
 pub use notifications::*;
 pub use config::*;
 pub use toolchain::*;
+pub use plugin::*;
 pub use rustup_utils::{utils, notify, toml_utils};
 
 mod errors;
 mod notifications;
 mod toolchain;
+mod plugin;
 mod config;
 mod env_var;
 mod install;

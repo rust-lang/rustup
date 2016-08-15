@@ -56,6 +56,14 @@ pub fn main() -> Result<()> {
                 (_, _) => unreachable!(),
             }
         }
+        ("plugin", Some(c)) => {
+            match c.subcommand() {
+                ("list", Some(m)) => try!(plugin_list(cfg, m)),
+                ("install", Some(m)) => try!(plugin_install(cfg, m)),
+                ("uninstall", Some(m)) => try!(plugin_uninstall(cfg, m)),
+                (_, _) => unreachable!(),
+            }
+        }
         ("override", Some(c)) => {
             match c.subcommand() {
                 ("list", Some(_)) => try!(common::list_overrides(cfg)),
@@ -180,13 +188,16 @@ pub fn cli() -> App<'static, 'static> {
                     .takes_value(true)))
             .subcommand(SubCommand::with_name("add")
                 .about("Add a target to a Rust toolchain")
+                .setting(AppSettings::TrailingVarArg)
                 .arg(Arg::with_name("target")
                     .required(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
-                    .takes_value(true)))
+                    .takes_value(true))
+                .arg(Arg::with_name("cargo-args")
+                    .multiple(true)))
             .subcommand(SubCommand::with_name("remove")
-                .about("Remove a target  from a Rust toolchain")
+                .about("Remove a target from a Rust toolchain")
                 .arg(Arg::with_name("target")
                     .required(true))
                 .arg(Arg::with_name("toolchain")
@@ -202,6 +213,33 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("uninstall")
                 .setting(AppSettings::Hidden) // synonym for 'remove'
                 .arg(Arg::with_name("target")
+                    .required(true))
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true))))
+        .subcommand(SubCommand::with_name("plugin")
+            .about("Modify a toolchain's plugins")
+            .setting(AppSettings::VersionlessSubcommands)
+            .setting(AppSettings::DeriveDisplayOrder)
+            .setting(AppSettings::SubcommandRequiredElseHelp)
+            .subcommand(SubCommand::with_name("list")
+                .about("List installed and available plugins")
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true)))
+            .subcommand(SubCommand::with_name("install")
+                .about("Install a plugin for a Rust toolchain")
+                .setting(AppSettings::TrailingVarArg)
+                .arg(Arg::with_name("plugin")
+                    .required(true))
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true))
+                .arg(Arg::with_name("cargo-args")
+                    .multiple(true)))
+            .subcommand(SubCommand::with_name("uninstall")
+                .about("Uninstall a plugin from a Rust toolchain")
+                .arg(Arg::with_name("plugin")
                     .required(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
@@ -533,6 +571,33 @@ fn show(cfg: &Cfg) -> Result<()> {
     Ok(())
 }
 
+fn plugin_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
+
+    common::list_plugins(&toolchain)
+}
+
+fn plugin_install(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
+    let plugin = m.value_of("plugin").expect("");
+    let cargo_args = if let Some(vs) = m.values_of("cargo-args") {
+        vs.collect()
+    } else {
+        Vec::new()
+    };
+
+    try!(toolchain.install_plugin(&plugin, &cargo_args));
+    Ok(())
+}
+
+fn plugin_uninstall(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
+    let plugin = m.value_of("plugin").expect("");
+
+    try!(toolchain.uninstall_plugin(&plugin));
+    Ok(())
+}
+
 fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
 
@@ -542,12 +607,35 @@ fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
     let target = m.value_of("target").expect("");
-    let new_component = Component {
-        pkg: "rust-std".to_string(),
-        target: TargetTriple::from_str(target),
+    let cargo_args = if let Some(vs) = m.values_of("cargo-args") {
+        vs.collect()
+    } else {
+        Vec::new()
     };
 
-    Ok(try!(toolchain.add_component(new_component)))
+    let mut split_iter = target.splitn(2, ":");
+    match (split_iter.next().expect("splitn should always return at least one result"),
+           split_iter.next()) {
+        (target_plugin, Some(target_desc)) => {
+            let plugin = format!("target-{}", target_plugin);
+            // Automatically install the plugin required by this target
+            let plugin = try!(toolchain.install_plugin(&plugin, &cargo_args));
+            // Tell the plugin to add the target
+            Ok(try!(plugin.target_add(target_desc)))
+        },
+        (target, None) => {
+            if cargo_args.len() > 0 {
+                err!("unexpected additional arguments to `rustup target add`");
+            }
+
+            let new_component = Component {
+                pkg: "rust-std".to_string(),
+                target: TargetTriple::from_str(target),
+            };
+
+            Ok(try!(toolchain.add_component(new_component)))
+        }
+    }
 }
 
 fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {

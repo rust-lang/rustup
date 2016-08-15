@@ -257,6 +257,14 @@ pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
     Ok(())
 }
 
+pub fn list_plugins(toolchain: &Toolchain) -> Result<()> {
+    for plugin in try!(toolchain.list_plugins()) {
+        println!("{}", plugin);
+    }
+
+    Ok(())
+}
+
 pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
     let toolchains = try!(cfg.list_toolchains());
 
