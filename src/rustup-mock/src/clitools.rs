@@ -12,7 +12,7 @@ use std::time::Duration;
 use tempdir::TempDir;
 use {MockInstallerBuilder, MockCommand};
 use dist::{MockDistServer, MockChannel, MockPackage,
-           MockTargettedPackage, MockComponent, change_channel_date,
+           MockTargetedPackage, MockComponent, change_channel_date,
            ManifestVersion};
 use url::Url;
 use scopeguard;
@@ -385,7 +385,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
 
     let packages = all.into_iter().map(|(name, target_pkgs)| {
         let target_pkgs = target_pkgs.into_iter().map(|(installer, triple)| {
-            MockTargettedPackage {
+            MockTargetedPackage {
                 target: triple,
                 available: true,
                 components: vec![],

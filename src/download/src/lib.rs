@@ -240,6 +240,7 @@ pub mod hyper {
     use std::io::{Read, Write};
     use std::net::{SocketAddr, Shutdown};
     use std::sync::{Arc, Mutex, MutexGuard};
+    use std::fmt::Debug;
 
     pub fn download(url: &Url,
                     callback: &Fn(Event) -> Result<()>)
@@ -254,7 +255,7 @@ pub mod hyper {
         fn maybe_init_certs() { maybe_init_certs() }
     }
 
-    impl<T: NetworkStream + Send + Clone> SslClient<T> for NativeSslClient {
+    impl<T: NetworkStream + Send + Clone + Debug + Sync> SslClient<T> for NativeSslClient {
         type Stream = NativeSslStream<T>;
 
         fn wrap_client(&self, stream: T, host: &str) -> HyperResult<Self::Stream> {
@@ -397,7 +398,7 @@ pub mod rustls {
     }
 
     fn global_config() -> Arc<rustls::ClientConfig> {
-	use ca_loader::{CertBundle, CertItem};
+        use ca_loader::{CertBundle, CertItem};
         use std::fs::File;
         use std::io::BufReader;
 
@@ -407,33 +408,33 @@ pub mod rustls {
 
         fn init() -> Arc<rustls::ClientConfig> {
             let mut config = rustls::ClientConfig::new();
-	    let bundle = CertBundle::new().expect("cannot initialize CA cert bundle");
-	    let mut added = 0;
-	    let mut invalid = 0;
-	    for cert in bundle {
-		let (c_added, c_invalid) = match cert {
-		    CertItem::Blob(blob) => match config.root_store.add(&blob) {
-			Ok(_) => (1, 0),
-			Err(_) => (0, 1)
-		    },
-		    CertItem::File(name) => {
-			if let Ok(cf) = File::open(name) {
-			    let mut reader = BufReader::new(cf);
-			    match config.root_store.add_pem_file(&mut reader) {
-				Ok(pair) => pair,
-				Err(_) => (0, 1)
-			    }
-			} else {
-			    (0, 1)
-			}
-		    }
-		};
-		added += c_added;
-		invalid += c_invalid;
-	    }
-	    if added == 0 {
-		panic!("no CA certs added, {} were invalid", invalid);
-	    }
+            let bundle = CertBundle::new().expect("cannot initialize CA cert bundle");
+            let mut added = 0;
+            let mut invalid = 0;
+            for cert in bundle {
+                let (c_added, c_invalid) = match cert {
+                    CertItem::Blob(blob) => match config.root_store.add(&blob) {
+                        Ok(_) => (1, 0),
+                        Err(_) => (0, 1)
+                    },
+                    CertItem::File(name) => {
+                        if let Ok(cf) = File::open(name) {
+                            let mut reader = BufReader::new(cf);
+                            match config.root_store.add_pem_file(&mut reader) {
+                                Ok(pair) => pair,
+                                Err(_) => (0, 1)
+                            }
+                        } else {
+                            (0, 1)
+                        }
+                    }
+                };
+                added += c_added;
+                invalid += c_invalid;
+            }
+            if added == 0 {
+                panic!("no CA certs added, {} were invalid", invalid);
+            }
             Arc::new(config)
         }
 
@@ -493,17 +494,17 @@ pub mod rustls {
                     let (ref mut stream, ref mut tls) = *t;
                     while tls.wants_read() {
                         match tls.read_tls(stream) {
-			    Ok(_) => {
-				match tls.process_new_packets() {
-				    Ok(_) => (),
-				    Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!("{:?}", e)))
-				}
-				while tls.wants_write() {
-				    try!(tls.write_tls(stream));
-				}
-			    },
-			    Err(e) => return Err(e),
-			}
+                            Ok(_) => {
+                                match tls.process_new_packets() {
+                                    Ok(_) => (),
+                                    Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!("{:?}", e)))
+                                }
+                                while tls.wants_write() {
+                                    try!(tls.write_tls(stream));
+                                }
+                            },
+                            Err(e) => return Err(e),
+                        }
                     }
 
                     tls.read(buf)

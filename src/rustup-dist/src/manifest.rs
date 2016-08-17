@@ -30,11 +30,17 @@ pub struct Manifest {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Package {
     pub version: String,
-    pub targets: HashMap<TargetTriple, TargettedPackage>,
+    pub targets: PackageTargets,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TargettedPackage {
+pub enum PackageTargets {
+    Wildcard(TargetedPackage),
+    Targeted(HashMap<TargetTriple, TargetedPackage>)
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TargetedPackage {
     pub available: bool,
     pub url: String,
     pub hash: String,
@@ -45,7 +51,7 @@ pub struct TargettedPackage {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Component {
     pub pkg: String,
-    pub target: TargetTriple,
+    pub target: Option<TargetTriple>,
 }
 
 impl Manifest {
@@ -106,19 +112,30 @@ impl Manifest {
         result
     }
 
-
     pub fn get_package(&self, name: &str) -> Result<&Package> {
         self.packages.get(name).ok_or_else(
             || format!("package not found: '{}'", name).into())
     }
 
+    fn validate_targeted_package(&self, tpkg: &TargetedPackage) -> Result<()> {
+        for c in tpkg.components.iter().chain(tpkg.extensions.iter()) {
+            let cpkg = try!(self.get_package(&c.pkg).chain_err(|| ErrorKind::MissingPackageForComponent(c.clone())));
+            let _ctpkg = try!(cpkg.get_target(c.target.as_ref()).chain_err(|| ErrorKind::MissingPackageForComponent(c.clone())));
+        }
+        Ok(())
+    }
+
     fn validate(&self) -> Result<()> {
         // Every component mentioned must have an actual package to download
         for (_, pkg) in &self.packages {
-            for (_, tpkg) in &pkg.targets {
-                for c in tpkg.components.iter().chain(tpkg.extensions.iter()) {
-                    let cpkg = try!(self.get_package(&c.pkg).chain_err(|| ErrorKind::MissingPackageForComponent(c.clone())));
-                    let _ctpkg = try!(cpkg.get_target(&c.target).chain_err(|| ErrorKind::MissingPackageForComponent(c.clone())));
+            match pkg.targets {
+                PackageTargets::Wildcard(ref tpkg) => {
+                    try!(self.validate_targeted_package(tpkg));
+                },
+                PackageTargets::Targeted(ref tpkgs) => {
+                    for (_, tpkg) in tpkgs {
+                        try!(self.validate_targeted_package(tpkg));
+                    }
                 }
             }
         }
@@ -145,37 +162,71 @@ impl Package {
         result
     }
 
-    fn toml_to_targets(mut table: toml::Table, path: &str) -> Result<HashMap<TargetTriple, TargettedPackage>> {
-        let mut result = HashMap::new();
-        let target_table = try!(get_table(&mut table, "target", path));
+    fn toml_to_targets(mut table: toml::Table, path: &str) -> Result<PackageTargets> {
+        let mut target_table = try!(get_table(&mut table, "target", path));
 
-        for (k, v) in target_table {
-            if let toml::Value::Table(t) = v {
-                result.insert(TargetTriple::from_str(&k), try!(TargettedPackage::from_toml(t, &path)));
+        if let Some(toml::Value::Table(t)) = target_table.remove("*") {
+            Ok(PackageTargets::Wildcard(try!(TargetedPackage::from_toml(t, &path))))
+        } else {
+            let mut result = HashMap::new();
+            for (k, v) in target_table {
+                if let toml::Value::Table(t) = v {
+                    result.insert(TargetTriple::from_str(&k), try!(TargetedPackage::from_toml(t, &path)));
+                }
             }
+            Ok(PackageTargets::Targeted(result))
         }
-
-        Ok(result)
     }
-    fn targets_to_toml(targets: HashMap<TargetTriple, TargettedPackage>) -> toml::Table {
+    fn targets_to_toml(targets: PackageTargets) -> toml::Table {
         let mut result = toml::Table::new();
-        for (k, v) in targets {
-            result.insert(k.to_string(), toml::Value::Table(v.to_toml()));
+        match targets {
+            PackageTargets::Wildcard(tpkg) => {
+                result.insert("*".to_owned(), toml::Value::Table(tpkg.to_toml()));
+            },
+            PackageTargets::Targeted(tpkgs) => {
+                for (k, v) in tpkgs {
+                    result.insert(k.to_string(), toml::Value::Table(v.to_toml()));
+                }
+            }
         }
         result
     }
 
-    pub fn get_target(&self, target: &TargetTriple) -> Result<&TargettedPackage> {
-        self.targets.get(target).ok_or_else(
-            || format!("target not found: '{}'", target).into())
+    pub fn get_target(&self, target: Option<&TargetTriple>) -> Result<&TargetedPackage> {
+        match self.targets {
+            PackageTargets::Wildcard(ref tpkg) => Ok(tpkg),
+            PackageTargets::Targeted(ref tpkgs) => {
+                if let Some(t) = target {
+                    tpkgs.get(t).ok_or_else(
+                        || format!("target not found: '{}'", t).into())
+                } else {
+                    Err("no target specified".into())
+                }
+            }
+        }
     }
 }
 
-impl TargettedPackage {
+impl PackageTargets {
+    pub fn get<'a>(&'a self, target: &TargetTriple) -> Option<&'a TargetedPackage> {
+        match *self {
+            PackageTargets::Wildcard(ref tpkg) => Some(tpkg),
+            PackageTargets::Targeted(ref tpkgs) => tpkgs.get(target)
+        }
+    }
+    pub fn get_mut<'a>(&'a mut self, target: &TargetTriple) -> Option<&'a mut TargetedPackage> {
+        match *self {
+            PackageTargets::Wildcard(ref mut tpkg) => Some(tpkg),
+            PackageTargets::Targeted(ref mut tpkgs) => tpkgs.get_mut(target)
+        }
+    }
+}
+
+impl TargetedPackage {
     pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
         let components = try!(get_array(&mut table, "components", path));
         let extensions = try!(get_array(&mut table, "extensions", path));
-        Ok(TargettedPackage {
+        Ok(TargetedPackage {
             available: try!(get_bool(&mut table, "available", path)),
             url: try!(get_string(&mut table, "url", path)),
             hash: try!(get_string(&mut table, "hash", path)),
@@ -226,16 +277,35 @@ impl Component {
     pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
         Ok(Component {
             pkg: try!(get_string(&mut table, "pkg", path)),
-            target: try!(get_string(&mut table, "target", path).map(|s| TargetTriple::from_str(&s))),
+            target: try!(get_string(&mut table, "target", path).map(|s| {
+                if s == "*" {
+                    None
+                } else {
+                    Some(TargetTriple::from_str(&s))
+                }
+            })),
         })
     }
     pub fn to_toml(self) -> toml::Table {
         let mut result = toml::Table::new();
-        result.insert("target".to_owned(), toml::Value::String(self.target.to_string()));
+        result.insert("target".to_owned(), toml::Value::String(
+            self.target.map(|t| t.to_string()).unwrap_or_else(||"*".to_owned())
+        ));
         result.insert("pkg".to_owned(), toml::Value::String(self.pkg));
         result
     }
     pub fn name(&self) -> String {
-        format!("{}-{}", self.pkg, self.target)
+        if let Some(ref t) = self.target {
+            format!("{}-{}", self.pkg, t)
+        } else {
+            format!("{}", self.pkg)
+        }
+    }
+    pub fn description(&self) -> String {
+        if let Some(ref t) = self.target {
+            format!("'{}' for target '{}'", self.pkg, t)
+        } else {
+            format!("'{}'", self.pkg)
+        }
     }
 }

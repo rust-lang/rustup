@@ -80,10 +80,10 @@ pub struct MockPackage {
     // rust, rustc, rust-std-$triple, rust-doc, etc.
     pub name: &'static str,
     pub version: &'static str,
-    pub targets: Vec<MockTargettedPackage>,
+    pub targets: Vec<MockTargetedPackage>,
 }
 
-pub struct MockTargettedPackage {
+pub struct MockTargetedPackage {
     // Target triple
     pub target: String,
     // Whether the file actually exists (could be due to build failure)
@@ -142,7 +142,7 @@ impl MockDistServer {
     fn build_target_package(&self,
                             channel: &MockChannel,
                             package: &MockPackage,
-                            target_package: &MockTargettedPackage) -> String {
+                            target_package: &MockTargetedPackage) -> String {
         // This is where the tarball, sums and sigs will go
         let ref dist_dir = self.path.join("dist");
         let ref archive_dir = dist_dir.join(&channel.date);

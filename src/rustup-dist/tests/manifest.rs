@@ -25,21 +25,21 @@ fn parse_smoke_test() {
     let rust_pkg = pkg.get_package("rust").unwrap();
     assert!(rust_pkg.version.contains("1.3.0"));
 
-    let rust_target_pkg = rust_pkg.get_target(&x86_64_unknown_linux_gnu).unwrap();
+    let rust_target_pkg = rust_pkg.get_target(Some(&x86_64_unknown_linux_gnu)).unwrap();
     assert_eq!(rust_target_pkg.available, true);
     assert_eq!(rust_target_pkg.url, "example.com");
     assert_eq!(rust_target_pkg.hash, "...");
 
     let ref component = rust_target_pkg.components[0];
     assert_eq!(component.pkg, "rustc");
-    assert_eq!(component.target, x86_64_unknown_linux_gnu);
+    assert_eq!(component.target.as_ref(), Some(&x86_64_unknown_linux_gnu));
 
     let ref component = rust_target_pkg.extensions[0];
     assert_eq!(component.pkg, "rust-std");
-    assert_eq!(component.target, x86_64_unknown_linux_musl);
+    assert_eq!(component.target.as_ref(), Some(&x86_64_unknown_linux_musl));
 
     let docs_pkg = pkg.get_package("rust-docs").unwrap();
-    let docs_target_pkg = docs_pkg.get_target(&x86_64_unknown_linux_gnu).unwrap();
+    let docs_target_pkg = docs_pkg.get_target(Some(&x86_64_unknown_linux_gnu)).unwrap();
     assert_eq!(docs_target_pkg.url, "example.com");
 }
 

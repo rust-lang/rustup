@@ -56,6 +56,14 @@ pub fn main() -> Result<()> {
                 (_, _) => unreachable!(),
             }
         }
+        ("component", Some(c)) => {
+            match c.subcommand() {
+                ("list", Some(m)) => try!(component_list(cfg, m)),
+                ("add", Some(m)) => try!(component_add(cfg, m)),
+                ("remove", Some(m)) => try!(component_remove(cfg, m)),
+                (_, _) => unreachable!(),
+            }
+        }
         ("override", Some(c)) => {
             match c.subcommand() {
                 ("list", Some(_)) => try!(common::list_overrides(cfg)),
@@ -206,6 +214,36 @@ pub fn cli() -> App<'static, 'static> {
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
                     .takes_value(true))))
+        .subcommand(SubCommand::with_name("component")
+            .about("Modify a toolchain's installed components")
+            .setting(AppSettings::VersionlessSubcommands)
+            .setting(AppSettings::DeriveDisplayOrder)
+            .setting(AppSettings::SubcommandRequiredElseHelp)
+            .subcommand(SubCommand::with_name("list")
+                .about("List installed and available components")
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true)))
+            .subcommand(SubCommand::with_name("add")
+                .about("Add a component to a Rust toolchain")
+                .arg(Arg::with_name("component")
+                    .required(true))
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true))
+                .arg(Arg::with_name("target")
+                    .long("target")
+                    .takes_value(true)))
+            .subcommand(SubCommand::with_name("remove")
+                .about("Remove a component from a Rust toolchain")
+                .arg(Arg::with_name("component")
+                    .required(true))
+                .arg(Arg::with_name("toolchain")
+                    .long("toolchain")
+                    .takes_value(true))
+                .arg(Arg::with_name("target")
+                    .long("target")
+                    .takes_value(true))))
         .subcommand(SubCommand::with_name("override")
             .about("Modify directory toolchain overrides")
             .after_help(OVERRIDE_HELP)
@@ -308,7 +346,7 @@ fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
 
 fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
     if let Some(triple) = PartialTargetTriple::from_str(name) {
-	warn!("(partial) target triple specified instead of toolchain name");
+        warn!("(partial) target triple specified instead of toolchain name");
         let installed_toolchains = try!(cfg.list_toolchains());
         let default = try!(cfg.find_default());
         let default_name = default.map(|t| t.name().to_string())
@@ -316,8 +354,8 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
         let mut candidates = vec![];
         for t in installed_toolchains {
             if t == default_name {
-		continue;
-	    }
+                continue;
+            }
             if let Ok(desc) = PartialToolchainDesc::from_str(&t) {
                 fn triple_comp_eq(given: &String, from_desc: Option<&String>) -> bool {
                     from_desc.map_or(false, |s| *s == *given)
@@ -332,17 +370,17 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
                 }
             }
         }
-	match candidates.len() {
-	    0 => err!("no candidate toolchains found"),
-	    1 => println!("\nyou may use the following toolchain: {}\n", candidates[0]),
-	    _ => {
-		println!("\nyou may use one of the following toolchains:");
-		for n in candidates.iter() {
-		    println!("{}", n);
-		}
-		println!("");
-	    }
-	}
+        match candidates.len() {
+            0 => err!("no candidate toolchains found"),
+            1 => println!("\nyou may use the following toolchain: {}\n", candidates[0]),
+            _ => {
+                println!("\nyou may use one of the following toolchains:");
+                for n in candidates.iter() {
+                    println!("{}", n);
+                }
+                println!("");
+            }
+        }
         return Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into());
     }
     Ok(())
@@ -354,17 +392,17 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
         let default = try!(cfg.find_default());
         let default_name = default.map(|t| t.name().to_string())
                            .unwrap_or("".into());
-	if let Ok(mut desc) = PartialToolchainDesc::from_str(&default_name) {
-	    desc.target = triple;
-	    let maybe_toolchain = format!("{}", desc);
-	    let ref toolchain = try!(cfg.get_toolchain(maybe_toolchain.as_ref(), false));
-	    if toolchain.name() == default_name {
-		warn!("(partial) triple '{}' resolves to a toolchain that is already default", name);
-	    } else {
-		println!("\nyou may use the following toolchain: {}\n", toolchain.name());
-	    }
-	    return Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into());
-	}
+        if let Ok(mut desc) = PartialToolchainDesc::from_str(&default_name) {
+            desc.target = triple;
+            let maybe_toolchain = format!("{}", desc);
+            let ref toolchain = try!(cfg.get_toolchain(maybe_toolchain.as_ref(), false));
+            if toolchain.name() == default_name {
+                warn!("(partial) triple '{}' resolves to a toolchain that is already default", name);
+            } else {
+                println!("\nyou may use the following toolchain: {}\n", toolchain.name());
+            }
+            return Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into());
+        }
     }
     Ok(())
 }
@@ -454,13 +492,13 @@ fn show(cfg: &Cfg) -> Result<()> {
     let active_toolchain = try!(cfg.find_override_toolchain_or_default(cwd));
     let active_targets = if let Some((ref t, _)) = active_toolchain {
         match t.list_components() {
-	    Ok(cs_vec) => cs_vec
-		.into_iter()
-		.filter(|c| c.component.pkg == "rust-std")
-		.filter(|c| c.installed)
-		.collect(),
-	    Err(_) => vec![]
-	}
+            Ok(cs_vec) => cs_vec
+                .into_iter()
+                .filter(|c| c.component.pkg == "rust-std")
+                .filter(|c| c.installed)
+                .collect(),
+            Err(_) => vec![]
+        }
     } else {
         vec![]
     };
@@ -496,7 +534,7 @@ fn show(cfg: &Cfg) -> Result<()> {
             print_header("installed targets for active toolchain");
         }
         for t in active_targets {
-            println!("{}", t.component.target);
+            println!("{}", t.component.target.as_ref().expect("rust-std should have a target"));
         }
         if show_headers { println!("") };
     }
@@ -544,7 +582,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let target = m.value_of("target").expect("");
     let new_component = Component {
         pkg: "rust-std".to_string(),
-        target: TargetTriple::from_str(target),
+        target: Some(TargetTriple::from_str(target)),
     };
 
     Ok(try!(toolchain.add_component(new_component)))
@@ -555,7 +593,41 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let target = m.value_of("target").expect("");
     let new_component = Component {
         pkg: "rust-std".to_string(),
-        target: TargetTriple::from_str(target),
+        target: Some(TargetTriple::from_str(target)),
+    };
+
+    Ok(try!(toolchain.remove_component(new_component)))
+}
+
+fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
+
+    common::list_components(&toolchain)
+}
+
+fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
+    let target = m.value_of("target").map(TargetTriple::from_str).or_else(|| {
+        toolchain.desc().as_ref().ok().map(|desc| desc.target.clone())
+    });
+
+    let new_component = Component {
+        pkg: "rust-std".to_string(),
+        target: target,
+    };
+
+    Ok(try!(toolchain.add_component(new_component)))
+}
+
+fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
+    let target = m.value_of("target").map(TargetTriple::from_str).or_else(|| {
+        toolchain.desc().as_ref().ok().map(|desc| desc.target.clone())
+    });
+
+    let new_component = Component {
+        pkg: "rust-std".to_string(),
+        target: target,
     };
 
     Ok(try!(toolchain.remove_component(new_component)))
