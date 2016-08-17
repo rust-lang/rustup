@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <!-- TODO: Change paths and names accordingly -->
+    <?define TargetPath="..\..\..\target\$(var.TARGET)\release"?>
+    <?define RustupCustomActionDll="$(var.TargetPath)\rustup_msi.dll"?>
+    <?define RustupExe="$(var.TargetPath)\rustup-init.exe"?>
+        
+    <Product Id="*" Name="rustup" Language="1033" Version="$(env.CFG_VER_MAJOR).$(env.CFG_VER_MINOR).$(env.CFG_VER_PATCH).0" Manufacturer="The Rust Project Developers" UpgradeCode="09acbb1c-7123-44ac-b2a9-4a04b28ced11">
+        <Package InstallerVersion="200" Compressed="yes" InstallScope="perUser" />
+
+        <!-- TODO: How to configure updates? `AllowDowngrades` automatically removes previously installed versions, no matter what version they have -->
+        <MajorUpgrade AllowDowngrades="yes" />
+        
+        <!-- Specifies a single cab file to be embedded in the installer's .msi. -->
+        <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+        <Feature Id="ProductFeature" Title="rustup" Level="1">
+            <ComponentRef Id="CompleteInstallation" />
+        </Feature>
+        
+        <!-- Set some metadata that will appear in the "Installed Programs" list -->
+        <Property Id="ARPCONTACT" Value="rustup" />
+        <Property Id="ARPCOMMENTS" Value="rustup – The Rust Toolchain Installer" />
+        <Property Id="ARPURLINFOABOUT" Value="http://www.rustup.rs" />
+        <!--<Property Id="ARPHELPLINK" Value="http://www.rustup.rs" />-->
+        <Property Id="ARPPRODUCTICON" Value="rust.ico" />
+
+        <!-- Disable Modify and Repair options (our custom actions based install model does not support repairing) -->
+        <Property Id="ARPNOMODIFY" Value="1" />
+        <Property Id="ARPNOREPAIR" Value="1" />
+        
+        <Icon Id="rust.ico" SourceFile="rust-logo.ico"/>
+
+        <!-- Reference the UI defined in ui.wxs -->
+        <UIRef Id="CustomUI" />
+        <WixVariable Id="WixUIDialogBmp" Value="dialogbg.bmp" />
+        <WixVariable Id="WixUIBannerBmp" Value="banner.bmp" />
+        <!-- TODO: Include/generate license file -->
+        <!--<WixVariable Id="WixUILicenseRtf" Value="LICENSE.rtf" />-->
+
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <!-- `INSTALLLOCATION` will be set by custom action -->
+            <Directory Id="INSTALLLOCATION">
+                <Directory Id="INSTALLLOCATION_BINARY" Name="bin"/>
+            </Directory>
+        </Directory>
+
+        <DirectoryRef Id="INSTALLLOCATION_BINARY">
+            <Component Id="CompleteInstallation" Guid="df2ab9f7-7888-465c-98dd-bb58cbca68f7">
+                <!-- Write the product code to the registry, so we can use it to run the uninstaller -->
+                <RegistryKey Root="HKCU" Key="Software\rustup">
+                    <RegistryValue Name="InstalledProductCode" Type="string" Value="[ProductCode]" KeyPath="yes" />
+                </RegistryKey>
+                <!-- Install the main rustup.exe binary -->
+                <File Source="$(var.RustupExe)" Name="rustup.exe"/>
+                <!-- Append to PATH environment variable -->
+                <Environment Id="PATH" Name="PATH" Value="[INSTALLLOCATION_BINARY]" Permanent="no" Part="first" Action="set" System="no" />
+            </Component>
+        </DirectoryRef>
+
+        <!-- Register the DLL containing the custom actions as an embedded binary -->
+        <Binary Id="RustupCustomActionDll" SourceFile="$(var.RustupCustomActionDll)"/>
+        <!-- Use a type 51 custom action to send options to deferred custom action `RustupInstall`
+             (can use arbitrary value that encodes all necessary properties and will be parsed from Rust) -->
+        <CustomAction Id="SetInstallOptions" Property="RustupInstall" Value="... we can pass arbitrary options here ..." />
+        <CustomAction Id="RustupSetInstallLocation" BinaryKey="RustupCustomActionDll" DllEntry="RustupSetInstallLocation" Execute="immediate" Return="check" Impersonate="yes"/>
+        <!-- Propagate the value of `RustupInstallLocation` (set by custom action) to `INSTALLLOCATION` -->
+        <CustomAction Id="AssignInstallLocation" Directory="INSTALLLOCATION" Value="[RustupInstallLocation]"/>
+        <CustomAction Id="RustupInstall" BinaryKey="RustupCustomActionDll" DllEntry="RustupInstall" Execute="deferred" Return="check" Impersonate="yes"/>
+        <CustomAction Id="RustupUninstall" BinaryKey="RustupCustomActionDll" DllEntry="RustupUninstall" Execute="deferred" Return="check" Impersonate="yes"/>
+        
+        <InstallExecuteSequence>
+            <DisableRollback Before="InstallInitialize"/>
+            <Custom Action="RustupSetInstallLocation" After="CostFinalize"/>
+            <Custom Action="AssignInstallLocation" After="RustupSetInstallLocation"/>
+            <Custom Action="SetInstallOptions" Before="InstallInitialize">NOT Installed</Custom>
+            <Custom Action="RustupInstall" After="InstallFiles">NOT Installed</Custom>
+            <!-- Run RustupUninstall only on true uninstall, not on upgrade -->
+            <Custom Action="RustupUninstall" After="RemoveFiles">Installed AND (NOT UPGRADINGPRODUCTCODE)</Custom>
+        </InstallExecuteSequence>
+
+        <!-- Send a WM_SETTINGCHANGE message to tell processes like explorer to update their
+             environments so any new command prompts get the updated %PATH% -->
+        <CustomActionRef Id="WixBroadcastEnvironmentChange" />
+    </Product>
+</Wix>

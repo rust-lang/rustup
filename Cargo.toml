@@ -28,6 +28,9 @@ rustls-backend = ["download/rustls-backend"]
 # Include in the default set to disable self-update and uninstall.
 no-self-update = []
 
+# Used to change behavior of self-update and uninstall if installed via MSI 
+msi-installed = []
+
 [dependencies]
 rustup-dist = { path = "src/rustup-dist", version = "0.5.0" }
 rustup-utils = { path = "src/rustup-utils", version = "0.5.0" }
@@ -58,6 +61,9 @@ kernel32-sys = "0.2.1"
 [dev-dependencies]
 rustup-mock = { path = "src/rustup-mock", version = "0.5.0" }
 lazy_static = "0.1.15"
+
+[workspace]
+members = ["src/ca-loader", "src/download", "src/rustup-dist", "src/rustup-mock", "src/rustup-utils", "src/rustup-win-installer"]
 
 [lib]
 name = "rustup"

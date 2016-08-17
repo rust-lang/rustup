@@ -1,5 +1,7 @@
 environment:
   matrix:
+  - TARGET: i686-pc-windows-msvc
+    BUILD_MSI: 1
   - TARGET: i686-pc-windows-gnu
     MINGW_URL: https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/4.9.2/threads-win32/dwarf/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z/download
     MINGW_ARCHIVE: i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z
@@ -34,6 +36,10 @@ install:
   - if defined MINGW_ARCHIVE curl -L --retry 4 "%MINGW_URL%" -o "%MINGW_ARCHIVE%"
   - if defined MINGW_ARCHIVE 7z x -y "%MINGW_ARCHIVE%" > nul
   - if defined MINGW_ARCHIVE set PATH=%CD%\%MINGW_DIR%\bin;C:\msys64\usr\bin;%PATH%
+  
+  # set cargo features for MSI if requested (otherwise empty string)
+  - set FEATURES= 
+  - if defined BUILD_MSI set FEATURES=--features msi-installed
 
   # let's see what we got
   - where gcc rustc cargo
@@ -44,9 +50,18 @@ install:
 build: false
 
 test_script:
-  - cargo build  --release --target %TARGET%
-  - cargo test --release -p rustup-dist --target %TARGET%
-  - cargo test --release --target %TARGET%
+  - cargo build --release --target %TARGET% %FEATURES%
+  - cargo test --release -p rustup-dist --target %TARGET% %FEATURES%
+  - cargo test --release --target %TARGET% %FEATURES%
+  - ps: |
+      if($env:BUILD_MSI) {
+        cd src\rustup-win-installer
+        cargo build --release --target $env:TARGET
+        cd msi
+        .\build.ps1 -Target $env:TARGET
+        cd ..\..\..
+        if($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
+      }
 
 notifications:
   - provider: Webhook
