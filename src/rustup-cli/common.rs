@@ -8,6 +8,7 @@ use rustup_utils::notify::NotificationLevel;
 use self_update;
 use std::io::{Write, BufRead};
 use std::process::Command;
+use std::path::Path;
 use std::{cmp, iter};
 use std::sync::Arc;
 use std;
@@ -288,10 +289,25 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
     if overrides.is_empty() {
         println!("no overrides");
     } else {
+        let mut any_not_exist = false;
         for (k, v) in overrides {
+            let dir_exists = Path::new(&k).is_dir();
+            if !dir_exists {
+                any_not_exist = true;
+            }
             println!("{:<40}\t{:<20}",
-                     utils::format_path_for_display(&k),
+                     utils::format_path_for_display(&k) +
+                     if dir_exists {
+                         ""
+                     } else {
+                         " (not a directory)"
+                     },
                      v)
+        }
+        if any_not_exist {
+            println!("");
+            info!("you may remove overrides for non-existent directories with
+`rustup override unset --nonexistent`");
         }
     }
     Ok(())
