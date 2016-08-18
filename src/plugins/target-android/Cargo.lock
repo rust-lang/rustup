@@ -1,0 +1,4 @@
+[root]
+name = "rustup-plugin-target-android"
+version = "0.1.0"
+

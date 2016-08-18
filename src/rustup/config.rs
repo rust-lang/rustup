@@ -330,6 +330,14 @@ impl Cfg {
         }
     }
 
+    pub fn create_command(&self, toolchain: &Toolchain, binary: &str) -> Result<Command> {
+        if let Some(cmd) = try!(self.maybe_do_cargo_fallback(toolchain, binary)) {
+            Ok(cmd)
+        } else {
+            toolchain.create_command(binary)
+        }
+    }
+
     // Custom toolchains don't have cargo, so here we detect that situation and
     // try to find a different cargo.
     fn maybe_do_cargo_fallback(&self, toolchain: &Toolchain, binary: &str) -> Result<Option<Command>> {

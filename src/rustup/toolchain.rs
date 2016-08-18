@@ -12,6 +12,7 @@ use env_var;
 use install::{self, InstallMethod};
 use telemetry;
 use telemetry::{Telemetry, TelemetryEvent};
+use plugin::Plugin;
 
 use std::process::Command;
 use std::path::{Path, PathBuf};
@@ -291,7 +292,7 @@ impl<'a> Toolchain<'a> {
         Ok(cmd)
     }
 
-    fn set_env(&self, cmd: &mut Command) {
+    pub fn set_env(&self, cmd: &mut Command) {
         self.set_ldpath(cmd);
 
         // Because multirust and cargo use slightly different
@@ -551,6 +552,87 @@ impl<'a> Toolchain<'a> {
         } else {
             Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
+    }
+
+    pub fn plugins_dir(&self) -> PathBuf {
+        let mut plugin_dir = self.path.clone();
+        plugin_dir.push("plugins");
+        plugin_dir
+    }
+
+    pub fn plugin_dir(&self, plugin: &str) -> PathBuf {
+        let mut plugin_dir = self.plugins_dir();
+        plugin_dir.push(&plugin);
+        plugin_dir
+    }
+
+    pub fn install_plugin(&self, plugin: &str, cargo_args: &[&str]) -> Result<Plugin> {
+        if !self.exists() {
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
+        }
+
+        if self.has_plugin(plugin) {
+            return self.get_plugin(plugin);
+        }
+
+        let plugin_name = format!("rustup-plugin-{}", plugin);
+        let plugin_dir = self.plugin_dir(plugin);
+
+        try!(utils::ensure_dir_exists("plugin", &plugin_dir, &|_| ()));
+
+        let mut cmd = try!(self.create_command("cargo"));
+        cmd.arg("install").arg(&plugin_name)
+            .arg("--root").arg(&plugin_dir)
+            .arg("--quiet")
+            .args(cargo_args);
+        let result = utils::cmd_status("cargo", &mut cmd);
+        if let Err(e) = result {
+            let _ = utils::remove_dir("plugin", &plugin_dir, &|_| ());
+            Err(e.into())
+        } else {
+            self.get_plugin(plugin)
+        }
+    }
+
+    pub fn uninstall_plugin(&self, plugin: &str) -> Result<()> {
+        if !self.has_plugin(plugin) {
+            return Err(ErrorKind::PluginNotInstalled(
+                plugin.to_owned(), self.name.to_owned()
+            ).into());
+        }
+
+        let plugin_dir = self.plugin_dir(plugin);
+        try!(utils::remove_dir("plugin", &plugin_dir, &|_| ()));
+        Ok(())
+    }
+
+    pub fn has_plugin(&self, plugin: &str) -> bool {
+        utils::is_directory(self.plugin_dir(plugin))
+    }
+
+    pub fn get_plugin(&self, plugin: &str) -> Result<Plugin> {
+        if !self.exists() {
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
+        }
+        if !self.has_plugin(plugin) {
+            return Err(ErrorKind::PluginNotInstalled(
+                plugin.to_owned(), self.name.to_owned()
+            ).into());
+        }
+
+        let mut binary = self.plugin_dir(plugin);
+        binary.push("bin");
+        binary.push(plugin.to_owned() + env::consts::EXE_SUFFIX);
+        Ok(Plugin { toolchain: self, binary: binary })
+    }
+
+    pub fn list_plugins(&self) -> Result<Vec<String>> {
+        use std::result;
+        Ok(try!(utils::read_dir("plugin", &self.plugins_dir()))
+            .filter_map(result::Result::ok)
+            .filter(|e| utils::is_directory(e.path()))
+            .filter_map(|e| e.file_name().into_string().ok())
+            .collect())
     }
 
     pub fn binary_file(&self, name: &str) -> PathBuf {

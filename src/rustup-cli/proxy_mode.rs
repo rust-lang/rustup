@@ -3,8 +3,9 @@ use rustup::{Cfg};
 use errors::*;
 use rustup_utils::utils;
 use rustup::command::run_command_for_dir;
+use rustup::Toolchain;
 use std::env;
-use std::ffi::OsString;
+use std::ffi::{OsString, OsStr};
 use std::path::PathBuf;
 use job;
 
@@ -47,10 +48,43 @@ pub fn main() -> Result<()> {
 }
 
 fn direct_proxy(cfg: &Cfg, arg0: &str, toolchain: Option<&str>, args: &[OsString]) -> Result<()> {
-    let cmd = match toolchain {
-        None => try!(cfg.create_command_for_dir(&try!(utils::current_dir()), arg0)),
-        Some(tc) => try!(cfg.create_command_for_toolchain(tc, arg0)),
+    let toolchain = match toolchain {
+        None => try!(cfg.toolchain_for_dir(&try!(utils::current_dir()))).0,
+        Some(tc) => try!(cfg.get_toolchain(tc, false)),
     };
+
+    // Detect use of a target plugin
+    for index in 1..(args.len()-1) {
+        // Look for a `--target` argument
+        if args[index] == OsStr::new("--target") {
+            // Check it's followed by a value of the form `<target_plugin>:<target_desc>`
+            if let Some(target) = args[index+1].to_str() {
+                let mut split_iter = target.splitn(2, ":");
+                if let (target_plugin, Some(target_desc)) = (
+                    split_iter.next().expect("splitn should always return at least one result"),
+                    split_iter.next()
+                ) {
+                    // It was, so proxy via the plugin, skipping these two arguments
+                    let new_args: Vec<&OsStr> = args[0..index].iter()
+                        .chain(args[(index+2)..].iter())
+                        .map(OsString::as_os_str)
+                        .collect();
+                    return plugin_proxy(&toolchain, target_plugin, target_desc, &new_args);
+                }
+            }
+        }
+    }
+
+    let cmd = try!(cfg.create_command(&toolchain, arg0));
     Ok(try!(run_command_for_dir(cmd, &args, &cfg)))
 }
 
+fn plugin_proxy(toolchain: &Toolchain, target_plugin: &str, target_desc: &str, args: &[&OsStr]) -> Result<()> {
+    let plugin_name = format!("target-{}", target_plugin);
+    // Install the plugin if required
+    let plugin = try!(toolchain.install_plugin(&plugin_name, &[]));
+    // Tell the plugin to add the target
+    try!(plugin.target_add(target_desc));
+    // Tell the plugin to run the original command
+    Ok(try!(plugin.target_run(target_desc, args)))
+}
