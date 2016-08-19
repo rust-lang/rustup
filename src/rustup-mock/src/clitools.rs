@@ -351,6 +351,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
     let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
     let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
     let cross_std2 = build_mock_cross_std_installer(CROSS_ARCH2, date);
+    let rust_src = build_mock_rust_src_installer();
 
     // Convert the mock installers to mock package definitions for the
     // mock dist server
@@ -360,6 +361,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                    ("rustc", vec![(rustc, host_triple.clone())]),
                    ("cargo", vec![(cargo, host_triple.clone())]),
                    ("rust-docs", vec![(rust_docs, host_triple.clone())]),
+                   ("rust-src", vec![(rust_src, "*".to_string())]),
                    ("rust", vec![(rust, host_triple.clone())])];
 
     if s == Scenario::MultiHost {
@@ -370,6 +372,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
         let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
         let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
         let cross_std2 = build_mock_cross_std_installer(CROSS_ARCH2, date);
+        let rust_src = build_mock_rust_src_installer();
 
         let triple = MULTI_ARCH1.to_string();
         let more = vec![("rust-std", vec![(std, triple.clone()),
@@ -378,6 +381,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                         ("rustc", vec![(rustc, triple.clone())]),
                         ("cargo", vec![(cargo, triple.clone())]),
                         ("rust-docs", vec![(rust_docs, triple.clone())]),
+                        ("rust-src", vec![(rust_src, "*".to_string())]),
                         ("rust", vec![(rust, triple.clone())])];
 
         all.extend(more);
@@ -430,6 +434,10 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
             target_pkg.extensions.push(MockComponent {
                 name: "rust-std".to_string(),
                 target: CROSS_ARCH2.to_string(),
+            });
+            target_pkg.extensions.push(MockComponent {
+                name: "rust-src".to_string(),
+                target: "*".to_string(),
             });
         }
     }
@@ -524,6 +532,16 @@ fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
             ("rust-docs".to_string(),
              vec![MockCommand::File("share/doc/rust/html/index.html".to_string())],
              vec![("share/doc/rust/html/index.html".to_string(), "".into())])
+                ]
+    }
+}
+
+fn build_mock_rust_src_installer() -> MockInstallerBuilder {
+    MockInstallerBuilder {
+        components: vec![
+            ("rust-src".to_string(),
+             vec![MockCommand::File("lib/rustlib/src/rust-src/foo.rs".to_string())],
+             vec![("lib/rustlib/src/rust-src/foo.rs".to_string(), "".into())])
                 ]
     }
 }
