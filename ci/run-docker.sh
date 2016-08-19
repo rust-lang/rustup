@@ -89,7 +89,7 @@ esac
 mkdir -p target/$TARGET/openssl
 install=`pwd`/target/$TARGET/openssl/openssl-install
 out=`pwd`/target/$TARGET/openssl/openssl-$OPENSSL_VERS.tar.gz
-curl -o $out https://openssl.org/source/openssl-$OPENSSL_VERS.tar.gz
+curl -o $out https://www.openssl.org/source/openssl-$OPENSSL_VERS.tar.gz
 sha256sum $out > $out.sha256
 test $OPENSSL_SHA256 = `cut -d ' ' -f 1 $out.sha256`
 
