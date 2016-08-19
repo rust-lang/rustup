@@ -607,12 +607,13 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
+    let component = m.value_of("component").expect("");
     let target = m.value_of("target").map(TargetTriple::from_str).or_else(|| {
         toolchain.desc().as_ref().ok().map(|desc| desc.target.clone())
     });
 
     let new_component = Component {
-        pkg: "rust-std".to_string(),
+        pkg: component.to_string(),
         target: target,
     };
 
