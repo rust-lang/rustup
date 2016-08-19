@@ -116,7 +116,7 @@ fn component_unavailable_msg(cs: &[Component]) -> String {
 
     fn format_component(c: &Component) -> String {
         if let Some(ref t) = c.target {
-            format!("'{}' for '{}", c.pkg, t)
+            format!("'{}' for '{}'", c.pkg, t)
         } else {
             format!("'{}'", c.pkg)
         }
