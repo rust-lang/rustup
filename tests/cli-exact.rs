@@ -4,6 +4,7 @@
 extern crate rustup_dist;
 extern crate rustup_mock;
 extern crate tempdir;
+extern crate rustup_utils;
 
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
@@ -166,6 +167,9 @@ fn remove_override_nonexistent() {
                 });
                 path
             };
+            // FIXME TempDir seems to succumb to difficulties removing dirs on windows
+            let _ = rustup_utils::raw::remove_dir(&path);
+            assert!(!path.exists());
             expect_ok_ex(config, &["rustup", "override", keyword, "--nonexistent"],
                          r"",
                          &format!("info: override toolchain for '{}' removed\n", path.display()));
@@ -205,6 +209,9 @@ fn list_overrides_with_nonexistent() {
             });
             std::fs::canonicalize(dir.path()).unwrap()
         };
+        // FIXME TempDir seems to succumb to difficulties removing dirs on windows
+        let _ = rustup_utils::raw::remove_dir(&nonexistent_path);
+        assert!(!nonexistent_path.exists());
         let mut path_formatted = format!("{}", nonexistent_path.display()).to_string();
 
         if cfg!(windows) {
