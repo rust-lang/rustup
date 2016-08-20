@@ -38,20 +38,20 @@ error_chain! {
         }
         UnknownComponent(t: String, c: Component) {
             description("toolchain does not contain component")
-            display("toolchain '{}' does not contain component '{}' for target '{}'", t, c.pkg, c.target)
+            display("toolchain '{}' does not contain component {}", t, c.description())
         }
         AddingRequiredComponent(t: String, c: Component) {
             description("required component cannot be added")
-            display("component '{}' for target '{}' is required for toolchain '{}' and cannot be re-added",
-                    c.pkg, c.target, t)
+            display("component {} is required for toolchain '{}' and cannot be re-added",
+                    c.description(), t)
         }
         ParsingSettings(e: Vec<toml::ParserError>) {
             description("error parsing settings")
         }
         RemovingRequiredComponent(t: String, c: Component) {
             description("required component cannot be removed")
-            display("component '{}' for target '{}' is required for toolchain '{}' and cannot be removed",
-                    c.pkg, c.target, t)
+            display("component {} is required for toolchain '{}' and cannot be removed",
+                    c.description(), t)
         }
         NoExeName {
             description("couldn't determine self executable name")

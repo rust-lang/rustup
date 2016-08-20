@@ -2,7 +2,7 @@
 //! platform components from a distribution server.
 
 use config::Config;
-use manifest::{Component, Manifest, TargettedPackage};
+use manifest::{Component, Manifest, TargetedPackage};
 use dist::{download_and_check, DownloadCfg, TargetTriple, DEFAULT_DIST_SERVER};
 use component::{Components, Transaction, TarGzPackage, Package};
 use temp;
@@ -81,7 +81,7 @@ impl Manifestation {
         let ref rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
         let ref installed_manifest_path = prefix.path().join(rel_installed_manifest_path);
         let rust_package = try!(new_manifest.get_package("rust"));
-        let rust_target_package = try!(rust_package.get_target(&self.target_triple));
+        let rust_target_package = try!(rust_package.get_target(Some(&self.target_triple)));
 
         // Load the previous dist manifest
         let ref old_manifest = try!(self.load_manifest());
@@ -105,7 +105,7 @@ impl Manifestation {
         let unavailable_components: Vec<Component> = components_to_install.iter().filter(|c| {
             use manifest::*;
             let pkg: Option<&Package> = new_manifest.get_package(&c.pkg).ok();
-            let target_pkg: Option<&TargettedPackage> = pkg.and_then(|p| p.get_target(&c.target).ok());
+            let target_pkg: Option<&TargetedPackage> = pkg.and_then(|p| p.get_target(c.target.as_ref()).ok());
             target_pkg.map(|tp| tp.available) != Some(true)
         }).cloned().collect();
 
@@ -117,7 +117,7 @@ impl Manifestation {
         let mut components_urls_and_hashes: Vec<(Component, String, String)> = Vec::new();
         for component in components_to_install {
             let package = try!(new_manifest.get_package(&component.pkg));
-            let target_package = try!(package.get_target(&component.target));
+            let target_package = try!(package.get_target(component.target.as_ref()));
             let c_u_h = (component, target_package.url.clone(), target_package.hash.clone());
             components_urls_and_hashes.push(c_u_h);
         }
@@ -130,7 +130,7 @@ impl Manifestation {
 
             notify_handler(Notification::DownloadingComponent(&component.pkg,
                                                               &self.target_triple,
-                                                              &component.target));
+                                                              component.target.as_ref()));
             let url = if altered {
                 url.replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str())
             } else {
@@ -182,7 +182,7 @@ impl Manifestation {
 
             notify_handler(Notification::InstallingComponent(&component.pkg,
                                                              &self.target_triple,
-                                                             &component.target));
+                                                             component.target.as_ref()));
 
             let package = try!(TarGzPackage::new_file(&installer_file, temp_cfg));
 
@@ -190,7 +190,7 @@ impl Manifestation {
             // names are not the same as the dist manifest component
             // names. Some are just the component name some are the
             // component name plus the target triple.
-            let ref name = format!("{}-{}", component.pkg, component.target);
+            let ref name = component.name();
             let ref short_name = format!("{}", component.pkg);
 
             // If the package doesn't contain the component that the
@@ -254,7 +254,7 @@ impl Manifestation {
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
         // component name plus the target triple.
-        let ref name = format!("{}-{}", component.pkg, component.target);
+        let ref name = component.name();
         let ref short_name = format!("{}", component.pkg);
         if let Some(c) = try!(self.installation.find(&name)) {
             tx = try!(c.uninstall(tx));
@@ -313,7 +313,7 @@ impl Manifestation {
 
         notify_handler(Notification::DownloadingComponent("rust",
                                                           &self.target_triple,
-                                                          &self.target_triple));
+                                                          Some(&self.target_triple)));
 
         let dlcfg = DownloadCfg {
             dist_root: "bogus",
@@ -331,7 +331,7 @@ impl Manifestation {
 
         notify_handler(Notification::InstallingComponent("rust",
                                                          &self.target_triple,
-                                                         &self.target_triple));
+                                                         Some(&self.target_triple)));
 
         // Begin transaction
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
@@ -383,7 +383,7 @@ fn build_update_component_lists(
     old_manifest: &Option<Manifest>,
     config: &Option<Config>,
     changes: Changes,
-    rust_target_package: &TargettedPackage,
+    rust_target_package: &TargetedPackage,
     notify_handler: &Fn(Notification),
     ) -> Result<(Vec<Component>, Vec<Component>, Vec<Component>)> {
 

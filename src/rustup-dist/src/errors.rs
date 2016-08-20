@@ -83,7 +83,13 @@ error_chain! {
         }
         ComponentDownloadFailed(c: Component) {
             description("component download failed")
-            display("component download failed for {}-{}", c.pkg, c.target)
+            display("component download failed for {}{}", c.pkg, {
+                if let Some(ref t) = c.target {
+                    format!("-{}", t)
+                } else {
+                    "".to_owned()
+                }
+            })
         }
         Parsing(e: Vec<toml::ParserError>) {
             description("error parsing manifest")
@@ -108,19 +114,26 @@ fn component_unavailable_msg(cs: &[Component]) -> String {
 
     let mut buf = vec![];
 
+    fn format_component(c: &Component) -> String {
+        if let Some(ref t) = c.target {
+            format!("'{}' for '{}'", c.pkg, t)
+        } else {
+            format!("'{}'", c.pkg)
+        }
+    }
+
     if cs.len() == 1 {
-        let _ = write!(buf, "component '{}' for '{}' is unavailable for download",
-                       cs[0].pkg, cs[0].target);
+        let _ = write!(buf, "component {} is unavailable for download", format_component(&cs[0]));
     } else {
         use itertools::Itertools;
-        let same_target = cs.iter().all(|c| c.target == cs[0].target);
+        let same_target = cs.iter().all(|c| c.target == cs[0].target || c.target.is_none());
         if same_target {
             let mut cs_strs = cs.iter().map(|c| format!("'{}'", c.pkg));
             let cs_str = cs_strs.join(", ");
             let _ = write!(buf, "some components unavailable for download: {}",
                            cs_str);
         } else {
-            let mut cs_strs = cs.iter().map(|c| format!("'{}' for '{}'", c.pkg, c.target));
+            let mut cs_strs = cs.iter().map(format_component);
             let cs_str = cs_strs.join(", ");
             let _ = write!(buf, "some components unavailable for download: {}",
                            cs_str);

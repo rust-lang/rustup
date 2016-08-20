@@ -22,8 +22,8 @@ pub enum Notification<'a> {
     ExtensionNotInstalled(&'a Component),
     NonFatalError(&'a Error),
     MissingInstalledComponent(&'a str),
-    DownloadingComponent(&'a str, &'a TargetTriple, &'a TargetTriple),
-    InstallingComponent(&'a str, &'a TargetTriple, &'a TargetTriple),
+    DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
+    InstallingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     DownloadingManifest(&'a str),
     DownloadingLegacyManifest,
     ManifestChecksumFailedHack,
@@ -70,8 +70,7 @@ impl<'a> Display for Notification<'a> {
             Utils(ref n) => n.fmt(f),
             Extracting(_, _) => write!(f, "extracting..."),
             ComponentAlreadyInstalled(ref c) => {
-                write!(f, "component '{}' for target '{}' is up to date",
-                       c.pkg, c.target)
+                write!(f, "component {} is up to date", c.description())
             }
             CantReadUpdateHash(path) => {
                 write!(f,
@@ -83,22 +82,22 @@ impl<'a> Display for Notification<'a> {
             SignatureValid(_) => write!(f, "signature valid"),
             RollingBack => write!(f, "rolling back changes"),
             ExtensionNotInstalled(c) => {
-                write!(f, "extension '{}-{}' was not installed", c.pkg, c.target)
+                write!(f, "extension '{}' was not installed", c.name())
             }
             NonFatalError(e) => write!(f, "{}", e),
             MissingInstalledComponent(c) => write!(f, "during uninstall component {} was not found", c),
             DownloadingComponent(c, h, t) => {
-                if h == t {
+                if Some(h) == t || t.is_none() {
                     write!(f, "downloading component '{}'", c)
                 } else {
-                    write!(f, "downloading component '{}' for '{}'", c, t)
+                    write!(f, "downloading component '{}' for '{}'", c, t.unwrap())
                 }
             }
             InstallingComponent(c, h, t) => {
-                if h == t {
+                if Some(h) == t || t.is_none() {
                     write!(f, "installing component '{}'", c)
                 } else {
-                    write!(f, "installing component '{}' for '{}'", c, t)
+                    write!(f, "installing component '{}' for '{}'", c, t.unwrap())
                 }
             }
             DownloadingManifest(t) => write!(f, "syncing channel updates for '{}'", t),

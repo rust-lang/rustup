@@ -32,9 +32,9 @@ main() {
 
     local _ext=""
     case "$_arch" in
-	*windows*)
-	    _ext=".exe"
-	    ;;
+        *windows*)
+            _ext=".exe"
+            ;;
     esac
 
     local _url="$RUSTUP_UPDATE_ROOT/$_arch/rustup-init$_ext"
@@ -48,9 +48,9 @@ main() {
     ensure curl -sSfL "$_url" -o "$_file"
     ensure chmod u+x "$_file"
     if [ ! -x "$_file" ]; then
-    	echo "Cannot execute $_file (likely because of mounting /tmp as noexec)."
-    	echo "Please copy the file to a location where you can execute binaries and run ./rustup-init$_ext."
-    	exit 1
+        echo "Cannot execute $_file (likely because of mounting /tmp as noexec)."
+        echo "Please copy the file to a location where you can execute binaries and run ./rustup-init$_ext."
+        exit 1
     fi
 
     # check if we have to use /dev/tty to prompt the user
@@ -149,9 +149,9 @@ get_architecture() {
             local _ostype="${_ostype}eabihf"
             ;;
 
-	aarch64)
-	    local _cputype=aarch64
-	    ;;
+        aarch64)
+            local _cputype=aarch64
+            ;;
 
         x86_64 | x86-64 | x64 | amd64)
             local _cputype=x86_64

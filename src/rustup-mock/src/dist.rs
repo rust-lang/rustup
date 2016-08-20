@@ -80,10 +80,10 @@ pub struct MockPackage {
     // rust, rustc, rust-std-$triple, rust-doc, etc.
     pub name: &'static str,
     pub version: &'static str,
-    pub targets: Vec<MockTargettedPackage>,
+    pub targets: Vec<MockTargetedPackage>,
 }
 
-pub struct MockTargettedPackage {
+pub struct MockTargetedPackage {
     // Target triple
     pub target: String,
     // Whether the file actually exists (could be due to build failure)
@@ -142,7 +142,7 @@ impl MockDistServer {
     fn build_target_package(&self,
                             channel: &MockChannel,
                             package: &MockPackage,
-                            target_package: &MockTargettedPackage) -> String {
+                            target_package: &MockTargetedPackage) -> String {
         // This is where the tarball, sums and sigs will go
         let ref dist_dir = self.path.join("dist");
         let ref archive_dir = dist_dir.join(&channel.date);
@@ -152,7 +152,11 @@ impl MockDistServer {
         let tmpdir = TempDir::new("multirust").unwrap();
 
         let workdir = tmpdir.path().join("work");
-        let ref installer_name = format!("{}-{}-{}", package.name, channel.name, target_package.target);
+        let ref installer_name = if target_package.target != "*" {
+            format!("{}-{}-{}", package.name, channel.name, target_package.target)
+        } else {
+            format!("{}-{}", package.name, channel.name)
+        };
         let ref installer_dir = workdir.join(installer_name);
         let ref installer_tarball = archive_dir.join(format!("{}.tar.gz", installer_name));
         let ref installer_hash = archive_dir.join(format!("{}.tar.gz.sha256", installer_name));
@@ -182,7 +186,11 @@ impl MockDistServer {
         let mut buf = String::new();
         let package = channel.packages.iter().find(|p| p.name == "rust").unwrap();
         for target in &package.targets {
-            let package_file_name = format!("{}-{}-{}.tar.gz", package.name, channel.name, target.target);
+            let package_file_name = if target.target != "*" {
+                format!("{}-{}-{}.tar.gz", package.name, channel.name, target.target)
+            } else {
+                format!("{}-{}.tar.gz", package.name, channel.name)
+            };
             buf = buf + &package_file_name + "\n";
         }
 
@@ -220,7 +228,11 @@ impl MockDistServer {
                 let mut toml_target = toml::Table::new();
                 toml_target.insert(String::from("available"), toml::Value::Boolean(target.available));
 
-                let package_file_name = format!("{}-{}-{}.tar.gz", package.name, channel.name, target.target);
+                let package_file_name = if target.target != "*" {
+                    format!("{}-{}-{}.tar.gz", package.name, channel.name, target.target)
+                } else {
+                    format!("{}-{}.tar.gz", package.name, channel.name)
+                };
                 let path = self.path.join("dist").join(&channel.date).join(package_file_name);
                 let url = format!("file://{}", path.to_string_lossy());
                 toml_target.insert(String::from("url"), toml::Value::String(url));

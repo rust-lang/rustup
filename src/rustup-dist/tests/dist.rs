@@ -53,7 +53,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
         name: "rust",
         version: "1.0.0",
         targets: vec![
-            MockTargettedPackage {
+            MockTargetedPackage {
                 target: "x86_64-apple-darwin".to_string(),
                 available: true,
                 components: vec![
@@ -80,7 +80,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
                     components: vec![]
                 }
             },
-            MockTargettedPackage {
+            MockTargetedPackage {
                 target: "i686-apple-darwin".to_string(),
                 available: true,
                 components: vec![
@@ -105,7 +105,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
         name: "rustc",
         version: "1.0.0",
         targets: vec![
-            MockTargettedPackage {
+            MockTargetedPackage {
                 target: "x86_64-apple-darwin".to_string(),
                 available: true,
                 components: vec![],
@@ -123,7 +123,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
                         ]
                 }
             },
-            MockTargettedPackage {
+            MockTargetedPackage {
                 target: "i686-apple-darwin".to_string(),
                 available: true,
                 components: vec![],
@@ -139,7 +139,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
         name: "rust-std",
         version: "1.0.0",
         targets: vec![
-            MockTargettedPackage {
+            MockTargetedPackage {
                 target: "x86_64-apple-darwin".to_string(),
                 available: true,
                 components: vec![],
@@ -157,7 +157,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
                         ]
                 }
             },
-            MockTargettedPackage {
+            MockTargetedPackage {
                 target: "i686-apple-darwin".to_string(),
                 available: true,
                 components: vec![],
@@ -175,7 +175,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
                         ]
                 }
             },
-            MockTargettedPackage {
+            MockTargetedPackage {
                 target: "i686-unknown-linux-gnu".to_string(),
                 available: true,
                 components: vec![],
@@ -202,7 +202,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
         name: "bonus",
         version: "1.0.0",
         targets: vec![
-            MockTargettedPackage {
+            MockTargetedPackage {
                 target: "x86_64-apple-darwin".to_string(),
                 available: true,
                 components: vec![],
@@ -399,10 +399,10 @@ fn update_preserves_extensions() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-unknown-linux-gnu")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-unknown-linux-gnu"))
             }
             ];
 
@@ -441,7 +441,7 @@ fn update_preserves_extensions_that_became_components() {
     setup(Some(edit), &|url, toolchain, prefix, temp_cfg| {
         let ref adds = vec![
             Component {
-                pkg: "bonus".to_string(), target: TargetTriple::from_str("x86_64-apple-darwin")
+                pkg: "bonus".to_string(), target: Some(TargetTriple::from_str("x86_64-apple-darwin"))
             },
             ];
 
@@ -499,12 +499,12 @@ fn add_extensions_for_initial_install() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-unknown-linux-gnu")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-unknown-linux-gnu"))
             }
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
         assert!(utils::path_exists(&prefix.path().join("lib/i686-apple-darwin/libstd.rlib")));
@@ -519,12 +519,12 @@ fn add_extensions_for_same_manifest() {
 
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-unknown-linux-gnu")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-unknown-linux-gnu"))
             }
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
 
@@ -544,12 +544,12 @@ fn add_extensions_for_upgrade() {
 
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-unknown-linux-gnu")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-unknown-linux-gnu"))
             }
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
 
@@ -564,9 +564,9 @@ fn add_extension_not_in_manifest() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         let ref adds = vec![
             Component {
-                pkg: "rust-bogus".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-bogus".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
     });
@@ -578,9 +578,9 @@ fn add_extension_that_is_required_component() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         let ref adds = vec![
             Component {
-                pkg: "rustc".to_string(), target: TargetTriple::from_str("x86_64-apple-darwin")
+                pkg: "rustc".to_string(), target: Some(TargetTriple::from_str("x86_64-apple-darwin"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
     });
@@ -603,9 +603,9 @@ fn add_extensions_does_not_remove_other_components() {
 
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
 
@@ -620,9 +620,9 @@ fn remove_extensions_for_initial_install() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         let ref removes = vec![
             Component {
-                pkg: "rustc".to_string(), target: TargetTriple::from_str("x86_64-apple-darwin")
+                pkg: "rustc".to_string(), target: Some(TargetTriple::from_str("x86_64-apple-darwin"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, &[], removes, temp_cfg, &|_| ()).unwrap();
     });
@@ -633,18 +633,18 @@ fn remove_extensions_for_same_manifest() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-unknown-linux-gnu")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-unknown-linux-gnu"))
             }
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
 
         let ref removes = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
             ];
 
@@ -662,12 +662,12 @@ fn remove_extensions_for_upgrade() {
 
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-unknown-linux-gnu")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-unknown-linux-gnu"))
             }
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
 
@@ -675,9 +675,9 @@ fn remove_extensions_for_upgrade() {
 
         let ref removes = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, &[], removes, temp_cfg, &|_| ()).unwrap();
 
@@ -698,9 +698,9 @@ fn remove_extension_not_in_manifest() {
 
         let ref removes = vec![
             Component {
-                pkg: "rust-bogus".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-bogus".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, &[], removes, temp_cfg, &|_| ()).unwrap();
     });
@@ -726,9 +726,9 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
 
         let ref adds = vec![
             Component {
-                pkg: "bonus".to_string(), target: TargetTriple::from_str("x86_64-apple-darwin")
+                pkg: "bonus".to_string(), target: Some(TargetTriple::from_str("x86_64-apple-darwin"))
             },
-            ];
+        ];
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
         assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
 
@@ -736,9 +736,9 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
 
         let ref removes = vec![
             Component {
-                pkg: "bonus".to_string(), target: TargetTriple::from_str("x86_64-apple-darwin")
+                pkg: "bonus".to_string(), target: Some(TargetTriple::from_str("x86_64-apple-darwin"))
             },
-            ];
+        ];
         update_from_dist(url, toolchain, prefix, &[], removes, temp_cfg, &|_| ()).unwrap();
     });
 }
@@ -751,9 +751,9 @@ fn remove_extension_that_is_required_component() {
 
         let ref removes = vec![
             Component {
-                pkg: "rustc".to_string(), target: TargetTriple::from_str("x86_64-apple-darwin")
+                pkg: "rustc".to_string(), target: Some(TargetTriple::from_str("x86_64-apple-darwin"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, &[], removes, temp_cfg, &|_| ()).unwrap();
     });
@@ -767,9 +767,9 @@ fn remove_extension_not_installed() {
 
         let ref removes = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, &[], removes, temp_cfg, &|_| ()).unwrap();
     });
@@ -785,17 +785,17 @@ fn remove_extensions_does_not_remove_other_components() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
 
         let ref removes = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, &[], removes, temp_cfg, &|_| ()).unwrap();
 
@@ -810,9 +810,9 @@ fn add_and_remove_for_upgrade() {
 
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-unknown-linux-gnu")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-unknown-linux-gnu"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
 
@@ -820,15 +820,15 @@ fn add_and_remove_for_upgrade() {
 
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
-            ];
+        ];
 
         let ref removes = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-unknown-linux-gnu")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-unknown-linux-gnu"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, removes, temp_cfg, &|_| ()).unwrap();
 
@@ -842,23 +842,23 @@ fn add_and_remove() {
     setup(None, &|url, toolchain, prefix, temp_cfg| {
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-unknown-linux-gnu")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-unknown-linux-gnu"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, &[], temp_cfg, &|_| ()).unwrap();
 
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
-            ];
+        ];
 
         let ref removes = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-unknown-linux-gnu")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-unknown-linux-gnu"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, removes, temp_cfg, &|_| ()).unwrap();
 
@@ -875,15 +875,15 @@ fn add_and_remove_same_component() {
 
         let ref adds = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple-darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple-darwin"))
             },
-            ];
+        ];
 
         let ref removes = vec![
             Component {
-                pkg: "rust-std".to_string(), target: TargetTriple::from_str("i686-apple_darwin")
+                pkg: "rust-std".to_string(), target: Some(TargetTriple::from_str("i686-apple_darwin"))
             },
-            ];
+        ];
 
         update_from_dist(url, toolchain, prefix, adds, removes, temp_cfg, &|_| ()).unwrap();
     });

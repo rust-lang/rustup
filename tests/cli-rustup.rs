@@ -518,3 +518,15 @@ fn proxy_toolchain_shorthand() {
         expect_stdout_ok(config, &["rustc", "+nightly", "--version"], "hash-n-2");
     });
 }
+
+#[test]
+fn src_component_smoke_test() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "component", "add", "rust-src"]);
+        let path = format!("toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
+                           this_host_triple());
+        let path = config.rustupdir.join(path);
+        assert!(path.exists());
+    });
+}
