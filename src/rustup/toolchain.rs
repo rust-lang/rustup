@@ -466,7 +466,7 @@ impl<'a> Toolchain<'a> {
         self.bare_add_component(component)
     }
 
-    fn bare_add_component(&self, component: Component) -> Result<()> {
+    fn bare_add_component(&self, mut component: Component) -> Result<()> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
@@ -490,7 +490,12 @@ impl<'a> Toolchain<'a> {
             }
 
             if !targ_pkg.extensions.contains(&component) {
-                return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).into());
+                let wildcard_component = Component { target: None, ..component.clone() };
+                if targ_pkg.extensions.contains(&wildcard_component) {
+                    component = wildcard_component;
+                } else {
+                    return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).into());
+                }
             }
 
             let changes = Changes {
@@ -509,7 +514,7 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    pub fn remove_component(&self, component: Component) -> Result<()> {
+    pub fn remove_component(&self, mut component: Component) -> Result<()> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
@@ -534,7 +539,12 @@ impl<'a> Toolchain<'a> {
 
             let dist_config = try!(manifestation.read_config()).unwrap();
             if !dist_config.components.contains(&component) {
-                return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).into());
+                let wildcard_component = Component { target: None, ..component.clone() };
+                if dist_config.components.contains(&wildcard_component) {
+                    component = wildcard_component;
+                } else {
+                    return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).into());
+                }
             }
 
             let changes = Changes {
