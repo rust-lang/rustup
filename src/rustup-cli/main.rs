@@ -68,7 +68,7 @@ fn run_multirust() -> Result<()> {
     do_compatibility_hacks();
 
     // The name of arg0 determines how the program is going to behave
-    let arg0 = env::args().next().map(|a| PathBuf::from(a));
+    let arg0 = env::args().next().map(PathBuf::from);
     let name = arg0.as_ref()
         .and_then(|a| a.file_stem())
         .and_then(|a| a.to_str());
@@ -126,19 +126,16 @@ fn do_compatibility_hacks() {
 
 // Convert any MULTIRUST_ env vars to RUSTUP_ and warn about them
 fn make_environment_compatible() {
-    let ref vars = ["HOME", "TOOLCHAIN", "DIST_ROOT", "UPDATE_ROOT", "GPG_KEY"];
+    let vars = &["HOME", "TOOLCHAIN", "DIST_ROOT", "UPDATE_ROOT", "GPG_KEY"];
     for var in vars {
-        let ref mvar = format!("MULTIRUST_{}", var);
-        let ref rvar = format!("RUSTUP_{}", var);
+        let mvar = &format!("MULTIRUST_{}", var);
+        let rvar = &format!("RUSTUP_{}", var);
         let mval = env::var_os(mvar);
         let rval = env::var_os(rvar);
 
-        match (mval, rval) {
-            (Some(mval), None) => {
-                env::set_var(rvar, mval);
-                warn!("environment variable {} is deprecated. Use {}.", mvar, rvar);
-            }
-            _ => ()
+        if let (Some(mval), None) = (mval, rval) {
+            env::set_var(rvar, mval);
+            warn!("environment variable {} is deprecated. Use {}.", mvar, rvar);
         }
     }
 }

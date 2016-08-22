@@ -40,9 +40,9 @@ pub fn main() -> Result<()> {
     let matches = cli.get_matches();
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
-    let default_host = matches.value_of("default-host").map(|s| s.to_owned()).unwrap_or_else(|| {
+    let default_host = matches.value_of("default-host").map_or_else(|| {
         TargetTriple::from_host_or_build().to_string()
-    });
+    }, |s| s.to_owned());
     let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
     let no_modify_path = matches.is_present("no-modify-path");
 
