@@ -1,3 +1,19 @@
+# 0.6.0
+
+* [Print rustup version after update](https://github.com/rust-lang-nursery/rustup.rs/pull/614)
+* [Don't spawn processes for copying](https://github.com/rust-lang-nursery/rustup.rs/pull/630)
+* [Upgrade error-chain to 0.3](https://github.com/rust-lang-nursery/rustup.rs/pull/636)
+* [Support telemetry with lots of output](https://github.com/rust-lang-nursery/rustup.rs/pull/645)
+* [Remove empty directories after component uninstall](https://github.com/rust-lang-nursery/rustup.rs/pull/634)
+* [Update rustup-init.sh for powerpc](https://github.com/rust-lang-nursery/rustup.rs/pull/647)
+* [Switch builds to current nightly toolchain](https://github.com/rust-lang-nursery/rustup.rs/pull/651)
+* [Add a WIP MSI installer](https://github.com/rust-lang-nursery/rustup.rs/pull/635)
+* [Add `--path` and `--nonexistent` options to `rustup override unset`](https://github.com/rust-lang-nursery/rustup.rs/pull/650)
+* [Add `component` subcommand](https://github.com/rust-lang-nursery/rustup.rs/pull/659)
+
+Contributors: Alex Crichton, Brian Anderson, Diggory Blake, Ivan Nejgebauer Josh
+Machol, Julien Blanchard, Patrick Reisert, Ri, Tim Neumann
+
 # 0.5.0
 
 * [List custom toolchains in `rustup show`](https://github.com/rust-lang-nursery/rustup.rs/pull/620)
