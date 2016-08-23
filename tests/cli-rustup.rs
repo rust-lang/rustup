@@ -520,7 +520,7 @@ fn proxy_toolchain_shorthand() {
 }
 
 #[test]
-fn src_component_smoke_test() {
+fn add_component() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "component", "add", "rust-src"]);
@@ -528,5 +528,19 @@ fn src_component_smoke_test() {
                            this_host_triple());
         let path = config.rustupdir.join(path);
         assert!(path.exists());
+    });
+}
+
+#[test]
+fn remove_component() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "component", "add", "rust-src"]);
+        let path = format!("toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
+                           this_host_triple());
+        let path = config.rustupdir.join(path);
+        assert!(path.exists());
+        expect_ok(config, &["rustup", "component", "remove", "rust-src"]);
+        assert!(!path.parent().unwrap().exists());
     });
 }
