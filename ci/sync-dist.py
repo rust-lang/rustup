@@ -2,7 +2,7 @@
 # between the dev environment (dev-static.rlo), the local machine, and
 # the prod environment (static.rlo). It's used during the deployment process.
 #
-# It does only a few things:
+# It does only a few things (this is the release process!):
 #
 # * Sync dev bins to local host:
 #   python sync-dist.py dev-to-local
@@ -15,6 +15,8 @@
 #
 # * Sync local bins to prod
 #   python sync-dist.py local-to-prod
+#
+# Don't forget to tag the release, dummy!
 
 import sys
 import os
