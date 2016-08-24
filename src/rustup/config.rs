@@ -20,8 +20,6 @@ pub enum OverrideReason {
     OverrideDB(PathBuf),
 }
 
-
-
 impl Display for OverrideReason {
     fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
         match *self {
@@ -321,7 +319,7 @@ impl Cfg {
     }
 
     pub fn create_command_for_toolchain(&self, toolchain: &str, binary: &str) -> Result<Command> {
-        let ref toolchain = try!(self.get_toolchain(toolchain, false));
+        let toolchain = &try!(self.get_toolchain(toolchain, false));
 
         if let Some(cmd) = try!(self.maybe_do_cargo_fallback(toolchain, binary)) {
             Ok(cmd)

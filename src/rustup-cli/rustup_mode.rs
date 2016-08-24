@@ -17,9 +17,9 @@ use help::*;
 pub fn main() -> Result<()> {
     try!(::self_update::cleanup_self_updater());
 
-    let ref matches = cli().get_matches();
+    let matches = &cli().get_matches();
     let verbose = matches.is_present("verbose");
-    let ref cfg = try!(common::set_globals(verbose));
+    let cfg = &try!(common::set_globals(verbose));
 
     if try!(maybe_upgrade_data(cfg, matches)) {
         return Ok(())
@@ -365,15 +365,14 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
         warn!("(partial) target triple specified instead of toolchain name");
         let installed_toolchains = try!(cfg.list_toolchains());
         let default = try!(cfg.find_default());
-        let default_name = default.map(|t| t.name().to_string())
-                           .unwrap_or("".into());
+        let default_name = default.map_or("".into(), |t| t.name().to_string());
         let mut candidates = vec![];
         for t in installed_toolchains {
             if t == default_name {
                 continue;
             }
             if let Ok(desc) = PartialToolchainDesc::from_str(&t) {
-                fn triple_comp_eq(given: &String, from_desc: Option<&String>) -> bool {
+                fn triple_comp_eq(given: &str, from_desc: Option<&String>) -> bool {
                     from_desc.map_or(false, |s| *s == *given)
                 }
 
@@ -391,7 +390,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
             1 => println!("\nyou may use the following toolchain: {}\n", candidates[0]),
             _ => {
                 println!("\nyou may use one of the following toolchains:");
-                for n in candidates.iter() {
+                for n in &candidates {
                     println!("{}", n);
                 }
                 println!("");
@@ -406,12 +405,11 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
     if let Some(triple) = PartialTargetTriple::from_str(name) {
         warn!("(partial) target triple specified instead of toolchain name");
         let default = try!(cfg.find_default());
-        let default_name = default.map(|t| t.name().to_string())
-                           .unwrap_or("".into());
+        let default_name = default.map_or("".into(), |t| t.name().to_string());
         if let Ok(mut desc) = PartialToolchainDesc::from_str(&default_name) {
             desc.target = triple;
             let maybe_toolchain = format!("{}", desc);
-            let ref toolchain = try!(cfg.get_toolchain(maybe_toolchain.as_ref(), false));
+            let toolchain = &try!(cfg.get_toolchain(maybe_toolchain.as_ref(), false));
             if toolchain.name() == default_name {
                 warn!("(partial) triple '{}' resolves to a toolchain that is already default", name);
             } else {
@@ -424,9 +422,9 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
 }
 
 fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
+    let toolchain = &m.value_of("toolchain").expect("");
     try!(default_bare_triple_check(cfg, toolchain));
-    let ref toolchain = try!(cfg.get_toolchain(toolchain, false));
+    let toolchain = &try!(cfg.get_toolchain(toolchain, false));
 
     let status = if !toolchain.is_custom() {
         Some(try!(toolchain.install_from_dist_if_not_installed()))
@@ -471,7 +469,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
+    let toolchain = &m.value_of("toolchain").expect("");
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
     let cmd = try!(cfg.create_command_for_toolchain(toolchain, args[0]));
@@ -503,7 +501,7 @@ fn show(cfg: &Cfg) -> Result<()> {
         println!("");
     }
 
-    let ref cwd = try!(utils::current_dir());
+    let cwd = &try!(utils::current_dir());
     let installed_toolchains = try!(cfg.list_toolchains());
     let active_toolchain = try!(cfg.find_override_toolchain_or_default(cwd));
     let active_targets = if let Some((ref t, _)) = active_toolchain {
@@ -533,8 +531,7 @@ fn show(cfg: &Cfg) -> Result<()> {
     if show_installed_toolchains {
         if show_headers { print_header("installed toolchains") }
         let default = try!(cfg.find_default());
-        let default_name = default.map(|t| t.name().to_string())
-                           .unwrap_or("".into());
+        let default_name = default.map_or("".into(), |t| t.name().to_string());
         for t in installed_toolchains {
             if default_name == t {
                 println!("{} (default)", t);
@@ -658,29 +655,29 @@ fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolcha
         return Ok(toolchain);
     }
 
-    let ref cwd = try!(utils::current_dir());
+    let cwd = &try!(utils::current_dir());
     let (toolchain, _) = try!(cfg.toolchain_for_dir(cwd));
 
     Ok(toolchain)
 }
 
 fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
-    let ref path = m.value_of("path").expect("");
+    let toolchain = &m.value_of("toolchain").expect("");
+    let path = &m.value_of("path").expect("");
     let toolchain = try!(cfg.get_toolchain(toolchain, true));
 
     Ok(try!(toolchain.install_from_dir(Path::new(path), true)))
 }
 
 fn toolchain_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
+    let toolchain = &m.value_of("toolchain").expect("");
     let toolchain = try!(cfg.get_toolchain(toolchain, false));
 
     Ok(try!(toolchain.remove()))
 }
 
 fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
+    let toolchain = &m.value_of("toolchain").expect("");
     let toolchain = try!(cfg.get_toolchain(toolchain, false));
 
     let status = if !toolchain.is_custom() {
@@ -714,12 +711,10 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
             info!("no nonexistent paths detected");
         }
         list
+    } else if m.is_present("path") {
+        vec![m.value_of("path").unwrap().to_string()]
     } else {
-        if m.is_present("path") {
-            vec![m.value_of("path").unwrap().to_string()]
-        } else {
-            vec![try!(utils::current_dir()).to_str().unwrap().to_string()]
-        }
+        vec![try!(utils::current_dir()).to_str().unwrap().to_string()]
     };
 
     for path in paths {

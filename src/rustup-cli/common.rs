@@ -135,7 +135,7 @@ pub fn show_channel_update(cfg: &Cfg, name: &str,
 
 fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, rustup::Result<UpdateStatus>)>) -> Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
-        let ref toolchain = cfg.get_toolchain(&name, false).expect("");
+        let toolchain = &cfg.get_toolchain(&name, false).expect("");
         let version = rustc_version(toolchain);
 
         let banner;
@@ -289,21 +289,18 @@ pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
 
     if toolchains.is_empty() {
         println!("no installed toolchains");
+    } else if let Ok(Some(def_toolchain)) = cfg.find_default() {
+        for toolchain in toolchains {
+            let if_default = if def_toolchain.name() == &*toolchain {
+                " (default)"
+            } else {
+                ""
+            };
+            println!("{}{}", &toolchain, if_default);
+        }
     } else {
-        if let Ok(Some(def_toolchain)) = cfg.find_default() {
-            for toolchain in toolchains {
-                let if_default = if def_toolchain.name() == &*toolchain {
-                    " (default)"
-                } else {
-                    ""
-                };
-                println!("{}{}", &toolchain, if_default);
-            }
-
-        } else {
-            for toolchain in toolchains {
-                println!("{}", &toolchain);
-            }
+        for toolchain in toolchains {
+            println!("{}", &toolchain);
         }
     }
     Ok(())
@@ -373,7 +370,7 @@ pub fn report_error(e: &Error) {
             }
         }
 
-        return false;
+        false
     }
 }
 

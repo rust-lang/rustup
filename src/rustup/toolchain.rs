@@ -364,7 +364,7 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
+        let toolchain = &try!(ToolchainDesc::from_str(toolchain)
                                  .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
@@ -383,8 +383,7 @@ impl<'a> Toolchain<'a> {
 
             for component in &targ_pkg.components {
                 let installed = config.as_ref()
-                    .map(|c| c.components.contains(component))
-                    .unwrap_or(false);
+                    .map_or(false, |c| c.components.contains(component));
 
                 // Get the component so we can check if it is available
                 let component_pkg = manifest.get_package(&component.pkg)
@@ -402,8 +401,7 @@ impl<'a> Toolchain<'a> {
 
             for extension in &targ_pkg.extensions {
                 let installed = config.as_ref()
-                    .map(|c| c.components.contains(extension))
-                    .unwrap_or(false);
+                    .map_or(false, |c| c.components.contains(extension));
 
                 // Get the component so we can check if it is available
                 let extension_pkg = manifest.get_package(&extension.pkg)
@@ -472,7 +470,7 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
+        let toolchain = &try!(ToolchainDesc::from_str(toolchain)
                                  .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
@@ -520,7 +518,7 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
+        let toolchain = &try!(ToolchainDesc::from_str(toolchain)
                                  .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));

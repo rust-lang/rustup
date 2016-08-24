@@ -8,14 +8,14 @@
 //!
 //! During install (as `rustup-init`):
 //!
-//! * copy the self exe to $CARGO_HOME/bin
+//! * copy the self exe to `$CARGO_HOME/bin`
 //! * hardlink rustc, etc to *that*
 //! * update the PATH in a system-specific way
 //! * run the equivalent of `rustup default stable`
 //!
 //! During upgrade (`rustup self upgrade`):
 //!
-//! * download rustup-init to $CARGO_HOME/bin/rustup-init
+//! * download rustup-init to `$CARGO_HOME/bin/rustup-init`
 //! * run rustu-init with appropriate flags to indicate
 //!   this is a self-upgrade
 //! * rustup-init copies bins and hardlinks into place. On windows
@@ -175,7 +175,7 @@ static TOOLS: &'static [&'static str]
 static UPDATE_ROOT: &'static str
     = "https://static.rust-lang.org/rustup/dist";
 
-/// CARGO_HOME suitable for display, possibly with $HOME
+/// `CARGO_HOME` suitable for display, possibly with $HOME
 /// substituted for the directory prefix
 fn canonical_cargo_home() -> Result<String> {
     let path = try!(utils::cargo_home());
@@ -190,8 +190,8 @@ fn canonical_cargo_home() -> Result<String> {
 }
 
 /// Installing is a simple matter of coping the running binary to
-/// CARGO_HOME/bin, hardlinking the various Rust tools to it,
-/// and and adding CARGO_HOME/bin to PATH.
+/// `CARGO_HOME/bin`, hardlinking the various Rust tools to it,
+/// and and adding `CARGO_HOME/bin` to PATH.
 pub fn install(no_prompt: bool, verbose: bool,
                mut opts: InstallOpts) -> Result<()> {
 
@@ -199,7 +199,7 @@ pub fn install(no_prompt: bool, verbose: bool,
     try!(do_anti_sudo_check(no_prompt));
 
     if !no_prompt {
-        let ref msg = try!(pre_install_msg(opts.no_modify_path));
+        let msg = &try!(pre_install_msg(opts.no_modify_path));
 
         term2::stdout().md(msg);
 
@@ -229,8 +229,8 @@ pub fn install(no_prompt: bool, verbose: bool,
         try!(maybe_install_rust(&opts.default_toolchain, &opts.default_host_triple, verbose));
 
         if cfg!(unix) {
-            let ref env_file = try!(utils::cargo_home()).join("env");
-            let ref env_str = format!(
+            let env_file = &try!(utils::cargo_home()).join("env");
+            let env_str = &format!(
                 "{}\n",
                 try!(shell_export_string()));
             try!(utils::write_file("env", env_file, env_str));
@@ -264,16 +264,14 @@ pub fn install(no_prompt: bool, verbose: bool,
                 format!(post_install_msg_unix!(),
                          cargo_home = cargo_home)
             } else {
-                format!(post_install_msg_win!())
+                post_install_msg_win!().to_string()
             }
+        } else if cfg!(unix) {
+            let cargo_home = try!(canonical_cargo_home());
+            format!(post_install_msg_unix_no_modify_path!(),
+                     cargo_home = cargo_home)
         } else {
-            if cfg!(unix) {
-                let cargo_home = try!(canonical_cargo_home());
-                format!(post_install_msg_unix_no_modify_path!(),
-                         cargo_home = cargo_home)
-            } else {
-                format!(post_install_msg_win_no_modify_path!())
-            }
+            post_install_msg_win_no_modify_path!().to_string()
         };
         term2::stdout().md(msg);
 
@@ -314,7 +312,7 @@ fn do_pre_install_sanity_checks() -> Result<()> {
         rustup_sh_version_path.map(|p| p.exists()) == Some(true);
     let old_multirust_meta_exists = if let Some(ref multirust_version_path) = multirust_version_path {
         multirust_version_path.exists() && {
-            let version = utils::read_file("old-multirust", &multirust_version_path);
+            let version = utils::read_file("old-multirust", multirust_version_path);
             let version = version.unwrap_or(String::new());
             let version = version.parse().unwrap_or(0);
             let cutoff_version = 12; // First rustup version
@@ -386,7 +384,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         let mut pwd = unsafe { mem::uninitialized::<c::passwd>() };
         let mut pwdp: *mut c::passwd = ptr::null_mut();
         let mut buf = [0u8; 1024];
-        let rv = unsafe { c::getpwuid_r(c::geteuid(), &mut pwd, mem::transmute(&mut buf), buf.len(), &mut pwdp) };
+        let rv = unsafe { c::getpwuid_r(c::geteuid(), &mut pwd, &mut buf as *mut _ as *mut i8, buf.len(), &mut pwdp) };
         if rv != 0 || pwdp == ptr::null_mut() {
             warn!("getpwuid_r: couldn't get user data");
             return false;
@@ -396,7 +394,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         let env_home = env_home.as_ref().map(Deref::deref);
         match (env_home, pw_dir) {
             (None, _) | (_, None) => false,
-            (Some(ref eh), Some(ref pd)) => eh != pd
+            (Some(eh), Some(pd)) => eh != pd
         }
     }
 
@@ -495,7 +493,7 @@ fn cleanup_legacy() -> Result<()> {
     let legacy_bin_dir = try!(legacy_multirust_home_dir()).join("bin");
 
     for tool in TOOLS.iter().cloned().chain(vec!["multirust", "rustup"]) {
-        let ref file = legacy_bin_dir.join(&format!("{}{}", tool, EXE_SUFFIX));
+        let file = &legacy_bin_dir.join(&format!("{}{}", tool, EXE_SUFFIX));
         if file.exists() {
             try!(utils::remove_file("legacy-bin", file));
         }
@@ -520,9 +518,9 @@ fn cleanup_legacy() -> Result<()> {
 }
 
 fn install_bins() -> Result<()> {
-    let ref bin_path = try!(utils::cargo_home()).join("bin");
-    let ref this_exe_path = try!(utils::current_exe());
-    let ref rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
+    let bin_path = &try!(utils::cargo_home()).join("bin");
+    let this_exe_path = &try!(utils::current_exe());
+    let rustup_path = &bin_path.join(&format!("rustup{}", EXE_SUFFIX));
 
     try!(utils::ensure_dir_exists("bin", bin_path, &|_| {}));
     // NB: Even on Linux we can't just copy the new binary over the (running)
@@ -536,7 +534,7 @@ fn install_bins() -> Result<()> {
     // Hardlink all the Rust exes to the rustup exe. Using hardlinks
     // because they work on Windows.
     for tool in TOOLS {
-        let ref tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
+        let tool_path = &bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
         try!(utils::hardlink_file(rustup_path, tool_path))
     }
 
@@ -544,7 +542,7 @@ fn install_bins() -> Result<()> {
 }
 
 fn maybe_install_rust(toolchain_str: &str, default_host_triple: &str, verbose: bool) -> Result<()> {
-    let ref cfg = try!(common::set_globals(verbose));
+    let cfg = &try!(common::set_globals(verbose));
 
     // If there is already an install, then `toolchain_str` may not be
     // a toolchain the user actually wants. Don't do anything.  FIXME:
@@ -585,7 +583,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         process::exit(0);
     }
     
-    let ref cargo_home = try!(utils::cargo_home());
+    let cargo_home = &try!(utils::cargo_home());
 
     if !cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX)).exists() {
         return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
@@ -593,8 +591,8 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 
     if !no_prompt {
         println!("");
-        let ref msg = format!(pre_uninstall_msg!(),
-                              cargo_home = try!(canonical_cargo_home()));
+        let msg = &format!(pre_uninstall_msg!(),
+                           cargo_home = try!(canonical_cargo_home()));
         term2::stdout().md(msg);
         if !try!(common::confirm("\nContinue? (y/N)", false)) {
             info!("aborting uninstallation");
@@ -605,7 +603,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     info!("removing rustup home");
 
     // Delete RUSTUP_HOME
-    let ref rustup_dir = try!(utils::multirust_home());
+    let rustup_dir = &try!(utils::multirust_home());
     if rustup_dir.exists() {
         try!(utils::remove_dir("rustup_home", rustup_dir, &|_| {}));
     }
@@ -615,7 +613,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     info!("removing cargo home");
 
     // Remove CARGO_HOME/bin from PATH
-    let ref remove_path_methods = try!(get_remove_path_methods());
+    let remove_path_methods = &try!(get_remove_path_methods());
     try!(do_remove_from_path(remove_path_methods));
 
     // Delete everything in CARGO_HOME *except* the rustup bin
@@ -693,7 +691,7 @@ fn get_msi_product_code() -> Result<String> {
 
 #[cfg(unix)]
 fn delete_rustup_and_cargo_home() -> Result<()> {
-    let ref cargo_home = try!(utils::cargo_home());
+    let cargo_home = &try!(utils::cargo_home());
     try!(utils::remove_dir("cargo_home", cargo_home, &|_| ()));
 
     Ok(())
@@ -915,7 +913,7 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
     let profile = utils::home_dir().map(|p| p.join(".profile"));
     let rcfiles = vec![profile].into_iter().filter_map(|f|f);
 
-    rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect()
+    rcfiles.map(PathUpdateMethod::RcFile).collect()
 }
 
 fn shell_export_string() -> Result<String> {
@@ -935,7 +933,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
             } else {
                 String::new()
             };
-            let ref addition = format!("\n{}", try!(shell_export_string()));
+            let addition = &format!("\n{}", try!(shell_export_string()));
             if !file.contains(addition) {
                 try!(utils::append_file("rcfile", rcpath, addition));
             }
@@ -1049,11 +1047,11 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
     let matching_rcfiles = existing_rcfiles
         .filter(|f| {
             let file = utils::read_file("rcfile", f).unwrap_or(String::new());
-            let ref addition = format!("\n{}", export_str);
+            let addition = &format!("\n{}", export_str);
             file.contains(addition)
         });
 
-    Ok(matching_rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect())
+    Ok(matching_rcfiles.map(PathUpdateMethod::RcFile).collect())
 }
 
 #[cfg(windows)]
@@ -1133,8 +1131,8 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
                 .position(|w| w == &*addition_bytes);
             if let Some(i) = idx {
                 let mut new_file_bytes = file_bytes[..i].to_vec();
-                new_file_bytes.extend(&file_bytes[i + addition_bytes.len()..]);
-                let ref new_file = String::from_utf8(new_file_bytes).unwrap();
+                new_file_bytes.extend_from_slice(&file_bytes[i + addition_bytes.len()..]);
+                let new_file = &String::from_utf8(new_file_bytes).unwrap();
                 try!(utils::write_file("rcfile", rcpath, new_file));
             } else {
                 // Weird case. rcfile no longer needs to be modified?
@@ -1147,7 +1145,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     Ok(())
 }
 
-/// Self update downloads rustup-init to CARGO_HOME/bin/rustup-init
+/// Self update downloads rustup-init to `CARGO_HOME/bin/rustup-init`
 /// and runs it.
 ///
 /// It does a few things to accomodate self-delete problems on windows:
@@ -1160,7 +1158,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 ///
 /// Because it's again difficult for rustup-init to delete itself
 /// (and on windows this process will not be running to do it),
-/// rustup-init is stored in CARGO_HOME/bin, and then deleted next
+/// rustup-init is stored in `CARGO_HOME/bin`, and then deleted next
 /// time rustup runs.
 pub fn update() -> Result<()> {
     if NEVER_SELF_UPDATE {
@@ -1170,7 +1168,7 @@ pub fn update() -> Result<()> {
     }
     let setup_path = try!(prepare_update());
     if let Some(ref p) = setup_path {
-        let version = match get_new_rustup_version(&p) {
+        let version = match get_new_rustup_version(p) {
             Some(new_version) => parse_new_rustup_version(new_version),
             None => {
                 err!("failed to get rustup version");
@@ -1206,9 +1204,9 @@ fn parse_new_rustup_version(version: String) -> String {
 }
 
 pub fn prepare_update() -> Result<Option<PathBuf>> {
-    let ref cargo_home = try!(utils::cargo_home());
-    let ref rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
-    let ref setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
+    let cargo_home = &try!(utils::cargo_home());
+    let rustup_path = &cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
+    let setup_path = &cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
     if !rustup_path.exists() {
         return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
@@ -1234,7 +1232,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let mut hasher = Sha256::new();
     let mut self_exe = try!(File::open(rustup_path)
                         .chain_err(|| "can't open self exe to calculate hash"));
-    let ref mut buf = [0; 4096];
+    let buf = &mut [0; 4096];
     loop {
         let bytes = try!(self_exe.read(buf)
                          .chain_err(|| "failed to read from self exe while calculating hash"));
@@ -1312,7 +1310,7 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
 }
 
 /// This function is as the final step of a self-upgrade. It replaces
-/// CARGO_HOME/bin/rustup with the running exe, and updates the the
+/// `CARGO_HOME/bin/rustup` with the running exe, and updates the the
 /// links to it. On windows this will run *after* the original
 /// rustup process exits.
 #[cfg(unix)]
@@ -1332,14 +1330,14 @@ pub fn self_replace() -> Result<()> {
 
 pub fn cleanup_self_updater() -> Result<()> {
     let cargo_home = try!(utils::cargo_home());
-    let ref setup = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
+    let setup = &cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
     if setup.exists() {
         try!(utils::remove_file("setup", setup));
     }
 
     // Transitional
-    let ref old_setup = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
+    let old_setup = &cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
 
     if old_setup.exists() {
         try!(utils::remove_file("setup", old_setup));
