@@ -1,3 +1,10 @@
+# 0.6.1
+
+* [Fix mysterious crash on OS X 10.10+](https://github.com/rust-lang-nursery/rustup.rs/pull/684)
+* [Fix `component remove` command and add a test for it](https://github.com/rust-lang-nursery/rustup.rs/pull/683)
+
+Contributors: Brian Anderson, Diggory Blake
+
 # 0.6.0
 
 * [Print rustup version after update](https://github.com/rust-lang-nursery/rustup.rs/pull/614)
