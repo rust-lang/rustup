@@ -369,6 +369,7 @@ fn do_pre_install_sanity_checks() -> Result<()> {
 // sudo is configured not to change $HOME. Don't let that bogosity happen.
 fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
     #[cfg(unix)]
+    #[inline(never)] // FIXME #679. Mysterious crashes on OS X 10.10+
     pub fn home_mismatch() -> bool {
         extern crate libc as c;
 
