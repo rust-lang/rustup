@@ -628,6 +628,7 @@ dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "semver 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "shell32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.1.30 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -688,6 +689,23 @@ dependencies = [
 name = "semver"
 version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "semver"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "semver-parser 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "semver-parser"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.73 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "sha2"
@@ -1006,6 +1024,8 @@ dependencies = [
 "checksum security-framework 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "cfedce48443fbd8a9be6e152c2840da13f81e792e806b94ba983c55bc5c9afe7"
 "checksum security-framework-sys 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "7bcfb1d5ef7f96a097c58d4766d7395c2b74f9ef6ca1f0dc10d6f84f80817a98"
 "checksum semver 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)" = "d4f410fedcf71af0345d7607d246e7ad15faaadd49d240ee3b24e5dc21a820ac"
+"checksum semver 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5a3e716cbf7de2e31f25577d1e4e25a827b94181bce8b173e6d26a4d2ca5dd11"
+"checksum semver-parser 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "759cd83395f21ba0cf1df65e719f758cdc6b94851727281ea3bd0f536cdfa6f2"
 "checksum sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e0cd9505afe45df2b8bdda585776281c7b29eb9d0e34b1e6dd2b12cba5d4ae1e"
 "checksum shell32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "72f20b8f3c060374edb8046591ba28f62448c369ccbdc7b02075103fb3a9e38d"
 "checksum solicit 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "172382bac9424588d7840732b250faeeef88942e37b6e35317dce98cafdd75b2"
