@@ -93,6 +93,10 @@ artifacts:
     name: rustup-setup
   - path: dist\$(TARGET)\rustup-setup.exe.sha256
     name: rustup-setup-sha
+  - path: dist\$(TARGET)\rustup.msi
+    name: rustup-msi
+  - path: dist\$(TARGET)\rustup.msi.sha256
+    name: rustup-msi-sha
 
 deploy:
   - provider: S3
@@ -103,7 +107,7 @@ deploy:
     bucket: dev-static-rust-lang-org
     set_public: true
     region: us-west-1
-    artifact: rustup-init,rustup-init-sha,rustup-setup,rustup-setup-sha
+    artifact: rustup-init,rustup-init-sha,rustup-setup,rustup-setup-sha,rustup-msi,rustup-msi-sha
     folder: rustup
     on:
       branch: stable
