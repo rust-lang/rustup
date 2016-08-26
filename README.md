@@ -58,6 +58,19 @@ you are ready to Rust. If you decide Rust isn't your thing, you can
 completely remove it from your system by running `rustup self
 uninstall`.
 
+#### Enable tab completion for Zsh
+
+Copy [`src/rustup-cli/zsh/_rustup`](https://github.com/rust-lang-nursery/rustup.rs/blob/master/src/rustup-cli/zsh/_rustup) into a directory, e.g. `~/.zfunc/`,
+then add the following line in your `~/.zshrc` before `compinit`:
+
+```zsh
+fpath+=~/.zfunc
+```
+
+#### Enable tab completion for Bash
+
+Waiting for [#278](https://github.com/rust-lang-nursery/rustup.rs/issues/278)
+
 ## How rustup works
 
 `rustup` is a *toolchain multiplexer*. It installs and manages many
