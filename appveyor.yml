@@ -55,12 +55,12 @@ test_script:
   - cargo test --release --target %TARGET% %FEATURES%
   - ps: |
       if($env:BUILD_MSI) {
-        cd src\rustup-win-installer
+        pushd src\rustup-win-installer
         cargo build --release --target $env:TARGET
         cd msi
         .\build.ps1 -Target $env:TARGET
-        cd ..\..\..
-        if($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
+        popd
+        if($LastExitCode -ne 0) { exit $LastExitCode }
       }
 
 notifications:
@@ -79,6 +79,10 @@ artifacts:
     name: rustup-setup
   - path: dist\$(TARGET)\rustup-setup.exe.sha256
     name: rustup-setup-sha
+  - path: dist\$(TARGET)\rustup.msi
+    name: rustup-msi
+  - path: dist\$(TARGET)\rustup-msi.exe.sha256
+    name: rustup-msi-exe-sha
 
 deploy:
   - provider: S3
@@ -89,7 +93,7 @@ deploy:
     bucket: dev-static-rust-lang-org
     set_public: true
     region: us-west-1
-    artifact: rustup-init,rustup-init-sha,rustup-setup,rustup-setup-sha
+    artifact: rustup-init,rustup-init-sha,rustup-setup,rustup-setup-sha,rustup-msi,rustup-msi-exe-sha
     folder: rustup
     on:
       branch: master
@@ -102,7 +106,7 @@ deploy:
     bucket: static-rust-lang-org
     set_public: true
     region: us-west-1
-    artifact: rustup-init,rustup-init-sha,rustup-setup,rustup-setup-sha
+    artifact: rustup-init,rustup-init-sha,rustup-setup,rustup-setup-sha,rustup-msi,rustup-msi-exe-sha
     folder: rustup
     on:
       branch: stable
