@@ -9,6 +9,7 @@ extern crate sha2;
 extern crate url;
 extern crate toml;
 extern crate download;
+extern crate semver;
 
 #[cfg(windows)]
 extern crate winapi;

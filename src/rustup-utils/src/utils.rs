@@ -551,15 +551,27 @@ pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<String> {
 }
 
 pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
-    fn toolchain_sort_key(s: &str) -> String {
+    use semver::{Version, Identifier};
+
+    fn special_version(ord: u64, s: &str) -> Version {
+        Version {
+            major: 0,
+            minor: 0,
+            patch: 0,
+            pre: vec![Identifier::Numeric(ord), Identifier::AlphaNumeric(s.into())],
+            build: vec![],
+        }
+    }
+
+    fn toolchain_sort_key(s: &str) -> Version {
         if s.starts_with("stable") {
-            format!("0{}", s)
+            special_version(0, s)
         } else if s.starts_with("beta") {
-            format!("1{}", s)
+            special_version(1, s)
         } else if s.starts_with("nightly") {
-            format!("2{}", s)
+            special_version(2, s)
         } else {
-            format!("3{}", s)
+            Version::parse(&s.replace("_", "-")).unwrap_or_else(|_| special_version(3, s))
         }
     }
 
@@ -570,4 +582,37 @@ pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
         let b_key = toolchain_sort_key(b_str);
         a_key.cmp(&b_key)
     });
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_toochain_sort() {
+        let expected = vec![
+            "stable-x86_64-unknown-linux-gnu",
+            "beta-x86_64-unknown-linux-gnu",
+            "nightly-x86_64-unknown-linux-gnu",
+            "1.0.0-x86_64-unknown-linux-gnu",
+            "1.2.0-x86_64-unknown-linux-gnu",
+            "1.8.0-x86_64-unknown-linux-gnu",
+            "1.10.0-x86_64-unknown-linux-gnu",
+        ];
+
+        let mut v = vec![
+            "1.8.0-x86_64-unknown-linux-gnu",
+            "1.0.0-x86_64-unknown-linux-gnu",
+            "nightly-x86_64-unknown-linux-gnu",
+            "stable-x86_64-unknown-linux-gnu",
+            "1.10.0-x86_64-unknown-linux-gnu",
+            "beta-x86_64-unknown-linux-gnu",
+            "1.2.0-x86_64-unknown-linux-gnu",
+        ];
+
+        toolchain_sort(&mut v);
+
+        assert_eq!(expected, v);
+    }
 }
