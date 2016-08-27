@@ -1,3 +1,10 @@
+# 0.6.2
+
+* [Add basic autocompletion for Zsh](https://github.com/rust-lang-nursery/rustup.rs/pull/689)
+* [Sort toolchains by semantic version](https://github.com/rust-lang-nursery/rustup.rs/pull/688)
+
+Contributors: Brian Anderson, Diggory Blake, Knight, Marco A L Barbosa
+
 # 0.6.1
 
 * [Fix mysterious crash on OS X 10.10+](https://github.com/rust-lang-nursery/rustup.rs/pull/684)
