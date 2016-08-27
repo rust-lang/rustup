@@ -1,7 +1,7 @@
 [package]
 
 name = "rustup-dist"
-version = "0.6.1"
+version = "0.6.2"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Installation from a Rust distribution server"
 build = "build.rs"
@@ -23,9 +23,9 @@ tempdir = "0.3.4"
 walkdir = "0.1.5"
 toml = "0.1.27"
 sha2 = "0.1.2"
-rustup-utils = { path = "../rustup-utils", version = "0.6.1" }
+rustup-utils = { path = "../rustup-utils", version = "0.6.2" }
 error-chain = "0.4.0"
-rustup-mock = { path = "../rustup-mock", version = "0.6.1" }
+rustup-mock = { path = "../rustup-mock", version = "0.6.2" }
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.8"
