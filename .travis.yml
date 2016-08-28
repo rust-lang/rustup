@@ -1,4 +1,3 @@
-language: rust
 sudo: required
 dist: trusty
 services:
@@ -9,11 +8,9 @@ matrix:
     # Linux builds use the `rust-slave-dist` image so we link them against a
     # "super old glibc" to ensure that it runs on as many platforms as possible.
     - os: linux
-      rust: nightly
       env: TARGET=i686-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-dist:2015-10-20b
     - os: linux
-      rust: nightly
       env: TARGET=x86_64-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-dist:2015-10-20b
 
@@ -21,47 +18,38 @@ matrix:
     # we use the right cross compilers for these targets. That image should
     # bundle all the gcc cross compilers to enable us to build OpenSSL
     - os: linux
-      rust: nightly
       env: TARGET=arm-unknown-linux-gnueabi
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
-      rust: nightly
       env: TARGET=arm-unknown-linux-gnueabihf
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
-      rust: nightly
       env: TARGET=armv7-unknown-linux-gnueabihf
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
-      rust: nightly
       env: TARGET=aarch64-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
-      rust: nightly
       env: TARGET=x86_64-unknown-freebsd
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
-      rust: nightly
       env: TARGET=x86_64-unknown-netbsd
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
-      rust: nightly
       env: TARGET=powerpc-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
-      rust: nightly
       env: TARGET=powerpc64-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
     - os: linux
-      rust: nightly
       env: TARGET=powerpc64le-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-04-05
            SKIP_TESTS=1
@@ -69,11 +57,9 @@ matrix:
     # On OSX we want to target 10.7 so we ensure that the appropriate
     # environment variable is set to tell the linker what we want.
     - os: osx
-      rust: nightly
       env: TARGET=i686-apple-darwin
            MACOSX_DEPLOYMENT_TARGET=10.7
     - os: osx
-      rust: nightly
       env: TARGET=x86_64-apple-darwin
            MACOSX_DEPLOYMENT_TARGET=10.7
 
@@ -98,7 +84,7 @@ script:
       docker run
         --entrypoint bash
         -u `id -u`:`id -g`
-        -v `rustc --print sysroot`:/travis-rust:ro
+        -v $HOME/rust:/travis-rust:ro
         -v `pwd`:/buildslave:ro
         -v `pwd`/target:/buildslave/target
         -e TARGET=$TARGET
@@ -106,7 +92,7 @@ script:
         -it $DOCKER
         ci/run-docker.sh;
     else
-      sh ci/run.sh;
+      PATH=$HOME/rust/bin:$PATH sh ci/run.sh;
     fi
   # Install kcov dependencies
   # FIXME: busted!
