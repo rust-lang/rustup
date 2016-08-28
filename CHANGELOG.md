@@ -1,5 +1,6 @@
 # 0.6.3
 
+* [Disable anti-sudo check](https://github.com/rust-lang-nursery/rustup.rs/pull/698)
 * [Fixed CI toolchain pinning](https://github.com/rust-lang-nursery/rustup.rs/pull/696)
 
 Contributors: Brian Anderson
