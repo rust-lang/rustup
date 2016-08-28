@@ -1,3 +1,9 @@
+# 0.6.3
+
+* [Fixed CI toolchain pinning](https://github.com/rust-lang-nursery/rustup.rs/pull/696)
+
+Contributors: Brian Anderson
+
 # 0.6.2
 
 * [Add basic autocompletion for Zsh](https://github.com/rust-lang-nursery/rustup.rs/pull/689)
