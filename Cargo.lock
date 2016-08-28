@@ -1,8 +1,8 @@
 [root]
 name = "rustup-win-installer"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
- "rustup 0.6.2",
+ "rustup 0.6.3",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -542,7 +542,7 @@ dependencies = [
 
 [[package]]
 name = "rustup"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "clap 2.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "download 0.3.0",
@@ -555,9 +555,9 @@ dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.73 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup-dist 0.6.2",
- "rustup-mock 0.6.2",
- "rustup-utils 0.6.2",
+ "rustup-dist 0.6.3",
+ "rustup-mock 0.6.3",
+ "rustup-utils 0.6.3",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -573,7 +573,7 @@ dependencies = [
 
 [[package]]
 name = "rustup-dist"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "error-chain 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -583,8 +583,8 @@ dependencies = [
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.73 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup-mock 0.6.2",
- "rustup-utils 0.6.2",
+ "rustup-mock 0.6.3",
+ "rustup-utils 0.6.3",
  "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -598,12 +598,12 @@ dependencies = [
 
 [[package]]
 name = "rustup-mock"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "flate2 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.4.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup-utils 0.6.2",
+ "rustup-utils 0.6.3",
  "scopeguard 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -618,7 +618,7 @@ dependencies = [
 
 [[package]]
 name = "rustup-utils"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "advapi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "download 0.3.0",
