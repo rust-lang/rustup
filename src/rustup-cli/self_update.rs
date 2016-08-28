@@ -196,7 +196,11 @@ pub fn install(no_prompt: bool, verbose: bool,
                mut opts: InstallOpts) -> Result<()> {
 
     try!(do_pre_install_sanity_checks());
-    try!(do_anti_sudo_check(no_prompt));
+    // FIXME: #695 This function is miscompiled and crashes.
+    // Even when I pin the compiler to an old nightly, 2016-08-10,
+    // which _does not crash_ on my machine, it still seems to be
+    // miscompiled on the deployed builds. I am very confused.
+    //try!(do_anti_sudo_check(no_prompt));
 
     if !no_prompt {
         let ref msg = try!(pre_install_msg(opts.no_modify_path));
