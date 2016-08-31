@@ -304,6 +304,10 @@ pub fn env(config: &Config, cmd: &mut Command) {
 
     // Skip the MSVC warning check since it's environment dependent
     cmd.env("RUSTUP_INIT_SKIP_MSVC_CHECK", "yes");
+
+    // The test environment may interfere with checking the PATH for the existence of rustc or
+    // cargo, so we disable that check globally
+    cmd.env("RUSTUP_INIT_SKIP_PATH_CHECK", "yes");
 }
 
 pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> SanitizedOutput {

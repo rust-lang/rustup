@@ -5,17 +5,22 @@ extern crate rustup_dist;
 extern crate rustup_utils;
 extern crate rustup_mock;
 extern crate time;
-use rustup_mock::clitools::{self, Config, Scenario,
+extern crate tempdir;
+
+use rustup_mock::clitools::{self, Config, Scenario, SanitizedOutput,
                                expect_stdout_ok, expect_stderr_ok,
                                expect_ok, expect_err, expect_timeout_ok,
                                run, this_host_triple};
 use rustup_utils::{raw, utils};
 
-use time::Duration;
-use std::ops::Sub;
+use std::io::Write;
 use std::ops::Add;
+use std::ops::Sub;
+use std::process::Stdio;
 use std::time::Duration as StdDuration;
 use std::env::consts::EXE_SUFFIX;
+use tempdir::TempDir;
+use time::Duration;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -427,5 +432,54 @@ fn rls_does_not_exist_in_toolchain() {
         expect_err(config, &["rls", "--version"],
                    &format!("toolchain 'stable-{}' does not have the binary `rls{}`",
                             this_host_triple(), EXE_SUFFIX));
+    });
+}
+
+#[test]
+fn install_stops_if_rustc_exists() {
+    let temp_dir = TempDir::new("fakebin").unwrap();
+    // Create fake executable
+    let ref fake_exe = temp_dir.path().join(&format!("{}{}", "rustc", EXE_SUFFIX));
+    raw::append_file(fake_exe, "").unwrap();
+    let temp_dir_path = temp_dir.path().to_str().unwrap();
+
+    setup(&|config| {
+        let out = run(config, "rustup-init", &[],
+                      &[("RUSTUP_INIT_SKIP_PATH_CHECK", "no"), ("PATH", &temp_dir_path)]);
+        assert!(!out.ok);
+        assert!(out.stderr.contains("it looks like you have an existing installation of Rust at:"));
+        assert!(out.stderr.contains("if this is what you want, restart the installation with `-y'"));
+    });
+}
+
+#[test]
+fn install_stops_if_cargo_exists() {
+    let temp_dir = TempDir::new("fakebin").unwrap();
+    // Create fake executable
+    let ref fake_exe = temp_dir.path().join(&format!("{}{}", "cargo", EXE_SUFFIX));
+    raw::append_file(fake_exe, "").unwrap();
+    let temp_dir_path = temp_dir.path().to_str().unwrap();
+
+    setup(&|config| {
+        let out = run(config, "rustup-init", &[],
+                      &[("RUSTUP_INIT_SKIP_PATH_CHECK", "no"), ("PATH", &temp_dir_path)]);
+        assert!(!out.ok);
+        assert!(out.stderr.contains("it looks like you have an existing installation of Rust at:"));
+        assert!(out.stderr.contains("if this is what you want, restart the installation with `-y'"));
+    });
+}
+
+#[test]
+fn with_no_prompt_install_succeeds_if_rustc_exists() {
+    let temp_dir = TempDir::new("fakebin").unwrap();
+    // Create fake executable
+    let ref fake_exe = temp_dir.path().join(&format!("{}{}", "rustc", EXE_SUFFIX));
+    raw::append_file(fake_exe, "").unwrap();
+    let temp_dir_path = temp_dir.path().to_str().unwrap();
+
+    setup(&|config| {
+        let out = run(config, "rustup-init", &["-y"],
+                      &[("RUSTUP_INIT_SKIP_PATH_CHECK", "no"), ("PATH", &temp_dir_path)]);
+        assert!(out.ok);
     });
 }
