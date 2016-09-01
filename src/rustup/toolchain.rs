@@ -321,13 +321,13 @@ impl<'a> Toolchain<'a> {
         }
         env_var::prepend_path(sysenv::LOADER_PATH, &new_path, cmd);
 
-        // Append first cargo_home, then toolchain/bin to the PATH
-        let mut path_to_append = Vec::with_capacity(2);
+        // Prepend first cargo_home, then toolchain/bin to the PATH
+        let mut path_to_prepend = Vec::with_capacity(2);
         if let Ok(cargo_home) = utils::cargo_home() {
-            path_to_append.push(cargo_home.join("bin"));
+            path_to_prepend.push(cargo_home.join("bin"));
         }
-        path_to_append.push(self.path.join("bin"));
-        env_var::append_path("PATH", path_to_append, cmd);
+        path_to_prepend.push(self.path.join("bin"));
+        env_var::prepend_path("PATH", path_to_prepend, cmd);
     }
 
     pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {
