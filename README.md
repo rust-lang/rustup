@@ -86,10 +86,11 @@ compiler. If you later *change the default toolchain* to nightly with
 `rustup default nightly`, then that same proxy will run the `nightly`
 compiler instead.
 
-This is similar to Ruby's [rbenv] or Python's [pyenv].
+This is similar to Ruby's [rbenv], Python's [pyenv], or Node's [nvm].
 
 [rbenv]: https://github.com/rbenv/rbenv
 [pyenv]: https://github.com/yyuu/pyenv
+[nvm]: https://github.com/creationix/nvm
 
 ## Keeping Rust up to date
 
