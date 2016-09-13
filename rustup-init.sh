@@ -41,15 +41,30 @@ main() {
 
     local _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
     local _file="$_dir/rustup-init$_ext"
-
-    printf "\33[1minfo:\33[0m downloading installer\n"
-
+    
+    local _ansiEscapesAreValid=false
+    if [ -t 2 ]; then
+        if [ "${TERM+set}" = 'set' ]; then
+            case "$TERM" in
+                xterm*|rxvt*|urxvt*|linux*|vt*)
+                    _ansiEscapesAreValid=true
+                ;;
+            esac
+        fi
+    fi
+    
+    if $_ansiEscapesAreValid; then
+        printf "\33[1minfo:\33[0m downloading installer\n" 1>&2
+    else
+        printf '%s\n' 'info: downloading installer' 1>&2
+    fi
+    
     ensure mkdir -p "$_dir"
     ensure curl -sSfL "$_url" -o "$_file"
     ensure chmod u+x "$_file"
     if [ ! -x "$_file" ]; then
-        echo "Cannot execute $_file (likely because of mounting /tmp as noexec)."
-        echo "Please copy the file to a location where you can execute binaries and run ./rustup-init$_ext."
+        printf '%s\n' "Cannot execute $_file (likely because of mounting /tmp as noexec)." 1>&2
+        printf '%s\n' "Please copy the file to a location where you can execute binaries and run ./rustup-init$_ext." 1>&2
         exit 1
     fi
 
