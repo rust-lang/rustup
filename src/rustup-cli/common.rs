@@ -353,9 +353,11 @@ pub fn report_error(e: &Error) {
     }
 
     if show_backtrace() {
-        info!("backtrace:");
-        println!("");
-        println!("{:?}", e.backtrace());
+        if let Some(backtrace) = e.backtrace() {
+            info!("backtrace:");
+            println!("");
+            println!("{:?}", backtrace);
+        }
     } else {
     }
 
