@@ -42,18 +42,18 @@ main() {
     local _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
     local _file="$_dir/rustup-init$_ext"
     
-    local _ansiEscapesAreValid=false
+    local _ansi_escapes_are_valid=false
     if [ -t 2 ]; then
         if [ "${TERM+set}" = 'set' ]; then
             case "$TERM" in
                 xterm*|rxvt*|urxvt*|linux*|vt*)
-                    _ansiEscapesAreValid=true
+                    _ansi_escapes_are_valid=true
                 ;;
             esac
         fi
     fi
     
-    if $_ansiEscapesAreValid; then
+    if $_ansi_escapes_are_valid; then
         printf "\33[1minfo:\33[0m downloading installer\n" 1>&2
     else
         printf '%s\n' 'info: downloading installer' 1>&2
