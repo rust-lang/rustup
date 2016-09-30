@@ -538,6 +538,11 @@ rustup is the successor to [multirust]. rustup began as multirust-rs,
 a rewrite of multirust from shell script to Rust, by [Diggory Blake],
 and is now maintained by The Rust Project.
 
+### rustup fails with Windows error 32
+
+If rustup fails with Windows error 32, it may be due to antivirus
+scanning in the background. Disable antivirus scanner and try again.
+
 [multirust]: https://github.com/brson/multirust
 [Diggory Blake]: https://github.com/Diggsey
 
