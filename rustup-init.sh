@@ -18,13 +18,13 @@ set -u
 RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup/dist"
 
 main() {
+    need_cmd uname
     need_cmd curl
     need_cmd mktemp
     need_cmd chmod
     need_cmd mkdir
     need_cmd rm
     need_cmd rmdir
-    need_cmd printf
 
     get_architecture || return 1
     local _arch="$RETVAL"
