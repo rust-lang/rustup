@@ -15,7 +15,8 @@ case $state in
     args)
         case $words[1] in
             component)
-                local -a subcommands=(
+                local -a subcommands
+                subcommands=(
                 'list:list installed and available components'
                 'add:add a component to a toolchain'
                 'remove:remove a component from a toolchain'
@@ -52,7 +53,8 @@ case $state in
                     ;;
 
             override)
-                local -a subcommands=(
+                local -a subcommands
+                subcommands=(
                 'list:list directory toolchain overrides'
                 'set:set the override toolchain for a directory'
                 'unset:remove the override toolchain for a directory'
@@ -72,7 +74,8 @@ case $state in
 
 
             self)
-                local -a subcommands=(
+                local -a subcommands
+                subcommands=(
                 'update:download and install updates to rustup'
                 'uninstall:uninstall rustup'
                 'upgrade-data:upgrade the internal data format'
@@ -84,7 +87,8 @@ case $state in
                     ;;
 
             set)
-                local -a subcommands=(
+                local -a subcommands
+                subcommands=(
                 'default-host:The triple used to identify toolchains' \
                 'help:prints this message or the help of the given subcommand(s)'
                 )
@@ -98,7 +102,8 @@ case $state in
                     ;;
 
             target)
-                local -a subcommands=(
+                local -a subcommands
+                subcommands=(
                 'list:list installed and available targets'
                 'add:add a target to a toolchain'
                 'remove:remove a target from a toolchain'
@@ -110,7 +115,8 @@ case $state in
                     ;;
 
             toolchain)
-                local -a subcommands=(
+                local -a subcommands
+                subcommands=(
                 'list:list installed toolchains'
                 'install:install or update a toolchain'
                 'uninstall:uninstall a toolchain'
@@ -139,7 +145,8 @@ esac
 }
 
 _get_local_toolchains() {
-    local -a toolchains=()
+    local -a toolchains
+    toolchains=()
     rustup toolchain list 2>/dev/null | while read line
     do
         toolchains+="${line%%-*}"
@@ -148,7 +155,9 @@ _get_local_toolchains() {
 }
 
 _rustup_cmds(){
-local -a commands=(
+local -a commands
+
+commands=(
 'show:show the active and installed toolchains'
 'update:update Rust toolchains'
 'default:set the default toolchain'
