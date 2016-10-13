@@ -53,10 +53,10 @@ impl<'a> Notification<'a> {
             DownloadingComponent(_, _, _) |
             InstallingComponent(_, _, _) |
             ComponentAlreadyInstalled(_)  |
+            ManifestChecksumFailedHack |
             RollingBack | DownloadingManifest(_) => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
-            MissingInstalledComponent(_) |
-            ManifestChecksumFailedHack => NotificationLevel::Warn,
+            MissingInstalledComponent(_) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
         }
     }
