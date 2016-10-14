@@ -10,11 +10,17 @@
 # * Sync local bins to dev archives
 #   python sync-dist.py local-to-dev-archives 0.2.0
 #
+# * Update dev release number
+#   python sync-dist.py update-dev-release 0.2.0
+#
 # * Sync local bins to prod archives
 #   python sync-dist.py local-to-prod-archives 0.2.0
 #
 # * Sync local bins to prod
 #   python sync-dist.py local-to-prod
+#
+# * Update prod release number
+#   python sync-dist.py update-prod-release 0.2.0
 #
 # Don't forget to tag the release, dummy!
 
@@ -26,8 +32,10 @@ import shutil
 def usage():
     print ("usage: sync-dist dev-to-local [--live-run]\n"
            "       sync-dist local-to-dev-archives $version [--live-run]\n"
+           "       sync-dist update-dev-release $version [--live-run]\n"
            "       sync-dist local-to-prod-archives $version [--live-run]\n"
-           "       sync-dist local-to-prod [--live-run]\n")
+           "       sync-dist local-to-prod [--live-run]\n"
+           "       sync-dist update-prod-release $version [--live-run]\n")
     sys.exit(1)
 
 command = None
@@ -41,11 +49,13 @@ command = sys.argv[1]
 
 if not command in ["dev-to-local",
                    "local-to-dev-archives",
+                   "update-dev-release",
                    "local-to-prod-archives",
-                   "local-to-prod"]:
+                   "local-to-prod",
+                   "update-prod-release"]:
     usage()
 
-if "archives" in command:
+if "archives" in command or "release" in command:
     if len(sys.argv) < 3:
         usage()
     archive_version = sys.argv[2]
@@ -77,11 +87,21 @@ elif command == "local-to-dev-archives" \
     s3cmd = "s3cmd sync ./local-rustup/dist/ s3://{}/rustup/archive/{}/".format(s3_bucket, archive_version)
 elif command == "local-to-prod":
     s3cmd = "s3cmd sync ./local-rustup/dist/ s3://{}/rustup/dist/".format(s3_bucket)
+elif command == "update-dev-release" \
+     or command == "update-prod-release":
+    s3cmd = "s3cmd put ./local-rustup/release-stable.toml s3://{}/rustup/release-stable.toml".format(s3_bucket)
 else:
     sys.exit(1)
 
 print "s3 command: {}".format(s3cmd)
 print
+
+# Create the release information
+if command == "update-dev-release" \
+   or command == "update-prod-release":
+    with open("./local-rustup/release-stable.toml", "w") as f:
+        f.write("schema-version = '1'\n")
+        f.write("version = '{}'\n".format(archive_version))
 
 def run_s3cmd(command):
     s3cmd = command.split(" ")
