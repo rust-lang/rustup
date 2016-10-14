@@ -288,7 +288,7 @@ pub fn cli() -> App<'static, 'static> {
             .arg(Arg::with_name("toolchain")
                 .required(true))
             .arg(Arg::with_name("command")
-                .required(true).multiple(true)))
+                .required(true).multiple(true).use_delimiter(false)))
         .subcommand(SubCommand::with_name("which")
             .about("Display which binary will be run for a given command")
             .arg(Arg::with_name("command")
