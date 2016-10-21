@@ -1,3 +1,24 @@
+# 0.6.4
+
+* [making rustup prepend cargo bin to path instead of append](https://github.com/rust-lang-nursery/rustup.rs/pull/707)
+* [Use released version of rustls dependency](https://github.com/rust-lang-nursery/rustup.rs/pull/711)
+* [Update OpenSSL](https://github.com/rust-lang-nursery/rustup.rs/pull/733)
+* [Made outputting of ANSI terminal escapes codes defensive](https://github.com/rust-lang-nursery/rustup.rs/pull/725)
+* [Adjusted rustup-init.sh need_cmd to add uname and remove printf](https://github.com/rust-lang-nursery/rustup.rs/pull/723)
+* [Update to error-chain 0.5.0 to allow optional backtrace](https://github.com/rust-lang-nursery/rustup.rs/pull/591)
+* [Fix variable naming in rustup-init.sh](https://github.com/rust-lang-nursery/rustup.rs/pull/737)
+* [Update clap to fix --help formatting](https://github.com/rust-lang-nursery/rustup.rs/pull/738)
+* [Add an FAQ entry about troubles with antivirus](https://github.com/rust-lang-nursery/rustup.rs/pull/739)
+* [Clarify how rustup toolchain installation works on Windows](https://github.com/rust-lang-nursery/rustup.rs/pull/744)
+* [Do not interpret commas when using "rustup run"](https://github.com/rust-lang-nursery/rustup.rs/pull/752)
+* [Fix local declarations for zsh completions](https://github.com/rust-lang-nursery/rustup.rs/pull/753)
+* [Fix checksum failures](https://github.com/rust-lang-nursery/rustup.rs/pull/759)
+* [Treat an empty `CARGO_HOME` the same as an unset `CARGO_HOME`](https://github.com/rust-lang-nursery/rustup.rs/pull/767)
+
+Contributors: Alex Crichton, Andrew Koroluk, Brian Anderson, Chungmin Park,
+Diggory Blake, Guillaume Fraux, Jake Goldsborough, jethrogb, Kevin Rauwolf,
+Raphael Cohn, Ricardo Martins
+
 # 0.6.3
 
 * [Disable anti-sudo check](https://github.com/rust-lang-nursery/rustup.rs/pull/698)
