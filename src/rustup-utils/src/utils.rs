@@ -479,7 +479,8 @@ pub fn cargo_home() -> Result<PathBuf> {
     let env_var = if let Some(v) = env_var {
        let vv = v.to_string_lossy().to_string();
        if vv.contains(".multirust/cargo") ||
-            vv.contains(r".multirust\cargo") {
+            vv.contains(r".multirust\cargo") ||
+            vv.trim().is_empty() {
            None
        } else {
            Some(v)
