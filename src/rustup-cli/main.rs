@@ -19,6 +19,7 @@ extern crate scopeguard;
 extern crate tempdir;
 extern crate sha2;
 extern crate markdown;
+extern crate toml;
 
 #[cfg(windows)]
 extern crate winapi;

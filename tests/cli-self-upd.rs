@@ -29,11 +29,13 @@ use rustup_mock::clitools::{self, Config, Scenario,
                                expect_stderr_ok,
                                expect_err, expect_err_ex,
                                this_host_triple};
-use rustup_mock::dist::{create_hash, calc_hash};
+use rustup_mock::dist::{calc_hash};
 use rustup_mock::{get_path, restore_path};
-use rustup_utils::raw;
+use rustup_utils::{utils, raw};
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
+
+const TEST_VERSION: &'static str = "1.1.1";
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, &|config| {
@@ -60,22 +62,30 @@ pub fn update_setup(f: &Fn(&Config, &Path)) {
         let ref self_dist = self_dist_tmp.path();
 
         let ref trip = this_host_triple();
-        let ref dist_dir = self_dist.join(&format!("{}", trip));
+        let ref dist_dir = self_dist.join(&format!("archive/{}/{}", TEST_VERSION, trip));
         let ref dist_exe = dist_dir.join(&format!("rustup-init{}", EXE_SUFFIX));
-        let ref dist_hash = dist_dir.join(&format!("rustup-init{}.sha256", EXE_SUFFIX));
         let ref rustup_bin = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
 
         fs::create_dir_all(dist_dir).unwrap();
+        output_release_file(self_dist, "1", TEST_VERSION);
         fs::copy(rustup_bin, dist_exe).unwrap();
         // Modify the exe so it hashes different
         raw::append_file(dist_exe, "").unwrap();
-        create_hash(dist_exe, dist_hash);
 
         let ref root_url = format!("file://{}", self_dist.display());
         env::set_var("RUSTUP_UPDATE_ROOT", root_url);
 
         f(config, self_dist);
     });
+}
+
+fn output_release_file(dist_dir: &Path, schema: &str, version: &str) {
+    let contents = format!(r#"
+schema-version = "{}"
+version = "{}"
+"#, schema, version);
+    let file = dist_dir.join("release-stable.toml");
+    utils::write_file("release", &file, &contents).unwrap();
 }
 
 #[test]
@@ -504,87 +514,12 @@ fn update_but_delete_existing_updater_first() {
 }
 
 #[test]
-fn update_no_change() {
-    update_setup(&|config, self_dist| {
-        expect_ok(config, &["rustup-init", "-y"]);
-
-        let ref trip = this_host_triple();
-        let ref dist_dir = self_dist.join(&format!("{}", trip));
-        let ref dist_exe = dist_dir.join(&format!("rustup-init{}", EXE_SUFFIX));
-        let ref dist_hash = dist_dir.join(&format!("rustup-init{}.sha256", EXE_SUFFIX));
-        let ref rustup_bin = config.exedir.join(&format!("rustup{}", EXE_SUFFIX));
-        fs::copy(rustup_bin, dist_exe).unwrap();
-        create_hash(dist_exe, dist_hash);
-
-        expect_ok_ex(config, &["rustup", "self", "update"],
-r"",
-r"info: checking for self-updates
-");
-
-    });
-}
-
-#[test]
-#[ignore] // Workaround for #346
-fn update_bad_hash() {
-    update_setup(&|config, self_dist| {
-        expect_ok(config, &["rustup-init", "-y"]);
-
-        let ref trip = this_host_triple();
-        let ref dist_dir = self_dist.join(&format!("{}", trip));
-        let ref dist_hash = dist_dir.join(&format!("rustup-init{}.sha256", EXE_SUFFIX));
-
-        let ref some_other_file = config.distdir.join("dist/channel-rust-nightly.toml");
-
-        create_hash(some_other_file, dist_hash);
-
-        expect_err(config, &["rustup", "self", "update"],
-                   "checksum failed");
-    });
-}
-
-// Workaround for #346
-#[test]
-fn update_hash_drift() {
-    update_setup(&|config, self_dist| {
-        expect_ok(config, &["rustup-init", "-y"]);
-
-        let ref trip = this_host_triple();
-        let ref dist_dir = self_dist.join(&format!("{}", trip));
-        let ref dist_hash = dist_dir.join(&format!("rustup-init{}.sha256", EXE_SUFFIX));
-
-        let ref some_other_file = config.distdir.join("dist/channel-rust-nightly.toml");
-
-        create_hash(some_other_file, dist_hash);
-
-        expect_stderr_ok(config, &["rustup", "self", "update"],
-                         "update not yet available");
-    });
-}
-
-#[test]
-fn update_hash_file_404() {
-    update_setup(&|config, self_dist| {
-        expect_ok(config, &["rustup-init", "-y"]);
-
-        let ref trip = this_host_triple();
-        let ref dist_dir = self_dist.join(&format!("{}", trip));
-        let ref dist_hash = dist_dir.join(&format!("rustup-init{}.sha256", EXE_SUFFIX));
-
-        fs::remove_file(dist_hash).unwrap();
-
-        expect_err(config, &["rustup", "self", "update"],
-                   "could not download file");
-    });
-}
-
-#[test]
 fn update_download_404() {
     update_setup(&|config, self_dist| {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let ref trip = this_host_triple();
-        let ref dist_dir = self_dist.join(&format!("{}", trip));
+        let ref dist_dir = self_dist.join(&format!("archive/{}/{}", TEST_VERSION, trip));
         let ref dist_exe = dist_dir.join(&format!("rustup-init{}", EXE_SUFFIX));
 
         fs::remove_file(dist_exe).unwrap();
@@ -629,6 +564,29 @@ fn update_updates_rustup_bin() {
         let after_hash = calc_hash(bin);
 
         assert!(before_hash != after_hash);
+    });
+}
+
+#[test]
+fn update_bad_schema() {
+    update_setup(&|config, self_dist| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        output_release_file(self_dist, "17", "1.1.1");
+        expect_err(config, &["rustup", "self", "update"],
+                     "unknown schema version");
+    });
+}
+
+#[test]
+fn update_no_change() {
+    let version = env!("CARGO_PKG_VERSION");
+    update_setup(&|config, self_dist| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        output_release_file(self_dist, "1", version);
+        expect_ok_ex(config, &["rustup", "self", "update"],
+r"",
+r"info: checking for self-updates
+");
     });
 }
 

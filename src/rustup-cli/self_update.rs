@@ -34,13 +34,11 @@ use common::{self, Confirm};
 use errors::*;
 use rustup_dist::dist;
 use rustup_utils::utils;
-use sha2::{Sha256, Digest};
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
-use std::fs::{self, File};
-use std::io::Read;
+use std::fs;
 use tempdir::TempDir;
 use term2;
 use regex::Regex;
@@ -1210,6 +1208,8 @@ fn parse_new_rustup_version(version: String) -> String {
 }
 
 pub fn prepare_update() -> Result<Option<PathBuf>> {
+    use toml;
+
     let ref cargo_home = try!(utils::cargo_home());
     let ref rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
     let ref setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
@@ -1231,53 +1231,49 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let tempdir = try!(TempDir::new("rustup-update")
         .chain_err(|| "error creating temp directory"));
 
-    // Get download URL
-    let url = format!("{}/{}/rustup-init{}", update_root, triple, EXE_SUFFIX);
+    // Get current version
+    let current_version = env!("CARGO_PKG_VERSION");
 
-    // Calculate own hash
-    let mut hasher = Sha256::new();
-    let mut self_exe = try!(File::open(rustup_path)
-                        .chain_err(|| "can't open self exe to calculate hash"));
-    let ref mut buf = [0; 4096];
-    loop {
-        let bytes = try!(self_exe.read(buf)
-                         .chain_err(|| "failed to read from self exe while calculating hash"));
-        if bytes == 0 { break; }
-        hasher.input(&buf[0..bytes]);
-    }
-    let current_hash = hasher.result_str();
-    drop(self_exe);
-
-    // Download latest hash
+    // Download available version
     info!("checking for self-updates");
-    let hash_url = try!(utils::parse_url(&(url.clone() + ".sha256")));
-    let hash_file = tempdir.path().join("hash");
-    try!(utils::download_file(&hash_url, &hash_file, None, &|_| ()));
-    let mut latest_hash = try!(utils::read_file("hash", &hash_file));
-    latest_hash.truncate(64);
+    let release_file_url = format!("{}/release-stable.toml", update_root);
+    let release_file_url = try!(utils::parse_url(&release_file_url));
+    let release_file = tempdir.path().join("release-stable.toml");
+    try!(utils::download_file(&release_file_url, &release_file, None, &|_| ()));
+    let release_toml_str = try!(utils::read_file("rustup release", &release_file));
+    let release_toml = try!(toml::Parser::new(&release_toml_str).parse()
+                            .ok_or(Error::from("unable to parse rustup release file")));
+    let schema = try!(release_toml.get("schema-version")
+                      .ok_or(Error::from("no schema key in rustup release file")));
+    let schema = try!(schema.as_str()
+                      .ok_or(Error::from("invalid schema key in rustup release file")));
+    let available_version = try!(release_toml.get("version")
+                                 .ok_or(Error::from("no version key in rustup release file")));
+    let available_version = try!(available_version.as_str()
+                                 .ok_or(Error::from("invalid version key in rustup release file")));
+
+    if schema != "1" {
+        return Err(Error::from(&*format!("unknown schema version '{}' in rustup release file", schema)));
+    }
 
     // If up-to-date
-    if latest_hash == current_hash {
+    if available_version == current_version {
         return Ok(None);
     }
+
+    // Get download URL
+    let url = format!("{}/archive/{}/{}/rustup-init{}", update_root,
+                      available_version, triple, EXE_SUFFIX);
 
     // Get download path
     let download_url = try!(utils::parse_url(&url));
 
     // Download new version
     info!("downloading self-update");
-    let mut hasher = Sha256::new();
     try!(utils::download_file(&download_url,
                               &setup_path,
-                              Some(&mut hasher),
+                              None,
                               &|_| ()));
-    let download_hash = hasher.result_str();
-
-    // Check that hash is correct
-    if latest_hash != download_hash {
-        info!("update not yet available. bug #364");
-        return Ok(None);
-    }
 
     // Mark as executable
     try!(utils::make_executable(setup_path));
