@@ -735,6 +735,8 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
 fn delete_rustup_and_cargo_home() -> Result<()> {
     use rand;
     use scopeguard;
+    use std::thread;
+    use std::time::Duration;
 
     // CARGO_HOME, hopefully empty except for bin/rustup.exe
     let ref cargo_home = try!(utils::cargo_home());
@@ -796,6 +798,9 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
         // count. acrichto though is in disbelief and *demanded* that
         // we not insert a sleep. If Windows failed to uninstall
         // correctly it is because of him.
+
+        // (.. and months later acrichto owes me a beer).
+        thread::sleep(Duration::from_millis(100));
     }
 
     Ok(())
