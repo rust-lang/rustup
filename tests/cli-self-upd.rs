@@ -274,9 +274,15 @@ fn uninstall_self_delete_works() {
 // file in CONFIG.CARGODIR/.. ; check that it doesn't exist.
 #[test]
 fn uninstall_doesnt_leave_gc_file() {
+    use std::thread;
+    use std::time::Duration;
+
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+
+        // The gc removal happens after rustup terminates. Give it a moment.
+        thread::sleep(Duration::from_millis(100));
 
         let ref parent = config.cargodir.parent().unwrap();
         // Actually, there just shouldn't be any files here
