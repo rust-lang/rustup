@@ -58,18 +58,36 @@ you are ready to Rust. If you decide Rust isn't your thing, you can
 completely remove it from your system by running `rustup self
 uninstall`.
 
-#### Enable tab completion for Zsh
+#### Enable tab completion for Bash, Fish, or Zsh
 
-Copy [`src/rustup-cli/zsh/_rustup`](https://github.com/rust-lang-nursery/rustup.rs/blob/master/src/rustup-cli/zsh/_rustup) into a directory, e.g. `~/.zfunc/`,
-then add the following line in your `~/.zshrc` before `compinit`:
+`rustup` now supports generating completion scripts for Bash, Fish,
+and Zsh. See `rustup help completions` for full details, but the
+gist is as simple as using one of the following:
+
+```
+# Bash
+$ rustup completions bash > /etc/bash_completions.d/rustup.bash-completion
+
+# Fish
+$ rustup completions fish > ~/.config/fish/completions/rustup.fish
+
+# Zsh
+$ rustup completions zsh > ~/.zfunc/_rustup
+```
+
+*Note:* you may need to restart your shell in order for the changes to take affect.
+
+*Note:* For Zsh, see additional details below
+
+#### Addtional Notes for Zsh
+
+One can alternatively copy [`src/rustup-cli/zsh/_rustup`](https://github.com/rust-lang-nursery/rustup.rs/blob/master/src/rustup-cli/zsh/_rustup) into a directory, e.g. `~/.zfunc/`.
+
+Regardless of method, you must then add the following line in your `~/.zshrc` before `compinit`:
 
 ```zsh
 fpath+=~/.zfunc
 ```
-
-#### Enable tab completion for Bash
-
-Waiting for [#278](https://github.com/rust-lang-nursery/rustup.rs/issues/278)
 
 ## How rustup works
 
