@@ -1,4 +1,4 @@
-use clap::{App, Arg, ArgGroup, AppSettings, SubCommand, ArgMatches};
+use clap::{App, Arg, ArgGroup, AppSettings, SubCommand, ArgMatches, Shell};
 use common;
 use rustup::{Cfg, Toolchain, command};
 use rustup::settings::TelemetryMode;
@@ -11,7 +11,7 @@ use std::path::Path;
 use std::process::Command;
 use std::iter;
 use term2;
-use std::io::Write;
+use std::io::{self, Write};
 use help::*;
 
 pub fn main() -> Result<()> {
@@ -98,6 +98,11 @@ pub fn main() -> Result<()> {
             match c.subcommand() {
                 ("default-host", Some(m)) => try!(set_default_host_triple(&cfg, m)),
                 (_, _) => unreachable!(),
+            }
+        }
+        ("completions", Some(c)) => {
+            if let Some(shell) = c.value_of("shell") {
+                cli().gen_completions_to("rustup", shell.parse::<Shell>().unwrap(), &mut io::stdout());
             }
         }
         (_, _) => unreachable!(),
@@ -343,6 +348,12 @@ pub fn cli() -> App<'static, 'static> {
                 .about("The triple used to identify toolchains when not specified")
                 .arg(Arg::with_name("host_triple")
                     .required(true))))
+        .subcommand(SubCommand::with_name("completions")
+            .about("Generate completion scripts for your shell")
+            .after_help(COMPLETIONS_HELP)
+            .setting(AppSettings::ArgRequiredElseHelp)
+            .arg(Arg::with_name("shell")
+                .possible_values(&["bash", "fish", "zsh"])))
 }
 
 fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
