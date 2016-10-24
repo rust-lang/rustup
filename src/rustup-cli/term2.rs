@@ -23,7 +23,24 @@ impl Instantiable for io::Stderr {
     fn instance() -> Self { io::stderr() }
 }
 
-pub struct Terminal<T: Instantiable + io::Write>(Option<Box<term::Terminal<Output = T> + Send>>);
+pub trait Isatty {
+    fn isatty() -> bool;
+}
+
+impl Isatty for io::Stdout {
+    fn isatty() -> bool {
+        tty::stdout_isatty()
+    }
+}
+
+impl Isatty for io::Stderr {
+    fn isatty() -> bool {
+        tty::stderr_isatty()
+    }
+}
+
+pub struct Terminal<T>(Option<Box<term::Terminal<Output = T> + Send>>)
+    where T: Instantiable + Isatty + io::Write;
 pub type StdoutTerminal = Terminal<io::Stdout>;
 pub type StderrTerminal = Terminal<io::Stderr>;
 
@@ -114,12 +131,12 @@ impl<'a, T: io::Write + 'a> LineWrapper<'a, T> {
 }
 
 // Handles the formatting of text
-struct LineFormatter<'a, T: Instantiable + io::Write + 'a> {
+struct LineFormatter<'a, T: Instantiable + Isatty + io::Write + 'a> {
     wrapper: LineWrapper<'a, Terminal<T>>,
     attrs: Vec<Attr>
 }
 
-impl<'a, T: Instantiable + io::Write + 'a> LineFormatter<'a, T> {
+impl<'a, T: Instantiable + Isatty + io::Write + 'a> LineFormatter<'a, T> {
     fn new(w: &'a mut Terminal<T>, indent: u32, margin: u32) -> Self {
         LineFormatter {
             wrapper: LineWrapper::new(w, indent, margin),
@@ -205,7 +222,7 @@ impl<'a, T: Instantiable + io::Write + 'a> LineFormatter<'a, T> {
     }
 }
 
-impl<T: Instantiable + io::Write> io::Write for Terminal<T> {
+impl<T: Instantiable + Isatty + io::Write> io::Write for Terminal<T> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
         if let Some(ref mut t) = self.0 {
             t.write(buf)
@@ -225,9 +242,9 @@ impl<T: Instantiable + io::Write> io::Write for Terminal<T> {
     }
 }
 
-impl<T: Instantiable + io::Write> Terminal<T> {
+impl<T: Instantiable + Isatty + io::Write> Terminal<T> {
     pub fn fg(&mut self, color: color::Color) -> Result<(), term::Error> {
-        if !tty::stderr_isatty() { return Ok(()) }
+        if !T::isatty() { return Ok(()) }
 
         if let Some(ref mut t) = self.0 {
             t.fg(color)
@@ -237,7 +254,7 @@ impl<T: Instantiable + io::Write> Terminal<T> {
     }
 
     pub fn attr(&mut self, attr: Attr) -> Result<(), term::Error> {
-        if !tty::stderr_isatty() { return Ok(()) }
+        if !T::isatty() { return Ok(()) }
 
         if let Some(ref mut t) = self.0 {
             if let Err(e) = t.attr(attr) {
@@ -255,7 +272,7 @@ impl<T: Instantiable + io::Write> Terminal<T> {
     }
 
     pub fn reset(&mut self) -> Result<(), term::Error> {
-        if !tty::stderr_isatty() { return Ok(()) }
+        if !T::isatty() { return Ok(()) }
 
         if let Some(ref mut t) = self.0 {
             t.reset()
