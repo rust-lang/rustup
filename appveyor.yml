@@ -91,17 +91,4 @@ deploy:
     artifact: rustup-init,rustup-init-sha,rustup-setup,rustup-setup-sha
     folder: rustup
     on:
-      branch: master
-
-  - provider: S3
-    skip_cleanup: true
-    access_key_id: AKIAIZT5ZFS5N2VNRGPA
-    secret_access_key:
-      secure: viw7GCfVF0QlY0fghoxO3Lux/Wo4u6PxxgUwEq5cs4w69tlv9KzIIw74Nc7KJdgt
-    bucket: static-rust-lang-org
-    set_public: true
-    region: us-west-1
-    artifact: rustup-init,rustup-init-sha,rustup-setup,rustup-setup-sha
-    folder: rustup
-    on:
       branch: stable

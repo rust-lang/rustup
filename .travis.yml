@@ -119,20 +119,7 @@ deploy:
     secret_access_key:
       secure: "CGFWEhkk6siQxW24zJqlXRC4WLQPqXRJ5Rqa6rQNErotorRUn0DnPB+4zYW4KvMTDkv5pPwEv8P6b0IwbY8ZrS7ChfZ6t89xTvuklxsb8PlMwaDXWqkP5cCBT4B/e1S81xSI7ptkQ7Te5bcVbPMVE3MuGYtzhgIaYu+RZMLHSteY2TGnHid7ErmZKmvGoRqootEHYRo4Pv2s2ydZaalzrt8I5uGQPzesJc2T8xWS8VcFAGJTy4p59h5d6Btlo2a5L3Oc8kMLDzsxzwBbrNXQjF7oLZw7g1uf1A7iBrJGsv61GCnggl4+gtEt/BFQ8mtknBLXv3kXBfvrj35YnHAZosZWufSOgsQ9HB7ELjVhRhGRFX2BNKH1Gm/qM0j7WenD3vhOCTzMW21xqEvgY7+KIvyb9XLla7du/0/rZnDoBnCbZNpBOU5NqOV0y6MN6NDL5g168N7M30BeEEcJjbLEXtUTlCp/6jzZj3frDezJNJypniqwRfacf0yKNykVsnpqpcPmQfvxk2I/1BjdukLM5WifAgTEy9IG2/PBUIWr5ikAlhpACxmuKrlExJpOmZRMRjjRjI8tw8bSKu00SbeYT6PO0xazP9oJYKtWi5vkvM9U4R7udeYHTJFAMkeASpOO4Ss6f+dXQzm7OWqFu07Ffm9zHh+WX95PXonlzauEQ1I="
     on:
-      branch: master
-
-  - provider: s3
-    bucket: static-rust-lang-org
-    skip_cleanup: true
-    local_dir: deploy
-    upload_dir: rustup
-    acl: public_read
-    region: us-west-1
-    access_key_id: AKIAIZT5ZFS5N2VNRGPA
-    secret_access_key:
-      secure: "CGFWEhkk6siQxW24zJqlXRC4WLQPqXRJ5Rqa6rQNErotorRUn0DnPB+4zYW4KvMTDkv5pPwEv8P6b0IwbY8ZrS7ChfZ6t89xTvuklxsb8PlMwaDXWqkP5cCBT4B/e1S81xSI7ptkQ7Te5bcVbPMVE3MuGYtzhgIaYu+RZMLHSteY2TGnHid7ErmZKmvGoRqootEHYRo4Pv2s2ydZaalzrt8I5uGQPzesJc2T8xWS8VcFAGJTy4p59h5d6Btlo2a5L3Oc8kMLDzsxzwBbrNXQjF7oLZw7g1uf1A7iBrJGsv61GCnggl4+gtEt/BFQ8mtknBLXv3kXBfvrj35YnHAZosZWufSOgsQ9HB7ELjVhRhGRFX2BNKH1Gm/qM0j7WenD3vhOCTzMW21xqEvgY7+KIvyb9XLla7du/0/rZnDoBnCbZNpBOU5NqOV0y6MN6NDL5g168N7M30BeEEcJjbLEXtUTlCp/6jzZj3frDezJNJypniqwRfacf0yKNykVsnpqpcPmQfvxk2I/1BjdukLM5WifAgTEy9IG2/PBUIWr5ikAlhpACxmuKrlExJpOmZRMRjjRjI8tw8bSKu00SbeYT6PO0xazP9oJYKtWi5vkvM9U4R7udeYHTJFAMkeASpOO4Ss6f+dXQzm7OWqFu07Ffm9zHh+WX95PXonlzauEQ1I="
-    on:
-     branch: stable
+      branch: stable
 
 # FIXME: I don't know if this really works
 after_deploy:
