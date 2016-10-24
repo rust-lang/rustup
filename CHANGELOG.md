@@ -14,10 +14,11 @@
 * [Fix local declarations for zsh completions](https://github.com/rust-lang-nursery/rustup.rs/pull/753)
 * [Fix checksum failures](https://github.com/rust-lang-nursery/rustup.rs/pull/759)
 * [Treat an empty `CARGO_HOME` the same as an unset `CARGO_HOME`](https://github.com/rust-lang-nursery/rustup.rs/pull/767)
+* [Check stdout is a tty before using terminal features](https://github.com/rust-lang-nursery/rustup.rs/pull/772)
 
 Contributors: Alex Crichton, Andrew Koroluk, Brian Anderson, Chungmin Park,
-Diggory Blake, Guillaume Fraux, Jake Goldsborough, jethrogb, Kevin Rauwolf,
-Raphael Cohn, Ricardo Martins
+Diggory Blake, Guillaume Fraux, Jake Goldsborough, jethrogb, Kamal Marhubi,
+Kevin Rauwolf, Raphael Cohn, Ricardo Martins
 
 # 0.6.3
 
