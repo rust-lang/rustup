@@ -28,7 +28,7 @@ rustls-backend = ["download/rustls-backend"]
 # Include in the default set to disable self-update and uninstall.
 no-self-update = []
 
-# Used to change behavior of self-update and uninstall if installed via MSI 
+# Used to change behavior of self-update and uninstall if installed via MSI
 msi-installed = []
 
 [dependencies]
@@ -36,7 +36,7 @@ rustup-dist = { path = "src/rustup-dist", version = "0.6.4" }
 rustup-utils = { path = "src/rustup-utils", version = "0.6.4" }
 download = { path = "src/download" }
 error-chain = "0.5.0"
-clap = "2.11.3"
+clap = "2.16.1"
 regex = "0.1.41"
 url = "1.1.0"
 term = "0.4.4"
