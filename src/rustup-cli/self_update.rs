@@ -171,7 +171,7 @@ static TOOLS: &'static [&'static str]
     = &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
 
 static UPDATE_ROOT: &'static str
-    = "https://static.rust-lang.org/rustup/dist";
+    = "https://static.rust-lang.org/rustup";
 
 /// CARGO_HOME suitable for display, possibly with $HOME
 /// substituted for the directory prefix
