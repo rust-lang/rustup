@@ -75,15 +75,11 @@ $ rustup completions fish > ~/.config/fish/completions/rustup.fish
 $ rustup completions zsh > ~/.zfunc/_rustup
 ```
 
-*Note:* you may need to restart your shell in order for the changes to take affect.
+*Note:* you may need to restart your shell in order for the changes to take
+ effect.
 
-*Note:* For Zsh, see additional details below
-
-#### Addtional Notes for Zsh
-
-One can alternatively copy [`src/rustup-cli/zsh/_rustup`](https://github.com/rust-lang-nursery/rustup.rs/blob/master/src/rustup-cli/zsh/_rustup) into a directory, e.g. `~/.zfunc/`.
-
-Regardless of method, you must then add the following line in your `~/.zshrc` before `compinit`:
+For `zsh`, you must then add the following line in your `~/.zshrc` before
+`compinit`:
 
 ```zsh
 fpath+=~/.zfunc
