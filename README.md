@@ -471,7 +471,7 @@ Command | Description
 - `RUSTUP_DIST_ROOT` (default: `https://static.rust-lang.org/dist`)
   Deprecated. Use `RUSTUP_DIST_SERVER` instead.
 
-- `RUSTUP_UPDATE_ROOT` (default `https://static.rust-lang.org/rustup/dist`)
+- `RUSTUP_UPDATE_ROOT` (default `https://static.rust-lang.org/rustup`)
   Sets the root URL for downloading self-updates.
 
 ## Other installation methods
