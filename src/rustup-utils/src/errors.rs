@@ -40,7 +40,7 @@ error_chain! {
             path: PathBuf,
         } {
             description("could not create directory")
-            display("could not crate {} directory: '{}'", name, path.display())
+            display("could not create {} directory: '{}'", name, path.display())
         }
         ExpectedType(t: &'static str, n: String) {
             description("expected type")
@@ -51,7 +51,7 @@ error_chain! {
             src: PathBuf,
             dest: PathBuf,
         } {
-            description("could not copy  file")
+            description("could not copy file")
             display("could not copy {} file from '{}' to '{}'", name, src.display(), dest.display())
         }
         RenamingFile {
