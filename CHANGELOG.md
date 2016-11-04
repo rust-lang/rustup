@@ -1,3 +1,14 @@
+# 0.6.5
+
+* [Update bundled curl code](https://github.com/rust-lang-nursery/rustup.rs/pull/790)
+* [Remove old zsh completions](https://github.com/rust-lang-nursery/rustup.rs/pull/779)
+* [Fix two small typos in the error descriptions](https://github.com/rust-lang-nursery/rustup.rs/pull/788)
+* [Update README](https://github.com/rust-lang-nursery/rustup.rs/pull/782)
+* [Fix name of bash completion directory](https://github.com/rust-lang-nursery/rustup.rs/pull/780)
+
+Contributors: Alex Crichton, Björn Steinbrink, Brian Anderson, Jian Zeng, Matt
+Brubeck
+
 # 0.6.4
 
 * [making rustup prepend cargo bin to path instead of append](https://github.com/rust-lang-nursery/rustup.rs/pull/707)
