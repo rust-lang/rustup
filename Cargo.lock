@@ -137,17 +137,18 @@ dependencies = [
 
 [[package]]
 name = "curl"
-version = "0.3.0"
+version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "curl-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "curl-sys 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-sys 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "curl-sys"
-version = "0.2.0"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gcc 0.3.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -155,6 +156,7 @@ dependencies = [
  "libz-sys 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-sys 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -171,7 +173,7 @@ name = "download"
 version = "0.3.0"
 dependencies = [
  "ca-loader 0.1.0",
- "curl 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "curl 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_proxy 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -988,8 +990,8 @@ dependencies = [
 "checksum core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "20a6d0448d3a99d977ae4a2aa5a98d886a923e863e81ad9ff814645b6feb3bbd"
 "checksum core-foundation-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "05eed248dc504a5391c63794fe4fb64f46f071280afaa1b73308f3c0ce4574c5"
 "checksum crypt32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e34988f7e069e0b2f3bfc064295161e489b2d4e04a2e4248fb94360cdf00b4ec"
-"checksum curl 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "26fa2377bacffb278a472dcc2c742577316527d2a8ce588455127c6ff4521846"
-"checksum curl-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "780c1e295903f12cb0598d73703f850615f685eeeb4f2323fbd2911ef337da7e"
+"checksum curl 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "faf54d927c752b092d3e99ea227d9c7c9b4a3e885a3368ac9bfa28958f215100"
+"checksum curl-sys 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "4f198d10378a3bc1f1b0e3bc3a2de5c9bb9e08938460dec57ba6667d9a65fbc3"
 "checksum dbghelp-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "97590ba53bcb8ac28279161ca943a924d1fd4a8fb3fa63302591647c4fc5b850"
 "checksum env_proxy 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f190d9208c08f9f0f608d9ba2530620b351d10e4bf2a62ac2292fe63380fbfb7"
 "checksum error-chain 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bd5c82c815138e278b8dcdeffc49f27ea6ffb528403e9dea4194f2e3dd40b143"
