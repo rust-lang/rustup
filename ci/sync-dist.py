@@ -22,7 +22,8 @@
 # * Update prod release number
 #   python sync-dist.py update-prod-release 0.2.0
 #
-# Don't forget to tag the release, dummy!
+# Run the invalidation in cloudfront-invalidation.txt,
+# then tag the release.
 
 import sys
 import os
