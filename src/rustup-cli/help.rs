@@ -198,4 +198,26 @@ CUSTOM LOCATIONS:
 Alternatively, you could save these files to the place of your choosing,
 such as a custom directory inside your $HOME. Doing so will require you
 to add the proper directives, such as `source`ing inside your login
-script. Consult your shells documentation for how to add such directives.";
+script. Consult your shells documentation for how to add such directives.
+
+POWERSHELL:
+
+The powershell completion scripts require PowerShell v5.0+ (which comes
+Windows 10, but can be downloaded separately for windows 7 or 8.1).
+
+First, check if a profile has already been set
+
+`PS C:\> Test-Path $profile`
+
+If the above command returns `False` run the following
+
+`PS C:\> New-Item -path $profile -type file --force`
+
+Now open the file provided by `$profile` (if you used the `New-Item` command
+it will be `%USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`
+
+Next, we either save the completions file into our profile, or into a separate file
+and source it inside our profile. To save the completions into our profile simply
+use
+
+`PS C:\> rustup completions powershell >> %USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`";
