@@ -80,6 +80,31 @@ case $TARGET in
     OPENSSL_CC=powerpc64le-linux-gnu-gcc
     OPENSSL_AR=powerpc64le-linux-gnu-ar
     ;;
+  mips-*-linux-*)
+    OPENSSL_OS=linux-mips32
+    OPENSSL_CC=mips-linux-gnu-gcc
+    OPENSSL_AR=mips-linux-gnu-ar
+    ;;
+  mipsel-*-linux-*)
+    OPENSSL_OS=linux-mips32
+    OPENSSL_CC=mipsel-linux-gnu-gcc
+    OPENSSL_AR=mipsel-linux-gnu-ar
+    ;;
+  mips64-*-linux-*)
+    OPENSSL_OS=linux64-mips64
+    OPENSSL_CC=mips64-linux-gnuabi64-gcc
+    OPENSSL_AR=mips64-linux-gnuabi64-ar
+    ;;
+  mips64el-*-linux-*)
+    OPENSSL_OS=linux64-mips64
+    OPENSSL_CC=mips64el-linux-gnuabi64-gcc
+    OPENSSL_AR=mips64el-linux-gnuabi64-ar
+    ;;
+  s390x-*-linux-*)
+    OPENSSL_OS=linux64-s390x
+    OPENSSL_CC=s390x-linux-gnu-gcc
+    OPENSSL_AR=s390x-linux-gnu-ar
+    ;;
   *)
     echo "can't cross compile OpenSSL for $TARGET"
     exit 1
