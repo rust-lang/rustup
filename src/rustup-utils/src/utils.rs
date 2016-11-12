@@ -497,12 +497,141 @@ pub fn cargo_home() -> Result<PathBuf> {
     cargo_home.or(user_home).ok_or(ErrorKind::CargoHome.into())
 }
 
+// Convert the ~/.multirust folder to ~/.rustup while dealing with rustup.sh
+// metadata, which used to also live in ~/.rustup, but now lives in ~/rustup.sh.
+pub fn do_rustup_home_upgrade() -> bool {
+
+    fn rustup_home_is_set() -> bool {
+        env::var_os("RUSTUP_HOME").is_some()
+    }
+
+    fn rustup_dir() -> Option<PathBuf> {
+        dot_dir(".rustup")
+    }
+
+    fn rustup_sh_dir() -> Option<PathBuf> {
+        dot_dir(".rustup.sh")
+    }
+
+    fn multirust_dir() -> Option<PathBuf> {
+        dot_dir(".multirust")
+    }
+
+    fn rustup_dir_exists() -> bool {
+        rustup_dir().map(|p| p.exists()).unwrap_or(false)
+    }
+
+    fn rustup_sh_dir_exists() -> bool {
+        rustup_sh_dir().map(|p| p.exists()).unwrap_or(false)
+    }
+
+    fn multirust_dir_exists() -> bool {
+        multirust_dir().map(|p| p.exists()).unwrap_or(false)
+    }
+
+    fn rustup_old_version_exists() -> bool {
+        rustup_dir()
+            .map(|p| p.join("rustup-version").exists())
+            .unwrap_or(false)
+    }
+
+    fn delete_rustup_dir() -> Result<()> {
+        if let Some(dir) = rustup_dir() {
+            raw::remove_dir(&dir)
+                .chain_err(|| "unable to delete rustup dir")?;
+        }
+
+        Ok(())
+    }
+
+    fn rename_rustup_dir_to_rustup_sh() -> Result<()> {
+        let dirs = (rustup_dir(), rustup_sh_dir());
+        if let (Some(rustup), Some(rustup_sh)) = dirs {
+            fs::rename(&rustup, &rustup_sh)
+                .chain_err(|| "unable to rename rustup dir")?;
+        }
+
+        Ok(())
+    }
+
+    fn rename_multirust_dir_to_rustup() -> Result<()> {
+        let dirs = (multirust_dir(), rustup_dir());
+        if let (Some(rustup), Some(rustup_sh)) = dirs {
+            fs::rename(&rustup, &rustup_sh)
+                .chain_err(|| "unable to rename multirust dir")?;
+        }
+
+        Ok(())
+    }
+
+    // If RUSTUP_HOME is set then its default path doesn't matter, so we're
+    // not going to risk doing any I/O work and making a mess.
+    if rustup_home_is_set() { return true }
+
+    // Now we are just trying to get a bogus, rustup.sh-created ~/.rustup out
+    // of the way in the manner that is least likely to take time and generate
+    // errors. First try to rename it to ~/.rustup.sh, then try to delete it.
+    // If that doesn't work we can't use the ~/.rustup name.
+    let old_rustup_dir_removed = if rustup_old_version_exists() {
+        if !rustup_sh_dir_exists() {
+            if rename_rustup_dir_to_rustup_sh().is_ok() {
+                true
+            } else {
+                if delete_rustup_dir().is_ok() {
+                    true
+                } else {
+                    false
+                }
+            }
+        } else {
+            if delete_rustup_dir().is_ok() {
+                true
+            } else {
+                false
+            }
+        }
+    } else {
+        true
+    };
+
+    // Now we're trying to move ~/.multirust to ~/.rustup
+    old_rustup_dir_removed && if multirust_dir_exists() {
+        if rustup_dir_exists() {
+            // There appears to be both a ~/.multirust dir and a valid ~/.rustup
+            // dir. Weird situation. Pick ~/.rustup.
+            true
+        } else {
+            if rename_multirust_dir_to_rustup().is_ok() {
+                true
+            } else {
+                false
+            }
+        }
+    } else {
+        true
+    }
+}
+
+fn dot_dir(name: &str) -> Option<PathBuf> {
+    home_dir().map(|p| p.join(name))
+}
+
+pub fn legacy_multirust_home() -> Result<PathBuf> {
+    dot_dir(".multirust").ok_or(ErrorKind::MultirustHome.into())
+}
+
 pub fn multirust_home() -> Result<PathBuf> {
+    let use_rustup_dir = do_rustup_home_upgrade();
+
     let cwd = try!(env::current_dir().chain_err(|| ErrorKind::MultirustHome));
     let multirust_home = env::var_os("RUSTUP_HOME").map(|home| {
         cwd.join(home)
     });
-    let user_home = home_dir().map(|p| p.join(".multirust"));
+    let user_home = if use_rustup_dir {
+        dot_dir(".rustup")
+    } else {
+        dot_dir(".multirust")
+    };
     multirust_home.or(user_home).ok_or(ErrorKind::MultirustHome.into())
 }
 

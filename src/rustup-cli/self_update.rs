@@ -508,7 +508,7 @@ fn cleanup_legacy() -> Result<()> {
 
     #[cfg(unix)]
     fn legacy_multirust_home_dir() -> Result<PathBuf> {
-        Ok(try!(utils::multirust_home()))
+        Ok(try!(utils::legacy_multirust_home()))
     }
 
     #[cfg(windows)]
