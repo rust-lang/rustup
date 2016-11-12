@@ -87,7 +87,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "clap"
-version = "2.17.1"
+version = "2.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -546,7 +546,7 @@ dependencies = [
 name = "rustup"
 version = "0.6.5"
 dependencies = [
- "clap 2.17.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clap 2.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "download 0.3.0",
  "error-chain 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.4.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -985,7 +985,7 @@ dependencies = [
 "checksum base64 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3ce110e5c96df1817009271c910626fa4b79c2f178d70f9857d768c3886ba6a0"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "de1e760d7b6535af4241fca8bd8adf68e2e7edacc6b29f5d399050c5e48cf88c"
-"checksum clap 2.17.1 (registry+https://github.com/rust-lang/crates.io-index)" = "27dac76762fb56019b04aed3ccb43a770a18f80f9c2eb62ee1a18d9fb4ea2430"
+"checksum clap 2.18.0 (registry+https://github.com/rust-lang/crates.io-index)" = "40046b8a004bf3ba43b9078bf4b9b6d1708406a234848f925dbd7160a374c8a8"
 "checksum cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "0e3d6405328b6edb412158b3b7710e2634e23f3614b9bb1c412df7952489a626"
 "checksum core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "20a6d0448d3a99d977ae4a2aa5a98d886a923e863e81ad9ff814645b6feb3bbd"
 "checksum core-foundation-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "05eed248dc504a5391c63794fe4fb64f46f071280afaa1b73308f3c0ce4574c5"

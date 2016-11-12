@@ -353,7 +353,7 @@ pub fn cli() -> App<'static, 'static> {
             .after_help(COMPLETIONS_HELP)
             .setting(AppSettings::ArgRequiredElseHelp)
             .arg(Arg::with_name("shell")
-                .possible_values(&["bash", "fish", "zsh"])))
+                .possible_values(&Shell::variants())))
 }
 
 fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
