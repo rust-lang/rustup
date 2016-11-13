@@ -118,7 +118,7 @@ To get started you need Cargo's bin directory in your `PATH`
 environment variable. Next time you log in this will be done
 automatically.
 
-To configure your current shell run `source {cargo_home}/env`.
+To configure your current shell run `source {cargo_home}/env`
 "
     };
 }
@@ -141,7 +141,7 @@ r"# Rust is installed now. Great!
 To get started you need Cargo's bin directory in your `PATH`
 environment variable.
 
-To configure your current shell run `source {cargo_home}/env`.
+To configure your current shell run `source {cargo_home}/env`
 "
     };
 }
