@@ -50,7 +50,7 @@ build: false
 
 test_script:
   - cargo build --release --target %TARGET% %FEATURES%
-  - cargo test --release -p rustup-dist --target %TARGET% %FEATURES%
+  - cargo test --release -p rustup-dist --target %TARGET%
   - cargo test --release --target %TARGET% %FEATURES%
   - ps: |
       if($env:BUILD_MSI) {
