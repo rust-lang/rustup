@@ -3,6 +3,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+#[allow(unused)]
 pub fn append_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
     let old_value = env::var_os(name);
     let mut parts: Vec<PathBuf>;
