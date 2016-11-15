@@ -34,9 +34,9 @@ pub fn main() -> Result<()> {
 
     // Build command args now while we know whether or not to skip arg 1.
     let cmd_args: Vec<_> = if toolchain.is_none() {
-        env::args_os().collect()
+        env::args_os().skip(1).collect()
     } else {
-        env::args_os().take(1).chain(env::args_os().skip(2)).collect()
+        env::args_os().skip(2).collect()
     };
 
     let cfg = try!(set_globals(false));
@@ -51,6 +51,6 @@ fn direct_proxy(cfg: &Cfg, arg0: &str, toolchain: Option<&str>, args: &[OsString
         None => try!(cfg.create_command_for_dir(&try!(utils::current_dir()), arg0)),
         Some(tc) => try!(cfg.create_command_for_toolchain(tc, arg0)),
     };
-    Ok(try!(run_command_for_dir(cmd, &args, &cfg)))
+    Ok(try!(run_command_for_dir(cmd, arg0, args, &cfg)))
 }
 

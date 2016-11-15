@@ -5,6 +5,8 @@ extern crate rustup_utils;
 extern crate rustup_mock;
 extern crate tempdir;
 
+use std::fs;
+use std::env::consts::EXE_SUFFIX;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
@@ -266,6 +268,43 @@ fn link() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustup", "show"],
                          "custom");
+    });
+}
+
+// Issue #809. When we call the fallback cargo, when it in turn invokes
+// "rustc", that rustc should actually be the rustup proxy, not the toolchain rustc.
+// That way the proxy can pick the correct toolchain.
+#[test]
+fn fallback_cargo_calls_correct_rustc() {
+    setup(&|config| {
+        // Hm, this is the _only_ test that assumes that toolchain proxies
+        // exist in CARGO_HOME. Adding that proxy here.
+        let ref rustup_path = config.exedir.join(format!("rustup{}", EXE_SUFFIX));
+        let ref cargo_bin_path = config.cargodir.join("bin");
+        fs::create_dir_all(cargo_bin_path).unwrap();
+        let ref rustc_path = cargo_bin_path.join(format!("rustc{}", EXE_SUFFIX));
+        fs::hard_link(rustup_path, rustc_path).unwrap();
+
+        // Install a custom toolchain and a nightly toolchain for the cargo fallback
+        let path = config.customdir.join("custom-1");
+        let path = path.to_string_lossy();
+        expect_ok(config, &["rustup", "toolchain", "link", "custom",
+                            &path]);
+        expect_ok(config, &["rustup", "default", "custom"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_stdout_ok(config, &["rustc", "--version"],
+                         "hash-c-1");
+        expect_stdout_ok(config, &["cargo", "--version"],
+                         "hash-n-2");
+
+        assert!(rustc_path.exists());
+
+        // Here --call-rustc tells the mock cargo bin to exec `rustc --version`.
+        // We should be ultimately calling the custom rustc, according to the
+        // RUSTUP_TOOLCHAIN variable set by the original "cargo" proxy, and
+        // interpreted by the nested "rustc" proxy.
+        expect_stdout_ok(config, &["cargo", "--call-rustc"],
+                         "hash-c-1");
     });
 }
 

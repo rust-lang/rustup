@@ -1,8 +1,6 @@
-use std::env;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{self, Write, BufRead, BufReader, Seek, SeekFrom};
-use std::path::PathBuf;
 use std::process::{self, Command, Stdio};
 use std::time::Instant;
 use regex::Regex;
@@ -16,21 +14,19 @@ use telemetry::{Telemetry, TelemetryEvent};
 
 
 pub fn run_command_for_dir<S: AsRef<OsStr>>(cmd: Command,
+                                            arg0: &str,
                                             args: &[S],
                                             cfg: &Cfg) -> Result<()> {
-    let arg0 = env::args().next().map(PathBuf::from);
-    let arg0 = arg0.as_ref()
-        .and_then(|a| a.file_name())
-        .and_then(|a| a.to_str());
-    let arg0 = try!(arg0.ok_or(ErrorKind::NoExeName));
     if (arg0 == "rustc" || arg0 == "rustc.exe") && try!(cfg.telemetry_enabled()) {
-        return telemetry_rustc(cmd, args, cfg);
+        return telemetry_rustc(cmd, arg0, args, cfg);
     }
 
-    run_command_for_dir_without_telemetry(cmd, args)
+    run_command_for_dir_without_telemetry(cmd, arg0, args)
 }
 
-fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> Result<()> {
+fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command,
+                                    arg0: &str,
+                                    args: &[S], cfg: &Cfg) -> Result<()> {
     #[cfg(unix)]
     fn file_as_stdio(file: &File) -> Stdio {
         use std::os::unix::io::{AsRawFd, FromRawFd};
@@ -45,7 +41,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
 
     let now = Instant::now();
 
-    cmd.args(&args[1..]);
+    cmd.args(args);
 
     let has_color_args = args.iter().any(|e| {
         let e = e.as_ref().to_str().unwrap_or("");
@@ -130,14 +126,16 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command, args: &[S], cfg: &Cfg) -> 
             });
 
             Err(e).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
-                name: args[0].as_ref().to_owned(),
+                name: OsStr::new(arg0).to_owned(),
             })
         },
     }
 }
 
-fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(mut cmd: Command, args: &[S]) -> Result<()>  {
-    cmd.args(&args[1..]);
+fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(
+    mut cmd: Command, arg0: &str, args: &[S]) -> Result<()>
+{
+    cmd.args(&args);
 
     // FIXME rust-lang/rust#32254. It's not clear to me
     // when and why this is needed.
@@ -151,7 +149,7 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(mut cmd: Command, args
         }
         Err(e) => {
             Err(e).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
-                name: args[0].as_ref().to_owned(),
+                name: OsStr::new(arg0).to_owned(),
             })
         }
     }
