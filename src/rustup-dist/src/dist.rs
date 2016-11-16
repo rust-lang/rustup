@@ -68,6 +68,8 @@ static LIST_ARCHS: &'static [&'static str] = &["i386",
                                                "aarch64",
                                                "mips",
                                                "mipsel",
+                                               "mips64",
+                                               "mips64el",
                                                "powerpc",
                                                "powerpc64",
                                                "powerpc64le"];
@@ -80,7 +82,7 @@ static LIST_OSES: &'static [&'static str] = &["pc-windows",
                                               "rumprun-netbsd",
                                               "unknown-freebsd"];
 static LIST_ENVS: &'static [&'static str] =
-    &["gnu", "msvc", "gnueabi", "gnueabihf", "androideabi", "musl"];
+    &["gnu", "msvc", "gnueabi", "gnueabihf", "gnuabi64", "androideabi", "musl"];
 
 // MIPS platforms don't indicate endianness in uname, however binaries only
 // run on boxes with the same endianness, as expected.
@@ -90,6 +92,13 @@ static LIST_ENVS: &'static [&'static str] =
 const TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &'static str = "mips-unknown-linux-gnu";
 #[cfg(target_endian = "little")]
 const TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &'static str = "mipsel-unknown-linux-gnu";
+
+#[cfg(target_endian = "big")]
+const TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &'static str =
+    "mips64-unknown-linux-gnuabi64";
+#[cfg(target_endian = "little")]
+const TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &'static str =
+    "mips64el-unknown-linux-gnuabi64";
 
 impl TargetTriple {
     pub fn from_str(name: &str) -> Self {
@@ -160,6 +169,7 @@ impl TargetTriple {
                 (b"Linux", b"x86_64") => Some("x86_64-unknown-linux-gnu"),
                 (b"Linux", b"i686") => Some("i686-unknown-linux-gnu"),
                 (b"Linux", b"mips") => Some(TRIPLE_MIPS_UNKNOWN_LINUX_GNU),
+                (b"Linux", b"mips64") => Some(TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64),
                 (b"Linux", b"arm") => Some("arm-unknown-linux-gnueabi"),
                 (b"Linux", b"aarch64") => Some("aarch64-unknown-linux-gnu"),
                 (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
