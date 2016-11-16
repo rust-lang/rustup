@@ -22,7 +22,7 @@ install:
   # Install rust, x86_64-pc-windows-msvc host
   # FIXME: switch back to win.rustup.rs
   - curl -sSf -o rustup-init.exe https://dev-static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe
-  - rustup-init.exe -y --default-toolchain=nightly-2016-08-10-x86_64-pc-windows-msvc
+  - rustup-init.exe -y --default-toolchain=nightly-2016-11-06-x86_64-pc-windows-msvc
   - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
 
   # Install the target we're compiling for
@@ -50,7 +50,7 @@ build: false
 
 test_script:
   - cargo build --release --target %TARGET% %FEATURES%
-  - cargo test --release -p rustup-dist --target %TARGET% %FEATURES%
+  - cargo test --release -p rustup-dist --target %TARGET%
   - cargo test --release --target %TARGET% %FEATURES%
   - ps: |
       if($env:BUILD_MSI) {
