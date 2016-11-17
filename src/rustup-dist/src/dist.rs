@@ -88,15 +88,15 @@ static LIST_ENVS: &'static [&'static str] =
 // run on boxes with the same endianness, as expected.
 // Hence we could distinguish between the variants with compile-time cfg()
 // attributes alone.
-#[cfg(target_endian = "big")]
+#[cfg(all(not(windows), target_endian = "big"))]
 const TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &'static str = "mips-unknown-linux-gnu";
-#[cfg(target_endian = "little")]
+#[cfg(all(not(windows), target_endian = "little"))]
 const TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &'static str = "mipsel-unknown-linux-gnu";
 
-#[cfg(target_endian = "big")]
+#[cfg(all(not(windows), target_endian = "big"))]
 const TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &'static str =
     "mips64-unknown-linux-gnuabi64";
-#[cfg(target_endian = "little")]
+#[cfg(all(not(windows), target_endian = "little"))]
 const TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &'static str =
     "mips64el-unknown-linux-gnuabi64";
 
