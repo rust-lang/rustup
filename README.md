@@ -23,7 +23,7 @@ And it runs on all platforms Rust supports, including Windows.
 * [Toolchain specification](#toolchain-specification)
 * [Cross-compilation](#cross-compilation)
 * [Working with Rust on Windows](#working-with-rust-on-windows)
-* [Working with custom toolchains](#working-with-custom-toolchains)
+* [Working with custom toolchains](#working-with-custom-toolchains-and-local-builds)
 * [Working with HTTP proxies](#working-with-http-proxies)
 * [Examples](#examples)
 * [Environment variables](#environment-variables)
@@ -280,7 +280,7 @@ Toolchain names that don't name a channel instead can be used to name
 [custom toolchains].
 
 [MSVC-based toolchain]: https://www.rust-lang.org/downloads.html#win-foot
-[custom toolchains]: #working-with-custom-toolchains
+[custom toolchains]: #working-with-custom-toolchains-and-local-builds
 
 ## Cross-compilation
 
