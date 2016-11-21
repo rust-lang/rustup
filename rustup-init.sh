@@ -209,6 +209,26 @@ get_architecture() {
             local _cputype=x86_64
             ;;
 
+        mips)
+            local _cputype="$(get_endianness $_cputype "" 'el')"
+            ;;
+
+        mips64)
+            local _bitness="$(get_bitness)"
+            if [ $_bitness = "32" ]; then
+                if [ $_ostype = "unknown-linux-gnu" ]; then
+                    # 64-bit kernel with 32-bit userland
+                    # endianness suffix is appended later
+                    local _cputype=mips
+                fi
+            else
+                # only n64 ABI is supported for now
+                local _ostype="${_ostype}abi64"
+            fi
+
+            local _cputype="$(get_endianness $_cputype "" 'el')"
+            ;;
+
         ppc)
             local _cputype=powerpc
             ;;
