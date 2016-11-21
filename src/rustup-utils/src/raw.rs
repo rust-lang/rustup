@@ -207,6 +207,11 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
         inner(s.as_ref())
     }
 
+    // We're using low-level APIs to create the junction, and these are more picky about paths.
+    // For example, forward slashes cannot be used as a path separator, so we should try to
+    // canonicalize the path first.
+    let target = try!(fs::canonicalize(target));
+
     try!(fs::create_dir(junction));
 
     let path = try!(to_u16s(junction));
@@ -228,7 +233,7 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
         // FIXME: this conversion is very hacky
         let v = br"\??\";
         let v = v.iter().map(|x| *x as u16);
-        for c in v.chain(target.as_os_str().encode_wide()) {
+        for c in v.chain(target.as_os_str().encode_wide().skip(4)) {
             *buf.offset(i) = c;
             i += 1;
         }
