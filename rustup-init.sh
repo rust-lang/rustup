@@ -163,6 +163,10 @@ get_architecture() {
             local _ostype=unknown-freebsd
             ;;
 
+        NetBSD)
+            local _ostype=unknown-netbsd
+            ;;
+
         DragonFly)
             local _ostype=unknown-dragonfly
             ;;
