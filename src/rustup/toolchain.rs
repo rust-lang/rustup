@@ -20,6 +20,7 @@ use std::env;
 
 use url::Url;
 
+/// A fully resolved reference to a toolchain which may or may not exist
 pub struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: String,
@@ -276,8 +277,14 @@ impl<'a> Toolchain<'a> {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
-        let bin_path = &self.path.join("bin").join(binary.as_ref());
-        let mut cmd = Command::new(bin_path);
+        // Assume this binary exists within the current toolchain
+        let bin_path = self.path.join("bin").join(binary.as_ref());
+        let mut cmd = Command::new(if utils::is_file(&bin_path) {
+            &bin_path
+        } else {
+            // If not, let the OS try to resolve it globally for us
+            Path::new(&binary)
+        });
         self.set_env(&mut cmd);
         Ok(cmd)
     }

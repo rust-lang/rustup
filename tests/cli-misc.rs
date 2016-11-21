@@ -284,6 +284,19 @@ fn custom_toolchain_cargo_fallback_run() {
 }
 
 #[test]
+fn rustup_run_searches_path() {
+    setup(&|config| {
+        #[cfg(windows)]
+        let hello_cmd = &["rustup", "run", "nightly", "cmd", "/C", "echo hello"];
+        #[cfg(not(windows))]
+        let hello_cmd = &["rustup", "run", "nightly", "sh", "-c", "echo hello"];
+
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_stdout_ok(config, hello_cmd, "hello");
+    });
+}
+
+#[test]
 fn multirust_env_compat() {
     setup(&|config| {
         let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly"]);

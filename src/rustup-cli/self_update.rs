@@ -369,6 +369,7 @@ fn do_pre_install_sanity_checks() -> Result<()> {
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because
 // sudo is configured not to change $HOME. Don't let that bogosity happen.
+#[allow(dead_code)]
 fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
     #[cfg(unix)]
     #[inline(never)] // FIXME #679. Mysterious crashes on OS X 10.10+
