@@ -598,10 +598,14 @@ pub fn do_rustup_home_upgrade() -> bool {
     old_rustup_dir_removed && if multirust_dir_exists() {
         if rustup_dir_exists() {
             // There appears to be both a ~/.multirust dir and a valid ~/.rustup
-            // dir. Weird situation. Pick ~/.rustup.
+            // dir. Most likely because one is a symlink to the other, as configured
+            // below.
             true
         } else {
             if rename_multirust_dir_to_rustup().is_ok() {
+                // Finally, making the hardlink from ~/.multirust back to
+                // ~/.rustup, for temporary compatibility.
+                let _ = create_legacy_multirust_symlink();
                 true
             } else {
                 false
@@ -612,12 +616,61 @@ pub fn do_rustup_home_upgrade() -> bool {
     }
 }
 
+// Creates a ~/.rustup folder and a ~/.multirust symlink
+pub fn create_rustup_home() -> Result<()> {
+    // If RUSTUP_HOME is set then don't make any assumptions about where it's
+    // ok to put ~/.multirust
+    if env::var_os("RUSTUP_HOME").is_some() { return Ok(()) }
+
+    let home = rustup_home_in_user_dir()?;
+    fs::create_dir_all(&home)
+        .chain_err(|| "unable to create ~/.rustup")?;
+
+    // This is a temporary compatibility symlink
+    create_legacy_multirust_symlink()?;
+
+    Ok(())
+}
+
+// Create a symlink from ~/.multirust to ~/.rustup to temporarily
+// accomodate old tools that are expecting that directory
+fn create_legacy_multirust_symlink() -> Result<()> {
+    let newhome = rustup_home_in_user_dir()?;
+    let oldhome = legacy_multirust_home()?;
+
+    raw::symlink_dir(&newhome, &oldhome)
+        .chain_err(|| format!("unable to symlink {} from {}",
+                              newhome.display(), oldhome.display()))?;
+
+    Ok(())
+}
+
+pub fn delete_legacy_multirust_symlink() -> Result<()> {
+    let oldhome = legacy_multirust_home()?;
+
+    if oldhome.exists() {
+        let meta = fs::symlink_metadata(&oldhome)
+            .chain_err(|| "unable to get metadata for ~/.multirust")?;
+        if meta.file_type().is_symlink() {
+            // remove_dir handles unlinking symlinks
+            raw::remove_dir(&oldhome)
+                .chain_err(|| format!("unable to delete legacy symlink {}", oldhome.display()))?;
+        }
+    }
+
+    Ok(())
+}
+
 fn dot_dir(name: &str) -> Option<PathBuf> {
     home_dir().map(|p| p.join(name))
 }
 
 pub fn legacy_multirust_home() -> Result<PathBuf> {
     dot_dir(".multirust").ok_or(ErrorKind::MultirustHome.into())
+}
+
+pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
+    dot_dir(".rustup").ok_or(ErrorKind::MultirustHome.into())
 }
 
 pub fn multirust_home() -> Result<PathBuf> {

@@ -589,7 +589,7 @@ fn remove_component() {
 // Run without setting RUSTUP_HOME, with setting HOME and USERPROFILE
 fn run_no_home(config: &Config, args: &[&str], env: &[(&str, &str)]) -> process::Output {
     let home_dir_str = &format!("{}", config.homedir.display());
-    let mut cmd = clitools::cmd(config, "rustup", args);
+    let mut cmd = clitools::cmd(config, args[0], &args[1..]);
     clitools::env(config, &mut cmd);
     cmd.env_remove("RUSTUP_HOME");
     cmd.env("HOME", home_dir_str);
@@ -612,9 +612,9 @@ fn multirust_dir_upgrade_rename_multirust_dir_to_rustup() {
         let multirust_dir_str = &format!("{}", multirust_dir.display());
 
         // First write data into ~/.multirust
-        run_no_home(config, &["default", "stable"],
+        run_no_home(config, &["rustup", "default", "stable"],
                     &[("RUSTUP_HOME", multirust_dir_str)]);
-        let out = run_no_home(config, &["toolchain", "list"],
+        let out = run_no_home(config, &["rustup", "toolchain", "list"],
                               &[("RUSTUP_HOME", multirust_dir_str)]);
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
@@ -624,10 +624,11 @@ fn multirust_dir_upgrade_rename_multirust_dir_to_rustup() {
         // Next run without RUSTUP_DIR, but with HOME/USERPROFILE set so rustup
         // can infer RUSTUP_DIR. It will silently move ~/.multirust to
         // ~/.rustup.
-        let out = run_no_home(config, &["toolchain", "list"], &[]);
+        let out = run_no_home(config, &["rustup", "toolchain", "list"], &[]);
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
-        assert!(!multirust_dir.exists());
+        assert!(multirust_dir.exists());
+        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
         assert!(rustup_dir.exists());
     });
 }
@@ -645,9 +646,9 @@ fn multirust_dir_upgrade_old_rustup_exists() {
         let new_rustup_sh_version_file = rustup_sh_dir.join("rustup-version");
 
         // First write data into ~/.multirust
-        run_no_home(config, &["default", "stable"],
+        run_no_home(config, &["rustup", "default", "stable"],
                     &[("RUSTUP_HOME", multirust_dir_str)]);
-        let out = run_no_home(config, &["toolchain", "list"],
+        let out = run_no_home(config, &["rustup", "toolchain", "list"],
                               &[("RUSTUP_HOME", multirust_dir_str)]);
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
@@ -660,10 +661,11 @@ fn multirust_dir_upgrade_old_rustup_exists() {
         assert!(old_rustup_sh_version_file.exists());
 
         // Now do the upgrade, and ~/.rustup will be moved to ~/.rustup.sh
-        let out = run_no_home(config, &["toolchain", "list"], &[]);
+        let out = run_no_home(config, &["rustup", "toolchain", "list"], &[]);
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
-        assert!(!multirust_dir.exists());
+        assert!(multirust_dir.exists());
+        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
         assert!(rustup_dir.exists());
         assert!(!old_rustup_sh_version_file.exists());
         assert!(new_rustup_sh_version_file.exists());
@@ -684,9 +686,9 @@ fn multirust_dir_upgrade_old_rustup_existsand_new_rustup_sh_exists() {
         let new_rustup_sh_version_file = rustup_sh_dir.join("rustup-version");
 
         // First write data into ~/.multirust
-        run_no_home(config, &["default", "stable"],
+        run_no_home(config, &["rustup", "default", "stable"],
                     &[("RUSTUP_HOME", multirust_dir_str)]);
-        let out = run_no_home(config, &["toolchain", "list"],
+        let out = run_no_home(config, &["rustup", "toolchain", "list"],
                               &[("RUSTUP_HOME", multirust_dir_str)]);
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
@@ -708,12 +710,33 @@ fn multirust_dir_upgrade_old_rustup_existsand_new_rustup_sh_exists() {
         assert!(new_rustup_sh_version_file.exists());
 
         // Now do the upgrade, and ~/.rustup will be moved to ~/.rustup.sh
-        let out = run_no_home(config, &["toolchain", "list"], &[]);
+        let out = run_no_home(config, &["rustup", "toolchain", "list"], &[]);
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
-        assert!(!multirust_dir.exists());
+        // .multirust is now a symlink to .rustup
+        assert!(multirust_dir.exists());
+        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
+
         assert!(rustup_dir.exists());
         assert!(!old_rustup_sh_version_file.exists());
         assert!(new_rustup_sh_version_file.exists());
+    });
+}
+
+#[test]
+fn multirust_upgrade_works_with_proxy() {
+    setup(&|config| {
+        let multirust_dir = config.homedir.join(".multirust");
+        let rustup_dir = config.homedir.join(".rustup");
+
+        // Put data in ~/.multirust
+        run_no_home(config, &["rustup", "default", "stable"],
+                    &[("RUSTUP_HOME", &format!("{}", multirust_dir.display()))]);
+
+        run_no_home(config, &["rustc", "--version"], &[]);
+
+        assert!(multirust_dir.exists());
+        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
+        assert!(rustup_dir.exists());
     });
 }

@@ -259,9 +259,9 @@ pub fn env(config: &Config, cmd: &mut Command) {
     cmd.env("CARGO_HOME", config.cargodir.to_string_lossy().to_string());
     cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_triple());
 
-    // This is only used for some installation tests on unix where CARGO_HOME
-    // above is unset
+    // These are used in some installation tests that unset RUSTUP_HOME/CARGO_HOME
     cmd.env("HOME", config.homedir.to_string_lossy().to_string());
+    cmd.env("USERPROFILE", config.homedir.to_string_lossy().to_string());
 
     // Setting HOME will confuse the sudo check for rustup-init. Override it
     cmd.env("RUSTUP_INIT_SKIP_SUDO_CHECK", "yes");
