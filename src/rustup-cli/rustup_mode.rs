@@ -487,7 +487,7 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let args: Vec<_> = args.collect();
     let cmd = try!(cfg.create_command_for_toolchain(toolchain, args[0]));
 
-    Ok(try!(command::run_command_for_dir(cmd, &args, &cfg)))
+    Ok(try!(command::run_command_for_dir(cmd, args[0], &args[1..], &cfg)))
 }
 
 fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {

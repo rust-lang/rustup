@@ -13,6 +13,8 @@ use install::{self, InstallMethod};
 use telemetry;
 use telemetry::{Telemetry, TelemetryEvent};
 
+use std::env::consts::EXE_SUFFIX;
+use std::ffi::OsString;
 use std::process::Command;
 use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
@@ -67,7 +69,16 @@ impl<'a> Toolchain<'a> {
         &self.path
     }
     pub fn exists(&self) -> bool {
-        utils::is_directory(&self.path)
+        // HACK: linked toolchains are symlinks, and, contrary to what std docs
+        // lead me to believe `fs::metadata`, used by `is_directory` does not
+        // seem to follow symlinks on windows.
+        let is_symlink = if cfg!(windows) {
+            use std::fs;
+            fs::symlink_metadata(&self.path).map(|m| m.file_type().is_symlink()).unwrap_or(false)
+        } else {
+            false
+        };
+        utils::is_directory(&self.path) || is_symlink
     }
     pub fn verify(&self) -> Result<()> {
         Ok(try!(utils::assert_is_directory(&self.path)))
@@ -277,12 +288,24 @@ impl<'a> Toolchain<'a> {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
-        // Assume this binary exists within the current toolchain
-        let bin_path = self.path.join("bin").join(binary.as_ref());
+        // Create the path to this binary within the current toolchain sysroot
+        let binary = if let Some(binary_str) = binary.as_ref().to_str() {
+            if binary_str.ends_with(EXE_SUFFIX) {
+                binary.as_ref().to_owned()
+            } else {
+                OsString::from(format!("{}{}", binary_str, EXE_SUFFIX))
+            }
+        } else {
+            // Very weird case. Non-unicode command.
+            binary.as_ref().to_owned()
+        };
+
+        let bin_path = self.path.join("bin").join(&binary);
         let mut cmd = Command::new(if utils::is_file(&bin_path) {
             &bin_path
         } else {
-            // If not, let the OS try to resolve it globally for us
+            // If the bin doesn't actually exist in the sysroot, let the OS try
+            // to resolve it globally for us
             Path::new(&binary)
         });
         self.set_env(&mut cmd);
@@ -293,7 +316,42 @@ impl<'a> Toolchain<'a> {
     // to give custom toolchains access to cargo
     pub fn create_fallback_command<T: AsRef<OsStr>>(&self, binary: T,
                                                     primary_toolchain: &Toolchain) -> Result<Command> {
-        let mut cmd = try!(self.create_command(binary));
+        // With the hacks below this only works for cargo atm
+        assert!(binary.as_ref() == "cargo" || binary.as_ref() == "cargo.exe");
+
+        if !self.exists() {
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
+        }
+        if !primary_toolchain.exists() {
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
+        }
+
+        let src_file = self.path.join("bin").join(format!("cargo{}", EXE_SUFFIX));
+
+        // MAJOR HACKS: Copy cargo.exe to its own directory on windows before
+        // running it. This is so that the fallback cargo, when it in turn runs
+        // rustc.exe, will run the rustc.exe out of the PATH environment
+        // variable, _not_ the rustc.exe sitting in the same directory as the
+        // fallback. See the `fallback_cargo_calls_correct_rustc` testcase and
+        // PR 812.
+        let exe_path = if cfg!(windows) {
+            use std::fs;
+            let fallback_dir = self.cfg.multirust_dir.join("fallback");
+            try!(fs::create_dir_all(&fallback_dir)
+                 .chain_err(|| "unable to create dir to hold fallback exe"));
+            let fallback_file = fallback_dir.join("cargo.exe");
+            if fallback_file.exists() {
+                try!(fs::remove_file(&fallback_file)
+                     .chain_err(|| "unable to unlink old fallback exe"));
+            }
+            try!(fs::hard_link(&src_file, &fallback_file)
+                 .chain_err(|| "unable to hard link fallback exe"));
+            fallback_file
+        } else {
+            src_file
+        };
+        let mut cmd = Command::new(exe_path);
+        self.set_env(&mut cmd);
         cmd.env("RUSTUP_TOOLCHAIN", &primary_toolchain.name);
         Ok(cmd)
     }
@@ -328,13 +386,13 @@ impl<'a> Toolchain<'a> {
         }
         env_var::prepend_path(sysenv::LOADER_PATH, &new_path, cmd);
 
-        // Prepend first cargo_home, then toolchain/bin to the PATH
-        let mut path_to_prepend = PathBuf::from("");
+        // Prepend CARGO_HOME/bin to the PATH variable so that we're sure to run
+        // cargo/rustc via the proxy bins. There is no fallback case for if the
+        // proxy bins don't exist. We'll just be running whatever happens to
+        // be on the PATH.
         if let Ok(cargo_home) = utils::cargo_home() {
-            path_to_prepend.push(cargo_home.join("bin"));
+            env_var::prepend_path("PATH", &cargo_home.join("bin"), cmd);
         }
-        path_to_prepend.push(self.path.join("bin"));
-        env_var::prepend_path("PATH", path_to_prepend.as_path(), cmd);
     }
 
     pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {

@@ -1,4 +1,6 @@
+use std::process::Command;
 use std::io::{self, BufWriter, Write};
+use std::env::consts::EXE_SUFFIX;
 
 fn main() {
     let args: Vec<_> = ::std::env::args().collect();
@@ -13,6 +15,12 @@ fn main() {
         for _ in 0 .. 10000 {
             buf.write_all(b"error: a value named `fail` has already been defined in this module [E0428]\n").unwrap();
         }
+    } else if args.get(1) == Some(&"--call-rustc".to_string()) {
+        // Used by the fallback_cargo_calls_correct_rustc test. Tests that
+        // the environment has been set up right such that invoking rustc
+        // will actually invoke the wrapper
+        let rustc = &format!("rustc{}", EXE_SUFFIX);
+        Command::new(rustc).arg("--version").status().unwrap();
     } else {
         panic!("bad mock proxy commandline");
     }
