@@ -334,6 +334,11 @@ impl<'a> Toolchain<'a> {
         // variable, _not_ the rustc.exe sitting in the same directory as the
         // fallback. See the `fallback_cargo_calls_correct_rustc` testcase and
         // PR 812.
+        //
+        // On Windows, spawning a process will search the running application's
+        // directory for the exe to spawn before searching PATH, and we don't want
+        // it to do that, because cargo's directory contains the _wrong_ rustc. See
+        // the documantation for the lpCommandLine argument of CreateProcess.
         let exe_path = if cfg!(windows) {
             use std::fs;
             let fallback_dir = self.cfg.multirust_dir.join("fallback");
