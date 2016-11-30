@@ -24,7 +24,7 @@ walkdir = "0.1.5"
 toml = "0.1.27"
 sha2 = "0.1.2"
 rustup-utils = { path = "../rustup-utils", version = "0.6.5" }
-error-chain = "0.5.0"
+error-chain = "0.7.1"
 rustup-mock = { path = "../rustup-mock", version = "0.6.5" }
 
 [target."cfg(windows)".dependencies]

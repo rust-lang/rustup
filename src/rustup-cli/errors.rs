@@ -8,13 +8,13 @@ use rustup_utils;
 
 error_chain! {
     links {
-        rustup::Error, rustup::ErrorKind, Rustup;
-        rustup_dist::Error, rustup_dist::ErrorKind, Dist;
-        rustup_utils::Error, rustup_utils::ErrorKind, Utils;
+        Rustup(rustup::Error, rustup::ErrorKind);
+        Dist(rustup_dist::Error, rustup_dist::ErrorKind);
+        Utils(rustup_utils::Error, rustup_utils::ErrorKind);
     }
 
     foreign_links {
-        temp::Error, Temp;
+        Temp(temp::Error);
     }
 
     errors {
