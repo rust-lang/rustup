@@ -72,7 +72,7 @@ fn add_file_that_exists() {
 
     let err = tx.add_file("c", PathBuf::from("foo/bar")).unwrap_err();
 
-    match err.into_kind() {
+    match err.0 {
         ErrorKind::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo/bar"));
@@ -146,7 +146,7 @@ fn copy_file_that_exists() {
 
     let err = tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath).unwrap_err();
 
-    match err.into_kind() {
+    match err.0 {
         ErrorKind::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo/bar"));
@@ -232,7 +232,7 @@ fn copy_dir_that_exists() {
 
     let err = tx.copy_dir("c", PathBuf::from("a"), srcdir.path()).unwrap_err();
 
-    match err.into_kind() {
+    match err.0 {
         ErrorKind::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("a"));
@@ -297,7 +297,7 @@ fn remove_file_that_not_exists() {
 
     let err = tx.remove_file("c", PathBuf::from("foo")).unwrap_err();
 
-    match err.into_kind() {
+    match err.0 {
         ErrorKind::ComponentMissingFile { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo"));
@@ -364,7 +364,7 @@ fn remove_dir_that_not_exists() {
 
     let err = tx.remove_dir("c", PathBuf::from("foo")).unwrap_err();
 
-    match err.into_kind() {
+    match err.0 {
         ErrorKind::ComponentMissingDir { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo"));
@@ -430,7 +430,7 @@ fn write_file_that_exists() {
     utils_raw::write_file(&prefix.path().join("a"), &content).unwrap();
     let err = tx.write_file("c", PathBuf::from("a"), content.clone()).unwrap_err();
 
-    match err.into_kind() {
+    match err.0 {
         ErrorKind::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("a"));

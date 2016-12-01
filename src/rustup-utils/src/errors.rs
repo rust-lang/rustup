@@ -5,7 +5,7 @@ use download;
 
 error_chain! {
     links {
-        download::Error, download::ErrorKind, Download;
+        Download(download::Error, download::ErrorKind);
     }
 
     foreign_links { }

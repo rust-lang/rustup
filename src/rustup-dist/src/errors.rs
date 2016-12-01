@@ -7,11 +7,11 @@ use manifest::Component;
 
 error_chain! {
     links {
-        rustup_utils::Error, rustup_utils::ErrorKind, Utils;
+        Utils(rustup_utils::Error, rustup_utils::ErrorKind);
     }
 
     foreign_links {
-        temp::Error, Temp;
+        Temp(temp::Error);
     }
 
     errors {

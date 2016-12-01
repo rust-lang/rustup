@@ -5,12 +5,12 @@ use toml;
 
 error_chain! {
     links {
-        rustup_dist::Error, rustup_dist::ErrorKind, Dist;
-        rustup_utils::Error, rustup_utils::ErrorKind, Utils;
+        Dist(rustup_dist::Error, rustup_dist::ErrorKind);
+        Utils(rustup_utils::Error, rustup_utils::ErrorKind);
     }
 
     foreign_links {
-        temp::Error, Temp;
+        Temp(temp::Error);
     }
 
     errors {
