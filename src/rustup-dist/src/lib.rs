@@ -21,8 +21,6 @@ extern crate winreg;
 extern crate user32;
 #[cfg(windows)]
 extern crate kernel32;
-#[cfg(windows)]
-extern crate gcc;
 #[cfg(not(windows))]
 extern crate libc;
 

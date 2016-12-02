@@ -22,6 +22,8 @@ extern crate markdown;
 extern crate toml;
 
 #[cfg(windows)]
+extern crate gcc;
+#[cfg(windows)]
 extern crate winapi;
 #[cfg(windows)]
 extern crate winreg;

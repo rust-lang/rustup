@@ -167,6 +167,31 @@ This will uninstall all Rust toolchains and data, and remove
     }
 }
 
+#[cfg(windows)]
+static MSVC_MESSAGE: &'static str =
+r#"# Rust Visual C++ prerequisites
+
+Rust requires the Microsoft C++ build tools for Visual Studio 2013 or
+later, but they don't seem to be installed.
+
+The easiest way to acquire the build tools is by installing Microsoft
+Visual C++ Build Tools 2015 which provides just the Visual C++ build
+tools:
+
+    http://landinghub.visualstudio.com/visual-cpp-build-tools
+
+Alternately, you can install Visual Studio 2015 or Visual
+Studio 2013 and during install select the "C++ tools":
+
+    https://www.visualstudio.com/downloads/
+
+_Install the C++ build tools before proceeding_.
+
+If you will be targetting the GNU ABI or otherwise know what you are
+doing then it is fine to continue installation without the build
+tools, but otherwise, install the C++ build tools before proceeding.
+"#;
+
 static TOOLS: &'static [&'static str]
     = &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
 
@@ -195,6 +220,11 @@ pub fn install(no_prompt: bool, verbose: bool,
 
     try!(do_pre_install_sanity_checks());
     try!(do_anti_sudo_check(no_prompt));
+
+    if !try!(do_msvc_check(&opts)) {
+        info!("aborting installation");
+        return Ok(());
+    }
 
     if !no_prompt {
         let ref msg = try!(pre_install_msg(opts.no_modify_path));
@@ -420,6 +450,33 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
     }
 
     Ok(())
+}
+
+// Provide guidance about setting up MSVC if it doesn't appear to be
+// installed
+#[cfg(windows)]
+fn do_msvc_check(opts: &InstallOpts) -> Result<bool> {
+    // Test suite skips this since it's env dependent
+    if env::var("RUSTUP_INIT_SKIP_MSVC_CHECK").is_ok() {
+        return Ok(true);
+    }
+
+    use gcc::windows_registry;
+    let installing_msvc = opts.default_host_triple.contains("msvc");
+    let have_msvc = windows_registry::find_tool(&opts.default_host_triple, "cl.exe").is_some();
+    if installing_msvc && !have_msvc {
+        term2::stdout().md(MSVC_MESSAGE);
+        if !try!(common::confirm("\nContinue? (Y/n)", true)) {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
+}
+
+#[cfg(not(windows))]
+fn do_msvc_check(_opts: &InstallOpts) -> Result<bool> {
+    Ok(true)
 }
 
 fn pre_install_msg(no_modify_path: bool) -> Result<String> {

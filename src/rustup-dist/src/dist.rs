@@ -116,7 +116,6 @@ impl TargetTriple {
     pub fn from_host() -> Option<Self> {
         #[cfg(windows)]
         fn inner() -> Option<TargetTriple> {
-            use gcc::windows_registry;
             use kernel32::GetNativeSystemInfo;
             use std::mem;
 
@@ -136,16 +135,9 @@ impl TargetTriple {
                 _ => return None,
             };
 
-            // Now try to find an installation of msvc, using the gcc crate to do the hard work
+            // Default to msvc
             let msvc_triple = format!("{}-pc-windows-msvc", arch);
-            let gnu_triple = format!("{}-pc-windows-gnu", arch);
-            if let Some(_) = windows_registry::find_tool(&msvc_triple, "cl.exe") {
-                // Found msvc, so default to the msvc triple
-                Some(TargetTriple(msvc_triple))
-            } else {
-                // No msvc found, so use gnu triple as a fallback
-                Some(TargetTriple(gnu_triple))
-            }
+            Some(TargetTriple(msvc_triple))
         }
 
         #[cfg(not(windows))]
