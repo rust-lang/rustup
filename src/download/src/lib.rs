@@ -225,7 +225,7 @@ pub mod hyper {
 
     extern crate hyper;
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-    extern crate openssl_sys;
+    extern crate openssl_probe;
     extern crate native_tls;
 
     use super::Event;
@@ -259,12 +259,14 @@ pub mod hyper {
         type Stream = NativeSslStream<T>;
 
         fn wrap_client(&self, stream: T, host: &str) -> HyperResult<Self::Stream> {
-            use self::native_tls::ClientBuilder as TlsClientBuilder;
+            use self::native_tls::TlsConnector;
             use self::hyper::error::Error as HyperError;
 
-            let mut ssl_builder = try!(TlsClientBuilder::new()
-                                       .map_err(|e| HyperError::Ssl(Box::new(e))));
-            let ssl_stream = try!(ssl_builder.handshake(host, stream)
+            let builder = try!(TlsConnector::builder()
+                                .map_err(|e| HyperError::Ssl(Box::new(e))));
+            let cx = try!(builder.build()
+                                .map_err(|e| HyperError::Ssl(Box::new(e))));
+            let ssl_stream = try!(cx.connect(host, stream)
                                   .map_err(|e| HyperError::Ssl(Box::new(e))));
 
             Ok(NativeSslStream(Arc::new(Mutex::new(ssl_stream))))
@@ -344,7 +346,7 @@ pub mod hyper {
         use std::sync::{Once, ONCE_INIT};
         static INIT: Once = ONCE_INIT;
         INIT.call_once(|| {
-            openssl_sys::probe::init_ssl_cert_env_vars();
+            openssl_probe::init_ssl_cert_env_vars();
         });
     }
 

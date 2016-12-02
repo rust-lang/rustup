@@ -104,9 +104,7 @@ tar xf $out -C target/$TARGET/openssl
 # Variables to the openssl-sys crate to link statically against the OpenSSL we
 # just compiled above
 export OPENSSL_STATIC=1
-export OPENSSL_ROOT_DIR=$install
-export OPENSSL_LIB_DIR=$install/lib
-export OPENSSL_INCLUDE_DIR=$install/include
+export OPENSSL_DIR=$install
 
 # ==============================================================================
 # Actually delgate to the test script itself
