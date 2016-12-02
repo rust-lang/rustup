@@ -228,6 +228,10 @@ pub fn install(no_prompt: bool, verbose: bool,
         if !opts.no_modify_path {
             try!(do_add_to_path(&get_add_path_methods()));
         }
+        // Create ~/.rustup and a compatibility ~/.multirust symlink.
+        // FIXME: Someday we can stop setting up the symlink, and when
+        // we do that we can stop creating ~/.rustup as well.
+        try!(utils::create_rustup_home());
         try!(maybe_install_rust(&opts.default_toolchain, &opts.default_host_triple, verbose));
 
         if cfg!(unix) {
@@ -508,7 +512,7 @@ fn cleanup_legacy() -> Result<()> {
 
     #[cfg(unix)]
     fn legacy_multirust_home_dir() -> Result<PathBuf> {
-        Ok(try!(utils::multirust_home()))
+        Ok(try!(utils::legacy_multirust_home()))
     }
 
     #[cfg(windows)]
@@ -606,6 +610,8 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     }
 
     info!("removing rustup home");
+
+    try!(utils::delete_legacy_multirust_symlink());
 
     // Delete RUSTUP_HOME
     let ref rustup_dir = try!(utils::multirust_home());

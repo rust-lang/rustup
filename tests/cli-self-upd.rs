@@ -802,9 +802,9 @@ fn install_sets_up_stable_unless_there_is_already_a_default() {
 #[cfg(unix)]
 fn install_deletes_legacy_multirust_bins() {
     setup(&|config| {
-        let ref multirust_bin_dir = config.rustupdir.join("bin");
+        let ref multirust_bin_dir = config.homedir.join(".multirust/bin");
         fs::create_dir_all(multirust_bin_dir).unwrap();
-        let ref multirust_bin = multirust_bin_dir.join("rustup");
+        let ref multirust_bin = multirust_bin_dir.join("multirust");
         let ref rustc_bin = multirust_bin_dir.join("rustc");
         raw::write_file(multirust_bin, "").unwrap();
         raw::write_file(rustc_bin, "").unwrap();
@@ -1074,5 +1074,39 @@ fn legacy_upgrade_removes_multirust_bin() {
         assert!(cmd.output().unwrap().status.success());
 
         assert!(!multirust_bin.exists());
+    });
+}
+
+// Create a ~/.multirust symlink to ~/.rustup
+#[test]
+fn install_creates_legacy_home_symlink() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+        // It'll only do this behavior when RUSTUP_HOME isn't set
+        cmd.env_remove("RUSTUP_HOME");
+
+        assert!(cmd.output().unwrap().status.success());
+
+        let rustup_dir = config.homedir.join(".rustup");
+        assert!(rustup_dir.exists());
+        let multirust_dir = config.homedir.join(".multirust");
+        assert!(multirust_dir.exists());
+        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
+    });
+}
+
+#[test]
+fn uninstall_removes_legacy_home_symlink() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+        // It'll only do this behavior when RUSTUP_HOME isn't set
+        cmd.env_remove("RUSTUP_HOME");
+        assert!(cmd.output().unwrap().status.success());
+
+        let multirust_dir = config.homedir.join(".multirust");
+        assert!(multirust_dir.exists());
+
+        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+        assert!(!multirust_dir.exists());
     });
 }
