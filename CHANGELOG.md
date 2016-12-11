@@ -1,3 +1,24 @@
+# 0.7.0
+
+* [Correctly "detect" host endianness on MIPS](https://github.com/rust-lang-nursery/rustup.rs/pull/802)
+* [Add powershell completions](https://github.com/rust-lang-nursery/rustup.rs/pull/801)
+* [Update toolchain used to build rustup](https://github.com/rust-lang-nursery/rustup.rs/pull/741)
+* [Support probing MIPS64 n64 targets](https://github.com/rust-lang-nursery/rustup.rs/pull/815)
+* [Support MIPS architectures in rustup-init.sh](https://github.com/rust-lang-nursery/rustup.rs/pull/825)
+* [Automatically detect NetBSD during standard install](https://github.com/rust-lang-nursery/rustup.rs/pull/824)
+* [Fix symlink creation on windows](https://github.com/rust-lang-nursery/rustup.rs/pull/823)
+* [Search PATH for binaries run by `rustup run`](https://github.com/rust-lang-nursery/rustup.rs/pull/822)
+* [Recursive tool invocations should invoke the proxy, not the tool directly](https://github.com/rust-lang-nursery/rustup.rs/pull/812)
+* [Upgrade error-chain](https://github.com/rust-lang-nursery/rustup.rs/pull/841)
+* [Add FAQ entry for downloading Rust source](https://github.com/rust-lang-nursery/rustup.rs/pull/840)
+* [Rename ~/.multirust to ~/.rustup](https://github.com/rust-lang-nursery/rustup.rs/pull/830)
+* [Remove some codegen hacks](https://github.com/rust-lang-nursery/rustup.rs/pull/850)
+* [Update libc for MIPS64 host builds](https://github.com/rust-lang-nursery/rustup.rs/pull/847)
+* [Default to MSVC on Windows](https://github.com/rust-lang-nursery/rustup.rs/pull/842)
+
+Contributors: Alex Crichton, Arch, bors, Brian Anderson, Diggory Blake, Kai
+Roßwag, Kevin K, Oliver Schneider, Ryan Havar, Tobias Bucher, Wang Xuerui
+
 # 0.6.5
 
 * [Update bundled curl code](https://github.com/rust-lang-nursery/rustup.rs/pull/790)
