@@ -1,6 +1,6 @@
 [package]
 name = "rustup-win-installer"
-version = "0.6.5"
+version = "0.7.0"
 authors = ["Patrick Reisert"]
 build = "build.rs"
 
@@ -10,4 +10,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 winapi = "0.2"
-rustup = { path = "../../", version = "0.6.5" }
+rustup = { path = "../../", version = "0.7.0" }
