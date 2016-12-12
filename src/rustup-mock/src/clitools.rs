@@ -265,6 +265,9 @@ pub fn env(config: &Config, cmd: &mut Command) {
 
     // Setting HOME will confuse the sudo check for rustup-init. Override it
     cmd.env("RUSTUP_INIT_SKIP_SUDO_CHECK", "yes");
+
+    // Skip the MSVC warning check since it's environment dependent
+    cmd.env("RUSTUP_INIT_SKIP_MSVC_CHECK", "yes");
 }
 
 pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> SanitizedOutput {
