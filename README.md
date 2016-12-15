@@ -13,8 +13,6 @@ And it runs on all platforms Rust supports, including Windows.
 
 [The Rust Programming Language]: https://www.rust-lang.org
 
-**WARNING: This is beta software.**
-
 * [Installation](#installation)
 * [How rustup works](#how-rustup-works)
 * [Keeping Rust up to date](#keeping-rust-up-to-date)
