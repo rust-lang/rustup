@@ -1,3 +1,22 @@
+# 1.0.0
+
+No significant changes from 0.7.0.
+
+Contributors: Alex Crichton, Andrew Koroluk, Arch, benaryorg, Benedikt Reinartz,
+Björn Steinbrink, bors, Boutin, Michael, Brian Anderson, Cam Swords, Chungmin
+Park, Corey Farwell, Daniel Keep, David Salter, Diggory Blake, Drew Fisher,
+Erick Tryzelaar, Florian Gilcher, geemili, Guillaume Fraux, Ivan Nejgebauer,
+Ivan Petkov, Jacob Shaffer, Jake Goldsborough, James Lucas, Jeremiah Peschka,
+jethrogb, Jian Zeng, Jimmy Cuadra, Joe Wilm, Jorge Aparicio, Josh Machol, Josh
+Stone, Julien Blanchard, Kai Noda, Kai Roßwag, Kamal Marhubi, Kevin K, Kevin
+Rauwolf, Kevin Yap, Knight, leonardo.yvens, llogiq, Marco A L Barbosa, Martin
+Pool, Matt Brubeck, mdinger, Michael DeWitt, Mika Attila, Nate Mara, NODA, Kai,
+Oliver Schneider, Patrick Reisert, Paul Padier, Ralph Giles, Raphael Cohn, Ri,
+Ricardo Martins, Ryan Havar, Ryan Kung, Severen Redwood, Tad Hardesty, Taylor
+Cramer, theindigamer, Tim Neumann, Tobias Bucher, trolleyman, Vadim
+Petrochenkov, Virgile Andreani, V Jackson, Vladimir, Wang Xuerui, Wayne Warren,
+Wesley Moore, Yasushi Abe, Y. T. Chung
+
 # 0.7.0
 
 * [Correctly "detect" host endianness on MIPS](https://github.com/rust-lang-nursery/rustup.rs/pull/802)
