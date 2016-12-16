@@ -618,6 +618,9 @@ pub fn do_rustup_home_upgrade() -> bool {
 
 // Creates a ~/.rustup folder and a ~/.multirust symlink
 pub fn create_rustup_home() -> Result<()> {
+    // If there's an existing install, then try to upgrade
+    do_rustup_home_upgrade();
+
     // If RUSTUP_HOME is set then don't make any assumptions about where it's
     // ok to put ~/.multirust
     if env::var_os("RUSTUP_HOME").is_some() { return Ok(()) }
@@ -637,6 +640,10 @@ pub fn create_rustup_home() -> Result<()> {
 fn create_legacy_multirust_symlink() -> Result<()> {
     let newhome = rustup_home_in_user_dir()?;
     let oldhome = legacy_multirust_home()?;
+
+    if oldhome.exists() {
+        return Ok(());
+    }
 
     raw::symlink_dir(&newhome, &oldhome)
         .chain_err(|| format!("unable to symlink {} from {}",

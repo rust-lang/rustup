@@ -1084,14 +1084,60 @@ fn install_creates_legacy_home_symlink() {
         let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
         // It'll only do this behavior when RUSTUP_HOME isn't set
         cmd.env_remove("RUSTUP_HOME");
-
         assert!(cmd.output().unwrap().status.success());
+
+        let mut cmd = clitools::cmd(config, "rustc", &["--version"]);
+        cmd.env_remove("RUSTUP_HOME");
+        let out = String::from_utf8(cmd.output().unwrap().stdout).unwrap();
+        assert!(out.contains("hash-s-2"));
 
         let rustup_dir = config.homedir.join(".rustup");
         assert!(rustup_dir.exists());
         let multirust_dir = config.homedir.join(".multirust");
         assert!(multirust_dir.exists());
         assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
+    });
+}
+
+// Do upgrade over multirust. #848
+#[test]
+fn install_over_unupgraded_multirust_dir() {
+    setup(&|config| {
+        let rustup_dir = config.homedir.join(".rustup");
+        let multirust_dir = config.homedir.join(".multirust");
+
+        // Install rustup
+        let mut cmd = clitools::cmd(config, "rustup-init", &["-y", "--default-toolchain=nightly"]);
+        cmd.env_remove("RUSTUP_HOME");
+        assert!(cmd.output().unwrap().status.success());
+
+        let mut cmd = clitools::cmd(config, "rustc", &["--version"]);
+        cmd.env_remove("RUSTUP_HOME");
+        let out = String::from_utf8(cmd.output().unwrap().stdout).unwrap();
+        assert!(out.contains("hash-n-2"));
+
+        // Move .rustup to .multirust so the next rustup-init will be
+        // an upgrade from ~/.multirust to ~/.rustup
+        raw::remove_dir(&multirust_dir).unwrap();
+        fs::rename(&rustup_dir, &multirust_dir).unwrap();
+        assert!(!rustup_dir.exists());
+        assert!(multirust_dir.exists());
+
+        // Do the upgrade
+        let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+        cmd.env_remove("RUSTUP_HOME");
+        assert!(cmd.output().unwrap().status.success());
+
+        // Directories should be set up correctly
+        assert!(rustup_dir.exists());
+        assert!(multirust_dir.exists());
+        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
+
+        // We should still be on nightly
+        let mut cmd = clitools::cmd(config, "rustc", &["--version"]);
+        cmd.env_remove("RUSTUP_HOME");
+        let out = String::from_utf8(cmd.output().unwrap().stdout).unwrap();
+        assert!(out.contains("hash-n-2"));
     });
 }
 
