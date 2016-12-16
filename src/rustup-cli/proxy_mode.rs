@@ -18,7 +18,8 @@ pub fn main() -> Result<()> {
     let arg0 = args.next().map(|a| PathBuf::from(a));
     let arg0 = arg0.as_ref()
         .and_then(|a| a.file_name())
-        .and_then(|a| a.to_str());
+        .and_then(|a| a.to_str())
+        .map(|a| a.to_lowercase());
     let ref arg0 = try!(arg0.ok_or(ErrorKind::NoExeName));
 
     // Check for a toolchain specifier.
