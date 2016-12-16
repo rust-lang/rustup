@@ -78,8 +78,6 @@ r#"
 
 You can uninstall at any time with `rustup self uninstall` and
 these changes will be reverted.
-
-*WARNING*: This is beta software.
 "#
     )};
 }
