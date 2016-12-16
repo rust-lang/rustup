@@ -11,14 +11,15 @@ license = "MIT/Apache-2.0"
 default = ["hyper-backend"]
 
 curl-backend = ["curl"]
-hyper-backend = ["hyper", "env_proxy", "native-tls", "openssl-sys"]
+hyper-backend = ["hyper", "env_proxy", "native-tls", "openssl-probe"]
 rustls-backend = ["hyper", "env_proxy", "rustls", "lazy_static", "ca-loader"]
 
 [dependencies]
 error-chain = "0.7.1"
 url = "1.1"
-curl = { version = "0.3", optional = true }
+curl = { version = "0.4", optional = true }
 lazy_static = { version = "0.2", optional = true }
+native-tls = { version = "0.1", optional = true }
 
 [dependencies.hyper]
 version = "0.9.8"
@@ -29,12 +30,8 @@ optional = true
 version = "0.1.1"
 optional = true
 
-[dependencies.native-tls]
-git = "https://github.com/sfackler/rust-native-tls.git"
-optional = true
-
 [target.'cfg(not(any(target_os = "windows", target_os = "macos")))'.dependencies]
-openssl-sys = { version = "0.7.11", optional = true }
+openssl-probe = { version = "0.1", optional = true }
 
 [dependencies.rustls]
 version = "0.1.2"

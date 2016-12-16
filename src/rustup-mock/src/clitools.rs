@@ -85,7 +85,10 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     create_mock_dist_server(&config.distdir, s);
 
     let current_exe_path = env::current_exe().map(PathBuf::from).unwrap();
-    let exe_dir = current_exe_path.parent().unwrap();
+    let mut exe_dir = current_exe_path.parent().unwrap();
+    if exe_dir.ends_with("deps") {
+        exe_dir = exe_dir.parent().unwrap();
+    }
     let ref build_path = exe_dir.join(format!("rustup-init{}", EXE_SUFFIX));
 
     let ref rustup_path = config.exedir.join(format!("rustup{}", EXE_SUFFIX));
