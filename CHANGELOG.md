@@ -1,6 +1,7 @@
 # 1.0.0
 
-No significant changes from 0.7.0.
+* [Statically link MSVC CRT](https://github.com/rust-lang-nursery/rustup.rs/pull/843)
+* [Upgrade ~/.multirust correctly from rustup-init](https://github.com/rust-lang-nursery/rustup.rs/pull/858)
 
 Contributors: Alex Crichton, Andrew Koroluk, Arch, benaryorg, Benedikt Reinartz,
 Björn Steinbrink, bors, Boutin, Michael, Brian Anderson, Cam Swords, Chungmin
