@@ -438,6 +438,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
     try!(default_bare_triple_check(cfg, toolchain));
     let ref toolchain = try!(cfg.get_toolchain(toolchain, false));
+    check_target_triple_misuse(cfg, toolchain)?;
 
     let status = if !toolchain.is_custom() {
         Some(try!(toolchain.install_from_dist_if_not_installed()))
@@ -461,6 +462,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     if let Some(name) = m.value_of("toolchain") {
         try!(update_bare_triple_check(cfg, name));
         let toolchain = try!(cfg.get_toolchain(name, false));
+        check_target_triple_misuse(cfg, &toolchain)?;
 
         let status = if !toolchain.is_custom() {
             Some(try!(toolchain.install_from_dist()))
@@ -798,4 +800,33 @@ fn analyze_telemetry(cfg: &Cfg) -> Result<()> {
 fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     try!(cfg.set_default_host_triple(m.value_of("host_triple").expect("")));
     Ok(())
+}
+
+macro_rules! target_triple_misuse_hint {
+    ($target: expr) => {
+        format!("
+Maybe you are intending to install or update the *target* '{0}'. However, the
+`toolchain` and `default` subcommands deal with *host* toolchains, i.e.
+`rustc` installations.
+
+You can add '{0}' as a new target like this:
+
+    rustup target add {0}
+
+", $target);
+    };
+}
+
+fn check_target_triple_misuse(cfg: &Cfg, toolchain: &Toolchain) -> Result<()> {
+    let host_triple = cfg.get_default_host_triple()?;
+    let triple = toolchain.desc()?.target;
+    if host_triple != triple {
+        let name = toolchain.name();
+        warn!("'{}' seems like a target triple", name);
+        let msg = target_triple_misuse_hint!(name);
+        term2::stdout().md(msg);
+        Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into())
+    } else {
+        Ok(())
+    }
 }
