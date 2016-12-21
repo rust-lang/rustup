@@ -335,13 +335,13 @@ of Visual Studio 2013 (or later) or the Visual C++ Build Tools
 check the "C++ tools" option. No additional software installation is
 necessary for basic use of the GNU build.
 
-By default rustup on Windows configures Rust to target the 32-bit GNU
-ABI, that is the `i686-pc-windows-gnu` target triple. More
+By default rustup on Windows configures Rust to target the 32-bit MSVC
+ABI, that is the `i686-pc-windows-msvc` target triple. More
 specifically, the toolchains that rustup chooses to install, unless
 told otherwise through the [toolchain specification], will be compiled
-to run on a `i686-pc-windows-gnu` host, and will target that platform
+to run on a `i686-pc-windows-msvc` host, and will target that platform
 by default. When you write `rustup update nightly`, rustup interprets
-it as `rustup update nightly-i686-pc-windows-gnu`. You can change this
+it as `rustup update nightly-i686-pc-windows-msvc`. You can change this
 behavior with `rustup set default-host` or during installation.
 
 ```
@@ -350,13 +350,12 @@ $ rustup set default-host x86_64-pc-windows-msvc
 
 [toolchain specification]: #toolchain-specification
 
-Rust's support for the GNU ABI is more mature, and is recommended for
-typical uses, so that's what `rustup` installs by default. The MSVC
-toolchain is always available, even if you don't use it by
-default. Just install it with `rustup install`:
+Since the MSVC ABI provides the best interoperation with other Windows software
+it is recommended for most purposes. The GNU toolchain is always available, even
+if you don't use it by default. Just install it with `rustup install`:
 
 ```
-$ rustup install stable-msvc
+$ rustup install stable-gnu
 ```
 
 You don't need to switch toolchains to support all windows targets though;
@@ -366,7 +365,7 @@ a single toolchain supports all four x86 windows targets:
 $ rustup target add x86_64-pc-windows-msvc
 $ rustup target add x86_64-pc-windows-gnu
 $ rustup target add i686-pc-windows-msvc
-$ rustup target add i686-pc-windows-gnu # this one's installed by default
+$ rustup target add i686-pc-windows-gnu
 ```
 
 [d]: https://www.rust-lang.org/downloads.html#win-foot
