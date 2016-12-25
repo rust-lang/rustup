@@ -290,7 +290,7 @@ impl<'a> Toolchain<'a> {
 
         // Create the path to this binary within the current toolchain sysroot
         let binary = if let Some(binary_str) = binary.as_ref().to_str() {
-            if binary_str.ends_with(EXE_SUFFIX) {
+            if binary_str.to_lowercase().ends_with(EXE_SUFFIX) {
                 binary.as_ref().to_owned()
             } else {
                 OsString::from(format!("{}{}", binary_str, EXE_SUFFIX))
