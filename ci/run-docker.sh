@@ -71,8 +71,8 @@ case $TARGET in
     ;;
   powerpc64-*-linux-*)
     OPENSSL_OS=linux-ppc64
-    OPENSSL_CC=powerpc-linux-gnu-gcc
-    OPENSSL_AR=powerpc-linux-gnu-ar
+    OPENSSL_CC=powerpc64-linux-gnu-gcc-5
+    OPENSSL_AR=powerpc64-linux-gnu-ar
     OPENSSL_CFLAGS=-m64
     ;;
   powerpc64le-*-linux-*)
