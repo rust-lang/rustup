@@ -14,10 +14,10 @@ function detect_platform() {
     var os = "unknown";
 
     if (navigator.platform == "Linux x86_64") {os = "unix";}
-    if (navigator.platform == "Linux i686") {os = "unix";}
+    if (navigator.platform == "Linux i686") {os = android_or_unix();}
     if (navigator.platform == "Linux i686 on x86_64") {os = "unix";}
-    if (navigator.platform == "Linux aarch64") {os = "unix";}
-    if (navigator.platform == "Linux armv6l") {os = "unix";}
+    if (navigator.platform == "Linux aarch64") {os = android_or_unix();}
+    if (navigator.platform == "Linux armv6l") {os = android_or_unix();}
     if (navigator.platform == "Linux armv7l") {os = android_or_unix();}
     if (navigator.platform == "Linux ppc64") {os = "unix";}
     if (navigator.platform == "Linux mips") {os = "unix";}
