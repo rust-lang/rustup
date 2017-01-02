@@ -542,9 +542,8 @@ yet validate signatures of downloads.
 
 ### Is this an official Rust project?
 
-Yes. rustup is an official Rust project. Once it is complete it will
-be the recommended way to install Rust and www.rust-lang.org will be
-updated to reflect that.
+Yes. rustup is an official Rust project. It is the recommended way
+to install Rust at www.rust-lang.org.
 
 ### How is this related to multirust?
 
