@@ -5,7 +5,7 @@
 use std::io;
 use term;
 use rustup_utils::tty;
-use markdown::parser::{Block, Span, ListItem};
+use markdown::{Block, Span, ListItem};
 use markdown::tokenize;
 
 pub use term::color;
