@@ -111,7 +111,7 @@ fn basic_install() {
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let tmpdir = TempDir::new("multirust").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "", Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
@@ -149,7 +149,7 @@ fn multiple_component_install() {
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let tmpdir = TempDir::new("multirust").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "", Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
@@ -192,7 +192,7 @@ fn uninstall() {
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let tmpdir = TempDir::new("multirust").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "", Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
@@ -244,7 +244,7 @@ fn component_bad_version() {
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let tmpdir = TempDir::new("multirust").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "", Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
@@ -290,7 +290,7 @@ fn unix_permissions() {
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let tmpdir = TempDir::new("multirust").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "", Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
@@ -334,7 +334,7 @@ fn install_to_prefix_that_does_not_exist() {
     let prefix = InstallPrefix::from(does_not_exist.clone());
 
     let tmpdir = TempDir::new("multirust").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, "", Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 

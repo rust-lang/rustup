@@ -320,7 +320,7 @@ fn setup(edit: Option<&Fn(&str, &mut MockPackage)>,
     let work_tempdir = TempDir::new("multirust").unwrap();
     let ref temp_cfg = temp::Cfg::new(work_tempdir.path().to_owned(),
                                       DEFAULT_DIST_SERVER,
-									  "https://dev-static=https://static;=",
+                                      ""
                                       Box::new(|_| ()));
 
     let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
