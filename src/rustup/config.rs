@@ -90,7 +90,7 @@ impl Cfg {
             }
         };
         let notify_clone = notify_handler.clone();
-        let urlreplace = match env::var("RUST_DIST_URL_RELPACE") {
+        let urlreplace = match env::var("RUST_DIST_URL_REPLACE") {
             Ok(ref s) if !s.is_empty() => {
                 s.clone()
             }
