@@ -132,10 +132,18 @@ impl Manifestation {
                                                               &self.target_triple,
                                                               component.target.as_ref()));
             let url = if altered {
-                url.replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str())
+                let mut turl=url.replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str());
+                for i in temp_cfg.replace_url.as_str().split(";") {
+                    let rp:Vec<&str>=i.split("=").collect();
+                    if 2==rp.len() {
+                        turl=turl.replace(rp[0],rp[1]);
+                    }
+                }
+                turl
             } else {
                 url
             };
+			println!("downloadurl {}\n",url);
 
             // Download each package to temp file
             let temp_file = try!(temp_cfg.new_file());
