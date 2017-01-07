@@ -1,8 +1,9 @@
 environment:
   RUSTFLAGS: -Zunstable-options -Ctarget-feature=+crt-static
   matrix:
-  - TARGET: i686-pc-windows-msvc
-    BUILD_MSI: 1
+  # FIXME
+  #- TARGET: i686-pc-windows-msvc
+  #  BUILD_MSI: 1
   - TARGET: i686-pc-windows-gnu
     MINGW_URL: https://s3.amazonaws.com/rust-lang-ci
     MINGW_ARCHIVE: i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z
