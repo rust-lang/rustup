@@ -22,7 +22,7 @@ fn add_file() {
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let notify = |_: Notification| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -44,7 +44,7 @@ fn add_file_then_rollback() {
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let notify = |_: Notification| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -60,7 +60,7 @@ fn add_file_that_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -87,7 +87,7 @@ fn copy_file() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -109,7 +109,7 @@ fn copy_file_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -131,7 +131,7 @@ fn copy_file_that_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -161,7 +161,7 @@ fn copy_dir() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -191,7 +191,7 @@ fn copy_dir_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -221,7 +221,7 @@ fn copy_dir_that_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -246,7 +246,7 @@ fn remove_file() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -267,7 +267,7 @@ fn remove_file_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -288,7 +288,7 @@ fn remove_file_that_not_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -311,7 +311,7 @@ fn remove_dir() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -333,7 +333,7 @@ fn remove_dir_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -355,7 +355,7 @@ fn remove_dir_that_not_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -378,7 +378,7 @@ fn write_file() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -400,7 +400,7 @@ fn write_file_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -419,7 +419,7 @@ fn write_file_that_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -446,7 +446,7 @@ fn modify_file_that_not_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -466,7 +466,7 @@ fn modify_file_that_exists() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -486,7 +486,7 @@ fn modify_file_that_not_exists_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -504,7 +504,7 @@ fn modify_file_that_exists_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -527,7 +527,7 @@ fn modify_twice_then_rollback() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -550,7 +550,7 @@ fn do_multiple_op_transaction(rollback: bool) {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -646,7 +646,7 @@ fn rollback_failure_keeps_going() {
     let prefixdir = TempDir::new("multirust").unwrap();
     let txdir = TempDir::new("multirust").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, "https://dev-static=https://static;=", Box::new(|_| ()));
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
