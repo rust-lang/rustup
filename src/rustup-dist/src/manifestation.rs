@@ -131,6 +131,7 @@ impl Manifestation {
             notify_handler(Notification::DownloadingComponent(&component.pkg,
                                                               &self.target_triple,
                                                               component.target.as_ref()));
+															  
             let url = if altered {
                 let mut turl=url.replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str());
                 for i in temp_cfg.replace_url.as_str().split(";") {
@@ -143,7 +144,6 @@ impl Manifestation {
             } else {
                 url
             };
-			println!("downloadurl {}\n",url);
 
             // Download each package to temp file
             let temp_file = try!(temp_cfg.new_file());
