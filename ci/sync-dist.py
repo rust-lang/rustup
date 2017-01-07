@@ -13,6 +13,8 @@
 # * Update dev release number
 #   python sync-dist.py update-dev-release 0.2.0
 #
+# Test here with `RUSTUP_UPDATE_ROOT=https://dev-static.rust-lang.org/rustup rustup self update`
+#
 # * Sync local bins to prod archives
 #   python sync-dist.py local-to-prod-archives 0.2.0
 #
