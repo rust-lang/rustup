@@ -75,14 +75,14 @@ error_chain! {
             path: PathBuf,
         } {
             description("could not download file")
-            display("could not download file from '{}' to '{}", url, path.display())
+            display("could not download file from '{}' to '{}'", url, path.display())
         }
         DownloadNotExists {
             url: Url,
             path: PathBuf,
         } {
             description("could not download file")
-            display("could not download file from '{}' to '{}", url, path.display())
+            display("could not download file from '{}' to '{}'", url, path.display())
         }
         InvalidUrl {
             url: String,
