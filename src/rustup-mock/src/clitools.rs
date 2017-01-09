@@ -32,6 +32,8 @@ pub struct Config {
     pub cargodir: PathBuf,
     /// ~
     pub homedir: PathBuf,
+    /// An empty directory. Tests should not write to this.
+    pub emptydir: PathBuf,
 }
 
 // Describes all the features of the mock dist server.
@@ -67,6 +69,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let customdir = TempDir::new("rustup-custom").unwrap();
     let cargodir = TempDir::new("rustup-cargo").unwrap();
     let homedir = TempDir::new("rustup-home").unwrap();
+    let emptydir = TempDir::new("rustup-empty").unwrap();
 
     // The uninstall process on windows involves using the directory above
     // CARGO_HOME, so make sure it's a subdir of our tempdir
@@ -80,6 +83,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
         customdir: customdir.path().to_owned(),
         cargodir: cargodir,
         homedir: homedir.path().to_owned(),
+        emptydir: emptydir.path().to_owned(),
     };
 
     create_mock_dist_server(&config.distdir, s);

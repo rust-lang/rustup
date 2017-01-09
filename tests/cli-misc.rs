@@ -297,6 +297,17 @@ fn rustup_run_searches_path() {
 }
 
 #[test]
+fn rustup_failed_path_search() {
+    setup(&|config| {
+
+        expect_ok(config, &["rustup", "toolchain", "link", "empty", &config.emptydir.to_string_lossy()]);
+        let broken = &["rustup", "run", "empty", "rustc"];
+        expect_err(config, broken,
+                   "toolchain 'empty' does not have the binary `rustc`");
+    });
+}
+
+#[test]
 fn multirust_env_compat() {
     setup(&|config| {
         let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly"]);

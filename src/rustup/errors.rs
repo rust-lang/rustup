@@ -22,6 +22,10 @@ error_chain! {
             description("toolchain is not installed")
             display("toolchain '{}' is not installed", t)
         }
+        BinaryNotFound(t: String, bin: String) {
+            description("toolchain does not contain binary")
+            display("toolchain '{}' does not have the binary `{}`", t, bin)
+        }
         NeedMetadataUpgrade {
             description("rustup's metadata is out of date. run `rustup self upgrade-data`")
         }
