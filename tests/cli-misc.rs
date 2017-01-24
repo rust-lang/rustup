@@ -299,11 +299,19 @@ fn rustup_run_searches_path() {
 #[test]
 fn rustup_failed_path_search() {
     setup(&|config| {
+        use std::env::consts::EXE_SUFFIX;
+
+        let ref rustup_path = config.exedir.join(&format!("rustup{}", EXE_SUFFIX));
+        let ref tool_path = config.exedir.join(&format!("fake_proxy{}", EXE_SUFFIX));
+        utils::hardlink_file(rustup_path, tool_path).expect("Failed to create fake proxy for test");
 
         expect_ok(config, &["rustup", "toolchain", "link", "empty", &config.emptydir.to_string_lossy()]);
-        let broken = &["rustup", "run", "empty", "rustc"];
-        expect_err(config, broken,
-                   "toolchain 'empty' does not have the binary `rustc`");
+        let broken = &["rustup", "run", "empty", "fake_proxy"];
+        expect_err(config, broken, &format!(
+            "toolchain 'empty' does not have the binary `fake_proxy{}`", EXE_SUFFIX
+        ));
+
+        // Hardlink will be automatically cleaned up by test setup code
     });
 }
 
