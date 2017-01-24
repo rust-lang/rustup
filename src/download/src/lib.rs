@@ -146,10 +146,6 @@ pub mod curl {
             // Take at most 30s to connect
             try!(handle.connect_timeout(Duration::new(30, 0)).chain_err(|| "failed to set connect timeout"));
 
-            // Fail if less than 10 bytes are transferred every 30 seconds
-            try!(handle.low_speed_limit(10).chain_err(|| "failed to set low speed limit"));
-            try!(handle.low_speed_time(Duration::new(30, 0)).chain_err(|| "failed to set low speed time"));
-
             {
                 let cberr = RefCell::new(None);
                 let mut transfer = handle.transfer();
