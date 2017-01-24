@@ -1,8 +1,9 @@
 environment:
   RUSTFLAGS: -Zunstable-options -Ctarget-feature=+crt-static
   matrix:
-  - TARGET: i686-pc-windows-msvc
-    BUILD_MSI: 1
+  # FIXME
+  #- TARGET: i686-pc-windows-msvc
+  #  BUILD_MSI: 1
   - TARGET: i686-pc-windows-gnu
     MINGW_URL: https://s3.amazonaws.com/rust-lang-ci
     MINGW_ARCHIVE: i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z
@@ -22,7 +23,7 @@ branches:
 install:
   # Install rust, x86_64-pc-windows-msvc host
   - curl -sSf -o rustup-init.exe https://win.rustup.rs/
-  - rustup-init.exe -y --default-toolchain=nightly-x86_64-pc-windows-msvc
+  - rustup-init.exe -y --default-toolchain=nightly-2017-01-06-x86_64-pc-windows-msvc
   - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
 
   # Install the target we're compiling for
