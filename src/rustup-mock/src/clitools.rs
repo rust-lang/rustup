@@ -9,7 +9,6 @@ use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::sync::Mutex;
 use std::time::Duration;
-use std::ffi::{OsStr, OsString};
 use tempdir::TempDir;
 use {MockInstallerBuilder, MockCommand};
 use dist::{MockDistServer, MockChannel, MockPackage,
@@ -49,33 +48,6 @@ pub enum Scenario {
     MultiHost, // One date, v2 manifests, MULTI_ARCH1 host
 }
 
-// Automatically reset an environment variable when this type is dropped
-struct SetEnv<'a> {
-    name: &'a str,
-    prev_value: Option<OsString>,
-}
-
-impl<'a> SetEnv<'a> {
-    fn new(name: &'a str, new_value: &OsStr) -> Self {
-        let prev_value = env::var_os(name);
-        env::set_var(name, new_value);
-        SetEnv {
-            name: name,
-            prev_value: prev_value
-        }
-    }
-}
-
-impl<'a> Drop for SetEnv<'a> {
-    fn drop(&mut self) {
-        if let Some(p) = self.prev_value.take() {
-            env::set_var(self.name, p);
-        } else {
-            env::remove_var(self.name);
-        }
-    }
-}
-
 pub static CROSS_ARCH1: &'static str = "x86_64-unknown-linux-musl";
 pub static CROSS_ARCH2: &'static str = "arm-linux-androideabi";
 
@@ -99,14 +71,6 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let homedir = TempDir::new("rustup-home").unwrap();
     let emptydir = TempDir::new("rustup-empty").unwrap();
 
-    let prev_path = env::var_os("PATH");
-    let mut new_path = exedir.path().to_owned().into_os_string();
-    if let Some(ref p) = prev_path {
-        new_path.push(if cfg!(windows) { ";" } else { ":" });
-        new_path.push(p);
-    }
-    let _env_guard = SetEnv::new("PATH", &new_path);
-    
     // The uninstall process on windows involves using the directory above
     // CARGO_HOME, so make sure it's a subdir of our tempdir
     let cargodir = cargodir.path().join("ch");
@@ -297,6 +261,14 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
 }
 
 pub fn env(config: &Config, cmd: &mut Command) {
+    // Ensure PATH is prefixed with the rustup-exe directory
+    let prev_path = env::var_os("PATH");
+    let mut new_path = config.exedir.clone().into_os_string();
+    if let Some(ref p) = prev_path {
+        new_path.push(if cfg!(windows) { ";" } else { ":" });
+        new_path.push(p);
+    }
+    cmd.env("PATH", new_path);
     cmd.env("RUSTUP_HOME", config.rustupdir.to_string_lossy().to_string());
     cmd.env("RUSTUP_DIST_SERVER", format!("file://{}", config.distdir.to_string_lossy()));
     cmd.env("CARGO_HOME", config.cargodir.to_string_lossy().to_string());
