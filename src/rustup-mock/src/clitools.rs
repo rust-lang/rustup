@@ -32,6 +32,8 @@ pub struct Config {
     pub cargodir: PathBuf,
     /// ~
     pub homedir: PathBuf,
+    /// An empty directory. Tests should not write to this.
+    pub emptydir: PathBuf,
 }
 
 // Describes all the features of the mock dist server.
@@ -67,6 +69,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let customdir = TempDir::new("rustup-custom").unwrap();
     let cargodir = TempDir::new("rustup-cargo").unwrap();
     let homedir = TempDir::new("rustup-home").unwrap();
+    let emptydir = TempDir::new("rustup-empty").unwrap();
 
     // The uninstall process on windows involves using the directory above
     // CARGO_HOME, so make sure it's a subdir of our tempdir
@@ -80,6 +83,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
         customdir: customdir.path().to_owned(),
         cargodir: cargodir,
         homedir: homedir.path().to_owned(),
+        emptydir: emptydir.path().to_owned(),
     };
 
     create_mock_dist_server(&config.distdir, s);
@@ -257,6 +261,14 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
 }
 
 pub fn env(config: &Config, cmd: &mut Command) {
+    // Ensure PATH is prefixed with the rustup-exe directory
+    let prev_path = env::var_os("PATH");
+    let mut new_path = config.exedir.clone().into_os_string();
+    if let Some(ref p) = prev_path {
+        new_path.push(if cfg!(windows) { ";" } else { ":" });
+        new_path.push(p);
+    }
+    cmd.env("PATH", new_path);
     cmd.env("RUSTUP_HOME", config.rustupdir.to_string_lossy().to_string());
     cmd.env("RUSTUP_DIST_SERVER", format!("file://{}", config.distdir.to_string_lossy()));
     cmd.env("CARGO_HOME", config.cargodir.to_string_lossy().to_string());

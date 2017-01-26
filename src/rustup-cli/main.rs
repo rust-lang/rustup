@@ -50,6 +50,7 @@ use std::env;
 use std::path::PathBuf;
 use errors::*;
 use rustup_dist::dist::TargetTriple;
+use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 
 fn main() {
     if let Err(ref e) = run_multirust() {
@@ -62,7 +63,7 @@ fn run_multirust() -> Result<()> {
     // Guard against infinite recursion
     let recursion_count = env::var("RUST_RECURSION_COUNT").ok()
         .and_then(|s| s.parse().ok()).unwrap_or(0);
-    if recursion_count > 5 {
+    if recursion_count > RUST_RECURSION_COUNT_MAX {
         return Err(ErrorKind::InfiniteRecursion.into());
     }
 

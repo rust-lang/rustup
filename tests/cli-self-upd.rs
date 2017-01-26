@@ -26,12 +26,14 @@ use std::process::Command;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
-                               expect_stderr_ok,
                                expect_err, expect_err_ex,
                                this_host_triple};
 use rustup_mock::dist::{calc_hash};
 use rustup_mock::{get_path, restore_path};
 use rustup_utils::{utils, raw};
+
+#[cfg(windows)]
+use rustup_mock::clitools::expect_stderr_ok;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 

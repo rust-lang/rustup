@@ -301,13 +301,20 @@ impl<'a> Toolchain<'a> {
         };
 
         let bin_path = self.path.join("bin").join(&binary);
-        let mut cmd = Command::new(if utils::is_file(&bin_path) {
+        let path = if utils::is_file(&bin_path) {
             &bin_path
         } else {
-            // If the bin doesn't actually exist in the sysroot, let the OS try
-            // to resolve it globally for us
+            let recursion_count = env::var("RUST_RECURSION_COUNT").ok()
+                .and_then(|s| s.parse().ok()).unwrap_or(0);
+            if recursion_count > env_var::RUST_RECURSION_COUNT_MAX - 1 {
+                return Err(ErrorKind::BinaryNotFound(self.name.clone(),
+                                                     binary.to_string_lossy()
+                                                           .into())
+                            .into())
+            }
             Path::new(&binary)
-        });
+        };
+        let mut cmd = Command::new(&path);
         self.set_env(&mut cmd);
         Ok(cmd)
     }
