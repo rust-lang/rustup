@@ -33,6 +33,8 @@ function detect_platform() {
     if (os == "unknown") {
         if (navigator.appVersion.indexOf("Win")!=-1) {os = "win";}
         if (navigator.appVersion.indexOf("Mac")!=-1) {os = "unix";}
+        // rust-www/#692 - FreeBSD epiphany!
+        if (navigator.appVersion.indexOf("FreeBSD")!=-1) {os = "unix";}
     }
 
     return os;

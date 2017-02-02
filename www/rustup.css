@@ -125,7 +125,8 @@ hr {
     letter-spacing: 0.1rem;
 }
 
-#platform-instructions-unknown div {
+/* This is the box that prints navigator.platform, navigator.appVersion values */
+#platform-instructions-unknown > div:first-of-type {
     font-size: 16px;
     line-height: 2rem;
 }
