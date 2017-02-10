@@ -41,7 +41,7 @@ main() {
 
     local _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
     local _file="$_dir/rustup-init$_ext"
-    
+
     local _ansi_escapes_are_valid=false
     if [ -t 2 ]; then
         if [ "${TERM+set}" = 'set' ]; then
@@ -52,13 +52,13 @@ main() {
             esac
         fi
     fi
-    
+
     if $_ansi_escapes_are_valid; then
         printf "\33[1minfo:\33[0m downloading installer\n" 1>&2
     else
         printf '%s\n' 'info: downloading installer' 1>&2
     fi
-    
+
     ensure mkdir -p "$_dir"
     ensure curl -sSfL "$_url" -o "$_file"
     ensure chmod u+x "$_file"
@@ -146,6 +146,10 @@ get_architecture() {
     local _ostype="$(uname -s)"
     local _cputype="$(uname -m)"
 
+    if [ "$(uname -o)" = Android ]; then
+        local _ostype=Android
+    fi
+
     if [ "$_ostype" = Darwin -a "$_cputype" = i386 ]; then
         # Darwin `uname -s` lies
         if sysctl hw.optional.x86_64 | grep -q ': 1'; then
@@ -154,6 +158,10 @@ get_architecture() {
     fi
 
     case "$_ostype" in
+
+        Android)
+            local _ostype=linux-android
+            ;;
 
         Linux)
             local _ostype=unknown-linux-gnu
@@ -193,16 +201,27 @@ get_architecture() {
 
         xscale | arm)
             local _cputype=arm
+            if [ "$_ostype" == "linux-android" ]; then
+                local _ostype=linux-androideabi
+            fi
             ;;
 
         armv6l)
             local _cputype=arm
-            local _ostype="${_ostype}eabihf"
+            if [ "$_ostype" == "linux-android" ]; then
+                local _ostype=linux-androideabi
+            else
+                local _ostype="${_ostype}eabihf"
+            fi
             ;;
 
         armv7l)
             local _cputype=armv7
-            local _ostype="${_ostype}eabihf"
+            if [ "$_ostype" == "linux-android" ]; then
+                local _ostype=linux-androideabi
+            else
+                local _ostype="${_ostype}eabihf"
+            fi
             ;;
 
         aarch64)
