@@ -590,11 +590,13 @@ fn install_bins() -> Result<()> {
     try!(utils::copy_file(this_exe_path, rustup_path));
     try!(utils::make_executable(rustup_path));
 
-    // Hardlink all the Rust exes to the rustup exe. Using hardlinks
-    // because they work on Windows.
+    // Try to hardlink all the Rust exes to the rustup exe. Some systems,
+    // like Android, does not support hardlinks, so we fallback to symlinks.
     for tool in TOOLS {
         let ref tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
-        try!(utils::hardlink_file(rustup_path, tool_path))
+        if utils::hardlink_file(rustup_path, tool_path).is_err() {
+            try!(utils::symlink_file(rustup_path, tool_path))
+        }
     }
 
     Ok(())

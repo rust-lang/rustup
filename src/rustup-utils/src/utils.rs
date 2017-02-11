@@ -272,6 +272,26 @@ pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
     })
 }
 
+#[cfg(unix)]
+pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
+    ::std::os::unix::fs::symlink(src, dest).chain_err(|| {
+        ErrorKind::LinkingFile {
+            src: PathBuf::from(src),
+            dest: PathBuf::from(dest),
+        }
+    })
+}
+
+#[cfg(windows)]
+pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
+    // we are supposed to not use symlink on windows
+    Err(ErrorKind::LinkingFile {
+            src: PathBuf::from(src),
+            dest: PathBuf::from(dest),
+        }.into()
+    )
+}
+
 pub fn copy_dir(src: &Path, dest: &Path, notify_handler: &Fn(Notification)) -> Result<()> {
     notify_handler(Notification::CopyingDirectory(src, dest));
     raw::copy_dir(src, dest).chain_err(|| {
