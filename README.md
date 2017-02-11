@@ -329,7 +329,7 @@ interop with software produced by Visual Studio use the MSVC build of
 Rust; for interop with GNU software built using the [MinGW/MSYS2
 toolchain] use the GNU build.
 
-When targeting the MSVC ABI, Rust additionally require an [installation
+When targeting the MSVC ABI, Rust additionally requires an [installation
 of Visual Studio 2013 (or later) or the Visual C++ Build Tools
 2015][vs] so rustc can use its linker. For Visual Studio, make sure to
 check the "C++ tools" option. No additional software installation is
