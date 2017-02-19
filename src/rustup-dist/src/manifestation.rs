@@ -3,14 +3,13 @@
 
 use config::Config;
 use manifest::{Component, Manifest, TargetedPackage};
-use dist::{download_and_check, DownloadCfg, TargetTriple, DEFAULT_DIST_SERVER};
+use dist::{download_and_check, DownloadCfg, TargetTriple, DEFAULT_DIST_SERVER, File};
 use component::{Components, Transaction, TarGzPackage, Package};
 use temp;
 use errors::*;
 use notifications::*;
 use rustup_utils::utils;
 use prefix::InstallPrefix;
-use sha2::{Sha256, Digest};
 use std::path::Path;
 
 pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
@@ -73,10 +72,11 @@ impl Manifestation {
     pub fn update(&self,
                   new_manifest: &Manifest,
                   changes: Changes,
-                  temp_cfg: &temp::Cfg,
+                  download_cfg: &DownloadCfg,
                   notify_handler: &Fn(Notification)) -> Result<UpdateStatus> {
 
         // Some vars we're going to need a few times
+        let temp_cfg = download_cfg.temp_cfg;
         let prefix = self.installation.prefix();
         let ref rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
         let ref installed_manifest_path = prefix.path().join(rel_installed_manifest_path);
@@ -125,7 +125,8 @@ impl Manifestation {
         let altered = temp_cfg.dist_server != DEFAULT_DIST_SERVER;
 
         // Download component packages and validate hashes
-        let mut things_to_install: Vec<(Component, temp::File)> = Vec::new();
+        let mut things_to_install: Vec<(Component, File)> = Vec::new();
+        let mut things_downloaded: Vec<String> = Vec::new();
         for (component, url, hash) in components_urls_and_hashes {
 
             notify_handler(Notification::DownloadingComponent(&component.pkg,
@@ -137,32 +138,14 @@ impl Manifestation {
                 url
             };
 
-            // Download each package to temp file
-            let temp_file = try!(temp_cfg.new_file());
             let url_url = try!(utils::parse_url(&url));
 
-            let mut hasher = Sha256::new();
-            try!(utils::download_file(&url_url,
-                                      &temp_file,
-                                      Some(&mut hasher),
-                                      &|n| notify_handler(n.into())).chain_err(|| {
+            let dowloaded_file = try!(download_cfg.download(&url_url, &hash).chain_err(|| {
                 ErrorKind::ComponentDownloadFailed(component.clone())
             }));
+            things_downloaded.push(hash);
 
-            let actual_hash = hasher.result_str();
-
-            if hash != actual_hash {
-                // Incorrect hash
-                return Err(ErrorKind::ChecksumFailed {
-                    url: url,
-                    expected: hash,
-                    calculated: actual_hash,
-                }.into());
-            } else {
-                notify_handler(Notification::ChecksumValid(&url));
-            }
-
-            things_to_install.push((component, temp_file));
+            things_to_install.push((component, dowloaded_file));
         }
 
         // Begin transaction
@@ -225,6 +208,8 @@ impl Manifestation {
 
         // End transaction
         tx.commit();
+
+        try!(download_cfg.clean(&things_downloaded));
 
         Ok(UpdateStatus::Changed)
     }
@@ -315,8 +300,11 @@ impl Manifestation {
                                                           &self.target_triple,
                                                           Some(&self.target_triple)));
 
+        use std::path::PathBuf;
+        let dld_dir = PathBuf::from("bogus");
         let dlcfg = DownloadCfg {
             dist_root: "bogus",
+            download_dir: &dld_dir,
             temp_cfg: temp_cfg,
             notify_handler: notify_handler
         };

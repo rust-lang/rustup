@@ -158,6 +158,7 @@ impl<'a> Toolchain<'a> {
         dist::DownloadCfg {
             dist_root: &self.cfg.dist_root_url,
             temp_cfg: &self.cfg.temp_cfg,
+            download_dir: &self.cfg.download_dir,
             notify_handler: &*self.dist_handler,
         }
     }
@@ -582,7 +583,7 @@ impl<'a> Toolchain<'a> {
 
             try!(manifestation.update(&manifest,
                                       changes,
-                                      self.download_cfg().temp_cfg,
+                                      &self.download_cfg(),
                                       self.download_cfg().notify_handler.clone()));
 
             Ok(())
@@ -631,7 +632,7 @@ impl<'a> Toolchain<'a> {
 
             try!(manifestation.update(&manifest,
                                       changes,
-                                      self.download_cfg().temp_cfg,
+                                      &self.download_cfg(),
                                       self.download_cfg().notify_handler.clone()));
 
             Ok(())
