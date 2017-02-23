@@ -1158,3 +1158,37 @@ fn uninstall_removes_legacy_home_symlink() {
         assert!(!multirust_dir.exists());
     });
 }
+
+#[test]
+fn rls_proxy_set_up_after_install() {
+    setup(&|config| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        expect_err(config, &["rls", "--version"],
+                   &format!("toolchain 'stable-{}' does not have the binary `rls{}`",
+                            this_host_triple(), EXE_SUFFIX));
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_ok(config, &["rls", "--version"]);
+    });
+}
+
+#[test]
+fn rls_proxy_set_up_after_upgrade() {
+    update_setup(&|config, _| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        // Delete the rls proxy to simulate an upgrade from an older rustup that
+        // didn't include it
+        let rls_bin = config.cargodir.join(format!("bin/rls{}", EXE_SUFFIX));
+        fs::remove_file(rls_bin).expect("rls_bin");
+        // Hm, delete this one in exedir too...
+        // FIXME Shouldn't be necessary
+        let rls_proxy = config.exedir.join(format!("rls{}", EXE_SUFFIX));
+        fs::remove_file(rls_proxy).expect("rls_proxy");
+        // RLS doesn't work now
+        let mut cmd = clitools::cmd(config, "rls", &["--version"]);
+        assert!(cmd.output().is_err());
+        expect_ok(config, &["rustup", "self", "update"]);
+        // And now it does
+        expect_ok(config, &["rls", "--version"]);
+    });
+}

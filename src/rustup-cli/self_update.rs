@@ -191,7 +191,7 @@ tools, but otherwise, install the C++ build tools before proceeding.
 "#;
 
 static TOOLS: &'static [&'static str]
-    = &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
+    = &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb", "rls"];
 
 static UPDATE_ROOT: &'static str
     = "https://static.rust-lang.org/rustup";
