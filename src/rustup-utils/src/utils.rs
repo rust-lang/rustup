@@ -263,6 +263,13 @@ pub fn symlink_dir(src: &Path, dest: &Path, notify_handler: &Fn(Notification)) -
     })
 }
 
+pub fn hard_or_symlink_file(src: &Path, dest: &Path) -> Result<()> {
+    if hardlink_file(src, dest).is_err() {
+        symlink_file(src, dest)?;
+    }
+    Ok(())
+}
+
 pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
     raw::hardlink(src, dest).chain_err(|| {
         ErrorKind::LinkingFile {

@@ -255,8 +255,7 @@ pub struct SanitizedOutput {
 }
 
 pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
-    let exe_path = config.exedir.join(format!("{}{}", name, EXE_SUFFIX));
-    let mut cmd = Command::new(exe_path);
+    let mut cmd = Command::new(name);
     cmd.args(args);
     env(config, &mut cmd);
     cmd
@@ -292,7 +291,7 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
     for env in env {
         cmd.env(env.0, env.1);
     }
-    let out = cmd.output().unwrap();
+    let out = cmd.output().expect("failed to run test command");
 
     SanitizedOutput {
         ok: out.status.success(),

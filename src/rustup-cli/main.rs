@@ -126,6 +126,7 @@ fn do_compatibility_hacks() {
     make_environment_compatible();
     fix_windows_reg_key();
     delete_multirust_bin();
+    add_rls_proxy();
 }
 
 // Convert any MULTIRUST_ env vars to RUSTUP_ and warn about them
@@ -184,6 +185,20 @@ fn delete_multirust_bin() {
         let legacy_bin = home.join(format!("bin/multirust{}", EXE_SUFFIX));
         if legacy_bin.exists() {
             let _ = fs::remove_file(legacy_bin);
+        }
+    }
+}
+
+// RLS was introduced in an upgrade. Make sure the proxy exists.
+fn add_rls_proxy() {
+    use rustup_utils::utils;
+    use std::env::consts::EXE_SUFFIX;
+
+    if let Ok(home) = utils::cargo_home() {
+        let ref rustup_bin = home.join(format!("bin/rustup{}", EXE_SUFFIX));
+        let ref rls_bin = home.join(format!("bin/rls{}", EXE_SUFFIX));
+        if rustup_bin.exists() && !rls_bin.exists() {
+            let _ = utils::hard_or_symlink_file(rustup_bin, rls_bin);
         }
     }
 }

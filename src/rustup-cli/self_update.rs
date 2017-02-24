@@ -594,9 +594,7 @@ fn install_bins() -> Result<()> {
     // like Android, does not support hardlinks, so we fallback to symlinks.
     for tool in TOOLS {
         let ref tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
-        if utils::hardlink_file(rustup_path, tool_path).is_err() {
-            try!(utils::symlink_file(rustup_path, tool_path))
-        }
+        try!(utils::hard_or_symlink_file(rustup_path, tool_path));
     }
 
     Ok(())
