@@ -440,7 +440,7 @@ Command | Description
 `rustc +nightly foo.rs` | Shorthand way to run a nightly compiler
 `rustup run nightly bash` | Run a shell configured for the nightly compiler
 `rustup default stable-msvc` | On Windows, use the MSVC toolchain instead of GNU
-`rustup override nightly-2015-04-01` | For the current directory, use a nightly from a specific date
+`rustup override set nightly-2015-04-01` | For the current directory, use a nightly from a specific date
 `rustup toolchain link my-toolchain "C:\RustInstallation"` | Install a custom toolchain by symlinking an existing installation
 `rustup show` | Show which toolchain will be used in the current directory
 
