@@ -135,7 +135,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command,
 fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(
     mut cmd: Command, arg0: &str, args: &[S]) -> Result<()>
 {
-    cmd.args(&args);
+    cmd.args(args);
 
     // FIXME rust-lang/rust#32254. It's not clear to me
     // when and why this is needed.
