@@ -136,9 +136,12 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(
     mut cmd: Command, arg0: &str, args: &[S]) -> Result<()>
 {
     #[cfg(unix)]
-    fn run(mut command: Command, _: &str) -> Result<()> {
+    fn run(mut command: Command, arg0: &str) -> Result<()> {
         use std::os::unix::process::CommandExt;
-        command.exec();
+        let error = command.exec();
+        Err(error).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
+            name: OsStr::new(arg0).to_owned(),
+        })
     }
 
     #[cfg(windows)]
