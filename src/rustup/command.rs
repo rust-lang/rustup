@@ -136,27 +136,21 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(
     mut cmd: Command, arg0: &str, args: &[S]) -> Result<()>
 {
     #[cfg(unix)]
-    fn run(mut command: Command, arg0: &str) -> Result<()> {
+    fn run(mut command: Command) -> io::Error {
         use std::os::unix::process::CommandExt;
         let error = command.exec();
-        Err(error).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
-            name: OsStr::new(arg0).to_owned(),
-        })
+        error
     }
 
     #[cfg(windows)]
-    fn run(mut command: Command, arg0: &str) -> Result<()> {
+    fn run(mut command: Command) -> io::Error {
         match command.status() {
             Ok(status) => {
                 // Ensure correct exit code is returned
                 let code = status.code().unwrap_or(1);
                 process::exit(code);
             }
-            Err(e) => {
-                Err(e).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
-                    name: OsStr::new(arg0).to_owned(),
-                })
-            }
+            Err(e) => e
         }
     }
 
@@ -166,7 +160,9 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(
     // when and why this is needed.
     cmd.stdin(process::Stdio::inherit());
 
-    run(cmd, arg0)
+    Err(run(cmd)).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
+        name: OsStr::new(arg0).to_owned(),
+    })
 }
 
 #[cfg(unix)]
