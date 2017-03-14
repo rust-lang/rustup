@@ -591,12 +591,13 @@ directory, with a series of commands similar to this:
 ```bash
 $ cargo build
 $ mkdir home
-$ export RUSTUP_HOME=home CARGO_HOME=home
-$ target/debug/rustup-init --no-modify-path -y
+$ RUSTUP_HOME=home CARGO_HOME=home target/debug/rustup-init --no-modify-path -y
 ```
 
-You can then try out rustup with your changes by running `home/bin/rustup`, without
-affecting any existing installation.
+You can then try out `rustup` with your changes by running `home/bin/rustup`, without
+affecting any existing installation. Remember to keep those two environment variables
+set when running your compiled `rustup-init` or the toolchains it installs, but _unset_
+when rebuilding `rustup` itself.
 
 Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the
