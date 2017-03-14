@@ -591,7 +591,8 @@ directory, with a series of commands similar to this:
 ```bash
 $ cargo build
 $ mkdir home
-$ RUSTUP_HOME=home CARGO_HOME=home target/debug/rustup-init --no-modify-path -y
+$ export RUSTUP_HOME=home CARGO_HOME=home
+$ target/debug/rustup-init --no-modify-path -y
 ```
 
 You can then try out rustup with your changes by running `home/bin/rustup`, without
