@@ -17,6 +17,28 @@ set -u
 
 RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup/dist"
 
+#XXX: If you change anything here, please make the same changes in setup_mode.rs
+usage() {
+    cat 1>&2 <<EOF
+rustup-init 1.0.0 (408ed84 2017-02-11)
+The installer for rustup
+
+USAGE:
+    rustup-init [FLAGS] [OPTIONS]
+
+FLAGS:
+    -v, --verbose           Enable verbose output
+    -y                      Disable confirmation prompt.
+        --no-modify-path    Don't configure the PATH environment variable
+    -h, --help              Prints help information
+    -V, --version           Prints version information
+
+OPTIONS:
+        --default-host <default-host>              Choose a default host triple
+        --default-toolchain <default-toolchain>    Choose a default toolchain to install
+EOF
+}
+
 main() {
     need_cmd uname
     need_cmd curl
@@ -53,6 +75,23 @@ main() {
         fi
     fi
 
+    # check if we have to use /dev/tty to prompt the user
+    local need_tty=yes
+    for arg in "$@"; do
+        case "$arg" in
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            -y)
+                # user wants to skip the prompt -- we don't need /dev/tty
+                need_tty=no
+                ;;
+            *)
+                ;;
+        esac
+    done
+
     if $_ansi_escapes_are_valid; then
         printf "\33[1minfo:\33[0m downloading installer\n" 1>&2
     else
@@ -68,18 +107,6 @@ main() {
         exit 1
     fi
 
-    # check if we have to use /dev/tty to prompt the user
-    local need_tty=yes
-    for arg in "$@"; do
-        case "$arg" in
-            -y)
-                # user wants to skip the prompt -- we don't need /dev/tty
-                need_tty=no
-                ;;
-            *)
-                ;;
-        esac
-    done
 
 
     if [ "$need_tty" = "yes" ]; then
@@ -146,8 +173,10 @@ get_architecture() {
     local _ostype="$(uname -s)"
     local _cputype="$(uname -m)"
 
-    if [ "$(uname -o)" = Android ]; then
-        local _ostype=Android
+    if [ "$_ostype" = Linux ]; then
+        if [ "$(uname -o)" = Android ]; then
+            local _ostype=Android
+        fi
     fi
 
     if [ "$_ostype" = Darwin -a "$_cputype" = i386 ]; then
