@@ -287,7 +287,7 @@ platforms The Rust Project publishes binary releases of the standard
 library, and for some the full compiler. `rustup` gives easy access
 to all of them.
 
-[p]: http://doc.rust-lang.org/nightly/book/getting-started.html#platform-support
+[p]: https://forge.rust-lang.org/platform-support.html
 
 When you first install a toolchain, `rustup` installs only the
 standard library for your *host* platform - that is, the architecture
@@ -553,8 +553,8 @@ and is now maintained by The Rust Project.
 
 ### Can rustup download the Rust source code?
 
-The Rust source can be obtained by running `rustup component add rust-src`. 
-It will be downloaded to the `<toolchain root>/lib/rustlib/src/rust` 
+The Rust source can be obtained by running `rustup component add rust-src`.
+It will be downloaded to the `<toolchain root>/lib/rustlib/src/rust`
 directory of the current toolchain.
 
 ### rustup fails with Windows error 32
