@@ -139,6 +139,32 @@ fn remove_toolchain() {
 }
 
 #[test]
+fn add_remove_multiple_toolchains() {
+    fn go(add: &str, rm: &str) {
+        setup(&|config| {
+            let tch1 = "beta";
+            let tch2 = "nightly";
+
+            expect_ok(config, &["rustup", "toolchain", add, tch1, tch2]);
+            expect_ok(config, &["rustup", "toolchain", "list"]);
+            expect_stdout_ok(config, &["rustup", "toolchain", "list"], tch1);
+            expect_stdout_ok(config, &["rustup", "toolchain", "list"], tch2);
+
+            expect_ok(config, &["rustup", "toolchain", rm, tch1, tch2]);
+            expect_ok(config, &["rustup", "toolchain", "list"]);
+            expect_not_stdout_ok(config, &["rustup", "toolchain", "list"], tch1);
+            expect_not_stdout_ok(config, &["rustup", "toolchain", "list"], tch2);
+        });
+    }
+
+    for add in &["add", "update", "install"] {
+        for rm in &["remove", "uninstall"] {
+            go(add, rm);
+        }
+    }
+}
+
+#[test]
 fn remove_default_toolchain_err_handling() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
