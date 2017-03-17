@@ -58,6 +58,7 @@ winreg = "0.3.2"
 user32-sys = "0.1.2"
 kernel32-sys = "0.2.1"
 gcc = "0.3.28"
+psapi-sys = "0.1"
 
 [dev-dependencies]
 rustup-mock = { path = "src/rustup-mock", version = "1.0.0" }
