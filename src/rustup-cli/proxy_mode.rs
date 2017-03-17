@@ -11,7 +11,7 @@ use job;
 pub fn main() -> Result<()> {
     try!(::self_update::cleanup_self_updater());
 
-    job::setup();
+    let _setup = job::setup();
 
     let mut args = env::args();
 

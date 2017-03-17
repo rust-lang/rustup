@@ -287,7 +287,7 @@ platforms The Rust Project publishes binary releases of the standard
 library, and for some the full compiler. `rustup` gives easy access
 to all of them.
 
-[p]: http://doc.rust-lang.org/nightly/book/getting-started.html#platform-support
+[p]: https://forge.rust-lang.org/platform-support.html
 
 When you first install a toolchain, `rustup` installs only the
 standard library for your *host* platform - that is, the architecture
@@ -440,7 +440,7 @@ Command | Description
 `rustc +nightly foo.rs` | Shorthand way to run a nightly compiler
 `rustup run nightly bash` | Run a shell configured for the nightly compiler
 `rustup default stable-msvc` | On Windows, use the MSVC toolchain instead of GNU
-`rustup override nightly-2015-04-01` | For the current directory, use a nightly from a specific date
+`rustup override set nightly-2015-04-01` | For the current directory, use a nightly from a specific date
 `rustup toolchain link my-toolchain "C:\RustInstallation"` | Install a custom toolchain by symlinking an existing installation
 `rustup show` | Show which toolchain will be used in the current directory
 
@@ -553,8 +553,8 @@ and is now maintained by The Rust Project.
 
 ### Can rustup download the Rust source code?
 
-The Rust source can be obtained by running `rustup component add rust-src`. 
-It will be downloaded to the `<toolchain root>/lib/rustlib/src/rust` 
+The Rust source can be obtained by running `rustup component add rust-src`.
+It will be downloaded to the `<toolchain root>/lib/rustlib/src/rust`
 directory of the current toolchain.
 
 ### rustup fails with Windows error 32
@@ -584,6 +584,20 @@ at your option.
 3. Commit your changes: `git commit -am 'Add some feature'`
 4. Push to the branch: `git push origin my-new-feature`
 5. Submit a pull request :D
+
+For developing on `rustup` itself, you may want to install into a temporary
+directory, with a series of commands similar to this:
+
+```bash
+$ cargo build
+$ mkdir home
+$ RUSTUP_HOME=home CARGO_HOME=home target/debug/rustup-init --no-modify-path -y
+```
+
+You can then try out `rustup` with your changes by running `home/bin/rustup`, without
+affecting any existing installation. Remember to keep those two environment variables
+set when running your compiled `rustup-init` or the toolchains it installs, but _unset_
+when rebuilding `rustup` itself.
 
 Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the
