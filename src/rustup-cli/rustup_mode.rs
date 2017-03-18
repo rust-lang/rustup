@@ -158,11 +158,13 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("install")
                 .about("Install or update a given toolchain")
                 .arg(Arg::with_name("toolchain")
-                .required(true)))
+                     .required(true)
+                     .multiple(true)))
             .subcommand(SubCommand::with_name("uninstall")
                 .about("Uninstall a toolchain")
                 .arg(Arg::with_name("toolchain")
-                     .required(true)))
+                     .required(true)
+                     .multiple(true)))
             .subcommand(SubCommand::with_name("link")
                 .about("Create a custom toolchain by symlinking to a directory")
                 .arg(Arg::with_name("toolchain")
@@ -172,15 +174,18 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("update")
                 .setting(AppSettings::Hidden) // synonym for 'install'
                 .arg(Arg::with_name("toolchain")
-                .required(true)))
+                     .required(true)
+                     .multiple(true)))
             .subcommand(SubCommand::with_name("add")
                 .setting(AppSettings::Hidden) // synonym for 'install'
                 .arg(Arg::with_name("toolchain")
-                     .required(true)))
+                     .required(true)
+                     .multiple(true)))
             .subcommand(SubCommand::with_name("remove")
                 .setting(AppSettings::Hidden) // synonym for 'uninstall'
                 .arg(Arg::with_name("toolchain")
-                     .required(true))))
+                     .required(true)
+                     .multiple(true))))
         .subcommand(SubCommand::with_name("target")
             .about("Modify a toolchain's supported targets")
             .setting(AppSettings::VersionlessSubcommands)
@@ -458,21 +463,23 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    if let Some(name) = m.value_of("toolchain") {
-        try!(update_bare_triple_check(cfg, name));
-        let toolchain = try!(cfg.get_toolchain(name, false));
+    if let Some(names) = m.values_of("toolchain") {
+        for name in names {
+            try!(update_bare_triple_check(cfg, name));
+            let toolchain = try!(cfg.get_toolchain(name, false));
 
-        let status = if !toolchain.is_custom() {
-            Some(try!(toolchain.install_from_dist()))
-        } else if !toolchain.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
-        } else {
-            None
-        };
+            let status = if !toolchain.is_custom() {
+                Some(try!(toolchain.install_from_dist()))
+            } else if !toolchain.exists() {
+                return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
+            } else {
+                None
+            };
 
-        if let Some(status) = status {
-            println!("");
-            try!(common::show_channel_update(cfg, toolchain.name(), Ok(status)));
+            if let Some(status) = status {
+                println!("");
+                try!(common::show_channel_update(cfg, toolchain.name(), Ok(status)));
+            }
         }
     } else {
         try!(common::update_all_channels(cfg, !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE));
@@ -684,10 +691,11 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn toolchain_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
-    let toolchain = try!(cfg.get_toolchain(toolchain, false));
-
-    Ok(try!(toolchain.remove()))
+    for toolchain in m.values_of("toolchain").expect("") {
+        let toolchain = try!(cfg.get_toolchain(toolchain, false));
+        try!(toolchain.remove());
+    }
+    Ok(())
 }
 
 fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
