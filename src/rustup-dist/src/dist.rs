@@ -504,13 +504,9 @@ impl ops::Deref for File {
 
 impl<'a> DownloadCfg<'a> {
 
-    fn notify_handler(&self, event: Notification) {
-        (self.notify_handler)(event);
-    }
+    pub fn download(&self, url: &Url, hash: &str, notify_handler: &'a Fn(Notification)) -> Result<File> {
 
-    pub fn download(&self, url: &Url, hash: &str) -> Result<File> {
-
-        try!(utils::ensure_dir_exists("Download Directory", &self.download_dir, &|n| self.notify_handler(n.into())));
+        try!(utils::ensure_dir_exists("Download Directory", &self.download_dir, &|n| notify_handler(n.into())));
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
@@ -528,11 +524,11 @@ impl<'a> DownloadCfg<'a> {
             }
             let cached_result = hasher.result_str();
             if hash == cached_result {
-                self.notify_handler(Notification::FileAlreadyDownloaded);
-                self.notify_handler(Notification::ChecksumValid(&url.to_string()));
+                notify_handler(Notification::FileAlreadyDownloaded);
+                notify_handler(Notification::ChecksumValid(&url.to_string()));
                 return Ok(File { path: target_file, });
             } else {
-                self.notify_handler(Notification::CachedFileChecksumFailed);
+                notify_handler(Notification::CachedFileChecksumFailed);
                 try!(fs::remove_file(&target_file).chain_err(|| "cleaning up previous download"));
             }
         }
@@ -542,7 +538,7 @@ impl<'a> DownloadCfg<'a> {
         try!(utils::download_file(&url,
                                   &target_file,
                                   Some(&mut hasher),
-                                  &|n| self.notify_handler(n.into())));
+                                  &|n| notify_handler(n.into())));
 
         let actual_hash = hasher.result_str();
 
@@ -554,7 +550,7 @@ impl<'a> DownloadCfg<'a> {
                 calculated: actual_hash,
             }.into());
         } else {
-            self.notify_handler(Notification::ChecksumValid(&url.to_string()));
+            notify_handler(Notification::ChecksumValid(&url.to_string()));
             return Ok(File { path: target_file, })
         }
     }

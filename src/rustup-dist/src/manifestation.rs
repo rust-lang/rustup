@@ -140,7 +140,7 @@ impl Manifestation {
 
             let url_url = try!(utils::parse_url(&url));
 
-            let dowloaded_file = try!(download_cfg.download(&url_url, &hash).chain_err(|| {
+            let dowloaded_file = try!(download_cfg.download(&url_url, &hash, &notify_handler).chain_err(|| {
                 ErrorKind::ComponentDownloadFailed(component.clone())
             }));
             things_downloaded.push(hash);

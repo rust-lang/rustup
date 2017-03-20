@@ -26,8 +26,11 @@ use rustup_dist::temp;
 use rustup_dist::manifestation::{Manifestation, UpdateStatus, Changes};
 use rustup_dist::manifest::{Manifest, Component};
 use url::Url;
+use std::cell::Cell;
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
+
 use tempdir::TempDir;
 
 // Creates a mock dist server populated with some test data
@@ -920,4 +923,59 @@ fn unable_to_download_component() {
             _ => panic!()
         }
     });
+}
+
+fn prevent_installation(prefix: &InstallPrefix) {
+    utils::ensure_dir_exists("installation path", &prefix.path().join("lib"), &|_|{}).unwrap();
+    let install_blocker = prefix.path().join("lib").join("rustlib");
+    utils::write_file("install-blocker", &install_blocker, "fail-installation").unwrap();
+}
+
+fn allow_installation(prefix: &InstallPrefix) {
+    let install_blocker = prefix.path().join("lib").join("rustlib");
+    utils::remove_file("install-blocker", &install_blocker).unwrap();
+}
+
+#[test]
+fn reuse_downloaded_file() {
+    setup(None, &|url, toolchain, prefix, download_cfg, temp_cfg| {
+
+        prevent_installation(prefix);
+
+        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg, &|_| {}).unwrap_err();
+
+        allow_installation(&prefix);
+
+        let reuse_notification_fired = Arc::new(Cell::new(false));
+        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg, &|n| {
+            if let Notification::FileAlreadyDownloaded = n {
+                reuse_notification_fired.set(true);
+            }
+        }).unwrap();
+
+        assert!(reuse_notification_fired.get());
+    })
+}
+
+#[test]
+fn checks_files_hashes_before_reuse() {
+    setup(None, &|url, toolchain, prefix, download_cfg, temp_cfg| {
+
+        let path = url.to_file_path().unwrap();
+        let target_hash = utils::read_file("target hash", &path.join("dist/2016-02-02/rustc-nightly-x86_64-apple-darwin.tar.gz.sha256")).unwrap()[.. 64].to_owned();
+        let prev_download = download_cfg.download_dir.join(target_hash);
+        utils::ensure_dir_exists("download dir", &download_cfg.download_dir, &|_|{}).unwrap();
+        utils::write_file("bad previous download", &prev_download, "bad content").unwrap();
+        println!("wrote previous download to {}", prev_download.display());
+
+        let noticed_bad_checksum = Arc::new(Cell::new(false));
+        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg, &|n| {
+            println!("{:?}", n);
+            if let Notification::CachedFileChecksumFailed = n {
+                noticed_bad_checksum.set(true);
+            }
+        }).unwrap();
+
+        assert!(noticed_bad_checksum.get());
+    })
 }
