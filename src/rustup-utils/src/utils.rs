@@ -212,6 +212,9 @@ fn download_file_(url: &Url,
             Event::DownloadDataReceived(data) => {
                 notify_handler(Notification::DownloadDataReceived(data));
             }
+            Event::ResumingPartialDownload => {
+                notify_handler(Notification::ResumingPartialDownload);
+            }
         }
 
         Ok(())

@@ -21,6 +21,7 @@ pub enum Backend { Curl, Hyper, Rustls }
 
 #[derive(Debug, Copy, Clone)]
 pub enum Event<'a> {
+    ResumingPartialDownload,
     /// Received the Content-Length of the to-be downloaded data.
     DownloadContentLengthReceived(u64),
     /// Received some data.
@@ -62,34 +63,32 @@ pub fn download_to_path_with_backend(
     -> Result<()>
 {
     use std::cell::RefCell;
-    use std::fs::{self, File, OpenOptions};
+    use std::fs::{OpenOptions};
     use std::io::{Read, Write, Seek, SeekFrom};
 
     || -> Result<()> {
         let (file, resume_from) = if resume_from_partial && supports_partial_download(&backend) {
-            let mut possible_partial = OpenOptions::new()
+            let possible_partial = OpenOptions::new()
                     .read(true)
                     .open(&path);
 
             let downloaded_so_far = if let Ok(mut partial) = possible_partial {
                 if let Some(cb) = callback {
-                    println!("Reading file in {}", path.display());
+                    try!(cb(Event::ResumingPartialDownload));
+
                     let mut buf = vec![0; 1024*1024*10];
                     let mut downloaded_so_far = 0;
-                    let mut number_of_reads = 0;
                     loop {
                         let n = try!(partial.read(&mut buf));
                         downloaded_so_far += n as u64;
-                        number_of_reads += 1;
                         if n == 0 {
-                            println!("nothing read after {} reads (accumulated {})", number_of_reads, downloaded_so_far);
                             break;
                         }
                         try!(cb(Event::DownloadDataReceived(&buf[..n])));
                     }
+
                     downloaded_so_far
                 } else {
-                    use std::fs::Metadata;
                     let file_info = try!(partial.metadata());
                     file_info.len()
                 }
@@ -102,7 +101,6 @@ pub fn download_to_path_with_backend(
 
             (possible_partial, downloaded_so_far)
         } else {
-            println!("Download resume not supported");
             (try!(OpenOptions::new()
                     .write(true)
                     .create(true)
@@ -234,9 +232,9 @@ pub mod curl {
             // If we didn't get a 20x or 0 ("OK" for files) then return an error
             let code = try!(handle.response_code().chain_err(|| "failed to get response code"));
             match code {
-                0 | 200...299 => { println!("status code: {}", code)}
+                0 | 200 ... 299 => {},
                 _ => { return Err(ErrorKind::HttpStatus(code).into()); }
-            }
+            };
 
             Ok(())
         })
