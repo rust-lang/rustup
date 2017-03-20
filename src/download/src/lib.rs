@@ -33,28 +33,23 @@ const BACKENDS: &'static [Backend] = &[
     Backend::Rustls
 ];
 
-pub fn download(url: &Url,
-                callback: &Fn(Event) -> Result<()>)
-                -> Result<()> {
-    for &backend in BACKENDS {
-        match download_with_backend(backend, url, callback) {
-            Err(Error(ErrorKind::BackendUnavailable(_), _)) => (),
-            Err(e) => return Err(e),
-            Ok(()) => return Ok(()),
-        }
-    }
 
-    Err("no working backends".into())
-}
-
-pub fn download_with_backend(backend: Backend,
+fn download_with_backend(backend: Backend,
                              url: &Url,
+                             resume_from: u64,
                              callback: &Fn(Event) -> Result<()>)
                              -> Result<()> {
     match backend {
-        Backend::Curl => curl::download(url, callback),
+        Backend::Curl => curl::download(url, resume_from, callback),
         Backend::Hyper => hyper::download(url, callback),
         Backend::Rustls => rustls::download(url, callback),
+    }
+}
+
+fn supports_partial_download(backend: &Backend) -> bool {
+    match backend {
+        &Backend::Curl => true,
+        _ => false
     }
 }
 
@@ -62,18 +57,62 @@ pub fn download_to_path_with_backend(
     backend: Backend,
     url: &Url,
     path: &Path,
+    resume_from_partial: bool,
     callback: Option<&Fn(Event) -> Result<()>>)
     -> Result<()>
 {
     use std::cell::RefCell;
-    use std::fs::{self, File};
-    use std::io::Write;
+    use std::fs::{self, File, OpenOptions};
+    use std::io::{Read, Write, Seek, SeekFrom};
 
     || -> Result<()> {
-        let file = RefCell::new(try!(File::create(&path).chain_err(
-            || "error creating file for download")));
+        let (file, resume_from) = if resume_from_partial && supports_partial_download(&backend) {
+            let mut possible_partial = OpenOptions::new()
+                    .read(true)
+                    .open(&path);
 
-        try!(download_with_backend(backend, url, &|event| {
+            let downloaded_so_far = if let Ok(mut partial) = possible_partial {
+                if let Some(cb) = callback {
+                    println!("Reading file in {}", path.display());
+                    let mut buf = vec![0; 1024*1024*10];
+                    let mut downloaded_so_far = 0;
+                    let mut number_of_reads = 0;
+                    loop {
+                        let n = try!(partial.read(&mut buf));
+                        downloaded_so_far += n as u64;
+                        number_of_reads += 1;
+                        if n == 0 {
+                            println!("nothing read after {} reads (accumulated {})", number_of_reads, downloaded_so_far);
+                            break;
+                        }
+                        try!(cb(Event::DownloadDataReceived(&buf[..n])));
+                    }
+                    downloaded_so_far
+                } else {
+                    use std::fs::Metadata;
+                    let file_info = try!(partial.metadata());
+                    file_info.len()
+                }
+            } else {
+                0
+            };
+
+            let mut possible_partial = try!(OpenOptions::new().write(true).create(true).open(&path).chain_err(|| "error opening file for download"));
+            try!(possible_partial.seek(SeekFrom::End(0)));
+
+            (possible_partial, downloaded_so_far)
+        } else {
+            println!("Download resume not supported");
+            (try!(OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .open(&path)
+                    .chain_err(|| "error creating file for download")), 0)
+        };
+
+        let file = RefCell::new(file);
+
+        try!(download_with_backend(backend, url, resume_from, &|event| {
             if let Event::DownloadDataReceived(data) = event {
                 try!(file.borrow_mut().write_all(data)
                      .chain_err(|| "unable to write download to disk"));
@@ -89,11 +128,8 @@ pub fn download_to_path_with_backend(
 
         Ok(())
     }().map_err(|e| {
-        if path.is_file() {
-            // FIXME ignoring compound errors
-            let _ = fs::remove_file(path);
-        }
 
+        // TODO is there any point clearing up here? What kind of errors will leave us with an unusable partial?
         e
     })
 }
@@ -114,6 +150,7 @@ pub mod curl {
     use super::Event;
 
     pub fn download(url: &Url,
+                    resume_from: u64,
                     callback: &Fn(Event) -> Result<()> )
                     -> Result<()> {
         // Fetch either a cached libcurl handle (which will preserve open
@@ -127,6 +164,12 @@ pub mod curl {
 
             try!(handle.url(&url.to_string()).chain_err(|| "failed to set url"));
             try!(handle.follow_location(true).chain_err(|| "failed to set follow redirects"));
+
+            if resume_from > 0 {
+                try!(handle.range(&(resume_from.to_string() + "-")).chain_err(|| "setting the range-header for download resumption"));
+            } else {
+                try!(handle.range("").chain_err(|| "clearing range header"));
+            }
 
             // Take at most 30s to connect
             try!(handle.connect_timeout(Duration::new(30, 0)).chain_err(|| "failed to set connect timeout"));
@@ -154,8 +197,8 @@ pub mod curl {
                     if let Ok(data) = str::from_utf8(header) {
                         let prefix = "Content-Length: ";
                         if data.starts_with(prefix) {
-                            if let Ok(s) = data[prefix.len()..].trim().parse() {
-                                let msg = Event::DownloadContentLengthReceived(s);
+                            if let Ok(s) = data[prefix.len()..].trim().parse::<u64>() {
+                                let msg = Event::DownloadContentLengthReceived(s + resume_from);
                                 match callback(msg) {
                                     Ok(()) => (),
                                     Err(e) => {
@@ -188,10 +231,11 @@ pub mod curl {
                 }));
             }
 
-            // If we didn't get a 200 or 0 ("OK" for files) then return an error
+            // If we didn't get a 20x or 0 ("OK" for files) then return an error
             let code = try!(handle.response_code().chain_err(|| "failed to get response code"));
-            if code != 200 && code != 0 {
-                return Err(ErrorKind::HttpStatus(code).into());
+            match code {
+                0 | 200...299 => { println!("status code: {}", code)}
+                _ => { return Err(ErrorKind::HttpStatus(code).into()); }
             }
 
             Ok(())
@@ -639,6 +683,7 @@ pub mod curl {
     use super::Event;
 
     pub fn download(_url: &Url,
+                    _resume_from: u64,
                     _callback: &Fn(Event) -> Result<()> )
                     -> Result<()> {
         Err(ErrorKind::BackendUnavailable("curl").into())

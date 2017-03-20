@@ -21,6 +21,10 @@ curl = { version = "0.4", optional = true }
 lazy_static = { version = "0.2", optional = true }
 native-tls = { version = "0.1", optional = true }
 
+[dev-dependencies]
+rustup-mock = { path = "../rustup-mock", version = "1.0.0" }
+tempdir = "0.3.4"
+
 [dependencies.hyper]
 version = "0.9.8"
 default-features = false

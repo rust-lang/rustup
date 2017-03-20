@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::io::Write;
+use std::io::{self, Write};
 use temp;
 use toml;
 use rustup_utils;
@@ -12,6 +12,7 @@ error_chain! {
 
     foreign_links {
         Temp(temp::Error);
+        Io(io::Error);
     }
 
     errors {

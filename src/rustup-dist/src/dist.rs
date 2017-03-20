@@ -533,11 +533,21 @@ impl<'a> DownloadCfg<'a> {
             }
         }
 
-        let mut hasher = Sha256::new();
 
-        try!(utils::download_file(&url,
-                                  &target_file,
+        let partial_file_path =
+            target_file.with_file_name(
+                target_file.file_name().map(|s| {
+                    s.to_str().unwrap_or("_")})
+                    .unwrap_or("_")
+                    .to_owned()
+                + ".partial");
+
+        let mut hasher = Sha256::new();
+        
+        try!(utils::download_file_with_resume(&url,
+                                  &partial_file_path,
                                   Some(&mut hasher),
+                                  true,
                                   &|n| notify_handler(n.into())));
 
         let actual_hash = hasher.result_str();
@@ -551,7 +561,8 @@ impl<'a> DownloadCfg<'a> {
             }.into());
         } else {
             notify_handler(Notification::ChecksumValid(&url.to_string()));
-            return Ok(File { path: target_file, })
+            try!(fs::rename(&partial_file_path, &target_file));
+            return Ok(File { path: target_file });
         }
     }
 
