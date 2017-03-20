@@ -1,6 +1,4 @@
 
-
-use std::net::ToSocketAddrs;
 use std::path::{Path, PathBuf};
 use std::io::{self, Read, Write, Seek, SeekFrom};
 use std::net::SocketAddr;
@@ -10,7 +8,6 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use url;
 use hyper;
 use hyper::header::{Range, ByteRangeSpec};
-use hyper::server::Handler;
 use hyper::server::request::*;
 use hyper::uri::RequestUri::*;
 use hyper::server::response::*;
@@ -75,29 +72,32 @@ impl ServerImp {
         Ok(())
     }
 
-    fn write_file_to_response(&self, path: &Path, mut response: Response<Fresh>, mut request: Request) {
+    fn write_file_to_response(&self, path: &Path, mut response: Response<Fresh>, request: Request) -> Result<(), io::Error> {
         if !path.exists() {
             *response.status_mut() = StatusCode::NotFound;
-            return;
+            return Ok(());
         }
         let mut response = response.start().unwrap();
         let byte_ranges = request.headers.get::<Range>();
-        self.write_file(path, &mut response, byte_ranges);
+        try!(self.write_file(path, &mut response, byte_ranges));
+        Ok(())
     }
 
-    fn serve_file(&self, base_path: &Path, request: Request, mut response: Response<Fresh>) {
+    fn serve_file(&self, base_path: &Path, request: Request, mut response: Response<Fresh>) -> Result<(), io::Error> {
         match request.uri.clone() {
             AbsolutePath(s) => {
                 let p = base_path.join(&s[1..]);
-                self.write_file_to_response(&p, response, request);
+                try!(self.write_file_to_response(&p, response, request));
             }
             AbsoluteUri(u) => {
                 let urlpath = u.path();
                 let p = base_path.join(&urlpath[1..]);
-                self.write_file_to_response(&p, response, request);
+                try!(self.write_file_to_response(&p, response, request))
             }
-            _ => *response.status_mut() = StatusCode::MethodNotAllowed,
+            _ => { *response.status_mut() = StatusCode::MethodNotAllowed; }
         }
+
+        Ok(())
     }
 }
 
@@ -117,7 +117,7 @@ impl Server {
 
         let server_clone = server_imp.clone();
         let listening = try!(hserver.handle(move |req: Request, resp: Response| {
-            server_clone.lock().unwrap().serve_file(&base_path, req, resp);
+            server_clone.lock().unwrap().serve_file(&base_path, req, resp).expect("Rendering response");
         }));
 
         Ok(Server {
