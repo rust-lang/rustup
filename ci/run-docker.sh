@@ -2,6 +2,19 @@
 
 set -ex
 
+# For some unknown reason libz is not found in the android docker image, so we
+# use this workaround
+case $TARGET in
+  arm-linux-androideabi | armv7-linux-androideabi )
+    export DEP_Z_ROOT=/android-ndk/arm/sysroot/usr/;;
+
+  aarch64-linux-android )
+    export DEP_Z_ROOT=/android-ndk/arm64/sysroot/usr/;;
+
+  i686-linux-android )
+    export DEP_Z_ROOT=/android-ndk/x86/sysroot/usr/;;
+esac
+
 upper_target=$(echo $TARGET | tr '[a-z]' '[A-Z]' | tr '-' '_')
 export PATH=/travis-rust/bin:$PATH
 export LD_LIBRARY_PATH=/travis-rust/lib:$LD_LIBRARY_PATH
@@ -33,6 +46,27 @@ case $TARGET in
     OPENSSL_AR=ar
     OPENSSL_SETARCH='setarch i386'
     OPENSSL_CFLAGS=-m32
+    ;;
+  arm-linux-androideabi)
+    OPENSSL_OS=android
+    OPENSSL_CC=arm-linux-androideabi-gcc
+    OPENSSL_AR=arm-linux-androideabi-ar
+    ;;
+  armv7-linux-androideabi)
+    OPENSSL_OS=android-armv7
+    OPENSSL_CC=arm-linux-androideabi-gcc
+    OPENSSL_AR=arm-linux-androideabi-ar
+    ;;
+  aarch64-linux-android)
+    OPENSSL_OS=linux-generic64
+    OPENSSL_CC=aarch64-linux-android-gcc
+    OPENSSL_AR=aarch64-linux-android-ar
+    OPENSSL_CFLAGS="-mandroid -fomit-frame-pointer"
+    ;;
+  i686-linux-android)
+    OPENSSL_OS=android-x86
+    OPENSSL_CC=i686-linux-android-gcc
+    OPENSSL_AR=i686-linux-android-ar
     ;;
   arm-*-linux-gnueabi)
     OPENSSL_OS=linux-armv4
