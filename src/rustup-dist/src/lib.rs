@@ -7,6 +7,7 @@ extern crate walkdir;
 extern crate toml;
 extern crate flate2;
 extern crate tar;
+extern crate url;
 #[macro_use]
 extern crate rustup_utils;
 #[macro_use]

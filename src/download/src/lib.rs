@@ -47,21 +47,6 @@ pub fn download(url: &Url,
     Err("no working backends".into())
 }
 
-pub fn download_to_path(url: &Url,
-                        path: &Path,
-                        callback: Option<&Fn(Event) -> Result<()>>)
-                        -> Result<()> {
-    for &backend in BACKENDS {
-        match download_to_path_with_backend(backend, url, path, callback) {
-            Err(Error(ErrorKind::BackendUnavailable(_), _)) => (),
-            Err(e) => return Err(e),
-            Ok(()) => return Ok(()),
-        }
-    }
-
-    Err("no working backends".into())
-}
-
 pub fn download_with_backend(backend: Backend,
                              url: &Url,
                              callback: &Fn(Event) -> Result<()>)

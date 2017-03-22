@@ -8,9 +8,12 @@ use manifest::Component;
 use manifest::Manifest as ManifestV2;
 use manifestation::{Manifestation, UpdateStatus, Changes};
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::ops;
+use url::Url;
 use std::fmt;
 use std::env;
+use std::fs;
 
 use regex::Regex;
 use sha2::{Sha256, Digest};
@@ -482,7 +485,85 @@ pub fn download_and_check<'a>(url_str: &str,
 pub struct DownloadCfg<'a> {
     pub dist_root: &'a str,
     pub temp_cfg: &'a temp::Cfg,
+    pub download_dir: &'a PathBuf,
     pub notify_handler: &'a Fn(Notification),
+}
+
+
+pub struct File {
+    path: PathBuf,
+}
+
+impl ops::Deref for File {
+    type Target = Path;
+
+    fn deref(&self) -> &Path {
+        ops::Deref::deref(&self.path)
+    }
+}
+
+impl<'a> DownloadCfg<'a> {
+
+    pub fn download(&self, url: &Url, hash: &str, notify_handler: &'a Fn(Notification)) -> Result<File> {
+
+        try!(utils::ensure_dir_exists("Download Directory", &self.download_dir, &|n| notify_handler(n.into())));
+        let target_file = self.download_dir.join(Path::new(hash));
+
+        if target_file.exists() {
+            let mut hasher = Sha256::new();
+            use std::io::Read;
+            let mut downloaded = try!(fs::File::open(&target_file).chain_err(|| "opening already downloaded file"));
+            let mut buf = [0; 1024];
+            loop {
+                if let Ok(n) = downloaded.read(&mut buf) {
+                    if n == 0 { break; }
+                    hasher.input(&buf[..n]);
+                } else {
+                    break;
+                }
+            }
+            let cached_result = hasher.result_str();
+            if hash == cached_result {
+                notify_handler(Notification::FileAlreadyDownloaded);
+                notify_handler(Notification::ChecksumValid(&url.to_string()));
+                return Ok(File { path: target_file, });
+            } else {
+                notify_handler(Notification::CachedFileChecksumFailed);
+                try!(fs::remove_file(&target_file).chain_err(|| "cleaning up previous download"));
+            }
+        }
+
+        let mut hasher = Sha256::new();
+
+        try!(utils::download_file(&url,
+                                  &target_file,
+                                  Some(&mut hasher),
+                                  &|n| notify_handler(n.into())));
+
+        let actual_hash = hasher.result_str();
+
+        if hash != actual_hash {
+            // Incorrect hash
+            return Err(ErrorKind::ChecksumFailed {
+                url: url.to_string(),
+                expected: hash.to_string(),
+                calculated: actual_hash,
+            }.into());
+        } else {
+            notify_handler(Notification::ChecksumValid(&url.to_string()));
+            return Ok(File { path: target_file, })
+        }
+    }
+
+    pub fn clean(&self, hashes: &Vec<String>) -> Result<()> {
+        for hash in hashes.iter() {
+            let used_file = self.download_dir.join(hash);
+            if self.download_dir.join(&used_file).exists() {
+                try!(fs::remove_file(used_file).chain_err(|| "cleaning up cached downloads"));
+            }
+        }
+        Ok(())
+    }
 }
 
 pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
@@ -551,7 +632,7 @@ pub fn update_from_dist_<'a>(download: DownloadCfg<'a>,
         Ok(Some((m, hash))) => {
             return match try!(manifestation.update(&m,
                                                    changes,
-                                                   &download.temp_cfg,
+                                                   &download,
                                                    download.notify_handler.clone())) {
                 UpdateStatus::Unchanged => Ok(None),
                 UpdateStatus::Changed => Ok(Some(hash)),
