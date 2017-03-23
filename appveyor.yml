@@ -23,8 +23,8 @@ branches:
 install:
   # Show running services
   - sc query
-  - sc stop wsearch
-  - sc query wsearch
+  - sc stop VSS
+  - sc query VSS
   # Install rust, x86_64-pc-windows-msvc host
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init.exe -y --default-toolchain=nightly-2017-01-06-x86_64-pc-windows-msvc
