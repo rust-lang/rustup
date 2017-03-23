@@ -85,7 +85,7 @@ static LIST_OSES: &'static [&'static str] = &["pc-windows",
                                               "rumprun-netbsd",
                                               "unknown-freebsd"];
 static LIST_ENVS: &'static [&'static str] =
-    &["gnu", "msvc", "gnueabi", "gnueabihf", "gnuabi64", "androideabi", "musl"];
+    &["gnu", "msvc", "gnueabi", "gnueabihf", "gnuabi64", "androideabi", "android", "musl"];
 
 // MIPS platforms don't indicate endianness in uname, however binaries only
 // run on boxes with the same endianness, as expected.
@@ -161,6 +161,10 @@ impl TargetTriple {
             };
 
             let host_triple = match (sysname, machine) {
+                (_, b"arm") if cfg!(target_os = "android") => Some("arm-linux-androideabi"),
+                (_, b"armv7l") if cfg!(target_os = "android") => Some("armv7-linux-androideabi"),
+                (_, b"aarch64") if cfg!(target_os = "android") => Some("aarch64-linux-android"),
+                (_, b"i686") if cfg!(target_os = "android") => Some("i686-linux-android"),
                 (b"Linux", b"x86_64") => Some("x86_64-unknown-linux-gnu"),
                 (b"Linux", b"i686") => Some("i686-unknown-linux-gnu"),
                 (b"Linux", b"mips") => Some(TRIPLE_MIPS_UNKNOWN_LINUX_GNU),
