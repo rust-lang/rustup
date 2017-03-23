@@ -402,7 +402,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                                      (cross_std2, CROSS_ARCH2.to_string())]),
                         ("rustc", vec![(rustc, triple.clone())]),
                         ("cargo", vec![(cargo, triple.clone())]),
-                        ("rls", vec![(rls, host_triple.clone())]),
+                        ("rls", vec![(rls, triple.clone())]),
                         ("rust-docs", vec![(rust_docs, triple.clone())]),
                         ("rust-src", vec![(rust_src, "*".to_string())]),
                         ("rust", vec![(rust, triple.clone())])];
