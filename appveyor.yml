@@ -21,10 +21,10 @@ branches:
     - auto
 
 install:
-  # Show running services
-  - sc query
-  - sc stop VSS
-  - sc query VSS
+  # Install handle.exe
+  - ps: $zipPath = "$($env:USERPROFILE)\Handle.zip"
+  - ps: (New-Object Net.WebClient).DownloadFile('https://download.sysinternals.com/files/Handle.zip', $zipPath)
+  - ps: 7z x $zipPath -y -o"$env:APPVEYOR_BUILD_FOLDER" | Out-Null 
   # Install rust, x86_64-pc-windows-msvc host
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init.exe -y --default-toolchain=nightly-2017-01-06-x86_64-pc-windows-msvc
