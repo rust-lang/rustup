@@ -277,7 +277,7 @@ fn uninstall_self_delete_works() {
 
 fn list_handles(path: &Path) {
     let mut cmd = Command::new("handle.exe");
-    cmd.arg("-a").arg("-u").arg(path);
+    cmd.arg("-accepteula").arg("-nobanner").arg("-a").arg("-u").arg(path);
     cmd.status().unwrap();
 }
 
