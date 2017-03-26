@@ -375,7 +375,7 @@ pub fn report_error(e: &Error) {
             }
         }
 
-        return false;
+        false
     }
 }
 
