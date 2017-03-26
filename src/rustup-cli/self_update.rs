@@ -344,8 +344,8 @@ fn do_pre_install_sanity_checks() -> Result<()> {
         rustup_sh_version_path.map(|p| p.exists()) == Some(true);
     let old_multirust_meta_exists = if let Some(ref multirust_version_path) = multirust_version_path {
         multirust_version_path.exists() && {
-            let version = version.unwrap_or(String::new());
             let version = utils::read_file("old-multirust", multirust_version_path);
+            let version = version.unwrap_or(String::new());
             let version = version.parse().unwrap_or(0);
             let cutoff_version = 12; // First rustup version
 
@@ -417,7 +417,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         let mut pwd = unsafe { mem::uninitialized::<c::passwd>() };
         let mut pwdp: *mut c::passwd = ptr::null_mut();
         let rv = unsafe { c::getpwuid_r(c::geteuid(), &mut pwd, mem::transmute(&mut buf), buf.len(), &mut pwdp) };
-        if rv != 0 || pwdp == ptr::null_mut() {
+        if rv != 0 || pwdp.is_null() {
             warn!("getpwuid_r: couldn't get user data");
             return false;
         }
@@ -981,7 +981,7 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
     let profile = utils::home_dir().map(|p| p.join(".profile"));
     let rcfiles = vec![profile].into_iter().filter_map(|f|f);
 
-    rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect()
+    rcfiles.map(PathUpdateMethod::RcFile).collect()
 }
 
 fn shell_export_string() -> Result<String> {
@@ -1119,7 +1119,7 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
             file.contains(addition)
         });
 
-    Ok(matching_rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect())
+    Ok(matching_rcfiles.map(PathUpdateMethod::RcFile).collect())
 }
 
 #[cfg(windows)]

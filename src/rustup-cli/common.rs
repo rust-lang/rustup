@@ -225,7 +225,7 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
             toolchain.set_ldpath(&mut cmd);
 
             let out= cmd.output().ok();
-            let out = out.into_iter().filter(|o| o.status.success()).next();
+            let out = out.into_iter().find(|o| o.status.success());
             let stdout = out.and_then(|o| String::from_utf8(o.stdout).ok());
             let line1 = stdout.and_then(|o| o.lines().next().map(|l| l.to_owned()));
 

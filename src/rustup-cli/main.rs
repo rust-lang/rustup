@@ -72,7 +72,7 @@ fn run_multirust() -> Result<()> {
     do_compatibility_hacks();
 
     // The name of arg0 determines how the program is going to behave
-    let arg0 = env::args().next().map(|a| PathBuf::from(a));
+    let arg0 = env::args().next().map(PathBuf::from);
     let name = arg0.as_ref()
         .and_then(|a| a.file_stem())
         .and_then(|a| a.to_str());
