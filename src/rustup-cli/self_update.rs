@@ -196,7 +196,7 @@ static TOOLS: &'static [&'static str]
 static UPDATE_ROOT: &'static str
     = "https://static.rust-lang.org/rustup";
 
-/// CARGO_HOME suitable for display, possibly with $HOME
+/// `CARGO_HOME` suitable for display, possibly with $HOME
 /// substituted for the directory prefix
 fn canonical_cargo_home() -> Result<String> {
     let path = try!(utils::cargo_home());
@@ -211,8 +211,8 @@ fn canonical_cargo_home() -> Result<String> {
 }
 
 /// Installing is a simple matter of coping the running binary to
-/// CARGO_HOME/bin, hardlinking the various Rust tools to it,
-/// and and adding CARGO_HOME/bin to PATH.
+/// `CARGO_HOME`/bin, hardlinking the various Rust tools to it,
+/// and and adding `CARGO_HOME`/bin to PATH.
 pub fn install(no_prompt: bool, verbose: bool,
                mut opts: InstallOpts) -> Result<()> {
 
@@ -1213,7 +1213,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     Ok(())
 }
 
-/// Self update downloads rustup-init to CARGO_HOME/bin/rustup-init
+/// Self update downloads rustup-init to `CARGO_HOME`/bin/rustup-init
 /// and runs it.
 ///
 /// It does a few things to accomodate self-delete problems on windows:
@@ -1226,7 +1226,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 ///
 /// Because it's again difficult for rustup-init to delete itself
 /// (and on windows this process will not be running to do it),
-/// rustup-init is stored in CARGO_HOME/bin, and then deleted next
+/// rustup-init is stored in `CARGO_HOME`/bin, and then deleted next
 /// time rustup runs.
 pub fn update() -> Result<()> {
     if NEVER_SELF_UPDATE {
@@ -1376,7 +1376,7 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
 }
 
 /// This function is as the final step of a self-upgrade. It replaces
-/// CARGO_HOME/bin/rustup with the running exe, and updates the the
+/// `CARGO_HOME`/bin/rustup with the running exe, and updates the the
 /// links to it. On windows this will run *after* the original
 /// rustup process exits.
 #[cfg(unix)]
