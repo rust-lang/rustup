@@ -195,7 +195,7 @@ fn bad_sha_on_manifest() {
         let sha_file = config.distdir.join("dist/channel-rust-nightly.toml.sha256");
         let sha_str = rustup_utils::raw::read_file(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
-        &mut sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
+        sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
         let sha_str = String::from_utf8(sha_bytes).unwrap();
         rustup_utils::raw::write_file(&sha_file, &sha_str).unwrap();
         expect_err(config, &["rustup", "default", "nightly"],
