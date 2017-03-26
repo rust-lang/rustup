@@ -25,7 +25,7 @@ pub fn main() -> Result<()> {
     let arg1 = args.next();
     let toolchain = arg1.as_ref()
         .and_then(|arg1| {
-            if arg1.starts_with("+") {
+            if arg1.starts_with('+') {
                 Some(&arg1[1..])
             } else {
                 None
