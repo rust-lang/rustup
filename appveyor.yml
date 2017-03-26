@@ -1,3 +1,4 @@
+image: Visual Studio 2017
 environment:
   RUSTFLAGS: -Zunstable-options -Ctarget-feature=+crt-static
   matrix:
