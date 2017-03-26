@@ -571,7 +571,7 @@ fn update_updates_rustup_bin() {
 
         let after_hash = calc_hash(bin);
 
-        assert!(before_hash != after_hash);
+        assert_ne!(before_hash, after_hash);
     });
 }
 
@@ -610,7 +610,7 @@ fn rustup_self_updates() {
 
         let after_hash = calc_hash(bin);
 
-        assert!(before_hash != after_hash);
+        assert_ne!(before_hash, after_hash);
     })
 }
 

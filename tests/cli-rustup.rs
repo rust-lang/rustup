@@ -477,7 +477,7 @@ fn show_toolchain_env() {
         let out = cmd.output().unwrap();
         assert!(out.status.success());
         let stdout = String::from_utf8(out.stdout).unwrap();
-        assert!(&stdout == for_host!(r"Default host: {0}
+        assert_eq!(&stdout, for_host!(r"Default host: {0}
 
 nightly-{0} (environment override by RUSTUP_TOOLCHAIN)
 1.3.0 (hash-n-2)

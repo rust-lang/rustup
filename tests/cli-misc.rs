@@ -172,7 +172,7 @@ fn subcommand_required_for_target() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert!(out.status.code().unwrap() != 101);
+        assert_ne!(out.status.code().unwrap(), 101);
     });
 }
 
@@ -185,7 +185,7 @@ fn subcommand_required_for_toolchain() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert!(out.status.code().unwrap() != 101);
+        assert_ne!(out.status.code().unwrap(), 101);
     });
 }
 
@@ -198,7 +198,7 @@ fn subcommand_required_for_override() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert!(out.status.code().unwrap() != 101);
+        assert_ne!(out.status.code().unwrap(), 101);
     });
 }
 
@@ -211,7 +211,7 @@ fn subcommand_required_for_self() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert!(out.status.code().unwrap() != 101);
+        assert_ne!(out.status.code().unwrap(), 101);
     });
 }
 
@@ -402,6 +402,6 @@ fn telemetry_cleanup_removes_old_files() {
         let contents = out.unwrap();
         let count = contents.count();
 
-        assert!(count == 100);
+        assert_eq!(count, 100);
     });
 }
