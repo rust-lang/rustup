@@ -372,7 +372,7 @@ fn telemetry_supports_huge_output() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "telemetry", "enable"]);
-        expect_timeout_ok(&config, StdDuration::from_secs(5), &["rustc", "--huge-output"]);
+        expect_timeout_ok(config, StdDuration::from_secs(5), &["rustc", "--huge-output"]);
         expect_stdout_ok(config, &["rustup", "telemetry", "analyze"], "'E0428': 10000")
     })
 }

@@ -344,8 +344,8 @@ fn do_pre_install_sanity_checks() -> Result<()> {
         rustup_sh_version_path.map(|p| p.exists()) == Some(true);
     let old_multirust_meta_exists = if let Some(ref multirust_version_path) = multirust_version_path {
         multirust_version_path.exists() && {
-            let version = utils::read_file("old-multirust", &multirust_version_path);
             let version = version.unwrap_or(String::new());
+            let version = utils::read_file("old-multirust", multirust_version_path);
             let version = version.parse().unwrap_or(0);
             let cutoff_version = 12; // First rustup version
 
@@ -426,7 +426,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         let env_home = env_home.as_ref().map(Deref::deref);
         match (env_home, pw_dir) {
             (None, _) | (_, None) => false,
-            (Some(ref eh), Some(ref pd)) => eh != pd
+            (Some(eh), Some(pd)) => eh != pd
         }
     }
 
@@ -1236,7 +1236,7 @@ pub fn update() -> Result<()> {
     }
     let setup_path = try!(prepare_update());
     if let Some(ref p) = setup_path {
-        let version = match get_new_rustup_version(&p) {
+        let version = match get_new_rustup_version(p) {
             Some(new_version) => parse_new_rustup_version(new_version),
             None => {
                 err!("failed to get rustup version");

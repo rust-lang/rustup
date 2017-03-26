@@ -32,7 +32,7 @@ pub fn setup(f: &Fn(&Config)) {
 }
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> SanitizedOutput {
-    let mut cmd = clitools::cmd(config, &args[0], &args[1..]);
+    let mut cmd = clitools::cmd(config, args[0], &args[1..]);
     clitools::env(config, &mut cmd);
 
     cmd.stdin(Stdio::piped());
