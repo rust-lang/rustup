@@ -389,7 +389,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
                 continue;
             }
             if let Ok(desc) = PartialToolchainDesc::from_str(&t) {
-                fn triple_comp_eq(given: &String, from_desc: Option<&String>) -> bool {
+                fn triple_comp_eq(given: &str, from_desc: Option<&String>) -> bool {
                     from_desc.map_or(false, |s| *s == *given)
                 }
 
