@@ -47,31 +47,6 @@ pub fn setup(f: &Fn(&Config)) {
         }
         let _g = LOCK.lock();
 
-        // For these tests we are running the bins out of ~/.cargo/bin,
-        // as during a real install, not the test 'exedir' that most
-        // of the test suite uses. We still need rustup-init though
-        // to begin the installation, so delete every bin except that.
-        for entry in fs::read_dir(&config.exedir).unwrap() {
-            let entry = entry.unwrap();
-            // ffs Path/OsStr...
-            let is_rustup_init = entry.path()
-                .file_name().unwrap_or_default()
-                .to_string_lossy().contains("rustup-init");
-            if is_rustup_init {
-                continue;
-            }
-            fs::remove_file(entry.path()).unwrap();
-        }
-
-        // Likewise set up PATH to include ~/.cargo/bin
-        let prev_path = env::var_os("PATH");
-        let mut new_path = config.cargodir.join("bin").into_os_string();
-        if let Some(ref p) = prev_path {
-            new_path.push(if cfg!(windows) { ";" } else { ":" });
-            new_path.push(p);
-        }
-        env::set_var("PATH", new_path);
-
         // An windows these tests mess with the user's PATH. Save
         // and restore them here to keep from trashing things.
         let saved_path = get_path();
@@ -1196,57 +1171,13 @@ fn rls_proxy_set_up_after_install() {
     });
 }
 
-// This is testing that, when the rls proxy doesn't exist, rustup proxies will
-// create it lazily. This has to happen because rustup's self-updates aren't
-// able to execute arbitrary code at update time.
 #[test]
-fn rls_proxy_set_up_lazily_after_upgrade_via_proxy() {
+fn rls_proxy_set_up_after_update() {
     update_setup(&|config, _| {
+        let ref rls_path = config.cargodir.join(format!("bin/rls{}", EXE_SUFFIX));
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_ok(config, &["rustup", "component", "add", "rls"]);
-
-        // Delete the rls proxy to simulate an upgrade from an older rustup that
-        // didn't include it
-        let ref rls_bin = config.cargodir.join(format!("bin/rls{}", EXE_SUFFIX));
-        fs::remove_file(rls_bin).expect("rls_bin");
-
-        // RLS doesn't work now
-        assert!(!rls_bin.exists());
-        let mut cmd = clitools::cmd(config, "rls", &["--version"]);
-        assert!(cmd.output().is_err());
-
-        // Run a proxy to trigger a lazy upgrade
-        expect_ok(config, &["rustc", "--version"]);
-
-        // Now RLS works
-        assert!(rls_bin.exists());
-        expect_ok(config, &["rls", "--version"]);
-    });
-}
-
-// Same as above but instead of the proxies triggering the update, it's rustup
-// directly
-#[test]
-fn rls_proxy_set_up_lazily_after_upgrade_via_rustup() {
-    update_setup(&|config, _| {
-        expect_ok(config, &["rustup-init", "-y"]);
-        expect_ok(config, &["rustup", "component", "add", "rls"]);
-
-        // Delete the rls proxy to simulate an upgrade from an older rustup that
-        // didn't include it
-        let ref rls_bin = config.cargodir.join(format!("bin/rls{}", EXE_SUFFIX));
-        fs::remove_file(rls_bin).expect("rls_bin");
-
-        // RLS doesn't work now
-        assert!(!rls_bin.exists());
-        let mut cmd = clitools::cmd(config, "rls", &["--version"]);
-        assert!(cmd.output().is_err());
-
-        // Run rustup to trigger the update
-        expect_ok(config, &["rustup", "component", "add", "rls"]);
-
-        // Now RLS works
-        assert!(rls_bin.exists());
-        expect_ok(config, &["rls", "--version"]);
+        fs::remove_file(rls_path).unwrap();
+        expect_ok(config, &["rustup", "self", "update"]);
+        assert!(rls_path.exists());
     });
 }

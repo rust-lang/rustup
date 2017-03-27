@@ -255,7 +255,8 @@ pub struct SanitizedOutput {
 }
 
 pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
-    let mut cmd = Command::new(name);
+    let exe_path = config.exedir.join(format!("{}{}", name, EXE_SUFFIX));
+    let mut cmd = Command::new(exe_path);
     cmd.args(args);
     env(config, &mut cmd);
     cmd
