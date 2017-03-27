@@ -204,7 +204,7 @@ pub fn cli() -> App<'static, 'static> {
                     .long("toolchain")
                     .takes_value(true)))
             .subcommand(SubCommand::with_name("remove")
-                .about("Remove a target  from a Rust toolchain")
+                .about("Remove a target from a Rust toolchain")
                 .arg(Arg::with_name("target")
                     .required(true))
                 .arg(Arg::with_name("toolchain")
