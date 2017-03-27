@@ -302,34 +302,25 @@ fn uninstall_stress_test() {
 }
 
 #[cfg(unix)]
-fn install_adds_path_to_rc(config: &Config, rcfile: &str) {
-    let my_rc = "foo\nbar\nbaz";
-    let ref rc = config.homedir.join(rcfile);
-    raw::write_file(rc, my_rc).unwrap();
-    expect_ok(config, &["rustup-init", "-y"]);
+fn install_adds_path_to_rc(rcfile: &str) {
+    setup(&|config| {
+        let my_rc = "foo\nbar\nbaz";
+        let ref rc = config.homedir.join(rcfile);
+        raw::write_file(rc, my_rc).unwrap();
+        expect_ok(config, &["rustup-init", "-y"]);
 
-    let new_rc = raw::read_file(rc).unwrap();
-    let addition = format!(r#"export PATH="{}/bin:$PATH""#,
-                           config.cargodir.display());
-    let expected = format!("{}\n{}\n", my_rc, addition);
-    assert_eq!(new_rc, expected);
+        let new_rc = raw::read_file(rc).unwrap();
+        let addition = format!(r#"export PATH="{}/bin:$PATH""#,
+                               config.cargodir.display());
+        let expected = format!("{}\n{}\n", my_rc, addition);
+        assert_eq!(new_rc, expected);
+    });
 }
 
 #[test]
 #[cfg(unix)]
 fn install_adds_path_to_profile() {
-    setup(&|config| {
-        install_adds_path_to_rc(config, ".profile");
-    });
-}
-
-#[test]
-#[cfg(unix)]
-fn install_adds_path_to_zprofile() {
-    setup(&|config| {
-        env::set_var("SHELL", "/bin/zsh");
-        install_adds_path_to_rc(config, ".zprofile");
-    });
+    install_adds_path_to_rc(".profile");
 }
 
 #[test]
