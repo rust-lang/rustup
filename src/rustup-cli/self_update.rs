@@ -196,7 +196,7 @@ static TOOLS: &'static [&'static str]
 static UPDATE_ROOT: &'static str
     = "https://static.rust-lang.org/rustup";
 
-/// CARGO_HOME suitable for display, possibly with $HOME
+/// `CARGO_HOME` suitable for display, possibly with $HOME
 /// substituted for the directory prefix
 fn canonical_cargo_home() -> Result<String> {
     let path = try!(utils::cargo_home());
@@ -211,8 +211,8 @@ fn canonical_cargo_home() -> Result<String> {
 }
 
 /// Installing is a simple matter of coping the running binary to
-/// CARGO_HOME/bin, hardlinking the various Rust tools to it,
-/// and and adding CARGO_HOME/bin to PATH.
+/// `CARGO_HOME`/bin, hardlinking the various Rust tools to it,
+/// and and adding `CARGO_HOME`/bin to PATH.
 pub fn install(no_prompt: bool, verbose: bool,
                mut opts: InstallOpts) -> Result<()> {
 
@@ -344,7 +344,7 @@ fn do_pre_install_sanity_checks() -> Result<()> {
         rustup_sh_version_path.map(|p| p.exists()) == Some(true);
     let old_multirust_meta_exists = if let Some(ref multirust_version_path) = multirust_version_path {
         multirust_version_path.exists() && {
-            let version = utils::read_file("old-multirust", &multirust_version_path);
+            let version = utils::read_file("old-multirust", multirust_version_path);
             let version = version.unwrap_or(String::new());
             let version = version.parse().unwrap_or(0);
             let cutoff_version = 12; // First rustup version
@@ -417,7 +417,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         let mut pwd = unsafe { mem::uninitialized::<c::passwd>() };
         let mut pwdp: *mut c::passwd = ptr::null_mut();
         let rv = unsafe { c::getpwuid_r(c::geteuid(), &mut pwd, mem::transmute(&mut buf), buf.len(), &mut pwdp) };
-        if rv != 0 || pwdp == ptr::null_mut() {
+        if rv != 0 || pwdp.is_null() {
             warn!("getpwuid_r: couldn't get user data");
             return false;
         }
@@ -426,7 +426,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         let env_home = env_home.as_ref().map(Deref::deref);
         match (env_home, pw_dir) {
             (None, _) | (_, None) => false,
-            (Some(ref eh), Some(ref pd)) => eh != pd
+            (Some(eh), Some(pd)) => eh != pd
         }
     }
 
@@ -492,7 +492,7 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
                         None
                     }
                 }).collect::<Vec<_>>();
-            assert!(rcfiles.len() == 1); // Only modifying .profile
+            assert_eq!(rcfiles.len(), 1); // Only modifying .profile
             Ok(format!(pre_install_msg_unix!(),
                        cargo_home_bin = cargo_home_bin.display(),
                        rcfiles = rcfiles[0]))
@@ -981,7 +981,7 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
     let profile = utils::home_dir().map(|p| p.join(".profile"));
     let rcfiles = vec![profile].into_iter().filter_map(|f|f);
 
-    rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect()
+    rcfiles.map(PathUpdateMethod::RcFile).collect()
 }
 
 fn shell_export_string() -> Result<String> {
@@ -1119,7 +1119,7 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
             file.contains(addition)
         });
 
-    Ok(matching_rcfiles.map(|f| PathUpdateMethod::RcFile(f)).collect())
+    Ok(matching_rcfiles.map(PathUpdateMethod::RcFile).collect())
 }
 
 #[cfg(windows)]
@@ -1213,7 +1213,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     Ok(())
 }
 
-/// Self update downloads rustup-init to CARGO_HOME/bin/rustup-init
+/// Self update downloads rustup-init to `CARGO_HOME`/bin/rustup-init
 /// and runs it.
 ///
 /// It does a few things to accomodate self-delete problems on windows:
@@ -1226,7 +1226,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 ///
 /// Because it's again difficult for rustup-init to delete itself
 /// (and on windows this process will not be running to do it),
-/// rustup-init is stored in CARGO_HOME/bin, and then deleted next
+/// rustup-init is stored in `CARGO_HOME`/bin, and then deleted next
 /// time rustup runs.
 pub fn update() -> Result<()> {
     if NEVER_SELF_UPDATE {
@@ -1236,7 +1236,7 @@ pub fn update() -> Result<()> {
     }
     let setup_path = try!(prepare_update());
     if let Some(ref p) = setup_path {
-        let version = match get_new_rustup_version(&p) {
+        let version = match get_new_rustup_version(p) {
             Some(new_version) => parse_new_rustup_version(new_version),
             None => {
                 err!("failed to get rustup version");
@@ -1376,7 +1376,7 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
 }
 
 /// This function is as the final step of a self-upgrade. It replaces
-/// CARGO_HOME/bin/rustup with the running exe, and updates the the
+/// `CARGO_HOME`/bin/rustup with the running exe, and updates the the
 /// links to it. On windows this will run *after* the original
 /// rustup process exits.
 #[cfg(unix)]

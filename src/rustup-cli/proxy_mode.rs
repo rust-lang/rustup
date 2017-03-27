@@ -15,7 +15,7 @@ pub fn main() -> Result<()> {
 
     let mut args = env::args();
 
-    let arg0 = args.next().map(|a| PathBuf::from(a));
+    let arg0 = args.next().map(PathBuf::from);
     let arg0 = arg0.as_ref()
         .and_then(|a| a.file_name())
         .and_then(|a| a.to_str());
@@ -25,7 +25,7 @@ pub fn main() -> Result<()> {
     let arg1 = args.next();
     let toolchain = arg1.as_ref()
         .and_then(|arg1| {
-            if arg1.starts_with("+") {
+            if arg1.starts_with('+') {
                 Some(&arg1[1..])
             } else {
                 None

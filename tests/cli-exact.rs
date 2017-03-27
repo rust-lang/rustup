@@ -302,7 +302,7 @@ fn enable_telemetry() {
         expect_ok_ex(config,
                      &["rustup", "telemetry", "enable"],
                      r"",
-                     &format!("info: telemetry set to 'on'\n"));
+                     "info: telemetry set to 'on'\n");
     });
 }
 
@@ -312,6 +312,6 @@ fn disable_telemetry() {
         expect_ok_ex(config,
                      &["rustup", "telemetry", "disable"],
                      r"",
-                     &format!("info: telemetry set to 'off'\n"));
+                     "info: telemetry set to 'off'\n");
     });
 }

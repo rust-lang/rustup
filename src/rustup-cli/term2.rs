@@ -1,5 +1,5 @@
-//! This provides wrappers around the StdoutTerminal and StderrTerminal types
-//! that does not fail if StdoutTerminal etc can't be constructed, which happens
+//! This provides wrappers around the `StdoutTerminal` and `StderrTerminal` types
+//! that does not fail if `StdoutTerminal` etc can't be constructed, which happens
 //! if TERM isn't defined.
 
 use std::io;

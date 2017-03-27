@@ -389,7 +389,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
                 continue;
             }
             if let Ok(desc) = PartialToolchainDesc::from_str(&t) {
-                fn triple_comp_eq(given: &String, from_desc: Option<&String>) -> bool {
+                fn triple_comp_eq(given: &str, from_desc: Option<&String>) -> bool {
                     from_desc.map_or(false, |s| *s == *given)
                 }
 
@@ -407,7 +407,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
             1 => println!("\nyou may use the following toolchain: {}\n", candidates[0]),
             _ => {
                 println!("\nyou may use one of the following toolchains:");
-                for n in candidates.iter() {
+                for n in &candidates {
                     println!("{}", n);
                 }
                 println!("");
