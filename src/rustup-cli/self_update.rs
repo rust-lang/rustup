@@ -978,15 +978,12 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
         return vec![PathUpdateMethod::Windows];
     }
 
-    let profile_name = ".profile";
-
-    let profile = utils::home_dir().map(|p| p.join(profile_name));
+    let profile = utils::home_dir().map(|p| p.join(".profile"));
     let mut profiles = vec![profile];
 
     if let Ok(shell) = env::var("SHELL") {
         if shell.contains("zsh") {
-            let zprofile_name = ".zprofile";
-            let zprofile = utils::home_dir().map(|p| p.join(zprofile_name));
+            let zprofile = utils::home_dir().map(|p| p.join(".zprofile"));
             profiles.push(zprofile);
         }
     }
