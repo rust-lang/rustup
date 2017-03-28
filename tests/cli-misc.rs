@@ -15,6 +15,7 @@ use time::Duration;
 use std::ops::Sub;
 use std::ops::Add;
 use std::time::Duration as StdDuration;
+use std::env::consts::EXE_SUFFIX;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -403,5 +404,27 @@ fn telemetry_cleanup_removes_old_files() {
         let count = contents.count();
 
         assert_eq!(count, 100);
+    });
+}
+
+#[test]
+fn rls_exists_in_toolchain() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
+        expect_ok(config, &["rls", "--version"]);
+    });
+}
+
+#[test]
+fn rls_does_not_exist_in_toolchain() {
+    setup(&|config| {
+        // FIXME: If rls exists in the toolchain, this should suggest a command
+        // to run to install it
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_err(config, &["rls", "--version"],
+                   &format!("toolchain 'stable-{}' does not have the binary `rls{}`",
+                            this_host_triple(), EXE_SUFFIX));
     });
 }

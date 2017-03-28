@@ -99,6 +99,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let setup_path = config.exedir.join(format!("rustup-init{}", EXE_SUFFIX));
     let rustc_path = config.exedir.join(format!("rustc{}", EXE_SUFFIX));
     let cargo_path = config.exedir.join(format!("cargo{}", EXE_SUFFIX));
+    let rls_path = config.exedir.join(format!("rls{}", EXE_SUFFIX));
 
     // Don't copy an executable via `fs::copy` on Unix because that'll require
     // opening up the destination for writing. If one thread in our process then
@@ -119,6 +120,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     fs::hard_link(rustup_path, setup_path).unwrap();
     fs::hard_link(rustup_path, rustc_path).unwrap();
     fs::hard_link(rustup_path, cargo_path).unwrap();
+    fs::hard_link(rustup_path, rls_path).unwrap();
 
     // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
@@ -290,7 +292,7 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
     for env in env {
         cmd.env(env.0, env.1);
     }
-    let out = cmd.output().unwrap();
+    let out = cmd.output().expect("failed to run test command");
 
     SanitizedOutput {
         ok: out.status.success(),
@@ -365,6 +367,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
     let std = build_mock_std_installer(host_triple);
     let rustc = build_mock_rustc_installer(host_triple, version, version_hash);
     let cargo = build_mock_cargo_installer(version, version_hash);
+    let rls = build_mock_rls_installer(version, version_hash);
     let rust_docs = build_mock_rust_doc_installer();
     let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
     let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
@@ -378,6 +381,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                                      (cross_std2, CROSS_ARCH2.to_string())]),
                    ("rustc", vec![(rustc, host_triple.clone())]),
                    ("cargo", vec![(cargo, host_triple.clone())]),
+                   ("rls", vec![(rls, host_triple.clone())]),
                    ("rust-docs", vec![(rust_docs, host_triple.clone())]),
                    ("rust-src", vec![(rust_src, "*".to_string())]),
                    ("rust", vec![(rust, host_triple.clone())])];
@@ -386,6 +390,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
         let std = build_mock_std_installer(MULTI_ARCH1);
         let rustc = build_mock_rustc_installer(MULTI_ARCH1, version, version_hash);
         let cargo = build_mock_cargo_installer(version, version_hash);
+        let rls = build_mock_rls_installer(version, version_hash);
         let rust_docs = build_mock_rust_doc_installer();
         let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
         let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
@@ -398,6 +403,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                                      (cross_std2, CROSS_ARCH2.to_string())]),
                         ("rustc", vec![(rustc, triple.clone())]),
                         ("cargo", vec![(cargo, triple.clone())]),
+                        ("rls", vec![(rls, triple.clone())]),
                         ("rust-docs", vec![(rust_docs, triple.clone())]),
                         ("rust-src", vec![(rust_src, "*".to_string())]),
                         ("rust", vec![(rust, triple.clone())])];
@@ -443,6 +449,10 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
             });
             target_pkg.components.push(MockComponent {
                 name: "rust-docs".to_string(),
+                target: target.to_string()
+            });
+            target_pkg.extensions.push(MockComponent {
+                name: "rls".to_string(),
                 target: target.to_string()
             });
             target_pkg.extensions.push(MockComponent {
@@ -540,6 +550,17 @@ fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstalle
             ("cargo".to_string(),
              vec![MockCommand::File(cargo.clone())],
              vec![(cargo, mock_bin("cargo", version, version_hash))])
+                ]
+    }
+}
+
+fn build_mock_rls_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
+    let cargo = format!("bin/rls{}", EXE_SUFFIX);
+    MockInstallerBuilder {
+        components: vec![
+            ("rls".to_string(),
+             vec![MockCommand::File(cargo.clone())],
+             vec![(cargo, mock_bin("rls", version, version_hash))])
                 ]
     }
 }

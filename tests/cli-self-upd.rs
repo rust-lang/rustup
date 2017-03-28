@@ -1158,3 +1158,26 @@ fn uninstall_removes_legacy_home_symlink() {
         assert!(!multirust_dir.exists());
     });
 }
+
+#[test]
+fn rls_proxy_set_up_after_install() {
+    setup(&|config| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        expect_err(config, &["rls", "--version"],
+                   &format!("toolchain 'stable-{}' does not have the binary `rls{}`",
+                            this_host_triple(), EXE_SUFFIX));
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_ok(config, &["rls", "--version"]);
+    });
+}
+
+#[test]
+fn rls_proxy_set_up_after_update() {
+    update_setup(&|config, _| {
+        let ref rls_path = config.cargodir.join(format!("bin/rls{}", EXE_SUFFIX));
+        expect_ok(config, &["rustup-init", "-y"]);
+        fs::remove_file(rls_path).unwrap();
+        expect_ok(config, &["rustup", "self", "update"]);
+        assert!(rls_path.exists());
+    });
+}
