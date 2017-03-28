@@ -75,6 +75,12 @@ use std::io;
 use std::ffi::{OsStr, OsString};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 
+#[cfg(not(windows))]
+pub fn remove_dir_all(path: &Path) -> io::Result<()> {
+    std::fs::remove_dir_all(path)
+}
+
+#[cfg(windows)]
 pub fn remove_dir_all(path: &Path) -> io::Result<()> {
     // On Windows it is not enough to just recursively remove the contents of a
     // directory and then the directory itself. Deleting does not happen
