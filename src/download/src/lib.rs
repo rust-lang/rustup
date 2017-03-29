@@ -76,7 +76,7 @@ pub fn download_to_path_with_backend(
                 if let Some(cb) = callback {
                     try!(cb(Event::ResumingPartialDownload));
 
-                    let mut buf = vec![0; 1024*1024*10];
+                    let mut buf = vec![0; 32768];
                     let mut downloaded_so_far = 0;
                     loop {
                         let n = try!(partial.read(&mut buf));
@@ -102,7 +102,7 @@ pub fn download_to_path_with_backend(
                         .create(true)
                         .open(&path)
                         .chain_err(|| "error opening file for download"));
-                        
+
             try!(possible_partial.seek(SeekFrom::End(0)));
 
             (possible_partial, downloaded_so_far)

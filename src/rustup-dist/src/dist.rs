@@ -502,6 +502,23 @@ impl ops::Deref for File {
     }
 }
 
+fn file_hash(path: &Path) -> Result<String> {
+    let mut hasher = Sha256::new();
+    use std::io::Read;
+    let mut downloaded = try!(fs::File::open(&path).chain_err(|| "opening already downloaded file"));
+    let mut buf = vec![0; 32768];
+    loop {
+        if let Ok(n) = downloaded.read(&mut buf) {
+            if n == 0 { break; }
+            hasher.input(&buf[..n]);
+        } else {
+            break;
+        }
+    }
+
+    Ok(hasher.result_str())
+}
+
 impl<'a> DownloadCfg<'a> {
 
     pub fn download(&self, url: &Url, hash: &str, notify_handler: &'a Fn(Notification)) -> Result<File> {
@@ -510,19 +527,7 @@ impl<'a> DownloadCfg<'a> {
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
-            let mut hasher = Sha256::new();
-            use std::io::Read;
-            let mut downloaded = try!(fs::File::open(&target_file).chain_err(|| "opening already downloaded file"));
-            let mut buf = [0; 1024];
-            loop {
-                if let Ok(n) = downloaded.read(&mut buf) {
-                    if n == 0 { break; }
-                    hasher.input(&buf[..n]);
-                } else {
-                    break;
-                }
-            }
-            let cached_result = hasher.result_str();
+            let cached_result = try!(file_hash(&target_file));
             if hash == cached_result {
                 notify_handler(Notification::FileAlreadyDownloaded);
                 notify_handler(Notification::ChecksumValid(&url.to_string()));
@@ -543,7 +548,7 @@ impl<'a> DownloadCfg<'a> {
                 + ".partial");
 
         let mut hasher = Sha256::new();
-        
+
         try!(utils::download_file_with_resume(&url,
                                   &partial_file_path,
                                   Some(&mut hasher),
