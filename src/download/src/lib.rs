@@ -96,7 +96,13 @@ pub fn download_to_path_with_backend(
                 0
             };
 
-            let mut possible_partial = try!(OpenOptions::new().write(true).create(true).open(&path).chain_err(|| "error opening file for download"));
+            let mut possible_partial =
+                try!(OpenOptions::new()
+                        .write(true)
+                        .create(true)
+                        .open(&path)
+                        .chain_err(|| "error opening file for download"));
+                        
             try!(possible_partial.seek(SeekFrom::End(0)));
 
             (possible_partial, downloaded_so_far)
@@ -164,9 +170,12 @@ pub mod curl {
             try!(handle.follow_location(true).chain_err(|| "failed to set follow redirects"));
 
             if resume_from > 0 {
-                try!(handle.range(&(resume_from.to_string() + "-")).chain_err(|| "setting the range-header for download resumption"));
+                try!(handle.resume_from(resume_from)
+                    .chain_err(|| "setting the range header for download resumption"));
             } else {
-                try!(handle.range("").chain_err(|| "clearing range header"));
+                // an error here indicates that the range header isn't supported by underlying curl,
+                // so there's nothing to "clear" - safe to ignore this error.
+                let _ = handle.resume_from(0);
             }
 
             // Take at most 30s to connect

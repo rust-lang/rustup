@@ -13,7 +13,6 @@ extern crate toml;
 extern crate rustup_utils;
 extern crate sha2;
 extern crate wait_timeout;
-extern crate hyper;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -22,7 +21,6 @@ extern crate winreg;
 
 pub mod dist;
 pub mod clitools;
-pub mod http_server;
 
 use std::fs::{self, OpenOptions, File};
 use std::path::Path;
