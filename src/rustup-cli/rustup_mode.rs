@@ -237,7 +237,8 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("add")
                 .about("Add a component to a Rust toolchain")
                 .arg(Arg::with_name("component")
-                    .required(true))
+                    .required(true)
+                    .multiple(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
                     .takes_value(true))
@@ -247,7 +248,8 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("remove")
                 .about("Remove a component from a Rust toolchain")
                 .arg(Arg::with_name("component")
-                    .required(true))
+                    .required(true)
+                    .multiple(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
                     .takes_value(true))
@@ -641,32 +643,38 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
-    let component = m.value_of("component").expect("");
     let target = m.value_of("target").map(TargetTriple::from_str).or_else(|| {
         toolchain.desc().as_ref().ok().map(|desc| desc.target.clone())
     });
 
-    let new_component = Component {
-        pkg: component.to_string(),
-        target: target,
-    };
+    for component in m.values_of("component").expect("") {
+        let new_component = Component {
+            pkg: component.to_string(),
+            target: target.clone(),
+        };
 
-    Ok(try!(toolchain.add_component(new_component)))
+        try!(toolchain.add_component(new_component));
+    }
+
+    Ok(())
 }
 
 fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
-    let component = m.value_of("component").expect("");
     let target = m.value_of("target").map(TargetTriple::from_str).or_else(|| {
         toolchain.desc().as_ref().ok().map(|desc| desc.target.clone())
     });
 
-    let new_component = Component {
-        pkg: component.to_string(),
-        target: target,
-    };
+    for component in m.values_of("component").expect("") {
+        let new_component = Component {
+            pkg: component.to_string(),
+            target: target.clone(),
+        };
 
-    Ok(try!(toolchain.remove_component(new_component)))
+        try!(toolchain.remove_component(new_component));
+    }
+
+    Ok(())
 }
 
 fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
