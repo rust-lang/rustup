@@ -586,6 +586,30 @@ fn remove_component() {
     });
 }
 
+#[test]
+fn add_remove_multiple_components() {
+    let files = ["lib/rustlib/src/rust-src/foo.rs".to_owned(),
+                 format!("lib/rustlib/{}/analysis/libfoo.json", this_host_triple())];
+
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "component", "add", "rust-src", "rust-analysis"]);
+        for file in &files {
+            let path = format!("toolchains/nightly-{}/{}",
+                               this_host_triple(), file);
+            let path = config.rustupdir.join(path);
+            assert!(path.exists());
+        }
+        expect_ok(config, &["rustup", "component", "remove", "rust-src", "rust-analysis"]);
+        for file in &files {
+            let path = format!("toolchains/nightly-{}/{}",
+                               this_host_triple(), file);
+            let path = config.rustupdir.join(path);
+            assert!(!path.parent().unwrap().exists());
+        }
+    });
+}
+
 // Run without setting RUSTUP_HOME, with setting HOME and USERPROFILE
 fn run_no_home(config: &Config, args: &[&str], env: &[(&str, &str)]) -> process::Output {
     let home_dir_str = &format!("{}", config.homedir.display());
