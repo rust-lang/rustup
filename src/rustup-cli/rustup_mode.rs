@@ -128,7 +128,7 @@ pub fn cli() -> App<'static, 'static> {
             .after_help(SHOW_HELP))
         .subcommand(SubCommand::with_name("install")
             .about("Update Rust toolchains")
-            .after_help(TOOLCHAIN_INSTALL_HELP)
+            .after_help(INSTALL_HELP)
             .setting(AppSettings::Hidden) // synonym for 'toolchain install'
             .arg(Arg::with_name("toolchain")
                 .required(true)))
@@ -167,6 +167,7 @@ pub fn cli() -> App<'static, 'static> {
                      .multiple(true)))
             .subcommand(SubCommand::with_name("link")
                 .about("Create a custom toolchain by symlinking to a directory")
+                .after_help(TOOLCHAIN_LINK_HELP)
                 .arg(Arg::with_name("toolchain")
                     .required(true))
                 .arg(Arg::with_name("path")

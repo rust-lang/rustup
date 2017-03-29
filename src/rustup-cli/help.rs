@@ -30,7 +30,7 @@ the same as `rustup toolchain install`.
 'toolchain' specifies a toolchain name, such as 'stable', 'nightly',
 or '1.8.0'. For more information see `rustup help toolchain`.";
 
-pub static TOOLCHAIN_INSTALL_HELP: &'static str =
+pub static INSTALL_HELP: &'static str =
 r"
 Installs a specific rust toolchain.
 
@@ -78,7 +78,23 @@ inferred, so the above could be written:
     $ rustup default stable-msvc
 
 Toolchain names that don't name a channel instead can be used to name
-custom toolchains with the `rustup toolchain link` command.";
+custom toolchains with the `rustup toolchain link` command. This can
+also be used to symlink toolchains from local builds. For more
+information see `rustup toolchain help link`.";
+
+pub static TOOLCHAIN_LINK_HELP: &'static str =
+r"
+Symlinks a toolchain from a local directory specified by 'path' and
+gives it a custom name specified by 'toolchain' if it does not name a
+standard release channel.
+
+'toolchain' specifies a toolchain name, such as 'stable', 'nightly',
+or '1.8.0'. For more information see `rustup help toolchain`.
+
+'path' is specified as `/path/to/rust/build/$triple/stage1` where
+'$triple' should be replaced with the desired triple. Only a build of
+`rustc` is required to be present at the given 'path'.
+";
 
 pub static OVERRIDE_HELP: &'static str =
 r"
