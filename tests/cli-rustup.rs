@@ -210,6 +210,32 @@ fn remove_target() {
 }
 
 #[test]
+fn add_remove_multiple_targets() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "target", "add",
+                            clitools::CROSS_ARCH1,
+                            clitools::CROSS_ARCH2]);
+        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+                           &this_host_triple(), clitools::CROSS_ARCH1);
+        assert!(config.rustupdir.join(path).exists());
+        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+                           &this_host_triple(), clitools::CROSS_ARCH2);
+        assert!(config.rustupdir.join(path).exists());
+
+        expect_ok(config, &["rustup", "target", "remove",
+                            clitools::CROSS_ARCH1,
+                            clitools::CROSS_ARCH2]);
+        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+                           &this_host_triple(), clitools::CROSS_ARCH1);
+        assert!(!config.rustupdir.join(path).exists());
+        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+                           &this_host_triple(), clitools::CROSS_ARCH2);
+        assert!(!config.rustupdir.join(path).exists());
+    });
+}
+
+#[test]
 fn list_targets() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
