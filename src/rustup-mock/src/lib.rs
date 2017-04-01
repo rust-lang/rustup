@@ -124,3 +124,4 @@ pub fn get_path() -> Option<String> { None }
 
 #[cfg(unix)]
 pub fn restore_path(_: &Option<String>) { }
+

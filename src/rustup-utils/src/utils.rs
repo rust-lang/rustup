@@ -6,7 +6,7 @@ use std::process::Command;
 use std::ffi::OsString;
 use std::env;
 use sha2::Sha256;
-use notifications::Notification;
+use notifications::{Notification};
 use raw;
 #[cfg(windows)]
 use winapi::DWORD;
@@ -15,8 +15,8 @@ use winreg;
 use std::cmp::Ord;
 use url::Url;
 
-pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg, has_cmd,
-              find_cmd};
+pub use raw::{is_directory, is_file, path_exists, if_not_empty, random_string, prefix_arg,
+                    has_cmd, find_cmd};
 
 pub fn ensure_dir_exists(name: &'static str,
                          path: &Path,
@@ -24,57 +24,57 @@ pub fn ensure_dir_exists(name: &'static str,
                          -> Result<bool> {
     raw::ensure_dir_exists(path,
                            |p| notify_handler(Notification::CreatingDirectory(name, p)))
-            .chain_err(|| {
-                           ErrorKind::CreatingDirectory {
-                               name: name,
-                               path: PathBuf::from(path),
-                           }
-                       })
+        .chain_err(|| {
+            ErrorKind::CreatingDirectory {
+                name: name,
+                path: PathBuf::from(path),
+            }
+        })
 }
 
 pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
     raw::read_file(path).chain_err(|| {
-                                       ErrorKind::ReadingFile {
-                                           name: name,
-                                           path: PathBuf::from(path),
-                                       }
-                                   })
+        ErrorKind::ReadingFile {
+            name: name,
+            path: PathBuf::from(path),
+        }
+    })
 }
 
 pub fn write_file(name: &'static str, path: &Path, contents: &str) -> Result<()> {
     raw::write_file(path, contents).chain_err(|| {
-                                                  ErrorKind::WritingFile {
-                                                      name: name,
-                                                      path: PathBuf::from(path),
-                                                  }
-                                              })
+        ErrorKind::WritingFile {
+            name: name,
+            path: PathBuf::from(path),
+        }
+    })
 }
 
 pub fn append_file(name: &'static str, path: &Path, line: &str) -> Result<()> {
     raw::append_file(path, line).chain_err(|| {
-                                               ErrorKind::WritingFile {
-                                                   name: name,
-                                                   path: PathBuf::from(path),
-                                               }
-                                           })
+        ErrorKind::WritingFile {
+            name: name,
+            path: PathBuf::from(path),
+        }
+    })
 }
 
 pub fn write_line(name: &'static str, file: &mut File, path: &Path, line: &str) -> Result<()> {
     writeln!(file, "{}", line).chain_err(|| {
-                                             ErrorKind::WritingFile {
-                                                 name: name,
-                                                 path: path.to_path_buf(),
-                                             }
-                                         })
+        ErrorKind::WritingFile {
+            name: name,
+            path: path.to_path_buf(),
+        }
+    })
 }
 
 pub fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> Result<()> {
     write!(file, "{}", s).chain_err(|| {
-                                        ErrorKind::WritingFile {
-                                            name: name,
-                                            path: path.to_path_buf(),
-                                        }
-                                    })
+        ErrorKind::WritingFile {
+            name: name,
+            path: path.to_path_buf(),
+        }
+    })
 }
 
 pub fn rename_file(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
@@ -116,27 +116,27 @@ pub fn match_file<T, F: FnMut(&str) -> Option<T>>(name: &'static str,
                                                   f: F)
                                                   -> Result<Option<T>> {
     raw::match_file(src, f).chain_err(|| {
-                                          ErrorKind::ReadingFile {
-                                              name: name,
-                                              path: PathBuf::from(src),
-                                          }
-                                      })
+        ErrorKind::ReadingFile {
+            name: name,
+            path: PathBuf::from(src),
+        }
+    })
 }
 
 pub fn canonicalize_path(path: &Path, notify_handler: &Fn(Notification)) -> PathBuf {
     fs::canonicalize(path).unwrap_or_else(|_| {
-                                              notify_handler(Notification::NoCanonicalPath(path));
-                                              PathBuf::from(path)
-                                          })
+        notify_handler(Notification::NoCanonicalPath(path));
+        PathBuf::from(path)
+    })
 }
 
 pub fn tee_file<W: io::Write>(name: &'static str, path: &Path, w: &mut W) -> Result<()> {
     raw::tee_file(path, w).chain_err(|| {
-                                         ErrorKind::ReadingFile {
-                                             name: name,
-                                             path: PathBuf::from(path),
-                                         }
-                                     })
+        ErrorKind::ReadingFile {
+            name: name,
+            path: PathBuf::from(path),
+        }
+    })
 }
 
 pub fn download_file(url: &Url,
@@ -158,21 +158,21 @@ pub fn download_file_with_resume(url: &Url,
         Ok(_) => Ok(()),
         Err(e) => {
             let is_client_error = match e.kind() {
-                &ErrorKind::Download(DEK::HttpStatus(400...499)) => true,
+                &ErrorKind::Download(DEK::HttpStatus(400 ... 499)) => true,
                 &ErrorKind::Download(DEK::FileNotFound) => true,
-                _ => false,
+                _ => false
             };
             Err(e).chain_err(|| if is_client_error {
-                                 ErrorKind::DownloadNotExists {
-                                     url: url.clone(),
-                                     path: path.to_path_buf(),
-                                 }
-                             } else {
-                                 ErrorKind::DownloadingFile {
-                                     url: url.clone(),
-                                     path: path.to_path_buf(),
-                                 }
-                             })
+                ErrorKind::DownloadNotExists {
+                    url: url.clone(),
+                    path: path.to_path_buf(),
+                }
+            } else {
+                ErrorKind::DownloadingFile {
+                    url: url.clone(),
+                    path: path.to_path_buf(),
+                }
+            })
         }
     }
 }
@@ -202,7 +202,7 @@ fn download_file_(url: &Url,
                     h.input(data);
                 }
             }
-            _ => (),
+            _ => ()
         }
 
         match msg {
@@ -243,7 +243,11 @@ pub fn parse_url(url: &str) -> Result<Url> {
 }
 
 pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
-    raw::cmd_status(cmd).chain_err(|| ErrorKind::RunningCommand { name: OsString::from(name) })
+    raw::cmd_status(cmd).chain_err(|| {
+        ErrorKind::RunningCommand {
+            name: OsString::from(name),
+        }
+    })
 }
 
 pub fn assert_is_file(path: &Path) -> Result<()> {
@@ -265,108 +269,105 @@ pub fn assert_is_directory(path: &Path) -> Result<()> {
 pub fn symlink_dir(src: &Path, dest: &Path, notify_handler: &Fn(Notification)) -> Result<()> {
     notify_handler(Notification::LinkingDirectory(src, dest));
     raw::symlink_dir(src, dest).chain_err(|| {
-                                              ErrorKind::LinkingDirectory {
-                                                  src: PathBuf::from(src),
-                                                  dest: PathBuf::from(dest),
-                                              }
-                                          })
+        ErrorKind::LinkingDirectory {
+            src: PathBuf::from(src),
+            dest: PathBuf::from(dest),
+        }
+    })
 }
 
 pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
     raw::hardlink(src, dest).chain_err(|| {
-                                           ErrorKind::LinkingFile {
-                                               src: PathBuf::from(src),
-                                               dest: PathBuf::from(dest),
-                                           }
-                                       })
+        ErrorKind::LinkingFile {
+            src: PathBuf::from(src),
+            dest: PathBuf::from(dest),
+        }
+    })
 }
 
 #[cfg(unix)]
 pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     ::std::os::unix::fs::symlink(src, dest).chain_err(|| {
-                                                          ErrorKind::LinkingFile {
-                                                              src: PathBuf::from(src),
-                                                              dest: PathBuf::from(dest),
-                                                          }
-                                                      })
+        ErrorKind::LinkingFile {
+            src: PathBuf::from(src),
+            dest: PathBuf::from(dest),
+        }
+    })
 }
 
 #[cfg(windows)]
 pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     // we are supposed to not use symlink on windows
     Err(ErrorKind::LinkingFile {
-                src: PathBuf::from(src),
-                dest: PathBuf::from(dest),
-            }
-            .into())
+            src: PathBuf::from(src),
+            dest: PathBuf::from(dest),
+        }.into()
+    )
 }
 
 pub fn copy_dir(src: &Path, dest: &Path, notify_handler: &Fn(Notification)) -> Result<()> {
     notify_handler(Notification::CopyingDirectory(src, dest));
     raw::copy_dir(src, dest).chain_err(|| {
-                                           ErrorKind::CopyingDirectory {
-                                               src: PathBuf::from(src),
-                                               dest: PathBuf::from(dest),
-                                           }
-                                       })
+        ErrorKind::CopyingDirectory {
+            src: PathBuf::from(src),
+            dest: PathBuf::from(dest),
+        }
+    })
 }
 
 pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
     fs::copy(src, dest)
         .chain_err(|| {
-                       ErrorKind::CopyingFile {
-                           src: PathBuf::from(src),
-                           dest: PathBuf::from(dest),
-                       }
-                   })
+            ErrorKind::CopyingFile {
+                src: PathBuf::from(src),
+                dest: PathBuf::from(dest),
+            }
+        })
         .map(|_| ())
 }
 
-pub fn remove_dir(name: &'static str,
-                  path: &Path,
-                  notify_handler: &Fn(Notification))
-                  -> Result<()> {
+pub fn remove_dir(name: &'static str, path: &Path, notify_handler: &Fn(Notification)) -> Result<()> {
     notify_handler(Notification::RemovingDirectory(name, path));
     raw::remove_dir(path).chain_err(|| {
-                                        ErrorKind::RemovingDirectory {
-                                            name: name,
-                                            path: PathBuf::from(path),
-                                        }
-                                    })
+        ErrorKind::RemovingDirectory {
+            name: name,
+            path: PathBuf::from(path),
+        }
+    })
 }
 
 pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
     fs::remove_file(path).chain_err(|| {
-                                        ErrorKind::RemovingFile {
-                                            name: name,
-                                            path: PathBuf::from(path),
-                                        }
-                                    })
+        ErrorKind::RemovingFile {
+            name: name,
+            path: PathBuf::from(path),
+        }
+    })
 }
 
 pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
     fs::read_dir(path).chain_err(|| {
-                                     ErrorKind::ReadingDirectory {
-                                         name: name,
-                                         path: PathBuf::from(path),
-                                     }
-                                 })
+        ErrorKind::ReadingDirectory {
+            name: name,
+            path: PathBuf::from(path),
+        }
+    })
 }
 
 pub fn open_browser(path: &Path) -> Result<()> {
     match raw::open_browser(path) {
         Ok(true) => Ok(()),
         Ok(false) => Err("no browser installed".into()),
-        Err(e) => Err(e).chain_err(|| "could not open browser"),
+        Err(e) => Err(e).chain_err(|| "could not open browser")
     }
 }
 
 pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
     fs::set_permissions(path, perms).chain_err(|| {
-                                                   ErrorKind::SettingPermissions {
-                                                       path: PathBuf::from(path),
-                                                   }
-                                               })
+        ErrorKind::SettingPermissions {
+            path: PathBuf::from(path),
+        }
+    })
 }
 
 pub fn make_executable(path: &Path) -> Result<()> {
@@ -379,10 +380,10 @@ pub fn make_executable(path: &Path) -> Result<()> {
         use std::os::unix::fs::PermissionsExt;
 
         let metadata = try!(fs::metadata(path).chain_err(|| {
-                                                             ErrorKind::SettingPermissions {
-                                                                 path: PathBuf::from(path),
-                                                             }
-                                                         }));
+            ErrorKind::SettingPermissions {
+                path: PathBuf::from(path),
+            }
+        }));
         let mut perms = metadata.permissions();
         let new_mode = (perms.mode() & !0o777) | 0o755;
         perms.set_mode(new_mode);
@@ -403,9 +404,9 @@ pub fn current_exe() -> Result<PathBuf> {
 
 pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
     current_dir().map(|mut v| {
-                          v.push(path);
-                          v
-                      })
+        v.push(path);
+        v
+    })
 }
 
 // On windows, unlike std and cargo, multirust does *not* consider the
@@ -434,9 +435,7 @@ pub fn home_dir() -> Option<PathBuf> {
                 0 => sz,
                 _ => sz - 1, // sz includes the null terminator
             }
-        },
-                       os2path)
-                .ok()
+        }, os2path).ok()
     })
 }
 
@@ -452,7 +451,7 @@ fn fill_utf16_buf<F1, F2, T>(mut f1: F1, f2: F2) -> io::Result<T>
           F2: FnOnce(&[u16]) -> T
 {
     use kernel32::{GetLastError, SetLastError};
-    use winapi::ERROR_INSUFFICIENT_BUFFER;
+    use winapi::{ERROR_INSUFFICIENT_BUFFER};
 
     // Start off with a stack buf but then spill over to the heap if we end up
     // needing more space.
@@ -490,7 +489,7 @@ fn fill_utf16_buf<F1, F2, T>(mut f1: F1, f2: F2) -> io::Result<T>
             } else if k >= n {
                 n = k;
             } else {
-                return Ok(f2(&buf[..k]));
+                return Ok(f2(&buf[..k]))
             }
         }
     }
@@ -511,19 +510,22 @@ pub fn cargo_home() -> Result<PathBuf> {
     // install to the wrong place. This check is to make the
     // multirust-rs to rustup upgrade seamless.
     let env_var = if let Some(v) = env_var {
-        let vv = v.to_string_lossy().to_string();
-        if vv.contains(".multirust/cargo") || vv.contains(r".multirust\cargo") ||
-           vv.trim().is_empty() {
-            None
-        } else {
-            Some(v)
-        }
+       let vv = v.to_string_lossy().to_string();
+       if vv.contains(".multirust/cargo") ||
+            vv.contains(r".multirust\cargo") ||
+            vv.trim().is_empty() {
+           None
+       } else {
+           Some(v)
+       }
     } else {
         None
     };
 
     let cwd = try!(env::current_dir().chain_err(|| ErrorKind::CargoHome));
-    let cargo_home = env_var.clone().map(|home| cwd.join(home));
+    let cargo_home = env_var.clone().map(|home| {
+        cwd.join(home)
+    });
     let user_home = home_dir().map(|p| p.join(".cargo"));
     cargo_home.or(user_home).ok_or(ErrorKind::CargoHome.into())
 }
@@ -561,12 +563,15 @@ pub fn do_rustup_home_upgrade() -> bool {
     }
 
     fn rustup_old_version_exists() -> bool {
-        rustup_dir().map(|p| p.join("rustup-version").exists()).unwrap_or(false)
+        rustup_dir()
+            .map(|p| p.join("rustup-version").exists())
+            .unwrap_or(false)
     }
 
     fn delete_rustup_dir() -> Result<()> {
         if let Some(dir) = rustup_dir() {
-            raw::remove_dir(&dir).chain_err(|| "unable to delete rustup dir")?;
+            raw::remove_dir(&dir)
+                .chain_err(|| "unable to delete rustup dir")?;
         }
 
         Ok(())
@@ -575,7 +580,8 @@ pub fn do_rustup_home_upgrade() -> bool {
     fn rename_rustup_dir_to_rustup_sh() -> Result<()> {
         let dirs = (rustup_dir(), rustup_sh_dir());
         if let (Some(rustup), Some(rustup_sh)) = dirs {
-            fs::rename(&rustup, &rustup_sh).chain_err(|| "unable to rename rustup dir")?;
+            fs::rename(&rustup, &rustup_sh)
+                .chain_err(|| "unable to rename rustup dir")?;
         }
 
         Ok(())
@@ -584,7 +590,8 @@ pub fn do_rustup_home_upgrade() -> bool {
     fn rename_multirust_dir_to_rustup() -> Result<()> {
         let dirs = (multirust_dir(), rustup_dir());
         if let (Some(rustup), Some(rustup_sh)) = dirs {
-            fs::rename(&rustup, &rustup_sh).chain_err(|| "unable to rename multirust dir")?;
+            fs::rename(&rustup, &rustup_sh)
+                .chain_err(|| "unable to rename multirust dir")?;
         }
 
         Ok(())
@@ -592,9 +599,7 @@ pub fn do_rustup_home_upgrade() -> bool {
 
     // If RUSTUP_HOME is set then its default path doesn't matter, so we're
     // not going to risk doing any I/O work and making a mess.
-    if rustup_home_is_set() {
-        return true;
-    }
+    if rustup_home_is_set() { return true }
 
     // Now we are just trying to get a bogus, rustup.sh-created ~/.rustup out
     // of the way in the manner that is least likely to take time and generate
@@ -623,8 +628,7 @@ pub fn do_rustup_home_upgrade() -> bool {
     };
 
     // Now we're trying to move ~/.multirust to ~/.rustup
-    old_rustup_dir_removed &&
-    if multirust_dir_exists() {
+    old_rustup_dir_removed && if multirust_dir_exists() {
         if rustup_dir_exists() {
             // There appears to be both a ~/.multirust dir and a valid ~/.rustup
             // dir. Most likely because one is a symlink to the other, as configured
@@ -652,12 +656,11 @@ pub fn create_rustup_home() -> Result<()> {
 
     // If RUSTUP_HOME is set then don't make any assumptions about where it's
     // ok to put ~/.multirust
-    if env::var_os("RUSTUP_HOME").is_some() {
-        return Ok(());
-    }
+    if env::var_os("RUSTUP_HOME").is_some() { return Ok(()) }
 
     let home = rustup_home_in_user_dir()?;
-    fs::create_dir_all(&home).chain_err(|| "unable to create ~/.rustup")?;
+    fs::create_dir_all(&home)
+        .chain_err(|| "unable to create ~/.rustup")?;
 
     // This is a temporary compatibility symlink
     create_legacy_multirust_symlink()?;
@@ -675,11 +678,9 @@ fn create_legacy_multirust_symlink() -> Result<()> {
         return Ok(());
     }
 
-    raw::symlink_dir(&newhome, &oldhome).chain_err(|| {
-                       format!("unable to symlink {} from {}",
-                               newhome.display(),
-                               oldhome.display())
-                   })?;
+    raw::symlink_dir(&newhome, &oldhome)
+        .chain_err(|| format!("unable to symlink {} from {}",
+                              newhome.display(), oldhome.display()))?;
 
     Ok(())
 }
@@ -688,8 +689,8 @@ pub fn delete_legacy_multirust_symlink() -> Result<()> {
     let oldhome = legacy_multirust_home()?;
 
     if oldhome.exists() {
-        let meta =
-            fs::symlink_metadata(&oldhome).chain_err(|| "unable to get metadata for ~/.multirust")?;
+        let meta = fs::symlink_metadata(&oldhome)
+            .chain_err(|| "unable to get metadata for ~/.multirust")?;
         if meta.file_type().is_symlink() {
             // remove_dir handles unlinking symlinks
             raw::remove_dir(&oldhome)
@@ -716,7 +717,9 @@ pub fn multirust_home() -> Result<PathBuf> {
     let use_rustup_dir = do_rustup_home_upgrade();
 
     let cwd = try!(env::current_dir().chain_err(|| ErrorKind::MultirustHome));
-    let multirust_home = env::var_os("RUSTUP_HOME").map(|home| cwd.join(home));
+    let multirust_home = env::var_os("RUSTUP_HOME").map(|home| {
+        cwd.join(home)
+    });
     let user_home = if use_rustup_dir {
         dot_dir(".rustup")
     } else {
@@ -753,8 +756,7 @@ pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<String> {
     use std::slice;
 
     match val.vtype {
-        RegType::REG_SZ |
-        RegType::REG_EXPAND_SZ => {
+        RegType::REG_SZ | RegType::REG_EXPAND_SZ => {
             // Copied from winreg
             let words = unsafe {
                 slice::from_raw_parts(val.bytes.as_ptr() as *const u16, val.bytes.len() / 2)
@@ -764,12 +766,10 @@ pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<String> {
             } else {
                 return None;
             };
-            while s.ends_with('\u{0}') {
-                s.pop();
-            }
+            while s.ends_with('\u{0}') {s.pop();}
             Some(s)
         }
-        _ => None,
+        _ => None
     }
 }
 
@@ -814,21 +814,25 @@ mod tests {
 
     #[test]
     fn test_toochain_sort() {
-        let expected = vec!["stable-x86_64-unknown-linux-gnu",
-                            "beta-x86_64-unknown-linux-gnu",
-                            "nightly-x86_64-unknown-linux-gnu",
-                            "1.0.0-x86_64-unknown-linux-gnu",
-                            "1.2.0-x86_64-unknown-linux-gnu",
-                            "1.8.0-x86_64-unknown-linux-gnu",
-                            "1.10.0-x86_64-unknown-linux-gnu"];
+        let expected = vec![
+            "stable-x86_64-unknown-linux-gnu",
+            "beta-x86_64-unknown-linux-gnu",
+            "nightly-x86_64-unknown-linux-gnu",
+            "1.0.0-x86_64-unknown-linux-gnu",
+            "1.2.0-x86_64-unknown-linux-gnu",
+            "1.8.0-x86_64-unknown-linux-gnu",
+            "1.10.0-x86_64-unknown-linux-gnu",
+        ];
 
-        let mut v = vec!["1.8.0-x86_64-unknown-linux-gnu",
-                         "1.0.0-x86_64-unknown-linux-gnu",
-                         "nightly-x86_64-unknown-linux-gnu",
-                         "stable-x86_64-unknown-linux-gnu",
-                         "1.10.0-x86_64-unknown-linux-gnu",
-                         "beta-x86_64-unknown-linux-gnu",
-                         "1.2.0-x86_64-unknown-linux-gnu"];
+        let mut v = vec![
+            "1.8.0-x86_64-unknown-linux-gnu",
+            "1.0.0-x86_64-unknown-linux-gnu",
+            "nightly-x86_64-unknown-linux-gnu",
+            "stable-x86_64-unknown-linux-gnu",
+            "1.10.0-x86_64-unknown-linux-gnu",
+            "beta-x86_64-unknown-linux-gnu",
+            "1.2.0-x86_64-unknown-linux-gnu",
+        ];
 
         toolchain_sort(&mut v);
 

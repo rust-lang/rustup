@@ -67,3 +67,4 @@ impl<'a> Display for Notification<'a> {
         }
     }
 }
+
