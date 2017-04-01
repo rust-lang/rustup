@@ -62,6 +62,7 @@ pub static MULTI_ARCH1: &'static str = "i686-unknown-linux-gnu";
 pub fn setup(s: Scenario, f: &Fn(&Config)) {
     // Unset env variables that will break our testing
     env::remove_var("RUSTUP_TOOLCHAIN");
+    env::remove_var("SHELL");
 
     let exedir = TempDir::new("rustup-exe").unwrap();
     let distdir = TempDir::new("rustup-dist").unwrap();
