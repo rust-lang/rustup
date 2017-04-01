@@ -362,13 +362,11 @@ ignore() {
     run "$@"
 }
 
-# Runs a command and terminates unsuccessfully if it fails.
+# Runs a command.
 run() {
     "$@"
     local _retval=$?
-    if [ $_retval != 0 ]; then
-        exit 1
-    fi
+
     return $_retval
 }
 
