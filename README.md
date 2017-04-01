@@ -83,6 +83,22 @@ For `zsh`, you must then add the following line in your `~/.zshrc` before
 fpath+=~/.zfunc
 ```
 
+#### Choosing where to install
+
+`rustup` allows you to customise your installation by setting the environment
+variables `CARGO_HOME` and `RUSTUP_HOME` while running the `rustup-init`
+executable. As mentioned in the [Environment Variables] section, `RUSTUP_HOME`
+sets the root rustup folder, which is used for storing installed
+toolchains and configuration options. `CARGO_HOME` contains cache files used
+by [cargo].
+
+Note that you will need to ensure these environment variables are always
+set and that `CARGO_HOME/bin` is in the `$PATH` environment variable when
+using the toolchain.
+
+[Environment Variables]: #environment-variables
+[cargo]: https://github.com/rust-lang/cargo
+
 ## How rustup works
 
 `rustup` is a *toolchain multiplexer*. It installs and manages many
