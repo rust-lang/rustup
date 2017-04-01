@@ -362,12 +362,12 @@ ignore() {
     run "$@"
 }
 
-# Runs a command and prints it to stderr if it fails.
+# Runs a command and terminates unsuccessfully if it fails.
 run() {
     "$@"
     local _retval=$?
     if [ $_retval != 0 ]; then
-        say_err "command failed: $*"
+        exit 1
     fi
     return $_retval
 }
