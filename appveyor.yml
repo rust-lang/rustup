@@ -1,3 +1,4 @@
+image: Visual Studio 2017
 environment:
   RUSTFLAGS: -Zunstable-options -Ctarget-feature=+crt-static
   matrix:
@@ -5,11 +6,9 @@ environment:
   #- TARGET: i686-pc-windows-msvc
   #  BUILD_MSI: 1
   - TARGET: i686-pc-windows-gnu
-    MINGW_URL: https://s3.amazonaws.com/rust-lang-ci
-    MINGW_ARCHIVE: i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z
     MINGW_DIR: mingw32
   - TARGET: x86_64-pc-windows-gnu
-    MSYS_BITS: 64
+    MINGW_DIR: mingw64
   - TARGET: i686-pc-windows-msvc
   - TARGET: x86_64-pc-windows-msvc
   access_token:
@@ -19,8 +18,68 @@ branches:
     - master
     - stable
     - auto
+cache:
+  - C:\msys64
 
 install:
+  # Install MSYS2 and MINGW (32-bit & 64-bit)
+  - ps: |
+      # Check if MSYS2 was restored from cache
+      if(Test-path C:\msys64\rustup-ready) {
+          Write-Host "Cached MSYS2 found" -ForegroundColor Green 
+          exit
+      }
+      # MSYS2 was not restored, but an invalid version already exists
+      if(Test-path C:\msys64) {
+          Write-Host "Invalid MSYS2 found, deleting..." -ForegroundColor Cyan 
+          del C:\msys64 -Recurse -Force
+      }
+      Write-Host "Installing MSYS2..." -ForegroundColor Cyan
+      # download installer
+      $zipPath = "$($env:TEMP)\msys2-x86_64-latest.tar.xz"
+      $tarPath = "$($env:TEMP)\msys2-x86_64-latest.tar"
+      Write-Host "Downloading MSYS installation package..."
+      appveyor DownloadFile http://repo.msys2.org/distrib/msys2-x86_64-latest.tar.xz -FileName $zipPath
+      Write-Host "Untaring installation package..."
+      7z x $zipPath -y -o"$env:TEMP" | Out-Null
+      del $zipPath
+      Write-Host "Unzipping installation package..."
+      7z x $tarPath -y -oC:\ | Out-Null
+      del $tarPath
+      function bash($command) {
+          Write-Host $command -NoNewline
+          cmd /c start /wait C:\msys64\usr\bin\sh.exe --login -c $command
+          Write-Host " - OK" -ForegroundColor Green
+      }
+      [Environment]::SetEnvironmentVariable("MSYS2_PATH_TYPE", "inherit", "Machine")
+      # install latest pacman
+      bash 'pacman -Sy --noconfirm pacman pacman-mirrors'
+      # update core packages
+      bash 'pacman -Syu --noconfirm'
+      bash 'pacman -Syu --noconfirm'
+      # install packages
+      bash 'pacman --sync --noconfirm base-devel'
+      bash 'pacman --sync --noconfirm msys2-devel'
+      # compact folder
+      Write-Host "OK" -ForegroundColor Green
+      Write-Host "MSYS2 installed" -ForegroundColor Green
+      # Download and install MINGW (32-bit)
+      Write-Host "Installing MinGW (32-bit)..." -ForegroundColor Cyan
+      Write-Host "Downloading installation package..."
+      appveyor DownloadFile https://s3.amazonaws.com/rust-lang-ci/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z -FileName mingw32.7z
+      Write-Host "Extracting installation package..."
+      7z x -y mingw32.7z -oC:\msys64 | Out-Null
+      del mingw32.7z
+      # Download and install MINGW (64-bit)
+      Write-Host "Installing MinGW (64-bit)..." -ForegroundColor Cyan
+      Write-Host "Downloading installation package..."
+      appveyor DownloadFile https://s3.amazonaws.com/rust-lang-ci/x86_64-4.9.2-release-win32-seh-rt_v4-rev4.7z -FileName mingw64.7z
+      Write-Host "Extracting installation package..."
+      7z x -y mingw64.7z -oC:\msys64 | Out-Null
+      del mingw64.7z
+      # Tell future builds that it's OK to use this cached msys64 directory
+      New-Item C:\msys64\rustup-ready -type file
+
   # Install rust, x86_64-pc-windows-msvc host
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init.exe -y --default-toolchain=nightly-2017-01-06-x86_64-pc-windows-msvc
@@ -29,13 +88,8 @@ install:
   # Install the target we're compiling for
   - if NOT "%TARGET%" == "x86_64-pc-windows-msvc" rustup target add %TARGET%
 
-  # Use the system msys if we can
-  - if defined MSYS_BITS set PATH=C:\msys64\mingw%MSYS_BITS%\bin;C:\msys64\usr\bin;%PATH%
-
-  # download a custom compiler otherwise
-  - if defined MINGW_URL appveyor DownloadFile %MINGW_URL%/%MINGW_ARCHIVE%
-  - if defined MINGW_URL 7z x -y %MINGW_ARCHIVE% > nul
-  - if defined MINGW_URL set PATH=%CD%\%MINGW_DIR%\bin;C:\msys64\usr\bin;%PATH%
+  # add mingw to PATH if necessary
+  - if defined MINGW_DIR set PATH=C:\msys64\%MINGW_DIR%\bin;C:\msys64\usr\bin;%PATH%
 
   # set cargo features for MSI if requested (otherwise empty string)
   - set FEATURES=
