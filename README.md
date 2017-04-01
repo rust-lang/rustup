@@ -86,7 +86,7 @@ fpath+=~/.zfunc
 #### Choosing where to install
 
 `rustup` allows you to customise your installation by setting the environment
-variables `CARGO_HOME` and `RUSTUP_HOME` while running the `rustup-init`
+variables `CARGO_HOME` and `RUSTUP_HOME` before running the `rustup-init`
 executable. As mentioned in the [Environment Variables] section, `RUSTUP_HOME`
 sets the root rustup folder, which is used for storing installed
 toolchains and configuration options. `CARGO_HOME` contains cache files used
