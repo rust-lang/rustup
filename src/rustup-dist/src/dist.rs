@@ -634,6 +634,7 @@ pub fn update_from_dist_<'a>(download: DownloadCfg<'a>,
     (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
     match dl_v2_manifest(download, update_hash, toolchain) {
         Ok(Some((m, hash))) => {
+            (download.notify_handler)(Notification::DownloadedManifest(&m.date, m.get_rust_version().ok()));
             return match try!(manifestation.update(&m,
                                                    changes,
                                                    &download,
