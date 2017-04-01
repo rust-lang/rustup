@@ -4,7 +4,7 @@ error_chain! {
     links { }
 
     foreign_links {
-        Io(::std::io::Error) #[cfg(unix)];
+        Io(::std::io::Error);
     }
 
     errors {
