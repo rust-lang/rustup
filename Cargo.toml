@@ -76,3 +76,4 @@ test = false # no unit tests
 name = "rustup-init"
 path = "src/rustup-cli/main.rs"
 test = false # no unit tests
+
