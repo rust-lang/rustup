@@ -73,7 +73,7 @@ matrix:
       env: TARGET=s390x-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
            SKIP_TESTS=1
-    
+
     # Android use a local docker image
     - os: linux
       env: TARGET=arm-linux-androideabi
@@ -91,7 +91,7 @@ matrix:
       env: TARGET=i686-linux-android
            DOCKER=android
            SKIP_TESTS=1
-    
+
     # On OSX we want to target 10.7 so we ensure that the appropriate
     # environment variable is set to tell the linker what we want.
     - os: osx
@@ -107,6 +107,7 @@ cache:
   - directories:
     - target/$TARGET/openssl/openssl-install
     - target/$TARGET/release
+    - target/release/deps
 
 branches:
   only:
