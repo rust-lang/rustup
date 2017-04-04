@@ -118,9 +118,9 @@ main() {
             err "Unable to run interactively. Run with -y to accept defaults, --help for additional options"
         fi
 
-        run "$_file" "$@" < /dev/tty
+        ignore "$_file" "$@" < /dev/tty
     else
-        run "$_file" "$@"
+        ignore "$_file" "$@"
     fi
 
     local _retval=$?
@@ -359,15 +359,7 @@ ensure() {
 # intentionally ignored. Usually, because it's being executed
 # as part of error handling.
 ignore() {
-    run "$@"
-}
-
-# Runs a command.
-run() {
     "$@"
-    local _retval=$?
-
-    return $_retval
 }
 
 main "$@" || exit 1
