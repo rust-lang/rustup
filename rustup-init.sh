@@ -114,8 +114,8 @@ main() {
         # reading stdin.  This script was piped into `sh` though and
         # doesn't have stdin to pass to its children. Instead we're going
         # to explicitly connect /dev/tty to the installer's stdin.
-        if [ ! -e "/dev/tty" ]; then
-            err "/dev/tty does not exist"
+        if [ ! -t 1 ]; then
+            err "Unable to run interactively. Run with -y to accept defaults, --help for additional options"
         fi
 
         run "$_file" "$@" < /dev/tty
