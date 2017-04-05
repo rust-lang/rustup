@@ -82,7 +82,7 @@ install:
         7z x -y mingw64.7z -oC:\msys64 | Out-Null
         del mingw64.7z
         # Free up some space
-        bash 'pacman -Sc'
+        bash 'pacman -Sc --noconfirm'
         # Print out size of directory to be cached
         $msysSize = (Get-ChildItem C:\Scripts -recurse | Measure-Object -property length -sum)
         Write-Host "{0:N2}" -f ($msysSize.sum / 1MB) + " MB"
