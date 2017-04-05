@@ -83,9 +83,6 @@ install:
         del mingw64.7z
         # Free up some space
         bash 'pacman -Sc --noconfirm'
-        # Print out size of directory to be cached
-        $msysSize = (Get-ChildItem C:\msys64 -recurse | Measure-Object -property length -sum)
-        Write-Host "{0:N2}" -f ($msysSize.sum / 1MB) + " MB"
         # Tell future builds that it's OK to use this cached msys64 directory
         New-Item C:\msys64\rustup-ready -type file
       }
