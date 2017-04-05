@@ -7,7 +7,7 @@ use rustup_dist::manifest::Component;
 use rustup_dist::dist::{TargetTriple, PartialToolchainDesc, PartialTargetTriple};
 use rustup_utils::utils;
 use self_update;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::iter;
 use term2;
@@ -688,15 +688,7 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
     let ref path = m.value_of("path").expect("");
     let toolchain = try!(cfg.get_toolchain(toolchain, true));
-    let mut pathbuf = PathBuf::from(path);
 
-    pathbuf.push("lib");
-    try!(utils::assert_is_directory(&pathbuf));
-    pathbuf.pop();
-    pathbuf.push("bin");
-    try!(utils::assert_is_directory(&pathbuf));
-    pathbuf.push("rustc");
-    try!(utils::assert_is_file(&pathbuf));
     Ok(try!(toolchain.install_from_dir(Path::new(path), true)))
 }
 
