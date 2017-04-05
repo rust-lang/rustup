@@ -1,7 +1,6 @@
 image: Visual Studio 2017
 environment:
   RUSTFLAGS: -Zunstable-options -Ctarget-feature=+crt-static
-  APPVEYOR_CACHE_SKIP_RESTORE: true
   matrix:
   # FIXME
   #- TARGET: i686-pc-windows-msvc
@@ -30,7 +29,7 @@ install:
           Write-Host "Installing MinGW (32-bit)..." -ForegroundColor Cyan
           Write-Host "Downloading installation package..."
           appveyor DownloadFile https://s3.amazonaws.com/rust-lang-ci/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z -FileName mingw.7z
-        } else {
+        } elseif($env:MINGW_DIR -eq "mingw64") {
           # Download and install MINGW (64-bit)
           Write-Host "Installing MinGW (64-bit)..." -ForegroundColor Cyan
           Write-Host "Downloading installation package..."
