@@ -101,6 +101,14 @@ matrix:
       env: TARGET=x86_64-apple-darwin
            MACOSX_DEPLOYMENT_TARGET=10.7
 
+cache:
+  # We're going to download things we don't necessarily want to cache into the `target` directory, so
+  # don't use travis's native `cargo` caching, which just grabs the whole folder.
+  - directories:
+    - target/$TARGET/openssl/openssl-install
+    - target/$TARGET/release
+    - target/release/deps
+
 branches:
   only:
     - master
@@ -117,7 +125,7 @@ install:
     sh -s -- --prefix=$HOME/rust --spec=nightly-2016-11-06 --with-target=$TARGET
 
 script:
-  - mkdir target
+  - mkdir -p target/$TARGET
   - if [ ! -z "$DOCKER" ]; then
       sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
     else
