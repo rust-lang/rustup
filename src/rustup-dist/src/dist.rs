@@ -163,6 +163,7 @@ impl TargetTriple {
             let host_triple = match (sysname, machine) {
                 (_, b"arm") if cfg!(target_os = "android") => Some("arm-linux-androideabi"),
                 (_, b"armv7l") if cfg!(target_os = "android") => Some("armv7-linux-androideabi"),
+                (_, b"armv8l") if cfg!(target_os = "android") => Some("armv7-linux-androideabi"),
                 (_, b"aarch64") if cfg!(target_os = "android") => Some("aarch64-linux-android"),
                 (_, b"i686") if cfg!(target_os = "android") => Some("i686-linux-android"),
                 (b"Linux", b"x86_64") => Some("x86_64-unknown-linux-gnu"),
@@ -170,6 +171,8 @@ impl TargetTriple {
                 (b"Linux", b"mips") => Some(TRIPLE_MIPS_UNKNOWN_LINUX_GNU),
                 (b"Linux", b"mips64") => Some(TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64),
                 (b"Linux", b"arm") => Some("arm-unknown-linux-gnueabi"),
+                (b"Linux", b"armv7l") => Some("armv7-unknown-linux-gnueabihf"),
+                (b"Linux", b"armv8l") => Some("armv7-unknown-linux-gnueabihf"),
                 (b"Linux", b"aarch64") => Some("aarch64-unknown-linux-gnu"),
                 (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
                 (b"Darwin", b"i686") => Some("i686-apple-darwin"),
