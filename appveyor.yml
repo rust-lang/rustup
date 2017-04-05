@@ -10,7 +10,11 @@ environment:
   - TARGET: x86_64-pc-windows-gnu
     MINGW_DIR: mingw64
   - TARGET: i686-pc-windows-msvc
+    APPVEYOR_CACHE_SKIP_RESTORE: true
+    APPVEYOR_CACHE_SKIP_SAVE: true
   - TARGET: x86_64-pc-windows-msvc
+    APPVEYOR_CACHE_SKIP_RESTORE: true
+    APPVEYOR_CACHE_SKIP_SAVE: true
   access_token:
     secure: q8Wqx0brgfpOYFQqWauvucE2h0o1WYb41a3gKaCKV9QiE4eTz6qLNlqyC3mdsp4Q
 branches:
@@ -25,8 +29,8 @@ install:
   # Install MSYS2 and MINGW (32-bit & 64-bit)
   - ps: |
       # Check if MSYS2 was restored from cache
-      if(Test-path C:\msys64\rustup-ready) {
-          Write-Host "Cached MSYS2 found" -ForegroundColor Green 
+      if(Test-path C:\msys64\rustup-ready -Or $env:APPVEYOR_CACHE_SKIP_RESTORE -eq "true") {
+          Write-Host "Cached MSYS2 found or MSYS2 not required" -ForegroundColor Green 
       } else {
         # MSYS2 was not restored, but an invalid version already exists
         if(Test-path C:\msys64) {
