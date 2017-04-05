@@ -253,7 +253,7 @@ get_architecture() {
             fi
             ;;
 
-        aarch64)
+        aarch64 | armv8l)
             local _cputype=aarch64
             ;;
 
