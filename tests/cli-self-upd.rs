@@ -160,6 +160,7 @@ fn install_creates_cargo_home() {
 fn uninstall_deletes_bins() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
+        list_handles(&config.cargodir.parent().unwrap());
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
         let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
@@ -206,6 +207,7 @@ fn uninstall_deletes_rustup_home() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup", "default", "nightly"]);
+        list_handles(&config.cargodir.parent().unwrap());
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
         assert!(!config.rustupdir.exists());
     });
@@ -224,6 +226,7 @@ fn uninstall_works_if_rustup_home_doesnt_exist() {
 fn uninstall_deletes_cargo_home() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
+        list_handles(&config.cargodir.parent().unwrap());
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
         assert!(!config.cargodir.exists());
     });
@@ -272,6 +275,12 @@ fn uninstall_self_delete_works() {
     });
 }
 
+fn list_handles(path: &Path) {
+    let mut cmd = Command::new("handle.exe");
+    cmd.arg("-accepteula").arg("-nobanner").arg("-a").arg("-u").arg(path);
+    cmd.status().unwrap();
+}
+
 // On windows rustup self uninstall temporarily puts a rustup-gc-$randomnumber.exe
 // file in CONFIG.CARGODIR/.. ; check that it doesn't exist.
 #[test]
@@ -281,6 +290,7 @@ fn uninstall_doesnt_leave_gc_file() {
 
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
+        list_handles(&config.cargodir.parent().unwrap());
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         // The gc removal happens after rustup terminates. Give it a moment.
