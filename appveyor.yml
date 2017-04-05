@@ -29,7 +29,7 @@ install:
   # Install MSYS2 and MINGW (32-bit & 64-bit)
   - ps: |
       # Check if MSYS2 was restored from cache
-      if(Test-path C:\msys64\rustup-ready -Or $env:APPVEYOR_CACHE_SKIP_RESTORE -eq "true") {
+      if((Test-path C:\msys64\rustup-ready) -Or $env:APPVEYOR_CACHE_SKIP_RESTORE -eq "true") {
           Write-Host "Cached MSYS2 found or MSYS2 not required" -ForegroundColor Green
           $env:APPVEYOR_CACHE_SKIP_SAVE = "true"
       } else {
