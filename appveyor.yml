@@ -30,7 +30,8 @@ install:
   - ps: |
       # Check if MSYS2 was restored from cache
       if(Test-path C:\msys64\rustup-ready -Or $env:APPVEYOR_CACHE_SKIP_RESTORE -eq "true") {
-          Write-Host "Cached MSYS2 found or MSYS2 not required" -ForegroundColor Green 
+          Write-Host "Cached MSYS2 found or MSYS2 not required" -ForegroundColor Green
+          $env:APPVEYOR_CACHE_SKIP_SAVE = "true"
       } else {
         # MSYS2 was not restored, but an invalid version already exists
         if(Test-path C:\msys64) {
