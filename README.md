@@ -66,6 +66,9 @@ gist is as simple as using one of the following:
 # Bash
 $ rustup completions bash > /etc/bash_completion.d/rustup.bash-completion
 
+# Bash (macOS/Homebrew)
+$ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
+
 # Fish
 $ rustup completions fish > ~/.config/fish/completions/rustup.fish
 
