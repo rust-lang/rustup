@@ -10,11 +10,7 @@ environment:
   - TARGET: x86_64-pc-windows-gnu
     MINGW_DIR: mingw64
   - TARGET: i686-pc-windows-msvc
-    APPVEYOR_CACHE_SKIP_RESTORE: true
-    APPVEYOR_CACHE_SKIP_SAVE: true
   - TARGET: x86_64-pc-windows-msvc
-    APPVEYOR_CACHE_SKIP_RESTORE: true
-    APPVEYOR_CACHE_SKIP_SAVE: true
   access_token:
     secure: q8Wqx0brgfpOYFQqWauvucE2h0o1WYb41a3gKaCKV9QiE4eTz6qLNlqyC3mdsp4Q
 branches:
@@ -22,69 +18,28 @@ branches:
     - master
     - stable
     - auto
-cache:
-  - C:\msys64
 
 install:
   # Install MSYS2 and MINGW (32-bit & 64-bit)
   - ps: |
       # Check if MSYS2 was restored from cache
-      if((Test-path C:\msys64\rustup-ready) -Or $env:APPVEYOR_CACHE_SKIP_RESTORE -eq "true") {
-          Write-Host "Cached MSYS2 found or MSYS2 not required" -ForegroundColor Green
-          $env:APPVEYOR_CACHE_SKIP_SAVE = "true"
+      if($env:MINGW_DIR) {
+        if($env:MINGW_DIR -eq "mingw32") {
+          # Download and install MINGW (32-bit)
+          Write-Host "Installing MinGW (32-bit)..." -ForegroundColor Cyan
+          Write-Host "Downloading installation package..."
+          appveyor DownloadFile https://s3.amazonaws.com/rust-lang-ci/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z -FileName mingw.7z
+        } elseif($env:MINGW_DIR -eq "mingw64") {
+          # Download and install MINGW (64-bit)
+          Write-Host "Installing MinGW (64-bit)..." -ForegroundColor Cyan
+          Write-Host "Downloading installation package..."
+          appveyor DownloadFile https://s3.amazonaws.com/rust-lang-ci/x86_64-4.9.2-release-win32-seh-rt_v4-rev4.7z -FileName mingw.7z
+        }
+        Write-Host "Extracting installation package..."
+        7z x -y mingw.7z -oC:\msys64 | Out-Null
+        del mingw.7z
       } else {
-        # MSYS2 was not restored, but an invalid version already exists
-        if(Test-path C:\msys64) {
-            Write-Host "Invalid MSYS2 found, deleting..." -ForegroundColor Cyan 
-            del C:\msys64 -Recurse -Force
-        }
-        Write-Host "Installing MSYS2..." -ForegroundColor Cyan
-        # download installer
-        $zipPath = "$($env:TEMP)\msys2-x86_64-latest.tar.xz"
-        $tarPath = "$($env:TEMP)\msys2-x86_64-latest.tar"
-        Write-Host "Downloading MSYS installation package..."
-        appveyor DownloadFile http://repo.msys2.org/distrib/msys2-x86_64-latest.tar.xz -FileName $zipPath
-        Write-Host "Untaring installation package..."
-        7z x $zipPath -y -o"$env:TEMP" | Out-Null
-        del $zipPath
-        Write-Host "Unzipping installation package..."
-        7z x $tarPath -y -oC:\ | Out-Null
-        del $tarPath
-        function bash($command) {
-            Write-Host $command -NoNewline
-            cmd /c start /wait C:\msys64\usr\bin\sh.exe --login -c $command
-            Write-Host " - OK" -ForegroundColor Green
-        }
-        [Environment]::SetEnvironmentVariable("MSYS2_PATH_TYPE", "inherit", "Machine")
-        # install latest pacman
-        bash 'pacman -Sy --noconfirm pacman pacman-mirrors'
-        # update core packages
-        bash 'pacman -Syu --noconfirm'
-        bash 'pacman -Syu --noconfirm'
-        # install packages
-        bash 'pacman --sync --noconfirm base-devel'
-        bash 'pacman --sync --noconfirm msys2-devel'
-        # compact folder
-        Write-Host "OK" -ForegroundColor Green
-        Write-Host "MSYS2 installed" -ForegroundColor Green
-        # Download and install MINGW (32-bit)
-        Write-Host "Installing MinGW (32-bit)..." -ForegroundColor Cyan
-        Write-Host "Downloading installation package..."
-        appveyor DownloadFile https://s3.amazonaws.com/rust-lang-ci/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z -FileName mingw32.7z
-        Write-Host "Extracting installation package..."
-        7z x -y mingw32.7z -oC:\msys64 | Out-Null
-        del mingw32.7z
-        # Download and install MINGW (64-bit)
-        Write-Host "Installing MinGW (64-bit)..." -ForegroundColor Cyan
-        Write-Host "Downloading installation package..."
-        appveyor DownloadFile https://s3.amazonaws.com/rust-lang-ci/x86_64-4.9.2-release-win32-seh-rt_v4-rev4.7z -FileName mingw64.7z
-        Write-Host "Extracting installation package..."
-        7z x -y mingw64.7z -oC:\msys64 | Out-Null
-        del mingw64.7z
-        # Free up some space
-        bash 'pacman -Sc --noconfirm'
-        # Tell future builds that it's OK to use this cached msys64 directory
-        New-Item C:\msys64\rustup-ready -type file
+        Write-Host "MSYS2 not required" -ForegroundColor Green
       }
 
   # Install rust, x86_64-pc-windows-msvc host
