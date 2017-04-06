@@ -63,6 +63,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     // Unset env variables that will break our testing
     env::remove_var("RUSTUP_TOOLCHAIN");
     env::remove_var("SHELL");
+    env::remove_var("ZDOTDIR");
 
     let exedir = TempDir::new("rustup-exe").unwrap();
     let distdir = TempDir::new("rustup-dist").unwrap();

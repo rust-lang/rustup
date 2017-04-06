@@ -981,7 +981,11 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
 
     if let Ok(shell) = env::var("SHELL") {
         if shell.contains("zsh") {
-            let zprofile = utils::home_dir().map(|p| p.join(".zprofile"));
+            let zdotdir = env::var("ZDOTDIR")
+                .ok()
+                .map(PathBuf::from)
+                .or_else(utils::home_dir);
+            let zprofile = zdotdir.map(|p| p.join(".zprofile"));
             profiles.push(zprofile);
         }
     }
