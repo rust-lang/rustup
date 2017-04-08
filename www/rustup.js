@@ -1,9 +1,5 @@
 var platform_override = null;
 
-function android_or_unix() {
-  return (navigator.appVersion.indexOf("Android") != -1) ? "android" : "unix";
-}
-
 function detect_platform() {
     "use strict";
 
@@ -14,11 +10,12 @@ function detect_platform() {
     var os = "unknown";
 
     if (navigator.platform == "Linux x86_64") {os = "unix";}
-    if (navigator.platform == "Linux i686") {os = android_or_unix();}
+    if (navigator.platform == "Linux i686") {os = "unix";}
     if (navigator.platform == "Linux i686 on x86_64") {os = "unix";}
-    if (navigator.platform == "Linux aarch64") {os = android_or_unix();}
-    if (navigator.platform == "Linux armv6l") {os = android_or_unix();}
-    if (navigator.platform == "Linux armv7l") {os = android_or_unix();}
+    if (navigator.platform == "Linux aarch64") {os = "unix";}
+    if (navigator.platform == "Linux armv6l") {os = "unix";}
+    if (navigator.platform == "Linux armv7l") {os = "unix";}
+    if (navigator.platform == "Linux armv8l") {os = "unix";}
     if (navigator.platform == "Linux ppc64") {os = "unix";}
     if (navigator.platform == "Linux mips") {os = "unix";}
     if (navigator.platform == "Linux mips64") {os = "unix";}
@@ -47,13 +44,11 @@ function adjust_for_platform() {
 
     var unix_div = document.getElementById("platform-instructions-unix");
     var win_div = document.getElementById("platform-instructions-win");
-    var android_div = document.getElementById("platform-instructions-android");
     var unknown_div = document.getElementById("platform-instructions-unknown");
     var default_div = document.getElementById("platform-instructions-default");
 
     unix_div.style.display = "none";
     win_div.style.display = "none";
-    android_div.style.display = "none";
     unknown_div.style.display = "none";
     default_div.style.display = "none";
 
@@ -61,8 +56,6 @@ function adjust_for_platform() {
         unix_div.style.display = "block";
     } else if (platform == "win") {
         win_div.style.display = "block";
-    } else if (platform == "android") {
-        android_div.style.display = "block";
     } else if (platform == "unknown") {
         unknown_div.style.display = "block";
     } else {
@@ -80,8 +73,6 @@ function cycle_platform() {
     } else if (platform_override == "win") {
         platform_override = "unix";
     } else if (platform_override == "unix") {
-        platform_override = "android";
-    } else if (platform_override == "android") {
         platform_override = "default";
     }
     adjust_for_platform();
