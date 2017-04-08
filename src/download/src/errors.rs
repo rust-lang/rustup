@@ -1,7 +1,11 @@
+
+
 error_chain! {
     links { }
 
-    foreign_links { }
+    foreign_links {
+        Io(::std::io::Error);
+    }
 
     errors {
         HttpStatus(e: u32) {
