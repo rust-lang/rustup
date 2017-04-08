@@ -1,7 +1,7 @@
 [package]
 
 name = "rustup-mock"
-version = "1.1.0"
+version = "1.2.0"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Test mocks for multirust"
 
@@ -19,7 +19,7 @@ tempdir = "0.3.4"
 itertools = "0.4.1"
 tar = "0.4.0"
 toml = "0.1.27"
-rustup-utils = { path = "../rustup-utils", version = "1.1.0" }
+rustup-utils = { path = "../rustup-utils" }
 sha2 = "0.1.2"
 wait-timeout = "0.1.3"
 

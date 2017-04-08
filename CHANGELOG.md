@@ -1,3 +1,14 @@
+# 1.2.0
+
+* [Check ZDOTDIR when adding path to .zprofile](https://github.com/rust-lang-nursery/rustup.rs/pull/1038)
+* [Update links and install page to include android support](https://github.com/rust-lang-nursery/rustup.rs/pull/1037)
+* [Add bash completion guidance for macOS users](https://github.com/rust-lang-nursery/rustup.rs/pull/1035)
+* [Support partial downloads](https://github.com/rust-lang-nursery/rustup.rs/pull/1020)
+* [Don't crash if modifying multiple profile files](https://github.com/rust-lang-nursery/rustup.rs/pull/1040)
+
+Contributors: Brian Anderson, James Elford, Jason Dreyzehner, Marco A
+L Barbosa, Wim Looman
+
 # 1.1.0
 
 * [Fix browser detection for Linux ppc64 and NetBSD](https://github.com/rust-lang-nursery/rustup.rs/pull/875)
