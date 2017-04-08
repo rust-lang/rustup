@@ -32,8 +32,8 @@ no-self-update = []
 msi-installed = []
 
 [dependencies]
-rustup-dist = { path = "src/rustup-dist", version = "1.1.0" }
-rustup-utils = { path = "src/rustup-utils", version = "1.1.0" }
+rustup-dist = { path = "src/rustup-dist" }
+rustup-utils = { path = "src/rustup-utils" }
 download = { path = "src/download" }
 error-chain = "0.7.1"
 clap = "2.18.0"
