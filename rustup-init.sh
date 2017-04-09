@@ -230,14 +230,14 @@ get_architecture() {
 
         xscale | arm)
             local _cputype=arm
-            if [ "$_ostype" == "linux-android" ]; then
+            if [ "$_ostype" = "linux-android" ]; then
                 local _ostype=linux-androideabi
             fi
             ;;
 
         armv6l)
             local _cputype=arm
-            if [ "$_ostype" == "linux-android" ]; then
+            if [ "$_ostype" = "linux-android" ]; then
                 local _ostype=linux-androideabi
             else
                 local _ostype="${_ostype}eabihf"
@@ -246,7 +246,7 @@ get_architecture() {
 
         armv7l)
             local _cputype=armv7
-            if [ "$_ostype" == "linux-android" ]; then
+            if [ "$_ostype" = "linux-android" ]; then
                 local _ostype=linux-androideabi
             else
                 local _ostype="${_ostype}eabihf"
