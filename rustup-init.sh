@@ -114,13 +114,13 @@ main() {
         # reading stdin.  This script was piped into `sh` though and
         # doesn't have stdin to pass to its children. Instead we're going
         # to explicitly connect /dev/tty to the installer's stdin.
-        if [ ! -e "/dev/tty" ]; then
-            err "/dev/tty does not exist"
+        if [ ! -t 1 ]; then
+            err "Unable to run interactively. Run with -y to accept defaults, --help for additional options"
         fi
 
-        run "$_file" "$@" < /dev/tty
+        ignore "$_file" "$@" < /dev/tty
     else
-        run "$_file" "$@"
+        ignore "$_file" "$@"
     fi
 
     local _retval=$?
@@ -359,17 +359,7 @@ ensure() {
 # intentionally ignored. Usually, because it's being executed
 # as part of error handling.
 ignore() {
-    run "$@"
-}
-
-# Runs a command and prints it to stderr if it fails.
-run() {
     "$@"
-    local _retval=$?
-    if [ $_retval != 0 ]; then
-        say_err "command failed: $*"
-    fi
-    return $_retval
 }
 
 main "$@" || exit 1

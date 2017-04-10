@@ -86,9 +86,9 @@ macro_rules! pre_install_msg_unix {
     () => {
 pre_install_msg_template!(
 "This path will then be added to your `PATH` environment variable by
-modifying the profile file located at:
+modifying the profile file{plural} located at:
 
-    {rcfiles}"
+{rcfiles}"
     )};
 }
 
@@ -492,10 +492,13 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
                         None
                     }
                 }).collect::<Vec<_>>();
-            assert_eq!(rcfiles.len(), 1); // Only modifying .profile
+            let plural = if rcfiles.len() > 1 { "s" } else { "" };
+            let rcfiles = rcfiles.into_iter().map(|f| format!("    {}", f)).collect::<Vec<_>>();
+            let rcfiles = rcfiles.join("\n");
             Ok(format!(pre_install_msg_unix!(),
                        cargo_home_bin = cargo_home_bin.display(),
-                       rcfiles = rcfiles[0]))
+                       plural = plural,
+                       rcfiles = rcfiles))
         } else {
             Ok(format!(pre_install_msg_win!(),
                        cargo_home_bin = cargo_home_bin.display()))
@@ -977,8 +980,20 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
     }
 
     let profile = utils::home_dir().map(|p| p.join(".profile"));
-    let rcfiles = vec![profile].into_iter().filter_map(|f|f);
+    let mut profiles = vec![profile];
 
+    if let Ok(shell) = env::var("SHELL") {
+        if shell.contains("zsh") {
+            let zdotdir = env::var("ZDOTDIR")
+                .ok()
+                .map(PathBuf::from)
+                .or_else(utils::home_dir);
+            let zprofile = zdotdir.map(|p| p.join(".zprofile"));
+            profiles.push(zprofile);
+        }
+    }
+
+    let rcfiles = profiles.into_iter().filter_map(|f|f);
     rcfiles.map(PathUpdateMethod::RcFile).collect()
 }
 

@@ -144,8 +144,17 @@ pub fn download_file(url: &Url,
                      hasher: Option<&mut Sha256>,
                      notify_handler: &Fn(Notification))
                      -> Result<()> {
+     download_file_with_resume(&url, &path, hasher, false, &notify_handler)
+}
+
+pub fn download_file_with_resume(url: &Url,
+                     path: &Path,
+                     hasher: Option<&mut Sha256>,
+                     resume_from_partial: bool,
+                     notify_handler: &Fn(Notification))
+                     -> Result<()> {
     use download::ErrorKind as DEK;
-    match download_file_(url, path, hasher, notify_handler) {
+    match download_file_(url, path, hasher, resume_from_partial, notify_handler) {
         Ok(_) => Ok(()),
         Err(e) => {
             let is_client_error = match e.kind() {
@@ -171,6 +180,7 @@ pub fn download_file(url: &Url,
 fn download_file_(url: &Url,
                   path: &Path,
                   hasher: Option<&mut Sha256>,
+                  resume_from_partial: bool,
                   notify_handler: &Fn(Notification))
                   -> Result<()> {
 
@@ -202,6 +212,9 @@ fn download_file_(url: &Url,
             Event::DownloadDataReceived(data) => {
                 notify_handler(Notification::DownloadDataReceived(data));
             }
+            Event::ResumingPartialDownload => {
+                notify_handler(Notification::ResumingPartialDownload);
+            }
         }
 
         Ok(())
@@ -218,7 +231,7 @@ fn download_file_(url: &Url,
         (Backend::Curl, Notification::UsingCurl)
     };
     notify_handler(notification);
-    try!(download_to_path_with_backend(backend, url, path, Some(callback)));
+    try!(download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback)));
 
     notify_handler(Notification::DownloadFinished);
 
@@ -420,7 +433,7 @@ pub fn home_dir() -> Option<PathBuf> {
         let me = GetCurrentProcess();
         let mut token = ptr::null_mut();
         if OpenProcessToken(me, TOKEN_READ, &mut token) == 0 {
-            return None
+            return None;
         }
         let _g = scopeguard::guard(token, |h| { let _ = CloseHandle(*h); });
         fill_utf16_buf(|buf, mut sz| {

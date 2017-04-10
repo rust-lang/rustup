@@ -341,7 +341,7 @@ impl<'a> Toolchain<'a> {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
         if !primary_toolchain.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
+            return Err(ErrorKind::ToolchainNotInstalled(primary_toolchain.name.to_owned()).into());
         }
 
         let src_file = self.path.join("bin").join(format!("cargo{}", EXE_SUFFIX));

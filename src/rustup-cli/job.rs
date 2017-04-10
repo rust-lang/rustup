@@ -156,7 +156,6 @@ mod imp {
             let mut killed = false;
             let list = &jobs.list[..jobs.header.NumberOfProcessIdsInList as usize];
             assert!(list.len() > 0);
-            info!("found {} remaining processes", list.len() - 1);
 
             let list = list.iter().filter(|&&id| {
                 // let's not kill ourselves

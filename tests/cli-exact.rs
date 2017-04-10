@@ -315,3 +315,14 @@ fn disable_telemetry() {
                      "info: telemetry set to 'off'\n");
     });
 }
+
+// issue #927
+#[test]
+fn undefined_linked_toolchain() {
+    setup(&|config| {
+        expect_err_ex(config,
+                      &["cargo", "+bogus", "test"],
+                      r"",
+                      &format!("error: toolchain 'bogus' is not installed\n"));
+    });
+}
