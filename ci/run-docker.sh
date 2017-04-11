@@ -177,6 +177,9 @@ else
    install=$final_install_path
 fi
 
+# the install dir was renamed, so we need to update pkgconfig
+sed -i -e 's/-partial//g' $install/lib/pkgconfig/*
+
 # Variables to the openssl-sys crate to link statically against the OpenSSL we
 # just compiled above
 export OPENSSL_STATIC=1
