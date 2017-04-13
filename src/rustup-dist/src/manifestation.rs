@@ -112,7 +112,7 @@ impl Manifestation {
             use manifest::*;
             let pkg: Option<&Package> = new_manifest.get_package(&c.pkg).ok();
             let target_pkg: Option<&TargetedPackage> = pkg.and_then(|p| p.get_target(c.target.as_ref()).ok());
-            target_pkg.map(|tp| tp.available) != Some(true)
+            target_pkg.map(|tp| tp.available()) != Some(true)
         }).cloned().collect();
 
         if !unavailable_components.is_empty() {
@@ -124,12 +124,14 @@ impl Manifestation {
         for component in components_to_install {
             let package = try!(new_manifest.get_package(&component.pkg));
             let target_package = try!(package.get_target(component.target.as_ref()));
+
+            let bins = target_package.bins.as_ref().expect("components available");
             let c_u_h =
-                if let (Some(url), Some(hash)) = (target_package.xz_url.clone(),
-                                                 target_package.xz_hash.clone()) {
+                if let (Some(url), Some(hash)) = (bins.xz_url.clone(),
+                                                  bins.xz_hash.clone()) {
                     (component, Format::Xz, url, hash)
                 } else {
-                    (component, Format::Gz, target_package.url.clone(), target_package.hash.clone())
+                    (component, Format::Gz, bins.url.clone(), bins.hash.clone())
                 };
             components_urls_and_hashes.push(c_u_h);
         }

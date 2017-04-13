@@ -668,7 +668,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple
     {
         let mut std_pkg = manifest.packages.get_mut(name).unwrap();
         let mut target_pkg = std_pkg.targets.get_mut(target).unwrap();
-        target_pkg.available = false;
+        target_pkg.bins = None;
     }
     let ref manifest_str = manifest.stringify();
     rustup_utils::raw::write_file(manifest_path, manifest_str).unwrap();
