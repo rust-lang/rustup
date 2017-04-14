@@ -22,3 +22,10 @@ docker run \
   -e SKIP_TESTS=$SKIP_TESTS \
   -it $DOCKER \
   ci/run-docker.sh
+
+# check that rustup-init was built with ssl support
+# see https://github.com/rust-lang-nursery/rustup.rs/issues/1051
+if ! (nm target/$TARGET/release/rustup-init | grep Curl_ssl_version &> /dev/null); then
+  echo "Missing ssl support!!!!"
+  exit 1
+fi
