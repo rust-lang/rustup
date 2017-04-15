@@ -147,17 +147,14 @@ esac
 
 install=`pwd`/target/$TARGET/openssl/openssl-install/$OPENSSL_VERS
 
-if [ -e $install ]; then
+
+if [ -L $install -a -d $install-final ]; then
+  # $install is the "right" place for the build. See below for why it's a symlink
   echo 'Using cached OpenSSL static libs'
 else
   # Clean up any builds of previous versions from the cache
   rm -rf $(dirname $install)/*
 
-  # If the build fails half way through it will be difficult to distinguish when the next run sees
-  # the cached version, so finalize the build atomically. We're linking statically so don't need to
-  # worry about using a different prefix at install time.
-  final_install_path=$install
-  install=$install-partial
 
   mkdir -p target/$TARGET/openssl
   out=`pwd`/target/$TARGET/openssl/openssl-$OPENSSL_VERS.tar.gz
@@ -173,8 +170,14 @@ else
    make -j4 && \
    make install)
 
-   mv $install $final_install_path
-   install=$final_install_path
+  # Travis will cache the parent directory. That's fine, but want a way of marking the
+  # install "complete". In this setup, if the build fails there will be no -final and
+  # the whole thing starts again (which is fine).   
+  # The same reasoning is why to cache the install-target directory rather than
+  # the build directory in the first place (make should be able to sort itself out in
+  # that case, but that's relying on intuitive timestamps in the presence of caching etc)
+  mv $install $install-final
+  ln -s $install-final $install
 fi
 
 # Variables to the openssl-sys crate to link statically against the OpenSSL we
