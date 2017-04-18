@@ -31,6 +31,7 @@ pub fn main() -> Result<()> {
         ("show", Some(_)) => try!(show(cfg)),
         ("install", Some(m)) => try!(update(cfg, m)),
         ("update", Some(m)) => try!(update(cfg, m)),
+        ("uninstall", Some(m)) => try!(toolchain_remove(cfg, m)),
         ("default", Some(m)) => try!(default_(cfg, m)),
         ("toolchain", Some(c)) => {
             match c.subcommand() {
@@ -130,6 +131,12 @@ pub fn cli() -> App<'static, 'static> {
             .about("Update Rust toolchains")
             .after_help(TOOLCHAIN_INSTALL_HELP)
             .setting(AppSettings::Hidden) // synonym for 'toolchain install'
+            .arg(Arg::with_name("toolchain")
+                .required(true)
+                .multiple(true)))
+        .subcommand(SubCommand::with_name("uninstall")
+            .about("Uninstall Rust toolchains")
+            .setting(AppSettings::Hidden) // synonym for 'toolchain uninstall'
             .arg(Arg::with_name("toolchain")
                 .required(true)
                 .multiple(true)))
