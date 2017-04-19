@@ -6,13 +6,15 @@ use errors::*;
 use rustup_utils::utils;
 use rustup_utils::notify::NotificationLevel;
 use self_update;
-use std::io::{Write, BufRead};
-use std::process::Command;
+use std::io::{Write, BufRead, BufReader};
+use std::process::{Command, Stdio};
 use std::path::Path;
 use std::{cmp, iter};
 use std::sync::Arc;
+use std::time::Duration;
 use std;
 use term2;
+use wait_timeout::ChildExt;
 
 pub fn confirm(question: &str, default: bool) -> Result<bool> {
     print!("{} ", question);
@@ -222,12 +224,34 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
         if utils::is_file(&rustc_path) {
             let mut cmd = Command::new(&rustc_path);
             cmd.arg("--version");
+            cmd.stdin(Stdio::null());
+            cmd.stdout(Stdio::piped());
+            cmd.stderr(Stdio::piped());
             toolchain.set_ldpath(&mut cmd);
 
-            let out= cmd.output().ok();
-            let out = out.into_iter().find(|o| o.status.success());
-            let stdout = out.and_then(|o| String::from_utf8(o.stdout).ok());
-            let line1 = stdout.and_then(|o| o.lines().next().map(|l| l.to_owned()));
+            // some toolchains are faulty with some combinations of platforms and
+            // may fail to launch but also to timely terminate.
+            // (known cases include Rust 1.3.0 through 1.10.0 in recent macOS Sierra.)
+            // we guard against such cases by enforcing a reasonable timeout to read.
+            let mut line1 = None;
+            if let Ok(mut child) = cmd.spawn() {
+                let timeout = Duration::new(1, 0);
+                match child.wait_timeout(timeout) {
+                    Ok(Some(status)) if status.success() => {
+                        let out = child.stdout.expect("Child::stdout requested but not present");
+                        let mut line = String::new();
+                        if BufReader::new(out).read_line(&mut line).is_ok() {
+                            let lineend = line.trim_right_matches(&['\r', '\n'][..]).len();
+                            line.truncate(lineend);
+                            line1 = Some(line);
+                        }
+                    }
+                    Ok(None) => {
+                        let _ = child.kill();
+                    }
+                    Ok(Some(_)) | Err(_) => {}
+                }
+            }
 
             if let Some(line1) = line1 {
                 line1.to_owned()

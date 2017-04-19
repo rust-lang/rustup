@@ -20,6 +20,7 @@ extern crate tempdir;
 extern crate sha2;
 extern crate markdown;
 extern crate toml;
+extern crate wait_timeout;
 
 #[cfg(windows)]
 extern crate gcc;
