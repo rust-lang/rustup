@@ -187,8 +187,8 @@ r"DISCUSSION:
     add the generated script to one of those directories, or add your
     own to this list.
 
-    Adding a custom directory is often the safest best if you're
-    unsure of which directory to use. First create the directory, for
+    Adding a custom directory is often the safest bet if you are
+    unsure of which directory to use. First create the directory; for
     this example we'll create a hidden directory inside our `$HOME`
     directory
 
