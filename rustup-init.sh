@@ -244,7 +244,7 @@ get_architecture() {
             fi
             ;;
 
-        armv7l)
+        armv7l | armv8l)
             local _cputype=armv7
             if [ "$_ostype" = "linux-android" ]; then
                 local _ostype=linux-androideabi
