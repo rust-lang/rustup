@@ -567,6 +567,22 @@ fn toolchain_update_is_like_update() {
     });
 }
 
+
+#[test]
+fn toolchain_uninstall_is_like_uninstall() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "uninstall", "nightly"]);
+        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+        assert!(out.status.success());
+        let stdout = String::from_utf8(out.stdout).unwrap();
+        assert!(!stdout.contains(
+            for_host!("'nightly-2015-01-01-{}'")));
+
+    });
+}
+
 #[test]
 fn toolchain_update_is_like_update_except_that_bare_install_is_an_error() {
     setup(&|config| {
