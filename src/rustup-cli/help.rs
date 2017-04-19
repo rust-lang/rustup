@@ -230,7 +230,7 @@ r"DISCUSSION:
 
     If the above command returns `False` run the following
 
-    `PS C:\> New-Item -path $profile -type file --force`
+    `PS C:\> New-Item -path $profile -type file -force`
 
     Now open the file provided by `$profile` (if you used the
     `New-Item` command it will be
