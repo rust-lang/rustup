@@ -99,7 +99,7 @@ main() {
     fi
 
     ensure mkdir -p "$_dir"
-    ensure curl -sSfL "$_url" -o "$_file"
+    ensure curl -sSfL -C - "$_url" -o "$_file"
     ensure chmod u+x "$_file"
     if [ ! -x "$_file" ]; then
         printf '%s\n' "Cannot execute $_file (likely because of mounting /tmp as noexec)." 1>&2
