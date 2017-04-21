@@ -76,26 +76,27 @@ fn run_multirust() -> Result<()> {
     let arg0 = env::args().next().map(PathBuf::from);
     let name = arg0.as_ref()
         .and_then(|a| a.file_stem())
-        .and_then(|a| a.to_str());
+        .and_then(|a| a.to_str())
+        .map(|a| a.to_lowercase());
     match name {
-        Some("rustup") => {
+        Some(ref n) if n == "rustup" => {
             rustup_mode::main()
         }
-        Some(n) if n.starts_with("multirust-setup")||
-                   n.starts_with("rustup-setup") ||
-                   n.starts_with("rustup-init") => {
+        Some(ref n) if n.starts_with("multirust-setup")||
+                       n.starts_with("rustup-setup") ||
+                       n.starts_with("rustup-init") => {
             // NB: The above check is only for the prefix of the file
             // name. Browsers rename duplicates to
             // e.g. multirust-setup(2), and this allows all variations
             // to work.
             setup_mode::main()
         }
-        Some(n) if n.starts_with("rustup-gc-") => {
+        Some(ref n) if n.starts_with("rustup-gc-") => {
             // This is the final uninstallation stage on windows where
             // multirust deletes its own exe
             self_update::complete_windows_uninstall()
         }
-        Some(n) if n.starts_with("multirust-") => {
+        Some(ref n) if n.starts_with("multirust-") => {
             // This is for compatibility with previous revisions of
             // multirust-rs self-update, which expect multirust-rs to
             // be available on the server, downloads it to
