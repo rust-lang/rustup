@@ -693,6 +693,8 @@ fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Vec<u8> {
 fn create_custom_toolchains(customdir: &Path) {
     let ref dir = customdir.join("custom-1/bin");
     fs::create_dir_all(dir).unwrap();
+    let ref libdir = customdir.join("custom-1/lib");
+    fs::create_dir_all(libdir).unwrap();
     let rustc = mock_bin("rustc", "1.0.0", "hash-c-1");
     let ref path = customdir.join(format!("custom-1/bin/rustc{}", EXE_SUFFIX));
     let mut file = File::create(path).unwrap();
@@ -701,6 +703,8 @@ fn create_custom_toolchains(customdir: &Path) {
 
     let ref dir = customdir.join("custom-2/bin");
     fs::create_dir_all(dir).unwrap();
+    let ref libdir = customdir.join("custom-2/lib");
+    fs::create_dir_all(libdir).unwrap();
     let rustc = mock_bin("rustc", "1.0.0", "hash-c-2");
     let ref path = customdir.join(format!("custom-2/bin/rustc{}", EXE_SUFFIX));
     let mut file = File::create(path).unwrap();

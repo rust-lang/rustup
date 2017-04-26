@@ -273,6 +273,8 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
+        try!(self.ensure_custom());
+
         let mut pathbuf = PathBuf::from(src);
 
         pathbuf.push("lib");
@@ -280,10 +282,8 @@ impl<'a> Toolchain<'a> {
         pathbuf.pop();
         pathbuf.push("bin");
         try!(utils::assert_is_directory(&pathbuf));
-        pathbuf.push("rustc");
+        pathbuf.push(format!("rustc{}", EXE_SUFFIX));
         try!(utils::assert_is_file(&pathbuf));
-
-        try!(self.ensure_custom());
 
         if link {
             try!(self.install(InstallMethod::Link(&try!(utils::to_absolute(src)))));
