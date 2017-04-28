@@ -367,7 +367,7 @@ pub fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
 pub fn open_browser(path: &Path) -> io::Result<bool> {
     #[cfg(not(windows))]
     fn inner(path: &Path) -> io::Result<bool> {
-        let commands = ["xdg-open", "open", "firefox", "chromium"];
+        let commands = ["xdg-open", "open", "firefox", "chromium", "sensible-browser"];
         if let Some(cmd) = find_cmd(&commands) {
             Command::new(cmd)
                 .arg(path)
