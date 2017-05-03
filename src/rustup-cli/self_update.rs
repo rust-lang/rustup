@@ -1128,8 +1128,9 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
     }
 
     let profile = utils::home_dir().map(|p| p.join(".profile"));
+    let bash_profile = utils::home_dir().map(|p| p.join(".bash_profile"));
 
-    let rcfiles = vec![profile];
+    let rcfiles = vec![profile, bash_profile];
     let existing_rcfiles = rcfiles.into_iter()
         .filter_map(|f|f)
         .filter(|f| f.exists());
