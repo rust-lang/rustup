@@ -1041,6 +1041,16 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
             let zprofile = zdotdir.map(|p| p.join(".zprofile"));
             profiles.push(zprofile);
         }
+
+        if shell.contains("bash") {
+            if let Some(bash_profile) = utils::home_dir().map(|p| p.join(".bash_profile")) {
+                // Only update .bash_profile if it exists because creating .bash_profile
+                // will cause .profile to not be read
+                if bash_profile.exists() {
+                    profiles.push(Some(bash_profile));
+                }
+            }
+        }
     }
 
     let rcfiles = profiles.into_iter().filter_map(|f|f);
