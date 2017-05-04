@@ -397,15 +397,22 @@ impl<'a> Toolchain<'a> {
         mod sysenv {
             pub const LOADER_PATH: &'static str = "DYLD_LIBRARY_PATH";
         }
-        env_var::prepend_path(sysenv::LOADER_PATH, &new_path, cmd);
+        env_var::prepend_path(sysenv::LOADER_PATH, vec![new_path.clone()], cmd);
 
         // Prepend CARGO_HOME/bin to the PATH variable so that we're sure to run
         // cargo/rustc via the proxy bins. There is no fallback case for if the
         // proxy bins don't exist. We'll just be running whatever happens to
         // be on the PATH.
+        let mut path_entries = vec![];
         if let Ok(cargo_home) = utils::cargo_home() {
-            env_var::prepend_path("PATH", &cargo_home.join("bin"), cmd);
+            path_entries.push(cargo_home.join("bin").to_path_buf());
         }
+
+        if cfg!(target_os = "windows") {
+            path_entries.push(self.path.join("bin"));
+        }
+
+        env_var::prepend_path("PATH", path_entries, cmd);
     }
 
     pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {

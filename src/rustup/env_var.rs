@@ -1,6 +1,5 @@
-use std::ffi::OsString;
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 
 pub const RUST_RECURSION_COUNT_MAX: u32 = 5;
@@ -20,15 +19,19 @@ pub fn append_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
     }
 }
 
-pub fn prepend_path(name: &str, value: &Path, cmd: &mut Command) {
+pub fn prepend_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
     let old_value = env::var_os(name);
-    let mut parts = vec![value.to_owned()];
+    let mut parts: Vec<PathBuf>;
     if let Some(ref v) = old_value {
-        parts.extend(env::split_paths(v));
+        parts = value;
+        parts.extend(env::split_paths(v).collect::<Vec<_>>());
+    } else {
+        parts = value;
     }
-    let new_value = env::join_paths(parts).unwrap_or_else(|_| OsString::from(value));
 
-    cmd.env(name, new_value);
+    if let Ok(new_value) = env::join_paths(parts) {
+        cmd.env(name, new_value);
+    }
 }
 
 pub fn inc(name: &str, cmd: &mut Command) {
