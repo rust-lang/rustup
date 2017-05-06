@@ -33,8 +33,15 @@ And it runs on all platforms Rust supports, including Windows.
 
 ## Installation
 
-Follow the instructions at [www.rustup.rs](https://www.rustup.rs). If
-that doesn't work for you there are [other installation
+Install [curl](https://curl.haxx.se/download.html), then run the following in your terminal (follow the onscreen instructions) :
+
+```
+curl https://sh.rustup.rs -sSf | sh
+```
+
+Instructions also at [www.rustup.rs](https://www.rustup.rs). 
+
+If that doesn't work for you there are [other installation
 methods](#other-installation-methods).
 
 `rustup` installs `rustc`, `cargo`, `rustup` and other standard tools
