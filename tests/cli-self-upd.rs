@@ -325,6 +325,48 @@ fn install_adds_path_to_profile() {
 
 #[test]
 #[cfg(unix)]
+fn install_with_zsh_adds_path_to_zprofile() {
+    setup(&|config| {
+        let my_rc = "foo\nbar\nbaz";
+        let ref rc = config.homedir.join(".zprofile");
+        raw::write_file(rc, my_rc).unwrap();
+
+        let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+        cmd.env("SHELL", "zsh");
+        assert!(cmd.output().unwrap().status.success());
+
+        let new_rc = raw::read_file(rc).unwrap();
+        let addition = format!(r#"export PATH="{}/bin:$PATH""#,
+                               config.cargodir.display());
+        let expected = format!("{}\n{}\n", my_rc, addition);
+        assert_eq!(new_rc, expected);
+    });
+}
+
+#[test]
+#[cfg(unix)]
+fn install_with_zsh_adds_path_to_zdotdir_zprofile() {
+    setup(&|config| {
+        let zdotdir = TempDir::new("zdotdir").unwrap();
+        let my_rc = "foo\nbar\nbaz";
+        let ref rc = zdotdir.path().join(".zprofile");
+        raw::write_file(rc, my_rc).unwrap();
+
+        let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+        cmd.env("SHELL", "zsh");
+        cmd.env("ZDOTDIR", zdotdir.path());
+        assert!(cmd.output().unwrap().status.success());
+
+        let new_rc = raw::read_file(rc).unwrap();
+        let addition = format!(r#"export PATH="{}/bin:$PATH""#,
+                               config.cargodir.display());
+        let expected = format!("{}\n{}\n", my_rc, addition);
+        assert_eq!(new_rc, expected);
+    });
+}
+
+#[test]
+#[cfg(unix)]
 fn install_adds_path_to_rcfile_just_once() {
     setup(&|config| {
         let my_profile = "foo\nbar\nbaz";

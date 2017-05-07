@@ -1,7 +1,7 @@
 [package]
 
 name = "rustup-utils"
-version = "1.0.0"
+version = "1.2.0"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "multirust in rust - manage multiple rust installations with ease"
 
@@ -22,6 +22,7 @@ url = "1.1"
 toml = "0.1.27"
 semver = "0.4.0"
 download = { path = "../download" }
+lazy_static = "0.1.15"
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.8"

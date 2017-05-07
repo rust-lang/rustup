@@ -163,6 +163,7 @@ impl TargetTriple {
             let host_triple = match (sysname, machine) {
                 (_, b"arm") if cfg!(target_os = "android") => Some("arm-linux-androideabi"),
                 (_, b"armv7l") if cfg!(target_os = "android") => Some("armv7-linux-androideabi"),
+                (_, b"armv8l") if cfg!(target_os = "android") => Some("armv7-linux-androideabi"),
                 (_, b"aarch64") if cfg!(target_os = "android") => Some("aarch64-linux-android"),
                 (_, b"i686") if cfg!(target_os = "android") => Some("i686-linux-android"),
                 (b"Linux", b"x86_64") => Some("x86_64-unknown-linux-gnu"),
@@ -170,6 +171,8 @@ impl TargetTriple {
                 (b"Linux", b"mips") => Some(TRIPLE_MIPS_UNKNOWN_LINUX_GNU),
                 (b"Linux", b"mips64") => Some(TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64),
                 (b"Linux", b"arm") => Some("arm-unknown-linux-gnueabi"),
+                (b"Linux", b"armv7l") => Some("armv7-unknown-linux-gnueabihf"),
+                (b"Linux", b"armv8l") => Some("armv7-unknown-linux-gnueabihf"),
                 (b"Linux", b"aarch64") => Some("aarch64-unknown-linux-gnu"),
                 (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
                 (b"Darwin", b"i686") => Some("i686-apple-darwin"),
@@ -506,6 +509,23 @@ impl ops::Deref for File {
     }
 }
 
+fn file_hash(path: &Path) -> Result<String> {
+    let mut hasher = Sha256::new();
+    use std::io::Read;
+    let mut downloaded = try!(fs::File::open(&path).chain_err(|| "opening already downloaded file"));
+    let mut buf = vec![0; 32768];
+    loop {
+        if let Ok(n) = downloaded.read(&mut buf) {
+            if n == 0 { break; }
+            hasher.input(&buf[..n]);
+        } else {
+            break;
+        }
+    }
+
+    Ok(hasher.result_str())
+}
+
 impl<'a> DownloadCfg<'a> {
 
     pub fn download(&self, url: &Url, hash: &str, notify_handler: &'a Fn(Notification)) -> Result<File> {
@@ -514,19 +534,7 @@ impl<'a> DownloadCfg<'a> {
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
-            let mut hasher = Sha256::new();
-            use std::io::Read;
-            let mut downloaded = try!(fs::File::open(&target_file).chain_err(|| "opening already downloaded file"));
-            let mut buf = [0; 1024];
-            loop {
-                if let Ok(n) = downloaded.read(&mut buf) {
-                    if n == 0 { break; }
-                    hasher.input(&buf[..n]);
-                } else {
-                    break;
-                }
-            }
-            let cached_result = hasher.result_str();
+            let cached_result = try!(file_hash(&target_file));
             if hash == cached_result {
                 notify_handler(Notification::FileAlreadyDownloaded);
                 notify_handler(Notification::ChecksumValid(&url.to_string()));
@@ -537,11 +545,21 @@ impl<'a> DownloadCfg<'a> {
             }
         }
 
+
+        let partial_file_path =
+            target_file.with_file_name(
+                target_file.file_name().map(|s| {
+                    s.to_str().unwrap_or("_")})
+                    .unwrap_or("_")
+                    .to_owned()
+                + ".partial");
+
         let mut hasher = Sha256::new();
 
-        try!(utils::download_file(&url,
-                                  &target_file,
+        try!(utils::download_file_with_resume(&url,
+                                  &partial_file_path,
                                   Some(&mut hasher),
+                                  true,
                                   &|n| notify_handler(n.into())));
 
         let actual_hash = hasher.result_str();
@@ -555,7 +573,8 @@ impl<'a> DownloadCfg<'a> {
             }.into());
         } else {
             notify_handler(Notification::ChecksumValid(&url.to_string()));
-            return Ok(File { path: target_file, })
+            try!(fs::rename(&partial_file_path, &target_file));
+            return Ok(File { path: target_file });
         }
     }
 

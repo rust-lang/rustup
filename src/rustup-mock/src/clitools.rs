@@ -62,6 +62,8 @@ pub static MULTI_ARCH1: &'static str = "i686-unknown-linux-gnu";
 pub fn setup(s: Scenario, f: &Fn(&Config)) {
     // Unset env variables that will break our testing
     env::remove_var("RUSTUP_TOOLCHAIN");
+    env::remove_var("SHELL");
+    env::remove_var("ZDOTDIR");
 
     let exedir = TempDir::new("rustup-exe").unwrap();
     let distdir = TempDir::new("rustup-dist").unwrap();
@@ -373,6 +375,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
     let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
     let cross_std2 = build_mock_cross_std_installer(CROSS_ARCH2, date);
     let rust_src = build_mock_rust_src_installer();
+    let rust_analysis = build_mock_rust_analysis_installer(host_triple);
 
     // Convert the mock installers to mock package definitions for the
     // mock dist server
@@ -384,6 +387,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                    ("rls", vec![(rls, host_triple.clone())]),
                    ("rust-docs", vec![(rust_docs, host_triple.clone())]),
                    ("rust-src", vec![(rust_src, "*".to_string())]),
+                   ("rust-analysis", vec![(rust_analysis, "*".to_string())]),
                    ("rust", vec![(rust, host_triple.clone())])];
 
     if s == Scenario::MultiHost {
@@ -466,6 +470,10 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
             target_pkg.extensions.push(MockComponent {
                 name: "rust-src".to_string(),
                 target: "*".to_string(),
+            });
+            target_pkg.extensions.push(MockComponent {
+                name: "rust-analysis".to_string(),
+                target: target.to_string(),
             });
         }
     }
@@ -571,6 +579,16 @@ fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
             ("rust-docs".to_string(),
              vec![MockCommand::File("share/doc/rust/html/index.html".to_string())],
              vec![("share/doc/rust/html/index.html".to_string(), "".into())])
+                ]
+    }
+}
+
+fn build_mock_rust_analysis_installer(trip: &str) -> MockInstallerBuilder {
+    MockInstallerBuilder {
+        components: vec![
+            (format!("rust-analysis-{}", trip),
+             vec![MockCommand::File(format!("lib/rustlib/{}/analysis/libfoo.json", trip))],
+             vec![(format!("lib/rustlib/{}/analysis/libfoo.json", trip), "".into())])
                 ]
     }
 }
