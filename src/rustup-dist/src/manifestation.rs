@@ -4,7 +4,7 @@
 use config::Config;
 use manifest::{Component, Manifest, TargetedPackage};
 use dist::{TargetTriple, DEFAULT_DIST_SERVER};
-use component::{Components, Transaction, TarGzPackage, Package};
+use component::{Components, Transaction, TarGzPackage, TarXzPackage, Package};
 use temp;
 use errors::*;
 use notifications::*;
@@ -15,6 +15,11 @@ use std::path::Path;
 
 pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
 pub const CONFIG_FILE: &'static str = "multirust-config.toml";
+
+enum Format {
+    Gz,
+    Xz,
+}
 
 #[derive(Debug)]
 pub struct Manifestation {
@@ -115,20 +120,26 @@ impl Manifestation {
         }
 
         // Map components to urls and hashes
-        let mut components_urls_and_hashes: Vec<(Component, String, String)> = Vec::new();
+        let mut components_urls_and_hashes: Vec<(Component, Format, String, String)> = Vec::new();
         for component in components_to_install {
             let package = try!(new_manifest.get_package(&component.pkg));
             let target_package = try!(package.get_target(component.target.as_ref()));
-            let c_u_h = (component, target_package.url.clone(), target_package.hash.clone());
+            let c_u_h =
+                if let (Some(url), Some(hash)) = (target_package.xz_url.clone(),
+                                                 target_package.xz_hash.clone()) {
+                    (component, Format::Xz, url, hash)
+                } else {
+                    (component, Format::Gz, target_package.url.clone(), target_package.hash.clone())
+                };
             components_urls_and_hashes.push(c_u_h);
         }
 
         let altered = temp_cfg.dist_server != DEFAULT_DIST_SERVER;
 
         // Download component packages and validate hashes
-        let mut things_to_install: Vec<(Component, File)> = Vec::new();
+        let mut things_to_install: Vec<(Component, Format, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
-        for (component, url, hash) in components_urls_and_hashes {
+        for (component, format, url, hash) in components_urls_and_hashes {
 
             notify_handler(Notification::DownloadingComponent(&component.pkg,
                                                               &self.target_triple,
@@ -146,7 +157,7 @@ impl Manifestation {
             }));
             things_downloaded.push(hash);
 
-            things_to_install.push((component, dowloaded_file));
+            things_to_install.push((component, format, dowloaded_file));
         }
 
         // Begin transaction
@@ -167,13 +178,24 @@ impl Manifestation {
         }
 
         // Install components
-        for (component, installer_file) in things_to_install {
+        for (component, format, installer_file) in things_to_install {
 
             notify_handler(Notification::InstallingComponent(&component.pkg,
                                                              &self.target_triple,
                                                              component.target.as_ref()));
 
-            let package = try!(TarGzPackage::new_file(&installer_file, temp_cfg));
+            let gz;
+            let xz;
+            let package: &Package = match format {
+                Format::Gz => {
+                    gz = try!(TarGzPackage::new_file(&installer_file, temp_cfg));
+                    &gz
+                }
+                Format::Xz => {
+                    xz = try!(TarXzPackage::new_file(&installer_file, temp_cfg));
+                    &xz
+                }
+            };
 
             // For historical reasons, the rust-installer component
             // names are not the same as the dist manifest component
