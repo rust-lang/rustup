@@ -17,7 +17,7 @@ rustls-backend = ["hyper", "env_proxy", "rustls", "lazy_static", "ca-loader"]
 [dependencies]
 error-chain = "0.7.1"
 url = "1.1"
-curl = { version = "0.4", optional = true }
+curl = { version = "0.4.6", optional = true }
 lazy_static = { version = "0.2", optional = true }
 native-tls = { version = "0.1", optional = true }
 
