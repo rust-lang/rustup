@@ -166,6 +166,7 @@ impl TargetTriple {
                 (_, b"armv8l") if cfg!(target_os = "android") => Some("armv7-linux-androideabi"),
                 (_, b"aarch64") if cfg!(target_os = "android") => Some("aarch64-linux-android"),
                 (_, b"i686") if cfg!(target_os = "android") => Some("i686-linux-android"),
+                (_, b"x86_64") if cfg!(target_os = "android") => Some("x86_64-linux-android"),
                 (b"Linux", b"x86_64") => Some("x86_64-unknown-linux-gnu"),
                 (b"Linux", b"i686") => Some("i686-unknown-linux-gnu"),
                 (b"Linux", b"mips") => Some(TRIPLE_MIPS_UNKNOWN_LINUX_GNU),
