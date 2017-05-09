@@ -32,7 +32,7 @@ r"DISCUSSION:
     'nightly', or '1.8.0'. For more information see `rustup help
     toolchain`.";
 
-pub static TOOLCHAIN_INSTALL_HELP: &'static str =
+pub static INSTALL_HELP: &'static str =
 r"DISCUSSION:
     Installs a specific rust toolchain.
 
@@ -81,8 +81,29 @@ r"DISCUSSION:
 
         $ rustup default stable-msvc
 
-    Toolchain names that don't name a channel instead can be used to
-    name custom toolchains with the `rustup toolchain link` command.";
+    rustup can also manage symlinked local toolchain builds, which are
+    often used to for developing Rust itself. For more information see
+    `rustup toolchain help link`.";
+
+pub static TOOLCHAIN_LINK_HELP: &'static str =
+r"DISCUSSION:
+    'toolchain' is the custom name to be assigned to the new toolchain.
+    Any name is permitted as long as it does not fully match an initial
+    substring of a standard release channel. For example, you can use
+    the names 'latest' or '2017-04-01' but you cannot use 'stable' or
+    'beta-i686' or 'nightly-x86_64-unknown-linux-gnu'.
+
+    'path' specifies the directory where the binaries and libraries for
+    the custom toolchain can be found. For example, when used for
+    development of Rust itself, toolchains can be linked directly out of
+    the build directory. After building, you can test out different
+    compiler versions as follows:
+
+        $ rustup toolchain link latest-stage1 build/x86_64-unknown-linux-gnu/stage1
+        $ rustup override set latest-stage1
+
+    If you now compile a crate in the current directory, the custom
+    toolchain 'latest-stage1' will be used.";
 
 pub static OVERRIDE_HELP: &'static str =
 r"DISCUSSION:

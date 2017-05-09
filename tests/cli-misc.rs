@@ -306,10 +306,11 @@ fn rustup_failed_path_search() {
         let ref tool_path = config.exedir.join(&format!("fake_proxy{}", EXE_SUFFIX));
         utils::hardlink_file(rustup_path, tool_path).expect("Failed to create fake proxy for test");
 
-        expect_ok(config, &["rustup", "toolchain", "link", "empty", &config.emptydir.to_string_lossy()]);
-        let broken = &["rustup", "run", "empty", "fake_proxy"];
+        expect_ok(config, &["rustup", "toolchain", "link", "custom",
+                            &config.customdir.join("custom-1").to_string_lossy()]);
+        let broken = &["rustup", "run", "custom", "fake_proxy"];
         expect_err(config, broken, &format!(
-            "toolchain 'empty' does not have the binary `fake_proxy{}`", EXE_SUFFIX
+            "toolchain 'custom' does not have the binary `fake_proxy{}`", EXE_SUFFIX
         ));
 
         // Hardlink will be automatically cleaned up by test setup code
