@@ -199,6 +199,14 @@ fn unpack_without_first_dir<R: Read>(archive: &mut tar::Archive<R>, path: &Path)
         // Throw away the first path component
         components.next();
         let full_path = path.join(&components.as_path());
+
+        // Create the full path to the entry if it does not exist already
+        match full_path.parent() {
+            Some(parent) if !parent.exists() =>
+                try!(::std::fs::create_dir_all(&parent).chain_err(|| ErrorKind::ExtractingPackage)),
+            _ => (),
+        };
+
         try!(entry.unpack(&full_path).chain_err(|| ErrorKind::ExtractingPackage));
     }
 
