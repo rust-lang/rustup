@@ -1,6 +1,6 @@
 [package]
 name = "rustup-win-installer"
-version = "1.2.0"
+version = "1.3.0"
 authors = ["Patrick Reisert"]
 build = "build.rs"
 
