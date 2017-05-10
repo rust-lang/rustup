@@ -66,7 +66,7 @@ r"DISCUSSION:
 
     'channel' is either a named release channel or an explicit version
     number, such as '1.8.0'. Channel names can be optionally appended
-    with an archive date, as in 'nightly-2014-12-18', in which case
+    with an archive date, as in 'nightly-2017-05-09', in which case
     the toolchain is downloaded from the archive for that date.
 
     Finally, the host may be specified as a target triple. This is
