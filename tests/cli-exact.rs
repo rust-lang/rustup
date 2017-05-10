@@ -156,6 +156,7 @@ fn remove_override_with_path_deleted() {
 }
 
 #[test]
+#[cfg_attr(target_os = "windows", ignore)] // FIXME #1103
 fn remove_override_nonexistent() {
     for keyword in &["remove", "unset"] {
         setup(&|config| {
