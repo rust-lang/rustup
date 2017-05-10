@@ -1,15 +1,12 @@
 #![recursion_limit = "1024"]
 
 extern crate rustup_dist;
-#[macro_use]
 extern crate rustup_utils;
 #[macro_use]
 extern crate error_chain;
 
-#[macro_use]
 extern crate clap;
 extern crate regex;
-#[macro_use]
 extern crate rustup;
 extern crate term;
 extern crate itertools;

@@ -9,8 +9,6 @@ use std::io;
 use std::path::Path;
 use std::process::{Command, Stdio, ExitStatus};
 use std::str;
-use std::thread;
-use std::time::Duration;
 
 use rand::random;
 
