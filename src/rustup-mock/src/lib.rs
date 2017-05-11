@@ -6,6 +6,7 @@ extern crate lazy_static;
 extern crate scopeguard;
 extern crate walkdir;
 extern crate flate2;
+extern crate xz2;
 extern crate tempdir;
 extern crate itertools;
 extern crate tar;

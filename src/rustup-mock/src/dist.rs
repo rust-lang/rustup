@@ -11,6 +11,7 @@ use tempdir::TempDir;
 use sha2::{Sha256, Digest};
 use toml;
 use flate2;
+use xz2;
 use tar;
 use walkdir;
 
@@ -102,16 +103,22 @@ pub struct MockComponent {
     pub target: String,
 }
 
+#[derive(Clone)]
+pub struct MockHashes {
+    pub gz: String,
+    pub xz: Option<String>,
+}
+
 pub enum ManifestVersion { V1, V2 }
 
 impl MockDistServer {
-    pub fn write(&self, vs: &[ManifestVersion]) {
+    pub fn write(&self, vs: &[ManifestVersion], enable_xz: bool) {
         fs::create_dir_all(&self.path).unwrap();
 
         for channel in self.channels.iter() {
             let ref mut hashes = HashMap::new();
             for package in &channel.packages {
-                let new_hashes = self.build_package(&channel, &package);
+                let new_hashes = self.build_package(&channel, &package, enable_xz);
                 hashes.extend(new_hashes.into_iter());
             }
             for v in vs {
@@ -123,16 +130,21 @@ impl MockDistServer {
         }
     }
 
-    fn build_package(&self, channel: &MockChannel, package: &MockPackage) -> HashMap<MockComponent, String> {
+    fn build_package(&self, channel: &MockChannel, package: &MockPackage, enable_xz: bool) -> HashMap<MockComponent, MockHashes> {
         let mut hashes = HashMap::new();
 
         for target_package in &package.targets {
-            let hash = self.build_target_package(channel, package, target_package);
+            let gz_hash = self.build_target_package(channel, package, target_package, ".tar.gz");
+            let xz_hash = if enable_xz {
+                Some(self.build_target_package(channel, package, target_package, ".tar.xz"))
+            } else {
+                None
+            };
             let component = MockComponent {
                 name: package.name.to_string(),
                 target: target_package.target.to_string(),
             };
-            hashes.insert(component, hash);
+            hashes.insert(component, MockHashes { gz: gz_hash, xz: xz_hash });
         }
 
         return hashes;
@@ -142,7 +154,8 @@ impl MockDistServer {
     fn build_target_package(&self,
                             channel: &MockChannel,
                             package: &MockPackage,
-                            target_package: &MockTargetedPackage) -> String {
+                            target_package: &MockTargetedPackage,
+                            format: &str) -> String {
         // This is where the tarball, sums and sigs will go
         let ref dist_dir = self.path.join("dist");
         let ref archive_dir = dist_dir.join(&channel.date);
@@ -158,8 +171,8 @@ impl MockDistServer {
             format!("{}-{}", package.name, channel.name)
         };
         let ref installer_dir = workdir.join(installer_name);
-        let ref installer_tarball = archive_dir.join(format!("{}.tar.gz", installer_name));
-        let ref installer_hash = archive_dir.join(format!("{}.tar.gz.sha256", installer_name));
+        let ref installer_tarball = archive_dir.join(format!("{}{}", installer_name, format));
+        let ref installer_hash = archive_dir.join(format!("{}{}.sha256", installer_name, format));
 
         fs::create_dir_all(installer_dir).unwrap();
 
@@ -172,8 +185,8 @@ impl MockDistServer {
 
         // Copy from the archive to the main dist directory
         if package.name == "rust" {
-            let ref main_installer_tarball = dist_dir.join(format!("{}.tar.gz", installer_name));
-            let ref main_installer_hash = dist_dir.join(format!("{}.tar.gz.sha256", installer_name));
+            let ref main_installer_tarball = dist_dir.join(format!("{}{}", installer_name, format));
+            let ref main_installer_hash = dist_dir.join(format!("{}{}.sha256", installer_name, format));
             fs::copy(installer_tarball, main_installer_tarball).unwrap();
             fs::copy(installer_hash, main_installer_hash).unwrap();
         }
@@ -210,7 +223,7 @@ impl MockDistServer {
         fs::copy(hash_path, archive_hash_path).unwrap();
     }
 
-    fn write_manifest_v2(&self, channel: &MockChannel, hashes: &HashMap<MockComponent, String>) {
+    fn write_manifest_v2(&self, channel: &MockChannel, hashes: &HashMap<MockComponent, MockHashes>) {
         let mut toml_manifest = toml::Table::new();
 
         toml_manifest.insert(String::from("manifest-version"), toml::Value::String(MOCK_MANIFEST_VERSION.to_owned()));
@@ -235,14 +248,19 @@ impl MockDistServer {
                 };
                 let path = self.path.join("dist").join(&channel.date).join(package_file_name);
                 let url = format!("file://{}", path.to_string_lossy());
-                toml_target.insert(String::from("url"), toml::Value::String(url));
+                toml_target.insert(String::from("url"), toml::Value::String(url.clone()));
 
                 let ref component = MockComponent {
                     name: package.name.to_owned(),
                     target: target.target.to_owned(),
                 };
                 let hash = hashes[component].clone();
-                toml_target.insert(String::from("hash"), toml::Value::String(hash));
+                toml_target.insert(String::from("hash"), toml::Value::String(hash.gz));
+
+                if let Some(xz_hash) = hash.xz {
+                    toml_target.insert(String::from("xz_url"), toml::Value::String(url.replace(".tar.gz", ".tar.xz")));
+                    toml_target.insert(String::from("xz_hash"), toml::Value::String(xz_hash));
+                }
 
                 // [pkg.*.target.*.components.*]
                 let mut toml_components = toml::Array::new();
@@ -291,8 +309,20 @@ impl MockDistServer {
 
 fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
     let outfile = File::create(dst).unwrap();
-    let gzwriter = flate2::write::GzEncoder::new(outfile, flate2::Compression::None);
-    let mut tar = tar::Builder::new(gzwriter);
+    let mut gzwriter;
+    let mut xzwriter;
+    let writer: &mut Write = match &dst.to_string_lossy() {
+        s if s.ends_with(".tar.gz") => {
+            gzwriter = flate2::write::GzEncoder::new(outfile, flate2::Compression::None);
+            &mut gzwriter
+        }
+        s if s.ends_with(".tar.xz") => {
+            xzwriter = xz2::write::XzEncoder::new(outfile, 0);
+            &mut xzwriter
+        }
+        _ => panic!("Unsupported archive format"),
+    };
+    let mut tar = tar::Builder::new(writer);
     for entry in walkdir::WalkDir::new(src) {
         let entry = entry.unwrap();
         let parts: Vec<_> = entry.path().iter().map(|p| p.to_owned()).collect();
