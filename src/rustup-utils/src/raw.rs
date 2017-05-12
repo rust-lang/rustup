@@ -7,10 +7,9 @@ use std::fs;
 use std::io::Write;
 use std::io;
 use std::path::Path;
+use std::ptr;
 use std::process::{Command, Stdio, ExitStatus};
 use std::str;
-use std::thread;
-use std::time::Duration;
 
 use rand::random;
 
@@ -194,19 +193,6 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
         pub ReparseTarget: WCHAR,
     }
 
-    fn to_u16s<S: AsRef<OsStr>>(s: S) -> io::Result<Vec<u16>> {
-        fn inner(s: &OsStr) -> io::Result<Vec<u16>> {
-            let mut maybe_result: Vec<u16> = s.encode_wide().collect();
-            if maybe_result.iter().any(|&u| u == 0) {
-                return Err(io::Error::new(io::ErrorKind::InvalidInput,
-                                          "strings passed to WinAPI cannot contain NULs"));
-            }
-            maybe_result.push(0);
-            Ok(maybe_result)
-        }
-        inner(s.as_ref())
-    }
-
     // We're using low-level APIs to create the junction, and these are more picky about paths.
     // For example, forward slashes cannot be used as a path separator, so we should try to
     // canonicalize the path first.
@@ -214,7 +200,7 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
 
     try!(fs::create_dir(junction));
 
-    let path = try!(to_u16s(junction));
+    let path = try!(windows::to_u16s(junction));
 
     unsafe {
         let h = CreateFileW(path.as_ptr(),
@@ -382,15 +368,29 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
     }
     #[cfg(windows)]
     fn inner(path: &Path) -> io::Result<bool> {
-        Command::new("cmd")
-            .arg("/C")
-            .arg("start")
-            .arg(path)
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .map(|_| true)
+        use winapi;
+        extern "system" {
+            pub fn ShellExecuteW(hwnd: winapi::HWND,
+                                 lpOperation: winapi::LPCWSTR,
+                                 lpFile: winapi::LPCWSTR,
+                                 lpParameters: winapi::LPCWSTR,
+                                 lpDirectory: winapi::LPCWSTR,
+                                 nShowCmd: winapi::c_int)
+                                 -> winapi::HINSTANCE;
+        }
+        const SW_SHOW: winapi::c_int = 5;
+        
+        let path = windows::to_u16s(path)?;
+        let operation = windows::to_u16s("open")?;
+        let result = unsafe {
+            ShellExecuteW(ptr::null_mut(),
+                          operation.as_ptr(),
+                          path.as_ptr(),
+                          ptr::null(),
+                          ptr::null(),
+                          SW_SHOW)
+        };
+        Ok(result as usize > 32)
     }
     inner(path)
 }
@@ -402,8 +402,8 @@ pub mod windows {
     use std::path::PathBuf;
     use std::ptr;
     use std::slice;
-    use std::ffi::OsString;
-    use std::os::windows::ffi::OsStringExt;
+    use std::ffi::{OsString, OsStr};
+    use std::os::windows::ffi::{OsStringExt, OsStrExt};
     use shell32;
     use ole32;
 
@@ -443,5 +443,18 @@ pub mod windows {
             ole32::CoTaskMemFree(path as *mut _);
         }
         result
+    }
+
+    pub fn to_u16s<S: AsRef<OsStr>>(s: S) -> io::Result<Vec<u16>> {
+        fn inner(s: &OsStr) -> io::Result<Vec<u16>> {
+            let mut maybe_result: Vec<u16> = s.encode_wide().collect();
+            if maybe_result.iter().any(|&u| u == 0) {
+                return Err(io::Error::new(io::ErrorKind::InvalidInput,
+                                          "strings passed to WinAPI cannot contain NULs"));
+            }
+            maybe_result.push(0);
+            Ok(maybe_result)
+        }
+        inner(s.as_ref())
     }
 }
