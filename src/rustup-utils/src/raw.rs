@@ -7,8 +7,7 @@ use std::fs;
 use std::io::Write;
 use std::io;
 use std::path::Path;
-use std::ptr;
-use std::process::{Command, Stdio, ExitStatus};
+use std::process::{Command, ExitStatus};
 use std::str;
 
 use rand::random;
@@ -353,6 +352,8 @@ pub fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
 pub fn open_browser(path: &Path) -> io::Result<bool> {
     #[cfg(not(windows))]
     fn inner(path: &Path) -> io::Result<bool> {
+        use std::process::Stdio;
+
         let commands = ["xdg-open", "open", "firefox", "chromium", "sensible-browser"];
         if let Some(cmd) = find_cmd(&commands) {
             Command::new(cmd)
@@ -369,6 +370,8 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
     #[cfg(windows)]
     fn inner(path: &Path) -> io::Result<bool> {
         use winapi;
+        use std::ptr;
+
         extern "system" {
             pub fn ShellExecuteW(hwnd: winapi::HWND,
                                  lpOperation: winapi::LPCWSTR,
@@ -379,7 +382,7 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
                                  -> winapi::HINSTANCE;
         }
         const SW_SHOW: winapi::c_int = 5;
-        
+
         let path = windows::to_u16s(path)?;
         let operation = windows::to_u16s("open")?;
         let result = unsafe {
