@@ -372,6 +372,7 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
         use winapi;
         use std::ptr;
 
+        // FIXME: When winapi has this function, use their version
         extern "system" {
             pub fn ShellExecuteW(hwnd: winapi::HWND,
                                  lpOperation: winapi::LPCWSTR,
