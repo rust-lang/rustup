@@ -123,7 +123,7 @@ impl<'a> Toolchain<'a> {
             (true, false) => UpdateStatus::Installed,
             (true, true) => UpdateStatus::Updated,
             (false, true) => UpdateStatus::Unchanged,
-            (false, false) => unreachable!(),
+            (false, false) => UpdateStatus::Unchanged,
         };
 
         Ok(status)

@@ -198,8 +198,7 @@ fn bad_sha_on_manifest() {
         sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
         let sha_str = String::from_utf8(sha_bytes).unwrap();
         rustup_utils::raw::write_file(&sha_file, &sha_str).unwrap();
-        expect_err(config, &["rustup", "default", "nightly"],
-                   "checksum failed");
+        expect_ok(config, &["rustup", "default", "nightly"]);
     });
 }
 

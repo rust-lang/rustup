@@ -666,6 +666,9 @@ pub fn update_from_dist_<'a>(download: DownloadCfg<'a>,
             // Proceed to try v1 as a fallback
             (download.notify_handler)(Notification::DownloadingLegacyManifest);
         }
+        Err(Error(ErrorKind::ChecksumFailed { .. }, _)) => {
+            return Ok(None)
+        }
         Err(e) => return Err(e),
     }
 
