@@ -91,6 +91,10 @@ matrix:
       env: TARGET=i686-linux-android
            DOCKER=android
            SKIP_TESTS=1
+    - os: linux
+      env: TARGET=x86_64-linux-android
+           DOCKER=android
+           SKIP_TESTS=1
 
     # On OSX we want to target 10.7 so we ensure that the appropriate
     # environment variable is set to tell the linker what we want.
@@ -122,7 +126,7 @@ install:
   - sudo pip install awscli
   - aws configure set preview.cloudfront true
   - curl https://static.rust-lang.org/rustup.sh |
-    sh -s -- --prefix=$HOME/rust --spec=nightly-2016-11-06 --with-target=$TARGET
+    sh -s -- --prefix=$HOME/rust --spec=nightly-2017-04-25 --with-target=$TARGET
 
 script:
   - mkdir -p target/$TARGET

@@ -67,6 +67,13 @@ case $TARGET in
     OPENSSL_OS=android-x86
     OPENSSL_CC=i686-linux-android-gcc
     OPENSSL_AR=i686-linux-android-ar
+    OPENSSL_CFLAGS=no-asm
+    ;;
+  x86_64-linux-android)
+    OPENSSL_OS=linux-x86_64
+    OPENSSL_CC=x86_64-linux-android-gcc
+    OPENSSL_AR=x86_64-linux-android-ar
+    OPENSSL_CFLAGS="no-asm -mandroid -fomit-frame-pointer"
     ;;
   arm-*-linux-gnueabi)
     OPENSSL_OS=linux-armv4
