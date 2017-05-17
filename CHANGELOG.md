@@ -1,3 +1,73 @@
+# 1.3.0
+
+* [Add armv8l support](https://github.com/rust-lang-nursery/rustup.rs/pull/1055)
+* [Update curl crate](https://github.com/rust-lang-nursery/rustup.rs/pull/1101)
+* [Fix inadvertent dependency on bash](https://github.com/rust-lang-nursery/rustup.rs/pull/1048)
+* [Update openssl-probe to 0.1.1](https://github.com/rust-lang-nursery/rustup.rs/pull/1061)
+* [zsh completions cleanup](https://github.com/rust-lang-nursery/rustup.rs/pull/1068)
+* [Alias 'rustup toolchain uninstall' to 'rustup uninstall'](https://github.com/rust-lang-nursery/rustup.rs/pull/1073)
+* [Fix a typo in PowerShell completion script help](https://github.com/rust-lang-nursery/rustup.rs/pull/1076)
+* [Enforce timeouts for reading rustc version](https://github.com/rust-lang-nursery/rustup.rs/pull/1071)
+* [Fix OpenSSL linkage by using the final install-directory in the build](https://github.com/rust-lang-nursery/rustup.rs/pull/1065)
+
+Contributors: bors, Brian Anderson, Diggory Blake, Greg Alexander, James Elford,
+Jordan Hiltunen, Justin Noah, Kang Seonghoon, Kevin K, Marco A L Barbosa
+
+# 1.2.0
+
+* [Check ZDOTDIR when adding path to .zprofile](https://github.com/rust-lang-nursery/rustup.rs/pull/1038)
+* [Update links and install page to include android support](https://github.com/rust-lang-nursery/rustup.rs/pull/1037)
+* [Add bash completion guidance for macOS users](https://github.com/rust-lang-nursery/rustup.rs/pull/1035)
+* [Support partial downloads](https://github.com/rust-lang-nursery/rustup.rs/pull/1020)
+* [Don't crash if modifying multiple profile files](https://github.com/rust-lang-nursery/rustup.rs/pull/1040)
+
+Contributors: Brian Anderson, James Elford, Jason Dreyzehner, Marco A
+L Barbosa, Wim Looman
+
+# 1.1.0
+
+* [Fix browser detection for Linux ppc64 and NetBSD](https://github.com/rust-lang-nursery/rustup.rs/pull/875)
+* [Update windows info](https://github.com/rust-lang-nursery/rustup.rs/pull/879)
+* [Update to markdown 0.2](https://github.com/rust-lang-nursery/rustup.rs/pull/896)
+* [Make running program extension case insensitive](https://github.com/rust-lang-nursery/rustup.rs/pull/887)
+* [Add MIPS/s390x builders (with PPC64 compilation fixed)](https://github.com/rust-lang-nursery/rustup.rs/pull/890)
+* [Fix two missing quotes of download error message](https://github.com/rust-lang-nursery/rustup.rs/pull/867)
+* [www: MIPS support and cleanups](https://github.com/rust-lang-nursery/rustup.rs/pull/866)
+* [Update release instructions](https://github.com/rust-lang-nursery/rustup.rs/pull/863)
+* [Don't set low speed limits for curl](https://github.com/rust-lang-nursery/rustup.rs/pull/914)
+* [Attempt to fix msi build. Pin appveyor nightlies](https://github.com/rust-lang-nursery/rustup.rs/pull/910)
+* [Stop defaulting to $PATH searches when the binary can't be found and causing infinite recursion](https://github.com/rust-lang-nursery/rustup.rs/pull/917)
+* [Upgrade openssl](https://github.com/rust-lang-nursery/rustup.rs/pull/934)
+* [Improve browser detection and install instructions](https://github.com/rust-lang-nursery/rustup.rs/pull/936)
+* [Add android support to rustup-init.sh](https://github.com/rust-lang-nursery/rustup.rs/pull/949)
+* [Add fallback to symlink if hardlink fails](https://github.com/rust-lang-nursery/rustup.rs/pull/951)
+* [readme: add tmp dir hint to Contributing section](https://github.com/rust-lang-nursery/rustup.rs/pull/985)
+* [Fixed link to the list of supported platforms](https://github.com/rust-lang-nursery/rustup.rs/pull/970)
+* [Update job object code to match Cargo's](https://github.com/rust-lang-nursery/rustup.rs/pull/984)
+* [Added argument-documentation to rustup-init.sh](https://github.com/rust-lang-nursery/rustup.rs/pull/962)
+* [Add/remove multiple toolchains](https://github.com/rust-lang-nursery/rustup.rs/pull/986)
+* [Remove curl usage from appveyor](https://github.com/rust-lang-nursery/rustup.rs/pull/1001)
+* [Store downloaded files in a persistent directory until installation](https://github.com/rust-lang-nursery/rustup.rs/pull/958)
+* [Add android build support](https://github.com/rust-lang-nursery/rustup.rs/pull/1000)
+* [Fix up a bunch of things indicated by clippy](https://github.com/rust-lang-nursery/rustup.rs/pull/1012)
+* [Ensure librssl compatibility](https://github.com/rust-lang-nursery/rustup.rs/pull/1011)
+* [RLS support](https://github.com/rust-lang-nursery/rustup.rs/pull/1005)
+* [Add 'docs' alias](https://github.com/rust-lang-nursery/rustup.rs/pull/1010)
+* [Use correct name for undefined linked toolchain invocation](https://github.com/rust-lang-nursery/rustup.rs/pull/1008)
+* [zsh install support](https://github.com/rust-lang-nursery/rustup.rs/pull/1013)
+* [Add/remove multiple components+targets](https://github.com/rust-lang-nursery/rustup.rs/pull/1016)
+* [Better error message when not running in a tty](https://github.com/rust-lang-nursery/rustup.rs/pull/1026)
+* [Indent help text](https://github.com/rust-lang-nursery/rustup.rs/pull/1019)
+* [Document installing to a custom location using CARGO_HOME and RUSTUP_HOME environment variables](https://github.com/rust-lang-nursery/rustup.rs/pull/1024)
+* [Aggressive remove_dir_all](https://github.com/rust-lang-nursery/rustup.rs/pull/1015)
+
+Contributors: Aarthi Janakiraman, Alex Burka, Alex Crichton, bors,
+Brian Anderson, Christian Muirhead, Christopher Armstrong, Daniel
+Lockyer, Diggory Blake, Evgenii Pashkin, Grissiom, James Elford, Luca
+Bruno, Lyuha, Manish Goregaokar, Marc-Antoine Perennou, Marco A L
+Barbosa, Mikhail Pak, Nick Cameron, polonez, Sam Marshall, Steve
+Klabnik, Tomáš Hübelbauer, topecongiro, Wang Xuerui
+
 # 1.0.0
 
 * [Statically link MSVC CRT](https://github.com/rust-lang-nursery/rustup.rs/pull/843)

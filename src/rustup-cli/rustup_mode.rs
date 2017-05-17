@@ -31,6 +31,7 @@ pub fn main() -> Result<()> {
         ("show", Some(_)) => try!(show(cfg)),
         ("install", Some(m)) => try!(update(cfg, m)),
         ("update", Some(m)) => try!(update(cfg, m)),
+        ("uninstall", Some(m)) => try!(toolchain_remove(cfg, m)),
         ("default", Some(m)) => try!(default_(cfg, m)),
         ("toolchain", Some(c)) => {
             match c.subcommand() {
@@ -128,15 +129,23 @@ pub fn cli() -> App<'static, 'static> {
             .after_help(SHOW_HELP))
         .subcommand(SubCommand::with_name("install")
             .about("Update Rust toolchains")
-            .after_help(TOOLCHAIN_INSTALL_HELP)
+            .after_help(INSTALL_HELP)
             .setting(AppSettings::Hidden) // synonym for 'toolchain install'
             .arg(Arg::with_name("toolchain")
-                .required(true)))
+                .required(true)
+                .multiple(true)))
+        .subcommand(SubCommand::with_name("uninstall")
+            .about("Uninstall Rust toolchains")
+            .setting(AppSettings::Hidden) // synonym for 'toolchain uninstall'
+            .arg(Arg::with_name("toolchain")
+                .required(true)
+                .multiple(true)))
         .subcommand(SubCommand::with_name("update")
             .about("Update Rust toolchains")
             .after_help(UPDATE_HELP)
             .arg(Arg::with_name("toolchain")
-                .required(false))
+                .required(false)
+                .multiple(true))
             .arg(Arg::with_name("no-self-update")
                 .help("Don't perform self update when running the `rustup` command")
                 .long("no-self-update")
@@ -158,13 +167,16 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("install")
                 .about("Install or update a given toolchain")
                 .arg(Arg::with_name("toolchain")
-                .required(true)))
+                     .required(true)
+                     .multiple(true)))
             .subcommand(SubCommand::with_name("uninstall")
                 .about("Uninstall a toolchain")
                 .arg(Arg::with_name("toolchain")
-                     .required(true)))
+                     .required(true)
+                     .multiple(true)))
             .subcommand(SubCommand::with_name("link")
                 .about("Create a custom toolchain by symlinking to a directory")
+                .after_help(TOOLCHAIN_LINK_HELP)
                 .arg(Arg::with_name("toolchain")
                     .required(true))
                 .arg(Arg::with_name("path")
@@ -172,15 +184,18 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("update")
                 .setting(AppSettings::Hidden) // synonym for 'install'
                 .arg(Arg::with_name("toolchain")
-                .required(true)))
+                     .required(true)
+                     .multiple(true)))
             .subcommand(SubCommand::with_name("add")
                 .setting(AppSettings::Hidden) // synonym for 'install'
                 .arg(Arg::with_name("toolchain")
-                     .required(true)))
+                     .required(true)
+                     .multiple(true)))
             .subcommand(SubCommand::with_name("remove")
                 .setting(AppSettings::Hidden) // synonym for 'uninstall'
                 .arg(Arg::with_name("toolchain")
-                     .required(true))))
+                     .required(true)
+                     .multiple(true))))
         .subcommand(SubCommand::with_name("target")
             .about("Modify a toolchain's supported targets")
             .setting(AppSettings::VersionlessSubcommands)
@@ -194,28 +209,32 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("add")
                 .about("Add a target to a Rust toolchain")
                 .arg(Arg::with_name("target")
-                    .required(true))
+                    .required(true)
+                    .multiple(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
                     .takes_value(true)))
             .subcommand(SubCommand::with_name("remove")
-                .about("Remove a target  from a Rust toolchain")
+                .about("Remove a target from a Rust toolchain")
                 .arg(Arg::with_name("target")
-                    .required(true))
+                    .required(true)
+                    .multiple(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
                     .takes_value(true)))
             .subcommand(SubCommand::with_name("install")
                 .setting(AppSettings::Hidden) // synonym for 'add'
                 .arg(Arg::with_name("target")
-                    .required(true))
+                    .required(true)
+                    .multiple(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
                     .takes_value(true)))
             .subcommand(SubCommand::with_name("uninstall")
                 .setting(AppSettings::Hidden) // synonym for 'remove'
                 .arg(Arg::with_name("target")
-                    .required(true))
+                    .required(true)
+                    .multiple(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
                     .takes_value(true))))
@@ -232,7 +251,8 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("add")
                 .about("Add a component to a Rust toolchain")
                 .arg(Arg::with_name("component")
-                    .required(true))
+                    .required(true)
+                    .multiple(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
                     .takes_value(true))
@@ -242,7 +262,8 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("remove")
                 .about("Remove a component from a Rust toolchain")
                 .arg(Arg::with_name("component")
-                    .required(true))
+                    .required(true)
+                    .multiple(true))
                 .arg(Arg::with_name("toolchain")
                     .long("toolchain")
                     .takes_value(true))
@@ -299,6 +320,7 @@ pub fn cli() -> App<'static, 'static> {
             .arg(Arg::with_name("command")
                 .required(true)))
         .subcommand(SubCommand::with_name("doc")
+            .alias("docs")
             .about("Open the documentation for the current toolchain")
             .after_help(DOC_HELP)
             .arg(Arg::with_name("book")
@@ -384,7 +406,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
                 continue;
             }
             if let Ok(desc) = PartialToolchainDesc::from_str(&t) {
-                fn triple_comp_eq(given: &String, from_desc: Option<&String>) -> bool {
+                fn triple_comp_eq(given: &str, from_desc: Option<&String>) -> bool {
                     from_desc.map_or(false, |s| *s == *given)
                 }
 
@@ -402,7 +424,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
             1 => println!("\nyou may use the following toolchain: {}\n", candidates[0]),
             _ => {
                 println!("\nyou may use one of the following toolchains:");
-                for n in candidates.iter() {
+                for n in &candidates {
                     println!("{}", n);
                 }
                 println!("");
@@ -458,21 +480,23 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    if let Some(name) = m.value_of("toolchain") {
-        try!(update_bare_triple_check(cfg, name));
-        let toolchain = try!(cfg.get_toolchain(name, false));
+    if let Some(names) = m.values_of("toolchain") {
+        for name in names {
+            try!(update_bare_triple_check(cfg, name));
+            let toolchain = try!(cfg.get_toolchain(name, false));
 
-        let status = if !toolchain.is_custom() {
-            Some(try!(toolchain.install_from_dist()))
-        } else if !toolchain.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
-        } else {
-            None
-        };
+            let status = if !toolchain.is_custom() {
+                Some(try!(toolchain.install_from_dist()))
+            } else if !toolchain.exists() {
+                return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
+            } else {
+                None
+            };
 
-        if let Some(status) = status {
-            println!("");
-            try!(common::show_channel_update(cfg, toolchain.name(), Ok(status)));
+            if let Some(status) = status {
+                println!("");
+                try!(common::show_channel_update(cfg, toolchain.name(), Ok(status)));
+            }
         }
     } else {
         try!(common::update_all_channels(cfg, !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE));
@@ -606,24 +630,32 @@ fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
-    let target = m.value_of("target").expect("");
-    let new_component = Component {
-        pkg: "rust-std".to_string(),
-        target: Some(TargetTriple::from_str(target)),
-    };
 
-    Ok(try!(toolchain.add_component(new_component)))
+    for target in m.values_of("target").expect("") {
+        let new_component = Component {
+            pkg: "rust-std".to_string(),
+            target: Some(TargetTriple::from_str(target)),
+        };
+
+        try!(toolchain.add_component(new_component));
+    }
+
+    Ok(())
 }
 
 fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
-    let target = m.value_of("target").expect("");
-    let new_component = Component {
-        pkg: "rust-std".to_string(),
-        target: Some(TargetTriple::from_str(target)),
-    };
 
-    Ok(try!(toolchain.remove_component(new_component)))
+    for target in m.values_of("target").expect("") {
+        let new_component = Component {
+            pkg: "rust-std".to_string(),
+            target: Some(TargetTriple::from_str(target)),
+        };
+
+        try!(toolchain.remove_component(new_component));
+    }
+
+    Ok(())
 }
 
 fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
@@ -634,32 +666,38 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
-    let component = m.value_of("component").expect("");
     let target = m.value_of("target").map(TargetTriple::from_str).or_else(|| {
         toolchain.desc().as_ref().ok().map(|desc| desc.target.clone())
     });
 
-    let new_component = Component {
-        pkg: component.to_string(),
-        target: target,
-    };
+    for component in m.values_of("component").expect("") {
+        let new_component = Component {
+            pkg: component.to_string(),
+            target: target.clone(),
+        };
 
-    Ok(try!(toolchain.add_component(new_component)))
+        try!(toolchain.add_component(new_component));
+    }
+
+    Ok(())
 }
 
 fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
-    let component = m.value_of("component").expect("");
     let target = m.value_of("target").map(TargetTriple::from_str).or_else(|| {
         toolchain.desc().as_ref().ok().map(|desc| desc.target.clone())
     });
 
-    let new_component = Component {
-        pkg: component.to_string(),
-        target: target,
-    };
+    for component in m.values_of("component").expect("") {
+        let new_component = Component {
+            pkg: component.to_string(),
+            target: target.clone(),
+        };
 
-    Ok(try!(toolchain.remove_component(new_component)))
+        try!(toolchain.remove_component(new_component));
+    }
+
+    Ok(())
 }
 
 fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
@@ -684,10 +722,11 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn toolchain_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
-    let toolchain = try!(cfg.get_toolchain(toolchain, false));
-
-    Ok(try!(toolchain.remove()))
+    for toolchain in m.values_of("toolchain").expect("") {
+        let toolchain = try!(cfg.get_toolchain(toolchain, false));
+        try!(toolchain.remove());
+    }
+    Ok(())
 }
 
 fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {

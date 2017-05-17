@@ -18,6 +18,8 @@ pub enum Notification<'a> {
     NoUpdateHash(&'a Path),
     ChecksumValid(&'a str),
     SignatureValid(&'a str),
+    FileAlreadyDownloaded,
+    CachedFileChecksumFailed,
     RollingBack,
     ExtensionNotInstalled(&'a Component),
     NonFatalError(&'a Error),
@@ -48,6 +50,7 @@ impl<'a> Notification<'a> {
             Temp(ref n) => n.level(),
             Utils(ref n) => n.level(),
             ChecksumValid(_) | NoUpdateHash(_) |
+            FileAlreadyDownloaded |
             DownloadingLegacyManifest  => NotificationLevel::Verbose,
             Extracting(_, _) | SignatureValid(_)  |
             DownloadingComponent(_, _, _) |
@@ -56,7 +59,7 @@ impl<'a> Notification<'a> {
             ManifestChecksumFailedHack |
             RollingBack | DownloadingManifest(_) => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
-            MissingInstalledComponent(_) => NotificationLevel::Warn,
+            MissingInstalledComponent(_) | CachedFileChecksumFailed => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
         }
     }
@@ -80,6 +83,8 @@ impl<'a> Display for Notification<'a> {
             NoUpdateHash(path) => write!(f, "no update hash at: '{}'", path.display()),
             ChecksumValid(_) => write!(f, "checksum passed"),
             SignatureValid(_) => write!(f, "signature valid"),
+            FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
+            CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
             RollingBack => write!(f, "rolling back changes"),
             ExtensionNotInstalled(c) => {
                 write!(f, "extension '{}' was not installed", c.name())
@@ -106,4 +111,3 @@ impl<'a> Display for Notification<'a> {
         }
     }
 }
-

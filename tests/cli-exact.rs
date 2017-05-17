@@ -156,6 +156,7 @@ fn remove_override_with_path_deleted() {
 }
 
 #[test]
+#[cfg_attr(target_os = "windows", ignore)] // FIXME #1103
 fn remove_override_nonexistent() {
     for keyword in &["remove", "unset"] {
         setup(&|config| {
@@ -302,7 +303,7 @@ fn enable_telemetry() {
         expect_ok_ex(config,
                      &["rustup", "telemetry", "enable"],
                      r"",
-                     &format!("info: telemetry set to 'on'\n"));
+                     "info: telemetry set to 'on'\n");
     });
 }
 
@@ -312,6 +313,17 @@ fn disable_telemetry() {
         expect_ok_ex(config,
                      &["rustup", "telemetry", "disable"],
                      r"",
-                     &format!("info: telemetry set to 'off'\n"));
+                     "info: telemetry set to 'off'\n");
+    });
+}
+
+// issue #927
+#[test]
+fn undefined_linked_toolchain() {
+    setup(&|config| {
+        expect_err_ex(config,
+                      &["cargo", "+bogus", "test"],
+                      r"",
+                      &format!("error: toolchain 'bogus' is not installed\n"));
     });
 }

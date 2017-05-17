@@ -13,7 +13,7 @@ pub fn main() -> Result<()> {
     if arg1 == Some("--self-replace") {
         return self_update::self_replace();
     }
-
+    // XXX: If you change anything here, please make the same changes in rustup-init.sh
     let cli = App::new("rustup-init")
         .version(common::version())
         .about("The installer for rustup")

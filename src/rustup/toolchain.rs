@@ -158,6 +158,7 @@ impl<'a> Toolchain<'a> {
         dist::DownloadCfg {
             dist_root: &self.cfg.dist_root_url,
             temp_cfg: &self.cfg.temp_cfg,
+            download_dir: &self.cfg.download_dir,
             notify_handler: &*self.dist_handler,
         }
     }
@@ -274,6 +275,16 @@ impl<'a> Toolchain<'a> {
     pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
         try!(self.ensure_custom());
 
+        let mut pathbuf = PathBuf::from(src);
+
+        pathbuf.push("lib");
+        try!(utils::assert_is_directory(&pathbuf));
+        pathbuf.pop();
+        pathbuf.push("bin");
+        try!(utils::assert_is_directory(&pathbuf));
+        pathbuf.push(format!("rustc{}", EXE_SUFFIX));
+        try!(utils::assert_is_file(&pathbuf));
+
         if link {
             try!(self.install(InstallMethod::Link(&try!(utils::to_absolute(src)))));
         } else {
@@ -301,13 +312,20 @@ impl<'a> Toolchain<'a> {
         };
 
         let bin_path = self.path.join("bin").join(&binary);
-        let mut cmd = Command::new(if utils::is_file(&bin_path) {
+        let path = if utils::is_file(&bin_path) {
             &bin_path
         } else {
-            // If the bin doesn't actually exist in the sysroot, let the OS try
-            // to resolve it globally for us
+            let recursion_count = env::var("RUST_RECURSION_COUNT").ok()
+                .and_then(|s| s.parse().ok()).unwrap_or(0);
+            if recursion_count > env_var::RUST_RECURSION_COUNT_MAX - 1 {
+                return Err(ErrorKind::BinaryNotFound(self.name.clone(),
+                                                     binary.to_string_lossy()
+                                                           .into())
+                            .into())
+            }
             Path::new(&binary)
-        });
+        };
+        let mut cmd = Command::new(&path);
         self.set_env(&mut cmd);
         Ok(cmd)
     }
@@ -323,7 +341,7 @@ impl<'a> Toolchain<'a> {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
         if !primary_toolchain.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
+            return Err(ErrorKind::ToolchainNotInstalled(primary_toolchain.name.to_owned()).into());
         }
 
         let src_file = self.path.join("bin").join(format!("cargo{}", EXE_SUFFIX));
@@ -575,7 +593,7 @@ impl<'a> Toolchain<'a> {
 
             try!(manifestation.update(&manifest,
                                       changes,
-                                      self.download_cfg().temp_cfg,
+                                      &self.download_cfg(),
                                       self.download_cfg().notify_handler.clone()));
 
             Ok(())
@@ -624,7 +642,7 @@ impl<'a> Toolchain<'a> {
 
             try!(manifestation.update(&manifest,
                                       changes,
-                                      self.download_cfg().temp_cfg,
+                                      &self.download_cfg(),
                                       self.download_cfg().notify_handler.clone()));
 
             Ok(())

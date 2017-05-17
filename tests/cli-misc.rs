@@ -15,6 +15,7 @@ use time::Duration;
 use std::ops::Sub;
 use std::ops::Add;
 use std::time::Duration as StdDuration;
+use std::env::consts::EXE_SUFFIX;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -172,7 +173,7 @@ fn subcommand_required_for_target() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert!(out.status.code().unwrap() != 101);
+        assert_ne!(out.status.code().unwrap(), 101);
     });
 }
 
@@ -185,7 +186,7 @@ fn subcommand_required_for_toolchain() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert!(out.status.code().unwrap() != 101);
+        assert_ne!(out.status.code().unwrap(), 101);
     });
 }
 
@@ -198,7 +199,7 @@ fn subcommand_required_for_override() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert!(out.status.code().unwrap() != 101);
+        assert_ne!(out.status.code().unwrap(), 101);
     });
 }
 
@@ -211,7 +212,7 @@ fn subcommand_required_for_self() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert!(out.status.code().unwrap() != 101);
+        assert_ne!(out.status.code().unwrap(), 101);
     });
 }
 
@@ -297,6 +298,26 @@ fn rustup_run_searches_path() {
 }
 
 #[test]
+fn rustup_failed_path_search() {
+    setup(&|config| {
+        use std::env::consts::EXE_SUFFIX;
+
+        let ref rustup_path = config.exedir.join(&format!("rustup{}", EXE_SUFFIX));
+        let ref tool_path = config.exedir.join(&format!("fake_proxy{}", EXE_SUFFIX));
+        utils::hardlink_file(rustup_path, tool_path).expect("Failed to create fake proxy for test");
+
+        expect_ok(config, &["rustup", "toolchain", "link", "custom",
+                            &config.customdir.join("custom-1").to_string_lossy()]);
+        let broken = &["rustup", "run", "custom", "fake_proxy"];
+        expect_err(config, broken, &format!(
+            "toolchain 'custom' does not have the binary `fake_proxy{}`", EXE_SUFFIX
+        ));
+
+        // Hardlink will be automatically cleaned up by test setup code
+    });
+}
+
+#[test]
 fn multirust_env_compat() {
     setup(&|config| {
         let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly"]);
@@ -353,7 +374,7 @@ fn telemetry_supports_huge_output() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "telemetry", "enable"]);
-        expect_timeout_ok(&config, StdDuration::from_secs(5), &["rustc", "--huge-output"]);
+        expect_timeout_ok(config, StdDuration::from_secs(5), &["rustc", "--huge-output"]);
         expect_stdout_ok(config, &["rustup", "telemetry", "analyze"], "'E0428': 10000")
     })
 }
@@ -383,6 +404,28 @@ fn telemetry_cleanup_removes_old_files() {
         let contents = out.unwrap();
         let count = contents.count();
 
-        assert!(count == 100);
+        assert_eq!(count, 100);
+    });
+}
+
+#[test]
+fn rls_exists_in_toolchain() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
+        expect_ok(config, &["rls", "--version"]);
+    });
+}
+
+#[test]
+fn rls_does_not_exist_in_toolchain() {
+    setup(&|config| {
+        // FIXME: If rls exists in the toolchain, this should suggest a command
+        // to run to install it
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_err(config, &["rls", "--version"],
+                   &format!("toolchain 'stable-{}' does not have the binary `rls{}`",
+                            this_host_triple(), EXE_SUFFIX));
     });
 }

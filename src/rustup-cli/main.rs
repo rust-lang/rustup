@@ -20,6 +20,7 @@ extern crate tempdir;
 extern crate sha2;
 extern crate markdown;
 extern crate toml;
+extern crate wait_timeout;
 
 #[cfg(windows)]
 extern crate gcc;
@@ -50,6 +51,7 @@ use std::env;
 use std::path::PathBuf;
 use errors::*;
 use rustup_dist::dist::TargetTriple;
+use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 
 fn main() {
     if let Err(ref e) = run_multirust() {
@@ -62,7 +64,7 @@ fn run_multirust() -> Result<()> {
     // Guard against infinite recursion
     let recursion_count = env::var("RUST_RECURSION_COUNT").ok()
         .and_then(|s| s.parse().ok()).unwrap_or(0);
-    if recursion_count > 5 {
+    if recursion_count > RUST_RECURSION_COUNT_MAX {
         return Err(ErrorKind::InfiniteRecursion.into());
     }
 
@@ -71,7 +73,7 @@ fn run_multirust() -> Result<()> {
     do_compatibility_hacks();
 
     // The name of arg0 determines how the program is going to behave
-    let arg0 = env::args().next().map(|a| PathBuf::from(a));
+    let arg0 = env::args().next().map(PathBuf::from);
     let name = arg0.as_ref()
         .and_then(|a| a.file_stem())
         .and_then(|a| a.to_str());

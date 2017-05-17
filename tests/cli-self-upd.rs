@@ -26,12 +26,14 @@ use std::process::Command;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
-                               expect_stderr_ok,
                                expect_err, expect_err_ex,
                                this_host_triple};
 use rustup_mock::dist::{calc_hash};
 use rustup_mock::{get_path, restore_path};
 use rustup_utils::{utils, raw};
+
+#[cfg(windows)]
+use rustup_mock::clitools::expect_stderr_ok;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -323,6 +325,48 @@ fn install_adds_path_to_profile() {
 
 #[test]
 #[cfg(unix)]
+fn install_with_zsh_adds_path_to_zprofile() {
+    setup(&|config| {
+        let my_rc = "foo\nbar\nbaz";
+        let ref rc = config.homedir.join(".zprofile");
+        raw::write_file(rc, my_rc).unwrap();
+
+        let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+        cmd.env("SHELL", "zsh");
+        assert!(cmd.output().unwrap().status.success());
+
+        let new_rc = raw::read_file(rc).unwrap();
+        let addition = format!(r#"export PATH="{}/bin:$PATH""#,
+                               config.cargodir.display());
+        let expected = format!("{}\n{}\n", my_rc, addition);
+        assert_eq!(new_rc, expected);
+    });
+}
+
+#[test]
+#[cfg(unix)]
+fn install_with_zsh_adds_path_to_zdotdir_zprofile() {
+    setup(&|config| {
+        let zdotdir = TempDir::new("zdotdir").unwrap();
+        let my_rc = "foo\nbar\nbaz";
+        let ref rc = zdotdir.path().join(".zprofile");
+        raw::write_file(rc, my_rc).unwrap();
+
+        let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+        cmd.env("SHELL", "zsh");
+        cmd.env("ZDOTDIR", zdotdir.path());
+        assert!(cmd.output().unwrap().status.success());
+
+        let new_rc = raw::read_file(rc).unwrap();
+        let addition = format!(r#"export PATH="{}/bin:$PATH""#,
+                               config.cargodir.display());
+        let expected = format!("{}\n{}\n", my_rc, addition);
+        assert_eq!(new_rc, expected);
+    });
+}
+
+#[test]
+#[cfg(unix)]
 fn install_adds_path_to_rcfile_just_once() {
     setup(&|config| {
         let my_profile = "foo\nbar\nbaz";
@@ -569,7 +613,7 @@ fn update_updates_rustup_bin() {
 
         let after_hash = calc_hash(bin);
 
-        assert!(before_hash != after_hash);
+        assert_ne!(before_hash, after_hash);
     });
 }
 
@@ -608,7 +652,7 @@ fn rustup_self_updates() {
 
         let after_hash = calc_hash(bin);
 
-        assert!(before_hash != after_hash);
+        assert_ne!(before_hash, after_hash);
     })
 }
 
@@ -1154,5 +1198,28 @@ fn uninstall_removes_legacy_home_symlink() {
 
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
         assert!(!multirust_dir.exists());
+    });
+}
+
+#[test]
+fn rls_proxy_set_up_after_install() {
+    setup(&|config| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        expect_err(config, &["rls", "--version"],
+                   &format!("toolchain 'stable-{}' does not have the binary `rls{}`",
+                            this_host_triple(), EXE_SUFFIX));
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_ok(config, &["rls", "--version"]);
+    });
+}
+
+#[test]
+fn rls_proxy_set_up_after_update() {
+    update_setup(&|config, _| {
+        let ref rls_path = config.cargodir.join(format!("bin/rls{}", EXE_SUFFIX));
+        expect_ok(config, &["rustup-init", "-y"]);
+        fs::remove_file(rls_path).unwrap();
+        expect_ok(config, &["rustup", "self", "update"]);
+        assert!(rls_path.exists());
     });
 }

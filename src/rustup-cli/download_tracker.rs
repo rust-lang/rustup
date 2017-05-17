@@ -51,19 +51,19 @@ impl DownloadTracker {
     }
 
     pub fn handle_notification(&mut self, n: &Notification) -> bool {
-        match n {
-            &Notification::Install(In::Utils(Un::DownloadContentLengthReceived(content_len))) => {
+        match *n {
+            Notification::Install(In::Utils(Un::DownloadContentLengthReceived(content_len))) => {
                 self.content_length_received(content_len);
 
                 true
             }
-            &Notification::Install(In::Utils(Un::DownloadDataReceived(data))) => {
+            Notification::Install(In::Utils(Un::DownloadDataReceived(data))) => {
                 if tty::stdout_isatty() && self.term.is_some() {
                     self.data_received(data.len());
                 }
                 true
             }
-            &Notification::Install(In::Utils(Un::DownloadFinished)) => {
+            Notification::Install(In::Utils(Un::DownloadFinished)) => {
                 self.download_finished();
                 true
             }

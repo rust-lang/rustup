@@ -66,6 +66,9 @@ gist is as simple as using one of the following:
 # Bash
 $ rustup completions bash > /etc/bash_completion.d/rustup.bash-completion
 
+# Bash (macOS/Homebrew)
+$ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
+
 # Fish
 $ rustup completions fish > ~/.config/fish/completions/rustup.fish
 
@@ -82,6 +85,22 @@ For `zsh`, you must then add the following line in your `~/.zshrc` before
 ```zsh
 fpath+=~/.zfunc
 ```
+
+#### Choosing where to install
+
+`rustup` allows you to customise your installation by setting the environment
+variables `CARGO_HOME` and `RUSTUP_HOME` before running the `rustup-init`
+executable. As mentioned in the [Environment Variables] section, `RUSTUP_HOME`
+sets the root rustup folder, which is used for storing installed
+toolchains and configuration options. `CARGO_HOME` contains cache files used
+by [cargo].
+
+Note that you will need to ensure these environment variables are always
+set and that `CARGO_HOME/bin` is in the `$PATH` environment variable when
+using the toolchain.
+
+[Environment Variables]: #environment-variables
+[cargo]: https://github.com/rust-lang/cargo
 
 ## How rustup works
 
@@ -287,7 +306,7 @@ platforms The Rust Project publishes binary releases of the standard
 library, and for some the full compiler. `rustup` gives easy access
 to all of them.
 
-[p]: http://doc.rust-lang.org/nightly/book/getting-started.html#platform-support
+[p]: https://forge.rust-lang.org/platform-support.html
 
 When you first install a toolchain, `rustup` installs only the
 standard library for your *host* platform - that is, the architecture
@@ -329,7 +348,7 @@ interop with software produced by Visual Studio use the MSVC build of
 Rust; for interop with GNU software built using the [MinGW/MSYS2
 toolchain] use the GNU build.
 
-When target the MSVC ABI, Rust additionally require an [installation
+When targeting the MSVC ABI, Rust additionally requires an [installation
 of Visual Studio 2013 (or later) or the Visual C++ Build Tools
 2015][vs] so rustc can use its linker. For Visual Studio, make sure to
 check the "C++ tools" option. No additional software installation is
@@ -402,22 +421,22 @@ is invoked for a custom toolchain and it is not available, `rustup`
 will attempt to use `cargo` from one of the release channels*,
 preferring 'nightly', then 'beta' or 'stable'.
 
-## Working with HTTP proxies
+## Working with network proxies
 
 Enterprise networks often don't have direct outside HTTP access, but enforce
-the use of HTTP proxies. If you're on such a network, you can request that
+the use of proxies. If you're on such a network, you can request that
 rustup uses a proxy by setting its URL in the environment. In most cases,
-setting `http_proxy` should be sufficient. On a Unix-like system with a
+setting `https_proxy` should be sufficient. On a Unix-like system with a
 shell like __bash__ or __zsh__, you could use:
 
 ```
-export http_proxy=http://proxy.example.com:8080
+export https_proxy=socks5://proxy.example.com:1080 # or http://proxy.example.com:8080
 ```
 
 On Windows, the command would be:
 
 ```
-set http_proxy=http://proxy.example.com:8080
+set https_proxy=socks5://proxy.example.com:1080
 ```
 
 If you need a more complex setup, rustup supports the convention used by
@@ -440,7 +459,7 @@ Command | Description
 `rustc +nightly foo.rs` | Shorthand way to run a nightly compiler
 `rustup run nightly bash` | Run a shell configured for the nightly compiler
 `rustup default stable-msvc` | On Windows, use the MSVC toolchain instead of GNU
-`rustup override nightly-2015-04-01` | For the current directory, use a nightly from a specific date
+`rustup override set nightly-2015-04-01` | For the current directory, use a nightly from a specific date
 `rustup toolchain link my-toolchain "C:\RustInstallation"` | Install a custom toolchain by symlinking an existing installation
 `rustup show` | Show which toolchain will be used in the current directory
 
@@ -500,13 +519,17 @@ $ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
 If you prefer you can directly download `rustup-init` for the
 platform of your choice:
 
+- [aarch64-linux-android](https://static.rust-lang.org/rustup/dist/aarch64-linux-android/rustup-init)
 - [aarch64-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-init)
+- [arm-linux-androideabi](https://static.rust-lang.org/rustup/dist/arm-linux-androideabi/rustup-init)
 - [arm-unknown-linux-gnueabi](https://static.rust-lang.org/rustup/dist/arm-unknown-linux-gnueabi/rustup-init)
 - [arm-unknown-linux-gnueabihf](https://static.rust-lang.org/rustup/dist/arm-unknown-linux-gnueabihf/rustup-init)
+- [armv7-linux-androideabi](https://static.rust-lang.org/rustup/dist/armv7-linux-androideabi/rustup-init)
 - [armv7-unknown-linux-gnueabihf](https://static.rust-lang.org/rustup/dist/armv7-unknown-linux-gnueabihf/rustup-init)
 - [i686-apple-darwin](https://static.rust-lang.org/rustup/dist/i686-apple-darwin/rustup-init)
 - [i686-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe)
 - [i686-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-init.exe)<sup>[†](#vs2015)</sup>
+- [i686-linux-android](https://static.rust-lang.org/rustup/dist/i686-linux-android/rustup-init)
 - [i686-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/i686-unknown-linux-gnu/rustup-init)
 - [x86_64-apple-darwin](https://static.rust-lang.org/rustup/dist/x86_64-apple-darwin/rustup-init)
 - [x86_64-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe)
@@ -553,8 +576,8 @@ and is now maintained by The Rust Project.
 
 ### Can rustup download the Rust source code?
 
-The Rust source can be obtained by running `rustup component add rust-src`. 
-It will be downloaded to the `<toolchain root>/lib/rustlib/src/rust` 
+The Rust source can be obtained by running `rustup component add rust-src`.
+It will be downloaded to the `<toolchain root>/lib/rustlib/src/rust`
 directory of the current toolchain.
 
 ### rustup fails with Windows error 32
@@ -584,6 +607,20 @@ at your option.
 3. Commit your changes: `git commit -am 'Add some feature'`
 4. Push to the branch: `git push origin my-new-feature`
 5. Submit a pull request :D
+
+For developing on `rustup` itself, you may want to install into a temporary
+directory, with a series of commands similar to this:
+
+```bash
+$ cargo build
+$ mkdir home
+$ RUSTUP_HOME=home CARGO_HOME=home target/debug/rustup-init --no-modify-path -y
+```
+
+You can then try out `rustup` with your changes by running `home/bin/rustup`, without
+affecting any existing installation. Remember to keep those two environment variables
+set when running your compiled `rustup-init` or the toolchains it installs, but _unset_
+when rebuilding `rustup` itself.
 
 Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the

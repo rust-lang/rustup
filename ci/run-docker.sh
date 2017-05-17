@@ -2,6 +2,19 @@
 
 set -ex
 
+# For some unknown reason libz is not found in the android docker image, so we
+# use this workaround
+case $TARGET in
+  arm-linux-androideabi | armv7-linux-androideabi )
+    export DEP_Z_ROOT=/android-ndk/arm/sysroot/usr/;;
+
+  aarch64-linux-android )
+    export DEP_Z_ROOT=/android-ndk/arm64/sysroot/usr/;;
+
+  i686-linux-android )
+    export DEP_Z_ROOT=/android-ndk/x86/sysroot/usr/;;
+esac
+
 upper_target=$(echo $TARGET | tr '[a-z]' '[A-Z]' | tr '-' '_')
 export PATH=/travis-rust/bin:$PATH
 export LD_LIBRARY_PATH=/travis-rust/lib:$LD_LIBRARY_PATH
@@ -18,8 +31,8 @@ export LD_LIBRARY_PATH=/travis-rust/lib:$LD_LIBRARY_PATH
 # distribute (this can be changed by others of course).
 # ==============================================================================
 
-OPENSSL_VERS=1.0.2j
-OPENSSL_SHA256=e7aff292be21c259c6af26469c7a9b3ba26e9abaaffd325e3dccc9785256c431
+OPENSSL_VERS=1.0.2k
+OPENSSL_SHA256=6b3977c61f2aedf0f96367dcfb5c6e578cf37e7b8d913b4ecb6643c3cb88d8c0
 
 case $TARGET in
   x86_64-*-linux-*)
@@ -33,6 +46,27 @@ case $TARGET in
     OPENSSL_AR=ar
     OPENSSL_SETARCH='setarch i386'
     OPENSSL_CFLAGS=-m32
+    ;;
+  arm-linux-androideabi)
+    OPENSSL_OS=android
+    OPENSSL_CC=arm-linux-androideabi-gcc
+    OPENSSL_AR=arm-linux-androideabi-ar
+    ;;
+  armv7-linux-androideabi)
+    OPENSSL_OS=android-armv7
+    OPENSSL_CC=arm-linux-androideabi-gcc
+    OPENSSL_AR=arm-linux-androideabi-ar
+    ;;
+  aarch64-linux-android)
+    OPENSSL_OS=linux-generic64
+    OPENSSL_CC=aarch64-linux-android-gcc
+    OPENSSL_AR=aarch64-linux-android-ar
+    OPENSSL_CFLAGS="-mandroid -fomit-frame-pointer"
+    ;;
+  i686-linux-android)
+    OPENSSL_OS=android-x86
+    OPENSSL_CC=i686-linux-android-gcc
+    OPENSSL_AR=i686-linux-android-ar
     ;;
   arm-*-linux-gnueabi)
     OPENSSL_OS=linux-armv4
@@ -111,20 +145,40 @@ case $TARGET in
     ;;
 esac
 
-mkdir -p target/$TARGET/openssl
-install=`pwd`/target/$TARGET/openssl/openssl-install
-out=`pwd`/target/$TARGET/openssl/openssl-$OPENSSL_VERS.tar.gz
-curl -o $out https://www.openssl.org/source/openssl-$OPENSSL_VERS.tar.gz
-sha256sum $out > $out.sha256
-test $OPENSSL_SHA256 = `cut -d ' ' -f 1 $out.sha256`
+install=`pwd`/target/$TARGET/openssl/openssl-install/$OPENSSL_VERS
 
-tar xf $out -C target/$TARGET/openssl
-(cd target/$TARGET/openssl/openssl-$OPENSSL_VERS && \
- CC=$OPENSSL_CC \
- AR=$OPENSSL_AR \
- $SETARCH ./Configure --prefix=$install no-dso $OPENSSL_OS $OPENSSL_CFLAGS -fPIC && \
- make -j4 && \
- make install)
+
+if [ -L $install -a -d $install-final ]; then
+  # $install is the "right" place for the build. See below for why it's a symlink
+  echo 'Using cached OpenSSL static libs'
+else
+  # Clean up any builds of previous versions from the cache
+  rm -rf $(dirname $install)/*
+
+
+  mkdir -p target/$TARGET/openssl
+  out=`pwd`/target/$TARGET/openssl/openssl-$OPENSSL_VERS.tar.gz
+  curl -o $out https://www.openssl.org/source/openssl-$OPENSSL_VERS.tar.gz
+  sha256sum $out > $out.sha256
+  test $OPENSSL_SHA256 = `cut -d ' ' -f 1 $out.sha256`
+
+  tar xf $out -C target/$TARGET/openssl
+  (cd target/$TARGET/openssl/openssl-$OPENSSL_VERS && \
+   CC=$OPENSSL_CC \
+   AR=$OPENSSL_AR \
+   $SETARCH ./Configure --prefix=$install no-dso $OPENSSL_OS $OPENSSL_CFLAGS -fPIC && \
+   make -j4 && \
+   make install)
+
+  # Travis will cache the parent directory. That's fine, but want a way of marking the
+  # install "complete". In this setup, if the build fails there will be no -final and
+  # the whole thing starts again (which is fine).   
+  # The same reasoning is why to cache the install-target directory rather than
+  # the build directory in the first place (make should be able to sort itself out in
+  # that case, but that's relying on intuitive timestamps in the presence of caching etc)
+  mv $install $install-final
+  ln -s $install-final $install
+fi
 
 # Variables to the openssl-sys crate to link statically against the OpenSSL we
 # just compiled above

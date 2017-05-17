@@ -17,6 +17,28 @@ set -u
 
 RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup/dist"
 
+#XXX: If you change anything here, please make the same changes in setup_mode.rs
+usage() {
+    cat 1>&2 <<EOF
+rustup-init 1.0.0 (408ed84 2017-02-11)
+The installer for rustup
+
+USAGE:
+    rustup-init [FLAGS] [OPTIONS]
+
+FLAGS:
+    -v, --verbose           Enable verbose output
+    -y                      Disable confirmation prompt.
+        --no-modify-path    Don't configure the PATH environment variable
+    -h, --help              Prints help information
+    -V, --version           Prints version information
+
+OPTIONS:
+        --default-host <default-host>              Choose a default host triple
+        --default-toolchain <default-toolchain>    Choose a default toolchain to install
+EOF
+}
+
 main() {
     need_cmd uname
     need_cmd curl
@@ -41,7 +63,7 @@ main() {
 
     local _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
     local _file="$_dir/rustup-init$_ext"
-    
+
     local _ansi_escapes_are_valid=false
     if [ -t 2 ]; then
         if [ "${TERM+set}" = 'set' ]; then
@@ -52,26 +74,15 @@ main() {
             esac
         fi
     fi
-    
-    if $_ansi_escapes_are_valid; then
-        printf "\33[1minfo:\33[0m downloading installer\n" 1>&2
-    else
-        printf '%s\n' 'info: downloading installer' 1>&2
-    fi
-    
-    ensure mkdir -p "$_dir"
-    ensure curl -sSfL "$_url" -o "$_file"
-    ensure chmod u+x "$_file"
-    if [ ! -x "$_file" ]; then
-        printf '%s\n' "Cannot execute $_file (likely because of mounting /tmp as noexec)." 1>&2
-        printf '%s\n' "Please copy the file to a location where you can execute binaries and run ./rustup-init$_ext." 1>&2
-        exit 1
-    fi
 
     # check if we have to use /dev/tty to prompt the user
     local need_tty=yes
     for arg in "$@"; do
         case "$arg" in
+            -h|--help)
+                usage
+                exit 0
+                ;;
             -y)
                 # user wants to skip the prompt -- we don't need /dev/tty
                 need_tty=no
@@ -81,19 +92,35 @@ main() {
         esac
     done
 
+    if $_ansi_escapes_are_valid; then
+        printf "\33[1minfo:\33[0m downloading installer\n" 1>&2
+    else
+        printf '%s\n' 'info: downloading installer' 1>&2
+    fi
+
+    ensure mkdir -p "$_dir"
+    ensure curl -sSfL "$_url" -o "$_file"
+    ensure chmod u+x "$_file"
+    if [ ! -x "$_file" ]; then
+        printf '%s\n' "Cannot execute $_file (likely because of mounting /tmp as noexec)." 1>&2
+        printf '%s\n' "Please copy the file to a location where you can execute binaries and run ./rustup-init$_ext." 1>&2
+        exit 1
+    fi
+
+
 
     if [ "$need_tty" = "yes" ]; then
         # The installer is going to want to ask for confirmation by
         # reading stdin.  This script was piped into `sh` though and
         # doesn't have stdin to pass to its children. Instead we're going
         # to explicitly connect /dev/tty to the installer's stdin.
-        if [ ! -e "/dev/tty" ]; then
-            err "/dev/tty does not exist"
+        if [ ! -t 1 ]; then
+            err "Unable to run interactively. Run with -y to accept defaults, --help for additional options"
         fi
 
-        run "$_file" "$@" < /dev/tty
+        ignore "$_file" "$@" < /dev/tty
     else
-        run "$_file" "$@"
+        ignore "$_file" "$@"
     fi
 
     local _retval=$?
@@ -146,6 +173,12 @@ get_architecture() {
     local _ostype="$(uname -s)"
     local _cputype="$(uname -m)"
 
+    if [ "$_ostype" = Linux ]; then
+        if [ "$(uname -o)" = Android ]; then
+            local _ostype=Android
+        fi
+    fi
+
     if [ "$_ostype" = Darwin -a "$_cputype" = i386 ]; then
         # Darwin `uname -s` lies
         if sysctl hw.optional.x86_64 | grep -q ': 1'; then
@@ -154,6 +187,10 @@ get_architecture() {
     fi
 
     case "$_ostype" in
+
+        Android)
+            local _ostype=linux-android
+            ;;
 
         Linux)
             local _ostype=unknown-linux-gnu
@@ -193,16 +230,27 @@ get_architecture() {
 
         xscale | arm)
             local _cputype=arm
+            if [ "$_ostype" = "linux-android" ]; then
+                local _ostype=linux-androideabi
+            fi
             ;;
 
         armv6l)
             local _cputype=arm
-            local _ostype="${_ostype}eabihf"
+            if [ "$_ostype" = "linux-android" ]; then
+                local _ostype=linux-androideabi
+            else
+                local _ostype="${_ostype}eabihf"
+            fi
             ;;
 
-        armv7l)
+        armv7l | armv8l)
             local _cputype=armv7
-            local _ostype="${_ostype}eabihf"
+            if [ "$_ostype" = "linux-android" ]; then
+                local _ostype=linux-androideabi
+            else
+                local _ostype="${_ostype}eabihf"
+            fi
             ;;
 
         aarch64)
@@ -311,17 +359,7 @@ ensure() {
 # intentionally ignored. Usually, because it's being executed
 # as part of error handling.
 ignore() {
-    run "$@"
-}
-
-# Runs a command and prints it to stderr if it fails.
-run() {
     "$@"
-    local _retval=$?
-    if [ $_retval != 0 ]; then
-        say_err "command failed: $*"
-    fi
-    return $_retval
 }
 
 main "$@" || exit 1

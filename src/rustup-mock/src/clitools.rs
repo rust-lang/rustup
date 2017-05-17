@@ -32,6 +32,8 @@ pub struct Config {
     pub cargodir: PathBuf,
     /// ~
     pub homedir: PathBuf,
+    /// An empty directory. Tests should not write to this.
+    pub emptydir: PathBuf,
 }
 
 // Describes all the features of the mock dist server.
@@ -60,6 +62,8 @@ pub static MULTI_ARCH1: &'static str = "i686-unknown-linux-gnu";
 pub fn setup(s: Scenario, f: &Fn(&Config)) {
     // Unset env variables that will break our testing
     env::remove_var("RUSTUP_TOOLCHAIN");
+    env::remove_var("SHELL");
+    env::remove_var("ZDOTDIR");
 
     let exedir = TempDir::new("rustup-exe").unwrap();
     let distdir = TempDir::new("rustup-dist").unwrap();
@@ -67,6 +71,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let customdir = TempDir::new("rustup-custom").unwrap();
     let cargodir = TempDir::new("rustup-cargo").unwrap();
     let homedir = TempDir::new("rustup-home").unwrap();
+    let emptydir = TempDir::new("rustup-empty").unwrap();
 
     // The uninstall process on windows involves using the directory above
     // CARGO_HOME, so make sure it's a subdir of our tempdir
@@ -80,6 +85,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
         customdir: customdir.path().to_owned(),
         cargodir: cargodir,
         homedir: homedir.path().to_owned(),
+        emptydir: emptydir.path().to_owned(),
     };
 
     create_mock_dist_server(&config.distdir, s);
@@ -95,6 +101,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let setup_path = config.exedir.join(format!("rustup-init{}", EXE_SUFFIX));
     let rustc_path = config.exedir.join(format!("rustc{}", EXE_SUFFIX));
     let cargo_path = config.exedir.join(format!("cargo{}", EXE_SUFFIX));
+    let rls_path = config.exedir.join(format!("rls{}", EXE_SUFFIX));
 
     // Don't copy an executable via `fs::copy` on Unix because that'll require
     // opening up the destination for writing. If one thread in our process then
@@ -115,6 +122,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     fs::hard_link(rustup_path, setup_path).unwrap();
     fs::hard_link(rustup_path, rustc_path).unwrap();
     fs::hard_link(rustup_path, cargo_path).unwrap();
+    fs::hard_link(rustup_path, rls_path).unwrap();
 
     // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
@@ -257,6 +265,14 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
 }
 
 pub fn env(config: &Config, cmd: &mut Command) {
+    // Ensure PATH is prefixed with the rustup-exe directory
+    let prev_path = env::var_os("PATH");
+    let mut new_path = config.exedir.clone().into_os_string();
+    if let Some(ref p) = prev_path {
+        new_path.push(if cfg!(windows) { ";" } else { ":" });
+        new_path.push(p);
+    }
+    cmd.env("PATH", new_path);
     cmd.env("RUSTUP_HOME", config.rustupdir.to_string_lossy().to_string());
     cmd.env("RUSTUP_DIST_SERVER", format!("file://{}", config.distdir.to_string_lossy()));
     cmd.env("CARGO_HOME", config.cargodir.to_string_lossy().to_string());
@@ -278,7 +294,7 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
     for env in env {
         cmd.env(env.0, env.1);
     }
-    let out = cmd.output().unwrap();
+    let out = cmd.output().expect("failed to run test command");
 
     SanitizedOutput {
         ok: out.status.success(),
@@ -353,11 +369,13 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
     let std = build_mock_std_installer(host_triple);
     let rustc = build_mock_rustc_installer(host_triple, version, version_hash);
     let cargo = build_mock_cargo_installer(version, version_hash);
+    let rls = build_mock_rls_installer(version, version_hash);
     let rust_docs = build_mock_rust_doc_installer();
     let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
     let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
     let cross_std2 = build_mock_cross_std_installer(CROSS_ARCH2, date);
     let rust_src = build_mock_rust_src_installer();
+    let rust_analysis = build_mock_rust_analysis_installer(host_triple);
 
     // Convert the mock installers to mock package definitions for the
     // mock dist server
@@ -366,14 +384,17 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                                      (cross_std2, CROSS_ARCH2.to_string())]),
                    ("rustc", vec![(rustc, host_triple.clone())]),
                    ("cargo", vec![(cargo, host_triple.clone())]),
+                   ("rls", vec![(rls, host_triple.clone())]),
                    ("rust-docs", vec![(rust_docs, host_triple.clone())]),
                    ("rust-src", vec![(rust_src, "*".to_string())]),
+                   ("rust-analysis", vec![(rust_analysis, "*".to_string())]),
                    ("rust", vec![(rust, host_triple.clone())])];
 
     if s == Scenario::MultiHost {
         let std = build_mock_std_installer(MULTI_ARCH1);
         let rustc = build_mock_rustc_installer(MULTI_ARCH1, version, version_hash);
         let cargo = build_mock_cargo_installer(version, version_hash);
+        let rls = build_mock_rls_installer(version, version_hash);
         let rust_docs = build_mock_rust_doc_installer();
         let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
         let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
@@ -386,6 +407,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                                      (cross_std2, CROSS_ARCH2.to_string())]),
                         ("rustc", vec![(rustc, triple.clone())]),
                         ("cargo", vec![(cargo, triple.clone())]),
+                        ("rls", vec![(rls, triple.clone())]),
                         ("rust-docs", vec![(rust_docs, triple.clone())]),
                         ("rust-src", vec![(rust_src, "*".to_string())]),
                         ("rust", vec![(rust, triple.clone())])];
@@ -434,6 +456,10 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                 target: target.to_string()
             });
             target_pkg.extensions.push(MockComponent {
+                name: "rls".to_string(),
+                target: target.to_string()
+            });
+            target_pkg.extensions.push(MockComponent {
                 name: "rust-std".to_string(),
                 target: CROSS_ARCH1.to_string(),
             });
@@ -444,6 +470,10 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
             target_pkg.extensions.push(MockComponent {
                 name: "rust-src".to_string(),
                 target: "*".to_string(),
+            });
+            target_pkg.extensions.push(MockComponent {
+                name: "rust-analysis".to_string(),
+                target: target.to_string(),
             });
         }
     }
@@ -532,12 +562,33 @@ fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstalle
     }
 }
 
+fn build_mock_rls_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
+    let cargo = format!("bin/rls{}", EXE_SUFFIX);
+    MockInstallerBuilder {
+        components: vec![
+            ("rls".to_string(),
+             vec![MockCommand::File(cargo.clone())],
+             vec![(cargo, mock_bin("rls", version, version_hash))])
+                ]
+    }
+}
+
 fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![
             ("rust-docs".to_string(),
              vec![MockCommand::File("share/doc/rust/html/index.html".to_string())],
              vec![("share/doc/rust/html/index.html".to_string(), "".into())])
+                ]
+    }
+}
+
+fn build_mock_rust_analysis_installer(trip: &str) -> MockInstallerBuilder {
+    MockInstallerBuilder {
+        components: vec![
+            (format!("rust-analysis-{}", trip),
+             vec![MockCommand::File(format!("lib/rustlib/{}/analysis/libfoo.json", trip))],
+             vec![(format!("lib/rustlib/{}/analysis/libfoo.json", trip), "".into())])
                 ]
     }
 }
@@ -642,6 +693,8 @@ fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Vec<u8> {
 fn create_custom_toolchains(customdir: &Path) {
     let ref dir = customdir.join("custom-1/bin");
     fs::create_dir_all(dir).unwrap();
+    let ref libdir = customdir.join("custom-1/lib");
+    fs::create_dir_all(libdir).unwrap();
     let rustc = mock_bin("rustc", "1.0.0", "hash-c-1");
     let ref path = customdir.join(format!("custom-1/bin/rustc{}", EXE_SUFFIX));
     let mut file = File::create(path).unwrap();
@@ -650,6 +703,8 @@ fn create_custom_toolchains(customdir: &Path) {
 
     let ref dir = customdir.join("custom-2/bin");
     fs::create_dir_all(dir).unwrap();
+    let ref libdir = customdir.join("custom-2/lib");
+    fs::create_dir_all(libdir).unwrap();
     let rustc = mock_bin("rustc", "1.0.0", "hash-c-2");
     let ref path = customdir.join(format!("custom-2/bin/rustc{}", EXE_SUFFIX));
     let mut file = File::create(path).unwrap();

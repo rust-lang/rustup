@@ -74,6 +74,24 @@ matrix:
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
            SKIP_TESTS=1
 
+    # Android use a local docker image
+    - os: linux
+      env: TARGET=arm-linux-androideabi
+           DOCKER=android
+           SKIP_TESTS=1
+    - os: linux
+      env: TARGET=armv7-linux-androideabi
+           DOCKER=android
+           SKIP_TESTS=1
+    - os: linux
+      env: TARGET=aarch64-linux-android
+           DOCKER=android
+           SKIP_TESTS=1
+    - os: linux
+      env: TARGET=i686-linux-android
+           DOCKER=android
+           SKIP_TESTS=1
+
     # On OSX we want to target 10.7 so we ensure that the appropriate
     # environment variable is set to tell the linker what we want.
     - os: osx
@@ -82,6 +100,14 @@ matrix:
     - os: osx
       env: TARGET=x86_64-apple-darwin
            MACOSX_DEPLOYMENT_TARGET=10.7
+
+cache:
+  # We're going to download things we don't necessarily want to cache into the `target` directory, so
+  # don't use travis's native `cargo` caching, which just grabs the whole folder.
+  directories:
+    - target/$TARGET/openssl/openssl-install
+    - target/$TARGET/release
+    - target/release/deps
 
 branches:
   only:
@@ -99,18 +125,9 @@ install:
     sh -s -- --prefix=$HOME/rust --spec=nightly-2017-01-06 --with-target=$TARGET
 
 script:
-  - mkdir target
+  - mkdir -p target/$TARGET
   - if [ ! -z "$DOCKER" ]; then
-      docker run
-        --entrypoint bash
-        -u `id -u`:`id -g`
-        -v $HOME/rust:/travis-rust:ro
-        -v `pwd`:/buildslave:ro
-        -v `pwd`/target:/buildslave/target
-        -e TARGET=$TARGET
-        -e SKIP_TESTS=$SKIP_TESTS
-        -it $DOCKER
-        ci/run-docker.sh;
+      sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
     else
       PATH=$HOME/rust/bin:$PATH sh ci/run.sh;
     fi
