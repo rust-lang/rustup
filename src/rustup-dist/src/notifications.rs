@@ -26,6 +26,7 @@ pub enum Notification<'a> {
     MissingInstalledComponent(&'a str),
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     InstallingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
+    RemovingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     DownloadingManifest(&'a str),
     DownloadingLegacyManifest,
     ManifestChecksumFailedHack,
@@ -55,6 +56,7 @@ impl<'a> Notification<'a> {
             Extracting(_, _) | SignatureValid(_)  |
             DownloadingComponent(_, _, _) |
             InstallingComponent(_, _, _) |
+            RemovingComponent(_, _, _) |
             ComponentAlreadyInstalled(_)  |
             ManifestChecksumFailedHack |
             RollingBack | DownloadingManifest(_) => NotificationLevel::Info,
@@ -103,6 +105,13 @@ impl<'a> Display for Notification<'a> {
                     write!(f, "installing component '{}'", c)
                 } else {
                     write!(f, "installing component '{}' for '{}'", c, t.unwrap())
+                }
+            }
+            RemovingComponent(c, h, t) => {
+                if Some(h) == t || t.is_none() {
+                    write!(f, "removing component '{}'", c)
+                } else {
+                    write!(f, "removing component '{}' for '{}'", c, t.unwrap())
                 }
             }
             DownloadingManifest(t) => write!(f, "syncing channel updates for '{}'", t),

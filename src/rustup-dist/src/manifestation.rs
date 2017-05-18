@@ -157,6 +157,11 @@ impl Manifestation {
 
         // Uninstall components
         for component in components_to_uninstall {
+
+            notify_handler(Notification::RemovingComponent(&component.pkg,
+                                                           &self.target_triple,
+                                                           component.target.as_ref()));
+
             tx = try!(self.uninstall_component(&component, tx, notify_handler.clone()));
         }
 
