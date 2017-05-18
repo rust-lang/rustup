@@ -9,10 +9,7 @@ pub use self::package::*;
 // Transactional file system tools
 mod transaction;
 // The representation of a package, its components, and installation
-//
-// FIXME: Because of rust-lang/rust#18241 this must be pub to pub reexport
-// the inner Package trait.
-pub mod package;
+mod package;
 // The representation of *installed* components, and uninstallation
 mod components;
 
