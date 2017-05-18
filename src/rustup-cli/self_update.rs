@@ -148,7 +148,7 @@ macro_rules! post_install_msg_win_no_modify_path {
     () => {
 r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
+To get started you need Cargo's bin directory ({cargo_home_bin}) in your `PATH`
 environment variable. This has not been done automatically.
 "
     };
@@ -303,8 +303,9 @@ pub fn install(no_prompt: bool, verbose: bool,
                          cargo_home = cargo_home)
             } else {
                 let cargo_home = try!(utils::cargo_home());
+                let cargo_home_bin = cargo_home.join("bin");
                 format!(post_install_msg_win_no_modify_path!(),
-                        cargo_home = cargo_home.display())
+                        cargo_home_bin = cargo_home_bin.display())
             }
         };
         term2::stdout().md(msg);
