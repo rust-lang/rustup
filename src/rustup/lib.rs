@@ -1,7 +1,6 @@
 #![recursion_limit = "1024"]
 
 extern crate rustup_dist;
-#[macro_use]
 extern crate rustup_utils;
 #[macro_use]
 extern crate error_chain;
