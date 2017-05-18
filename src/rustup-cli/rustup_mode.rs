@@ -141,7 +141,7 @@ pub fn cli() -> App<'static, 'static> {
                 .required(true)
                 .multiple(true)))
         .subcommand(SubCommand::with_name("update")
-            .about("Update Rust toolchains")
+            .about("Update Rust toolchains and rustup")
             .after_help(UPDATE_HELP)
             .arg(Arg::with_name("toolchain")
                 .required(false)
