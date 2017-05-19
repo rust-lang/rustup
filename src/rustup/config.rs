@@ -9,7 +9,7 @@ use std::sync::Arc;
 use errors::*;
 use notifications::*;
 use rustup_dist::{temp, dist};
-use rustup_utils::utils;
+use rustup_utils::{self, utils};
 use toolchain::{Toolchain, UpdateStatus};
 use telemetry_analysis::*;
 use settings::{TelemetryMode, SettingsFile, DEFAULT_METADATA_VERSION};
@@ -233,7 +233,18 @@ impl Cfg {
             Ok(s.find_override(path, self.notify_handler.as_ref()))
         }));
         if let Some((name, reason_path)) = result {
-            let toolchain = try!(self.verify_toolchain(&name).chain_err(|| ErrorKind::ToolchainNotInstalled(name.to_string())));
+            let toolchain = match self.verify_toolchain(&name) {
+                Ok(t) => { t },
+                Err(Error(ErrorKind::Utils(::rustup_utils::ErrorKind::NotADirectory { .. }), _)) => {
+                    // Strip the confusing NotADirectory error and only mention that the override
+                    // toolchain is not installed.
+                    return Err(ErrorKind::OverrideToolchainNotInstalled(name.to_string()).into())
+                },
+                Err(e) => return Err(e).chain_err(|| {
+                    ErrorKind::OverrideToolchainNotInstalled(name.to_string())
+                })
+
+            };
             return Ok(Some((toolchain, OverrideReason::OverrideDB(reason_path))));
         }
 
