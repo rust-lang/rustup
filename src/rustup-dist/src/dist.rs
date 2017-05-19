@@ -375,7 +375,8 @@ impl ToolchainDesc {
     }
 
     pub fn is_tracking(&self) -> bool {
-        self.date.is_none()
+        let channels = ["nightly", "beta", "stable"];
+        channels.iter().any(|x| *x == self.channel) && self.date.is_none()
     }
 }
 
