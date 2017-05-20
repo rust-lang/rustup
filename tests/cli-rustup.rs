@@ -512,9 +512,6 @@ fn show_toolchain_override_not_installed() {
         expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
         // I'm not sure this should really be erroring when the toolchain
         // is not installed; just capturing the behavior.
-        let path = format!("toolchains/nightly-{0}", &this_host_triple());
-        let path = config.rustupdir.join(path);
-
         let mut cmd = clitools::cmd(config, "rustup", &["show"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();

@@ -9,7 +9,7 @@ use std::sync::Arc;
 use errors::*;
 use notifications::*;
 use rustup_dist::{temp, dist};
-use rustup_utils::{self, utils};
+use rustup_utils::utils;
 use toolchain::{Toolchain, UpdateStatus};
 use telemetry_analysis::*;
 use settings::{TelemetryMode, SettingsFile, DEFAULT_METADATA_VERSION};
