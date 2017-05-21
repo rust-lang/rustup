@@ -165,7 +165,6 @@ This will uninstall all Rust toolchains and data, and remove
     }
 }
 
-#[cfg(windows)]
 static MSVC_MESSAGE: &'static str =
 r#"# Rust Visual C++ prerequisites
 
