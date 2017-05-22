@@ -35,6 +35,5 @@ pub mod notifications;
 pub mod prefix;
 pub mod component;
 pub mod manifestation;
-pub mod download;
 pub mod manifest;
 pub mod config;
