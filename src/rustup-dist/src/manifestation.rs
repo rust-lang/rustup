@@ -3,12 +3,13 @@
 
 use config::Config;
 use manifest::{Component, Manifest, TargetedPackage};
-use dist::{download_and_check, DownloadCfg, TargetTriple, DEFAULT_DIST_SERVER, File};
+use dist::{TargetTriple, DEFAULT_DIST_SERVER};
 use component::{Components, Transaction, TarGzPackage, Package};
 use temp;
 use errors::*;
 use notifications::*;
 use rustup_utils::utils;
+use download::{DownloadCfg, File};
 use prefix::InstallPrefix;
 use std::path::Path;
 
@@ -140,7 +141,7 @@ impl Manifestation {
 
             let url_url = try!(utils::parse_url(&url));
 
-            let dowloaded_file = try!(download_cfg.download(&url_url, &hash, &notify_handler).chain_err(|| {
+            let dowloaded_file = try!(download_cfg.download(&url_url, &hash).chain_err(|| {
                 ErrorKind::ComponentDownloadFailed(component.clone())
             }));
             things_downloaded.push(hash);
@@ -314,7 +315,7 @@ impl Manifestation {
             notify_handler: notify_handler
         };
 
-        let dl = try!(download_and_check(&url, update_hash, ".tar.gz", dlcfg));
+        let dl = try!(dlcfg.download_and_check(&url, update_hash, ".tar.gz"));
         if dl.is_none() {
             return Ok(None);
         };
