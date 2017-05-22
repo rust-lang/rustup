@@ -148,7 +148,7 @@ macro_rules! post_install_msg_win_no_modify_path {
     () => {
 r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory ({cargo_home_bin}) in your `PATH`
+To get started you need Cargo's bin directory ({cargo_home}\bin) in your `PATH`
 environment variable. This has not been done automatically.
 "
     };
@@ -204,7 +204,11 @@ fn canonical_cargo_home() -> Result<String> {
 
     let default_cargo_home = utils::home_dir().unwrap_or(PathBuf::from(".")).join(".cargo");
     if default_cargo_home == path {
-        path_str = String::from("$HOME/.cargo");
+        if cfg!(unix) {
+            path_str = String::from("$HOME/.cargo");
+        } else {
+            path_str = String::from(r"%HOMEPATH%\.cargo");
+        } 
     }
 
     Ok(path_str)
@@ -288,9 +292,9 @@ pub fn install(no_prompt: bool, verbose: bool,
 
     // More helpful advice, skip if -y
     if !no_prompt {
+        let cargo_home = try!(canonical_cargo_home());
         let msg = if !opts.no_modify_path {
             if cfg!(unix) {
-                let cargo_home = try!(canonical_cargo_home());
                 format!(post_install_msg_unix!(),
                          cargo_home = cargo_home)
             } else {
@@ -298,14 +302,11 @@ pub fn install(no_prompt: bool, verbose: bool,
             }
         } else {
             if cfg!(unix) {
-                let cargo_home = try!(canonical_cargo_home());
                 format!(post_install_msg_unix_no_modify_path!(),
                          cargo_home = cargo_home)
             } else {
-                let cargo_home = try!(utils::cargo_home());
-                let cargo_home_bin = cargo_home.join("bin");
                 format!(post_install_msg_win_no_modify_path!(),
-                        cargo_home_bin = cargo_home_bin.display())
+                        cargo_home = cargo_home)
             }
         };
         term2::stdout().md(msg);
