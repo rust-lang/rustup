@@ -112,7 +112,7 @@ macro_rules! post_install_msg_unix {
     () => {
 r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory in your `PATH`
+To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
 environment variable. Next time you log in this will be done
 automatically.
 
@@ -125,7 +125,7 @@ macro_rules! post_install_msg_win {
     () => {
 r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory in your `PATH`
+To get started you need Cargo's bin directory ({cargo_home}\bin) in your `PATH`
 environment variable. Future applications will automatically have the
 correct environment, but you may need to restart your current shell.
 "
@@ -298,7 +298,8 @@ pub fn install(no_prompt: bool, verbose: bool,
                 format!(post_install_msg_unix!(),
                          cargo_home = cargo_home)
             } else {
-                format!(post_install_msg_win!())
+                format!(post_install_msg_win!(),
+                        cargo_home = cargo_home)
             }
         } else {
             if cfg!(unix) {
