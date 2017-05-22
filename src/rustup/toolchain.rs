@@ -1,7 +1,7 @@
 use errors::*;
 use notifications::*;
 use rustup_dist;
-use rustup_dist::dist;
+use rustup_dist::download::DownloadCfg;
 use rustup_utils::utils;
 use rustup_dist::prefix::InstallPrefix;
 use rustup_dist::dist::{ToolchainDesc};
@@ -154,8 +154,8 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    fn download_cfg(&self) -> dist::DownloadCfg {
-        dist::DownloadCfg {
+    fn download_cfg(&self) -> DownloadCfg {
+        DownloadCfg {
             dist_root: &self.cfg.dist_root_url,
             temp_cfg: &self.cfg.temp_cfg,
             download_dir: &self.cfg.download_dir,
