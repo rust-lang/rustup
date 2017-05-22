@@ -248,6 +248,7 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
                     }
                     Ok(None) => {
                         let _ = child.kill();
+                        return String::from("(timeout reading rustc version)")
                     }
                     Ok(Some(_)) | Err(_) => {}
                 }
