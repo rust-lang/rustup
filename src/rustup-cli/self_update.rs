@@ -207,7 +207,7 @@ fn canonical_cargo_home() -> Result<String> {
         if cfg!(unix) {
             path_str = String::from("$HOME/.cargo");
         } else {
-            path_str = String::from(r"%HOMEPATH%\.cargo");
+            path_str = String::from(r"%USERPROFILE%\.cargo");
         } 
     }
 
