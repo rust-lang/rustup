@@ -35,7 +35,7 @@ fn commit_info() -> String {
 
 fn commit_hash() -> Result<String, Ignore> {
     Ok(try!(String::from_utf8(try!(Command::new("git")
-                                       .args(&["rev-parse", "--short", "HEAD"])
+                                       .args(&["rev-parse", "--short=9", "HEAD"])
                                        .output())
                                   .stdout)))
 }
