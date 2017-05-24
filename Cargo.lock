@@ -344,6 +344,16 @@ version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "lzma-sys"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "filetime 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gcc 0.3.45 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "markdown"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -593,6 +603,7 @@ dependencies = [
  "walkdir 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "winreg 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xz2 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -613,6 +624,7 @@ dependencies = [
  "walkdir 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "winreg 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xz2 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -980,6 +992,14 @@ dependencies = [
  "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
+[[package]]
+name = "xz2"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "lzma-sys 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
 [metadata]
 "checksum advapi32-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "307c92332867e586720c0222ee9d890bbe8431711efed8a1b06bc5b40fc66bd7"
 "checksum advapi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e06588080cb19d0acb6739808aafa5f26bfb2ca015b2b6370028b44cf7cb8a9a"
@@ -1018,6 +1038,7 @@ dependencies = [
 "checksum libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)" = "babb8281da88cba992fa1f4ddec7d63ed96280a1a53ec9b919fd37b53d71e502"
 "checksum libz-sys 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)" = "c18b5826abbfafb0160b37e1991e2d327c1fe38c955e496ea306f72c06d7570c"
 "checksum log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "ab83497bf8bf4ed2a74259c1c802351fcd67a65baa86394b6ba73c36f4838054"
+"checksum lzma-sys 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "4b539821e4cb7d38539f762580c6620c745fb79d9a03b4bf25eda6739c4ff572"
 "checksum markdown 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bdb7e864aa1dccbebb05751e899bc84c639df47490c0c24caf4b1a77770b6566"
 "checksum matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "15305656809ce5a4805b1ff2946892810992197ce1270ff79baded852187942e"
 "checksum memchr 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)" = "d8b629fb514376c675b98c1421e80b151d3817ac42d7c667717d282761418d20"
@@ -1085,3 +1106,4 @@ dependencies = [
 "checksum winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2d315eee3b34aca4797b2da6b13ed88266e6d612562a0c46390af8299fc699bc"
 "checksum winreg 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "e63857fb213f619b4c4fff86b158285c76766aac7e7474967e92fb6dbbfeefe9"
 "checksum xattr 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "06d6f0e8fd6536f3c623afab15488d87cf3a5dbb907361a22c05d739881136d7"
+"checksum xz2 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "e9510bdf100731599107c61f77daf46713a69a568f75458999c1f9dbf6ba25b0"

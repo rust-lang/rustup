@@ -334,7 +334,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
     MockDistServer {
         path: path.to_owned(),
         channels: chans,
-    }.write(vs);
+    }.write(vs, true);
 
     // Also create the manifests for stable releases by version
     if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {

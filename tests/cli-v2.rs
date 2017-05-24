@@ -209,8 +209,10 @@ fn bad_sha_on_installer() {
         let dir = config.distdir.join("dist/2015-01-02");
         for file in fs::read_dir(&dir).unwrap() {
             let file = file.unwrap();
-            if file.path().to_string_lossy().ends_with(".tar.gz") {
-                rustup_utils::raw::write_file(&file.path(), "xxx").unwrap();
+            let path = file.path();
+            let filename = path.to_string_lossy();
+            if filename.ends_with(".tar.gz") || filename.ends_with(".tar.xz") {
+                rustup_utils::raw::write_file(&path, "xxx").unwrap();
             }
         }
         expect_err(config, &["rustup", "default", "nightly"],

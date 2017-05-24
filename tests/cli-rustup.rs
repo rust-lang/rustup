@@ -11,7 +11,7 @@ use std::process;
 use rustup_utils::raw;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
-                               expect_stdout_ok,
+                               expect_stderr_ok, expect_stdout_ok,
                                expect_err,
                                set_current_dist_date,
                                this_host_triple};
@@ -203,6 +203,15 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: default toolchain set to 'nightly-{0}'
 "));
+    });
+}
+
+#[test]
+fn rustup_xz() {
+    setup(&|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_stderr_ok(config, &["rustup", "--verbose", "update", "nightly"],
+for_host!(r"dist/2015-01-01/rust-std-nightly-{0}.tar.xz"));
     });
 }
 
