@@ -407,7 +407,7 @@ $ rustup toolchain link my-toolchain path/to/my/toolchain/sysroot
 For example, on Ubuntu you might clone `rust-lang/rust` into `~/rust`, build it, and then run:
 
 ```
-$ rustup toolchain link myrust ~/rustg/x86_64-unknown-linux-gnu/stage2/
+$ rustup toolchain link myrust ~/rust/build/x86_64-unknown-linux-gnu/stage2/
 $ rustup default myrust
 ```
 
