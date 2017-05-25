@@ -165,7 +165,6 @@ This will uninstall all Rust toolchains and data, and remove
     }
 }
 
-#[cfg(windows)]
 static MSVC_MESSAGE: &'static str =
 r#"# Rust Visual C++ prerequisites
 
@@ -224,8 +223,15 @@ pub fn install(no_prompt: bool, verbose: bool,
     try!(do_anti_sudo_check(no_prompt));
 
     if !try!(do_msvc_check(&opts)) {
-        info!("aborting installation");
-        return Ok(());
+        if no_prompt {
+            warn!("installing msvc toolchain without its prerequisites");
+        } else {
+            term2::stdout().md(MSVC_MESSAGE);
+            if !try!(common::confirm("\nContinue? (Y/n)", true)) {
+                info!("aborting installation");
+                return Ok(());
+            }
+        }
     }
 
     if !no_prompt {
@@ -468,10 +474,7 @@ fn do_msvc_check(opts: &InstallOpts) -> Result<bool> {
     let installing_msvc = opts.default_host_triple.contains("msvc");
     let have_msvc = windows_registry::find_tool(&opts.default_host_triple, "cl.exe").is_some();
     if installing_msvc && !have_msvc {
-        term2::stdout().md(MSVC_MESSAGE);
-        if !try!(common::confirm("\nContinue? (Y/n)", true)) {
-            return Ok(false);
-        }
+        return Ok(false);
     }
 
     Ok(true)
