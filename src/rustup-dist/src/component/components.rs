@@ -61,6 +61,7 @@ impl Components {
         }
         let content = try!(utils::read_file("components", &path));
         Ok(content.lines()
+                  .filter(|s| s.chars().all(char::is_whitespace))
                   .map(|s| {
                       Component {
                           components: self.clone(),
