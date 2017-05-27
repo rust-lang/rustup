@@ -43,6 +43,43 @@ install:
       }
 
   # Install rust, x86_64-pc-windows-msvc host
+  - ps: |
+      Write-Host "Installing MSYS2..." -ForegroundColor Cyan
+      if(Test-path C:\msys64) {
+          del C:\msys64 -Recurse -Force
+      }
+      # download installer
+      $zipPath = "$($env:TEMP)\msys2-x86_64-latest.tar.xz"
+      $tarPath = "$($env:TEMP)\msys2-x86_64-latest.tar"
+      Write-Host "Downloading MSYS installation package..."
+      (New-Object Net.WebClient).DownloadFile('http://repo.msys2.org/distrib/msys2-x86_64-latest.tar.xz', $zipPath)
+      Write-Host "Untaring installation package..."
+      7z x $zipPath -y -o"$env:TEMP" | Out-Null
+      Write-Host "Unzipping installation package..."
+      7z x $tarPath -y -oC:\ | Out-Null
+      del $zipPath
+      del $tarPath
+      function bash($command) {
+          Write-Host $command -NoNewline
+          cmd /c start /wait C:\msys64\usr\bin\sh.exe --login -c $command
+          Write-Host " - OK" -ForegroundColor Green
+      }
+      [Environment]::SetEnvironmentVariable("MSYS2_PATH_TYPE", "inherit", "Machine")
+      # install latest pacman
+      bash 'pacman -Sy --noconfirm pacman pacman-mirrors'
+      # update core packages
+      bash 'pacman -Syu --noconfirm'
+      bash 'pacman -Syu --noconfirm'
+      # install packages
+      bash 'pacman --sync --noconfirm VCS'
+      bash 'pacman --sync --noconfirm base-devel'
+      bash 'pacman --sync --noconfirm msys2-devel'
+      bash 'pacman --sync --noconfirm mingw-w64-{x86_64,i686}-toolchain'
+      # compact folder
+      Write-Host "Compacting C:\msys64..." -NoNewline
+      compact /c /i /s:C:\msys64 | Out-Null
+      Write-Host "OK" -ForegroundColor Green
+      Write-Host "MSYS2 installed" -ForegroundColor Green            
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init.exe -y --default-toolchain=nightly-2017-04-25-x86_64-pc-windows-msvc
   - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
