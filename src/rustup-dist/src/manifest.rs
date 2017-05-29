@@ -44,6 +44,8 @@ pub struct TargetedPackage {
     pub available: bool,
     pub url: String,
     pub hash: String,
+    pub xz_url: Option<String>,
+    pub xz_hash: Option<String>,
     pub components: Vec<Component>,
     pub extensions: Vec<Component>,
 }
@@ -234,6 +236,8 @@ impl TargetedPackage {
             available: try!(get_bool(&mut table, "available", path)),
             url: try!(get_string(&mut table, "url", path)),
             hash: try!(get_string(&mut table, "hash", path)),
+            xz_url: get_string(&mut table, "xz_url", path).ok(),
+            xz_hash: get_string(&mut table, "xz_hash", path).ok(),
             components: try!(Self::toml_to_components(components,
                                                       &format!("{}{}.", path, "components"))),
             extensions: try!(Self::toml_to_components(extensions,

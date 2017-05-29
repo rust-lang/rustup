@@ -1,7 +1,7 @@
 use errors::*;
 use notifications::*;
 use rustup_dist;
-use rustup_dist::dist;
+use rustup_dist::download::DownloadCfg;
 use rustup_utils::utils;
 use rustup_dist::prefix::InstallPrefix;
 use rustup_dist::dist::{ToolchainDesc};
@@ -123,7 +123,7 @@ impl<'a> Toolchain<'a> {
             (true, false) => UpdateStatus::Installed,
             (true, true) => UpdateStatus::Updated,
             (false, true) => UpdateStatus::Unchanged,
-            (false, false) => unreachable!(),
+            (false, false) => UpdateStatus::Unchanged,
         };
 
         Ok(status)
@@ -154,8 +154,8 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    fn download_cfg(&self) -> dist::DownloadCfg {
-        dist::DownloadCfg {
+    fn download_cfg(&self) -> DownloadCfg {
+        DownloadCfg {
             dist_root: &self.cfg.dist_root_url,
             temp_cfg: &self.cfg.temp_cfg,
             download_dir: &self.cfg.download_dir,
@@ -274,6 +274,16 @@ impl<'a> Toolchain<'a> {
 
     pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
         try!(self.ensure_custom());
+
+        let mut pathbuf = PathBuf::from(src);
+
+        pathbuf.push("lib");
+        try!(utils::assert_is_directory(&pathbuf));
+        pathbuf.pop();
+        pathbuf.push("bin");
+        try!(utils::assert_is_directory(&pathbuf));
+        pathbuf.push(format!("rustc{}", EXE_SUFFIX));
+        try!(utils::assert_is_file(&pathbuf));
 
         if link {
             try!(self.install(InstallMethod::Link(&try!(utils::to_absolute(src)))));
@@ -397,15 +407,22 @@ impl<'a> Toolchain<'a> {
         mod sysenv {
             pub const LOADER_PATH: &'static str = "DYLD_LIBRARY_PATH";
         }
-        env_var::prepend_path(sysenv::LOADER_PATH, &new_path, cmd);
+        env_var::prepend_path(sysenv::LOADER_PATH, vec![new_path.clone()], cmd);
 
         // Prepend CARGO_HOME/bin to the PATH variable so that we're sure to run
         // cargo/rustc via the proxy bins. There is no fallback case for if the
         // proxy bins don't exist. We'll just be running whatever happens to
         // be on the PATH.
+        let mut path_entries = vec![];
         if let Ok(cargo_home) = utils::cargo_home() {
-            env_var::prepend_path("PATH", &cargo_home.join("bin"), cmd);
+            path_entries.push(cargo_home.join("bin").to_path_buf());
         }
+
+        if cfg!(target_os = "windows") {
+            path_entries.push(self.path.join("bin"));
+        }
+
+        env_var::prepend_path("PATH", path_entries, cmd);
     }
 
     pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {

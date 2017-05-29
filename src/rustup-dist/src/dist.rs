@@ -7,19 +7,15 @@ use prefix::InstallPrefix;
 use manifest::Component;
 use manifest::Manifest as ManifestV2;
 use manifestation::{Manifestation, UpdateStatus, Changes};
+use download::{DownloadCfg};
 
-use std::path::{Path, PathBuf};
-use std::ops;
-use url::Url;
+use std::path::Path;
 use std::fmt;
 use std::env;
-use std::fs;
 
 use regex::Regex;
-use sha2::{Sha256, Digest};
 
 pub const DEFAULT_DIST_SERVER: &'static str = "https://static.rust-lang.org";
-pub const UPDATE_HASH_LEN: usize = 20;
 
 // Deprecated
 pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
@@ -166,6 +162,7 @@ impl TargetTriple {
                 (_, b"armv8l") if cfg!(target_os = "android") => Some("armv7-linux-androideabi"),
                 (_, b"aarch64") if cfg!(target_os = "android") => Some("aarch64-linux-android"),
                 (_, b"i686") if cfg!(target_os = "android") => Some("i686-linux-android"),
+                (_, b"x86_64") if cfg!(target_os = "android") => Some("x86_64-linux-android"),
                 (b"Linux", b"x86_64") => Some("x86_64-unknown-linux-gnu"),
                 (b"Linux", b"i686") => Some("i686-unknown-linux-gnu"),
                 (b"Linux", b"mips") => Some(TRIPLE_MIPS_UNKNOWN_LINUX_GNU),
@@ -374,7 +371,8 @@ impl ToolchainDesc {
     }
 
     pub fn is_tracking(&self) -> bool {
-        self.date.is_none()
+        let channels = ["nightly", "beta", "stable"];
+        channels.iter().any(|x| *x == self.channel) && self.date.is_none()
     }
 }
 
@@ -438,168 +436,6 @@ impl fmt::Display for ToolchainDesc {
     }
 }
 
-pub fn download_and_check<'a>(url_str: &str,
-                              update_hash: Option<&Path>,
-                              ext: &str,
-                              cfg: DownloadCfg<'a>)
-                              -> Result<Option<(temp::File<'a>, String)>> {
-    let hash = try!(download_hash(url_str, cfg));
-    let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
-
-    if let Some(hash_file) = update_hash {
-        if utils::is_file(hash_file) {
-            if let Ok(contents) = utils::read_file("update hash", hash_file) {
-                if contents == partial_hash {
-                    // Skip download, update hash matches
-                    return Ok(None);
-                }
-            } else {
-                (cfg.notify_handler)(Notification::CantReadUpdateHash(hash_file));
-            }
-        } else {
-            (cfg.notify_handler)(Notification::NoUpdateHash(hash_file));
-        }
-    }
-
-    let url = try!(utils::parse_url(url_str));
-    let file = try!(cfg.temp_cfg.new_file_with_ext("", ext));
-
-    let mut hasher = Sha256::new();
-    try!(utils::download_file(&url,
-                              &file,
-                              Some(&mut hasher),
-                              &|n| (cfg.notify_handler)(n.into())));
-    let actual_hash = hasher.result_str();
-
-    if hash != actual_hash {
-        // Incorrect hash
-        return Err(ErrorKind::ChecksumFailed {
-                url: url_str.to_owned(),
-                expected: hash,
-                calculated: actual_hash,
-            }
-            .into());
-    } else {
-        (cfg.notify_handler)(Notification::ChecksumValid(url_str));
-    }
-
-    // TODO: Check the signature of the file
-
-    Ok(Some((file, partial_hash)))
-}
-
-#[derive(Copy, Clone)]
-pub struct DownloadCfg<'a> {
-    pub dist_root: &'a str,
-    pub temp_cfg: &'a temp::Cfg,
-    pub download_dir: &'a PathBuf,
-    pub notify_handler: &'a Fn(Notification),
-}
-
-
-pub struct File {
-    path: PathBuf,
-}
-
-impl ops::Deref for File {
-    type Target = Path;
-
-    fn deref(&self) -> &Path {
-        ops::Deref::deref(&self.path)
-    }
-}
-
-fn file_hash(path: &Path) -> Result<String> {
-    let mut hasher = Sha256::new();
-    use std::io::Read;
-    let mut downloaded = try!(fs::File::open(&path).chain_err(|| "opening already downloaded file"));
-    let mut buf = vec![0; 32768];
-    loop {
-        if let Ok(n) = downloaded.read(&mut buf) {
-            if n == 0 { break; }
-            hasher.input(&buf[..n]);
-        } else {
-            break;
-        }
-    }
-
-    Ok(hasher.result_str())
-}
-
-impl<'a> DownloadCfg<'a> {
-
-    pub fn download(&self, url: &Url, hash: &str, notify_handler: &'a Fn(Notification)) -> Result<File> {
-
-        try!(utils::ensure_dir_exists("Download Directory", &self.download_dir, &|n| notify_handler(n.into())));
-        let target_file = self.download_dir.join(Path::new(hash));
-
-        if target_file.exists() {
-            let cached_result = try!(file_hash(&target_file));
-            if hash == cached_result {
-                notify_handler(Notification::FileAlreadyDownloaded);
-                notify_handler(Notification::ChecksumValid(&url.to_string()));
-                return Ok(File { path: target_file, });
-            } else {
-                notify_handler(Notification::CachedFileChecksumFailed);
-                try!(fs::remove_file(&target_file).chain_err(|| "cleaning up previous download"));
-            }
-        }
-
-
-        let partial_file_path =
-            target_file.with_file_name(
-                target_file.file_name().map(|s| {
-                    s.to_str().unwrap_or("_")})
-                    .unwrap_or("_")
-                    .to_owned()
-                + ".partial");
-
-        let mut hasher = Sha256::new();
-
-        try!(utils::download_file_with_resume(&url,
-                                  &partial_file_path,
-                                  Some(&mut hasher),
-                                  true,
-                                  &|n| notify_handler(n.into())));
-
-        let actual_hash = hasher.result_str();
-
-        if hash != actual_hash {
-            // Incorrect hash
-            return Err(ErrorKind::ChecksumFailed {
-                url: url.to_string(),
-                expected: hash.to_string(),
-                calculated: actual_hash,
-            }.into());
-        } else {
-            notify_handler(Notification::ChecksumValid(&url.to_string()));
-            try!(fs::rename(&partial_file_path, &target_file));
-            return Ok(File { path: target_file });
-        }
-    }
-
-    pub fn clean(&self, hashes: &Vec<String>) -> Result<()> {
-        for hash in hashes.iter() {
-            let used_file = self.download_dir.join(hash);
-            if self.download_dir.join(&used_file).exists() {
-                try!(fs::remove_file(used_file).chain_err(|| "cleaning up cached downloads"));
-            }
-        }
-        Ok(())
-    }
-}
-
-pub fn download_hash(url: &str, cfg: DownloadCfg) -> Result<String> {
-    let hash_url = try!(utils::parse_url(&(url.to_owned() + ".sha256")));
-    let hash_file = try!(cfg.temp_cfg.new_file());
-
-    try!(utils::download_file(&hash_url,
-                              &hash_file,
-                              None,
-                              &|n| (cfg.notify_handler)(n.into())));
-
-    Ok(try!(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())))
-}
 
 // Installs or updates a toolchain from a dist server. If an initial
 // install then it will be installed with the default components. If
@@ -667,6 +503,9 @@ pub fn update_from_dist_<'a>(download: DownloadCfg<'a>,
             // Proceed to try v1 as a fallback
             (download.notify_handler)(Notification::DownloadingLegacyManifest);
         }
+        Err(Error(ErrorKind::ChecksumFailed { .. }, _)) => {
+            return Ok(None)
+        }
         Err(e) => return Err(e),
     }
 
@@ -707,7 +546,7 @@ fn dl_v2_manifest<'a>(download: DownloadCfg<'a>,
                       toolchain: &ToolchainDesc)
                       -> Result<Option<(ManifestV2, String)>> {
     let manifest_url = toolchain.manifest_v2_url(download.dist_root);
-    let manifest_dl_res = download_and_check(&manifest_url, update_hash, ".toml", download);
+    let manifest_dl_res = download.download_and_check(&manifest_url, update_hash, ".toml");
 
     if let Ok(manifest_dl) = manifest_dl_res {
         // Downloaded ok!
@@ -747,7 +586,7 @@ fn dl_v1_manifest<'a>(download: DownloadCfg<'a>, toolchain: &ToolchainDesc) -> R
     }
 
     let manifest_url = toolchain.manifest_v1_url(download.dist_root);
-    let manifest_dl = try!(download_and_check(&manifest_url, None, "", download));
+    let manifest_dl = try!(download.download_and_check(&manifest_url, None, ""));
     let (manifest_file, _) = manifest_dl.unwrap();
     let manifest_str = try!(utils::read_file("manifest", &manifest_file));
     let urls = manifest_str.lines().map(|s| format!("{}/{}", root_url, s)).collect();

@@ -6,6 +6,7 @@ use rustup_dist::prefix::InstallPrefix;
 use rustup_utils::utils;
 use rustup_dist::temp;
 use rustup_dist::dist;
+use rustup_dist::download::DownloadCfg;
 use rustup_dist::component::{Components, TarGzPackage, Transaction, Package};
 use errors::Result;
 use std::path::Path;
@@ -15,7 +16,7 @@ pub enum InstallMethod<'a> {
     Copy(&'a Path),
     Link(&'a Path),
     Installer(&'a Path, &'a temp::Cfg),
-    Dist(&'a dist::ToolchainDesc, Option<&'a Path>, dist::DownloadCfg<'a>),
+    Dist(&'a dist::ToolchainDesc, Option<&'a Path>, DownloadCfg<'a>),
 }
 
 impl<'a> InstallMethod<'a> {

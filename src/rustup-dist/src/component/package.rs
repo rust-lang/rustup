@@ -4,6 +4,7 @@
 
 extern crate tar;
 extern crate flate2;
+extern crate xz2;
 
 use component::components::*;
 use component::transaction::*;
@@ -199,6 +200,14 @@ fn unpack_without_first_dir<R: Read>(archive: &mut tar::Archive<R>, path: &Path)
         // Throw away the first path component
         components.next();
         let full_path = path.join(&components.as_path());
+
+        // Create the full path to the entry if it does not exist already
+        match full_path.parent() {
+            Some(parent) if !parent.exists() =>
+                try!(::std::fs::create_dir_all(&parent).chain_err(|| ErrorKind::ExtractingPackage)),
+            _ => (),
+        };
+
         try!(entry.unpack(&full_path).chain_err(|| ErrorKind::ExtractingPackage));
     }
 
@@ -238,6 +247,38 @@ impl<'a> TarGzPackage<'a> {
 }
 
 impl<'a> Package for TarGzPackage<'a> {
+    fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
+        self.0.contains(component, short_name)
+    }
+    fn install<'b>(&self,
+                   target: &Components,
+                   component: &str,
+                   short_name: Option<&str>,
+                   tx: Transaction<'b>)
+                   -> Result<Transaction<'b>> {
+        self.0.install(target, component, short_name, tx)
+    }
+    fn components(&self) -> Vec<String> {
+        self.0.components()
+    }
+}
+
+#[derive(Debug)]
+pub struct TarXzPackage<'a>(TarPackage<'a>);
+
+impl<'a> TarXzPackage<'a> {
+    pub fn new<R: Read>(stream: R, temp_cfg: &'a temp::Cfg) -> Result<Self> {
+        let stream = xz2::read::XzDecoder::new(stream);
+
+        Ok(TarXzPackage(try!(TarPackage::new(stream, temp_cfg))))
+    }
+    pub fn new_file(path: &Path, temp_cfg: &'a temp::Cfg) -> Result<Self> {
+        let file = try!(File::open(path).chain_err(|| ErrorKind::ExtractingPackage));
+        Self::new(file, temp_cfg)
+    }
+}
+
+impl<'a> Package for TarXzPackage<'a> {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
         self.0.contains(component, short_name)
     }

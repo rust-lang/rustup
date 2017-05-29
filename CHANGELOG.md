@@ -1,3 +1,18 @@
+# 1.3.0
+
+* [Add armv8l support](https://github.com/rust-lang-nursery/rustup.rs/pull/1055)
+* [Update curl crate](https://github.com/rust-lang-nursery/rustup.rs/pull/1101)
+* [Fix inadvertent dependency on bash](https://github.com/rust-lang-nursery/rustup.rs/pull/1048)
+* [Update openssl-probe to 0.1.1](https://github.com/rust-lang-nursery/rustup.rs/pull/1061)
+* [zsh completions cleanup](https://github.com/rust-lang-nursery/rustup.rs/pull/1068)
+* [Alias 'rustup toolchain uninstall' to 'rustup uninstall'](https://github.com/rust-lang-nursery/rustup.rs/pull/1073)
+* [Fix a typo in PowerShell completion script help](https://github.com/rust-lang-nursery/rustup.rs/pull/1076)
+* [Enforce timeouts for reading rustc version](https://github.com/rust-lang-nursery/rustup.rs/pull/1071)
+* [Fix OpenSSL linkage by using the final install-directory in the build](https://github.com/rust-lang-nursery/rustup.rs/pull/1065)
+
+Contributors: bors, Brian Anderson, Diggory Blake, Greg Alexander, James Elford,
+Jordan Hiltunen, Justin Noah, Kang Seonghoon, Kevin K, Marco A L Barbosa
+
 # 1.2.0
 
 * [Check ZDOTDIR when adding path to .zprofile](https://github.com/rust-lang-nursery/rustup.rs/pull/1038)

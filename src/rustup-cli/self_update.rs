@@ -112,7 +112,7 @@ macro_rules! post_install_msg_unix {
     () => {
 r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory in your `PATH`
+To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
 environment variable. Next time you log in this will be done
 automatically.
 
@@ -125,7 +125,7 @@ macro_rules! post_install_msg_win {
     () => {
 r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory in your `PATH`
+To get started you need Cargo's bin directory ({cargo_home}\bin) in your `PATH`
 environment variable. Future applications will automatically have the
 correct environment, but you may need to restart your current shell.
 "
@@ -136,7 +136,7 @@ macro_rules! post_install_msg_unix_no_modify_path {
     () => {
 r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory in your `PATH`
+To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
 environment variable.
 
 To configure your current shell run `source {cargo_home}/env`
@@ -148,7 +148,7 @@ macro_rules! post_install_msg_win_no_modify_path {
     () => {
 r"# Rust is installed now. Great!
 
-To get started you need Cargo's bin directory in your `PATH`
+To get started you need Cargo's bin directory ({cargo_home}\bin) in your `PATH`
 environment variable. This has not been done automatically.
 "
     };
@@ -165,7 +165,6 @@ This will uninstall all Rust toolchains and data, and remove
     }
 }
 
-#[cfg(windows)]
 static MSVC_MESSAGE: &'static str =
 r#"# Rust Visual C++ prerequisites
 
@@ -204,7 +203,11 @@ fn canonical_cargo_home() -> Result<String> {
 
     let default_cargo_home = utils::home_dir().unwrap_or(PathBuf::from(".")).join(".cargo");
     if default_cargo_home == path {
-        path_str = String::from("$HOME/.cargo");
+        if cfg!(unix) {
+            path_str = String::from("$HOME/.cargo");
+        } else {
+            path_str = String::from(r"%USERPROFILE%\.cargo");
+        } 
     }
 
     Ok(path_str)
@@ -220,8 +223,15 @@ pub fn install(no_prompt: bool, verbose: bool,
     try!(do_anti_sudo_check(no_prompt));
 
     if !try!(do_msvc_check(&opts)) {
-        info!("aborting installation");
-        return Ok(());
+        if no_prompt {
+            warn!("installing msvc toolchain without its prerequisites");
+        } else {
+            term2::stdout().md(MSVC_MESSAGE);
+            if !try!(common::confirm("\nContinue? (Y/n)", true)) {
+                info!("aborting installation");
+                return Ok(());
+            }
+        }
     }
 
     if !no_prompt {
@@ -288,21 +298,22 @@ pub fn install(no_prompt: bool, verbose: bool,
 
     // More helpful advice, skip if -y
     if !no_prompt {
+        let cargo_home = try!(canonical_cargo_home());
         let msg = if !opts.no_modify_path {
             if cfg!(unix) {
-                let cargo_home = try!(canonical_cargo_home());
                 format!(post_install_msg_unix!(),
                          cargo_home = cargo_home)
             } else {
-                format!(post_install_msg_win!())
+                format!(post_install_msg_win!(),
+                        cargo_home = cargo_home)
             }
         } else {
             if cfg!(unix) {
-                let cargo_home = try!(canonical_cargo_home());
                 format!(post_install_msg_unix_no_modify_path!(),
                          cargo_home = cargo_home)
             } else {
-                format!(post_install_msg_win_no_modify_path!())
+                format!(post_install_msg_win_no_modify_path!(),
+                        cargo_home = cargo_home)
             }
         };
         term2::stdout().md(msg);
@@ -463,10 +474,7 @@ fn do_msvc_check(opts: &InstallOpts) -> Result<bool> {
     let installing_msvc = opts.default_host_triple.contains("msvc");
     let have_msvc = windows_registry::find_tool(&opts.default_host_triple, "cl.exe").is_some();
     if installing_msvc && !have_msvc {
-        term2::stdout().md(MSVC_MESSAGE);
-        if !try!(common::confirm("\nContinue? (Y/n)", true)) {
-            return Ok(false);
-        }
+        return Ok(false);
     }
 
     Ok(true)

@@ -11,7 +11,7 @@ use std::process;
 use rustup_utils::raw;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
-                               expect_stdout_ok,
+                               expect_stderr_ok, expect_stdout_ok,
                                expect_err,
                                set_current_dist_date,
                                this_host_triple};
@@ -40,6 +40,10 @@ info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
+info: removing component 'rust-std'
+info: removing component 'rustc'
+info: removing component 'cargo'
+info: removing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
@@ -83,6 +87,10 @@ info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
+info: removing component 'rust-std'
+info: removing component 'rustc'
+info: removing component 'cargo'
+info: removing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
@@ -92,6 +100,10 @@ info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
+info: removing component 'rust-std'
+info: removing component 'rustc'
+info: removing component 'cargo'
+info: removing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
@@ -101,6 +113,10 @@ info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
+info: removing component 'rust-std'
+info: removing component 'rustc'
+info: removing component 'cargo'
+info: removing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
@@ -130,6 +146,10 @@ info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
+info: removing component 'rust-std'
+info: removing component 'rustc'
+info: removing component 'cargo'
+info: removing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
@@ -140,6 +160,10 @@ info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
+info: removing component 'rust-std'
+info: removing component 'rustc'
+info: removing component 'cargo'
+info: removing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
@@ -179,6 +203,15 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: default toolchain set to 'nightly-{0}'
 "));
+    });
+}
+
+#[test]
+fn rustup_xz() {
+    setup(&|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_stderr_ok(config, &["rustup", "--verbose", "update", "nightly"],
+for_host!(r"dist/2015-01-01/rust-std-nightly-{0}.tar.xz"));
     });
 }
 
@@ -488,8 +521,14 @@ fn show_toolchain_override_not_installed() {
         expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
         // I'm not sure this should really be erroring when the toolchain
         // is not installed; just capturing the behavior.
-        expect_err(config, &["rustup", "show"],
-                   for_host!(r"error: toolchain 'nightly-{0}' is not installed"));
+        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+        assert!(!out.status.success());
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(stderr.starts_with(
+                for_host!("error: override toolchain 'nightly-{0}' is not installed")));
+        assert!(!stderr.contains("info: caused by: not a directory: "));
     });
 }
 

@@ -407,7 +407,7 @@ $ rustup toolchain link my-toolchain path/to/my/toolchain/sysroot
 For example, on Ubuntu you might clone `rust-lang/rust` into `~/rust`, build it, and then run:
 
 ```
-$ rustup toolchain link myrust ~/rustg/x86_64-unknown-linux-gnu/stage2/
+$ rustup toolchain link myrust ~/rust/build/x86_64-unknown-linux-gnu/stage2/
 $ rustup default myrust
 ```
 
@@ -421,22 +421,22 @@ is invoked for a custom toolchain and it is not available, `rustup`
 will attempt to use `cargo` from one of the release channels*,
 preferring 'nightly', then 'beta' or 'stable'.
 
-## Working with HTTP proxies
+## Working with network proxies
 
 Enterprise networks often don't have direct outside HTTP access, but enforce
-the use of HTTP proxies. If you're on such a network, you can request that
+the use of proxies. If you're on such a network, you can request that
 rustup uses a proxy by setting its URL in the environment. In most cases,
-setting `http_proxy` should be sufficient. On a Unix-like system with a
+setting `https_proxy` should be sufficient. On a Unix-like system with a
 shell like __bash__ or __zsh__, you could use:
 
 ```
-export http_proxy=http://proxy.example.com:8080
+export https_proxy=socks5://proxy.example.com:1080 # or http://proxy.example.com:8080
 ```
 
 On Windows, the command would be:
 
 ```
-set http_proxy=http://proxy.example.com:8080
+set https_proxy=socks5://proxy.example.com:1080
 ```
 
 If you need a more complex setup, rustup supports the convention used by
@@ -532,6 +532,7 @@ platform of your choice:
 - [i686-linux-android](https://static.rust-lang.org/rustup/dist/i686-linux-android/rustup-init)
 - [i686-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/i686-unknown-linux-gnu/rustup-init)
 - [x86_64-apple-darwin](https://static.rust-lang.org/rustup/dist/x86_64-apple-darwin/rustup-init)
+- [x86_64-linux-android](https://static.rust-lang.org/rustup/dist/x86_64-linux-android/rustup-init)
 - [x86_64-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe)
 - [x86_64-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe)<sup>[†](#vs2015)</sup>
 - [x86_64-unknown-freebsd](https://static.rust-lang.org/rustup/dist/x86_64-unknown-freebsd/rustup-init)

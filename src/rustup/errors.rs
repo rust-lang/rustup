@@ -22,6 +22,10 @@ error_chain! {
             description("toolchain is not installed")
             display("toolchain '{}' is not installed", t)
         }
+        OverrideToolchainNotInstalled(t: String) {
+            description("override toolchain is not installed")
+            display("override toolchain '{}' is not installed", t)
+        }
         BinaryNotFound(t: String, bin: String) {
             description("toolchain does not contain binary")
             display("toolchain '{}' does not have the binary `{}`", t, bin)
