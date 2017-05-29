@@ -119,6 +119,10 @@ impl Manifest {
             || format!("package not found: '{}'", name).into())
     }
 
+    pub fn get_rust_version(&self) -> Result<&str> {
+        self.get_package("rust").map(|p| &*p.version)
+    }
+
     fn validate_targeted_package(&self, tpkg: &TargetedPackage) -> Result<()> {
         for c in tpkg.components.iter().chain(tpkg.extensions.iter()) {
             let cpkg = try!(self.get_package(&c.pkg).chain_err(|| ErrorKind::MissingPackageForComponent(c.clone())));

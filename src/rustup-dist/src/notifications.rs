@@ -28,6 +28,7 @@ pub enum Notification<'a> {
     InstallingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     RemovingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     DownloadingManifest(&'a str),
+    DownloadedManifest(&'a str, Option<&'a str>),
     DownloadingLegacyManifest,
     ManifestChecksumFailedHack,
 }
@@ -59,7 +60,8 @@ impl<'a> Notification<'a> {
             RemovingComponent(_, _, _) |
             ComponentAlreadyInstalled(_)  |
             ManifestChecksumFailedHack |
-            RollingBack | DownloadingManifest(_) => NotificationLevel::Info,
+            RollingBack | DownloadingManifest(_) |
+            DownloadedManifest(_, _) => NotificationLevel::Info,
             CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
             MissingInstalledComponent(_) | CachedFileChecksumFailed => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
@@ -115,6 +117,8 @@ impl<'a> Display for Notification<'a> {
                 }
             }
             DownloadingManifest(t) => write!(f, "syncing channel updates for '{}'", t),
+            DownloadedManifest(date, Some(version)) => write!(f, "latest update on {}, rust version {}", date, version),
+            DownloadedManifest(date, None) => write!(f, "latest update on {}, no rust version", date),
             DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
             ManifestChecksumFailedHack => write!(f, "update not yet available, sorry! try again later"),
         }

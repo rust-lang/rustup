@@ -27,6 +27,7 @@ for_host!(r"
 
 "),
 for_host!(r"info: syncing channel updates for 'nightly-{0}'
+info: latest update on 2015-01-02, rust version 1.3.0
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -62,6 +63,7 @@ for_host!(r"
 
 "),
 for_host!(r"info: syncing channel updates for 'nightly-{0}'
+info: latest update on 2015-01-02, rust version 1.3.0
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
@@ -248,6 +250,7 @@ fn update_invalid_toolchain() {
         expect_err_ex(config, &["rustup", "update", "nightly-2016-03-1"],
 r"",
 r"info: syncing channel updates for 'nightly-2016-03-1'
+info: latest update on 2015-01-02, rust version 1.3.0
 error: target not found: '2016-03-1'
 ");
    });
@@ -259,6 +262,7 @@ fn default_invalid_toolchain() {
         expect_err_ex(config, &["rustup", "default", "nightly-2016-03-1"],
 r"",
 r"info: syncing channel updates for 'nightly-2016-03-1'
+info: latest update on 2015-01-02, rust version 1.3.0
 error: target not found: '2016-03-1'
 ");
    });
