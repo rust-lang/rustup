@@ -58,7 +58,7 @@ winapi = "0.2.8"
 winreg = "0.3.2"
 user32-sys = "0.1.2"
 kernel32-sys = "0.2.1"
-gcc = "0.3.49"
+gcc = "0.3.50"
 psapi-sys = "0.1"
 
 [dev-dependencies]
