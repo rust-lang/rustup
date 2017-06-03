@@ -157,78 +157,76 @@ pub fn set_current_dist_date(config: &Config, date: &str) {
 }
 
 pub fn expect_ok(config: &Config, args: &[&str]) {
-    expect_stdout_ok(config, args, "");
+    let out = run(config, args[0], &args[1..], &[]);
+    if !out.ok {
+        print_command(args, &out);
+        println!("expected.ok: {}", true);
+        panic!();
+    }
 }
 
 pub fn expect_err(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
-    println!("out.ok: {}", out.ok);
-    println!("out.stdout:\n\n{}", out.stdout);
-    println!("out.stderr:\n\n{}", out.stderr);
-    println!("expected: {}", expected);
-    let args = format!("{:?}", args);
-    assert!(!out.ok, args);
-    assert!(out.stderr.contains(expected), args);
+    if out.ok || !out.stderr.contains(expected) {
+        print_command(args, &out);
+        println!("expected.ok: {}", false);
+        print_indented("expected.stderr.contains", expected);
+        panic!();
+    }
 }
 
 pub fn expect_stdout_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
-    println!("out.ok: {}", out.ok);
-    println!("out.stdout:\n\n{}", out.stdout);
-    println!("out.stderr:\n\n{}", out.stderr);
-    println!("expected: {}", expected);
-    let args = format!("{:?}", args);
-    assert!(out.ok, args);
-    assert!(out.stdout.contains(expected), args);
+    if !out.ok || !out.stdout.contains(expected) {
+        print_command(args, &out);
+        println!("expected.ok: {}", true);
+        print_indented("expected.stdout.contains", expected);
+        panic!();
+    }
 }
 
 pub fn expect_not_stdout_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
-    println!("out.ok: {}", out.ok);
-    println!("out.stdout:\n\n{}", out.stdout);
-    println!("out.stderr:\n\n{}", out.stderr);
-    println!("expected: {}", expected);
-    let args = format!("{:?}", args);
-    assert!(out.ok, args);
-    assert!(! out.stdout.contains(expected), args);
+    if !out.ok || out.stdout.contains(expected) {
+        print_command(args, &out);
+        println!("expected.ok: {}", true);
+        print_indented("expected.stdout.does_not_contain", expected);
+        panic!();
+    }
 }
 
 pub fn expect_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
-    println!("out.ok: {}", out.ok);
-    println!("out.stdout:\n\n{}", out.stdout);
-    println!("out.stderr:\n\n{}", out.stderr);
-    println!("expected: {}", expected);
-    let args = format!("{:?}", args);
-    assert!(out.ok, args);
-    assert!(out.stderr.contains(expected), args);
+    if !out.ok || !out.stderr.contains(expected) {
+        print_command(args, &out);
+        println!("expected.ok: {}", true);
+        print_indented("expected.stderr.contains", expected);
+        panic!();
+    }
 }
 
 pub fn expect_ok_ex(config: &Config, args: &[&str],
                     stdout: &str, stderr: &str) {
     let out = run(config, args[0], &args[1..], &[]);
-    println!("out.ok: {}", out.ok);
-    println!("out.stdout:\n\n{}", out.stdout);
-    println!("out.stderr:\n\n{}", out.stderr);
-    println!("expected.stdout: \n\n{}", stdout);
-    println!("expected.stderr: \n\n{}", stderr);
-    assert!(out.ok, format!("ok {:?}", args));
-    assert!(out.stdout == stdout, format!("out {:?}", args));
-    assert!(out.stderr == stderr, format!("err {:?}", args));
+    if !out.ok || out.stdout != stdout || out.stderr != stderr {
+        print_command(args, &out);
+        println!("expected.ok: {}", true);
+        print_indented("expected.stdout", stdout);
+        print_indented("expected.stderr", stderr);
+        panic!();
+    }
 }
 
 pub fn expect_err_ex(config: &Config, args: &[&str],
                      stdout: &str, stderr: &str) {
     let out = run(config, args[0], &args[1..], &[]);
-    println!("out.ok: {}", out.ok);
-    println!("out.stdout:\n\n{}", out.stdout);
-    println!("out.stderr:\n\n{}", out.stderr);
-    println!("expected.stdout: \n\n{}", stdout);
-    println!("expected.stderr: \n\n{}", stderr);
-    let args = format!("{:?}", args);
-    assert!(!out.ok, format!("not ok {:?}", args));
-    assert!(out.stdout == stdout, format!("out {:?}", args));
-    assert!(out.stderr == stderr, format!("err {:?}", args));
+    if out.ok || out.stdout != stdout || out.stderr != stderr {
+        print_command(args, &out);
+        println!("expected.ok: {}", false);
+        print_indented("expected.stdout", stdout);
+        print_indented("expected.stderr", stderr);
+        panic!();
+    }
 }
 
 pub fn expect_timeout_ok(config: &Config, timeout: Duration, args: &[&str]) {
@@ -247,6 +245,25 @@ pub fn expect_timeout_ok(config: &Config, timeout: Duration, args: &[&str]) {
             panic!("command timed out: {:?}", args);
         }
     }
+}
+
+fn print_command(args: &[&str], out: &SanitizedOutput) {
+    print!("\n>");
+    for arg in args {
+        if arg.contains(" ") {
+            print!(" {:?}", arg);
+        } else {
+            print!(" {}", arg);
+        }
+    }
+    println!();
+    println!("out.ok: {}", out.ok);
+    print_indented("out.stdout", &out.stdout);
+    print_indented("out.stderr", &out.stderr);
+}
+
+fn print_indented(heading: &str, text: &str) {
+    println!("{}:\n    {}", heading, text.replace("\n", "\n    "));
 }
 
 #[derive(Debug)]
