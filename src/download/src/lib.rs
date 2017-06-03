@@ -656,7 +656,7 @@ pub mod hyper_base {
             let src = try!(url.to_file_path()
                            .map_err(|_| Error::from(format!("bogus file url: '{}'", url))));
             if !src.is_file() {
-                // Because some of multirust's logic depends on checking
+                // Because some of rustup's logic depends on checking
                 // the error when a downloaded file doesn't exist, make
                 // the file case return the same error value as the
                 // network case.

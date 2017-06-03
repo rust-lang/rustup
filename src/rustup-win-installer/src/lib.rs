@@ -61,7 +61,7 @@ pub unsafe extern "system" fn RustupUninstall(hInstall: MSIHANDLE) -> UINT {
     let path = PathBuf::from(::std::env::var_os("USERPROFILE").unwrap()).join(".rustup-test");
     let exe_deleted = !path.join("bin").join("rustup.exe").exists();
     log(&format!("Hello World from RustupUninstall, confirming that rustup.exe has been deleted: {}! CustomActionData: {}", exe_deleted, custom_action_data));
-    // TODO: Remove .cargo and .multirust
+    // TODO: Remove .cargo and .rustup
     ::rustup::utils::remove_dir("rustup-test", &path, &|_| {});
     WcaFinalize(hr)
 }

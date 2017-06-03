@@ -94,13 +94,13 @@ fn run_rustup() -> Result<()> {
                    n.starts_with("rustup-init") => {
             // NB: The above check is only for the prefix of the file
             // name. Browsers rename duplicates to
-            // e.g. multirust-setup(2), and this allows all variations
+            // e.g. rustup-setup(2), and this allows all variations
             // to work.
             setup_mode::main()
         }
         Some(n) if n.starts_with("rustup-gc-") => {
             // This is the final uninstallation stage on windows where
-            // multirust deletes its own exe
+            // rustup deletes its own exe
             self_update::complete_windows_uninstall()
         }
         Some(n) if n.starts_with("multirust-") => {

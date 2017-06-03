@@ -34,7 +34,7 @@ impl Display for OverrideReason {
 }
 
 pub struct Cfg {
-    pub multirust_dir: PathBuf,
+    pub rustup_dir: PathBuf,
     pub settings_file: SettingsFile,
     pub toolchains_dir: PathBuf,
     pub update_hash_dir: PathBuf,
@@ -49,19 +49,19 @@ pub struct Cfg {
 
 impl Cfg {
     pub fn from_env(notify_handler: Arc<Fn(Notification)>) -> Result<Self> {
-        // Set up the multirust home directory
-        let multirust_dir = try!(utils::multirust_home());
+        // Set up the rustup home directory
+        let rustup_dir = try!(utils::rustup_home());
 
-        try!(utils::ensure_dir_exists("home", &multirust_dir,
+        try!(utils::ensure_dir_exists("home", &rustup_dir,
                                       &|n| notify_handler(n.into())));
 
-        let settings_file = SettingsFile::new(multirust_dir.join("settings.toml"));
+        let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
         // Convert from old settings format if necessary
-        try!(settings_file.maybe_upgrade_from_legacy(&multirust_dir));
+        try!(settings_file.maybe_upgrade_from_legacy(&rustup_dir));
 
-        let toolchains_dir = multirust_dir.join("toolchains");
-        let update_hash_dir = multirust_dir.join("update-hashes");
-        let download_dir = multirust_dir.join("downloads");
+        let toolchains_dir = rustup_dir.join("toolchains");
+        let update_hash_dir = rustup_dir.join("update-hashes");
+        let download_dir = rustup_dir.join("downloads");
 
         // GPG key
         let gpg_key = if let Some(path) = env::var_os("RUSTUP_GPG_KEY")
@@ -93,7 +93,7 @@ impl Cfg {
         };
 
         let notify_clone = notify_handler.clone();
-        let temp_cfg = temp::Cfg::new(multirust_dir.join("tmp"),
+        let temp_cfg = temp::Cfg::new(rustup_dir.join("tmp"),
                                       dist_root_server.as_str(),
                                       Box::new(move |n| {
                                           (notify_clone)(n.into())
@@ -101,7 +101,7 @@ impl Cfg {
         let dist_root = dist_root_server.clone() + "/dist";
 
         Ok(Cfg {
-            multirust_dir: multirust_dir,
+            rustup_dir: rustup_dir,
             settings_file: settings_file,
             toolchains_dir: toolchains_dir,
             update_hash_dir: update_hash_dir,
@@ -201,8 +201,8 @@ impl Cfg {
     }
 
     pub fn delete_data(&self) -> Result<()> {
-        if utils::path_exists(&self.multirust_dir) {
-            Ok(try!(utils::remove_dir("home", &self.multirust_dir,
+        if utils::path_exists(&self.rustup_dir) {
+            Ok(try!(utils::remove_dir("home", &self.rustup_dir,
                                       &|n| (self.notify_handler)(n.into()))))
         } else {
             Ok(())
@@ -307,7 +307,7 @@ impl Cfg {
     }
 
     pub fn check_metadata_version(&self) -> Result<()> {
-        try!(utils::assert_is_directory(&self.multirust_dir));
+        try!(utils::assert_is_directory(&self.rustup_dir));
 
         self.settings_file.with(|s| {
             (self.notify_handler)(Notification::ReadMetadataVersion(&s.version));
@@ -415,7 +415,7 @@ impl Cfg {
             Ok(())
         }));
 
-        let _ = utils::ensure_dir_exists("telemetry", &self.multirust_dir.join("telemetry"),
+        let _ = utils::ensure_dir_exists("telemetry", &self.rustup_dir.join("telemetry"),
                                          &|_| ());
 
         (self.notify_handler)(Notification::SetTelemetry("on"));
@@ -442,7 +442,7 @@ impl Cfg {
     }
 
     pub fn analyze_telemetry(&self) -> Result<TelemetryAnalysis> {
-        let mut t = TelemetryAnalysis::new(self.multirust_dir.join("telemetry"));
+        let mut t = TelemetryAnalysis::new(self.rustup_dir.join("telemetry"));
 
         let events = try!(t.import_telemery());
         try!(t.analyze_telemetry_events(&events));

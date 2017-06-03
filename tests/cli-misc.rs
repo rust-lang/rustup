@@ -1,4 +1,4 @@
-//! Test cases of the multirust command that do not depend on the
+//! Test cases of the rustup command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 
 extern crate rustup_dist;
@@ -40,7 +40,7 @@ fn no_colors_in_piped_error_output() {
 }
 
 #[test]
-fn rustc_with_bad_multirust_toolchain_env_var() {
+fn rustc_with_bad_rustup_toolchain_env_var() {
     setup(&|config| {
         let out = run(config, "rustc", &[], &[("RUSTUP_TOOLCHAIN", "bogus")]);
         assert!(!out.ok);

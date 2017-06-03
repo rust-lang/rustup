@@ -3,7 +3,7 @@
 name = "rustup-utils"
 version = "1.3.0"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
-description = "multirust in rust - manage multiple rust installations with ease"
+description = "Utility functions for rustup"
 
 documentation = "http://rust-lang-nursery.github.io/rustup.rs/rustup_utils/index.html"
 homepage = "https://github.com/rust-lang-nursery/rustup.rs"

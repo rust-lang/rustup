@@ -675,7 +675,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     try!(utils::delete_legacy_multirust_symlink());
 
     // Delete RUSTUP_HOME
-    let ref rustup_dir = try!(utils::multirust_home());
+    let ref rustup_dir = try!(utils::rustup_home());
     if rustup_dir.exists() {
         try!(utils::remove_dir("rustup_home", rustup_dir, &|_| {}));
     }
