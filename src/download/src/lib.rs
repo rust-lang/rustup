@@ -28,13 +28,6 @@ pub enum Event<'a> {
     DownloadDataReceived(&'a [u8]),
 }
 
-const BACKENDS: &'static [Backend] = &[
-    Backend::Curl,
-    Backend::Hyper,
-    Backend::Rustls
-];
-
-
 fn download_with_backend(backend: Backend,
                              url: &Url,
                              resume_from: u64,
