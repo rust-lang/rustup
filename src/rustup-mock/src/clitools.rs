@@ -513,7 +513,7 @@ fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
         components: vec![
             (format!("rust-std-{}", trip.clone()),
              vec![MockCommand::File(format!("lib/rustlib/{}/libstd.rlib", trip))],
-             vec![(format!("lib/rustlib/{}/libstd.rlib", trip), "".into())])
+             vec![(format!("lib/rustlib/{}/libstd.rlib", trip), "".into(), false)])
             ]
     }
 }
@@ -524,8 +524,8 @@ fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuil
             (format!("rust-std-{}", target.clone()),
              vec![MockCommand::File(format!("lib/rustlib/{}/lib/libstd.rlib", target)),
                   MockCommand::File(format!("lib/rustlib/{}/lib/{}", target, date))],
-             vec![(format!("lib/rustlib/{}/lib/libstd.rlib", target), "".into()),
-                  (format!("lib/rustlib/{}/lib/{}", target, date), "".into())])
+             vec![(format!("lib/rustlib/{}/lib/libstd.rlib", target), "".into(), false),
+                  (format!("lib/rustlib/{}/lib/{}", target, date), "".into(), false)])
             ]
     }
 }
@@ -546,7 +546,7 @@ fn build_mock_rustc_installer(target: &str, version: &str, version_hash_: &str) 
         components: vec![
             ("rustc".to_string(),
              vec![MockCommand::File(rustc.clone())],
-             vec![(rustc, mock_bin("rustc", version, &version_hash))])
+             vec![(rustc, mock_bin("rustc", version, &version_hash), false)])
                 ]
     }
 }
@@ -557,7 +557,7 @@ fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstalle
         components: vec![
             ("cargo".to_string(),
              vec![MockCommand::File(cargo.clone())],
-             vec![(cargo, mock_bin("cargo", version, version_hash))])
+             vec![(cargo, mock_bin("cargo", version, version_hash), false)])
                 ]
     }
 }
@@ -568,7 +568,7 @@ fn build_mock_rls_installer(version: &str, version_hash: &str) -> MockInstallerB
         components: vec![
             ("rls".to_string(),
              vec![MockCommand::File(cargo.clone())],
-             vec![(cargo, mock_bin("rls", version, version_hash))])
+             vec![(cargo, mock_bin("rls", version, version_hash), false)])
                 ]
     }
 }
@@ -578,7 +578,7 @@ fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
         components: vec![
             ("rust-docs".to_string(),
              vec![MockCommand::File("share/doc/rust/html/index.html".to_string())],
-             vec![("share/doc/rust/html/index.html".to_string(), "".into())])
+             vec![("share/doc/rust/html/index.html".to_string(), "".into(), false)])
                 ]
     }
 }
@@ -588,7 +588,7 @@ fn build_mock_rust_analysis_installer(trip: &str) -> MockInstallerBuilder {
         components: vec![
             (format!("rust-analysis-{}", trip),
              vec![MockCommand::File(format!("lib/rustlib/{}/analysis/libfoo.json", trip))],
-             vec![(format!("lib/rustlib/{}/analysis/libfoo.json", trip), "".into())])
+             vec![(format!("lib/rustlib/{}/analysis/libfoo.json", trip), "".into(), false)])
                 ]
     }
 }
@@ -598,7 +598,7 @@ fn build_mock_rust_src_installer() -> MockInstallerBuilder {
         components: vec![
             ("rust-src".to_string(),
              vec![MockCommand::File("lib/rustlib/src/rust-src/foo.rs".to_string())],
-             vec![("lib/rustlib/src/rust-src/foo.rs".to_string(), "".into())])
+             vec![("lib/rustlib/src/rust-src/foo.rs".to_string(), "".into(), false)])
                 ]
     }
 }

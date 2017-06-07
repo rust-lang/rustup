@@ -123,9 +123,15 @@ impl Package for DirectoryPackage {
 // but due to rust-lang/rust#25479 they don't.
 #[cfg(unix)]
 fn set_file_perms(dest_path: &Path, src_path: &Path) -> Result<()> {
-    use std::fs;
+    use std::fs::{self, Metadata};
     use std::os::unix::fs::PermissionsExt;
     use walkdir::WalkDir;
+
+    // Compute whether this entry needs the X bit
+    fn needs_x(meta: &Metadata) -> bool {
+        meta.is_dir() || // Directories need it
+        meta.permissions().mode() & 0o700 == 0o700 // If it is rwx for the user, it gets the X bit
+    }
 
     // By convention, anything in the bin/ directory of the package is a binary
     let is_bin = if let Some(p) = src_path.parent() {
@@ -141,25 +147,14 @@ fn set_file_perms(dest_path: &Path, src_path: &Path) -> Result<()> {
         for entry in WalkDir::new(dest_path) {
             let entry = try!(entry.chain_err(|| ErrorKind::ComponentDirPermissionsFailed));
             let meta = try!(entry.metadata().chain_err(|| ErrorKind::ComponentDirPermissionsFailed));
-            if meta.is_dir() {
-                let mut perm = meta.permissions();
-                perm.set_mode(0o755);
-                try!(fs::set_permissions(entry.path(), perm).chain_err(|| ErrorKind::ComponentFilePermissionsFailed));
-            } else {
-                let mut perm = meta.permissions();
-                perm.set_mode(0o644);
-                try!(fs::set_permissions(entry.path(), perm).chain_err(|| ErrorKind::ComponentFilePermissionsFailed));
-            }
+            let mut perm = meta.permissions();
+            perm.set_mode(if needs_x(&meta) { 0o755 } else { 0o644 });
+            try!(fs::set_permissions(entry.path(), perm).chain_err(|| ErrorKind::ComponentFilePermissionsFailed));
         }
-    } else if is_bin {
-        let mut perm = try!(fs::metadata(dest_path).chain_err(|| ErrorKind::ComponentFilePermissionsFailed))
-                           .permissions();
-        perm.set_mode(0o755);
-        try!(fs::set_permissions(dest_path, perm).chain_err(|| ErrorKind::ComponentFilePermissionsFailed));
     } else {
-        let mut perm = try!(fs::metadata(dest_path).chain_err(|| ErrorKind::ComponentFilePermissionsFailed))
-                           .permissions();
-        perm.set_mode(0o644);
+        let meta = try!(fs::metadata(dest_path).chain_err(|| ErrorKind::ComponentFilePermissionsFailed));
+        let mut perm = meta.permissions();
+        perm.set_mode(if is_bin || needs_x(&meta) { 0o755 } else { 0o644 });
         try!(fs::set_permissions(dest_path, perm).chain_err(|| ErrorKind::ComponentFilePermissionsFailed));
     }
 
