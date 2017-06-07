@@ -27,13 +27,13 @@ fn mock_smoke_test() {
                           vec![MockCommand::File("bin/foo".to_string()),
                                MockCommand::File("lib/bar".to_string()),
                                MockCommand::Dir("doc/stuff".to_string())],
-                          vec![("bin/foo".to_string(), "foo".into()),
-                               ("lib/bar".to_string(), "bar".into()),
-                               ("doc/stuff/doc1".to_string(), "".into()),
-                               ("doc/stuff/doc2".to_string(), "".into())]),
+                          vec![("bin/foo".to_string(), "foo".into(), false),
+                               ("lib/bar".to_string(), "bar".into(), false),
+                               ("doc/stuff/doc1".to_string(), "".into(), false),
+                               ("doc/stuff/doc2".to_string(), "".into(), false)]),
                          ("mycomponent2".to_string(),
                           vec![MockCommand::File("bin/quux".to_string())],
-                          vec![("bin/quux".to_string(), "quux".into())]
+                          vec![("bin/quux".to_string(), "quux".into(), false)]
                           )]
     };
 
@@ -56,11 +56,11 @@ fn package_contains() {
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
                           vec![MockCommand::File("bin/foo".to_string())],
-                          vec![("bin/foo".to_string(), "foo".into())],
+                          vec![("bin/foo".to_string(), "foo".into(), false)],
                           ),
                          ("mycomponent2".to_string(),
                           vec![MockCommand::File("bin/bar".to_string())],
-                          vec![("bin/bar".to_string(), "bar".into())]
+                          vec![("bin/bar".to_string(), "bar".into(), false)]
                           )]
     };
 
@@ -78,7 +78,7 @@ fn package_bad_version() {
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
                           vec![MockCommand::File("bin/foo".to_string())],
-                          vec![("bin/foo".to_string(), "foo".into())])]
+                          vec![("bin/foo".to_string(), "foo".into(), false)])]
     };
 
     mock.build(tempdir.path());
@@ -98,10 +98,10 @@ fn basic_install() {
                           vec![MockCommand::File("bin/foo".to_string()),
                                MockCommand::File("lib/bar".to_string()),
                                MockCommand::Dir("doc/stuff".to_string())],
-                          vec![("bin/foo".to_string(), "foo".into()),
-                               ("lib/bar".to_string(), "bar".into()),
-                               ("doc/stuff/doc1".to_string(), "".into()),
-                               ("doc/stuff/doc2".to_string(), "".into())])]
+                          vec![("bin/foo".to_string(), "foo".into(), false),
+                               ("lib/bar".to_string(), "bar".into(), false),
+                               ("doc/stuff/doc1".to_string(), "".into(), false),
+                               ("doc/stuff/doc2".to_string(), "".into(), false)])]
     };
 
     mock.build(pkgdir.path());
@@ -136,10 +136,10 @@ fn multiple_component_install() {
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
                           vec![MockCommand::File("bin/foo".to_string())],
-                          vec![("bin/foo".to_string(), "foo".into())]),
+                          vec![("bin/foo".to_string(), "foo".into(), false)]),
                          ("mycomponent2".to_string(),
                           vec![MockCommand::File("lib/bar".to_string())],
-                          vec![("lib/bar".to_string(), "bar".into())])]
+                          vec![("lib/bar".to_string(), "bar".into(), false)])]
     };
 
     mock.build(pkgdir.path());
@@ -176,13 +176,13 @@ fn uninstall() {
                           vec![MockCommand::File("bin/foo".to_string()),
                                MockCommand::File("lib/bar".to_string()),
                                MockCommand::Dir("doc/stuff".to_string())],
-                          vec![("bin/foo".to_string(), "foo".into()),
-                               ("lib/bar".to_string(), "bar".into()),
-                               ("doc/stuff/doc1".to_string(), "".into()),
-                               ("doc/stuff/doc2".to_string(), "".into())]),
+                          vec![("bin/foo".to_string(), "foo".into(), false),
+                               ("lib/bar".to_string(), "bar".into(), false),
+                               ("doc/stuff/doc1".to_string(), "".into(), false),
+                               ("doc/stuff/doc2".to_string(), "".into(), false)]),
                          ("mycomponent2".to_string(),
                           vec![MockCommand::File("lib/quux".to_string())],
-                          vec![("lib/quux".to_string(), "quux".into())])]
+                          vec![("lib/quux".to_string(), "quux".into(), false)])]
     };
 
     mock.build(pkgdir.path());
@@ -234,7 +234,7 @@ fn component_bad_version() {
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
                           vec![MockCommand::File("bin/foo".to_string())],
-                          vec![("bin/foo".to_string(), "foo".into())])]
+                          vec![("bin/foo".to_string(), "foo".into(), false)])]
     };
 
     mock.build(pkgdir.path());
@@ -276,11 +276,14 @@ fn unix_permissions() {
         components: vec![("mycomponent".to_string(),
                           vec![MockCommand::File("bin/foo".to_string()),
                                MockCommand::File("lib/bar".to_string()),
+                               MockCommand::File("lib/foobar".to_string()),
                                MockCommand::Dir("doc/stuff".to_string())],
-                          vec![("bin/foo".to_string(), "foo".into()),
-                               ("lib/bar".to_string(), "bar".into()),
-                               ("doc/stuff/doc1".to_string(), "".into()),
-                               ("doc/stuff/morestuff/doc2".to_string(), "".into())])]
+                          vec![("bin/foo".to_string(), "foo".into(), false),
+                               ("lib/bar".to_string(), "bar".into(), false),
+                               ("lib/foobar".to_string(), "foobar".into(), true),
+                               ("doc/stuff/doc1".to_string(), "".into(), false),
+                               ("doc/stuff/morestuff/doc2".to_string(), "".into(), false),
+                               ("doc/stuff/morestuff/tool".to_string(), "".into(), true)])]
     };
 
     mock.build(pkgdir.path());
@@ -304,6 +307,8 @@ fn unix_permissions() {
     assert_eq!(m, 0o755);
     let m = fs::metadata(instdir.path().join("lib/bar")).unwrap().permissions().mode();
     assert_eq!(m, 0o644);
+    let m = fs::metadata(instdir.path().join("lib/foobar")).unwrap().permissions().mode();
+    assert_eq!(m, 0o755);
     let m = fs::metadata(instdir.path().join("doc/stuff/")).unwrap().permissions().mode();
     assert_eq!(m, 0o755);
     let m = fs::metadata(instdir.path().join("doc/stuff/doc1")).unwrap().permissions().mode();
@@ -312,6 +317,8 @@ fn unix_permissions() {
     assert_eq!(m, 0o755);
     let m = fs::metadata(instdir.path().join("doc/stuff/morestuff/doc2")).unwrap().permissions().mode();
     assert_eq!(m, 0o644);
+    let m = fs::metadata(instdir.path().join("doc/stuff/morestuff/tool")).unwrap().permissions().mode();
+    assert_eq!(m, 0o755);
 }
 
 // Installing to a prefix that doesn't exist creates it automatically
@@ -322,7 +329,7 @@ fn install_to_prefix_that_does_not_exist() {
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
                           vec![MockCommand::File("bin/foo".to_string())],
-                          vec![("bin/foo".to_string(), "foo".into())])]
+                          vec![("bin/foo".to_string(), "foo".into(), false)])]
     };
 
     mock.build(pkgdir.path());
