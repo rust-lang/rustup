@@ -170,8 +170,7 @@ fn remove_override_nonexistent() {
                 });
                 path
             };
-            // FIXME TempDir seems to succumb to difficulties removing dirs on windows
-            let _ = rustup_utils::raw::remove_dir(&path);
+            rustup_utils::raw::remove_dir(&path).expect("unable to remove tempdir");
             assert!(!path.exists());
             expect_ok_ex(config, &["rustup", "override", keyword, "--nonexistent"],
                          r"",
