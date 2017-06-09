@@ -17,7 +17,6 @@
 * [Exit successfully on "update not yet available"](https://github.com/rust-lang-nursery/rustup.rs/pull/1120)
 * [Add a message when removing a component](https://github.com/rust-lang-nursery/rustup.rs/pull/1119)
 * [Use ShellExecute rather than start.exe to open docs on windows](https://github.com/rust-lang-nursery/rustup.rs/pull/1117)
-* [Re-enable doc uploading on travis](https://github.com/rust-lang-nursery/rustup.rs/pull/1115)
 * [Clarify that rustup update updates rustup itself](https://github.com/rust-lang-nursery/rustup.rs/pull/1113)
 * [Ensure that intermediate directories exist when unpacking an entry](https://github.com/rust-lang-nursery/rustup.rs/pull/1098)
 * [Add the rust lib dir (containing std-<hash>.dll) to the path on windows](https://github.com/rust-lang-nursery/rustup.rs/pull/1093)
