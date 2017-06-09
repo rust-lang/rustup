@@ -110,7 +110,6 @@ cache:
   # don't use travis's native `cargo` caching, which just grabs the whole folder.
   directories:
     - target/$TARGET/openssl/openssl-install
-    - target/$TARGET/release
     - target/release/deps
 
 branches:
