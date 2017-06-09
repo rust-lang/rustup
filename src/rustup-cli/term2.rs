@@ -178,7 +178,7 @@ impl<'a, T: Instantiable + Isatty + io::Write + 'a> LineFormatter<'a, T> {
     fn do_block(&mut self, b: Block) {
         match b {
             Block::Header(spans, _) => {
-                self.push_attr(Attr::ForegroundColor(color::BRIGHT_WHITE));
+                self.push_attr(Attr::Bold);
                 self.wrapper.write_line();
                 self.do_spans(spans);
                 self.wrapper.write_line();
