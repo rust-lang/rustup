@@ -1,3 +1,38 @@
+# 1.4.0
+
+* [set_file_perms: if the file is already executable, keep it executable](https://github.com/rust-lang-nursery/rustup.rs/pull/1141)
+* [Disable man support on Windows](https://github.com/rust-lang-nursery/rustup.rs/pull/1139)
+* [VS 2017 updates](https://github.com/rust-lang-nursery/rustup.rs/pull/1145)
+* [Show version of rust being installed](https://github.com/rust-lang-nursery/rustup.rs/pull/1025)
+* [Detect MSVC 2017](https://github.com/rust-lang-nursery/rustup.rs/pull/1136)
+* [Use same precision as rustc for commit sha](https://github.com/rust-lang-nursery/rustup.rs/pull/1134)
+* [Fix prompt asking for msvc even though -y is provided](https://github.com/rust-lang-nursery/rustup.rs/pull/1124)
+* [README: fix rust build dir](https://github.com/rust-lang-nursery/rustup.rs/pull/1135)
+* [Add support for XZ-compressed packages](https://github.com/rust-lang-nursery/rustup.rs/pull/1100)
+* [Add PATH in post-install message when not modifying PATH](https://github.com/rust-lang-nursery/rustup.rs/pull/1126)
+* [Cleanup download-related code in the rustup_dist crate](https://github.com/rust-lang-nursery/rustup.rs/pull/1131)
+* [Increase Rust detection timeout to 3 seconds](https://github.com/rust-lang-nursery/rustup.rs/pull/1130)
+* [Supress confusing NotADirectory error and show override missing](https://github.com/rust-lang-nursery/rustup.rs/pull/1128)
+* [Don't try to update archive toolchains](https://github.com/rust-lang-nursery/rustup.rs/pull/1121)
+* [Exit successfully on "update not yet available"](https://github.com/rust-lang-nursery/rustup.rs/pull/1120)
+* [Add a message when removing a component](https://github.com/rust-lang-nursery/rustup.rs/pull/1119)
+* [Use ShellExecute rather than start.exe to open docs on windows](https://github.com/rust-lang-nursery/rustup.rs/pull/1117)
+* [Clarify that rustup update updates rustup itself](https://github.com/rust-lang-nursery/rustup.rs/pull/1113)
+* [Ensure that intermediate directories exist when unpacking an entry](https://github.com/rust-lang-nursery/rustup.rs/pull/1098)
+* [Add the rust lib dir (containing std-<hash>.dll) to the path on windows](https://github.com/rust-lang-nursery/rustup.rs/pull/1093)
+* [Add x86_64-linux-android target](https://github.com/rust-lang-nursery/rustup.rs/pull/1086)
+* [Fix for help.rs suggestion](https://github.com/rust-lang-nursery/rustup.rs/pull/1107)
+* [Ignore remove_override_nonexistent on windows](https://github.com/rust-lang-nursery/rustup.rs/pull/1105)
+* [Update proxy setting docs](https://github.com/rust-lang-nursery/rustup.rs/pull/1088)
+* [Add sensible-browser to the browser list](https://github.com/rust-lang-nursery/rustup.rs/pull/1087)
+* [Added help for `rustup toolchain link`](https://github.com/rust-lang-nursery/rustup.rs/pull/1017)
+
+Contributors: Andrea Canciani, bors, Brian Anderson, CrazyMerlyn, Diggory Blake,
+Fabio B, James Elford, Jim McGrath, johnthagen, Josh Lee, Kim Christensen, Marco
+A L Barbosa, Mateusz Mikula, Matthew, Matt Ickstadt, Mikhail Modin, Patrick
+Deuster, pxdeu, Ralf Jung, Raphaël Huchet, Robert Vally, theindigamer, Tommy Ip,
+Xidorn Quan
+
 # 1.3.0
 
 * [Add armv8l support](https://github.com/rust-lang-nursery/rustup.rs/pull/1055)

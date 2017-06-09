@@ -33,8 +33,8 @@ pub struct MockInstallerBuilder {
 }
 
 // A component name, the installation commands for installing files
-// (either "file:" or "dir:") and the file paths and contents.
-pub type MockComponent = (String, Vec<MockCommand>, Vec<(String, Vec<u8>)>);
+// (either "file:" or "dir:") and the file paths, contents and X bit.
+pub type MockComponent = (String, Vec<MockCommand>, Vec<(String, Vec<u8>, bool)>);
 
 #[derive(Clone)]
 pub enum MockCommand {
@@ -67,13 +67,23 @@ impl MockInstallerBuilder {
             }
 
             // Create the component files
-            for &(ref f_path, ref content) in files {
-                let dir_path = component_dir.join(f_path);
-                let dir_path = dir_path.parent().unwrap();
+            for &(ref f_path, ref content, executable) in files {
+                let fname = component_dir.join(f_path);
+                let dir_path = fname.parent().unwrap().to_owned();
                 fs::create_dir_all(dir_path).unwrap();
-                let ref mut f = File::create(component_dir.join(f_path)).unwrap();
+                let ref mut f = File::create(&fname).unwrap();
 
                 f.write_all(&content).unwrap();
+                drop(f);
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    if executable {
+                        let mut perm = fs::metadata(&fname).unwrap().permissions();
+                        perm.set_mode(0o755);
+                        fs::set_permissions(&fname, perm).unwrap();
+                    }
+                }
             }
         }
 

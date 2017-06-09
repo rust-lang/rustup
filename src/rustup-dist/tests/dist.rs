@@ -118,7 +118,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
                              MockCommand::File("bin/rustc".to_string()),
                              ],
                          vec![
-                             ("bin/rustc".to_string(), contents.clone())
+                             ("bin/rustc".to_string(), contents.clone(), false)
                                  ],
                          ),
                         ]
@@ -152,7 +152,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
                              MockCommand::File("lib/libstd.rlib".to_string()),
                              ],
                          vec![
-                             ("lib/libstd.rlib".to_string(), contents.clone())
+                             ("lib/libstd.rlib".to_string(), contents.clone(), false)
                                  ],
                          ),
                         ]
@@ -170,7 +170,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
                              MockCommand::File("lib/i686-apple-darwin/libstd.rlib".to_string()),
                              ],
                          vec![
-                             ("lib/i686-apple-darwin/libstd.rlib".to_string(), contents.clone())
+                             ("lib/i686-apple-darwin/libstd.rlib".to_string(), contents.clone(), false)
                                  ],
                          ),
                         ]
@@ -188,7 +188,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
                              MockCommand::File("lib/i686-unknown-linux-gnu/libstd.rlib".to_string()),
                              ],
                          vec![
-                             ("lib/i686-unknown-linux-gnu/libstd.rlib".to_string(), contents.clone())
+                             ("lib/i686-unknown-linux-gnu/libstd.rlib".to_string(), contents.clone(), false)
                                  ],
                          ),
                         ]
@@ -215,7 +215,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
                              MockCommand::File("bin/bonus".to_string()),
                              ],
                          vec![
-                             ("bin/bonus".to_string(), contents.clone())
+                             ("bin/bonus".to_string(), contents.clone(), false)
                                  ],
                          ),
                         ]
