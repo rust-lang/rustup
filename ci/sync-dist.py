@@ -2,6 +2,8 @@
 # between the dev environment (dev-static.rlo), the local machine, and
 # the prod environment (static.rlo). It's used during the deployment process.
 #
+# It is used after a successful CI build on the 'stable' branch.
+#
 # It does only a few things (this is the release process!):
 #
 # * Sync dev bins to local host:
