@@ -302,6 +302,10 @@ impl PartialToolchainDesc {
             target: TargetTriple(trip),
         }
     }
+
+    pub fn has_triple(&self) -> bool {
+        self.target.arch.is_some() || self.target.os.is_some() || self.target.env.is_some()
+    }
 }
 
 impl ToolchainDesc {
@@ -373,6 +377,16 @@ impl ToolchainDesc {
     pub fn is_tracking(&self) -> bool {
         let channels = ["nightly", "beta", "stable"];
         channels.iter().any(|x| *x == self.channel) && self.date.is_none()
+    }
+}
+
+// A little convenience for just parsing a channel name or archived channel name
+pub fn validate_channel_name(name: &str) -> Result<()> {
+    let toolchain = PartialToolchainDesc::from_str(&name)?;
+    if toolchain.has_triple() {
+        Err(format!("target triple in channel name '{}'", name).into())
+    } else {
+        Ok(())
     }
 }
 

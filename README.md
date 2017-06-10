@@ -17,8 +17,10 @@ And it runs on all platforms Rust supports, including Windows.
 * [How rustup works](#how-rustup-works)
 * [Keeping Rust up to date](#keeping-rust-up-to-date)
 * [Working with nightly Rust](#working-with-nightly-rust)
-* [Directory overrides](#directory-overrides)
 * [Toolchain specification](#toolchain-specification)
+* [Directory overrides](#directory-overrides)
+* [The version file](#the-version-file)
+* [Toolchain override shorthand](#toolchain-override-shorthand)
 * [Cross-compilation](#cross-compilation)
 * [Working with Rust on Windows](#working-with-rust-on-windows)
 * [Working with custom toolchains](#working-with-custom-toolchains-and-local-builds)
@@ -231,29 +233,6 @@ info: downloading self-updates
 
 ```
 
-## Directory overrides
-
-Directories can be assigned their own Rust toolchain with
-`rustup override`. When a directory has an override then
-any time `rustc` or `cargo` is run inside that directory,
-or one of its child directories, the override toolchain
-will be invoked.
-
-To pin to a specific nightly:
-
-```
-rustup override set nightly-2014-12-18
-```
-
-Or a specific stable release:
-
-```
-rustup override set 1.0.0
-```
-
-To see the active toolchain use `rustup show`. To remove the override
-and use the default toolchain again, `rustup override unset`.
-
 ## Toolchain specification
 
 Many `rustup` commands deal with *toolchains*, a single installation
@@ -298,6 +277,65 @@ Toolchain names that don't name a channel instead can be used to name
 
 [MSVC-based toolchain]: https://www.rust-lang.org/downloads.html#win-foot
 [custom toolchains]: #working-with-custom-toolchains-and-local-builds
+
+## Toolchain override shorthand
+
+The `rustup` toolchain proxies can be instructed directly to use a
+specific toolchain, a convience for developers who often test
+different toolchains. If the first argument to `cargo`, `rustc` or
+other tools in the toolchain begins with `+`, it will be interpreted
+as a rustup toolchain name, and that toolchain will be preferred,
+as in
+
+```
+cargo +beta test
+```
+
+## Directory overrides
+
+Directories can be assigned their own Rust toolchain with
+`rustup override`. When a directory has an override then
+any time `rustc` or `cargo` is run inside that directory,
+or one of its child directories, the override toolchain
+will be invoked.
+
+To pin to a specific nightly:
+
+```
+rustup override set nightly-2014-12-18
+```
+
+Or a specific stable release:
+
+```
+rustup override set 1.0.0
+```
+
+To see the active toolchain use `rustup show`. To remove the override
+and use the default toolchain again, `rustup override unset`.
+
+## The version file
+
+`rustup` directory overrides are a local configuration, stored in
+`$RUSTUP_HOME`. Some projects though find themselves 'pinned' to a
+specific release of Rust and want this information reflected in their
+source repository. This is most often the case for nightly-only
+software that pins to a revision from the release archives.
+
+In these cases the toolchain can be named in the project's directory
+in a file called `.rust-version`, the content of which is the name of
+a single `rustup` toolchain, and which is suitable to check in to
+source control.
+
+The toolchains named in this file have a more restricted form than
+rustup toolchains generally, and may only contain the names of the
+three release channels, 'stable', 'beta', 'nightly', Rust version
+numbers, like '1.0.0', and optionally an archive date, like
+'nightly-2017-01-01'. They may not name custom toolchains, nor
+host-specific toolchains.
+
+The version file has lower precedence than all other methods of
+specifying the toolchain.
 
 ## Cross-compilation
 

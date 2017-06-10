@@ -34,6 +34,8 @@ pub struct Config {
     pub homedir: PathBuf,
     /// An empty directory. Tests should not write to this.
     pub emptydir: PathBuf,
+    /// This is cwd for the test
+    pub workdir: PathBuf,
 }
 
 // Describes all the features of the mock dist server.
@@ -72,6 +74,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let cargodir = TempDir::new("rustup-cargo").unwrap();
     let homedir = TempDir::new("rustup-home").unwrap();
     let emptydir = TempDir::new("rustup-empty").unwrap();
+    let workdir = TempDir::new("rustup-workdir").unwrap();
 
     // The uninstall process on windows involves using the directory above
     // CARGO_HOME, so make sure it's a subdir of our tempdir
@@ -86,6 +89,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
         cargodir: cargodir,
         homedir: homedir.path().to_owned(),
         emptydir: emptydir.path().to_owned(),
+        workdir: workdir.path().to_owned(),
     };
 
     create_mock_dist_server(&config.distdir, s);
@@ -138,6 +142,11 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
         static ref LOCK: Mutex<()> = Mutex::new(());
     }
     let _g = LOCK.lock();
+
+    // Change the cwd to a test-specific directory
+    let cwd = env::current_dir().unwrap();
+    env::set_current_dir(&config.workdir).unwrap();
+    let _g = scopeguard::guard(cwd, |d| env::set_current_dir(d).unwrap());
 
     f(config);
 
