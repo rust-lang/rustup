@@ -20,7 +20,7 @@ use rustup_mock::{MockInstallerBuilder, MockCommand};
 // Just testing that the mocks work
 #[test]
 fn mock_smoke_test() {
-    let tempdir = TempDir::new("multirust").unwrap();
+    let tempdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
@@ -51,7 +51,7 @@ fn mock_smoke_test() {
 
 #[test]
 fn package_contains() {
-    let tempdir = TempDir::new("multirust").unwrap();
+    let tempdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
@@ -73,7 +73,7 @@ fn package_contains() {
 
 #[test]
 fn package_bad_version() {
-    let tempdir = TempDir::new("multirust").unwrap();
+    let tempdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
@@ -91,7 +91,7 @@ fn package_bad_version() {
 
 #[test]
 fn basic_install() {
-    let pkgdir = TempDir::new("multirust").unwrap();
+    let pkgdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
@@ -106,10 +106,10 @@ fn basic_install() {
 
     mock.build(pkgdir.path());
 
-    let instdir = TempDir::new("multirust").unwrap();
+    let instdir = TempDir::new("rustup").unwrap();
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
-    let tmpdir = TempDir::new("multirust").unwrap();
+    let tmpdir = TempDir::new("rustup").unwrap();
     let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -131,7 +131,7 @@ fn basic_install() {
 
 #[test]
 fn multiple_component_install() {
-    let pkgdir = TempDir::new("multirust").unwrap();
+    let pkgdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
@@ -144,10 +144,10 @@ fn multiple_component_install() {
 
     mock.build(pkgdir.path());
 
-    let instdir = TempDir::new("multirust").unwrap();
+    let instdir = TempDir::new("rustup").unwrap();
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
-    let tmpdir = TempDir::new("multirust").unwrap();
+    let tmpdir = TempDir::new("rustup").unwrap();
     let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -169,7 +169,7 @@ fn multiple_component_install() {
 
 #[test]
 fn uninstall() {
-    let pkgdir = TempDir::new("multirust").unwrap();
+    let pkgdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
@@ -187,10 +187,10 @@ fn uninstall() {
 
     mock.build(pkgdir.path());
 
-    let instdir = TempDir::new("multirust").unwrap();
+    let instdir = TempDir::new("rustup").unwrap();
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
-    let tmpdir = TempDir::new("multirust").unwrap();
+    let tmpdir = TempDir::new("rustup").unwrap();
     let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -229,7 +229,7 @@ fn uninstall_best_effort() {
 
 #[test]
 fn component_bad_version() {
-    let pkgdir = TempDir::new("multirust").unwrap();
+    let pkgdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
@@ -239,10 +239,10 @@ fn component_bad_version() {
 
     mock.build(pkgdir.path());
 
-    let instdir = TempDir::new("multirust").unwrap();
+    let instdir = TempDir::new("rustup").unwrap();
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
-    let tmpdir = TempDir::new("multirust").unwrap();
+    let tmpdir = TempDir::new("rustup").unwrap();
     let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -270,7 +270,7 @@ fn unix_permissions() {
     use std::os::unix::fs::PermissionsExt;
     use std::fs;
 
-    let pkgdir = TempDir::new("multirust").unwrap();
+    let pkgdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
@@ -288,10 +288,10 @@ fn unix_permissions() {
 
     mock.build(pkgdir.path());
 
-    let instdir = TempDir::new("multirust").unwrap();
+    let instdir = TempDir::new("rustup").unwrap();
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
-    let tmpdir = TempDir::new("multirust").unwrap();
+    let tmpdir = TempDir::new("rustup").unwrap();
     let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -324,7 +324,7 @@ fn unix_permissions() {
 // Installing to a prefix that doesn't exist creates it automatically
 #[test]
 fn install_to_prefix_that_does_not_exist() {
-    let pkgdir = TempDir::new("multirust").unwrap();
+    let pkgdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![("mycomponent".to_string(),
@@ -334,12 +334,12 @@ fn install_to_prefix_that_does_not_exist() {
 
     mock.build(pkgdir.path());
 
-    let instdir = TempDir::new("multirust").unwrap();
+    let instdir = TempDir::new("rustup").unwrap();
     // The directory that does not exist
     let does_not_exist = instdir.path().join("super_not_real");
     let prefix = InstallPrefix::from(does_not_exist.clone());
 
-    let tmpdir = TempDir::new("multirust").unwrap();
+    let tmpdir = TempDir::new("rustup").unwrap();
     let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);

@@ -71,7 +71,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command,
 
     let ms = (duration.as_secs() as u64 * 1000) + (duration.subsec_nanos() as u64 / 1000 / 1000);
 
-    let t = Telemetry::new(cfg.multirust_dir.join("telemetry"));
+    let t = Telemetry::new(cfg.rustup_dir.join("telemetry"));
 
     match status {
         Ok(status) => {

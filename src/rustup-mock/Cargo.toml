@@ -3,7 +3,7 @@
 name = "rustup-mock"
 version = "1.4.0"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
-description = "Test mocks for multirust"
+description = "Test mocks for rustup"
 
 documentation = "http://rust-lang-nursery.github.io/rustup.rs/rustup_mock/index.html"
 homepage = "https://github.com/rust-lang-nursery/rustup.rs"

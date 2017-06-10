@@ -53,7 +53,7 @@ impl<'a> Toolchain<'a> {
             cfg: cfg,
             name: resolved_name,
             path: path.clone(),
-            telemetry: Telemetry::new(cfg.multirust_dir.join("telemetry")),
+            telemetry: Telemetry::new(cfg.rustup_dir.join("telemetry")),
             dist_handler: Box::new(move |n| {
                 (cfg.notify_handler)(n.into())
             })
@@ -359,7 +359,7 @@ impl<'a> Toolchain<'a> {
         // the documantation for the lpCommandLine argument of CreateProcess.
         let exe_path = if cfg!(windows) {
             use std::fs;
-            let fallback_dir = self.cfg.multirust_dir.join("fallback");
+            let fallback_dir = self.cfg.rustup_dir.join("fallback");
             try!(fs::create_dir_all(&fallback_dir)
                  .chain_err(|| "unable to create dir to hold fallback exe"));
             let fallback_file = fallback_dir.join("cargo.exe");
@@ -382,10 +382,10 @@ impl<'a> Toolchain<'a> {
     fn set_env(&self, cmd: &mut Command) {
         self.set_ldpath(cmd);
 
-        // Because multirust and cargo use slightly different
-        // definitions of cargo home (multirust doesn't read HOME on
+        // Because rustup and cargo use slightly different
+        // definitions of cargo home (rustup doesn't read HOME on
         // windows), we must set it here to ensure cargo and
-        // multirust agree.
+        // rustup agree.
         if let Ok(cargo_home) = utils::cargo_home() {
             cmd.env("CARGO_HOME", &cargo_home);
         }
@@ -393,7 +393,7 @@ impl<'a> Toolchain<'a> {
         env_var::inc("RUST_RECURSION_COUNT", cmd);
 
         cmd.env("RUSTUP_TOOLCHAIN", &self.name);
-        cmd.env("RUSTUP_HOME", &self.cfg.multirust_dir);
+        cmd.env("RUSTUP_HOME", &self.cfg.rustup_dir);
     }
 
     pub fn set_ldpath(&self, cmd: &mut Command) {

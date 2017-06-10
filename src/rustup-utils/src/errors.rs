@@ -159,7 +159,7 @@ error_chain! {
         CargoHome {
             description("couldn't find value of CARGO_HOME")
         }
-        MultirustHome {
+        RustupHome {
             description("couldn't find value of RUSTUP_HOME")
         }
     }

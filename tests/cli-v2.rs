@@ -1,4 +1,4 @@
-//! Test cases of the multirust command, using v2 manifests, mostly
+//! Test cases of the rustup command, using v2 manifests, mostly
 //! derived from multirust/test-v2.sh
 
 extern crate rustup_dist;

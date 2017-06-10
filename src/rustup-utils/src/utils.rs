@@ -416,7 +416,7 @@ pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
     })
 }
 
-// On windows, unlike std and cargo, multirust does *not* consider the
+// On windows, unlike std and cargo, rustup does *not* consider the
 // HOME variable. If it did then the install dir would change
 // depending on whether you happened to install under msys.
 #[cfg(windows)]
@@ -713,18 +713,18 @@ fn dot_dir(name: &str) -> Option<PathBuf> {
 }
 
 pub fn legacy_multirust_home() -> Result<PathBuf> {
-    dot_dir(".multirust").ok_or(ErrorKind::MultirustHome.into())
+    dot_dir(".multirust").ok_or(ErrorKind::RustupHome.into())
 }
 
 pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
-    dot_dir(".rustup").ok_or(ErrorKind::MultirustHome.into())
+    dot_dir(".rustup").ok_or(ErrorKind::RustupHome.into())
 }
 
-pub fn multirust_home() -> Result<PathBuf> {
+pub fn rustup_home() -> Result<PathBuf> {
     let use_rustup_dir = do_rustup_home_upgrade();
 
-    let cwd = try!(env::current_dir().chain_err(|| ErrorKind::MultirustHome));
-    let multirust_home = env::var_os("RUSTUP_HOME").map(|home| {
+    let cwd = try!(env::current_dir().chain_err(|| ErrorKind::RustupHome));
+    let rustup_home = env::var_os("RUSTUP_HOME").map(|home| {
         cwd.join(home)
     });
     let user_home = if use_rustup_dir {
@@ -732,7 +732,7 @@ pub fn multirust_home() -> Result<PathBuf> {
     } else {
         dot_dir(".multirust")
     };
-    multirust_home.or(user_home).ok_or(ErrorKind::MultirustHome.into())
+    rustup_home.or(user_home).ok_or(ErrorKind::RustupHome.into())
 }
 
 pub fn format_path_for_display(path: &str) -> String {

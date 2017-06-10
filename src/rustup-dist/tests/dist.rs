@@ -243,7 +243,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
 
 #[test]
 fn mock_dist_server_smoke_test() {
-    let tempdir = TempDir::new("multirust").unwrap();
+    let tempdir = TempDir::new("rustup").unwrap();
     let path = tempdir.path();
 
     create_mock_dist_server(&path, None).write(&[ManifestVersion::V2], false);
@@ -309,12 +309,12 @@ fn uninstall(toolchain: &ToolchainDesc, prefix: &InstallPrefix, temp_cfg: &temp:
 
 fn setup(edit: Option<&Fn(&str, &mut MockPackage)>, enable_xz: bool,
          f: &Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg, &temp::Cfg)) {
-    let dist_tempdir = TempDir::new("multirust").unwrap();
+    let dist_tempdir = TempDir::new("rustup").unwrap();
     create_mock_dist_server(dist_tempdir.path(), edit).write(&[ManifestVersion::V2], enable_xz);
 
-    let prefix_tempdir = TempDir::new("multirust").unwrap();
+    let prefix_tempdir = TempDir::new("rustup").unwrap();
 
-    let work_tempdir = TempDir::new("multirust").unwrap();
+    let work_tempdir = TempDir::new("rustup").unwrap();
     let ref temp_cfg = temp::Cfg::new(work_tempdir.path().to_owned(),
                                       DEFAULT_DIST_SERVER,
                                       Box::new(|_| ()));

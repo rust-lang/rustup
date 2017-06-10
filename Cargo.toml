@@ -3,7 +3,7 @@
 name = "rustup"
 version = "1.4.0"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
-description = "multirust in rust - manage multiple rust installations with ease"
+description = "Manage multiple rust installations with ease"
 
 documentation = "http://rust-lang-nursery.github.io/rustup.rs/rustup/index.html"
 homepage = "https://github.com/rust-lang-nursery/rustup.rs"
@@ -11,7 +11,7 @@ repository = "https://github.com/rust-lang-nursery/rustup.rs"
 
 readme = "README.md"
 
-keywords = ["multirust", "install", "proxy"]
+keywords = ["rustup", "multirust", "install", "proxy"]
 
 license = "MIT OR Apache-2.0"
 

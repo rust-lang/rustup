@@ -162,7 +162,7 @@ impl MockDistServer {
 
         fs::create_dir_all(archive_dir).unwrap();
 
-        let tmpdir = TempDir::new("multirust").unwrap();
+        let tmpdir = TempDir::new("rustup").unwrap();
 
         let workdir = tmpdir.path().join("work");
         let ref installer_name = if target_package.target != "*" {
