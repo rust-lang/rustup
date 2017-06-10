@@ -91,10 +91,17 @@ impl Cfg {
                     .to_owned()
             }
         };
-
         let notify_clone = notify_handler.clone();
+        let urlreplace = match env::var("RUST_DIST_URL_REPLACE") {
+            Ok(ref s) if !s.is_empty() => {
+                s.clone()
+            }
+            _ => String::from("")
+        };
+        
         let temp_cfg = temp::Cfg::new(multirust_dir.join("tmp"),
                                       dist_root_server.as_str(),
+                                      urlreplace.as_str(),
                                       Box::new(move |n| {
                                           (notify_clone)(n.into())
                                       }));

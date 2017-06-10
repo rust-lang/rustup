@@ -317,6 +317,7 @@ fn setup(edit: Option<&Fn(&str, &mut MockPackage)>, enable_xz: bool,
     let work_tempdir = TempDir::new("multirust").unwrap();
     let ref temp_cfg = temp::Cfg::new(work_tempdir.path().to_owned(),
                                       DEFAULT_DIST_SERVER,
+                                      "",
                                       Box::new(|_| ()));
 
     let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
