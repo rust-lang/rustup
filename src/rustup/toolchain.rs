@@ -491,7 +491,7 @@ impl<'a> Toolchain<'a> {
                     component: component.clone(),
                     required: true,
                     installed: installed,
-                    available: component_target_pkg.available,
+                    available: component_target_pkg.available(),
                 });
             }
 
@@ -510,7 +510,7 @@ impl<'a> Toolchain<'a> {
                     component: extension.clone(),
                     required: false,
                     installed: installed,
-                    available: extension_target_pkg.available,
+                    available: extension_target_pkg.available(),
                 });
             }
 

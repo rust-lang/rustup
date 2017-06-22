@@ -26,9 +26,9 @@ fn parse_smoke_test() {
     assert!(rust_pkg.version.contains("1.3.0"));
 
     let rust_target_pkg = rust_pkg.get_target(Some(&x86_64_unknown_linux_gnu)).unwrap();
-    assert_eq!(rust_target_pkg.available, true);
-    assert_eq!(rust_target_pkg.url, "example.com");
-    assert_eq!(rust_target_pkg.hash, "...");
+    assert_eq!(rust_target_pkg.available(), true);
+    assert_eq!(rust_target_pkg.bins.clone().unwrap().url, "example.com");
+    assert_eq!(rust_target_pkg.bins.clone().unwrap().hash, "...");
 
     let ref component = rust_target_pkg.components[0];
     assert_eq!(component.pkg, "rustc");
@@ -40,7 +40,7 @@ fn parse_smoke_test() {
 
     let docs_pkg = pkg.get_package("rust-docs").unwrap();
     let docs_target_pkg = docs_pkg.get_target(Some(&x86_64_unknown_linux_gnu)).unwrap();
-    assert_eq!(docs_target_pkg.url, "example.com");
+    assert_eq!(docs_target_pkg.bins.clone().unwrap().url, "example.com");
 }
 
 #[test]

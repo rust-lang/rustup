@@ -41,13 +41,17 @@ pub enum PackageTargets {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TargetedPackage {
-    pub available: bool,
+    pub bins: Option<PackageBins>,
+    pub components: Vec<Component>,
+    pub extensions: Vec<Component>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PackageBins {
     pub url: String,
     pub hash: String,
     pub xz_url: Option<String>,
     pub xz_hash: Option<String>,
-    pub components: Vec<Component>,
-    pub extensions: Vec<Component>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -232,17 +236,27 @@ impl TargetedPackage {
     pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
         let components = try!(get_array(&mut table, "components", path));
         let extensions = try!(get_array(&mut table, "extensions", path));
-        Ok(TargetedPackage {
-            available: try!(get_bool(&mut table, "available", path)),
-            url: try!(get_string(&mut table, "url", path)),
-            hash: try!(get_string(&mut table, "hash", path)),
-            xz_url: get_string(&mut table, "xz_url", path).ok(),
-            xz_hash: get_string(&mut table, "xz_hash", path).ok(),
-            components: try!(Self::toml_to_components(components,
-                                                      &format!("{}{}.", path, "components"))),
-            extensions: try!(Self::toml_to_components(extensions,
-                                                      &format!("{}{}.", path, "extensions"))),
-        })
+
+        if try!(get_bool(&mut table, "available", path)) {
+            Ok(TargetedPackage {
+                bins: Some(PackageBins {
+                    url: try!(get_string(&mut table, "url", path)),
+                    hash: try!(get_string(&mut table, "hash", path)),
+                    xz_url: get_string(&mut table, "xz_url", path).ok(),
+                    xz_hash: get_string(&mut table, "xz_hash", path).ok(),
+                }),
+                components: try!(Self::toml_to_components(components,
+                                                          &format!("{}{}.", path, "components"))),
+                extensions: try!(Self::toml_to_components(extensions,
+                                                          &format!("{}{}.", path, "extensions"))),
+            })
+        } else {
+            Ok(TargetedPackage {
+                bins: None,
+                components: vec![],
+                extensions: vec![],
+            })
+        }
     }
     pub fn to_toml(self) -> toml::Table {
         let extensions = Self::components_to_toml(self.extensions);
@@ -254,10 +268,22 @@ impl TargetedPackage {
         if !components.is_empty() {
             result.insert("components".to_owned(), toml::Value::Array(components));
         }
-        result.insert("hash".to_owned(), toml::Value::String(self.hash));
-        result.insert("url".to_owned(), toml::Value::String(self.url));
-        result.insert("available".to_owned(), toml::Value::Boolean(self.available));
+        if let Some(bins) = self.bins.clone() {
+            result.insert("hash".to_owned(), toml::Value::String(bins.hash));
+            result.insert("url".to_owned(), toml::Value::String(bins.url));
+            if let (Some(xz_hash), Some(xz_url)) = (bins.xz_hash, bins.xz_url) {
+                result.insert("xz_hash".to_owned(), toml::Value::String(xz_hash));
+                result.insert("xz_url".to_owned(), toml::Value::String(xz_url));
+            }
+            result.insert("available".to_owned(), toml::Value::Boolean(true));
+        } else {
+            result.insert("available".to_owned(), toml::Value::Boolean(false));
+        }
         result
+    }
+
+    pub fn available(&self) -> bool {
+        self.bins.is_some()
     }
 
     fn toml_to_components(arr: toml::Array, path: &str) -> Result<Vec<Component>> {
