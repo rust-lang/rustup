@@ -504,10 +504,8 @@ r"");
 }
 
 #[test]
+#[ignore(windows)] // FIXME Windows shows UNC paths
 fn show_toolchain_override() {
-    // FIXME rustup displays UNC paths
-    if cfg!(windows) { return }
-
     setup(&|config| {
         let cwd = ::std::env::current_dir().unwrap();
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
@@ -522,6 +520,7 @@ r"");
 }
 
 #[test]
+#[ignore(windows)] // FIXME Windows shows UNC paths
 fn show_toolchain_toolchain_file_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
@@ -553,6 +552,7 @@ r"");
 }
 
 #[test]
+#[ignore(windows)] // FIXME Windows shows UNC paths
 fn show_toolchain_version_nested_file_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
@@ -589,6 +589,7 @@ nightly-{0} (overridden by '{1}')
 }
 
 #[test]
+#[ignore(windows)] // FIXME Windows shows UNC paths
 fn show_toolchain_toolchain_file_override_not_installed() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
