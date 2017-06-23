@@ -522,15 +522,15 @@ r"");
 }
 
 #[test]
-fn show_toolchain_version_file_override() {
+fn show_toolchain_toolchain_file_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
 
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
+        let toolchain_file = cwd.join("rust-toolchain");
 
-        raw::write_file(&version_file, "nightly").unwrap();
+        raw::write_file(&toolchain_file, "nightly").unwrap();
 
         expect_ok_ex(config, &["rustup", "show"],
 &format!(r"Default host: {0}
@@ -547,7 +547,7 @@ active toolchain
 nightly-{0} (overridden by '{1}')
 1.3.0 (hash-n-2)
 
-", this_host_triple(), version_file.display()),
+", this_host_triple(), toolchain_file.display()),
 r"");
     });
 }
@@ -559,9 +559,9 @@ fn show_toolchain_version_nested_file_override() {
         expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
 
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
+        let toolchain_file = cwd.join("rust-toolchain");
 
-        raw::write_file(&version_file, "nightly").unwrap();
+        raw::write_file(&toolchain_file, "nightly").unwrap();
 
         let subdir = cwd.join("foo");
 
@@ -582,21 +582,21 @@ active toolchain
 nightly-{0} (overridden by '{1}')
 1.3.0 (hash-n-2)
 
-", this_host_triple(), version_file.display()),
+", this_host_triple(), toolchain_file.display()),
                          r"");
         });
     });
 }
 
 #[test]
-fn show_toolchain_version_file_override_not_installed() {
+fn show_toolchain_toolchain_file_override_not_installed() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
 
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
+        let toolchain_file = cwd.join("rust-toolchain");
 
-        raw::write_file(&version_file, "nightly").unwrap();
+        raw::write_file(&toolchain_file, "nightly").unwrap();
 
         // I'm not sure this should really be erroring when the toolchain
         // is not installed; just capturing the behavior.
@@ -608,8 +608,8 @@ fn show_toolchain_version_file_override_not_installed() {
         assert!(stderr.starts_with(
                 "error: override toolchain 'nightly' is not installed"));
         assert!(stderr.contains(
-            &format!("the version file at '{}' specifies an uninstalled toolchain",
-                     version_file.display())));
+            &format!("the toolchain file at '{}' specifies an uninstalled toolchain",
+                     toolchain_file.display())));
     });
 }
 
@@ -846,8 +846,8 @@ fn multirust_dir_upgrade_old_rustup_exists() {
         let rustup_sh_dir = config.homedir.join(".rustup.sh");
 
         let multirust_dir_str = &format!("{}", multirust_dir.display());
-        let old_rustup_sh_version_file = rustup_dir.join("rustup-version");
-        let new_rustup_sh_version_file = rustup_sh_dir.join("rustup-version");
+        let old_rustup_sh_toolchain_file = rustup_dir.join("rustup-version");
+        let new_rustup_sh_toolchain_file = rustup_sh_dir.join("rustup-version");
 
         // First write data into ~/.multirust
         run_no_home(config, &["rustup", "default", "stable"],
@@ -861,8 +861,8 @@ fn multirust_dir_upgrade_old_rustup_exists() {
 
         // Now add rustup.sh data to ~/.rustup
         fs::create_dir_all(&rustup_dir).unwrap();
-        raw::write_file(&old_rustup_sh_version_file, "1").unwrap();
-        assert!(old_rustup_sh_version_file.exists());
+        raw::write_file(&old_rustup_sh_toolchain_file, "1").unwrap();
+        assert!(old_rustup_sh_toolchain_file.exists());
 
         // Now do the upgrade, and ~/.rustup will be moved to ~/.rustup.sh
         let out = run_no_home(config, &["rustup", "toolchain", "list"], &[]);
@@ -871,8 +871,8 @@ fn multirust_dir_upgrade_old_rustup_exists() {
         assert!(multirust_dir.exists());
         assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
         assert!(rustup_dir.exists());
-        assert!(!old_rustup_sh_version_file.exists());
-        assert!(new_rustup_sh_version_file.exists());
+        assert!(!old_rustup_sh_toolchain_file.exists());
+        assert!(new_rustup_sh_toolchain_file.exists());
     });
 }
 
@@ -886,8 +886,8 @@ fn multirust_dir_upgrade_old_rustup_existsand_new_rustup_sh_exists() {
         let rustup_sh_dir = config.homedir.join(".rustup.sh");
 
         let multirust_dir_str = &format!("{}", multirust_dir.display());
-        let old_rustup_sh_version_file = rustup_dir.join("rustup-version");
-        let new_rustup_sh_version_file = rustup_sh_dir.join("rustup-version");
+        let old_rustup_sh_toolchain_file = rustup_dir.join("rustup-version");
+        let new_rustup_sh_toolchain_file = rustup_sh_dir.join("rustup-version");
 
         // First write data into ~/.multirust
         run_no_home(config, &["rustup", "default", "stable"],
@@ -904,14 +904,14 @@ fn multirust_dir_upgrade_old_rustup_existsand_new_rustup_sh_exists() {
 
         // Now add rustup.sh data to ~/.rustup
         fs::create_dir_all(&rustup_dir).unwrap();
-        raw::write_file(&old_rustup_sh_version_file, "1").unwrap();
+        raw::write_file(&old_rustup_sh_toolchain_file, "1").unwrap();
 
         // Also to ~/.rustup.sh
         fs::create_dir_all(&rustup_sh_dir).unwrap();
-        raw::write_file(&new_rustup_sh_version_file, "1").unwrap();
+        raw::write_file(&new_rustup_sh_toolchain_file, "1").unwrap();
 
-        assert!(old_rustup_sh_version_file.exists());
-        assert!(new_rustup_sh_version_file.exists());
+        assert!(old_rustup_sh_toolchain_file.exists());
+        assert!(new_rustup_sh_toolchain_file.exists());
 
         // Now do the upgrade, and ~/.rustup will be moved to ~/.rustup.sh
         let out = run_no_home(config, &["rustup", "toolchain", "list"], &[]);
@@ -922,8 +922,8 @@ fn multirust_dir_upgrade_old_rustup_existsand_new_rustup_sh_exists() {
         assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
 
         assert!(rustup_dir.exists());
-        assert!(!old_rustup_sh_version_file.exists());
-        assert!(new_rustup_sh_version_file.exists());
+        assert!(!old_rustup_sh_toolchain_file.exists());
+        assert!(new_rustup_sh_toolchain_file.exists());
     });
 }
 
@@ -954,8 +954,8 @@ fn file_override() {
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
 
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
-        raw::write_file(&version_file, "nightly").unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
     });
@@ -970,8 +970,8 @@ fn file_override_subdir() {
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
 
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
-        raw::write_file(&version_file, "nightly").unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
 
         let subdir = cwd.join("subdir");
         fs::create_dir_all(&subdir).unwrap();
@@ -991,8 +991,8 @@ fn file_override_with_archive() {
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
 
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
-        raw::write_file(&version_file, "nightly-2015-01-01").unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly-2015-01-01").unwrap();
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
     });
@@ -1009,12 +1009,37 @@ fn directory_override_beats_file_override() {
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
 
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
-        raw::write_file(&version_file, "nightly").unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
     });
 }
+
+#[test]
+fn close_file_override_beats_far_directory_override() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+
+        expect_ok(config, &["rustup", "override", "set", "beta"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+
+        let cwd = ::std::env::current_dir().unwrap();
+
+        let subdir = cwd.join("subdir");
+        fs::create_dir_all(&subdir).unwrap();
+
+        let toolchain_file = subdir.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        change_dir(&subdir, &|| {
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        });
+    });
+}
+
 
 #[test]
 fn directory_override_doesnt_need_to_exist_unless_it_is_selected() {
@@ -1027,8 +1052,8 @@ fn directory_override_doesnt_need_to_exist_unless_it_is_selected() {
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
 
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
-        raw::write_file(&version_file, "nightly").unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
     });
@@ -1042,8 +1067,8 @@ fn env_override_beats_file_override() {
         expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
 
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
-        raw::write_file(&version_file, "nightly").unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
 
         let mut cmd = clitools::cmd(config, "rustc", &["--version"]);
         clitools::env(config, &mut cmd);
@@ -1062,8 +1087,8 @@ fn plus_override_beats_file_override() {
         expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
 
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
-        raw::write_file(&version_file, "nightly").unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
 
         expect_stdout_ok(config, &["rustc", "+beta", "--version"], "hash-b-2");
     });
@@ -1073,8 +1098,8 @@ fn plus_override_beats_file_override() {
 fn bad_file_override() {
     setup(&|config| {
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
-        raw::write_file(&version_file, "gumbo").unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "gumbo").unwrap();
 
         expect_err(config, &["rustc", "--version"],
                    "invalid channel name 'gumbo' in");
@@ -1085,8 +1110,8 @@ fn bad_file_override() {
 fn file_override_with_target_info() {
     setup(&|config| {
         let cwd = ::std::env::current_dir().unwrap();
-        let version_file = cwd.join(".rust-version");
-        raw::write_file(&version_file, "nightly-x86_64-unknown-linux-gnu").unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly-x86_64-unknown-linux-gnu").unwrap();
 
         expect_err(config, &["rustc", "--version"],
                    "target triple in channel name 'nightly-x86_64-unknown-linux-gnu'");

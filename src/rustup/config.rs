@@ -12,13 +12,13 @@ use rustup_dist::{temp, dist};
 use rustup_utils::utils;
 use toolchain::{Toolchain, UpdateStatus};
 use telemetry_analysis::*;
-use settings::{TelemetryMode, SettingsFile, DEFAULT_METADATA_VERSION};
+use settings::{TelemetryMode, SettingsFile, Settings, DEFAULT_METADATA_VERSION};
 
 #[derive(Debug)]
 pub enum OverrideReason {
     Environment,
     OverrideDB(PathBuf),
-    VersionFile(PathBuf),
+    ToolchainFile(PathBuf),
 }
 
 impl Display for OverrideReason {
@@ -28,7 +28,7 @@ impl Display for OverrideReason {
             OverrideReason::OverrideDB(ref path) => {
                 write!(f, "directory override for '{}'", path.display())
             }
-            OverrideReason::VersionFile(ref path) => {
+            OverrideReason::ToolchainFile(ref path) => {
                 write!(f, "overridden by '{}'", path.display())
             }
         }
@@ -232,20 +232,14 @@ impl Cfg {
             override_ = Some((name.to_string(), OverrideReason::Environment));
         }
 
-        // Then look in the override database
+        // Then walk up the directory tree from 'path' looking for either the
+        // directory in override database, or a `rust-toolchain` file.
         if override_.is_none() {
-            try!(self.settings_file.with(|s| {
-                let name = s.find_override(path, self.notify_handler.as_ref());
-                override_ = name.map(|(name, reason_path)| (name, OverrideReason::OverrideDB(reason_path)));
+            self.settings_file.with(|s| {
+                override_ = self.find_override_from_dir_walk(path, s)?;
 
                 Ok(())
-            }));
-        }
-
-        // Then check the explicit version file
-        if override_.is_none() {
-            let name_path = self.find_override_version_file(path)?;
-            override_ = name_path.map(|(name, path)| (name, OverrideReason::VersionFile(path)));
+            })?;
         }
 
         if let Some((name, reason)) = override_ {
@@ -260,8 +254,8 @@ impl Cfg {
                 OverrideReason::OverrideDB(ref path) => {
                     format!("the directory override for '{}' specifies an uninstalled toolchain", path.display())
                 }
-                OverrideReason::VersionFile(ref path) => {
-                    format!("the version file at '{}' specifies an uninstalled toolchain", path.display())
+                OverrideReason::ToolchainFile(ref path) => {
+                    format!("the toolchain file at '{}' specifies an uninstalled toolchain", path.display())
                 }
             };
 
@@ -286,25 +280,36 @@ impl Cfg {
         }
     }
 
-    /// Starting in path walk up the tree looking for .rust-version
-    fn find_override_version_file(&self, path: &Path) -> Result<Option<(String, PathBuf)>> {
-        let mut path = Some(path);
+    fn find_override_from_dir_walk(&self, dir: &Path, settings: &Settings)
+                                   -> Result<Option<(String, OverrideReason)>>
+    {
+        let notify = self.notify_handler.as_ref();
+        let dir = utils::canonicalize_path(dir, &|n| notify(n.into()));
+        let mut dir = Some(&*dir);
 
-        while let Some(p) = path {
-            let version_file = p.join(".rust-version");
-            if let Ok(s) = utils::read_file("version file", &version_file) {
+        while let Some(d) = dir {
+            // First check the override database
+            if let Some(name) = settings.dir_override(d, notify) {
+                let reason = OverrideReason::OverrideDB(d.to_owned());
+                return Ok(Some((name, reason)));
+            }
+
+            // Then look for 'rust-toolchain'
+            let toolchain_file = d.join("rust-toolchain");
+            if let Ok(s) = utils::read_file("toolchain file", &toolchain_file) {
                 if let Some(s) = s.lines().next() {
                     let toolchain_name = s.trim();
                     dist::validate_channel_name(&toolchain_name)
                         .chain_err(|| format!("invalid channel name '{}' in '{}'",
                                               toolchain_name,
-                                              version_file.display()))?;
+                                              toolchain_file.display()))?;
 
-                    return Ok(Some((toolchain_name.to_string(), version_file)));
+                    let reason = OverrideReason::ToolchainFile(toolchain_file);
+                    return Ok(Some((toolchain_name.to_string(), reason)));
                 }
             }
 
-            path = p.parent();
+            dir = d.parent();
         }
 
         Ok(None)

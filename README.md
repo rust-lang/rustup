@@ -18,9 +18,10 @@ And it runs on all platforms Rust supports, including Windows.
 * [Keeping Rust up to date](#keeping-rust-up-to-date)
 * [Working with nightly Rust](#working-with-nightly-rust)
 * [Toolchain specification](#toolchain-specification)
-* [Directory overrides](#directory-overrides)
-* [The version file](#the-version-file)
 * [Toolchain override shorthand](#toolchain-override-shorthand)
+* [Directory overrides](#directory-overrides)
+* [The toolchain file](#the-toolchain-file)
+* [Override precedence](#override-precedence)
 * [Cross-compilation](#cross-compilation)
 * [Working with Rust on Windows](#working-with-rust-on-windows)
 * [Working with custom toolchains](#working-with-custom-toolchains-and-local-builds)
@@ -293,13 +294,12 @@ cargo +beta test
 
 ## Directory overrides
 
-Directories can be assigned their own Rust toolchain with
-`rustup override`. When a directory has an override then
-any time `rustc` or `cargo` is run inside that directory,
-or one of its child directories, the override toolchain
-will be invoked.
+Directories can be assigned their own Rust toolchain with `rustup
+override`. When a directory has an override then any time `rustc` or
+`cargo` is run inside that directory, or one of its child directories,
+the override toolchain will be invoked.
 
-To pin to a specific nightly:
+To use to a specific nightly for a directory:
 
 ```
 rustup override set nightly-2014-12-18
@@ -314,7 +314,7 @@ rustup override set 1.0.0
 To see the active toolchain use `rustup show`. To remove the override
 and use the default toolchain again, `rustup override unset`.
 
-## The version file
+## The toolchain file
 
 `rustup` directory overrides are a local configuration, stored in
 `$RUSTUP_HOME`. Some projects though find themselves 'pinned' to a
@@ -323,7 +323,7 @@ source repository. This is most often the case for nightly-only
 software that pins to a revision from the release archives.
 
 In these cases the toolchain can be named in the project's directory
-in a file called `.rust-version`, the content of which is the name of
+in a file called `rust-toolchain`, the content of which is the name of
 a single `rustup` toolchain, and which is suitable to check in to
 source control.
 
@@ -334,8 +334,27 @@ numbers, like '1.0.0', and optionally an archive date, like
 'nightly-2017-01-01'. They may not name custom toolchains, nor
 host-specific toolchains.
 
-The version file has lower precedence than all other methods of
-specifying the toolchain.
+## Override precedence
+
+There are several ways to specify which toolchain `rustup` should
+execute:
+
+* An explicit toolchain, e.g. `cargo +beta`,
+* The `RUSTUP_TOOLCHAIN` environment variable,
+* A directory override, ala `rustup override set beta`,
+* The `rust-toolchain` file,
+* The default toolchain,
+
+and they are prefered by rustup in that order, with the explicit
+toolchain having highest precedence, and the default toolchain having
+the lowest. There is one exception though: directory overrides and the
+`rust-toolchain` file are also preferred by their proximity to the
+current directory. That is, these two override methods are discovered
+by walking up the directory tree toward the filesystem root, and a
+`rust-toolchain` file that is closer to the current directory will be
+prefered over a directory override that is further away.
+
+To verify which toolchain is active use `rustup show`.
 
 ## Cross-compilation
 
