@@ -36,7 +36,7 @@ use rustup_dist::dist;
 use rustup_utils::utils;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
-use std::path::{Path, PathBuf};
+use std::path::{Path, PathBuf, Component};
 use std::process::{self, Command};
 use std::fs;
 use tempdir::TempDir;
@@ -215,11 +215,12 @@ fn canonical_cargo_home() -> Result<String> {
 
 /// Installing is a simple matter of coping the running binary to
 /// `CARGO_HOME`/bin, hardlinking the various Rust tools to it,
-/// and and adding `CARGO_HOME`/bin to PATH.
+/// and adding `CARGO_HOME`/bin to PATH.
 pub fn install(no_prompt: bool, verbose: bool,
                mut opts: InstallOpts) -> Result<()> {
 
     try!(do_pre_install_sanity_checks());
+    try!(check_existence_of_rustc_or_cargo_in_path(no_prompt));
     try!(do_anti_sudo_check(no_prompt));
 
     if !try!(do_msvc_check(&opts)) {
@@ -331,8 +332,49 @@ pub fn install(no_prompt: bool, verbose: bool,
     Ok(())
 }
 
-fn do_pre_install_sanity_checks() -> Result<()> {
+fn rustc_or_cargo_exists_in_path() -> Result<()> {
+    // Ignore rustc and cargo if present in $HOME/.cargo/bin or a few other directories
+    fn ignore_paths(path: &PathBuf) -> bool {
+        !path.components().any(|c| c == Component::Normal(".cargo".as_ref())) &&
+            !path.components().any(|c| c == Component::Normal(".multirust".as_ref()))
+    }
 
+    if let Some(paths) = env::var_os("PATH") {
+        let paths = env::split_paths(&paths).filter(ignore_paths);
+
+        for path in paths {
+            let rustc = path.join(format!("rustc{}", EXE_SUFFIX));
+            let cargo = path.join(format!("cargo{}", EXE_SUFFIX));
+
+            if rustc.exists() || cargo.exists() {
+                return Err(path.to_str().unwrap().into());
+            }
+        }
+    }
+    Ok(())
+}
+
+fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool) -> Result<()> {
+    // Only the test runner should set this
+    let skip_check = env::var_os("RUSTUP_INIT_SKIP_PATH_CHECK");
+
+    // Ignore this check if called with no prompt (-y) or if the environment variable is set
+    if no_prompt || skip_check == Some("yes".into()) {
+        return Ok(());
+    }
+
+    if let Err(path) = rustc_or_cargo_exists_in_path() {
+        err!("it looks like you have an existing installation of Rust at:");
+        err!("{}", path);
+        err!("rustup cannot be installed alongside Rust. Please uninstall first");
+        err!("if this is what you want, restart the installation with `-y'");
+        Err("cannot install while Rust is installed".into())
+    } else {
+        Ok(())
+    }
+}
+
+fn do_pre_install_sanity_checks() -> Result<()> {
     let multirust_manifest_path
         = PathBuf::from("/usr/local/lib/rustlib/manifest-multirust");
     let rustc_manifest_path
@@ -652,7 +694,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
                 .chain_err(|| ErrorKind::WindowsUninstallMadness));
         process::exit(0);
     }
-    
+
     let ref cargo_home = try!(utils::cargo_home());
 
     if !cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX)).exists() {
