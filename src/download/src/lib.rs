@@ -440,10 +440,12 @@ pub mod rustls {
             let mut invalid = 0;
             for cert in bundle {
                 let (c_added, c_invalid) = match cert {
-                    CertItem::Blob(blob) => match config.root_store.add(&blob) {
-                        Ok(_) => (1, 0),
-                        Err(_) => (0, 1)
-                    },
+                    CertItem::Blob(blob) => {
+                        match config.root_store.add(&rustls::Certificate(blob)) {
+                            Ok(_) => (1, 0),
+                            Err(_) => (0, 1)
+                        }
+                    }
                     CertItem::File(name) => {
                         if let Ok(cf) = File::open(name) {
                             let mut reader = BufReader::new(cf);
