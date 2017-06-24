@@ -23,7 +23,7 @@ xz2 = "0.1.3"
 tempdir = "0.3.4"
 walkdir = "0.1.5"
 toml = "0.1.27"
-sha2 = "0.1.2"
+sha2 = "0.6.0"
 rustup-utils = { path = "../rustup-utils" }
 error-chain = "0.7.1"
 rustup-mock = { path = "../rustup-mock" }
