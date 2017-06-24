@@ -1,3 +1,17 @@
+# 1.5.0
+
+* [Rename references to multirust to rustup where applicable](https://github.com/rust-lang-nursery/rustup.rs/pull/1148)
+* [Update platform support in README](https://github.com/rust-lang-nursery/rustup.rs/pull/1159)
+* [Allow rustup to handle unavailable packages](https://github.com/rust-lang-nursery/rustup.rs/pull/1063)
+* [Update libz-sys and curl-sys](https://github.com/rust-lang-nursery/rustup.rs/pull/1176)
+* [Teach rustup to override the toolchain from a version file](https://github.com/rust-lang-nursery/rustup.rs/pull/1172)
+* [Update sha2 crate](https://github.com/rust-lang-nursery/rustup.rs/pull/1162)
+* [Check for unexpected cargo/rustc before install](https://github.com/rust-lang-nursery/rustup.rs/pull/705)
+* [Update PATH in .bash_profile](https://github.com/rust-lang-nursery/rustup.rs/pull/1179)
+
+Contributors: Allen Welkie, bors, Brian Anderson, Diggory Blake, Erick
+Tryzelaar, Ricardo Martins, Артём Павлов [Artyom Pavlov]
+
 # 1.4.0
 
 * [set_file_perms: if the file is already executable, keep it executable](https://github.com/rust-lang-nursery/rustup.rs/pull/1141)
