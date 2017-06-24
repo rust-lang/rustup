@@ -1041,6 +1041,16 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
             let zprofile = zdotdir.map(|p| p.join(".zprofile"));
             profiles.push(zprofile);
         }
+
+        if shell.contains("bash") {
+            if let Some(bash_profile) = utils::home_dir().map(|p| p.join(".bash_profile")) {
+                // Only update .bash_profile if it exists because creating .bash_profile
+                // will cause .profile to not be read
+                if bash_profile.exists() {
+                    profiles.push(Some(bash_profile));
+                }
+            }
+        }
     }
 
     let rcfiles = profiles.into_iter().filter_map(|f|f);
@@ -1168,8 +1178,9 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
     }
 
     let profile = utils::home_dir().map(|p| p.join(".profile"));
+    let bash_profile = utils::home_dir().map(|p| p.join(".bash_profile"));
 
-    let rcfiles = vec![profile];
+    let rcfiles = vec![profile, bash_profile];
     let existing_rcfiles = rcfiles.into_iter()
         .filter_map(|f|f)
         .filter(|f| f.exists());
