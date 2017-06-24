@@ -12,15 +12,14 @@ use rustup_dist::{temp, dist};
 use rustup_utils::utils;
 use toolchain::{Toolchain, UpdateStatus};
 use telemetry_analysis::*;
-use settings::{TelemetryMode, SettingsFile, DEFAULT_METADATA_VERSION};
+use settings::{TelemetryMode, SettingsFile, Settings, DEFAULT_METADATA_VERSION};
 
 #[derive(Debug)]
 pub enum OverrideReason {
     Environment,
     OverrideDB(PathBuf),
+    ToolchainFile(PathBuf),
 }
-
-
 
 impl Display for OverrideReason {
     fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
@@ -28,6 +27,9 @@ impl Display for OverrideReason {
             OverrideReason::Environment => write!(f, "environment override by RUSTUP_TOOLCHAIN"),
             OverrideReason::OverrideDB(ref path) => {
                 write!(f, "directory override for '{}'", path.display())
+            }
+            OverrideReason::ToolchainFile(ref path) => {
+                write!(f, "overridden by '{}'", path.display())
             }
         }
     }
@@ -223,29 +225,91 @@ impl Cfg {
     }
 
     pub fn find_override(&self, path: &Path) -> Result<Option<(Toolchain, OverrideReason)>> {
-        if let Some(ref name) = self.env_override {
-            let toolchain = try!(self.verify_toolchain(name).chain_err(|| ErrorKind::ToolchainNotInstalled(name.to_string())));
+        let mut override_ = None;
 
-            return Ok(Some((toolchain, OverrideReason::Environment)));
+        // First check RUSTUP_TOOLCHAIN
+        if let Some(ref name) = self.env_override {
+            override_ = Some((name.to_string(), OverrideReason::Environment));
         }
 
-        let result = try!(self.settings_file.with(|s| {
-            Ok(s.find_override(path, self.notify_handler.as_ref()))
-        }));
-        if let Some((name, reason_path)) = result {
-            let toolchain = match self.verify_toolchain(&name) {
-                Ok(t) => { t },
+        // Then walk up the directory tree from 'path' looking for either the
+        // directory in override database, or a `rust-toolchain` file.
+        if override_.is_none() {
+            self.settings_file.with(|s| {
+                override_ = self.find_override_from_dir_walk(path, s)?;
+
+                Ok(())
+            })?;
+        }
+
+        if let Some((name, reason)) = override_ {
+            // This is hackishly using the error chain to provide a bit of
+            // extra context about what went wrong. The CLI will display it
+            // on a line after the proximate error.
+
+            let reason_err = match reason {
+                OverrideReason::Environment => {
+                    format!("the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain")
+                }
+                OverrideReason::OverrideDB(ref path) => {
+                    format!("the directory override for '{}' specifies an uninstalled toolchain", path.display())
+                }
+                OverrideReason::ToolchainFile(ref path) => {
+                    format!("the toolchain file at '{}' specifies an uninstalled toolchain", path.display())
+                }
+            };
+
+            match self.verify_toolchain(&name) {
+                Ok(t) => {
+                    Ok(Some((t, reason)))
+                }
                 Err(Error(ErrorKind::Utils(::rustup_utils::ErrorKind::NotADirectory { .. }), _)) => {
                     // Strip the confusing NotADirectory error and only mention that the override
                     // toolchain is not installed.
-                    return Err(ErrorKind::OverrideToolchainNotInstalled(name.to_string()).into())
+                    Err(Error::from(reason_err))
+                        .chain_err(|| ErrorKind::OverrideToolchainNotInstalled(name.to_string()))
                 },
-                Err(e) => return Err(e).chain_err(|| {
-                    ErrorKind::OverrideToolchainNotInstalled(name.to_string())
-                })
+                Err(e) => {
+                    Err(e)
+                        .chain_err(|| Error::from(reason_err))
+                        .chain_err(|| ErrorKind::OverrideToolchainNotInstalled(name.to_string()))
+                }
+            }
+        } else {
+            Ok(None)
+        }
+    }
 
-            };
-            return Ok(Some((toolchain, OverrideReason::OverrideDB(reason_path))));
+    fn find_override_from_dir_walk(&self, dir: &Path, settings: &Settings)
+                                   -> Result<Option<(String, OverrideReason)>>
+    {
+        let notify = self.notify_handler.as_ref();
+        let dir = utils::canonicalize_path(dir, &|n| notify(n.into()));
+        let mut dir = Some(&*dir);
+
+        while let Some(d) = dir {
+            // First check the override database
+            if let Some(name) = settings.dir_override(d, notify) {
+                let reason = OverrideReason::OverrideDB(d.to_owned());
+                return Ok(Some((name, reason)));
+            }
+
+            // Then look for 'rust-toolchain'
+            let toolchain_file = d.join("rust-toolchain");
+            if let Ok(s) = utils::read_file("toolchain file", &toolchain_file) {
+                if let Some(s) = s.lines().next() {
+                    let toolchain_name = s.trim();
+                    dist::validate_channel_name(&toolchain_name)
+                        .chain_err(|| format!("invalid channel name '{}' in '{}'",
+                                              toolchain_name,
+                                              toolchain_file.display()))?;
+
+                    let reason = OverrideReason::ToolchainFile(toolchain_file);
+                    return Ok(Some((toolchain_name.to_string(), reason)));
+                }
+            }
+
+            dir = d.parent();
         }
 
         Ok(None)

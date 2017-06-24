@@ -162,18 +162,9 @@ impl Settings {
         self.overrides.insert(key, toolchain);
     }
 
-    pub fn find_override(&self, dir_unresolved: &Path, notify_handler: &Fn(Notification))
-            -> Option<(String, PathBuf)> {
-        let dir = utils::canonicalize_path(dir_unresolved, &|n| notify_handler(n.into()));
-        let mut maybe_path = Some(&*dir);
-        while let Some(path) = maybe_path {
-            let key = Self::path_to_key(path, notify_handler);
-            if let Some(toolchain) = self.overrides.get(&key) {
-                return Some((toolchain.to_owned(), path.to_owned()));
-            }
-            maybe_path = path.parent();
-        }
-        None
+    pub fn dir_override(&self, dir: &Path, notify_handler: &Fn(Notification)) -> Option<String> {
+        let key = Self::path_to_key(dir, notify_handler);
+        self.overrides.get(&key).map(|s| s.clone())
     }
 
     pub fn parse(data: &str) -> Result<Self> {

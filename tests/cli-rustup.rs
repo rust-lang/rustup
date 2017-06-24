@@ -14,7 +14,7 @@ use rustup_mock::clitools::{self, Config, Scenario,
                                expect_stderr_ok, expect_stdout_ok,
                                expect_err,
                                set_current_dist_date,
-                               this_host_triple};
+                               this_host_triple, change_dir};
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -504,10 +504,8 @@ r"");
 }
 
 #[test]
+#[ignore(windows)] // FIXME Windows shows UNC paths
 fn show_toolchain_override() {
-    // FIXME rustup displays UNC paths
-    if cfg!(windows) { return }
-
     setup(&|config| {
         let cwd = ::std::env::current_dir().unwrap();
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
@@ -518,6 +516,101 @@ nightly-{0} (directory override for '{1}')
 1.3.0 (hash-n-2)
 ", this_host_triple(), cwd.display()),
 r"");
+    });
+}
+
+#[test]
+#[ignore(windows)] // FIXME Windows shows UNC paths
+fn show_toolchain_toolchain_file_override() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        expect_ok_ex(config, &["rustup", "show"],
+&format!(r"Default host: {0}
+
+installed toolchains
+--------------------
+
+stable-{0} (default)
+nightly-{0}
+
+active toolchain
+----------------
+
+nightly-{0} (overridden by '{1}')
+1.3.0 (hash-n-2)
+
+", this_host_triple(), toolchain_file.display()),
+r"");
+    });
+}
+
+#[test]
+#[ignore(windows)] // FIXME Windows shows UNC paths
+fn show_toolchain_version_nested_file_override() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        let subdir = cwd.join("foo");
+
+        fs::create_dir_all(&subdir).unwrap();
+        change_dir(&subdir, &|| {
+            expect_ok_ex(config, &["rustup", "show"],
+                         &format!(r"Default host: {0}
+
+installed toolchains
+--------------------
+
+stable-{0} (default)
+nightly-{0}
+
+active toolchain
+----------------
+
+nightly-{0} (overridden by '{1}')
+1.3.0 (hash-n-2)
+
+", this_host_triple(), toolchain_file.display()),
+                         r"");
+        });
+    });
+}
+
+#[test]
+#[ignore(windows)] // FIXME Windows shows UNC paths
+fn show_toolchain_toolchain_file_override_not_installed() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        // I'm not sure this should really be erroring when the toolchain
+        // is not installed; just capturing the behavior.
+        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+        assert!(!out.status.success());
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(stderr.starts_with(
+                "error: override toolchain 'nightly' is not installed"));
+        assert!(stderr.contains(
+            &format!("the toolchain file at '{}' specifies an uninstalled toolchain",
+                     toolchain_file.display())));
     });
 }
 
@@ -568,7 +661,7 @@ fn show_toolchain_env_not_installed() {
         // is not installed; just capturing the behavior.
         assert!(!out.status.success());
         let stderr = String::from_utf8(out.stderr).unwrap();
-        assert!(stderr.starts_with("error: toolchain 'nightly' is not installed\n"));
+        assert!(stderr.starts_with("error: override toolchain 'nightly' is not installed\n"));
     });
 }
 
@@ -850,5 +943,178 @@ fn multirust_upgrade_works_with_proxy() {
         assert!(multirust_dir.exists());
         assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
         assert!(rustup_dir.exists());
+    });
+}
+
+#[test]
+fn file_override() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+    });
+}
+
+#[test]
+fn file_override_subdir() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        let subdir = cwd.join("subdir");
+        fs::create_dir_all(&subdir).unwrap();
+        change_dir(&subdir, &|| {
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        });
+    });
+}
+
+
+#[test]
+fn file_override_with_archive() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly-2015-01-01"]);
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly-2015-01-01").unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+    });
+}
+
+#[test]
+fn directory_override_beats_file_override() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+
+        expect_ok(config, &["rustup", "override", "set", "beta"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+    });
+}
+
+#[test]
+fn close_file_override_beats_far_directory_override() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+
+        expect_ok(config, &["rustup", "override", "set", "beta"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+
+        let cwd = ::std::env::current_dir().unwrap();
+
+        let subdir = cwd.join("subdir");
+        fs::create_dir_all(&subdir).unwrap();
+
+        let toolchain_file = subdir.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        change_dir(&subdir, &|| {
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        });
+    });
+}
+
+
+#[test]
+fn directory_override_doesnt_need_to_exist_unless_it_is_selected() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
+        // not installing nightly
+
+        expect_ok(config, &["rustup", "override", "set", "beta"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+    });
+}
+
+#[test]
+fn env_override_beats_file_override() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        let mut cmd = clitools::cmd(config, "rustc", &["--version"]);
+        clitools::env(config, &mut cmd);
+        cmd.env("RUSTUP_TOOLCHAIN", "beta");
+
+        let out = cmd.output().unwrap();
+        assert!(String::from_utf8(out.stdout).unwrap().contains("hash-b-2"));
+    });
+}
+
+#[test]
+fn plus_override_beats_file_override() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        expect_stdout_ok(config, &["rustc", "+beta", "--version"], "hash-b-2");
+    });
+}
+
+#[test]
+fn bad_file_override() {
+    setup(&|config| {
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "gumbo").unwrap();
+
+        expect_err(config, &["rustc", "--version"],
+                   "invalid channel name 'gumbo' in");
+    });
+}
+
+#[test]
+fn file_override_with_target_info() {
+    setup(&|config| {
+        let cwd = ::std::env::current_dir().unwrap();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file, "nightly-x86_64-unknown-linux-gnu").unwrap();
+
+        expect_err(config, &["rustc", "--version"],
+                   "target triple in channel name 'nightly-x86_64-unknown-linux-gnu'");
     });
 }
