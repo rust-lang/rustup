@@ -443,7 +443,7 @@ pub mod rustls {
             let mut invalid = 0;
             for cert in bundle {
                 let (c_added, c_invalid) = match cert {
-                    CertItem::Blob(blob) => match config.root_store.add(&blob) {
+                    CertItem::Blob(blob) => match config.root_store.add(&rustls::Certificate(blob)) {
                         Ok(_) => (1, 0),
                         Err(_) => (0, 1)
                     },
@@ -597,7 +597,7 @@ pub mod hyper_base {
         }
 
         use self::hyper::client::{Client, ProxyConfig};
-        use self::hyper::header::{ByteRangeSpec, ContentLength, ContentRange, ContentRangeSpec, Headers, Range};
+        use self::hyper::header::{ByteRangeSpec, ContentLength, ContentRange, ContentRangeSpec, Range};
         use self::hyper::net::{HttpsConnector};
         use self::hyper::status::StatusCode;
 
