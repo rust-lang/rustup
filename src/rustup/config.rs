@@ -326,6 +326,14 @@ impl Cfg {
         })
     }
 
+    pub fn get_default(&self) -> Result<String> {
+        self.settings_file.with(|s| { 
+            Ok(s.default_toolchain.clone().unwrap())
+        })
+    }
+
+
+
     pub fn list_toolchains(&self) -> Result<Vec<String>> {
         if utils::is_directory(&self.toolchains_dir) {
             let mut toolchains: Vec<_> = try!(utils::read_dir("toolchains", &self.toolchains_dir))

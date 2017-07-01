@@ -4,6 +4,7 @@ extern crate rustup_dist;
 extern crate rustup_utils;
 extern crate rustup_mock;
 extern crate tempdir;
+extern crate regex;
 
 use std::fs;
 use std::env::consts::EXE_SUFFIX;
@@ -15,6 +16,7 @@ use rustup_mock::clitools::{self, Config, Scenario,
                             expect_err,
                             set_current_dist_date,
                             this_host_triple};
+use regex::Regex;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -624,11 +626,10 @@ fn show_toolchain_override_not_installed() {
         let mut cmd = clitools::cmd(config, "rustup", &["show"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
-        assert!(!out.status.success());
-        let stderr = String::from_utf8(out.stderr).unwrap();
-        assert!(stderr.starts_with(
-                for_host!("error: override toolchain 'nightly-{0}' is not installed")));
-        assert!(!stderr.contains("info: caused by: not a directory: "));
+        assert!(out.status.success());
+        let stdout = String::from_utf8(out.stdout).unwrap();
+        assert!(!stdout.contains("not a directory"));
+        assert!(Regex::new(r"error: override toolchain 'nightly.*' is not installed, the directory override for '.*' specifies an uninstalled toolchain").unwrap().is_match(&stdout))
     });
 }
 
@@ -659,9 +660,9 @@ fn show_toolchain_env_not_installed() {
         let out = cmd.output().unwrap();
         // I'm not sure this should really be erroring when the toolchain
         // is not installed; just capturing the behavior.
-        assert!(!out.status.success());
-        let stderr = String::from_utf8(out.stderr).unwrap();
-        assert!(stderr.starts_with("error: override toolchain 'nightly' is not installed\n"));
+        assert!(out.status.success());
+        let stdout = String::from_utf8(out.stdout).unwrap();
+        assert!(stdout.contains("override toolchain 'nightly' is not installed, the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"));
     });
 }
 

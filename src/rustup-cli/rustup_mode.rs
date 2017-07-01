@@ -10,6 +10,7 @@ use self_update;
 use std::path::Path;
 use std::process::Command;
 use std::iter;
+use std::error::Error;
 use term2;
 use std::io::{self, Write};
 use help::*;
@@ -545,15 +546,21 @@ fn show(cfg: &Cfg) -> Result<()> {
 
     let ref cwd = try!(utils::current_dir());
     let installed_toolchains = try!(cfg.list_toolchains());
-    let active_toolchain = try!(cfg.find_override_toolchain_or_default(cwd));
-    let active_targets = if let Some((ref t, _)) = active_toolchain {
-        match t.list_components() {
-            Ok(cs_vec) => cs_vec
-                .into_iter()
-                .filter(|c| c.component.pkg == "rust-std")
-                .filter(|c| c.installed)
-                .collect(),
-            Err(_) => vec![]
+    let active_toolchain = cfg.find_override_toolchain_or_default(cwd);
+
+    // active_toolchain will carry the reason we don't have one in its detail.
+    let active_targets = if let Ok(ref at) = active_toolchain {
+        if let Some((ref t, _)) = *at {
+            match t.list_components() {
+                Ok(cs_vec) => cs_vec
+                    .into_iter()
+                    .filter(|c| c.component.pkg == "rust-std")
+                    .filter(|c| c.installed)
+                    .collect(),
+                Err(_) => vec![]
+            }
+        } else {
+            vec![]
         }
     } else {
         vec![]
@@ -572,9 +579,7 @@ fn show(cfg: &Cfg) -> Result<()> {
 
     if show_installed_toolchains {
         if show_headers { print_header("installed toolchains") }
-        let default = try!(cfg.find_default());
-        let default_name = default.map(|t| t.name().to_string())
-                           .unwrap_or("".into());
+        let default_name = try!(cfg.get_default());
         for t in installed_toolchains {
             if default_name == t {
                 println!("{} (default)", t);
@@ -599,16 +604,27 @@ fn show(cfg: &Cfg) -> Result<()> {
         if show_headers { print_header("active toolchain") }
 
         match active_toolchain {
-            Some((ref toolchain, Some(ref reason))) => {
-                println!("{} ({})", toolchain.name(), reason);
-                println!("{}", common::rustc_version(toolchain));
+            Ok(atc) => {
+                match atc {
+                    Some((ref toolchain, Some(ref reason))) => {
+                        println!("{} ({})", toolchain.name(), reason);
+                        println!("{}", common::rustc_version(toolchain));
+                    }
+                    Some((ref toolchain, None)) => {
+                        println!("{} (default)", toolchain.name());
+                        println!("{}", common::rustc_version(toolchain));
+                    }
+                    None => {
+                        println!("no active toolchain");
+                    }
+                }
             }
-            Some((ref toolchain, None)) => {
-                println!("{} (default)", toolchain.name());
-                println!("{}", common::rustc_version(toolchain));
-            }
-            None => {
-                println!("no active toolchain");
+            Err(err) => {
+                if let Some(cause) = err.cause() {
+                    println!("(error: {}, {})", err, cause);
+                } else {
+                    println!("(error: {})", err);
+                }
             }
         }
 
