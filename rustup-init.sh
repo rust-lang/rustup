@@ -324,10 +324,6 @@ say() {
     echo "rustup: $1"
 }
 
-say_err() {
-    say "$1" >&2
-}
-
 err() {
     say "$1" >&2
     exit 1
