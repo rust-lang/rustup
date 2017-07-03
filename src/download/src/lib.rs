@@ -35,8 +35,8 @@ fn download_with_backend(backend: Backend,
                              -> Result<()> {
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
-        Backend::Hyper => hyper::download(url, callback),
-        Backend::Rustls => rustls::download(url, callback),
+        Backend::Hyper => hyper::download(url, resume_from, callback),
+        Backend::Rustls => rustls::download(url, resume_from, callback),
     }
 }
 
@@ -268,9 +268,10 @@ pub mod hyper {
     use std::fmt::Debug;
 
     pub fn download(url: &Url,
+                    resume_from: u64,
                     callback: &Fn(Event) -> Result<()>)
                     -> Result<()> {
-        hyper_base::download::<NativeSslClient>(url, callback)
+        hyper_base::download::<NativeSslClient>(url, resume_from, callback)
     }
 
     struct NativeSslClient;
@@ -401,9 +402,10 @@ pub mod rustls {
     use std::sync::{Arc, Mutex, MutexGuard};
 
     pub fn download(url: &Url,
+                    resume_from: u64,
                     callback: &Fn(Event) -> Result<()>)
                     -> Result<()> {
-        hyper_base::download::<NativeSslClient>(url, callback)
+        hyper_base::download::<NativeSslClient>(url, resume_from, callback)
     }
 
     struct NativeSslClient;
@@ -582,6 +584,7 @@ pub mod hyper_base {
     }
 
     pub fn download<S>(url: &Url,
+                       resume_from: u64,
                        callback: &Fn(Event) -> Result<()>)
                        -> Result<()>
         where S: SslClient<HttpStream> + NewSslClient + Send + Sync + 'static,
@@ -593,7 +596,7 @@ pub mod hyper_base {
         }
 
         use self::hyper::client::{Client, ProxyConfig};
-        use self::hyper::header::ContentLength;
+        use self::hyper::header::{ContentLength, Range, ByteRangeSpec};
         use self::hyper::net::{HttpsConnector};
 
         S::maybe_init_certs();
@@ -612,7 +615,12 @@ pub mod hyper_base {
             _ => return Err(format!("unsupported URL scheme: '{}'", url.scheme()).into())
         };
 
-        let mut res = try!(client.get(url.clone()).send()
+        use std::cmp;
+        let byte = cmp::max(resume_from, 0);
+        let header = Range::Bytes(vec![ByteRangeSpec::AllFrom(byte)]);
+        let req = client.get(url.clone()).header(header);
+
+        let mut res = try!(req.send()
                            .chain_err(|| "failed to make network request"));
         if res.status != self::hyper::Ok {
             return Err(ErrorKind::HttpStatus(res.status.to_u16() as u32).into());
@@ -698,6 +706,7 @@ pub mod hyper {
     use super::Event;
 
     pub fn download(_url: &Url,
+                    _resume_from: u64,
                     _callback: &Fn(Event) -> Result<()> )
                     -> Result<()> {
         Err(ErrorKind::BackendUnavailable("hyper").into())
@@ -712,6 +721,7 @@ pub mod rustls {
     use super::Event;
 
     pub fn download(_url: &Url,
+                    _resume_from: u64,
                     _callback: &Fn(Event) -> Result<()> )
                     -> Result<()> {
         Err(ErrorKind::BackendUnavailable("rustls").into())
