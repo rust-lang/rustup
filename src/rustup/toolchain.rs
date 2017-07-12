@@ -68,13 +68,16 @@ impl<'a> Toolchain<'a> {
     pub fn path(&self) -> &Path {
         &self.path
     }
+    fn is_symlink(&self) -> bool {
+        use std::fs;
+        fs::symlink_metadata(&self.path).map(|m| m.file_type().is_symlink()).unwrap_or(false)
+    }
     pub fn exists(&self) -> bool {
         // HACK: linked toolchains are symlinks, and, contrary to what std docs
         // lead me to believe `fs::metadata`, used by `is_directory` does not
         // seem to follow symlinks on windows.
         let is_symlink = if cfg!(windows) {
-            use std::fs;
-            fs::symlink_metadata(&self.path).map(|m| m.file_type().is_symlink()).unwrap_or(false)
+            self.is_symlink()
         } else {
             false
         };
@@ -84,7 +87,7 @@ impl<'a> Toolchain<'a> {
         Ok(try!(utils::assert_is_directory(&self.path)))
     }
     pub fn remove(&self) -> Result<()> {
-        if self.exists() {
+        if self.exists() || self.is_symlink() {
             (self.cfg.notify_handler)(Notification::UninstallingToolchain(&self.name));
         } else {
             (self.cfg.notify_handler)(Notification::ToolchainNotInstalled(&self.name));
