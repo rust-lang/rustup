@@ -425,7 +425,7 @@ pub fn cargo_home() -> Result<PathBuf> {
 
 // Convert the ~/.multirust folder to ~/.rustup while dealing with rustup.sh
 // metadata, which used to also live in ~/.rustup, but now lives in ~/rustup.sh.
-pub fn do_rustup_home_upgrade() -> bool {
+pub fn do_rustup_home_upgrade() {
 
     fn rustup_home_is_set() -> bool {
         env::var_os("RUSTUP_HOME").is_some()
@@ -492,7 +492,7 @@ pub fn do_rustup_home_upgrade() -> bool {
 
     // If RUSTUP_HOME is set then its default path doesn't matter, so we're
     // not going to risk doing any I/O work and making a mess.
-    if rustup_home_is_set() { return true }
+    if rustup_home_is_set() { return }
 
     // Now we are just trying to get a bogus, rustup.sh-created ~/.rustup out
     // of the way in the manner that is least likely to take time and generate
@@ -521,24 +521,16 @@ pub fn do_rustup_home_upgrade() -> bool {
     };
 
     // Now we're trying to move ~/.multirust to ~/.rustup
-    old_rustup_dir_removed && if multirust_dir_exists() {
-        if rustup_dir_exists() {
-            // There appears to be both a ~/.multirust dir and a valid ~/.rustup
-            // dir. Most likely because one is a symlink to the other, as configured
-            // below.
-            true
-        } else {
-            if rename_multirust_dir_to_rustup().is_ok() {
-                // Finally, making the hardlink from ~/.multirust back to
-                // ~/.rustup, for temporary compatibility.
-                let _ = create_legacy_multirust_symlink();
-                true
-            } else {
-                false
+    if old_rustup_dir_removed {
+        if multirust_dir_exists() {
+            if !rustup_dir_exists() {
+                if rename_multirust_dir_to_rustup().is_ok() {
+                    // Finally, making the hardlink from ~/.multirust back to
+                    // ~/.rustup, for temporary compatibility.
+                    let _ = create_legacy_multirust_symlink();
+                }
             }
         }
-    } else {
-        true
     }
 }
 
@@ -607,18 +599,8 @@ pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
 }
 
 pub fn rustup_home() -> Result<PathBuf> {
-    let use_rustup_dir = do_rustup_home_upgrade();
-
-    let cwd = try!(env::current_dir().chain_err(|| ErrorKind::RustupHome));
-    let rustup_home = env::var_os("RUSTUP_HOME").map(|home| {
-        cwd.join(home)
-    });
-    let user_home = if use_rustup_dir {
-        dot_dir(".rustup")
-    } else {
-        dot_dir(".multirust")
-    };
-    rustup_home.or(user_home).ok_or(ErrorKind::RustupHome.into())
+    do_rustup_home_upgrade();
+    ::home::rustup_home().chain_err(|| ErrorKind::RustupHome)
 }
 
 pub fn format_path_for_display(path: &str) -> String {

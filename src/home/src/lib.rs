@@ -153,13 +153,60 @@ pub fn cargo_home() -> io::Result<PathBuf> {
 
     let cwd = env::current_dir()?;
     let env_cargo_home = env_var.map(|home| cwd.join(home));
-    let user_home = home_dir()
-        .ok_or(io::Error::new(io::ErrorKind::Other, "couldn't find home dir"))
-        .map(|p| p.join(".cargo"));
+    let home_dir = home_dir()
+        .ok_or(io::Error::new(io::ErrorKind::Other, "couldn't find home dir"));
+    let user_home = home_dir.map(|p| p.join(".cargo"));
 
     if let Some(p) = env_cargo_home {
         Ok(p)
     } else {
         user_home
     }
+}
+
+pub fn rustup_home() -> io::Result<PathBuf> {
+    let env_var = env::var_os("RUSTUP_HOME");
+    let cwd = env::current_dir()?;
+    let env_rustup_home = env_var.map(|home| cwd.join(home));
+    let home_dir = home_dir()
+        .ok_or(io::Error::new(io::ErrorKind::Other, "couldn't find home dir"));
+
+    let user_home = if use_rustup_dir() {
+        home_dir.map(|d| d.join(".rustup"))
+    } else {
+        home_dir.map(|d| d.join(".multirust"))
+    };
+
+    if let Some(p) = env_rustup_home {
+        Ok(p)
+    } else {
+        user_home
+    }
+}
+
+fn use_rustup_dir() -> bool {
+    fn rustup_dir() -> Option<PathBuf> {
+        home_dir().map(|p| p.join(".rustup"))
+    }
+
+    fn multirust_dir() -> Option<PathBuf> {
+        home_dir().map(|p| p.join(".multirust"))
+    }
+
+    fn rustup_dir_exists() -> bool {
+        rustup_dir().map(|p| p.exists()).unwrap_or(false)
+    }
+
+    fn multirust_dir_exists() -> bool {
+        multirust_dir().map(|p| p.exists()).unwrap_or(false)
+    }
+
+    fn rustup_old_version_exists() -> bool {
+        rustup_dir()
+            .map(|p| p.join("rustup-version").exists())
+            .unwrap_or(false)
+    }
+
+    !rustup_old_version_exists()
+        && (rustup_dir_exists() || !multirust_dir_exists())
 }
