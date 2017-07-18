@@ -32,6 +32,10 @@ extern crate libc;
 #[cfg(windows)]
 use winapi::DWORD;
 use std::path::PathBuf;
+use std::io;
+use std::error::Error as StdError;
+use std::fmt;
+use std::env;
 
 // On windows, unlike std and cargo, rustup does *not* consider the
 // HOME variable. If it did then the install dir would change
@@ -71,11 +75,10 @@ fn os2path(s: &[u16]) -> PathBuf {
 }
 
 #[cfg(windows)]
-fn fill_utf16_buf<F1, F2, T>(mut f1: F1, f2: F2) -> ::std::io::Result<T>
+fn fill_utf16_buf<F1, F2, T>(mut f1: F1, f2: F2) -> io::Result<T>
     where F1: FnMut(*mut u16, DWORD) -> DWORD,
           F2: FnOnce(&[u16]) -> T
 {
-    use std::io;
     use kernel32::{GetLastError, SetLastError};
     use winapi::{ERROR_INSUFFICIENT_BUFFER};
 
@@ -124,4 +127,39 @@ fn fill_utf16_buf<F1, F2, T>(mut f1: F1, f2: F2) -> ::std::io::Result<T>
 #[cfg(unix)]
 pub fn home_dir() -> Option<PathBuf> {
     ::std::env::home_dir()
+}
+
+pub fn cargo_home() -> io::Result<PathBuf> {
+    let env_var = env::var_os("CARGO_HOME");
+
+    // NB: During the multirust-rs -> rustup transition the install
+    // dir changed from ~/.multirust/bin to ~/.cargo/bin. Because
+    // multirust used to explicitly set CARGO_HOME it's possible to
+    // get here when e.g. installing under `cargo run` and decide to
+    // install to the wrong place. This check is to make the
+    // multirust-rs to rustup upgrade seamless.
+    let env_var = if let Some(v) = env_var {
+       let vv = v.to_string_lossy().to_string();
+       if vv.contains(".multirust/cargo") ||
+            vv.contains(r".multirust\cargo") ||
+            vv.trim().is_empty() {
+           None
+       } else {
+           Some(v)
+       }
+    } else {
+        None
+    };
+
+    let cwd = env::current_dir()?;
+    let env_cargo_home = env_var.map(|home| cwd.join(home));
+    let user_home = home_dir()
+        .ok_or(io::Error::new(io::ErrorKind::Other, "couldn't find home dir"))
+        .map(|p| p.join(".cargo"));
+
+    if let Some(p) = env_cargo_home {
+        Ok(p)
+    } else {
+        user_home
+    }
 }

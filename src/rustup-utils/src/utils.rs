@@ -419,33 +419,8 @@ pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
 pub use home::home_dir;
 
 pub fn cargo_home() -> Result<PathBuf> {
-    let env_var = env::var_os("CARGO_HOME");
-
-    // NB: During the multirust-rs -> rustup transition the install
-    // dir changed from ~/.multirust/bin to ~/.cargo/bin. Because
-    // multirust used to explicitly set CARGO_HOME it's possible to
-    // get here when e.g. installing under `cargo run` and decide to
-    // install to the wrong place. This check is to make the
-    // multirust-rs to rustup upgrade seamless.
-    let env_var = if let Some(v) = env_var {
-       let vv = v.to_string_lossy().to_string();
-       if vv.contains(".multirust/cargo") ||
-            vv.contains(r".multirust\cargo") ||
-            vv.trim().is_empty() {
-           None
-       } else {
-           Some(v)
-       }
-    } else {
-        None
-    };
-
-    let cwd = try!(env::current_dir().chain_err(|| ErrorKind::CargoHome));
-    let cargo_home = env_var.clone().map(|home| {
-        cwd.join(home)
-    });
-    let user_home = home_dir().map(|p| p.join(".cargo"));
-    cargo_home.or(user_home).ok_or(ErrorKind::CargoHome.into())
+    Ok(::home::cargo_home().
+       chain_err(|| "couldn't find value of CARGO_HOME")?)
 }
 
 // Convert the ~/.multirust folder to ~/.rustup while dealing with rustup.sh
