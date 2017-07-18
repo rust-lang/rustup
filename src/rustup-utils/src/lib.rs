@@ -12,6 +12,7 @@ extern crate download;
 extern crate semver;
 #[macro_use]
 extern crate lazy_static;
+extern crate remove_dir_all;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -37,7 +38,6 @@ pub mod raw;
 pub mod tty;
 pub mod utils;
 pub mod toml_utils;
-mod remove_dir_all;
 
 pub use errors::*;
 pub use notifications::{Notification};
