@@ -9,8 +9,6 @@ use sha2::Sha256;
 use notifications::{Notification};
 use raw;
 #[cfg(windows)]
-use winapi::DWORD;
-#[cfg(windows)]
 use winreg;
 use std::cmp::Ord;
 use url::Url;
