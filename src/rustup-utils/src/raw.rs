@@ -1,3 +1,5 @@
+extern crate remove_dir_all;
+
 use std::char::from_u32;
 use std::env;
 use std::error;
@@ -309,7 +311,7 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
         // this is a custom implementation, more-or-less copied from cargo.
         // cc rust-lang/rust#31944
         // cc https://github.com/rust-lang/cargo/blob/master/tests/support/paths.rs#L52
-        ::remove_dir_all::remove_dir_all(path)
+        remove_dir_all::remove_dir_all(path)
     }
 }
 

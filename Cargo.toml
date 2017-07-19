@@ -52,6 +52,7 @@ scopeguard = "0.3"
 sha2 = "0.6.0"
 toml = "0.1"
 wait-timeout = "0.1.5"
+remove_dir_all = "0.2.0"
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.8"

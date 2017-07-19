@@ -9,6 +9,7 @@ extern crate rustup_utils;
 #[macro_use]
 extern crate lazy_static;
 extern crate tempdir;
+extern crate remove_dir_all;
 extern crate scopeguard;
 
 #[cfg(windows)]
@@ -23,6 +24,7 @@ use std::env::consts::EXE_SUFFIX;
 use std::path::Path;
 use std::fs;
 use std::process::Command;
+use remove_dir_all::remove_dir_all;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
                                expect_stdout_ok,
@@ -149,8 +151,8 @@ fn bins_are_executable() {
 #[test]
 fn install_creates_cargo_home() {
     setup(&|config| {
-        fs::remove_dir_all(&config.cargodir).unwrap();
-        fs::remove_dir_all(&config.rustupdir).unwrap();
+        remove_dir_all(&config.cargodir).unwrap();
+        remove_dir_all(&config.rustupdir).unwrap();
         expect_ok(config, &["rustup-init", "-y"]);
         assert!(config.cargodir.exists());
     });

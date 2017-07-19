@@ -16,6 +16,7 @@ download = { path = "../download" }
 error-chain = "0.10"
 libc = "0.2.0"
 rand = "0.3.11"
+remove_dir_all = "0.2.0"
 rustc-serialize = "0.3.19"
 scopeguard = "0.3.0"
 semver = "0.7.0"
