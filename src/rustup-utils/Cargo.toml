@@ -23,7 +23,7 @@ toml = "0.1.27"
 semver = "0.4.0"
 download = { path = "../download" }
 lazy_static = "0.1.15"
-home = "0.1.0"
+home = "0.3.0"
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.8"
