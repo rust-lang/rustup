@@ -596,8 +596,9 @@ pub mod hyper_base {
         }
 
         use self::hyper::client::{Client, ProxyConfig};
-        use self::hyper::header::{ContentLength, Range, ByteRangeSpec};
+        use self::hyper::header::{ByteRangeSpec, ContentLength, ContentRange, ContentRangeSpec, Range};
         use self::hyper::net::{HttpsConnector};
+        use self::hyper::status::StatusCode;
 
         S::maybe_init_certs();
 
@@ -629,8 +630,19 @@ pub mod hyper_base {
         let buffer_size = 0x10000;
         let mut buffer = vec![0u8; buffer_size];
 
-        if let Some(len) = res.headers.get::<ContentLength>().cloned() {
-            try!(callback(Event::DownloadContentLengthReceived(len.0)));
+        if res.status == StatusCode::Ok {
+            if let Some(len) = res.headers.get::<ContentLength>().cloned() {
+                try!(callback(Event::DownloadContentLengthReceived(len.0)));
+            }
+        } else if res.status == StatusCode::PartialContent {
+            let content_range = res.headers.get::<ContentRange>();
+            if let Some(&ContentRange(ContentRangeSpec::Bytes{ instance_length, .. })) = content_range {
+                if let Some(len) = instance_length {
+                    try!(callback(Event::DownloadContentLengthReceived(len)));
+                }
+            }
+        } else {
+            return Err(ErrorKind::HttpStatus(res.status.to_u16() as u32).into());
         }
 
         loop {
