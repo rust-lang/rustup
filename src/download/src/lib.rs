@@ -40,13 +40,6 @@ fn download_with_backend(backend: Backend,
     }
 }
 
-fn supports_partial_download(backend: &Backend) -> bool {
-    match backend {
-        &Backend::Curl => true,
-        _ => false
-    }
-}
-
 pub fn download_to_path_with_backend(
     backend: Backend,
     url: &Url,
@@ -60,7 +53,7 @@ pub fn download_to_path_with_backend(
     use std::io::{Read, Write, Seek, SeekFrom};
 
     || -> Result<()> {
-        let (file, resume_from) = if resume_from_partial && supports_partial_download(&backend) {
+        let (file, resume_from) = if resume_from_partial {
             let possible_partial = OpenOptions::new()
                     .read(true)
                     .open(&path);
