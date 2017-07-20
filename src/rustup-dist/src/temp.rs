@@ -1,3 +1,5 @@
+extern crate remove_dir_all;
+
 use std::error;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -237,7 +239,7 @@ impl<'a> ops::Deref for File<'a> {
 impl<'a> Drop for Dir<'a> {
     fn drop(&mut self) {
         if raw::is_directory(&self.path) {
-            let n = Notification::DirectoryDeletion(&self.path, fs::remove_dir_all(&self.path));
+            let n = Notification::DirectoryDeletion(&self.path, remove_dir_all::remove_dir_all(&self.path));
             (self.cfg.notify_handler)(n);
         }
     }

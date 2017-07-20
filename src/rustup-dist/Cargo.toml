@@ -24,6 +24,7 @@ tempdir = "0.3.4"
 walkdir = "1.0"
 toml = "0.1.27"
 sha2 = "0.6.0"
+remove_dir_all = "0.2"
 rustup-utils = { path = "../rustup-utils" }
 error-chain = "0.10"
 
