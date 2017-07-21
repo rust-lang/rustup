@@ -12,7 +12,12 @@ $env:CFG_VER_PATCH = $version[2]
 foreach($file in Get-ChildItem *.wxs) {
     $in = $file.Name
     $out = $($file.Name.Replace(".wxs",".wixobj"))
-    &"$($env:WIX)bin\candle.exe" -nologo -arch x86 "-dTARGET=$Target" -ext WixUIExtension -ext WixUtilExtension -out "target\$out" $in
+    if ($Target -match "x86_64") {
+        $target_arch = "x64"
+    } else {
+        $target_arch = "x86"
+    }
+    &"$($env:WIX)bin\candle.exe" -nologo -arch "$target_arch" "-dTARGET=$Target" -ext WixUIExtension -ext WixUtilExtension -out "target\$out" $in
     if ($LASTEXITCODE -ne 0) { exit 1 }
 }
 
