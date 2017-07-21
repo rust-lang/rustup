@@ -5,9 +5,8 @@ environment:
   - TARGET: x86_64-pc-windows-msvc
     ALLOW_PR: 1
   - TARGET: i686-pc-windows-msvc
-  # FIXME
-  #- TARGET: i686-pc-windows-msvc
-  #  BUILD_MSI: 1
+  - TARGET: i686-pc-windows-msvc
+    BUILD_MSI: 1
   - TARGET: i686-pc-windows-gnu
     MINGW_DIR: mingw32
   - TARGET: x86_64-pc-windows-gnu
@@ -72,15 +71,8 @@ test_script:
   - cargo build --release --target %TARGET% %FEATURES%
   - cargo test --release -p rustup-dist --target %TARGET%
   - cargo test --release --target %TARGET% %FEATURES%
-  - ps: |
-      if($env:BUILD_MSI) {
-        cd src\rustup-win-installer
-        cargo build --release --target $env:TARGET
-        cd msi
-        .\build.ps1 -Target $env:TARGET
-        cd ..\..\..
-        if($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
-      }
+  - if defined BUILD_MSI pushd src\rustup-win-installer && cargo build --release --target %TARGET% & popd
+  - if defined BUILD_MSI pushd src\rustup-win-installer\msi && powershell .\build.ps1 -Target %TARGET% & popd
 
 notifications:
   - provider: Webhook
