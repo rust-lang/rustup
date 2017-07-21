@@ -8,6 +8,10 @@
     <Product Id="*" Name="rustup" Language="1033" Version="$(env.CFG_VER_MAJOR).$(env.CFG_VER_MINOR).$(env.CFG_VER_PATCH).0" Manufacturer="The Rust Project Developers" UpgradeCode="09acbb1c-7123-44ac-b2a9-4a04b28ced11">
         <Package InstallerVersion="200" Compressed="yes" InstallScope="perUser" />
 
+        <Condition Message="The Rust toolchain is only supported on Windows 7, Windows Server 2008 R2, or higher.">
+            <![CDATA[Installed OR (VersionNT >= 601)]]>
+        </Condition>
+
         <!-- TODO: How to configure updates? `AllowDowngrades` automatically removes previously installed versions, no matter what version they have -->
         <MajorUpgrade AllowDowngrades="yes" />
         
