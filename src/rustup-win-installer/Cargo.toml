@@ -8,6 +8,13 @@ build = "build.rs"
 name = "rustup_msi"
 crate-type = ["cdylib"]
 
+[features]
+# Prevents confusion and reduces build time (`rustup` will be built twice otherwise)
+default = ["rustup/msi-installed"]
+
 [dependencies]
 winapi = "0.2"
 rustup = { path = "../../", version = "1.1.0" }
+
+[build-dependencies]
+gcc = "0.3"
