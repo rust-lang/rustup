@@ -1397,6 +1397,19 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
         return Ok(None);
     }
 
+    // For MSI installed version, spawn `msiexec` to download and install the new version
+    if cfg!(feature = "msi-installed") {
+        let url = format!("{}/archive/{}/{}/rustup.msi", update_root,
+                          available_version, triple);
+        try!(Command::new("msiexec")
+                .arg("/i")
+                .arg(url)
+                .spawn()
+                .chain_err(|| "failed to spawn msiexec"));
+        // Exit immediately
+        process::exit(0);
+    }
+
     // Get download URL
     let url = format!("{}/archive/{}/{}/rustup-init{}", update_root,
                       available_version, triple, EXE_SUFFIX);

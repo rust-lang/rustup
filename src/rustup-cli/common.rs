@@ -198,6 +198,8 @@ pub fn update_all_channels(cfg: &Cfg, self_update: bool) -> Result<()> {
     }
 
     let setup_path = if self_update {
+        // FIXME: The MSI installed version will do the actual self-upgrade (if available)
+        //        right here. This is probably bad.
         try!(self_update::prepare_update())
     } else {
         None
