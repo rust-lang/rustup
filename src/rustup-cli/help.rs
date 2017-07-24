@@ -74,7 +74,7 @@ r"DISCUSSION:
     or for installing the [MSVC-based toolchain] on Windows. For
     example:
 
-        rustup toolchain install stable-x86_64-pc-windows-msvc
+        $ rustup toolchain install stable-x86_64-pc-windows-msvc
 
     For convenience, elements of the target triple that are omitted
     will be inferred, so the above could be written:
@@ -117,11 +117,11 @@ r"DISCUSSION:
 
     To pin to a specific nightly:
 
-        rustup override set nightly-2014-12-18
+        $ rustup override set nightly-2014-12-18
 
     Or a specific stable release:
 
-        rustup override set 1.0.0
+        $ rustup override set 1.0.0
 
     To see the active toolchain use `rustup show`. To remove the
     override and use the default toolchain again, `rustup override
@@ -147,9 +147,9 @@ r"DISCUSSION:
     can be set by using `+toolchain` as the first argument. These are
     equivalent:
 
-        cargo +nightly build
+        $ cargo +nightly build
 
-        rustup run nightly cargo build";
+        $ rustup run nightly cargo build";
 
 pub static DOC_HELP: &'static str =
 r"DISCUSSION:
@@ -178,7 +178,7 @@ r"DISCUSSION:
 
     Run the command:
 
-    `rustup completions bash > /etc/bash_completion.d/rustup.bash-completion`
+        $ rustup completions bash > /etc/bash_completion.d/rustup.bash-completion
 
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take affect.
@@ -188,7 +188,7 @@ r"DISCUSSION:
     Homebrew stores bash completion files within the Homebrew directory.
     With the `bash-completion` brew formula installed, run the command:
 
-    `rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion`
+        $ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
 
     FISH:
 
@@ -196,7 +196,8 @@ r"DISCUSSION:
     `$HOME/.config/fish/completions`
 
     Run the command:
-    `rustup completions fish > ~/.config/fish/completions/rustup.fish`
+
+        $ rustup completions fish > ~/.config/fish/completions/rustup.fish
 
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take affect.
@@ -213,7 +214,7 @@ r"DISCUSSION:
     this example we'll create a hidden directory inside our `$HOME`
     directory
 
-    `mkdir ~/.zfunc`
+        $ mkdir ~/.zfunc
 
     Then add the following lines to your `.zshrc` just before
     `compinit`
@@ -223,11 +224,11 @@ r"DISCUSSION:
     Now you can install the completions script using the following
     command
 
-    `rustup completions zsh > ~/.zfunc/_rustup`
+        $ rustup completions zsh > ~/.zfunc/_rustup
 
     You must then either log out and log back in, or simply run
 
-    `exec zsh`
+        $ exec zsh
 
     For the new completions to take affect.
 
@@ -247,11 +248,11 @@ r"DISCUSSION:
 
     First, check if a profile has already been set
 
-    `PS C:\> Test-Path $profile`
+        PS C:\> Test-Path $profile
 
     If the above command returns `False` run the following
 
-    `PS C:\> New-Item -path $profile -type file -force`
+        PS C:\> New-Item -path $profile -type file -force
 
     Now open the file provided by `$profile` (if you used the
     `New-Item` command it will be
@@ -261,4 +262,4 @@ r"DISCUSSION:
     into a separate file and source it inside our profile. To save the
     completions into our profile simply use
 
-    `PS C:\> rustup completions powershell >> %USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`";
+        PS C:\> rustup completions powershell >> %USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1";
