@@ -219,7 +219,7 @@ r"DISCUSSION:
     Then add the following lines to your `.zshrc` just before
     `compinit`
 
-    `fpath+=~/.zfunc`
+        fpath+=~/.zfunc
 
     Now you can install the completions script using the following
     command
