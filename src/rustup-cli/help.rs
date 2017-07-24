@@ -230,7 +230,7 @@ r"DISCUSSION:
 
         $ exec zsh
 
-    For the new completions to take affect.
+    for the new completions to take affect.
 
     CUSTOM LOCATIONS:
 
