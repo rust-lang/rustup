@@ -174,8 +174,7 @@ r"DISCUSSION:
 
     BASH:
 
-    Completion files are commonly stored in `/etc/bash_completion.d/`
-
+    Completion files are commonly stored in `/etc/bash_completion.d/`.
     Run the command:
 
         $ rustup completions bash > /etc/bash_completion.d/rustup.bash-completion
@@ -193,9 +192,7 @@ r"DISCUSSION:
     FISH:
 
     Fish completion files are commonly stored in
-    `$HOME/.config/fish/completions`
-
-    Run the command:
+    `$HOME/.config/fish/completions`. Run the command:
 
         $ rustup completions fish > ~/.config/fish/completions/rustup.fish
 
@@ -212,17 +209,17 @@ r"DISCUSSION:
     Adding a custom directory is often the safest bet if you are
     unsure of which directory to use. First create the directory; for
     this example we'll create a hidden directory inside our `$HOME`
-    directory
+    directory:
 
         $ mkdir ~/.zfunc
 
     Then add the following lines to your `.zshrc` just before
-    `compinit`
+    `compinit`:
 
         fpath+=~/.zfunc
 
     Now you can install the completions script using the following
-    command
+    command:
 
         $ rustup completions zsh > ~/.zfunc/_rustup
 
