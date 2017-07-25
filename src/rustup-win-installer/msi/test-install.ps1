@@ -1,5 +1,7 @@
 # This script can be used for manually testing the MSI installer. It is not used for AppVeyor CI.
 
+$env:RUSTFLAGS="-Zunstable-options -Ctarget-feature=+crt-static"
+
 pushd ..\..\..
 # Build rustup.exe
 cargo build --release --target i686-pc-windows-msvc --features msi-installed
