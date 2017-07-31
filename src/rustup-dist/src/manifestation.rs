@@ -407,8 +407,9 @@ fn build_update_component_lists(
 
     // Check some invariantns
     for component_to_add in &changes.add_extensions {
-        assert!(rust_target_package.extensions.contains(component_to_add),
-                "package must contain extension to add");
+        assert!(rust_target_package.components.contains(component_to_add) ||
+                rust_target_package.extensions.contains(component_to_add),
+                "package must contain the component or extension to add");
         assert!(!changes.remove_extensions.contains(component_to_add),
                 "can't both add and remove extensions");
     }
@@ -442,7 +443,9 @@ fn build_update_component_lists(
 
     // Add requested extension components
     for extension in &changes.add_extensions {
-        final_component_list.push(extension.clone());
+        if !final_component_list.contains(extension) {
+            final_component_list.push(extension.clone());
+        }
     }
 
     // Add extensions that are already installed

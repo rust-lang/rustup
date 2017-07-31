@@ -580,15 +580,11 @@ impl<'a> Toolchain<'a> {
             let targ_pkg = rust_pkg.targets.get(&toolchain.target)
                 .expect("installed manifest should have a known target");
 
-            if targ_pkg.components.contains(&component) {
-                return Err(ErrorKind::AddingRequiredComponent(self.name.to_string(), component).into());
-            }
-
             if !targ_pkg.extensions.contains(&component) {
                 let wildcard_component = Component { target: None, ..component.clone() };
                 if targ_pkg.extensions.contains(&wildcard_component) {
                     component = wildcard_component;
-                } else {
+                } else if !targ_pkg.components.contains(&component) {
                     return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).into());
                 }
             }

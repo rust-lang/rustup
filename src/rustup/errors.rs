@@ -48,11 +48,6 @@ error_chain! {
             description("toolchain does not contain component")
             display("toolchain '{}' does not contain component {}", t, c.description())
         }
-        AddingRequiredComponent(t: String, c: Component) {
-            description("required component cannot be added")
-            display("component {} is required for toolchain '{}' and cannot be re-added",
-                    c.description(), t)
-        }
         ParsingSettings(e: Vec<toml::ParserError>) {
             description("error parsing settings")
         }
