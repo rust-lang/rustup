@@ -5,6 +5,7 @@ error_chain! {
 
     foreign_links {
         Io(::std::io::Error);
+        Reqwest(::reqwest::Error) #[cfg(feature = "reqwest-backend")];
     }
 
     errors {

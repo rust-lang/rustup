@@ -4,11 +4,8 @@
 extern crate error_chain;
 extern crate url;
 
-#[cfg(feature = "rustls-backend")]
-#[macro_use]
-extern crate lazy_static;
-#[cfg(feature = "rustls-backend")]
-extern crate ca_loader;
+#[cfg(feature = "reqwest-backend")]
+extern crate reqwest;
 
 use url::Url;
 use std::path::Path;
@@ -17,7 +14,7 @@ mod errors;
 pub use errors::*;
 
 #[derive(Debug, Copy, Clone)]
-pub enum Backend { Curl, Hyper, Rustls }
+pub enum Backend { Curl, Reqwest }
 
 #[derive(Debug, Copy, Clone)]
 pub enum Event<'a> {
@@ -29,21 +26,13 @@ pub enum Event<'a> {
 }
 
 fn download_with_backend(backend: Backend,
-                             url: &Url,
-                             resume_from: u64,
-                             callback: &Fn(Event) -> Result<()>)
-                             -> Result<()> {
+                         url: &Url,
+                         resume_from: u64,
+                         callback: &Fn(Event) -> Result<()>)
+                         -> Result<()> {
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
-        Backend::Hyper => hyper::download(url, callback),
-        Backend::Rustls => rustls::download(url, callback),
-    }
-}
-
-fn supports_partial_download(backend: &Backend) -> bool {
-    match backend {
-        &Backend::Curl => true,
-        _ => false
+        Backend::Reqwest => reqwest_be::download(url, resume_from, callback),
     }
 }
 
@@ -60,7 +49,7 @@ pub fn download_to_path_with_backend(
     use std::io::{Read, Write, Seek, SeekFrom};
 
     || -> Result<()> {
-        let (file, resume_from) = if resume_from_partial && supports_partial_download(&backend) {
+        let (file, resume_from) = if resume_from_partial {
             let possible_partial = OpenOptions::new()
                     .read(true)
                     .open(&path);
@@ -243,385 +232,71 @@ pub mod curl {
     }
 }
 
-/// Download via hyper; encrypt with the native (or OpenSSl) TLS
-/// stack via native-tls
-#[cfg(feature = "hyper-backend")]
-pub mod hyper {
-
-    extern crate hyper;
-    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-    extern crate openssl_probe;
-    extern crate native_tls;
-
-    use super::Event;
-    use std::io;
-    use std::time::Duration;
-    use url::Url;
-    use errors::*;
-    use hyper_base;
-    use self::hyper::error::Result as HyperResult;
-    use self::hyper::net::{SslClient, NetworkStream};
-    use std::io::Result as IoResult;
-    use std::io::{Read, Write};
-    use std::net::{SocketAddr, Shutdown};
-    use std::sync::{Arc, Mutex, MutexGuard};
-    use std::fmt::Debug;
-
-    pub fn download(url: &Url,
-                    callback: &Fn(Event) -> Result<()>)
-                    -> Result<()> {
-        hyper_base::download::<NativeSslClient>(url, callback)
-    }
-
-    struct NativeSslClient;
-
-    impl hyper_base::NewSslClient for NativeSslClient {
-        fn new() -> Self { NativeSslClient }
-        fn maybe_init_certs() { maybe_init_certs() }
-    }
-
-    impl<T: NetworkStream + Send + Clone + Debug + Sync> SslClient<T> for NativeSslClient {
-        type Stream = NativeSslStream<T>;
-
-        fn wrap_client(&self, stream: T, host: &str) -> HyperResult<Self::Stream> {
-            use self::native_tls::TlsConnector;
-            use self::hyper::error::Error as HyperError;
-
-            let builder = try!(TlsConnector::builder()
-                                .map_err(|e| HyperError::Ssl(Box::new(e))));
-            let cx = try!(builder.build()
-                                .map_err(|e| HyperError::Ssl(Box::new(e))));
-            let ssl_stream = try!(cx.connect(host, stream)
-                                  .map_err(|e| HyperError::Ssl(Box::new(e))));
-
-            Ok(NativeSslStream(Arc::new(Mutex::new(ssl_stream))))
-        }
-    }
-
-    #[derive(Clone)]
-    struct NativeSslStream<T>(Arc<Mutex<native_tls::TlsStream<T>>>);
-
-    #[derive(Debug)]
-    struct NativeSslPoisonError;
-
-    impl ::std::error::Error for NativeSslPoisonError {
-        fn description(&self) -> &str { "mutex poisoned during TLS operation" }
-    }
-
-    impl ::std::fmt::Display for NativeSslPoisonError {
-        fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
-            f.write_str(::std::error::Error::description(self))
-        }
-    }
-
-    impl<T> NativeSslStream<T> {
-        fn lock<'a>(&'a self) -> IoResult<MutexGuard<'a, native_tls::TlsStream<T>>> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
-        }
-    }
-
-    impl<T> NetworkStream for NativeSslStream<T>
-        where T: NetworkStream
-    {
-        fn peer_addr(&mut self) -> IoResult<SocketAddr> {
-            self.lock()
-                .and_then(|mut t| t.get_mut().peer_addr())
-        }
-        fn set_read_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
-            self.lock()
-                .and_then(|t| t.get_ref().set_read_timeout(dur))
-        }
-        fn set_write_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
-            self.lock()
-                .and_then(|t| t.get_ref().set_write_timeout(dur))
-        }
-        fn close(&mut self, how: Shutdown) -> IoResult<()> {
-            self.lock()
-                .and_then(|mut t| t.get_mut().close(how))
-        }
-    }
-
-    impl<T> Read for NativeSslStream<T>
-        where T: Read + Write
-    {
-        fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
-            self.lock()
-                .and_then(|mut t| t.read(buf))
-        }
-    }
-
-    impl<T> Write for NativeSslStream<T>
-        where T: Read + Write
-    {
-        fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-            self.lock()
-                .and_then(|mut t| t.write(buf))
-        }
-        fn flush(&mut self) -> IoResult<()> {
-            self.lock()
-                .and_then(|mut t| t.flush())
-        }
-    }
-
-    // Tell our statically-linked OpenSSL where to find root certs
-    // cc https://github.com/alexcrichton/git2-rs/blob/master/libgit2-sys/lib.rs#L1267
-    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-    fn maybe_init_certs() {
-        use std::sync::{Once, ONCE_INIT};
-        static INIT: Once = ONCE_INIT;
-        INIT.call_once(|| {
-            openssl_probe::init_ssl_cert_env_vars();
-        });
-    }
-
-    #[cfg(any(target_os = "windows", target_os = "macos"))]
-    fn maybe_init_certs() { }
-}
-
-/// Download via hyper; encrypt with rustls
-#[cfg(feature = "rustls-backend")]
-pub mod rustls {
-
-    extern crate hyper;
-    extern crate rustls;
-
-    use super::Event;
-    use std::io;
-    use std::time::Duration;
-    use url::Url;
-    use errors::*;
-    use hyper_base;
-    use self::hyper::error::Result as HyperResult;
-    use self::hyper::net::{SslClient, NetworkStream};
-    use self::rustls::Session;
-    use std::io::Result as IoResult;
-    use std::io::{Read, Write};
-    use std::net::{SocketAddr, Shutdown};
-    use std::sync::{Arc, Mutex, MutexGuard};
-
-    pub fn download(url: &Url,
-                    callback: &Fn(Event) -> Result<()>)
-                    -> Result<()> {
-        hyper_base::download::<NativeSslClient>(url, callback)
-    }
-
-    struct NativeSslClient;
-
-    impl hyper_base::NewSslClient for NativeSslClient {
-        fn new() -> Self { NativeSslClient }
-        fn maybe_init_certs() { }
-    }
-
-    impl<T: NetworkStream + Send + Clone> SslClient<T> for NativeSslClient {
-        type Stream = NativeSslStream<T>;
-
-        fn wrap_client(&self, stream: T, host: &str) -> HyperResult<Self::Stream> {
-            let config = global_config();
-            let tls_client = rustls::ClientSession::new(&config, host);
-
-            Ok(NativeSslStream(Arc::new(Mutex::new((stream, tls_client)))))
-        }
-    }
-
-    fn global_config() -> Arc<rustls::ClientConfig> {
-        use ca_loader::{CertBundle, CertItem};
-        use std::fs::File;
-        use std::io::BufReader;
-
-        lazy_static! {
-            static ref CONFIG: Arc<rustls::ClientConfig> = init();
-        }
-
-        fn init() -> Arc<rustls::ClientConfig> {
-            let mut config = rustls::ClientConfig::new();
-            let bundle = CertBundle::new().expect("cannot initialize CA cert bundle");
-            let mut added = 0;
-            let mut invalid = 0;
-            for cert in bundle {
-                let (c_added, c_invalid) = match cert {
-                    CertItem::Blob(blob) => match config.root_store.add(&blob) {
-                        Ok(_) => (1, 0),
-                        Err(_) => (0, 1)
-                    },
-                    CertItem::File(name) => {
-                        if let Ok(cf) = File::open(name) {
-                            let mut reader = BufReader::new(cf);
-                            match config.root_store.add_pem_file(&mut reader) {
-                                Ok(pair) => pair,
-                                Err(_) => (0, 1)
-                            }
-                        } else {
-                            (0, 1)
-                        }
-                    }
-                };
-                added += c_added;
-                invalid += c_invalid;
-            }
-            if added == 0 {
-                panic!("no CA certs added, {} were invalid", invalid);
-            }
-            Arc::new(config)
-        }
-
-        CONFIG.clone()
-    }
-
-    #[derive(Clone)]
-    struct NativeSslStream<T>(Arc<Mutex<(T, rustls::ClientSession)>>);
-
-    #[derive(Debug)]
-    struct NativeSslPoisonError;
-
-    impl ::std::error::Error for NativeSslPoisonError {
-        fn description(&self) -> &str { "mutex poisoned during TLS operation" }
-    }
-
-    impl ::std::fmt::Display for NativeSslPoisonError {
-        fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::result::Result<(), ::std::fmt::Error> {
-            f.write_str(::std::error::Error::description(self))
-        }
-    }
-
-    impl<T> NativeSslStream<T> {
-        fn lock<'a>(&'a self) -> IoResult<MutexGuard<'a, (T, rustls::ClientSession)>> {
-            self.0.lock()
-                .map_err(|_| io::Error::new(io::ErrorKind::Other, NativeSslPoisonError))
-        }
-    }
-
-    impl<T> NetworkStream for NativeSslStream<T>
-        where T: NetworkStream
-    {
-        fn peer_addr(&mut self) -> IoResult<SocketAddr> {
-            self.lock()
-                .and_then(|mut t| t.0.peer_addr())
-        }
-        fn set_read_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
-            self.lock()
-                .and_then(|t| t.0.set_read_timeout(dur))
-        }
-        fn set_write_timeout(&self, dur: Option<Duration>) -> IoResult<()> {
-            self.lock()
-                .and_then(|t| t.0.set_write_timeout(dur))
-        }
-        fn close(&mut self, how: Shutdown) -> IoResult<()> {
-            self.lock()
-                .and_then(|mut t| t.0.close(how))
-        }
-    }
-
-    impl<T> Read for NativeSslStream<T>
-        where T: Read + Write
-    {
-        fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
-            self.lock()
-                .and_then(|mut t| {
-                    let (ref mut stream, ref mut tls) = *t;
-                    while tls.wants_read() {
-                        match tls.read_tls(stream) {
-                            Ok(_) => {
-                                match tls.process_new_packets() {
-                                    Ok(_) => (),
-                                    Err(e) => return Err(io::Error::new(io::ErrorKind::Other, format!("{:?}", e)))
-                                }
-                                while tls.wants_write() {
-                                    try!(tls.write_tls(stream));
-                                }
-                            },
-                            Err(e) => return Err(e),
-                        }
-                    }
-
-                    tls.read(buf)
-                })
-        }
-    }
-
-    impl<T> Write for NativeSslStream<T>
-        where T: Read + Write
-    {
-        fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-            self.lock()
-                .and_then(|mut t| {
-                    let (ref mut stream, ref mut tls) = *t;
-                    let res = tls.write(buf);
-                    while tls.wants_write() {
-                        try!(tls.write_tls(stream));
-                    }
-
-                    res
-                })
-        }
-        fn flush(&mut self) -> IoResult<()> {
-            self.lock()
-                .and_then(|mut t| {
-                    t.0.flush()
-                })
-        }
-    }
-
-}
-
-#[cfg(feature = "hyper")]
-pub mod hyper_base {
-
-    extern crate hyper;
+#[cfg(feature = "reqwest-backend")]
+pub mod reqwest_be {
     extern crate env_proxy;
 
-    use super::Event;
     use std::io;
-    use url::Url;
     use errors::*;
-    use self::hyper::net::{SslClient, HttpStream};
+    use url::Url;
+    use super::Event;
+    use reqwest::{header, Client, Proxy};
 
-    pub trait NewSslClient {
-        fn new() -> Self;
-        fn maybe_init_certs();
-    }
+    pub fn download(url: &Url,
+                    resume_from: u64,
+                    callback: &Fn(Event) -> Result<()>)
+                    -> Result<()> {
 
-    pub fn download<S>(url: &Url,
-                       callback: &Fn(Event) -> Result<()>)
-                       -> Result<()>
-        where S: SslClient<HttpStream> + NewSslClient + Send + Sync + 'static,
-    {
-
-        // Short-circuit hyper for the "file:" URL scheme
+        // Short-circuit reqwest for the "file:" URL scheme
         if try!(download_from_file_url(url, callback)) {
             return Ok(());
         }
 
-        use self::hyper::client::{Client, ProxyConfig};
-        use self::hyper::header::ContentLength;
-        use self::hyper::net::{HttpsConnector};
+        let maybe_proxy = env_proxy::for_url(url)
+            .map(|(addr, port)| {
+                String::from(format!("{}:{}", addr, port))
+            });
 
-        S::maybe_init_certs();
-
-        // The Hyper HTTP client
-        let maybe_proxy = env_proxy::for_url(url);
         let client = match url.scheme() {
             "https" => match maybe_proxy {
-                None => Client::with_connector(HttpsConnector::new(S::new())),
-                Some(host_port) => Client::with_proxy_config(ProxyConfig(host_port.0, host_port.1, S::new()))
+                None => Client::new()?,
+                Some(host_port) => {
+                    Client::builder()?
+                        .proxy(Proxy::https(&host_port)?)
+                        .build()?
+                }
             },
             "http" => match maybe_proxy {
-                None => Client::new(),
-                Some(host_port) => Client::with_http_proxy(host_port.0, host_port.1)
+                None => Client::new()?,
+                Some(host_port) => {
+                    Client::builder()?
+                        .proxy(Proxy::http(&host_port)?)
+                        .build()?
+                }
             },
             _ => return Err(format!("unsupported URL scheme: '{}'", url.scheme()).into())
         };
 
-        let mut res = try!(client.get(url.clone()).send()
-                           .chain_err(|| "failed to make network request"));
-        if res.status != self::hyper::Ok {
-            return Err(ErrorKind::HttpStatus(res.status.to_u16() as u32).into());
+        let mut res = if resume_from > 0 {
+            client
+                .get(url.clone())?
+                .header(header::Range::Bytes(
+                    vec![header::ByteRangeSpec::AllFrom(resume_from)]
+                ))
+                .send()
+        } else {
+            client.get(url.clone())?.send()
+        }.chain_err(|| "failed to make network request")?;
+
+        if !res.status().is_success() {
+            let code: u16 = res.status().into();
+            return Err(ErrorKind::HttpStatus(code as u32).into());
         }
 
         let buffer_size = 0x10000;
         let mut buffer = vec![0u8; buffer_size];
 
-        if let Some(len) = res.headers.get::<ContentLength>().cloned() {
+        if let Some(len) = res.headers().get::<header::ContentLength>().cloned() {
             try!(callback(Event::DownloadContentLengthReceived(len.0)));
         }
 
@@ -672,7 +347,6 @@ pub mod hyper_base {
             Ok(false)
         }
     }
-
 }
 
 #[cfg(not(feature = "curl-backend"))]
@@ -690,30 +364,17 @@ pub mod curl {
     }
 }
 
-#[cfg(not(feature = "hyper-backend"))]
-pub mod hyper {
+#[cfg(not(feature = "reqwest-backend"))]
+pub mod reqwest_be {
 
     use errors::*;
     use url::Url;
     use super::Event;
 
     pub fn download(_url: &Url,
+                    _resume_from: u64,
                     _callback: &Fn(Event) -> Result<()> )
                     -> Result<()> {
-        Err(ErrorKind::BackendUnavailable("hyper").into())
-    }
-}
-
-#[cfg(not(feature = "rustls-backend"))]
-pub mod rustls {
-
-    use errors::*;
-    use url::Url;
-    use super::Event;
-
-    pub fn download(_url: &Url,
-                    _callback: &Fn(Event) -> Result<()> )
-                    -> Result<()> {
-        Err(ErrorKind::BackendUnavailable("rustls").into())
+        Err(ErrorKind::BackendUnavailable("reqwest").into())
     }
 }
