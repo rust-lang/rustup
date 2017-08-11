@@ -156,9 +156,6 @@ error_chain! {
             description("failed to set permissions")
             display("failed to set permissions for '{}'", path.display())
         }
-        CargoHome {
-            description("couldn't find value of CARGO_HOME")
-        }
         RustupHome {
             description("couldn't find value of RUSTUP_HOME")
         }

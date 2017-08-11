@@ -12,6 +12,7 @@ extern crate download;
 extern crate semver;
 #[macro_use]
 extern crate lazy_static;
+extern crate home;
 
 #[cfg(windows)]
 extern crate winapi;
