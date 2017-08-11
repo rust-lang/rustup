@@ -35,15 +35,16 @@ fn download_with_backend(backend: Backend,
                              -> Result<()> {
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
-        Backend::Hyper => hyper::download(url, callback),
-        Backend::Rustls => rustls::download(url, callback),
+        Backend::Hyper => hyper::download(url, resume_from, callback),
+        Backend::Rustls => rustls::download(url, resume_from, callback),
     }
 }
 
 fn supports_partial_download(backend: &Backend) -> bool {
     match backend {
         &Backend::Curl => true,
-        _ => false
+        &Backend::Hyper => true,
+        &Backend::Rustls => true,
     }
 }
 
@@ -268,9 +269,10 @@ pub mod hyper {
     use std::fmt::Debug;
 
     pub fn download(url: &Url,
+                    resume_from: u64,
                     callback: &Fn(Event) -> Result<()>)
                     -> Result<()> {
-        hyper_base::download::<NativeSslClient>(url, callback)
+        hyper_base::download::<NativeSslClient>(url, resume_from, callback)
     }
 
     struct NativeSslClient;
@@ -401,9 +403,10 @@ pub mod rustls {
     use std::sync::{Arc, Mutex, MutexGuard};
 
     pub fn download(url: &Url,
+                    resume_from: u64,
                     callback: &Fn(Event) -> Result<()>)
                     -> Result<()> {
-        hyper_base::download::<NativeSslClient>(url, callback)
+        hyper_base::download::<NativeSslClient>(url, resume_from, callback)
     }
 
     struct NativeSslClient;
@@ -440,7 +443,7 @@ pub mod rustls {
             let mut invalid = 0;
             for cert in bundle {
                 let (c_added, c_invalid) = match cert {
-                    CertItem::Blob(blob) => match config.root_store.add(&blob) {
+                    CertItem::Blob(blob) => match config.root_store.add(&rustls::Certificate(blob)) {
                         Ok(_) => (1, 0),
                         Err(_) => (0, 1)
                     },
@@ -582,6 +585,7 @@ pub mod hyper_base {
     }
 
     pub fn download<S>(url: &Url,
+                       resume_from: u64,
                        callback: &Fn(Event) -> Result<()>)
                        -> Result<()>
         where S: SslClient<HttpStream> + NewSslClient + Send + Sync + 'static,
@@ -593,8 +597,9 @@ pub mod hyper_base {
         }
 
         use self::hyper::client::{Client, ProxyConfig};
-        use self::hyper::header::ContentLength;
+        use self::hyper::header::{ByteRangeSpec, ContentLength, ContentRange, ContentRangeSpec, Range};
         use self::hyper::net::{HttpsConnector};
+        use self::hyper::status::StatusCode;
 
         S::maybe_init_certs();
 
@@ -612,17 +617,29 @@ pub mod hyper_base {
             _ => return Err(format!("unsupported URL scheme: '{}'", url.scheme()).into())
         };
 
-        let mut res = try!(client.get(url.clone()).send()
-                           .chain_err(|| "failed to make network request"));
-        if res.status != self::hyper::Ok {
-            return Err(ErrorKind::HttpStatus(res.status.to_u16() as u32).into());
+        let mut request = client.get(url.clone());
+        if resume_from > 0 {
+            request = request.header(Range::Bytes(vec![ByteRangeSpec::AllFrom(resume_from)]));
         }
+
+        let mut res = try!(request.send()
+                           .chain_err(|| "failed to make network request"));
 
         let buffer_size = 0x10000;
         let mut buffer = vec![0u8; buffer_size];
 
-        if let Some(len) = res.headers.get::<ContentLength>().cloned() {
-            try!(callback(Event::DownloadContentLengthReceived(len.0)));
+        if res.status == StatusCode::Ok {
+            if let Some(len) = res.headers.get::<ContentLength>().cloned() {
+                try!(callback(Event::DownloadContentLengthReceived(len.0)));
+            }
+        } else if resume_from > 0 && res.status == StatusCode::PartialContent {
+            if let Some(&ContentRange(ContentRangeSpec::Bytes{ instance_length, .. })) = res.headers.get::<ContentRange>() {
+                if let Some(len) = instance_length {
+                    try!(callback(Event::DownloadContentLengthReceived(len)));
+                }
+            }
+        } else {
+            return Err(ErrorKind::HttpStatus(res.status.to_u16() as u32).into());
         }
 
         loop {
@@ -698,6 +715,7 @@ pub mod hyper {
     use super::Event;
 
     pub fn download(_url: &Url,
+                    _resume_from: u64,
                     _callback: &Fn(Event) -> Result<()> )
                     -> Result<()> {
         Err(ErrorKind::BackendUnavailable("hyper").into())
@@ -712,6 +730,7 @@ pub mod rustls {
     use super::Event;
 
     pub fn download(_url: &Url,
+                    _resume_from: u64,
                     _callback: &Fn(Event) -> Result<()> )
                     -> Result<()> {
         Err(ErrorKind::BackendUnavailable("rustls").into())
