@@ -9,13 +9,13 @@ extern crate tempdir;
 use std::fs;
 use tempdir::TempDir;
 use rustup_mock::clitools::{self, Config, Scenario,
-                               expect_ok, expect_stdout_ok, expect_err,
-                               expect_stderr_ok, set_current_dist_date,
-                               change_dir, this_host_triple};
+                            expect_ok, expect_stdout_ok, expect_err,
+                            expect_stderr_ok, set_current_dist_date,
+                            this_host_triple};
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
-pub fn setup(f: &Fn(&Config)) {
+pub fn setup(f: &Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV1, f);
 }
 
@@ -135,7 +135,7 @@ fn remove_default_toolchain_err_handling() {
 fn remove_override_toolchain_err_handling() {
     setup(&|config| {
         let tempdir = TempDir::new("rustup").unwrap();
-        change_dir(tempdir.path(), &|| {
+        config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "default", "nightly"]);
             expect_ok(config, &["rustup", "override", "add", "beta"]);
             expect_ok(config, &["rustup", "toolchain", "remove", "beta"]);
@@ -220,7 +220,7 @@ fn override_overrides_default() {
     setup(&|config| {
         let tempdir = TempDir::new("rustup").unwrap();
         expect_ok(config, &["rustup", "default" , "nightly"]);
-        change_dir(tempdir.path(), &|| {
+        config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "override" , "add", "beta"]);
             expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
         });
@@ -234,19 +234,19 @@ fn multiple_overrides() {
         let tempdir2 = TempDir::new("rustup").unwrap();
 
         expect_ok(config, &["rustup", "default", "nightly"]);
-        change_dir(tempdir1.path(), &|| {
+        config.change_dir(tempdir1.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "beta"]);
         });
-        change_dir(tempdir2.path(), &|| {
+        config.change_dir(tempdir2.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "stable"]);
         });
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
 
-        change_dir(tempdir1.path(), &|| {
+        config.change_dir(tempdir1.path(), &|| {
             expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
         });
-        change_dir(tempdir2.path(), &|| {
+        config.change_dir(tempdir2.path(), &|| {
             expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
         });
     });
@@ -256,7 +256,7 @@ fn multiple_overrides() {
 fn change_override() {
     setup(&|config| {
         let tempdir = TempDir::new("rustup").unwrap();
-        change_dir(tempdir.path(), &|| {
+        config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "nightly"]);
             expect_ok(config, &["rustup", "override", "add", "beta"]);
             expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
@@ -268,7 +268,7 @@ fn change_override() {
 fn remove_override_no_default() {
     setup(&|config| {
         let tempdir = TempDir::new("rustup").unwrap();
-        change_dir(tempdir.path(), &|| {
+        config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "nightly"]);
             expect_ok(config, &["rustup", "override", "remove"]);
             expect_err(config, &["rustc"],
@@ -281,7 +281,7 @@ fn remove_override_no_default() {
 fn remove_override_with_default() {
     setup(&|config| {
         let tempdir = TempDir::new("rustup").unwrap();
-        change_dir(tempdir.path(), &|| {
+        config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "default", "nightly"]);
             expect_ok(config, &["rustup", "override", "add", "beta"]);
             expect_ok(config, &["rustup", "override", "remove"]);
@@ -296,18 +296,18 @@ fn remove_override_with_multiple_overrides() {
         let tempdir1 = TempDir::new("rustup").unwrap();
         let tempdir2 = TempDir::new("rustup").unwrap();
         expect_ok(config, &["rustup", "default", "nightly"]);
-        change_dir(tempdir1.path(), &|| {
+        config.change_dir(tempdir1.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "beta"]);
         });
-        change_dir(tempdir2.path(), &|| {
+        config.change_dir(tempdir2.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "stable"]);
         });
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
-        change_dir(tempdir1.path(), &|| {
+        config.change_dir(tempdir1.path(), &|| {
             expect_ok(config, &["rustup", "override", "remove"]);
             expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
         });
-        change_dir(tempdir2.path(), &|| {
+        config.change_dir(tempdir2.path(), &|| {
             expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
         });
     });

@@ -10,11 +10,11 @@ use std::env::consts::EXE_SUFFIX;
 use std::process;
 use rustup_utils::raw;
 use rustup_mock::clitools::{self, Config, Scenario,
-                               expect_ok, expect_ok_ex,
-                               expect_stderr_ok, expect_stdout_ok,
-                               expect_err,
-                               set_current_dist_date,
-                               this_host_triple, change_dir};
+                            expect_ok, expect_ok_ex,
+                            expect_stderr_ok, expect_stdout_ok,
+                            expect_err,
+                            set_current_dist_date,
+                            this_host_triple};
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -507,7 +507,7 @@ r"");
 #[ignore(windows)] // FIXME Windows shows UNC paths
 fn show_toolchain_override() {
     setup(&|config| {
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
         expect_ok_ex(config, &["rustup", "show"],
 &format!(r"Default host: {0}
@@ -526,7 +526,7 @@ fn show_toolchain_toolchain_file_override() {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
 
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
 
         raw::write_file(&toolchain_file, "nightly").unwrap();
@@ -558,7 +558,7 @@ fn show_toolchain_version_nested_file_override() {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
 
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
 
         raw::write_file(&toolchain_file, "nightly").unwrap();
@@ -566,7 +566,7 @@ fn show_toolchain_version_nested_file_override() {
         let subdir = cwd.join("foo");
 
         fs::create_dir_all(&subdir).unwrap();
-        change_dir(&subdir, &|| {
+        config.change_dir(&subdir, &|| {
             expect_ok_ex(config, &["rustup", "show"],
                          &format!(r"Default host: {0}
 
@@ -594,7 +594,7 @@ fn show_toolchain_toolchain_file_override_not_installed() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
 
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
 
         raw::write_file(&toolchain_file, "nightly").unwrap();
@@ -973,7 +973,7 @@ fn file_override() {
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
 
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
@@ -989,13 +989,13 @@ fn file_override_subdir() {
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
 
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
         let subdir = cwd.join("subdir");
         fs::create_dir_all(&subdir).unwrap();
-        change_dir(&subdir, &|| {
+        config.change_dir(&subdir, &|| {
             expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
         });
     });
@@ -1010,7 +1010,7 @@ fn file_override_with_archive() {
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
 
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly-2015-01-01").unwrap();
 
@@ -1028,7 +1028,7 @@ fn directory_override_beats_file_override() {
         expect_ok(config, &["rustup", "override", "set", "beta"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
 
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
@@ -1046,7 +1046,7 @@ fn close_file_override_beats_far_directory_override() {
         expect_ok(config, &["rustup", "override", "set", "beta"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
 
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
 
         let subdir = cwd.join("subdir");
         fs::create_dir_all(&subdir).unwrap();
@@ -1054,7 +1054,7 @@ fn close_file_override_beats_far_directory_override() {
         let toolchain_file = subdir.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
-        change_dir(&subdir, &|| {
+        config.change_dir(&subdir, &|| {
             expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
         });
     });
@@ -1071,7 +1071,7 @@ fn directory_override_doesnt_need_to_exist_unless_it_is_selected() {
         expect_ok(config, &["rustup", "override", "set", "beta"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
 
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
@@ -1086,7 +1086,7 @@ fn env_override_beats_file_override() {
         expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
         expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
 
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
@@ -1106,7 +1106,7 @@ fn plus_override_beats_file_override() {
         expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
         expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
 
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
@@ -1117,7 +1117,7 @@ fn plus_override_beats_file_override() {
 #[test]
 fn bad_file_override() {
     setup(&|config| {
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "gumbo").unwrap();
 
@@ -1129,7 +1129,7 @@ fn bad_file_override() {
 #[test]
 fn file_override_with_target_info() {
     setup(&|config| {
-        let cwd = ::std::env::current_dir().unwrap();
+        let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly-x86_64-unknown-linux-gnu").unwrap();
 

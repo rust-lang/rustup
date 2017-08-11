@@ -3,10 +3,11 @@
 
 use MockInstallerBuilder;
 use url::Url;
-use std::path::{PathBuf, Path};
-use std::fs::{self, File};
 use std::collections::HashMap;
+use std::fs::{self, File};
 use std::io::{Read, Write};
+use std::path::{PathBuf, Path};
+use std::sync::Mutex;
 use tempdir::TempDir;
 use sha2::{Sha256, Digest};
 use toml;
@@ -14,6 +15,8 @@ use flate2;
 use xz2;
 use tar;
 use walkdir;
+
+use clitools::hard_link;
 
 // This function changes the mock manifest for a given channel to that
 // of a particular date. For advancing the build from e.g. 2016-02-1
@@ -30,8 +33,8 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
     let ref archive_manifest_path = path.join(format!("{}.toml", archive_manifest_name));
     let ref archive_hash_path = path.join(format!("{}.toml.sha256", archive_manifest_name));
 
-    let _ = fs::copy(archive_manifest_path, manifest_path);
-    let _ = fs::copy(archive_hash_path, hash_path);
+    let _ = hard_link(archive_manifest_path, manifest_path);
+    let _ = hard_link(archive_hash_path, hash_path);
 
     // V1
     let manifest_name = format!("dist/channel-rust-{}", channel);
@@ -42,8 +45,8 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
     let ref archive_manifest_path = path.join(format!("{}", archive_manifest_name));
     let ref archive_hash_path = path.join(format!("{}.sha256", archive_manifest_name));
 
-    let _ = fs::copy(archive_manifest_path, manifest_path);
-    let _ = fs::copy(archive_hash_path, hash_path);
+    let _ = hard_link(archive_manifest_path, manifest_path);
+    let _ = hard_link(archive_hash_path, hash_path);
 
     // Copy all files that look like rust-* for the v1 installers
     let ref archive_path = path.join(format!("dist/{}", date));
@@ -51,7 +54,7 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
         let dir = dir.unwrap();
         if dir.file_name().to_str().unwrap().contains("rust-") {
             let ref path = path.join(format!("dist/{}", dir.file_name().to_str().unwrap()));
-            fs::copy(&dir.path(), path).unwrap();
+            hard_link(&dir.path(), path).unwrap();
         }
     }
 }
@@ -77,6 +80,7 @@ pub struct MockChannel {
 }
 
 // A single rust-installer package
+#[derive(Hash, Eq, PartialEq)]
 pub struct MockPackage {
     // rust, rustc, rust-std-$triple, rust-doc, etc.
     pub name: &'static str,
@@ -84,6 +88,7 @@ pub struct MockPackage {
     pub targets: Vec<MockTargetedPackage>,
 }
 
+#[derive(Hash, Eq, PartialEq, Clone)]
 pub struct MockTargetedPackage {
     // Target triple
     pub target: String,
@@ -97,7 +102,7 @@ pub struct MockTargetedPackage {
     pub installer: MockInstallerBuilder,
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct MockComponent {
     pub name: String,
     pub target: String,
@@ -176,19 +181,44 @@ impl MockDistServer {
 
         fs::create_dir_all(installer_dir).unwrap();
 
-        target_package.installer.build(installer_dir);
-        create_tarball(&PathBuf::from(installer_name),
-                       installer_dir, installer_tarball);
+        // Tarball creation can be super slow, so cache created tarballs
+        // globally to avoid recreating and recompressing tons of tarballs.
+        lazy_static! {
+            static ref TARBALLS: Mutex<HashMap<(String, MockTargetedPackage, String),
+                                               (Vec<u8>, String)>> =
+                Mutex::new(HashMap::new());
+        }
 
-        // Create hash
-        let hash = create_hash(installer_tarball, installer_hash);
+        let key = (installer_name.to_string(),
+                   target_package.clone(),
+                   format.to_string());
+        let tarballs = TARBALLS.lock().unwrap();
+        let hash = if tarballs.contains_key(&key) {
+            let (ref contents, ref hash) = tarballs[&key];
+            File::create(&installer_tarball).unwrap()
+                .write_all(contents).unwrap();
+            File::create(&installer_hash).unwrap()
+                .write_all(hash.as_bytes()).unwrap();
+            hash.clone()
+        } else {
+            drop(tarballs);
+            target_package.installer.build(installer_dir);
+            create_tarball(&PathBuf::from(installer_name),
+                           installer_dir, installer_tarball);
+            let mut contents = Vec::new();
+            File::open(installer_tarball).unwrap()
+                .read_to_end(&mut contents).unwrap();
+            let hash = create_hash(installer_tarball, installer_hash);
+            TARBALLS.lock().unwrap().insert(key, (contents, hash.clone()));
+            hash
+        };
 
         // Copy from the archive to the main dist directory
         if package.name == "rust" {
             let ref main_installer_tarball = dist_dir.join(format!("{}{}", installer_name, format));
             let ref main_installer_hash = dist_dir.join(format!("{}{}.sha256", installer_name, format));
-            fs::copy(installer_tarball, main_installer_tarball).unwrap();
-            fs::copy(installer_hash, main_installer_hash).unwrap();
+            hard_link(installer_tarball, main_installer_tarball).unwrap();
+            hard_link(installer_hash, main_installer_hash).unwrap();
         }
 
         hash
@@ -217,10 +247,10 @@ impl MockDistServer {
         // Also copy the manifest and hash into the archive folder
         let archive_manifest_name = format!("dist/{}/channel-rust-{}", channel.date, channel.name);
         let ref archive_manifest_path = self.path.join(format!("{}", archive_manifest_name));
-        fs::copy(manifest_path, archive_manifest_path).unwrap();
+        hard_link(manifest_path, archive_manifest_path).unwrap();
 
         let ref archive_hash_path = self.path.join(format!("{}.sha256", archive_manifest_name));
-        fs::copy(hash_path, archive_hash_path).unwrap();
+        hard_link(hash_path, archive_hash_path).unwrap();
     }
 
     fn write_manifest_v2(&self, channel: &MockChannel, hashes: &HashMap<MockComponent, MockHashes>) {
@@ -300,14 +330,15 @@ impl MockDistServer {
         // Also copy the manifest and hash into the archive folder
         let archive_manifest_name = format!("dist/{}/channel-rust-{}", channel.date, channel.name);
         let ref archive_manifest_path = self.path.join(format!("{}.toml", archive_manifest_name));
-        fs::copy(manifest_path, archive_manifest_path).unwrap();
+        hard_link(manifest_path, archive_manifest_path).unwrap();
 
         let ref archive_hash_path = self.path.join(format!("{}.toml.sha256", archive_manifest_name));
-        fs::copy(hash_path, archive_hash_path).unwrap();
+        hard_link(hash_path, archive_hash_path).unwrap();
     }
 }
 
 fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
+    drop(fs::remove_file(dst));
     let outfile = File::create(dst).unwrap();
     let mut gzwriter;
     let mut xzwriter;
@@ -359,5 +390,6 @@ pub fn create_hash(src: &Path, dst: &Path) -> String {
 }
 
 fn write_file(dst: &Path, contents: &str) {
+    drop(fs::remove_file(dst));
     File::create(dst).and_then(|mut f| f.write_all(contents.as_bytes())).unwrap();
 }

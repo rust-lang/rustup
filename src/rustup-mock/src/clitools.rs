@@ -1,13 +1,16 @@
 //! A mock distribution server used by tests/cli-v1.rs and
 //! tests/cli-v2.rs
 
-use std::path::{PathBuf, Path};
-use std::env;
-use std::process::{Command, Stdio};
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::env::consts::EXE_SUFFIX;
+use std::env;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
-use std::sync::Mutex;
+use std::mem;
+use std::path::{PathBuf, Path};
+use std::process::{Command, Stdio};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tempdir::TempDir;
 use {MockInstallerBuilder, MockCommand};
@@ -15,7 +18,6 @@ use dist::{MockDistServer, MockChannel, MockPackage,
            MockTargetedPackage, MockComponent, change_channel_date,
            ManifestVersion};
 use url::Url;
-use scopeguard;
 use wait_timeout::ChildExt;
 
 /// The configuration used by the tests in this module
@@ -35,7 +37,7 @@ pub struct Config {
     /// An empty directory. Tests should not write to this.
     pub emptydir: PathBuf,
     /// This is cwd for the test
-    pub workdir: PathBuf,
+    pub workdir: RefCell<PathBuf>,
 }
 
 // Describes all the features of the mock dist server.
@@ -61,27 +63,35 @@ pub static MULTI_ARCH1: &'static str = "i686-unknown-linux-gnu";
 
 /// Run this to create the test environment containing rustup, and
 /// a mock dist server.
-pub fn setup(s: Scenario, f: &Fn(&Config)) {
+pub fn setup(s: Scenario, f: &Fn(&mut Config)) {
     // Unset env variables that will break our testing
     env::remove_var("RUSTUP_TOOLCHAIN");
     env::remove_var("SHELL");
     env::remove_var("ZDOTDIR");
 
-    let exedir = TempDir::new("rustup-exe").unwrap();
-    let distdir = TempDir::new("rustup-dist").unwrap();
-    let rustupdir = TempDir::new("rustup").unwrap();
-    let customdir = TempDir::new("rustup-custom").unwrap();
-    let cargodir = TempDir::new("rustup-cargo").unwrap();
-    let homedir = TempDir::new("rustup-home").unwrap();
-    let emptydir = TempDir::new("rustup-empty").unwrap();
-    let workdir = TempDir::new("rustup-workdir").unwrap();
+    let current_exe_path = env::current_exe().map(PathBuf::from).unwrap();
+    let mut exe_dir = current_exe_path.parent().unwrap();
+    if exe_dir.ends_with("deps") {
+        exe_dir = exe_dir.parent().unwrap();
+    }
+    let test_dir = exe_dir.parent().unwrap().join("tests");
+    fs::create_dir_all(&test_dir).unwrap();
+
+    let exedir = TempDir::new_in(&test_dir, "rustup-exe").unwrap();
+    let distdir = TempDir::new_in(&test_dir, "rustup-dist").unwrap();
+    let rustupdir = TempDir::new_in(&test_dir, "rustup").unwrap();
+    let customdir = TempDir::new_in(&test_dir, "rustup-custom").unwrap();
+    let cargodir = TempDir::new_in(&test_dir, "rustup-cargo").unwrap();
+    let homedir = TempDir::new_in(&test_dir, "rustup-home").unwrap();
+    let emptydir = TempDir::new_in(&test_dir, "rustup-empty").unwrap();
+    let workdir = TempDir::new_in(&test_dir, "rustup-workdir").unwrap();
 
     // The uninstall process on windows involves using the directory above
     // CARGO_HOME, so make sure it's a subdir of our tempdir
     let cargodir = cargodir.path().join("ch");
     fs::create_dir(&cargodir).unwrap();
 
-    let ref config = Config {
+    let mut config = Config {
         exedir: exedir.path().to_owned(),
         distdir: distdir.path().to_owned(),
         rustupdir: rustupdir.path().to_owned(),
@@ -89,16 +99,11 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
         cargodir: cargodir,
         homedir: homedir.path().to_owned(),
         emptydir: emptydir.path().to_owned(),
-        workdir: workdir.path().to_owned(),
+        workdir: RefCell::new(workdir.path().to_owned()),
     };
 
     create_mock_dist_server(&config.distdir, s);
 
-    let current_exe_path = env::current_exe().map(PathBuf::from).unwrap();
-    let mut exe_dir = current_exe_path.parent().unwrap();
-    if exe_dir.ends_with("deps") {
-        exe_dir = exe_dir.parent().unwrap();
-    }
     let ref build_path = exe_dir.join(format!("rustup-init{}", EXE_SUFFIX));
 
     let ref rustup_path = config.exedir.join(format!("rustup{}", EXE_SUFFIX));
@@ -107,26 +112,11 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let cargo_path = config.exedir.join(format!("cargo{}", EXE_SUFFIX));
     let rls_path = config.exedir.join(format!("rls{}", EXE_SUFFIX));
 
-    // Don't copy an executable via `fs::copy` on Unix because that'll require
-    // opening up the destination for writing. If one thread in our process then
-    // forks the child will have the destination open as well (fd inheritance)
-    // which will prevent us from then executing that binary.
-    //
-    // On Windows, however, handles aren't inherited across processes so we can
-    // do fs::copy there, and on Unix we just do symlinks.
-    #[cfg(windows)]
-    fn copy_binary(src: &Path, dst: &Path) -> io::Result<()> {
-        fs::copy(src, dst).map(|_| ())
-    }
-    #[cfg(unix)]
-    fn copy_binary(src: &Path, dst: &Path) -> io::Result<()> {
-        ::std::os::unix::fs::symlink(src, dst)
-    }
-    copy_binary(&build_path, &rustup_path).unwrap();
-    fs::hard_link(rustup_path, setup_path).unwrap();
-    fs::hard_link(rustup_path, rustc_path).unwrap();
-    fs::hard_link(rustup_path, cargo_path).unwrap();
-    fs::hard_link(rustup_path, rls_path).unwrap();
+    hard_link(&build_path, &rustup_path).unwrap();
+    hard_link(rustup_path, setup_path).unwrap();
+    hard_link(rustup_path, rustc_path).unwrap();
+    hard_link(rustup_path, cargo_path).unwrap();
+    hard_link(rustup_path, rls_path).unwrap();
 
     // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
@@ -136,25 +126,31 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     // Create some custom toolchains
     create_custom_toolchains(&config.customdir);
 
-    // Hold a lock while the test is running because they change directories,
-    // causing havok
-    lazy_static! {
-        static ref LOCK: Mutex<()> = Mutex::new(());
-    }
-    let _g = LOCK.lock();
-
-    // Change the cwd to a test-specific directory
-    let cwd = env::current_dir().unwrap();
-    env::set_current_dir(&config.workdir).unwrap();
-    let _g = scopeguard::guard(cwd, |d| env::set_current_dir(d).unwrap());
-
-    f(config);
+    f(&mut config);
 
     // These are the bogus values the test harness sets "HOME" and "CARGO_HOME"
     // to during testing. If they exist that means a test unexpectedly used
     // one of these environment variables.
     assert!(!PathBuf::from("./bogus-home").exists());
     assert!(!PathBuf::from("./bogus-cargo-home").exists());
+}
+
+impl Config {
+    pub fn current_dir(&self) -> PathBuf {
+        self.workdir.borrow().clone()
+    }
+
+    pub fn change_dir<F>(&self, path: &Path, mut f: F)
+        where F: FnMut()
+    {
+        self._change_dir(path, &mut f)
+    }
+
+    fn _change_dir(&self, path: &Path, f: &mut FnMut()) {
+        let prev = mem::replace(&mut *self.workdir.borrow_mut(), path.to_owned());
+        f();
+        *self.workdir.borrow_mut() = prev;
+    }
 }
 
 /// Change the current distribution manifest to a particular date
@@ -286,6 +282,7 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
     let exe_path = config.exedir.join(format!("{}{}", name, EXE_SUFFIX));
     let mut cmd = Command::new(exe_path);
     cmd.args(args);
+    cmd.current_dir(&*config.workdir.borrow());
     env(config, &mut cmd);
     cmd
 }
@@ -333,13 +330,6 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
     }
 }
 
-pub fn change_dir(path: &Path, f: &Fn()) {
-    let cwd = env::current_dir().unwrap();
-    env::set_current_dir(path).unwrap();
-    let _g = scopeguard::guard(cwd, |d| env::set_current_dir(d).unwrap());
-    f();
-}
-
 // Creates a mock dist server populated with some test data
 fn create_mock_dist_server(path: &Path, s: Scenario) {
     let mut chans = Vec::new();
@@ -368,28 +358,28 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
 
     // Also create the manifests for stable releases by version
     if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
-        let _ = fs::copy(path.join("dist/2015-01-01/channel-rust-stable.toml"),
-                         path.join("dist/channel-rust-1.0.0.toml"));
-        let _ = fs::copy(path.join("dist/2015-01-01/channel-rust-stable.toml.sha256"),
-                         path.join("dist/channel-rust-1.0.0.toml.sha256"));
+        let _ = hard_link(path.join("dist/2015-01-01/channel-rust-stable.toml"),
+                          path.join("dist/channel-rust-1.0.0.toml"));
+        let _ = hard_link(path.join("dist/2015-01-01/channel-rust-stable.toml.sha256"),
+                          path.join("dist/channel-rust-1.0.0.toml.sha256"));
     }
-    let _ = fs::copy(path.join("dist/2015-01-02/channel-rust-stable.toml"),
-                     path.join("dist/channel-rust-1.1.0.toml"));
-    let _ = fs::copy(path.join("dist/2015-01-02/channel-rust-stable.toml.sha256"),
-                     path.join("dist/channel-rust-1.1.0.toml.sha256"));
+    let _ = hard_link(path.join("dist/2015-01-02/channel-rust-stable.toml"),
+                      path.join("dist/channel-rust-1.1.0.toml"));
+    let _ = hard_link(path.join("dist/2015-01-02/channel-rust-stable.toml.sha256"),
+                      path.join("dist/channel-rust-1.1.0.toml.sha256"));
 
     // Same for v1 manifests. These are just the installers.
     let host_triple = this_host_triple();
     if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
-        fs::copy(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz", host_triple)),
-                 path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple))).unwrap();
-        fs::copy(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz.sha256", host_triple)),
-                 path.join(format!("dist/rust-1.0.0-{}.tar.gz.sha256", host_triple))).unwrap();
+        hard_link(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz", host_triple)),
+                  path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple))).unwrap();
+        hard_link(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz.sha256", host_triple)),
+                  path.join(format!("dist/rust-1.0.0-{}.tar.gz.sha256", host_triple))).unwrap();
     }
-    fs::copy(path.join(format!("dist/2015-01-02/rust-stable-{}.tar.gz", host_triple)),
-             path.join(format!("dist/rust-1.1.0-{}.tar.gz", host_triple))).unwrap();
-    fs::copy(path.join(format!("dist/2015-01-02/rust-stable-{}.tar.gz.sha256", host_triple)),
-             path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple))).unwrap();
+    hard_link(path.join(format!("dist/2015-01-02/rust-stable-{}.tar.gz", host_triple)),
+              path.join(format!("dist/rust-1.1.0-{}.tar.gz", host_triple))).unwrap();
+    hard_link(path.join(format!("dist/2015-01-02/rust-stable-{}.tar.gz.sha256", host_triple)),
+              path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple))).unwrap();
 }
 
 fn build_mock_channel(s: Scenario, channel: &str, date: &str,
@@ -543,7 +533,7 @@ fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
         components: vec![
             (format!("rust-std-{}", trip.clone()),
              vec![MockCommand::File(format!("lib/rustlib/{}/libstd.rlib", trip))],
-             vec![(format!("lib/rustlib/{}/libstd.rlib", trip), "".into(), false)])
+             vec![(format!("lib/rustlib/{}/libstd.rlib", trip), empty(), false)])
             ]
     }
 }
@@ -554,8 +544,8 @@ fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuil
             (format!("rust-std-{}", target.clone()),
              vec![MockCommand::File(format!("lib/rustlib/{}/lib/libstd.rlib", target)),
                   MockCommand::File(format!("lib/rustlib/{}/lib/{}", target, date))],
-             vec![(format!("lib/rustlib/{}/lib/libstd.rlib", target), "".into(), false),
-                  (format!("lib/rustlib/{}/lib/{}", target, date), "".into(), false)])
+             vec![(format!("lib/rustlib/{}/lib/libstd.rlib", target), empty(), false),
+                  (format!("lib/rustlib/{}/lib/{}", target, date), empty(), false)])
             ]
     }
 }
@@ -608,7 +598,7 @@ fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
         components: vec![
             ("rust-docs".to_string(),
              vec![MockCommand::File("share/doc/rust/html/index.html".to_string())],
-             vec![("share/doc/rust/html/index.html".to_string(), "".into(), false)])
+             vec![("share/doc/rust/html/index.html".to_string(), empty(), false)])
                 ]
     }
 }
@@ -618,7 +608,7 @@ fn build_mock_rust_analysis_installer(trip: &str) -> MockInstallerBuilder {
         components: vec![
             (format!("rust-analysis-{}", trip),
              vec![MockCommand::File(format!("lib/rustlib/{}/analysis/libfoo.json", trip))],
-             vec![(format!("lib/rustlib/{}/analysis/libfoo.json", trip), "".into(), false)])
+             vec![(format!("lib/rustlib/{}/analysis/libfoo.json", trip), empty(), false)])
                 ]
     }
 }
@@ -628,7 +618,7 @@ fn build_mock_rust_src_installer() -> MockInstallerBuilder {
         components: vec![
             ("rust-src".to_string(),
              vec![MockCommand::File("lib/rustlib/src/rust-src/foo.rs".to_string())],
-             vec![("lib/rustlib/src/rust-src/foo.rs".to_string(), "".into(), false)])
+             vec![("lib/rustlib/src/rust-src/foo.rs".to_string(), empty(), false)])
                 ]
     }
 }
@@ -647,76 +637,53 @@ fn build_combined_installer(components: &[&MockInstallerBuilder]) -> MockInstall
 /// of these, and running rustc is slow, it does it once, stuffs the
 /// bin into memory, then does a string replacement of the version
 /// information it needs to report to create subsequent bins.
-fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Vec<u8> {
-
-    // This is what version and version_hash look like. We'll use
-    // these as template values in our template binary, to be replaced
-    // with the actual version and veresion_hash values in the final
-    // binary.
-    static EXAMPLE_VERSION: &'static str = "1.1.0";
-    static EXAMPLE_VERSION_HASH: &'static str = "hash-s-2";
-    assert_eq!(version.len(), EXAMPLE_VERSION.len());
-    assert_eq!(version_hash.len(), EXAMPLE_VERSION_HASH.len());
-
-    // If this is the first time, create the template binary
+fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Arc<Vec<u8>> {
     lazy_static! {
-        static ref MOCK_BIN_TEMPLATE: Vec<u8> = make_mock_bin_template();
+        static ref MOCK_BIN_TEMPLATE: Mutex<HashMap<(String, String), Arc<Vec<u8>>>> =
+            Mutex::new(HashMap::new());
     }
 
-    fn make_mock_bin_template() -> Vec<u8> {
-        // Create a temp directory to hold the source and the output
-        let ref tempdir = TempDir::new("rustup").unwrap();
-        let ref source_path = tempdir.path().join("in.rs");
-        let ref dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
-
-        // Write the source
-        let source = include_str!("mock_bin_src.rs")
-            .replace("%EXAMPLE_VERSION%", EXAMPLE_VERSION)
-            .replace("%EXAMPLE_VERSION_HASH%", EXAMPLE_VERSION_HASH);
-
-        File::create(source_path).and_then(|mut f| f.write_all(source.as_bytes())).unwrap();
-
-        // Create the executable
-        let status = Command::new("rustc").arg(&*source_path.to_string_lossy())
-            .arg("-o").arg(&*dest_path.to_string_lossy())
-            .status().unwrap();
-        assert!(status.success());
-        assert!(dest_path.exists());
-
-        // Now load it into memory
-        let mut f = File::open(dest_path).unwrap();
-        let mut buf = Vec::new();
-        f.read_to_end(&mut buf).unwrap();
-
-        buf
+    let key = (version.to_string(), version_hash.to_string());
+    let map = MOCK_BIN_TEMPLATE.lock().unwrap();
+    if let Some(ret) = map.get(&key) {
+        return ret.clone()
     }
+    drop(map);
 
-    let mut bin = MOCK_BIN_TEMPLATE.clone();
+    // Create a temp directory to hold the source and the output
+    let ref tempdir = TempDir::new("rustup").unwrap();
+    let ref source_path = tempdir.path().join("in.rs");
+    let ref dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
 
-    // Replace the version strings
-    {
-        let version_index = bin
-            .windows(EXAMPLE_VERSION.len())
-            .enumerate()
-            .find(|&(_, slice)| slice == EXAMPLE_VERSION.as_bytes())
-            .map(|(i, _)| i)
-            .unwrap();
-        let version_slice = &mut bin[version_index..(version_index + EXAMPLE_VERSION.len())];
-        version_slice.clone_from_slice(version.as_bytes());
-    }
+    // Write the source
+    let source = include_str!("mock_bin_src.rs");
+    File::create(source_path).and_then(|mut f| f.write_all(source.as_bytes())).unwrap();
 
-    {
-        let version_hash_index = bin
-            .windows(EXAMPLE_VERSION_HASH.len())
-            .enumerate()
-            .find(|&(_, slice)| slice == EXAMPLE_VERSION_HASH.as_bytes())
-            .map(|(i, _)| i)
-            .unwrap();
-        let version_hash_slice = &mut bin[version_hash_index..(version_hash_index + EXAMPLE_VERSION_HASH.len())];
-        version_hash_slice.clone_from_slice(version_hash.as_bytes());
-    }
+    // Create the executable
+    let status = Command::new("rustc")
+        .arg(&source_path)
+        .arg("-C").arg("panic=abort")
+        .arg("-O")
+        .arg("-o").arg(&dest_path)
+        .env("EXAMPLE_VERSION", version)
+        .env("EXAMPLE_VERSION_HASH", version_hash)
+        .status()
+        .unwrap();
+    assert!(status.success());
+    assert!(dest_path.exists());
 
-    bin
+    // If we're on unix this will remove debuginfo, otherwise we just ignore
+    // the return result here
+    drop(Command::new("strip").arg(&dest_path).status());
+
+    // Now load it into memory
+    let mut f = File::open(dest_path).unwrap();
+    let mut buf = Vec::new();
+    f.read_to_end(&mut buf).unwrap();
+
+    let buf = Arc::new(buf);
+    MOCK_BIN_TEMPLATE.lock().unwrap().insert(key, buf.clone());
+    return buf
 }
 
 // These are toolchains for installation with --link-local and --copy-local
@@ -754,4 +721,16 @@ fn create_custom_toolchains(customdir: &Path) {
 
     #[cfg(windows)]
     fn make_exe(_: &Path, _: &Path) { }
+}
+
+fn empty() -> Arc<Vec<u8>> {
+    Arc::new(Vec::new())
+}
+
+pub fn hard_link<A, B>(a: A, b: B) -> io::Result<()>
+    where A: AsRef<Path>,
+          B: AsRef<Path>,
+{
+    drop(fs::remove_file(b.as_ref()));
+    fs::hard_link(a, b).map(|_| ())
 }

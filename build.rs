@@ -22,6 +22,7 @@ fn main() {
         .unwrap()
         .write_all(commit_info().as_bytes())
         .unwrap();
+    println!("cargo:rerun-if-changed=build.rs");
 }
 
 // Try to get hash and date of the last commit on a best effort basis. If anything goes wrong
