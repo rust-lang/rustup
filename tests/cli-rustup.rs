@@ -665,6 +665,25 @@ fn show_toolchain_env_not_installed() {
     });
 }
 
+// #846
+#[test]
+fn set_default_host() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "set", "default-host", &this_host_triple()]);
+        expect_stdout_ok(config, &["rustup", "show"],
+                         for_host!("Default host: {0}"));
+    });
+}
+
+// #846
+#[test]
+fn set_default_host_invalid_triple() {
+    setup(&|config| {
+        expect_err(config, &["rustup", "set", "default-host", "foo"],
+                   "Invalid host triple");
+    });
+}
+
 // #422
 #[test]
 fn update_doesnt_update_non_tracking_channels() {

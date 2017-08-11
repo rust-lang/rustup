@@ -448,6 +448,9 @@ impl Cfg {
     }
 
     pub fn set_default_host_triple(&self, host_triple: &str) -> Result<()> {
+        if dist::PartialTargetTriple::from_str(host_triple).is_none() {
+            return Err("Invalid host triple".into())
+        }
         self.settings_file.with_mut(|s| {
             s.default_host_triple = Some(host_triple.to_owned());
             Ok(())
