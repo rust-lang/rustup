@@ -31,59 +31,79 @@ use std::sync::Arc;
 // Mock of the on-disk structure of rust-installer installers
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct MockInstallerBuilder {
-    pub components: Vec<MockComponent>,
+    pub components: Vec<MockComponentBuilder>,
 }
 
-// A component name, the installation commands for installing files
-// (either "file:" or "dir:") and the file paths, contents and X bit.
-pub type MockComponent = (String, Vec<MockCommand>, Vec<(String, Arc<Vec<u8>>, bool)>);
+#[derive(PartialEq, Eq, Hash, Clone)]
+pub struct MockComponentBuilder {
+    pub name: String,
+    pub files: Vec<MockFile>,
+}
 
 #[derive(PartialEq, Eq, Hash, Clone)]
-pub enum MockCommand {
-    File(String),
-    Dir(String)
+pub struct MockFile {
+    path: String,
+    contents: Contents,
+}
+
+#[derive(PartialEq, Eq, Hash, Clone)]
+enum Contents {
+    File(MockContents),
+    Dir(Vec<(&'static str, MockContents)>),
+}
+
+#[derive(PartialEq, Eq, Hash, Clone)]
+struct MockContents {
+    contents: Arc<Vec<u8>>,
+    executable: bool,
 }
 
 impl MockInstallerBuilder {
     pub fn build(&self, path: &Path) {
-        for &(ref name, ref commands, ref files) in &self.components {
+        for component in &self.components {
             // Update the components file
             let comp_file = path.join("components");
             let ref mut comp_file = OpenOptions::new().write(true).append(true).create(true)
                 .open(comp_file.clone()).unwrap();
-            writeln!(comp_file, "{}", name).unwrap();
+            writeln!(comp_file, "{}", component.name).unwrap();
 
             // Create the component directory
-            let component_dir = path.join(name);
+            let component_dir = path.join(&component.name);
             if !component_dir.exists() {
                 fs::create_dir(&component_dir).unwrap();
             }
 
-            // Create the component manifest
+            // Create the component files and manifest
             let ref mut manifest = File::create(component_dir.join("manifest.in")).unwrap();
-            for command in commands {
-                match command {
-                    &MockCommand::File(ref f) => writeln!(manifest, "file:{}", f).unwrap(),
-                    &MockCommand::Dir(ref d) => writeln!(manifest, "dir:{}", d).unwrap(),
-                }
-            }
+            for file in component.files.iter() {
+                let mk = |path: &Path, contents: &MockContents| {
+                    let dir_path = path.parent().unwrap().to_owned();
+                    fs::create_dir_all(dir_path).unwrap();
+                    File::create(&path).unwrap()
+                        .write_all(&contents.contents).unwrap();
 
-            // Create the component files
-            for &(ref f_path, ref content, executable) in files {
-                let fname = component_dir.join(f_path);
-                let dir_path = fname.parent().unwrap().to_owned();
-                fs::create_dir_all(dir_path).unwrap();
-                let ref mut f = File::create(&fname).unwrap();
-
-                f.write_all(&content).unwrap();
-                drop(f);
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt;
-                    if executable {
-                        let mut perm = fs::metadata(&fname).unwrap().permissions();
-                        perm.set_mode(0o755);
-                        fs::set_permissions(&fname, perm).unwrap();
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        if contents.executable {
+                            let mut perm = fs::metadata(path).unwrap().permissions();
+                            perm.set_mode(0o755);
+                            fs::set_permissions(path, perm).unwrap();
+                        }
+                    }
+                };
+                match file.contents {
+                    Contents::Dir(ref files) => {
+                        writeln!(manifest, "dir:{}", file.path).unwrap();
+                        for &(ref name, ref contents) in files {
+                            let fname = component_dir.join(&file.path).join(name);
+                            mk(&fname, contents);
+                        }
+                    }
+                    Contents::File(ref contents) => {
+                        writeln!(manifest, "file:{}", file.path).unwrap();
+                        let fname = component_dir.join(&file.path);
+                        mk(&fname, contents);
                     }
                 }
             }
@@ -91,6 +111,46 @@ impl MockInstallerBuilder {
 
         let mut ver = File::create(path.join("rust-installer-version")).unwrap();
         writeln!(ver, "3").unwrap();
+    }
+}
+
+impl MockFile {
+    pub fn new<S: Into<String>>(path: S, contents: &[u8]) -> MockFile {
+        MockFile::_new(path.into(), Arc::new(contents.to_vec()))
+    }
+
+    pub fn new_arc<S: Into<String>>(path: S, contents: Arc<Vec<u8>>) -> MockFile {
+        MockFile::_new(path.into(), contents)
+    }
+
+    fn _new(path: String, contents: Arc<Vec<u8>>) -> MockFile {
+        MockFile {
+            path: path,
+            contents: Contents::File(MockContents {
+                contents: contents,
+                executable: false,
+            }),
+        }
+    }
+
+    pub fn new_dir(path: &str, files: &[(&'static str, &'static [u8], bool)]) -> MockFile {
+        MockFile {
+            path: path.to_string(),
+            contents: Contents::Dir(files.iter().map(|&(name, data, exe)| {
+                (name, MockContents {
+                    contents: Arc::new(data.to_vec()),
+                    executable: exe,
+                })
+            }).collect()),
+        }
+    }
+
+    pub fn executable(mut self, exe: bool) -> Self {
+        match self.contents {
+            Contents::File(ref mut c) => c.executable = exe,
+            _ => {}
+        }
+        self
     }
 }
 

@@ -13,7 +13,7 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tempdir::TempDir;
-use {MockInstallerBuilder, MockCommand};
+use {MockInstallerBuilder, MockFile, MockComponentBuilder};
 use dist::{MockDistServer, MockChannel, MockPackage,
            MockTargetedPackage, MockComponent, change_channel_date,
            ManifestVersion};
@@ -530,23 +530,24 @@ pub fn this_host_triple() -> String {
 
 fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            (format!("rust-std-{}", trip.clone()),
-             vec![MockCommand::File(format!("lib/rustlib/{}/libstd.rlib", trip))],
-             vec![(format!("lib/rustlib/{}/libstd.rlib", trip), empty(), false)])
-            ]
+        components: vec![MockComponentBuilder {
+            name: format!("rust-std-{}", trip.clone()),
+            files: vec![
+                MockFile::new(format!("lib/rustlib/{}/libstd.rlib", trip), b""),
+            ],
+        }],
     }
 }
 
 fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            (format!("rust-std-{}", target.clone()),
-             vec![MockCommand::File(format!("lib/rustlib/{}/lib/libstd.rlib", target)),
-                  MockCommand::File(format!("lib/rustlib/{}/lib/{}", target, date))],
-             vec![(format!("lib/rustlib/{}/lib/libstd.rlib", target), empty(), false),
-                  (format!("lib/rustlib/{}/lib/{}", target, date), empty(), false)])
-            ]
+        components: vec![MockComponentBuilder {
+            name: format!("rust-std-{}", target.clone()),
+            files: vec![
+                MockFile::new(format!("lib/rustlib/{}/lib/libstd.rlib", target), b""),
+                MockFile::new(format!("lib/rustlib/{}/lib/{}", target, date), b""),
+            ],
+        }],
     }
 }
 
@@ -561,65 +562,71 @@ fn build_mock_rustc_installer(target: &str, version: &str, version_hash_: &str) 
         version_hash = version_hash_.to_string();
     }
 
-    let rustc = format!("bin/rustc{}", EXE_SUFFIX);
     MockInstallerBuilder {
-        components: vec![
-            ("rustc".to_string(),
-             vec![MockCommand::File(rustc.clone())],
-             vec![(rustc, mock_bin("rustc", version, &version_hash), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: "rustc".to_string(),
+            files: vec![
+                MockFile::new_arc(format!("bin/rustc{}", EXE_SUFFIX),
+                                  mock_bin("rustc", version, &version_hash)),
+            ],
+        }],
     }
 }
 
 fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
-    let cargo = format!("bin/cargo{}", EXE_SUFFIX);
     MockInstallerBuilder {
-        components: vec![
-            ("cargo".to_string(),
-             vec![MockCommand::File(cargo.clone())],
-             vec![(cargo, mock_bin("cargo", version, version_hash), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: "cargo".to_string(),
+            files: vec![
+                MockFile::new_arc(format!("bin/cargo{}", EXE_SUFFIX),
+                                  mock_bin("cargo", version, &version_hash)),
+            ],
+        }],
     }
 }
 
 fn build_mock_rls_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
-    let cargo = format!("bin/rls{}", EXE_SUFFIX);
     MockInstallerBuilder {
-        components: vec![
-            ("rls".to_string(),
-             vec![MockCommand::File(cargo.clone())],
-             vec![(cargo, mock_bin("rls", version, version_hash), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: "rls".to_string(),
+            files: vec![
+                MockFile::new_arc(format!("bin/rls{}", EXE_SUFFIX),
+                                  mock_bin("rls", version, &version_hash)),
+            ],
+        }],
     }
 }
 
 fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            ("rust-docs".to_string(),
-             vec![MockCommand::File("share/doc/rust/html/index.html".to_string())],
-             vec![("share/doc/rust/html/index.html".to_string(), empty(), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: "rust-docs".to_string(),
+            files: vec![
+                MockFile::new("share/doc/rust/html/index.html", b""),
+            ],
+        }],
     }
 }
 
 fn build_mock_rust_analysis_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            (format!("rust-analysis-{}", trip),
-             vec![MockCommand::File(format!("lib/rustlib/{}/analysis/libfoo.json", trip))],
-             vec![(format!("lib/rustlib/{}/analysis/libfoo.json", trip), empty(), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: format!("rust-analysis-{}", trip),
+            files: vec![
+                MockFile::new(format!("lib/rustlib/{}/analysis/libfoo.json", trip), b""),
+            ],
+        }],
     }
 }
 
 fn build_mock_rust_src_installer() -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            ("rust-src".to_string(),
-             vec![MockCommand::File("lib/rustlib/src/rust-src/foo.rs".to_string())],
-             vec![("lib/rustlib/src/rust-src/foo.rs".to_string(), empty(), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: "rust-src".to_string(),
+            files: vec![
+                MockFile::new("lib/rustlib/src/rust-src/foo.rs", b""),
+            ],
+        }],
     }
 }
 
@@ -650,6 +657,22 @@ fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Arc<Vec<u8>> {
     }
     drop(map);
 
+    struct Stderr;
+    use std::fmt::{self, Write};
+
+    impl fmt::Write for Stderr {
+        fn write_str(&mut self, s: &str) -> fmt::Result {
+            unsafe {
+                extern {
+                    fn write(a: i32, b: *const u8, c: usize) -> isize;
+                }
+                write(2, s.as_ptr(), s.len());
+                Ok(())
+            }
+        }
+    }
+    drop(write!(Stderr, "cache miss {:?}\n", key));
+
     // Create a temp directory to hold the source and the output
     let ref tempdir = TempDir::new("rustup").unwrap();
     let ref source_path = tempdir.path().join("in.rs");
@@ -674,7 +697,9 @@ fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Arc<Vec<u8>> {
 
     // If we're on unix this will remove debuginfo, otherwise we just ignore
     // the return result here
-    drop(Command::new("strip").arg(&dest_path).status());
+    if cfg!(unix) {
+        drop(Command::new("strip").arg(&dest_path).status());
+    }
 
     // Now load it into memory
     let mut f = File::open(dest_path).unwrap();
@@ -721,10 +746,6 @@ fn create_custom_toolchains(customdir: &Path) {
 
     #[cfg(windows)]
     fn make_exe(_: &Path, _: &Path) { }
-}
-
-fn empty() -> Arc<Vec<u8>> {
-    Arc::new(Vec::new())
 }
 
 pub fn hard_link<A, B>(a: A, b: B) -> io::Result<()>
