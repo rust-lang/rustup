@@ -27,6 +27,9 @@ sha2 = "0.6.0"
 rustup-utils = { path = "../rustup-utils" }
 error-chain = "0.7.1"
 
+[dev-dependencies]
+rustup-mock = { path = "../rustup-mock" }
+
 [target."cfg(windows)".dependencies]
 winapi = "0.2.8"
 winreg = "0.3.2"

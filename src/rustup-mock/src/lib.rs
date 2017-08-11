@@ -24,19 +24,21 @@ pub mod dist;
 pub mod clitools;
 
 use std::fs::{self, OpenOptions, File};
-use std::path::Path;
 use std::io::Write;
+use std::path::Path;
+use std::sync::Arc;
 
 // Mock of the on-disk structure of rust-installer installers
+#[derive(PartialEq, Eq, Hash)]
 pub struct MockInstallerBuilder {
     pub components: Vec<MockComponent>,
 }
 
 // A component name, the installation commands for installing files
 // (either "file:" or "dir:") and the file paths, contents and X bit.
-pub type MockComponent = (String, Vec<MockCommand>, Vec<(String, Vec<u8>, bool)>);
+pub type MockComponent = (String, Vec<MockCommand>, Vec<(String, Arc<Vec<u8>>, bool)>);
 
-#[derive(Clone)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub enum MockCommand {
     File(String),
     Dir(String)
