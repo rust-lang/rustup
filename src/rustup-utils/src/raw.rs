@@ -12,6 +12,8 @@ use std::str;
 
 use rand::random;
 
+use remove_dir_all;
+
 pub fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(path: P,
                                                            callback: F)
                                                            -> io::Result<bool> {
@@ -305,11 +307,9 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
             fs::remove_file(path)
         }
     } else {
-        // Again because remove_dir all doesn't delete write-only files on windows,
-        // this is a custom implementation, more-or-less copied from cargo.
-        // cc rust-lang/rust#31944
-        // cc https://github.com/rust-lang/cargo/blob/master/tests/support/paths.rs#L52
-        ::remove_dir_all::remove_dir_all(path)
+        // Because remove_dir all doesn't delete write-only files on windows
+        // we need to use the version provided by the remove_dir_all crate.
+        remove_dir_all::remove_dir_all(path)
     }
 }
 
