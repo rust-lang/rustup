@@ -1,13 +1,14 @@
 //! A mock distribution server used by tests/cli-v1.rs and
 //! tests/cli-v2.rs
 
-use std::path::{PathBuf, Path};
-use std::env;
-use std::process::{Command, Stdio};
+use std::cell::RefCell;
 use std::env::consts::EXE_SUFFIX;
+use std::env;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
-use std::sync::Mutex;
+use std::mem;
+use std::path::{PathBuf, Path};
+use std::process::{Command, Stdio};
 use std::time::Duration;
 use tempdir::TempDir;
 use {MockInstallerBuilder, MockCommand};
@@ -15,7 +16,6 @@ use dist::{MockDistServer, MockChannel, MockPackage,
            MockTargetedPackage, MockComponent, change_channel_date,
            ManifestVersion};
 use url::Url;
-use scopeguard;
 use wait_timeout::ChildExt;
 
 /// The configuration used by the tests in this module
@@ -35,7 +35,7 @@ pub struct Config {
     /// An empty directory. Tests should not write to this.
     pub emptydir: PathBuf,
     /// This is cwd for the test
-    pub workdir: PathBuf,
+    pub workdir: RefCell<PathBuf>,
 }
 
 // Describes all the features of the mock dist server.
@@ -61,7 +61,7 @@ pub static MULTI_ARCH1: &'static str = "i686-unknown-linux-gnu";
 
 /// Run this to create the test environment containing rustup, and
 /// a mock dist server.
-pub fn setup(s: Scenario, f: &Fn(&Config)) {
+pub fn setup(s: Scenario, f: &Fn(&mut Config)) {
     // Unset env variables that will break our testing
     env::remove_var("RUSTUP_TOOLCHAIN");
     env::remove_var("SHELL");
@@ -81,7 +81,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     let cargodir = cargodir.path().join("ch");
     fs::create_dir(&cargodir).unwrap();
 
-    let ref config = Config {
+    let mut config = Config {
         exedir: exedir.path().to_owned(),
         distdir: distdir.path().to_owned(),
         rustupdir: rustupdir.path().to_owned(),
@@ -89,7 +89,7 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
         cargodir: cargodir,
         homedir: homedir.path().to_owned(),
         emptydir: emptydir.path().to_owned(),
-        workdir: workdir.path().to_owned(),
+        workdir: RefCell::new(workdir.path().to_owned()),
     };
 
     create_mock_dist_server(&config.distdir, s);
@@ -136,25 +136,31 @@ pub fn setup(s: Scenario, f: &Fn(&Config)) {
     // Create some custom toolchains
     create_custom_toolchains(&config.customdir);
 
-    // Hold a lock while the test is running because they change directories,
-    // causing havok
-    lazy_static! {
-        static ref LOCK: Mutex<()> = Mutex::new(());
-    }
-    let _g = LOCK.lock();
-
-    // Change the cwd to a test-specific directory
-    let cwd = env::current_dir().unwrap();
-    env::set_current_dir(&config.workdir).unwrap();
-    let _g = scopeguard::guard(cwd, |d| env::set_current_dir(d).unwrap());
-
-    f(config);
+    f(&mut config);
 
     // These are the bogus values the test harness sets "HOME" and "CARGO_HOME"
     // to during testing. If they exist that means a test unexpectedly used
     // one of these environment variables.
     assert!(!PathBuf::from("./bogus-home").exists());
     assert!(!PathBuf::from("./bogus-cargo-home").exists());
+}
+
+impl Config {
+    pub fn current_dir(&self) -> PathBuf {
+        self.workdir.borrow().clone()
+    }
+
+    pub fn change_dir<F>(&self, path: &Path, mut f: F)
+        where F: FnMut()
+    {
+        self._change_dir(path, &mut f)
+    }
+
+    fn _change_dir(&self, path: &Path, f: &mut FnMut()) {
+        let prev = mem::replace(&mut *self.workdir.borrow_mut(), path.to_owned());
+        f();
+        *self.workdir.borrow_mut() = prev;
+    }
 }
 
 /// Change the current distribution manifest to a particular date
@@ -286,6 +292,7 @@ pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
     let exe_path = config.exedir.join(format!("{}{}", name, EXE_SUFFIX));
     let mut cmd = Command::new(exe_path);
     cmd.args(args);
+    cmd.current_dir(&*config.workdir.borrow());
     env(config, &mut cmd);
     cmd
 }
@@ -331,13 +338,6 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
         stdout: String::from_utf8(out.stdout).unwrap(),
         stderr: String::from_utf8(out.stderr).unwrap(),
     }
-}
-
-pub fn change_dir(path: &Path, f: &Fn()) {
-    let cwd = env::current_dir().unwrap();
-    env::set_current_dir(path).unwrap();
-    let _g = scopeguard::guard(cwd, |d| env::set_current_dir(d).unwrap());
-    f();
 }
 
 // Creates a mock dist server populated with some test data

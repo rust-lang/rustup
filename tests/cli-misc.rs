@@ -7,16 +7,14 @@ extern crate rustup_mock;
 extern crate time;
 extern crate tempdir;
 
-use rustup_mock::clitools::{self, Config, Scenario, SanitizedOutput,
-                               expect_stdout_ok, expect_stderr_ok,
-                               expect_ok, expect_err, expect_timeout_ok,
-                               run, this_host_triple};
+use rustup_mock::clitools::{self, Config, Scenario,
+                            expect_stdout_ok, expect_stderr_ok,
+                            expect_ok, expect_err, expect_timeout_ok,
+                            run, this_host_triple};
 use rustup_utils::{raw, utils};
 
-use std::io::Write;
 use std::ops::Add;
 use std::ops::Sub;
-use std::process::Stdio;
 use std::time::Duration as StdDuration;
 use std::env::consts::EXE_SUFFIX;
 use tempdir::TempDir;
@@ -24,7 +22,7 @@ use time::Duration;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
-pub fn setup(f: &Fn(&Config)) {
+pub fn setup(f: &Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);
 }
 

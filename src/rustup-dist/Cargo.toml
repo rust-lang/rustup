@@ -26,7 +26,6 @@ toml = "0.1.27"
 sha2 = "0.6.0"
 rustup-utils = { path = "../rustup-utils" }
 error-chain = "0.7.1"
-rustup-mock = { path = "../rustup-mock" }
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.8"

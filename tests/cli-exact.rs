@@ -7,14 +7,13 @@ extern crate tempdir;
 extern crate rustup_utils;
 
 use rustup_mock::clitools::{self, Config, Scenario,
-                               expect_ok, expect_ok_ex,
-                               expect_err_ex,
-                               this_host_triple, change_dir};
-use std::env;
+                            expect_ok, expect_ok_ex,
+                            expect_err_ex,
+                            this_host_triple};
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
-fn setup(f: &Fn(&Config)) {
+fn setup(f: &Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);
 }
 
@@ -80,7 +79,7 @@ info: default toolchain set to 'nightly-{0}'
 #[test]
 fn override_again() {
     setup(&|config| {
-        let cwd = env::current_dir().unwrap();
+        let cwd = config.current_dir();
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
         expect_ok_ex(config, &["rustup", "override", "add", "nightly"],
 for_host!(r"
@@ -98,7 +97,7 @@ info: override toolchain for '{}' set to 'nightly-{1}'
 fn remove_override() {
     for keyword in &["remove", "unset"] {
         setup(&|config| {
-            let cwd = env::current_dir().unwrap();
+            let cwd = config.current_dir();
             expect_ok(config, &["rustup", "override", "add", "nightly"]);
             expect_ok_ex(config, &["rustup", "override", keyword],
                          r"",
@@ -112,7 +111,7 @@ fn remove_override() {
 fn remove_override_none() {
     for keyword in &["remove", "unset"] {
         setup(&|config| {
-            let cwd = env::current_dir().unwrap();
+            let cwd = config.current_dir();
             expect_ok_ex(config, &["rustup", "override", keyword],
                          r"",
                          &format!("info: no override toolchain for '{}'
@@ -127,7 +126,7 @@ fn remove_override_with_path() {
     for keyword in &["remove", "unset"] {
         setup(&|config| {
             let dir = tempdir::TempDir::new("rustup-test").unwrap();
-            change_dir(dir.path(), &|| {
+            config.change_dir(dir.path(), || {
                 expect_ok(config, &["rustup", "override", "add", "nightly"]);
             });
             expect_ok_ex(config, &["rustup", "override", keyword, "--path", dir.path().to_str().unwrap()],
@@ -145,8 +144,8 @@ fn remove_override_with_path_deleted() {
             let path = {
                 let dir = tempdir::TempDir::new("rustup-test").unwrap();
                 let path = std::fs::canonicalize(dir.path()).unwrap();
-                change_dir(&path, &|| {
-                  expect_ok(config, &["rustup", "override", "add", "nightly"]);
+                config.change_dir(&path, || {
+                    expect_ok(config, &["rustup", "override", "add", "nightly"]);
                 });
               path
             };
@@ -165,8 +164,8 @@ fn remove_override_nonexistent() {
             let path = {
                 let dir = tempdir::TempDir::new("rustup-test").unwrap();
                 let path = std::fs::canonicalize(dir.path()).unwrap();
-                change_dir(&path, &|| {
-                  expect_ok(config, &["rustup", "override", "add", "nightly"]);
+                config.change_dir(&path, || {
+                    expect_ok(config, &["rustup", "override", "add", "nightly"]);
                 });
                 path
             };
@@ -184,7 +183,7 @@ fn remove_override_nonexistent() {
 #[test]
 fn list_overrides() {
     setup(&|config| {
-        let cwd = std::fs::canonicalize(env::current_dir().unwrap()).unwrap();
+        let cwd = std::fs::canonicalize(config.current_dir()).unwrap();
         let mut cwd_formatted = format!("{}", cwd.display()).to_string();
 
         if cfg!(windows) {
@@ -207,7 +206,7 @@ fn list_overrides_with_nonexistent() {
 
         let nonexistent_path = {
             let dir = tempdir::TempDir::new("rustup-test").unwrap();
-            change_dir(dir.path(), &|| {
+            config.change_dir(dir.path(), || {
                 expect_ok(config, &["rustup", "override", "add", "nightly"]);
             });
             std::fs::canonicalize(dir.path()).unwrap()
