@@ -71,7 +71,8 @@ static LIST_ARCHS: &'static [&'static str] = &["i386",
                                                "mips64el",
                                                "powerpc",
                                                "powerpc64",
-                                               "powerpc64le"];
+                                               "powerpc64le",
+                                               "s390x"];
 static LIST_OSES: &'static [&'static str] = &["pc-windows",
                                               "unknown-linux",
                                               "apple-darwin",
