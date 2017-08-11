@@ -76,36 +76,15 @@ impl MockInstallerBuilder {
             // Create the component files and manifest
             let ref mut manifest = File::create(component_dir.join("manifest.in")).unwrap();
             for file in component.files.iter() {
-                let mk = |path: &Path, contents: &MockContents| {
-                    let dir_path = path.parent().unwrap().to_owned();
-                    fs::create_dir_all(dir_path).unwrap();
-                    File::create(&path).unwrap()
-                        .write_all(&contents.contents).unwrap();
-
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::PermissionsExt;
-                        if contents.executable {
-                            let mut perm = fs::metadata(path).unwrap().permissions();
-                            perm.set_mode(0o755);
-                            fs::set_permissions(path, perm).unwrap();
-                        }
-                    }
-                };
                 match file.contents {
-                    Contents::Dir(ref files) => {
+                    Contents::Dir(_) => {
                         writeln!(manifest, "dir:{}", file.path).unwrap();
-                        for &(ref name, ref contents) in files {
-                            let fname = component_dir.join(&file.path).join(name);
-                            mk(&fname, contents);
-                        }
                     }
-                    Contents::File(ref contents) => {
+                    Contents::File(_) => {
                         writeln!(manifest, "file:{}", file.path).unwrap();
-                        let fname = component_dir.join(&file.path);
-                        mk(&fname, contents);
                     }
                 }
+                file.build(&component_dir);
             }
         }
 
@@ -151,6 +130,38 @@ impl MockFile {
             _ => {}
         }
         self
+    }
+
+    pub fn build(&self, path: &Path) {
+        let path = path.join(&self.path);
+        match self.contents {
+            Contents::Dir(ref files) => {
+                for &(ref name, ref contents) in files {
+                    let fname = path.join(name);
+                    contents.build(&fname);
+                }
+            }
+            Contents::File(ref contents) => contents.build(&path),
+        }
+    }
+}
+
+impl MockContents {
+    fn build(&self, path: &Path) {
+        let dir_path = path.parent().unwrap().to_owned();
+        fs::create_dir_all(dir_path).unwrap();
+        File::create(&path).unwrap()
+            .write_all(&self.contents).unwrap();
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if self.executable {
+                let mut perm = fs::metadata(path).unwrap().permissions();
+                perm.set_mode(0o755);
+                fs::set_permissions(path, perm).unwrap();
+            }
+        }
     }
 }
 
