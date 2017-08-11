@@ -29,7 +29,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 // Mock of the on-disk structure of rust-installer installers
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct MockInstallerBuilder {
     pub components: Vec<MockComponent>,
 }

@@ -48,7 +48,7 @@ pub fn create_mock_dist_server(path: &Path,
 pub fn create_mock_channel(channel: &str, date: &str,
                            edit: Option<&Fn(&str, &mut MockPackage)>) -> MockChannel {
     // Put the date in the files so they can be differentiated
-    let contents = date.to_string().into_bytes();
+    let contents = Arc::new(date.as_bytes().to_vec());
 
     let rust_pkg = MockPackage {
         name: "rust",

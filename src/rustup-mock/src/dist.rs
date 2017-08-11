@@ -3,10 +3,11 @@
 
 use MockInstallerBuilder;
 use url::Url;
-use std::path::{PathBuf, Path};
-use std::fs::{self, File};
 use std::collections::HashMap;
+use std::fs::{self, File};
 use std::io::{Read, Write};
+use std::path::{PathBuf, Path};
+use std::sync::Mutex;
 use tempdir::TempDir;
 use sha2::{Sha256, Digest};
 use toml;
@@ -87,7 +88,7 @@ pub struct MockPackage {
     pub targets: Vec<MockTargetedPackage>,
 }
 
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Hash, Eq, PartialEq, Clone)]
 pub struct MockTargetedPackage {
     // Target triple
     pub target: String,
@@ -101,7 +102,7 @@ pub struct MockTargetedPackage {
     pub installer: MockInstallerBuilder,
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct MockComponent {
     pub name: String,
     pub target: String,
@@ -180,12 +181,37 @@ impl MockDistServer {
 
         fs::create_dir_all(installer_dir).unwrap();
 
-        target_package.installer.build(installer_dir);
-        create_tarball(&PathBuf::from(installer_name),
-                       installer_dir, installer_tarball);
+        // Tarball creation can be super slow, so cache created tarballs
+        // globally to avoid recreating and recompressing tons of tarballs.
+        lazy_static! {
+            static ref TARBALLS: Mutex<HashMap<(String, MockTargetedPackage, String),
+                                               (Vec<u8>, String)>> =
+                Mutex::new(HashMap::new());
+        }
 
-        // Create hash
-        let hash = create_hash(installer_tarball, installer_hash);
+        let key = (installer_name.to_string(),
+                   target_package.clone(),
+                   format.to_string());
+        let tarballs = TARBALLS.lock().unwrap();
+        let hash = if tarballs.contains_key(&key) {
+            let (ref contents, ref hash) = tarballs[&key];
+            File::create(&installer_tarball).unwrap()
+                .write_all(contents).unwrap();
+            File::create(&installer_hash).unwrap()
+                .write_all(hash.as_bytes()).unwrap();
+            hash.clone()
+        } else {
+            drop(tarballs);
+            target_package.installer.build(installer_dir);
+            create_tarball(&PathBuf::from(installer_name),
+                           installer_dir, installer_tarball);
+            let mut contents = Vec::new();
+            File::open(installer_tarball).unwrap()
+                .read_to_end(&mut contents).unwrap();
+            let hash = create_hash(installer_tarball, installer_hash);
+            TARBALLS.lock().unwrap().insert(key, (contents, hash.clone()));
+            hash
+        };
 
         // Copy from the archive to the main dist directory
         if package.name == "rust" {
