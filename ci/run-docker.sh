@@ -112,7 +112,7 @@ case $TARGET in
     ;;
   powerpc64-*-linux-*)
     OPENSSL_OS=linux-ppc64
-    OPENSSL_CC=powerpc64-linux-gnu-gcc-5
+    OPENSSL_CC=powerpc64-linux-gnu-gcc
     OPENSSL_AR=powerpc64-linux-gnu-ar
     OPENSSL_CFLAGS=-m64
     ;;
@@ -179,7 +179,7 @@ else
 
   # Travis will cache the parent directory. That's fine, but want a way of marking the
   # install "complete". In this setup, if the build fails there will be no -final and
-  # the whole thing starts again (which is fine).   
+  # the whole thing starts again (which is fine).
   # The same reasoning is why to cache the install-target directory rather than
   # the build directory in the first place (make should be able to sort itself out in
   # that case, but that's relying on intuitive timestamps in the presence of caching etc)

@@ -14,13 +14,14 @@ fi
 
 docker run \
   --entrypoint bash \
-  -u `id -u`:`id -g` \
-  -v $HOME/rust:/travis-rust:ro \
-  -v `pwd`:/buildslave:ro \
-  -v `pwd`/target:/buildslave/target \
-  -e TARGET=$TARGET \
-  -e SKIP_TESTS=$SKIP_TESTS \
-  -it $DOCKER \
+  --user `id -u`:`id -g` \
+  --volume `rustc --print sysroot`:/travis-rust:ro \
+  --volume `pwd`:/src:ro \
+  --volume `pwd`/target:/src/target \
+  --workdir /src \
+  --env TARGET=$TARGET \
+  --env SKIP_TESTS=$SKIP_TESTS \
+  $DOCKER \
   ci/run-docker.sh
 
 # check that rustup-init was built with ssl support

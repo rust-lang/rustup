@@ -15,6 +15,7 @@ matrix:
       env: TARGET=x86_64-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-dist:2015-10-20b
            NO_ADD=1
+           ALLOW_PR=1
 
     # Cross builds happen in the `rust-slave-linux-cross` image to ensure that
     # we use the right cross compilers for these targets. That image should
@@ -49,31 +50,31 @@ matrix:
            SKIP_TESTS=1
     - os: linux
       env: TARGET=powerpc64-unknown-linux-gnu
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
+           DOCKER=powerpc64-unknown-linux-gnu
            SKIP_TESTS=1
     - os: linux
       env: TARGET=powerpc64le-unknown-linux-gnu
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
+           DOCKER=powerpc64le-unknown-linux-gnu
            SKIP_TESTS=1
     - os: linux
       env: TARGET=mips-unknown-linux-gnu
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
+           DOCKER=mips-unknown-linux-gnu
            SKIP_TESTS=1
     - os: linux
       env: TARGET=mipsel-unknown-linux-gnu
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
+           DOCKER=mipsel-unknown-linux-gnu
            SKIP_TESTS=1
     - os: linux
       env: TARGET=mips64-unknown-linux-gnuabi64
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
+           DOCKER=mips64-unknown-linux-gnuabi64
            SKIP_TESTS=1
     - os: linux
       env: TARGET=mips64el-unknown-linux-gnuabi64
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
+           DOCKER=mips64el-unknown-linux-gnuabi64
            SKIP_TESTS=1
     - os: linux
       env: TARGET=s390x-unknown-linux-gnu
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
+           DOCKER=s390x-unknown-linux-gnu
            SKIP_TESTS=1
 
     # Android use a local docker image
