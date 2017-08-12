@@ -2,6 +2,7 @@ sudo: required
 dist: trusty
 services:
   - docker
+language: rust
 
 matrix:
   include:
@@ -13,6 +14,7 @@ matrix:
     - os: linux
       env: TARGET=x86_64-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-dist:2015-10-20b
+           NO_ADD=1
 
     # Cross builds happen in the `rust-slave-linux-cross` image to ensure that
     # we use the right cross compilers for these targets. That image should
@@ -104,6 +106,7 @@ matrix:
     - os: osx
       env: TARGET=x86_64-apple-darwin
            MACOSX_DEPLOYMENT_TARGET=10.7
+           NO_ADD=1
 
 cache:
   # We're going to download things we don't necessarily want to cache into the `target` directory, so
@@ -118,33 +121,23 @@ branches:
     - stable
     - auto
 
-notifications:
-  webhooks: http://buildbot.rust-lang.org/homu/travis
-
 install:
-  - sudo pip install awscli
-  - aws configure set preview.cloudfront true
-  - curl https://static.rust-lang.org/rustup.sh |
-    sh -s -- --prefix=$HOME/rust --spec=nightly-2017-04-25 --with-target=$TARGET
+  - if [ -z "$NO_ADD" ]; then rustup target add $TARGET; fi
 
 script:
-  - mkdir -p target/$TARGET
-  - if [ ! -z "$DOCKER" ]; then
-      sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
+  - mkdir -p target/$TARGET;
+  - >
+    if [[ "$TRAVIS_PULL_REQUEST" == "false" || "$ALLOW_PR" == "1" ]]; then
+        if [ ! -z "$DOCKER" ]; then
+            sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
+        else
+            PATH=$HOME/rust/bin:$PATH sh ci/run.sh;
+        fi
     else
-      PATH=$HOME/rust/bin:$PATH sh ci/run.sh;
+        echo 'skipping build';
     fi
-  # Install kcov dependencies
-  # FIXME: busted!
-  #- if [ "$TARGET" == "x86_64-unknown-linux-gnu" ]; then
-  #    wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz;
-  #    tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make;
-  #    sudo make install && cd ../..;
-  #    echo "Uploading coverage... $TRAVIS_JOB_ID";
-  #    find target/debug/deps/*-* -executable -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
-  #    find target/debug/*-* -executable ! -name rustup-rs -exec kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov '{}' \;;
-  #  fi
-  # prepare for a deploy if this will be a deployment
+
+before_deploy:
   - bash ci/prepare-deploy-travis.sh
 
 deploy:
@@ -163,4 +156,6 @@ deploy:
 
 # FIXME: I don't know if this really works
 after_deploy:
+  - sudo pip install awscli
+  - aws configure set preview.cloudfront true
   - aws cloudfront create-invalidation --paths "rustup/$TARGET/* rustup/dev/$TARGET/* rustup/www/* rustup/dev/www/* rustup/* rustup/dev/*"
