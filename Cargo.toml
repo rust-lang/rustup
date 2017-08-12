@@ -77,3 +77,6 @@ test = false # no unit tests
 name = "rustup-init"
 path = "src/rustup-cli/main.rs"
 test = false # no unit tests
+
+[replace]
+"mio:0.6.10" = { git = "https://github.com/carllerche/mio", commit = "1d42d523f235bff298acd11f5758c3fed81ef67a" }
