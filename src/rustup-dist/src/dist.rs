@@ -229,9 +229,9 @@ impl PartialTargetTriple {
             }
 
             PartialTargetTriple {
-                arch: c.at(1).and_then(fn_map),
-                os: c.at(2).and_then(fn_map),
-                env: c.at(3).and_then(fn_map),
+                arch: c.get(1).map(|s| s.as_str()).and_then(fn_map),
+                os: c.get(2).map(|s| s.as_str()).and_then(fn_map),
+                env: c.get(3).map(|s| s.as_str()).and_then(fn_map),
             }
         })
     }
@@ -256,12 +256,12 @@ impl PartialToolchainDesc {
                 }
             }
 
-            let trip = c.at(3).unwrap_or("");
+            let trip = c.get(3).map(|c| c.as_str()).unwrap_or("");
             let trip = PartialTargetTriple::from_str(&trip);
             trip.map(|t| {
                 PartialToolchainDesc {
-                    channel: c.at(1).unwrap().to_owned(),
-                    date: c.at(2).and_then(fn_map),
+                    channel: c.get(1).unwrap().as_str().to_owned(),
+                    date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
                     target: t,
                 }
             })
@@ -331,9 +331,9 @@ impl ToolchainDesc {
                 }
 
                 ToolchainDesc {
-                    channel: c.at(1).unwrap().to_owned(),
-                    date: c.at(2).and_then(fn_map),
-                    target: TargetTriple(c.at(3).unwrap().to_owned()),
+                    channel: c.get(1).unwrap().as_str().to_owned(),
+                    date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
+                    target: TargetTriple(c.get(3).unwrap().as_str().to_owned()),
                 }
             })
             .ok_or(ErrorKind::InvalidToolchainName(name.to_string()).into())

@@ -97,8 +97,8 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command,
                 let _ = handle.write(b.as_bytes());
 
                 if let Some(caps) = re.captures(&b) {
-                    if !caps.is_empty() {
-                        errors.push(caps.name("error").unwrap_or("").to_owned());
+                    if caps.len() > 0 {
+                        errors.push(caps.name("error").map(|m| m.as_str()).unwrap_or("").to_owned());
                     }
                 };
             }

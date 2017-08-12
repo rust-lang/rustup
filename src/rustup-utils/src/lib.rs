@@ -10,8 +10,6 @@ extern crate url;
 extern crate toml;
 extern crate download;
 extern crate semver;
-#[macro_use]
-extern crate lazy_static;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -27,6 +25,9 @@ extern crate kernel32;
 extern crate advapi32;
 #[cfg(windows)]
 extern crate userenv;
+#[cfg(windows)]
+#[macro_use]
+extern crate lazy_static;
 
 #[cfg(unix)]
 extern crate libc;

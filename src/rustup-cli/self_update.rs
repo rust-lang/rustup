@@ -207,7 +207,7 @@ fn canonical_cargo_home() -> Result<String> {
             path_str = String::from("$HOME/.cargo");
         } else {
             path_str = String::from(r"%USERPROFILE%\.cargo");
-        } 
+        }
     }
 
     Ok(path_str)
@@ -1337,7 +1337,7 @@ fn parse_new_rustup_version(version: String) -> String {
     let re = Regex::new(r"\d+.\d+.\d+[0-9a-zA-Z-]*").unwrap();
     let capture = re.captures(&version);
     let matched_version = match capture {
-        Some(cap) => cap.at(0).unwrap(),
+        Some(cap) => cap.get(0).unwrap().as_str(),
         None => "(unknown)"
     };
     String::from(matched_version)
