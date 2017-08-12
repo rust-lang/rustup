@@ -1,7 +1,10 @@
 image: Visual Studio 2017
 environment:
-  RUSTFLAGS: -Zunstable-options -Ctarget-feature=+crt-static
+  RUSTFLAGS: -Ctarget-feature=+crt-static
   matrix:
+  - TARGET: x86_64-pc-windows-msvc
+    ALLOW_PR: 1
+  - TARGET: i686-pc-windows-msvc
   # FIXME
   #- TARGET: i686-pc-windows-msvc
   #  BUILD_MSI: 1
@@ -9,8 +12,6 @@ environment:
     MINGW_DIR: mingw32
   - TARGET: x86_64-pc-windows-gnu
     MINGW_DIR: mingw64
-  - TARGET: i686-pc-windows-msvc
-  - TARGET: x86_64-pc-windows-msvc
   access_token:
     secure: q8Wqx0brgfpOYFQqWauvucE2h0o1WYb41a3gKaCKV9QiE4eTz6qLNlqyC3mdsp4Q
 branches:
@@ -20,6 +21,9 @@ branches:
     - auto
 
 install:
+  # If this is a PR and we're not allowed to test PRs, skip the whole build
+  - if defined APPVEYOR_PULL_REQUEST_NUMBER if NOT defined ALLOW_PR appveyor exit
+
   # Install MSYS2 and MINGW (32-bit & 64-bit)
   - ps: |
       # Check if MSYS2 was restored from cache
@@ -28,12 +32,12 @@ install:
           # Download and install MINGW (32-bit)
           Write-Host "Installing MinGW (32-bit)..." -ForegroundColor Cyan
           Write-Host "Downloading installation package..."
-          appveyor DownloadFile https://s3.amazonaws.com/rust-lang-ci/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z -FileName mingw.7z
+          appveyor-retry appveyor DownloadFile https://s3.amazonaws.com/rust-lang-ci/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z -FileName mingw.7z
         } elseif($env:MINGW_DIR -eq "mingw64") {
           # Download and install MINGW (64-bit)
           Write-Host "Installing MinGW (64-bit)..." -ForegroundColor Cyan
           Write-Host "Downloading installation package..."
-          appveyor DownloadFile https://s3.amazonaws.com/rust-lang-ci/x86_64-4.9.2-release-win32-seh-rt_v4-rev4.7z -FileName mingw.7z
+          appveyor-retry appveyor DownloadFile https://s3.amazonaws.com/rust-lang-ci/x86_64-4.9.2-release-win32-seh-rt_v4-rev4.7z -FileName mingw.7z
         }
         Write-Host "Extracting installation package..."
         7z x -y mingw.7z -oC:\msys64 | Out-Null
@@ -43,8 +47,8 @@ install:
       }
 
   # Install rust, x86_64-pc-windows-msvc host
-  - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-  - rustup-init.exe -y --default-toolchain=nightly-2017-04-25-x86_64-pc-windows-msvc
+  - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+  - rustup-init.exe -y --default-host=x86_64-pc-windows-msvc
   - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
 
   # Install the target we're compiling for
