@@ -8,7 +8,7 @@ extern crate time;
 extern crate tempdir;
 
 use rustup_mock::clitools::{self, Config, Scenario,
-                            expect_stdout_ok, expect_stderr_ok,
+                            expect_stdout_ok, expect_stderr_ok, expect_ok_ex,
                             expect_ok, expect_err, expect_timeout_ok,
                             run, this_host_triple};
 use rustup_utils::{raw, utils};
@@ -479,5 +479,42 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
         let out = run(config, "rustup-init", &["-y"],
                       &[("RUSTUP_INIT_SKIP_PATH_CHECK", "no"), ("PATH", &temp_dir_path)]);
         assert!(out.ok);
+    });
+}
+
+// issue #1169
+#[test]
+#[cfg(any(unix, windows))]
+fn toolchain_broken_symlink() {
+    use std::path::Path;
+    use std::fs;
+
+    #[cfg(unix)]
+    fn create_symlink_dir<P: AsRef<Path>, Q: AsRef<Path>>(src: P, dst: Q) {
+        use std::os::unix::fs;
+        fs::symlink(src, dst).unwrap();
+    }
+
+    #[cfg(windows)]
+    fn create_symlink_dir<P: AsRef<Path>, Q: AsRef<Path>>(src: P, dst: Q) {
+        use std::os::windows::fs;
+        fs::symlink_dir(src, dst).unwrap();
+    }
+
+    setup(&|config| {
+        // We artifically create a broken symlink toolchain -- but this can also happen "legitimately"
+        // by having a proper toolchain there, using "toolchain link", and later removing the directory.
+        fs::create_dir(config.rustupdir.join("toolchains")).unwrap();
+        create_symlink_dir(config.rustupdir.join("this-directory-does-not-exist"), config.rustupdir.join("toolchains").join("test"));
+        // Make sure this "fake install" actually worked
+        expect_ok_ex(config, &["rustup", "toolchain", "list"], "test\n", "");
+        // Now try to uninstall it.  That should work only once.
+        expect_ok_ex(config, &["rustup", "toolchain", "uninstall", "test"], "",
+r"info: uninstalling toolchain 'test'
+info: toolchain 'test' uninstalled
+");
+        expect_ok_ex(config, &["rustup", "toolchain", "uninstall", "test"], "",
+r"info: no toolchain installed for 'test'
+");
     });
 }
