@@ -13,27 +13,27 @@ repository = "https://github.com/rust-lang-nursery/rustup.rs"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-regex = "0.1.41"
-itertools = "0.4.1"
+regex = "0.2.0"
+itertools = "0.6"
 ole32-sys = "0.2.0"
 url = "1.1.0"
 tar = "0.4.0"
 flate2 = "0.2.9"
 xz2 = "0.1.3"
 tempdir = "0.3.4"
-walkdir = "0.1.5"
+walkdir = "1.0"
 toml = "0.1.27"
 sha2 = "0.6.0"
 rustup-utils = { path = "../rustup-utils" }
-error-chain = "0.7.1"
+error-chain = "0.10"
 
 [dev-dependencies]
 rustup-mock = { path = "../rustup-mock" }
 
 [target."cfg(windows)".dependencies]
 winapi = "0.2.8"
-winreg = "0.3.2"
-user32-sys = "0.1.2"
+winreg = "0.4"
+user32-sys = "0.2.0"
 kernel32-sys = "0.2.1"
 
 [target."cfg(not(windows))".dependencies]

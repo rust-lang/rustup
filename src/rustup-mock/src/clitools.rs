@@ -2,7 +2,6 @@
 //! tests/cli-v2.rs
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::env::consts::EXE_SUFFIX;
 use std::env;
 use std::fs::{self, File};
@@ -10,10 +9,10 @@ use std::io::{self, Read, Write};
 use std::mem;
 use std::path::{PathBuf, Path};
 use std::process::{Command, Stdio};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 use tempdir::TempDir;
-use {MockInstallerBuilder, MockCommand};
+use {MockInstallerBuilder, MockFile, MockComponentBuilder};
 use dist::{MockDistServer, MockChannel, MockPackage,
            MockTargetedPackage, MockComponent, change_channel_date,
            ManifestVersion};
@@ -530,23 +529,24 @@ pub fn this_host_triple() -> String {
 
 fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            (format!("rust-std-{}", trip.clone()),
-             vec![MockCommand::File(format!("lib/rustlib/{}/libstd.rlib", trip))],
-             vec![(format!("lib/rustlib/{}/libstd.rlib", trip), empty(), false)])
-            ]
+        components: vec![MockComponentBuilder {
+            name: format!("rust-std-{}", trip.clone()),
+            files: vec![
+                MockFile::new(format!("lib/rustlib/{}/libstd.rlib", trip), b""),
+            ],
+        }],
     }
 }
 
 fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            (format!("rust-std-{}", target.clone()),
-             vec![MockCommand::File(format!("lib/rustlib/{}/lib/libstd.rlib", target)),
-                  MockCommand::File(format!("lib/rustlib/{}/lib/{}", target, date))],
-             vec![(format!("lib/rustlib/{}/lib/libstd.rlib", target), empty(), false),
-                  (format!("lib/rustlib/{}/lib/{}", target, date), empty(), false)])
-            ]
+        components: vec![MockComponentBuilder {
+            name: format!("rust-std-{}", target.clone()),
+            files: vec![
+                MockFile::new(format!("lib/rustlib/{}/lib/libstd.rlib", target), b""),
+                MockFile::new(format!("lib/rustlib/{}/lib/{}", target, date), b""),
+            ],
+        }],
     }
 }
 
@@ -561,65 +561,62 @@ fn build_mock_rustc_installer(target: &str, version: &str, version_hash_: &str) 
         version_hash = version_hash_.to_string();
     }
 
-    let rustc = format!("bin/rustc{}", EXE_SUFFIX);
     MockInstallerBuilder {
-        components: vec![
-            ("rustc".to_string(),
-             vec![MockCommand::File(rustc.clone())],
-             vec![(rustc, mock_bin("rustc", version, &version_hash), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: "rustc".to_string(),
+            files: mock_bin("rustc", version, &version_hash),
+        }],
     }
 }
 
 fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
-    let cargo = format!("bin/cargo{}", EXE_SUFFIX);
     MockInstallerBuilder {
-        components: vec![
-            ("cargo".to_string(),
-             vec![MockCommand::File(cargo.clone())],
-             vec![(cargo, mock_bin("cargo", version, version_hash), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: "cargo".to_string(),
+            files: mock_bin("cargo", version, &version_hash),
+        }],
     }
 }
 
 fn build_mock_rls_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
-    let cargo = format!("bin/rls{}", EXE_SUFFIX);
     MockInstallerBuilder {
-        components: vec![
-            ("rls".to_string(),
-             vec![MockCommand::File(cargo.clone())],
-             vec![(cargo, mock_bin("rls", version, version_hash), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: "rls".to_string(),
+            files: mock_bin("rls", version, version_hash),
+        }],
     }
 }
 
 fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            ("rust-docs".to_string(),
-             vec![MockCommand::File("share/doc/rust/html/index.html".to_string())],
-             vec![("share/doc/rust/html/index.html".to_string(), empty(), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: "rust-docs".to_string(),
+            files: vec![
+                MockFile::new("share/doc/rust/html/index.html", b""),
+            ],
+        }],
     }
 }
 
 fn build_mock_rust_analysis_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            (format!("rust-analysis-{}", trip),
-             vec![MockCommand::File(format!("lib/rustlib/{}/analysis/libfoo.json", trip))],
-             vec![(format!("lib/rustlib/{}/analysis/libfoo.json", trip), empty(), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: format!("rust-analysis-{}", trip),
+            files: vec![
+                MockFile::new(format!("lib/rustlib/{}/analysis/libfoo.json", trip), b""),
+            ],
+        }],
     }
 }
 
 fn build_mock_rust_src_installer() -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            ("rust-src".to_string(),
-             vec![MockCommand::File("lib/rustlib/src/rust-src/foo.rs".to_string())],
-             vec![("lib/rustlib/src/rust-src/foo.rs".to_string(), empty(), false)])
-                ]
+        components: vec![MockComponentBuilder {
+            name: "rust-src".to_string(),
+            files: vec![
+                MockFile::new("lib/rustlib/src/rust-src/foo.rs", b""),
+            ],
+        }],
     }
 }
 
@@ -633,98 +630,68 @@ fn build_combined_installer(components: &[&MockInstallerBuilder]) -> MockInstall
 /// prints some version information. These binaries are stuffed into
 /// the mock installers so we have executables for rustup to run.
 ///
-/// This does a really crazy thing. Because we need to generate a lot
-/// of these, and running rustc is slow, it does it once, stuffs the
-/// bin into memory, then does a string replacement of the version
-/// information it needs to report to create subsequent bins.
-fn mock_bin(_name: &str, version: &str, version_hash: &str) -> Arc<Vec<u8>> {
+/// To avoid compiling tons of files we globally cache one compiled executable
+/// and then we store some associated files next to it which indicate
+/// the version/version hash information.
+fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
     lazy_static! {
-        static ref MOCK_BIN_TEMPLATE: Mutex<HashMap<(String, String), Arc<Vec<u8>>>> =
-            Mutex::new(HashMap::new());
+        static ref MOCK_BIN: Arc<Vec<u8>> = {
+            // Create a temp directory to hold the source and the output
+            let ref tempdir = TempDir::new("rustup").unwrap();
+            let ref source_path = tempdir.path().join("in.rs");
+            let ref dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
+
+            // Write the source
+            let source = include_str!("mock_bin_src.rs");
+            File::create(source_path).and_then(|mut f| f.write_all(source.as_bytes())).unwrap();
+
+            // Create the executable
+            let status = Command::new("rustc")
+                .arg(&source_path)
+                .arg("-C").arg("panic=abort")
+                .arg("-O")
+                .arg("-o").arg(&dest_path)
+                .status()
+                .unwrap();
+            assert!(status.success());
+            assert!(dest_path.exists());
+
+            // If we're on unix this will remove debuginfo, otherwise we just ignore
+            // the return result here
+            if cfg!(unix) {
+                drop(Command::new("strip").arg(&dest_path).status());
+            }
+
+            // Now load it into memory
+            let mut f = File::open(dest_path).unwrap();
+            let mut buf = Vec::new();
+            f.read_to_end(&mut buf).unwrap();
+
+            Arc::new(buf)
+        };
     }
 
-    let key = (version.to_string(), version_hash.to_string());
-    let map = MOCK_BIN_TEMPLATE.lock().unwrap();
-    if let Some(ret) = map.get(&key) {
-        return ret.clone()
-    }
-    drop(map);
-
-    // Create a temp directory to hold the source and the output
-    let ref tempdir = TempDir::new("rustup").unwrap();
-    let ref source_path = tempdir.path().join("in.rs");
-    let ref dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
-
-    // Write the source
-    let source = include_str!("mock_bin_src.rs");
-    File::create(source_path).and_then(|mut f| f.write_all(source.as_bytes())).unwrap();
-
-    // Create the executable
-    let status = Command::new("rustc")
-        .arg(&source_path)
-        .arg("-C").arg("panic=abort")
-        .arg("-O")
-        .arg("-o").arg(&dest_path)
-        .env("EXAMPLE_VERSION", version)
-        .env("EXAMPLE_VERSION_HASH", version_hash)
-        .status()
-        .unwrap();
-    assert!(status.success());
-    assert!(dest_path.exists());
-
-    // If we're on unix this will remove debuginfo, otherwise we just ignore
-    // the return result here
-    drop(Command::new("strip").arg(&dest_path).status());
-
-    // Now load it into memory
-    let mut f = File::open(dest_path).unwrap();
-    let mut buf = Vec::new();
-    f.read_to_end(&mut buf).unwrap();
-
-    let buf = Arc::new(buf);
-    MOCK_BIN_TEMPLATE.lock().unwrap().insert(key, buf.clone());
-    return buf
+    let name = format!("bin/{}{}", name, EXE_SUFFIX);
+    vec![
+        MockFile::new(format!("{}.version", name), version.as_bytes()),
+        MockFile::new(format!("{}.version-hash", name), version_hash.as_bytes()),
+        MockFile::new_arc(name, MOCK_BIN.clone()).executable(true),
+    ]
 }
 
 // These are toolchains for installation with --link-local and --copy-local
 fn create_custom_toolchains(customdir: &Path) {
-    let ref dir = customdir.join("custom-1/bin");
-    fs::create_dir_all(dir).unwrap();
     let ref libdir = customdir.join("custom-1/lib");
     fs::create_dir_all(libdir).unwrap();
-    let rustc = mock_bin("rustc", "1.0.0", "hash-c-1");
-    let ref path = customdir.join(format!("custom-1/bin/rustc{}", EXE_SUFFIX));
-    let mut file = File::create(path).unwrap();
-    file.write_all(&rustc).unwrap();
-    make_exe(dir, path);
-
-    let ref dir = customdir.join("custom-2/bin");
-    fs::create_dir_all(dir).unwrap();
-    let ref libdir = customdir.join("custom-2/lib");
-    fs::create_dir_all(libdir).unwrap();
-    let rustc = mock_bin("rustc", "1.0.0", "hash-c-2");
-    let ref path = customdir.join(format!("custom-2/bin/rustc{}", EXE_SUFFIX));
-    let mut file = File::create(path).unwrap();
-    file.write_all(&rustc).unwrap();
-    make_exe(dir, path);
-
-    #[cfg(unix)]
-    fn make_exe(dir: &Path, bin: &Path) {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(dir).unwrap().permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(dir, perms).unwrap();
-        let mut perms = fs::metadata(bin).unwrap().permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(bin, perms).unwrap();
+    for file in mock_bin("rustc", "1.0.0", "hash-c-1") {
+        file.build(&customdir.join("custom-1"));
     }
 
-    #[cfg(windows)]
-    fn make_exe(_: &Path, _: &Path) { }
-}
-
-fn empty() -> Arc<Vec<u8>> {
-    Arc::new(Vec::new())
+    let ref libdir = customdir.join("custom-2/lib");
+    fs::create_dir_all(libdir).unwrap();
+    for file in mock_bin("rustc", "1.0.0", "hash-c-2") {
+        file.build(&customdir.join("custom-2"));
+    }
 }
 
 pub fn hard_link<A, B>(a: A, b: B) -> io::Result<()>

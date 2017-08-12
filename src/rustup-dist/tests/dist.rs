@@ -13,7 +13,7 @@ extern crate itertools;
 extern crate url;
 
 use rustup_mock::dist::*;
-use rustup_mock::{MockCommand, MockInstallerBuilder};
+use rustup_mock::{MockFile, MockInstallerBuilder, MockComponentBuilder};
 use rustup_dist::prefix::InstallPrefix;
 use rustup_dist::ErrorKind;
 use rustup_dist::errors::Result;
@@ -112,16 +112,12 @@ pub fn create_mock_channel(channel: &str, date: &str,
                 components: vec![],
                 extensions: vec![],
                 installer: MockInstallerBuilder {
-                    components: vec![
-                        ("rustc".to_string(),
-                         vec![
-                             MockCommand::File("bin/rustc".to_string()),
-                             ],
-                         vec![
-                             ("bin/rustc".to_string(), contents.clone(), false)
-                                 ],
-                         ),
-                        ]
+                    components: vec![MockComponentBuilder {
+                        name: "rustc".to_string(),
+                        files: vec![
+                            MockFile::new_arc("bin/rustc", contents.clone()),
+                        ],
+                    }],
                 }
             },
             MockTargetedPackage {
@@ -146,16 +142,12 @@ pub fn create_mock_channel(channel: &str, date: &str,
                 components: vec![],
                 extensions: vec![],
                 installer: MockInstallerBuilder {
-                    components: vec![
-                        ("rust-std-x86_64-apple-darwin".to_string(),
-                         vec![
-                             MockCommand::File("lib/libstd.rlib".to_string()),
-                             ],
-                         vec![
-                             ("lib/libstd.rlib".to_string(), contents.clone(), false)
-                                 ],
-                         ),
-                        ]
+                    components: vec![MockComponentBuilder {
+                        name: "rust-std-x86_64-apple-darwin".to_string(),
+                        files: vec![
+                            MockFile::new_arc("lib/libstd.rlib", contents.clone()),
+                        ],
+                    }],
                 }
             },
             MockTargetedPackage {
@@ -164,16 +156,12 @@ pub fn create_mock_channel(channel: &str, date: &str,
                 components: vec![],
                 extensions: vec![],
                 installer: MockInstallerBuilder {
-                    components: vec![
-                        ("rust-std-i686-apple-darwin".to_string(),
-                         vec![
-                             MockCommand::File("lib/i686-apple-darwin/libstd.rlib".to_string()),
-                             ],
-                         vec![
-                             ("lib/i686-apple-darwin/libstd.rlib".to_string(), contents.clone(), false)
-                                 ],
-                         ),
-                        ]
+                    components: vec![MockComponentBuilder {
+                        name: "rust-std-i686-apple-darwin".to_string(),
+                        files: vec![
+                            MockFile::new_arc("lib/i686-apple-darwin/libstd.rlib", contents.clone()),
+                        ],
+                    }],
                 }
             },
             MockTargetedPackage {
@@ -182,16 +170,12 @@ pub fn create_mock_channel(channel: &str, date: &str,
                 components: vec![],
                 extensions: vec![],
                 installer: MockInstallerBuilder {
-                    components: vec![
-                        ("rust-std-i686-unknown-linux-gnu".to_string(),
-                         vec![
-                             MockCommand::File("lib/i686-unknown-linux-gnu/libstd.rlib".to_string()),
-                             ],
-                         vec![
-                             ("lib/i686-unknown-linux-gnu/libstd.rlib".to_string(), contents.clone(), false)
-                                 ],
-                         ),
-                        ]
+                    components: vec![MockComponentBuilder {
+                        name: "rust-std-i686-unknown-linux-gnu".to_string(),
+                        files: vec![
+                            MockFile::new_arc("lib/i686-unknown-linux-gnu/libstd.rlib", contents.clone()),
+                        ],
+                    }],
                 }
             },
             ]
@@ -209,16 +193,12 @@ pub fn create_mock_channel(channel: &str, date: &str,
                 components: vec![],
                 extensions: vec![],
                 installer: MockInstallerBuilder {
-                    components: vec![
-                        ("bonus-x86_64-apple-darwin".to_string(),
-                         vec![
-                             MockCommand::File("bin/bonus".to_string()),
-                             ],
-                         vec![
-                             ("bin/bonus".to_string(), contents.clone(), false)
-                                 ],
-                         ),
-                        ]
+                    components: vec![MockComponentBuilder {
+                        name: "bonus-x86_64-apple-darwin".to_string(),
+                        files: vec![
+                            MockFile::new_arc("bin/bonus", contents.clone()),
+                        ],
+                    }],
                 }
             },
             ]
