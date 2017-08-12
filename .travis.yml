@@ -128,14 +128,16 @@ install:
 script:
   - mkdir -p target/$TARGET;
   - >
-    if [[ "$TRAVIS_PULL_REQUEST" == "false" || "$ALLOW_PR" == "1" ]]; then
+    if [[ "$TRAVIS_PULL_REQUEST" != "false" && "$ALLOW_PR" != "1" ]]; then
+        echo 'skipping PR build';
+    elif [[ "$TRAVIS_BRANCH" == "master" && "$ALLOW_PR" != "1" ]]; then
+        echo 'skipping master build';
+    else
         if [ ! -z "$DOCKER" ]; then
             sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
         else
             PATH=$HOME/rust/bin:$PATH sh ci/run.sh;
         fi
-    else
-        echo 'skipping build';
     fi
 
 before_deploy:

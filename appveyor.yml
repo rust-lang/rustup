@@ -21,8 +21,11 @@ branches:
     - auto
 
 install:
-  # If this is a PR and we're not allowed to test PRs, skip the whole build
+  # If this is a PR and we're not allowed to test PRs, skip the whole build.
+  # Also if we're on the master branch no need to run the full test suite, so
+  # just do a smoke test.
   - if defined APPVEYOR_PULL_REQUEST_NUMBER if NOT defined ALLOW_PR appveyor exit
+  - if "%APPVEYOR_REPO_BRANCH%" == "master" if NOT defined ALLOW_PR appveyor exit
 
   # Install MSYS2 and MINGW (32-bit & 64-bit)
   - ps: |
