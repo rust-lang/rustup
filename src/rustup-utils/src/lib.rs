@@ -38,7 +38,6 @@ pub mod raw;
 pub mod tty;
 pub mod utils;
 pub mod toml_utils;
-mod remove_dir_all;
 
 pub use errors::*;
 pub use notifications::{Notification};
