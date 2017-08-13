@@ -1,6 +1,7 @@
 extern crate gcc;
 
 use std::env;
+use gcc::windows_registry::{self, VsVers};
 
 fn main() {
     println!("cargo:rustc-link-lib=dylib=msi");
@@ -14,21 +15,16 @@ fn main() {
     let wix_path = env::var("WIX").expect("WIX must be installed, and 'WIX' environment variable must be set");
 
     // For the correct WIX library path, we need to know which VS version we are using.
-    // We use the `gcc` crate to get the path to the correct `cl.exe`, and then try to
-    // guess the version from the path components (we don't depend on the actual location
-    // of the VS installation, but only on the internal directory structure).
-    let config = gcc::Config::new();
-    let compiler = config.get_compiler();
-    let path = compiler.path();
-    let vs_version = if path.to_string_lossy().contains("VC\\bin") {
-        println!("cargo:warning=Guessing VS version: VS2015");
-        "VS2015"
-    } else if path.to_string_lossy().contains("VC\\Tools\\MSVC") {
-        println!("cargo:warning=Guessing VS version: VS2017");
-        "VS2017"
-    } else {
-        panic!("Unknown VS version with compiler path {:?}", path);
+    // We use the `gcc` crate's functionality to do this, which should always match what rustc is doing.
+    let vs_version = windows_registry::find_vs_version().expect("Cannot find VS version");
+    let vs_version_string = match vs_version {
+        VsVers::Vs14 => "VS2015",
+        VsVers::Vs15 => "VS2017",
+        VsVers::Vs12 => panic!("Unsupported VS version: Vs12"),
+        _ => panic!("Unsupported VS version") // FIXME: should use {:?}, but `VsVers` does not yet implement `Debug`
     };
+
+    println!("cargo:warning=Using WIX libraries for VS version: {}", vs_version_string);
 
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").expect("cannot read CARGO_CFG_TARGET_ARCH in build script");
     let target_arch = match target_arch.as_str() {
@@ -38,5 +34,5 @@ fn main() {
     };
     
     // Tell cargo about the WIX SDK path for `wcautil.lib` and `dutil.lib`
-    println!("cargo:rustc-link-search=native={}SDK\\{}\\lib\\{}", wix_path, vs_version, target_arch);
+    println!("cargo:rustc-link-search=native={}SDK\\{}\\lib\\{}", wix_path, vs_version_string, target_arch);
 }
