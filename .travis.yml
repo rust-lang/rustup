@@ -46,7 +46,7 @@ matrix:
            SKIP_TESTS=1
     - os: linux
       env: TARGET=powerpc-unknown-linux-gnu
-           DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
+           DOCKER=powerpc-unknown-linux-gnu
            SKIP_TESTS=1
     - os: linux
       env: TARGET=powerpc64-unknown-linux-gnu
