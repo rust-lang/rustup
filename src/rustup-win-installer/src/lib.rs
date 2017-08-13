@@ -15,7 +15,7 @@ pub const LOGMSG_STANDARD: i32 = 2;
 
 // TODO: share this with self_update.rs
 static TOOLS: &'static [&'static str]
-    = &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb"];
+    = &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb", "rls"];
 
 #[no_mangle]
 /// This is run as an `immediate` action early in the install sequence
