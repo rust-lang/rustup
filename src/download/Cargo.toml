@@ -1,46 +1,24 @@
 [package]
 
 name = "download"
-version = "0.3.0"
+version = "0.4.0"
 authors = [ "Brian Anderson <banderson@mozilla.com>" ]
 
 license = "MIT/Apache-2.0"
 
 [features]
 
-default = ["hyper-backend"]
+default = ["curl-backend"]
 
 curl-backend = ["curl"]
-hyper-backend = ["hyper", "env_proxy", "native-tls", "openssl-probe"]
-rustls-backend = ["hyper", "env_proxy", "rustls", "lazy_static", "ca-loader"]
+reqwest-backend = ["reqwest", "env_proxy"]
 
 [dependencies]
 error-chain = "0.10"
-url = "1.1"
+url = "1.2"
 curl = { version = "0.4.6", optional = true }
-lazy_static = { version = "0.2", optional = true }
-native-tls = { version = "0.1", optional = true }
+env_proxy = { version = "0.1.1", optional = true }
+reqwest = { version = "0.7.2", optional = true }
 
 [dev-dependencies]
 tempdir = "0.3.4"
-
-[dependencies.hyper]
-version = "0.9.8"
-default-features = false
-optional = true
-
-[dependencies.env_proxy]
-version = "0.1.1"
-optional = true
-
-[target.'cfg(not(any(target_os = "windows", target_os = "macos")))'.dependencies]
-openssl-probe = { version = "0.1", optional = true }
-
-[dependencies.rustls]
-version = "0.9"
-optional = true
-
-[dependencies.ca-loader]
-path = "../ca-loader"
-version = "0.1.0"
-optional = true

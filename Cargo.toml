@@ -19,11 +19,10 @@ build = "build.rs"
 
 [features]
 
-default = ["curl-backend", "hyper-backend"]
+default = ["curl-backend", "reqwest-backend"]
 
 curl-backend = ["download/curl-backend"]
-hyper-backend = ["download/hyper-backend"]
-rustls-backend = ["download/rustls-backend"]
+reqwest-backend = ["download/reqwest-backend"]
 
 # Include in the default set to disable self-update and uninstall.
 no-self-update = []
@@ -78,3 +77,6 @@ test = false # no unit tests
 name = "rustup-init"
 path = "src/rustup-cli/main.rs"
 test = false # no unit tests
+
+[replace]
+"mio:0.6.10" = { git = "https://github.com/carllerche/mio", commit = "1d42d523f235bff298acd11f5758c3fed81ef67a" }
