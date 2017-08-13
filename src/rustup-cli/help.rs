@@ -26,21 +26,13 @@ r"DISCUSSION:
     updates rustup itself.
 
     If given a toolchain argument then `update` updates that
-    toolchain, the same as `rustup toolchain install`.
-
-    'toolchain' specifies a toolchain name, such as 'stable',
-    'nightly', or '1.8.0'. For more information see `rustup help
-    toolchain`.";
+    toolchain, the same as `rustup toolchain install`.";
 
 pub static INSTALL_HELP: &'static str =
 r"DISCUSSION:
     Installs a specific rust toolchain.
 
-    The 'install' command is an alias for 'rustup update <toolchain>'.
-
-    'toolchain' specifies a toolchain name, such as 'stable',
-    'nightly', or '1.8.0'. For more information see `rustup help
-    toolchain`.";
+    The 'install' command is an alias for 'rustup update <toolchain>'.";
 
 pub static DEFAULT_HELP: &'static str =
 r"DISCUSSION:
@@ -260,3 +252,8 @@ r"DISCUSSION:
     completions into our profile simply use
 
         PS C:\> rustup completions powershell >> %USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1";
+
+pub static TOOLCHAIN_ARG_HELP: &'static str =
+    "Toolchain name, such as 'stable', 'nightly', \
+     or '1.8.0'. For more information see `rustup \
+     help toolchain`";
