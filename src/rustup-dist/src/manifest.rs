@@ -25,6 +25,7 @@ pub struct Manifest {
     pub manifest_version: String,
     pub date: String,
     pub packages: HashMap<String, Package>,
+    pub renames: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -82,7 +83,8 @@ impl Manifest {
         Ok(Manifest {
             manifest_version: version,
             date: try!(get_string(&mut table, "date", path)),
-            packages: try!(Self::table_to_packages(table, path)),
+            packages: try!(Self::table_to_packages(&mut table, path)),
+            renames: try!(Self::table_to_renames(table, path)),
         })
     }
     pub fn to_toml(self) -> toml::Table {
@@ -92,15 +94,18 @@ impl Manifest {
         result.insert("manifest-version".to_owned(),
                       toml::Value::String(self.manifest_version));
 
+        let renames = Self::renames_to_table(self.renames);
+        result.insert("rename".to_owned(), toml::Value::Table(renames));
+
         let packages = Self::packages_to_table(self.packages);
         result.insert("pkg".to_owned(), toml::Value::Table(packages));
 
         result
     }
 
-    fn table_to_packages(mut table: toml::Table, path: &str) -> Result<HashMap<String, Package>> {
+    fn table_to_packages(table: &mut toml::Table, path: &str) -> Result<HashMap<String, Package>> {
         let mut result = HashMap::new();
-        let pkg_table = try!(get_table(&mut table, "pkg", path));
+        let pkg_table = try!(get_table(table, "pkg", path));
 
         for (k, v) in pkg_table {
             if let toml::Value::Table(t) = v {
@@ -114,6 +119,28 @@ impl Manifest {
         let mut result = toml::Table::new();
         for (k, v) in packages {
             result.insert(k, toml::Value::Table(v.to_toml()));
+        }
+        result
+    }
+
+    fn table_to_renames(mut table: toml::Table, path: &str) -> Result<HashMap<String, String>> {
+        let mut result = HashMap::new();
+        let rename_table = try!(get_table(&mut table, "rename", path));
+
+        for (k, v) in rename_table {
+            if let toml::Value::Table(mut t) = v {
+                result.insert(k.to_owned(), get_string(&mut t, "to", path)?);
+            }
+        }
+
+        Ok(result)
+    }
+    fn renames_to_table(renames: HashMap<String, String>) -> toml::Table {
+        let mut result = toml::Table::new();
+        for (from, to) in renames {
+            let mut table = toml::Table::new();
+            table.insert("to".to_owned(), toml::Value::String(to));
+            result.insert(from, toml::Value::Table(table));
         }
         result
     }
@@ -147,6 +174,14 @@ impl Manifest {
                         try!(self.validate_targeted_package(tpkg));
                     }
                 }
+            }
+        }
+
+        // The target of any renames must be an actual package. The subject of
+        // renames is unconstrained.
+        for name in self.renames.values() {
+            if !self.packages.contains_key(name) {
+                return Err(ErrorKind::MissingPackageForRename(name.clone()).into());
             }
         }
 

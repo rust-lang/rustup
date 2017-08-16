@@ -103,6 +103,10 @@ error_chain! {
             description("missing package for component")
             display("server sent a broken manifest: missing package for component {}", c.name())
         }
+        MissingPackageForRename(name: String) {
+            description("missing package for the target of a rename")
+            display("server sent a broken manifest: missing package for the target of a rename {}", name)
+        }
         RequestedComponentsUnavailable(c: Vec<Component>) {
             description("some requested components are unavailable to download")
             display("{}", component_unavailable_msg(&c))
