@@ -426,10 +426,6 @@ fn build_update_component_lists(
     // The list of components we'll have installed at the end
     let mut final_component_list = Vec::new();
 
-    // The lists of components to uninstall and to install
-    let mut components_to_uninstall = Vec::new();
-    let mut components_to_install = Vec::new();
-
     // Find the final list of components we want to be left with when
     // we're done: required components, added extensions, and existing
     // installed extensions.
@@ -449,12 +445,29 @@ fn build_update_component_lists(
     for existing_component in &starting_list {
         let is_extension = rust_target_package.extensions.contains(existing_component);
         let is_removed = changes.remove_extensions.contains(existing_component);
-        let is_already_included = final_component_list.contains(existing_component);
 
-        if is_extension && !is_removed && !is_already_included{
-            final_component_list.push(existing_component.clone());
+        if is_extension && !is_removed {
+            // If there is a rename in the (new) manifest, then we uninstall the component with the
+            // old name and install a component with the new name
+            if new_manifest.renames.contains_key(&existing_component.pkg) {
+                let mut renamed_component = existing_component.clone();
+                renamed_component.pkg = new_manifest.renames[&existing_component.pkg].to_owned();
+                let is_already_included = final_component_list.contains(&renamed_component);
+                if !is_already_included {
+                    final_component_list.push(renamed_component);
+                }
+            } else {
+                let is_extension = rust_target_package.extensions.contains(existing_component);
+                let is_already_included = final_component_list.contains(existing_component);
+                if is_extension && !is_already_included {
+                    final_component_list.push(existing_component.clone());
+                }
+            }
         }
     }
+
+    let mut components_to_uninstall = Vec::new();
+    let mut components_to_install = Vec::new();
 
     // If this is a full upgrade then the list of components to
     // uninstall is all that are currently installed, and those
