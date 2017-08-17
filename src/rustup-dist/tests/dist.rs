@@ -27,6 +27,7 @@ use rustup_dist::manifestation::{Manifestation, UpdateStatus, Changes};
 use rustup_dist::manifest::{Manifest, Component};
 use url::Url;
 use std::cell::Cell;
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
@@ -41,7 +42,7 @@ pub fn create_mock_dist_server(path: &Path,
         channels: vec![
             create_mock_channel("nightly", "2016-02-01", edit),
             create_mock_channel("nightly", "2016-02-02", edit),
-            ]
+        ]
     }
 }
 
@@ -183,26 +184,7 @@ pub fn create_mock_channel(channel: &str, date: &str,
 
     // An extra package that can be used as a component of the other packages
     // for various tests
-    let bonus_pkg = MockPackage {
-        name: "bonus",
-        version: "1.0.0",
-        targets: vec![
-            MockTargetedPackage {
-                target: "x86_64-apple-darwin".to_string(),
-                available: true,
-                components: vec![],
-                extensions: vec![],
-                installer: MockInstallerBuilder {
-                    components: vec![MockComponentBuilder {
-                        name: "bonus-x86_64-apple-darwin".to_string(),
-                        files: vec![
-                            MockFile::new_arc("bin/bonus", contents.clone()),
-                        ],
-                    }],
-                }
-            },
-            ]
-    };
+    let bonus_pkg = bonus_component("bonus", contents.clone());
 
     let mut rust_pkg = rust_pkg;
     if let Some(edit) = edit {
@@ -217,7 +199,31 @@ pub fn create_mock_channel(channel: &str, date: &str,
             rustc_pkg,
             std_pkg,
             bonus_pkg,
-            ]
+        ],
+        renames: HashMap::new(),
+    }
+}
+
+fn bonus_component(name: &'static str, contents: Arc<Vec<u8>>) -> MockPackage {
+    MockPackage {
+        name: name,
+        version: "1.0.0",
+        targets: vec![
+            MockTargetedPackage {
+                target: "x86_64-apple-darwin".to_string(),
+                available: true,
+                components: vec![],
+                extensions: vec![],
+                installer: MockInstallerBuilder {
+                    components: vec![MockComponentBuilder {
+                        name: format!("{}-x86_64-apple-darwin", name),
+                        files: vec![
+                            MockFile::new_arc(&*format!("bin/{}", name), contents),
+                        ],
+                    }],
+                }
+            },
+        ]
     }
 }
 
@@ -238,6 +244,134 @@ fn mock_dist_server_smoke_test() {
     assert!(utils::path_exists(path.join("dist/2016-02-01/rust-std-nightly-i686-apple-darwin.tar.gz.sha256")));
     assert!(utils::path_exists(path.join("dist/channel-rust-nightly.toml")));
     assert!(utils::path_exists(path.join("dist/channel-rust-nightly.toml.sha256")));
+}
+
+// Test that a standard rename works - the component is installed with the old name, then renamed
+// the next day to the new name.
+#[test]
+fn rename_component() {
+    let dist_tempdir = TempDir::new("rustup").unwrap();
+    let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
+
+    let edit_1 = &|_: &str, pkg: &mut MockPackage| {
+        let tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
+        tpkg.components.push(MockComponent {
+            name: "bonus".to_string(),
+            target: "x86_64-apple-darwin".to_string(),
+        });
+    };
+    let edit_2 = &|_: &str, pkg: &mut MockPackage| {
+        let tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
+        tpkg.components.push(MockComponent {
+            name: "bobo".to_string(),
+            target: "x86_64-apple-darwin".to_string(),
+        });
+    };
+
+    let date_2 = "2016-02-02";
+    let mut channel_2 = create_mock_channel("nightly", date_2, Some(edit_2));
+    channel_2.packages[3] = bonus_component("bobo", Arc::new(date_2.as_bytes().to_vec()));
+    channel_2.renames.insert("bonus".to_owned(), "bobo".to_owned());
+    let mock_dist_server = MockDistServer {
+        path: dist_tempdir.path().to_owned(),
+        channels: vec![
+            create_mock_channel("nightly", "2016-02-01", Some(edit_1)),
+            channel_2,
+        ]
+    };
+
+    setup_from_dist_server(mock_dist_server, url, false,
+                           &|url, toolchain, prefix, download_cfg, temp_cfg| {
+        change_channel_date(url, "nightly", "2016-02-01");
+        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
+        assert!(!utils::path_exists(&prefix.path().join("bin/bobo")));
+        change_channel_date(url, "nightly", "2016-02-02");
+        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        assert!(!utils::path_exists(&prefix.path().join("bin/bonus")));
+        assert!(utils::path_exists(&prefix.path().join("bin/bobo")));
+    });
+}
+
+// Test that a rename is ignored if the component with the new name is already installed.
+#[test]
+fn rename_component_ignore() {
+    let dist_tempdir = TempDir::new("rustup").unwrap();
+    let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
+
+    let edit = &|_: &str, pkg: &mut MockPackage| {
+        let tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
+        tpkg.components.push(MockComponent {
+            name: "bobo".to_string(),
+            target: "x86_64-apple-darwin".to_string(),
+        });
+    };
+
+    let date_1 = "2016-02-01";
+    let mut channel_1 = create_mock_channel("nightly", date_1, Some(edit));
+    channel_1.packages[3] = bonus_component("bobo", Arc::new(date_1.as_bytes().to_vec()));
+    let date_2 = "2016-02-02";
+    let mut channel_2 = create_mock_channel("nightly", date_2, Some(edit));
+    channel_2.packages[3] = bonus_component("bobo", Arc::new(date_2.as_bytes().to_vec()));
+    channel_2.renames.insert("bonus".to_owned(), "bobo".to_owned());
+    let mock_dist_server = MockDistServer {
+        path: dist_tempdir.path().to_owned(),
+        channels: vec![
+            channel_1,
+            channel_2,
+        ]
+    };
+
+    setup_from_dist_server(mock_dist_server, url, false,
+                           &|url, toolchain, prefix, download_cfg, temp_cfg| {
+        change_channel_date(url, "nightly", "2016-02-01");
+        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        assert!(!utils::path_exists(&prefix.path().join("bin/bonus")));
+        assert!(utils::path_exists(&prefix.path().join("bin/bobo")));
+        change_channel_date(url, "nightly", "2016-02-02");
+        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        assert!(!utils::path_exists(&prefix.path().join("bin/bonus")));
+        assert!(utils::path_exists(&prefix.path().join("bin/bobo")));
+    });
+}
+
+// Test that a rename is ignored if the component with the old name was never installed.
+#[test]
+fn rename_component_new() {
+    let dist_tempdir = TempDir::new("rustup").unwrap();
+    let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
+
+    let edit_2 = &|_: &str, pkg: &mut MockPackage| {
+        let tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
+        tpkg.components.push(MockComponent {
+            name: "bobo".to_string(),
+            target: "x86_64-apple-darwin".to_string(),
+        });
+    };
+
+    let date_2 = "2016-02-02";
+    let mut channel_2 = create_mock_channel("nightly", date_2, Some(edit_2));
+    channel_2.packages[3] = bonus_component("bobo", Arc::new(date_2.as_bytes().to_vec()));
+    channel_2.renames.insert("bonus".to_owned(), "bobo".to_owned());
+    let mock_dist_server = MockDistServer {
+        path: dist_tempdir.path().to_owned(),
+        channels: vec![
+            create_mock_channel("nightly", "2016-02-01", None),
+            channel_2,
+        ]
+    };
+
+    setup_from_dist_server(mock_dist_server, url, false,
+                           &|url, toolchain, prefix, download_cfg, temp_cfg| {
+        change_channel_date(url, "nightly", "2016-02-01");
+        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        assert!(!utils::path_exists(&prefix.path().join("bin/bonus")));
+        assert!(!utils::path_exists(&prefix.path().join("bin/bobo")));
+        change_channel_date(url, "nightly", "2016-02-02");
+        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        assert!(!utils::path_exists(&prefix.path().join("bin/bonus")));
+        assert!(utils::path_exists(&prefix.path().join("bin/bobo")));
+    });
 }
 
 // Installs or updates a toolchain from a dist server.  If an initial
@@ -290,7 +424,15 @@ fn uninstall(toolchain: &ToolchainDesc, prefix: &InstallPrefix, temp_cfg: &temp:
 fn setup(edit: Option<&Fn(&str, &mut MockPackage)>, enable_xz: bool,
          f: &Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg, &temp::Cfg)) {
     let dist_tempdir = TempDir::new("rustup").unwrap();
-    create_mock_dist_server(dist_tempdir.path(), edit).write(&[ManifestVersion::V2], enable_xz);
+    let mock_dist_server = create_mock_dist_server(dist_tempdir.path(), edit);
+    let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
+    setup_from_dist_server(mock_dist_server, url, enable_xz, f);
+}
+
+
+fn setup_from_dist_server(server: MockDistServer, url: &Url, enable_xz: bool,
+                          f: &Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg, &temp::Cfg)) {
+    server.write(&[ManifestVersion::V2], enable_xz);
 
     let prefix_tempdir = TempDir::new("rustup").unwrap();
 
@@ -299,7 +441,6 @@ fn setup(edit: Option<&Fn(&str, &mut MockPackage)>, enable_xz: bool,
                                       DEFAULT_DIST_SERVER,
                                       Box::new(|_| ()));
 
-    let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
     let ref toolchain = ToolchainDesc::from_str("nightly-x86_64-apple-darwin").unwrap();
     let ref prefix = InstallPrefix::from(prefix_tempdir.path().to_owned());
     let ref download_cfg = DownloadCfg {

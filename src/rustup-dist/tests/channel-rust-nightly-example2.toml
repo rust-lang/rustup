@@ -1,6 +1,9 @@
 manifest-version = "2"
 date = "2016-03-04"
 
+[rename.cargo-old]
+to = "cargo"
+
 [pkg.cargo]
 version = "0.9.0-nightly (34269d0 2016-02-18)"
 

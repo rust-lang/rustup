@@ -2,6 +2,7 @@
 //! tests/cli-v2.rs
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::env::consts::EXE_SUFFIX;
 use std::env;
 use std::fs::{self, File};
@@ -501,6 +502,7 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
         name: channel.to_string(),
         date: date.to_string(),
         packages: packages,
+        renames: HashMap::new(),
     }
 }
 

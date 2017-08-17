@@ -77,6 +77,7 @@ pub struct MockChannel {
     // YYYY-MM-DD
     pub date: String,
     pub packages: Vec<MockPackage>,
+    pub renames: HashMap<String, String>,
 }
 
 // A single rust-installer package

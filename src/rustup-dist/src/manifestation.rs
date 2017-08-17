@@ -443,10 +443,9 @@ fn build_update_component_lists(
 
     // Add extensions that are already installed
     for existing_component in &starting_list {
-        let is_extension = rust_target_package.extensions.contains(existing_component);
         let is_removed = changes.remove_extensions.contains(existing_component);
 
-        if is_extension && !is_removed {
+        if !is_removed {
             // If there is a rename in the (new) manifest, then we uninstall the component with the
             // old name and install a component with the new name
             if new_manifest.renames.contains_key(&existing_component.pkg) {
