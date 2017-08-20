@@ -5,6 +5,7 @@ use std::io::{self, Write};
 use std::process::Command;
 use std::ffi::OsString;
 use std::env;
+use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
 use sha2::Sha256;
 use notifications::{Notification};
 use raw;
@@ -177,6 +178,8 @@ pub fn download_file_with_resume(url: &Url,
     }
 }
 
+static DEPRECATED_HYPER_WARNED: AtomicBool = ATOMIC_BOOL_INIT;
+
 fn download_file_(url: &Url,
                   path: &Path,
                   hasher: Option<&mut Sha256>,
@@ -221,12 +224,14 @@ fn download_file_(url: &Url,
     };
 
     // Download the file
-    
+
     // Keep the hyper env var around for a bit
-    // FIXME: remove this
     let use_hyper_backend = env::var_os("RUSTUP_USE_HYPER").is_some();
-    let use_reqwest_backend = env::var_os("RUSTUP_USE_REQWEST").is_some();
-    let (backend, notification) = if use_hyper_backend || use_reqwest_backend {
+    if use_hyper_backend && DEPRECATED_HYPER_WARNED.swap(true, Ordering::Relaxed) {
+        notify_handler(Notification::UsingHyperDeprecated);
+    }
+    let use_reqwest_backend = use_hyper_backend || env::var_os("RUSTUP_USE_REQWEST").is_some();
+    let (backend, notification) = if use_reqwest_backend {
         (Backend::Reqwest, Notification::UsingReqwest)
     } else {
         (Backend::Curl, Notification::UsingCurl)
