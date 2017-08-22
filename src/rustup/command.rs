@@ -21,7 +21,7 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(cmd: Command,
         return telemetry_rustc(cmd, arg0, args, cfg);
     }
 
-    run_command_for_dir_without_telemetry(cmd, arg0, args)
+    exec_command_for_dir_without_telemetry(cmd, arg0, args)
 }
 
 fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command,
@@ -132,7 +132,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(mut cmd: Command,
     }
 }
 
-fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(
+fn exec_command_for_dir_without_telemetry<S: AsRef<OsStr>>(
     mut cmd: Command, arg0: &str, args: &[S]) -> Result<()>
 {
     cmd.args(args);
@@ -141,17 +141,20 @@ fn run_command_for_dir_without_telemetry<S: AsRef<OsStr>>(
     // when and why this is needed.
     cmd.stdin(process::Stdio::inherit());
 
-    match cmd.status() {
-        Ok(status) => {
-            // Ensure correct exit code is returned
-            let code = status.code().unwrap_or(1);
-            process::exit(code);
-        }
-        Err(e) => {
-            Err(e).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
-                name: OsStr::new(arg0).to_owned(),
-            })
-        }
+    return exec(&mut cmd).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
+        name: OsStr::new(arg0).to_owned(),
+    });
+
+    #[cfg(unix)]
+    fn exec(cmd: &mut Command) -> io::Result<()> {
+        use std::os::unix::prelude::*;
+        Err(cmd.exec())
+    }
+
+    #[cfg(windows)]
+    fn exec(cmd: &mut Command) -> io::Result<()> {
+        let status = cmd.status()?;
+        process::exit(status.code().unwrap());
     }
 }
 
