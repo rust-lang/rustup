@@ -53,4 +53,3 @@ fn direct_proxy(cfg: &Cfg, arg0: &str, toolchain: Option<&str>, args: &[OsString
     };
     Ok(try!(run_command_for_dir(cmd, arg0, args, &cfg)))
 }
-
