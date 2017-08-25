@@ -321,6 +321,14 @@ impl MockDistServer {
         }
         toml_manifest.insert(String::from("pkg"), toml::Value::Table(toml_packages));
 
+        let mut toml_renames = toml::Table::new();
+        for (from, to) in &channel.renames {
+            let mut toml_rename = toml::Table::new();
+            toml_rename.insert(String::from("to"), toml::Value::String(to.to_owned()));
+            toml_renames.insert(from.to_owned(), toml::Value::Table(toml_rename));
+        }
+        toml_manifest.insert(String::from("rename"), toml::Value::Table(toml_renames));
+
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
         let ref manifest_path = self.path.join(format!("{}.toml", manifest_name));
         write_file(manifest_path, &toml::encode_str(&toml_manifest));
