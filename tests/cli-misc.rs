@@ -10,7 +10,7 @@ extern crate tempdir;
 use rustup_mock::clitools::{self, Config, Scenario,
                             expect_stdout_ok, expect_stderr_ok, expect_ok_ex,
                             expect_ok, expect_err, expect_timeout_ok,
-                            run, this_host_triple};
+                            run, this_host_triple, set_current_dist_date};
 use rustup_utils::{raw, utils};
 
 use std::ops::Add;
@@ -415,7 +415,8 @@ fn telemetry_cleanup_removes_old_files() {
 fn rls_exists_in_toolchain() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+
         assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
         expect_ok(config, &["rls", "--version"]);
     });
@@ -430,6 +431,36 @@ fn rls_does_not_exist_in_toolchain() {
         expect_err(config, &["rls", "--version"],
                    &format!("toolchain 'stable-{}' does not have the binary `rls{}`",
                             this_host_triple(), EXE_SUFFIX));
+    });
+}
+
+#[test]
+fn rename_rls_before() {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+
+        assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
+        expect_ok(config, &["rls", "--version"]);
+    });
+}
+
+#[test]
+fn rename_rls_after() {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+
+        assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
+        expect_ok(config, &["rls", "--version"]);
     });
 }
 

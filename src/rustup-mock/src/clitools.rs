@@ -2,6 +2,7 @@
 //! tests/cli-v2.rs
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::env::consts::EXE_SUFFIX;
 use std::env;
 use std::fs::{self, File};
@@ -333,14 +334,14 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
 fn create_mock_dist_server(path: &Path, s: Scenario) {
     let mut chans = Vec::new();
     if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
-        let c1 = build_mock_channel(s, "nightly", "2015-01-01", "1.2.0", "hash-n-1");
-        let c2 = build_mock_channel(s, "beta", "2015-01-01", "1.1.0", "hash-b-1");
-        let c3 = build_mock_channel(s, "stable", "2015-01-01", "1.0.0", "hash-s-1");
+        let c1 = build_mock_channel(s, "nightly", "2015-01-01", "1.2.0", "hash-n-1", false);
+        let c2 = build_mock_channel(s, "beta", "2015-01-01", "1.1.0", "hash-b-1", false);
+        let c3 = build_mock_channel(s, "stable", "2015-01-01", "1.0.0", "hash-s-1", false);
         chans.extend(vec![c1, c2, c3]);
     }
-    let c4 = build_mock_channel(s, "nightly", "2015-01-02", "1.3.0", "hash-n-2");
-    let c5 = build_mock_channel(s, "beta", "2015-01-02", "1.2.0", "hash-b-2");
-    let c6 = build_mock_channel(s, "stable", "2015-01-02", "1.1.0", "hash-s-2");
+    let c4 = build_mock_channel(s, "nightly", "2015-01-02", "1.3.0", "hash-n-2", true);
+    let c5 = build_mock_channel(s, "beta", "2015-01-02", "1.2.0", "hash-b-2", false);
+    let c6 = build_mock_channel(s, "stable", "2015-01-02", "1.1.0", "hash-s-2", false);
     chans.extend(vec![c4, c5, c6]);
 
     let ref vs = match s {
@@ -382,13 +383,12 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
 }
 
 fn build_mock_channel(s: Scenario, channel: &str, date: &str,
-                      version: &'static str, version_hash: &str) -> MockChannel {
+                      version: &'static str, version_hash: &str, rename_rls: bool) -> MockChannel {
     // Build the mock installers
     let ref host_triple = this_host_triple();
     let std = build_mock_std_installer(host_triple);
     let rustc = build_mock_rustc_installer(host_triple, version, version_hash);
     let cargo = build_mock_cargo_installer(version, version_hash);
-    let rls = build_mock_rls_installer(version, version_hash);
     let rust_docs = build_mock_rust_doc_installer();
     let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
     let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
@@ -402,18 +402,26 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                                      (cross_std1, CROSS_ARCH1.to_string()),
                                      (cross_std2, CROSS_ARCH2.to_string())]),
                    ("rustc", vec![(rustc, host_triple.clone())]),
-                   ("cargo", vec![(cargo, host_triple.clone())]),
-                   ("rls", vec![(rls, host_triple.clone())]),
-                   ("rust-docs", vec![(rust_docs, host_triple.clone())]),
-                   ("rust-src", vec![(rust_src, "*".to_string())]),
-                   ("rust-analysis", vec![(rust_analysis, "*".to_string())]),
-                   ("rust", vec![(rust, host_triple.clone())])];
+                   ("cargo", vec![(cargo, host_triple.clone())])];
+
+    if rename_rls {
+        let rls = build_mock_rls_installer(version, version_hash, false);
+        all.push(("rls", vec![(rls, host_triple.clone())]));
+    } else {
+        let rls_preview = build_mock_rls_installer(version, version_hash, true);
+        all.push(("rls-preview", vec![(rls_preview, host_triple.clone())]));
+    }
+
+    let more = vec![("rust-docs", vec![(rust_docs, host_triple.clone())]),
+                    ("rust-src", vec![(rust_src, "*".to_string())]),
+                    ("rust-analysis", vec![(rust_analysis, "*".to_string())]),
+                    ("rust", vec![(rust, host_triple.clone())])];
+    all.extend(more);
 
     if s == Scenario::MultiHost {
         let std = build_mock_std_installer(MULTI_ARCH1);
         let rustc = build_mock_rustc_installer(MULTI_ARCH1, version, version_hash);
         let cargo = build_mock_cargo_installer(version, version_hash);
-        let rls = build_mock_rls_installer(version, version_hash);
         let rust_docs = build_mock_rust_doc_installer();
         let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
         let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
@@ -425,9 +433,18 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                                      (cross_std1, CROSS_ARCH1.to_string()),
                                      (cross_std2, CROSS_ARCH2.to_string())]),
                         ("rustc", vec![(rustc, triple.clone())]),
-                        ("cargo", vec![(cargo, triple.clone())]),
-                        ("rls", vec![(rls, triple.clone())]),
-                        ("rust-docs", vec![(rust_docs, triple.clone())]),
+                        ("cargo", vec![(cargo, triple.clone())])];
+        all.extend(more);
+
+        if rename_rls {
+            let rls = build_mock_rls_installer(version, version_hash, false);
+            all.push(("rls", vec![(rls, triple.clone())]));
+        } else {
+            let rls_preview = build_mock_rls_installer(version, version_hash, true);
+            all.push(("rls-preview", vec![(rls_preview, triple.clone())]));
+        }
+
+        let more = vec![("rust-docs", vec![(rust_docs, triple.clone())]),
                         ("rust-src", vec![(rust_src, "*".to_string())]),
                         ("rust", vec![(rust, triple.clone())])];
 
@@ -474,10 +491,17 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
                 name: "rust-docs".to_string(),
                 target: target.to_string()
             });
-            target_pkg.extensions.push(MockComponent {
-                name: "rls".to_string(),
-                target: target.to_string()
-            });
+            if rename_rls {
+                target_pkg.extensions.push(MockComponent {
+                    name: "rls".to_string(),
+                    target: target.to_string()
+                });
+            } else {
+                target_pkg.extensions.push(MockComponent {
+                    name: "rls-preview".to_string(),
+                    target: target.to_string()
+                });
+            }
             target_pkg.extensions.push(MockComponent {
                 name: "rust-std".to_string(),
                 target: CROSS_ARCH1.to_string(),
@@ -497,10 +521,16 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
         }
     }
 
+    let mut renames = HashMap::new();
+    if rename_rls {
+        renames.insert("rls-preview".to_owned(), "rls".to_owned());
+    }
+
     MockChannel {
         name: channel.to_string(),
         date: date.to_string(),
         packages: packages,
+        renames,
     }
 }
 
@@ -578,10 +608,15 @@ fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstalle
     }
 }
 
-fn build_mock_rls_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
+fn build_mock_rls_installer(version: &str, version_hash: &str, preview: bool) -> MockInstallerBuilder {
+    let name = if preview {
+        "rls-preview"
+    } else {
+        "rls"
+    };
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
-            name: "rls".to_string(),
+            name: name.to_string(),
             files: mock_bin("rls", version, version_hash),
         }],
     }
