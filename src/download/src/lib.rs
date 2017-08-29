@@ -6,6 +6,9 @@ extern crate url;
 
 #[cfg(feature = "reqwest-backend")]
 extern crate reqwest;
+#[cfg(feature = "reqwest-backend")]
+#[macro_use]
+extern crate lazy_static;
 
 use url::Url;
 use std::path::Path;
@@ -237,10 +240,11 @@ pub mod reqwest_be {
     extern crate env_proxy;
 
     use std::io;
+    use std::time::Duration;
     use errors::*;
     use url::Url;
     use super::Event;
-    use reqwest::{header, Client, Proxy};
+    use reqwest::{header, Client, Proxy, Response};
 
     pub fn download(url: &Url,
                     resume_from: u64,
@@ -248,45 +252,12 @@ pub mod reqwest_be {
                     -> Result<()> {
 
         // Short-circuit reqwest for the "file:" URL scheme
-        if try!(download_from_file_url(url, callback)) {
+        if download_from_file_url(url, resume_from, callback)? {
             return Ok(());
         }
 
-        let maybe_proxy = env_proxy::for_url(url)
-            .map(|(addr, port)| {
-                String::from(format!("{}:{}", addr, port))
-            });
-
-        let client = match url.scheme() {
-            "https" => match maybe_proxy {
-                None => Client::new()?,
-                Some(host_port) => {
-                    Client::builder()?
-                        .proxy(Proxy::https(&host_port)?)
-                        .build()?
-                }
-            },
-            "http" => match maybe_proxy {
-                None => Client::new()?,
-                Some(host_port) => {
-                    Client::builder()?
-                        .proxy(Proxy::http(&host_port)?)
-                        .build()?
-                }
-            },
-            _ => return Err(format!("unsupported URL scheme: '{}'", url.scheme()).into())
-        };
-
-        let mut res = if resume_from > 0 {
-            client
-                .get(url.clone())?
-                .header(header::Range::Bytes(
-                    vec![header::ByteRangeSpec::AllFrom(resume_from)]
-                ))
-                .send()
-        } else {
-            client.get(url.clone())?.send()
-        }.chain_err(|| "failed to make network request")?;
+        let mut res = request(url, resume_from)
+            .chain_err(|| "failed to make network request")?;
 
         if !res.status().is_success() {
             let code: u16 = res.status().into();
@@ -296,23 +267,65 @@ pub mod reqwest_be {
         let buffer_size = 0x10000;
         let mut buffer = vec![0u8; buffer_size];
 
-        if let Some(len) = res.headers().get::<header::ContentLength>().cloned() {
-            try!(callback(Event::DownloadContentLengthReceived(len.0)));
+        if let Some(len) = res.headers().get::<header::ContentLength>() {
+            callback(Event::DownloadContentLengthReceived(len.0 + resume_from))?;
         }
 
         loop {
-            let bytes_read = try!(io::Read::read(&mut res, &mut buffer)
-                                  .chain_err(|| "error reading from socket"));
+            let bytes_read = io::Read::read(&mut res, &mut buffer)
+                .chain_err(|| "error reading from socket")?;
 
             if bytes_read != 0 {
-                try!(callback(Event::DownloadDataReceived(&buffer[0..bytes_read])));
+                callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
             } else {
                 return Ok(());
             }
         }
     }
 
+    lazy_static! {
+        static ref CLIENT: Client = {
+            let catcher = || {
+                Client::builder()?
+                    .gzip(false)
+                    .proxy(Proxy::custom(env_proxy))
+                    .timeout(Duration::from_secs(30))
+                    .build()
+            };
+
+            // woah, an unwrap?!
+            // It's OK. This is the same as what is happening in curl.
+            //
+            // The curl::Easy::new() internally assert!s that the initialized
+            // Easy is not null. Inside reqwest, the errors here would be from
+            // the TLS library returning a null pointer as well.
+            catcher().unwrap()
+        };
+    }
+
+    fn env_proxy(url: &Url) -> Option<Url> {
+        env_proxy::for_url(url).and_then(|(host, port)| {
+            //TODO: update env_proxy to return full string, not just (host,port)
+            //Ideally: fn for_str(s: &str) -> Option<String>
+            let proxy_url = format!("http://{}:{}", host, port);
+            proxy_url.parse().ok()
+        })
+    }
+
+    fn request(url: &Url, resume_from: u64) -> ::reqwest::Result<Response> {
+        let mut req = CLIENT.get(url.clone())?;
+
+        if resume_from != 0 {
+            req.header(header::Range::Bytes(
+                vec![header::ByteRangeSpec::AllFrom(resume_from)]
+            ));
+        }
+
+        req.send()
+    }
+
     fn download_from_file_url(url: &Url,
+                              resume_from: u64,
                               callback: &Fn(Event) -> Result<()>)
                               -> Result<bool> {
 
@@ -333,6 +346,7 @@ pub mod reqwest_be {
 
             let ref mut f = try!(fs::File::open(src)
                                  .chain_err(|| "unable to open downloaded file"));
+            io::Seek::seek(f, io::SeekFrom::Start(resume_from))?;
 
             let ref mut buffer = vec![0u8; 0x10000];
             loop {

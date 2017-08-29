@@ -1,4 +1,4 @@
-#![cfg(feature = "curl-backend")]
+#![cfg(feature = "reqwest-backend")]
 
 extern crate download;
 extern crate url;
@@ -13,7 +13,7 @@ mod support;
 use support::{tmp_dir, write_file, file_contents, serve_file};
 
 #[test]
-fn partially_downloaded_file_gets_resumed_from_byte_offset() {
+fn resume_partial_from_file_url() {
     let tmpdir = tmp_dir();
     let from_path = tmpdir.path().join("download-source");
     write_file(&from_path, "xxx45");
@@ -21,9 +21,10 @@ fn partially_downloaded_file_gets_resumed_from_byte_offset() {
     let target_path = tmpdir.path().join("downloaded");
     write_file(&target_path, "123");
 
+
     let from_url = Url::from_file_path(&from_path).unwrap();
     download_to_path_with_backend(
-            Backend::Curl,
+            Backend::Reqwest,
             &from_url,
             &target_path,
             true,
@@ -47,7 +48,7 @@ fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
     let callback_len = Mutex::new(None);
     let received_in_callback = Mutex::new(Vec::new());
 
-    download_to_path_with_backend(Backend::Curl,
+    download_to_path_with_backend(Backend::Reqwest,
                                   &from_url,
                                   &target_path,
                                   true,
