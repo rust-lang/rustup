@@ -71,7 +71,7 @@ install:
 build: false
 
 test_script:
-  - cargo build --release --target %TARGET% %FEATURES%
+  - cargo build --release --target %TARGET% %FEATURES% --locked
   - cargo test --release -p rustup-dist --target %TARGET%
   - cargo test --release --target %TARGET% %FEATURES%
   - if defined BUILD_MSI pushd src\rustup-win-installer && cargo build --release --target %TARGET% & popd

@@ -1,3 +1,23 @@
+# 1.6.0
+
+* [Fix support for s390x][pr1228]
+* [Fix `show` so it displays helpful information if the active toolchain is not installed][pr1189]
+* [Fix uninstalling toolchains with stale symlinks][pr1201]
+* [Replace the hyper backend with a reqwest downloading backend][pr1222]
+* [Consistently give a toolchain argument in the help text][pr1212]
+* [Use `exec` on Unix where possible to help manage Unix signals][pr1242]
+
+[pr1228]: https://github.com/rust-lang-nursery/rustup.rs/pull/1228
+[pr1189]: https://github.com/rust-lang-nursery/rustup.rs/pull/1189
+[pr1201]: https://github.com/rust-lang-nursery/rustup.rs/pull/1201
+[pr1222]: https://github.com/rust-lang-nursery/rustup.rs/pull/1222
+[pr1212]: https://github.com/rust-lang-nursery/rustup.rs/pull/1212
+[pr1242]: https://github.com/rust-lang-nursery/rustup.rs/pull/1242
+
+Contributors: Alex Crichton, Chen Rotem Levy, Krishna Sundarram, Martin Geisler,
+Matt Brubeck, Matt Ickstadt, Michael Benfield, Michael Fletcher, Nick Cameron,
+Patrick Reisert, Ralf Jung, Sean McArthur, Steven Fackler
+
 # 1.5.0
 
 * [Rename references to multirust to rustup where applicable](https://github.com/rust-lang-nursery/rustup.rs/pull/1148)
