@@ -12,7 +12,7 @@ if ($env:BUILD_MSI) {
 }
 
 # Copy rustup-init to rustup-setup for backwards compatibility
-cp target\${env:TARGET}\release\rustup-init.exe target\${env:TARGET}release\rustup-setup.exe
+cp target\${env:TARGET}\release\rustup-init.exe target\${env:TARGET}\release\rustup-setup.exe
 
 # Generate hashes
 Get-FileHash .\target\${env:TARGET}\release\* | ForEach-Object {[io.file]::WriteAllText($_.Path + ".sha256", $_.Hash.ToLower() + "`n")}
