@@ -25,7 +25,7 @@ And it runs on all platforms Rust supports, including Windows.
 * [Cross-compilation](#cross-compilation)
 * [Working with Rust on Windows](#working-with-rust-on-windows)
 * [Working with custom toolchains](#working-with-custom-toolchains-and-local-builds)
-* [Working with HTTP proxies](#working-with-http-proxies)
+* [Working with network proxies](#working-with-network-proxies)
 * [Examples](#examples)
 * [Environment variables](#environment-variables)
 * [Other installation methods](#other-installation-methods)
