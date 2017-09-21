@@ -50,7 +50,7 @@ error_chain! {
         }
         AddingRequiredComponent(t: String, c: Component) {
             description("required component cannot be added")
-            display("component {} is required for toolchain '{}' and cannot be re-added",
+            display("component {} was automatically added because it is required for toolchain '{}'",
                     c.description(), t)
         }
         ParsingSettings(e: Vec<toml::ParserError>) {
