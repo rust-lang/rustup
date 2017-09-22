@@ -130,6 +130,16 @@ fn with_no_modify_path() {
 }
 
 #[test]
+fn with_no_toolchain() {
+    setup(&|config| {
+        let out = run_input(config, &["rustup-init", "--default-toolchain=none"], "\n\n");
+        assert!(out.ok);
+
+        expect_stdout_ok(config, &["rustup", "show"], "no active toolchain");
+    });
+}
+
+#[test]
 fn with_non_default_toolchain() {
     setup(&|config| {
         let out = run_input(config, &["rustup-init", "--default-toolchain=nightly"], "\n\n");

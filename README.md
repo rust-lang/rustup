@@ -570,6 +570,7 @@ the shell script. Some examples:
 $ curl https://sh.rustup.rs -sSf | sh -s -- --help
 $ curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
 $ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
+$ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none
 ```
 
 If you prefer you can directly download `rustup-init` for the

@@ -587,7 +587,7 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
         &opts.default_host_triple));
 
     opts.default_toolchain = try!(common::question_str(
-        "Default toolchain? (stable/beta/nightly)",
+        "Default toolchain? (stable/beta/nightly/none)",
         &opts.default_toolchain));
 
     opts.no_modify_path = !try!(common::question_bool(
@@ -660,7 +660,10 @@ fn maybe_install_rust(toolchain_str: &str, default_host_triple: &str, verbose: b
     // a toolchain the user actually wants. Don't do anything.  FIXME:
     // This logic should be part of InstallOpts so that it isn't
     // possible to select a toolchain then have it not be installed.
-    if try!(cfg.find_default()).is_none() {
+    if toolchain_str == "none" {
+        info!("skipping toolchain installation");
+        println!("");
+    } else if try!(cfg.find_default()).is_none() {
         // Set host triple first as it will affect resolution of toolchain_str
         try!(cfg.set_default_host_triple(default_host_triple));
         let toolchain = try!(cfg.get_toolchain(toolchain_str, false));
