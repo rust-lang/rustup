@@ -7,7 +7,9 @@ extern crate error_chain;
 extern crate url;
 extern crate regex;
 extern crate itertools;
-extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
 extern crate tempfile;
 extern crate time;
 extern crate toml;

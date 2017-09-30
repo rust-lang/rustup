@@ -1,19 +1,19 @@
 use errors::*;
 use time;
 use rustup_utils::{raw, utils};
-use rustc_serialize::json;
+use serde_json;
 
 use std::fs;
 use std::path::PathBuf;
 
-#[derive(RustcDecodable, RustcEncodable, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum TelemetryEvent {
     RustcRun { duration_ms: u64, exit_code: i32, errors: Option<Vec<String>> },
     ToolchainUpdate { toolchain: String, success: bool } ,
     TargetAdd { toolchain: String, target: String, success: bool },
 }
 
-#[derive(RustcDecodable, RustcEncodable, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct LogMessage {
     log_time_s: i64,
     event: TelemetryEvent,
@@ -45,7 +45,7 @@ impl Telemetry {
                               event: event,
                               version: LOG_FILE_VERSION };
 
-        let json = json::encode(&ln).unwrap();
+        let json = serde_json::to_string(&ln).unwrap();
 
         let filename = format!("log-{}-{:02}-{:02}.json", current_time.tm_year + 1900, current_time.tm_mon + 1, current_time.tm_mday);
 
