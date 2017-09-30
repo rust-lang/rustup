@@ -11,16 +11,13 @@ repository = "https://github.com/rust-lang-nursery/rustup.rs"
 
 [dependencies]
 url = "1.1.0"
-scopeguard = "0.3.0"
 lazy_static = "0.2.0"
 walkdir = "1.0.0"
 flate2 = "0.2.9"
 xz2 = "0.1.3"
 tempdir = "0.3.4"
-itertools = "0.6"
 tar = "0.4.0"
 toml = "0.4"
-rustup-utils = { path = "../rustup-utils" }
 sha2 = "0.6.0"
 wait-timeout = "0.1.3"
 
