@@ -1377,8 +1377,8 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let release_file = tempdir.path().join("release-stable.toml");
     try!(utils::download_file(&release_file_url, &release_file, None, &|_| ()));
     let release_toml_str = try!(utils::read_file("rustup release", &release_file));
-    let release_toml = try!(toml::Parser::new(&release_toml_str).parse()
-                            .ok_or(Error::from("unable to parse rustup release file")));
+    let release_toml: toml::Value = try!(toml::from_str(&release_toml_str)
+                            .map_err(|_| Error::from("unable to parse rustup release file")));
     let schema = try!(release_toml.get("schema-version")
                       .ok_or(Error::from("no schema key in rustup release file")));
     let schema = try!(schema.as_str()

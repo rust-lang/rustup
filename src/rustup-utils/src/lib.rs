@@ -4,7 +4,6 @@ extern crate rand;
 extern crate scopeguard;
 #[macro_use]
 extern crate error_chain;
-extern crate rustc_serialize;
 extern crate sha2;
 extern crate url;
 extern crate toml;
@@ -25,9 +24,6 @@ extern crate kernel32;
 extern crate advapi32;
 #[cfg(windows)]
 extern crate userenv;
-#[cfg(windows)]
-#[macro_use]
-extern crate lazy_static;
 
 #[cfg(unix)]
 extern crate libc;

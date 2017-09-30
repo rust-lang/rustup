@@ -168,16 +168,14 @@ impl Settings {
     }
 
     pub fn parse(data: &str) -> Result<Self> {
-        let mut parser = toml::Parser::new(data);
-        let value = try!(parser.parse().ok_or_else(move || ErrorKind::ParsingSettings(parser.errors)));
-
+        let value = toml::from_str(data).map_err(ErrorKind::ParsingSettings)?;
         Self::from_toml(value, "")
     }
     pub fn stringify(self) -> String {
         toml::Value::Table(self.to_toml()).to_string()
     }
 
-    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
+    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let version = try!(get_string(&mut table, "version", path));
         if !SUPPORTED_METADATA_VERSIONS.contains(&&*version) {
             return Err(ErrorKind::UnknownMetadataVersion(version).into());
@@ -194,8 +192,8 @@ impl Settings {
             }
         })
     }
-    pub fn to_toml(self) -> toml::Table {
-        let mut result = toml::Table::new();
+    pub fn to_toml(self) -> toml::value::Table {
+        let mut result = toml::value::Table::new();
 
         result.insert("version".to_owned(),
                       toml::Value::String(self.version));
@@ -217,7 +215,7 @@ impl Settings {
         result
     }
 
-    fn table_to_overrides(table: &mut toml::Table, path: &str) -> Result<BTreeMap<String, String>> {
+    fn table_to_overrides(table: &mut toml::value::Table, path: &str) -> Result<BTreeMap<String, String>> {
         let mut result = BTreeMap::new();
         let pkg_table = try!(get_table(table, "overrides", path));
 
@@ -230,8 +228,8 @@ impl Settings {
         Ok(result)
     }
 
-    fn overrides_to_table(overrides: BTreeMap<String, String>) -> toml::Table {
-        let mut result = toml::Table::new();
+    fn overrides_to_table(overrides: BTreeMap<String, String>) -> toml::value::Table {
+        let mut result = toml::value::Table::new();
         for (k, v) in overrides {
             result.insert(k, toml::Value::String(v));
         }

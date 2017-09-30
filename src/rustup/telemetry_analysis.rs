@@ -4,11 +4,12 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::BufRead;
 use std::path::PathBuf;
+
 use itertools::Itertools;
+use serde_json;
 
 use errors::*;
 use telemetry::{LogMessage, TelemetryEvent};
-use rustc_serialize::json;
 
 pub struct TelemetryAnalysis {
     telemetry_dir: PathBuf,
@@ -144,14 +145,11 @@ impl TelemetryAnalysis {
         let file = BufReader::new(&f);
 
         for line in file.lines() {
-            use std::result;
-            use rustc_serialize::json::DecoderError;
-
             let l = line.unwrap();
-            let log_message_result: result::Result<LogMessage, DecoderError> = json::decode(&l);
+            let log_message_result = serde_json::from_str(&l);
 
             if log_message_result.is_ok() {
-                let log_message = log_message_result.unwrap();
+                let log_message: LogMessage = log_message_result.unwrap();
                 let event: TelemetryEvent = log_message.get_event();
                 events.push(event);
             }

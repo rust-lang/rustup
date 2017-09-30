@@ -255,21 +255,21 @@ impl MockDistServer {
     }
 
     fn write_manifest_v2(&self, channel: &MockChannel, hashes: &HashMap<MockComponent, MockHashes>) {
-        let mut toml_manifest = toml::Table::new();
+        let mut toml_manifest = toml::value::Table::new();
 
         toml_manifest.insert(String::from("manifest-version"), toml::Value::String(MOCK_MANIFEST_VERSION.to_owned()));
         toml_manifest.insert(String::from("date"), toml::Value::String(channel.date.to_owned()));
 
         // [pkg.*]
-        let mut toml_packages = toml::Table::new();
+        let mut toml_packages = toml::value::Table::new();
         for package in &channel.packages {
-            let mut toml_package = toml::Table::new();
+            let mut toml_package = toml::value::Table::new();
             toml_package.insert(String::from("version"), toml::Value::String(package.version.to_owned()));
 
             // [pkg.*.target.*]
-            let mut toml_targets = toml::Table::new();
+            let mut toml_targets = toml::value::Table::new();
             for target in &package.targets {
-                let mut toml_target = toml::Table::new();
+                let mut toml_target = toml::value::Table::new();
                 toml_target.insert(String::from("available"), toml::Value::Boolean(target.available));
 
                 let package_file_name = if target.target != "*" {
@@ -294,9 +294,9 @@ impl MockDistServer {
                 }
 
                 // [pkg.*.target.*.components.*]
-                let mut toml_components = toml::Array::new();
+                let mut toml_components = toml::value::Array::new();
                 for component in &target.components {
-                    let mut toml_component = toml::Table::new();
+                    let mut toml_component = toml::value::Table::new();
                     toml_component.insert(String::from("pkg"), toml::Value::String(component.name.to_owned()));
                     toml_component.insert(String::from("target"), toml::Value::String(component.target.to_owned()));
                     toml_components.push(toml::Value::Table(toml_component));
@@ -304,9 +304,9 @@ impl MockDistServer {
                 toml_target.insert(String::from("components"), toml::Value::Array(toml_components));
 
                 // [pkg.*.target.*.extensions.*]
-                let mut toml_extensions = toml::Array::new();
+                let mut toml_extensions = toml::value::Array::new();
                 for extension in &target.extensions {
-                    let mut toml_extension = toml::Table::new();
+                    let mut toml_extension = toml::value::Table::new();
                     toml_extension.insert(String::from("pkg"), toml::Value::String(extension.name.to_owned()));
                     toml_extension.insert(String::from("target"), toml::Value::String(extension.target.to_owned()));
                     toml_extensions.push(toml::Value::Table(toml_extension));
@@ -321,9 +321,9 @@ impl MockDistServer {
         }
         toml_manifest.insert(String::from("pkg"), toml::Value::Table(toml_packages));
 
-        let mut toml_renames = toml::Table::new();
+        let mut toml_renames = toml::value::Table::new();
         for (from, to) in &channel.renames {
-            let mut toml_rename = toml::Table::new();
+            let mut toml_rename = toml::value::Table::new();
             toml_rename.insert(String::from("to"), toml::Value::String(to.to_owned()));
             toml_renames.insert(from.to_owned(), toml::Value::Table(toml_rename));
         }
@@ -331,7 +331,7 @@ impl MockDistServer {
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
         let ref manifest_path = self.path.join(format!("{}.toml", manifest_name));
-        write_file(manifest_path, &toml::encode_str(&toml_manifest));
+        write_file(manifest_path, &toml::to_string(&toml_manifest).unwrap());
 
         let ref hash_path = self.path.join(format!("{}.toml.sha256", manifest_name));
         create_hash(manifest_path, hash_path);

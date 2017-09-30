@@ -63,10 +63,8 @@ pub struct Component {
 
 impl Manifest {
     pub fn parse(data: &str) -> Result<Self> {
-        let mut parser = toml::Parser::new(data);
-        let value = try!(parser.parse().ok_or_else(move || ErrorKind::Parsing(parser.errors)));
-
-        let manifest = try!(Self::from_toml(value, ""));
+        let value = toml::from_str(data).map_err(ErrorKind::Parsing)?;
+        let manifest = Self::from_toml(value, "")?;
         try!(manifest.validate());
 
         Ok(manifest)
@@ -75,7 +73,7 @@ impl Manifest {
         toml::Value::Table(self.to_toml()).to_string()
     }
 
-    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
+    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let version = try!(get_string(&mut table, "manifest-version", path));
         if !SUPPORTED_MANIFEST_VERSIONS.contains(&&*version) {
             return Err(ErrorKind::UnsupportedVersion(version).into());
@@ -87,8 +85,8 @@ impl Manifest {
             renames: try!(Self::table_to_renames(table, path)),
         })
     }
-    pub fn to_toml(self) -> toml::Table {
-        let mut result = toml::Table::new();
+    pub fn to_toml(self) -> toml::value::Table {
+        let mut result = toml::value::Table::new();
 
         result.insert("date".to_owned(), toml::Value::String(self.date));
         result.insert("manifest-version".to_owned(),
@@ -103,7 +101,7 @@ impl Manifest {
         result
     }
 
-    fn table_to_packages(table: &mut toml::Table, path: &str) -> Result<HashMap<String, Package>> {
+    fn table_to_packages(table: &mut toml::value::Table, path: &str) -> Result<HashMap<String, Package>> {
         let mut result = HashMap::new();
         let pkg_table = try!(get_table(table, "pkg", path));
 
@@ -115,15 +113,15 @@ impl Manifest {
 
         Ok(result)
     }
-    fn packages_to_table(packages: HashMap<String, Package>) -> toml::Table {
-        let mut result = toml::Table::new();
+    fn packages_to_table(packages: HashMap<String, Package>) -> toml::value::Table {
+        let mut result = toml::value::Table::new();
         for (k, v) in packages {
             result.insert(k, toml::Value::Table(v.to_toml()));
         }
         result
     }
 
-    fn table_to_renames(mut table: toml::Table, path: &str) -> Result<HashMap<String, String>> {
+    fn table_to_renames(mut table: toml::value::Table, path: &str) -> Result<HashMap<String, String>> {
         let mut result = HashMap::new();
         let rename_table = try!(get_table(&mut table, "rename", path));
 
@@ -135,10 +133,10 @@ impl Manifest {
 
         Ok(result)
     }
-    fn renames_to_table(renames: HashMap<String, String>) -> toml::Table {
-        let mut result = toml::Table::new();
+    fn renames_to_table(renames: HashMap<String, String>) -> toml::value::Table {
+        let mut result = toml::value::Table::new();
         for (from, to) in renames {
-            let mut table = toml::Table::new();
+            let mut table = toml::value::Table::new();
             table.insert("to".to_owned(), toml::Value::String(to));
             result.insert(from, toml::Value::Table(table));
         }
@@ -190,14 +188,14 @@ impl Manifest {
 }
 
 impl Package {
-    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
+    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         Ok(Package {
             version: try!(get_string(&mut table, "version", path)),
             targets: try!(Self::toml_to_targets(table, path)),
         })
     }
-    pub fn to_toml(self) -> toml::Table {
-        let mut result = toml::Table::new();
+    pub fn to_toml(self) -> toml::value::Table {
+        let mut result = toml::value::Table::new();
 
         result.insert("version".to_owned(), toml::Value::String(self.version));
 
@@ -207,7 +205,7 @@ impl Package {
         result
     }
 
-    fn toml_to_targets(mut table: toml::Table, path: &str) -> Result<PackageTargets> {
+    fn toml_to_targets(mut table: toml::value::Table, path: &str) -> Result<PackageTargets> {
         let mut target_table = try!(get_table(&mut table, "target", path));
 
         if let Some(toml::Value::Table(t)) = target_table.remove("*") {
@@ -222,8 +220,8 @@ impl Package {
             Ok(PackageTargets::Targeted(result))
         }
     }
-    fn targets_to_toml(targets: PackageTargets) -> toml::Table {
-        let mut result = toml::Table::new();
+    fn targets_to_toml(targets: PackageTargets) -> toml::value::Table {
+        let mut result = toml::value::Table::new();
         match targets {
             PackageTargets::Wildcard(tpkg) => {
                 result.insert("*".to_owned(), toml::Value::Table(tpkg.to_toml()));
@@ -268,7 +266,7 @@ impl PackageTargets {
 }
 
 impl TargetedPackage {
-    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
+    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let components = try!(get_array(&mut table, "components", path));
         let extensions = try!(get_array(&mut table, "extensions", path));
 
@@ -293,10 +291,10 @@ impl TargetedPackage {
             })
         }
     }
-    pub fn to_toml(self) -> toml::Table {
+    pub fn to_toml(self) -> toml::value::Table {
         let extensions = Self::components_to_toml(self.extensions);
         let components = Self::components_to_toml(self.components);
-        let mut result = toml::Table::new();
+        let mut result = toml::value::Table::new();
         if !extensions.is_empty() {
             result.insert("extensions".to_owned(), toml::Value::Array(extensions));
         }
@@ -321,7 +319,7 @@ impl TargetedPackage {
         self.bins.is_some()
     }
 
-    fn toml_to_components(arr: toml::Array, path: &str) -> Result<Vec<Component>> {
+    fn toml_to_components(arr: toml::value::Array, path: &str) -> Result<Vec<Component>> {
         let mut result = Vec::new();
 
         for (i, v) in arr.into_iter().enumerate() {
@@ -333,8 +331,8 @@ impl TargetedPackage {
 
         Ok(result)
     }
-    fn components_to_toml(components: Vec<Component>) -> toml::Array {
-        let mut result = toml::Array::new();
+    fn components_to_toml(components: Vec<Component>) -> toml::value::Array {
+        let mut result = toml::value::Array::new();
         for v in components {
             result.push(toml::Value::Table(v.to_toml()));
         }
@@ -343,7 +341,7 @@ impl TargetedPackage {
 }
 
 impl Component {
-    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
+    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         Ok(Component {
             pkg: try!(get_string(&mut table, "pkg", path)),
             target: try!(get_string(&mut table, "target", path).map(|s| {
@@ -355,8 +353,8 @@ impl Component {
             })),
         })
     }
-    pub fn to_toml(self) -> toml::Table {
-        let mut result = toml::Table::new();
+    pub fn to_toml(self) -> toml::value::Table {
+        let mut result = toml::value::Table::new();
         result.insert("target".to_owned(), toml::Value::String(
             self.target.map(|t| t.to_string()).unwrap_or_else(||"*".to_owned())
         ));

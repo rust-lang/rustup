@@ -3,15 +3,12 @@
 extern crate url;
 #[macro_use]
 extern crate lazy_static;
-extern crate scopeguard;
 extern crate walkdir;
 extern crate flate2;
 extern crate xz2;
 extern crate tempdir;
-extern crate itertools;
 extern crate tar;
 extern crate toml;
-extern crate rustup_utils;
 extern crate sha2;
 extern crate wait_timeout;
 

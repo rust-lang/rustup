@@ -2,7 +2,6 @@
 
 extern crate regex;
 extern crate itertools;
-extern crate tempdir;
 extern crate walkdir;
 extern crate toml;
 extern crate flate2;
