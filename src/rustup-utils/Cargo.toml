@@ -13,7 +13,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 download = { path = "../download" }
-error-chain = "0.10"
+error-chain = "0.11"
 libc = "0.2.0"
 rand = "0.3.11"
 remove_dir_all = "0.2.0"

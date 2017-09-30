@@ -35,7 +35,7 @@ rustup-dist = { path = "src/rustup-dist" }
 rustup-utils = { path = "src/rustup-utils" }
 download = { path = "src/download" }
 clap = "2.18.0"
-error-chain = "0.10"
+error-chain = "0.11"
 itertools = "0.6"
 libc = "0.2.0"
 markdown = "0.2"
