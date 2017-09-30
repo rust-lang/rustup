@@ -92,7 +92,7 @@ error_chain! {
                 }
             })
         }
-        Parsing(e: Vec<toml::ParserError>) {
+        Parsing(e: toml::de::Error) {
             description("error parsing manifest")
         }
         UnsupportedVersion(v: String) {

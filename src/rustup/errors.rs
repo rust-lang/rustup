@@ -53,7 +53,7 @@ error_chain! {
             display("component {} was automatically added because it is required for toolchain '{}'",
                     c.description(), t)
         }
-        ParsingSettings(e: Vec<toml::ParserError>) {
+        ParsingSettings(e: toml::de::Error) {
             description("error parsing settings")
         }
         RemovingRequiredComponent(t: String, c: Component) {

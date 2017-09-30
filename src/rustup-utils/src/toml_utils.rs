@@ -1,12 +1,12 @@
 use toml;
 use errors::*;
 
-pub fn get_value(table: &mut toml::Table, key: &str, path: &str) -> Result<toml::Value> {
+pub fn get_value(table: &mut toml::value::Table, key: &str, path: &str) -> Result<toml::Value> {
     table.remove(key).ok_or_else(
         || format!("missing key: '{}'", path.to_owned() + key).into())
 }
 
-pub fn get_string(table: &mut toml::Table, key: &str, path: &str) -> Result<String> {
+pub fn get_string(table: &mut toml::value::Table, key: &str, path: &str) -> Result<String> {
     get_value(table, key, path).and_then(|v| {
         if let toml::Value::String(s) = v {
             Ok(s)
@@ -16,7 +16,7 @@ pub fn get_string(table: &mut toml::Table, key: &str, path: &str) -> Result<Stri
     })
 }
 
-pub fn get_opt_string(table: &mut toml::Table, key: &str, path: &str) -> Result<Option<String>> {
+pub fn get_opt_string(table: &mut toml::value::Table, key: &str, path: &str) -> Result<Option<String>> {
     if let Ok(v) = get_value(table, key, path) {
         if let toml::Value::String(s) = v {
             Ok(Some(s))
@@ -28,7 +28,7 @@ pub fn get_opt_string(table: &mut toml::Table, key: &str, path: &str) -> Result<
     }
 }
 
-pub fn get_bool(table: &mut toml::Table, key: &str, path: &str) -> Result<bool> {
+pub fn get_bool(table: &mut toml::value::Table, key: &str, path: &str) -> Result<bool> {
     get_value(table, key, path).and_then(|v| {
         if let toml::Value::Boolean(b) = v {
             Ok(b)
@@ -38,7 +38,7 @@ pub fn get_bool(table: &mut toml::Table, key: &str, path: &str) -> Result<bool> 
     })
 }
 
-pub fn get_opt_bool(table: &mut toml::Table, key: &str, path: &str) -> Result<Option<bool>> {
+pub fn get_opt_bool(table: &mut toml::value::Table, key: &str, path: &str) -> Result<Option<bool>> {
     if let Ok(v) = get_value(table, key, path) {
         if let toml::Value::Boolean(b) = v {
             Ok(Some(b))
@@ -50,7 +50,7 @@ pub fn get_opt_bool(table: &mut toml::Table, key: &str, path: &str) -> Result<Op
     }
 }
 
-pub fn get_table(table: &mut toml::Table, key: &str, path: &str) -> Result<toml::Table> {
+pub fn get_table(table: &mut toml::value::Table, key: &str, path: &str) -> Result<toml::value::Table> {
     if let Some(v) = table.remove(key) {
         if let toml::Value::Table(t) = v {
             Ok(t)
@@ -58,11 +58,11 @@ pub fn get_table(table: &mut toml::Table, key: &str, path: &str) -> Result<toml:
             Err(ErrorKind::ExpectedType("table", path.to_owned() + key).into())
         }
     } else {
-        Ok(toml::Table::new())
+        Ok(toml::value::Table::new())
     }
 }
 
-pub fn get_array(table: &mut toml::Table, key: &str, path: &str) -> Result<toml::Array> {
+pub fn get_array(table: &mut toml::value::Table, key: &str, path: &str) -> Result<toml::value::Array> {
     if let Some(v) = table.remove(key) {
         if let toml::Value::Array(s) = v {
             Ok(s)
@@ -70,6 +70,6 @@ pub fn get_array(table: &mut toml::Table, key: &str, path: &str) -> Result<toml:
             Err(ErrorKind::ExpectedType("table", path.to_owned() + key).into())
         }
     } else {
-        Ok(toml::Array::new())
+        Ok(toml::value::Array::new())
     }
 }

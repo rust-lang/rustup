@@ -14,7 +14,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_toml(mut table: toml::Table, path: &str) -> Result<Self> {
+    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let version = try!(get_string(&mut table, "config_version", path));
         if !SUPPORTED_CONFIG_VERSIONS.contains(&&*version) {
             return Err(ErrorKind::UnsupportedVersion(version).into());
@@ -29,8 +29,8 @@ impl Config {
             components: components,
         })
     }
-    pub fn to_toml(self) -> toml::Table {
-        let mut result = toml::Table::new();
+    pub fn to_toml(self) -> toml::value::Table {
+        let mut result = toml::value::Table::new();
         result.insert("config_version".to_owned(),
                       toml::Value::String(self.config_version));
         let components = Self::components_to_toml(self.components);
@@ -41,9 +41,7 @@ impl Config {
     }
 
     pub fn parse(data: &str) -> Result<Self> {
-        let mut parser = toml::Parser::new(data);
-        let value = try!(parser.parse().ok_or_else(move || ErrorKind::Parsing(parser.errors)));
-
+        let value = toml::from_str(data).map_err(ErrorKind::Parsing)?;
         Self::from_toml(value, "")
     }
 
@@ -51,7 +49,7 @@ impl Config {
         toml::Value::Table(self.to_toml()).to_string()
     }
 
-    fn toml_to_components(arr: toml::Array, path: &str) -> Result<Vec<Component>> {
+    fn toml_to_components(arr: toml::value::Array, path: &str) -> Result<Vec<Component>> {
         let mut result = Vec::new();
 
         for (i, v) in arr.into_iter().enumerate() {
@@ -64,8 +62,8 @@ impl Config {
         Ok(result)
     }
 
-    fn components_to_toml(components: Vec<Component>) -> toml::Array {
-        let mut result = toml::Array::new();
+    fn components_to_toml(components: Vec<Component>) -> toml::value::Array {
+        let mut result = toml::value::Array::new();
         for v in components {
             result.push(toml::Value::Table(v.to_toml()));
         }

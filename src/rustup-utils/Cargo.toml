@@ -21,7 +21,7 @@ rustc-serialize = "0.3.19"
 scopeguard = "0.3.0"
 semver = "0.7.0"
 sha2 = "0.6.0"
-toml = "0.1.27"
+toml = "0.4"
 url = "1.1"
 
 [target."cfg(windows)".dependencies]
