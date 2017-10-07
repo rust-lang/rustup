@@ -74,6 +74,7 @@ pub fn main() -> Result<()> {
         ("self", Some(c)) => {
             match c.subcommand() {
                 ("update", Some(_)) => try!(self_update::update()),
+                ("check", Some(_)) => try!(self_update::check_update()),
                 ("uninstall", Some(m)) => try!(self_uninstall(m)),
                 (_ ,_) => unreachable!(),
             }
@@ -298,7 +299,7 @@ pub fn cli() -> App<'static, 'static> {
                  .help("Standard library API documentation"))
             .group(ArgGroup::with_name("page")
                  .args(&["book", "std"])));
-    
+
     if cfg!(not(target_os = "windows")) {
         app = app
             .subcommand(SubCommand::with_name("man")
@@ -310,7 +311,7 @@ pub fn cli() -> App<'static, 'static> {
                          .long("toolchain")
                          .takes_value(true)));
     }
-    
+
     app.subcommand(SubCommand::with_name("self")
         .about("Modify the rustup installation")
         .setting(AppSettings::VersionlessSubcommands)
@@ -318,6 +319,8 @@ pub fn cli() -> App<'static, 'static> {
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(SubCommand::with_name("update")
             .about("Download and install updates to rustup"))
+        .subcommand(SubCommand::with_name("check")
+            .about("Check available updates to rustup"))
         .subcommand(SubCommand::with_name("uninstall")
             .about("Uninstall rustup.")
             .arg(Arg::with_name("no-prompt")

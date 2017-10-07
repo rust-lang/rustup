@@ -1326,6 +1326,26 @@ pub fn update() -> Result<()> {
     Ok(())
 }
 
+pub fn check_update() -> Result<()> {
+    if NEVER_SELF_UPDATE {
+        err!("self-update is disabled for this build of rustup");
+        err!("you should probably use your system package manager to update rustup");
+        process::exit(1);
+    }
+
+    // Get current version
+    let current_version = env!("CARGO_PKG_VERSION");
+    // Download available version
+    let available_version = download_available_version()?;
+    if available_version == current_version {
+        info!("rustup is up to date");
+    } else {
+        info!("rustup update to {} is available", available_version);
+    }
+
+    Ok(())
+}
+
 fn get_new_rustup_version(path: &Path) -> Option<String> {
     match Command::new(path).arg("--version").output() {
         Err(_) => None,
@@ -1347,45 +1367,73 @@ fn parse_new_rustup_version(version: String) -> String {
 }
 
 pub fn prepare_update() -> Result<Option<PathBuf>> {
-    use toml;
-
     let ref cargo_home = try!(utils::cargo_home());
-    let ref rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
-    let ref setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
+    let ref rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
     if !rustup_path.exists() {
         return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
     }
 
+    let ref setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
     if setup_path.exists() {
         try!(utils::remove_file("setup", setup_path));
     }
 
+    // Get current version
+    let current_version = env!("CARGO_PKG_VERSION");
+    // Download available version
+    let available_version = download_available_version()?;
+    // If up-to-date
+    if available_version == current_version {
+        return Ok(None);
+    }
+
     // Get build triple
     let triple = dist::TargetTriple::from_build();
+    // Get download URL
+    let update_root = env::var("RUSTUP_UPDATE_ROOT")
+        .unwrap_or(String::from(UPDATE_ROOT));
+    let url = format!("{}/archive/{}/{}/rustup-init{}", update_root,
+                      available_version, triple, EXE_SUFFIX);
+
+    // Get download path
+    let download_url = try!(utils::parse_url(&url));
+    // Download new version
+    info!("downloading self-update");
+    try!(utils::download_file(&download_url,
+                              &setup_path,
+                              None,
+                              &|_| ()));
+    // Mark as executable
+    try!(utils::make_executable(setup_path));
+
+    Ok(Some(setup_path.to_owned()))
+}
+
+pub fn download_available_version() -> Result<String> {
+    use toml;
+
+    info!("checking for self-updates");
 
     let update_root = env::var("RUSTUP_UPDATE_ROOT")
         .unwrap_or(String::from(UPDATE_ROOT));
-
     let tempdir = try!(TempDir::new("rustup-update")
         .chain_err(|| "error creating temp directory"));
 
-    // Get current version
-    let current_version = env!("CARGO_PKG_VERSION");
-
-    // Download available version
-    info!("checking for self-updates");
     let release_file_url = format!("{}/release-stable.toml", update_root);
     let release_file_url = try!(utils::parse_url(&release_file_url));
     let release_file = tempdir.path().join("release-stable.toml");
     try!(utils::download_file(&release_file_url, &release_file, None, &|_| ()));
+
     let release_toml_str = try!(utils::read_file("rustup release", &release_file));
     let release_toml: toml::Value = try!(toml::from_str(&release_toml_str)
                             .map_err(|_| Error::from("unable to parse rustup release file")));
+
     let schema = try!(release_toml.get("schema-version")
                       .ok_or(Error::from("no schema key in rustup release file")));
     let schema = try!(schema.as_str()
                       .ok_or(Error::from("invalid schema key in rustup release file")));
+
     let available_version = try!(release_toml.get("version")
                                  .ok_or(Error::from("no version key in rustup release file")));
     let available_version = try!(available_version.as_str()
@@ -1395,29 +1443,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
         return Err(Error::from(&*format!("unknown schema version '{}' in rustup release file", schema)));
     }
 
-    // If up-to-date
-    if available_version == current_version {
-        return Ok(None);
-    }
-
-    // Get download URL
-    let url = format!("{}/archive/{}/{}/rustup-init{}", update_root,
-                      available_version, triple, EXE_SUFFIX);
-
-    // Get download path
-    let download_url = try!(utils::parse_url(&url));
-
-    // Download new version
-    info!("downloading self-update");
-    try!(utils::download_file(&download_url,
-                              &setup_path,
-                              None,
-                              &|_| ()));
-
-    // Mark as executable
-    try!(utils::make_executable(setup_path));
-
-    Ok(Some(setup_path.to_owned()))
+    Ok(available_version.to_owned())
 }
 
 /// Tell the upgrader to replace the rustup bins, then delete
