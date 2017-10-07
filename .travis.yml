@@ -118,6 +118,7 @@ cache:
 
 branches:
   only:
+    - check-update
     - master
     - stable
     - auto
@@ -162,3 +163,7 @@ after_deploy:
   - sudo pip install awscli
   - aws configure set preview.cloudfront true
   - aws cloudfront create-invalidation --paths "rustup/$TARGET/* rustup/dev/$TARGET/* rustup/www/* rustup/dev/www/* rustup/* rustup/dev/*"
+
+notifications:
+  slack:
+    secure: Yi7yIoASW8wxFyHVkMfjNq2sQvrkW07blHC7qFo5LadZ6wBUCR4HP/Sty2rwSpI9TD3WnYLC4DC8KNFabVmetdPi+vYHX3MdwUPqZAHYOkfDk8xeHTqzRSjelwUcqISm7b89J4DbtgVXs/4VrWZXyDVBygw6voOegArEPARFmZknVgYA6VxTEDx3M2NBq2YUDONLHnf5xjYzvtRimpidr1UXO7GqgAKGileRzrUNRGxhnFUoVeHlD4dpzgawRbhQtxVFGQKALv03p1fNk2MRfWkPKO0WPVcePNK8Se90OhoIWTa0IaBBx3myE8QgHr8mcUyx0IjZ1JMFufnLav1gyUOBlwtFX/xqJEY7FCdApfMLCSIAJFTaBVoBFmnvpkZTUsisvzydkuqihrJx+Kbd4sPR2ETz4NUcqmuR4dv7+s9iecN50ef7FaUdxJnPPiJ85EnkDF7mHEoola7fq8HqteRnD02Iu0rf+78Y0fpgF2B9DXs2j8spim2Gg6OVOQVa+tT3NyRHKu88iy9uPjyMV6AUHJpZgYejfKTiNFHxFBwyhIzUUPrhuMyaibe9ic6zZ2Qt6uiiDgqxU0hbsUPKMYbLbf0z8vyMtstlJRG5luHWDDItTmCvByBf5TqBj/vYcwndyTkz+AtHD0skTN/uG8eqaZ6HO5Zv0hHmW6pOrok=
