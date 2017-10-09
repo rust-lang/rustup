@@ -1309,6 +1309,7 @@ pub fn update() -> Result<()> {
         err!("you should probably use your system package manager to update rustup");
         process::exit(1);
     }
+
     let setup_path = try!(prepare_update());
     if let Some(ref p) = setup_path {
         let version = match get_new_rustup_version(p) {
@@ -1333,14 +1334,12 @@ pub fn check_update() -> Result<()> {
         process::exit(1);
     }
 
-    // Get current version
-    let current_version = env!("CARGO_PKG_VERSION");
-    // Download available version
     let available_version = download_available_version()?;
+    let current_version = env!("CARGO_PKG_VERSION");
     if available_version == current_version {
         info!("rustup is up to date");
     } else {
-        info!("rustup update to {} is available", available_version);
+        info!("self-update to {} is available", available_version);
     }
 
     Ok(())
@@ -1379,9 +1378,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
         try!(utils::remove_file("setup", setup_path));
     }
 
-    // Get current version
     let current_version = env!("CARGO_PKG_VERSION");
-    // Download available version
     let available_version = download_available_version()?;
     // If up-to-date
     if available_version == current_version {
