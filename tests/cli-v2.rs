@@ -188,6 +188,24 @@ fn remove_override_toolchain_err_handling() {
 }
 
 #[test]
+fn file_override_toolchain_err_handling() {
+    setup(&|config| {
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        rustup_utils::raw::write_file(&toolchain_file, "beta").unwrap();
+        expect_stderr_ok(config, &["rustc", "--version"], "info: installing component");
+    });
+}
+
+#[test]
+fn plus_override_toolchain_err_handling() {
+    setup(&|config| {
+        expect_err(config, &["rustc", "+beta"],
+                           for_host!("toolchain 'beta-{0}' is not installed"));
+    });
+}
+
+#[test]
 fn bad_sha_on_manifest() {
     setup(&|config| {
         // Corrupt the sha
