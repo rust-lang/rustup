@@ -327,7 +327,7 @@ impl Cfg {
     }
 
     pub fn get_default(&self) -> Result<String> {
-        self.settings_file.with(|s| { 
+        self.settings_file.with(|s| {
             Ok(s.default_toolchain.clone().unwrap())
         })
     }
@@ -350,7 +350,7 @@ impl Cfg {
         }
     }
 
-    pub fn update_all_channels(&self) -> Result<Vec<(String, Result<UpdateStatus>)>> {
+    pub fn update_all_channels(&self, check_only: bool) -> Result<Vec<(String, Result<UpdateStatus>)>> {
         let toolchains = try!(self.list_toolchains());
 
         // Convert the toolchain strings to Toolchain values
@@ -365,7 +365,7 @@ impl Cfg {
         // Update toolchains and collect the results
         let toolchains = toolchains.map(|(n, t)| {
             let t = t.and_then(|t| {
-                let t = t.install_from_dist();
+                let t = t.install_from_dist(check_only);
                 if let Err(ref e) = t {
                     (self.notify_handler)(Notification::NonFatalError(e));
                 }

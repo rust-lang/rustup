@@ -28,6 +28,15 @@ r"DISCUSSION:
     If given a toolchain argument then `update` updates that
     toolchain, the same as `rustup toolchain install`.";
 
+pub static CHECK_HELP: &'static str =
+r"DISCUSSION:
+    With no toolchain specified, the `check` command checks each of
+    the installed toolchains from the official release channels, then
+    checks rustup itself.
+
+    If given a toolchain argument then `check` checks that
+    toolchain.";
+
 pub static INSTALL_HELP: &'static str =
 r"DISCUSSION:
     Installs a specific rust toolchain.
