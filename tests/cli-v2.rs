@@ -182,9 +182,26 @@ fn remove_override_toolchain_err_handling() {
             expect_ok(config, &["rustup", "default", "nightly"]);
             expect_ok(config, &["rustup", "override", "add", "beta"]);
             expect_ok(config, &["rustup", "toolchain", "remove", "beta"]);
-            expect_err(config, &["rustc"],
-                               for_host!("toolchain 'beta-{0}' is not installed"));
+            expect_stderr_ok(config, &["rustc", "--version"], "info: installing component");
         });
+    });
+}
+
+#[test]
+fn file_override_toolchain_err_handling() {
+    setup(&|config| {
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        rustup_utils::raw::write_file(&toolchain_file, "beta").unwrap();
+        expect_stderr_ok(config, &["rustc", "--version"], "info: installing component");
+    });
+}
+
+#[test]
+fn plus_override_toolchain_err_handling() {
+    setup(&|config| {
+        expect_err(config, &["rustc", "+beta"],
+                           for_host!("toolchain 'beta-{0}' is not installed"));
     });
 }
 
