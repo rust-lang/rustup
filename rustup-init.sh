@@ -9,8 +9,8 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-# This is just a little script that can be curled from the internet to
-# install rustup. It just does platform detection, curls the installer
+# This is just a little script that can be downloaded from the internet to
+# install rustup. It just does platform detection, downloads the installer
 # and runs it.
 
 set -u
@@ -41,8 +41,8 @@ EOF
 }
 
 main() {
+    downloader --check
     need_cmd uname
-    need_cmd curl
     need_cmd mktemp
     need_cmd chmod
     need_cmd mkdir
@@ -100,7 +100,7 @@ main() {
     fi
 
     ensure mkdir -p "$_dir"
-    ensure curl -sSfL "$_url" -o "$_file"
+    ensure downloader "$_url" "$_file"
     ensure chmod u+x "$_file"
     if [ ! -x "$_file" ]; then
         printf '%s\n' "Cannot execute $_file (likely because of mounting /tmp as noexec)." 1>&2
@@ -357,6 +357,26 @@ ensure() {
 # as part of error handling.
 ignore() {
     "$@"
+}
+
+# This wraps curl or wget. Try curl first, if not installed,
+# use wget instead.
+downloader() {
+    if command -v curl > /dev/null 2>&1
+    then _dld=curl
+    elif command -v wget > /dev/null 2>&1
+    then _dld=wget
+    else _dld='curl or wget' # to be used in error message of need_cmd
+    fi
+
+    if [ "$1" = --check ]
+    then need_cmd "$_dld"
+    elif [ "$_dld" = curl ]
+    then curl -sSfL "$1" -o "$2"
+    elif [ "$_dld" = wget ]
+    then wget "$1" -O "$2"
+    else err "Unknown downloader"   # should not reach here
+    fi
 }
 
 main "$@" || exit 1
