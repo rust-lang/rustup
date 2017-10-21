@@ -16,6 +16,7 @@ And it runs on all platforms Rust supports, including Windows.
 * [Installation](#installation)
 * [How rustup works](#how-rustup-works)
 * [Keeping Rust up to date](#keeping-rust-up-to-date)
+* [Checking for available updates](#checking-for-available-updates)
 * [Working with nightly Rust](#working-with-nightly-rust)
 * [Toolchain specification](#toolchain-specification)
 * [Toolchain override shorthand](#toolchain-override-shorthand)
@@ -170,6 +171,23 @@ $ rustup self update
 info: checking for self-updates
 info: downloading self-updates
 ```
+
+## Checking for available updates
+
+To check for availbale updates without actually updating, you can run `rustup check`:
+
+```
+$ rustup check
+info: syncing channel updates for 'stable'
+info: checking for self-updates
+info: rustup is up to date
+
+   stable up-to-date: rustc 1.7.0 (a5d1e7a59 2016-02-29)
+
+```
+
+Running `rustup check` checks for updates to `rustup` itself, as well as all installed toolchains.
+Similarly to `rustup update`, you can use `rustup self check` to check for updates to `rustup` alone.
 
 ## Working with nightly Rust
 
