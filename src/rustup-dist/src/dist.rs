@@ -550,6 +550,7 @@ fn update_from_dist_<'a>(download: DownloadCfg<'a>,
                 format!("could not download nonexistent rust version `{}`",
                         toolchain_str)
             })
+
         }
         Err(e) => Err(e),
     }
@@ -562,7 +563,6 @@ pub fn check_update_dist<'a>(download: DownloadCfg<'a>,
     let toolchain_str = toolchain.to_string();
 
     // TODO: Add a notification about which manifest version is going to be used
-    // TODO: Proceed to try v1 as a fallback
     (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
     match v2_manifest_hash_match(download, update_hash, toolchain) {
         Ok(hash_match) => return Ok(Some(!hash_match)),
@@ -570,27 +570,6 @@ pub fn check_update_dist<'a>(download: DownloadCfg<'a>,
             return Ok(None)
         }
         Err(e) => return Err(e),
-    }
-}
-
-fn v2_manifest_hash_match<'a>(download: DownloadCfg<'a>,
-                         update_hash: Option<&Path>,
-                         toolchain: &ToolchainDesc)
-                         -> Result<bool> {
-    let manifest_url = toolchain.manifest_v2_url(download.dist_root);
-    let hash_match_res = download.download_check_hash_match(&manifest_url, update_hash);
-
-    if let Ok(hash_match) = hash_match_res {
-        Ok(hash_match)
-    } else {
-        match *hash_match_res.as_ref().unwrap_err().kind() {
-            // Checksum failed - issue warning to try again later
-            ErrorKind::ChecksumFailed { .. } => {
-                (download.notify_handler)(Notification::ManifestChecksumFailedHack)
-            }
-            _ => {}
-        }
-        Err(hash_match_res.unwrap_err())
     }
 }
 
@@ -623,6 +602,27 @@ fn dl_v2_manifest<'a>(download: DownloadCfg<'a>,
         Err(manifest_dl_res.unwrap_err())
     }
 
+}
+
+fn v2_manifest_hash_match<'a>(download: DownloadCfg<'a>,
+                              update_hash: Option<&Path>,
+                              toolchain: &ToolchainDesc)
+                              -> Result<bool> {
+    let manifest_url = toolchain.manifest_v2_url(download.dist_root);
+    let hash_match_res = download.download_check_hash_match(&manifest_url, update_hash);
+
+    if let Ok(hash_match) = hash_match_res {
+        Ok(hash_match)
+    } else {
+        match *hash_match_res.as_ref().unwrap_err().kind() {
+            // Checksum failed - issue warning to try again later
+            ErrorKind::ChecksumFailed { .. } => {
+                (download.notify_handler)(Notification::ManifestChecksumFailedHack)
+            }
+            _ => {}
+        }
+        Err(hash_match_res.unwrap_err())
+    }
 }
 
 fn dl_v1_manifest<'a>(download: DownloadCfg<'a>, toolchain: &ToolchainDesc) -> Result<Vec<String>> {
