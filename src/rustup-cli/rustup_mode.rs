@@ -298,7 +298,7 @@ pub fn cli() -> App<'static, 'static> {
                  .help("Standard library API documentation"))
             .group(ArgGroup::with_name("page")
                  .args(&["book", "std"])));
-    
+
     if cfg!(not(target_os = "windows")) {
         app = app
             .subcommand(SubCommand::with_name("man")
@@ -310,7 +310,7 @@ pub fn cli() -> App<'static, 'static> {
                          .long("toolchain")
                          .takes_value(true)));
     }
-    
+
     app.subcommand(SubCommand::with_name("self")
         .about("Modify the rustup installation")
         .setting(AppSettings::VersionlessSubcommands)
@@ -479,14 +479,24 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
+    let mut toolchain = m.value_of("toolchain").expect("").to_string();
+    if toolchain == "active" {
+        let cwd = try!(utils::current_dir());
+        let default_toolchain = try!(cfg.find_override_toolchain_or_default(&cwd));
+        if let Some((default_toolchain, _)) = default_toolchain {
+            toolchain = default_toolchain.name().to_string();
+        } else {
+            return Err(ErrorKind::NoActiveToolchain.into());
+        }
+    }
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
-    let cmd = try!(cfg.create_command_for_toolchain(toolchain, args[0]));
+    let cmd = try!(cfg.create_command_for_toolchain(&toolchain, args[0]));
 
-    Ok(try!(command::run_command_for_dir(cmd, args[0], &args[1..], &cfg)))
+    Ok(try!(
+        command::run_command_for_dir(cmd, args[0], &args[1..], &cfg)
+    ))
 }
-
 fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let binary = m.value_of("command").expect("");
 

@@ -473,6 +473,9 @@ toolchain. Create a `rustup` toolchain for each of your
 `rust-lang/rust` workspaces and test them easily with `rustup run
 my-toolchain rustc`.
 
+Conversely, you can use the special value `active` to run the active
+toolchain.
+
 Because the `rust-lang/rust` tree does not include Cargo, *when `cargo`
 is invoked for a custom toolchain and it is not available, `rustup`
 will attempt to use `cargo` from one of the release channels*,
@@ -513,6 +516,7 @@ Command | Description
 `rustup target add arm-linux-androideabi` | Install the Android target
 `rustup target remove arm-linux-androideabi` | Remove the Android target
 `rustup run nightly rustc foo.rs` | Run the nightly regardless of the active toolchain
+`rustup run active rustc foo.rs` | Run the active toolchain
 `rustc +nightly foo.rs` | Shorthand way to run a nightly compiler
 `rustup run nightly bash` | Run a shell configured for the nightly compiler
 `rustup default stable-msvc` | On Windows, use the MSVC toolchain instead of GNU
