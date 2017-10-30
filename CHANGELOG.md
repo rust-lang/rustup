@@ -1,3 +1,16 @@
+# 1.7.0
+
+* [Improve clarity of component errors][pr1255]
+* [Support `--default-toolchain none`][pr1257]
+* [Automatically install override toolchain when missing][pr1250]
+
+[pr1255]: https://github.com/rust-lang-nursery/rustup.rs/pull/1255
+[pr1257]: https://github.com/rust-lang-nursery/rustup.rs/pull/1257
+[pr1250]: https://github.com/rust-lang-nursery/rustup.rs/pull/1250
+
+Contributors: Aidan Hobson Sayers, Alan Du, Alex Crichton, Christoph Wurst,
+Jason Mobarak, Leon Isenberg, Simon Sapin, Vadim Petrochenkov
+
 # 1.6.0
 
 * [Fix support for s390x][pr1228]
