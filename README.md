@@ -177,7 +177,7 @@ Rustup gives you easy access to the nightly compiler and its
 [experimental features]. To add it just run `rustup install
 nightly`:
 
-[experimental features]: http://doc.rust-lang.org/nightly/book/nightly-rust.html
+[experimental features]: https://doc.rust-lang.org/unstable-book/
 
 ```
 $ rustup install nightly
