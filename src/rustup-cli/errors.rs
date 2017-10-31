@@ -21,6 +21,9 @@ error_chain! {
         PermissionDenied {
             description("permission denied")
         }
+        NoActiveToolchain {
+            description("no active toolchain found")
+        }
         ToolchainNotInstalled(t: String) {
             description("toolchain is not installed")
             display("toolchain '{}' is not installed", t)
