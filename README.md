@@ -500,6 +500,12 @@ If you need a more complex setup, rustup supports the convention used by
 the __curl__ program, documented in the ENVIRONMENT section of
 [its manual page][curlman].
 
+Note that some versions of `libcurl` apparently require you to drop the 
+`http://` or `https://` prefix in environment variables. For example, 
+`export http_proxy=proxy.example.com:1080` (and likewise for HTTPS). 
+If you are getting an SSL `unknown protocol` error from `rustup` via `libcurl`
+but the command-line `curl` command works fine, this may be the problem.
+
 [curlman]: https://curl.haxx.se/docs/manpage.html
 
 
