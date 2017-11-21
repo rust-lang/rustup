@@ -383,6 +383,16 @@ pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
     })
 }
 
+pub fn file_size(path: &Path) -> Result<u64> {
+    let metadata = fs::metadata(path).chain_err(|| {
+        ErrorKind::ReadingFile {
+            name: "metadata for",
+            path: PathBuf::from(path),
+        }
+    })?;
+    Ok(metadata.len())
+}
+
 pub fn make_executable(path: &Path) -> Result<()> {
     #[cfg(windows)]
     fn inner(_: &Path) -> Result<()> {

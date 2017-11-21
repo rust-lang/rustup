@@ -184,13 +184,18 @@ Studio 2013 and during install select the "C++ tools":
 
 _Install the C++ build tools before proceeding_.
 
-If you will be targetting the GNU ABI or otherwise know what you are
+If you will be targeting the GNU ABI or otherwise know what you are
 doing then it is fine to continue installation without the build
 tools, but otherwise, install the C++ build tools before proceeding.
 "#;
 
 static TOOLS: &'static [&'static str]
     = &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb", "rls"];
+
+// Tools which are commonly installed by Cargo as well as rustup. We take a bit
+// more care with these to ensure we don't overwrite the user's previous
+// installation.
+static DUP_TOOLS: &'static [&'static str] = &["rustfmt", "cargo-fmt"];
 
 static UPDATE_ROOT: &'static str
     = "https://static.rust-lang.org/rustup";
@@ -646,11 +651,29 @@ fn install_bins() -> Result<()> {
     try!(utils::copy_file(this_exe_path, rustup_path));
     try!(utils::make_executable(rustup_path));
 
+    // Record the size of the known links, then when we get files which may or
+    // may not be links, we compare their size. Same size means probably a link.
+    let mut file_size = 0;
+
     // Try to hardlink all the Rust exes to the rustup exe. Some systems,
     // like Android, does not support hardlinks, so we fallback to symlinks.
     for tool in TOOLS {
         let ref tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
+        if tool_path.exists() {
+            file_size = utils::file_size(tool_path)?;
+        }
         try!(utils::hard_or_symlink_file(rustup_path, tool_path));
+    }
+
+    for tool in DUP_TOOLS {
+        let ref tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
+        if tool_path.exists() && (file_size == 0 || utils::file_size(tool_path)? != file_size) {
+            warn!("tool `{}` is already installed, remove it from `{}`, then run `rustup update` \
+                   to have rustup manage this tool.",
+                  tool, bin_path.to_string_lossy());
+        } else {
+            try!(utils::hard_or_symlink_file(rustup_path, tool_path));
+        }
     }
 
     Ok(())
@@ -752,7 +775,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 
     // Then everything in bin except rustup and tools. These can't be unlinked
     // until this process exits (on windows).
-    let tools = TOOLS.iter().map(|t| format!("{}{}", t, EXE_SUFFIX));
+    let tools = TOOLS.iter().chain(DUP_TOOLS.iter()).map(|t| format!("{}{}", t, EXE_SUFFIX));
     let tools: Vec<_> = tools.chain(vec![format!("rustup{}", EXE_SUFFIX)]).collect();
     for dirent in try!(fs::read_dir(&cargo_home.join("bin")).chain_err(|| read_dir_err)) {
         let dirent = try!(dirent.chain_err(|| read_dir_err));

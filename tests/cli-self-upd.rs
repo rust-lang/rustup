@@ -27,15 +27,12 @@ use std::process::Command;
 use remove_dir_all::remove_dir_all;
 use rustup_mock::clitools::{self, Config, Scenario,
                                expect_ok, expect_ok_ex,
-                               expect_stdout_ok,
+                               expect_stdout_ok, expect_stderr_ok,
                                expect_err, expect_err_ex,
                                this_host_triple};
 use rustup_mock::dist::{calc_hash};
 use rustup_mock::{get_path, restore_path};
 use rustup_utils::{utils, raw};
-
-#[cfg(windows)]
-use rustup_mock::clitools::expect_stderr_ok;
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -49,7 +46,7 @@ pub fn setup(f: &Fn(&Config)) {
         }
         let _g = LOCK.lock();
 
-        // An windows these tests mess with the user's PATH. Save
+        // On windows these tests mess with the user's PATH. Save
         // and restore them here to keep from trashing things.
         let saved_path = get_path();
         let _g = scopeguard::guard(saved_path, |p| restore_path(p));
@@ -1247,5 +1244,34 @@ fn rls_proxy_set_up_after_update() {
         fs::remove_file(rls_path).unwrap();
         expect_ok(config, &["rustup", "self", "update"]);
         assert!(rls_path.exists());
+    });
+}
+
+
+#[test]
+fn update_does_not_overwrite_rustfmt() {
+    update_setup(&|config, _| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        let ref rustfmt_path = config.cargodir.join(format!("bin/rustfmt{}", EXE_SUFFIX));
+        raw::write_file(rustfmt_path, "").unwrap();
+        assert_eq!(utils::file_size(rustfmt_path).unwrap(), 0);
+
+        expect_stderr_ok(config, &["rustup", "self", "update"],
+                         "`rustfmt` is already installed");
+        expect_ok(config, &["rustup", "self", "update"]);
+        assert!(rustfmt_path.exists());
+        assert_eq!(utils::file_size(rustfmt_path).unwrap(), 0);
+
+
+        // We run the test twice because the first time around none of the shims
+        // exist, and we want to check that out check for rustfmt works if there
+        // are shims or not.
+        let ref rustdoc_path = config.cargodir.join(format!("bin/rustdoc{}", EXE_SUFFIX));
+        assert!(rustdoc_path.exists());
+
+        expect_stderr_ok(config, &["rustup", "self", "update"],
+                         "`rustfmt` is already installed");
+        assert!(rustfmt_path.exists());
+        assert_eq!(utils::file_size(rustfmt_path).unwrap(), 0);
     });
 }
