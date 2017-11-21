@@ -277,6 +277,9 @@ pub fn cli() -> App<'static, 'static> {
             .about("Run a command with an environment configured for a given toolchain")
             .after_help(RUN_HELP)
             .setting(AppSettings::TrailingVarArg)
+            .arg(Arg::with_name("install")
+                .help("Install the requested toolchain if needed")
+                .long("install"))
             .arg(Arg::with_name("toolchain")
                 .help(TOOLCHAIN_ARG_HELP)
                 .required(true))
@@ -482,7 +485,7 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
-    let cmd = try!(cfg.create_command_for_toolchain(toolchain, args[0]));
+    let cmd = try!(cfg.create_command_for_toolchain(toolchain, m.is_present("install"), args[0]));
 
     Ok(try!(command::run_command_for_dir(cmd, args[0], &args[1..], &cfg)))
 }

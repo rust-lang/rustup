@@ -321,6 +321,24 @@ fn rustup_failed_path_search() {
 }
 
 #[test]
+fn rustup_run_not_installed() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "install", "stable"]);
+        expect_err(config, &["rustup", "run", "nightly", "rustc", "--version"],
+                   for_host!("toolchain 'nightly-{0}' is not installed"));
+    });
+}
+
+#[test]
+fn rustup_run_install() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "install", "stable"]);
+        expect_stderr_ok(config, &["rustup", "run", "--install", "nightly", "cargo", "--version"],
+                         "info: installing component 'rustc'");
+    });
+}
+
+#[test]
 fn multirust_env_compat() {
     setup(&|config| {
         let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly"]);
