@@ -410,8 +410,12 @@ impl Cfg {
         }
     }
 
-    pub fn create_command_for_toolchain(&self, toolchain: &str, binary: &str) -> Result<Command> {
+    pub fn create_command_for_toolchain(&self, toolchain: &str, install_if_missing: bool,
+                                        binary: &str) -> Result<Command> {
         let ref toolchain = try!(self.get_toolchain(toolchain, false));
+        if install_if_missing && !toolchain.exists() {
+            try!(toolchain.install_from_dist());
+        }
 
         if let Some(cmd) = try!(self.maybe_do_cargo_fallback(toolchain, binary)) {
             Ok(cmd)
