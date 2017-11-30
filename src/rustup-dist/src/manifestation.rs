@@ -107,6 +107,22 @@ impl Manifestation {
             return Ok(UpdateStatus::Unchanged);
         }
 
+        // Make sure we don't accidentally uninstall the essential components! (see #1297)
+        let missing_essential_components = ["rustc", "cargo"]
+            .iter()
+            .filter_map(|pkg| if final_component_list.iter().any(|c| &c.pkg == pkg) {
+                None
+            } else {
+                Some(Component {
+                    pkg: pkg.to_string(),
+                    target: Some(self.target_triple.clone()),
+                })
+            })
+            .collect::<Vec<_>>();
+        if !missing_essential_components.is_empty() {
+            return Err(ErrorKind::RequestedComponentsUnavailable(missing_essential_components).into());
+        }
+
         // Validate that the requested components are available
         let unavailable_components: Vec<Component> = components_to_install.iter().filter(|c| {
             use manifest::*;
