@@ -50,6 +50,7 @@ pub enum Scenario {
     SimpleV2, // One date, v2 manifests
     SimpleV1, // One date, v1 manifests
     MultiHost, // One date, v2 manifests, MULTI_ARCH1 host
+    Unavailable,  // Two dates, v2 manifests, everything unavailable in second date.
 }
 
 pub static CROSS_ARCH1: &'static str = "x86_64-unknown-linux-musl";
@@ -333,13 +334,23 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
 // Creates a mock dist server populated with some test data
 fn create_mock_dist_server(path: &Path, s: Scenario) {
     let mut chans = Vec::new();
-    if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
+
+    let dates_count = match s {
+        Scenario::SimpleV1 | Scenario::SimpleV2 | Scenario::MultiHost => 1,
+        Scenario::Full | Scenario::ArchivesV1 | Scenario::ArchivesV2 | Scenario::Unavailable => 2,
+    };
+
+    if dates_count > 1 {
         let c1 = build_mock_channel(s, "nightly", "2015-01-01", "1.2.0", "hash-n-1", false);
         let c2 = build_mock_channel(s, "beta", "2015-01-01", "1.1.0", "hash-b-1", false);
         let c3 = build_mock_channel(s, "stable", "2015-01-01", "1.0.0", "hash-s-1", false);
         chans.extend(vec![c1, c2, c3]);
     }
-    let c4 = build_mock_channel(s, "nightly", "2015-01-02", "1.3.0", "hash-n-2", true);
+    let c4 = if s == Scenario::Unavailable {
+        build_mock_unavailable_channel("nightly", "2015-01-02", "1.3.0")
+    } else {
+        build_mock_channel(s, "nightly", "2015-01-02", "1.3.0", "hash-n-2", true)
+    };
     let c5 = build_mock_channel(s, "beta", "2015-01-02", "1.2.0", "hash-b-2", false);
     let c6 = build_mock_channel(s, "stable", "2015-01-02", "1.1.0", "hash-s-2", false);
     chans.extend(vec![c4, c5, c6]);
@@ -348,7 +359,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         Scenario::Full => vec![ManifestVersion::V1, ManifestVersion::V2],
         Scenario::SimpleV1 | Scenario::ArchivesV1 => vec![ManifestVersion::V1],
         Scenario::SimpleV2 | Scenario::ArchivesV2 |
-        Scenario::MultiHost => vec![ManifestVersion::V2],
+        Scenario::MultiHost | Scenario::Unavailable => vec![ManifestVersion::V2],
     };
 
     MockDistServer {
@@ -357,7 +368,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
     }.write(vs, true);
 
     // Also create the manifests for stable releases by version
-    if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
+    if dates_count > 1 {
         let _ = hard_link(path.join("dist/2015-01-01/channel-rust-stable.toml"),
                           path.join("dist/channel-rust-1.0.0.toml"));
         let _ = hard_link(path.join("dist/2015-01-01/channel-rust-stable.toml.sha256"),
@@ -370,7 +381,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
 
     // Same for v1 manifests. These are just the installers.
     let host_triple = this_host_triple();
-    if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
+    if dates_count > 1 {
         hard_link(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz", host_triple)),
                   path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple))).unwrap();
         hard_link(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz.sha256", host_triple)),
@@ -531,6 +542,40 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
         date: date.to_string(),
         packages: packages,
         renames,
+    }
+}
+
+fn build_mock_unavailable_channel(channel: &str, date: &str, version: &'static str) -> MockChannel {
+    let ref host_triple = this_host_triple();
+
+    let packages = [
+        "cargo",
+        "rust",
+        "rust-docs",
+        "rust-std",
+        "rustc",
+        "rls-preview",
+        "rust-analysis",
+    ];
+    let packages = packages.iter().map(|name| MockPackage {
+        name,
+        version,
+        targets: vec![MockTargetedPackage {
+            target: host_triple.clone(),
+            available: false,
+            components: vec![],
+            extensions: vec![],
+            installer: MockInstallerBuilder {
+                components: vec![],
+            },
+        }],
+    }).collect();
+
+    MockChannel {
+        name: channel.to_string(),
+        date: date.to_string(),
+        packages,
+        renames: HashMap::new(),
     }
 }
 

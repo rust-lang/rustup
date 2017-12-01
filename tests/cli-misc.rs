@@ -567,3 +567,20 @@ r"info: no toolchain installed for 'test'
 ");
     });
 }
+
+// issue #1297
+#[test]
+fn update_unavailable_rustc() {
+    clitools::setup(Scenario::Unavailable, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_err(config, &["rustup", "update", "nightly"],
+            "some components unavailable for download: 'rustc', 'cargo'");
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+    });
+}

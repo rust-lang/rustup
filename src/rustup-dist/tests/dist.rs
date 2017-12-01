@@ -51,7 +51,9 @@ pub fn create_mock_channel(channel: &str, date: &str,
     // Put the date in the files so they can be differentiated
     let contents = Arc::new(date.as_bytes().to_vec());
 
-    let rust_pkg = MockPackage {
+    let mut packages = Vec::with_capacity(5);
+
+    packages.push(MockPackage {
         name: "rust",
         version: "1.0.0",
         targets: vec![
@@ -61,6 +63,10 @@ pub fn create_mock_channel(channel: &str, date: &str,
                 components: vec![
                     MockComponent {
                         name: "rustc".to_string(),
+                        target: "x86_64-apple-darwin".to_string(),
+                    },
+                    MockComponent {
+                        name: "cargo".to_string(),
                         target: "x86_64-apple-darwin".to_string(),
                     },
                     MockComponent {
@@ -91,6 +97,10 @@ pub fn create_mock_channel(channel: &str, date: &str,
                         target: "i686-apple-darwin".to_string(),
                     },
                     MockComponent {
+                        name: "cargo".to_string(),
+                        target: "i686-apple-darwin".to_string(),
+                    },
+                    MockComponent {
                         name: "rust-std".to_string(),
                         target: "i686-apple-darwin".to_string(),
                     },
@@ -101,39 +111,42 @@ pub fn create_mock_channel(channel: &str, date: &str,
                 }
             }
             ]
-    };
+    });
 
-    let rustc_pkg = MockPackage {
-        name: "rustc",
-        version: "1.0.0",
-        targets: vec![
-            MockTargetedPackage {
-                target: "x86_64-apple-darwin".to_string(),
-                available: true,
-                components: vec![],
-                extensions: vec![],
-                installer: MockInstallerBuilder {
-                    components: vec![MockComponentBuilder {
-                        name: "rustc".to_string(),
-                        files: vec![
-                            MockFile::new_arc("bin/rustc", contents.clone()),
-                        ],
-                    }],
-                }
-            },
-            MockTargetedPackage {
-                target: "i686-apple-darwin".to_string(),
-                available: true,
-                components: vec![],
-                extensions: vec![],
-                installer: MockInstallerBuilder {
-                    components: vec![]
-                }
-            }
-            ]
-    };
+    for bin in &["bin/rustc", "bin/cargo"] {
+        let pkg = &bin[4..];
+        packages.push(MockPackage {
+            name: pkg,
+            version: "1.0.0",
+            targets: vec![
+                MockTargetedPackage {
+                    target: "x86_64-apple-darwin".to_string(),
+                    available: true,
+                    components: vec![],
+                    extensions: vec![],
+                    installer: MockInstallerBuilder {
+                        components: vec![MockComponentBuilder {
+                            name: pkg.to_string(),
+                            files: vec![
+                                MockFile::new_arc(*bin, contents.clone()),
+                            ],
+                        }],
+                    }
+                },
+                MockTargetedPackage {
+                    target: "i686-apple-darwin".to_string(),
+                    available: true,
+                    components: vec![],
+                    extensions: vec![],
+                    installer: MockInstallerBuilder {
+                        components: vec![]
+                    }
+                },
+            ],
+        });
+    }
 
-    let std_pkg = MockPackage {
+    packages.push(MockPackage {
         name: "rust-std",
         version: "1.0.0",
         targets: vec![
@@ -180,26 +193,20 @@ pub fn create_mock_channel(channel: &str, date: &str,
                 }
             },
             ]
-    };
+    });
 
     // An extra package that can be used as a component of the other packages
     // for various tests
-    let bonus_pkg = bonus_component("bonus", contents.clone());
+    packages.push(bonus_component("bonus", contents.clone()));
 
-    let mut rust_pkg = rust_pkg;
     if let Some(edit) = edit {
-        edit(date, &mut rust_pkg);
+        edit(date, &mut packages[0]);
     }
 
     MockChannel {
         name: channel.to_string(),
         date: date.to_string(),
-        packages: vec![
-            rust_pkg,
-            rustc_pkg,
-            std_pkg,
-            bonus_pkg,
-        ],
+        packages,
         renames: HashMap::new(),
     }
 }
@@ -270,7 +277,7 @@ fn rename_component() {
 
     let date_2 = "2016-02-02";
     let mut channel_2 = create_mock_channel("nightly", date_2, Some(edit_2));
-    channel_2.packages[3] = bonus_component("bobo", Arc::new(date_2.as_bytes().to_vec()));
+    channel_2.packages[4] = bonus_component("bobo", Arc::new(date_2.as_bytes().to_vec()));
     channel_2.renames.insert("bonus".to_owned(), "bobo".to_owned());
     let mock_dist_server = MockDistServer {
         path: dist_tempdir.path().to_owned(),
@@ -309,10 +316,10 @@ fn rename_component_ignore() {
 
     let date_1 = "2016-02-01";
     let mut channel_1 = create_mock_channel("nightly", date_1, Some(edit));
-    channel_1.packages[3] = bonus_component("bobo", Arc::new(date_1.as_bytes().to_vec()));
+    channel_1.packages[4] = bonus_component("bobo", Arc::new(date_1.as_bytes().to_vec()));
     let date_2 = "2016-02-02";
     let mut channel_2 = create_mock_channel("nightly", date_2, Some(edit));
-    channel_2.packages[3] = bonus_component("bobo", Arc::new(date_2.as_bytes().to_vec()));
+    channel_2.packages[4] = bonus_component("bobo", Arc::new(date_2.as_bytes().to_vec()));
     channel_2.renames.insert("bonus".to_owned(), "bobo".to_owned());
     let mock_dist_server = MockDistServer {
         path: dist_tempdir.path().to_owned(),
@@ -351,7 +358,7 @@ fn rename_component_new() {
 
     let date_2 = "2016-02-02";
     let mut channel_2 = create_mock_channel("nightly", date_2, Some(edit_2));
-    channel_2.packages[3] = bonus_component("bobo", Arc::new(date_2.as_bytes().to_vec()));
+    channel_2.packages[4] = bonus_component("bobo", Arc::new(date_2.as_bytes().to_vec()));
     channel_2.renames.insert("bonus".to_owned(), "bobo".to_owned());
     let mock_dist_server = MockDistServer {
         path: dist_tempdir.path().to_owned(),
