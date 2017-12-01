@@ -337,21 +337,21 @@ fn unix_permissions() {
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     tx.commit();
 
-    let m = fs::metadata(instdir.path().join("bin/foo")).unwrap().permissions().mode();
+    let m = 0o777 & fs::metadata(instdir.path().join("bin/foo")).unwrap().permissions().mode();
     assert_eq!(m, 0o755);
-    let m = fs::metadata(instdir.path().join("lib/bar")).unwrap().permissions().mode();
+    let m = 0o777 & fs::metadata(instdir.path().join("lib/bar")).unwrap().permissions().mode();
     assert_eq!(m, 0o644);
-    let m = fs::metadata(instdir.path().join("lib/foobar")).unwrap().permissions().mode();
+    let m = 0o777 & fs::metadata(instdir.path().join("lib/foobar")).unwrap().permissions().mode();
     assert_eq!(m, 0o755);
-    let m = fs::metadata(instdir.path().join("doc/stuff/")).unwrap().permissions().mode();
+    let m = 0o777 & fs::metadata(instdir.path().join("doc/stuff/")).unwrap().permissions().mode();
     assert_eq!(m, 0o755);
-    let m = fs::metadata(instdir.path().join("doc/stuff/doc1")).unwrap().permissions().mode();
+    let m = 0o777 & fs::metadata(instdir.path().join("doc/stuff/doc1")).unwrap().permissions().mode();
     assert_eq!(m, 0o644);
-    let m = fs::metadata(instdir.path().join("doc/stuff/morestuff")).unwrap().permissions().mode();
+    let m = 0o777 & fs::metadata(instdir.path().join("doc/stuff/morestuff")).unwrap().permissions().mode();
     assert_eq!(m, 0o755);
-    let m = fs::metadata(instdir.path().join("doc/stuff/morestuff/doc2")).unwrap().permissions().mode();
+    let m = 0o777 & fs::metadata(instdir.path().join("doc/stuff/morestuff/doc2")).unwrap().permissions().mode();
     assert_eq!(m, 0o644);
-    let m = fs::metadata(instdir.path().join("doc/stuff/morestuff/tool")).unwrap().permissions().mode();
+    let m = 0o777 & fs::metadata(instdir.path().join("doc/stuff/morestuff/tool")).unwrap().permissions().mode();
     assert_eq!(m, 0o755);
 }
 
