@@ -106,6 +106,24 @@ function set_up_cycle_button() {
     };
 }
 
+function show_other_os() {
+    platform_override = "default";
+    adjust_for_platform();
+
+    var other_os_div = document.getElementById("other-os");
+    other_os_div.style.display = "none";
+
+    return false;
+}
+
+function set_up_other_os_button() {
+    var other_os_button = document.getElementById("other-os-button");
+    var other_os_div = document.getElementById("other-os");
+
+    other_os_button.onclick = show_other_os;
+    other_os_div.style.display = "block";
+}
+
 function fill_in_bug_report_values() {
     var nav_plat = document.getElementById("nav-plat");
     var nav_app = document.getElementById("nav-app");
@@ -116,5 +134,6 @@ function fill_in_bug_report_values() {
 (function () {
     adjust_for_platform();
     set_up_cycle_button();
+    set_up_other_os_button();
     fill_in_bug_report_values();
 }());
