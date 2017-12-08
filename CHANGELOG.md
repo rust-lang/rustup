@@ -1,3 +1,15 @@
+# 1.8.0
+
+* [Add `rustup run --install`][pr1295]
+* [Prevent `rustup update` to a toolchain without `rustc` or `cargo`][pr1298]
+* [Add support for `rustfmt` shims][pr1294]
+
+[pr1295]: https://github.com/rust-lang-nursery/rustup.rs/pull/1295
+[pr1298]: https://github.com/rust-lang-nursery/rustup.rs/pull/1298
+[pr1294]: https://github.com/rust-lang-nursery/rustup.rs/pull/1294
+
+Contributors: Alex Crichton, kennytm, Nick Cameron, Simon Sapin, Who? Me?!
+
 # 1.7.0
 
 * [Improve clarity of component errors][pr1255]
