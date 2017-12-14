@@ -213,6 +213,9 @@ pub fn update_all_channels(cfg: &Cfg, self_update: bool) -> Result<()> {
         try!(self_update::run_update(setup_path));
 
         unreachable!(); // update exits on success
+    } else if self_update {
+        // Try again in case we emitted "tool `{}` is already installed" last time.
+        self_update::install_proxies()?;
     }
 
     Ok(())
