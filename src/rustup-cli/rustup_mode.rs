@@ -293,6 +293,9 @@ pub fn cli() -> App<'static, 'static> {
             .alias("docs")
             .about("Open the documentation for the current toolchain")
             .after_help(DOC_HELP)
+            .arg(Arg::with_name("path")
+                 .long("path")
+                 .help("Only print the path to the documentation"))
             .arg(Arg::with_name("book")
                  .long("book")
                  .help("The Rust Programming Language book"))
@@ -788,7 +791,14 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         "index.html"
     };
 
-    Ok(try!(cfg.open_docs_for_dir(&try!(utils::current_dir()), doc_url)))
+    let cwd = try!(utils::current_dir());
+    if m.is_present("path") {
+        let doc_path = try!(cfg.doc_path_for_dir(&cwd, doc_url));
+        println!("{}", doc_path.display());
+        Ok(())
+    } else {
+        Ok(try!(cfg.open_docs_for_dir(&cwd, doc_url)))
+    }
 }
 
 fn man(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
