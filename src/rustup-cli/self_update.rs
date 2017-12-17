@@ -650,6 +650,12 @@ fn install_bins() -> Result<()> {
     }
     try!(utils::copy_file(this_exe_path, rustup_path));
     try!(utils::make_executable(rustup_path));
+    install_proxies()
+}
+
+pub fn install_proxies() -> Result<()> {
+    let ref bin_path = try!(utils::cargo_home()).join("bin");
+    let ref rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
 
     // Record the size of the known links, then when we get files which may or
     // may not be links, we compare their size. Same size means probably a link.
@@ -1347,6 +1353,9 @@ pub fn update() -> Result<()> {
 
         info!("rustup updated successfully to {}", version);
         try!(run_update(p));
+    } else {
+        // Try again in case we emitted "tool `{}` is already installed" last time.
+        install_proxies()?
     }
 
     Ok(())
