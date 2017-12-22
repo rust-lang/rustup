@@ -14,36 +14,36 @@
 
 #![recursion_limit = "1024"]
 
-extern crate rustup_dist;
-extern crate rustup_utils;
 #[macro_use]
 extern crate error_chain;
+extern crate rustup_dist;
+extern crate rustup_utils;
 
 extern crate clap;
+extern crate itertools;
+extern crate markdown;
+extern crate rand;
 extern crate regex;
 extern crate rustup;
-extern crate term;
-extern crate itertools;
-extern crate time;
-extern crate rand;
 extern crate scopeguard;
-extern crate tempdir;
 extern crate sha2;
-extern crate markdown;
+extern crate tempdir;
+extern crate term;
+extern crate time;
 extern crate toml;
 extern crate wait_timeout;
 
 #[cfg(windows)]
 extern crate gcc;
 #[cfg(windows)]
-extern crate winapi;
-#[cfg(windows)]
-extern crate winreg;
+extern crate kernel32;
+extern crate libc;
 #[cfg(windows)]
 extern crate user32;
 #[cfg(windows)]
-extern crate kernel32;
-extern crate libc;
+extern crate winapi;
+#[cfg(windows)]
+extern crate winreg;
 
 #[macro_use]
 mod log;
@@ -86,12 +86,11 @@ fn run_rustup() -> Result<()> {
         .and_then(|a| a.to_str());
 
     match name {
-        Some("rustup") => {
-            rustup_mode::main()
-        }
-        Some(n) if n.starts_with("multirust-setup")||
-                   n.starts_with("rustup-setup") ||
-                   n.starts_with("rustup-init") => {
+        Some("rustup") => rustup_mode::main(),
+        Some(n)
+            if n.starts_with("multirust-setup") || n.starts_with("rustup-setup")
+                || n.starts_with("rustup-init") =>
+        {
             // NB: The above check is only for the prefix of the file
             // name. Browsers rename duplicates to
             // e.g. rustup-setup(2), and this allows all variations
@@ -121,9 +120,7 @@ fn run_rustup() -> Result<()> {
                 self_update::install(true, false, opts)
             }
         }
-        Some(_) => {
-            proxy_mode::main()
-        }
+        Some(_) => proxy_mode::main(),
         None => {
             // Weird case. No arg0, or it's unparsable.
             Err(ErrorKind::NoExeName.into())
@@ -132,8 +129,10 @@ fn run_rustup() -> Result<()> {
 }
 
 fn do_recursion_guard() -> Result<()> {
-    let recursion_count = env::var("RUST_RECURSION_COUNT").ok()
-        .and_then(|s| s.parse().ok()).unwrap_or(0);
+    let recursion_count = env::var("RUST_RECURSION_COUNT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
     if recursion_count > RUST_RECURSION_COUNT_MAX {
         return Err(ErrorKind::InfiniteRecursion.into());
     }
@@ -161,7 +160,7 @@ fn make_environment_compatible() {
                 env::set_var(rvar, mval);
                 warn!("environment variable {} is deprecated. Use {}.", mvar, rvar);
             }
-            _ => ()
+            _ => (),
         }
     }
 }
@@ -183,7 +182,9 @@ fn fix_windows_reg_key() {
 
     let mut path = if let Ok(p) = path { p } else { return };
 
-    if path.vtype == RegType::REG_EXPAND_SZ { return }
+    if path.vtype == RegType::REG_EXPAND_SZ {
+        return;
+    }
 
     path.vtype = RegType::REG_EXPAND_SZ;
 
@@ -191,7 +192,7 @@ fn fix_windows_reg_key() {
 }
 
 #[cfg(not(windows))]
-fn fix_windows_reg_key() { }
+fn fix_windows_reg_key() {}
 
 // rustup used to be called 'multirust'. This deletes the old bin.
 fn delete_multirust_bin() {

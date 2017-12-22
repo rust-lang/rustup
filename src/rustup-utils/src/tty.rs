@@ -15,8 +15,7 @@ pub fn stderr_isatty() -> bool {
     const STD_ERROR_HANDLE: DWORD = -12i32 as DWORD;
     extern "system" {
         fn GetStdHandle(which: DWORD) -> HANDLE;
-        fn GetConsoleMode(hConsoleHandle: HANDLE,
-                          lpMode: *mut DWORD) -> BOOL;
+        fn GetConsoleMode(hConsoleHandle: HANDLE, lpMode: *mut DWORD) -> BOOL;
     }
     unsafe {
         let handle = GetStdHandle(STD_ERROR_HANDLE);
@@ -39,8 +38,7 @@ pub fn stdout_isatty() -> bool {
     const STD_OUTPUT_HANDLE: DWORD = -11i32 as DWORD;
     extern "system" {
         fn GetStdHandle(which: DWORD) -> HANDLE;
-        fn GetConsoleMode(hConsoleHandle: HANDLE,
-                          lpMode: *mut DWORD) -> BOOL;
+        fn GetConsoleMode(hConsoleHandle: HANDLE, lpMode: *mut DWORD) -> BOOL;
     }
     unsafe {
         let handle = GetStdHandle(STD_OUTPUT_HANDLE);

@@ -67,7 +67,7 @@ impl DownloadTracker {
                 self.download_finished();
                 true
             }
-            _ => false
+            _ => false,
         }
     }
 
@@ -94,7 +94,8 @@ impl DownloadTracker {
                     if self.downloaded_last_few_secs.len() == DOWNLOAD_TRACK_COUNT {
                         self.downloaded_last_few_secs.pop_back();
                     }
-                    self.downloaded_last_few_secs.push_front(self.downloaded_this_sec);
+                    self.downloaded_last_few_secs
+                        .push_front(self.downloaded_this_sec);
                     self.downloaded_this_sec = 0;
                 }
             }
@@ -123,14 +124,10 @@ impl DownloadTracker {
     fn display(&mut self) {
         let total_h = HumanReadable(self.total_downloaded as f64);
         let sum = self.downloaded_last_few_secs
-                      .iter()
-                      .fold(0., |a, &v| a + v as f64);
+            .iter()
+            .fold(0., |a, &v| a + v as f64);
         let len = self.downloaded_last_few_secs.len();
-        let speed = if len > 0 {
-            sum / len as f64
-        } else {
-            0.
-        };
+        let speed = if len > 0 { sum / len as f64 } else { 0. };
         let speed_h = HumanReadable(speed);
 
         match self.content_len {
@@ -140,17 +137,23 @@ impl DownloadTracker {
                 let content_len_h = HumanReadable(content_len);
                 let remaining = content_len - self.total_downloaded as f64;
                 let eta_h = HumanReadable(remaining / speed);
-                let _ = write!(self.term.as_mut().unwrap(),
-                               "{} / {} ({:3.0} %) {}/s ETA: {:#}",
-                               total_h,
-                               content_len_h,
-                               percent,
-                               speed_h,
-                               eta_h);
+                let _ = write!(
+                    self.term.as_mut().unwrap(),
+                    "{} / {} ({:3.0} %) {}/s ETA: {:#}",
+                    total_h,
+                    content_len_h,
+                    percent,
+                    speed_h,
+                    eta_h
+                );
             }
             None => {
-                let _ = write!(self.term.as_mut().unwrap(),
-                               "Total: {} Speed: {}/s", total_h, speed_h);
+                let _ = write!(
+                    self.term.as_mut().unwrap(),
+                    "Total: {} Speed: {}/s",
+                    total_h,
+                    speed_h
+                );
             }
         }
         // delete_line() doesn't seem to clear the line properly.
@@ -167,7 +170,8 @@ struct HumanReadable(f64);
 
 impl fmt::Display for HumanReadable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if f.alternate() {  // repurposing the alternate mode for ETA
+        if f.alternate() {
+            // repurposing the alternate mode for ETA
             let sec = self.0;
 
             if sec.is_infinite() {
@@ -177,9 +181,9 @@ impl fmt::Display for HumanReadable {
                 let min = sec / 60;
                 let sec = sec % 60;
 
-                write!(f, "{:3} min {:2} s", min, sec)  // XYZ min PQ s
+                write!(f, "{:3} min {:2} s", min, sec) // XYZ min PQ s
             } else {
-                write!(f, "{:3.0} s", self.0)  // XYZ s
+                write!(f, "{:3.0} s", self.0) // XYZ s
             }
         } else {
             const KIB: f64 = 1024.0;
@@ -187,7 +191,7 @@ impl fmt::Display for HumanReadable {
             let size = self.0;
 
             if size >= MIB {
-                write!(f, "{:5.1} MiB", size / MIB)  // XYZ.P MiB
+                write!(f, "{:5.1} MiB", size / MIB) // XYZ.P MiB
             } else if size >= KIB {
                 write!(f, "{:5.1} KiB", size / KIB)
             } else {

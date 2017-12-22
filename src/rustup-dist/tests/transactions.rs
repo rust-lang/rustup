@@ -22,7 +22,11 @@ fn add_file() {
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let notify = |_: Notification| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -33,8 +37,10 @@ fn add_file() {
     tx.commit();
     drop(file);
 
-    assert_eq!(utils_raw::read_file(&prefix.path().join("foo/bar")).unwrap(),
-               "test");
+    assert_eq!(
+        utils_raw::read_file(&prefix.path().join("foo/bar")).unwrap(),
+        "test"
+    );
 }
 
 #[test]
@@ -44,7 +50,11 @@ fn add_file_then_rollback() {
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let notify = |_: Notification| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -60,7 +70,11 @@ fn add_file_that_exists() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -77,7 +91,7 @@ fn add_file_that_exists() {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo/bar"));
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -87,7 +101,11 @@ fn copy_file() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -97,7 +115,8 @@ fn copy_file() {
     let srcpath = srcdir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
 
-    tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath).unwrap();
+    tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath)
+        .unwrap();
     tx.commit();
 
     assert!(utils::is_file(prefix.path().join("foo/bar")));
@@ -109,7 +128,11 @@ fn copy_file_then_rollback() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -119,7 +142,8 @@ fn copy_file_then_rollback() {
     let srcpath = srcdir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
 
-    tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath).unwrap();
+    tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath)
+        .unwrap();
     drop(tx);
 
     assert!(!utils::is_file(prefix.path().join("foo/bar")));
@@ -131,7 +155,11 @@ fn copy_file_that_exists() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -144,14 +172,15 @@ fn copy_file_that_exists() {
     fs::create_dir_all(&prefixdir.path().join("foo")).unwrap();
     utils::write_file("", &prefixdir.path().join("foo/bar"), "").unwrap();
 
-    let err = tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath).unwrap_err();
+    let err = tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath)
+        .unwrap_err();
 
     match err.0 {
         ErrorKind::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo/bar"));
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -161,7 +190,11 @@ fn copy_dir() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -191,7 +224,11 @@ fn copy_dir_then_rollback() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -221,7 +258,11 @@ fn copy_dir_that_exists() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -230,14 +271,15 @@ fn copy_dir_that_exists() {
 
     fs::create_dir_all(prefix.path().join("a")).unwrap();
 
-    let err = tx.copy_dir("c", PathBuf::from("a"), srcdir.path()).unwrap_err();
+    let err = tx.copy_dir("c", PathBuf::from("a"), srcdir.path())
+        .unwrap_err();
 
     match err.0 {
         ErrorKind::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("a"));
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -246,7 +288,11 @@ fn remove_file() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -267,7 +313,11 @@ fn remove_file_then_rollback() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -288,7 +338,11 @@ fn remove_file_that_not_exists() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -302,7 +356,7 @@ fn remove_file_that_not_exists() {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo"));
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -311,7 +365,11 @@ fn remove_dir() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -333,7 +391,11 @@ fn remove_dir_then_rollback() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -355,7 +417,11 @@ fn remove_dir_that_not_exists() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -369,7 +435,7 @@ fn remove_dir_that_not_exists() {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("foo"));
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -378,7 +444,11 @@ fn write_file() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -386,7 +456,8 @@ fn write_file() {
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let content = "hi".to_string();
-    tx.write_file("c", PathBuf::from("foo/bar"), content.clone()).unwrap();
+    tx.write_file("c", PathBuf::from("foo/bar"), content.clone())
+        .unwrap();
     tx.commit();
 
     let path = prefix.path().join("foo/bar");
@@ -400,7 +471,11 @@ fn write_file_then_rollback() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -408,7 +483,8 @@ fn write_file_then_rollback() {
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let content = "hi".to_string();
-    tx.write_file("c", PathBuf::from("foo/bar"), content.clone()).unwrap();
+    tx.write_file("c", PathBuf::from("foo/bar"), content.clone())
+        .unwrap();
     drop(tx);
 
     assert!(!utils::is_file(&prefix.path().join("foo/bar")));
@@ -419,7 +495,11 @@ fn write_file_that_exists() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -428,14 +508,15 @@ fn write_file_that_exists() {
 
     let content = "hi".to_string();
     utils_raw::write_file(&prefix.path().join("a"), &content).unwrap();
-    let err = tx.write_file("c", PathBuf::from("a"), content.clone()).unwrap_err();
+    let err = tx.write_file("c", PathBuf::from("a"), content.clone())
+        .unwrap_err();
 
     match err.0 {
         ErrorKind::ComponentConflict { name, path } => {
             assert_eq!(name, "c");
             assert_eq!(path, PathBuf::from("a"));
         }
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -446,7 +527,11 @@ fn modify_file_that_not_exists() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -466,7 +551,11 @@ fn modify_file_that_exists() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -486,7 +575,11 @@ fn modify_file_that_not_exists_then_rollback() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -504,7 +597,11 @@ fn modify_file_that_exists_then_rollback() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -527,7 +624,11 @@ fn modify_twice_then_rollback() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -550,7 +651,11 @@ fn do_multiple_op_transaction(rollback: bool) {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -591,7 +696,8 @@ fn do_multiple_op_transaction(rollback: bool) {
     let ref srcpath4 = srcdir.path().join(&relpath4);
     fs::create_dir_all(srcpath4.parent().unwrap()).unwrap();
     utils_raw::write_file(srcpath4, "").unwrap();
-    tx.copy_dir("", PathBuf::from("doc"), &srcdir.path().join("doc")).unwrap();
+    tx.copy_dir("", PathBuf::from("doc"), &srcdir.path().join("doc"))
+        .unwrap();
 
     tx.modify_file(relpath5).unwrap();
     utils_raw::write_file(path5, "").unwrap();
@@ -646,7 +752,11 @@ fn rollback_failure_keeps_going() {
     let prefixdir = TempDir::new("rustup").unwrap();
     let txdir = TempDir::new("rustup").unwrap();
 
-    let tmpcfg = temp::Cfg::new(txdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        txdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -669,5 +779,4 @@ fn rollback_failure_keeps_going() {
 // they are deleted during rollback.
 #[test]
 #[ignore]
-fn intermediate_dir_rollback() {
-}
+fn intermediate_dir_rollback() {}

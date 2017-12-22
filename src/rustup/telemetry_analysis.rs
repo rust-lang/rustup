@@ -59,7 +59,9 @@ impl fmt::Display for RustcStatistics {
             }
         }
 
-        write!(f, r"
+        write!(
+            f,
+            r"
   Total compiles: {}
   Compile Time (ms)
     Total : {}
@@ -89,7 +91,9 @@ impl fmt::Display for RustcStatistics {
 
 impl fmt::Display for TelemetryAnalysis {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, r"
+        write!(
+            f,
+            r"
 Overall rustc statistics:
 {}
 
@@ -98,9 +102,7 @@ rustc successful execution statistics
 
 rustc error statistics
 {}",
-            self.rustc_statistics,
-            self.rustc_success_statistics,
-            self.rustc_error_statistics
+            self.rustc_statistics, self.rustc_success_statistics, self.rustc_error_statistics
         )
     }
 }
@@ -117,7 +119,9 @@ impl TelemetryAnalysis {
 
     pub fn import_telemery(&mut self) -> Result<Vec<TelemetryEvent>> {
         let mut events: Vec<TelemetryEvent> = Vec::new();
-        let contents = try!(self.telemetry_dir.read_dir().chain_err(|| ErrorKind::TelemetryAnalysisError));
+        let contents = self.telemetry_dir
+            .read_dir()
+            .chain_err(|| ErrorKind::TelemetryAnalysisError)?;
 
         let mut telemetry_files: Vec<PathBuf> = Vec::new();
 
@@ -140,7 +144,7 @@ impl TelemetryAnalysis {
     fn read_telemetry_file(&self, path: PathBuf) -> Result<Vec<TelemetryEvent>> {
         let mut events: Vec<TelemetryEvent> = Vec::new();
 
-        let f = try!(File::open(&path).chain_err(|| ErrorKind::TelemetryAnalysisError));
+        let f = File::open(&path).chain_err(|| ErrorKind::TelemetryAnalysisError)?;
 
         let file = BufReader::new(&f);
 
@@ -177,11 +181,18 @@ impl TelemetryAnalysis {
 
         for event in events {
             match *event {
-                TelemetryEvent::RustcRun{ duration_ms, ref exit_code, ref errors } => {
+                TelemetryEvent::RustcRun {
+                    duration_ms,
+                    ref exit_code,
+                    ref errors,
+                } => {
                     self.rustc_statistics.rustc_execution_count += 1;
                     rustc_durations.push(duration_ms);
 
-                    let exit_count = self.rustc_statistics.exit_codes_with_count.entry(*exit_code).or_insert(0);
+                    let exit_count = self.rustc_statistics
+                        .exit_codes_with_count
+                        .entry(*exit_code)
+                        .or_insert(0);
                     *exit_count += 1;
 
                     rustc_exit_codes.push(exit_code);
@@ -190,7 +201,8 @@ impl TelemetryAnalysis {
                         let errors = errors.clone().unwrap();
 
                         for e in &errors {
-                            let error_count = error_codes_with_counts.entry(e.to_owned()).or_insert(0);
+                            let error_count =
+                                error_codes_with_counts.entry(e.to_owned()).or_insert(0);
                             *error_count += 1;
                         }
 
@@ -199,22 +211,29 @@ impl TelemetryAnalysis {
                     } else {
                         rustc_successful_durations.push(duration_ms);
                     }
-                },
-                TelemetryEvent::TargetAdd{ ref toolchain, ref target, success } => {
+                }
+                TelemetryEvent::TargetAdd {
+                    ref toolchain,
+                    ref target,
+                    success,
+                } => {
                     toolchains.push(toolchain.to_owned());
                     targets.push(target.to_owned());
                     if !success {
                         toolchains_with_errors.push(toolchain.to_owned());
                     }
-                },
-                TelemetryEvent::ToolchainUpdate{ ref toolchain, success } => {
+                }
+                TelemetryEvent::ToolchainUpdate {
+                    ref toolchain,
+                    success,
+                } => {
                     updated_toolchains.push(toolchain.to_owned());
                     if !success {
                         updated_toolchains_with_errors.push(toolchain.to_owned());
                     }
-                },
+                }
             }
-        };
+        }
 
         self.rustc_statistics = compute_rustc_percentiles(&rustc_durations);
         self.rustc_error_statistics = compute_rustc_percentiles(&rustc_error_durations);
@@ -224,7 +243,10 @@ impl TelemetryAnalysis {
         let error_list = error_list.into_iter().flatten();
 
         for e in error_list {
-            let error_count = self.rustc_statistics.error_codes_with_counts.entry(e).or_insert(0);
+            let error_count = self.rustc_statistics
+                .error_codes_with_counts
+                .entry(e)
+                .or_insert(0);
             *error_count += 1;
         }
 
@@ -243,7 +265,7 @@ pub fn compute_rustc_percentiles(values: &[u64]) -> RustcStatistics {
         compile_time_ms_ntile_99: ntile(99, values),
         compile_time_ms_stdev: stdev(values),
         exit_codes_with_count: HashMap::new(),
-        error_codes_with_counts: HashMap::new()
+        error_codes_with_counts: HashMap::new(),
     }
 }
 

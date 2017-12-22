@@ -16,10 +16,12 @@ pub fn tmp_dir() -> TempDir {
 
 pub fn file_contents(path: &Path) -> String {
     let mut result = String::new();
-    File::open(&path).unwrap().read_to_string(&mut result).expect("reading test result file");
+    File::open(&path)
+        .unwrap()
+        .read_to_string(&mut result)
+        .expect("reading test result file");
     result
 }
-
 
 pub fn write_file(path: &Path, contents: &str) {
     let mut file = fs::OpenOptions::new()
@@ -34,7 +36,6 @@ pub fn write_file(path: &Path, contents: &str) {
     file.sync_data().expect("writing test data");
 }
 
-
 type Shutdown = oneshot::Sender<()>;
 
 pub fn serve_file(contents: Vec<u8>) -> (SocketAddr, Shutdown) {
@@ -47,13 +48,11 @@ pub fn serve_file(contents: Vec<u8>) -> (SocketAddr, Shutdown) {
     let (addr_tx, addr_rx) = oneshot::channel();
     let (tx, rx) = oneshot::channel();
     thread::spawn(move || {
-
         let server = http.bind(&addr, move || Ok(ServeFile(contents.clone())))
             .expect("server setup failed");
         let addr = server.local_addr().expect("local addr failed");
         addr_tx.send(addr).unwrap();
-        server.run_until(rx.map_err(|_| ()))
-            .expect("server failed");
+        server.run_until(rx.map_err(|_| ())).expect("server failed");
     });
     let addr = addr_rx.wait().unwrap();
     (addr, tx)
@@ -79,13 +78,16 @@ impl hyper::server::Service for ServeFile {
                                 hyper::header::ContentRangeSpec::Bytes {
                                     range: Some((start, self.0.len() as u64)),
                                     instance_length: Some(self.0.len() as u64),
-                                }
+                                },
                             ));
-                            (hyper::StatusCode::PartialContent, self.0[start as usize..].to_vec())
-                        },
+                            (
+                                hyper::StatusCode::PartialContent,
+                                self.0[start as usize..].to_vec(),
+                            )
+                        }
                         _ => panic!("unexpected Range header"),
                     }
-                },
+                }
                 _ => panic!("unexpected Range header"),
             }
         } else {
