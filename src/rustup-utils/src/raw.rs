@@ -14,9 +14,10 @@ use std::str;
 
 use rand::random;
 
-pub fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(path: P,
-                                                           callback: F)
-                                                           -> io::Result<bool> {
+pub fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
+    path: P,
+    callback: F,
+) -> io::Result<bool> {
     if !is_directory(path.as_ref()) {
         callback(path.as_ref());
         fs::create_dir_all(path.as_ref()).map(|()| true)
@@ -39,7 +40,9 @@ pub fn path_exists<P: AsRef<Path>>(path: P) -> bool {
 
 pub fn random_string(length: usize) -> String {
     let chars = b"abcdefghijklmnopqrstuvwxyz0123456789_";
-    (0..length).map(|_| from_u32(chars[random::<usize>() % chars.len()] as u32).unwrap()).collect()
+    (0..length)
+        .map(|_| from_u32(chars[random::<usize>() % chars.len()] as u32).unwrap())
+        .collect()
 }
 
 pub fn if_not_empty<S: PartialEq<str>>(s: S) -> Option<S> {
@@ -51,63 +54,62 @@ pub fn if_not_empty<S: PartialEq<str>>(s: S) -> Option<S> {
 }
 
 pub fn write_file(path: &Path, contents: &str) -> io::Result<()> {
-    let mut file = try!(fs::OpenOptions::new()
-                            .write(true)
-                            .truncate(true)
-                            .create(true)
-                            .open(path));
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(path)?;
 
-    try!(io::Write::write_all(&mut file, contents.as_bytes()));
+    io::Write::write_all(&mut file, contents.as_bytes())?;
 
-    try!(file.sync_data());
+    file.sync_data()?;
 
     Ok(())
 }
 
 pub fn read_file(path: &Path) -> io::Result<String> {
-    let mut file = try!(fs::OpenOptions::new()
-                            .read(true)
-                            .open(path));
+    let mut file = fs::OpenOptions::new().read(true).open(path)?;
 
     let mut contents = String::new();
 
-    try!(io::Read::read_to_string(&mut file, &mut contents));
+    io::Read::read_to_string(&mut file, &mut contents)?;
 
     Ok(contents)
 }
 
-pub fn filter_file<F: FnMut(&str) -> bool>(src: &Path,
-                                           dest: &Path,
-                                           mut filter: F)
-                                           -> io::Result<usize> {
-    let src_file = try!(fs::File::open(src));
-    let dest_file = try!(fs::File::create(dest));
+pub fn filter_file<F: FnMut(&str) -> bool>(
+    src: &Path,
+    dest: &Path,
+    mut filter: F,
+) -> io::Result<usize> {
+    let src_file = fs::File::open(src)?;
+    let dest_file = fs::File::create(dest)?;
 
     let mut reader = io::BufReader::new(src_file);
     let mut writer = io::BufWriter::new(dest_file);
     let mut removed = 0;
 
     for result in io::BufRead::lines(&mut reader) {
-        let line = try!(result);
+        let line = result?;
         if filter(&line) {
-            try!(writeln!(&mut writer, "{}", &line));
+            writeln!(&mut writer, "{}", &line)?;
         } else {
             removed += 1;
         }
     }
 
-    try!(writer.flush());
+    writer.flush()?;
 
     Ok(removed)
 }
 
 pub fn match_file<T, F: FnMut(&str) -> Option<T>>(src: &Path, mut f: F) -> io::Result<Option<T>> {
-    let src_file = try!(fs::File::open(src));
+    let src_file = fs::File::open(src)?;
 
     let mut reader = io::BufReader::new(src_file);
 
     for result in io::BufRead::lines(&mut reader) {
-        let line = try!(result);
+        let line = result?;
         if let Some(r) = f(&line) {
             return Ok(Some(r));
         }
@@ -117,32 +119,30 @@ pub fn match_file<T, F: FnMut(&str) -> Option<T>>(src: &Path, mut f: F) -> io::R
 }
 
 pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
-    let mut dest_file = try!(fs::OpenOptions::new()
-                                 .write(true)
-                                 .append(true)
-                                 .create(true)
-                                 .open(dest));
+    let mut dest_file = fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(dest)?;
 
-    try!(writeln!(&mut dest_file, "{}", line));
+    writeln!(&mut dest_file, "{}", line)?;
 
-    try!(dest_file.sync_data());
+    dest_file.sync_data()?;
 
     Ok(())
 }
 
 pub fn tee_file<W: io::Write>(path: &Path, mut w: &mut W) -> io::Result<()> {
-    let mut file = try!(fs::OpenOptions::new()
-                            .read(true)
-                            .open(path));
+    let mut file = fs::OpenOptions::new().read(true).open(path)?;
 
     let buffer_size = 0x10000;
     let mut buffer = vec![0u8; buffer_size];
 
     loop {
-        let bytes_read = try!(io::Read::read(&mut file, &mut buffer));
+        let bytes_read = io::Read::read(&mut file, &mut buffer)?;
 
         if bytes_read != 0 {
-            try!(io::Write::write_all(w, &mut buffer[0..bytes_read]));
+            io::Write::write_all(w, &mut buffer[0..bytes_read])?;
         } else {
             return Ok(());
         }
@@ -197,24 +197,25 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
     // We're using low-level APIs to create the junction, and these are more picky about paths.
     // For example, forward slashes cannot be used as a path separator, so we should try to
     // canonicalize the path first.
-    let target = try!(fs::canonicalize(target));
+    let target = fs::canonicalize(target)?;
 
-    try!(fs::create_dir(junction));
+    fs::create_dir(junction)?;
 
-    let path = try!(windows::to_u16s(junction));
+    let path = windows::to_u16s(junction)?;
 
     unsafe {
-        let h = CreateFileW(path.as_ptr(),
-                            GENERIC_WRITE,
-                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                            0 as *mut _,
-                            OPEN_EXISTING,
-                            FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
-                            ptr::null_mut());
+        let h = CreateFileW(
+            path.as_ptr(),
+            GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            0 as *mut _,
+            OPEN_EXISTING,
+            FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
+            ptr::null_mut(),
+        );
 
         let mut data = [0u8; MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
-        let mut db = data.as_mut_ptr()
-                        as *mut REPARSE_MOUNTPOINT_DATA_BUFFER;
+        let mut db = data.as_mut_ptr() as *mut REPARSE_MOUNTPOINT_DATA_BUFFER;
         let buf = &mut (*db).ReparseTarget as *mut _;
         let mut i = 0;
         // FIXME: this conversion is very hacky
@@ -229,17 +230,19 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
         (*db).ReparseTag = IO_REPARSE_TAG_MOUNT_POINT;
         (*db).ReparseTargetMaximumLength = (i * 2) as WORD;
         (*db).ReparseTargetLength = ((i - 1) * 2) as WORD;
-        (*db).ReparseDataLength =
-                (*db).ReparseTargetLength as DWORD + 12;
+        (*db).ReparseDataLength = (*db).ReparseTargetLength as DWORD + 12;
 
         let mut ret = 0;
-        let res = DeviceIoControl(h as *mut _,
-                                  FSCTL_SET_REPARSE_POINT,
-                                  data.as_ptr() as *mut _,
-                                  (*db).ReparseDataLength + 8,
-                                  ptr::null_mut(), 0,
-                                  &mut ret,
-                                  ptr::null_mut());
+        let res = DeviceIoControl(
+            h as *mut _,
+            FSCTL_SET_REPARSE_POINT,
+            data.as_ptr() as *mut _,
+            (*db).ReparseDataLength + 8,
+            ptr::null_mut(),
+            0,
+            &mut ret,
+            ptr::null_mut(),
+        );
 
         if res == 0 {
             Err(io::Error::last_os_error())
@@ -300,7 +303,7 @@ pub fn cmd_status(cmd: &mut Command) -> CommandResult<()> {
 }
 
 pub fn remove_dir(path: &Path) -> io::Result<()> {
-    if try!(fs::symlink_metadata(path)).file_type().is_symlink() {
+    if fs::symlink_metadata(path)?.file_type().is_symlink() {
         if cfg!(windows) {
             fs::remove_dir(path)
         } else {
@@ -316,16 +319,16 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
 }
 
 pub fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
-    try!(fs::create_dir(dest));
-    for entry in try!(src.read_dir()) {
-        let entry = try!(entry);
-        let kind = try!(entry.file_type());
+    fs::create_dir(dest)?;
+    for entry in src.read_dir()? {
+        let entry = entry?;
+        let kind = entry.file_type()?;
         let src = entry.path();
         let dest = dest.join(entry.file_name());
         if kind.is_dir() {
-            try!(copy_dir(&src, &dest));
+            copy_dir(&src, &dest)?;
         } else {
-            try!(fs::copy(&src, &dest));
+            fs::copy(&src, &dest)?;
         }
     }
     Ok(())
@@ -340,11 +343,9 @@ pub fn prefix_arg<S: AsRef<OsStr>>(name: &str, s: S) -> OsString {
 pub fn has_cmd(cmd: &str) -> bool {
     let cmd = format!("{}{}", cmd, env::consts::EXE_SUFFIX);
     let path = env::var_os("PATH").unwrap_or(OsString::new());
-    env::split_paths(&path).map(|p| {
-        p.join(&cmd)
-    }).any(|p| {
-        p.exists()
-    })
+    env::split_paths(&path)
+        .map(|p| p.join(&cmd))
+        .any(|p| p.exists())
 }
 
 pub fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
@@ -356,7 +357,13 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
     fn inner(path: &Path) -> io::Result<bool> {
         use std::process::Stdio;
 
-        let commands = ["xdg-open", "open", "firefox", "chromium", "sensible-browser"];
+        let commands = [
+            "xdg-open",
+            "open",
+            "firefox",
+            "chromium",
+            "sensible-browser",
+        ];
         if let Some(cmd) = find_cmd(&commands) {
             Command::new(cmd)
                 .arg(path)
@@ -376,25 +383,28 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
 
         // FIXME: When winapi has this function, use their version
         extern "system" {
-            pub fn ShellExecuteW(hwnd: winapi::HWND,
-                                 lpOperation: winapi::LPCWSTR,
-                                 lpFile: winapi::LPCWSTR,
-                                 lpParameters: winapi::LPCWSTR,
-                                 lpDirectory: winapi::LPCWSTR,
-                                 nShowCmd: winapi::c_int)
-                                 -> winapi::HINSTANCE;
+            pub fn ShellExecuteW(
+                hwnd: winapi::HWND,
+                lpOperation: winapi::LPCWSTR,
+                lpFile: winapi::LPCWSTR,
+                lpParameters: winapi::LPCWSTR,
+                lpDirectory: winapi::LPCWSTR,
+                nShowCmd: winapi::c_int,
+            ) -> winapi::HINSTANCE;
         }
         const SW_SHOW: winapi::c_int = 5;
 
         let path = windows::to_u16s(path)?;
         let operation = windows::to_u16s("open")?;
         let result = unsafe {
-            ShellExecuteW(ptr::null_mut(),
-                          operation.as_ptr(),
-                          path.as_ptr(),
-                          ptr::null(),
-                          ptr::null(),
-                          SW_SHOW)
+            ShellExecuteW(
+                ptr::null_mut(),
+                operation.as_ptr(),
+                path.as_ptr(),
+                ptr::null(),
+                ptr::null(),
+                SW_SHOW,
+            )
         };
         Ok(result as usize > 32)
     }
@@ -408,8 +418,8 @@ pub mod windows {
     use std::path::PathBuf;
     use std::ptr;
     use std::slice;
-    use std::ffi::{OsString, OsStr};
-    use std::os::windows::ffi::{OsStringExt, OsStrExt};
+    use std::ffi::{OsStr, OsString};
+    use std::os::windows::ffi::{OsStrExt, OsStringExt};
     use shell32;
     use ole32;
 
@@ -429,8 +439,6 @@ pub mod windows {
     };
 
     pub fn get_special_folder(id: &shtypes::KNOWNFOLDERID) -> io::Result<PathBuf> {
-
-
         let mut path = ptr::null_mut();
         let result;
 
@@ -455,8 +463,10 @@ pub mod windows {
         fn inner(s: &OsStr) -> io::Result<Vec<u16>> {
             let mut maybe_result: Vec<u16> = s.encode_wide().collect();
             if maybe_result.iter().any(|&u| u == 0) {
-                return Err(io::Error::new(io::ErrorKind::InvalidInput,
-                                          "strings passed to WinAPI cannot contain NULs"));
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "strings passed to WinAPI cannot contain NULs",
+                ));
             }
             maybe_result.push(0);
             Ok(maybe_result)

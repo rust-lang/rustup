@@ -60,7 +60,8 @@ error_chain! {
             dest: PathBuf,
         } {
             description("could not rename file")
-            display("could not rename {} file from '{}' to '{}'", name, src.display(), dest.display())
+            display("could not rename {} file from '{}' to '{}'",
+                    name, src.display(), dest.display())
         }
         RenamingDirectory {
             name: &'static str,
@@ -68,7 +69,8 @@ error_chain! {
             dest: PathBuf,
         } {
             description("could not rename directory")
-            display("could not rename {} directory from '{}' to '{}'", name, src.display(), dest.display())
+            display("could not rename {} directory from '{}' to '{}'",
+                    name, src.display(), dest.display())
         }
         DownloadingFile {
             url: Url,

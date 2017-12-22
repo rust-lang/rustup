@@ -30,16 +30,16 @@ impl<'a> Notification<'a> {
         use self::Notification::*;
         match *self {
             CreatingDirectory(_, _) | RemovingDirectory(_, _) => NotificationLevel::Verbose,
-            LinkingDirectory(_, _) |
-            CopyingDirectory(_, _) |
-            DownloadingFile(_, _) |
-            DownloadContentLengthReceived(_) |
-            DownloadDataReceived(_) |
-            DownloadFinished |
-            ResumingPartialDownload |
-            UsingCurl | UsingReqwest => NotificationLevel::Verbose,
-            UsingHyperDeprecated |
-            NoCanonicalPath(_) => NotificationLevel::Warn,
+            LinkingDirectory(_, _)
+            | CopyingDirectory(_, _)
+            | DownloadingFile(_, _)
+            | DownloadContentLengthReceived(_)
+            | DownloadDataReceived(_)
+            | DownloadFinished
+            | ResumingPartialDownload
+            | UsingCurl
+            | UsingReqwest => NotificationLevel::Verbose,
+            UsingHyperDeprecated | NoCanonicalPath(_) => NotificationLevel::Warn,
         }
     }
 }
@@ -64,8 +64,10 @@ impl<'a> Display for Notification<'a> {
             ResumingPartialDownload => write!(f, "resuming partial download"),
             UsingCurl => write!(f, "downloading with curl"),
             UsingReqwest => write!(f, "downloading with reqwest"),
-            UsingHyperDeprecated => f.write_str("RUSTUP_USE_HYPER environment variable is deprecated, use RUSTUP_USE_REQWEST instead"),
+            UsingHyperDeprecated => f.write_str(
+                "RUSTUP_USE_HYPER environment variable is deprecated, \
+                 use RUSTUP_USE_REQWEST instead",
+            ),
         }
     }
 }
-

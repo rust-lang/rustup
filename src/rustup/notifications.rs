@@ -60,27 +60,26 @@ impl<'a> Notification<'a> {
             Install(ref n) => n.level(),
             Utils(ref n) => n.level(),
             Temp(ref n) => n.level(),
-            ToolchainDirectory(_, _) |
-            LookingForToolchain(_) |
-            WritingMetadataVersion(_) |
-            InstallingToolchain(_) |
-            UpdatingToolchain(_) |
-            ReadMetadataVersion(_) |
-            InstalledToolchain(_) |
-            UpdateHashMatches |
-            TelemetryCleanupError(_) => NotificationLevel::Verbose,
-            SetDefaultToolchain(_) |
-            SetOverrideToolchain(_, _) |
-            UsingExistingToolchain(_) |
-            UninstallingToolchain(_) |
-            UninstalledToolchain(_) |
-            ToolchainNotInstalled(_) |
-            UpgradingMetadata(_, _) |
-            MetadataUpgradeNotNeeded(_) |
-            SetTelemetry(_) => NotificationLevel::Info,
+            ToolchainDirectory(_, _)
+            | LookingForToolchain(_)
+            | WritingMetadataVersion(_)
+            | InstallingToolchain(_)
+            | UpdatingToolchain(_)
+            | ReadMetadataVersion(_)
+            | InstalledToolchain(_)
+            | UpdateHashMatches
+            | TelemetryCleanupError(_) => NotificationLevel::Verbose,
+            SetDefaultToolchain(_)
+            | SetOverrideToolchain(_, _)
+            | UsingExistingToolchain(_)
+            | UninstallingToolchain(_)
+            | UninstalledToolchain(_)
+            | ToolchainNotInstalled(_)
+            | UpgradingMetadata(_, _)
+            | MetadataUpgradeNotNeeded(_)
+            | SetTelemetry(_) => NotificationLevel::Info,
             NonFatalError(_) => NotificationLevel::Error,
-            UpgradeRemovesToolchains |
-            MissingFileDuringSelfUninstall(_) => NotificationLevel::Warn,
+            UpgradeRemovesToolchains | MissingFileDuringSelfUninstall(_) => NotificationLevel::Warn,
         }
     }
 }
@@ -93,12 +92,12 @@ impl<'a> Display for Notification<'a> {
             Utils(ref n) => n.fmt(f),
             Temp(ref n) => n.fmt(f),
             SetDefaultToolchain(name) => write!(f, "default toolchain set to '{}'", name),
-            SetOverrideToolchain(path, name) => {
-                write!(f,
-                       "override toolchain for '{}' set to '{}'",
-                       path.display(),
-                       name)
-            }
+            SetOverrideToolchain(path, name) => write!(
+                f,
+                "override toolchain for '{}' set to '{}'",
+                path.display(),
+                name
+            ),
             LookingForToolchain(name) => write!(f, "looking for installed toolchain '{}'", name),
             ToolchainDirectory(path, _) => write!(f, "toolchain directory: '{}'", path.display()),
             UpdatingToolchain(name) => write!(f, "updating existing install for '{}'", name),
@@ -108,27 +107,29 @@ impl<'a> Display for Notification<'a> {
             UninstallingToolchain(name) => write!(f, "uninstalling toolchain '{}'", name),
             UninstalledToolchain(name) => write!(f, "toolchain '{}' uninstalled", name),
             ToolchainNotInstalled(name) => write!(f, "no toolchain installed for '{}'", name),
-            UpdateHashMatches => {
-                write!(f, "toolchain is already up to date")
-            }
-            UpgradingMetadata(from_ver, to_ver) => {
-                write!(f,
-                       "upgrading metadata version from '{}' to '{}'",
-                       from_ver,
-                       to_ver)
-            }
-            MetadataUpgradeNotNeeded(ver) => {
-                write!(f,
-                       "nothing to upgrade: metadata version is already '{}'",
-                       ver)
-            }
+            UpdateHashMatches => write!(f, "toolchain is already up to date"),
+            UpgradingMetadata(from_ver, to_ver) => write!(
+                f,
+                "upgrading metadata version from '{}' to '{}'",
+                from_ver, to_ver
+            ),
+            MetadataUpgradeNotNeeded(ver) => write!(
+                f,
+                "nothing to upgrade: metadata version is already '{}'",
+                ver
+            ),
             WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{}'", ver),
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{}'", ver),
             NonFatalError(e) => write!(f, "{}", e),
-            UpgradeRemovesToolchains => write!(f, "this upgrade will remove all existing toolchains. you will need to reinstall them"),
-            MissingFileDuringSelfUninstall(ref p) => {
-                write!(f, "expected file does not exist to uninstall: {}", p.display())
-            }
+            UpgradeRemovesToolchains => write!(
+                f,
+                "this upgrade will remove all existing toolchains. you will need to reinstall them"
+            ),
+            MissingFileDuringSelfUninstall(ref p) => write!(
+                f,
+                "expected file does not exist to uninstall: {}",
+                p.display()
+            ),
             SetTelemetry(telemetry_status) => write!(f, "telemetry set to '{}'", telemetry_status),
             TelemetryCleanupError(e) => write!(f, "unable to remove old telemetry files: '{}'", e),
         }

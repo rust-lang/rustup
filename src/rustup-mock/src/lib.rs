@@ -1,16 +1,16 @@
 //! Mocks for testing
 
-extern crate url;
+extern crate flate2;
 #[macro_use]
 extern crate lazy_static;
-extern crate walkdir;
-extern crate flate2;
-extern crate xz2;
-extern crate tempdir;
-extern crate tar;
-extern crate toml;
 extern crate sha2;
+extern crate tar;
+extern crate tempdir;
+extern crate toml;
+extern crate url;
 extern crate wait_timeout;
+extern crate walkdir;
+extern crate xz2;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -20,7 +20,7 @@ extern crate winreg;
 pub mod dist;
 pub mod clitools;
 
-use std::fs::{self, OpenOptions, File};
+use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
@@ -60,8 +60,12 @@ impl MockInstallerBuilder {
         for component in &self.components {
             // Update the components file
             let comp_file = path.join("components");
-            let ref mut comp_file = OpenOptions::new().write(true).append(true).create(true)
-                .open(comp_file.clone()).unwrap();
+            let ref mut comp_file = OpenOptions::new()
+                .write(true)
+                .append(true)
+                .create(true)
+                .open(comp_file.clone())
+                .unwrap();
             writeln!(comp_file, "{}", component.name).unwrap();
 
             // Create the component directory
@@ -112,12 +116,20 @@ impl MockFile {
     pub fn new_dir(path: &str, files: &[(&'static str, &'static [u8], bool)]) -> MockFile {
         MockFile {
             path: path.to_string(),
-            contents: Contents::Dir(files.iter().map(|&(name, data, exe)| {
-                (name, MockContents {
-                    contents: Arc::new(data.to_vec()),
-                    executable: exe,
-                })
-            }).collect()),
+            contents: Contents::Dir(
+                files
+                    .iter()
+                    .map(|&(name, data, exe)| {
+                        (
+                            name,
+                            MockContents {
+                                contents: Arc::new(data.to_vec()),
+                                executable: exe,
+                            },
+                        )
+                    })
+                    .collect(),
+            ),
         }
     }
 
@@ -132,12 +144,10 @@ impl MockFile {
     pub fn build(&self, path: &Path) {
         let path = path.join(&self.path);
         match self.contents {
-            Contents::Dir(ref files) => {
-                for &(ref name, ref contents) in files {
-                    let fname = path.join(name);
-                    contents.build(&fname);
-                }
-            }
+            Contents::Dir(ref files) => for &(ref name, ref contents) in files {
+                let fname = path.join(name);
+                contents.build(&fname);
+            },
             Contents::File(ref contents) => contents.build(&path),
         }
     }
@@ -147,8 +157,10 @@ impl MockContents {
     fn build(&self, path: &Path) {
         let dir_path = path.parent().unwrap().to_owned();
         fs::create_dir_all(dir_path).unwrap();
-        File::create(&path).unwrap()
-            .write_all(&self.contents).unwrap();
+        File::create(&path)
+            .unwrap()
+            .write_all(&self.contents)
+            .unwrap();
 
         #[cfg(unix)]
         {
@@ -168,7 +180,8 @@ pub fn get_path() -> Option<String> {
     use winapi::*;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        .unwrap();
 
     environment.get_value("PATH").ok()
 }
@@ -180,7 +193,8 @@ pub fn restore_path(p: &Option<String>) {
     use winapi::*;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        .unwrap();
 
     if let Some(p) = p.as_ref() {
         let reg_value = RegValue {
@@ -201,8 +215,9 @@ pub fn restore_path(p: &Option<String>) {
 }
 
 #[cfg(unix)]
-pub fn get_path() -> Option<String> { None }
+pub fn get_path() -> Option<String> {
+    None
+}
 
 #[cfg(unix)]
-pub fn restore_path(_: &Option<String>) { }
-
+pub fn restore_path(_: &Option<String>) {}
