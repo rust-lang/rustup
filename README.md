@@ -613,6 +613,8 @@ the GNU build.
 
 [vs]: https://www.visualstudio.com/downloads
 
+You can fetch an older version from `https://static.rust-lang.org/rustup/archive/{rustup-version}/{target-triple}/rustup-init[.exe]`
+
 To install from source just run `cargo run --release`. Note that
 currently rustup only builds on nightly Rust, and that after
 installation the rustup toolchains will supersede any pre-existing
