@@ -40,10 +40,6 @@ extern crate gcc;
 extern crate winapi;
 #[cfg(windows)]
 extern crate winreg;
-#[cfg(windows)]
-extern crate user32;
-#[cfg(windows)]
-extern crate kernel32;
 extern crate libc;
 
 #[macro_use]
@@ -172,8 +168,7 @@ fn make_environment_compatible() {
 #[cfg(windows)]
 fn fix_windows_reg_key() {
     use winreg::RegKey;
-    use winreg::enums::RegType;
-    use winapi::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let env = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE);

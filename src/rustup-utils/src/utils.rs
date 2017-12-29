@@ -10,7 +10,7 @@ use sha2::Sha256;
 use notifications::{Notification};
 use raw;
 #[cfg(windows)]
-use winapi::DWORD;
+use winapi::shared::minwindef::DWORD;
 #[cfg(windows)]
 use winreg;
 use std::cmp::Ord;
@@ -438,11 +438,12 @@ pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
 #[cfg(windows)]
 pub fn home_dir() -> Option<PathBuf> {
     use std::ptr;
-    use kernel32::{GetCurrentProcess, GetLastError, CloseHandle};
-    use advapi32::OpenProcessToken;
-    use userenv::GetUserProfileDirectoryW;
-    use winapi::ERROR_INSUFFICIENT_BUFFER;
-    use winapi::winnt::TOKEN_READ;
+    use winapi::shared::winerror::ERROR_INSUFFICIENT_BUFFER;
+    use winapi::um::errhandlingapi::GetLastError;
+    use winapi::um::handleapi::CloseHandle;
+    use winapi::um::processthreadsapi::{GetCurrentProcess, OpenProcessToken};
+    use winapi::um::userenv::GetUserProfileDirectoryW;
+    use winapi::um::winnt::TOKEN_READ;
     use scopeguard;
 
     ::std::env::var_os("USERPROFILE").map(PathBuf::from).or_else(|| unsafe {
@@ -473,8 +474,8 @@ fn fill_utf16_buf<F1, F2, T>(mut f1: F1, f2: F2) -> io::Result<T>
     where F1: FnMut(*mut u16, DWORD) -> DWORD,
           F2: FnOnce(&[u16]) -> T
 {
-    use kernel32::{GetLastError, SetLastError};
-    use winapi::{ERROR_INSUFFICIENT_BUFFER};
+    use winapi::um::errhandlingapi::{GetLastError, SetLastError};
+    use winapi::shared::winerror::ERROR_INSUFFICIENT_BUFFER;
 
     // Start off with a stack buf but then spill over to the heap if we end up
     // needing more space.

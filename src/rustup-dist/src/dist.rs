@@ -116,7 +116,7 @@ impl TargetTriple {
     pub fn from_host() -> Option<Self> {
         #[cfg(windows)]
         fn inner() -> Option<TargetTriple> {
-            use kernel32::GetNativeSystemInfo;
+            use winapi::um::sysinfoapi::GetNativeSystemInfo;
             use std::mem;
 
             // First detect architecture
@@ -129,7 +129,7 @@ impl TargetTriple {
                 GetNativeSystemInfo(&mut sys_info);
             }
 
-            let arch = match sys_info.wProcessorArchitecture {
+            let arch = match unsafe { sys_info.u.s() }.wProcessorArchitecture {
                 PROCESSOR_ARCHITECTURE_AMD64 => "x86_64",
                 PROCESSOR_ARCHITECTURE_INTEL => "i686",
                 _ => return None,

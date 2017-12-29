@@ -57,12 +57,9 @@ url = "1.1.0"
 wait-timeout = "0.1.5"
 
 [target."cfg(windows)".dependencies]
-winapi = "0.2.8"
+winapi = { version = "0.3", features = ["jobapi", "jobapi2", "processthreadsapi", "psapi", "synchapi", "winuser"] }
 winreg = "0.4.0"
-user32-sys = "0.2.0"
-kernel32-sys = "0.2.1"
 gcc = "0.3.50"
-psapi-sys = "0.1"
 
 [dev-dependencies]
 rustup-mock = { path = "src/rustup-mock", version = "1.1.0" }

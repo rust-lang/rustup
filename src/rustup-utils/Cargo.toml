@@ -24,10 +24,6 @@ toml = "0.4"
 url = "1.1"
 
 [target."cfg(windows)".dependencies]
-advapi32-sys = "0.2.0"
-kernel32-sys = "0.2.1"
-ole32-sys = "0.2.0"
-shell32-sys = "0.1.1"
-userenv-sys = "0.2.0"
-winapi = "0.2.8"
+winapi = { version = "0.3", features = ["combaseapi", "errhandlingapi", "fileapi", "handleapi", 
+    "ioapiset", "minwindef", "processthreadsapi", "shlobj", "shtypes", "userenv", "winbase", "winerror", "winnt", "winioctl"] }
 winreg = "0.4.0"

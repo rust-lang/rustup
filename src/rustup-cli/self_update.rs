@@ -864,7 +864,7 @@ fn get_msi_product_code() -> Result<String> {
 #[cfg(feature = "msi-installed")]
 fn get_msi_product_code() -> Result<String> {
     use winreg::RegKey;
-    use winapi::*;
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root.open_subkey_with_flags("SOFTWARE\\rustup", KEY_READ);
@@ -944,11 +944,12 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
     let numbah: u32 = rand::random();
     let gc_exe = work_path.join(&format!("rustup-gc-{:x}.exe", numbah));
 
-    use winapi::{FILE_SHARE_DELETE, FILE_SHARE_READ,
-                 INVALID_HANDLE_VALUE, FILE_FLAG_DELETE_ON_CLOSE,
-                 DWORD, SECURITY_ATTRIBUTES, OPEN_EXISTING,
-                 GENERIC_READ};
-    use kernel32::{CreateFileW, CloseHandle};
+    use winapi::um::fileapi::{CreateFileW, OPEN_EXISTING};
+    use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
+    use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
+    use winapi::um::winbase::FILE_FLAG_DELETE_ON_CLOSE;
+    use winapi::um::winnt::{FILE_SHARE_DELETE, FILE_SHARE_READ, GENERIC_READ};
+    use winapi::shared::minwindef::DWORD;
     use std::os::windows::ffi::OsStrExt;
     use std::ptr;
     use std::io;
@@ -1028,11 +1029,13 @@ pub fn complete_windows_uninstall() -> Result<()> {
 
 #[cfg(windows)]
 fn wait_for_parent() -> Result<()> {
-    use kernel32::{Process32First, Process32Next,
-                   CreateToolhelp32Snapshot, CloseHandle, OpenProcess,
-                   GetCurrentProcessId, WaitForSingleObject};
-    use winapi::{PROCESSENTRY32, INVALID_HANDLE_VALUE, DWORD, INFINITE,
-                 TH32CS_SNAPPROCESS, SYNCHRONIZE, WAIT_OBJECT_0};
+    use winapi::shared::minwindef::DWORD;
+    use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
+    use winapi::um::processthreadsapi::{OpenProcess, GetCurrentProcessId};
+    use winapi::um::synchapi::WaitForSingleObject;
+    use winapi::um::tlhelp32::{CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS};
+    use winapi::um::winbase::{INFINITE, WAIT_OBJECT_0};
+    use winapi::um::winnt::SYNCHRONIZE;
     use std::io;
     use std::mem;
     use std::ptr;
@@ -1172,9 +1175,9 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
     use winreg::{RegKey, RegValue};
-    use winreg::enums::RegType;
-    use winapi::*;
-    use user32::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winapi::shared::minwindef::*;
+    use winapi::um::winuser::{SendMessageTimeoutA, HWND_BROADCAST, WM_SETTINGCHANGE, SMTO_ABORTIFHUNG};
     use std::ptr;
 
     let old_path = if let Some(s) = try!(get_windows_path_var()) {
@@ -1224,7 +1227,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 #[cfg(windows)]
 fn get_windows_path_var() -> Result<Option<String>> {
     use winreg::RegKey;
-    use winapi::*;
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use std::io;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
@@ -1281,10 +1284,10 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
 fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
+    use winapi::shared::minwindef::*;
+    use winapi::um::winuser::{SendMessageTimeoutA, SMTO_ABORTIFHUNG, HWND_BROADCAST, WM_SETTINGCHANGE};
     use winreg::{RegKey, RegValue};
-    use winreg::enums::RegType;
-    use winapi::*;
-    use user32::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use std::ptr;
 
     let old_path = if let Some(s) = try!(get_windows_path_var()) {

@@ -176,8 +176,12 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
 #[cfg(windows)]
 #[allow(non_snake_case)]
 fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
-    use winapi::*;
-    use kernel32::*;
+    use winapi::shared::minwindef::*;
+    use winapi::um::fileapi::*;
+    use winapi::um::ioapiset::*;
+    use winapi::um::winbase::*;
+    use winapi::um::winioctl::FSCTL_SET_REPARSE_POINT;
+    use winapi::um::winnt::*;
     use std::ptr;
     use std::os::windows::ffi::OsStrExt;
 
@@ -371,20 +375,23 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
     }
     #[cfg(windows)]
     fn inner(path: &Path) -> io::Result<bool> {
-        use winapi;
+        use winapi::ctypes;
+        use winapi::shared::windef::HWND;
+        use winapi::shared::ntdef::LPCWSTR;
+        use winapi::shared::minwindef::HINSTANCE;
         use std::ptr;
 
         // FIXME: When winapi has this function, use their version
         extern "system" {
-            pub fn ShellExecuteW(hwnd: winapi::HWND,
-                                 lpOperation: winapi::LPCWSTR,
-                                 lpFile: winapi::LPCWSTR,
-                                 lpParameters: winapi::LPCWSTR,
-                                 lpDirectory: winapi::LPCWSTR,
-                                 nShowCmd: winapi::c_int)
-                                 -> winapi::HINSTANCE;
+            pub fn ShellExecuteW(hwnd: HWND,
+                                 lpOperation: LPCWSTR,
+                                 lpFile: LPCWSTR,
+                                 lpParameters: LPCWSTR,
+                                 lpDirectory: LPCWSTR,
+                                 nShowCmd: ctypes::c_int)
+                                 -> HINSTANCE;
         }
-        const SW_SHOW: winapi::c_int = 5;
+        const SW_SHOW: ctypes::c_int = 5;
 
         let path = windows::to_u16s(path)?;
         let operation = windows::to_u16s("open")?;
@@ -403,15 +410,14 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
 
 #[cfg(windows)]
 pub mod windows {
-    use winapi::*;
+    use winapi::um::{combaseapi, shlobj, shtypes};
+    use winapi::shared::guiddef::GUID;
     use std::io;
     use std::path::PathBuf;
     use std::ptr;
     use std::slice;
     use std::ffi::{OsString, OsStr};
     use std::os::windows::ffi::{OsStringExt, OsStrExt};
-    use shell32;
-    use ole32;
 
     #[allow(non_upper_case_globals)]
     pub const FOLDERID_LocalAppData: GUID = GUID {
@@ -429,13 +435,11 @@ pub mod windows {
     };
 
     pub fn get_special_folder(id: &shtypes::KNOWNFOLDERID) -> io::Result<PathBuf> {
-
-
         let mut path = ptr::null_mut();
         let result;
 
         unsafe {
-            let code = shell32::SHGetKnownFolderPath(id, 0, ptr::null_mut(), &mut path);
+            let code = shlobj::SHGetKnownFolderPath(id, 0, ptr::null_mut(), &mut path);
             if code == 0 {
                 let mut length = 0usize;
                 while *path.offset(length as isize) != 0 {
@@ -446,7 +450,7 @@ pub mod windows {
             } else {
                 result = Err(io::Error::from_raw_os_error(code));
             }
-            ole32::CoTaskMemFree(path as *mut _);
+            combaseapi::CoTaskMemFree(path as *mut _);
         }
         result
     }
