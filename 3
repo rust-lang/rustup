@@ -7,7 +7,7 @@ use rustup_dist::manifest::Component;
 use rustup_dist::dist::{TargetTriple, PartialToolchainDesc, PartialTargetTriple};
 use rustup_utils::utils;
 use self_update;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::iter;
 use std::error::Error;
@@ -793,11 +793,8 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     };
 
     if m.is_present("print-only") {
-        let path =  toolchain.doc_path(doc_url);
-        match path {
-            Ok(v) => return Ok(println!("file:/{}", v.to_str().unwrap())),
-            Err(e) => return Err(From::from(e))
-        }
+        println!("{:?}", toolchain.doc_path(doc_url));
+        Ok("ok");
     }
 
     Ok(try!(cfg.open_docs_for_dir(&try!(utils::current_dir()), doc_url)))
