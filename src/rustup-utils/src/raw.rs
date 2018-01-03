@@ -130,7 +130,7 @@ pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
     Ok(())
 }
 
-pub fn tee_file<W: io::Write>(path: &Path, mut w: &mut W) -> io::Result<()> {
+pub fn tee_file<W: io::Write>(path: &Path, w: &mut W) -> io::Result<()> {
     let mut file = try!(fs::OpenOptions::new()
                             .read(true)
                             .open(path));
@@ -213,7 +213,7 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
                             ptr::null_mut());
 
         let mut data = [0u8; MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
-        let mut db = data.as_mut_ptr()
+        let db = data.as_mut_ptr()
                         as *mut REPARSE_MOUNTPOINT_DATA_BUFFER;
         let buf = &mut (*db).ReparseTarget as *mut _;
         let mut i = 0;

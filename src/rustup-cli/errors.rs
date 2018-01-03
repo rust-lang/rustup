@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std::io;
 use std::path::PathBuf;
 
 use rustup;
@@ -15,6 +16,7 @@ error_chain! {
 
     foreign_links {
         Temp(temp::Error);
+        Io(io::Error);
     }
 
     errors {

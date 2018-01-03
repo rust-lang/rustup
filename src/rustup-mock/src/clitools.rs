@@ -322,13 +322,19 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
     for env in env {
         cmd.env(env.0, env.1);
     }
+
+    println!("running {:?}", cmd);
     let out = cmd.output().expect("failed to run test command");
 
-    SanitizedOutput {
+    let output = SanitizedOutput {
         ok: out.status.success(),
         stdout: String::from_utf8(out.stdout).unwrap(),
         stderr: String::from_utf8(out.stderr).unwrap(),
-    }
+    };
+    println!("status: {}", out.status);
+    println!("----- stdout\n{}", output.stdout);
+    println!("----- stderr\n{}", output.stderr);
+    return output
 }
 
 // Creates a mock dist server populated with some test data

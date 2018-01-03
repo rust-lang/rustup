@@ -1250,28 +1250,36 @@ fn rls_proxy_set_up_after_update() {
 
 #[test]
 fn update_does_not_overwrite_rustfmt() {
-    update_setup(&|config, _| {
+    update_setup(&|config, self_dist| {
         expect_ok(config, &["rustup-init", "-y"]);
+        let version = env!("CARGO_PKG_VERSION");
+        output_release_file(self_dist, "1", version);
+
+        // Since we just did a fresh install rustfmt will exist. Let's emulate
+        // it not existing in this test though by removing it just after our
+        // installation.
         let ref rustfmt_path = config.cargodir.join(format!("bin/rustfmt{}", EXE_SUFFIX));
+        assert!(rustfmt_path.exists());
+        fs::remove_file(rustfmt_path).unwrap();
         raw::write_file(rustfmt_path, "").unwrap();
         assert_eq!(utils::file_size(rustfmt_path).unwrap(), 0);
 
-        expect_stderr_ok(config, &["rustup", "self", "update"],
-                         "`rustfmt` is already installed");
-        expect_ok(config, &["rustup", "self", "update"]);
-        assert!(rustfmt_path.exists());
-        assert_eq!(utils::file_size(rustfmt_path).unwrap(), 0);
-
-
-        // We run the test twice because the first time around none of the shims
-        // exist, and we want to check that out check for rustfmt works if there
-        // are shims or not.
-        let ref rustdoc_path = config.cargodir.join(format!("bin/rustdoc{}", EXE_SUFFIX));
-        assert!(rustdoc_path.exists());
-
+        // Ok, now a self-update should complain about `rustfmt` not looking
+        // like rustup and the user should take some action.
         expect_stderr_ok(config, &["rustup", "self", "update"],
                          "`rustfmt` is already installed");
         assert!(rustfmt_path.exists());
         assert_eq!(utils::file_size(rustfmt_path).unwrap(), 0);
+
+        // Now simluate us removing the rustfmt executable and rerunning a self
+        // update, this should install the rustup shim. Note that we don't run
+        // `rustup` here but rather the rustup we've actually installed, this'll
+        // help reproduce bugs related to having that file being opened by the
+        // current process.
+        fs::remove_file(rustfmt_path).unwrap();
+        let installed_rustup = config.cargodir.join("bin/rustup");
+        expect_ok(config, &[installed_rustup.to_str().unwrap(), "self", "update"]);
+        assert!(rustfmt_path.exists());
+        assert!(utils::file_size(rustfmt_path).unwrap() > 0);
     });
 }

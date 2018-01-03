@@ -34,6 +34,7 @@ use common::{self, Confirm};
 use errors::*;
 use rustup_dist::dist;
 use rustup_utils::utils;
+use same_file::Handle;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::path::{Path, PathBuf, Component};
@@ -657,29 +658,76 @@ pub fn install_proxies() -> Result<()> {
     let ref bin_path = try!(utils::cargo_home()).join("bin");
     let ref rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
 
-    // Record the size of the known links, then when we get files which may or
-    // may not be links, we compare their size. Same size means probably a link.
-    let mut file_size = 0;
+    let rustup = Handle::from_path(rustup_path)?;
+
+    let mut tool_handles = Vec::new();
+    let mut link_afterwards = Vec::new();
 
     // Try to hardlink all the Rust exes to the rustup exe. Some systems,
     // like Android, does not support hardlinks, so we fallback to symlinks.
+    //
+    // Note that this function may not be running in the context of a fresh
+    // self update but rather as part of a normal update to fill in missing
+    // proxies. In that case our process may actually have the `rustup.exe`
+    // file open, and on systems like Windows that means that you can't
+    // even remove other hard links to the same file. Basically if we have
+    // `rustup.exe` open and running and `cargo.exe` is a hard link to that
+    // file, we can't remove `cargo.exe`.
+    //
+    // To avoid unnecessary errors from being returned here we use the
+    // `same-file` crate and its `Handle` type to avoid clobbering hard links
+    // that are already valid. If a hard link already points to the
+    // `rustup.exe` file then we leave it alone and move to the next one.
+    //
+    // As yet one final caveat, when we're looking at handles for files we can't
+    // actually delete files (they'll say they're deleted but they won't
+    // actually be on Windows). As a result we manually drop all the
+    // `tool_handles` later on. This'll allow us, afterwards, to actually
+    // overwrite all the previous hard links with new ones.
     for tool in TOOLS {
-        let ref tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
-        if tool_path.exists() {
-            file_size = utils::file_size(tool_path)?;
+        let tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
+        if let Ok(handle) = Handle::from_path(&tool_path) {
+            tool_handles.push(handle);
+            if rustup == *tool_handles.last().unwrap() {
+                continue
+            }
         }
-        try!(utils::hard_or_symlink_file(rustup_path, tool_path));
+        link_afterwards.push(tool_path);
     }
 
     for tool in DUP_TOOLS {
         let ref tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
-        if tool_path.exists() && (file_size == 0 || utils::file_size(tool_path)? != file_size) {
-            warn!("tool `{}` is already installed, remove it from `{}`, then run `rustup update` \
-                   to have rustup manage this tool.",
-                  tool, bin_path.to_string_lossy());
-        } else {
-            try!(utils::hard_or_symlink_file(rustup_path, tool_path));
+        if let Ok(handle) = Handle::from_path(tool_path) {
+            // Like above, don't clobber anything that's already hardlinked to
+            // avoid extraneous errors from being returned.
+            if rustup == handle {
+                continue
+            }
+
+            // If this file exists and is *not* equivalent to all other
+            // preexisting tools we found, then we're going to assume that it
+            // was preinstalled and actually pointing to a totally different
+            // binary. This is intended for cases where historically users
+            // rand `cargo install rustfmt` and so they had custom `rustfmt`
+            // and `cargo-fmt` executables lying around, but we as rustup have
+            // since started managing these tools.
+            //
+            // If the file is managed by rustup it should be equivalent to some
+            // previous file, and if it's not equivalent to anything then it's
+            // pretty likely that it needs to be dealt with manually.
+            if tool_handles.iter().all(|h| *h != handle) {
+                warn!("tool `{}` is already installed, remove it from `{}`, then run `rustup update` \
+                       to have rustup manage this tool.",
+                      tool, bin_path.to_string_lossy());
+                continue
+            }
         }
+        try!(utils::hard_or_symlink_file(rustup_path, tool_path));
+    }
+
+    drop(tool_handles);
+    for path in link_afterwards {
+        try!(utils::hard_or_symlink_file(rustup_path, &path));
     }
 
     Ok(())
