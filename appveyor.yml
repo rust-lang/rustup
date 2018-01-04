@@ -74,8 +74,8 @@ test_script:
   - cargo build --release --target %TARGET% %FEATURES% --locked
   - cargo test --release -p rustup-dist --target %TARGET%
   - cargo test --release --target %TARGET% %FEATURES%
-  - if defined BUILD_MSI pushd src\rustup-win-installer && cargo build --release --target %TARGET% & popd
-  - if defined BUILD_MSI pushd src\rustup-win-installer\msi && powershell .\build.ps1 -Target %TARGET% & popd
+  - if defined BUILD_MSI pushd rustup-win-installer && cargo build --release --target %TARGET% & popd
+  - if defined BUILD_MSI pushd rustup-win-installer\msi && powershell .\build.ps1 -Target %TARGET% & popd
 
 notifications:
   - provider: Webhook

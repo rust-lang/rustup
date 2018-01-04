@@ -1,79 +1,10 @@
-[package]
-
-name = "rustup"
-version = "1.10.0"
-authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
-description = "Manage multiple rust installations with ease"
-
-documentation = "http://rust-lang-nursery.github.io/rustup.rs/rustup/index.html"
-homepage = "https://github.com/rust-lang-nursery/rustup.rs"
-repository = "https://github.com/rust-lang-nursery/rustup.rs"
-
-readme = "README.md"
-
-keywords = ["rustup", "multirust", "install", "proxy"]
-
-license = "MIT OR Apache-2.0"
-
-build = "build.rs"
-
-[features]
-
-default = ["curl-backend", "reqwest-backend"]
-
-curl-backend = ["download/curl-backend"]
-reqwest-backend = ["download/reqwest-backend"]
-
-# Include in the default set to disable self-update and uninstall.
-no-self-update = []
-
-# Used to change behavior of self-update and uninstall if installed via MSI
-msi-installed = []
-
-[dependencies]
-rustup-dist = { path = "rustup-dist" }
-rustup-utils = { path = "rustup-utils" }
-download = { path = "download" }
-clap = "2.18.0"
-error-chain = "0.11"
-itertools = "0.6"
-libc = "0.2.0"
-markdown = "0.2"
-rand = "0.3.11"
-regex = "0.2"
-remove_dir_all = "0.2.0"
-same-file = "1.0"
-scopeguard = "0.3"
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = "1.0"
-sha2 = "0.6.0"
-tempdir = "0.3.4"
-tempfile = "2.1.4"
-term = "0.4.4"
-time = "0.1.34"
-toml = "0.4"
-url = "1.1.0"
-wait-timeout = "0.1.5"
-
-[target."cfg(windows)".dependencies]
-winapi = { version = "0.3", features = ["jobapi", "jobapi2", "processthreadsapi", "psapi", "synchapi", "winuser"] }
-winreg = "0.4.0"
-gcc = "0.3.50"
-
-[dev-dependencies]
-rustup-mock = { path = "rustup-mock" }
-lazy_static = "0.2"
-
 [workspace]
-members = ["rustup-win-installer"]
-
-[lib]
-name = "rustup"
-path = "rustup/lib.rs"
-test = false # no unit tests
-
-[[bin]]
-name = "rustup-init"
-path = "rustup-cli/main.rs"
-test = false # no unit tests
+members = [
+    "download",
+    "rustup",
+    "rustup-cli",
+    "rustup-dist",
+    "rustup-mock",
+    "rustup-utils",
+    "rustup-win-installer",
+]

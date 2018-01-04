@@ -1,0 +1,57 @@
+[package]
+
+name = "rustup-init"
+version = "1.9.0"
+authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
+description = "Manage multiple rust installations with ease"
+license = "MIT OR Apache-2.0"
+
+build = "../build.rs"
+
+[[bin]]
+name = "rustup-init"
+path = "src/main.rs"
+test = false # no unit tests
+
+[features]
+
+default = []
+
+# Include in the default set to disable self-update and uninstall.
+no-self-update = []
+
+# Used to change behavior of self-update and uninstall if installed via MSI
+msi-installed = []
+
+[dependencies]
+rustup = { path = "../rustup" }
+rustup-dist = { path = "../rustup-dist" }
+rustup-utils = { path = "../rustup-utils" }
+clap = "2.18.0"
+error-chain = "0.11"
+itertools = "0.6"
+libc = "0.2.0"
+markdown = "0.2"
+rand = "0.3.11"
+regex = "0.2"
+same-file = "1.0"
+scopeguard = "0.3"
+sha2 = "0.6.0"
+tempdir = "0.3.4"
+tempfile = "2.1.4"
+term = "0.4.4"
+time = "0.1.34"
+toml = "0.4"
+wait-timeout = "0.1.5"
+
+[target."cfg(windows)".dependencies]
+winapi = { version = "0.3", features = ["jobapi", "jobapi2", "processthreadsapi", "psapi", "synchapi", "winuser"] }
+winreg = "0.4.0"
+user32-sys = "0.2.0"
+kernel32-sys = "0.2.1"
+gcc = "0.3.50"
+
+[dev-dependencies]
+rustup-mock = { path = "../rustup-mock", version = "1.1.0" }
+lazy_static = "0.2"
+remove_dir_all = "0.2.0"
