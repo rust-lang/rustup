@@ -26,6 +26,7 @@ extern crate term;
 extern crate itertools;
 extern crate time;
 extern crate rand;
+extern crate same_file;
 extern crate scopeguard;
 extern crate tempdir;
 extern crate sha2;
