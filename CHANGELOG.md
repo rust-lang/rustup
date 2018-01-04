@@ -1,3 +1,11 @@
+# 1.9.0
+
+* [Fix self update errors filling in missing proxies][pr1326]
+
+[pr1326]: https://github.com/rust-lang-nursery/rustup.rs/pull/1326
+
+Contributors: Alex Crichton
+
 # 1.8.0
 
 * [Add `rustup run --install`][pr1295]
