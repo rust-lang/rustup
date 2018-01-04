@@ -6,7 +6,9 @@ extern crate rustup;
 use std::ffi::CString;
 use std::path::PathBuf;
 use std::collections::HashMap;
-use ::winapi::{HRESULT, PCSTR, UINT, LPCWSTR, LPWSTR, LPVOID};
+
+use winapi::shared::ntdef::{HRESULT, PCSTR, LPCWSTR, LPWSTR};
+use winapi::shared::minwindef::{UINT, LPVOID};
 
 pub type MSIHANDLE = u32;
 

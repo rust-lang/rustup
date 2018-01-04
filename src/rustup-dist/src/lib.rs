@@ -16,10 +16,6 @@ extern crate sha2;
 extern crate winapi;
 #[cfg(windows)]
 extern crate winreg;
-#[cfg(windows)]
-extern crate user32;
-#[cfg(windows)]
-extern crate kernel32;
 #[cfg(not(windows))]
 extern crate libc;
 

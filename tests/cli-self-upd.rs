@@ -523,7 +523,7 @@ fn install_doesnt_modify_path_if_passed_no_modify_path() {
 #[cfg(windows)]
 fn install_doesnt_modify_path_if_passed_no_modify_path() {
     use winreg::RegKey;
-    use winapi::*;
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
@@ -947,8 +947,7 @@ fn rustup_init_works_with_weird_names() {
 #[cfg(windows)]
 fn doesnt_write_wrong_path_type_to_reg() {
     use winreg::RegKey;
-    use winreg::enums::RegType;
-    use winapi::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
@@ -974,8 +973,7 @@ fn doesnt_write_wrong_path_type_to_reg() {
 #[cfg(windows)]
 fn windows_handle_empty_path_registry_key() {
     use winreg::RegKey;
-    use winreg::enums::RegType;
-    use winapi::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
@@ -1003,8 +1001,7 @@ fn windows_handle_empty_path_registry_key() {
 #[cfg(windows)]
 fn windows_uninstall_removes_semicolon_from_path() {
     use winreg::RegKey;
-    use winreg::enums::RegType;
-    use winapi::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
@@ -1034,8 +1031,7 @@ fn windows_uninstall_removes_semicolon_from_path() {
 #[cfg(windows)]
 fn install_doesnt_mess_with_a_non_unicode_path() {
     use winreg::{RegKey, RegValue};
-    use winreg::enums::RegType;
-    use winapi::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
@@ -1064,8 +1060,7 @@ fn install_doesnt_mess_with_a_non_unicode_path() {
 #[cfg(windows)]
 fn uninstall_doesnt_mess_with_a_non_unicode_path() {
     use winreg::{RegKey, RegValue};
-    use winreg::enums::RegType;
-    use winapi::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);

@@ -14,16 +14,6 @@ extern crate semver;
 extern crate winapi;
 #[cfg(windows)]
 extern crate winreg;
-#[cfg(windows)]
-extern crate shell32;
-#[cfg(windows)]
-extern crate ole32;
-#[cfg(windows)]
-extern crate kernel32;
-#[cfg(windows)]
-extern crate advapi32;
-#[cfg(windows)]
-extern crate userenv;
 
 #[cfg(unix)]
 extern crate libc;

@@ -32,10 +32,8 @@ rustup-mock = { path = "../rustup-mock" }
 tempdir = "0.3.4"
 
 [target."cfg(windows)".dependencies]
-winapi = "0.2.8"
+winapi = { version = "0.3", features = ["handleapi", "sysinfoapi", "tlhelp32", "winnt"] }
 winreg = "0.4"
-user32-sys = "0.2.0"
-kernel32-sys = "0.2.1"
 
 [target."cfg(not(windows))".dependencies]
 libc = "0.2.0"
