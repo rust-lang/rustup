@@ -238,7 +238,7 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
             // we guard against such cases by enforcing a reasonable timeout to read.
             let mut line1 = None;
             if let Ok(mut child) = cmd.spawn() {
-                let timeout = Duration::new(3, 0);
+                let timeout = Duration::new(10, 0);
                 match child.wait_timeout(timeout) {
                     Ok(Some(status)) if status.success() => {
                         let out = child.stdout.expect("Child::stdout requested but not present");
