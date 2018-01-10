@@ -155,6 +155,14 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, rustup::Result<Updat
                 banner = "unchanged";
                 color = None;
             }
+            Ok(UpdateStatus::UpToDate) => {
+                banner = "up-to-date";
+                color = None;
+            }
+            Ok(UpdateStatus::UpdateAvailable) => {
+                banner = "update-available";
+                color = Some(term2::color::BRIGHT_GREEN);
+            }
             Err(_) => {
                 banner = "update failed";
                 color = Some(term2::color::BRIGHT_RED);
@@ -189,16 +197,21 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, rustup::Result<Updat
     Ok(())
 }
 
-pub fn update_all_channels(cfg: &Cfg, self_update: bool) -> Result<()> {
+pub fn update_all_channels(cfg: &Cfg, self_update: bool, check_only: bool) -> Result<()> {
 
-    let toolchains = try!(cfg.update_all_channels());
+    let toolchains = try!(cfg.update_all_channels(check_only));
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");
     }
 
     let setup_path = if self_update {
-        try!(self_update::prepare_update())
+        if check_only {
+            self_update::check_update()?;
+            None
+        } else {
+            self_update::prepare_update()?
+        }
     } else {
         None
     };

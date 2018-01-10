@@ -68,6 +68,19 @@ impl<'a> InstallMethod<'a> {
         }
     }
 
+    pub fn check_update(self) -> Result<bool> {
+        if let InstallMethod::Dist(toolchain, update_hash, dl_cfg) = self {
+            let update_available = try!(dist::check_update_dist(dl_cfg, update_hash, toolchain));
+            if let Some(update_available) = update_available {
+                Ok(update_available)
+            } else {
+                Ok(false)
+            }
+        } else {
+            unreachable!();
+        }
+    }
+
     fn tar_gz(src: &Path, path: &Path, temp_cfg: &temp::Cfg,
               notify_handler: &Fn(Notification)) -> Result<()> {
         notify_handler(Notification::Extracting(src, path));

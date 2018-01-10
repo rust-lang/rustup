@@ -32,6 +32,7 @@ pub fn main() -> Result<()> {
         ("show", Some(_)) => try!(show(cfg)),
         ("install", Some(m)) => try!(update(cfg, m)),
         ("update", Some(m)) => try!(update(cfg, m)),
+        ("check", Some(m)) => try!(check_update(cfg, m)),
         ("uninstall", Some(m)) => try!(toolchain_remove(cfg, m)),
         ("default", Some(m)) => try!(default_(cfg, m)),
         ("toolchain", Some(c)) => {
@@ -74,6 +75,7 @@ pub fn main() -> Result<()> {
         ("self", Some(c)) => {
             match c.subcommand() {
                 ("update", Some(_)) => try!(self_update::update()),
+                ("check", Some(_)) => try!(self_update::check_update()),
                 ("uninstall", Some(m)) => try!(self_uninstall(m)),
                 (_ ,_) => unreachable!(),
             }
@@ -145,6 +147,18 @@ pub fn cli() -> App<'static, 'static> {
                 .long("no-self-update")
                 .takes_value(false)
                 .hidden(true)))
+        .subcommand(SubCommand::with_name("check")
+            .about("Check available updates")
+            .after_help(CHECK_HELP)
+            .arg(Arg::with_name("toolchain")
+                .help(TOOLCHAIN_ARG_HELP)
+                .required(false)
+                .multiple(true))
+            .arg(Arg::with_name("no-self-update")
+                .help("Don't perform self check when running the `rustup` command")
+                .long("no-self-update")
+                .takes_value(false)
+                .hidden(true)))
         .subcommand(SubCommand::with_name("default")
             .about("Set the default toolchain")
             .after_help(DEFAULT_HELP)
@@ -162,6 +176,12 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(SubCommand::with_name("install")
                 .about("Install or update a given toolchain")
                 .aliases(&["update", "add"])
+                .arg(Arg::with_name("toolchain")
+                     .help(TOOLCHAIN_ARG_HELP)
+                     .required(true)
+                     .multiple(true)))
+            .subcommand(SubCommand::with_name("check")
+                .about("Check available update to a given toolchain")
                 .arg(Arg::with_name("toolchain")
                      .help(TOOLCHAIN_ARG_HELP)
                      .required(true)
@@ -301,7 +321,7 @@ pub fn cli() -> App<'static, 'static> {
                  .help("Standard library API documentation"))
             .group(ArgGroup::with_name("page")
                  .args(&["book", "std"])));
-    
+
     if cfg!(not(target_os = "windows")) {
         app = app
             .subcommand(SubCommand::with_name("man")
@@ -313,7 +333,7 @@ pub fn cli() -> App<'static, 'static> {
                          .long("toolchain")
                          .takes_value(true)));
     }
-    
+
     app.subcommand(SubCommand::with_name("self")
         .about("Modify the rustup installation")
         .setting(AppSettings::VersionlessSubcommands)
@@ -321,6 +341,8 @@ pub fn cli() -> App<'static, 'static> {
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(SubCommand::with_name("update")
             .about("Download and install updates to rustup"))
+        .subcommand(SubCommand::with_name("check")
+            .about("Check available updates to rustup"))
         .subcommand(SubCommand::with_name("uninstall")
             .about("Uninstall rustup.")
             .arg(Arg::with_name("no-prompt")
@@ -456,13 +478,21 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    update_or_check(cfg, m, false)
+}
+
+fn check_update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    update_or_check(cfg, m, true)
+}
+
+fn update_or_check(cfg: &Cfg, m: &ArgMatches, check_only: bool) -> Result<()> {
     if let Some(names) = m.values_of("toolchain") {
         for name in names {
             try!(update_bare_triple_check(cfg, name));
             let toolchain = try!(cfg.get_toolchain(name, false));
 
             let status = if !toolchain.is_custom() {
-                Some(try!(toolchain.install_from_dist()))
+                Some(try!(toolchain.install_from_dist(check_only)))
             } else if !toolchain.exists() {
                 return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
             } else {
@@ -475,7 +505,9 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
             }
         }
     } else {
-        try!(common::update_all_channels(cfg, !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE));
+        try!(common::update_all_channels(
+                cfg,
+                !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE, check_only));
     }
 
     Ok(())

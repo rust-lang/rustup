@@ -39,7 +39,7 @@ impl<'a> DownloadCfg<'a> {
     /// Downloads a file, validating its hash, and resuming interrupted downloads
     /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
     /// target file already exists, then the hash is checked and it is returned
-    /// immediately without re-downloading. 
+    /// immediately without re-downloading.
     pub fn download(&self, url: &Url, hash: &str) -> Result<File> {
 
         try!(utils::ensure_dir_exists("Download Directory", &self.download_dir, &|n| (self.notify_handler)(n.into())));
@@ -114,7 +114,7 @@ impl<'a> DownloadCfg<'a> {
 
     /// Downloads a file, sourcing its hash from the same url with a `.sha256` suffix.
     /// If `update_hash` is present, then that will be compared to the downloaded hash,
-    /// and if they match, the download is skipped. 
+    /// and if they match, the download is skipped.
     pub fn download_and_check(&self,
                                 url_str: &str,
                                 update_hash: Option<&Path>,
@@ -124,18 +124,9 @@ impl<'a> DownloadCfg<'a> {
         let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
 
         if let Some(hash_file) = update_hash {
-            
-            if utils::is_file(hash_file) {
-                if let Ok(contents) = utils::read_file("update hash", hash_file) {
-                    if contents == partial_hash {
-                        // Skip download, update hash matches
-                        return Ok(None);
-                    }
-                } else {
-                    (self.notify_handler)(Notification::CantReadUpdateHash(hash_file));
-                }
-            } else {
-                (self.notify_handler)(Notification::NoUpdateHash(hash_file));
+            if self.check_hash_match(hash_file, &partial_hash) {
+                // Skip download, update hash matches
+                return Ok(None);
             }
         }
 
@@ -164,6 +155,36 @@ impl<'a> DownloadCfg<'a> {
         // TODO: Check the signature of the file
 
         Ok(Some((file, partial_hash)))
+    }
+
+    /// Downloads a hash and compares it to the `update_hash` (if present).
+    /// Returns whether they match.
+    pub fn download_check_hash_match(&self,
+                               url_str: &str,
+                               update_hash: Option<&Path>) -> Result<bool> {
+        if let Some(hash_file) = update_hash {
+            let hash = try!(self.download_hash(url_str));
+            let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
+            Ok(self.check_hash_match(hash_file, &partial_hash))
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn check_hash_match(&self, hash_file: &Path, partial_hash: &String) -> bool {
+        if utils::is_file(hash_file) {
+            if let Ok(contents) = utils::read_file("update hash", hash_file) {
+                if contents == *partial_hash {
+                    return true;
+                }
+            } else {
+                (self.notify_handler)(Notification::CantReadUpdateHash(hash_file));
+            }
+        } else {
+            (self.notify_handler)(Notification::NoUpdateHash(hash_file));
+        }
+
+        false
     }
 }
 

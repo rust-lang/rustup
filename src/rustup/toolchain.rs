@@ -43,6 +43,8 @@ pub enum UpdateStatus {
     Installed,
     Updated,
     Unchanged,
+    UpToDate,
+    UpdateAvailable,
 }
 
 impl<'a> Toolchain<'a> {
@@ -131,6 +133,29 @@ impl<'a> Toolchain<'a> {
 
         Ok(status)
     }
+
+    fn check_update(&self, install_method: InstallMethod) -> Result<UpdateStatus> {
+        assert!(self.is_valid_install_method(install_method)
+                && match install_method {
+                    InstallMethod::Dist(_, _, _) => true,
+                    _ => false
+                });
+
+        let exists = self.exists();
+        if exists {
+            (self.cfg.notify_handler)(Notification::InstalledToolchain(&self.name));
+            if install_method.check_update()? {
+                (self.cfg.notify_handler)(Notification::UpdateHashMatches);
+                Ok(UpdateStatus::UpdateAvailable)
+            } else {
+                Ok(UpdateStatus::UpToDate)
+            }
+        } else {
+            (self.cfg.notify_handler)(Notification::ToolchainNotInstalled(&self.name));
+            Ok(UpdateStatus::Unchanged)
+        }
+    }
+
     fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
         (self.cfg.notify_handler)(Notification::LookingForToolchain(&self.name));
@@ -166,22 +191,28 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    pub fn install_from_dist(&self) -> Result<UpdateStatus> {
+    pub fn install_from_dist(&self, check_only: bool) -> Result<UpdateStatus> {
         if try!(self.cfg.telemetry_enabled()) {
-            return self.install_from_dist_with_telemetry();
+            return self.install_from_dist_with_telemetry(check_only);
         }
-        self.install_from_dist_inner()
+        self.install_from_dist_inner(check_only)
     }
 
-    pub fn install_from_dist_inner(&self) -> Result<UpdateStatus> {
+    pub fn install_from_dist_inner(&self, check_only: bool) -> Result<UpdateStatus> {
         let update_hash = try!(self.update_hash());
-        self.install(InstallMethod::Dist(&try!(self.desc()),
-                                         update_hash.as_ref().map(|p| &**p),
-                                         self.download_cfg()))
+        if check_only {
+            self.check_update(InstallMethod::Dist(&try!(self.desc()),
+                                             update_hash.as_ref().map(|p| &**p),
+                                             self.download_cfg()))
+        } else {
+            self.install(InstallMethod::Dist(&try!(self.desc()),
+                                             update_hash.as_ref().map(|p| &**p),
+                                             self.download_cfg()))
+        }
     }
 
-    pub fn install_from_dist_with_telemetry(&self) -> Result<UpdateStatus> {
-        let result = self.install_from_dist_inner();
+    pub fn install_from_dist_with_telemetry(&self, check_only: bool) -> Result<UpdateStatus> {
+        let result = self.install_from_dist_inner(check_only);
 
         match result {
             Ok(us) => {
