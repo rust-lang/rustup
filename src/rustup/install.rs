@@ -16,7 +16,8 @@ pub enum InstallMethod<'a> {
     Copy(&'a Path),
     Link(&'a Path),
     Installer(&'a Path, &'a temp::Cfg),
-    Dist(&'a dist::ToolchainDesc, Option<&'a Path>, DownloadCfg<'a>),
+    // bool is whether to force an update
+    Dist(&'a dist::ToolchainDesc, Option<&'a Path>, DownloadCfg<'a>, bool),
 }
 
 impl<'a> InstallMethod<'a> {
@@ -24,8 +25,8 @@ impl<'a> InstallMethod<'a> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
-                InstallMethod::Dist(_, _, _) |
-                InstallMethod::Installer(_, _) => {}
+                InstallMethod::Dist(..) |
+                InstallMethod::Installer(..) => {}
                 _ => {
                     try!(uninstall(path, notify_handler));
                 }
@@ -45,7 +46,7 @@ impl<'a> InstallMethod<'a> {
                 try!(InstallMethod::tar_gz(src, path, &temp_cfg, notify_handler));
                 Ok(true)
             }
-            InstallMethod::Dist(toolchain, update_hash, dl_cfg) => {
+            InstallMethod::Dist(toolchain, update_hash, dl_cfg, force_update) => {
                 let prefix = &InstallPrefix::from(path.to_owned());
                 let maybe_new_hash =
                     try!(dist::update_from_dist(
@@ -53,7 +54,10 @@ impl<'a> InstallMethod<'a> {
                         update_hash,
                         toolchain,
                         prefix,
-                        &[], &[]));
+                        &[],
+                        &[],
+                        force_update,
+                    ));
 
                 if let Some(hash) = maybe_new_hash {
                     if let Some(hash_file) = update_hash {

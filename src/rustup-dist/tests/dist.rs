@@ -409,7 +409,13 @@ fn update_from_dist(dist_server: &Url,
         remove_extensions: remove.to_owned(),
     };
 
-    manifestation.update(&manifest, changes, download_cfg, download_cfg.notify_handler.clone())
+    manifestation.update(
+        &manifest,
+        changes,
+        false,
+        download_cfg,
+        download_cfg.notify_handler.clone(),
+    )
 }
 
 fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url> {

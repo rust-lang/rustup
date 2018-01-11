@@ -462,7 +462,8 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                             toolchain: &ToolchainDesc,
                             prefix: &InstallPrefix,
                             add: &[Component],
-                            remove: &[Component])
+                            remove: &[Component],
+                            force_update: bool)
                             -> Result<Option<String>> {
 
     let fresh_install = !prefix.path().exists();
@@ -472,7 +473,8 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
                                 toolchain,
                                 prefix,
                                 add,
-                                remove);
+                                remove,
+                                force_update);
 
     // Don't leave behind an empty / broken installation directory
     if res.is_err() && fresh_install {
@@ -485,12 +487,13 @@ pub fn update_from_dist<'a>(download: DownloadCfg<'a>,
 }
 
 pub fn update_from_dist_<'a>(download: DownloadCfg<'a>,
-                            update_hash: Option<&Path>,
-                            toolchain: &ToolchainDesc,
-                            prefix: &InstallPrefix,
-                            add: &[Component],
-                            remove: &[Component])
-                            -> Result<Option<String>> {
+                             update_hash: Option<&Path>,
+                             toolchain: &ToolchainDesc,
+                             prefix: &InstallPrefix,
+                             add: &[Component],
+                             remove: &[Component],
+                             force_update: bool)
+                             -> Result<Option<String>> {
 
     let toolchain_str = toolchain.to_string();
     let manifestation = try!(Manifestation::open(prefix.clone(), toolchain.target.clone()));
@@ -507,6 +510,7 @@ pub fn update_from_dist_<'a>(download: DownloadCfg<'a>,
             (download.notify_handler)(Notification::DownloadedManifest(&m.date, m.get_rust_version().ok()));
             return match try!(manifestation.update(&m,
                                                    changes,
+                                                   force_update,
                                                    &download,
                                                    download.notify_handler.clone())) {
                 UpdateStatus::Unchanged => Ok(None),

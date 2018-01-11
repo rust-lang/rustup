@@ -269,7 +269,7 @@ impl Cfg {
                         Err(Error::from(reason_err))
                             .chain_err(|| ErrorKind::OverrideToolchainNotInstalled(name.to_string()))
                     } else {
-                        try!(toolchain.install_from_dist());
+                        try!(toolchain.install_from_dist(false));
                         Ok(Some((toolchain, reason)))
                     }
                 }
@@ -336,8 +336,6 @@ impl Cfg {
         })
     }
 
-
-
     pub fn list_toolchains(&self) -> Result<Vec<String>> {
         if utils::is_directory(&self.toolchains_dir) {
             let mut toolchains: Vec<_> = try!(utils::read_dir("toolchains", &self.toolchains_dir))
@@ -354,7 +352,7 @@ impl Cfg {
         }
     }
 
-    pub fn update_all_channels(&self) -> Result<Vec<(String, Result<UpdateStatus>)>> {
+    pub fn update_all_channels(&self, force_update: bool) -> Result<Vec<(String, Result<UpdateStatus>)>> {
         let toolchains = try!(self.list_toolchains());
 
         // Convert the toolchain strings to Toolchain values
@@ -369,7 +367,7 @@ impl Cfg {
         // Update toolchains and collect the results
         let toolchains = toolchains.map(|(n, t)| {
             let t = t.and_then(|t| {
-                let t = t.install_from_dist();
+                let t = t.install_from_dist(force_update);
                 if let Err(ref e) = t {
                     (self.notify_handler)(Notification::NonFatalError(e));
                 }
@@ -414,7 +412,7 @@ impl Cfg {
                                         binary: &str) -> Result<Command> {
         let ref toolchain = try!(self.get_toolchain(toolchain, false));
         if install_if_missing && !toolchain.exists() {
-            try!(toolchain.install_from_dist());
+            try!(toolchain.install_from_dist(false));
         }
 
         if let Some(cmd) = try!(self.maybe_do_cargo_fallback(toolchain, binary)) {

@@ -144,7 +144,11 @@ pub fn cli() -> App<'static, 'static> {
                 .help("Don't perform self update when running the `rustup` command")
                 .long("no-self-update")
                 .takes_value(false)
-                .hidden(true)))
+                .hidden(true))
+            .arg(Arg::with_name("force")
+                .help("Force an update, even if some components are missing")
+                .long("force")
+                .takes_value(false)))
         .subcommand(SubCommand::with_name("default")
             .about("Set the default toolchain")
             .after_help(DEFAULT_HELP)
@@ -462,7 +466,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
             let toolchain = try!(cfg.get_toolchain(name, false));
 
             let status = if !toolchain.is_custom() {
-                Some(try!(toolchain.install_from_dist()))
+                Some(try!(toolchain.install_from_dist(m.is_present("force"))))
             } else if !toolchain.exists() {
                 return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
             } else {
@@ -475,7 +479,11 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
             }
         }
     } else {
-        try!(common::update_all_channels(cfg, !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE));
+        try!(common::update_all_channels(
+            cfg,
+            !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE,
+            m.is_present("force"),
+        ));
     }
 
     Ok(())

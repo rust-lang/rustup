@@ -189,9 +189,9 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, rustup::Result<Updat
     Ok(())
 }
 
-pub fn update_all_channels(cfg: &Cfg, self_update: bool) -> Result<()> {
+pub fn update_all_channels(cfg: &Cfg, self_update: bool, force_update: bool) -> Result<()> {
 
-    let toolchains = try!(cfg.update_all_channels());
+    let toolchains = try!(cfg.update_all_channels(force_update));
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");

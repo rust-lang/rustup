@@ -91,11 +91,14 @@ impl Manifestation {
     /// distribution manifest to "rustlib/rustup-dist.toml" and a
     /// configuration containing the component name-target pairs to
     /// "rustlib/rustup-config.toml".
-    pub fn update(&self,
-                  new_manifest: &Manifest,
-                  changes: Changes,
-                  download_cfg: &DownloadCfg,
-                  notify_handler: &Fn(Notification)) -> Result<UpdateStatus> {
+    pub fn update(
+        &self,
+        new_manifest: &Manifest,
+        changes: Changes,
+        force_update: bool,
+        download_cfg: &DownloadCfg,
+        notify_handler: &Fn(Notification),
+    ) -> Result<UpdateStatus> {
 
         // Some vars we're going to need a few times
         let temp_cfg = download_cfg.temp_cfg;
@@ -119,7 +122,11 @@ impl Manifestation {
         update.missing_essential_components(&self.target_triple)?;
 
         // Validate that the requested components are available
-        update.unavailable_components(new_manifest)?;
+        match update.unavailable_components(new_manifest) {
+            Ok(_) => {},
+            _ if force_update => {},
+            Err(e) => return Err(e),
+        }
 
         let altered = temp_cfg.dist_server != DEFAULT_DIST_SERVER;
 
