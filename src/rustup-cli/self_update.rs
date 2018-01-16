@@ -747,7 +747,7 @@ fn maybe_install_rust(toolchain_str: &str, default_host_triple: &str, verbose: b
         // Set host triple first as it will affect resolution of toolchain_str
         try!(cfg.set_default_host_triple(default_host_triple));
         let toolchain = try!(cfg.get_toolchain(toolchain_str, false));
-        let status = try!(toolchain.install_from_dist());
+        let status = try!(toolchain.install_from_dist(false));
         try!(cfg.set_default(toolchain_str));
         println!("");
         try!(common::show_channel_update(cfg, toolchain_str, Ok(status)));

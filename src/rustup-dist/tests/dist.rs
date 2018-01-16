@@ -393,6 +393,27 @@ fn update_from_dist(dist_server: &Url,
                     download_cfg: &DownloadCfg,
                     temp_cfg: &temp::Cfg) -> Result<UpdateStatus> {
 
+    update_from_dist_(
+        dist_server,
+        toolchain,
+        prefix,
+        add,
+        remove,
+        download_cfg,
+        temp_cfg,
+        false,
+    )
+}
+
+fn update_from_dist_(dist_server: &Url,
+                     toolchain: &ToolchainDesc,
+                     prefix: &InstallPrefix,
+                     add: &[Component],
+                     remove: &[Component],
+                     download_cfg: &DownloadCfg,
+                     temp_cfg: &temp::Cfg,
+                     force_update: bool) -> Result<UpdateStatus> {
+
     // Download the dist manifest and place it into the installation prefix
     let ref manifest_url = try!(make_manifest_url(dist_server, toolchain));
     let manifest_file = try!(temp_cfg.new_file());
@@ -409,7 +430,13 @@ fn update_from_dist(dist_server: &Url,
         remove_extensions: remove.to_owned(),
     };
 
-    manifestation.update(&manifest, changes, download_cfg, download_cfg.notify_handler.clone())
+    manifestation.update(
+        &manifest,
+        changes,
+        force_update,
+        download_cfg,
+        download_cfg.notify_handler.clone(),
+    )
 }
 
 fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url> {
@@ -514,8 +541,8 @@ fn upgrade() {
 }
 
 #[test]
-fn update_removes_components_that_dont_exist() {
-    // On day 1 install the 'bonus' component, on day 2 its no londer a component
+fn force_update() {
+    // On day 1 install the 'bonus' component, on day 2 its no longer a component
     let edit = &|date: &str, pkg: &mut MockPackage| {
         if date == "2016-02-01" {
             let mut tpkg = pkg.targets.iter_mut().find(|p| p.target == "x86_64-apple-darwin").unwrap();
@@ -525,12 +552,22 @@ fn update_removes_components_that_dont_exist() {
             });
         }
     };
+
     setup(Some(edit), false, &|url, toolchain, prefix, download_cfg, temp_cfg| {
         change_channel_date(url, "nightly", "2016-02-01");
+        // Update with bonus.
         update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
         assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
         change_channel_date(url, "nightly", "2016-02-02");
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+
+        // Update without bonus, should fail.
+        let err = update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap_err();
+        match *err.kind() {
+            ErrorKind::RequestedComponentsUnavailable(..) => {},
+            _ => panic!()
+        }
+        // Force update without bonus, should succeed, but bonus binary will be missing.
+        update_from_dist_(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg, true).unwrap();
         assert!(!utils::path_exists(&prefix.path().join("bin/bonus")));
     });
 }

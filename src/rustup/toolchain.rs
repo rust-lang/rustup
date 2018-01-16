@@ -145,8 +145,8 @@ impl<'a> Toolchain<'a> {
         match install_method {
             InstallMethod::Copy(_) |
             InstallMethod::Link(_) |
-            InstallMethod::Installer(_, _) => self.is_custom(),
-            InstallMethod::Dist(_, _, _) => !self.is_custom(),
+            InstallMethod::Installer(..) => self.is_custom(),
+            InstallMethod::Dist(..) => !self.is_custom(),
         }
     }
     fn update_hash(&self) -> Result<Option<PathBuf>> {
@@ -166,22 +166,23 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    pub fn install_from_dist(&self) -> Result<UpdateStatus> {
+    pub fn install_from_dist(&self, force_update: bool) -> Result<UpdateStatus> {
         if try!(self.cfg.telemetry_enabled()) {
-            return self.install_from_dist_with_telemetry();
+            return self.install_from_dist_with_telemetry(force_update);
         }
-        self.install_from_dist_inner()
+        self.install_from_dist_inner(force_update)
     }
 
-    pub fn install_from_dist_inner(&self) -> Result<UpdateStatus> {
+    pub fn install_from_dist_inner(&self, force_update: bool) -> Result<UpdateStatus> {
         let update_hash = try!(self.update_hash());
         self.install(InstallMethod::Dist(&try!(self.desc()),
                                          update_hash.as_ref().map(|p| &**p),
-                                         self.download_cfg()))
+                                         self.download_cfg(),
+                                         force_update))
     }
 
-    pub fn install_from_dist_with_telemetry(&self) -> Result<UpdateStatus> {
-        let result = self.install_from_dist_inner();
+    pub fn install_from_dist_with_telemetry(&self, force_update: bool) -> Result<UpdateStatus> {
+        let result = self.install_from_dist_inner(force_update);
 
         match result {
             Ok(us) => {
@@ -210,7 +211,8 @@ impl<'a> Toolchain<'a> {
         let update_hash = try!(self.update_hash());
         self.install_if_not_installed(InstallMethod::Dist(&try!(self.desc()),
                                                           update_hash.as_ref().map(|p| &**p),
-                                                          self.download_cfg()))
+                                                          self.download_cfg(),
+                                                          false))
     }
     pub fn is_custom(&self) -> bool {
         ToolchainDesc::from_str(&self.name).is_err()
@@ -603,6 +605,7 @@ impl<'a> Toolchain<'a> {
 
             try!(manifestation.update(&manifest,
                                       changes,
+                                      false,
                                       &self.download_cfg(),
                                       self.download_cfg().notify_handler.clone()));
 
@@ -652,6 +655,7 @@ impl<'a> Toolchain<'a> {
 
             try!(manifestation.update(&manifest,
                                       changes,
+                                      false,
                                       &self.download_cfg(),
                                       self.download_cfg().notify_handler.clone()));
 
