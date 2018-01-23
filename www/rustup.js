@@ -113,8 +113,22 @@ function fill_in_bug_report_values() {
     nav_app.textContent = navigator.appVersion;
 }
 
+function set_click_select_all() {
+    "use strict";
+
+    var instructions = document.getElementsByClassName("instructions");
+    for (var i = 0; i < instructions.length; i++) {
+        instructions[i].addEventListener("click", function(evt) {
+          var range = document.createRange();
+          range.selectNode(evt.target);
+          window.getSelection().addRange(range);
+        });
+    }
+}
+
 (function () {
     adjust_for_platform();
     set_up_cycle_button();
     fill_in_bug_report_values();
+    set_click_select_all();
 }());
