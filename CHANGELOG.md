@@ -1,5 +1,13 @@
 # 1.9.0
 
+* [Warn when tools are missing and allow an override][pr1337]
+
+[pr1337]: https://github.com/rust-lang-nursery/rustup.rs/pull/1337
+
+Contributors: Nick Cameron, Steffen Butzer
+
+# 1.9.0
+
 * [Fix self update errors filling in missing proxies][pr1326]
 
 [pr1326]: https://github.com/rust-lang-nursery/rustup.rs/pull/1326
