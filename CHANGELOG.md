@@ -1,4 +1,4 @@
-# 1.9.0
+# 1.10.0
 
 * [Warn when tools are missing and allow an override][pr1337]
 
