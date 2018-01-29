@@ -54,7 +54,7 @@ configuration. Open a *new* shell and type the following:
 rustc --version
 ```
 
-If you see something like `rustc 1.7.0 (a5d1e7a59 2016-02-29)` then
+If you see something like `rustc 1.19.0 (0ade33941 2017-07-17)` then
 you are ready to Rust. If you decide Rust isn't your thing, you can
 completely remove it from your system by running `rustup self
 uninstall`.
