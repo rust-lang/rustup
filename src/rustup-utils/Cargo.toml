@@ -1,7 +1,7 @@
 [package]
 
 name = "rustup-utils"
-version = "1.10.0"
+version = "1.11.0"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Utility functions for rustup"
 
@@ -15,15 +15,15 @@ license = "MIT OR Apache-2.0"
 download = { path = "../download" }
 error-chain = "0.11"
 libc = "0.2.0"
-rand = "0.3.11"
-remove_dir_all = "0.2.0"
+rand = "0.4.2"
+remove_dir_all = "0.3.0"
 scopeguard = "0.3.0"
-semver = "0.7.0"
-sha2 = "0.6.0"
+semver = "0.9.0"
+sha2 = "0.7.0"
 toml = "0.4"
 url = "1.1"
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = ["combaseapi", "errhandlingapi", "fileapi", "handleapi", 
     "ioapiset", "minwindef", "processthreadsapi", "shlobj", "shtypes", "userenv", "winbase", "winerror", "winnt", "winioctl"] }
-winreg = "0.4.0"
+winreg = "0.5.0"

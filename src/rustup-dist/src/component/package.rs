@@ -231,7 +231,7 @@ pub struct TarGzPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarGzPackage<'a> {
     pub fn new<R: Read>(stream: R, temp_cfg: &'a temp::Cfg) -> Result<Self> {
-        let stream = try!(flate2::read::GzDecoder::new(stream).chain_err(|| ErrorKind::ExtractingPackage));
+        let stream = flate2::read::GzDecoder::new(stream);
 
         Ok(TarGzPackage(try!(TarPackage::new(stream, temp_cfg))))
     }

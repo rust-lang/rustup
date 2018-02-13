@@ -353,7 +353,7 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
     let mut xzwriter;
     let writer: &mut Write = match &dst.to_string_lossy() {
         s if s.ends_with(".tar.gz") => {
-            gzwriter = flate2::write::GzEncoder::new(outfile, flate2::Compression::None);
+            gzwriter = flate2::write::GzEncoder::new(outfile, flate2::Compression::none());
             &mut gzwriter
         }
         s if s.ends_with(".tar.xz") => {
