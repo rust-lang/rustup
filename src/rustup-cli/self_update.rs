@@ -1448,7 +1448,19 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     }
 
     // Get build triple
-    let triple = dist::TargetTriple::from_build();
+    let build_triple = dist::TargetTriple::from_build();
+    let triple = if cfg!(windows) {
+        // For windows x86 builds seem slow when used with windows defender.
+        // The website defaulted to i686-windows-gnu builds for a long time.
+        // This ensures that we update to a version thats appropriate for users
+        // and also works around if the website messed up the detection.
+        // If someone really wants to use another version, he still can enforce
+        // that using the environment variable RUSTUP_OVERRIDE_HOST_TRIPLE.
+
+        dist::TargetTriple::from_host().unwrap_or(build_triple)
+    } else {
+        build_triple
+    };
 
     let update_root = env::var("RUSTUP_UPDATE_ROOT")
         .unwrap_or(String::from(UPDATE_ROOT));
