@@ -106,6 +106,18 @@ function set_up_cycle_button() {
     };
 }
 
+function go_to_default_platform() {
+    platform_override = "default";
+    adjust_for_platform();
+}
+
+function set_up_default_platform_buttons() {
+    var defaults_buttons = document.getElementsByClassName('default-platform-button');
+    for (var i = 0; i < defaults_buttons.length; i++) {
+        defaults_buttons[i].onclick = go_to_default_platform;
+    }
+}
+
 function fill_in_bug_report_values() {
     var nav_plat = document.getElementById("nav-plat");
     var nav_app = document.getElementById("nav-app");
@@ -116,5 +128,6 @@ function fill_in_bug_report_values() {
 (function () {
     adjust_for_platform();
     set_up_cycle_button();
+    set_up_default_platform_buttons();
     fill_in_bug_report_values();
 }());
