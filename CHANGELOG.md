@@ -1,3 +1,11 @@
+# 1.11.0
+
+* [windows: detect architecture on website, update to matching arch][pr1354]
+
+[pr1354]: https://github.com/rust-lang-nursery/rustup.rs/pull/1354
+
+Contributors: Steffen Butzer
+
 # 1.10.0
 
 * [Warn when tools are missing and allow an override][pr1337]

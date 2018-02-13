@@ -286,7 +286,7 @@ pub mod reqwest_be {
     lazy_static! {
         static ref CLIENT: Client = {
             let catcher = || {
-                Client::builder()?
+                Client::builder()
                     .gzip(false)
                     .proxy(Proxy::custom(env_proxy))
                     .timeout(Duration::from_secs(30))
@@ -304,16 +304,11 @@ pub mod reqwest_be {
     }
 
     fn env_proxy(url: &Url) -> Option<Url> {
-        env_proxy::for_url(url).and_then(|(host, port)| {
-            //TODO: update env_proxy to return full string, not just (host,port)
-            //Ideally: fn for_str(s: &str) -> Option<String>
-            let proxy_url = format!("http://{}:{}", host, port);
-            proxy_url.parse().ok()
-        })
+        env_proxy::for_url(url).to_url()
     }
 
     fn request(url: &Url, resume_from: u64) -> ::reqwest::Result<Response> {
-        let mut req = CLIENT.get(url.clone())?;
+        let mut req = CLIENT.get(url.clone());
 
         if resume_from != 0 {
             req.header(header::Range::Bytes(
