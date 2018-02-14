@@ -149,3 +149,9 @@ hr {
     margin-right: auto;
     padding: 1em;
 }
+
+#other-os {
+    font-size: 16px;
+    line-height: 2em;
+    transform: translateY(11px);
+}
