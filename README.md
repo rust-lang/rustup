@@ -519,6 +519,8 @@ Command | Description
 `rustup override set nightly-2015-04-01` | For the current directory, use a nightly from a specific date
 `rustup toolchain link my-toolchain "C:\RustInstallation"` | Install a custom toolchain by symlinking an existing installation
 `rustup show` | Show which toolchain will be used in the current directory
+`rustup toolchain uninstall nightly` | Uninstall a given toolchain
+`rustup toolchain help` | Show the `help` page for a subcommand (like `toolchain`) to see what actions are available on it
 
 ## Environment variables
 
