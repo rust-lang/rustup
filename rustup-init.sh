@@ -9,8 +9,8 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-# This is just a little script that can be curled from the internet to
-# install rustup. It just does platform detection, curls the installer
+# This is just a little script that can be downloaded from the internet to
+# install rustup. It just does platform detection, downloads the installer
 # and runs it.
 
 set -u
@@ -42,7 +42,14 @@ EOF
 
 main() {
     need_cmd uname
-    need_cmd curl
+
+    if command -v curl > /dev/null 2>&1
+    then downloader=curl
+    elif command -v wget > /dev/null 2>&1
+    then downloader=wget
+    else err "need 'curl' or 'wget' (command not found)"
+    fi
+
     need_cmd mktemp
     need_cmd chmod
     need_cmd mkdir
@@ -100,7 +107,10 @@ main() {
     fi
 
     ensure mkdir -p "$_dir"
-    ensure curl -sSfL "$_url" -o "$_file"
+    case $downloader in
+	curl) ensure curl -sSfL "$_url" -o "$_file";;
+	wget) ensure wget -q -O "$_file" "$_url";;
+    esac
     ensure chmod u+x "$_file"
     if [ ! -x "$_file" ]; then
         printf '%s\n' "Cannot execute $_file (likely because of mounting /tmp as noexec)." 1>&2
