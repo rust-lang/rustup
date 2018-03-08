@@ -331,9 +331,14 @@ err() {
 }
 
 need_cmd() {
-    if ! command -v "$1" > /dev/null 2>&1
+    if ! check_cmd "$1"
     then err "need '$1' (command not found)"
     fi
+}
+
+check_cmd() {
+    command -v "$1" > /dev/null 2>&1
+    return $?
 }
 
 need_ok() {
@@ -362,9 +367,9 @@ ignore() {
 # This wraps curl or wget. Try curl first, if not installed,
 # use wget instead.
 downloader() {
-    if command -v curl > /dev/null 2>&1
+    if check_cmd curl
     then _dld=curl
-    elif command -v wget > /dev/null 2>&1
+    elif check_cmd wget
     then _dld=wget
     else _dld='curl or wget' # to be used in error message of need_cmd
     fi
