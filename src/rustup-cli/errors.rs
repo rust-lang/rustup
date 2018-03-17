@@ -27,6 +27,10 @@ error_chain! {
             description("toolchain is not installed")
             display("toolchain '{}' is not installed", t)
         }
+        InvalidToolchainName(t: String) {
+            description("invalid toolchain name")
+            display("invalid toolchain name: '{}'", t)
+        }
         InfiniteRecursion {
             description("infinite recursion detected")
         }

@@ -468,7 +468,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
             let status = if !toolchain.is_custom() {
                 Some(try!(toolchain.install_from_dist(m.is_present("force"))))
             } else if !toolchain.exists() {
-                return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
+                return Err(ErrorKind::InvalidToolchainName(toolchain.name().to_string()).into());
             } else {
                 None
             };
