@@ -546,10 +546,15 @@ pub fn cargo_home() -> Result<PathBuf> {
         None
     };
 
-    let cwd = try!(env::current_dir().chain_err(|| ErrorKind::CargoHome));
-    let cargo_home = env_var.clone().map(|home| {
-        cwd.join(home)
-    });
+    let cargo_home = if env_var.is_some() {
+        let cwd = try!(env::current_dir().chain_err(|| ErrorKind::GettingCwd));
+        env_var.clone().map(|home| {
+            cwd.join(home)
+        })
+    } else {
+        None
+    };
+
     let user_home = home_dir().map(|p| p.join(".cargo"));
     cargo_home.or(user_home).ok_or(ErrorKind::CargoHome.into())
 }
@@ -739,11 +744,17 @@ pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
 
 pub fn rustup_home() -> Result<PathBuf> {
     let use_rustup_dir = do_rustup_home_upgrade();
+    let rustup_home_env = env::var_os("RUSTUP_HOME");
 
-    let cwd = try!(env::current_dir().chain_err(|| ErrorKind::RustupHome));
-    let rustup_home = env::var_os("RUSTUP_HOME").map(|home| {
-        cwd.join(home)
-    });
+    let rustup_home = if rustup_home_env.is_some() {
+        let cwd = try!(env::current_dir().chain_err(|| ErrorKind::GettingCwd));
+        rustup_home_env.clone().map(|home| {
+            cwd.join(home)
+        })
+    } else {
+        None
+    };
+
     let user_home = if use_rustup_dir {
         dot_dir(".rustup")
     } else {
@@ -835,6 +846,18 @@ pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_cargo_home() {
+        // CARGO_HOME unset, we'll get the default ending in /.cargo
+        let cargo_home1 = cargo_home();
+        let ch = format!("{}", cargo_home1.unwrap().display());
+        assert!(ch.contains("/.cargo"));
+
+        env::set_var("CARGO_HOME", "/test");
+        let cargo_home2 = cargo_home();
+        assert_eq!("/test", format!("{}", cargo_home2.unwrap().display()));
+    }
 
     #[test]
     fn test_toochain_sort() {
