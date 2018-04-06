@@ -935,7 +935,7 @@ fn rustup_init_works_with_weird_names() {
             &format!("rustup-init{}", EXE_SUFFIX));
         let ref new = config.exedir.join(
             &format!("rustup-init(2){}", EXE_SUFFIX));
-        fs::rename(old, new).unwrap();
+        utils::rename_file("test", old, new).unwrap();
         expect_ok(config, &["rustup-init(2)", "-y"]);
         let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         assert!(rustup.exists());
@@ -1181,7 +1181,7 @@ fn install_over_unupgraded_multirust_dir() {
         // Move .rustup to .multirust so the next rustup-init will be
         // an upgrade from ~/.multirust to ~/.rustup
         raw::remove_dir(&multirust_dir).unwrap();
-        fs::rename(&rustup_dir, &multirust_dir).unwrap();
+        utils::rename_file("test", &rustup_dir, &multirust_dir).unwrap();
         assert!(!rustup_dir.exists());
         assert!(multirust_dir.exists());
 
