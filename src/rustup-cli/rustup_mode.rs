@@ -297,6 +297,9 @@ pub fn cli() -> App<'static, 'static> {
             .alias("docs")
             .about("Open the documentation for the current toolchain")
             .after_help(DOC_HELP)
+            .arg(Arg::with_name("print-only")
+                 .long("print-only")
+                 .help("The URL of the local Rust documentation"))
             .arg(Arg::with_name("book")
                  .long("book")
                  .help("The Rust Programming Language book"))
@@ -788,6 +791,7 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = try!(explicit_or_dir_toolchain(cfg, m));
     let doc_url = if m.is_present("book") {
         "book/index.html"
     } else if m.is_present("std") {
@@ -795,6 +799,14 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     } else {
         "index.html"
     };
+
+    if m.is_present("print-only") {
+        let path =  toolchain.doc_path(doc_url);
+        match path {
+            Ok(v) => return Ok(println!("file:/{}", v.to_str().unwrap())),
+            Err(e) => return Err(From::from(e))
+        }
+    }
 
     Ok(try!(cfg.open_docs_for_dir(&try!(utils::current_dir()), doc_url)))
 }
