@@ -442,6 +442,7 @@ impl<'a> Toolchain<'a> {
 
         Ok(doc_dir)
     }
+
     pub fn open_docs(&self, relative: &str) -> Result<()> {
         try!(self.verify());
 
