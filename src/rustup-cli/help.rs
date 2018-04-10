@@ -1,5 +1,4 @@
-pub static RUSTUP_HELP: &'static str =
-r"DISCUSSION:
+pub static RUSTUP_HELP: &'static str = r"DISCUSSION:
     rustup installs The Rust Programming Language from the official
     release channels, enabling you to easily switch between stable,
     beta, and nightly compilers and keep them updated. It makes
@@ -9,8 +8,7 @@ r"DISCUSSION:
     If you are new to Rust consider running `rustup doc --book` to
     learn Rust.";
 
-pub static SHOW_HELP: &'static str =
-r"DISCUSSION:
+pub static SHOW_HELP: &'static str = r"DISCUSSION:
     Shows the name of the active toolchain and the version of `rustc`.
 
     If the active toolchain has installed support for additional
@@ -19,8 +17,7 @@ r"DISCUSSION:
     If there are multiple toolchains installed then all installed
     toolchains are listed as well.";
 
-pub static UPDATE_HELP: &'static str =
-r"DISCUSSION:
+pub static UPDATE_HELP: &'static str = r"DISCUSSION:
     With no toolchain specified, the `update` command updates each of
     the installed toolchains from the official release channels, then
     updates rustup itself.
@@ -28,19 +25,16 @@ r"DISCUSSION:
     If given a toolchain argument then `update` updates that
     toolchain, the same as `rustup toolchain install`.";
 
-pub static INSTALL_HELP: &'static str =
-r"DISCUSSION:
+pub static INSTALL_HELP: &'static str = r"DISCUSSION:
     Installs a specific rust toolchain.
 
     The 'install' command is an alias for 'rustup update <toolchain>'.";
 
-pub static DEFAULT_HELP: &'static str =
-r"DISCUSSION:
+pub static DEFAULT_HELP: &'static str = r"DISCUSSION:
     Sets the default toolchain to the one specified. If the toolchain
     is not already installed then it is installed first.";
 
-pub static TOOLCHAIN_HELP: &'static str =
-r"DISCUSSION:
+pub static TOOLCHAIN_HELP: &'static str = r"DISCUSSION:
     Many `rustup` commands deal with *toolchains*, a single
     installation of the Rust compiler. `rustup` supports multiple
     types of toolchains. The most basic track the official release
@@ -77,8 +71,7 @@ r"DISCUSSION:
     often used to for developing Rust itself. For more information see
     `rustup toolchain help link`.";
 
-pub static TOOLCHAIN_LINK_HELP: &'static str =
-r"DISCUSSION:
+pub static TOOLCHAIN_LINK_HELP: &'static str = r"DISCUSSION:
     'toolchain' is the custom name to be assigned to the new toolchain.
     Any name is permitted as long as it does not fully match an initial
     substring of a standard release channel. For example, you can use
@@ -97,8 +90,7 @@ r"DISCUSSION:
     If you now compile a crate in the current directory, the custom
     toolchain 'latest-stage1' will be used.";
 
-pub static OVERRIDE_HELP: &'static str =
-r"DISCUSSION:
+pub static OVERRIDE_HELP: &'static str = r"DISCUSSION:
     Overrides configure rustup to use a specific toolchain when
     running in a specific directory.
 
@@ -119,16 +111,14 @@ r"DISCUSSION:
     override and use the default toolchain again, `rustup override
     unset`.";
 
-pub static OVERRIDE_UNSET_HELP: &'static str =
-r"DISCUSSION:
+pub static OVERRIDE_UNSET_HELP: &'static str = r"DISCUSSION:
     If `--path` argument is present, removes the override toolchain
     for the specified directory. If `--nonexistent` argument is
     present, removes the override toolchain for all nonexistent
     directories. Otherwise, removes the override toolchain for the
     current directory.";
 
-pub static RUN_HELP: &'static str =
-r"DISCUSSION:
+pub static RUN_HELP: &'static str = r"DISCUSSION:
     Configures an environment to use the given toolchain and then runs
     the specified program. The command may be any program, not just
     rustc or cargo. This can be used for testing arbitrary toolchains
@@ -143,8 +133,7 @@ r"DISCUSSION:
 
         $ rustup run nightly cargo build";
 
-pub static DOC_HELP: &'static str =
-r"DISCUSSION:
+pub static DOC_HELP: &'static str = r"DISCUSSION:
     Opens the documentation for the currently active toolchain with
     the default browser.
 
@@ -253,7 +242,6 @@ r"DISCUSSION:
 
         PS C:\> rustup completions powershell >> %USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1";
 
-pub static TOOLCHAIN_ARG_HELP: &'static str =
-    "Toolchain name, such as 'stable', 'nightly', \
-     or '1.8.0'. For more information see `rustup \
-     help toolchain`";
+pub static TOOLCHAIN_ARG_HELP: &'static str = "Toolchain name, such as 'stable', 'nightly', \
+                                               or '1.8.0'. For more information see `rustup \
+                                               help toolchain`";

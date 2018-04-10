@@ -5,10 +5,10 @@ extern crate error_chain;
 extern crate url;
 
 #[cfg(feature = "reqwest-backend")]
-extern crate reqwest;
-#[cfg(feature = "reqwest-backend")]
 #[macro_use]
 extern crate lazy_static;
+#[cfg(feature = "reqwest-backend")]
+extern crate reqwest;
 
 use url::Url;
 use std::path::Path;
@@ -17,7 +17,10 @@ mod errors;
 pub use errors::*;
 
 #[derive(Debug, Copy, Clone)]
-pub enum Backend { Curl, Reqwest }
+pub enum Backend {
+    Curl,
+    Reqwest,
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum Event<'a> {
@@ -28,11 +31,12 @@ pub enum Event<'a> {
     DownloadDataReceived(&'a [u8]),
 }
 
-fn download_with_backend(backend: Backend,
-                         url: &Url,
-                         resume_from: u64,
-                         callback: &Fn(Event) -> Result<()>)
-                         -> Result<()> {
+fn download_with_backend(
+    backend: Backend,
+    url: &Url,
+    resume_from: u64,
+    callback: &Fn(Event) -> Result<()>,
+) -> Result<()> {
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
         Backend::Reqwest => reqwest_be::download(url, resume_from, callback),
@@ -44,18 +48,15 @@ pub fn download_to_path_with_backend(
     url: &Url,
     path: &Path,
     resume_from_partial: bool,
-    callback: Option<&Fn(Event) -> Result<()>>)
-    -> Result<()>
-{
+    callback: Option<&Fn(Event) -> Result<()>>,
+) -> Result<()> {
     use std::cell::RefCell;
-    use std::fs::{OpenOptions};
-    use std::io::{Read, Write, Seek, SeekFrom};
+    use std::fs::OpenOptions;
+    use std::io::{Read, Seek, SeekFrom, Write};
 
     || -> Result<()> {
         let (file, resume_from) = if resume_from_partial {
-            let possible_partial = OpenOptions::new()
-                    .read(true)
-                    .open(&path);
+            let possible_partial = OpenOptions::new().read(true).open(&path);
 
             let downloaded_so_far = if let Ok(mut partial) = possible_partial {
                 if let Some(cb) = callback {
@@ -81,43 +82,55 @@ pub fn download_to_path_with_backend(
                 0
             };
 
-            let mut possible_partial =
-                try!(OpenOptions::new()
-                        .write(true)
-                        .create(true)
-                        .open(&path)
-                        .chain_err(|| "error opening file for download"));
+            let mut possible_partial = try!(
+                OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .open(&path)
+                    .chain_err(|| "error opening file for download")
+            );
 
             try!(possible_partial.seek(SeekFrom::End(0)));
 
             (possible_partial, downloaded_so_far)
         } else {
-            (try!(OpenOptions::new()
-                    .write(true)
-                    .create(true)
-                    .open(&path)
-                    .chain_err(|| "error creating file for download")), 0)
+            (
+                try!(
+                    OpenOptions::new()
+                        .write(true)
+                        .create(true)
+                        .open(&path)
+                        .chain_err(|| "error creating file for download")
+                ),
+                0,
+            )
         };
 
         let file = RefCell::new(file);
 
         try!(download_with_backend(backend, url, resume_from, &|event| {
             if let Event::DownloadDataReceived(data) = event {
-                try!(file.borrow_mut().write_all(data)
-                     .chain_err(|| "unable to write download to disk"));
+                try!(
+                    file.borrow_mut()
+                        .write_all(data)
+                        .chain_err(|| "unable to write download to disk")
+                );
             }
             match callback {
                 Some(cb) => cb(event),
-                None => Ok(())
+                None => Ok(()),
             }
         }));
 
-        try!(file.borrow_mut().sync_data()
-             .chain_err(|| "unable to sync download to disk"));
+        try!(
+            file.borrow_mut()
+                .sync_data()
+                .chain_err(|| "unable to sync download to disk")
+        );
 
         Ok(())
-    }().map_err(|e| {
-
+    }()
+        .map_err(|e| {
         // TODO is there any point clearing up here? What kind of errors will leave us with an unusable partial?
         e
     })
@@ -138,10 +151,7 @@ pub mod curl {
     use url::Url;
     use super::Event;
 
-    pub fn download(url: &Url,
-                    resume_from: u64,
-                    callback: &Fn(Event) -> Result<()> )
-                    -> Result<()> {
+    pub fn download(url: &Url, resume_from: u64, callback: &Fn(Event) -> Result<()>) -> Result<()> {
         // Fetch either a cached libcurl handle (which will preserve open
         // connections) or create a new one if it isn't listed.
         //
@@ -151,12 +161,23 @@ pub mod curl {
         EASY.with(|handle| {
             let mut handle = handle.borrow_mut();
 
-            try!(handle.url(&url.to_string()).chain_err(|| "failed to set url"));
-            try!(handle.follow_location(true).chain_err(|| "failed to set follow redirects"));
+            try!(
+                handle
+                    .url(&url.to_string())
+                    .chain_err(|| "failed to set url")
+            );
+            try!(
+                handle
+                    .follow_location(true)
+                    .chain_err(|| "failed to set follow redirects")
+            );
 
             if resume_from > 0 {
-                try!(handle.resume_from(resume_from)
-                    .chain_err(|| "setting the range header for download resumption"));
+                try!(
+                    handle
+                        .resume_from(resume_from)
+                        .chain_err(|| "setting the range header for download resumption")
+                );
             } else {
                 // an error here indicates that the range header isn't supported by underlying curl,
                 // so there's nothing to "clear" - safe to ignore this error.
@@ -164,7 +185,11 @@ pub mod curl {
             }
 
             // Take at most 30s to connect
-            try!(handle.connect_timeout(Duration::new(30, 0)).chain_err(|| "failed to set connect timeout"));
+            try!(
+                handle
+                    .connect_timeout(Duration::new(30, 0))
+                    .chain_err(|| "failed to set connect timeout")
+            );
 
             {
                 let cberr = RefCell::new(None);
@@ -173,36 +198,43 @@ pub mod curl {
                 // Data callback for libcurl which is called with data that's
                 // downloaded. We just feed it into our hasher and also write it out
                 // to disk.
-                try!(transfer.write_function(|data| {
-                    match callback(Event::DownloadDataReceived(data)) {
-                        Ok(()) => Ok(data.len()),
-                        Err(e) => {
-                            *cberr.borrow_mut() = Some(e);
-                            Ok(0)
-                        }
-                    }
-                }).chain_err(|| "failed to set write"));
+                try!(
+                    transfer
+                        .write_function(|data| match callback(Event::DownloadDataReceived(data)) {
+                            Ok(()) => Ok(data.len()),
+                            Err(e) => {
+                                *cberr.borrow_mut() = Some(e);
+                                Ok(0)
+                            }
+                        })
+                        .chain_err(|| "failed to set write")
+                );
 
                 // Listen for headers and parse out a `Content-Length` if it comes
                 // so we know how much we're downloading.
-                try!(transfer.header_function(|header| {
-                    if let Ok(data) = str::from_utf8(header) {
-                        let prefix = "Content-Length: ";
-                        if data.starts_with(prefix) {
-                            if let Ok(s) = data[prefix.len()..].trim().parse::<u64>() {
-                                let msg = Event::DownloadContentLengthReceived(s + resume_from);
-                                match callback(msg) {
-                                    Ok(()) => (),
-                                    Err(e) => {
-                                        *cberr.borrow_mut() = Some(e);
-                                        return false;
+                try!(
+                    transfer
+                        .header_function(|header| {
+                            if let Ok(data) = str::from_utf8(header) {
+                                let prefix = "Content-Length: ";
+                                if data.starts_with(prefix) {
+                                    if let Ok(s) = data[prefix.len()..].trim().parse::<u64>() {
+                                        let msg =
+                                            Event::DownloadContentLengthReceived(s + resume_from);
+                                        match callback(msg) {
+                                            Ok(()) => (),
+                                            Err(e) => {
+                                                *cberr.borrow_mut() = Some(e);
+                                                return false;
+                                            }
+                                        }
                                     }
                                 }
                             }
-                        }
-                    }
-                    true
-                }).chain_err(|| "failed to set header"));
+                            true
+                        })
+                        .chain_err(|| "failed to set header")
+                );
 
                 // If an error happens check to see if we had a filesystem error up
                 // in `cberr`, but we always want to punt it up.
@@ -224,10 +256,16 @@ pub mod curl {
             }
 
             // If we didn't get a 20x or 0 ("OK" for files) then return an error
-            let code = try!(handle.response_code().chain_err(|| "failed to get response code"));
+            let code = try!(
+                handle
+                    .response_code()
+                    .chain_err(|| "failed to get response code")
+            );
             match code {
-                0 | 200 ... 299 => {},
-                _ => { return Err(ErrorKind::HttpStatus(code).into()); }
+                0 | 200...299 => {}
+                _ => {
+                    return Err(ErrorKind::HttpStatus(code).into());
+                }
             };
 
             Ok(())
@@ -246,18 +284,13 @@ pub mod reqwest_be {
     use super::Event;
     use reqwest::{header, Client, Proxy, Response};
 
-    pub fn download(url: &Url,
-                    resume_from: u64,
-                    callback: &Fn(Event) -> Result<()>)
-                    -> Result<()> {
-
+    pub fn download(url: &Url, resume_from: u64, callback: &Fn(Event) -> Result<()>) -> Result<()> {
         // Short-circuit reqwest for the "file:" URL scheme
         if download_from_file_url(url, resume_from, callback)? {
             return Ok(());
         }
 
-        let mut res = request(url, resume_from)
-            .chain_err(|| "failed to make network request")?;
+        let mut res = request(url, resume_from).chain_err(|| "failed to make network request")?;
 
         if !res.status().is_success() {
             let code: u16 = res.status().into();
@@ -272,8 +305,8 @@ pub mod reqwest_be {
         }
 
         loop {
-            let bytes_read = io::Read::read(&mut res, &mut buffer)
-                .chain_err(|| "error reading from socket")?;
+            let bytes_read =
+                io::Read::read(&mut res, &mut buffer).chain_err(|| "error reading from socket")?;
 
             if bytes_read != 0 {
                 callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
@@ -311,26 +344,28 @@ pub mod reqwest_be {
         let mut req = CLIENT.get(url.clone());
 
         if resume_from != 0 {
-            req.header(header::Range::Bytes(
-                vec![header::ByteRangeSpec::AllFrom(resume_from)]
-            ));
+            req.header(header::Range::Bytes(vec![
+                header::ByteRangeSpec::AllFrom(resume_from),
+            ]));
         }
 
         req.send()
     }
 
-    fn download_from_file_url(url: &Url,
-                              resume_from: u64,
-                              callback: &Fn(Event) -> Result<()>)
-                              -> Result<bool> {
-
+    fn download_from_file_url(
+        url: &Url,
+        resume_from: u64,
+        callback: &Fn(Event) -> Result<()>,
+    ) -> Result<bool> {
         use std::fs;
         use std::io;
 
         // The file scheme is mostly for use by tests to mock the dist server
         if url.scheme() == "file" {
-            let src = try!(url.to_file_path()
-                           .map_err(|_| Error::from(format!("bogus file url: '{}'", url))));
+            let src = try!(
+                url.to_file_path()
+                    .map_err(|_| Error::from(format!("bogus file url: '{}'", url)))
+            );
             if !src.is_file() {
                 // Because some of rustup's logic depends on checking
                 // the error when a downloaded file doesn't exist, make
@@ -339,16 +374,20 @@ pub mod reqwest_be {
                 return Err(ErrorKind::FileNotFound.into());
             }
 
-            let ref mut f = try!(fs::File::open(src)
-                                 .chain_err(|| "unable to open downloaded file"));
+            let ref mut f =
+                try!(fs::File::open(src).chain_err(|| "unable to open downloaded file"));
             io::Seek::seek(f, io::SeekFrom::Start(resume_from))?;
 
             let ref mut buffer = vec![0u8; 0x10000];
             loop {
-                let bytes_read = try!(io::Read::read(f, buffer)
-                                      .chain_err(|| "unable to read downloaded file"));
-                if bytes_read == 0 { break }
-                try!(callback(Event::DownloadDataReceived(&buffer[0..bytes_read])));
+                let bytes_read =
+                    try!(io::Read::read(f, buffer).chain_err(|| "unable to read downloaded file"));
+                if bytes_read == 0 {
+                    break;
+                }
+                try!(callback(Event::DownloadDataReceived(
+                    &buffer[0..bytes_read]
+                )));
             }
 
             Ok(true)
@@ -365,10 +404,11 @@ pub mod curl {
     use url::Url;
     use super::Event;
 
-    pub fn download(_url: &Url,
-                    _resume_from: u64,
-                    _callback: &Fn(Event) -> Result<()> )
-                    -> Result<()> {
+    pub fn download(
+        _url: &Url,
+        _resume_from: u64,
+        _callback: &Fn(Event) -> Result<()>,
+    ) -> Result<()> {
         Err(ErrorKind::BackendUnavailable("curl").into())
     }
 }
@@ -380,10 +420,11 @@ pub mod reqwest_be {
     use url::Url;
     use super::Event;
 
-    pub fn download(_url: &Url,
-                    _resume_from: u64,
-                    _callback: &Fn(Event) -> Result<()> )
-                    -> Result<()> {
+    pub fn download(
+        _url: &Url,
+        _resume_from: u64,
+        _callback: &Fn(Event) -> Result<()>,
+    ) -> Result<()> {
         Err(ErrorKind::BackendUnavailable("reqwest").into())
     }
 }

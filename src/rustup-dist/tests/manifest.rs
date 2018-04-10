@@ -25,7 +25,9 @@ fn parse_smoke_test() {
     let rust_pkg = pkg.get_package("rust").unwrap();
     assert!(rust_pkg.version.contains("1.3.0"));
 
-    let rust_target_pkg = rust_pkg.get_target(Some(&x86_64_unknown_linux_gnu)).unwrap();
+    let rust_target_pkg = rust_pkg
+        .get_target(Some(&x86_64_unknown_linux_gnu))
+        .unwrap();
     assert_eq!(rust_target_pkg.available(), true);
     assert_eq!(rust_target_pkg.bins.clone().unwrap().url, "example.com");
     assert_eq!(rust_target_pkg.bins.clone().unwrap().hash, "...");
@@ -39,7 +41,9 @@ fn parse_smoke_test() {
     assert_eq!(component.target.as_ref(), Some(&x86_64_unknown_linux_musl));
 
     let docs_pkg = pkg.get_package("rust-docs").unwrap();
-    let docs_target_pkg = docs_pkg.get_target(Some(&x86_64_unknown_linux_gnu)).unwrap();
+    let docs_target_pkg = docs_pkg
+        .get_target(Some(&x86_64_unknown_linux_gnu))
+        .unwrap();
     assert_eq!(docs_target_pkg.bins.clone().unwrap().url, "example.com");
 }
 
@@ -84,7 +88,7 @@ date = "2015-10-10"
     let err = Manifest::parse(manifest).unwrap_err();
 
     match *err.kind() {
-        ErrorKind::MissingPackageForComponent(_) => {},
+        ErrorKind::MissingPackageForComponent(_) => {}
         _ => panic!(),
     }
 }

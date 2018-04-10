@@ -6,7 +6,7 @@ use errors::*;
 use rustup_utils::utils;
 use rustup_utils::notify::NotificationLevel;
 use self_update;
-use std::io::{Write, BufRead, BufReader};
+use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
 use std::path::Path;
 use std::{cmp, iter};
@@ -34,7 +34,9 @@ pub fn confirm(question: &str, default: bool) -> Result<bool> {
 }
 
 pub enum Confirm {
-    Yes, No, Advanced
+    Yes,
+    No,
+    Advanced,
 }
 
 pub fn confirm_advanced() -> Result<Confirm> {
@@ -47,7 +49,7 @@ pub fn confirm_advanced() -> Result<Confirm> {
     let input = try!(read_line());
 
     let r = match &*input {
-        "1"|"" => Confirm::Yes,
+        "1" | "" => Confirm::Yes,
         "2" => Confirm::Advanced,
         _ => Confirm::No,
     };
@@ -85,18 +87,19 @@ pub fn question_bool(question: &str, default: bool) -> Result<bool> {
         match &*input {
             "y" | "Y" | "yes" => Ok(true),
             "n" | "N" | "no" => Ok(false),
-            _ => Ok(default)
+            _ => Ok(default),
         }
     }
-
 }
 
 pub fn read_line() -> Result<String> {
     let stdin = std::io::stdin();
     let stdin = stdin.lock();
     let mut lines = stdin.lines();
-    lines.next().and_then(|l| l.ok()).ok_or(
-        "unable to read from stdin for confirmation".into())
+    lines
+        .next()
+        .and_then(|l| l.ok())
+        .ok_or("unable to read from stdin for confirmation".into())
 }
 
 pub fn set_globals(verbose: bool) -> Result<Cfg> {
@@ -106,7 +109,7 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
     let download_tracker = RefCell::new(DownloadTracker::new());
 
     Ok(try!(Cfg::from_env(Arc::new(move |n: Notification| {
-       if download_tracker.borrow_mut().handle_notification(&n) {
+        if download_tracker.borrow_mut().handle_notification(&n) {
             return;
         }
 
@@ -127,15 +130,20 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
             }
         }
     }))))
-
 }
 
-pub fn show_channel_update(cfg: &Cfg, name: &str,
-                           updated: rustup::Result<UpdateStatus>) -> Result<()> {
+pub fn show_channel_update(
+    cfg: &Cfg,
+    name: &str,
+    updated: rustup::Result<UpdateStatus>,
+) -> Result<()> {
     show_channel_updates(cfg, vec![(name.to_string(), updated)])
 }
 
-fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, rustup::Result<UpdateStatus>)>) -> Result<()> {
+fn show_channel_updates(
+    cfg: &Cfg,
+    toolchains: Vec<(String, rustup::Result<UpdateStatus>)>,
+) -> Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
         let ref toolchain = cfg.get_toolchain(&name, false).expect("");
         let version = rustc_version(toolchain);
@@ -169,7 +177,8 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, rustup::Result<Updat
     let mut t = term2::stdout();
 
     let data: Vec<_> = data.collect();
-    let max_width = data.iter().fold(0, |a, &(_, _, width, _, _)| cmp::max(a, width));
+    let max_width = data.iter()
+        .fold(0, |a, &(_, _, width, _, _)| cmp::max(a, width));
 
     for (name, banner, width, color, version) in data {
         let padding = max_width - width;
@@ -190,7 +199,6 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, rustup::Result<Updat
 }
 
 pub fn update_all_channels(cfg: &Cfg, self_update: bool, force_update: bool) -> Result<()> {
-
     let toolchains = try!(cfg.update_all_channels(force_update));
 
     if toolchains.is_empty() {
@@ -241,7 +249,9 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
                 let timeout = Duration::new(10, 0);
                 match child.wait_timeout(timeout) {
                     Ok(Some(status)) if status.success() => {
-                        let out = child.stdout.expect("Child::stdout requested but not present");
+                        let out = child
+                            .stdout
+                            .expect("Child::stdout requested but not present");
                         let mut line = String::new();
                         if BufReader::new(out).read_line(&mut line).is_ok() {
                             let lineend = line.trim_right_matches(&['\r', '\n'][..]).len();
@@ -251,7 +261,7 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
                     }
                     Ok(None) => {
                         let _ = child.kill();
-                        return String::from("(timeout reading rustc version)")
+                        return String::from("(timeout reading rustc version)");
                     }
                     Ok(Some(_)) | Err(_) => {}
                 }
@@ -274,7 +284,11 @@ pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
     let mut t = term2::stdout();
     for component in try!(toolchain.list_components()) {
         if component.component.pkg == "rust-std" {
-            let target = component.component.target.as_ref().expect("rust-std should have a target");
+            let target = component
+                .component
+                .target
+                .as_ref()
+                .expect("rust-std should have a target");
             if component.required {
                 let _ = t.attr(term2::Attr::Bold);
                 let _ = writeln!(t, "{} (default)", target);
@@ -327,7 +341,6 @@ pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
                 };
                 println!("{}{}", &toolchain, if_default);
             }
-
         } else {
             for toolchain in toolchains {
                 println!("{}", &toolchain);
@@ -349,29 +362,33 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
             if !dir_exists {
                 any_not_exist = true;
             }
-            println!("{:<40}\t{:<20}",
-                     utils::format_path_for_display(&k) +
-                     if dir_exists {
-                         ""
-                     } else {
-                         " (not a directory)"
-                     },
-                     v)
+            println!(
+                "{:<40}\t{:<20}",
+                utils::format_path_for_display(&k) + if dir_exists {
+                    ""
+                } else {
+                    " (not a directory)"
+                },
+                v
+            )
         }
         if any_not_exist {
             println!("");
-            info!("you may remove overrides for non-existent directories with
-`rustup override unset --nonexistent`");
+            info!(
+                "you may remove overrides for non-existent directories with
+`rustup override unset --nonexistent`"
+            );
         }
     }
     Ok(())
 }
 
-
 pub fn version() -> &'static str {
-    concat!(env!("CARGO_PKG_VERSION"), include_str!(concat!(env!("OUT_DIR"), "/commit-info.txt")))
+    concat!(
+        env!("CARGO_PKG_VERSION"),
+        include_str!(concat!(env!("OUT_DIR"), "/commit-info.txt"))
+    )
 }
-
 
 pub fn report_error(e: &Error) {
     err!("{}", e);
