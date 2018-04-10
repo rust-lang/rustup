@@ -319,7 +319,11 @@ pub fn cli() -> App<'static, 'static> {
     }
     
     app.subcommand(SubCommand::with_name("self")
-        .about("Modify the rustup installation")
+          .about(
+          "Modify the rustup installation
+          \nInspriational Quote :\n'Find happiness in everyday things.'\n
+            ")
+    
         .setting(AppSettings::VersionlessSubcommands)
         .setting(AppSettings::DeriveDisplayOrder)
         .setting(AppSettings::SubcommandRequiredElseHelp)
