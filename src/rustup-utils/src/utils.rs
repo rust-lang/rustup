@@ -79,23 +79,11 @@ pub fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> R
 }
 
 pub fn rename_file(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
-    fs::rename(src, dest).chain_err(|| {
-        ErrorKind::RenamingFile {
-            name: name,
-            src: PathBuf::from(src),
-            dest: PathBuf::from(dest),
-        }
-    })
+    rename(name, src, dest)
 }
 
 pub fn rename_dir(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
-    fs::rename(src, dest).chain_err(|| {
-        ErrorKind::RenamingDirectory {
-            name: name,
-            src: PathBuf::from(src),
-            dest: PathBuf::from(dest),
-        }
-    })
+    rename(name, src, dest)
 }
 
 pub fn filter_file<F: FnMut(&str) -> bool>(name: &'static str,
@@ -604,8 +592,7 @@ pub fn do_rustup_home_upgrade() -> bool {
     fn rename_rustup_dir_to_rustup_sh() -> Result<()> {
         let dirs = (rustup_dir(), rustup_sh_dir());
         if let (Some(rustup), Some(rustup_sh)) = dirs {
-            fs::rename(&rustup, &rustup_sh)
-                .chain_err(|| "unable to rename rustup dir")?;
+            rename_dir("installation", &rustup, &rustup_sh).chain_err(|| "unable to rename rustup dir")?;
         }
 
         Ok(())
@@ -614,8 +601,7 @@ pub fn do_rustup_home_upgrade() -> bool {
     fn rename_multirust_dir_to_rustup() -> Result<()> {
         let dirs = (multirust_dir(), rustup_dir());
         if let (Some(rustup), Some(rustup_sh)) = dirs {
-            fs::rename(&rustup, &rustup_sh)
-                .chain_err(|| "unable to rename multirust dir")?;
+            rename_dir("multirust installation", &rustup, &rustup_sh).chain_err(|| "unable to rename multirust dir")?;
         }
 
         Ok(())
@@ -831,6 +817,15 @@ pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
     });
 }
 
+fn rename(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
+    fs::rename(src, dest).chain_err(|| {
+        ErrorKind::RenamingFile {
+            name: name,
+            src: PathBuf::from(src),
+            dest: PathBuf::from(dest),
+        }
+    })
+}
 
 #[cfg(test)]
 mod tests {
