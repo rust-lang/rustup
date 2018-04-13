@@ -2,15 +2,14 @@
 //! dist server, mostly derived from multirust/test-v2.sh
 
 extern crate rustup_dist;
-extern crate rustup_utils;
 extern crate rustup_mock;
-extern crate time;
+extern crate rustup_utils;
 extern crate tempdir;
+extern crate time;
 
-use rustup_mock::clitools::{self, Config, Scenario,
-                            expect_stdout_ok, expect_stderr_ok, expect_ok_ex,
-                            expect_ok, expect_err, expect_timeout_ok,
-                            run, this_host_triple, set_current_dist_date};
+use rustup_mock::clitools::{self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok,
+                            expect_stdout_ok, expect_timeout_ok, run, set_current_dist_date,
+                            this_host_triple, Config, Scenario};
 use rustup_utils::{raw, utils};
 
 use std::ops::Add;
@@ -54,30 +53,42 @@ fn rustc_with_bad_rustup_toolchain_env_var() {
 #[test]
 fn custom_invalid_names() {
     setup(&|config| {
-        expect_err(config, &["rustup", "toolchain", "link", "nightly",
-                             "foo"],
-                   for_host!("invalid custom toolchain name: 'nightly-{0}'"));
-        expect_err(config, &["rustup", "toolchain", "link", "beta",
-                             "foo"],
-                   for_host!("invalid custom toolchain name: 'beta-{0}'"));
-        expect_err(config, &["rustup", "toolchain", "link", "stable",
-                             "foo"],
-                   for_host!("invalid custom toolchain name: 'stable-{0}'"));
+        expect_err(
+            config,
+            &["rustup", "toolchain", "link", "nightly", "foo"],
+            for_host!("invalid custom toolchain name: 'nightly-{0}'"),
+        );
+        expect_err(
+            config,
+            &["rustup", "toolchain", "link", "beta", "foo"],
+            for_host!("invalid custom toolchain name: 'beta-{0}'"),
+        );
+        expect_err(
+            config,
+            &["rustup", "toolchain", "link", "stable", "foo"],
+            for_host!("invalid custom toolchain name: 'stable-{0}'"),
+        );
     });
 }
 
 #[test]
 fn custom_invalid_names_with_archive_dates() {
     setup(&|config| {
-        expect_err(config, &["rustup", "toolchain", "link", "nightly-2015-01-01",
-                             "foo"],
-                   for_host!("invalid custom toolchain name: 'nightly-2015-01-01-{0}'"));
-        expect_err(config, &["rustup", "toolchain", "link", "beta-2015-01-01",
-                             "foo"],
-                   for_host!("invalid custom toolchain name: 'beta-2015-01-01-{0}'"));
-        expect_err(config, &["rustup", "toolchain", "link", "stable-2015-01-01",
-                             "foo"],
-                   for_host!("invalid custom toolchain name: 'stable-2015-01-01-{0}'"));
+        expect_err(
+            config,
+            &["rustup", "toolchain", "link", "nightly-2015-01-01", "foo"],
+            for_host!("invalid custom toolchain name: 'nightly-2015-01-01-{0}'"),
+        );
+        expect_err(
+            config,
+            &["rustup", "toolchain", "link", "beta-2015-01-01", "foo"],
+            for_host!("invalid custom toolchain name: 'beta-2015-01-01-{0}'"),
+        );
+        expect_err(
+            config,
+            &["rustup", "toolchain", "link", "stable-2015-01-01", "foo"],
+            for_host!("invalid custom toolchain name: 'stable-2015-01-01-{0}'"),
+        );
     });
 }
 
@@ -86,12 +97,17 @@ fn running_with_v2_metadata() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         // Replace the metadata version
-        rustup_utils::raw::write_file(&config.rustupdir.join("version"),
-                               "2").unwrap();
-        expect_err(config, &["rustup", "default", "nightly"],
-                   "rustup's metadata is out of date. run `rustup self upgrade-data`");
-        expect_err(config, &["rustc", "--version"],
-                   "rustup's metadata is out of date. run `rustup self upgrade-data`");
+        rustup_utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
+        expect_err(
+            config,
+            &["rustup", "default", "nightly"],
+            "rustup's metadata is out of date. run `rustup self upgrade-data`",
+        );
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "rustup's metadata is out of date. run `rustup self upgrade-data`",
+        );
     });
 }
 
@@ -103,15 +119,16 @@ fn upgrade_v2_metadata_to_v12() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         // Replace the metadata version
-        rustup_utils::raw::write_file(&config.rustupdir.join("version"),
-                               "2").unwrap();
+        rustup_utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
         expect_stderr_ok(config, &["rustup", "self", "upgrade-data"],
                          "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");
-        expect_err(config, &["rustc", "--version"],
-                   for_host!("toolchain 'nightly-{0}' is not installed"));
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            for_host!("toolchain 'nightly-{0}' is not installed"),
+        );
         expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
     });
 }
 
@@ -121,19 +138,33 @@ fn upgrade_toml_settings() {
     setup(&|config| {
         rustup_utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
         rustup_utils::raw::write_file(&config.rustupdir.join("default"), "beta").unwrap();
-        rustup_utils::raw::write_file(&config.rustupdir.join("overrides"),
-                                      "a;nightly\nb;stable").unwrap();
+        rustup_utils::raw::write_file(&config.rustupdir.join("overrides"), "a;nightly\nb;stable")
+            .unwrap();
         rustup_utils::raw::write_file(&config.rustupdir.join("telemetry-on"), "").unwrap();
-        expect_err(config, &["rustup", "default", "nightly"],
-                   "rustup's metadata is out of date. run `rustup self upgrade-data`");
+        expect_err(
+            config,
+            &["rustup", "default", "nightly"],
+            "rustup's metadata is out of date. run `rustup self upgrade-data`",
+        );
         // Replace the metadata version
-        assert!(!rustup_utils::raw::is_file(&config.rustupdir.join("version")));
-        assert!(!rustup_utils::raw::is_file(&config.rustupdir.join("default")));
-        assert!(!rustup_utils::raw::is_file(&config.rustupdir.join("overrides")));
-        assert!(!rustup_utils::raw::is_file(&config.rustupdir.join("telemetry-on")));
-        assert!(rustup_utils::raw::is_file(&config.rustupdir.join("settings.toml")));
+        assert!(!rustup_utils::raw::is_file(&config
+            .rustupdir
+            .join("version")));
+        assert!(!rustup_utils::raw::is_file(&config
+            .rustupdir
+            .join("default")));
+        assert!(!rustup_utils::raw::is_file(&config
+            .rustupdir
+            .join("overrides")));
+        assert!(!rustup_utils::raw::is_file(&config
+            .rustupdir
+            .join("telemetry-on")));
+        assert!(rustup_utils::raw::is_file(&config
+            .rustupdir
+            .join("settings.toml")));
 
-        let content = rustup_utils::raw::read_file(&config.rustupdir.join("settings.toml")).unwrap();
+        let content =
+            rustup_utils::raw::read_file(&config.rustupdir.join("settings.toml")).unwrap();
         assert!(content.contains("version = \"2\""));
         assert!(content.contains("[overrides]"));
         assert!(content.contains("a = \"nightly"));
@@ -146,11 +177,16 @@ fn upgrade_toml_settings() {
 #[test]
 fn update_all_no_update_whitespace() {
     setup(&|config| {
-        expect_stdout_ok(config, &["rustup", "update", "nightly"],
-for_host!(r"
+        expect_stdout_ok(
+            config,
+            &["rustup", "update", "nightly"],
+            for_host!(
+                r"
   nightly-{} installed - 1.3.0 (hash-n-2)
 
-"));
+"
+            ),
+        );
     });
 }
 
@@ -232,8 +268,7 @@ fn multi_host_smoke_test() {
     clitools::setup(Scenario::MultiHost, &|config| {
         let ref toolchain = format!("nightly-{}", clitools::MULTI_ARCH1);
         expect_ok(config, &["rustup", "default", toolchain]);
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "xxxx-n-2"); // cross-host mocks have their own versions
+        expect_stdout_ok(config, &["rustc", "--version"], "xxxx-n-2"); // cross-host mocks have their own versions
     });
 }
 
@@ -242,21 +277,26 @@ fn custom_toolchain_cargo_fallback_proxy() {
     setup(&|config| {
         let path = config.customdir.join("custom-1");
 
-        expect_ok(config, &["rustup", "toolchain", "link", "mytoolchain",
-                            &path.to_string_lossy()]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "link",
+                "mytoolchain",
+                &path.to_string_lossy(),
+            ],
+        );
         expect_ok(config, &["rustup", "default", "mytoolchain"]);
 
         expect_ok(config, &["rustup", "update", "stable"]);
-        expect_stdout_ok(config, &["cargo", "--version"],
-                         "hash-s-2");
+        expect_stdout_ok(config, &["cargo", "--version"], "hash-s-2");
 
         expect_ok(config, &["rustup", "update", "beta"]);
-        expect_stdout_ok(config, &["cargo", "--version"],
-                         "hash-b-2");
+        expect_stdout_ok(config, &["cargo", "--version"], "hash-b-2");
 
         expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(config, &["cargo", "--version"],
-                         "hash-n-2");
+        expect_stdout_ok(config, &["cargo", "--version"], "hash-n-2");
     });
 }
 
@@ -265,25 +305,38 @@ fn custom_toolchain_cargo_fallback_run() {
     setup(&|config| {
         let path = config.customdir.join("custom-1");
 
-        expect_ok(config, &["rustup", "toolchain", "link", "mytoolchain",
-                            &path.to_string_lossy()]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "link",
+                "mytoolchain",
+                &path.to_string_lossy(),
+            ],
+        );
         expect_ok(config, &["rustup", "default", "mytoolchain"]);
 
         expect_ok(config, &["rustup", "update", "stable"]);
-        expect_stdout_ok(config, &["rustup", "run", "mytoolchain",
-                                   "cargo", "--version"],
-                         "hash-s-2");
+        expect_stdout_ok(
+            config,
+            &["rustup", "run", "mytoolchain", "cargo", "--version"],
+            "hash-s-2",
+        );
 
         expect_ok(config, &["rustup", "update", "beta"]);
-        expect_stdout_ok(config, &["rustup", "run", "mytoolchain",
-                                   "cargo", "--version"],
-                         "hash-b-2");
+        expect_stdout_ok(
+            config,
+            &["rustup", "run", "mytoolchain", "cargo", "--version"],
+            "hash-b-2",
+        );
 
         expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(config, &["rustup", "run", "mytoolchain",
-                                   "cargo", "--version"],
-                         "hash-n-2");
-
+        expect_stdout_ok(
+            config,
+            &["rustup", "run", "mytoolchain", "cargo", "--version"],
+            "hash-n-2",
+        );
     });
 }
 
@@ -309,12 +362,25 @@ fn rustup_failed_path_search() {
         let ref tool_path = config.exedir.join(&format!("fake_proxy{}", EXE_SUFFIX));
         utils::hardlink_file(rustup_path, tool_path).expect("Failed to create fake proxy for test");
 
-        expect_ok(config, &["rustup", "toolchain", "link", "custom",
-                            &config.customdir.join("custom-1").to_string_lossy()]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "link",
+                "custom",
+                &config.customdir.join("custom-1").to_string_lossy(),
+            ],
+        );
         let broken = &["rustup", "run", "custom", "fake_proxy"];
-        expect_err(config, broken, &format!(
-            "toolchain 'custom' does not have the binary `fake_proxy{}`", EXE_SUFFIX
-        ));
+        expect_err(
+            config,
+            broken,
+            &format!(
+                "toolchain 'custom' does not have the binary `fake_proxy{}`",
+                EXE_SUFFIX
+            ),
+        );
 
         // Hardlink will be automatically cleaned up by test setup code
     });
@@ -324,8 +390,11 @@ fn rustup_failed_path_search() {
 fn rustup_run_not_installed() {
     setup(&|config| {
         expect_ok(config, &["rustup", "install", "stable"]);
-        expect_err(config, &["rustup", "run", "nightly", "rustc", "--version"],
-                   for_host!("toolchain 'nightly-{0}' is not installed"));
+        expect_err(
+            config,
+            &["rustup", "run", "nightly", "rustc", "--version"],
+            for_host!("toolchain 'nightly-{0}' is not installed"),
+        );
     });
 }
 
@@ -333,8 +402,18 @@ fn rustup_run_not_installed() {
 fn rustup_run_install() {
     setup(&|config| {
         expect_ok(config, &["rustup", "install", "stable"]);
-        expect_stderr_ok(config, &["rustup", "run", "--install", "nightly", "cargo", "--version"],
-                         "info: installing component 'rustc'");
+        expect_stderr_ok(
+            config,
+            &[
+                "rustup",
+                "run",
+                "--install",
+                "nightly",
+                "cargo",
+                "--version",
+            ],
+            "info: installing component 'rustc'",
+        );
     });
 }
 
@@ -348,7 +427,9 @@ fn multirust_env_compat() {
         let out = cmd.output().unwrap();
         assert!(out.status.success());
         let stderr = String::from_utf8(out.stderr).unwrap();
-        assert!(stderr.contains("environment variable MULTIRUST_HOME is deprecated. Use RUSTUP_HOME"));
+        assert!(
+            stderr.contains("environment variable MULTIRUST_HOME is deprecated. Use RUSTUP_HOME")
+        );
     });
 }
 
@@ -358,8 +439,11 @@ fn toolchains_are_resolved_early() {
         expect_ok(config, &["rustup", "default", "nightly"]);
 
         let full_toolchain = format!("nightly-{}", this_host_triple());
-        expect_stderr_ok(config, &["rustup", "default", &full_toolchain],
-                         &format!("info: using existing install for '{}'", full_toolchain));
+        expect_stderr_ok(
+            config,
+            &["rustup", "default", &full_toolchain],
+            &format!("info: using existing install for '{}'", full_toolchain),
+        );
     });
 }
 
@@ -368,7 +452,10 @@ fn toolchains_are_resolved_early() {
 fn proxies_pass_empty_args() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "run", "nightly", "rustc", "--empty-arg-test", ""]);
+        expect_ok(
+            config,
+            &["rustup", "run", "nightly", "rustc", "--empty-arg-test", ""],
+        );
     });
 }
 
@@ -395,8 +482,16 @@ fn telemetry_supports_huge_output() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "telemetry", "enable"]);
-        expect_timeout_ok(config, StdDuration::from_secs(5), &["rustc", "--huge-output"]);
-        expect_stdout_ok(config, &["rustup", "telemetry", "analyze"], "'E0428': 10000")
+        expect_timeout_ok(
+            config,
+            StdDuration::from_secs(5),
+            &["rustc", "--huge-output"],
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "telemetry", "analyze"],
+            "'E0428': 10000",
+        )
     })
 }
 
@@ -412,7 +507,12 @@ fn telemetry_cleanup_removes_old_files() {
         let one_day = time::Duration::days(1);
 
         for _ in 0..110 {
-            let file_name = format!("log-{}-{:02}-{:02}.json", d.tm_year + 1900, d.tm_mon + 1, d.tm_mday);
+            let file_name = format!(
+                "log-{}-{:02}-{:02}.json",
+                d.tm_year + 1900,
+                d.tm_mon + 1,
+                d.tm_mday
+            );
             let _ = raw::write_file(&telemetry_dir.join(&file_name), "");
             d = d.add(one_day);
         }
@@ -446,9 +546,15 @@ fn rls_does_not_exist_in_toolchain() {
         // FIXME: If rls exists in the toolchain, this should suggest a command
         // to run to install it
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_err(config, &["rls", "--version"],
-                   &format!("toolchain 'stable-{}' does not have the binary `rls{}`",
-                            this_host_triple(), EXE_SUFFIX));
+        expect_err(
+            config,
+            &["rls", "--version"],
+            &format!(
+                "toolchain 'stable-{}' does not have the binary `rls{}`",
+                this_host_triple(),
+                EXE_SUFFIX
+            ),
+        );
     });
 }
 
@@ -491,11 +597,24 @@ fn install_stops_if_rustc_exists() {
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     setup(&|config| {
-        let out = run(config, "rustup-init", &[],
-                      &[("RUSTUP_INIT_SKIP_PATH_CHECK", "no"), ("PATH", &temp_dir_path)]);
+        let out = run(
+            config,
+            "rustup-init",
+            &[],
+            &[
+                ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
+                ("PATH", &temp_dir_path),
+            ],
+        );
         assert!(!out.ok);
-        assert!(out.stderr.contains("it looks like you have an existing installation of Rust at:"));
-        assert!(out.stderr.contains("if this is what you want, restart the installation with `-y'"));
+        assert!(
+            out.stderr
+                .contains("it looks like you have an existing installation of Rust at:")
+        );
+        assert!(
+            out.stderr
+                .contains("if this is what you want, restart the installation with `-y'")
+        );
     });
 }
 
@@ -508,11 +627,24 @@ fn install_stops_if_cargo_exists() {
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     setup(&|config| {
-        let out = run(config, "rustup-init", &[],
-                      &[("RUSTUP_INIT_SKIP_PATH_CHECK", "no"), ("PATH", &temp_dir_path)]);
+        let out = run(
+            config,
+            "rustup-init",
+            &[],
+            &[
+                ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
+                ("PATH", &temp_dir_path),
+            ],
+        );
         assert!(!out.ok);
-        assert!(out.stderr.contains("it looks like you have an existing installation of Rust at:"));
-        assert!(out.stderr.contains("if this is what you want, restart the installation with `-y'"));
+        assert!(
+            out.stderr
+                .contains("it looks like you have an existing installation of Rust at:")
+        );
+        assert!(
+            out.stderr
+                .contains("if this is what you want, restart the installation with `-y'")
+        );
     });
 }
 
@@ -525,8 +657,15 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     setup(&|config| {
-        let out = run(config, "rustup-init", &["-y"],
-                      &[("RUSTUP_INIT_SKIP_PATH_CHECK", "no"), ("PATH", &temp_dir_path)]);
+        let out = run(
+            config,
+            "rustup-init",
+            &["-y"],
+            &[
+                ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
+                ("PATH", &temp_dir_path),
+            ],
+        );
         assert!(out.ok);
     });
 }
@@ -554,17 +693,28 @@ fn toolchain_broken_symlink() {
         // We artifically create a broken symlink toolchain -- but this can also happen "legitimately"
         // by having a proper toolchain there, using "toolchain link", and later removing the directory.
         fs::create_dir(config.rustupdir.join("toolchains")).unwrap();
-        create_symlink_dir(config.rustupdir.join("this-directory-does-not-exist"), config.rustupdir.join("toolchains").join("test"));
+        create_symlink_dir(
+            config.rustupdir.join("this-directory-does-not-exist"),
+            config.rustupdir.join("toolchains").join("test"),
+        );
         // Make sure this "fake install" actually worked
         expect_ok_ex(config, &["rustup", "toolchain", "list"], "test\n", "");
         // Now try to uninstall it.  That should work only once.
-        expect_ok_ex(config, &["rustup", "toolchain", "uninstall", "test"], "",
-r"info: uninstalling toolchain 'test'
+        expect_ok_ex(
+            config,
+            &["rustup", "toolchain", "uninstall", "test"],
+            "",
+            r"info: uninstalling toolchain 'test'
 info: toolchain 'test' uninstalled
-");
-        expect_ok_ex(config, &["rustup", "toolchain", "uninstall", "test"], "",
-r"info: no toolchain installed for 'test'
-");
+",
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "toolchain", "uninstall", "test"],
+            "",
+            r"info: no toolchain installed for 'test'
+",
+        );
     });
 }
 
@@ -578,8 +728,11 @@ fn update_unavailable_rustc() {
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
 
         set_current_dist_date(config, "2015-01-02");
-        expect_err(config, &["rustup", "update", "nightly"],
-            "some components unavailable for download: 'rustc', 'cargo'");
+        expect_err(
+            config,
+            &["rustup", "update", "nightly"],
+            "some components unavailable for download: 'rustc', 'cargo'",
+        );
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
     });

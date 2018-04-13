@@ -12,4 +12,3 @@ mod transaction;
 mod package;
 // The representation of *installed* components, and uninstallation
 mod components;
-

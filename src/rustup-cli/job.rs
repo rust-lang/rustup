@@ -67,7 +67,7 @@ mod imp {
 
         let job = jobapi2::CreateJobObjectW(0 as *mut _, 0 as *const _);
         if job.is_null() {
-            return None
+            return None;
         }
         let job = Handle { inner: job };
 
@@ -77,14 +77,15 @@ mod imp {
         // our children will reside in the job once we spawn a process.
         let mut info: winnt::JOBOBJECT_EXTENDED_LIMIT_INFORMATION;
         info = mem::zeroed();
-        info.BasicLimitInformation.LimitFlags =
-            winnt::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        let r = jobapi2::SetInformationJobObject(job.inner,
-                        winnt::JobObjectExtendedLimitInformation,
-                        &mut info as *mut _ as minwindef::LPVOID,
-                        mem::size_of_val(&info) as minwindef::DWORD);
+        info.BasicLimitInformation.LimitFlags = winnt::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        let r = jobapi2::SetInformationJobObject(
+            job.inner,
+            winnt::JobObjectExtendedLimitInformation,
+            &mut info as *mut _ as minwindef::LPVOID,
+            mem::size_of_val(&info) as minwindef::DWORD,
+        );
         if r == 0 {
-            return None
+            return None;
         }
 
         // Assign our process to this job object, meaning that our children will
@@ -92,7 +93,7 @@ mod imp {
         let me = processthreadsapi::GetCurrentProcess();
         let r = jobapi2::AssignProcessToJobObject(job.inner, me);
         if r == 0 {
-            return None
+            return None;
         }
 
         Some(Setup { job: job })
@@ -121,13 +122,13 @@ mod imp {
                 let mut info: winnt::JOBOBJECT_EXTENDED_LIMIT_INFORMATION;
                 info = mem::zeroed();
                 let r = jobapi2::SetInformationJobObject(
-                            self.job.inner,
-                            winnt::JobObjectExtendedLimitInformation,
-                            &mut info as *mut _ as minwindef::LPVOID,
-                            mem::size_of_val(&info) as minwindef::DWORD);
+                    self.job.inner,
+                    winnt::JobObjectExtendedLimitInformation,
+                    &mut info as *mut _ as minwindef::LPVOID,
+                    mem::size_of_val(&info) as minwindef::DWORD,
+                );
                 if r == 0 {
-                    info!("failed to configure job object to defaults: {}",
-                          last_err());
+                    info!("failed to configure job object to defaults: {}", last_err());
                 }
             }
         }
@@ -143,62 +144,68 @@ mod imp {
 
             let mut jobs: Jobs = mem::zeroed();
             let r = jobapi2::QueryInformationJobObject(
-                            self.job.inner,
-                            winnt::JobObjectBasicProcessIdList,
-                            &mut jobs as *mut _ as minwindef::LPVOID,
-                            mem::size_of_val(&jobs) as minwindef::DWORD,
-                            0 as *mut _);
+                self.job.inner,
+                winnt::JobObjectBasicProcessIdList,
+                &mut jobs as *mut _ as minwindef::LPVOID,
+                mem::size_of_val(&jobs) as minwindef::DWORD,
+                0 as *mut _,
+            );
             if r == 0 {
                 info!("failed to query job object: {}", last_err());
-                return false
+                return false;
             }
 
             let mut killed = false;
             let list = &jobs.list[..jobs.header.NumberOfProcessIdsInList as usize];
             assert!(list.len() > 0);
 
-            let list = list.iter().filter(|&&id| {
-                // let's not kill ourselves
-                id as minwindef::DWORD != processthreadsapi::GetCurrentProcessId()
-            }).filter_map(|&id| {
-                // Open the process with the necessary rights, and if this
-                // fails then we probably raced with the process exiting so we
-                // ignore the problem.
-                let flags = winnt::PROCESS_QUERY_INFORMATION |
-                            winnt::PROCESS_TERMINATE |
-                            winnt::SYNCHRONIZE;
-                let p = processthreadsapi::OpenProcess(flags,
-                                                       minwindef::FALSE,
-                                                       id as minwindef::DWORD);
-                if p.is_null() {
-                    None
-                } else {
-                    Some(Handle { inner: p })
-                }
-            }).filter(|p| {
-                // Test if this process was actually in the job object or not.
-                // If it's not then we likely raced with something else
-                // recycling this PID, so we just skip this step.
-                let mut res = 0;
-                let r = jobapi::IsProcessInJob(p.inner, self.job.inner, &mut res);
-                if r == 0 {
-                    info!("failed to test is process in job: {}", last_err());
-                    return false
-                }
-                res == minwindef::TRUE
-            });
-
+            let list = list.iter()
+                .filter(|&&id| {
+                    // let's not kill ourselves
+                    id as minwindef::DWORD != processthreadsapi::GetCurrentProcessId()
+                })
+                .filter_map(|&id| {
+                    // Open the process with the necessary rights, and if this
+                    // fails then we probably raced with the process exiting so we
+                    // ignore the problem.
+                    let flags = winnt::PROCESS_QUERY_INFORMATION | winnt::PROCESS_TERMINATE
+                        | winnt::SYNCHRONIZE;
+                    let p = processthreadsapi::OpenProcess(
+                        flags,
+                        minwindef::FALSE,
+                        id as minwindef::DWORD,
+                    );
+                    if p.is_null() {
+                        None
+                    } else {
+                        Some(Handle { inner: p })
+                    }
+                })
+                .filter(|p| {
+                    // Test if this process was actually in the job object or not.
+                    // If it's not then we likely raced with something else
+                    // recycling this PID, so we just skip this step.
+                    let mut res = 0;
+                    let r = jobapi::IsProcessInJob(p.inner, self.job.inner, &mut res);
+                    if r == 0 {
+                        info!("failed to test is process in job: {}", last_err());
+                        return false;
+                    }
+                    res == minwindef::TRUE
+                });
 
             for p in list {
                 // Load the file which this process was spawned from. We then
                 // later use this for identification purposes.
                 let mut buf = [0; 1024];
-                let r = psapi::GetProcessImageFileNameW(p.inner,
-                                                        buf.as_mut_ptr(),
-                                                        buf.len() as minwindef::DWORD);
+                let r = psapi::GetProcessImageFileNameW(
+                    p.inner,
+                    buf.as_mut_ptr(),
+                    buf.len() as minwindef::DWORD,
+                );
                 if r == 0 {
                     info!("failed to get image name: {}", last_err());
-                    continue
+                    continue;
                 }
                 let s = OsString::from_wide(&buf[..r as usize]);
                 info!("found remaining: {:?}", s);
@@ -217,7 +224,7 @@ mod imp {
                 if let Some(s) = s.to_str() {
                     if s.contains("mspdbsrv") {
                         info!("\toops, this is mspdbsrv");
-                        continue
+                        continue;
                     }
                 }
 
@@ -234,18 +241,20 @@ mod imp {
                 let r = synchapi::WaitForSingleObject(p.inner, winbase::INFINITE);
                 if r != 0 {
                     info!("failed to wait for process to die: {}", last_err());
-                    return false
+                    return false;
                 }
                 killed = true;
             }
 
-            return killed
+            return killed;
         }
     }
 
     impl Drop for Handle {
         fn drop(&mut self) {
-            unsafe { handleapi::CloseHandle(self.inner); }
+            unsafe {
+                handleapi::CloseHandle(self.inner);
+            }
         }
     }
 }
