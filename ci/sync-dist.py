@@ -60,13 +60,16 @@ if not command in ["dev-to-local",
                    "update-prod-release"]:
     usage()
 
-if "archives" in command or "release" in command:
-    if len(sys.argv) < 3:
-        usage()
-    archive_version = sys.argv[2]
-
 if "--live-run" in sys.argv:
     live_run = True
+    sys.argv.remove("--live-run")
+
+if "archives" in command or "release" in command:
+    if len(sys.argv) != 3:
+        usage()
+    archive_version = sys.argv[2]
+elif len(sys.argv) != 2:
+    usage()
 
 dev_s3_bucket = "dev-static-rust-lang-org"
 prod_s3_bucket = "static-rust-lang-org"

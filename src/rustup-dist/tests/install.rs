@@ -1,6 +1,6 @@
 extern crate rustup_dist;
-extern crate rustup_utils;
 extern crate rustup_mock;
+extern crate rustup_utils;
 extern crate tempdir;
 
 use rustup_dist::component::Components;
@@ -15,7 +15,7 @@ use rustup_dist::prefix::InstallPrefix;
 use std::fs::File;
 use std::io::Write;
 use tempdir::TempDir;
-use rustup_mock::{MockInstallerBuilder, MockComponentBuilder, MockFile};
+use rustup_mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 // Just testing that the mocks work
 #[test]
@@ -29,17 +29,12 @@ fn mock_smoke_test() {
                 files: vec![
                     MockFile::new("bin/foo", b"foo"),
                     MockFile::new("lib/bar", b"bar"),
-                    MockFile::new_dir("doc/stuff", &[
-                        ("doc1", b"", false),
-                        ("doc2", b"", false),
-                    ]),
+                    MockFile::new_dir("doc/stuff", &[("doc1", b"", false), ("doc2", b"", false)]),
                 ],
             },
             MockComponentBuilder {
                 name: "mycomponent2".to_string(),
-                files: vec![
-                    MockFile::new("bin/quux", b"quux"),
-                ],
+                files: vec![MockFile::new("bin/quux", b"quux")],
             },
         ],
     };
@@ -112,10 +107,7 @@ fn basic_install() {
                 files: vec![
                     MockFile::new("bin/foo", b"foo"),
                     MockFile::new("lib/bar", b"bar"),
-                    MockFile::new_dir("doc/stuff", &[
-                        ("doc1", b"", false),
-                        ("doc2", b"", false),
-                    ]),
+                    MockFile::new_dir("doc/stuff", &[("doc1", b"", false), ("doc2", b"", false)]),
                 ],
             },
         ],
@@ -127,7 +119,11 @@ fn basic_install() {
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let tmpdir = TempDir::new("rustup").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        tmpdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
@@ -169,7 +165,11 @@ fn multiple_component_install() {
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let tmpdir = TempDir::new("rustup").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        tmpdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
@@ -199,10 +199,7 @@ fn uninstall() {
                 files: vec![
                     MockFile::new("bin/foo", b"foo"),
                     MockFile::new("lib/bar", b"bar"),
-                    MockFile::new_dir("doc/stuff", &[
-                        ("doc1", b"", false),
-                        ("doc2", b"", false),
-                    ]),
+                    MockFile::new_dir("doc/stuff", &[("doc1", b"", false), ("doc2", b"", false)]),
                 ],
             },
             MockComponentBuilder {
@@ -218,7 +215,11 @@ fn uninstall() {
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let tmpdir = TempDir::new("rustup").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        tmpdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
@@ -273,7 +274,11 @@ fn component_bad_version() {
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let tmpdir = TempDir::new("rustup").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        tmpdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
@@ -289,7 +294,10 @@ fn component_bad_version() {
 
     // Can't open components now
     let e = Components::open(prefix.clone()).unwrap_err();
-    if let ErrorKind::BadInstalledMetadataVersion(_) = *e.kind() { } else { panic!() }
+    if let ErrorKind::BadInstalledMetadataVersion(_) = *e.kind() {
+    } else {
+        panic!()
+    }
 }
 
 // Directories should be 0755, normal files 0644, files that come
@@ -310,11 +318,14 @@ fn unix_permissions() {
                     MockFile::new("bin/foo", b"foo"),
                     MockFile::new("lib/bar", b"bar"),
                     MockFile::new("lib/foobar", b"foobar").executable(true),
-                    MockFile::new_dir("doc/stuff", &[
-                        ("doc1", b"", false),
-                        ("morestuff/doc2", b"", false),
-                        ("morestuff/tool", b"", true),
-                    ]),
+                    MockFile::new_dir(
+                        "doc/stuff",
+                        &[
+                            ("doc1", b"", false),
+                            ("morestuff/doc2", b"", false),
+                            ("morestuff/tool", b"", true),
+                        ],
+                    ),
                 ],
             },
         ],
@@ -326,7 +337,11 @@ fn unix_permissions() {
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
     let tmpdir = TempDir::new("rustup").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        tmpdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
@@ -337,21 +352,53 @@ fn unix_permissions() {
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     tx.commit();
 
-    let m = fs::metadata(instdir.path().join("bin/foo")).unwrap().permissions().mode();
+    let m = 0o777
+        & fs::metadata(instdir.path().join("bin/foo"))
+            .unwrap()
+            .permissions()
+            .mode();
     assert_eq!(m, 0o755);
-    let m = fs::metadata(instdir.path().join("lib/bar")).unwrap().permissions().mode();
+    let m = 0o777
+        & fs::metadata(instdir.path().join("lib/bar"))
+            .unwrap()
+            .permissions()
+            .mode();
     assert_eq!(m, 0o644);
-    let m = fs::metadata(instdir.path().join("lib/foobar")).unwrap().permissions().mode();
+    let m = 0o777
+        & fs::metadata(instdir.path().join("lib/foobar"))
+            .unwrap()
+            .permissions()
+            .mode();
     assert_eq!(m, 0o755);
-    let m = fs::metadata(instdir.path().join("doc/stuff/")).unwrap().permissions().mode();
+    let m = 0o777
+        & fs::metadata(instdir.path().join("doc/stuff/"))
+            .unwrap()
+            .permissions()
+            .mode();
     assert_eq!(m, 0o755);
-    let m = fs::metadata(instdir.path().join("doc/stuff/doc1")).unwrap().permissions().mode();
+    let m = 0o777
+        & fs::metadata(instdir.path().join("doc/stuff/doc1"))
+            .unwrap()
+            .permissions()
+            .mode();
     assert_eq!(m, 0o644);
-    let m = fs::metadata(instdir.path().join("doc/stuff/morestuff")).unwrap().permissions().mode();
+    let m = 0o777
+        & fs::metadata(instdir.path().join("doc/stuff/morestuff"))
+            .unwrap()
+            .permissions()
+            .mode();
     assert_eq!(m, 0o755);
-    let m = fs::metadata(instdir.path().join("doc/stuff/morestuff/doc2")).unwrap().permissions().mode();
+    let m = 0o777
+        & fs::metadata(instdir.path().join("doc/stuff/morestuff/doc2"))
+            .unwrap()
+            .permissions()
+            .mode();
     assert_eq!(m, 0o644);
-    let m = fs::metadata(instdir.path().join("doc/stuff/morestuff/tool")).unwrap().permissions().mode();
+    let m = 0o777
+        & fs::metadata(instdir.path().join("doc/stuff/morestuff/tool"))
+            .unwrap()
+            .permissions()
+            .mode();
     assert_eq!(m, 0o755);
 }
 
@@ -377,7 +424,11 @@ fn install_to_prefix_that_does_not_exist() {
     let prefix = InstallPrefix::from(does_not_exist.clone());
 
     let tmpdir = TempDir::new("rustup").unwrap();
-    let tmpcfg = temp::Cfg::new(tmpdir.path().to_owned(), DEFAULT_DIST_SERVER, Box::new(|_| ()));
+    let tmpcfg = temp::Cfg::new(
+        tmpdir.path().to_owned(),
+        DEFAULT_DIST_SERVER,
+        Box::new(|_| ()),
+    );
     let notify = |_: Notification| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
