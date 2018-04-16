@@ -89,15 +89,15 @@ if command == "dev-to-local":
     if os.path.exists("local-rustup/dist"):
         shutil.rmtree("local-rustup/dist")
     os.makedirs("local-rustup/dist")
-    s3cmd = "s3cmd sync s3://{}/rustup/dist/ ./local-rustup/dist/".format(s3_bucket)
+    s3cmd = "aws s3 cp --recursive s3://{}/rustup/dist/ ./local-rustup/dist/".format(s3_bucket)
 elif command == "local-to-dev-archives" \
      or command == "local-to-prod-archives":
-    s3cmd = "s3cmd sync ./local-rustup/dist/ s3://{}/rustup/archive/{}/".format(s3_bucket, archive_version)
+    s3cmd = "aws s3 cp --recursive ./local-rustup/dist/ s3://{}/rustup/archive/{}/".format(s3_bucket, archive_version)
 elif command == "local-to-prod":
-    s3cmd = "s3cmd sync ./local-rustup/dist/ s3://{}/rustup/dist/".format(s3_bucket)
+    s3cmd = "aws s3 cp --recursive local-rustup/dist/ s3://{}/rustup/dist/".format(s3_bucket)
 elif command == "update-dev-release" \
      or command == "update-prod-release":
-    s3cmd = "s3cmd put ./local-rustup/release-stable.toml s3://{}/rustup/release-stable.toml".format(s3_bucket)
+    s3cmd = "aws s3 cp ./local-rustup/release-stable.toml s3://{}/rustup/release-stable.toml".format(s3_bucket)
 else:
     sys.exit(1)
 
@@ -115,11 +115,13 @@ def run_s3cmd(command):
     s3cmd = command.split(" ")
 
     if not live_run:
-        s3cmd += ["--dry-run"]
+        s3cmd += ["--dryrun"]
 
     # These are old installer names for compatibility. They don't need to
     # be touched ever again.
-    s3cmd += ["--exclude=*rustup-setup*"]
+    if "cloudfront" not in command:
+        s3cmd += ["--exclude=*rustup-setup*"]
+    print('executing: ', s3cmd);
 
     subprocess.check_call(s3cmd)
 
@@ -130,16 +132,30 @@ run_s3cmd(s3cmd)
 if command == "dev-to-local":
     if os.path.exists("local-rustup/rustup-init.sh"):
         os.remove("local-rustup/rustup-init.sh")
-    run_s3cmd("s3cmd get s3://{}/rustup/rustup-init.sh ./local-rustup/rustup-init.sh"
+    run_s3cmd("aws s3 cp s3://{}/rustup/rustup-init.sh ./local-rustup/rustup-init.sh"
               .format(s3_bucket))
     if os.path.exists("local-rustup/www"):
         shutil.rmtree("local-rustup/www")
     os.makedirs("local-rustup/www")
-    run_s3cmd("s3cmd sync s3://{}/rustup/www/ ./local-rustup/www/"
+    run_s3cmd("aws s3 cp --recursive s3://{}/rustup/www/ ./local-rustup/www/"
               .format(s3_bucket))
 
 if command == "local-to-prod":
-    run_s3cmd("s3cmd put ./local-rustup/rustup-init.sh s3://{}/rustup/rustup-init.sh"
+    run_s3cmd("aws s3 cp ./local-rustup/rustup-init.sh s3://{}/rustup/rustup-init.sh"
               .format(s3_bucket))
-    run_s3cmd("s3cmd sync ./local-rustup/www/ s3://{}/rustup/www/"
+    run_s3cmd("aws s3 cp --recursive ./local-rustup/www/ s3://{}/rustup/www/"
               .format(s3_bucket))
+    if live_run:
+        # Invalidate sh.rustup.rs
+        run_s3cmd("aws cloudfront create-invalidation --distribution-id " +
+                  "E70E9RGZ6Q27W --paths /*".format(s3_bucket))
+        # Invalidate win.rustup.rs
+        run_s3cmd("aws cloudfront create-invalidation --distribution-id " +
+                  "E2XBMULPACBLNE --paths /*".format(s3_bucket))
+        # Invalidate rustup.rs
+        run_s3cmd("aws cloudfront create-invalidation --distribution-id " +
+                  "EVJCMYBQ0EX26 --paths /*".format(s3_bucket))
+
+if command == "update-dev-release" and live_run:
+    run_s3cmd("aws cloudfront create-invalidation --distribution-id " +
+              "E30AO2GXMDY230 --paths /rustup/*".format(s3_bucket))
