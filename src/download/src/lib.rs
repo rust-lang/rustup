@@ -60,73 +60,65 @@ pub fn download_to_path_with_backend(
 
             let downloaded_so_far = if let Ok(mut partial) = possible_partial {
                 if let Some(cb) = callback {
-                    try!(cb(Event::ResumingPartialDownload));
+                    cb(Event::ResumingPartialDownload)?;
 
                     let mut buf = vec![0; 32768];
                     let mut downloaded_so_far = 0;
                     loop {
-                        let n = try!(partial.read(&mut buf));
+                        let n = partial.read(&mut buf)?;
                         downloaded_so_far += n as u64;
                         if n == 0 {
                             break;
                         }
-                        try!(cb(Event::DownloadDataReceived(&buf[..n])));
+                        cb(Event::DownloadDataReceived(&buf[..n]))?;
                     }
 
                     downloaded_so_far
                 } else {
-                    let file_info = try!(partial.metadata());
+                    let file_info = partial.metadata()?;
                     file_info.len()
                 }
             } else {
                 0
             };
 
-            let mut possible_partial = try!(
-                OpenOptions::new()
-                    .write(true)
-                    .create(true)
-                    .open(&path)
-                    .chain_err(|| "error opening file for download")
-            );
+            let mut possible_partial = OpenOptions::new()
+                .write(true)
+                .create(true)
+                .open(&path)
+                .chain_err(|| "error opening file for download")?;
 
-            try!(possible_partial.seek(SeekFrom::End(0)));
+            possible_partial.seek(SeekFrom::End(0))?;
 
             (possible_partial, downloaded_so_far)
         } else {
             (
-                try!(
-                    OpenOptions::new()
-                        .write(true)
-                        .create(true)
-                        .open(&path)
-                        .chain_err(|| "error creating file for download")
-                ),
+                OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .open(&path)
+                    .chain_err(|| "error creating file for download")?,
                 0,
             )
         };
 
         let file = RefCell::new(file);
 
-        try!(download_with_backend(backend, url, resume_from, &|event| {
+        download_with_backend(backend, url, resume_from, &|event| {
             if let Event::DownloadDataReceived(data) = event {
-                try!(
-                    file.borrow_mut()
-                        .write_all(data)
-                        .chain_err(|| "unable to write download to disk")
-                );
+                file.borrow_mut()
+                    .write_all(data)
+                    .chain_err(|| "unable to write download to disk")?;
             }
             match callback {
                 Some(cb) => cb(event),
                 None => Ok(()),
             }
-        }));
+        })?;
 
-        try!(
-            file.borrow_mut()
-                .sync_data()
-                .chain_err(|| "unable to sync download to disk")
-        );
+        file.borrow_mut()
+            .sync_data()
+            .chain_err(|| "unable to sync download to disk")?;
 
         Ok(())
     }()
@@ -161,23 +153,17 @@ pub mod curl {
         EASY.with(|handle| {
             let mut handle = handle.borrow_mut();
 
-            try!(
-                handle
-                    .url(&url.to_string())
-                    .chain_err(|| "failed to set url")
-            );
-            try!(
-                handle
-                    .follow_location(true)
-                    .chain_err(|| "failed to set follow redirects")
-            );
+            handle
+                .url(&url.to_string())
+                .chain_err(|| "failed to set url")?;
+            handle
+                .follow_location(true)
+                .chain_err(|| "failed to set follow redirects")?;
 
             if resume_from > 0 {
-                try!(
-                    handle
-                        .resume_from(resume_from)
-                        .chain_err(|| "setting the range header for download resumption")
-                );
+                handle
+                    .resume_from(resume_from)
+                    .chain_err(|| "setting the range header for download resumption")?;
             } else {
                 // an error here indicates that the range header isn't supported by underlying curl,
                 // so there's nothing to "clear" - safe to ignore this error.
@@ -185,11 +171,9 @@ pub mod curl {
             }
 
             // Take at most 30s to connect
-            try!(
-                handle
-                    .connect_timeout(Duration::new(30, 0))
-                    .chain_err(|| "failed to set connect timeout")
-            );
+            handle
+                .connect_timeout(Duration::new(30, 0))
+                .chain_err(|| "failed to set connect timeout")?;
 
             {
                 let cberr = RefCell::new(None);
@@ -198,47 +182,42 @@ pub mod curl {
                 // Data callback for libcurl which is called with data that's
                 // downloaded. We just feed it into our hasher and also write it out
                 // to disk.
-                try!(
-                    transfer
-                        .write_function(|data| match callback(Event::DownloadDataReceived(data)) {
-                            Ok(()) => Ok(data.len()),
-                            Err(e) => {
-                                *cberr.borrow_mut() = Some(e);
-                                Ok(0)
-                            }
-                        })
-                        .chain_err(|| "failed to set write")
-                );
+                transfer
+                    .write_function(|data| match callback(Event::DownloadDataReceived(data)) {
+                        Ok(()) => Ok(data.len()),
+                        Err(e) => {
+                            *cberr.borrow_mut() = Some(e);
+                            Ok(0)
+                        }
+                    })
+                    .chain_err(|| "failed to set write")?;
 
                 // Listen for headers and parse out a `Content-Length` if it comes
                 // so we know how much we're downloading.
-                try!(
-                    transfer
-                        .header_function(|header| {
-                            if let Ok(data) = str::from_utf8(header) {
-                                let prefix = "Content-Length: ";
-                                if data.starts_with(prefix) {
-                                    if let Ok(s) = data[prefix.len()..].trim().parse::<u64>() {
-                                        let msg =
-                                            Event::DownloadContentLengthReceived(s + resume_from);
-                                        match callback(msg) {
-                                            Ok(()) => (),
-                                            Err(e) => {
-                                                *cberr.borrow_mut() = Some(e);
-                                                return false;
-                                            }
+                transfer
+                    .header_function(|header| {
+                        if let Ok(data) = str::from_utf8(header) {
+                            let prefix = "Content-Length: ";
+                            if data.starts_with(prefix) {
+                                if let Ok(s) = data[prefix.len()..].trim().parse::<u64>() {
+                                    let msg = Event::DownloadContentLengthReceived(s + resume_from);
+                                    match callback(msg) {
+                                        Ok(()) => (),
+                                        Err(e) => {
+                                            *cberr.borrow_mut() = Some(e);
+                                            return false;
                                         }
                                     }
                                 }
                             }
-                            true
-                        })
-                        .chain_err(|| "failed to set header")
-                );
+                        }
+                        true
+                    })
+                    .chain_err(|| "failed to set header")?;
 
                 // If an error happens check to see if we had a filesystem error up
                 // in `cberr`, but we always want to punt it up.
-                try!(transfer.perform().or_else(|e| {
+                transfer.perform().or_else(|e| {
                     // If the original error was generated by one of our
                     // callbacks, return it.
                     match cberr.borrow_mut().take() {
@@ -252,15 +231,13 @@ pub mod curl {
                             }
                         }
                     }
-                }));
+                })?;
             }
 
             // If we didn't get a 20x or 0 ("OK" for files) then return an error
-            let code = try!(
-                handle
-                    .response_code()
-                    .chain_err(|| "failed to get response code")
-            );
+            let code = handle
+                .response_code()
+                .chain_err(|| "failed to get response code")?;
             match code {
                 0 | 200...299 => {}
                 _ => {
@@ -362,10 +339,8 @@ pub mod reqwest_be {
 
         // The file scheme is mostly for use by tests to mock the dist server
         if url.scheme() == "file" {
-            let src = try!(
-                url.to_file_path()
-                    .map_err(|_| Error::from(format!("bogus file url: '{}'", url)))
-            );
+            let src = url.to_file_path()
+                .map_err(|_| Error::from(format!("bogus file url: '{}'", url)))?;
             if !src.is_file() {
                 // Because some of rustup's logic depends on checking
                 // the error when a downloaded file doesn't exist, make
@@ -374,20 +349,17 @@ pub mod reqwest_be {
                 return Err(ErrorKind::FileNotFound.into());
             }
 
-            let ref mut f =
-                try!(fs::File::open(src).chain_err(|| "unable to open downloaded file"));
+            let ref mut f = fs::File::open(src).chain_err(|| "unable to open downloaded file")?;
             io::Seek::seek(f, io::SeekFrom::Start(resume_from))?;
 
             let ref mut buffer = vec![0u8; 0x10000];
             loop {
                 let bytes_read =
-                    try!(io::Read::read(f, buffer).chain_err(|| "unable to read downloaded file"));
+                    io::Read::read(f, buffer).chain_err(|| "unable to read downloaded file")?;
                 if bytes_read == 0 {
                     break;
                 }
-                try!(callback(Event::DownloadDataReceived(
-                    &buffer[0..bytes_read]
-                )));
+                callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
             }
 
             Ok(true)

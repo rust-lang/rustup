@@ -214,13 +214,13 @@ fn download_file_(
         (Backend::Curl, Notification::UsingCurl)
     };
     notify_handler(notification);
-    try!(download_to_path_with_backend(
+    download_to_path_with_backend(
         backend,
         url,
         path,
         resume_from_partial,
         Some(callback)
-    ));
+    )?;
 
     notify_handler(Notification::DownloadFinished);
 
@@ -370,11 +370,9 @@ pub fn make_executable(path: &Path) -> Result<()> {
     fn inner(path: &Path) -> Result<()> {
         use std::os::unix::fs::PermissionsExt;
 
-        let metadata = try!(
-            fs::metadata(path).chain_err(|| ErrorKind::SettingPermissions {
-                path: PathBuf::from(path),
-            })
-        );
+        let metadata = fs::metadata(path).chain_err(|| ErrorKind::SettingPermissions {
+            path: PathBuf::from(path),
+        })?;
         let mut perms = metadata.permissions();
         let new_mode = (perms.mode() & !0o777) | 0o755;
         perms.set_mode(new_mode);
@@ -522,7 +520,7 @@ pub fn cargo_home() -> Result<PathBuf> {
         None
     };
 
-    let cwd = try!(env::current_dir().chain_err(|| ErrorKind::CargoHome));
+    let cwd = env::current_dir().chain_err(|| ErrorKind::CargoHome)?;
     let cargo_home = env_var.clone().map(|home| cwd.join(home));
     let user_home = home_dir().map(|p| p.join(".cargo"));
     cargo_home.or(user_home).ok_or(ErrorKind::CargoHome.into())
@@ -719,7 +717,7 @@ pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
 pub fn rustup_home() -> Result<PathBuf> {
     let use_rustup_dir = do_rustup_home_upgrade();
 
-    let cwd = try!(env::current_dir().chain_err(|| ErrorKind::RustupHome));
+    let cwd = env::current_dir().chain_err(|| ErrorKind::RustupHome)?;
     let rustup_home = env::var_os("RUSTUP_HOME").map(|home| cwd.join(home));
     let user_home = if use_rustup_dir {
         dot_dir(".rustup")
