@@ -8,11 +8,11 @@ use std::sync::Arc;
 
 use errors::*;
 use notifications::*;
-use rustup_dist::{temp, dist};
+use rustup_dist::{dist, temp};
 use rustup_utils::utils;
 use toolchain::{Toolchain, UpdateStatus};
 use telemetry_analysis::*;
-use settings::{TelemetryMode, SettingsFile, Settings, DEFAULT_METADATA_VERSION};
+use settings::{Settings, SettingsFile, TelemetryMode, DEFAULT_METADATA_VERSION};
 
 #[derive(Debug)]
 pub enum OverrideReason {
@@ -54,8 +54,9 @@ impl Cfg {
         // Set up the rustup home directory
         let rustup_dir = try!(utils::rustup_home());
 
-        try!(utils::ensure_dir_exists("home", &rustup_dir,
-                                      &|n| notify_handler(n.into())));
+        try!(utils::ensure_dir_exists("home", &rustup_dir, &|n| {
+            notify_handler(n.into())
+        }));
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
         // Convert from old settings format if necessary
@@ -66,22 +67,20 @@ impl Cfg {
         let download_dir = rustup_dir.join("downloads");
 
         // GPG key
-        let gpg_key = if let Some(path) = env::var_os("RUSTUP_GPG_KEY")
-                                              .and_then(utils::if_not_empty) {
-            Cow::Owned(try!(utils::read_file("public key", Path::new(&path))))
-        } else {
-            Cow::Borrowed(include_str!("rust-key.gpg.ascii"))
-        };
+        let gpg_key =
+            if let Some(path) = env::var_os("RUSTUP_GPG_KEY").and_then(utils::if_not_empty) {
+                Cow::Owned(try!(utils::read_file("public key", Path::new(&path))))
+            } else {
+                Cow::Borrowed(include_str!("rust-key.gpg.ascii"))
+            };
 
         // Environment override
         let env_override = env::var("RUSTUP_TOOLCHAIN")
-                               .ok()
-                               .and_then(utils::if_not_empty);
+            .ok()
+            .and_then(utils::if_not_empty);
 
         let dist_root_server = match env::var("RUSTUP_DIST_SERVER") {
-            Ok(ref s) if !s.is_empty() => {
-                s.clone()
-            }
+            Ok(ref s) if !s.is_empty() => s.clone(),
             _ => {
                 // For backward compatibility
                 env::var("RUSTUP_DIST_ROOT")
@@ -95,11 +94,11 @@ impl Cfg {
         };
 
         let notify_clone = notify_handler.clone();
-        let temp_cfg = temp::Cfg::new(rustup_dir.join("tmp"),
-                                      dist_root_server.as_str(),
-                                      Box::new(move |n| {
-                                          (notify_clone)(n.into())
-                                      }));
+        let temp_cfg = temp::Cfg::new(
+            rustup_dir.join("tmp"),
+            dist_root_server.as_str(),
+            Box::new(move |n| (notify_clone)(n.into())),
+        );
         let dist_root = dist_root_server.clone() + "/dist";
 
         Ok(Cfg {
@@ -128,9 +127,11 @@ impl Cfg {
 
     pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain> {
         if create_parent {
-            try!(utils::ensure_dir_exists("toolchains",
-                                          &self.toolchains_dir,
-                                          &|n| (self.notify_handler)(n.into())));
+            try!(utils::ensure_dir_exists(
+                "toolchains",
+                &self.toolchains_dir,
+                &|n| (self.notify_handler)(n.into())
+            ));
         }
 
         Toolchain::from(self, name)
@@ -144,16 +145,17 @@ impl Cfg {
 
     pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> Result<PathBuf> {
         if create_parent {
-            try!(utils::ensure_dir_exists("update-hash",
-                                          &self.update_hash_dir,
-                                          &|n| (self.notify_handler)(n.into())));
+            try!(utils::ensure_dir_exists(
+                "update-hash",
+                &self.update_hash_dir,
+                &|n| (self.notify_handler)(n.into())
+            ));
         }
 
         Ok(self.update_hash_dir.join(toolchain))
     }
 
     pub fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {
-
         if let Some((toolchain, _)) = try!(self.find_override_toolchain_or_default(path)) {
             Ok(Some(toolchain.binary_file(binary)))
         } else {
@@ -162,17 +164,17 @@ impl Cfg {
     }
 
     pub fn upgrade_data(&self) -> Result<()> {
-
         let current_version = try!(self.settings_file.with(|s| Ok(s.version.clone())));
 
         if current_version == DEFAULT_METADATA_VERSION {
-            (self.notify_handler)
-                (Notification::MetadataUpgradeNotNeeded(&current_version));
+            (self.notify_handler)(Notification::MetadataUpgradeNotNeeded(&current_version));
             return Ok(());
         }
 
-        (self.notify_handler)
-            (Notification::UpgradingMetadata(&current_version, DEFAULT_METADATA_VERSION));
+        (self.notify_handler)(Notification::UpgradingMetadata(
+            &current_version,
+            DEFAULT_METADATA_VERSION,
+        ));
 
         match &*current_version {
             "2" => {
@@ -182,8 +184,9 @@ impl Cfg {
                 let dirs = try!(utils::read_dir("toolchains", &self.toolchains_dir));
                 for dir in dirs {
                     let dir = try!(dir.chain_err(|| ErrorKind::UpgradeIoError));
-                    try!(utils::remove_dir("toolchain", &dir.path(),
-                                           &|n| (self.notify_handler)(n.into())));
+                    try!(utils::remove_dir("toolchain", &dir.path(), &|n| {
+                        (self.notify_handler)(n.into())
+                    }));
                 }
 
                 // Also delete the update hashes
@@ -204,8 +207,9 @@ impl Cfg {
 
     pub fn delete_data(&self) -> Result<()> {
         if utils::path_exists(&self.rustup_dir) {
-            Ok(try!(utils::remove_dir("home", &self.rustup_dir,
-                                      &|n| (self.notify_handler)(n.into()))))
+            Ok(try!(utils::remove_dir("home", &self.rustup_dir, &|n| {
+                (self.notify_handler)(n.into())
+            })))
         } else {
             Ok(())
         }
@@ -215,8 +219,10 @@ impl Cfg {
         let opt_name = try!(self.settings_file.with(|s| Ok(s.default_toolchain.clone())));
 
         if let Some(name) = opt_name {
-            let toolchain = try!(self.verify_toolchain(&name)
-                                 .chain_err(|| ErrorKind::ToolchainNotInstalled(name.to_string())));
+            let toolchain = try!(
+                self.verify_toolchain(&name)
+                    .chain_err(|| ErrorKind::ToolchainNotInstalled(name.to_string()))
+            );
 
             Ok(Some(toolchain))
         } else {
@@ -248,15 +254,17 @@ impl Cfg {
             // on a line after the proximate error.
 
             let reason_err = match reason {
-                OverrideReason::Environment => {
-                    format!("the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain")
-                }
-                OverrideReason::OverrideDB(ref path) => {
-                    format!("the directory override for '{}' specifies an uninstalled toolchain", path.display())
-                }
-                OverrideReason::ToolchainFile(ref path) => {
-                    format!("the toolchain file at '{}' specifies an uninstalled toolchain", path.display())
-                }
+                OverrideReason::Environment => format!(
+                    "the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"
+                ),
+                OverrideReason::OverrideDB(ref path) => format!(
+                    "the directory override for '{}' specifies an uninstalled toolchain",
+                    path.display()
+                ),
+                OverrideReason::ToolchainFile(ref path) => format!(
+                    "the toolchain file at '{}' specifies an uninstalled toolchain",
+                    path.display()
+                ),
             };
 
             match self.get_toolchain(&name, false) {
@@ -264,29 +272,30 @@ impl Cfg {
                     if toolchain.exists() {
                         Ok(Some((toolchain, reason)))
                     } else if toolchain.is_custom() {
-                        // Strip the confusing NotADirectory error and only mention that the override
-                        // toolchain is not installed.
-                        Err(Error::from(reason_err))
-                            .chain_err(|| ErrorKind::OverrideToolchainNotInstalled(name.to_string()))
+                        // Strip the confusing NotADirectory error and only mention that the
+                        // override toolchain is not installed.
+                        Err(Error::from(reason_err)).chain_err(|| {
+                            ErrorKind::OverrideToolchainNotInstalled(name.to_string())
+                        })
                     } else {
-                        try!(toolchain.install_from_dist());
+                        try!(toolchain.install_from_dist(false));
                         Ok(Some((toolchain, reason)))
                     }
                 }
-                Err(e) => {
-                    Err(e)
-                        .chain_err(|| Error::from(reason_err))
-                        .chain_err(|| ErrorKind::OverrideToolchainNotInstalled(name.to_string()))
-                }
+                Err(e) => Err(e)
+                    .chain_err(|| Error::from(reason_err))
+                    .chain_err(|| ErrorKind::OverrideToolchainNotInstalled(name.to_string())),
             }
         } else {
             Ok(None)
         }
     }
 
-    fn find_override_from_dir_walk(&self, dir: &Path, settings: &Settings)
-                                   -> Result<Option<(String, OverrideReason)>>
-    {
+    fn find_override_from_dir_walk(
+        &self,
+        dir: &Path,
+        settings: &Settings,
+    ) -> Result<Option<(String, OverrideReason)>> {
         let notify = self.notify_handler.as_ref();
         let dir = utils::canonicalize_path(dir, &|n| notify(n.into()));
         let mut dir = Some(&*dir);
@@ -303,10 +312,13 @@ impl Cfg {
             if let Ok(s) = utils::read_file("toolchain file", &toolchain_file) {
                 if let Some(s) = s.lines().next() {
                     let toolchain_name = s.trim();
-                    dist::validate_channel_name(&toolchain_name)
-                        .chain_err(|| format!("invalid channel name '{}' in '{}'",
-                                              toolchain_name,
-                                              toolchain_file.display()))?;
+                    dist::validate_channel_name(&toolchain_name).chain_err(|| {
+                        format!(
+                            "invalid channel name '{}' in '{}'",
+                            toolchain_name,
+                            toolchain_file.display()
+                        )
+                    })?;
 
                     let reason = OverrideReason::ToolchainFile(toolchain_file);
                     return Ok(Some((toolchain_name.to_string(), reason)));
@@ -319,32 +331,31 @@ impl Cfg {
         Ok(None)
     }
 
-    pub fn find_override_toolchain_or_default
-        (&self,
-         path: &Path)
-         -> Result<Option<(Toolchain, Option<OverrideReason>)>> {
-        Ok(if let Some((toolchain, reason)) = try!(self.find_override(path)) {
-            Some((toolchain, Some(reason)))
-        } else {
-            try!(self.find_default()).map(|toolchain| (toolchain, None))
-        })
+    pub fn find_override_toolchain_or_default(
+        &self,
+        path: &Path,
+    ) -> Result<Option<(Toolchain, Option<OverrideReason>)>> {
+        Ok(
+            if let Some((toolchain, reason)) = try!(self.find_override(path)) {
+                Some((toolchain, Some(reason)))
+            } else {
+                try!(self.find_default()).map(|toolchain| (toolchain, None))
+            },
+        )
     }
 
     pub fn get_default(&self) -> Result<String> {
-        self.settings_file.with(|s| { 
-            Ok(s.default_toolchain.clone().unwrap())
-        })
+        self.settings_file
+            .with(|s| Ok(s.default_toolchain.clone().unwrap()))
     }
-
-
 
     pub fn list_toolchains(&self) -> Result<Vec<String>> {
         if utils::is_directory(&self.toolchains_dir) {
             let mut toolchains: Vec<_> = try!(utils::read_dir("toolchains", &self.toolchains_dir))
-                                         .filter_map(io::Result::ok)
-                                         .filter(|e| e.file_type().map(|f| !f.is_file()).unwrap_or(false))
-                                         .filter_map(|e| e.file_name().into_string().ok())
-                                         .collect();
+                .filter_map(io::Result::ok)
+                .filter(|e| e.file_type().map(|f| !f.is_file()).unwrap_or(false))
+                .filter_map(|e| e.file_name().into_string().ok())
+                .collect();
 
             utils::toolchain_sort(&mut toolchains);
 
@@ -354,7 +365,10 @@ impl Cfg {
         }
     }
 
-    pub fn update_all_channels(&self) -> Result<Vec<(String, Result<UpdateStatus>)>> {
+    pub fn update_all_channels(
+        &self,
+        force_update: bool,
+    ) -> Result<Vec<(String, Result<UpdateStatus>)>> {
         let toolchains = try!(self.list_toolchains());
 
         // Convert the toolchain strings to Toolchain values
@@ -362,14 +376,13 @@ impl Cfg {
         let toolchains = toolchains.map(|n| (n.clone(), self.get_toolchain(&n, true)));
 
         // Filter out toolchains that don't track a release channel
-        let toolchains = toolchains.filter(|&(_, ref t)| {
-            t.as_ref().map(|t| t.is_tracking()).unwrap_or(false)
-        });
+        let toolchains =
+            toolchains.filter(|&(_, ref t)| t.as_ref().map(|t| t.is_tracking()).unwrap_or(false));
 
         // Update toolchains and collect the results
         let toolchains = toolchains.map(|(n, t)| {
             let t = t.and_then(|t| {
-                let t = t.install_from_dist();
+                let t = t.install_from_dist(force_update);
                 if let Err(ref e) = t {
                     (self.notify_handler)(Notification::NonFatalError(e));
                 }
@@ -410,8 +423,16 @@ impl Cfg {
         }
     }
 
-    pub fn create_command_for_toolchain(&self, toolchain: &str, binary: &str) -> Result<Command> {
+    pub fn create_command_for_toolchain(
+        &self,
+        toolchain: &str,
+        install_if_missing: bool,
+        binary: &str,
+    ) -> Result<Command> {
         let ref toolchain = try!(self.get_toolchain(toolchain, false));
+        if install_if_missing && !toolchain.exists() {
+            try!(toolchain.install_from_dist(false));
+        }
 
         if let Some(cmd) = try!(self.maybe_do_cargo_fallback(toolchain, binary)) {
             Ok(cmd)
@@ -422,7 +443,11 @@ impl Cfg {
 
     // Custom toolchains don't have cargo, so here we detect that situation and
     // try to find a different cargo.
-    fn maybe_do_cargo_fallback(&self, toolchain: &Toolchain, binary: &str) -> Result<Option<Command>> {
+    fn maybe_do_cargo_fallback(
+        &self,
+        toolchain: &Toolchain,
+        binary: &str,
+    ) -> Result<Option<Command>> {
         if !toolchain.is_custom() {
             return Ok(None);
         }
@@ -461,7 +486,7 @@ impl Cfg {
 
     pub fn set_default_host_triple(&self, host_triple: &str) -> Result<()> {
         if dist::PartialTargetTriple::from_str(host_triple).is_none() {
-            return Err("Invalid host triple".into())
+            return Err("Invalid host triple".into());
         }
         self.settings_file.with_mut(|s| {
             s.default_host_triple = Some(host_triple.to_owned());
@@ -471,7 +496,9 @@ impl Cfg {
 
     pub fn get_default_host_triple(&self) -> Result<dist::TargetTriple> {
         Ok(try!(self.settings_file.with(|s| {
-            Ok(s.default_host_triple.as_ref().map(|s| dist::TargetTriple::from_str(&s)))
+            Ok(s.default_host_triple
+                .as_ref()
+                .map(|s| dist::TargetTriple::from_str(&s)))
         })).unwrap_or_else(dist::TargetTriple::from_build))
     }
 
@@ -485,7 +512,11 @@ impl Cfg {
     }
 
     pub fn set_telemetry(&self, telemetry_enabled: bool) -> Result<()> {
-        if telemetry_enabled { self.enable_telemetry() } else { self.disable_telemetry() }
+        if telemetry_enabled {
+            self.enable_telemetry()
+        } else {
+            self.disable_telemetry()
+        }
     }
 
     fn enable_telemetry(&self) -> Result<()> {
@@ -494,8 +525,7 @@ impl Cfg {
             Ok(())
         }));
 
-        let _ = utils::ensure_dir_exists("telemetry", &self.rustup_dir.join("telemetry"),
-                                         &|_| ());
+        let _ = utils::ensure_dir_exists("telemetry", &self.rustup_dir.join("telemetry"), &|_| ());
 
         (self.notify_handler)(Notification::SetTelemetry("on"));
 

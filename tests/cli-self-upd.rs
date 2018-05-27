@@ -4,13 +4,13 @@
 // The `self update` and `self uninstall` commands just call `msiexec`.
 #![cfg(not(feature = "msi-installed"))]
 
-extern crate rustup_mock;
-extern crate rustup_utils;
 #[macro_use]
 extern crate lazy_static;
-extern crate tempdir;
 extern crate remove_dir_all;
+extern crate rustup_mock;
+extern crate rustup_utils;
 extern crate scopeguard;
+extern crate tempdir;
 
 #[cfg(windows)]
 extern crate winapi;
@@ -25,17 +25,12 @@ use std::path::Path;
 use std::fs;
 use std::process::Command;
 use remove_dir_all::remove_dir_all;
-use rustup_mock::clitools::{self, Config, Scenario,
-                               expect_ok, expect_ok_ex,
-                               expect_ok_contains,
-                               expect_stderr_ok,
-                               expect_stdout_ok,
-                               expect_err, expect_err_ex,
-                               this_host_triple};
-use rustup_mock::dist::{calc_hash};
+use rustup_mock::clitools::{self, expect_err, expect_err_ex, expect_ok, expect_ok_contains,
+                            expect_ok_ex, expect_stderr_ok, expect_stdout_ok, this_host_triple,
+                            Config, Scenario};
+use rustup_mock::dist::calc_hash;
 use rustup_mock::{get_path, restore_path};
-use rustup_utils::{utils, raw};
-
+use rustup_utils::{raw, utils};
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -49,7 +44,7 @@ pub fn setup(f: &Fn(&Config)) {
         }
         let _g = LOCK.lock();
 
-        // An windows these tests mess with the user's PATH. Save
+        // On windows these tests mess with the user's PATH. Save
         // and restore them here to keep from trashing things.
         let saved_path = get_path();
         let _g = scopeguard::guard(saved_path, |p| restore_path(p));
@@ -60,7 +55,6 @@ pub fn setup(f: &Fn(&Config)) {
 
 pub fn update_setup(f: &Fn(&Config, &Path)) {
     setup(&|config| {
-
         // Create a mock self-update server
         let ref self_dist_tmp = TempDir::new("self_dist").unwrap();
         let ref self_dist = self_dist_tmp.path();
@@ -84,10 +78,13 @@ pub fn update_setup(f: &Fn(&Config, &Path)) {
 }
 
 fn output_release_file(dist_dir: &Path, schema: &str, version: &str) {
-    let contents = format!(r#"
+    let contents = format!(
+        r#"
 schema-version = "{}"
 version = "{}"
-"#, schema, version);
+"#,
+        schema, version
+    );
     let file = dist_dir.join("release-stable.toml");
     utils::write_file("release", &file, &contents).unwrap();
 }
@@ -100,7 +97,9 @@ fn install_bins_to_cargo_home() {
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
         let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
         let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
+        let rust_lldb = config
+            .cargodir
+            .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
         assert!(rustup.exists());
         assert!(rustc.exists());
@@ -130,7 +129,9 @@ fn bins_are_executable() {
         let ref rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
         let ref rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
         let ref cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let ref rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
+        let ref rust_lldb = config
+            .cargodir
+            .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let ref rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
         assert!(is_exe(rustup));
         assert!(is_exe(rustc));
@@ -167,7 +168,9 @@ fn uninstall_deletes_bins() {
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
         let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
         let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
+        let rust_lldb = config
+            .cargodir
+            .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
         assert!(!rustup.exists());
         assert!(!rustc.exists());
@@ -186,7 +189,9 @@ fn uninstall_works_if_some_bins_dont_exist() {
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
         let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
         let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
+        let rust_lldb = config
+            .cargodir
+            .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
 
         fs::remove_file(&rustc).unwrap();
@@ -237,8 +242,11 @@ fn uninstall_fails_if_not_installed() {
         expect_ok(config, &["rustup-init", "-y"]);
         let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         fs::remove_file(&rustup).unwrap();
-        expect_err(config, &["rustup", "self", "uninstall", "-y"],
-                   "rustup is not installed");
+        expect_err(
+            config,
+            &["rustup", "self", "uninstall", "-y"],
+            "rustup is not installed",
+        );
     });
 }
 
@@ -264,7 +272,9 @@ fn uninstall_self_delete_works() {
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
         let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
         let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
+        let rust_lldb = config
+            .cargodir
+            .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
         assert!(!rustc.exists());
         assert!(!rustdoc.exists());
@@ -300,8 +310,7 @@ fn uninstall_doesnt_leave_gc_file() {
 
 #[test]
 #[ignore]
-fn uninstall_stress_test() {
-}
+fn uninstall_stress_test() {}
 
 #[cfg(unix)]
 fn install_adds_path_to_rc(rcfile: &str) {
@@ -312,8 +321,7 @@ fn install_adds_path_to_rc(rcfile: &str) {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let new_rc = raw::read_file(rc).unwrap();
-        let addition = format!(r#"export PATH="{}/bin:$PATH""#,
-                               config.cargodir.display());
+        let addition = format!(r#"export PATH="{}/bin:$PATH""#, config.cargodir.display());
         let expected = format!("{}\n{}\n", my_rc, addition);
         assert_eq!(new_rc, expected);
     });
@@ -355,8 +363,7 @@ fn install_with_zsh_adds_path_to_zprofile() {
         assert!(cmd.output().unwrap().status.success());
 
         let new_rc = raw::read_file(rc).unwrap();
-        let addition = format!(r#"export PATH="{}/bin:$PATH""#,
-                               config.cargodir.display());
+        let addition = format!(r#"export PATH="{}/bin:$PATH""#, config.cargodir.display());
         let expected = format!("{}\n{}\n", my_rc, addition);
         assert_eq!(new_rc, expected);
     });
@@ -377,8 +384,7 @@ fn install_with_zsh_adds_path_to_zdotdir_zprofile() {
         assert!(cmd.output().unwrap().status.success());
 
         let new_rc = raw::read_file(rc).unwrap();
-        let addition = format!(r#"export PATH="{}/bin:$PATH""#,
-                               config.cargodir.display());
+        let addition = format!(r#"export PATH="{}/bin:$PATH""#, config.cargodir.display());
         let expected = format!("{}\n{}\n", my_rc, addition);
         assert_eq!(new_rc, expected);
     });
@@ -395,8 +401,7 @@ fn install_adds_path_to_rcfile_just_once() {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let new_profile = raw::read_file(profile).unwrap();
-        let addition = format!(r#"export PATH="{}/bin:$PATH""#,
-                               config.cargodir.display());
+        let addition = format!(r#"export PATH="{}/bin:$PATH""#, config.cargodir.display());
         let expected = format!("{}\n{}\n", my_profile, addition);
         assert_eq!(new_profile, expected);
     });
@@ -511,7 +516,6 @@ fn uninstall_removes_path() {
     });
 }
 
-
 #[test]
 #[cfg(unix)]
 fn install_doesnt_modify_path_if_passed_no_modify_path() {
@@ -526,17 +530,19 @@ fn install_doesnt_modify_path_if_passed_no_modify_path() {
 #[cfg(windows)]
 fn install_doesnt_modify_path_if_passed_no_modify_path() {
     use winreg::RegKey;
-    use winapi::*;
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
         let old_path = environment.get_raw_value("PATH").unwrap();
 
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
         let new_path = environment.get_raw_value("PATH").unwrap();
 
         assert!(old_path == new_path);
@@ -546,27 +552,32 @@ fn install_doesnt_modify_path_if_passed_no_modify_path() {
 #[test]
 fn update_exact() {
     let version = env!("CARGO_PKG_VERSION");
-    let expected_output = &(
-r"info: checking for self-updates
+    let expected_output = &(r"info: checking for self-updates
 info: downloading self-update
-info: rustup updated successfully to ".to_owned() + version + "
+info: rustup updated successfully to "
+        .to_owned() + version
+        + "
 ");
 
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_ok_ex(config, &["rustup", "self", "update"],
-                     r"", expected_output)
+        expect_ok_ex(config, &["rustup", "self", "update"], r"", expected_output)
     });
 }
 
 #[test]
 fn update_but_not_installed() {
     update_setup(&|config, _| {
-        expect_err_ex(config, &["rustup", "self", "update"],
-r"",
-&format!(
-r"error: rustup is not installed at '{}'
-", config.cargodir.display()));
+        expect_err_ex(
+            config,
+            &["rustup", "self", "update"],
+            r"",
+            &format!(
+                r"error: rustup is not installed at '{}'
+",
+                config.cargodir.display()
+            ),
+        );
     });
 }
 
@@ -574,7 +585,9 @@ r"error: rustup is not installed at '{}'
 fn update_but_delete_existing_updater_first() {
     update_setup(&|config, _| {
         // The updater is stored in a known location
-        let ref setup = config.cargodir.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
+        let ref setup = config
+            .cargodir
+            .join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
         expect_ok(config, &["rustup-init", "-y"]);
 
@@ -599,8 +612,11 @@ fn update_download_404() {
 
         fs::remove_file(dist_exe).unwrap();
 
-        expect_err(config, &["rustup", "self", "update"],
-                   "could not download file");
+        expect_err(
+            config,
+            &["rustup", "self", "update"],
+            "could not download file",
+        );
     });
 }
 
@@ -608,8 +624,11 @@ fn update_download_404() {
 fn update_bogus_version() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_err(config, &["rustup", "update", "1.0.0-alpha"],
-            "could not download nonexistent rust version `1.0.0-alpha`");
+        expect_err(
+            config,
+            &["rustup", "update", "1.0.0-alpha"],
+            "could not download nonexistent rust version `1.0.0-alpha`",
+        );
     });
 }
 
@@ -647,8 +666,11 @@ fn update_bad_schema() {
     update_setup(&|config, self_dist| {
         expect_ok(config, &["rustup-init", "-y"]);
         output_release_file(self_dist, "17", "1.1.1");
-        expect_err(config, &["rustup", "self", "update"],
-                     "unknown schema version");
+        expect_err(
+            config,
+            &["rustup", "self", "update"],
+            "unknown schema version",
+        );
     });
 }
 
@@ -658,10 +680,13 @@ fn update_no_change() {
     update_setup(&|config, self_dist| {
         expect_ok(config, &["rustup-init", "-y"]);
         output_release_file(self_dist, "1", version);
-        expect_ok_ex(config, &["rustup", "self", "update"],
-r"",
-r"info: checking for self-updates
-");
+        expect_ok_ex(
+            config,
+            &["rustup", "self", "update"],
+            r"",
+            r"info: checking for self-updates
+",
+        );
     });
 }
 
@@ -686,15 +711,22 @@ fn rustup_self_update_exact() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
 
-        expect_ok_ex(config, &["rustup", "update"],
-for_host!(r"
+        expect_ok_ex(
+            config,
+            &["rustup", "update"],
+            for_host!(
+                r"
   stable-{0} unchanged - 1.1.0 (hash-s-2)
 
-"),
-for_host!(r"info: syncing channel updates for 'stable-{0}'
+"
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
 info: checking for self-updates
 info: downloading self-update
-"));
+"
+            ),
+        );
     })
 }
 
@@ -708,7 +740,9 @@ fn updater_leaves_itself_for_later_deletion() {
         expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok(config, &["rustup", "self", "update"]);
 
-        let setup = config.cargodir.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
+        let setup = config
+            .cargodir
+            .join(&format!("bin/rustup-init{}", EXE_SUFFIX));
         assert!(setup.exists());
     });
 }
@@ -722,7 +756,9 @@ fn updater_is_deleted_after_running_rustup() {
 
         expect_ok(config, &["rustup", "update", "nightly"]);
 
-        let setup = config.cargodir.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
+        let setup = config
+            .cargodir
+            .join(&format!("bin/rustup-init{}", EXE_SUFFIX));
         assert!(!setup.exists());
     });
 }
@@ -736,7 +772,9 @@ fn updater_is_deleted_after_running_rustc() {
 
         expect_ok(config, &["rustc", "--version"]);
 
-        let setup = config.cargodir.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
+        let setup = config
+            .cargodir
+            .join(&format!("bin/rustup-init{}", EXE_SUFFIX));
         assert!(!setup.exists());
     });
 }
@@ -758,8 +796,7 @@ fn rustup_still_works_after_update() {
 // invocations of rustup and rustc (on windows).
 #[test]
 #[ignore]
-fn update_stress_test() {
-}
+fn update_stress_test() {}
 
 // The installer used to be called rustup-setup. For compatibility it
 // still needs to work in that mode.
@@ -782,7 +819,8 @@ r"
   stable installed - 1.1.0 (hash-s-2)
 
 ",
-for_host!(r"info: syncing channel updates for 'stable-{0}'
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
@@ -793,8 +831,9 @@ info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: default toolchain set to 'stable'
-")
-                  );
+"
+            ),
+        );
     });
 }
 
@@ -828,24 +867,24 @@ fn produces_env_file_on_unix() {
 
 #[test]
 #[cfg(windows)]
-fn doesnt_produce_env_file_on_windows() {
-}
+fn doesnt_produce_env_file_on_windows() {}
 
 #[test]
 fn install_sets_up_stable() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-s-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
     });
 }
 
 #[test]
 fn install_sets_up_stable_unless_a_different_default_is_requested() {
     setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y", "--default-toolchain", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-n-2");
+        expect_ok(
+            config,
+            &["rustup-init", "-y", "--default-toolchain", "nightly"],
+        );
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
     });
 }
 
@@ -856,10 +895,12 @@ fn install_sets_up_stable_unless_there_is_already_a_default() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "stable"]);
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-n-2");
-        expect_err(config, &["rustup", "run", "stable", "rustc", "--version"],
-                   for_host!("toolchain 'stable-{0}' is not installed"));
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_err(
+            config,
+            &["rustup", "run", "stable", "rustc", "--version"],
+            for_host!("toolchain 'stable-{0}' is not installed"),
+        );
     });
 }
 
@@ -914,7 +955,9 @@ fn legacy_upgrade_installs_to_correct_location() {
         cmd.env("CARGO_HOME", format!("{}", fake_cargo.display()));
         assert!(cmd.output().unwrap().status.success());
 
-        let rustup = config.homedir.join(&format!(".cargo/bin/rustup{}", EXE_SUFFIX));
+        let rustup = config
+            .homedir
+            .join(&format!(".cargo/bin/rustup{}", EXE_SUFFIX));
         assert!(rustup.exists());
     });
 }
@@ -922,8 +965,11 @@ fn legacy_upgrade_installs_to_correct_location() {
 #[test]
 fn readline_no_stdin() {
     setup(&|config| {
-        expect_err(config, &["rustup-init"],
-                   "unable to read from stdin for confirmation");
+        expect_err(
+            config,
+            &["rustup-init"],
+            "unable to read from stdin for confirmation",
+        );
     });
 }
 
@@ -932,11 +978,9 @@ fn rustup_init_works_with_weird_names() {
     // Browsers often rename bins to e.g. rustup-init(2).exe.
 
     setup(&|config| {
-        let ref old = config.exedir.join(
-            &format!("rustup-init{}", EXE_SUFFIX));
-        let ref new = config.exedir.join(
-            &format!("rustup-init(2){}", EXE_SUFFIX));
-        fs::rename(old, new).unwrap();
+        let ref old = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
+        let ref new = config.exedir.join(&format!("rustup-init(2){}", EXE_SUFFIX));
+        utils::rename_file("test", old, new).unwrap();
         expect_ok(config, &["rustup-init(2)", "-y"]);
         let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         assert!(rustup.exists());
@@ -948,26 +992,26 @@ fn rustup_init_works_with_weird_names() {
 #[cfg(windows)]
 fn doesnt_write_wrong_path_type_to_reg() {
     use winreg::RegKey;
-    use winreg::enums::RegType;
-    use winapi::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.vtype == RegType::REG_EXPAND_SZ);
 
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.vtype == RegType::REG_EXPAND_SZ);
     });
 }
-
 
 // HKCU\Environment\PATH may not exist during install, and it may need to be
 // deleted during uninstall if we remove the last path from it
@@ -975,25 +1019,27 @@ fn doesnt_write_wrong_path_type_to_reg() {
 #[cfg(windows)]
 fn windows_handle_empty_path_registry_key() {
     use winreg::RegKey;
-    use winreg::enums::RegType;
-    use winapi::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
         let _ = environment.delete_value("PATH");
 
         expect_ok(config, &["rustup-init", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.vtype == RegType::REG_EXPAND_SZ);
 
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
         let path = environment.get_raw_value("PATH");
 
         assert!(path.is_err());
@@ -1004,12 +1050,12 @@ fn windows_handle_empty_path_registry_key() {
 #[cfg(windows)]
 fn windows_uninstall_removes_semicolon_from_path() {
     use winreg::RegKey;
-    use winreg::enums::RegType;
-    use winapi::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
 
         // This time set the value of PATH and make sure it's restored exactly after uninstall,
         // not leaving behind any semi-colons
@@ -1018,14 +1064,16 @@ fn windows_uninstall_removes_semicolon_from_path() {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.vtype == RegType::REG_EXPAND_SZ);
 
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
         let path: String = environment.get_value("PATH").unwrap();
         assert!(path == "foo");
     });
@@ -1035,18 +1083,18 @@ fn windows_uninstall_removes_semicolon_from_path() {
 #[cfg(windows)]
 fn install_doesnt_mess_with_a_non_unicode_path() {
     use winreg::{RegKey, RegValue};
-    use winreg::enums::RegType;
-    use winapi::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
 
         let reg_value = RegValue {
             bytes: vec![0x00, 0xD8,  // leading surrogate
                         0x01, 0x01,  // bogus trailing surrogate
                         0x00, 0x00], // null
-            vtype: RegType::REG_EXPAND_SZ
+            vtype: RegType::REG_EXPAND_SZ,
         };
         environment.set_raw_value("PATH", &reg_value).unwrap();
 
@@ -1055,7 +1103,8 @@ fn install_doesnt_mess_with_a_non_unicode_path() {
                           Not modifying the PATH variable");
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.bytes == reg_value.bytes);
     });
@@ -1065,20 +1114,20 @@ fn install_doesnt_mess_with_a_non_unicode_path() {
 #[cfg(windows)]
 fn uninstall_doesnt_mess_with_a_non_unicode_path() {
     use winreg::{RegKey, RegValue};
-    use winreg::enums::RegType;
-    use winapi::*;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
 
         let reg_value = RegValue {
             bytes: vec![0x00, 0xD8,  // leading surrogate
                         0x01, 0x01,  // bogus trailing surrogate
                         0x00, 0x00], // null
-            vtype: RegType::REG_EXPAND_SZ
+            vtype: RegType::REG_EXPAND_SZ,
         };
         environment.set_raw_value("PATH", &reg_value).unwrap();
 
@@ -1087,7 +1136,8 @@ fn uninstall_doesnt_mess_with_a_non_unicode_path() {
                           Not modifying the PATH variable");
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE).unwrap();
+        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.bytes == reg_value.bytes);
     });
@@ -1095,13 +1145,11 @@ fn uninstall_doesnt_mess_with_a_non_unicode_path() {
 
 #[test]
 #[ignore] // untestable
-fn install_but_rustup_is_installed() {
-}
+fn install_but_rustup_is_installed() {}
 
 #[test]
 #[ignore] // untestable
-fn install_but_rustc_is_installed() {
-}
+fn install_but_rustc_is_installed() {}
 
 #[test]
 fn install_but_rustup_sh_is_installed() {
@@ -1110,8 +1158,11 @@ fn install_but_rustup_sh_is_installed() {
         fs::create_dir_all(&rustup_dir).unwrap();
         let version_file = rustup_dir.join("rustup-version");
         raw::write_file(&version_file, "").unwrap();
-        expect_err(config, &["rustup-init", "-y"],
-                   "cannot install while rustup.sh is installed");
+        expect_err(
+            config,
+            &["rustup-init", "-y"],
+            "cannot install while rustup.sh is installed",
+        );
     });
 }
 
@@ -1122,8 +1173,11 @@ fn install_but_rustup_metadata() {
         fs::create_dir_all(&multirust_dir).unwrap();
         let version_file = multirust_dir.join("version");
         raw::write_file(&version_file, "2").unwrap();
-        expect_err(config, &["rustup-init", "-y"],
-                   "cannot install while multirust is installed");
+        expect_err(
+            config,
+            &["rustup-init", "-y"],
+            "cannot install while multirust is installed",
+        );
     });
 }
 
@@ -1163,7 +1217,12 @@ fn install_creates_legacy_home_symlink() {
         assert!(rustup_dir.exists());
         let multirust_dir = config.homedir.join(".multirust");
         assert!(multirust_dir.exists());
-        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
+        assert!(
+            fs::symlink_metadata(&multirust_dir)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
     });
 }
 
@@ -1175,7 +1234,11 @@ fn install_over_unupgraded_multirust_dir() {
         let multirust_dir = config.homedir.join(".multirust");
 
         // Install rustup
-        let mut cmd = clitools::cmd(config, "rustup-init", &["-y", "--default-toolchain=nightly"]);
+        let mut cmd = clitools::cmd(
+            config,
+            "rustup-init",
+            &["-y", "--default-toolchain=nightly"],
+        );
         cmd.env_remove("RUSTUP_HOME");
         assert!(cmd.output().unwrap().status.success());
 
@@ -1187,7 +1250,7 @@ fn install_over_unupgraded_multirust_dir() {
         // Move .rustup to .multirust so the next rustup-init will be
         // an upgrade from ~/.multirust to ~/.rustup
         raw::remove_dir(&multirust_dir).unwrap();
-        fs::rename(&rustup_dir, &multirust_dir).unwrap();
+        utils::rename_file("test", &rustup_dir, &multirust_dir).unwrap();
         assert!(!rustup_dir.exists());
         assert!(multirust_dir.exists());
 
@@ -1199,7 +1262,12 @@ fn install_over_unupgraded_multirust_dir() {
         // Directories should be set up correctly
         assert!(rustup_dir.exists());
         assert!(multirust_dir.exists());
-        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
+        assert!(
+            fs::symlink_metadata(&multirust_dir)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
 
         // We should still be on nightly
         let mut cmd = clitools::cmd(config, "rustc", &["--version"]);
@@ -1229,9 +1297,15 @@ fn uninstall_removes_legacy_home_symlink() {
 fn rls_proxy_set_up_after_install() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_err(config, &["rls", "--version"],
-                   &format!("toolchain 'stable-{}' does not have the binary `rls{}`",
-                            this_host_triple(), EXE_SUFFIX));
+        expect_err(
+            config,
+            &["rls", "--version"],
+            &format!(
+                "toolchain 'stable-{}' does not have the binary `rls{}`",
+                this_host_triple(),
+                EXE_SUFFIX
+            ),
+        );
         expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
         expect_ok(config, &["rls", "--version"]);
     });
@@ -1245,5 +1319,47 @@ fn rls_proxy_set_up_after_update() {
         fs::remove_file(rls_path).unwrap();
         expect_ok(config, &["rustup", "self", "update"]);
         assert!(rls_path.exists());
+    });
+}
+
+#[test]
+fn update_does_not_overwrite_rustfmt() {
+    update_setup(&|config, self_dist| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        let version = env!("CARGO_PKG_VERSION");
+        output_release_file(self_dist, "1", version);
+
+        // Since we just did a fresh install rustfmt will exist. Let's emulate
+        // it not existing in this test though by removing it just after our
+        // installation.
+        let ref rustfmt_path = config.cargodir.join(format!("bin/rustfmt{}", EXE_SUFFIX));
+        assert!(rustfmt_path.exists());
+        fs::remove_file(rustfmt_path).unwrap();
+        raw::write_file(rustfmt_path, "").unwrap();
+        assert_eq!(utils::file_size(rustfmt_path).unwrap(), 0);
+
+        // Ok, now a self-update should complain about `rustfmt` not looking
+        // like rustup and the user should take some action.
+        expect_stderr_ok(
+            config,
+            &["rustup", "self", "update"],
+            "`rustfmt` is already installed",
+        );
+        assert!(rustfmt_path.exists());
+        assert_eq!(utils::file_size(rustfmt_path).unwrap(), 0);
+
+        // Now simluate us removing the rustfmt executable and rerunning a self
+        // update, this should install the rustup shim. Note that we don't run
+        // `rustup` here but rather the rustup we've actually installed, this'll
+        // help reproduce bugs related to having that file being opened by the
+        // current process.
+        fs::remove_file(rustfmt_path).unwrap();
+        let installed_rustup = config.cargodir.join("bin/rustup");
+        expect_ok(
+            config,
+            &[installed_rustup.to_str().unwrap(), "self", "update"],
+        );
+        assert!(rustfmt_path.exists());
+        assert!(utils::file_size(rustfmt_path).unwrap() > 0);
     });
 }

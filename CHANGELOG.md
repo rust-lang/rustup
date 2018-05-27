@@ -1,3 +1,39 @@
+# 1.11.0
+
+* [windows: detect architecture on website, update to matching arch][pr1354]
+
+[pr1354]: https://github.com/rust-lang-nursery/rustup.rs/pull/1354
+
+Contributors: Steffen Butzer
+
+# 1.10.0
+
+* [Warn when tools are missing and allow an override][pr1337]
+
+[pr1337]: https://github.com/rust-lang-nursery/rustup.rs/pull/1337
+
+Contributors: Nick Cameron, Steffen Butzer
+
+# 1.9.0
+
+* [Fix self update errors filling in missing proxies][pr1326]
+
+[pr1326]: https://github.com/rust-lang-nursery/rustup.rs/pull/1326
+
+Contributors: Alex Crichton
+
+# 1.8.0
+
+* [Add `rustup run --install`][pr1295]
+* [Prevent `rustup update` to a toolchain without `rustc` or `cargo`][pr1298]
+* [Add support for `rustfmt` shims][pr1294]
+
+[pr1295]: https://github.com/rust-lang-nursery/rustup.rs/pull/1295
+[pr1298]: https://github.com/rust-lang-nursery/rustup.rs/pull/1298
+[pr1294]: https://github.com/rust-lang-nursery/rustup.rs/pull/1294
+
+Contributors: Alex Crichton, kennytm, Nick Cameron, Simon Sapin, Who? Me?!
+
 # 1.7.0
 
 * [Improve clarity of component errors][pr1255]

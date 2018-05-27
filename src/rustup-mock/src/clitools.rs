@@ -8,15 +8,14 @@ use std::env;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::mem;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::Duration;
 use tempdir::TempDir;
-use {MockInstallerBuilder, MockFile, MockComponentBuilder};
-use dist::{MockDistServer, MockChannel, MockPackage,
-           MockTargetedPackage, MockComponent, change_channel_date,
-           ManifestVersion};
+use {MockComponentBuilder, MockFile, MockInstallerBuilder};
+use dist::{change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer,
+           MockPackage, MockTargetedPackage};
 use url::Url;
 use wait_timeout::ChildExt;
 
@@ -44,12 +43,13 @@ pub struct Config {
 // Building the mock server is slow, so use simple scenario when possible.
 #[derive(PartialEq, Copy, Clone)]
 pub enum Scenario {
-    Full, // Two dates, two manifests
-    ArchivesV2, // Two dates, v2 manifests
-    ArchivesV1, // Two dates, v1 manifests
-    SimpleV2, // One date, v2 manifests
-    SimpleV1, // One date, v1 manifests
-    MultiHost, // One date, v2 manifests, MULTI_ARCH1 host
+    Full,        // Two dates, two manifests
+    ArchivesV2,  // Two dates, v2 manifests
+    ArchivesV1,  // Two dates, v1 manifests
+    SimpleV2,    // One date, v2 manifests
+    SimpleV1,    // One date, v1 manifests
+    MultiHost,   // One date, v2 manifests, MULTI_ARCH1 host
+    Unavailable, // Two dates, v2 manifests, everything unavailable in second date.
 }
 
 pub static CROSS_ARCH1: &'static str = "x86_64-unknown-linux-musl";
@@ -121,7 +121,12 @@ pub fn setup(s: Scenario, f: &Fn(&mut Config)) {
     // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
     // functionality built in.
-    run(&config, "rustup", &["set", "host", &this_host_triple()], &[]);
+    run(
+        &config,
+        "rustup",
+        &["set", "host", &this_host_triple()],
+        &[],
+    );
 
     // Create some custom toolchains
     create_custom_toolchains(&config.customdir);
@@ -141,7 +146,8 @@ impl Config {
     }
 
     pub fn change_dir<F>(&self, path: &Path, mut f: F)
-        where F: FnMut()
+    where
+        F: FnMut(),
     {
         self._change_dir(path, &mut f)
     }
@@ -210,8 +216,7 @@ pub fn expect_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     }
 }
 
-pub fn expect_ok_ex(config: &Config, args: &[&str],
-                    stdout: &str, stderr: &str) {
+pub fn expect_ok_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || out.stdout != stdout || out.stderr != stderr {
         print_command(args, &out);
@@ -222,8 +227,7 @@ pub fn expect_ok_ex(config: &Config, args: &[&str],
     }
 }
 
-pub fn expect_err_ex(config: &Config, args: &[&str],
-                     stdout: &str, stderr: &str) {
+pub fn expect_err_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if out.ok || out.stdout != stdout || out.stderr != stderr {
         print_command(args, &out);
@@ -250,7 +254,8 @@ pub fn expect_timeout_ok(config: &Config, timeout: Duration, args: &[&str]) {
     let mut child = cmd(config, args[0], &args[1..])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .spawn().unwrap();
+        .spawn()
+        .unwrap();
 
     match child.wait_timeout(timeout).unwrap() {
         Some(status) => {
@@ -308,8 +313,14 @@ pub fn env(config: &Config, cmd: &mut Command) {
         new_path.push(p);
     }
     cmd.env("PATH", new_path);
-    cmd.env("RUSTUP_HOME", config.rustupdir.to_string_lossy().to_string());
-    cmd.env("RUSTUP_DIST_SERVER", format!("file://{}", config.distdir.to_string_lossy()));
+    cmd.env(
+        "RUSTUP_HOME",
+        config.rustupdir.to_string_lossy().to_string(),
+    );
+    cmd.env(
+        "RUSTUP_DIST_SERVER",
+        format!("file://{}", config.distdir.to_string_lossy()),
+    );
     cmd.env("CARGO_HOME", config.cargodir.to_string_lossy().to_string());
     cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_triple());
 
@@ -333,25 +344,41 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
     for env in env {
         cmd.env(env.0, env.1);
     }
+
+    println!("running {:?}", cmd);
     let out = cmd.output().expect("failed to run test command");
 
-    SanitizedOutput {
+    let output = SanitizedOutput {
         ok: out.status.success(),
         stdout: String::from_utf8(out.stdout).unwrap(),
         stderr: String::from_utf8(out.stderr).unwrap(),
-    }
+    };
+    println!("status: {}", out.status);
+    println!("----- stdout\n{}", output.stdout);
+    println!("----- stderr\n{}", output.stderr);
+    return output;
 }
 
 // Creates a mock dist server populated with some test data
 fn create_mock_dist_server(path: &Path, s: Scenario) {
     let mut chans = Vec::new();
-    if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
+
+    let dates_count = match s {
+        Scenario::SimpleV1 | Scenario::SimpleV2 | Scenario::MultiHost => 1,
+        Scenario::Full | Scenario::ArchivesV1 | Scenario::ArchivesV2 | Scenario::Unavailable => 2,
+    };
+
+    if dates_count > 1 {
         let c1 = build_mock_channel(s, "nightly", "2015-01-01", "1.2.0", "hash-n-1", false);
         let c2 = build_mock_channel(s, "beta", "2015-01-01", "1.1.0", "hash-b-1", false);
         let c3 = build_mock_channel(s, "stable", "2015-01-01", "1.0.0", "hash-s-1", false);
         chans.extend(vec![c1, c2, c3]);
     }
-    let c4 = build_mock_channel(s, "nightly", "2015-01-02", "1.3.0", "hash-n-2", true);
+    let c4 = if s == Scenario::Unavailable {
+        build_mock_unavailable_channel("nightly", "2015-01-02", "1.3.0")
+    } else {
+        build_mock_channel(s, "nightly", "2015-01-02", "1.3.0", "hash-n-2", true)
+    };
     let c5 = build_mock_channel(s, "beta", "2015-01-02", "1.2.0", "hash-b-2", false);
     let c6 = build_mock_channel(s, "stable", "2015-01-02", "1.1.0", "hash-s-2", false);
     chans.extend(vec![c4, c5, c6]);
@@ -359,8 +386,9 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
     let ref vs = match s {
         Scenario::Full => vec![ManifestVersion::V1, ManifestVersion::V2],
         Scenario::SimpleV1 | Scenario::ArchivesV1 => vec![ManifestVersion::V1],
-        Scenario::SimpleV2 | Scenario::ArchivesV2 |
-        Scenario::MultiHost => vec![ManifestVersion::V2],
+        Scenario::SimpleV2 | Scenario::ArchivesV2 | Scenario::MultiHost | Scenario::Unavailable => {
+            vec![ManifestVersion::V2]
+        }
     };
 
     MockDistServer {
@@ -369,33 +397,67 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
     }.write(vs, true);
 
     // Also create the manifests for stable releases by version
-    if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
-        let _ = hard_link(path.join("dist/2015-01-01/channel-rust-stable.toml"),
-                          path.join("dist/channel-rust-1.0.0.toml"));
-        let _ = hard_link(path.join("dist/2015-01-01/channel-rust-stable.toml.sha256"),
-                          path.join("dist/channel-rust-1.0.0.toml.sha256"));
+    if dates_count > 1 {
+        let _ = hard_link(
+            path.join("dist/2015-01-01/channel-rust-stable.toml"),
+            path.join("dist/channel-rust-1.0.0.toml"),
+        );
+        let _ = hard_link(
+            path.join("dist/2015-01-01/channel-rust-stable.toml.sha256"),
+            path.join("dist/channel-rust-1.0.0.toml.sha256"),
+        );
     }
-    let _ = hard_link(path.join("dist/2015-01-02/channel-rust-stable.toml"),
-                      path.join("dist/channel-rust-1.1.0.toml"));
-    let _ = hard_link(path.join("dist/2015-01-02/channel-rust-stable.toml.sha256"),
-                      path.join("dist/channel-rust-1.1.0.toml.sha256"));
+    let _ = hard_link(
+        path.join("dist/2015-01-02/channel-rust-stable.toml"),
+        path.join("dist/channel-rust-1.1.0.toml"),
+    );
+    let _ = hard_link(
+        path.join("dist/2015-01-02/channel-rust-stable.toml.sha256"),
+        path.join("dist/channel-rust-1.1.0.toml.sha256"),
+    );
 
     // Same for v1 manifests. These are just the installers.
     let host_triple = this_host_triple();
-    if s == Scenario::Full || s == Scenario::ArchivesV1 || s == Scenario::ArchivesV2 {
-        hard_link(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz", host_triple)),
-                  path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple))).unwrap();
-        hard_link(path.join(format!("dist/2015-01-01/rust-stable-{}.tar.gz.sha256", host_triple)),
-                  path.join(format!("dist/rust-1.0.0-{}.tar.gz.sha256", host_triple))).unwrap();
+    if dates_count > 1 {
+        hard_link(
+            path.join(format!(
+                "dist/2015-01-01/rust-stable-{}.tar.gz",
+                host_triple
+            )),
+            path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple)),
+        ).unwrap();
+        hard_link(
+            path.join(format!(
+                "dist/2015-01-01/rust-stable-{}.tar.gz.sha256",
+                host_triple
+            )),
+            path.join(format!("dist/rust-1.0.0-{}.tar.gz.sha256", host_triple)),
+        ).unwrap();
     }
-    hard_link(path.join(format!("dist/2015-01-02/rust-stable-{}.tar.gz", host_triple)),
-              path.join(format!("dist/rust-1.1.0-{}.tar.gz", host_triple))).unwrap();
-    hard_link(path.join(format!("dist/2015-01-02/rust-stable-{}.tar.gz.sha256", host_triple)),
-              path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple))).unwrap();
+    hard_link(
+        path.join(format!(
+            "dist/2015-01-02/rust-stable-{}.tar.gz",
+            host_triple
+        )),
+        path.join(format!("dist/rust-1.1.0-{}.tar.gz", host_triple)),
+    ).unwrap();
+    hard_link(
+        path.join(format!(
+            "dist/2015-01-02/rust-stable-{}.tar.gz.sha256",
+            host_triple
+        )),
+        path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple)),
+    ).unwrap();
 }
 
-fn build_mock_channel(s: Scenario, channel: &str, date: &str,
-                      version: &'static str, version_hash: &str, rename_rls: bool) -> MockChannel {
+fn build_mock_channel(
+    s: Scenario,
+    channel: &str,
+    date: &str,
+    version: &'static str,
+    version_hash: &str,
+    rename_rls: bool,
+) -> MockChannel {
     // Build the mock installers
     let ref host_triple = this_host_triple();
     let std = build_mock_std_installer(host_triple);
@@ -410,11 +472,18 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
 
     // Convert the mock installers to mock package definitions for the
     // mock dist server
-    let mut all = vec![("rust-std", vec![(std, host_triple.clone()),
-                                     (cross_std1, CROSS_ARCH1.to_string()),
-                                     (cross_std2, CROSS_ARCH2.to_string())]),
-                   ("rustc", vec![(rustc, host_triple.clone())]),
-                   ("cargo", vec![(cargo, host_triple.clone())])];
+    let mut all = vec![
+        (
+            "rust-std",
+            vec![
+                (std, host_triple.clone()),
+                (cross_std1, CROSS_ARCH1.to_string()),
+                (cross_std2, CROSS_ARCH2.to_string()),
+            ],
+        ),
+        ("rustc", vec![(rustc, host_triple.clone())]),
+        ("cargo", vec![(cargo, host_triple.clone())]),
+    ];
 
     if rename_rls {
         let rls = build_mock_rls_installer(version, version_hash, false);
@@ -424,10 +493,12 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
         all.push(("rls-preview", vec![(rls_preview, host_triple.clone())]));
     }
 
-    let more = vec![("rust-docs", vec![(rust_docs, host_triple.clone())]),
-                    ("rust-src", vec![(rust_src, "*".to_string())]),
-                    ("rust-analysis", vec![(rust_analysis, "*".to_string())]),
-                    ("rust", vec![(rust, host_triple.clone())])];
+    let more = vec![
+        ("rust-docs", vec![(rust_docs, host_triple.clone())]),
+        ("rust-src", vec![(rust_src, "*".to_string())]),
+        ("rust-analysis", vec![(rust_analysis, "*".to_string())]),
+        ("rust", vec![(rust, host_triple.clone())]),
+    ];
     all.extend(more);
 
     if s == Scenario::MultiHost {
@@ -441,11 +512,18 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
         let rust_src = build_mock_rust_src_installer();
 
         let triple = MULTI_ARCH1.to_string();
-        let more = vec![("rust-std", vec![(std, triple.clone()),
-                                     (cross_std1, CROSS_ARCH1.to_string()),
-                                     (cross_std2, CROSS_ARCH2.to_string())]),
-                        ("rustc", vec![(rustc, triple.clone())]),
-                        ("cargo", vec![(cargo, triple.clone())])];
+        let more = vec![
+            (
+                "rust-std",
+                vec![
+                    (std, triple.clone()),
+                    (cross_std1, CROSS_ARCH1.to_string()),
+                    (cross_std2, CROSS_ARCH2.to_string()),
+                ],
+            ),
+            ("rustc", vec![(rustc, triple.clone())]),
+            ("cargo", vec![(cargo, triple.clone())]),
+        ];
         all.extend(more);
 
         if rename_rls {
@@ -456,28 +534,30 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
             all.push(("rls-preview", vec![(rls_preview, triple.clone())]));
         }
 
-        let more = vec![("rust-docs", vec![(rust_docs, triple.clone())]),
-                        ("rust-src", vec![(rust_src, "*".to_string())]),
-                        ("rust", vec![(rust, triple.clone())])];
+        let more = vec![
+            ("rust-docs", vec![(rust_docs, triple.clone())]),
+            ("rust-src", vec![(rust_src, "*".to_string())]),
+            ("rust", vec![(rust, triple.clone())]),
+        ];
 
         all.extend(more);
     }
 
     let packages = all.into_iter().map(|(name, target_pkgs)| {
-        let target_pkgs = target_pkgs.into_iter().map(|(installer, triple)| {
-            MockTargetedPackage {
+        let target_pkgs = target_pkgs
+            .into_iter()
+            .map(|(installer, triple)| MockTargetedPackage {
                 target: triple,
                 available: true,
                 components: vec![],
                 extensions: vec![],
                 installer: installer,
-            }
-        });
+            });
 
         MockPackage {
             name: name,
             version: version,
-            targets: target_pkgs.collect()
+            targets: target_pkgs.collect(),
         }
     });
     let mut packages: Vec<_> = packages.collect();
@@ -489,29 +569,29 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
             let ref target = target_pkg.target;
             target_pkg.components.push(MockComponent {
                 name: "rust-std".to_string(),
-                target: target.to_string()
+                target: target.to_string(),
             });
             target_pkg.components.push(MockComponent {
                 name: "rustc".to_string(),
-                target: target.to_string()
+                target: target.to_string(),
             });
             target_pkg.components.push(MockComponent {
                 name: "cargo".to_string(),
-                target: target.to_string()
+                target: target.to_string(),
             });
             target_pkg.components.push(MockComponent {
                 name: "rust-docs".to_string(),
-                target: target.to_string()
+                target: target.to_string(),
             });
             if rename_rls {
                 target_pkg.extensions.push(MockComponent {
                     name: "rls".to_string(),
-                    target: target.to_string()
+                    target: target.to_string(),
                 });
             } else {
                 target_pkg.extensions.push(MockComponent {
                     name: "rls-preview".to_string(),
-                    target: target.to_string()
+                    target: target.to_string(),
                 });
             }
             target_pkg.extensions.push(MockComponent {
@@ -546,20 +626,70 @@ fn build_mock_channel(s: Scenario, channel: &str, date: &str,
     }
 }
 
+fn build_mock_unavailable_channel(channel: &str, date: &str, version: &'static str) -> MockChannel {
+    let ref host_triple = this_host_triple();
+
+    let packages = [
+        "cargo",
+        "rust",
+        "rust-docs",
+        "rust-std",
+        "rustc",
+        "rls-preview",
+        "rust-analysis",
+    ];
+    let packages = packages
+        .iter()
+        .map(|name| MockPackage {
+            name,
+            version,
+            targets: vec![
+                MockTargetedPackage {
+                    target: host_triple.clone(),
+                    available: false,
+                    components: vec![],
+                    extensions: vec![],
+                    installer: MockInstallerBuilder { components: vec![] },
+                },
+            ],
+        })
+        .collect();
+
+    MockChannel {
+        name: channel.to_string(),
+        date: date.to_string(),
+        packages,
+        renames: HashMap::new(),
+    }
+}
+
 pub fn this_host_triple() -> String {
     if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
         triple.to_owned()
     } else {
-        let arch = if cfg!(target_arch = "x86") { "i686" }
-        else if cfg!(target_arch = "x86_64") { "x86_64" }
-        else { unimplemented!() };
-        let os = if cfg!(target_os = "linux") { "unknown-linux" }
-        else if cfg!(target_os = "windows") { "pc-windows" }
-        else if cfg!(target_os = "macos") { "apple-darwin" }
-        else { unimplemented!() };
-        let env = if cfg!(target_env = "gnu") { Some("gnu") }
-        else if cfg!(target_env = "msvc") { Some("msvc") }
-        else { None };
+        let arch = if cfg!(target_arch = "x86") {
+            "i686"
+        } else if cfg!(target_arch = "x86_64") {
+            "x86_64"
+        } else {
+            unimplemented!()
+        };
+        let os = if cfg!(target_os = "linux") {
+            "unknown-linux"
+        } else if cfg!(target_os = "windows") {
+            "pc-windows"
+        } else if cfg!(target_os = "macos") {
+            "apple-darwin"
+        } else {
+            unimplemented!()
+        };
+        let env = if cfg!(target_env = "gnu") {
+            Some("gnu")
+        } else if cfg!(target_env = "msvc") {
+            Some("msvc")
+        } else {
+            None
+        };
 
         if let Some(env) = env {
             format!("{}-{}-{}", arch, os, env)
@@ -571,28 +701,36 @@ pub fn this_host_triple() -> String {
 
 fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: format!("rust-std-{}", trip.clone()),
-            files: vec![
-                MockFile::new(format!("lib/rustlib/{}/libstd.rlib", trip), b""),
-            ],
-        }],
+        components: vec![
+            MockComponentBuilder {
+                name: format!("rust-std-{}", trip.clone()),
+                files: vec![
+                    MockFile::new(format!("lib/rustlib/{}/libstd.rlib", trip), b""),
+                ],
+            },
+        ],
     }
 }
 
 fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: format!("rust-std-{}", target.clone()),
-            files: vec![
-                MockFile::new(format!("lib/rustlib/{}/lib/libstd.rlib", target), b""),
-                MockFile::new(format!("lib/rustlib/{}/lib/{}", target, date), b""),
-            ],
-        }],
+        components: vec![
+            MockComponentBuilder {
+                name: format!("rust-std-{}", target.clone()),
+                files: vec![
+                    MockFile::new(format!("lib/rustlib/{}/lib/libstd.rlib", target), b""),
+                    MockFile::new(format!("lib/rustlib/{}/lib/{}", target, date), b""),
+                ],
+            },
+        ],
     }
 }
 
-fn build_mock_rustc_installer(target: &str, version: &str, version_hash_: &str) -> MockInstallerBuilder {
+fn build_mock_rustc_installer(
+    target: &str,
+    version: &str,
+    version_hash_: &str,
+) -> MockInstallerBuilder {
     // For cross-host rustc's modify the version_hash so they can be identified from
     // test cases.
     let this_host = this_host_triple();
@@ -604,72 +742,83 @@ fn build_mock_rustc_installer(target: &str, version: &str, version_hash_: &str) 
     }
 
     MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: "rustc".to_string(),
-            files: mock_bin("rustc", version, &version_hash),
-        }],
+        components: vec![
+            MockComponentBuilder {
+                name: "rustc".to_string(),
+                files: mock_bin("rustc", version, &version_hash),
+            },
+        ],
     }
 }
 
 fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: "cargo".to_string(),
-            files: mock_bin("cargo", version, &version_hash),
-        }],
+        components: vec![
+            MockComponentBuilder {
+                name: "cargo".to_string(),
+                files: mock_bin("cargo", version, &version_hash),
+            },
+        ],
     }
 }
 
-fn build_mock_rls_installer(version: &str, version_hash: &str, preview: bool) -> MockInstallerBuilder {
-    let name = if preview {
-        "rls-preview"
-    } else {
-        "rls"
-    };
+fn build_mock_rls_installer(
+    version: &str,
+    version_hash: &str,
+    preview: bool,
+) -> MockInstallerBuilder {
+    let name = if preview { "rls-preview" } else { "rls" };
     MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: name.to_string(),
-            files: mock_bin("rls", version, version_hash),
-        }],
+        components: vec![
+            MockComponentBuilder {
+                name: name.to_string(),
+                files: mock_bin("rls", version, version_hash),
+            },
+        ],
     }
 }
 
 fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: "rust-docs".to_string(),
-            files: vec![
-                MockFile::new("share/doc/rust/html/index.html", b""),
-            ],
-        }],
+        components: vec![
+            MockComponentBuilder {
+                name: "rust-docs".to_string(),
+                files: vec![MockFile::new("share/doc/rust/html/index.html", b"")],
+            },
+        ],
     }
 }
 
 fn build_mock_rust_analysis_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: format!("rust-analysis-{}", trip),
-            files: vec![
-                MockFile::new(format!("lib/rustlib/{}/analysis/libfoo.json", trip), b""),
-            ],
-        }],
+        components: vec![
+            MockComponentBuilder {
+                name: format!("rust-analysis-{}", trip),
+                files: vec![
+                    MockFile::new(format!("lib/rustlib/{}/analysis/libfoo.json", trip), b""),
+                ],
+            },
+        ],
     }
 }
 
 fn build_mock_rust_src_installer() -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![MockComponentBuilder {
-            name: "rust-src".to_string(),
-            files: vec![
-                MockFile::new("lib/rustlib/src/rust-src/foo.rs", b""),
-            ],
-        }],
+        components: vec![
+            MockComponentBuilder {
+                name: "rust-src".to_string(),
+                files: vec![MockFile::new("lib/rustlib/src/rust-src/foo.rs", b"")],
+            },
+        ],
     }
 }
 
 fn build_combined_installer(components: &[&MockInstallerBuilder]) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: components.iter().flat_map(|m| m.components.clone()).collect()
+        components: components
+            .iter()
+            .flat_map(|m| m.components.clone())
+            .collect(),
     }
 }
 
@@ -742,8 +891,9 @@ fn create_custom_toolchains(customdir: &Path) {
 }
 
 pub fn hard_link<A, B>(a: A, b: B) -> io::Result<()>
-    where A: AsRef<Path>,
-          B: AsRef<Path>,
+where
+    A: AsRef<Path>,
+    B: AsRef<Path>,
 {
     drop(fs::remove_file(b.as_ref()));
     fs::hard_link(a, b).map(|_| ())

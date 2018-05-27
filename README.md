@@ -54,7 +54,7 @@ configuration. Open a *new* shell and type the following:
 rustc --version
 ```
 
-If you see something like `rustc 1.7.0 (a5d1e7a59 2016-02-29)` then
+If you see something like `rustc 1.19.0 (0ade33941 2017-07-17)` then
 you are ready to Rust. If you decide Rust isn't your thing, you can
 completely remove it from your system by running `rustup self
 uninstall`.
@@ -500,6 +500,12 @@ If you need a more complex setup, rustup supports the convention used by
 the __curl__ program, documented in the ENVIRONMENT section of
 [its manual page][curlman].
 
+Note that some versions of `libcurl` apparently require you to drop the 
+`http://` or `https://` prefix in environment variables. For example, 
+`export http_proxy=proxy.example.com:1080` (and likewise for HTTPS). 
+If you are getting an SSL `unknown protocol` error from `rustup` via `libcurl`
+but the command-line `curl` command works fine, this may be the problem.
+
 [curlman]: https://curl.haxx.se/docs/manpage.html
 
 
@@ -519,6 +525,8 @@ Command | Description
 `rustup override set nightly-2015-04-01` | For the current directory, use a nightly from a specific date
 `rustup toolchain link my-toolchain "C:\RustInstallation"` | Install a custom toolchain by symlinking an existing installation
 `rustup show` | Show which toolchain will be used in the current directory
+`rustup toolchain uninstall nightly` | Uninstall a given toolchain
+`rustup toolchain help` | Show the `help` page for a subcommand (like `toolchain`) to see what actions are available on it
 
 ## Environment variables
 
@@ -612,6 +620,8 @@ additional software installation is necessary for basic use of
 the GNU build.
 
 [vs]: https://www.visualstudio.com/downloads
+
+You can fetch an older version from `https://static.rust-lang.org/rustup/archive/{rustup-version}/{target-triple}/rustup-init[.exe]`
 
 To install from source just run `cargo run --release`. Note that
 currently rustup only builds on nightly Rust, and that after

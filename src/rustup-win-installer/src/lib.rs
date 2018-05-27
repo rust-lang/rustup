@@ -1,12 +1,14 @@
 #![allow(non_snake_case)]
 
-extern crate winapi;
 extern crate rustup;
+extern crate winapi;
 
 use std::ffi::CString;
 use std::path::PathBuf;
 use std::collections::HashMap;
-use ::winapi::{HRESULT, PCSTR, UINT, LPCWSTR, LPWSTR, LPVOID};
+
+use winapi::shared::ntdef::{HRESULT, LPCWSTR, LPWSTR, PCSTR};
+use winapi::shared::minwindef::{LPVOID, UINT};
 
 pub type MSIHANDLE = u32;
 
@@ -15,8 +17,16 @@ pub const LOGMSG_VERBOSE: i32 = 1;
 pub const LOGMSG_STANDARD: i32 = 2;
 
 // TODO: share this with self_update.rs
-static TOOLS: &'static [&'static str]
-    = &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb", "rls"];
+static TOOLS: &'static [&'static str] = &[
+    "rustc",
+    "rustdoc",
+    "cargo",
+    "rust-lldb",
+    "rust-gdb",
+    "rls",
+    "rustfmt",
+    "cargo-fmt",
+];
 
 #[no_mangle]
 /// This is be run as a `deferred` action after `InstallFiles` on install and upgrade
@@ -86,7 +96,9 @@ fn from_wide_ptr(ptr: *const u16) -> String {
     use std::os::windows::ffi::OsStringExt;
     unsafe {
         assert!(!ptr.is_null());
-        let len = (0..std::isize::MAX).position(|i| *ptr.offset(i) == 0).unwrap();
+        let len = (0..std::isize::MAX)
+            .position(|i| *ptr.offset(i) == 0)
+            .unwrap();
         let slice = std::slice::from_raw_parts(ptr, len);
         OsString::from_wide(slice).to_string_lossy().into_owned()
     }
@@ -95,7 +107,10 @@ fn from_wide_ptr(ptr: *const u16) -> String {
 fn to_wide_chars(s: &str) -> Vec<u16> {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
-    OsStr::new(s).encode_wide().chain(Some(0).into_iter()).collect::<Vec<_>>()
+    OsStr::new(s)
+        .encode_wide()
+        .chain(Some(0).into_iter())
+        .collect::<Vec<_>>()
 }
 
 extern "system" {

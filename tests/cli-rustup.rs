@@ -1,20 +1,17 @@
 //! Test cases for new rustup UI
 
 extern crate rustup_dist;
-extern crate rustup_utils;
 extern crate rustup_mock;
+extern crate rustup_utils;
 extern crate tempdir;
 
 use std::fs;
 use std::env::consts::EXE_SUFFIX;
 use std::process;
 use rustup_utils::raw;
-use rustup_mock::clitools::{self, Config, Scenario,
-                            expect_ok, expect_ok_ex,
-                            expect_stderr_ok, expect_stdout_ok,
-                            expect_err,
-                            set_current_dist_date,
-                            this_host_triple};
+use rustup_mock::clitools::{self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok,
+                            expect_stdout_ok, set_current_dist_date, this_host_triple, Config,
+                            Scenario};
 
 macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
 
@@ -30,12 +27,17 @@ fn rustup_stable() {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "update", "stable"]);
         set_current_dist_date(config, "2015-01-02");
-        expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
-for_host!(r"
+        expect_ok_ex(
+            config,
+            &["rustup", "update", "--no-self-update"],
+            for_host!(
+                r"
   stable-{0} updated - 1.1.0 (hash-s-2)
 
-"),
-for_host!(r"info: syncing channel updates for 'stable-{0}'
+"
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
@@ -49,7 +51,9 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-"));
+"
+            ),
+        );
     });
 }
 
@@ -58,13 +62,20 @@ fn rustup_stable_no_change() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "update", "stable"]);
-        expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
-for_host!(r"
+        expect_ok_ex(
+            config,
+            &["rustup", "update", "--no-self-update"],
+            for_host!(
+                r"
   stable-{0} unchanged - 1.0.0 (hash-s-1)
 
-"),
-for_host!(r"info: syncing channel updates for 'stable-{0}'
-"));
+"
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
+"
+            ),
+        );
     });
 }
 
@@ -76,14 +87,19 @@ fn rustup_all_channels() {
         expect_ok(config, &["rustup", "update", "beta"]);
         expect_ok(config, &["rustup", "update", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
-        expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
-for_host!(r"
+        expect_ok_ex(
+            config,
+            &["rustup", "update", "--no-self-update"],
+            for_host!(
+                r"
    stable-{0} updated - 1.1.0 (hash-s-2)
      beta-{0} updated - 1.2.0 (hash-b-2)
   nightly-{0} updated - 1.3.0 (hash-n-2)
 
-"),
-for_host!(r"info: syncing channel updates for 'stable-{0}'
+"
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
@@ -125,7 +141,9 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-"));
+"
+            ),
+        );
     })
 }
 
@@ -138,14 +156,19 @@ fn rustup_some_channels_up_to_date() {
         expect_ok(config, &["rustup", "update", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["rustup", "update", "beta"]);
-        expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
-for_host!(r"
+        expect_ok_ex(
+            config,
+            &["rustup", "update", "--no-self-update"],
+            for_host!(
+                r"
    stable-{0} updated - 1.1.0 (hash-s-2)
    beta-{0} unchanged - 1.2.0 (hash-b-2)
   nightly-{0} updated - 1.3.0 (hash-n-2)
 
-"),
-for_host!(r"info: syncing channel updates for 'stable-{0}'
+"
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
@@ -174,7 +197,9 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
-"));
+"
+            ),
+        );
     })
 }
 
@@ -183,22 +208,30 @@ fn rustup_no_channels() {
     setup(&|config| {
         expect_ok(config, &["rustup", "update", "stable"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "stable"]);
-        expect_ok_ex(config, &["rustup", "update", "--no-self-update"],
-r"",
-r"info: no updatable toolchains installed
-");
+        expect_ok_ex(
+            config,
+            &["rustup", "update", "--no-self-update"],
+            r"",
+            r"info: no updatable toolchains installed
+",
+        );
     })
 }
 
 #[test]
 fn default() {
     setup(&|config| {
-        expect_ok_ex(config, &["rustup", "default", "nightly"],
-for_host!(r"
+        expect_ok_ex(
+            config,
+            &["rustup", "default", "nightly"],
+            for_host!(
+                r"
   nightly-{0} installed - 1.3.0 (hash-n-2)
 
-"),
-for_host!(r"info: syncing channel updates for 'nightly-{0}'
+"
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
@@ -209,7 +242,9 @@ info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: default toolchain set to 'nightly-{0}'
-"));
+"
+            ),
+        );
     });
 }
 
@@ -217,19 +252,24 @@ info: default toolchain set to 'nightly-{0}'
 fn rustup_xz() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_stderr_ok(config, &["rustup", "--verbose", "update", "nightly"],
-for_host!(r"dist/2015-01-01/rust-std-nightly-{0}.tar.xz"));
+        expect_stderr_ok(
+            config,
+            &["rustup", "--verbose", "update", "nightly"],
+            for_host!(r"dist/2015-01-01/rust-std-nightly-{0}.tar.xz"),
+        );
     });
 }
 
 #[test]
 fn add_target() {
     setup(&|config| {
-        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-                           &this_host_triple(), clitools::CROSS_ARCH1);
+        let path = format!(
+            "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+            &this_host_triple(),
+            clitools::CROSS_ARCH1
+        );
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add",
-                            clitools::CROSS_ARCH1]);
+        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
         assert!(config.rustupdir.join(path).exists());
     });
 }
@@ -237,14 +277,18 @@ fn add_target() {
 #[test]
 fn remove_target() {
     setup(&|config| {
-        let ref path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-                               &this_host_triple(), clitools::CROSS_ARCH1);
+        let ref path = format!(
+            "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+            &this_host_triple(),
+            clitools::CROSS_ARCH1
+        );
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add",
-                            clitools::CROSS_ARCH1]);
+        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
         assert!(config.rustupdir.join(path).exists());
-        expect_ok(config, &["rustup", "target", "remove",
-                            clitools::CROSS_ARCH1]);
+        expect_ok(
+            config,
+            &["rustup", "target", "remove", clitools::CROSS_ARCH1],
+        );
         assert!(!config.rustupdir.join(path).exists());
     });
 }
@@ -253,24 +297,50 @@ fn remove_target() {
 fn add_remove_multiple_targets() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add",
-                            clitools::CROSS_ARCH1,
-                            clitools::CROSS_ARCH2]);
-        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-                           &this_host_triple(), clitools::CROSS_ARCH1);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "target",
+                "add",
+                clitools::CROSS_ARCH1,
+                clitools::CROSS_ARCH2,
+            ],
+        );
+        let path = format!(
+            "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+            &this_host_triple(),
+            clitools::CROSS_ARCH1
+        );
         assert!(config.rustupdir.join(path).exists());
-        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-                           &this_host_triple(), clitools::CROSS_ARCH2);
+        let path = format!(
+            "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+            &this_host_triple(),
+            clitools::CROSS_ARCH2
+        );
         assert!(config.rustupdir.join(path).exists());
 
-        expect_ok(config, &["rustup", "target", "remove",
-                            clitools::CROSS_ARCH1,
-                            clitools::CROSS_ARCH2]);
-        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-                           &this_host_triple(), clitools::CROSS_ARCH1);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "target",
+                "remove",
+                clitools::CROSS_ARCH1,
+                clitools::CROSS_ARCH2,
+            ],
+        );
+        let path = format!(
+            "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+            &this_host_triple(),
+            clitools::CROSS_ARCH1
+        );
         assert!(!config.rustupdir.join(path).exists());
-        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-                           &this_host_triple(), clitools::CROSS_ARCH2);
+        let path = format!(
+            "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+            &this_host_triple(),
+            clitools::CROSS_ARCH2
+        );
         assert!(!config.rustupdir.join(path).exists());
     });
 }
@@ -279,19 +349,30 @@ fn add_remove_multiple_targets() {
 fn list_targets() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustup", "target", "list"],
-                         clitools::CROSS_ARCH1);
+        expect_stdout_ok(config, &["rustup", "target", "list"], clitools::CROSS_ARCH1);
     });
 }
 
 #[test]
 fn add_target_explicit() {
     setup(&|config| {
-        let path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-                           &this_host_triple(), clitools::CROSS_ARCH1);
+        let path = format!(
+            "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+            &this_host_triple(),
+            clitools::CROSS_ARCH1
+        );
         expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", "--toolchain", "nightly",
-                            clitools::CROSS_ARCH1]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "target",
+                "add",
+                "--toolchain",
+                "nightly",
+                clitools::CROSS_ARCH1,
+            ],
+        );
         assert!(config.rustupdir.join(path).exists());
     });
 }
@@ -299,14 +380,35 @@ fn add_target_explicit() {
 #[test]
 fn remove_target_explicit() {
     setup(&|config| {
-        let ref path = format!("toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
-                               &this_host_triple(), clitools::CROSS_ARCH1);
+        let ref path = format!(
+            "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+            &this_host_triple(),
+            clitools::CROSS_ARCH1
+        );
         expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", "--toolchain", "nightly",
-                            clitools::CROSS_ARCH1]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "target",
+                "add",
+                "--toolchain",
+                "nightly",
+                clitools::CROSS_ARCH1,
+            ],
+        );
         assert!(config.rustupdir.join(path).exists());
-        expect_ok(config, &["rustup", "target", "remove", "--toolchain", "nightly",
-                            clitools::CROSS_ARCH1]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "target",
+                "remove",
+                "--toolchain",
+                "nightly",
+                clitools::CROSS_ARCH1,
+            ],
+        );
         assert!(!config.rustupdir.join(path).exists());
     });
 }
@@ -315,8 +417,11 @@ fn remove_target_explicit() {
 fn list_targets_explicit() {
     setup(&|config| {
         expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(config, &["rustup", "target", "list", "--toolchain", "nightly"],
-                         clitools::CROSS_ARCH1);
+        expect_stdout_ok(
+            config,
+            &["rustup", "target", "list", "--toolchain", "nightly"],
+            clitools::CROSS_ARCH1,
+        );
     });
 }
 
@@ -325,17 +430,13 @@ fn link() {
     setup(&|config| {
         let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
-        expect_ok(config, &["rustup", "toolchain", "link", "custom",
-                            &path]);
+        expect_ok(config, &["rustup", "toolchain", "link", "custom", &path]);
         expect_ok(config, &["rustup", "default", "custom"]);
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-c-1");
-        expect_stdout_ok(config, &["rustup", "show"],
-                         "custom (default)");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-c-1");
+        expect_stdout_ok(config, &["rustup", "show"], "custom (default)");
         expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustup", "show"],
-                         "custom");
+        expect_stdout_ok(config, &["rustup", "show"], "custom");
     });
 }
 
@@ -356,14 +457,11 @@ fn fallback_cargo_calls_correct_rustc() {
         // Install a custom toolchain and a nightly toolchain for the cargo fallback
         let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
-        expect_ok(config, &["rustup", "toolchain", "link", "custom",
-                            &path]);
+        expect_ok(config, &["rustup", "toolchain", "link", "custom", &path]);
         expect_ok(config, &["rustup", "default", "custom"]);
         expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"],
-                         "hash-c-1");
-        expect_stdout_ok(config, &["cargo", "--version"],
-                         "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-c-1");
+        expect_stdout_ok(config, &["cargo", "--version"], "hash-n-2");
 
         assert!(rustc_path.exists());
 
@@ -371,20 +469,24 @@ fn fallback_cargo_calls_correct_rustc() {
         // We should be ultimately calling the custom rustc, according to the
         // RUSTUP_TOOLCHAIN variable set by the original "cargo" proxy, and
         // interpreted by the nested "rustc" proxy.
-        expect_stdout_ok(config, &["cargo", "--call-rustc"],
-                         "hash-c-1");
+        expect_stdout_ok(config, &["cargo", "--call-rustc"], "hash-c-1");
     });
 }
 
 #[test]
 fn show_toolchain_none() {
     setup(&|config| {
-        expect_ok_ex(config, &["rustup", "show"],
-for_host!(r"Default host: {0}
+        expect_ok_ex(
+            config,
+            &["rustup", "show"],
+            for_host!(
+                r"Default host: {0}
 
 no active toolchain
-"),
-r"");
+"
+            ),
+            r"",
+        );
     });
 }
 
@@ -392,13 +494,18 @@ r"");
 fn show_toolchain_default() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok_ex(config, &["rustup", "show"],
-for_host!(r"Default host: {0}
+        expect_ok_ex(
+            config,
+            &["rustup", "show"],
+            for_host!(
+                r"Default host: {0}
 
 nightly-{0} (default)
 1.3.0 (hash-n-2)
-"),
-r"");
+"
+            ),
+            r"",
+        );
     });
 }
 
@@ -407,8 +514,11 @@ fn show_multiple_toolchains() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "update", "stable"]);
-        expect_ok_ex(config, &["rustup", "show"],
-for_host!(r"Default host: {0}
+        expect_ok_ex(
+            config,
+            &["rustup", "show"],
+            for_host!(
+                r"Default host: {0}
 
 installed toolchains
 --------------------
@@ -422,22 +532,35 @@ active toolchain
 nightly-{0} (default)
 1.3.0 (hash-n-2)
 
-"),
-r"");
+"
+            ),
+            r"",
+        );
     });
 }
 
 #[test]
 fn show_multiple_targets() {
     // Using the MULTI_ARCH1 target doesn't work on i686 linux
-    if cfg!(target_os = "linux") && cfg!(target_arch = "x86") { return }
+    if cfg!(target_os = "linux") && cfg!(target_arch = "x86") {
+        return;
+    }
 
     clitools::setup(Scenario::MultiHost, &|config| {
-        expect_ok(config, &["rustup", "default",
-                            &format!("nightly-{}", clitools::MULTI_ARCH1)]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "default",
+                &format!("nightly-{}", clitools::MULTI_ARCH1),
+            ],
+        );
         expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH2]);
-        expect_ok_ex(config, &["rustup", "show"],
-&format!(r"Default host: {2}
+        expect_ok_ex(
+            config,
+            &["rustup", "show"],
+            &format!(
+                r"Default host: {2}
 
 installed targets for active toolchain
 --------------------------------------
@@ -451,23 +574,45 @@ active toolchain
 nightly-{0} (default)
 1.3.0 (xxxx-n-2)
 
-", clitools::MULTI_ARCH1, clitools::CROSS_ARCH2, this_host_triple()),
-r"");
+",
+                clitools::MULTI_ARCH1,
+                clitools::CROSS_ARCH2,
+                this_host_triple()
+            ),
+            r"",
+        );
     });
 }
 
 #[test]
 fn show_multiple_toolchains_and_targets() {
-    if cfg!(target_os = "linux") && cfg!(target_arch = "x86") { return }
+    if cfg!(target_os = "linux") && cfg!(target_arch = "x86") {
+        return;
+    }
 
     clitools::setup(Scenario::MultiHost, &|config| {
-        expect_ok(config, &["rustup", "default",
-                            &format!("nightly-{}", clitools::MULTI_ARCH1)]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "default",
+                &format!("nightly-{}", clitools::MULTI_ARCH1),
+            ],
+        );
         expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH2]);
-        expect_ok(config, &["rustup", "update",
-                            &format!("stable-{}", clitools::MULTI_ARCH1)]);
-        expect_ok_ex(config, &["rustup", "show"],
-&format!(r"Default host: {2}
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "update",
+                &format!("stable-{}", clitools::MULTI_ARCH1),
+            ],
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "show"],
+            &format!(
+                r"Default host: {2}
 
 installed toolchains
 --------------------
@@ -487,8 +632,13 @@ active toolchain
 nightly-{0} (default)
 1.3.0 (xxxx-n-2)
 
-", clitools::MULTI_ARCH1, clitools::CROSS_ARCH2, this_host_triple()),
-r"");
+",
+                clitools::MULTI_ARCH1,
+                clitools::CROSS_ARCH2,
+                this_host_triple()
+            ),
+            r"",
+        );
     });
 }
 
@@ -496,10 +646,15 @@ r"");
 fn list_default_toolchain() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok_ex(config, &["rustup", "toolchain", "list"],
-for_host!(r"nightly-{0} (default)
-"),
-r"");
+        expect_ok_ex(
+            config,
+            &["rustup", "toolchain", "list"],
+            for_host!(
+                r"nightly-{0} (default)
+"
+            ),
+            r"",
+        );
     });
 }
 
@@ -509,13 +664,20 @@ fn show_toolchain_override() {
     setup(&|config| {
         let cwd = config.current_dir();
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
-        expect_ok_ex(config, &["rustup", "show"],
-&format!(r"Default host: {0}
+        expect_ok_ex(
+            config,
+            &["rustup", "show"],
+            &format!(
+                r"Default host: {0}
 
 nightly-{0} (directory override for '{1}')
 1.3.0 (hash-n-2)
-", this_host_triple(), cwd.display()),
-r"");
+",
+                this_host_triple(),
+                cwd.display()
+            ),
+            r"",
+        );
     });
 }
 
@@ -531,8 +693,11 @@ fn show_toolchain_toolchain_file_override() {
 
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
-        expect_ok_ex(config, &["rustup", "show"],
-&format!(r"Default host: {0}
+        expect_ok_ex(
+            config,
+            &["rustup", "show"],
+            &format!(
+                r"Default host: {0}
 
 installed toolchains
 --------------------
@@ -546,8 +711,12 @@ active toolchain
 nightly-{0} (overridden by '{1}')
 1.3.0 (hash-n-2)
 
-", this_host_triple(), toolchain_file.display()),
-r"");
+",
+                this_host_triple(),
+                toolchain_file.display()
+            ),
+            r"",
+        );
     });
 }
 
@@ -567,8 +736,11 @@ fn show_toolchain_version_nested_file_override() {
 
         fs::create_dir_all(&subdir).unwrap();
         config.change_dir(&subdir, &|| {
-            expect_ok_ex(config, &["rustup", "show"],
-                         &format!(r"Default host: {0}
+            expect_ok_ex(
+                config,
+                &["rustup", "show"],
+                &format!(
+                    r"Default host: {0}
 
 installed toolchains
 --------------------
@@ -582,8 +754,12 @@ active toolchain
 nightly-{0} (overridden by '{1}')
 1.3.0 (hash-n-2)
 
-", this_host_triple(), toolchain_file.display()),
-                         r"");
+",
+                    this_host_triple(),
+                    toolchain_file.display()
+                ),
+                r"",
+            );
         });
     });
 }
@@ -606,11 +782,11 @@ fn show_toolchain_toolchain_file_override_not_installed() {
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
         let stderr = String::from_utf8(out.stderr).unwrap();
-        assert!(stderr.starts_with(
-                "error: override toolchain 'nightly' is not installed"));
-        assert!(stderr.contains(
-            &format!("the toolchain file at '{}' specifies an uninstalled toolchain",
-                     toolchain_file.display())));
+        assert!(stderr.starts_with("error: override toolchain 'nightly' is not installed"));
+        assert!(stderr.contains(&format!(
+            "the toolchain file at '{}' specifies an uninstalled toolchain",
+            toolchain_file.display()
+        )));
     });
 }
 
@@ -641,11 +817,16 @@ fn show_toolchain_env() {
         let out = cmd.output().unwrap();
         assert!(out.status.success());
         let stdout = String::from_utf8(out.stdout).unwrap();
-        assert_eq!(&stdout, for_host!(r"Default host: {0}
+        assert_eq!(
+            &stdout,
+            for_host!(
+                r"Default host: {0}
 
 nightly-{0} (environment override by RUSTUP_TOOLCHAIN)
 1.3.0 (hash-n-2)
-"));
+"
+            )
+        );
     });
 }
 
@@ -668,9 +849,11 @@ fn show_toolchain_env_not_installed() {
 #[test]
 fn set_default_host() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "set", "default-host", &this_host_triple()]);
-        expect_stdout_ok(config, &["rustup", "show"],
-                         for_host!("Default host: {0}"));
+        expect_ok(
+            config,
+            &["rustup", "set", "default-host", &this_host_triple()],
+        );
+        expect_stdout_ok(config, &["rustup", "show"], for_host!("Default host: {0}"));
     });
 }
 
@@ -678,8 +861,11 @@ fn set_default_host() {
 #[test]
 fn set_default_host_invalid_triple() {
     setup(&|config| {
-        expect_err(config, &["rustup", "set", "default-host", "foo"],
-                   "Invalid host triple");
+        expect_err(
+            config,
+            &["rustup", "set", "default-host", "foo"],
+            "Invalid host triple",
+        );
     });
 }
 
@@ -693,37 +879,46 @@ fn update_doesnt_update_non_tracking_channels() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         let stderr = String::from_utf8(out.stderr).unwrap();
-        assert!(!stderr.contains(
-            for_host!("syncing channel updates for 'nightly-2015-01-01-{}'")));
+        assert!(!stderr.contains(for_host!(
+            "syncing channel updates for 'nightly-2015-01-01-{}'"
+        )));
     });
 }
 
 #[test]
 fn toolchain_install_is_like_update() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "toolchain", "install" , "nightly"]);
-        expect_stdout_ok(config, &["rustup", "run", "nightly", "rustc", "--version"],
-                         "hash-n-2");
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+        expect_stdout_ok(
+            config,
+            &["rustup", "run", "nightly", "rustc", "--version"],
+            "hash-n-2",
+        );
     });
 }
 
 #[test]
 fn toolchain_install_is_like_update_except_that_bare_install_is_an_error() {
     setup(&|config| {
-        expect_err(config, &["rustup", "toolchain", "install"],
-                   "arguments were not provided");
+        expect_err(
+            config,
+            &["rustup", "toolchain", "install"],
+            "arguments were not provided",
+        );
     });
 }
 
 #[test]
 fn toolchain_update_is_like_update() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "toolchain", "update" , "nightly"]);
-        expect_stdout_ok(config, &["rustup", "run", "nightly", "rustc", "--version"],
-                         "hash-n-2");
+        expect_ok(config, &["rustup", "toolchain", "update", "nightly"]);
+        expect_stdout_ok(
+            config,
+            &["rustup", "run", "nightly", "rustc", "--version"],
+            "hash-n-2",
+        );
     });
 }
-
 
 #[test]
 fn toolchain_uninstall_is_like_uninstall() {
@@ -734,17 +929,18 @@ fn toolchain_uninstall_is_like_uninstall() {
         let out = cmd.output().unwrap();
         assert!(out.status.success());
         let stdout = String::from_utf8(out.stdout).unwrap();
-        assert!(!stdout.contains(
-            for_host!("'nightly-2015-01-01-{}'")));
-
+        assert!(!stdout.contains(for_host!("'nightly-2015-01-01-{}'")));
     });
 }
 
 #[test]
 fn toolchain_update_is_like_update_except_that_bare_install_is_an_error() {
     setup(&|config| {
-        expect_err(config, &["rustup", "toolchain", "update"],
-                   "arguments were not provided");
+        expect_err(
+            config,
+            &["rustup", "toolchain", "update"],
+            "arguments were not provided",
+        );
     });
 }
 
@@ -752,7 +948,7 @@ fn toolchain_update_is_like_update_except_that_bare_install_is_an_error() {
 fn proxy_toolchain_shorthand() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "toolchain", "update" , "nightly"]);
+        expect_ok(config, &["rustup", "toolchain", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
         expect_stdout_ok(config, &["rustc", "+stable", "--version"], "hash-s-2");
         expect_stdout_ok(config, &["rustc", "+nightly", "--version"], "hash-n-2");
@@ -764,8 +960,10 @@ fn add_component() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "component", "add", "rust-src"]);
-        let path = format!("toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
-                           this_host_triple());
+        let path = format!(
+            "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
+            this_host_triple()
+        );
         let path = config.rustupdir.join(path);
         assert!(path.exists());
     });
@@ -776,8 +974,10 @@ fn remove_component() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "component", "add", "rust-src"]);
-        let path = format!("toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
-                           this_host_triple());
+        let path = format!(
+            "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
+            this_host_triple()
+        );
         let path = config.rustupdir.join(path);
         assert!(path.exists());
         expect_ok(config, &["rustup", "component", "remove", "rust-src"]);
@@ -787,22 +987,28 @@ fn remove_component() {
 
 #[test]
 fn add_remove_multiple_components() {
-    let files = ["lib/rustlib/src/rust-src/foo.rs".to_owned(),
-                 format!("lib/rustlib/{}/analysis/libfoo.json", this_host_triple())];
+    let files = [
+        "lib/rustlib/src/rust-src/foo.rs".to_owned(),
+        format!("lib/rustlib/{}/analysis/libfoo.json", this_host_triple()),
+    ];
 
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "component", "add", "rust-src", "rust-analysis"]);
+        expect_ok(
+            config,
+            &["rustup", "component", "add", "rust-src", "rust-analysis"],
+        );
         for file in &files {
-            let path = format!("toolchains/nightly-{}/{}",
-                               this_host_triple(), file);
+            let path = format!("toolchains/nightly-{}/{}", this_host_triple(), file);
             let path = config.rustupdir.join(path);
             assert!(path.exists());
         }
-        expect_ok(config, &["rustup", "component", "remove", "rust-src", "rust-analysis"]);
+        expect_ok(
+            config,
+            &["rustup", "component", "remove", "rust-src", "rust-analysis"],
+        );
         for file in &files {
-            let path = format!("toolchains/nightly-{}/{}",
-                               this_host_triple(), file);
+            let path = format!("toolchains/nightly-{}/{}", this_host_triple(), file);
             let path = config.rustupdir.join(path);
             assert!(!path.parent().unwrap().exists());
         }
@@ -835,10 +1041,16 @@ fn multirust_dir_upgrade_rename_multirust_dir_to_rustup() {
         let multirust_dir_str = &format!("{}", multirust_dir.display());
 
         // First write data into ~/.multirust
-        run_no_home(config, &["rustup", "default", "stable"],
-                    &[("RUSTUP_HOME", multirust_dir_str)]);
-        let out = run_no_home(config, &["rustup", "toolchain", "list"],
-                              &[("RUSTUP_HOME", multirust_dir_str)]);
+        run_no_home(
+            config,
+            &["rustup", "default", "stable"],
+            &[("RUSTUP_HOME", multirust_dir_str)],
+        );
+        let out = run_no_home(
+            config,
+            &["rustup", "toolchain", "list"],
+            &[("RUSTUP_HOME", multirust_dir_str)],
+        );
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
         assert!(multirust_dir.exists());
@@ -851,7 +1063,12 @@ fn multirust_dir_upgrade_rename_multirust_dir_to_rustup() {
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
         assert!(multirust_dir.exists());
-        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
+        assert!(
+            fs::symlink_metadata(&multirust_dir)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
         assert!(rustup_dir.exists());
     });
 }
@@ -869,10 +1086,16 @@ fn multirust_dir_upgrade_old_rustup_exists() {
         let new_rustup_sh_version_file = rustup_sh_dir.join("rustup-version");
 
         // First write data into ~/.multirust
-        run_no_home(config, &["rustup", "default", "stable"],
-                    &[("RUSTUP_HOME", multirust_dir_str)]);
-        let out = run_no_home(config, &["rustup", "toolchain", "list"],
-                              &[("RUSTUP_HOME", multirust_dir_str)]);
+        run_no_home(
+            config,
+            &["rustup", "default", "stable"],
+            &[("RUSTUP_HOME", multirust_dir_str)],
+        );
+        let out = run_no_home(
+            config,
+            &["rustup", "toolchain", "list"],
+            &[("RUSTUP_HOME", multirust_dir_str)],
+        );
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
         assert!(multirust_dir.exists());
@@ -888,7 +1111,12 @@ fn multirust_dir_upgrade_old_rustup_exists() {
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
         assert!(multirust_dir.exists());
-        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
+        assert!(
+            fs::symlink_metadata(&multirust_dir)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
         assert!(rustup_dir.exists());
         assert!(!old_rustup_sh_version_file.exists());
         assert!(new_rustup_sh_version_file.exists());
@@ -909,10 +1137,16 @@ fn multirust_dir_upgrade_old_rustup_existsand_new_rustup_sh_exists() {
         let new_rustup_sh_version_file = rustup_sh_dir.join("rustup-version");
 
         // First write data into ~/.multirust
-        run_no_home(config, &["rustup", "default", "stable"],
-                    &[("RUSTUP_HOME", multirust_dir_str)]);
-        let out = run_no_home(config, &["rustup", "toolchain", "list"],
-                              &[("RUSTUP_HOME", multirust_dir_str)]);
+        run_no_home(
+            config,
+            &["rustup", "default", "stable"],
+            &[("RUSTUP_HOME", multirust_dir_str)],
+        );
+        let out = run_no_home(
+            config,
+            &["rustup", "toolchain", "list"],
+            &[("RUSTUP_HOME", multirust_dir_str)],
+        );
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
         assert!(multirust_dir.exists());
@@ -938,7 +1172,12 @@ fn multirust_dir_upgrade_old_rustup_existsand_new_rustup_sh_exists() {
 
         // .multirust is now a symlink to .rustup
         assert!(multirust_dir.exists());
-        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
+        assert!(
+            fs::symlink_metadata(&multirust_dir)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
 
         assert!(rustup_dir.exists());
         assert!(!old_rustup_sh_version_file.exists());
@@ -953,13 +1192,21 @@ fn multirust_upgrade_works_with_proxy() {
         let rustup_dir = config.homedir.join(".rustup");
 
         // Put data in ~/.multirust
-        run_no_home(config, &["rustup", "default", "stable"],
-                    &[("RUSTUP_HOME", &format!("{}", multirust_dir.display()))]);
+        run_no_home(
+            config,
+            &["rustup", "default", "stable"],
+            &[("RUSTUP_HOME", &format!("{}", multirust_dir.display()))],
+        );
 
         run_no_home(config, &["rustc", "--version"], &[]);
 
         assert!(multirust_dir.exists());
-        assert!(fs::symlink_metadata(&multirust_dir).unwrap().file_type().is_symlink());
+        assert!(
+            fs::symlink_metadata(&multirust_dir)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
         assert!(rustup_dir.exists());
     });
 }
@@ -1000,12 +1247,14 @@ fn file_override_subdir() {
     });
 }
 
-
 #[test]
 fn file_override_with_archive() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "nightly-2015-01-01"]);
+        expect_ok(
+            config,
+            &["rustup", "toolchain", "install", "nightly-2015-01-01"],
+        );
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
 
@@ -1058,7 +1307,6 @@ fn close_file_override_beats_far_directory_override() {
         });
     });
 }
-
 
 #[test]
 fn directory_override_doesnt_need_to_exist_unless_it_is_selected() {
@@ -1120,8 +1368,11 @@ fn bad_file_override() {
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "gumbo").unwrap();
 
-        expect_err(config, &["rustc", "--version"],
-                   "invalid channel name 'gumbo' in");
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "invalid channel name 'gumbo' in",
+        );
     });
 }
 
@@ -1132,7 +1383,10 @@ fn file_override_with_target_info() {
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly-x86_64-unknown-linux-gnu").unwrap();
 
-        expect_err(config, &["rustc", "--version"],
-                   "target triple in channel name 'nightly-x86_64-unknown-linux-gnu'");
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "target triple in channel name 'nightly-x86_64-unknown-linux-gnu'",
+        );
     });
 }
