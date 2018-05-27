@@ -238,6 +238,18 @@ pub fn expect_err_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str)
     }
 }
 
+pub fn expect_ok_contains(config: &Config, args: &[&str],
+                    stdout: &str, stderr: &str) {
+    let out = run(config, args[0], &args[1..], &[]);
+    if !out.ok || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
+        print_command(args, &out);
+        println!("expected.ok: {}", true);
+        print_indented("expected.stdout.contains", stdout);
+        print_indented("expected.stderr.contains", stderr);
+        panic!();
+    }
+}
+
 pub fn expect_timeout_ok(config: &Config, timeout: Duration, args: &[&str]) {
     let mut child = cmd(config, args[0], &args[1..])
         .stdout(Stdio::null())

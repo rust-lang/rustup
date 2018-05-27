@@ -302,30 +302,29 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
         process::exit(1);
     }
 
-    // More helpful advice, skip if -y
-    if !no_prompt {
-        let cargo_home = try!(canonical_cargo_home());
-        let msg = if !opts.no_modify_path {
-            if cfg!(unix) {
-                format!(post_install_msg_unix!(), cargo_home = cargo_home)
-            } else {
-                format!(post_install_msg_win!(), cargo_home = cargo_home)
-            }
+    let cargo_home = try!(canonical_cargo_home());
+    let msg = if !opts.no_modify_path {
+        if cfg!(unix) {
+            format!(post_install_msg_unix!(), cargo_home = cargo_home)
         } else {
-            if cfg!(unix) {
-                format!(
-                    post_install_msg_unix_no_modify_path!(),
-                    cargo_home = cargo_home
-                )
-            } else {
-                format!(
-                    post_install_msg_win_no_modify_path!(),
-                    cargo_home = cargo_home
-                )
-            }
-        };
-        term2::stdout().md(msg);
+            format!(post_install_msg_win!(), cargo_home = cargo_home)
+        }
+    } else {
+        if cfg!(unix) {
+            format!(
+                post_install_msg_unix_no_modify_path!(),
+                cargo_home = cargo_home
+            )
+        } else {
+            format!(
+                post_install_msg_win_no_modify_path!(),
+                cargo_home = cargo_home
+            )
+        }
+    };
+    term2::stdout().md(msg);
 
+    if !no_prompt {
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, require
         // the user to press a key to continue.

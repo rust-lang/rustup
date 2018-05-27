@@ -25,8 +25,9 @@ use std::path::Path;
 use std::fs;
 use std::process::Command;
 use remove_dir_all::remove_dir_all;
-use rustup_mock::clitools::{self, expect_err, expect_err_ex, expect_ok, expect_ok_ex,
-                            expect_stderr_ok, expect_stdout_ok, this_host_triple, Config, Scenario};
+use rustup_mock::clitools::{self, expect_err, expect_err_ex, expect_ok, expect_ok_contains,
+                            expect_ok_ex, expect_stderr_ok, expect_stdout_ok, this_host_triple,
+                            Config, Scenario};
 use rustup_mock::dist::calc_hash;
 use rustup_mock::{get_path, restore_path};
 use rustup_utils::{raw, utils};
@@ -813,10 +814,8 @@ fn as_rustup_setup() {
 #[test]
 fn first_install_exact() {
     setup(&|config| {
-        expect_ok_ex(
-            config,
-            &["rustup-init", "-y"],
-            r"
+        expect_ok_contains(config, &["rustup-init", "-y"],
+r"
   stable installed - 1.1.0 (hash-s-2)
 
 ",
@@ -842,14 +841,10 @@ info: default toolchain set to 'stable'
 fn reinstall_exact() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_ok_ex(
-            config,
-            &["rustup-init", "-y"],
-            r"
-",
-            r"info: updating existing rustup installation
-",
-        );
+        expect_stderr_ok(config, &["rustup-init", "-y"],
+r"info: updating existing rustup installation
+"
+                  );
     });
 }
 
