@@ -410,7 +410,7 @@ impl Cfg {
 
     pub fn toolchain_for_dir(&self, path: &Path) -> Result<(Toolchain, Option<OverrideReason>)> {
         self.find_override_toolchain_or_default(path)
-            .and_then(|r| r.ok_or("no default toolchain configured".into()))
+            .and_then(|r| r.ok_or("no default toolchain configured, set RUSTUP_HOME? see https://github.com/rust-lang-nursery/rustup.rs/wiki".into()))
     }
 
     pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
