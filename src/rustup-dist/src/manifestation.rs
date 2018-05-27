@@ -4,7 +4,7 @@
 use config::Config;
 use manifest::{Component, Manifest, TargetedPackage};
 use dist::{TargetTriple, DEFAULT_DIST_SERVER};
-use component::{Components, Transaction, TarGzPackage, TarXzPackage, Package};
+use component::{Components, Package, TarGzPackage, TarXzPackage, Transaction};
 use temp;
 use errors::*;
 use notifications::*;
@@ -24,7 +24,7 @@ enum Format {
 #[derive(Debug)]
 pub struct Manifestation {
     installation: Components,
-    target_triple: TargetTriple
+    target_triple: TargetTriple,
 }
 
 #[derive(Debug)]
@@ -43,23 +43,36 @@ impl Changes {
 
     fn check_invariants(&self, rust_target_package: &TargetedPackage, config: &Option<Config>) {
         for component_to_add in &self.add_extensions {
-            assert!(rust_target_package.extensions.contains(component_to_add),
-                    "package must contain extension to add");
-            assert!(!self.remove_extensions.contains(component_to_add),
-                    "can't both add and remove extensions");
+            assert!(
+                rust_target_package.extensions.contains(component_to_add),
+                "package must contain extension to add"
+            );
+            assert!(
+                !self.remove_extensions.contains(component_to_add),
+                "can't both add and remove extensions"
+            );
         }
         for component_to_remove in &self.remove_extensions {
-            assert!(rust_target_package.extensions.contains(component_to_remove),
-                    "package must contain extension to remove");
-            let config = config.as_ref().expect("removing extension on fresh install?");
-            assert!(config.components.contains(component_to_remove),
-                    "removing package that isn't installed");
+            assert!(
+                rust_target_package.extensions.contains(component_to_remove),
+                "package must contain extension to remove"
+            );
+            let config = config
+                .as_ref()
+                .expect("removing extension on fresh install?");
+            assert!(
+                config.components.contains(component_to_remove),
+                "removing package that isn't installed"
+            );
         }
     }
 }
 
 #[derive(PartialEq, Debug)]
-pub enum UpdateStatus { Changed, Unchanged }
+pub enum UpdateStatus {
+    Changed,
+    Unchanged,
+}
 
 impl Manifestation {
     /// Open the install prefix for updates from a distribution
@@ -99,7 +112,6 @@ impl Manifestation {
         download_cfg: &DownloadCfg,
         notify_handler: &Fn(Notification),
     ) -> Result<UpdateStatus> {
-
         // Some vars we're going to need a few times
         let temp_cfg = download_cfg.temp_cfg;
         let prefix = self.installation.prefix();
@@ -123,8 +135,8 @@ impl Manifestation {
 
         // Validate that the requested components are available
         match update.unavailable_components(new_manifest) {
-            Ok(_) => {},
-            _ if force_update => {},
+            Ok(_) => {}
+            _ if force_update => {}
             Err(e) => return Err(e),
         }
 
@@ -134,10 +146,11 @@ impl Manifestation {
         let mut things_to_install: Vec<(Component, Format, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
         for (component, format, url, hash) in update.components_urls_and_hashes(new_manifest)? {
-
-            notify_handler(Notification::DownloadingComponent(&component.pkg,
-                                                              &self.target_triple,
-                                                              component.target.as_ref()));
+            notify_handler(Notification::DownloadingComponent(
+                &component.pkg,
+                &self.target_triple,
+                component.target.as_ref(),
+            ));
             let url = if altered {
                 url.replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str())
             } else {
@@ -146,9 +159,11 @@ impl Manifestation {
 
             let url_url = try!(utils::parse_url(&url));
 
-            let dowloaded_file = try!(download_cfg.download(&url_url, &hash).chain_err(|| {
-                ErrorKind::ComponentDownloadFailed(component.clone())
-            }));
+            let dowloaded_file = try!(
+                download_cfg
+                    .download(&url_url, &hash)
+                    .chain_err(|| ErrorKind::ComponentDownloadFailed(component.clone()))
+            );
             things_downloaded.push(hash);
 
             things_to_install.push((component, format, dowloaded_file));
@@ -164,20 +179,22 @@ impl Manifestation {
 
         // Uninstall components
         for component in update.components_to_uninstall {
-
-            notify_handler(Notification::RemovingComponent(&component.pkg,
-                                                           &self.target_triple,
-                                                           component.target.as_ref()));
+            notify_handler(Notification::RemovingComponent(
+                &component.pkg,
+                &self.target_triple,
+                component.target.as_ref(),
+            ));
 
             tx = try!(self.uninstall_component(&component, tx, notify_handler.clone()));
         }
 
         // Install components
         for (component, format, installer_file) in things_to_install {
-
-            notify_handler(Notification::InstallingComponent(&component.pkg,
-                                                             &self.target_triple,
-                                                             component.target.as_ref()));
+            notify_handler(Notification::InstallingComponent(
+                &component.pkg,
+                &self.target_triple,
+                component.target.as_ref(),
+            ));
 
             let gz;
             let xz;
@@ -205,15 +222,17 @@ impl Manifestation {
                 return Err(ErrorKind::CorruptComponent(component.pkg.clone()).into());
             }
 
-            tx = try!(package.install(&self.installation,
-                                      name, Some(short_name),
-                                      tx));
+            tx = try!(package.install(&self.installation, name, Some(short_name), tx));
         }
 
         // Install new distribution manifest
         let ref new_manifest_str = new_manifest.clone().stringify();
         try!(tx.modify_file(rel_installed_manifest_path.to_owned()));
-        try!(utils::write_file("manifest", installed_manifest_path, new_manifest_str));
+        try!(utils::write_file(
+            "manifest",
+            installed_manifest_path,
+            new_manifest_str
+        ));
 
         // Write configuration.
         //
@@ -244,7 +263,10 @@ impl Manifestation {
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
-        let ref config_str = try!(utils::read_file("dist config", &prefix.path().join(&rel_config_path)));
+        let ref config_str = try!(utils::read_file(
+            "dist config",
+            &prefix.path().join(&rel_config_path)
+        ));
         let config = try!(Config::parse(config_str));
         try!(tx.remove_file("dist config", rel_config_path));
 
@@ -256,8 +278,12 @@ impl Manifestation {
         Ok(())
     }
 
-    fn uninstall_component<'a>(&self, component: &Component, mut tx: Transaction<'a>,
-                               notify_handler: &Fn(Notification)) -> Result<Transaction<'a>> {
+    fn uninstall_component<'a>(
+        &self,
+        component: &Component,
+        mut tx: Transaction<'a>,
+        notify_handler: &Fn(Notification),
+    ) -> Result<Transaction<'a>> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
@@ -301,27 +327,39 @@ impl Manifestation {
     }
 
     /// Installation using the legacy v1 manifest format
-    pub fn update_v1(&self,
-                     new_manifest: &[String],
-                     update_hash: Option<&Path>,
-                     temp_cfg: &temp::Cfg,
-                     notify_handler: &Fn(Notification)) -> Result<Option<String>> {
+    pub fn update_v1(
+        &self,
+        new_manifest: &[String],
+        update_hash: Option<&Path>,
+        temp_cfg: &temp::Cfg,
+        notify_handler: &Fn(Notification),
+    ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if try!(self.read_config()).is_some() {
-            return Err("the server unexpectedly provided an obsolete version of the distribution manifest".into());
+            return Err(
+                "the server unexpectedly provided an obsolete version of the distribution manifest"
+                    .into(),
+            );
         }
 
-        let url = new_manifest.iter().find(|u| u.contains(&format!("{}{}", self.target_triple, ".tar.gz")));
+        let url = new_manifest
+            .iter()
+            .find(|u| u.contains(&format!("{}{}", self.target_triple, ".tar.gz")));
         if url.is_none() {
-            return Err(format!("binary package was not provided for '{}'",
-                               self.target_triple.to_string()).into());
+            return Err(format!(
+                "binary package was not provided for '{}'",
+                self.target_triple.to_string()
+            ).into());
         }
         // Only replace once. The cost is inexpensive.
-        let url = url.unwrap().replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str());
+        let url = url.unwrap()
+            .replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str());
 
-        notify_handler(Notification::DownloadingComponent("rust",
-                                                          &self.target_triple,
-                                                          Some(&self.target_triple)));
+        notify_handler(Notification::DownloadingComponent(
+            "rust",
+            &self.target_triple,
+            Some(&self.target_triple),
+        ));
 
         use std::path::PathBuf;
         let dld_dir = PathBuf::from("bogus");
@@ -329,7 +367,7 @@ impl Manifestation {
             dist_root: "bogus",
             download_dir: &dld_dir,
             temp_cfg: temp_cfg,
-            notify_handler: notify_handler
+            notify_handler: notify_handler,
         };
 
         let dl = try!(dlcfg.download_and_check(&url, update_hash, ".tar.gz"));
@@ -340,9 +378,11 @@ impl Manifestation {
 
         let prefix = self.installation.prefix();
 
-        notify_handler(Notification::InstallingComponent("rust",
-                                                         &self.target_triple,
-                                                         Some(&self.target_triple)));
+        notify_handler(Notification::InstallingComponent(
+            "rust",
+            &self.target_triple,
+            Some(&self.target_triple),
+        ));
 
         // Begin transaction
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
@@ -356,9 +396,7 @@ impl Manifestation {
         let package = try!(TarGzPackage::new_file(&installer_file, temp_cfg));
 
         for component in package.components() {
-            tx = try!(package.install(&self.installation,
-                                      &component, None,
-                                      tx));
+            tx = try!(package.install(&self.installation, &component, None, tx));
         }
 
         // End transaction
@@ -371,13 +409,17 @@ impl Manifestation {
     // doesn't have a configuration or manifest-derived list of
     // component/target pairs. Uninstall it using the intaller's
     // component list before upgrading.
-    fn maybe_handle_v2_upgrade<'a>(&self,
-                                   config: &Option<Config>,
-                                   mut tx: Transaction<'a>) -> Result<Transaction<'a>> {
+    fn maybe_handle_v2_upgrade<'a>(
+        &self,
+        config: &Option<Config>,
+        mut tx: Transaction<'a>,
+    ) -> Result<Transaction<'a>> {
         let installed_components = try!(self.installation.list());
         let looks_like_v1 = config.is_none() && !installed_components.is_empty();
 
-        if !looks_like_v1 { return Ok(tx) }
+        if !looks_like_v1 {
+            return Ok(tx);
+        }
 
         for component in installed_components {
             tx = try!(component.uninstall(tx));
@@ -413,7 +455,10 @@ impl Update {
         changes.check_invariants(rust_target_package, &config);
 
         // The list of components already installed, empty if a new install
-        let starting_list = config.as_ref().map(|c| c.components.clone()).unwrap_or(Vec::new());
+        let starting_list = config
+            .as_ref()
+            .map(|c| c.components.clone())
+            .unwrap_or(Vec::new());
 
         let mut result = Update {
             components_to_uninstall: vec![],
@@ -446,7 +491,9 @@ impl Update {
         if just_modifying_existing_install {
             for existing_component in &starting_list {
                 if !result.final_component_list.contains(existing_component) {
-                    result.components_to_uninstall.push(existing_component.clone())
+                    result
+                        .components_to_uninstall
+                        .push(existing_component.clone())
                 }
             }
             for component in &result.final_component_list {
@@ -472,7 +519,7 @@ impl Update {
         starting_list: &[Component],
         rust_target_package: &TargetedPackage,
         new_manifest: &Manifest,
-        changes: &Changes
+        changes: &Changes,
     ) {
         // Add components required by the package, according to the
         // manifest
@@ -494,16 +541,20 @@ impl Update {
                 // old name and install a component with the new name
                 if new_manifest.renames.contains_key(&existing_component.pkg) {
                     let mut renamed_component = existing_component.clone();
-                    renamed_component.pkg = new_manifest.renames[&existing_component.pkg].to_owned();
-                    let is_already_included = self.final_component_list.contains(&renamed_component);
+                    renamed_component.pkg =
+                        new_manifest.renames[&existing_component.pkg].to_owned();
+                    let is_already_included =
+                        self.final_component_list.contains(&renamed_component);
                     if !is_already_included {
                         self.final_component_list.push(renamed_component);
                     }
                 } else {
-                    let is_already_included = self.final_component_list.contains(existing_component);
+                    let is_already_included =
+                        self.final_component_list.contains(existing_component);
                     if !is_already_included {
-                        let component_is_present = rust_target_package.extensions.contains(existing_component)
-                            || rust_target_package.components.contains(existing_component);
+                        let component_is_present =
+                            rust_target_package.extensions.contains(existing_component)
+                                || rust_target_package.components.contains(existing_component);
 
                         if component_is_present {
                             self.final_component_list.push(existing_component.clone());
@@ -523,30 +574,39 @@ impl Update {
     fn missing_essential_components(&self, target_triple: &TargetTriple) -> Result<()> {
         let missing_essential_components = ["rustc", "cargo"]
             .iter()
-            .filter_map(|pkg| if self.final_component_list.iter().any(|c| &c.pkg == pkg) {
-                None
-            } else {
-                Some(Component {
-                    pkg: pkg.to_string(),
-                    target: Some(target_triple.clone()),
-                })
+            .filter_map(|pkg| {
+                if self.final_component_list.iter().any(|c| &c.pkg == pkg) {
+                    None
+                } else {
+                    Some(Component {
+                        pkg: pkg.to_string(),
+                        target: Some(target_triple.clone()),
+                    })
+                }
             })
             .collect::<Vec<_>>();
 
         if !missing_essential_components.is_empty() {
-            return Err(ErrorKind::RequestedComponentsUnavailable(missing_essential_components).into());
+            return Err(
+                ErrorKind::RequestedComponentsUnavailable(missing_essential_components).into(),
+            );
         }
 
         Ok(())
     }
 
     fn unavailable_components(&self, new_manifest: &Manifest) -> Result<()> {
-        let mut unavailable_components: Vec<Component> = self.components_to_install.iter().filter(|c| {
-            use manifest::*;
-            let pkg: Option<&Package> = new_manifest.get_package(&c.pkg).ok();
-            let target_pkg: Option<&TargetedPackage> = pkg.and_then(|p| p.get_target(c.target.as_ref()).ok());
-            target_pkg.map(|tp| tp.available()) != Some(true)
-        }).cloned().collect();
+        let mut unavailable_components: Vec<Component> = self.components_to_install
+            .iter()
+            .filter(|c| {
+                use manifest::*;
+                let pkg: Option<&Package> = new_manifest.get_package(&c.pkg).ok();
+                let target_pkg: Option<&TargetedPackage> =
+                    pkg.and_then(|p| p.get_target(c.target.as_ref()).ok());
+                target_pkg.map(|tp| tp.available()) != Some(true)
+            })
+            .cloned()
+            .collect();
 
         unavailable_components.extend_from_slice(&self.missing_components);
 
@@ -558,20 +618,27 @@ impl Update {
     }
 
     /// Map components to urls and hashes
-    fn components_urls_and_hashes(&self, new_manifest: &Manifest) -> Result<Vec<(Component, Format, String, String)>> {
+    fn components_urls_and_hashes(
+        &self,
+        new_manifest: &Manifest,
+    ) -> Result<Vec<(Component, Format, String, String)>> {
         let mut components_urls_and_hashes = Vec::new();
         for component in &self.components_to_install {
             let package = try!(new_manifest.get_package(&component.pkg));
             let target_package = try!(package.get_target(component.target.as_ref()));
 
             let bins = target_package.bins.as_ref().expect("components available");
-            let c_u_h =
-                if let (Some(url), Some(hash)) = (bins.xz_url.clone(),
-                                                  bins.xz_hash.clone()) {
-                    (component.clone(), Format::Xz, url, hash)
-                } else {
-                    (component.clone(), Format::Gz, bins.url.clone(), bins.hash.clone())
-                };
+            let c_u_h = if let (Some(url), Some(hash)) = (bins.xz_url.clone(), bins.xz_hash.clone())
+            {
+                (component.clone(), Format::Xz, url, hash)
+            } else {
+                (
+                    component.clone(),
+                    Format::Gz,
+                    bins.url.clone(),
+                    bins.hash.clone(),
+                )
+            };
             components_urls_and_hashes.push(c_u_h);
         }
 

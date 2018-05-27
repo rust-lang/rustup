@@ -21,8 +21,10 @@ impl Config {
         }
 
         let components = try!(get_array(&mut table, "components", path));
-        let components = try!(Self::toml_to_components(components,
-                                                       &format!("{}{}.", path, "components")));
+        let components = try!(Self::toml_to_components(
+            components,
+            &format!("{}{}.", path, "components")
+        ));
 
         Ok(Config {
             config_version: version,
@@ -31,8 +33,10 @@ impl Config {
     }
     pub fn to_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
-        result.insert("config_version".to_owned(),
-                      toml::Value::String(self.config_version));
+        result.insert(
+            "config_version".to_owned(),
+            toml::Value::String(self.config_version),
+        );
         let components = Self::components_to_toml(self.components);
         if !components.is_empty() {
             result.insert("components".to_owned(), toml::Value::Array(components));

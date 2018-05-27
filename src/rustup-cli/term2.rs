@@ -5,7 +5,7 @@
 use std::io;
 use term;
 use rustup_utils::tty;
-use markdown::{Block, Span, ListItem};
+use markdown::{Block, ListItem, Span};
 use markdown::tokenize;
 
 pub use term::color;
@@ -16,11 +16,15 @@ pub trait Instantiable {
 }
 
 impl Instantiable for io::Stdout {
-    fn instance() -> Self { io::stdout() }
+    fn instance() -> Self {
+        io::stdout()
+    }
 }
 
 impl Instantiable for io::Stderr {
-    fn instance() -> Self { io::stderr() }
+    fn instance() -> Self {
+        io::stderr()
+    }
 }
 
 pub trait Isatty {
@@ -40,7 +44,8 @@ impl Isatty for io::Stderr {
 }
 
 pub struct Terminal<T>(Option<Box<term::Terminal<Output = T> + Send>>)
-    where T: Instantiable + Isatty + io::Write;
+where
+    T: Instantiable + Isatty + io::Write;
 pub type StdoutTerminal = Terminal<io::Stdout>;
 pub type StderrTerminal = Terminal<io::Stderr>;
 
@@ -57,7 +62,7 @@ struct LineWrapper<'a, T: io::Write + 'a> {
     indent: u32,
     margin: u32,
     pos: u32,
-    pub w: &'a mut T
+    pub w: &'a mut T,
 }
 
 impl<'a, T: io::Write + 'a> LineWrapper<'a, T> {
@@ -125,7 +130,7 @@ impl<'a, T: io::Write + 'a> LineWrapper<'a, T> {
             indent: indent,
             margin: margin,
             pos: indent,
-            w: w
+            w: w,
         }
     }
 }
@@ -133,14 +138,14 @@ impl<'a, T: io::Write + 'a> LineWrapper<'a, T> {
 // Handles the formatting of text
 struct LineFormatter<'a, T: Instantiable + Isatty + io::Write + 'a> {
     wrapper: LineWrapper<'a, Terminal<T>>,
-    attrs: Vec<Attr>
+    attrs: Vec<Attr>,
 }
 
 impl<'a, T: Instantiable + Isatty + io::Write + 'a> LineFormatter<'a, T> {
     fn new(w: &'a mut Terminal<T>, indent: u32, margin: u32) -> Self {
         LineFormatter {
             wrapper: LineWrapper::new(w, indent, margin),
-            attrs: Vec::new()
+            attrs: Vec::new(),
         }
     }
     fn push_attr(&mut self, attr: Attr) {
@@ -157,15 +162,15 @@ impl<'a, T: Instantiable + Isatty + io::Write + 'a> LineFormatter<'a, T> {
     fn do_spans(&mut self, spans: Vec<Span>) {
         for span in spans {
             match span {
-                Span::Break => {},
+                Span::Break => {}
                 Span::Text(text) => {
                     self.wrapper.write_span(&text);
-                },
+                }
                 Span::Code(code) => {
                     self.push_attr(Attr::Bold);
                     self.wrapper.write_word(&code);
                     self.pop_attr();
-                },
+                }
                 Span::Emphasis(spans) => {
                     self.push_attr(Attr::ForegroundColor(color::BRIGHT_RED));
                     self.do_spans(spans);
@@ -183,7 +188,7 @@ impl<'a, T: Instantiable + Isatty + io::Write + 'a> LineFormatter<'a, T> {
                 self.do_spans(spans);
                 self.wrapper.write_line();
                 self.pop_attr();
-            },
+            }
             Block::CodeBlock(code) => {
                 self.wrapper.write_line();
                 self.wrapper.indent += 2;
@@ -193,12 +198,12 @@ impl<'a, T: Instantiable + Isatty + io::Write + 'a> LineFormatter<'a, T> {
                     self.wrapper.write_line();
                 }
                 self.wrapper.indent -= 2;
-            },
+            }
             Block::Paragraph(spans) => {
                 self.wrapper.write_line();
                 self.do_spans(spans);
                 self.wrapper.write_line();
-            },
+            }
             Block::UnorderedList(items) => {
                 self.wrapper.write_line();
                 for item in items {
@@ -206,12 +211,10 @@ impl<'a, T: Instantiable + Isatty + io::Write + 'a> LineFormatter<'a, T> {
                     match item {
                         ListItem::Simple(spans) => {
                             self.do_spans(spans);
-                        },
-                        ListItem::Paragraph(blocks) => {
-                            for block in blocks {
-                                self.do_block(block);
-                            }
                         }
+                        ListItem::Paragraph(blocks) => for block in blocks {
+                            self.do_block(block);
+                        },
                     }
                     self.wrapper.write_line();
                     self.wrapper.indent -= 2;
@@ -244,7 +247,9 @@ impl<T: Instantiable + Isatty + io::Write> io::Write for Terminal<T> {
 
 impl<T: Instantiable + Isatty + io::Write> Terminal<T> {
     pub fn fg(&mut self, color: color::Color) -> Result<(), term::Error> {
-        if !T::isatty() { return Ok(()) }
+        if !T::isatty() {
+            return Ok(());
+        }
 
         if let Some(ref mut t) = self.0 {
             t.fg(color)
@@ -254,14 +259,16 @@ impl<T: Instantiable + Isatty + io::Write> Terminal<T> {
     }
 
     pub fn attr(&mut self, attr: Attr) -> Result<(), term::Error> {
-        if !T::isatty() { return Ok(()) }
+        if !T::isatty() {
+            return Ok(());
+        }
 
         if let Some(ref mut t) = self.0 {
             if let Err(e) = t.attr(attr) {
                 // If `attr` is not supported, try to emulate it
                 match attr {
                     Attr::Bold => t.fg(color::BRIGHT_WHITE),
-                    _ => Err(e)
+                    _ => Err(e),
                 }
             } else {
                 Ok(())
@@ -272,7 +279,9 @@ impl<T: Instantiable + Isatty + io::Write> Terminal<T> {
     }
 
     pub fn reset(&mut self) -> Result<(), term::Error> {
-        if !T::isatty() { return Ok(()) }
+        if !T::isatty() {
+            return Ok(());
+        }
 
         if let Some(ref mut t) = self.0 {
             t.reset()

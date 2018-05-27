@@ -2,7 +2,7 @@ use std::path::Path;
 use std::fmt::{self, Display};
 use temp;
 use rustup_utils;
-use rustup_utils::notify::{NotificationLevel};
+use rustup_utils::notify::NotificationLevel;
 use manifest::Component;
 use dist::TargetTriple;
 use errors::*;
@@ -51,19 +51,24 @@ impl<'a> Notification<'a> {
         match *self {
             Temp(ref n) => n.level(),
             Utils(ref n) => n.level(),
-            ChecksumValid(_) | NoUpdateHash(_) |
-            FileAlreadyDownloaded |
-            DownloadingLegacyManifest  => NotificationLevel::Verbose,
-            Extracting(_, _) | SignatureValid(_)  |
-            DownloadingComponent(_, _, _) |
-            InstallingComponent(_, _, _) |
-            RemovingComponent(_, _, _) |
-            ComponentAlreadyInstalled(_)  |
-            ManifestChecksumFailedHack |
-            RollingBack | DownloadingManifest(_) |
-            DownloadedManifest(_, _) => NotificationLevel::Info,
-            CantReadUpdateHash(_) | ExtensionNotInstalled(_) |
-            MissingInstalledComponent(_) | CachedFileChecksumFailed => NotificationLevel::Warn,
+            ChecksumValid(_)
+            | NoUpdateHash(_)
+            | FileAlreadyDownloaded
+            | DownloadingLegacyManifest => NotificationLevel::Verbose,
+            Extracting(_, _)
+            | SignatureValid(_)
+            | DownloadingComponent(_, _, _)
+            | InstallingComponent(_, _, _)
+            | RemovingComponent(_, _, _)
+            | ComponentAlreadyInstalled(_)
+            | ManifestChecksumFailedHack
+            | RollingBack
+            | DownloadingManifest(_)
+            | DownloadedManifest(_, _) => NotificationLevel::Info,
+            CantReadUpdateHash(_)
+            | ExtensionNotInstalled(_)
+            | MissingInstalledComponent(_)
+            | CachedFileChecksumFailed => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
         }
     }
@@ -79,22 +84,22 @@ impl<'a> Display for Notification<'a> {
             ComponentAlreadyInstalled(ref c) => {
                 write!(f, "component {} is up to date", c.description())
             }
-            CantReadUpdateHash(path) => {
-                write!(f,
-                       "can't read update hash file: '{}', can't skip update...",
-                       path.display())
-            }
+            CantReadUpdateHash(path) => write!(
+                f,
+                "can't read update hash file: '{}', can't skip update...",
+                path.display()
+            ),
             NoUpdateHash(path) => write!(f, "no update hash at: '{}'", path.display()),
             ChecksumValid(_) => write!(f, "checksum passed"),
             SignatureValid(_) => write!(f, "signature valid"),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
             RollingBack => write!(f, "rolling back changes"),
-            ExtensionNotInstalled(c) => {
-                write!(f, "extension '{}' was not installed", c.name())
-            }
+            ExtensionNotInstalled(c) => write!(f, "extension '{}' was not installed", c.name()),
             NonFatalError(e) => write!(f, "{}", e),
-            MissingInstalledComponent(c) => write!(f, "during uninstall component {} was not found", c),
+            MissingInstalledComponent(c) => {
+                write!(f, "during uninstall component {} was not found", c)
+            }
             DownloadingComponent(c, h, t) => {
                 if Some(h) == t || t.is_none() {
                     write!(f, "downloading component '{}'", c)
@@ -117,10 +122,16 @@ impl<'a> Display for Notification<'a> {
                 }
             }
             DownloadingManifest(t) => write!(f, "syncing channel updates for '{}'", t),
-            DownloadedManifest(date, Some(version)) => write!(f, "latest update on {}, rust version {}", date, version),
-            DownloadedManifest(date, None) => write!(f, "latest update on {}, no rust version", date),
+            DownloadedManifest(date, Some(version)) => {
+                write!(f, "latest update on {}, rust version {}", date, version)
+            }
+            DownloadedManifest(date, None) => {
+                write!(f, "latest update on {}, no rust version", date)
+            }
             DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
-            ManifestChecksumFailedHack => write!(f, "update not yet available, sorry! try again later"),
+            ManifestChecksumFailedHack => {
+                write!(f, "update not yet available, sorry! try again later")
+            }
         }
     }
 }

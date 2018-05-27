@@ -4,8 +4,8 @@ use rustup_dist;
 use rustup_dist::download::DownloadCfg;
 use rustup_utils::utils;
 use rustup_dist::prefix::InstallPrefix;
-use rustup_dist::dist::{ToolchainDesc};
-use rustup_dist::manifestation::{Manifestation, Changes};
+use rustup_dist::dist::ToolchainDesc;
+use rustup_dist::manifestation::{Changes, Manifestation};
 use rustup_dist::manifest::Component;
 use config::Cfg;
 use env_var;
@@ -54,9 +54,7 @@ impl<'a> Toolchain<'a> {
             name: resolved_name,
             path: path.clone(),
             telemetry: Telemetry::new(cfg.rustup_dir.join("telemetry")),
-            dist_handler: Box::new(move |n| {
-                (cfg.notify_handler)(n.into())
-            })
+            dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
         })
     }
     pub fn name(&self) -> &str {
@@ -70,7 +68,9 @@ impl<'a> Toolchain<'a> {
     }
     fn is_symlink(&self) -> bool {
         use std::fs;
-        fs::symlink_metadata(&self.path).map(|m| m.file_type().is_symlink()).unwrap_or(false)
+        fs::symlink_metadata(&self.path)
+            .map(|m| m.file_type().is_symlink())
+            .unwrap_or(false)
     }
     pub fn exists(&self) -> bool {
         // HACK: linked toolchains are symlinks, and, contrary to what std docs
@@ -96,8 +96,7 @@ impl<'a> Toolchain<'a> {
         if let Some(update_hash) = try!(self.update_hash()) {
             try!(utils::remove_file("update hash", &update_hash));
         }
-        let result = install::uninstall(&self.path,
-                                        &|n| (self.cfg.notify_handler)(n.into()));
+        let result = install::uninstall(&self.path, &|n| (self.cfg.notify_handler)(n.into()));
         if !self.exists() {
             (self.cfg.notify_handler)(Notification::UninstalledToolchain(&self.name));
         }
@@ -111,10 +110,9 @@ impl<'a> Toolchain<'a> {
         } else {
             (self.cfg.notify_handler)(Notification::InstallingToolchain(&self.name));
         }
-        (self.cfg.notify_handler)
-            (Notification::ToolchainDirectory(&self.path, &self.name));
-        let updated = try!(install_method.run(&self.path,
-                                              &|n| (self.cfg.notify_handler)(n.into())));
+        (self.cfg.notify_handler)(Notification::ToolchainDirectory(&self.path, &self.name));
+        let updated =
+            try!(install_method.run(&self.path, &|n| (self.cfg.notify_handler)(n.into())));
 
         if !updated {
             (self.cfg.notify_handler)(Notification::UpdateHashMatches);
@@ -143,9 +141,9 @@ impl<'a> Toolchain<'a> {
     }
     fn is_valid_install_method(&self, install_method: InstallMethod) -> bool {
         match install_method {
-            InstallMethod::Copy(_) |
-            InstallMethod::Link(_) |
-            InstallMethod::Installer(..) => self.is_custom(),
+            InstallMethod::Copy(_) | InstallMethod::Link(_) | InstallMethod::Installer(..) => {
+                self.is_custom()
+            }
             InstallMethod::Dist(..) => !self.is_custom(),
         }
     }
@@ -175,10 +173,12 @@ impl<'a> Toolchain<'a> {
 
     pub fn install_from_dist_inner(&self, force_update: bool) -> Result<UpdateStatus> {
         let update_hash = try!(self.update_hash());
-        self.install(InstallMethod::Dist(&try!(self.desc()),
-                                         update_hash.as_ref().map(|p| &**p),
-                                         self.download_cfg(),
-                                         force_update))
+        self.install(InstallMethod::Dist(
+            &try!(self.desc()),
+            update_hash.as_ref().map(|p| &**p),
+            self.download_cfg(),
+            force_update,
+        ))
     }
 
     pub fn install_from_dist_with_telemetry(&self, force_update: bool) -> Result<UpdateStatus> {
@@ -186,8 +186,10 @@ impl<'a> Toolchain<'a> {
 
         match result {
             Ok(us) => {
-                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name().to_string() ,
-                                                           success: true };
+                let te = TelemetryEvent::ToolchainUpdate {
+                    toolchain: self.name().to_string(),
+                    success: true,
+                };
                 match self.telemetry.log_telemetry(te) {
                     Ok(_) => Ok(us),
                     Err(e) => {
@@ -197,8 +199,10 @@ impl<'a> Toolchain<'a> {
                 }
             }
             Err(e) => {
-                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name().to_string() ,
-                                                           success: true };
+                let te = TelemetryEvent::ToolchainUpdate {
+                    toolchain: self.name().to_string(),
+                    success: true,
+                };
                 let _ = self.telemetry.log_telemetry(te).map_err(|xe| {
                     (self.cfg.notify_handler)(Notification::TelemetryCleanupError(&xe));
                 });
@@ -209,21 +213,29 @@ impl<'a> Toolchain<'a> {
 
     pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
         let update_hash = try!(self.update_hash());
-        self.install_if_not_installed(InstallMethod::Dist(&try!(self.desc()),
-                                                          update_hash.as_ref().map(|p| &**p),
-                                                          self.download_cfg(),
-                                                          false))
+        self.install_if_not_installed(InstallMethod::Dist(
+            &try!(self.desc()),
+            update_hash.as_ref().map(|p| &**p),
+            self.download_cfg(),
+            false,
+        ))
     }
     pub fn is_custom(&self) -> bool {
         ToolchainDesc::from_str(&self.name).is_err()
     }
     pub fn is_tracking(&self) -> bool {
-        ToolchainDesc::from_str(&self.name).ok().map(|d| d.is_tracking()) == Some(true)
+        ToolchainDesc::from_str(&self.name)
+            .ok()
+            .map(|d| d.is_tracking()) == Some(true)
     }
 
     fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
-            Err(ErrorKind::Dist(::rustup_dist::ErrorKind::InvalidCustomToolchainName(self.name.to_string())).into())
+            Err(
+                ErrorKind::Dist(::rustup_dist::ErrorKind::InvalidCustomToolchainName(
+                    self.name.to_string(),
+                )).into(),
+            )
         } else {
             Ok(())
         }
@@ -240,12 +252,12 @@ impl<'a> Toolchain<'a> {
             let installer_str = installer.to_str().unwrap_or("bogus");
             match installer_str.rfind('.') {
                 Some(i) => {
-                    let extension = &installer_str[i+1..];
+                    let extension = &installer_str[i + 1..];
                     if extension != "gz" {
                         return Err(ErrorKind::BadInstallerType(extension.to_string()).into());
                     }
                 }
-                None => return Err(ErrorKind::BadInstallerType(String::from("(none)")).into())
+                None => return Err(ErrorKind::BadInstallerType(String::from("(none)")).into()),
             }
 
             // FIXME: Pretty hacky
@@ -255,14 +267,15 @@ impl<'a> Toolchain<'a> {
             let url = Url::parse(installer_str).ok();
             let url = if is_url { url } else { None };
             if let Some(url) = url {
-
                 // Download to a local file
                 let local_installer = try!(self.cfg.temp_cfg.new_file_with_ext("", ".tar.gz"));
-                try!(utils::download_file(&url,
-                                          &local_installer,
-                                          None,
-                                          &|n| (self.cfg.notify_handler)(n.into())));
-                try!(self.install(InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg)));
+                try!(utils::download_file(&url, &local_installer, None, &|n| {
+                    (self.cfg.notify_handler)(n.into())
+                }));
+                try!(self.install(InstallMethod::Installer(
+                    &local_installer,
+                    &self.cfg.temp_cfg
+                )));
             } else {
                 // If installer is a filename
 
@@ -270,7 +283,10 @@ impl<'a> Toolchain<'a> {
                 let local_installer = Path::new(installer);
 
                 // Install from file
-                try!(self.install(InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg)));
+                try!(self.install(InstallMethod::Installer(
+                    &local_installer,
+                    &self.cfg.temp_cfg
+                )));
             }
         }
 
@@ -320,13 +336,15 @@ impl<'a> Toolchain<'a> {
         let path = if utils::is_file(&bin_path) {
             &bin_path
         } else {
-            let recursion_count = env::var("RUST_RECURSION_COUNT").ok()
-                .and_then(|s| s.parse().ok()).unwrap_or(0);
+            let recursion_count = env::var("RUST_RECURSION_COUNT")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0);
             if recursion_count > env_var::RUST_RECURSION_COUNT_MAX - 1 {
-                return Err(ErrorKind::BinaryNotFound(self.name.clone(),
-                                                     binary.to_string_lossy()
-                                                           .into())
-                            .into())
+                return Err(ErrorKind::BinaryNotFound(
+                    self.name.clone(),
+                    binary.to_string_lossy().into(),
+                ).into());
             }
             Path::new(&binary)
         };
@@ -337,8 +355,11 @@ impl<'a> Toolchain<'a> {
 
     // Create a command as a fallback for another toolchain. This is used
     // to give custom toolchains access to cargo
-    pub fn create_fallback_command<T: AsRef<OsStr>>(&self, binary: T,
-                                                    primary_toolchain: &Toolchain) -> Result<Command> {
+    pub fn create_fallback_command<T: AsRef<OsStr>>(
+        &self,
+        binary: T,
+        primary_toolchain: &Toolchain,
+    ) -> Result<Command> {
         // With the hacks below this only works for cargo atm
         assert!(binary.as_ref() == "cargo" || binary.as_ref() == "cargo.exe");
 
@@ -365,15 +386,21 @@ impl<'a> Toolchain<'a> {
         let exe_path = if cfg!(windows) {
             use std::fs;
             let fallback_dir = self.cfg.rustup_dir.join("fallback");
-            try!(fs::create_dir_all(&fallback_dir)
-                 .chain_err(|| "unable to create dir to hold fallback exe"));
+            try!(
+                fs::create_dir_all(&fallback_dir)
+                    .chain_err(|| "unable to create dir to hold fallback exe")
+            );
             let fallback_file = fallback_dir.join("cargo.exe");
             if fallback_file.exists() {
-                try!(fs::remove_file(&fallback_file)
-                     .chain_err(|| "unable to unlink old fallback exe"));
+                try!(
+                    fs::remove_file(&fallback_file)
+                        .chain_err(|| "unable to unlink old fallback exe")
+                );
             }
-            try!(fs::hard_link(&src_file, &fallback_file)
-                 .chain_err(|| "unable to hard link fallback exe"));
+            try!(
+                fs::hard_link(&src_file, &fallback_file)
+                    .chain_err(|| "unable to hard link fallback exe")
+            );
             fallback_file
         } else {
             src_file
@@ -464,8 +491,10 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
-                                 .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
+        let ref toolchain = try!(
+            ToolchainDesc::from_str(toolchain)
+                .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))
+        );
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 
@@ -476,20 +505,29 @@ impl<'a> Toolchain<'a> {
             // toolchain's target triple.
             let mut res = Vec::new();
 
-            let rust_pkg = manifest.packages.get("rust")
+            let rust_pkg = manifest
+                .packages
+                .get("rust")
                 .expect("manifest should cantain a rust package");
-            let targ_pkg = rust_pkg.targets.get(&toolchain.target)
+            let targ_pkg = rust_pkg
+                .targets
+                .get(&toolchain.target)
                 .expect("installed manifest should have a known target");
 
             for component in &targ_pkg.components {
-                let installed = config.as_ref()
+                let installed = config
+                    .as_ref()
                     .map(|c| c.components.contains(component))
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
-                let component_pkg = manifest.get_package(&component.pkg)
-                    .expect(&format!("manifest should contain component {}", &component.pkg));
-                let component_target_pkg = component_pkg.targets.get(&toolchain.target)
+                let component_pkg = manifest.get_package(&component.pkg).expect(&format!(
+                    "manifest should contain component {}",
+                    &component.pkg
+                ));
+                let component_target_pkg = component_pkg
+                    .targets
+                    .get(&toolchain.target)
                     .expect("component should have target toolchain");
 
                 res.push(ComponentStatus {
@@ -501,14 +539,19 @@ impl<'a> Toolchain<'a> {
             }
 
             for extension in &targ_pkg.extensions {
-                let installed = config.as_ref()
+                let installed = config
+                    .as_ref()
                     .map(|c| c.components.contains(extension))
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
-                let extension_pkg = manifest.get_package(&extension.pkg)
-                    .expect(&format!("manifest should contain extension {}", &extension.pkg));
-                let extension_target_pkg = extension_pkg.targets.get(&toolchain.target)
+                let extension_pkg = manifest.get_package(&extension.pkg).expect(&format!(
+                    "manifest should contain extension {}",
+                    &extension.pkg
+                ));
+                let extension_target_pkg = extension_pkg
+                    .targets
+                    .get(&toolchain.target)
                     .expect("extension should have target toolchain");
 
                 res.push(ComponentStatus {
@@ -539,8 +582,10 @@ impl<'a> Toolchain<'a> {
 
         match output {
             Ok(_) => {
-                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(),
-                                                           success: true };
+                let te = TelemetryEvent::ToolchainUpdate {
+                    toolchain: self.name.to_owned(),
+                    success: true,
+                };
 
                 match self.telemetry.log_telemetry(te) {
                     Ok(_) => Ok(()),
@@ -549,10 +594,12 @@ impl<'a> Toolchain<'a> {
                         Ok(())
                     }
                 }
-            },
+            }
             Err(e) => {
-                let te = TelemetryEvent::ToolchainUpdate { toolchain: self.name.to_owned(),
-                                                           success: false };
+                let te = TelemetryEvent::ToolchainUpdate {
+                    toolchain: self.name.to_owned(),
+                    success: false,
+                };
 
                 let _ = self.telemetry.log_telemetry(te).map_err(|xe| {
                     (self.cfg.notify_handler)(Notification::TelemetryCleanupError(&xe));
@@ -572,42 +619,56 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
-                                 .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
+        let ref toolchain = try!(
+            ToolchainDesc::from_str(toolchain)
+                .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))
+        );
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {
-
             // Validate the component name
-            let rust_pkg = manifest.packages.get("rust")
+            let rust_pkg = manifest
+                .packages
+                .get("rust")
                 .expect("manifest should cantain a rust package");
-            let targ_pkg = rust_pkg.targets.get(&toolchain.target)
+            let targ_pkg = rust_pkg
+                .targets
+                .get(&toolchain.target)
                 .expect("installed manifest should have a known target");
 
             if targ_pkg.components.contains(&component) {
-                return Err(ErrorKind::AddingRequiredComponent(self.name.to_string(), component).into());
+                return Err(
+                    ErrorKind::AddingRequiredComponent(self.name.to_string(), component).into(),
+                );
             }
 
             if !targ_pkg.extensions.contains(&component) {
-                let wildcard_component = Component { target: None, ..component.clone() };
+                let wildcard_component = Component {
+                    target: None,
+                    ..component.clone()
+                };
                 if targ_pkg.extensions.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
-                    return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).into());
+                    return Err(
+                        ErrorKind::UnknownComponent(self.name.to_string(), component).into(),
+                    );
                 }
             }
 
             let changes = Changes {
                 add_extensions: vec![component],
-                remove_extensions: vec![]
+                remove_extensions: vec![],
             };
 
-            try!(manifestation.update(&manifest,
-                                      changes,
-                                      false,
-                                      &self.download_cfg(),
-                                      self.download_cfg().notify_handler.clone()));
+            try!(manifestation.update(
+                &manifest,
+                changes,
+                false,
+                &self.download_cfg(),
+                self.download_cfg().notify_handler.clone()
+            ));
 
             Ok(())
         } else {
@@ -621,43 +682,57 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = try!(ToolchainDesc::from_str(toolchain)
-                                 .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string())));
+        let ref toolchain = try!(
+            ToolchainDesc::from_str(toolchain)
+                .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))
+        );
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
 
         if let Some(manifest) = try!(manifestation.load_manifest()) {
-
             // Validate the component name
-            let rust_pkg = manifest.packages.get("rust")
+            let rust_pkg = manifest
+                .packages
+                .get("rust")
                 .expect("manifest should cantain a rust package");
-            let targ_pkg = rust_pkg.targets.get(&toolchain.target)
+            let targ_pkg = rust_pkg
+                .targets
+                .get(&toolchain.target)
                 .expect("installed manifest should have a known target");
 
             if targ_pkg.components.contains(&component) {
-                return Err(ErrorKind::RemovingRequiredComponent(self.name.to_string(), component).into());
+                return Err(
+                    ErrorKind::RemovingRequiredComponent(self.name.to_string(), component).into(),
+                );
             }
 
             let dist_config = try!(manifestation.read_config()).unwrap();
             if !dist_config.components.contains(&component) {
-                let wildcard_component = Component { target: None, ..component.clone() };
+                let wildcard_component = Component {
+                    target: None,
+                    ..component.clone()
+                };
                 if dist_config.components.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
-                    return Err(ErrorKind::UnknownComponent(self.name.to_string(), component).into());
+                    return Err(
+                        ErrorKind::UnknownComponent(self.name.to_string(), component).into(),
+                    );
                 }
             }
 
             let changes = Changes {
                 add_extensions: vec![],
-                remove_extensions: vec![component]
+                remove_extensions: vec![component],
             };
 
-            try!(manifestation.update(&manifest,
-                                      changes,
-                                      false,
-                                      &self.download_cfg(),
-                                      self.download_cfg().notify_handler.clone()));
+            try!(manifestation.update(
+                &manifest,
+                changes,
+                false,
+                &self.download_cfg(),
+                self.download_cfg().notify_handler.clone()
+            ));
 
             Ok(())
         } else {

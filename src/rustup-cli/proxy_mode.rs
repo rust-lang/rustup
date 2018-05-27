@@ -1,5 +1,5 @@
 use common::set_globals;
-use rustup::{Cfg};
+use rustup::Cfg;
 use errors::*;
 use rustup_utils::utils;
 use rustup::command::run_command_for_dir;
@@ -23,14 +23,13 @@ pub fn main() -> Result<()> {
 
     // Check for a toolchain specifier.
     let arg1 = args.next();
-    let toolchain = arg1.as_ref()
-        .and_then(|arg1| {
-            if arg1.starts_with('+') {
-                Some(&arg1[1..])
-            } else {
-                None
-            }
-        });
+    let toolchain = arg1.as_ref().and_then(|arg1| {
+        if arg1.starts_with('+') {
+            Some(&arg1[1..])
+        } else {
+            None
+        }
+    });
 
     // Build command args now while we know whether or not to skip arg 1.
     let cmd_args: Vec<_> = if toolchain.is_none() {

@@ -60,7 +60,8 @@ error_chain! {
             dest: PathBuf,
         } {
             description("could not rename file")
-            display("could not rename {} file from '{}' to '{}'", name, src.display(), dest.display())
+            display("could not rename {} file from '{}' to '{}'",
+                name, src.display(), dest.display())
         }
         RenamingDirectory {
             name: &'static str,

@@ -2,5 +2,6 @@
 /target
 /Cargo.lock
 /.settings
+/.idea/
 *~
 /**/target
