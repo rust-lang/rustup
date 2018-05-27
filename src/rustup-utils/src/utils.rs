@@ -214,13 +214,13 @@ fn download_file_(
         (Backend::Curl, Notification::UsingCurl)
     };
     notify_handler(notification);
-    try!(download_to_path_with_backend(
+    download_to_path_with_backend(
         backend,
         url,
         path,
         resume_from_partial,
         Some(callback)
-    ));
+    )?;
 
     notify_handler(Notification::DownloadFinished);
 
@@ -370,11 +370,9 @@ pub fn make_executable(path: &Path) -> Result<()> {
     fn inner(path: &Path) -> Result<()> {
         use std::os::unix::fs::PermissionsExt;
 
-        let metadata = try!(
-            fs::metadata(path).chain_err(|| ErrorKind::SettingPermissions {
-                path: PathBuf::from(path),
-            })
-        );
+        let metadata = fs::metadata(path).chain_err(|| ErrorKind::SettingPermissions {
+            path: PathBuf::from(path),
+        })?;
         let mut perms = metadata.permissions();
         let new_mode = (perms.mode() & !0o777) | 0o755;
         perms.set_mode(new_mode);
