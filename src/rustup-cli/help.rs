@@ -234,13 +234,13 @@ r"DISCUSSION:
 
     Now open the file provided by `$profile` (if you used the
     `New-Item` command it will be
-    `%USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`
+    `${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`
 
     Next, we either save the completions file into our profile, or
     into a separate file and source it inside our profile. To save the
     completions into our profile simply use
 
-        PS C:\> rustup completions powershell >> %USERPROFILE%\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1";
+        PS C:\> rustup completions powershell >> ${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1";
 
 pub static TOOLCHAIN_ARG_HELP: &'static str = "Toolchain name, such as 'stable', 'nightly', \
                                                or '1.8.0'. For more information see `rustup \
