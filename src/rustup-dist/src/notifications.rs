@@ -31,6 +31,7 @@ pub enum Notification<'a> {
     DownloadedManifest(&'a str, Option<&'a str>),
     DownloadingLegacyManifest,
     ManifestChecksumFailedHack,
+    ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
 }
 
 impl<'a> From<rustup_utils::Notification<'a>> for Notification<'a> {
@@ -68,7 +69,8 @@ impl<'a> Notification<'a> {
             CantReadUpdateHash(_)
             | ExtensionNotInstalled(_)
             | MissingInstalledComponent(_)
-            | CachedFileChecksumFailed => NotificationLevel::Warn,
+            | CachedFileChecksumFailed
+            | ComponentUnavailable(_, _) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
         }
     }
@@ -131,6 +133,13 @@ impl<'a> Display for Notification<'a> {
             DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
             ManifestChecksumFailedHack => {
                 write!(f, "update not yet available, sorry! try again later")
+            }
+            ComponentUnavailable(pkg, toolchain) => {
+                if let Some(tc) = toolchain {
+                    write!(f, "component '{}' is not available anymore on target '{}'", pkg, tc)
+                } else {
+                    write!(f, "component '{}' is not available anymore", pkg)
+                }
             }
         }
     }

@@ -475,6 +475,7 @@ impl Update {
             rust_target_package,
             new_manifest,
             &changes,
+            notify_handler,
         );
 
         // If this is a full upgrade then the list of components to
@@ -520,6 +521,7 @@ impl Update {
         rust_target_package: &TargetedPackage,
         new_manifest: &Manifest,
         changes: &Changes,
+        notify_handler: &Fn(Notification),
     ) {
         // Add components required by the package, according to the
         // manifest
@@ -559,7 +561,14 @@ impl Update {
                         if component_is_present {
                             self.final_component_list.push(existing_component.clone());
                         } else {
-                            self.missing_components.push(existing_component.clone());
+                            // If a component is not available anymore for the target remove it
+                            // This prevents errors when trying to update to a newer version with
+                            // a removed component.
+                            self.components_to_uninstall.push(existing_component.clone());
+                            notify_handler(Notification::ComponentUnavailable(
+                                &existing_component.pkg,
+                                existing_component.target.as_ref(),
+                            ));
                         }
                     }
                 }
