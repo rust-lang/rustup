@@ -54,27 +54,25 @@ pub fn if_not_empty<S: PartialEq<str>>(s: S) -> Option<S> {
 }
 
 pub fn write_file(path: &Path, contents: &str) -> io::Result<()> {
-    let mut file = try!(
-        fs::OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .create(true)
-            .open(path)
-    );
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(path)?;
 
-    try!(io::Write::write_all(&mut file, contents.as_bytes()));
+    io::Write::write_all(&mut file, contents.as_bytes())?;
 
-    try!(file.sync_data());
+    file.sync_data()?;
 
     Ok(())
 }
 
 pub fn read_file(path: &Path) -> io::Result<String> {
-    let mut file = try!(fs::OpenOptions::new().read(true).open(path));
+    let mut file = fs::OpenOptions::new().read(true).open(path)?;
 
     let mut contents = String::new();
 
-    try!(io::Read::read_to_string(&mut file, &mut contents));
+    io::Read::read_to_string(&mut file, &mut contents)?;
 
     Ok(contents)
 }
@@ -84,34 +82,34 @@ pub fn filter_file<F: FnMut(&str) -> bool>(
     dest: &Path,
     mut filter: F,
 ) -> io::Result<usize> {
-    let src_file = try!(fs::File::open(src));
-    let dest_file = try!(fs::File::create(dest));
+    let src_file = fs::File::open(src)?;
+    let dest_file = fs::File::create(dest)?;
 
     let mut reader = io::BufReader::new(src_file);
     let mut writer = io::BufWriter::new(dest_file);
     let mut removed = 0;
 
     for result in io::BufRead::lines(&mut reader) {
-        let line = try!(result);
+        let line = result?;
         if filter(&line) {
-            try!(writeln!(&mut writer, "{}", &line));
+            writeln!(&mut writer, "{}", &line)?;
         } else {
             removed += 1;
         }
     }
 
-    try!(writer.flush());
+    writer.flush()?;
 
     Ok(removed)
 }
 
 pub fn match_file<T, F: FnMut(&str) -> Option<T>>(src: &Path, mut f: F) -> io::Result<Option<T>> {
-    let src_file = try!(fs::File::open(src));
+    let src_file = fs::File::open(src)?;
 
     let mut reader = io::BufReader::new(src_file);
 
     for result in io::BufRead::lines(&mut reader) {
-        let line = try!(result);
+        let line = result?;
         if let Some(r) = f(&line) {
             return Ok(Some(r));
         }
@@ -121,32 +119,30 @@ pub fn match_file<T, F: FnMut(&str) -> Option<T>>(src: &Path, mut f: F) -> io::R
 }
 
 pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
-    let mut dest_file = try!(
-        fs::OpenOptions::new()
-            .write(true)
-            .append(true)
-            .create(true)
-            .open(dest)
-    );
+    let mut dest_file = fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(dest)?;
 
-    try!(writeln!(&mut dest_file, "{}", line));
+    writeln!(&mut dest_file, "{}", line)?;
 
-    try!(dest_file.sync_data());
+    dest_file.sync_data()?;
 
     Ok(())
 }
 
 pub fn tee_file<W: io::Write>(path: &Path, w: &mut W) -> io::Result<()> {
-    let mut file = try!(fs::OpenOptions::new().read(true).open(path));
+    let mut file = fs::OpenOptions::new().read(true).open(path)?;
 
     let buffer_size = 0x10000;
     let mut buffer = vec![0u8; buffer_size];
 
     loop {
-        let bytes_read = try!(io::Read::read(&mut file, &mut buffer));
+        let bytes_read = io::Read::read(&mut file, &mut buffer)?;
 
         if bytes_read != 0 {
-            try!(io::Write::write_all(w, &mut buffer[0..bytes_read]));
+            io::Write::write_all(w, &mut buffer[0..bytes_read])?;
         } else {
             return Ok(());
         }
@@ -311,7 +307,7 @@ pub fn cmd_status(cmd: &mut Command) -> CommandResult<()> {
 }
 
 pub fn remove_dir(path: &Path) -> io::Result<()> {
-    if try!(fs::symlink_metadata(path)).file_type().is_symlink() {
+    if fs::symlink_metadata(path)?.file_type().is_symlink() {
         if cfg!(windows) {
             fs::remove_dir(path)
         } else {
@@ -327,16 +323,16 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
 }
 
 pub fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
-    try!(fs::create_dir(dest));
-    for entry in try!(src.read_dir()) {
-        let entry = try!(entry);
-        let kind = try!(entry.file_type());
+    fs::create_dir(dest)?;
+    for entry in src.read_dir()? {
+        let entry = entry?;
+        let kind = entry.file_type()?;
         let src = entry.path();
         let dest = dest.join(entry.file_name());
         if kind.is_dir() {
-            try!(copy_dir(&src, &dest));
+            copy_dir(&src, &dest)?;
         } else {
-            try!(fs::copy(&src, &dest));
+            fs::copy(&src, &dest)?;
         }
     }
     Ok(())
