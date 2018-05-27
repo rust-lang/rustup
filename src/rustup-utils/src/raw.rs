@@ -364,6 +364,12 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
     #[cfg(not(windows))]
     fn inner(path: &Path) -> io::Result<bool> {
         use std::process::Stdio;
+        use std::env;
+
+        let env_browser = env::var_os("BROWSER").map(|b| env::split_paths(&b).collect::<Vec<_>>());
+        let env_commands = env_browser.as_ref()
+            .map(|cmds| cmds.iter().by_ref().filter_map(|b| b.to_str()).collect())
+            .unwrap_or(vec![]);
 
         let commands = [
             "xdg-open",
@@ -372,7 +378,7 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
             "chromium",
             "sensible-browser",
         ];
-        if let Some(cmd) = find_cmd(&commands) {
+        if let Some(cmd) = find_cmd(&env_commands).or(find_cmd(&commands)) {
             Command::new(cmd)
                 .arg(path)
                 .stdin(Stdio::null())
