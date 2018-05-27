@@ -290,7 +290,8 @@ fn rename_component() {
     let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
 
     let edit_1 = &|_: &str, pkgs: &mut [MockPackage]| {
-        let tpkg = pkgs[0].targets
+        let tpkg = pkgs[0]
+            .targets
             .iter_mut()
             .find(|p| p.target == "x86_64-apple-darwin")
             .unwrap();
@@ -300,7 +301,8 @@ fn rename_component() {
         });
     };
     let edit_2 = &|_: &str, pkgs: &mut [MockPackage]| {
-        let tpkg = pkgs[0].targets
+        let tpkg = pkgs[0]
+            .targets
             .iter_mut()
             .find(|p| p.target == "x86_64-apple-darwin")
             .unwrap();
@@ -348,7 +350,8 @@ fn rename_component_ignore() {
     let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
 
     let edit = &|_: &str, pkgs: &mut [MockPackage]| {
-        let tpkg = pkgs[0].targets
+        let tpkg = pkgs[0]
+            .targets
             .iter_mut()
             .find(|p| p.target == "x86_64-apple-darwin")
             .unwrap();
@@ -396,7 +399,8 @@ fn rename_component_new() {
     let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
 
     let edit_2 = &|_: &str, pkgs: &mut [MockPackage]| {
-        let tpkg = pkgs[0].targets
+        let tpkg = pkgs[0]
+            .targets
             .iter_mut()
             .find(|p| p.target == "x86_64-apple-darwin")
             .unwrap();
@@ -475,12 +479,7 @@ fn update_from_dist_(
     // Download the dist manifest and place it into the installation prefix
     let ref manifest_url = make_manifest_url(dist_server, toolchain)?;
     let manifest_file = temp_cfg.new_file()?;
-    utils::download_file(
-        manifest_url,
-        &manifest_file,
-        None,
-        &|_| {}
-    )?;
+    utils::download_file(manifest_url, &manifest_file, None, &|_| {})?;
     let manifest_str = utils::read_file("manifest", &manifest_file)?;
     let manifest = Manifest::parse(&manifest_str)?;
 
@@ -650,7 +649,8 @@ fn unavailable_component() {
     let edit = &|date: &str, pkgs: &mut [MockPackage]| {
         // Require the bonus component every dat
         {
-            let tpkg = pkgs[0].targets
+            let tpkg = pkgs[0]
+                .targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
@@ -662,9 +662,7 @@ fn unavailable_component() {
 
         // Mark the bonus package as unavailable in 2016-02-02
         if date == "2016-02-02" {
-            let bonus_pkg = pkgs.iter_mut()
-                .find(|p| p.name == "bonus")
-                .unwrap();
+            let bonus_pkg = pkgs.iter_mut().find(|p| p.name == "bonus").unwrap();
 
             for target in &mut bonus_pkg.targets {
                 target.available = false;
@@ -698,7 +696,8 @@ fn removed_component() {
     // On day 1 install the 'bonus' component, on day 2 its no longer a component
     let edit = &|date: &str, pkgs: &mut [MockPackage]| {
         if date == "2016-02-01" {
-            let tpkg = pkgs[0].targets
+            let tpkg = pkgs[0]
+                .targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
@@ -785,7 +784,8 @@ fn update_preserves_extensions() {
 fn update_preserves_extensions_that_became_components() {
     let edit = &|date: &str, pkgs: &mut [MockPackage]| {
         if date == "2016-02-01" {
-            let tpkg = pkgs[0].targets
+            let tpkg = pkgs[0]
+                .targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
@@ -795,7 +795,8 @@ fn update_preserves_extensions_that_became_components() {
             });
         }
         if date == "2016-02-02" {
-            let tpkg = pkgs[0].targets
+            let tpkg = pkgs[0]
+                .targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
@@ -832,7 +833,8 @@ fn update_preserves_extensions_that_became_components() {
 fn update_preserves_components_that_became_extensions() {
     let edit = &|date: &str, pkgs: &mut [MockPackage]| {
         if date == "2016-02-01" {
-            let tpkg = pkgs[0].targets
+            let tpkg = pkgs[0]
+                .targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
@@ -842,7 +844,8 @@ fn update_preserves_components_that_became_extensions() {
             });
         }
         if date == "2016-02-02" {
-            let tpkg = pkgs[0].targets
+            let tpkg = pkgs[0]
+                .targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
@@ -1177,7 +1180,8 @@ fn remove_extension_not_in_manifest() {
 fn remove_extension_not_in_manifest_but_is_already_installed() {
     let edit = &|date: &str, pkgs: &mut [MockPackage]| {
         if date == "2016-02-01" {
-            let tpkg = pkgs[0].targets
+            let tpkg = pkgs[0]
+                .targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();

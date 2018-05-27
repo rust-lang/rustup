@@ -41,9 +41,7 @@ impl Components {
     fn read_version(&self) -> Result<Option<String>> {
         let p = self.prefix.manifest_file(VERSION_FILE);
         if utils::is_file(&p) {
-            Ok(Some(
-                utils::read_file(VERSION_FILE, &p)?.trim().to_string(),
-            ))
+            Ok(Some(utils::read_file(VERSION_FILE, &p)?.trim().to_string()))
         } else {
             Ok(None)
         }
@@ -53,7 +51,7 @@ impl Components {
         utils::write_file(
             VERSION_FILE,
             &self.prefix.manifest_file(VERSION_FILE),
-            INSTALLER_VERSION
+            INSTALLER_VERSION,
         )?;
 
         Ok(())
@@ -121,12 +119,7 @@ impl<'a> ComponentBuilder<'a> {
         for part in self.parts {
             // FIXME: This writes relative paths to the component manifest,
             // but rust-installer writes absolute paths.
-            utils::write_line(
-                "component",
-                &mut file,
-                &abs_path,
-                &part.encode()
-            )?;
+            utils::write_line("component", &mut file, &abs_path, &part.encode())?;
         }
 
         // Add component to components file
@@ -179,10 +172,8 @@ impl Component {
     pub fn parts(&self) -> Result<Vec<ComponentPart>> {
         let mut result = Vec::new();
         for line in utils::read_file("component", &self.manifest_file())?.lines() {
-            result
-                .push(ComponentPart::decode(line).ok_or_else(|| {
-                    ErrorKind::CorruptComponent(self.name.clone())
-                })?);
+            result.push(ComponentPart::decode(line)
+                .ok_or_else(|| ErrorKind::CorruptComponent(self.name.clone()))?);
         }
         Ok(result)
     }
@@ -191,7 +182,9 @@ impl Component {
         let path = self.components.rel_components_file();
         let abs_path = self.components.prefix.abs_path(&path);
         let temp = tx.temp().new_file()?;
-        utils::filter_file("components", &abs_path, &temp, |l| (l != self.name))?;
+        utils::filter_file("components", &abs_path, &temp, |l| {
+            (l != self.name)
+        })?;
         tx.modify_file(path)?;
         utils::rename_file("components", &temp, &abs_path)?;
 

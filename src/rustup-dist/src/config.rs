@@ -21,10 +21,8 @@ impl Config {
         }
 
         let components = get_array(&mut table, "components", path)?;
-        let components = Self::toml_to_components(
-            components,
-            &format!("{}{}.", path, "components")
-        )?;
+        let components =
+            Self::toml_to_components(components, &format!("{}{}.", path, "components"))?;
 
         Ok(Config {
             config_version: version,

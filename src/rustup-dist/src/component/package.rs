@@ -45,10 +45,7 @@ impl DirectoryPackage {
     pub fn new(path: PathBuf) -> Result<Self> {
         validate_installer_version(&path)?;
 
-        let content = utils::read_file(
-            "package components",
-            &path.join("components")
-        )?;
+        let content = utils::read_file("package components", &path.join("components"))?;
         let components = content.lines().map(|l| l.to_owned()).collect();
         Ok(DirectoryPackage {
             path: path,
@@ -58,10 +55,7 @@ impl DirectoryPackage {
 }
 
 fn validate_installer_version(path: &Path) -> Result<()> {
-    let file = utils::read_file(
-        "installer version",
-        &path.join(VERSION_FILE)
-    )?;
+    let file = utils::read_file("installer version", &path.join(VERSION_FILE))?;
     let v = file.trim();
     if v == INSTALLER_VERSION {
         Ok(())
@@ -95,10 +89,7 @@ impl Package for DirectoryPackage {
 
         let root = self.path.join(actual_name);
 
-        let manifest = utils::read_file(
-            "package manifest",
-            &root.join("manifest.in")
-        )?;
+        let manifest = utils::read_file("package manifest", &root.join("manifest.in"))?;
         let mut builder = target.add(name, tx);
 
         for l in manifest.lines() {
@@ -114,10 +105,7 @@ impl Package for DirectoryPackage {
                 _ => return Err(ErrorKind::CorruptComponent(name.to_owned()).into()),
             }
 
-            set_file_perms(
-                &target.prefix().path().join(path),
-                &src_path
-            )?;
+            set_file_perms(&target.prefix().path().join(path), &src_path)?;
         }
 
         let tx = builder.finish()?;
@@ -169,8 +157,7 @@ fn set_file_perms(dest_path: &Path, src_path: &Path) -> Result<()> {
                 .chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
         }
     } else {
-        let meta = fs::metadata(dest_path)
-            .chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
+        let meta = fs::metadata(dest_path).chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
         let mut perm = meta.permissions();
         perm.set_mode(if is_bin || needs_x(&meta) {
             0o755
@@ -209,7 +196,9 @@ impl<'a> TarPackage<'a> {
 }
 
 fn unpack_without_first_dir<R: Read>(archive: &mut tar::Archive<R>, path: &Path) -> Result<()> {
-    let entries = archive.entries().chain_err(|| ErrorKind::ExtractingPackage)?;
+    let entries = archive
+        .entries()
+        .chain_err(|| ErrorKind::ExtractingPackage)?;
     for entry in entries {
         let mut entry = entry.chain_err(|| ErrorKind::ExtractingPackage)?;
         let relpath = {

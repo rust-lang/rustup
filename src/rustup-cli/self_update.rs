@@ -271,11 +271,7 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
         // FIXME: Someday we can stop setting up the symlink, and when
         // we do that we can stop creating ~/.rustup as well.
         utils::create_rustup_home()?;
-        maybe_install_rust(
-            &opts.default_toolchain,
-            &opts.default_host_triple,
-            verbose
-        )?;
+        maybe_install_rust(&opts.default_toolchain, &opts.default_host_triple, verbose)?;
 
         if cfg!(unix) {
             let ref env_file = utils::cargo_home()?.join("env");
@@ -624,20 +620,16 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
 
     println!("");
 
-    opts.default_host_triple = common::question_str(
-        "Default host triple?",
-        &opts.default_host_triple
-    )?;
+    opts.default_host_triple =
+        common::question_str("Default host triple?", &opts.default_host_triple)?;
 
     opts.default_toolchain = common::question_str(
         "Default toolchain? (stable/beta/nightly/none)",
-        &opts.default_toolchain
+        &opts.default_toolchain,
     )?;
 
-    opts.no_modify_path = !common::question_bool(
-        "Modify PATH variable? (y/n)",
-        !opts.no_modify_path
-    )?;
+    opts.no_modify_path =
+        !common::question_bool("Modify PATH variable? (y/n)", !opts.no_modify_path)?;
 
     Ok(opts)
 }
@@ -823,10 +815,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 
     if !no_prompt {
         println!("");
-        let ref msg = format!(
-            pre_uninstall_msg!(),
-            cargo_home = canonical_cargo_home()?
-        );
+        let ref msg = format!(pre_uninstall_msg!(), cargo_home = canonical_cargo_home()?);
         term2::stdout().md(msg);
         if !common::confirm("\nContinue? (y/N)", false)? {
             info!("aborting uninstallation");
@@ -1247,8 +1236,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     }
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .chain_err(|| ErrorKind::PermissionDenied)?;
 
     let reg_value = RegValue {
@@ -1286,8 +1274,7 @@ fn get_windows_path_var() -> Result<Option<String>> {
     use std::io;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .chain_err(|| ErrorKind::PermissionDenied)?;
 
     let reg_value = environment.get_raw_value("PATH");
@@ -1368,8 +1355,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     new_path.push_str(&old_path[idx + len..]);
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .chain_err(|| ErrorKind::PermissionDenied)?;
 
     if new_path.is_empty() {
@@ -1534,12 +1520,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let release_file_url = format!("{}/release-stable.toml", update_root);
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
-    utils::download_file(
-        &release_file_url,
-        &release_file,
-        None,
-        &|_| ()
-    )?;
+    utils::download_file(&release_file_url, &release_file, None, &|_| ())?;
     let release_toml_str = utils::read_file("rustup release", &release_file)?;
     let release_toml: toml::Value = toml::from_str(&release_toml_str)
         .map_err(|_| Error::from("unable to parse rustup release file"))?;
@@ -1579,12 +1560,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Download new version
     info!("downloading self-update");
-    utils::download_file(
-        &download_url,
-        &setup_path,
-        None,
-        &|_| ()
-    )?;
+    utils::download_file(&download_url, &setup_path, None, &|_| ())?;
 
     // Mark as executable
     utils::make_executable(setup_path)?;

@@ -539,11 +539,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
     if let Some(status) = status {
         println!("");
-        common::show_channel_update(
-            cfg,
-            toolchain.name(),
-            Ok(status)
-        )?;
+        common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
     }
 
     Ok(())
@@ -565,11 +561,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
             if let Some(status) = status {
                 println!("");
-                common::show_channel_update(
-                    cfg,
-                    toolchain.name(),
-                    Ok(status)
-                )?;
+                common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
             }
         }
     } else {
@@ -593,15 +585,15 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         cmd,
         args[0],
         &args[1..],
-        &cfg
+        &cfg,
     )?)
 }
 
 fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let binary = m.value_of("command").expect("");
 
-    let binary_path =
-        cfg.which_binary(&utils::current_dir()?, binary)?.expect("binary not found");
+    let binary_path = cfg.which_binary(&utils::current_dir()?, binary)?
+        .expect("binary not found");
 
     utils::assert_is_file(&binary_path)?;
 
@@ -871,11 +863,7 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
     if let Some(status) = status {
         println!("");
-        common::show_channel_update(
-            cfg,
-            toolchain.name(),
-            Ok(status)
-        )?;
+        common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
     }
 
     Ok(())
@@ -908,10 +896,9 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     };
 
     for path in paths {
-        if cfg.settings_file.with_mut(|s| Ok(s.remove_override(
-            &Path::new(&path),
-            cfg.notify_handler.as_ref()
-        )))? {
+        if cfg.settings_file
+            .with_mut(|s| Ok(s.remove_override(&Path::new(&path), cfg.notify_handler.as_ref())))?
+        {
             info!("override toolchain for '{}' removed", path);
         } else {
             info!("no override toolchain for '{}'", path);
@@ -935,10 +922,7 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         "index.html"
     };
 
-    Ok(cfg.open_docs_for_dir(
-        &utils::current_dir()?,
-        doc_url
-    )?)
+    Ok(cfg.open_docs_for_dir(&utils::current_dir()?, doc_url)?)
 }
 
 fn man(cfg: &Cfg, m: &ArgMatches) -> Result<()> {

@@ -119,12 +119,7 @@ impl Manifestation {
         let ref installed_manifest_path = prefix.path().join(rel_installed_manifest_path);
 
         // Create the lists of components needed for installation
-        let update = Update::build_update(
-            self,
-            new_manifest,
-            changes,
-            notify_handler,
-        )?;
+        let update = Update::build_update(self, new_manifest, changes, notify_handler)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
@@ -227,11 +222,7 @@ impl Manifestation {
         // Install new distribution manifest
         let ref new_manifest_str = new_manifest.clone().stringify();
         tx.modify_file(rel_installed_manifest_path.to_owned())?;
-        utils::write_file(
-            "manifest",
-            installed_manifest_path,
-            new_manifest_str
-        )?;
+        utils::write_file("manifest", installed_manifest_path, new_manifest_str)?;
 
         // Write configuration.
         //
@@ -262,10 +253,8 @@ impl Manifestation {
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
-        let ref config_str = utils::read_file(
-            "dist config",
-            &prefix.path().join(&rel_config_path)
-        )?;
+        let ref config_str =
+            utils::read_file("dist config", &prefix.path().join(&rel_config_path))?;
         let config = Config::parse(config_str)?;
         tx.remove_file("dist config", rel_config_path)?;
 
@@ -563,7 +552,8 @@ impl Update {
                             // If a component is not available anymore for the target remove it
                             // This prevents errors when trying to update to a newer version with
                             // a removed component.
-                            self.components_to_uninstall.push(existing_component.clone());
+                            self.components_to_uninstall
+                                .push(existing_component.clone());
                             notify_handler(Notification::ComponentUnavailable(
                                 &existing_component.pkg,
                                 existing_component.target.as_ref(),

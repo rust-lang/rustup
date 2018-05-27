@@ -363,7 +363,8 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
         use std::env;
 
         let env_browser = env::var_os("BROWSER").map(|b| env::split_paths(&b).collect::<Vec<_>>());
-        let env_commands = env_browser.as_ref()
+        let env_commands = env_browser
+            .as_ref()
             .map(|cmds| cmds.iter().by_ref().filter_map(|b| b.to_str()).collect())
             .unwrap_or(vec![]);
 

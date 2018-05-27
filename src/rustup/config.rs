@@ -54,9 +54,7 @@ impl Cfg {
         // Set up the rustup home directory
         let rustup_dir = utils::rustup_home()?;
 
-        utils::ensure_dir_exists("home", &rustup_dir, &|n| {
-            notify_handler(n.into())
-        })?;
+        utils::ensure_dir_exists("home", &rustup_dir, &|n| notify_handler(n.into()))?;
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
         // Convert from old settings format if necessary
@@ -127,11 +125,9 @@ impl Cfg {
 
     pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain> {
         if create_parent {
-            utils::ensure_dir_exists(
-                "toolchains",
-                &self.toolchains_dir,
-                &|n| (self.notify_handler)(n.into())
-            )?;
+            utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {
+                (self.notify_handler)(n.into())
+            })?;
         }
 
         Toolchain::from(self, name)
@@ -145,11 +141,9 @@ impl Cfg {
 
     pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> Result<PathBuf> {
         if create_parent {
-            utils::ensure_dir_exists(
-                "update-hash",
-                &self.update_hash_dir,
-                &|n| (self.notify_handler)(n.into())
-            )?;
+            utils::ensure_dir_exists("update-hash", &self.update_hash_dir, &|n| {
+                (self.notify_handler)(n.into())
+            })?;
         }
 
         Ok(self.update_hash_dir.join(toolchain))
@@ -216,7 +210,8 @@ impl Cfg {
     }
 
     pub fn find_default(&self) -> Result<Option<Toolchain>> {
-        let opt_name = self.settings_file.with(|s| Ok(s.default_toolchain.clone()))?;
+        let opt_name = self.settings_file
+            .with(|s| Ok(s.default_toolchain.clone()))?;
 
         if let Some(name) = opt_name {
             let toolchain = self.verify_toolchain(&name)
@@ -493,11 +488,13 @@ impl Cfg {
     }
 
     pub fn get_default_host_triple(&self) -> Result<dist::TargetTriple> {
-        Ok(self.settings_file.with(|s| {
-            Ok(s.default_host_triple
-                .as_ref()
-                .map(|s| dist::TargetTriple::from_str(&s)))
-        })?.unwrap_or_else(dist::TargetTriple::from_build))
+        Ok(self.settings_file
+            .with(|s| {
+                Ok(s.default_host_triple
+                    .as_ref()
+                    .map(|s| dist::TargetTriple::from_str(&s)))
+            })?
+            .unwrap_or_else(dist::TargetTriple::from_build))
     }
 
     pub fn resolve_toolchain(&self, name: &str) -> Result<String> {

@@ -107,8 +107,7 @@ impl Telemetry {
 
         for i in 0..dl {
             let i = i as usize;
-            fs::remove_file(&telemetry_files[i])
-                .chain_err(|| ErrorKind::TelemetryCleanupError)?;
+            fs::remove_file(&telemetry_files[i]).chain_err(|| ErrorKind::TelemetryCleanupError)?;
         }
 
         Ok(())

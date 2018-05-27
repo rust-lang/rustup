@@ -521,10 +521,7 @@ pub fn update_from_dist_<'a>(
     force_update: bool,
 ) -> Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
-    let manifestation = Manifestation::open(
-        prefix.clone(),
-        toolchain.target.clone()
-    )?;
+    let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
 
     let changes = Changes {
         add_extensions: add.to_owned(),
@@ -544,7 +541,7 @@ pub fn update_from_dist_<'a>(
                 changes,
                 force_update,
                 &download,
-                download.notify_handler.clone()
+                download.notify_handler.clone(),
             )? {
                 UpdateStatus::Unchanged => Ok(None),
                 UpdateStatus::Changed => Ok(Some(hash)),

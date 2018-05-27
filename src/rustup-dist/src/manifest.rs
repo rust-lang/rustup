@@ -220,7 +220,7 @@ impl Package {
         if let Some(toml::Value::Table(t)) = target_table.remove("*") {
             Ok(PackageTargets::Wildcard(TargetedPackage::from_toml(
                 t,
-                &path
+                &path,
             )?))
         } else {
             let mut result = HashMap::new();
@@ -294,11 +294,11 @@ impl TargetedPackage {
                 }),
                 components: Self::toml_to_components(
                     components,
-                    &format!("{}{}.", path, "components")
+                    &format!("{}{}.", path, "components"),
                 )?,
                 extensions: Self::toml_to_components(
                     extensions,
-                    &format!("{}{}.", path, "extensions")
+                    &format!("{}{}.", path, "extensions"),
                 )?,
             })
         } else {
@@ -362,10 +362,12 @@ impl Component {
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         Ok(Component {
             pkg: get_string(&mut table, "pkg", path)?,
-            target: get_string(&mut table, "target", path).map(|s| if s == "*" {
-                None
-            } else {
-                Some(TargetTriple::from_str(&s))
+            target: get_string(&mut table, "target", path).map(|s| {
+                if s == "*" {
+                    None
+                } else {
+                    Some(TargetTriple::from_str(&s))
+                }
             })?,
         })
     }

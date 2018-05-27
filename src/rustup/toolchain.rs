@@ -111,8 +111,7 @@ impl<'a> Toolchain<'a> {
             (self.cfg.notify_handler)(Notification::InstallingToolchain(&self.name));
         }
         (self.cfg.notify_handler)(Notification::ToolchainDirectory(&self.path, &self.name));
-        let updated =
-            install_method.run(&self.path, &|n| (self.cfg.notify_handler)(n.into()))?;
+        let updated = install_method.run(&self.path, &|n| (self.cfg.notify_handler)(n.into()))?;
 
         if !updated {
             (self.cfg.notify_handler)(Notification::UpdateHashMatches);
@@ -274,7 +273,7 @@ impl<'a> Toolchain<'a> {
                 })?;
                 self.install(InstallMethod::Installer(
                     &local_installer,
-                    &self.cfg.temp_cfg
+                    &self.cfg.temp_cfg,
                 ))?;
             } else {
                 // If installer is a filename
@@ -285,7 +284,7 @@ impl<'a> Toolchain<'a> {
                 // Install from file
                 self.install(InstallMethod::Installer(
                     &local_installer,
-                    &self.cfg.temp_cfg
+                    &self.cfg.temp_cfg,
                 ))?;
             }
         }
@@ -390,8 +389,7 @@ impl<'a> Toolchain<'a> {
                 .chain_err(|| "unable to create dir to hold fallback exe")?;
             let fallback_file = fallback_dir.join("cargo.exe");
             if fallback_file.exists() {
-                fs::remove_file(&fallback_file)
-                    .chain_err(|| "unable to unlink old fallback exe")?;
+                fs::remove_file(&fallback_file).chain_err(|| "unable to unlink old fallback exe")?;
             }
             fs::hard_link(&src_file, &fallback_file)
                 .chain_err(|| "unable to hard link fallback exe")?;
@@ -659,7 +657,7 @@ impl<'a> Toolchain<'a> {
                 changes,
                 false,
                 &self.download_cfg(),
-                self.download_cfg().notify_handler.clone()
+                self.download_cfg().notify_handler.clone(),
             )?;
 
             Ok(())
@@ -722,7 +720,7 @@ impl<'a> Toolchain<'a> {
                 changes,
                 false,
                 &self.download_cfg(),
-                self.download_cfg().notify_handler.clone()
+                self.download_cfg().notify_handler.clone(),
             )?;
 
             Ok(())
