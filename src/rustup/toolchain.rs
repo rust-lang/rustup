@@ -47,7 +47,7 @@ pub enum UpdateStatus {
 
 impl<'a> Toolchain<'a> {
     pub fn from(cfg: &'a Cfg, name: &str) -> Result<Self> {
-        let resolved_name = try!(cfg.resolve_toolchain(name));
+        let resolved_name = cfg.resolve_toolchain(name)?;
         let path = cfg.toolchains_dir.join(&resolved_name);
         Ok(Toolchain {
             cfg: cfg,
@@ -61,7 +61,7 @@ impl<'a> Toolchain<'a> {
         &self.name
     }
     pub fn desc(&self) -> Result<ToolchainDesc> {
-        Ok(try!(ToolchainDesc::from_str(&self.name)))
+        Ok(ToolchainDesc::from_str(&self.name)?)
     }
     pub fn path(&self) -> &Path {
         &self.path
@@ -84,7 +84,7 @@ impl<'a> Toolchain<'a> {
         utils::is_directory(&self.path) || is_symlink
     }
     pub fn verify(&self) -> Result<()> {
-        Ok(try!(utils::assert_is_directory(&self.path)))
+        Ok(utils::assert_is_directory(&self.path)?)
     }
     pub fn remove(&self) -> Result<()> {
         if self.exists() || self.is_symlink() {
@@ -93,14 +93,14 @@ impl<'a> Toolchain<'a> {
             (self.cfg.notify_handler)(Notification::ToolchainNotInstalled(&self.name));
             return Ok(());
         }
-        if let Some(update_hash) = try!(self.update_hash()) {
-            try!(utils::remove_file("update hash", &update_hash));
+        if let Some(update_hash) = self.update_hash()? {
+            utils::remove_file("update hash", &update_hash)?;
         }
         let result = install::uninstall(&self.path, &|n| (self.cfg.notify_handler)(n.into()));
         if !self.exists() {
             (self.cfg.notify_handler)(Notification::UninstalledToolchain(&self.name));
         }
-        Ok(try!(result))
+        Ok(result?)
     }
     fn install(&self, install_method: InstallMethod) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
@@ -112,7 +112,7 @@ impl<'a> Toolchain<'a> {
         }
         (self.cfg.notify_handler)(Notification::ToolchainDirectory(&self.path, &self.name));
         let updated =
-            try!(install_method.run(&self.path, &|n| (self.cfg.notify_handler)(n.into())));
+            install_method.run(&self.path, &|n| (self.cfg.notify_handler)(n.into()))?;
 
         if !updated {
             (self.cfg.notify_handler)(Notification::UpdateHashMatches);
@@ -133,7 +133,7 @@ impl<'a> Toolchain<'a> {
         assert!(self.is_valid_install_method(install_method));
         (self.cfg.notify_handler)(Notification::LookingForToolchain(&self.name));
         if !self.exists() {
-            Ok(try!(self.install(install_method)))
+            Ok(self.install(install_method)?)
         } else {
             (self.cfg.notify_handler)(Notification::UsingExistingToolchain(&self.name));
             Ok(UpdateStatus::Unchanged)
@@ -151,7 +151,7 @@ impl<'a> Toolchain<'a> {
         if self.is_custom() {
             Ok(None)
         } else {
-            Ok(Some(try!(self.cfg.get_hash_file(&self.name, true))))
+            Ok(Some(self.cfg.get_hash_file(&self.name, true)?))
         }
     }
 
@@ -165,16 +165,16 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn install_from_dist(&self, force_update: bool) -> Result<UpdateStatus> {
-        if try!(self.cfg.telemetry_enabled()) {
+        if self.cfg.telemetry_enabled()? {
             return self.install_from_dist_with_telemetry(force_update);
         }
         self.install_from_dist_inner(force_update)
     }
 
     pub fn install_from_dist_inner(&self, force_update: bool) -> Result<UpdateStatus> {
-        let update_hash = try!(self.update_hash());
+        let update_hash = self.update_hash()?;
         self.install(InstallMethod::Dist(
-            &try!(self.desc()),
+            &self.desc()?,
             update_hash.as_ref().map(|p| &**p),
             self.download_cfg(),
             force_update,
@@ -212,9 +212,9 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
-        let update_hash = try!(self.update_hash());
+        let update_hash = self.update_hash()?;
         self.install_if_not_installed(InstallMethod::Dist(
-            &try!(self.desc()),
+            &self.desc()?,
             update_hash.as_ref().map(|p| &**p),
             self.download_cfg(),
             false,
@@ -242,9 +242,9 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn install_from_installers(&self, installers: &[&OsStr]) -> Result<()> {
-        try!(self.ensure_custom());
+        self.ensure_custom()?;
 
-        try!(self.remove());
+        self.remove()?;
 
         // FIXME: This should do all downloads first, then do
         // installs, and do it all in a single transaction.
@@ -268,14 +268,14 @@ impl<'a> Toolchain<'a> {
             let url = if is_url { url } else { None };
             if let Some(url) = url {
                 // Download to a local file
-                let local_installer = try!(self.cfg.temp_cfg.new_file_with_ext("", ".tar.gz"));
-                try!(utils::download_file(&url, &local_installer, None, &|n| {
+                let local_installer = self.cfg.temp_cfg.new_file_with_ext("", ".tar.gz")?;
+                utils::download_file(&url, &local_installer, None, &|n| {
                     (self.cfg.notify_handler)(n.into())
-                }));
-                try!(self.install(InstallMethod::Installer(
+                })?;
+                self.install(InstallMethod::Installer(
                     &local_installer,
                     &self.cfg.temp_cfg
-                )));
+                ))?;
             } else {
                 // If installer is a filename
 
@@ -283,10 +283,10 @@ impl<'a> Toolchain<'a> {
                 let local_installer = Path::new(installer);
 
                 // Install from file
-                try!(self.install(InstallMethod::Installer(
+                self.install(InstallMethod::Installer(
                     &local_installer,
                     &self.cfg.temp_cfg
-                )));
+                ))?;
             }
         }
 
@@ -294,22 +294,22 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
-        try!(self.ensure_custom());
+        self.ensure_custom()?;
 
         let mut pathbuf = PathBuf::from(src);
 
         pathbuf.push("lib");
-        try!(utils::assert_is_directory(&pathbuf));
+        utils::assert_is_directory(&pathbuf)?;
         pathbuf.pop();
         pathbuf.push("bin");
-        try!(utils::assert_is_directory(&pathbuf));
+        utils::assert_is_directory(&pathbuf)?;
         pathbuf.push(format!("rustc{}", EXE_SUFFIX));
-        try!(utils::assert_is_file(&pathbuf));
+        utils::assert_is_file(&pathbuf)?;
 
         if link {
-            try!(self.install(InstallMethod::Link(&try!(utils::to_absolute(src)))));
+            self.install(InstallMethod::Link(&utils::to_absolute(src)?))?;
         } else {
-            try!(self.install(InstallMethod::Copy(src)));
+            self.install(InstallMethod::Copy(src))?;
         }
 
         Ok(())
@@ -386,21 +386,15 @@ impl<'a> Toolchain<'a> {
         let exe_path = if cfg!(windows) {
             use std::fs;
             let fallback_dir = self.cfg.rustup_dir.join("fallback");
-            try!(
-                fs::create_dir_all(&fallback_dir)
-                    .chain_err(|| "unable to create dir to hold fallback exe")
-            );
+            fs::create_dir_all(&fallback_dir)
+                .chain_err(|| "unable to create dir to hold fallback exe")?;
             let fallback_file = fallback_dir.join("cargo.exe");
             if fallback_file.exists() {
-                try!(
-                    fs::remove_file(&fallback_file)
-                        .chain_err(|| "unable to unlink old fallback exe")
-                );
+                fs::remove_file(&fallback_file)
+                    .chain_err(|| "unable to unlink old fallback exe")?;
             }
-            try!(
-                fs::hard_link(&src_file, &fallback_file)
-                    .chain_err(|| "unable to hard link fallback exe")
-            );
+            fs::hard_link(&src_file, &fallback_file)
+                .chain_err(|| "unable to hard link fallback exe")?;
             fallback_file
         } else {
             src_file
@@ -458,7 +452,7 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {
-        try!(self.verify());
+        self.verify()?;
 
         let parts = vec!["share", "doc", "rust", "html"];
         let mut doc_dir = self.path.clone();
@@ -470,19 +464,19 @@ impl<'a> Toolchain<'a> {
         Ok(doc_dir)
     }
     pub fn open_docs(&self, relative: &str) -> Result<()> {
-        try!(self.verify());
+        self.verify()?;
 
-        Ok(try!(utils::open_browser(&try!(self.doc_path(relative)))))
+        Ok(utils::open_browser(&self.doc_path(relative)?)?)
     }
 
     pub fn make_default(&self) -> Result<()> {
         self.cfg.set_default(&self.name)
     }
     pub fn make_override(&self, path: &Path) -> Result<()> {
-        Ok(try!(self.cfg.settings_file.with_mut(|s| {
+        Ok(self.cfg.settings_file.with_mut(|s| {
             s.add_override(path, self.name.clone(), self.cfg.notify_handler.as_ref());
             Ok(())
-        })))
+        })?)
     }
 
     pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
@@ -491,15 +485,14 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = try!(
-            ToolchainDesc::from_str(toolchain)
-                .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))
-        );
-        let prefix = InstallPrefix::from(self.path.to_owned());
-        let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
+        let ref toolchain = ToolchainDesc::from_str(toolchain)
+            .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))?;
 
-        if let Some(manifest) = try!(manifestation.load_manifest()) {
-            let config = try!(manifestation.read_config());
+        let prefix = InstallPrefix::from(self.path.to_owned());
+        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
+
+        if let Some(manifest) = manifestation.load_manifest()? {
+            let config = manifestation.read_config()?;
 
             // Return all optional components of the "rust" package for the
             // toolchain's target triple.
@@ -571,7 +564,7 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn add_component(&self, component: Component) -> Result<()> {
-        if try!(self.cfg.telemetry_enabled()) {
+        if self.cfg.telemetry_enabled()? {
             return self.telemetry_add_component(component);
         }
         self.add_component_without_telemetry(component)
@@ -619,14 +612,13 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = try!(
-            ToolchainDesc::from_str(toolchain)
-                .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))
-        );
-        let prefix = InstallPrefix::from(self.path.to_owned());
-        let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
+        let ref toolchain = ToolchainDesc::from_str(toolchain)
+            .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))?;
 
-        if let Some(manifest) = try!(manifestation.load_manifest()) {
+        let prefix = InstallPrefix::from(self.path.to_owned());
+        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
+
+        if let Some(manifest) = manifestation.load_manifest()? {
             // Validate the component name
             let rust_pkg = manifest
                 .packages
@@ -662,13 +654,13 @@ impl<'a> Toolchain<'a> {
                 remove_extensions: vec![],
             };
 
-            try!(manifestation.update(
+            manifestation.update(
                 &manifest,
                 changes,
                 false,
                 &self.download_cfg(),
                 self.download_cfg().notify_handler.clone()
-            ));
+            )?;
 
             Ok(())
         } else {
@@ -682,14 +674,13 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = try!(
-            ToolchainDesc::from_str(toolchain)
-                .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))
-        );
-        let prefix = InstallPrefix::from(self.path.to_owned());
-        let manifestation = try!(Manifestation::open(prefix, toolchain.target.clone()));
+        let ref toolchain = ToolchainDesc::from_str(toolchain)
+            .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))?;
 
-        if let Some(manifest) = try!(manifestation.load_manifest()) {
+        let prefix = InstallPrefix::from(self.path.to_owned());
+        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
+
+        if let Some(manifest) = manifestation.load_manifest()? {
             // Validate the component name
             let rust_pkg = manifest
                 .packages
@@ -706,7 +697,7 @@ impl<'a> Toolchain<'a> {
                 );
             }
 
-            let dist_config = try!(manifestation.read_config()).unwrap();
+            let dist_config = manifestation.read_config()?.unwrap();
             if !dist_config.components.contains(&component) {
                 let wildcard_component = Component {
                     target: None,
@@ -726,13 +717,13 @@ impl<'a> Toolchain<'a> {
                 remove_extensions: vec![component],
             };
 
-            try!(manifestation.update(
+            manifestation.update(
                 &manifest,
                 changes,
                 false,
                 &self.download_cfg(),
                 self.download_cfg().notify_handler.clone()
-            ));
+            )?;
 
             Ok(())
         } else {

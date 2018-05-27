@@ -473,20 +473,20 @@ fn update_from_dist_(
     force_update: bool,
 ) -> Result<UpdateStatus> {
     // Download the dist manifest and place it into the installation prefix
-    let ref manifest_url = try!(make_manifest_url(dist_server, toolchain));
-    let manifest_file = try!(temp_cfg.new_file());
-    try!(utils::download_file(
+    let ref manifest_url = make_manifest_url(dist_server, toolchain)?;
+    let manifest_file = temp_cfg.new_file()?;
+    utils::download_file(
         manifest_url,
         &manifest_file,
         None,
         &|_| {}
-    ));
-    let manifest_str = try!(utils::read_file("manifest", &manifest_file));
-    let manifest = try!(Manifest::parse(&manifest_str));
+    )?;
+    let manifest_str = utils::read_file("manifest", &manifest_file)?;
+    let manifest = Manifest::parse(&manifest_str)?;
 
     // Read the manifest to update the components
     let trip = toolchain.target.clone();
-    let manifestation = try!(Manifestation::open(prefix.clone(), trip));
+    let manifestation = Manifestation::open(prefix.clone(), trip)?;
 
     let changes = Changes {
         add_extensions: add.to_owned(),
@@ -518,9 +518,9 @@ fn uninstall(
     notify_handler: &Fn(Notification),
 ) -> Result<()> {
     let trip = toolchain.target.clone();
-    let manifestation = try!(Manifestation::open(prefix.clone(), trip));
+    let manifestation = Manifestation::open(prefix.clone(), trip)?;
 
-    try!(manifestation.uninstall(temp_cfg, notify_handler.clone()));
+    manifestation.uninstall(temp_cfg, notify_handler.clone())?;
 
     Ok(())
 }

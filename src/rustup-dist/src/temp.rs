@@ -147,7 +147,7 @@ impl Cfg {
     }
 
     pub fn new_directory(&self) -> Result<Dir> {
-        try!(self.create_root());
+        self.create_root()?;
 
         loop {
             let temp_name = raw::random_string(16) + "_dir";
@@ -158,12 +158,10 @@ impl Cfg {
             // random names at exactly the same time is... low.
             if !raw::path_exists(&temp_dir) {
                 (self.notify_handler)(Notification::CreatingDirectory(&temp_dir));
-                try!(
-                    fs::create_dir(&temp_dir).map_err(|e| Error::CreatingDirectory {
-                        path: PathBuf::from(&temp_dir),
-                        error: e,
-                    })
-                );
+                fs::create_dir(&temp_dir).map_err(|e| Error::CreatingDirectory {
+                    path: PathBuf::from(&temp_dir),
+                    error: e,
+                })?;
                 return Ok(Dir {
                     cfg: self,
                     path: temp_dir,
@@ -177,7 +175,7 @@ impl Cfg {
     }
 
     pub fn new_file_with_ext(&self, prefix: &str, ext: &str) -> Result<File> {
-        try!(self.create_root());
+        self.create_root()?;
 
         loop {
             let temp_name = prefix.to_owned() + &raw::random_string(16) + "_file" + ext;
@@ -188,12 +186,10 @@ impl Cfg {
             // random names at exactly the same time is... low.
             if !raw::path_exists(&temp_file) {
                 (self.notify_handler)(Notification::CreatingFile(&temp_file));
-                try!(
-                    fs::File::create(&temp_file).map_err(|e| Error::CreatingFile {
-                        path: PathBuf::from(&temp_file),
-                        error: e,
-                    })
-                );
+                fs::File::create(&temp_file).map_err(|e| Error::CreatingFile {
+                    path: PathBuf::from(&temp_file),
+                    error: e,
+                })?;
                 return Ok(File {
                     cfg: self,
                     path: temp_file,

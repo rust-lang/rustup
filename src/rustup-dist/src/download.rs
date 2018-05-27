@@ -37,22 +37,22 @@ impl<'a> DownloadCfg<'a> {
     /// target file already exists, then the hash is checked and it is returned
     /// immediately without re-downloading.
     pub fn download(&self, url: &Url, hash: &str) -> Result<File> {
-        try!(utils::ensure_dir_exists(
+        utils::ensure_dir_exists(
             "Download Directory",
             &self.download_dir,
             &|n| (self.notify_handler)(n.into())
-        ));
+        )?;
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
-            let cached_result = try!(file_hash(&target_file));
+            let cached_result = file_hash(&target_file)?;
             if hash == cached_result {
                 (self.notify_handler)(Notification::FileAlreadyDownloaded);
                 (self.notify_handler)(Notification::ChecksumValid(&url.to_string()));
                 return Ok(File { path: target_file });
             } else {
                 (self.notify_handler)(Notification::CachedFileChecksumFailed);
-                try!(fs::remove_file(&target_file).chain_err(|| "cleaning up previous download"));
+                fs::remove_file(&target_file).chain_err(|| "cleaning up previous download")?;
             }
         }
 
@@ -66,13 +66,13 @@ impl<'a> DownloadCfg<'a> {
 
         let mut hasher = Sha256::new();
 
-        try!(utils::download_file_with_resume(
+        utils::download_file_with_resume(
             &url,
             &partial_file_path,
             Some(&mut hasher),
             true,
             &|n| (self.notify_handler)(n.into())
-        ));
+        )?;
 
         let actual_hash = format!("{:x}", hasher.result());
 
@@ -95,23 +95,21 @@ impl<'a> DownloadCfg<'a> {
         for hash in hashes.iter() {
             let used_file = self.download_dir.join(hash);
             if self.download_dir.join(&used_file).exists() {
-                try!(fs::remove_file(used_file).chain_err(|| "cleaning up cached downloads"));
+                fs::remove_file(used_file).chain_err(|| "cleaning up cached downloads")?;
             }
         }
         Ok(())
     }
 
     fn download_hash(&self, url: &str) -> Result<String> {
-        let hash_url = try!(utils::parse_url(&(url.to_owned() + ".sha256")));
-        let hash_file = try!(self.temp_cfg.new_file());
+        let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
+        let hash_file = self.temp_cfg.new_file()?;
 
-        try!(utils::download_file(&hash_url, &hash_file, None, &|n| {
+        utils::download_file(&hash_url, &hash_file, None, &|n| {
             (self.notify_handler)(n.into())
-        }));
+        })?;
 
-        Ok(try!(
-            utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
-        ))
+        Ok(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())?)
     }
 
     /// Downloads a file, sourcing its hash from the same url with a `.sha256` suffix.
@@ -123,7 +121,7 @@ impl<'a> DownloadCfg<'a> {
         update_hash: Option<&Path>,
         ext: &str,
     ) -> Result<Option<(temp::File<'a>, String)>> {
-        let hash = try!(self.download_hash(url_str));
+        let hash = self.download_hash(url_str)?;
         let partial_hash: String = hash.chars().take(UPDATE_HASH_LEN).collect();
 
         if let Some(hash_file) = update_hash {
@@ -141,13 +139,13 @@ impl<'a> DownloadCfg<'a> {
             }
         }
 
-        let url = try!(utils::parse_url(url_str));
-        let file = try!(self.temp_cfg.new_file_with_ext("", ext));
+        let url = utils::parse_url(url_str)?;
+        let file = self.temp_cfg.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        try!(utils::download_file(&url, &file, Some(&mut hasher), &|n| {
+        utils::download_file(&url, &file, Some(&mut hasher), &|n| {
             (self.notify_handler)(n.into())
-        }));
+        })?;
         let actual_hash = format!("{:x}", hasher.result());
 
         if hash != actual_hash {
@@ -171,7 +169,7 @@ fn file_hash(path: &Path) -> Result<String> {
     let mut hasher = Sha256::new();
     use std::io::Read;
     let mut downloaded =
-        try!(fs::File::open(&path).chain_err(|| "opening already downloaded file"));
+        fs::File::open(&path).chain_err(|| "opening already downloaded file")?;
     let mut buf = vec![0; 32768];
     loop {
         if let Ok(n) = downloaded.read(&mut buf) {

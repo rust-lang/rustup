@@ -119,11 +119,9 @@ impl TelemetryAnalysis {
 
     pub fn import_telemery(&mut self) -> Result<Vec<TelemetryEvent>> {
         let mut events: Vec<TelemetryEvent> = Vec::new();
-        let contents = try!(
-            self.telemetry_dir
-                .read_dir()
-                .chain_err(|| ErrorKind::TelemetryAnalysisError)
-        );
+        let contents = self.telemetry_dir
+            .read_dir()
+            .chain_err(|| ErrorKind::TelemetryAnalysisError)?;
 
         let mut telemetry_files: Vec<PathBuf> = Vec::new();
 
@@ -146,7 +144,7 @@ impl TelemetryAnalysis {
     fn read_telemetry_file(&self, path: PathBuf) -> Result<Vec<TelemetryEvent>> {
         let mut events: Vec<TelemetryEvent> = Vec::new();
 
-        let f = try!(File::open(&path).chain_err(|| ErrorKind::TelemetryAnalysisError));
+        let f = File::open(&path).chain_err(|| ErrorKind::TelemetryAnalysisError)?;
 
         let file = BufReader::new(&f);
 

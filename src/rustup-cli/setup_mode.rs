@@ -63,7 +63,7 @@ pub fn main() -> Result<()> {
         no_modify_path: no_modify_path,
     };
 
-    try!(self_update::install(no_prompt, verbose, opts));
+    self_update::install(no_prompt, verbose, opts)?;
 
     Ok(())
 }

@@ -521,7 +521,7 @@ pub fn cargo_home() -> Result<PathBuf> {
     };
 
     let cargo_home = if env_var.is_some() {
-        let cwd = try!(env::current_dir().chain_err(|| ErrorKind::GettingCwd));
+        let cwd = env::current_dir().chain_err(|| ErrorKind::GettingCwd)?;
         env_var.clone().map(|home| {
             cwd.join(home)
         })
@@ -726,7 +726,7 @@ pub fn rustup_home() -> Result<PathBuf> {
     let rustup_home_env = env::var_os("RUSTUP_HOME");
 
     let rustup_home = if rustup_home_env.is_some() {
-        let cwd = try!(env::current_dir().chain_err(|| ErrorKind::GettingCwd));
+        let cwd = env::current_dir().chain_err(|| ErrorKind::GettingCwd)?;
         rustup_home_env.clone().map(|home| {
             cwd.join(home)
         })
