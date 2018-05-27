@@ -37,7 +37,7 @@ use tempdir::TempDir;
 // Creates a mock dist server populated with some test data
 pub fn create_mock_dist_server(
     path: &Path,
-    edit: Option<&Fn(&str, &mut MockPackage)>,
+    edit: Option<&Fn(&str, &mut [MockPackage])>,
 ) -> MockDistServer {
     MockDistServer {
         path: path.to_owned(),
@@ -51,7 +51,7 @@ pub fn create_mock_dist_server(
 pub fn create_mock_channel(
     channel: &str,
     date: &str,
-    edit: Option<&Fn(&str, &mut MockPackage)>,
+    edit: Option<&Fn(&str, &mut [MockPackage])>,
 ) -> MockChannel {
     // Put the date in the files so they can be differentiated
     let contents = Arc::new(date.as_bytes().to_vec());
@@ -209,7 +209,7 @@ pub fn create_mock_channel(
     packages.push(bonus_component("bonus", contents.clone()));
 
     if let Some(edit) = edit {
-        edit(date, &mut packages[0]);
+        edit(date, &mut packages);
     }
 
     MockChannel {
@@ -289,8 +289,8 @@ fn rename_component() {
     let dist_tempdir = TempDir::new("rustup").unwrap();
     let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
 
-    let edit_1 = &|_: &str, pkg: &mut MockPackage| {
-        let tpkg = pkg.targets
+    let edit_1 = &|_: &str, pkgs: &mut [MockPackage]| {
+        let tpkg = pkgs[0].targets
             .iter_mut()
             .find(|p| p.target == "x86_64-apple-darwin")
             .unwrap();
@@ -299,8 +299,8 @@ fn rename_component() {
             target: "x86_64-apple-darwin".to_string(),
         });
     };
-    let edit_2 = &|_: &str, pkg: &mut MockPackage| {
-        let tpkg = pkg.targets
+    let edit_2 = &|_: &str, pkgs: &mut [MockPackage]| {
+        let tpkg = pkgs[0].targets
             .iter_mut()
             .find(|p| p.target == "x86_64-apple-darwin")
             .unwrap();
@@ -347,8 +347,8 @@ fn rename_component_ignore() {
     let dist_tempdir = TempDir::new("rustup").unwrap();
     let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
 
-    let edit = &|_: &str, pkg: &mut MockPackage| {
-        let tpkg = pkg.targets
+    let edit = &|_: &str, pkgs: &mut [MockPackage]| {
+        let tpkg = pkgs[0].targets
             .iter_mut()
             .find(|p| p.target == "x86_64-apple-darwin")
             .unwrap();
@@ -395,8 +395,8 @@ fn rename_component_new() {
     let dist_tempdir = TempDir::new("rustup").unwrap();
     let ref url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
 
-    let edit_2 = &|_: &str, pkg: &mut MockPackage| {
-        let tpkg = pkg.targets
+    let edit_2 = &|_: &str, pkgs: &mut [MockPackage]| {
+        let tpkg = pkgs[0].targets
             .iter_mut()
             .find(|p| p.target == "x86_64-apple-darwin")
             .unwrap();
@@ -526,7 +526,7 @@ fn uninstall(
 }
 
 fn setup(
-    edit: Option<&Fn(&str, &mut MockPackage)>,
+    edit: Option<&Fn(&str, &mut [MockPackage])>,
     enable_xz: bool,
     f: &Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg, &temp::Cfg),
 ) {
@@ -645,11 +645,12 @@ fn upgrade() {
 }
 
 #[test]
-fn force_update() {
-    // On day 1 install the 'bonus' component, on day 2 its no longer a component
-    let edit = &|date: &str, pkg: &mut MockPackage| {
-        if date == "2016-02-01" {
-            let mut tpkg = pkg.targets
+fn unavailable_component() {
+    // On day 2 the bonus component is no longer available
+    let edit = &|date: &str, pkgs: &mut [MockPackage]| {
+        // Require the bonus component every dat
+        {
+            let tpkg = pkgs[0].targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
@@ -657,6 +658,17 @@ fn force_update() {
                 name: "bonus".to_string(),
                 target: "x86_64-apple-darwin".to_string(),
             });
+        }
+
+        // Mark the bonus package as unavailable in 2016-02-02
+        if date == "2016-02-02" {
+            let bonus_pkg = pkgs.iter_mut()
+                .find(|p| p.name == "bonus")
+                .unwrap();
+
+            for target in &mut bonus_pkg.targets {
+                target.available = false;
+            }
         }
     };
 
@@ -677,18 +689,54 @@ fn force_update() {
                 ErrorKind::RequestedComponentsUnavailable(..) => {}
                 _ => panic!(),
             }
-            // Force update without bonus, should succeed, but bonus binary will be missing.
-            update_from_dist_(
-                url,
-                toolchain,
-                prefix,
-                &[],
-                &[],
-                download_cfg,
-                temp_cfg,
-                true,
-            ).unwrap();
+        },
+    );
+}
+
+#[test]
+fn removed_component() {
+    // On day 1 install the 'bonus' component, on day 2 its no longer a component
+    let edit = &|date: &str, pkgs: &mut [MockPackage]| {
+        if date == "2016-02-01" {
+            let tpkg = pkgs[0].targets
+                .iter_mut()
+                .find(|p| p.target == "x86_64-apple-darwin")
+                .unwrap();
+            tpkg.components.push(MockComponent {
+                name: "bonus".to_string(),
+                target: "x86_64-apple-darwin".to_string(),
+            });
+        }
+    };
+
+    setup(
+        Some(edit),
+        false,
+        &|url, toolchain, prefix, download_cfg, temp_cfg| {
+            let received_notification = Arc::new(Cell::new(false));
+
+            let download_cfg = DownloadCfg {
+                dist_root: download_cfg.dist_root,
+                temp_cfg: download_cfg.temp_cfg,
+                download_dir: download_cfg.download_dir,
+                notify_handler: &|n| {
+                    if let Notification::ComponentUnavailable("bonus", Some(_)) = n {
+                        received_notification.set(true);
+                    }
+                },
+            };
+
+            change_channel_date(url, "nightly", "2016-02-01");
+            // Update with bonus.
+            update_from_dist(url, toolchain, prefix, &[], &[], &download_cfg, temp_cfg).unwrap();
+            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
+            change_channel_date(url, "nightly", "2016-02-02");
+
+            // Update without bonus, should emit a notify and remove the bonus component
+            update_from_dist(url, toolchain, prefix, &[], &[], &download_cfg, temp_cfg).unwrap();
             assert!(!utils::path_exists(&prefix.path().join("bin/bonus")));
+
+            assert!(received_notification.get());
         },
     );
 }
@@ -735,9 +783,9 @@ fn update_preserves_extensions() {
 
 #[test]
 fn update_preserves_extensions_that_became_components() {
-    let edit = &|date: &str, pkg: &mut MockPackage| {
+    let edit = &|date: &str, pkgs: &mut [MockPackage]| {
         if date == "2016-02-01" {
-            let mut tpkg = pkg.targets
+            let tpkg = pkgs[0].targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
@@ -747,7 +795,7 @@ fn update_preserves_extensions_that_became_components() {
             });
         }
         if date == "2016-02-02" {
-            let mut tpkg = pkg.targets
+            let tpkg = pkgs[0].targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
@@ -782,9 +830,9 @@ fn update_preserves_extensions_that_became_components() {
 
 #[test]
 fn update_preserves_components_that_became_extensions() {
-    let edit = &|date: &str, pkg: &mut MockPackage| {
+    let edit = &|date: &str, pkgs: &mut [MockPackage]| {
         if date == "2016-02-01" {
-            let mut tpkg = pkg.targets
+            let tpkg = pkgs[0].targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
@@ -794,7 +842,7 @@ fn update_preserves_components_that_became_extensions() {
             });
         }
         if date == "2016-02-02" {
-            let mut tpkg = pkg.targets
+            let tpkg = pkgs[0].targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
@@ -1127,9 +1175,9 @@ fn remove_extension_not_in_manifest() {
 #[test]
 #[should_panic]
 fn remove_extension_not_in_manifest_but_is_already_installed() {
-    let edit = &|date: &str, pkg: &mut MockPackage| {
+    let edit = &|date: &str, pkgs: &mut [MockPackage]| {
         if date == "2016-02-01" {
-            let mut tpkg = pkg.targets
+            let tpkg = pkgs[0].targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
