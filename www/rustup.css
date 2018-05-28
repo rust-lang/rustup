@@ -81,7 +81,7 @@ body#idx p {
 }
 
 body#idx p.other-platforms-help {
-    font-size: 16px;
+    font-size: 0.6em;
 }
 
 .instructions {
