@@ -80,6 +80,10 @@ body#idx p {
     margin-bottom: 2em;
 }
 
+body#idx p.other-platforms-help {
+    font-size: 0.6em;
+}
+
 .instructions {
     background-color: rgb(250, 250, 250);
     margin-left: auto;
@@ -103,7 +107,8 @@ hr {
 }
 
 #platform-instructions-unix > pre,
-#platform-instructions-default > div > pre {
+#platform-instructions-default > div > pre,
+#platform-instructions-unknown > div > pre {
     background-color: #515151;
     color: white;
     margin-left: auto;
@@ -115,8 +120,9 @@ hr {
     box-shadow: inset 0px 0px 20px 0px #333333;
 }
 
-#platform-instructions-win a,
-#platform-instructions-default a {
+#platform-instructions-win a.windows-download,
+#platform-instructions-default a.windows-download,
+#platform-instructions-unknown a.windows-download {
     display: block;
     padding-top: 0.4rem;
     padding-bottom: 0.6rem;
