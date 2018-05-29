@@ -72,7 +72,7 @@ impl Telemetry {
         // Check for the telemetry file. If it doesn't exist, it's a new day.
         // If it is a new day, then attempt to clean the telemetry directory.
         if !raw::is_file(&self.telemetry_dir.join(&filename)) {
-            try!(self.clean_telemetry_dir());
+            self.clean_telemetry_dir()?;
         }
 
         let _ = utils::append_file("telemetry", &self.telemetry_dir.join(&filename), &json);
@@ -83,7 +83,7 @@ impl Telemetry {
     pub fn clean_telemetry_dir(&self) -> Result<()> {
         let telemetry_dir_contents = self.telemetry_dir.read_dir();
 
-        let contents = try!(telemetry_dir_contents.chain_err(|| ErrorKind::TelemetryCleanupError));
+        let contents = telemetry_dir_contents.chain_err(|| ErrorKind::TelemetryCleanupError)?;
 
         let mut telemetry_files: Vec<PathBuf> = Vec::new();
 
@@ -107,9 +107,7 @@ impl Telemetry {
 
         for i in 0..dl {
             let i = i as usize;
-            try!(
-                fs::remove_file(&telemetry_files[i]).chain_err(|| ErrorKind::TelemetryCleanupError)
-            );
+            fs::remove_file(&telemetry_files[i]).chain_err(|| ErrorKind::TelemetryCleanupError)?;
         }
 
         Ok(())

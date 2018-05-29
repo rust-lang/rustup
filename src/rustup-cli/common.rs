@@ -19,7 +19,7 @@ use wait_timeout::ChildExt;
 pub fn confirm(question: &str, default: bool) -> Result<bool> {
     print!("{} ", question);
     let _ = std::io::stdout().flush();
-    let input = try!(read_line());
+    let input = read_line()?;
 
     let r = match &*input {
         "y" | "Y" => true,
@@ -46,7 +46,7 @@ pub fn confirm_advanced() -> Result<Confirm> {
     println!("3) Cancel installation");
 
     let _ = std::io::stdout().flush();
-    let input = try!(read_line());
+    let input = read_line()?;
 
     let r = match &*input {
         "1" | "" => Confirm::Yes,
@@ -62,7 +62,7 @@ pub fn confirm_advanced() -> Result<Confirm> {
 pub fn question_str(question: &str, default: &str) -> Result<String> {
     println!("{}", question);
     let _ = std::io::stdout().flush();
-    let input = try!(read_line());
+    let input = read_line()?;
 
     println!("");
 
@@ -77,7 +77,7 @@ pub fn question_bool(question: &str, default: bool) -> Result<bool> {
     println!("{}", question);
 
     let _ = std::io::stdout().flush();
-    let input = try!(read_line());
+    let input = read_line()?;
 
     println!("");
 
@@ -108,7 +108,7 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
 
     let download_tracker = RefCell::new(DownloadTracker::new());
 
-    Ok(try!(Cfg::from_env(Arc::new(move |n: Notification| {
+    Ok(Cfg::from_env(Arc::new(move |n: Notification| {
         if download_tracker.borrow_mut().handle_notification(&n) {
             return;
         }
@@ -129,7 +129,7 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
                 err!("{}", n);
             }
         }
-    }))))
+    }))?)
 }
 
 pub fn show_channel_update(
@@ -199,14 +199,14 @@ fn show_channel_updates(
 }
 
 pub fn update_all_channels(cfg: &Cfg, self_update: bool, force_update: bool) -> Result<()> {
-    let toolchains = try!(cfg.update_all_channels(force_update));
+    let toolchains = cfg.update_all_channels(force_update)?;
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");
     }
 
     let setup_path = if self_update {
-        try!(self_update::prepare_update())
+        self_update::prepare_update()?
     } else {
         None
     };
@@ -214,11 +214,11 @@ pub fn update_all_channels(cfg: &Cfg, self_update: bool, force_update: bool) -> 
     if !toolchains.is_empty() {
         println!("");
 
-        try!(show_channel_updates(cfg, toolchains));
+        show_channel_updates(cfg, toolchains)?;
     }
 
     if let Some(ref setup_path) = setup_path {
-        try!(self_update::run_update(setup_path));
+        self_update::run_update(setup_path)?;
 
         unreachable!(); // update exits on success
     } else if self_update {
@@ -282,7 +282,7 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
 
 pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
     let mut t = term2::stdout();
-    for component in try!(toolchain.list_components()) {
+    for component in toolchain.list_components()? {
         if component.component.pkg == "rust-std" {
             let target = component
                 .component
@@ -308,7 +308,7 @@ pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
 
 pub fn list_components(toolchain: &Toolchain) -> Result<()> {
     let mut t = term2::stdout();
-    for component in try!(toolchain.list_components()) {
+    for component in toolchain.list_components()? {
         let name = component.component.name();
         if component.required {
             let _ = t.attr(term2::Attr::Bold);
@@ -327,7 +327,7 @@ pub fn list_components(toolchain: &Toolchain) -> Result<()> {
 }
 
 pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
-    let toolchains = try!(cfg.list_toolchains());
+    let toolchains = cfg.list_toolchains()?;
 
     if toolchains.is_empty() {
         println!("no installed toolchains");
@@ -351,7 +351,7 @@ pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
 }
 
 pub fn list_overrides(cfg: &Cfg) -> Result<()> {
-    let overrides = try!(cfg.settings_file.with(|s| Ok(s.overrides.clone())));
+    let overrides = cfg.settings_file.with(|s| Ok(s.overrides.clone()))?;
 
     if overrides.is_empty() {
         println!("no overrides");

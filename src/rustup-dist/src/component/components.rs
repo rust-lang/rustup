@@ -24,7 +24,7 @@ impl Components {
         let c = Components { prefix: prefix };
 
         // Validate that the metadata uses a format we know
-        if let Some(v) = try!(c.read_version()) {
+        if let Some(v) = c.read_version()? {
             if v != INSTALLER_VERSION {
                 return Err(ErrorKind::BadInstalledMetadataVersion(v).into());
             }
@@ -41,20 +41,18 @@ impl Components {
     fn read_version(&self) -> Result<Option<String>> {
         let p = self.prefix.manifest_file(VERSION_FILE);
         if utils::is_file(&p) {
-            Ok(Some(
-                try!(utils::read_file(VERSION_FILE, &p)).trim().to_string(),
-            ))
+            Ok(Some(utils::read_file(VERSION_FILE, &p)?.trim().to_string()))
         } else {
             Ok(None)
         }
     }
     fn write_version(&self, tx: &mut Transaction) -> Result<()> {
-        try!(tx.modify_file(self.prefix.rel_manifest_file(VERSION_FILE)));
-        try!(utils::write_file(
+        tx.modify_file(self.prefix.rel_manifest_file(VERSION_FILE))?;
+        utils::write_file(
             VERSION_FILE,
             &self.prefix.manifest_file(VERSION_FILE),
-            INSTALLER_VERSION
-        ));
+            INSTALLER_VERSION,
+        )?;
 
         Ok(())
     }
@@ -63,7 +61,7 @@ impl Components {
         if !utils::is_file(&path) {
             return Ok(Vec::new());
         }
-        let content = try!(utils::read_file("components", &path));
+        let content = utils::read_file("components", &path)?;
         Ok(content
             .lines()
             .map(|s| Component {
@@ -81,7 +79,7 @@ impl Components {
         }
     }
     pub fn find(&self, name: &str) -> Result<Option<Component>> {
-        let result = try!(self.list());
+        let result = self.list()?;
         Ok(result.into_iter().filter(|c| (c.name() == name)).next())
     }
     pub fn prefix(&self) -> InstallPrefix {
@@ -117,26 +115,21 @@ impl<'a> ComponentBuilder<'a> {
         // Write component manifest
         let path = self.components.rel_component_manifest(&self.name);
         let abs_path = self.components.prefix.abs_path(&path);
-        let mut file = try!(self.tx.add_file(&self.name, path));
+        let mut file = self.tx.add_file(&self.name, path)?;
         for part in self.parts {
             // FIXME: This writes relative paths to the component manifest,
             // but rust-installer writes absolute paths.
-            try!(utils::write_line(
-                "component",
-                &mut file,
-                &abs_path,
-                &part.encode()
-            ));
+            utils::write_line("component", &mut file, &abs_path, &part.encode())?;
         }
 
         // Add component to components file
         let path = self.components.rel_components_file();
         let abs_path = self.components.prefix.abs_path(&path);
-        try!(self.tx.modify_file(path));
-        try!(utils::append_file("components", &abs_path, &self.name));
+        self.tx.modify_file(path)?;
+        utils::append_file("components", &abs_path, &self.name)?;
 
         // Drop in the version file for future use
-        try!(self.components.write_version(&mut self.tx));
+        self.components.write_version(&mut self.tx)?;
 
         Ok(self.tx)
     }
@@ -178,11 +171,9 @@ impl Component {
     }
     pub fn parts(&self) -> Result<Vec<ComponentPart>> {
         let mut result = Vec::new();
-        for line in try!(utils::read_file("component", &self.manifest_file())).lines() {
-            result
-                .push(try!(ComponentPart::decode(line).ok_or_else(|| {
-                    ErrorKind::CorruptComponent(self.name.clone())
-                })));
+        for line in utils::read_file("component", &self.manifest_file())?.lines() {
+            result.push(ComponentPart::decode(line)
+                .ok_or_else(|| ErrorKind::CorruptComponent(self.name.clone()))?);
         }
         Ok(result)
     }
@@ -190,10 +181,12 @@ impl Component {
         // Update components file
         let path = self.components.rel_components_file();
         let abs_path = self.components.prefix.abs_path(&path);
-        let temp = try!(tx.temp().new_file());
-        try!(utils::filter_file("components", &abs_path, &temp, |l| (l != self.name)));
-        try!(tx.modify_file(path));
-        try!(utils::rename_file("components", &temp, &abs_path));
+        let temp = tx.temp().new_file()?;
+        utils::filter_file("components", &abs_path, &temp, |l| {
+            (l != self.name)
+        })?;
+        tx.modify_file(path)?;
+        utils::rename_file("components", &temp, &abs_path)?;
 
         // TODO: If this is the last component remove the components file
         // and the version file.
@@ -298,20 +291,20 @@ impl Component {
             ancestors: HashSet::new(),
             prefix: self.components.prefix.abs_path(""),
         };
-        for part in try!(self.parts()).into_iter().rev() {
+        for part in self.parts()?.into_iter().rev() {
             match &*part.0 {
-                "file" => try!(tx.remove_file(&self.name, part.1.clone())),
-                "dir" => try!(tx.remove_dir(&self.name, part.1.clone())),
+                "file" => tx.remove_file(&self.name, part.1.clone())?,
+                "dir" => tx.remove_dir(&self.name, part.1.clone())?,
                 _ => return Err(ErrorKind::CorruptComponent(self.name.clone()).into()),
             }
             pset.seen(part.1);
         }
         for empty_dir in pset {
-            try!(tx.remove_dir(&self.name, empty_dir));
+            tx.remove_dir(&self.name, empty_dir)?;
         }
 
         // Remove component manifest
-        try!(tx.remove_file(&self.name, self.rel_manifest_file()));
+        tx.remove_file(&self.name, self.rel_manifest_file())?;
 
         Ok(tx)
     }

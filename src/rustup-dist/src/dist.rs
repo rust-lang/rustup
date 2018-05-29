@@ -424,13 +424,13 @@ impl<'a> Manifest<'a> {
         ext: &str,
     ) -> Result<Option<String>> {
         let suffix = target_triple.to_owned() + ext;
-        Ok(try!(utils::match_file("manifest", &self.0, |line| {
+        Ok(utils::match_file("manifest", &self.0, |line| {
             if line.starts_with(package) && line.ends_with(&suffix) {
                 Some(format!("{}/{}", &self.1, line))
             } else {
                 None
             }
-        })))
+        })?)
     }
 }
 
@@ -442,19 +442,19 @@ impl fmt::Display for TargetTriple {
 
 impl fmt::Display for PartialToolchainDesc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "{}", &self.channel));
+        write!(f, "{}", &self.channel)?;
 
         if let Some(ref date) = self.date {
-            try!(write!(f, "-{}", date));
+            write!(f, "-{}", date)?;
         }
         if let Some(ref arch) = self.target.arch {
-            try!(write!(f, "-{}", arch));
+            write!(f, "-{}", arch)?;
         }
         if let Some(ref os) = self.target.os {
-            try!(write!(f, "-{}", os));
+            write!(f, "-{}", os)?;
         }
         if let Some(ref env) = self.target.env {
-            try!(write!(f, "-{}", env));
+            write!(f, "-{}", env)?;
         }
 
         Ok(())
@@ -463,12 +463,12 @@ impl fmt::Display for PartialToolchainDesc {
 
 impl fmt::Display for ToolchainDesc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "{}", &self.channel));
+        write!(f, "{}", &self.channel)?;
 
         if let Some(ref date) = self.date {
-            try!(write!(f, "-{}", date));
+            write!(f, "-{}", date)?;
         }
-        try!(write!(f, "-{}", self.target));
+        write!(f, "-{}", self.target)?;
 
         Ok(())
     }
@@ -521,10 +521,7 @@ pub fn update_from_dist_<'a>(
     force_update: bool,
 ) -> Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
-    let manifestation = try!(Manifestation::open(
-        prefix.clone(),
-        toolchain.target.clone()
-    ));
+    let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
 
     let changes = Changes {
         add_extensions: add.to_owned(),
@@ -539,13 +536,13 @@ pub fn update_from_dist_<'a>(
                 &m.date,
                 m.get_rust_version().ok(),
             ));
-            return match try!(manifestation.update(
+            return match manifestation.update(
                 &m,
                 changes,
                 force_update,
                 &download,
-                download.notify_handler.clone()
-            )) {
+                download.notify_handler.clone(),
+            )? {
                 UpdateStatus::Unchanged => Ok(None),
                 UpdateStatus::Changed => Ok(Some(hash)),
             };
@@ -612,8 +609,8 @@ fn dl_v2_manifest<'a>(
         } else {
             return Ok(None);
         };
-        let manifest_str = try!(utils::read_file("manifest", &manifest_file));
-        let manifest = try!(ManifestV2::parse(&manifest_str));
+        let manifest_str = utils::read_file("manifest", &manifest_file)?;
+        let manifest = ManifestV2::parse(&manifest_str)?;
 
         Ok(Some((manifest, manifest_hash)))
     } else {
@@ -642,9 +639,9 @@ fn dl_v1_manifest<'a>(download: DownloadCfg<'a>, toolchain: &ToolchainDesc) -> R
     }
 
     let manifest_url = toolchain.manifest_v1_url(download.dist_root);
-    let manifest_dl = try!(download.download_and_check(&manifest_url, None, ""));
+    let manifest_dl = download.download_and_check(&manifest_url, None, "")?;
     let (manifest_file, _) = manifest_dl.unwrap();
-    let manifest_str = try!(utils::read_file("manifest", &manifest_file));
+    let manifest_str = utils::read_file("manifest", &manifest_file)?;
     let urls = manifest_str
         .lines()
         .map(|s| format!("{}/{}", root_url, s))

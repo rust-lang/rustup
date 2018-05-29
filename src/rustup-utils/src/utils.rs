@@ -214,13 +214,7 @@ fn download_file_(
         (Backend::Curl, Notification::UsingCurl)
     };
     notify_handler(notification);
-    download_to_path_with_backend(
-        backend,
-        url,
-        path,
-        resume_from_partial,
-        Some(callback)
-    )?;
+    download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback))?;
 
     notify_handler(Notification::DownloadFinished);
 
@@ -521,10 +515,8 @@ pub fn cargo_home() -> Result<PathBuf> {
     };
 
     let cargo_home = if env_var.is_some() {
-        let cwd = try!(env::current_dir().chain_err(|| ErrorKind::GettingCwd));
-        env_var.clone().map(|home| {
-            cwd.join(home)
-        })
+        let cwd = env::current_dir().chain_err(|| ErrorKind::GettingCwd)?;
+        env_var.clone().map(|home| cwd.join(home))
     } else {
         None
     };
@@ -726,10 +718,8 @@ pub fn rustup_home() -> Result<PathBuf> {
     let rustup_home_env = env::var_os("RUSTUP_HOME");
 
     let rustup_home = if rustup_home_env.is_some() {
-        let cwd = try!(env::current_dir().chain_err(|| ErrorKind::GettingCwd));
-        rustup_home_env.clone().map(|home| {
-            cwd.join(home)
-        })
+        let cwd = env::current_dir().chain_err(|| ErrorKind::GettingCwd)?;
+        rustup_home_env.clone().map(|home| cwd.join(home))
     } else {
         None
     };

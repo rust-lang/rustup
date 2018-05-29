@@ -18,7 +18,7 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(
     args: &[S],
     cfg: &Cfg,
 ) -> Result<()> {
-    if (arg0 == "rustc" || arg0 == "rustc.exe") && try!(cfg.telemetry_enabled()) {
+    if (arg0 == "rustc" || arg0 == "rustc.exe") && cfg.telemetry_enabled()? {
         return telemetry_rustc(cmd, arg0, args, cfg);
     }
 

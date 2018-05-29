@@ -84,7 +84,7 @@ impl Manifestation {
         // TODO: validate the triple with the existing install as well
         // as the metadata format of the existing install
         Ok(Manifestation {
-            installation: try!(Components::open(prefix)),
+            installation: Components::open(prefix)?,
             target_triple: triple,
         })
     }
@@ -119,12 +119,7 @@ impl Manifestation {
         let ref installed_manifest_path = prefix.path().join(rel_installed_manifest_path);
 
         // Create the lists of components needed for installation
-        let update = try!(Update::build_update(
-            self,
-            new_manifest,
-            changes,
-            notify_handler,
-        ));
+        let update = Update::build_update(self, new_manifest, changes, notify_handler)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
@@ -157,13 +152,12 @@ impl Manifestation {
                 url
             };
 
-            let url_url = try!(utils::parse_url(&url));
+            let url_url = utils::parse_url(&url)?;
 
-            let dowloaded_file = try!(
-                download_cfg
-                    .download(&url_url, &hash)
-                    .chain_err(|| ErrorKind::ComponentDownloadFailed(component.clone()))
-            );
+            let dowloaded_file = download_cfg
+                .download(&url_url, &hash)
+                .chain_err(|| ErrorKind::ComponentDownloadFailed(component.clone()))?;
+
             things_downloaded.push(hash);
 
             things_to_install.push((component, format, dowloaded_file));
@@ -174,8 +168,8 @@ impl Manifestation {
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
-        let ref config = try!(self.read_config());
-        tx = try!(self.maybe_handle_v2_upgrade(config, tx));
+        let ref config = self.read_config()?;
+        tx = self.maybe_handle_v2_upgrade(config, tx)?;
 
         // Uninstall components
         for component in update.components_to_uninstall {
@@ -185,7 +179,7 @@ impl Manifestation {
                 component.target.as_ref(),
             ));
 
-            tx = try!(self.uninstall_component(&component, tx, notify_handler.clone()));
+            tx = self.uninstall_component(&component, tx, notify_handler.clone())?;
         }
 
         // Install components
@@ -200,11 +194,11 @@ impl Manifestation {
             let xz;
             let package: &Package = match format {
                 Format::Gz => {
-                    gz = try!(TarGzPackage::new_file(&installer_file, temp_cfg));
+                    gz = TarGzPackage::new_file(&installer_file, temp_cfg)?;
                     &gz
                 }
                 Format::Xz => {
-                    xz = try!(TarXzPackage::new_file(&installer_file, temp_cfg));
+                    xz = TarXzPackage::new_file(&installer_file, temp_cfg)?;
                     &xz
                 }
             };
@@ -222,17 +216,13 @@ impl Manifestation {
                 return Err(ErrorKind::CorruptComponent(component.pkg.clone()).into());
             }
 
-            tx = try!(package.install(&self.installation, name, Some(short_name), tx));
+            tx = package.install(&self.installation, name, Some(short_name), tx)?;
         }
 
         // Install new distribution manifest
         let ref new_manifest_str = new_manifest.clone().stringify();
-        try!(tx.modify_file(rel_installed_manifest_path.to_owned()));
-        try!(utils::write_file(
-            "manifest",
-            installed_manifest_path,
-            new_manifest_str
-        ));
+        tx.modify_file(rel_installed_manifest_path.to_owned())?;
+        utils::write_file("manifest", installed_manifest_path, new_manifest_str)?;
 
         // Write configuration.
         //
@@ -245,13 +235,13 @@ impl Manifestation {
         let ref config_str = config.stringify();
         let ref rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
         let ref config_path = prefix.path().join(rel_config_path);
-        try!(tx.modify_file(rel_config_path.to_owned()));
-        try!(utils::write_file("dist config", config_path, config_str));
+        tx.modify_file(rel_config_path.to_owned())?;
+        utils::write_file("dist config", config_path, config_str)?;
 
         // End transaction
         tx.commit();
 
-        try!(download_cfg.clean(&things_downloaded));
+        download_cfg.clean(&things_downloaded)?;
 
         Ok(UpdateStatus::Changed)
     }
@@ -263,15 +253,13 @@ impl Manifestation {
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
-        let ref config_str = try!(utils::read_file(
-            "dist config",
-            &prefix.path().join(&rel_config_path)
-        ));
-        let config = try!(Config::parse(config_str));
-        try!(tx.remove_file("dist config", rel_config_path));
+        let ref config_str =
+            utils::read_file("dist config", &prefix.path().join(&rel_config_path))?;
+        let config = Config::parse(config_str)?;
+        tx.remove_file("dist config", rel_config_path)?;
 
         for component in config.components {
-            tx = try!(self.uninstall_component(&component, tx, notify_handler));
+            tx = self.uninstall_component(&component, tx, notify_handler)?;
         }
         tx.commit();
 
@@ -290,10 +278,10 @@ impl Manifestation {
         // component name plus the target triple.
         let ref name = component.name();
         let ref short_name = format!("{}", component.pkg);
-        if let Some(c) = try!(self.installation.find(&name)) {
-            tx = try!(c.uninstall(tx));
-        } else if let Some(c) = try!(self.installation.find(&short_name)) {
-            tx = try!(c.uninstall(tx));
+        if let Some(c) = self.installation.find(&name)? {
+            tx = c.uninstall(tx)?;
+        } else if let Some(c) = self.installation.find(&short_name)? {
+            tx = c.uninstall(tx)?;
         } else {
             notify_handler(Notification::MissingInstalledComponent(&name));
         }
@@ -308,8 +296,8 @@ impl Manifestation {
         let ref rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
         let ref config_path = prefix.path().join(rel_config_path);
         if utils::path_exists(config_path) {
-            let ref config_str = try!(utils::read_file("dist config", config_path));
-            Ok(Some(try!(Config::parse(config_str))))
+            let ref config_str = utils::read_file("dist config", config_path)?;
+            Ok(Some(Config::parse(config_str)?))
         } else {
             Ok(None)
         }
@@ -319,8 +307,8 @@ impl Manifestation {
         let prefix = self.installation.prefix();
         let ref old_manifest_path = prefix.manifest_file(DIST_MANIFEST);
         if utils::path_exists(old_manifest_path) {
-            let ref manifest_str = try!(utils::read_file("installed manifest", old_manifest_path));
-            Ok(Some(try!(Manifest::parse(manifest_str))))
+            let ref manifest_str = utils::read_file("installed manifest", old_manifest_path)?;
+            Ok(Some(Manifest::parse(manifest_str)?))
         } else {
             Ok(None)
         }
@@ -335,7 +323,7 @@ impl Manifestation {
         notify_handler: &Fn(Notification),
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
-        if try!(self.read_config()).is_some() {
+        if self.read_config()?.is_some() {
             return Err(
                 "the server unexpectedly provided an obsolete version of the distribution manifest"
                     .into(),
@@ -370,7 +358,7 @@ impl Manifestation {
             notify_handler: notify_handler,
         };
 
-        let dl = try!(dlcfg.download_and_check(&url, update_hash, ".tar.gz"));
+        let dl = dlcfg.download_and_check(&url, update_hash, ".tar.gz")?;
         if dl.is_none() {
             return Ok(None);
         };
@@ -388,15 +376,15 @@ impl Manifestation {
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
 
         // Uninstall components
-        for component in try!(self.installation.list()) {
-            tx = try!(component.uninstall(tx));
+        for component in self.installation.list()? {
+            tx = component.uninstall(tx)?;
         }
 
         // Install all the components in the installer
-        let package = try!(TarGzPackage::new_file(&installer_file, temp_cfg));
+        let package = TarGzPackage::new_file(&installer_file, temp_cfg)?;
 
         for component in package.components() {
-            tx = try!(package.install(&self.installation, &component, None, tx));
+            tx = package.install(&self.installation, &component, None, tx)?;
         }
 
         // End transaction
@@ -414,7 +402,7 @@ impl Manifestation {
         config: &Option<Config>,
         mut tx: Transaction<'a>,
     ) -> Result<Transaction<'a>> {
-        let installed_components = try!(self.installation.list());
+        let installed_components = self.installation.list()?;
         let looks_like_v1 = config.is_none() && !installed_components.is_empty();
 
         if !looks_like_v1 {
@@ -422,7 +410,7 @@ impl Manifestation {
         }
 
         for component in installed_components {
-            tx = try!(component.uninstall(tx));
+            tx = component.uninstall(tx)?;
         }
 
         Ok(tx)
@@ -446,11 +434,11 @@ impl Update {
         notify_handler: &Fn(Notification),
     ) -> Result<Update> {
         // Load the configuration and list of installed components.
-        let config = try!(manifestation.read_config());
+        let config = manifestation.read_config()?;
 
         // The package to install.
-        let rust_package = try!(new_manifest.get_package("rust"));
-        let rust_target_package = try!(rust_package.get_target(Some(&manifestation.target_triple)));
+        let rust_package = new_manifest.get_package("rust")?;
+        let rust_target_package = rust_package.get_target(Some(&manifestation.target_triple))?;
 
         changes.check_invariants(rust_target_package, &config);
 
@@ -486,7 +474,7 @@ impl Update {
         // those that are currently installed but not in the final list.
         // To install are those on the final list but not already
         // installed.
-        let old_manifest = try!(manifestation.load_manifest());
+        let old_manifest = manifestation.load_manifest()?;
         let just_modifying_existing_install = old_manifest.as_ref() == Some(new_manifest);
 
         if just_modifying_existing_install {
@@ -564,7 +552,8 @@ impl Update {
                             // If a component is not available anymore for the target remove it
                             // This prevents errors when trying to update to a newer version with
                             // a removed component.
-                            self.components_to_uninstall.push(existing_component.clone());
+                            self.components_to_uninstall
+                                .push(existing_component.clone());
                             notify_handler(Notification::ComponentUnavailable(
                                 &existing_component.pkg,
                                 existing_component.target.as_ref(),
@@ -633,8 +622,8 @@ impl Update {
     ) -> Result<Vec<(Component, Format, String, String)>> {
         let mut components_urls_and_hashes = Vec::new();
         for component in &self.components_to_install {
-            let package = try!(new_manifest.get_package(&component.pkg));
-            let target_package = try!(package.get_target(component.target.as_ref()));
+            let package = new_manifest.get_package(&component.pkg)?;
+            let target_package = package.get_target(component.target.as_ref())?;
 
             let bins = target_package.bins.as_ref().expect("components available");
             let c_u_h = if let (Some(url), Some(hash)) = (bins.xz_url.clone(), bins.xz_hash.clone())

@@ -201,11 +201,11 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
     // We're using low-level APIs to create the junction, and these are more picky about paths.
     // For example, forward slashes cannot be used as a path separator, so we should try to
     // canonicalize the path first.
-    let target = try!(fs::canonicalize(target));
+    let target = fs::canonicalize(target)?;
 
-    try!(fs::create_dir(junction));
+    fs::create_dir(junction)?;
 
-    let path = try!(windows::to_u16s(junction));
+    let path = windows::to_u16s(junction)?;
 
     unsafe {
         let h = CreateFileW(
@@ -363,7 +363,8 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
         use std::env;
 
         let env_browser = env::var_os("BROWSER").map(|b| env::split_paths(&b).collect::<Vec<_>>());
-        let env_commands = env_browser.as_ref()
+        let env_commands = env_browser
+            .as_ref()
             .map(|cmds| cmds.iter().by_ref().filter_map(|b| b.to_str()).collect())
             .unwrap_or(vec![]);
 

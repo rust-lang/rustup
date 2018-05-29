@@ -26,7 +26,7 @@ impl SettingsFile {
     }
     fn write_settings(&self) -> Result<()> {
         let s = self.cache.borrow().as_ref().unwrap().clone();
-        try!(utils::write_file("settings", &self.path, &s.stringify()));
+        utils::write_file("settings", &self.path, &s.stringify())?;
         Ok(())
     }
     fn read_settings(&self) -> Result<()> {
@@ -35,8 +35,8 @@ impl SettingsFile {
             let mut b = self.cache.borrow_mut();
             if b.is_none() {
                 *b = Some(if utils::is_file(&self.path) {
-                    let content = try!(utils::read_file("settings", &self.path));
-                    try!(Settings::parse(&content))
+                    let content = utils::read_file("settings", &self.path)?;
+                    Settings::parse(&content)?
                 } else {
                     needs_save = true;
                     Default::default()
@@ -44,22 +44,22 @@ impl SettingsFile {
             }
         }
         if needs_save {
-            try!(self.write_settings());
+            self.write_settings()?;
         }
         Ok(())
     }
     pub fn with<T, F: FnOnce(&Settings) -> Result<T>>(&self, f: F) -> Result<T> {
-        try!(self.read_settings());
+        self.read_settings()?;
 
         // Settings can no longer be None so it's OK to unwrap
         f(self.cache.borrow().as_ref().unwrap())
     }
     pub fn with_mut<T, F: FnOnce(&mut Settings) -> Result<T>>(&self, f: F) -> Result<T> {
-        try!(self.read_settings());
+        self.read_settings()?;
 
         // Settings can no longer be None so it's OK to unwrap
-        let result = { try!(f(self.cache.borrow_mut().as_mut().unwrap())) };
-        try!(self.write_settings());
+        let result = { f(self.cache.borrow_mut().as_mut().unwrap())? };
+        self.write_settings()?;
         Ok(result)
     }
     pub fn maybe_upgrade_from_legacy(&self, multirust_dir: &Path) -> Result<()> {
@@ -79,20 +79,20 @@ impl SettingsFile {
             let default_file = multirust_dir.join("default");
             let telemetry_file = multirust_dir.join("telemetry-on");
             // Legacy upgrade
-            try!(self.with_mut(|s| {
-                s.version = try!(utils::read_file("version", &legacy_version_file))
+            self.with_mut(|s| {
+                s.version = utils::read_file("version", &legacy_version_file)?
                     .trim()
                     .to_owned();
 
                 if utils::is_file(&default_file) {
                     s.default_toolchain = Some(
-                        try!(utils::read_file("default", &default_file))
+                        utils::read_file("default", &default_file)?
                             .trim()
                             .to_owned(),
                     );
                 }
                 if utils::is_file(&override_db) {
-                    let overrides = try!(utils::read_file("overrides", &override_db));
+                    let overrides = utils::read_file("overrides", &override_db)?;
                     for o in overrides.lines() {
                         if let Some((k, v)) = split_override(o, ';') {
                             s.overrides.insert(k, v);
@@ -103,7 +103,7 @@ impl SettingsFile {
                     s.telemetry = TelemetryMode::On;
                 }
                 Ok(())
-            }));
+            })?;
 
             // Failure to delete these is not a fatal error
             let _ = utils::remove_file("version", &legacy_version_file);
@@ -183,16 +183,16 @@ impl Settings {
     }
 
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
-        let version = try!(get_string(&mut table, "version", path));
+        let version = get_string(&mut table, "version", path)?;
         if !SUPPORTED_METADATA_VERSIONS.contains(&&*version) {
             return Err(ErrorKind::UnknownMetadataVersion(version).into());
         }
         Ok(Settings {
             version: version,
-            default_host_triple: try!(get_opt_string(&mut table, "default_host_triple", path)),
-            default_toolchain: try!(get_opt_string(&mut table, "default_toolchain", path)),
-            overrides: try!(Self::table_to_overrides(&mut table, path)),
-            telemetry: if try!(get_opt_bool(&mut table, "telemetry", path)).unwrap_or(false) {
+            default_host_triple: get_opt_string(&mut table, "default_host_triple", path)?,
+            default_toolchain: get_opt_string(&mut table, "default_toolchain", path)?,
+            overrides: Self::table_to_overrides(&mut table, path)?,
+            telemetry: if get_opt_bool(&mut table, "telemetry", path)?.unwrap_or(false) {
                 TelemetryMode::On
             } else {
                 TelemetryMode::Off
@@ -226,7 +226,7 @@ impl Settings {
         path: &str,
     ) -> Result<BTreeMap<String, String>> {
         let mut result = BTreeMap::new();
-        let pkg_table = try!(get_table(table, "overrides", path));
+        let pkg_table = get_table(table, "overrides", path)?;
 
         for (k, v) in pkg_table {
             if let toml::Value::String(t) = v {

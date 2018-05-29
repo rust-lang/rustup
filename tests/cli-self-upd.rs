@@ -814,8 +814,10 @@ fn as_rustup_setup() {
 #[test]
 fn first_install_exact() {
     setup(&|config| {
-        expect_ok_contains(config, &["rustup-init", "-y"],
-r"
+        expect_ok_contains(
+            config,
+            &["rustup-init", "-y"],
+            r"
   stable installed - 1.1.0 (hash-s-2)
 
 ",
@@ -841,10 +843,12 @@ info: default toolchain set to 'stable'
 fn reinstall_exact() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_stderr_ok(config, &["rustup-init", "-y"],
-r"info: updating existing rustup installation
-"
-                  );
+        expect_stderr_ok(
+            config,
+            &["rustup-init", "-y"],
+            r"info: updating existing rustup installation
+",
+        );
     });
 }
 

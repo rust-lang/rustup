@@ -136,7 +136,11 @@ impl<'a> Display for Notification<'a> {
             }
             ComponentUnavailable(pkg, toolchain) => {
                 if let Some(tc) = toolchain {
-                    write!(f, "component '{}' is not available anymore on target '{}'", pkg, tc)
+                    write!(
+                        f,
+                        "component '{}' is not available anymore on target '{}'",
+                        pkg, tc
+                    )
                 } else {
                     write!(f, "component '{}' is not available anymore", pkg)
                 }
