@@ -67,7 +67,7 @@ but the gist is as simple as using one of the following:
 
 ```
 # Bash
-$ rustup completions bash > /etc/bash_completion.d/rustup.bash-completion
+$ rustup completions bash > ~/.local/share/bash_completion/completions/rustup
 
 # Bash (macOS/Homebrew)
 $ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
