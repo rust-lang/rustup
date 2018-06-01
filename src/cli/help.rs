@@ -164,10 +164,12 @@ r"DISCUSSION:
 
     BASH:
 
-    Completion files are commonly stored in `/etc/bash_completion.d/`.
+    Completion files are commonly stored in `/etc/bash_completion.d/` for
+    system-wide commands, but can be stored in in
+    `~/.local/share/bash_completion/completions` for user-specific commands.
     Run the command:
 
-        $ rustup completions bash > /etc/bash_completion.d/rustup.bash-completion
+        $ rustup completions bash >> ~/.local/share/bash_completion/completions/rustup
 
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take affect.
