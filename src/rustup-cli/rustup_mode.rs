@@ -36,7 +36,7 @@ pub fn main() -> Result<()> {
         ("default", Some(m)) => default_(cfg, m)?,
         ("toolchain", Some(c)) => match c.subcommand() {
             ("install", Some(m)) => update(cfg, m)?,
-            ("list", Some(_)) => common::list_toolchains(cfg)?,
+            ("list", Some(m)) => common::list_toolchains(cfg, m)?,
             ("link", Some(m)) => toolchain_link(cfg, m)?,
             ("uninstall", Some(m)) => toolchain_remove(cfg, m)?,
             (_, _) => unreachable!(),
@@ -172,7 +172,14 @@ pub fn cli() -> App<'static, 'static> {
                 .setting(AppSettings::VersionlessSubcommands)
                 .setting(AppSettings::DeriveDisplayOrder)
                 .setting(AppSettings::SubcommandRequiredElseHelp)
-                .subcommand(SubCommand::with_name("list").about("List installed toolchains"))
+                .subcommand(
+                    SubCommand::with_name("list")
+                        .about("List installed toolchains")
+                        .arg(
+                            Arg::with_name("default")
+                                .help("Show only the default toolchain"),
+                        ),
+                )
                 .subcommand(
                     SubCommand::with_name("install")
                         .about("Install or update a given toolchain")

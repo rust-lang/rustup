@@ -1,5 +1,6 @@
 //! Just a dumping ground for cli stuff
 
+use clap::ArgMatches;
 use rustup::{self, Cfg, Notification, Toolchain, UpdateStatus};
 use rustup::telemetry_analysis::TelemetryAnalysis;
 use errors::*;
@@ -326,24 +327,32 @@ pub fn list_components(toolchain: &Toolchain) -> Result<()> {
     Ok(())
 }
 
-pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
+pub fn list_toolchains(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchains = cfg.list_toolchains()?;
 
     if toolchains.is_empty() {
-        println!("no installed toolchains");
+        if !m.is_present("default") {
+            println!("no installed toolchains");
+        }
     } else {
-        if let Ok(Some(def_toolchain)) = cfg.find_default() {
-            for toolchain in toolchains {
-                let if_default = if def_toolchain.name() == &*toolchain {
-                    " (default)"
-                } else {
-                    ""
-                };
-                println!("{}{}", &toolchain, if_default);
+        if !m.is_present("default") {
+            if let Ok(Some(def_toolchain)) = cfg.find_default() {
+                for toolchain in toolchains {
+                    let if_default = if def_toolchain.name() == &*toolchain {
+                        " (default)"
+                    } else {
+                        ""
+                    };
+                    println!("{}{}", &toolchain, if_default);
+                }
+            } else {
+                for toolchain in toolchains {
+                    println!("{}", &toolchain);
+                }
             }
         } else {
-            for toolchain in toolchains {
-                println!("{}", &toolchain);
+            if let Ok(Some(def_toolchain)) = cfg.find_default() {
+                println!("{}", def_toolchain.name());
             }
         }
     }
