@@ -80,11 +80,34 @@ pub fn main() -> Result<()> {
         },
         ("completions", Some(c)) => {
             if let Some(shell) = c.value_of("shell") {
+                let shell = shell.parse::<Shell>().unwrap();
+                let prefix = "~/.rustup/toolchains/$(rustup toolchain list --default)";
+
                 cli().gen_completions_to(
                     "rustup",
-                    shell.parse::<Shell>().unwrap(),
+                    shell,
                     &mut io::stdout(),
                 );
+
+                match shell {
+                    Shell::Bash => {
+                        writeln!(
+                            &mut io::stdout(),
+                            "\n. {}{}",
+                            prefix,
+                            "/etc/bash_completion.d/cargo"
+                        );
+                    }
+                    Shell::Zsh => {
+                        writeln!(
+                            &mut io::stdout(),
+                            "\n. {}{}",
+                            prefix,
+                            "/share/zsh/site-functions/_cargo"
+                        );
+                    }
+                    _ => (),
+                };
             }
         }
         (_, _) => unreachable!(),
