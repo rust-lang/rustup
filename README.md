@@ -67,7 +67,7 @@ gist is as simple as using one of the following:
 
 ```
 # Bash
-$ rustup completions bash > /etc/bash_completion.d/rustup.bash-completion
+$ rustup completions bash >> ~/.bash_completion
 
 # Bash (macOS/Homebrew)
 $ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
@@ -500,9 +500,9 @@ If you need a more complex setup, rustup supports the convention used by
 the __curl__ program, documented in the ENVIRONMENT section of
 [its manual page][curlman].
 
-Note that some versions of `libcurl` apparently require you to drop the 
-`http://` or `https://` prefix in environment variables. For example, 
-`export http_proxy=proxy.example.com:1080` (and likewise for HTTPS). 
+Note that some versions of `libcurl` apparently require you to drop the
+`http://` or `https://` prefix in environment variables. For example,
+`export http_proxy=proxy.example.com:1080` (and likewise for HTTPS).
 If you are getting an SSL `unknown protocol` error from `rustup` via `libcurl`
 but the command-line `curl` command works fine, this may be the problem.
 
