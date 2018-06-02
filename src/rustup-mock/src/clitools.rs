@@ -124,7 +124,7 @@ pub fn setup(s: Scenario, f: &Fn(&mut Config)) {
     run(
         &config,
         "rustup",
-        &["set", "host", &this_host_triple()],
+        &["set", "default-host", &this_host_triple()],
         &[],
     );
 
