@@ -200,6 +200,7 @@ pub fn cli() -> App<'static, 'static> {
                         .about("List installed toolchains")
                         .arg(
                             Arg::with_name("default")
+                                .long("default")
                                 .help("Show only the default toolchain"),
                         ),
                 )
