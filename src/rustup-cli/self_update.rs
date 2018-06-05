@@ -172,10 +172,10 @@ Rust requires the Microsoft C++ build tools for Visual Studio 2013 or
 later, but they don't seem to be installed.
 
 The easiest way to acquire the build tools is by installing Microsoft
-Visual C++ Build Tools 2015 which provides just the Visual C++ build
+Visual C++ Build Tools 2017 which provides just the Visual C++ build
 tools:
 
-    http://landinghub.visualstudio.com/visual-cpp-build-tools
+    https://aka.ms/buildtools
 
 Alternately, you can install Visual Studio 2015 or Visual
 Studio 2013 and during install select the "C++ tools":
