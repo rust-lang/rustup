@@ -85,7 +85,7 @@ fn blank_lines_around_stderr_log_output_install() {
         assert!(out.stdout.contains(
             r"
 3) Cancel installation
-
+>
 
   stable installed - 1.1.0 (hash-s-2)
 
@@ -107,7 +107,7 @@ fn blank_lines_around_stderr_log_output_update() {
         assert!(out.stdout.contains(
             r"
 3) Cancel installation
-
+>
 
 
 Rust is installed now. Great!
