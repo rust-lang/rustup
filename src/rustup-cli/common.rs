@@ -44,6 +44,7 @@ pub fn confirm_advanced() -> Result<Confirm> {
     println!("1) Proceed with installation (default)");
     println!("2) Customize installation");
     println!("3) Cancel installation");
+    print!(">");
 
     let _ = std::io::stdout().flush();
     let input = read_line()?;

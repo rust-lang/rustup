@@ -370,7 +370,12 @@ pub fn cli() -> App<'static, 'static> {
                         .long("std")
                         .help("Standard library API documentation"),
                 )
-                .group(ArgGroup::with_name("page").args(&["book", "std"])),
+                .arg(
+                    Arg::with_name("reference")
+                        .long("reference")
+                        .help("The Rust Reference"),
+                )
+                .group(ArgGroup::with_name("page").args(&["book", "std", "reference"])),
         );
 
     if cfg!(not(target_os = "windows")) {
@@ -918,6 +923,8 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         "book/index.html"
     } else if m.is_present("std") {
         "std/index.html"
+    } else if m.is_present("reference") {
+        "reference/index.html"
     } else {
         "index.html"
     };
