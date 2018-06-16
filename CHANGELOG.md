@@ -1,5 +1,6 @@
 # 1.12.0
 
+* [Add caret after first installation question][pr1435]
 * [Add "rustup doc --reference"][pr1430]
 * [Update Visual C++ Build Tools URL][pr1428]
 * [Fix download indicator on OSes with newer ncurses package][pr1422]
@@ -13,6 +14,7 @@
 * [Use browser in BROWSER env if present for `doc` command][pr1289]
 * [Update shebang to reflect bashisms][pr1269]
 
+[pr1435]: https://github.com/rust-lang-nursery/rustup.rs/pull/1435
 [pr1430]: https://github.com/rust-lang-nursery/rustup.rs/pull/1430
 [pr1428]: https://github.com/rust-lang-nursery/rustup.rs/pull/1428
 [pr1422]: https://github.com/rust-lang-nursery/rustup.rs/pull/1422
@@ -30,7 +32,7 @@ Contributors: Andrew Pennebaker, Who? Me?!, Matteo Bertini, mog422,
 Kasper Møller Andersen, Thibault Delor, Justin Worthe, TitanSnow,
 aimileus, Antonio Murdaca, Cyryl Płotnicki, Nick Cameron, Alex Crichton,
 Kornel, Stuart Dootson, Pietro Albini, Diggory Blake, Yuji Nakao,
-Johannes Hofmann, CrLF0710
+Johannes Hofmann, CrLF0710, Aaron Lee
 
 # 1.11.0
 
