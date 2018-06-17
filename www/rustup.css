@@ -107,6 +107,8 @@ hr {
 }
 
 #platform-instructions-unix > pre,
+#platform-instructions-win32 > pre,
+#platform-instructions-win64 > pre,
 #platform-instructions-default > div > pre,
 #platform-instructions-unknown > div > pre {
     background-color: #515151;
@@ -120,7 +122,8 @@ hr {
     box-shadow: inset 0px 0px 20px 0px #333333;
 }
 
-#platform-instructions-win a.windows-download,
+#platform-instructions-win32 a.windows-download,
+#platform-instructions-win64 a.windows-download,
 #platform-instructions-default a.windows-download,
 #platform-instructions-unknown a.windows-download {
     display: block;
