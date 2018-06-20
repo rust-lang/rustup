@@ -1,0 +1,28 @@
+name: rustup-init
+version: stable
+version-script: git -C parts/rustup-init/build describe --tags
+summary: The Rust toolchain installer
+description: |
+  rustup installs The Rust Programming Language from the official
+  release channels, enabling you to easily switch between stable,
+  beta, and nightly compilers and keep them updated. It makes
+  cross-compiling simpler with binary builds of the standard
+  library for common platforms. And it runs on all platforms
+  Rust supports, including Windows..
+
+grade: stable
+confinement: classic
+
+apps:
+  rustup-init:
+    adapter: none
+    command: ./bin/rustup-init
+
+parts:
+  rustup-init:
+    plugin: rust
+    source: .
+    build-packages:
+      - libssl-dev
+      - make
+      - pkg-config
