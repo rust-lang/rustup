@@ -14,7 +14,7 @@ curl-backend = ["curl"]
 reqwest-backend = ["reqwest", "env_proxy", "lazy_static"]
 
 [dependencies]
-error-chain = "0.11"
+error-chain = "0.12"
 url = "1.2"
 curl = { version = "0.4.6", optional = true }
 env_proxy = { version = "0.2.0", optional = true }
