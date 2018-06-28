@@ -29,7 +29,11 @@ pub fn main() -> Result<()> {
     cfg.check_metadata_version()?;
 
     match matches.subcommand() {
-        ("show", Some(_)) => show(cfg)?,
+        ("show", Some(c)) => match c.subcommand() {
+            ("active-toolchain", Some(_)) => show_active_toolchain(cfg)?,
+            ("active-toolchain-version", Some(_)) => show_active_toolchain_version(cfg)?,
+            (_, _) => show(cfg)?
+        },
         ("install", Some(m)) => update(cfg, m)?,
         ("update", Some(m)) => update(cfg, m)?,
         ("uninstall", Some(m)) => toolchain_remove(cfg, m)?,
@@ -110,7 +114,15 @@ pub fn cli() -> App<'static, 'static> {
         .subcommand(
             SubCommand::with_name("show")
                 .about("Show the active and installed toolchains")
-                .after_help(SHOW_HELP),
+                .after_help(SHOW_HELP)
+                .setting(AppSettings::VersionlessSubcommands)
+                .setting(AppSettings::DeriveDisplayOrder)
+                .subcommand(SubCommand::with_name("active-toolchain")
+                    .about("Show the active toolchain")
+                )
+                .subcommand(SubCommand::with_name("active-toolchain-version")
+                    .about("Show the active toolchain version")
+                ),
         )
         .subcommand(
             SubCommand::with_name("install")
@@ -730,6 +742,32 @@ fn show(cfg: &Cfg) -> Result<()> {
         let _ = t.reset();
     }
 
+    Ok(())
+}
+
+fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
+    let ref cwd = utils::current_dir()?;
+    match cfg.find_override_toolchain_or_default(cwd)? {
+        Some((ref toolchain, _)) => {
+            println!("{}", toolchain.name());
+        },
+        None => {
+            // Print nothing
+        }
+    }
+    Ok(())
+}
+
+fn show_active_toolchain_version(cfg: &Cfg) -> Result<()> {
+    let ref cwd = utils::current_dir()?;
+    match cfg.find_override_toolchain_or_default(cwd)? {
+        Some((ref toolchain, _)) => {
+            println!("{}", common::rustc_version(toolchain));
+        },
+        None => {
+            // Print nothing
+        }
+    }
     Ok(())
 }
 
