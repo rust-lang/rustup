@@ -1390,3 +1390,17 @@ fn file_override_with_target_info() {
         );
     });
 }
+
+#[test]
+fn docs_with_path() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+
+        let mut cmd = clitools::cmd(config, "rustup", &["doc", "--path"]);
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+
+        let stdout = String::from_utf8(out.stdout).unwrap();
+        assert!(stdout.contains("share/doc/rust/html"));
+    });
+}
