@@ -7,6 +7,7 @@ extern crate tempdir;
 
 use std::fs;
 use std::env::consts::EXE_SUFFIX;
+use std::path::MAIN_SEPARATOR;
 use std::process;
 use rustup_utils::raw;
 use rustup_mock::clitools::{self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok,
@@ -1401,6 +1402,8 @@ fn docs_with_path() {
         let out = cmd.output().unwrap();
 
         let stdout = String::from_utf8(out.stdout).unwrap();
-        assert!(stdout.contains("share/doc/rust/html"));
+        let path = format!("share{}doc{}rust{}html",
+            MAIN_SEPARATOR, MAIN_SEPARATOR, MAIN_SEPARATOR);
+        assert!(stdout.contains(path.as_str()));
     });
 }
