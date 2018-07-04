@@ -31,7 +31,6 @@ pub fn main() -> Result<()> {
     match matches.subcommand() {
         ("show", Some(c)) => match c.subcommand() {
             ("active-toolchain", Some(_)) => show_active_toolchain(cfg)?,
-            ("active-toolchain-version", Some(_)) => show_active_toolchain_version(cfg)?,
             (_, _) => show(cfg)?
         },
         ("install", Some(m)) => update(cfg, m)?,
@@ -119,9 +118,7 @@ pub fn cli() -> App<'static, 'static> {
                 .setting(AppSettings::DeriveDisplayOrder)
                 .subcommand(SubCommand::with_name("active-toolchain")
                     .about("Show the active toolchain")
-                )
-                .subcommand(SubCommand::with_name("active-toolchain-version")
-                    .about("Show the active toolchain version")
+                    .after_help(SHOW_ACTIVE_TOOLCHAIN_HELP)
                 ),
         )
         .subcommand(
@@ -750,19 +747,6 @@ fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
     match cfg.find_override_toolchain_or_default(cwd)? {
         Some((ref toolchain, _)) => {
             println!("{}", toolchain.name());
-        },
-        None => {
-            // Print nothing
-        }
-    }
-    Ok(())
-}
-
-fn show_active_toolchain_version(cfg: &Cfg) -> Result<()> {
-    let ref cwd = utils::current_dir()?;
-    match cfg.find_override_toolchain_or_default(cwd)? {
-        Some((ref toolchain, _)) => {
-            println!("{}", common::rustc_version(toolchain));
         },
         None => {
             // Print nothing

@@ -873,32 +873,6 @@ fn show_active_toolchain_none() {
     });
 }
 
-#[test]
-fn show_active_toolchain_version() {
-    setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok_ex(
-            config,
-            &["rustup", "show", "active-toolchain-version"],
-            r"1.3.0 (hash-n-2)
-",
-            r"",
-        );
-    });
-}
-
-#[test]
-fn show_active_toolchain_version_none() {
-    setup(&|config| {
-        expect_ok_ex(
-            config,
-            &["rustup", "show", "active-toolchain-version"],
-            r"",
-            r"",
-        );
-    });
-}
-
 // #846
 #[test]
 fn set_default_host() {
