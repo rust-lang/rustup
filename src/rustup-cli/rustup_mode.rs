@@ -29,7 +29,10 @@ pub fn main() -> Result<()> {
     cfg.check_metadata_version()?;
 
     match matches.subcommand() {
-        ("show", Some(_)) => show(cfg)?,
+        ("show", Some(c)) => match c.subcommand() {
+            ("active-toolchain", Some(_)) => show_active_toolchain(cfg)?,
+            (_, _) => show(cfg)?
+        },
         ("install", Some(m)) => update(cfg, m)?,
         ("update", Some(m)) => update(cfg, m)?,
         ("uninstall", Some(m)) => toolchain_remove(cfg, m)?,
@@ -110,7 +113,13 @@ pub fn cli() -> App<'static, 'static> {
         .subcommand(
             SubCommand::with_name("show")
                 .about("Show the active and installed toolchains")
-                .after_help(SHOW_HELP),
+                .after_help(SHOW_HELP)
+                .setting(AppSettings::VersionlessSubcommands)
+                .setting(AppSettings::DeriveDisplayOrder)
+                .subcommand(SubCommand::with_name("active-toolchain")
+                    .about("Show the active toolchain")
+                    .after_help(SHOW_ACTIVE_TOOLCHAIN_HELP)
+                ),
         )
         .subcommand(
             SubCommand::with_name("install")
@@ -360,6 +369,11 @@ pub fn cli() -> App<'static, 'static> {
                 .alias("docs")
                 .about("Open the documentation for the current toolchain")
                 .after_help(DOC_HELP)
+                .arg(
+                    Arg::with_name("path")
+                        .long("path")
+                        .help("Only print the path to the documentation"),
+                )
                 .arg(
                     Arg::with_name("book")
                         .long("book")
@@ -733,6 +747,19 @@ fn show(cfg: &Cfg) -> Result<()> {
     Ok(())
 }
 
+fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
+    let ref cwd = utils::current_dir()?;
+    match cfg.find_override_toolchain_or_default(cwd)? {
+        Some((ref toolchain, _)) => {
+            println!("{}", toolchain.name());
+        },
+        None => {
+            // Print nothing
+        }
+    }
+    Ok(())
+}
+
 fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
@@ -929,7 +956,14 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         "index.html"
     };
 
-    Ok(cfg.open_docs_for_dir(&utils::current_dir()?, doc_url)?)
+    let cwd = &utils::current_dir()?;
+    if m.is_present("path") {
+        let doc_path = try!(cfg.doc_path_for_dir(cwd, doc_url));
+        println!("{}", doc_path.display());
+        Ok(())
+    } else {
+        Ok(cfg.open_docs_for_dir(cwd, doc_url)?)
+    }
 }
 
 fn man(cfg: &Cfg, m: &ArgMatches) -> Result<()> {

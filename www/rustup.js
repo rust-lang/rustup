@@ -1,3 +1,5 @@
+// IF YOU CHANGE THIS FILE IT MUST BE CHANGED ON BOTH rust-www and rustup.rs
+
 var platforms = ["default", "unknown", "win32", "win64", "unix"];
 var platform_override = null;
 
@@ -23,7 +25,7 @@ function detect_platform() {
     if (navigator.platform == "Mac") {os = "unix";}
     if (navigator.platform == "Win32") {os = "win32";}
     if (navigator.platform == "Win64" ||
-        navigator.userAgent.indexOf("WOW64") != -1 || 
+        navigator.userAgent.indexOf("WOW64") != -1 ||
         navigator.userAgent.indexOf("Win64") != -1) { os = "win64"; }
     if (navigator.platform == "FreeBSD x86_64") {os = "unix";}
     if (navigator.platform == "FreeBSD amd64") {os = "unix";}
@@ -36,6 +38,16 @@ function detect_platform() {
         if (navigator.appVersion.indexOf("Mac")!=-1) {os = "unix";}
         // rust-www/#692 - FreeBSD epiphany!
         if (navigator.appVersion.indexOf("FreeBSD")!=-1) {os = "unix";}
+    }
+
+    // Firefox Quantum likes to hide platform and appVersion but oscpu works
+    if (navigator.oscpu) {
+        if (navigator.oscpu.indexOf("Win32")!=-1) {os = "win32";}
+        if (navigator.oscpu.indexOf("Win64")!=-1) {os = "win64";}
+        if (navigator.oscpu.indexOf("Mac")!=-1) {os = "unix";}
+        if (navigator.oscpu.indexOf("Linux")!=-1) {os = "unix";}
+        if (navigator.oscpu.indexOf("FreeBSD")!=-1) {os = "unix";}
+        if (navigator.oscpu.indexOf("NetBSD")!=-1) {os = "unix";}
     }
 
     return os;
@@ -53,10 +65,42 @@ function adjust_for_platform() {
             platform_div.style.display = "block";
         }
     });
+
+    adjust_platform_specific_instrs(platform);
+}
+
+// NB: This has no effect on rustup.rs
+function adjust_platform_specific_instrs(platform) {
+    var platform_specific = document.getElementsByClassName("platform-specific");
+    for (var el of platform_specific) {
+        var el_is_not_win = el.className.indexOf("not-win") !== -1;
+        var el_is_inline = el.tagName.toLowerCase() == "span";
+        var el_visible_style = "block";
+        if (el_is_inline) {
+            el_visible_style = "inline";
+        }
+        if (platform == "win64" || platform == "win32") {
+            if (el_is_not_win) {
+                el.style.display = "none";
+            } else {
+                el.style.display = el_visible_style;
+            }
+        } else {
+            if (el_is_not_win) {
+                el.style.display = el_visible_style;
+            } else {
+                el.style.display = "none";
+            }
+        }
+    }
 }
 
 function cycle_platform() {
-    platform_override = (platform_override + 1) % platforms.length;
+    if (platform_override == null) {
+        platform_override = 0;
+    } else {
+        platform_override = (platform_override + 1) % platforms.length;
+    }
     adjust_for_platform();
 }
 
@@ -79,6 +123,7 @@ function set_up_cycle_button() {
             if (idx == key.length) {
                 cycle_button.style.display = "block";
                 unlocked = true;
+                cycle_platform();
             }
         } else if (event.key == key[0]) {
             idx = 1;
@@ -93,6 +138,7 @@ function go_to_default_platform() {
     adjust_for_platform();
 }
 
+// NB: This has no effect on rust-lang.org/install.html
 function set_up_default_platform_buttons() {
     var defaults_buttons = document.getElementsByClassName('default-platform-button');
     for (var i = 0; i < defaults_buttons.length; i++) {
