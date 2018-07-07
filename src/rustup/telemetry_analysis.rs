@@ -240,7 +240,7 @@ impl TelemetryAnalysis {
         self.rustc_error_statistics.error_codes_with_counts = error_codes_with_counts;
         self.rustc_success_statistics = compute_rustc_percentiles(&rustc_successful_durations);
 
-        let error_list = error_list.into_iter().flatten();
+        let error_list = Itertools::flatten(error_list.into_iter());
 
         for e in error_list {
             let error_count = self.rustc_statistics
