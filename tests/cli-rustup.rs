@@ -845,6 +845,34 @@ fn show_toolchain_env_not_installed() {
     });
 }
 
+#[test]
+fn show_active_toolchain() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok_ex(
+            config,
+            &["rustup", "show", "active-toolchain"],
+            for_host!(
+                r"nightly-{0}
+"
+            ),
+            r"",
+        );
+    });
+}
+
+#[test]
+fn show_active_toolchain_none() {
+    setup(&|config| {
+        expect_ok_ex(
+            config,
+            &["rustup", "show", "active-toolchain"],
+            r"",
+            r"",
+        );
+    });
+}
+
 // #846
 #[test]
 fn set_default_host() {

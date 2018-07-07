@@ -17,6 +17,15 @@ pub static SHOW_HELP: &'static str = r"DISCUSSION:
     If there are multiple toolchains installed then all installed
     toolchains are listed as well.";
 
+pub static SHOW_ACTIVE_TOOLCHAIN_HELP: &'static str = r"DISCUSSION:
+    Shows the name of the active toolchain.
+
+    This is useful for figuring out the active tool chain from
+    scripts.
+
+    You should use `rustc --print sysroot` to get the sysroot, or
+    `rustc --version` to get the toolchain version.";
+
 pub static UPDATE_HELP: &'static str = r"DISCUSSION:
     With no toolchain specified, the `update` command updates each of
     the installed toolchains from the official release channels, then
