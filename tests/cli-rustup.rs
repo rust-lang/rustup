@@ -7,6 +7,7 @@ extern crate tempdir;
 
 use std::fs;
 use std::env::consts::EXE_SUFFIX;
+use std::path::MAIN_SEPARATOR;
 use std::process;
 use rustup_utils::raw;
 use rustup_mock::clitools::{self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok,
@@ -1416,5 +1417,21 @@ fn file_override_with_target_info() {
             &["rustc", "--version"],
             "target triple in channel name 'nightly-x86_64-unknown-linux-gnu'",
         );
+    });
+}
+
+#[test]
+fn docs_with_path() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+
+        let mut cmd = clitools::cmd(config, "rustup", &["doc", "--path"]);
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+
+        let stdout = String::from_utf8(out.stdout).unwrap();
+        let path = format!("share{}doc{}rust{}html",
+            MAIN_SEPARATOR, MAIN_SEPARATOR, MAIN_SEPARATOR);
+        assert!(stdout.contains(path.as_str()));
     });
 }
