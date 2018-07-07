@@ -1,3 +1,46 @@
+# 1.12.0
+
+* [Add --path flag to 'rustup doc'][pr1453]
+* [Add flag to "rustup show" for active-toolchain][pr1449]
+* [Bring rustup.js and markup into alignment with rust-www][pr1437]
+* [Add caret after first installation question][pr1435]
+* [Add "rustup doc --reference"][pr1430]
+* [Update Visual C++ Build Tools URL][pr1428]
+* [Fix download indicator on OSes with newer ncurses package][pr1422]
+* [Remove components if they don't exist anymore during update][pr1419]
+* [Make sure rustup uses `utils::rename*` consistently][pr1389]
+* [Do not try to get CWD if not required][pr1379]
+* [Give correct error message if user tries to install an unavailable toolchain][pr1380]
+* [Fall back to wget if curl is not installed][pr1373]
+* [Added a link to all installers to the homepage][pr1370]
+* [Display helpful advice even with -y][pr1290]
+* [Use browser in BROWSER env if present for `doc` command][pr1289]
+* [Update shebang to reflect bashisms][pr1269]
+
+[pr1453]: https://github.com/rust-lang-nursery/rustup.rs/pull/1453
+[pr1449]: https://github.com/rust-lang-nursery/rustup.rs/pull/1449
+[pr1437]: https://github.com/rust-lang-nursery/rustup.rs/pull/1437
+[pr1435]: https://github.com/rust-lang-nursery/rustup.rs/pull/1435
+[pr1430]: https://github.com/rust-lang-nursery/rustup.rs/pull/1430
+[pr1428]: https://github.com/rust-lang-nursery/rustup.rs/pull/1428
+[pr1422]: https://github.com/rust-lang-nursery/rustup.rs/pull/1422
+[pr1419]: https://github.com/rust-lang-nursery/rustup.rs/pull/1419
+[pr1389]: https://github.com/rust-lang-nursery/rustup.rs/pull/1389
+[pr1379]: https://github.com/rust-lang-nursery/rustup.rs/pull/1379
+[pr1380]: https://github.com/rust-lang-nursery/rustup.rs/pull/1380
+[pr1373]: https://github.com/rust-lang-nursery/rustup.rs/pull/1373
+[pr1370]: https://github.com/rust-lang-nursery/rustup.rs/pull/1370
+[pr1290]: https://github.com/rust-lang-nursery/rustup.rs/pull/1290
+[pr1289]: https://github.com/rust-lang-nursery/rustup.rs/pull/1289
+[pr1269]: https://github.com/rust-lang-nursery/rustup.rs/pull/1269
+
+Contributors: Andrew Pennebaker, Who? Me?!, Matteo Bertini, mog422,
+Kasper Møller Andersen, Thibault Delor, Justin Worthe, TitanSnow,
+aimileus, Antonio Murdaca, Cyryl Płotnicki, Nick Cameron, Alex Crichton,
+Kornel, Stuart Dootson, Pietro Albini, Diggory Blake, Yuji Nakao,
+Johannes Hofmann, CrLF0710, Aaron Lee, Brian Anderson, Mateusz Mikuła,
+Segev Finer, Dan Aloni, Joeri van Ruth
+
 # 1.11.0
 
 * [windows: detect architecture on website, update to matching arch][pr1354]
