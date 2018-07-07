@@ -1,5 +1,8 @@
 # 1.12.0
 
+* [Add --path flag to 'rustup doc'][pr1453]
+* [Add flag to "rustup show" for active-toolchain][pr1449]
+* [Bring rustup.js and markup into alignment with rust-www][pr1437]
 * [Add caret after first installation question][pr1435]
 * [Add "rustup doc --reference"][pr1430]
 * [Update Visual C++ Build Tools URL][pr1428]
@@ -14,6 +17,9 @@
 * [Use browser in BROWSER env if present for `doc` command][pr1289]
 * [Update shebang to reflect bashisms][pr1269]
 
+[pr1453]: https://github.com/rust-lang-nursery/rustup.rs/pull/1453
+[pr1449]: https://github.com/rust-lang-nursery/rustup.rs/pull/1449
+[pr1437]: https://github.com/rust-lang-nursery/rustup.rs/pull/1437
 [pr1435]: https://github.com/rust-lang-nursery/rustup.rs/pull/1435
 [pr1430]: https://github.com/rust-lang-nursery/rustup.rs/pull/1430
 [pr1428]: https://github.com/rust-lang-nursery/rustup.rs/pull/1428
@@ -32,7 +38,8 @@ Contributors: Andrew Pennebaker, Who? Me?!, Matteo Bertini, mog422,
 Kasper Møller Andersen, Thibault Delor, Justin Worthe, TitanSnow,
 aimileus, Antonio Murdaca, Cyryl Płotnicki, Nick Cameron, Alex Crichton,
 Kornel, Stuart Dootson, Pietro Albini, Diggory Blake, Yuji Nakao,
-Johannes Hofmann, CrLF0710, Aaron Lee
+Johannes Hofmann, CrLF0710, Aaron Lee, Brian Anderson, Mateusz Mikuła,
+Segev Finer, Dan Aloni, Joeri van Ruth
 
 # 1.11.0
 
