@@ -159,3 +159,6 @@ if command == "local-to-prod":
 if command == "update-dev-release" and live_run:
     run_s3cmd("aws cloudfront create-invalidation --distribution-id " +
               "E30AO2GXMDY230 --paths /rustup/*".format(s3_bucket))
+if command == "update-prod-release" and live_run:
+    run_s3cmd("aws cloudfront create-invalidation --distribution-id " +
+              "E3NZU1LCBHH4A4 --paths /rustup/*".format(s3_bucket))
