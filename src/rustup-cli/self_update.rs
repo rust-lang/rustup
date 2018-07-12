@@ -190,7 +190,7 @@ tools, but otherwise, install the C++ build tools before proceeding.
 "#;
 
 static TOOLS: &'static [&'static str] =
-    &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb", "rls"];
+    &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb", "rls", "cargo-clippy"];
 
 // Tools which are commonly installed by Cargo as well as rustup. We take a bit
 // more care with these to ensure we don't overwrite the user's previous
