@@ -1367,3 +1367,15 @@ fn update_does_not_overwrite_rustfmt() {
         assert!(utils::file_size(rustfmt_path).unwrap() > 0);
     });
 }
+
+#[test]
+fn update_installs_clippy_cargo_and() {
+    update_setup(&|config, self_dist| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        let version = env!("CARGO_PKG_VERSION");
+        output_release_file(self_dist, "1", version);
+
+        let ref cargo_clippy_path = config.cargodir.join(format!("bin/cargo-clippy{}", EXE_SUFFIX));
+        assert!(cargo_clippy_path.exists());
+    });
+}
