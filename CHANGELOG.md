@@ -1,3 +1,11 @@
+# 1.13.0
+
+* [Add clippy to the tools list][pr1461]
+
+[pr1461]: https://github.com/rust-lang-nursery/rustup.rs/pull/1461
+
+Contributors: Jane Lusby
+
 # 1.12.0
 
 * [Add --path flag to 'rustup doc'][pr1453]
