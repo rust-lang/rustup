@@ -94,7 +94,7 @@ impl<'a> Toolchain<'a> {
             return Ok(());
         }
         if let Some(update_hash) = self.update_hash()? {
-            utils::remove_file("update hash", &update_hash)?;
+            utils::ensure_file_removed("update hash", &update_hash)?;
         }
         let result = install::uninstall(&self.path, &|n| (self.cfg.notify_handler)(n.into()));
         if !self.exists() {

@@ -783,6 +783,20 @@ fn remove_target_host() {
     });
 }
 
+#[test]
+// Issue #304
+fn remove_target_missing_update_hash() {
+    setup(&|config| {
+
+        expect_ok(config, &["rustup", "update", "nightly"]);
+
+        let file_name = format!("nightly-{}", this_host_triple());
+        fs::remove_file(config.rustupdir.join("update-hashes").join(file_name)).unwrap();
+
+        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
+    });
+}
+
 fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple) {
     use rustup_dist::manifest::Manifest;
     use rustup_mock::dist::create_hash;
