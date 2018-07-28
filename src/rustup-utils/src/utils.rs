@@ -326,6 +326,19 @@ pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
     })
 }
 
+pub fn ensure_file_removed(name: &'static str, path: &Path) -> Result<()> {
+    let result = fs::remove_file(path);
+    if let Err(err) = &result {
+        if err.kind() == io::ErrorKind::NotFound {
+            return Ok(())
+        }
+    }
+    result.chain_err(|| ErrorKind::RemovingFile {
+        name: name,
+        path: PathBuf::from(path),
+    })
+}
+
 pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
     fs::read_dir(path).chain_err(|| ErrorKind::ReadingDirectory {
         name: name,
