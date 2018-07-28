@@ -177,6 +177,9 @@ tools:
 
     https://aka.ms/buildtools
 
+Please ensure the Windows 10 SDK component is included when installing
+the Visual C++ Build Tools.
+
 Alternately, you can install Visual Studio 2015 or Visual
 Studio 2013 and during install select the "C++ tools":
 
