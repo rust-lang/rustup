@@ -621,7 +621,7 @@ impl<'a> Toolchain<'a> {
             let rust_pkg = manifest
                 .packages
                 .get("rust")
-                .expect("manifest should cantain a rust package");
+                .expect("manifest should contain a rust package");
             let targ_pkg = rust_pkg
                 .targets
                 .get(&toolchain.target)
