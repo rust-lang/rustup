@@ -22,6 +22,7 @@ parts:
   rustup-init:
     plugin: rust
     source: .
+    build-attributes: [no-self-update]
     build-packages:
       - libssl-dev
       - make
