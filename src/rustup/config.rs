@@ -467,16 +467,6 @@ impl Cfg {
         Ok(None)
     }
 
-    pub fn doc_path_for_dir(&self, path: &Path, relative: &str) -> Result<PathBuf> {
-        let (toolchain, _) = self.toolchain_for_dir(path)?;
-        toolchain.doc_path(relative)
-    }
-
-    pub fn open_docs_for_dir(&self, path: &Path, relative: &str) -> Result<()> {
-        let (toolchain, _) = self.toolchain_for_dir(path)?;
-        toolchain.open_docs(relative)
-    }
-
     pub fn set_default_host_triple(&self, host_triple: &str) -> Result<()> {
         if dist::PartialTargetTriple::from_str(host_triple).is_none() {
             return Err("Invalid host triple".into());
