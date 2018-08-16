@@ -8,6 +8,7 @@ use std::env;
 use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use sha2::Sha256;
 use notifications::Notification;
+use opener;
 use raw;
 #[cfg(windows)]
 use winapi::shared::minwindef::DWORD;
@@ -347,11 +348,9 @@ pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
 }
 
 pub fn open_browser(path: &Path) -> Result<()> {
-    match raw::open_browser(path) {
-        Ok(true) => Ok(()),
-        Ok(false) => Err("no browser installed".into()),
-        Err(e) => Err(e).chain_err(|| "could not open browser"),
-    }
+    use failure::ResultExt;
+
+    opener::open(path).compat().chain_err(|| "could not open browser")
 }
 
 pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {

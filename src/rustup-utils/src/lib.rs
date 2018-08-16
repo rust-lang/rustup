@@ -3,6 +3,8 @@
 extern crate download;
 #[macro_use]
 extern crate error_chain;
+extern crate failure;
+extern crate opener;
 extern crate rand;
 extern crate scopeguard;
 extern crate semver;
