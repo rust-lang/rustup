@@ -352,6 +352,23 @@ fn install_does_not_add_path_to_bash_profile_that_doesnt_exist() {
 
 #[test]
 #[cfg(unix)]
+fn install_adds_path_to_bashrc() {
+    install_adds_path_to_rc(".bashrc");
+}
+
+#[test]
+#[cfg(unix)]
+fn install_does_not_add_path_to_bashrc_that_doesnt_exist() {
+    setup(&|config| {
+        let ref rc = config.homedir.join(".bashrc");
+        expect_ok(config, &["rustup-init", "-y"]);
+
+        assert!(!rc.exists());
+    });
+}
+
+#[test]
+#[cfg(unix)]
 fn install_with_zsh_adds_path_to_zprofile() {
     setup(&|config| {
         let my_rc = "foo\nbar\nbaz";
@@ -431,6 +448,12 @@ fn uninstall_removes_path_from_profile() {
 #[cfg(unix)]
 fn uninstall_removes_path_from_bash_profile() {
     uninstall_removes_path_from_rc(".bash_profile");
+}
+
+#[test]
+#[cfg(unix)]
+fn uninstall_removes_path_from_bashrc() {
+    uninstall_removes_path_from_rc(".bashrc");
 }
 
 #[test]

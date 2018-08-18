@@ -1175,6 +1175,14 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
         }
     }
 
+    if let Some(bashrc) = utils::home_dir().map(|p| p.join(".bashrc")) {
+        //Update .bashrc if it exists. Not updating .bashrc could cause PATH
+        //to not be loaded correctly on login.
+        if bashrc.exists() {
+            profiles.push(Some(bashrc));
+        }
+    }
+
     let rcfiles = profiles.into_iter().filter_map(|f| f);
     rcfiles.map(PathUpdateMethod::RcFile).collect()
 }
@@ -1305,8 +1313,9 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
 
     let profile = utils::home_dir().map(|p| p.join(".profile"));
     let bash_profile = utils::home_dir().map(|p| p.join(".bash_profile"));
+    let bashrc = utils::home_dir().map(|p| p.join(".bashrc"));
 
-    let rcfiles = vec![profile, bash_profile];
+    let rcfiles = vec![profile, bash_profile, bashrc];
     let existing_rcfiles = rcfiles.into_iter().filter_map(|f| f).filter(|f| f.exists());
 
     let export_str = shell_export_string()?;
