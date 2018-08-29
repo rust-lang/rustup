@@ -27,6 +27,8 @@ static TOOLS: &'static [&'static str] = &[
     "rustfmt",
     "cargo-fmt",
     "cargo-clippy",
+    "lldb",
+    "lldb-mi",
 ];
 
 #[no_mangle]
