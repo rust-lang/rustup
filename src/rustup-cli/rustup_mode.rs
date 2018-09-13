@@ -389,6 +389,12 @@ pub fn cli() -> App<'static, 'static> {
                         .long("reference")
                         .help("The Rust Reference"),
                 )
+                .arg(
+                    Arg::with_name("toolchain")
+                        .help(TOOLCHAIN_ARG_HELP)
+                        .long("toolchain")
+                        .takes_value(true),
+                )
                 .group(ArgGroup::with_name("page").args(&["book", "std", "reference"])),
         );
 
@@ -946,6 +952,7 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let toolchain = explicit_or_dir_toolchain(cfg, m)?;
     let doc_url = if m.is_present("book") {
         "book/index.html"
     } else if m.is_present("std") {
@@ -956,13 +963,12 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         "index.html"
     };
 
-    let cwd = &utils::current_dir()?;
     if m.is_present("path") {
-        let doc_path = try!(cfg.doc_path_for_dir(cwd, doc_url));
+        let doc_path = toolchain.doc_path(doc_url)?;
         println!("{}", doc_path.display());
         Ok(())
     } else {
-        Ok(cfg.open_docs_for_dir(cwd, doc_url)?)
+        Ok(toolchain.open_docs(doc_url)?)
     }
 }
 

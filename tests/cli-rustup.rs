@@ -1424,14 +1424,23 @@ fn file_override_with_target_info() {
 fn docs_with_path() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
 
         let mut cmd = clitools::cmd(config, "rustup", &["doc", "--path"]);
         clitools::env(config, &mut cmd);
-        let out = cmd.output().unwrap();
 
-        let stdout = String::from_utf8(out.stdout).unwrap();
-        let path = format!("share{}doc{}rust{}html",
-            MAIN_SEPARATOR, MAIN_SEPARATOR, MAIN_SEPARATOR);
-        assert!(stdout.contains(path.as_str()));
+        let out = cmd.output().unwrap();
+        let path = format!("share{0}doc{0}rust{0}html", MAIN_SEPARATOR);
+        assert!(String::from_utf8(out.stdout).unwrap().contains(&path));
+
+        let mut cmd = clitools::cmd(
+            config,
+            "rustup",
+            &["doc", "--path", "--toolchain", "nightly"],
+        );
+        clitools::env(config, &mut cmd);
+
+        let out = cmd.output().unwrap();
+        assert!(String::from_utf8(out.stdout).unwrap().contains("nightly"));
     });
 }
