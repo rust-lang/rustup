@@ -299,12 +299,24 @@ pub fn copy_dir(src: &Path, dest: &Path, notify_handler: &Fn(Notification)) -> R
 }
 
 pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
-    fs::copy(src, dest)
-        .chain_err(|| ErrorKind::CopyingFile {
-            src: PathBuf::from(src),
-            dest: PathBuf::from(dest),
-        })
-        .map(|_| ())
+    let metadata = fs::symlink_metadata(src).chain_err(|| ErrorKind::ReadingFile {
+        name: "metadata for",
+        path: PathBuf::from(src),
+    })?;
+    if metadata.file_type().is_symlink() {
+        let link = fs::read_link(src).chain_err(|| ErrorKind::ReadingFile {
+            name: "link contents for",
+            path: PathBuf::from(src),
+        })?;
+        symlink_file(&link, dest).map(|_| ())
+    } else {
+        fs::copy(src, dest)
+            .chain_err(|| ErrorKind::CopyingFile {
+                src: PathBuf::from(src),
+                dest: PathBuf::from(dest),
+            })
+            .map(|_| ())
+    }
 }
 
 pub fn remove_dir(
