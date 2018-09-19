@@ -5,10 +5,10 @@ use rustup::settings::TelemetryMode;
 use errors::*;
 use rustup_dist::manifest::Component;
 use rustup_dist::dist::{PartialTargetTriple, PartialToolchainDesc, TargetTriple};
-use rustup_utils::utils;
+use rustup_utils::utils::{self, ExitCode};
 use self_update;
 use std::path::Path;
-use std::process::Command;
+use std::process::{self, Command};
 use std::iter;
 use std::error::Error;
 use term2;
@@ -606,12 +606,14 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let args: Vec<_> = args.collect();
     let cmd = cfg.create_command_for_toolchain(toolchain, m.is_present("install"), args[0])?;
 
-    Ok(command::run_command_for_dir(
+    let ExitCode(c) = command::run_command_for_dir(
         cmd,
         args[0],
         &args[1..],
         &cfg,
-    )?)
+    )?;
+
+    process::exit(c)
 }
 
 fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {

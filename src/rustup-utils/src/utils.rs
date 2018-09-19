@@ -19,6 +19,8 @@ use url::Url;
 pub use raw::{find_cmd, has_cmd, if_not_empty, is_directory, is_file, path_exists, prefix_arg,
               random_string};
 
+pub struct ExitCode(pub i32);
+
 pub fn ensure_dir_exists(
     name: &'static str,
     path: &Path,

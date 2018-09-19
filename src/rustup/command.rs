@@ -9,7 +9,7 @@ use tempfile::tempfile;
 use Cfg;
 use errors::*;
 use notifications::*;
-use rustup_utils;
+use rustup_utils::{self, utils::ExitCode};
 use telemetry::{Telemetry, TelemetryEvent};
 
 pub fn run_command_for_dir<S: AsRef<OsStr>>(
@@ -17,7 +17,7 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(
     arg0: &str,
     args: &[S],
     cfg: &Cfg,
-) -> Result<()> {
+) -> Result<ExitCode> {
     if (arg0 == "rustc" || arg0 == "rustc.exe") && cfg.telemetry_enabled()? {
         return telemetry_rustc(cmd, arg0, args, cfg);
     }
@@ -30,7 +30,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(
     arg0: &str,
     args: &[S],
     cfg: &Cfg,
-) -> Result<()> {
+) -> Result<ExitCode> {
     #[cfg(unix)]
     fn file_as_stdio(file: &File) -> Stdio {
         use std::os::unix::io::{AsRawFd, FromRawFd};
@@ -127,7 +127,7 @@ fn telemetry_rustc<S: AsRef<OsStr>>(
                 (cfg.notify_handler)(Notification::TelemetryCleanupError(&xe));
             });
 
-            process::exit(exit_code);
+            Ok(ExitCode(exit_code))
         }
         Err(e) => {
             let exit_code = e.raw_os_error().unwrap_or(1);
@@ -152,7 +152,7 @@ fn exec_command_for_dir_without_telemetry<S: AsRef<OsStr>>(
     mut cmd: Command,
     arg0: &str,
     args: &[S],
-) -> Result<()> {
+) -> Result<ExitCode> {
     cmd.args(args);
 
     // FIXME rust-lang/rust#32254. It's not clear to me
@@ -164,15 +164,15 @@ fn exec_command_for_dir_without_telemetry<S: AsRef<OsStr>>(
     });
 
     #[cfg(unix)]
-    fn exec(cmd: &mut Command) -> io::Result<()> {
+    fn exec(cmd: &mut Command) -> io::Result<ExitCode> {
         use std::os::unix::prelude::*;
         Err(cmd.exec())
     }
 
     #[cfg(windows)]
-    fn exec(cmd: &mut Command) -> io::Result<()> {
+    fn exec(cmd: &mut Command) -> io::Result<ExitCode> {
         let status = cmd.status()?;
-        process::exit(status.code().unwrap());
+        Ok(ExitCode(status.code().unwrap()))
     }
 }
 
