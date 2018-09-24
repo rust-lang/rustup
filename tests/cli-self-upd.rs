@@ -254,6 +254,7 @@ fn uninstall_fails_if_not_installed() {
 // does the uninstall by actually invoking the installed binary in
 // order to test that it can successfully delete itself.
 #[test]
+#[cfg_attr(target_os = "macos", ignore)] // FIXME #1515
 fn uninstall_self_delete_works() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
