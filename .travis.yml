@@ -90,6 +90,12 @@ matrix:
            DOCKER=s390x-unknown-linux-gnu
            SKIP_TESTS=1
       if: branch != master
+    - os: linux
+      env: TARGET=x86_64-unknown-linux-musl
+           DOCKER=x86_64-unknown-linux-musl
+           SKIP_TESTS=1
+      if: branch != master
+
 
     # Android use a local docker image
     - os: linux
