@@ -11,11 +11,11 @@ matrix:
     - os: linux
       env: TARGET=i686-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-dist:2015-10-20b
+      if: branch != master
     - os: linux
       env: TARGET=x86_64-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-dist:2015-10-20b
            NO_ADD=1
-           ALLOW_PR=1
 
     # Cross builds happen in the `rust-slave-linux-cross` image to ensure that
     # we use the right cross compilers for these targets. That image should
@@ -24,90 +24,111 @@ matrix:
       env: TARGET=arm-unknown-linux-gnueabi
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=arm-unknown-linux-gnueabihf
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=armv7-unknown-linux-gnueabihf
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=aarch64-unknown-linux-gnu
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=x86_64-unknown-freebsd
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=x86_64-unknown-netbsd
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=powerpc-unknown-linux-gnu
            DOCKER=powerpc-unknown-linux-gnu
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=powerpc64-unknown-linux-gnu
            DOCKER=powerpc64-unknown-linux-gnu
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=powerpc64le-unknown-linux-gnu
            DOCKER=powerpc64le-unknown-linux-gnu
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=mips-unknown-linux-gnu
            DOCKER=mips-unknown-linux-gnu
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=mipsel-unknown-linux-gnu
            DOCKER=mipsel-unknown-linux-gnu
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=mips64-unknown-linux-gnuabi64
            DOCKER=mips64-unknown-linux-gnuabi64
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=mips64el-unknown-linux-gnuabi64
            DOCKER=mips64el-unknown-linux-gnuabi64
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=s390x-unknown-linux-gnu
            DOCKER=s390x-unknown-linux-gnu
            SKIP_TESTS=1
+      if: branch != master
 
     # Android use a local docker image
     - os: linux
       env: TARGET=arm-linux-androideabi
            DOCKER=android
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=armv7-linux-androideabi
            DOCKER=android
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=aarch64-linux-android
            DOCKER=android
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=i686-linux-android
            DOCKER=android
            SKIP_TESTS=1
+      if: branch != master
     - os: linux
       env: TARGET=x86_64-linux-android
            DOCKER=android
            SKIP_TESTS=1
+      if: branch != master
 
     # On OSX we want to target 10.7 so we ensure that the appropriate
     # environment variable is set to tell the linker what we want.
     - os: osx
       env: TARGET=i686-apple-darwin
            MACOSX_DEPLOYMENT_TARGET=10.7
+      if: branch != master
     - os: osx
       env: TARGET=x86_64-apple-darwin
            MACOSX_DEPLOYMENT_TARGET=10.7
            NO_ADD=1
+      if: branch != master
 
 cache:
   # We're going to download things we don't necessarily want to cache into the `target` directory, so
@@ -116,29 +137,17 @@ cache:
     - target/$TARGET/openssl/openssl-install
     - target/release/deps
 
-branches:
-  only:
-    - master
-    - stable
-    - auto
-
 install:
   - if [ -z "$NO_ADD" ]; then rustup target add $TARGET; fi
 
 script:
   - mkdir -p target/$TARGET;
   - >
-    if [[ "$TRAVIS_PULL_REQUEST" != "false" && "$ALLOW_PR" != "1" ]]; then
-        echo 'skipping PR build';
-    elif [[ "$TRAVIS_BRANCH" == "master" && "$ALLOW_PR" != "1" ]]; then
-        echo 'skipping master build';
-    else
-        if [ ! -z "$DOCKER" ]; then
-            sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
-        else
-            PATH=$HOME/rust/bin:$PATH sh ci/run.sh;
-        fi
-    fi
+      if [ ! -z "$DOCKER" ]; then
+          sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
+      else
+          PATH=$HOME/rust/bin:$PATH sh ci/run.sh;
+      fi
 
 before_deploy:
   - bash ci/prepare-deploy-travis.sh
