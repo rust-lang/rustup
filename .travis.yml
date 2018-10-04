@@ -120,15 +120,20 @@ matrix:
 
     # On OSX we want to target 10.7 so we ensure that the appropriate
     # environment variable is set to tell the linker what we want.
+    #
+    # TODO: figure out why `xcode9.3`, the first image with OSX 10.13, breaks.
+    # Unclear why!
     - os: osx
       env: TARGET=i686-apple-darwin
            MACOSX_DEPLOYMENT_TARGET=10.7
       if: branch != master
+      osx_image: xcode9.2
     - os: osx
       env: TARGET=x86_64-apple-darwin
            MACOSX_DEPLOYMENT_TARGET=10.7
            NO_ADD=1
       if: branch != master
+      osx_image: xcode9.2
   allow_failures:
     - env: TARGET=x86_64-unknown-netbsd
            DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
