@@ -306,11 +306,7 @@ pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
         path: PathBuf::from(src),
     })?;
     if metadata.file_type().is_symlink() {
-        let link = fs::read_link(src).chain_err(|| ErrorKind::ReadingFile {
-            name: "link contents for",
-            path: PathBuf::from(src),
-        })?;
-        symlink_file(&link, dest).map(|_| ())
+        symlink_file(&src, dest).map(|_| ())
     } else {
         fs::copy(src, dest)
             .chain_err(|| ErrorKind::CopyingFile {
