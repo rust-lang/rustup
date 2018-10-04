@@ -129,6 +129,10 @@ matrix:
            MACOSX_DEPLOYMENT_TARGET=10.7
            NO_ADD=1
       if: branch != master
+  allow_failures:
+    - env: TARGET=x86_64-unknown-netbsd
+           DOCKER=alexcrichton/rust-slave-linux-cross:2016-11-11
+           SKIP_TESTS=1
 
 cache:
   # We're going to download things we don't necessarily want to cache into the `target` directory, so
