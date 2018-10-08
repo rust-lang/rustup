@@ -36,71 +36,63 @@ pub fn write_file(path: &Path, contents: &str) {
     file.sync_data().expect("writing test data");
 }
 
-type Shutdown = oneshot::Sender<()>;
-
-pub fn serve_file(contents: Vec<u8>) -> (SocketAddr, Shutdown) {
-    use std::thread;
+pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
     use self::futures::Future;
-    use self::hyper::server::Http;
+    use std::thread;
 
-    let http = Http::new();
     let addr = ([127, 0, 0, 1], 0).into();
     let (addr_tx, addr_rx) = oneshot::channel();
-    let (tx, rx) = oneshot::channel();
+
     thread::spawn(move || {
-        let server = http.bind(&addr, move || Ok(ServeFile(contents.clone())))
-            .expect("server setup failed");
-        let addr = server.local_addr().expect("local addr failed");
+        // XXX: multiple clone below
+        fn serve(
+            contents: Vec<u8>,
+        ) -> impl Fn(hyper::Request<hyper::Body>) -> hyper::Response<hyper::Body> {
+            move |req| serve_contents(req, contents.clone())
+        }
+
+        let server = hyper::server::Server::bind(&addr)
+            .serve(move || hyper::service::service_fn_ok(serve(contents.clone())));
+        let addr = server.local_addr();
         addr_tx.send(addr).unwrap();
-        server.run_until(rx.map_err(|_| ())).expect("server failed");
+        hyper::rt::run(server.map_err(|e| panic!(e)));
     });
     let addr = addr_rx.wait().unwrap();
-    (addr, tx)
+    addr
 }
 
-struct ServeFile(Vec<u8>);
+fn serve_contents(
+    req: hyper::Request<hyper::Body>,
+    contents: Vec<u8>,
+) -> hyper::Response<hyper::Body> {
+    let mut range_header = None;
+    let (status, body) = if let Some(range) = req.headers().get(hyper::header::RANGE) {
+        // extract range "bytes={start}-"
+        let range = range.to_str().expect("unexpected Range header");
+        assert!(range.starts_with("bytes="));
+        let range = range.trim_left_matches("bytes=");
+        assert!(range.ends_with("-"));
+        let range = range.trim_right_matches("-");
+        assert_eq!(range.split("-").count(), 1);
+        let start: u64 = range.parse().expect("unexpected Range header");
 
-impl hyper::server::Service for ServeFile {
-    type Request = hyper::server::Request;
-    type Response = hyper::server::Response;
-    type Error = hyper::Error;
-    type Future = futures::future::FutureResult<Self::Response, Self::Error>;
+        range_header = Some(format!("bytes {}-{len}/{len}", start, len = contents.len()));
+        (
+            hyper::StatusCode::PARTIAL_CONTENT,
+            contents[start as usize..].to_vec(),
+        )
+    } else {
+        (hyper::StatusCode::OK, contents)
+    };
 
-    fn call(&self, req: Self::Request) -> Self::Future {
-        let mut return_range = None;
-        let (status, body) = if let Some(range) = req.headers().get::<hyper::header::Range>() {
-            match *range {
-                hyper::header::Range::Bytes(ref specs) => {
-                    assert_eq!(specs.len(), 1);
-                    match specs[0] {
-                        hyper::header::ByteRangeSpec::AllFrom(start) => {
-                            return_range = Some(hyper::header::ContentRange(
-                                hyper::header::ContentRangeSpec::Bytes {
-                                    range: Some((start, self.0.len() as u64)),
-                                    instance_length: Some(self.0.len() as u64),
-                                },
-                            ));
-                            (
-                                hyper::StatusCode::PartialContent,
-                                self.0[start as usize..].to_vec(),
-                            )
-                        }
-                        _ => panic!("unexpected Range header"),
-                    }
-                }
-                _ => panic!("unexpected Range header"),
-            }
-        } else {
-            (hyper::StatusCode::Ok, self.0.clone())
-        };
-
-        let mut res = hyper::server::Response::new()
-            .with_status(status)
-            .with_header(hyper::header::ContentLength(body.len() as u64))
-            .with_body(body);
-        if let Some(range) = return_range {
-            res.headers_mut().set(range);
-        }
-        futures::future::ok(res)
+    let mut res = hyper::Response::builder()
+        .status(status)
+        .header(hyper::header::CONTENT_LENGTH, body.len())
+        .body(hyper::Body::from(body))
+        .unwrap();
+    if let Some(range) = range_header {
+        res.headers_mut()
+            .insert(hyper::header::CONTENT_RANGE, range.parse().unwrap());
     }
+    res
 }
