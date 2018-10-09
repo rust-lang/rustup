@@ -12,7 +12,7 @@ use std::error::Error;
 use std::fmt;
 use std::io::Write;
 use std::iter;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::str::FromStr;
 
@@ -351,6 +351,12 @@ pub fn cli() -> App<'static, 'static> {
                             Arg::with_name("toolchain")
                                 .help(TOOLCHAIN_ARG_HELP)
                                 .required(true),
+                        )
+                        .arg(
+                            Arg::with_name("path")
+                                .long("path")
+                                .takes_value(true)
+                                .help("Path to the directory"),
                         ),
                 )
                 .subcommand(
@@ -992,7 +998,12 @@ fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         None
     };
 
-    toolchain.make_override(&utils::current_dir()?)?;
+    let path = if let Some(path) = m.value_of("path") {
+        PathBuf::from(path)
+    } else {
+        utils::current_dir()?
+    };
+    toolchain.make_override(&path)?;
 
     if let Some(status) = status {
         println!();
