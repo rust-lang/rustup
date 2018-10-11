@@ -14,11 +14,6 @@
 
 #![recursion_limit = "1024"]
 
-use std::alloc::System;
-
-#[global_allocator]
-static A: System = System;
-
 #[macro_use]
 extern crate error_chain;
 extern crate rustup_dist;
@@ -60,11 +55,16 @@ mod term2;
 mod errors;
 mod help;
 
+use std::alloc::System;
 use std::env;
 use std::path::PathBuf;
 use errors::*;
 use rustup_dist::dist::TargetTriple;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
+
+// Always use the system allocator, to reduce binary size.
+#[global_allocator]
+static _ALLOCATOR: System = System;
 
 fn main() {
     if let Err(ref e) = run_rustup() {
