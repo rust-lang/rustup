@@ -14,6 +14,11 @@
 
 #![recursion_limit = "1024"]
 
+use std::alloc::System;
+
+#[global_allocator]
+static A: System = System;
+
 #[macro_use]
 extern crate error_chain;
 extern crate rustup_dist;
