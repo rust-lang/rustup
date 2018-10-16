@@ -25,9 +25,6 @@ pub fn setup() -> Option<Setup> {
 
 #[cfg(unix)]
 mod imp {
-    use std::env;
-    use libc;
-
     pub type Setup = ();
 
     pub unsafe fn setup() -> Option<()> {
