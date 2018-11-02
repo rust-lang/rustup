@@ -43,13 +43,14 @@ pub struct Config {
 // Building the mock server is slow, so use simple scenario when possible.
 #[derive(PartialEq, Copy, Clone)]
 pub enum Scenario {
-    Full,        // Two dates, two manifests
-    ArchivesV2,  // Two dates, v2 manifests
-    ArchivesV1,  // Two dates, v1 manifests
-    SimpleV2,    // One date, v2 manifests
-    SimpleV1,    // One date, v1 manifests
-    MultiHost,   // One date, v2 manifests, MULTI_ARCH1 host
-    Unavailable, // Two dates, v2 manifests, everything unavailable in second date.
+    Full,           // Two dates, two manifests
+    ArchivesV2,     // Two dates, v2 manifests
+    ArchivesV1,     // Two dates, v1 manifests
+    SimpleV2,       // One date, v2 manifests
+    SimpleV1,       // One date, v1 manifests
+    MultiHost,      // One date, v2 manifests, MULTI_ARCH1 host
+    Unavailable,    // Two dates, v2 manifests, everything unavailable in second date.
+    UnavailableRls, // Two dates, v2 manifests, RLS unavailable in first date, restored on second.
 }
 
 pub static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
@@ -286,6 +287,24 @@ pub fn expect_ok_eq(config: &Config, args1: &[&str], args2: &[&str]) {
     }
 }
 
+pub fn expect_component_executable(config: &Config, cmd: &str) {
+    let out1 = run(config, cmd, &["--version"], &[]);
+    if !out1.ok {
+        print_command(&[cmd, "--version"], &out1);
+        println!("expected.ok: true");
+        panic!()
+    }
+}
+
+pub fn expect_component_not_executable(config: &Config, cmd: &str) {
+    let out1 = run(config, cmd, &["--version"], &[]);
+    if out1.ok {
+        print_command(&[cmd, "--version"], &out1);
+        println!("expected.ok: false");
+        panic!()
+    }
+}
+
 fn print_command(args: &[&str], out: &SanitizedOutput) {
     print!("\n>");
     for arg in args {
@@ -410,36 +429,95 @@ where
     output
 }
 
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum RlsStatus {
+    Available,
+    Renamed,
+    Unavailable,
+}
+
 // Creates a mock dist server populated with some test data
 fn create_mock_dist_server(path: &Path, s: Scenario) {
     let mut chans = Vec::new();
 
     let dates_count = match s {
         Scenario::SimpleV1 | Scenario::SimpleV2 | Scenario::MultiHost => 1,
-        Scenario::Full | Scenario::ArchivesV1 | Scenario::ArchivesV2 | Scenario::Unavailable => 2,
+        Scenario::Full
+        | Scenario::ArchivesV1
+        | Scenario::ArchivesV2
+        | Scenario::Unavailable
+        | Scenario::UnavailableRls => 2,
     };
 
     if dates_count > 1 {
-        let c1 = build_mock_channel(s, "nightly", "2015-01-01", "1.2.0", "hash-n-1", false);
-        let c2 = build_mock_channel(s, "beta", "2015-01-01", "1.1.0", "hash-b-1", false);
-        let c3 = build_mock_channel(s, "stable", "2015-01-01", "1.0.0", "hash-s-1", false);
+        let c1 = build_mock_channel(
+            s,
+            "nightly",
+            "2015-01-01",
+            "1.2.0",
+            "hash-n-1",
+            if s == Scenario::UnavailableRls {
+                RlsStatus::Unavailable
+            } else {
+                RlsStatus::Available
+            },
+        );
+        let c2 = build_mock_channel(
+            s,
+            "beta",
+            "2015-01-01",
+            "1.1.0",
+            "hash-b-1",
+            RlsStatus::Available,
+        );
+        let c3 = build_mock_channel(
+            s,
+            "stable",
+            "2015-01-01",
+            "1.0.0",
+            "hash-s-1",
+            RlsStatus::Available,
+        );
         chans.extend(vec![c1, c2, c3]);
     }
     let c4 = if s == Scenario::Unavailable {
         build_mock_unavailable_channel("nightly", "2015-01-02", "1.3.0")
     } else {
-        build_mock_channel(s, "nightly", "2015-01-02", "1.3.0", "hash-n-2", true)
+        build_mock_channel(
+            s,
+            "nightly",
+            "2015-01-02",
+            "1.3.0",
+            "hash-n-2",
+            RlsStatus::Renamed,
+        )
     };
-    let c5 = build_mock_channel(s, "beta", "2015-01-02", "1.2.0", "hash-b-2", false);
-    let c6 = build_mock_channel(s, "stable", "2015-01-02", "1.1.0", "hash-s-2", false);
+    let c5 = build_mock_channel(
+        s,
+        "beta",
+        "2015-01-02",
+        "1.2.0",
+        "hash-b-2",
+        RlsStatus::Available,
+    );
+    let c6 = build_mock_channel(
+        s,
+        "stable",
+        "2015-01-02",
+        "1.1.0",
+        "hash-s-2",
+        RlsStatus::Available,
+    );
     chans.extend(vec![c4, c5, c6]);
 
     let vs = match s {
         Scenario::Full => vec![ManifestVersion::V1, ManifestVersion::V2],
         Scenario::SimpleV1 | Scenario::ArchivesV1 => vec![ManifestVersion::V1],
-        Scenario::SimpleV2 | Scenario::ArchivesV2 | Scenario::MultiHost | Scenario::Unavailable => {
-            vec![ManifestVersion::V2]
-        }
+        Scenario::SimpleV2
+        | Scenario::ArchivesV2
+        | Scenario::MultiHost
+        | Scenario::Unavailable
+        | Scenario::UnavailableRls => vec![ManifestVersion::V2],
     };
 
     MockDistServer {
@@ -512,7 +590,7 @@ fn build_mock_channel(
     date: &str,
     version: &'static str,
     version_hash: &str,
-    rename_rls: bool,
+    rls: RlsStatus,
 ) -> MockChannel {
     // Build the mock installers
     let host_triple = this_host_triple();
@@ -541,10 +619,10 @@ fn build_mock_channel(
         ("cargo", vec![(cargo, host_triple.clone())]),
     ];
 
-    if rename_rls {
+    if rls == RlsStatus::Renamed {
         let rls = build_mock_rls_installer(version, version_hash, true);
         all.push(("rls-preview", vec![(rls, host_triple.clone())]));
-    } else {
+    } else if rls == RlsStatus::Available {
         let rls = build_mock_rls_installer(version, version_hash, false);
         all.push(("rls", vec![(rls, host_triple.clone())]));
     }
@@ -582,10 +660,10 @@ fn build_mock_channel(
         ];
         all.extend(more);
 
-        if rename_rls {
+        if rls == RlsStatus::Renamed {
             let rls = build_mock_rls_installer(version, version_hash, true);
             all.push(("rls-preview", vec![(rls, triple.clone())]));
-        } else {
+        } else if rls == RlsStatus::Available {
             let rls = build_mock_rls_installer(version, version_hash, false);
             all.push(("rls", vec![(rls, triple.clone())]));
         }
@@ -606,7 +684,6 @@ fn build_mock_channel(
                 target: triple,
                 available: true,
                 components: vec![],
-                extensions: vec![],
                 installer,
             });
 
@@ -626,51 +703,61 @@ fn build_mock_channel(
             target_pkg.components.push(MockComponent {
                 name: "rust-std".to_string(),
                 target: target.to_string(),
+                is_extension: false,
             });
             target_pkg.components.push(MockComponent {
                 name: "rustc".to_string(),
                 target: target.to_string(),
+                is_extension: false,
             });
             target_pkg.components.push(MockComponent {
                 name: "cargo".to_string(),
                 target: target.to_string(),
+                is_extension: false,
             });
             target_pkg.components.push(MockComponent {
                 name: "rust-docs".to_string(),
                 target: target.to_string(),
+                is_extension: false,
             });
-            if rename_rls {
-                target_pkg.extensions.push(MockComponent {
+            if rls == RlsStatus::Renamed {
+                target_pkg.components.push(MockComponent {
                     name: "rls-preview".to_string(),
                     target: target.to_string(),
+                    is_extension: true,
                 });
-            } else {
-                target_pkg.extensions.push(MockComponent {
+            } else if rls == RlsStatus::Available {
+                target_pkg.components.push(MockComponent {
                     name: "rls".to_string(),
                     target: target.to_string(),
+                    is_extension: true,
                 });
             }
-            target_pkg.extensions.push(MockComponent {
+            target_pkg.components.push(MockComponent {
                 name: "rust-std".to_string(),
                 target: CROSS_ARCH1.to_string(),
+                is_extension: false,
             });
-            target_pkg.extensions.push(MockComponent {
+            target_pkg.components.push(MockComponent {
                 name: "rust-std".to_string(),
                 target: CROSS_ARCH2.to_string(),
+                is_extension: false,
             });
-            target_pkg.extensions.push(MockComponent {
+            target_pkg.components.push(MockComponent {
                 name: "rust-src".to_string(),
                 target: "*".to_string(),
+                is_extension: true,
             });
-            target_pkg.extensions.push(MockComponent {
+            target_pkg.components.push(MockComponent {
                 name: "rust-analysis".to_string(),
                 target: target.to_string(),
+                is_extension: true,
             });
         }
     }
 
     let mut renames = HashMap::new();
-    if rename_rls {
+    if rls == RlsStatus::Renamed {
         renames.insert("rls".to_owned(), "rls-preview".to_owned());
     }
 
@@ -703,7 +790,6 @@ fn build_mock_unavailable_channel(channel: &str, date: &str, version: &'static s
                 target: host_triple.clone(),
                 available: false,
                 components: vec![],
-                extensions: vec![],
                 installer: MockInstallerBuilder { components: vec![] },
             }],
         })

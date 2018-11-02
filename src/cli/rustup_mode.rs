@@ -5,7 +5,7 @@ use crate::self_update;
 use crate::term2;
 use crate::term2::Terminal;
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
-use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, TargetTriple};
+use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use rustup::dist::manifest::Component;
 use rustup::utils::utils::{self, ExitCode};
 use rustup::{command, Cfg, Toolchain};
@@ -44,6 +44,7 @@ pub fn main() -> Result<()> {
         ("show", Some(c)) => match c.subcommand() {
             ("active-toolchain", Some(_)) => handle_epipe(show_active_toolchain(cfg))?,
             ("home", Some(_)) => handle_epipe(show_rustup_home(cfg))?,
+            ("profile", Some(_)) => handle_epipe(show_profile(cfg))?,
             (_, _) => handle_epipe(show(cfg))?,
         },
         ("install", Some(m)) => update(cfg, m)?,
@@ -86,6 +87,7 @@ pub fn main() -> Result<()> {
         },
         ("set", Some(c)) => match c.subcommand() {
             ("default-host", Some(m)) => set_default_host_triple(&cfg, m)?,
+            ("profile", Some(m)) => set_profile(&cfg, m)?,
             (_, _) => unreachable!(),
         },
         ("completions", Some(c)) => {
@@ -125,7 +127,7 @@ pub fn cli() -> App<'static, 'static> {
         )
         .subcommand(
             SubCommand::with_name("show")
-                .about("Show the active and installed toolchains")
+                .about("Show the active and installed toolchains or profiles")
                 .after_help(SHOW_HELP)
                 .setting(AppSettings::VersionlessSubcommands)
                 .setting(AppSettings::DeriveDisplayOrder)
@@ -138,6 +140,7 @@ pub fn cli() -> App<'static, 'static> {
                     SubCommand::with_name("home")
                         .about("Display the computed value of RUSTUP_HOME"),
                 )
+                .subcommand(SubCommand::with_name("profile").about("Show the current profile")),
         )
         .subcommand(
             SubCommand::with_name("install")
@@ -501,6 +504,16 @@ pub fn cli() -> App<'static, 'static> {
                     SubCommand::with_name("default-host")
                         .about("The triple used to identify toolchains when not specified")
                         .arg(Arg::with_name("host_triple").required(true)),
+                )
+                .subcommand(
+                    SubCommand::with_name("profile")
+                        .about("The default components installed")
+                        .arg(
+                            Arg::with_name("profile-name")
+                                .required(true)
+                                .possible_values(Profile::names())
+                                .default_value(Profile::default_name()),
+                        ),
                 ),
         );
 
@@ -919,7 +932,11 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     }
 
     for target in &targets {
-        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::new(target)));
+        let new_component = Component::new(
+            "rust-std".to_string(),
+            Some(TargetTriple::new(target)),
+            false,
+        );
         toolchain.add_component(new_component)?;
     }
 
@@ -930,7 +947,11 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").expect("") {
-        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::new(target)));
+        let new_component = Component::new(
+            "rust-std".to_string(),
+            Some(TargetTriple::new(target)),
+            false,
+        );
 
         toolchain.remove_component(new_component)?;
     }
@@ -959,7 +980,7 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     });
 
     for component in m.values_of("component").expect("") {
-        let new_component = Component::new(component.to_string(), target.clone());
+        let new_component = Component::new(component.to_string(), target.clone(), true);
 
         toolchain.add_component(new_component)?;
     }
@@ -978,7 +999,7 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     });
 
     for component in m.values_of("component").expect("") {
-        let new_component = Component::new(component.to_string(), target.clone());
+        let new_component = Component::new(component.to_string(), target.clone(), true);
 
         toolchain.remove_component(new_component)?;
     }
@@ -1156,6 +1177,19 @@ fn self_uninstall(m: &ArgMatches<'_>) -> Result<()> {
 
 fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     cfg.set_default_host_triple(m.value_of("host_triple").expect(""))?;
+    Ok(())
+}
+
+fn set_profile(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    cfg.set_profile(&m.value_of("profile-name").unwrap())?;
+    Ok(())
+}
+
+fn show_profile(cfg: &Cfg) -> Result<()> {
+    match cfg.get_profile()? {
+        Some(p) => println!("{}", p),
+        None => println!("No profile set"),
+    }
     Ok(())
 }
 

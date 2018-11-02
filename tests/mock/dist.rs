@@ -90,10 +90,7 @@ pub struct MockTargetedPackage {
     pub target: String,
     // Whether the file actually exists (could be due to build failure)
     pub available: bool,
-    // Required components
     pub components: Vec<MockComponent>,
-    // Optional components
-    pub extensions: Vec<MockComponent>,
     // The mock rust-installer
     pub installer: MockInstallerBuilder,
 }
@@ -102,6 +99,7 @@ pub struct MockTargetedPackage {
 pub struct MockComponent {
     pub name: String,
     pub target: String,
+    pub is_extension: bool,
 }
 
 #[derive(Clone)]
@@ -152,6 +150,7 @@ impl MockDistServer {
             let component = MockComponent {
                 name: package.name.to_string(),
                 target: target_package.target.to_string(),
+                is_extension: false,
             };
             hashes.insert(
                 component,
@@ -331,6 +330,7 @@ impl MockDistServer {
                 let component = MockComponent {
                     name: package.name.to_owned(),
                     target: target.target.to_owned(),
+                    is_extension: false,
                 };
                 let hash = hashes[&component].clone();
                 toml_target.insert(String::from("hash"), toml::Value::String(hash.gz));
@@ -343,8 +343,9 @@ impl MockDistServer {
                     toml_target.insert(String::from("xz_hash"), toml::Value::String(xz_hash));
                 }
 
-                // [pkg.*.target.*.components.*]
+                // [pkg.*.target.*.components.*] and [pkg.*.target.*.extensions.*]
                 let mut toml_components = toml::value::Array::new();
+                let mut toml_extensions = toml::value::Array::new();
                 for component in &target.components {
                     let mut toml_component = toml::value::Table::new();
                     toml_component.insert(
@@ -355,27 +356,16 @@ impl MockDistServer {
                         String::from("target"),
                         toml::Value::String(component.target.to_owned()),
                     );
-                    toml_components.push(toml::Value::Table(toml_component));
+                    if component.is_extension {
+                        toml_extensions.push(toml::Value::Table(toml_component));
+                    } else {
+                        toml_components.push(toml::Value::Table(toml_component));
+                    }
                 }
                 toml_target.insert(
                     String::from("components"),
                     toml::Value::Array(toml_components),
                 );
-
-                // [pkg.*.target.*.extensions.*]
-                let mut toml_extensions = toml::value::Array::new();
-                for extension in &target.extensions {
-                    let mut toml_extension = toml::value::Table::new();
-                    toml_extension.insert(
-                        String::from("pkg"),
-                        toml::Value::String(extension.name.to_owned()),
-                    );
-                    toml_extension.insert(
-                        String::from("target"),
-                        toml::Value::String(extension.target.to_owned()),
-                    );
-                    toml_extensions.push(toml::Value::Table(toml_extension));
-                }
                 toml_target.insert(
                     String::from("extensions"),
                     toml::Value::Array(toml_extensions),
@@ -396,6 +386,21 @@ impl MockDistServer {
             toml_renames.insert(from.to_owned(), toml::Value::Table(toml_rename));
         }
         toml_manifest.insert(String::from("renames"), toml::Value::Table(toml_renames));
+
+        let mut toml_profiles = toml::value::Table::new();
+        let profiles = &[
+            ("minimal", vec!["rustc"]),
+            ("default", vec!["rustc", "cargo", "rust-std", "rust-docs"]),
+            ("complete", vec!["rustc", "cargo", "rust-std"]),
+        ];
+        for (profile, values) in profiles {
+            let array = values
+                .iter()
+                .map(|v| toml::Value::String((**v).to_owned()))
+                .collect();
+            toml_profiles.insert(profile.to_string(), toml::Value::Array(array));
+        }
+        toml_manifest.insert(String::from("profiles"), toml::Value::Table(toml_profiles));
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
         let manifest_path = self.path.join(format!("{}.toml", manifest_name));

@@ -125,6 +125,29 @@ impl Cfg {
         Ok(())
     }
 
+    pub fn set_profile(&self, profile: &str) -> Result<()> {
+        if !dist::Profile::names().contains(&profile) {
+            return Err(ErrorKind::UnknownProfile(profile.to_owned()).into());
+        }
+        self.settings_file.with_mut(|s| {
+            s.profile = Some(profile.to_owned());
+            Ok(())
+        })?;
+        (self.notify_handler)(Notification::SetProfile(profile));
+        Ok(())
+    }
+
+    pub fn get_profile(&self) -> Result<Option<dist::Profile>> {
+        self.settings_file.with(|s| {
+            let p = match &s.profile {
+                Some(p) => p,
+                None => return Ok(None),
+            };
+            let p = dist::Profile::from_str(p)?;
+            Ok(Some(p))
+        })
+    }
+
     pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain<'_>> {
         if create_parent {
             utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {

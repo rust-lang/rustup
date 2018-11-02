@@ -5,7 +5,7 @@ pub mod mock;
 
 use crate::mock::dist::*;
 use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
-use rustup::dist::dist::{TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER};
+use rustup::dist::dist::{Profile, TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER};
 use rustup::dist::download::DownloadCfg;
 use rustup::dist::manifest::{Component, Manifest};
 use rustup::dist::manifestation::{Changes, Manifestation, UpdateStatus};
@@ -27,7 +27,7 @@ use url::Url;
 // Creates a mock dist server populated with some test data
 pub fn create_mock_dist_server(
     path: &Path,
-    edit: Option<&dyn Fn(&str, &mut [MockPackage])>,
+    edit: Option<&dyn Fn(&str, &mut MockChannel)>,
 ) -> MockDistServer {
     MockDistServer {
         path: path.to_owned(),
@@ -41,7 +41,7 @@ pub fn create_mock_dist_server(
 pub fn create_mock_channel(
     channel: &str,
     date: &str,
-    edit: Option<&dyn Fn(&str, &mut [MockPackage])>,
+    edit: Option<&dyn Fn(&str, &mut MockChannel)>,
 ) -> MockChannel {
     // Put the date in the files so they can be differentiated
     let contents = Arc::new(date.as_bytes().to_vec());
@@ -59,24 +59,27 @@ pub fn create_mock_channel(
                     MockComponent {
                         name: "rustc".to_string(),
                         target: "x86_64-apple-darwin".to_string(),
+                        is_extension: false,
                     },
                     MockComponent {
                         name: "cargo".to_string(),
                         target: "x86_64-apple-darwin".to_string(),
+                        is_extension: false,
                     },
                     MockComponent {
                         name: "rust-std".to_string(),
                         target: "x86_64-apple-darwin".to_string(),
+                        is_extension: false,
                     },
-                ],
-                extensions: vec![
                     MockComponent {
                         name: "rust-std".to_string(),
                         target: "i686-apple-darwin".to_string(),
+                        is_extension: false,
                     },
                     MockComponent {
                         name: "rust-std".to_string(),
                         target: "i686-unknown-linux-gnu".to_string(),
+                        is_extension: false,
                     },
                 ],
                 installer: MockInstallerBuilder { components: vec![] },
@@ -88,17 +91,19 @@ pub fn create_mock_channel(
                     MockComponent {
                         name: "rustc".to_string(),
                         target: "i686-apple-darwin".to_string(),
+                        is_extension: false,
                     },
                     MockComponent {
                         name: "cargo".to_string(),
                         target: "i686-apple-darwin".to_string(),
+                        is_extension: false,
                     },
                     MockComponent {
                         name: "rust-std".to_string(),
                         target: "i686-apple-darwin".to_string(),
+                        is_extension: false,
                     },
                 ],
-                extensions: vec![],
                 installer: MockInstallerBuilder { components: vec![] },
             },
         ],
@@ -114,7 +119,6 @@ pub fn create_mock_channel(
                     target: "x86_64-apple-darwin".to_string(),
                     available: true,
                     components: vec![],
-                    extensions: vec![],
                     installer: MockInstallerBuilder {
                         components: vec![MockComponentBuilder {
                             name: pkg.to_string(),
@@ -126,7 +130,6 @@ pub fn create_mock_channel(
                     target: "i686-apple-darwin".to_string(),
                     available: true,
                     components: vec![],
-                    extensions: vec![],
                     installer: MockInstallerBuilder { components: vec![] },
                 },
             ],
@@ -141,7 +144,6 @@ pub fn create_mock_channel(
                 target: "x86_64-apple-darwin".to_string(),
                 available: true,
                 components: vec![],
-                extensions: vec![],
                 installer: MockInstallerBuilder {
                     components: vec![MockComponentBuilder {
                         name: "rust-std-x86_64-apple-darwin".to_string(),
@@ -153,7 +155,6 @@ pub fn create_mock_channel(
                 target: "i686-apple-darwin".to_string(),
                 available: true,
                 components: vec![],
-                extensions: vec![],
                 installer: MockInstallerBuilder {
                     components: vec![MockComponentBuilder {
                         name: "rust-std-i686-apple-darwin".to_string(),
@@ -168,7 +169,6 @@ pub fn create_mock_channel(
                 target: "i686-unknown-linux-gnu".to_string(),
                 available: true,
                 components: vec![],
-                extensions: vec![],
                 installer: MockInstallerBuilder {
                     components: vec![MockComponentBuilder {
                         name: "rust-std-i686-unknown-linux-gnu".to_string(),
@@ -186,16 +186,18 @@ pub fn create_mock_channel(
     // for various tests
     packages.push(bonus_component("bonus", contents.clone()));
 
-    if let Some(edit) = edit {
-        edit(date, &mut packages);
-    }
-
-    MockChannel {
+    let mut channel = MockChannel {
         name: channel.to_string(),
         date: date.to_string(),
         packages,
         renames: HashMap::new(),
+    };
+
+    if let Some(edit) = edit {
+        edit(date, &mut channel);
     }
+
+    channel
 }
 
 fn bonus_component(name: &'static str, contents: Arc<Vec<u8>>) -> MockPackage {
@@ -206,7 +208,6 @@ fn bonus_component(name: &'static str, contents: Arc<Vec<u8>>) -> MockPackage {
             target: "x86_64-apple-darwin".to_string(),
             available: true,
             components: vec![],
-            extensions: vec![],
             installer: MockInstallerBuilder {
                 components: vec![MockComponentBuilder {
                     name: format!("{}-x86_64-apple-darwin", name),
@@ -263,8 +264,8 @@ fn rename_component() {
     let dist_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
 
-    let edit_1 = &|_: &str, pkgs: &mut [MockPackage]| {
-        let tpkg = pkgs[0]
+    let edit_1 = &|_: &str, chan: &mut MockChannel| {
+        let tpkg = chan.packages[0]
             .targets
             .iter_mut()
             .find(|p| p.target == "x86_64-apple-darwin")
@@ -272,10 +273,11 @@ fn rename_component() {
         tpkg.components.push(MockComponent {
             name: "bonus".to_string(),
             target: "x86_64-apple-darwin".to_string(),
+            is_extension: true,
         });
     };
-    let edit_2 = &|_: &str, pkgs: &mut [MockPackage]| {
-        let tpkg = pkgs[0]
+    let edit_2 = &|_: &str, chan: &mut MockChannel| {
+        let tpkg = chan.packages[0]
             .targets
             .iter_mut()
             .find(|p| p.target == "x86_64-apple-darwin")
@@ -283,6 +285,7 @@ fn rename_component() {
         tpkg.components.push(MockComponent {
             name: "bobo".to_string(),
             target: "x86_64-apple-darwin".to_string(),
+            is_extension: true,
         });
     };
 
@@ -305,12 +308,38 @@ fn rename_component() {
         &url,
         false,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
+            let adds = [Component::new(
+                "bonus".to_string(),
+                Some(TargetTriple::new("x86_64-apple-darwin")),
+                true,
+            )];
+
             change_channel_date(url, "nightly", "2016-02-01");
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+            update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &adds,
+                &[],
+                download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap();
             assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
             assert!(!utils::path_exists(&prefix.path().join("bin/bobo")));
             change_channel_date(url, "nightly", "2016-02-02");
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+            update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &[],
+                &[],
+                download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap();
             assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
             assert!(!utils::path_exists(&prefix.path().join("bin/bobo")));
         },
@@ -323,21 +352,11 @@ fn rename_component_new() {
     let dist_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
 
-    let edit_2 = &|_: &str, pkgs: &mut [MockPackage]| {
-        let tpkg = pkgs[0]
-            .targets
-            .iter_mut()
-            .find(|p| p.target == "x86_64-apple-darwin")
-            .unwrap();
-        tpkg.components.push(MockComponent {
-            name: "bobo".to_string(),
-            target: "x86_64-apple-darwin".to_string(),
-        });
-    };
-
     let date_2 = "2016-02-02";
-    let mut channel_2 = create_mock_channel("nightly", date_2, Some(edit_2));
+    let mut channel_2 = create_mock_channel("nightly", date_2, None);
+    // Replace the `bonus` component with a `bobo` component
     channel_2.packages[4] = bonus_component("bobo", Arc::new(date_2.as_bytes().to_vec()));
+    // And allow a rename from `bonus` to `bobo`
     channel_2
         .renames
         .insert("bonus".to_owned(), "bobo".to_owned());
@@ -354,12 +373,44 @@ fn rename_component_new() {
         &url,
         false,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
+            let adds = [Component::new(
+                "bobo".to_string(),
+                Some(TargetTriple::new("x86_64-apple-darwin")),
+                true,
+            )];
+            // Install the basics from day 1
             change_channel_date(url, "nightly", "2016-02-01");
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+            update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &[],
+                &[],
+                download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap();
+            // Neither bonus nor bobo are installed at this point.
             assert!(!utils::path_exists(&prefix.path().join("bin/bonus")));
             assert!(!utils::path_exists(&prefix.path().join("bin/bobo")));
+            // Now we move to day 2, where bobo is part of the set of things we want
+            // to have installed
             change_channel_date(url, "nightly", "2016-02-02");
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+            update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &adds,
+                &[],
+                download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap();
+            // As a result `bin/bonus` is present but not `bin/bobo` which we'd
+            // expect since the bonus component installs `bin/bonus` regardless of
+            // its name being `bobo`
             assert!(!utils::path_exists(&prefix.path().join("bin/bobo")));
             assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
         },
@@ -378,6 +429,7 @@ fn update_from_dist(
     remove: &[Component],
     download_cfg: &DownloadCfg<'_>,
     temp_cfg: &temp::Cfg,
+    force: bool,
 ) -> Result<UpdateStatus> {
     // Download the dist manifest and place it into the installation prefix
     let manifest_url = make_manifest_url(dist_server, toolchain)?;
@@ -388,20 +440,25 @@ fn update_from_dist(
 
     // Read the manifest to update the components
     let trip = toolchain.target.clone();
-    let manifestation = Manifestation::open(prefix.clone(), trip)?;
+    let manifestation = Manifestation::open(prefix.clone(), trip.clone())?;
+
+    // TODO on install, need to add profile components (but I guess we shouldn't test that logic here)
+    let mut profile_components = manifest.get_profile_components(Profile::Default, &trip)?;
+    let mut add_components = add.to_owned();
+    add_components.append(&mut profile_components);
 
     let changes = Changes {
-        add_extensions: add.to_owned(),
-        remove_extensions: remove.to_owned(),
+        explicit_add_components: add_components,
+        remove_components: remove.to_owned(),
     };
 
     manifestation.update(
         &manifest,
         changes,
-        false,
+        force,
         download_cfg,
         download_cfg.notify_handler,
-        &toolchain.to_string(),
+        &toolchain.manifest_name(),
     )
 }
 
@@ -430,7 +487,7 @@ fn uninstall(
 }
 
 fn setup(
-    edit: Option<&dyn Fn(&str, &mut [MockPackage])>,
+    edit: Option<&dyn Fn(&str, &mut MockChannel)>,
     enable_xz: bool,
     f: &dyn Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg<'_>, &temp::Cfg),
 ) {
@@ -476,7 +533,17 @@ fn initial_install() {
                          prefix,
                          download_cfg,
                          temp_cfg| {
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
         assert!(utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
@@ -490,7 +557,17 @@ fn initial_install_xz() {
                         prefix,
                         download_cfg,
                         temp_cfg| {
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
         assert!(utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
@@ -504,7 +581,17 @@ fn test_uninstall() {
                          prefix,
                          download_cfg,
                          temp_cfg| {
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
         uninstall(toolchain, prefix, temp_cfg, &|_| ()).unwrap();
 
         assert!(!utils::path_exists(&prefix.path().join("bin/rustc")));
@@ -519,7 +606,17 @@ fn uninstall_removes_config_file() {
                          prefix,
                          download_cfg,
                          temp_cfg| {
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
         assert!(utils::path_exists(
             &prefix.manifest_file("multirust-config.toml")
         ));
@@ -538,13 +635,33 @@ fn upgrade() {
                          download_cfg,
                          temp_cfg| {
         change_channel_date(url, "nightly", "2016-02-01");
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
         assert_eq!(
             "2016-02-01",
             fs::read_to_string(&prefix.path().join("bin/rustc")).unwrap()
         );
         change_channel_date(url, "nightly", "2016-02-02");
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
         assert_eq!(
             "2016-02-02",
             fs::read_to_string(&prefix.path().join("bin/rustc")).unwrap()
@@ -555,10 +672,10 @@ fn upgrade() {
 #[test]
 fn unavailable_component() {
     // On day 2 the bonus component is no longer available
-    let edit = &|date: &str, pkgs: &mut [MockPackage]| {
-        // Require the bonus component every dat
+    let edit = &|date: &str, chan: &mut MockChannel| {
+        // Require the bonus component every day.
         {
-            let tpkg = pkgs[0]
+            let tpkg = chan.packages[0]
                 .targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
@@ -566,12 +683,17 @@ fn unavailable_component() {
             tpkg.components.push(MockComponent {
                 name: "bonus".to_string(),
                 target: "x86_64-apple-darwin".to_string(),
+                is_extension: true,
             });
         }
 
         // Mark the bonus package as unavailable in 2016-02-02
         if date == "2016-02-02" {
-            let bonus_pkg = pkgs.iter_mut().find(|p| p.name == "bonus").unwrap();
+            let bonus_pkg = chan
+                .packages
+                .iter_mut()
+                .find(|p| p.name == "bonus")
+                .unwrap();
 
             for target in &mut bonus_pkg.targets {
                 target.available = false;
@@ -583,15 +705,40 @@ fn unavailable_component() {
         Some(edit),
         false,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
+            let adds = [Component::new(
+                "bonus".to_string(),
+                Some(TargetTriple::new("x86_64-apple-darwin")),
+                true,
+            )];
+
             change_channel_date(url, "nightly", "2016-02-01");
             // Update with bonus.
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+            update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &adds,
+                &[],
+                download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap();
             assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
             change_channel_date(url, "nightly", "2016-02-02");
 
             // Update without bonus, should fail.
-            let err = update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg)
-                .unwrap_err();
+            let err = update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &[],
+                &[],
+                download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap_err();
             match *err.kind() {
                 ErrorKind::RequestedComponentsUnavailable(..) => {}
                 _ => panic!(),
@@ -600,20 +747,22 @@ fn unavailable_component() {
     );
 }
 
+// As unavailable_component, but the unavailable component is part of the profile.
 #[test]
-fn removed_component() {
-    // On day 1 install the 'bonus' component, on day 2 its no longer a component
-    let edit = &|date: &str, pkgs: &mut [MockPackage]| {
-        if date == "2016-02-01" {
-            let tpkg = pkgs[0]
-                .targets
+fn unavailable_component_from_profile() {
+    // On day 2 the rustc component is no longer available
+    let edit = &|date: &str, chan: &mut MockChannel| {
+        // Mark the rustc package as unavailable in 2016-02-02
+        if date == "2016-02-02" {
+            let rustc_pkg = chan
+                .packages
                 .iter_mut()
-                .find(|p| p.target == "x86_64-apple-darwin")
+                .find(|p| p.name == "rustc")
                 .unwrap();
-            tpkg.components.push(MockComponent {
-                name: "bonus".to_string(),
-                target: "x86_64-apple-darwin".to_string(),
-            });
+
+            for target in &mut rustc_pkg.targets {
+                target.available = false;
+            }
         }
     };
 
@@ -621,30 +770,112 @@ fn removed_component() {
         Some(edit),
         false,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
-            let received_notification = Arc::new(Cell::new(false));
-
-            let download_cfg = DownloadCfg {
-                dist_root: download_cfg.dist_root,
-                temp_cfg: download_cfg.temp_cfg,
-                download_dir: download_cfg.download_dir,
-                notify_handler: &|n| {
-                    if let Notification::ComponentUnavailable("bonus", Some(_)) = n {
-                        received_notification.set(true);
-                    }
-                },
-            };
-
             change_channel_date(url, "nightly", "2016-02-01");
-            // Update with bonus.
-            update_from_dist(url, toolchain, prefix, &[], &[], &download_cfg, temp_cfg).unwrap();
-            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
+            // Update with rustc.
+            update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &[],
+                &[],
+                download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap();
+            assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
             change_channel_date(url, "nightly", "2016-02-02");
 
-            // Update without bonus, should emit a notify and remove the bonus component
-            update_from_dist(url, toolchain, prefix, &[], &[], &download_cfg, temp_cfg).unwrap();
-            assert!(!utils::path_exists(&prefix.path().join("bin/bonus")));
+            // Update without rustc, should fail.
+            let err = update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &[],
+                &[],
+                download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap_err();
+            match *err.kind() {
+                ErrorKind::RequestedComponentsUnavailable(..) => {}
+                _ => panic!(),
+            }
 
-            assert!(received_notification.get());
+            update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &[],
+                &[],
+                download_cfg,
+                temp_cfg,
+                true,
+            )
+            .unwrap();
+        },
+    );
+}
+
+#[test]
+fn removed_component() {
+    // On day 1 install the 'bonus' component, on day 2 its no longer a component
+    let edit = &|date: &str, chan: &mut MockChannel| {
+        if date == "2016-02-01" {
+            let tpkg = chan.packages[0]
+                .targets
+                .iter_mut()
+                .find(|p| p.target == "x86_64-apple-darwin")
+                .unwrap();
+            tpkg.components.push(MockComponent {
+                name: "bonus".to_string(),
+                target: "x86_64-apple-darwin".to_string(),
+                is_extension: true,
+            });
+        } else {
+            chan.packages.retain(|p| p.name != "bonus");
+        }
+    };
+
+    setup(
+        Some(edit),
+        false,
+        &|url, toolchain, prefix, download_cfg, temp_cfg| {
+            let adds = [Component::new(
+                "bonus".to_string(),
+                Some(TargetTriple::new("x86_64-apple-darwin")),
+                true,
+            )];
+
+            // Update with bonus.
+            change_channel_date(url, "nightly", "2016-02-01");
+            update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &adds,
+                &[],
+                &download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap();
+            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
+
+            // Update without bonus, should fail with RequestedComponentsUnavailable
+            change_channel_date(url, "nightly", "2016-02-02");
+            assert!(update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &[],
+                &[],
+                &download_cfg,
+                temp_cfg,
+                false
+            )
+            .is_err());
         },
     );
 }
@@ -660,15 +891,27 @@ fn update_preserves_extensions() {
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-apple-darwin")),
+                false,
             ),
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-unknown-linux-gnu")),
+                false,
             ),
         ];
 
         change_channel_date(url, "nightly", "2016-02-01");
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         assert!(utils::path_exists(
             &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
@@ -678,7 +921,17 @@ fn update_preserves_extensions() {
         ));
 
         change_channel_date(url, "nightly", "2016-02-02");
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         assert!(utils::path_exists(
             &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
@@ -690,104 +943,35 @@ fn update_preserves_extensions() {
 }
 
 #[test]
-fn update_preserves_extensions_that_became_components() {
-    let edit = &|date: &str, pkgs: &mut [MockPackage]| {
-        if date == "2016-02-01" {
-            let tpkg = pkgs[0]
-                .targets
-                .iter_mut()
-                .find(|p| p.target == "x86_64-apple-darwin")
-                .unwrap();
-            tpkg.extensions.push(MockComponent {
-                name: "bonus".to_string(),
-                target: "x86_64-apple-darwin".to_string(),
-            });
-        }
-        if date == "2016-02-02" {
-            let tpkg = pkgs[0]
-                .targets
-                .iter_mut()
-                .find(|p| p.target == "x86_64-apple-darwin")
-                .unwrap();
-            tpkg.components.push(MockComponent {
-                name: "bonus".to_string(),
-                target: "x86_64-apple-darwin".to_string(),
-            });
-        }
-    };
-    setup(
-        Some(edit),
-        false,
-        &|url, toolchain, prefix, download_cfg, temp_cfg| {
-            let adds = vec![Component::new(
-                "bonus".to_string(),
-                Some(TargetTriple::new("x86_64-apple-darwin")),
-            )];
-
-            change_channel_date(url, "nightly", "2016-02-01");
-            update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
-
-            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
-
-            change_channel_date(url, "nightly", "2016-02-02");
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
-            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
-        },
-    );
-}
-
-#[test]
-fn update_preserves_components_that_became_extensions() {
-    let edit = &|date: &str, pkgs: &mut [MockPackage]| {
-        if date == "2016-02-01" {
-            let tpkg = pkgs[0]
-                .targets
-                .iter_mut()
-                .find(|p| p.target == "x86_64-apple-darwin")
-                .unwrap();
-            tpkg.components.push(MockComponent {
-                name: "bonus".to_string(),
-                target: "x86_64-apple-darwin".to_string(),
-            });
-        }
-        if date == "2016-02-02" {
-            let tpkg = pkgs[0]
-                .targets
-                .iter_mut()
-                .find(|p| p.target == "x86_64-apple-darwin")
-                .unwrap();
-            tpkg.extensions.push(MockComponent {
-                name: "bonus".to_string(),
-                target: "x86_64-apple-darwin".to_string(),
-            });
-        }
-    };
-    setup(
-        Some(edit),
-        false,
-        &|url, toolchain, prefix, download_cfg, temp_cfg| {
-            change_channel_date(url, "nightly", "2016-02-01");
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
-            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
-            change_channel_date(url, "nightly", "2016-02-02");
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
-            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
-        },
-    );
-}
-
-#[test]
 fn update_makes_no_changes_for_identical_manifest() {
     setup(None, false, &|url,
                          toolchain,
                          prefix,
                          download_cfg,
                          temp_cfg| {
-        let status =
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        let status = update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
         assert_eq!(status, UpdateStatus::Changed);
-        let status =
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        let status = update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
         assert_eq!(status, UpdateStatus::Unchanged);
     });
 }
@@ -803,14 +987,26 @@ fn add_extensions_for_initial_install() {
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-apple-darwin")),
+                false,
             ),
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-unknown-linux-gnu")),
+                false,
             ),
         ];
 
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
         assert!(utils::path_exists(
             &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
         ));
@@ -827,20 +1023,42 @@ fn add_extensions_for_same_manifest() {
                          prefix,
                          download_cfg,
                          temp_cfg| {
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         let adds = vec![
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-apple-darwin")),
+                false,
             ),
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-unknown-linux-gnu")),
+                false,
             ),
         ];
 
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         assert!(utils::path_exists(
             &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
@@ -860,7 +1078,17 @@ fn add_extensions_for_upgrade() {
                          temp_cfg| {
         change_channel_date(url, "nightly", "2016-02-01");
 
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         change_channel_date(url, "nightly", "2016-02-02");
 
@@ -868,14 +1096,26 @@ fn add_extensions_for_upgrade() {
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-apple-darwin")),
+                false,
             ),
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-unknown-linux-gnu")),
+                false,
             ),
         ];
 
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         assert!(utils::path_exists(
             &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
@@ -897,9 +1137,20 @@ fn add_extension_not_in_manifest() {
         let adds = vec![Component::new(
             "rust-bogus".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
+            true,
         )];
 
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
     });
 }
 
@@ -914,9 +1165,20 @@ fn add_extension_that_is_required_component() {
         let adds = vec![Component::new(
             "rustc".to_string(),
             Some(TargetTriple::new("x86_64-apple-darwin")),
+            false,
         )];
 
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
     });
 }
 
@@ -935,14 +1197,35 @@ fn add_extensions_does_not_remove_other_components() {
                          prefix,
                          download_cfg,
                          temp_cfg| {
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         let adds = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
+            false,
         )];
 
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
     });
@@ -960,6 +1243,7 @@ fn remove_extensions_for_initial_install() {
         let removes = vec![Component::new(
             "rustc".to_string(),
             Some(TargetTriple::new("x86_64-apple-darwin")),
+            false,
         )];
 
         update_from_dist(
@@ -970,6 +1254,7 @@ fn remove_extensions_for_initial_install() {
             &removes,
             download_cfg,
             temp_cfg,
+            false,
         )
         .unwrap();
     });
@@ -986,18 +1271,31 @@ fn remove_extensions_for_same_manifest() {
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-apple-darwin")),
+                false,
             ),
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-unknown-linux-gnu")),
+                false,
             ),
         ];
 
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
+            false,
         )];
 
         update_from_dist(
@@ -1008,6 +1306,7 @@ fn remove_extensions_for_same_manifest() {
             &removes,
             download_cfg,
             temp_cfg,
+            false,
         )
         .unwrap();
 
@@ -1033,20 +1332,33 @@ fn remove_extensions_for_upgrade() {
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-apple-darwin")),
+                false,
             ),
             Component::new(
                 "rust-std".to_string(),
                 Some(TargetTriple::new("i686-unknown-linux-gnu")),
+                false,
             ),
         ];
 
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         change_channel_date(url, "nightly", "2016-02-02");
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
+            false,
         )];
 
         update_from_dist(
@@ -1057,6 +1369,7 @@ fn remove_extensions_for_upgrade() {
             &removes,
             download_cfg,
             temp_cfg,
+            false,
         )
         .unwrap();
 
@@ -1079,13 +1392,24 @@ fn remove_extension_not_in_manifest() {
                          temp_cfg| {
         change_channel_date(url, "nightly", "2016-02-01");
 
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         change_channel_date(url, "nightly", "2016-02-02");
 
         let removes = vec![Component::new(
             "rust-bogus".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
+            true,
         )];
 
         update_from_dist(
@@ -1096,28 +1420,30 @@ fn remove_extension_not_in_manifest() {
             &removes,
             download_cfg,
             temp_cfg,
+            false,
         )
         .unwrap();
     });
 }
 
 // Extensions that don't exist in the manifest may still exist on disk
-// from a previous manifest. The can't be requested to be removed though;
-// only things in the manifest can.
+// from a previous manifest.
 #[test]
-#[should_panic]
 fn remove_extension_not_in_manifest_but_is_already_installed() {
-    let edit = &|date: &str, pkgs: &mut [MockPackage]| {
+    let edit = &|date: &str, chan: &mut MockChannel| {
         if date == "2016-02-01" {
-            let tpkg = pkgs[0]
+            let tpkg = chan.packages[0]
                 .targets
                 .iter_mut()
                 .find(|p| p.target == "x86_64-apple-darwin")
                 .unwrap();
-            tpkg.extensions.push(MockComponent {
+            tpkg.components.push(MockComponent {
                 name: "bonus".to_string(),
                 target: "x86_64-apple-darwin".to_string(),
+                is_extension: true,
             });
+        } else {
+            chan.packages.retain(|p| p.name != "bonus");
         }
     };
     setup(
@@ -1126,11 +1452,22 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
             change_channel_date(url, "nightly", "2016-02-01");
 
-            let adds = vec![Component::new(
+            let ref adds = vec![Component::new(
                 "bonus".to_string(),
                 Some(TargetTriple::new("x86_64-apple-darwin")),
+                true,
             )];
-            update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+            update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &adds,
+                &[],
+                download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap();
             assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
 
             change_channel_date(url, "nightly", "2016-02-02");
@@ -1138,6 +1475,7 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
             let removes = vec![Component::new(
                 "bonus".to_string(),
                 Some(TargetTriple::new("x86_64-apple-darwin")),
+                true,
             )];
             update_from_dist(
                 url,
@@ -1147,6 +1485,7 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
                 &removes,
                 download_cfg,
                 temp_cfg,
+                false,
             )
             .unwrap();
         },
@@ -1161,11 +1500,22 @@ fn remove_extension_that_is_required_component() {
                          prefix,
                          download_cfg,
                          temp_cfg| {
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         let removes = vec![Component::new(
             "rustc".to_string(),
             Some(TargetTriple::new("x86_64-apple-darwin")),
+            false,
         )];
 
         update_from_dist(
@@ -1176,6 +1526,7 @@ fn remove_extension_that_is_required_component() {
             &removes,
             download_cfg,
             temp_cfg,
+            false,
         )
         .unwrap();
     });
@@ -1189,11 +1540,22 @@ fn remove_extension_not_installed() {
                          prefix,
                          download_cfg,
                          temp_cfg| {
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
+            false,
         )];
 
         update_from_dist(
@@ -1204,6 +1566,7 @@ fn remove_extension_not_installed() {
             &removes,
             download_cfg,
             temp_cfg,
+            false,
         )
         .unwrap();
     });
@@ -1223,13 +1586,25 @@ fn remove_extensions_does_not_remove_other_components() {
         let adds = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
+            false,
         )];
 
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
+            false,
         )];
 
         update_from_dist(
@@ -1240,6 +1615,7 @@ fn remove_extensions_does_not_remove_other_components() {
             &removes,
             download_cfg,
             temp_cfg,
+            false,
         )
         .unwrap();
 
@@ -1259,20 +1635,33 @@ fn add_and_remove_for_upgrade() {
         let adds = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            false,
         )];
 
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         change_channel_date(url, "nightly", "2016-02-02");
 
         let adds = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
+            false,
         )];
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            false,
         )];
 
         update_from_dist(
@@ -1283,6 +1672,7 @@ fn add_and_remove_for_upgrade() {
             &removes,
             download_cfg,
             temp_cfg,
+            false,
         )
         .unwrap();
 
@@ -1305,18 +1695,31 @@ fn add_and_remove() {
         let adds = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            false,
         )];
 
-        update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &adds,
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         let adds = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
+            false,
         )];
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-unknown-linux-gnu")),
+            false,
         )];
 
         update_from_dist(
@@ -1327,6 +1730,7 @@ fn add_and_remove() {
             &removes,
             download_cfg,
             temp_cfg,
+            false,
         )
         .unwrap();
 
@@ -1347,16 +1751,28 @@ fn add_and_remove_same_component() {
                          prefix,
                          download_cfg,
                          temp_cfg| {
-        update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         let adds = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
+            false,
         )];
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-apple_darwin")),
+            false,
         )];
 
         update_from_dist(
@@ -1367,6 +1783,7 @@ fn add_and_remove_same_component() {
             &removes,
             download_cfg,
             temp_cfg,
+            false,
         )
         .unwrap();
     });
@@ -1383,8 +1800,17 @@ fn bad_component_hash() {
         let path = path.join("dist/2016-02-02/rustc-nightly-x86_64-apple-darwin.tar.gz");
         utils_raw::write_file(&path, "bogus").unwrap();
 
-        let err =
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap_err();
+        let err = update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap_err();
 
         match *err.kind() {
             ErrorKind::ComponentDownloadFailed(_) => (),
@@ -1404,8 +1830,17 @@ fn unable_to_download_component() {
         let path = path.join("dist/2016-02-02/rustc-nightly-x86_64-apple-darwin.tar.gz");
         fs::remove_file(&path).unwrap();
 
-        let err =
-            update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap_err();
+        let err = update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap_err();
 
         match *err.kind() {
             ErrorKind::ComponentDownloadFailed(..) => (),
@@ -1452,12 +1887,32 @@ fn reuse_downloaded_file() {
             },
         };
 
-        update_from_dist(url, toolchain, prefix, &[], &[], &download_cfg, temp_cfg).unwrap_err();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            &download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap_err();
         assert!(!reuse_notification_fired.get());
 
         allow_installation(&prefix);
 
-        update_from_dist(url, toolchain, prefix, &[], &[], &download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            &download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         assert!(reuse_notification_fired.get());
     })
@@ -1499,7 +1954,17 @@ fn checks_files_hashes_before_reuse() {
             },
         };
 
-        update_from_dist(url, toolchain, prefix, &[], &[], &download_cfg, temp_cfg).unwrap();
+        update_from_dist(
+            url,
+            toolchain,
+            prefix,
+            &[],
+            &[],
+            &download_cfg,
+            temp_cfg,
+            false,
+        )
+        .unwrap();
 
         assert!(noticed_bad_checksum.get());
     })

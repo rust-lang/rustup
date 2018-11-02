@@ -472,6 +472,7 @@ fn upgrade_v1_to_v2() {
         // Delete the v2 manifest so the first day we install from the v1s
         fs::remove_file(config.distdir.join("dist/channel-rust-nightly.toml.sha256")).unwrap();
         expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
@@ -715,8 +716,7 @@ fn add_target_host() {
     setup(&|config| {
         let trip = TargetTriple::from_build();
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stderr_ok(config, &["rustup", "target", "add", &trip.to_string()],
-                   for_host!("component 'rust-std' for target '{0}' was automatically added because it is required for toolchain 'nightly-{0}'"));
+        expect_ok(config, &["rustup", "target", "add", &trip.to_string()]);
     });
 }
 
@@ -857,8 +857,7 @@ fn remove_target_host() {
     setup(&|config| {
         let trip = TargetTriple::from_build();
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_err(config, &["rustup", "target", "remove", &trip.to_string()],
-                   for_host!("component 'rust-std' for target '{0}' is required for toolchain 'nightly-{0}' and cannot be removed"));
+        expect_ok(config, &["rustup", "target", "remove", &trip.to_string()]);
     });
 }
 
@@ -938,7 +937,7 @@ fn update_unavailable_std() {
             config,
             &["rustup", "update", "nightly", "--no-self-update"],
             &format!(
-                "component 'rust-std' for target '{}' is unavailable for download for channel 'nightly'",
+                "component 'rust-std' for target '{}' is unavailable for download for channel nightly",
                 trip,
             ),
         );
@@ -966,7 +965,7 @@ fn update_unavailable_force() {
             config,
             &["rustup", "update", "nightly", "--no-self-update"],
             &format!(
-                "component 'rls' for target '{}' is unavailable for download for channel 'nightly'",
+                "component 'rls' for target '{}' is unavailable for download for channel nightly",
                 trip,
             ),
         );

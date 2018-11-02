@@ -32,13 +32,13 @@ fn update() {
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0
-info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
+info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
+info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: default toolchain set to 'nightly-{0}'
 "
@@ -83,13 +83,13 @@ fn default() {
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0
-info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
+info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
+info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: default toolchain set to 'nightly-{0}'
 "
@@ -369,7 +369,7 @@ fn list_targets() {
     setup(&|config| {
         let trip = this_host_triple();
         let mut sorted = vec![
-            format!("{} (default)", &*trip),
+            format!("{} (installed)", &*trip),
             format!("{} (installed)", clitools::CROSS_ARCH1),
             clitools::CROSS_ARCH2.to_string(),
         ];
@@ -412,6 +412,7 @@ fn list_installed_targets() {
 fn cross_install_indicates_target() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
+        // TODO error 'nightly-x86_64-apple-darwin' is not installed
         expect_ok_ex(
             config,
             &["rustup", "target", "add", clitools::CROSS_ARCH1],
