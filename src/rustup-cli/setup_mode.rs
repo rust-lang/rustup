@@ -42,6 +42,12 @@ pub fn main() -> Result<()> {
                 .help("Choose a default toolchain to install"),
         )
         .arg(
+            Arg::with_name("profile")
+                .long("profile")
+                .takes_value(true)
+                .help("Choose a profile to install"),
+        )
+        .arg(
             Arg::with_name("no-modify-path")
                 .long("no-modify-path")
                 .help("Don't configure the PATH environment variable"),
@@ -55,11 +61,13 @@ pub fn main() -> Result<()> {
         .map(|s| s.to_owned())
         .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string());
     let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
+    let profile = matches.value_of("profile").unwrap_or("default");
     let no_modify_path = matches.is_present("no-modify-path");
 
     let opts = InstallOpts {
         default_host_triple: default_host,
         default_toolchain: default_toolchain.to_owned(),
+        profile: profile.to_owned(),
         no_modify_path: no_modify_path,
     };
 

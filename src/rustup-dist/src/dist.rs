@@ -434,6 +434,24 @@ impl<'a> Manifest<'a> {
     }
 }
 
+#[derive(Debug)]
+pub enum Profile {
+    Minimal,
+    Default,
+    Complete,
+}
+
+impl Profile {
+    pub fn from_str(name: &str) -> Result<Self> {
+        match name {
+            "minimal" | "m" => Ok(Profile::Minimal),
+            "default" | "d" | "" => Ok(Profile::Default),
+            "complete" | "c" => Ok(Profile::Complete),
+            _ => Err(ErrorKind::InvalidProfile(name.to_owned()).into()),
+        }
+    }
+}
+
 impl fmt::Display for TargetTriple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.0.fmt(f)
@@ -471,6 +489,16 @@ impl fmt::Display for ToolchainDesc {
         write!(f, "-{}", self.target)?;
 
         Ok(())
+    }
+}
+
+impl fmt::Display for Profile {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Profile::Minimal => write!(f, "minimal"),
+            Profile::Default => write!(f, "default"),
+            Profile::Complete => write!(f, "complete"),
+        }
     }
 }
 

@@ -47,6 +47,7 @@ use regex::Regex;
 pub struct InstallOpts {
     pub default_host_triple: String,
     pub default_toolchain: String,
+    pub profile: String,
     pub no_modify_path: bool,
 }
 
@@ -274,7 +275,12 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
         // FIXME: Someday we can stop setting up the symlink, and when
         // we do that we can stop creating ~/.rustup as well.
         utils::create_rustup_home()?;
-        maybe_install_rust(&opts.default_toolchain, &opts.default_host_triple, verbose)?;
+        maybe_install_rust(
+            &opts.default_toolchain,
+            &opts.profile,
+            &opts.default_host_triple,
+            verbose,
+        )?;
 
         if cfg!(unix) {
             let ref env_file = utils::cargo_home()?.join("env");
@@ -606,10 +612,12 @@ fn current_install_opts(opts: &InstallOpts) -> String {
 
 - ` `default host triple: `{}`
 - `   `default toolchain: `{}`
+- `             `profile: `{}`
 - modify PATH variable: `{}`
 ",
         opts.default_host_triple,
         opts.default_toolchain,
+        opts.profile,
         if !opts.no_modify_path { "yes" } else { "no" }
     )
 }
@@ -629,6 +637,11 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
     opts.default_toolchain = common::question_str(
         "Default toolchain? (stable/beta/nightly/none)",
         &opts.default_toolchain,
+    )?;
+
+    opts.profile = common::question_str(
+        "Profile (which tools and data to install)? (minimal/default/complete)",
+        &opts.profile,
     )?;
 
     opts.no_modify_path =
@@ -762,8 +775,14 @@ pub fn install_proxies() -> Result<()> {
     Ok(())
 }
 
-fn maybe_install_rust(toolchain_str: &str, default_host_triple: &str, verbose: bool) -> Result<()> {
+fn maybe_install_rust(
+    toolchain_str: &str,
+    profile_str: &str,
+    default_host_triple: &str,
+    verbose: bool,
+) -> Result<()> {
     let ref cfg = common::set_globals(verbose)?;
+    cfg.set_profile(profile_str)?;
 
     // If there is already an install, then `toolchain_str` may not be
     // a toolchain the user actually wants. Don't do anything.  FIXME:

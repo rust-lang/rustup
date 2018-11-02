@@ -123,6 +123,26 @@ impl Cfg {
         Ok(())
     }
 
+    pub fn set_profile(&self, profile: &str) -> Result<()> {
+        self.settings_file.with_mut(|s| {
+            s.profile = Some(profile.to_owned());
+            Ok(())
+        })?;
+        (self.notify_handler)(Notification::SetProfile(profile));
+        Ok(())
+    }
+
+    pub fn get_profile(&self) -> Result<dist::Profile> {
+        self.settings_file
+            .with(|s| {
+                s.profile
+                    .as_ref()
+                    .map(|s| dist::Profile::from_str(&s))
+                    .unwrap_or(Ok(dist::Profile::Default))
+                    .map_err(|e| e.into())
+            })
+    }
+
     pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain> {
         if create_parent {
             utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {

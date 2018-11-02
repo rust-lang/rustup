@@ -114,6 +114,7 @@ fn run_rustup() -> Result<()> {
             let opts = self_update::InstallOpts {
                 default_host_triple: TargetTriple::from_host_or_build().to_string(),
                 default_toolchain: "stable".to_string(),
+                profile: String::new(),
                 no_modify_path: false,
             };
             if cfg!(windows) {

@@ -24,6 +24,11 @@ error_chain! {
             description("invalid custom toolchain name")
             display("invalid custom toolchain name: '{}'", t)
         }
+        InvalidProfile(t: String) {
+            description("invalid profile name")
+            display("invalid profile name: '{}'; valid names are: \
+                     `minimal`, `default`, and `complete`", t)
+        }
         ChecksumFailed {
             url: String,
             expected: String,
