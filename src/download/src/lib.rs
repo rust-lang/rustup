@@ -192,13 +192,13 @@ pub mod curl {
                     })
                     .chain_err(|| "failed to set write")?;
 
-                // Listen for headers and parse out a `Content-Length` if it comes
-                // so we know how much we're downloading.
+                // Listen for headers and parse out a `Content-Length` (case-insensitive) if it
+                // comes so we know how much we're downloading.
                 transfer
                     .header_function(|header| {
                         if let Ok(data) = str::from_utf8(header) {
-                            let prefix = "Content-Length: ";
-                            if data.starts_with(prefix) {
+                            let prefix = "content-length: ";
+                            if data.to_ascii_lowercase().starts_with(prefix) {
                                 if let Ok(s) = data[prefix.len()..].trim().parse::<u64>() {
                                     let msg = Event::DownloadContentLengthReceived(s + resume_from);
                                     match callback(msg) {
@@ -277,8 +277,10 @@ pub mod reqwest_be {
         let buffer_size = 0x10000;
         let mut buffer = vec![0u8; buffer_size];
 
-        if let Some(len) = res.headers().get::<header::ContentLength>() {
-            callback(Event::DownloadContentLengthReceived(len.0 + resume_from))?;
+        if let Some(len) = res.headers().get(header::CONTENT_LENGTH) {
+            // TODO possible issues during unwrap?
+            let len = len.to_str().unwrap().parse::<u64>().unwrap() + resume_from;
+            callback(Event::DownloadContentLengthReceived(len))?;
         }
 
         loop {
@@ -318,12 +320,10 @@ pub mod reqwest_be {
     }
 
     fn request(url: &Url, resume_from: u64) -> ::reqwest::Result<Response> {
-        let mut req = CLIENT.get(url.clone());
+        let mut req = CLIENT.get(url.as_str());
 
         if resume_from != 0 {
-            req.header(header::Range::Bytes(vec![
-                header::ByteRangeSpec::AllFrom(resume_from),
-            ]));
+            req = req.header(header::RANGE, format!("bytes={}-", resume_from));
         }
 
         req.send()
