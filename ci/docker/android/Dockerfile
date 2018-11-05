@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -38,5 +38,11 @@ ENV PATH=$PATH:/android-ndk/arm/bin
 ENV PATH=$PATH:/android-ndk/arm64/bin
 ENV PATH=$PATH:/android-ndk/x86/bin
 ENV PATH=$PATH:/android-ndk/x86_64/bin
+
+ENV CARGO_TARGET_ARM_LINUX_ANDROIDEABI_LINKER=arm-linux-androideabi-gcc
+ENV CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER=arm-linux-androideabi-gcc
+ENV CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=aarch64-linux-android-gcc
+ENV CARGO_TARGET_I686_LINUX_ANDROID_LINKER=i686-linux-android-gcc
+ENV CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER=x86_64-linux-android-gcc
 
 WORKDIR /buildslave

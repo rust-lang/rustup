@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -ex
 
@@ -21,8 +21,14 @@ docker run \
   --workdir /src \
   --env TARGET=$TARGET \
   --env SKIP_TESTS=$SKIP_TESTS \
+  --env CARGO_HOME=/src/target/cargo-home \
+  --env CARGO_TARGET_DIR=/src/target \
+  --env LIBZ_SYS_STATIC=1 \
+  --entrypoint sh \
+  --tty \
+  --init \
   $DOCKER \
-  ci/run-docker.sh
+  -c 'PATH=$PATH:/travis-rust/bin exec bash ci/run.sh'
 
 # check that rustup-init was built with ssl support
 # see https://github.com/rust-lang-nursery/rustup.rs/issues/1051
