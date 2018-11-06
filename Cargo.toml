@@ -23,6 +23,7 @@ default = ["curl-backend", "reqwest-backend"]
 
 curl-backend = ["download/curl-backend"]
 reqwest-backend = ["download/reqwest-backend"]
+vendored-openssl = ['openssl/vendored']
 
 # Include in the default set to disable self-update and uninstall.
 no-self-update = []
@@ -55,6 +56,7 @@ time = "0.1.34"
 toml = "0.4"
 url = "1.1.0"
 wait-timeout = "0.1.5"
+openssl = { version = '0.10.15', optional = true }
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = ["jobapi", "jobapi2", "processthreadsapi", "psapi", "synchapi", "winuser"] }
