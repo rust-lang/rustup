@@ -97,9 +97,8 @@ artifacts:
 deploy:
   - provider: S3
     skip_cleanup: true
-    access_key_id: AKIAJFCDPYKTBQVIFTDQ
-    secret_access_key:
-      secure: LKrC6gvu0HZREdtTSABiyufd7nBpeX5PeuPwaz05+3pXPwqGc4RdNmBpL9kkNUMy
+    access_key_id: $(AWS_ACCESS_KEY_ID)
+    secret_access_key: $(AWS_SECRET_ACCESS_KEY)
     bucket: dev-static-rust-lang-org
     set_public: true
     region: us-west-1
