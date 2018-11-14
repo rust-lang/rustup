@@ -15,7 +15,7 @@ use toml;
 use rustup_utils::toml_utils::*;
 
 use std::collections::HashMap;
-use dist::TargetTriple;
+use dist::{Profile, TargetTriple};
 
 pub const SUPPORTED_MANIFEST_VERSIONS: [&'static str; 1] = ["2"];
 pub const DEFAULT_MANIFEST_VERSION: &'static str = "2";
@@ -26,6 +26,7 @@ pub struct Manifest {
     pub date: String,
     pub packages: HashMap<String, Package>,
     pub renames: HashMap<String, String>,
+    pub profiles: HashMap<Profile, Vec<String>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -82,7 +83,8 @@ impl Manifest {
             manifest_version: version,
             date: get_string(&mut table, "date", path)?,
             packages: Self::table_to_packages(&mut table, path)?,
-            renames: Self::table_to_renames(table, path)?,
+            renames: Self::table_to_renames(&mut table, path)?,
+            profiles: Self::table_to_profiles(&mut table, path)?,
         })
     }
     pub fn to_toml(self) -> toml::value::Table {
@@ -99,6 +101,9 @@ impl Manifest {
 
         let packages = Self::packages_to_table(self.packages);
         result.insert("pkg".to_owned(), toml::Value::Table(packages));
+
+        let profiles = Self::profiles_to_table(self.profiles);
+        result.insert("profiles".to_owned(), toml::Value::Table(profiles));
 
         result
     }
@@ -127,11 +132,11 @@ impl Manifest {
     }
 
     fn table_to_renames(
-        mut table: toml::value::Table,
+        table: &mut toml::value::Table,
         path: &str,
     ) -> Result<HashMap<String, String>> {
         let mut result = HashMap::new();
-        let rename_table = get_table(&mut table, "rename", path)?;
+        let rename_table = get_table(table, "rename", path)?;
 
         for (k, v) in rename_table {
             if let toml::Value::Table(mut t) = v {
@@ -151,6 +156,36 @@ impl Manifest {
         result
     }
 
+    fn table_to_profiles(
+        table: &mut toml::value::Table,
+        path: &str,
+    ) -> Result<HashMap<Profile, Vec<String>>> {
+        let mut result = HashMap::new();
+        let profile_table = get_table(table, "profile", path)?;
+
+        for (k, v) in profile_table {
+            if let toml::Value::Array(a) = v {
+                let values = a.into_iter()
+                    .filter_map(|v| match v {
+                        toml::Value::String(s) => Some(s),
+                        _ => None,
+                    })
+                    .collect();
+                result.insert(Profile::from_str(&k)?, values);
+            }
+        }
+
+        Ok(result)
+    }
+    fn profiles_to_table(profiles: HashMap<Profile, Vec<String>>) -> toml::value::Table {
+        let mut result = toml::value::Table::new();
+        for (profile, values) in profiles {
+            let array = values.into_iter().map(|v| toml::Value::String(v)).collect();
+            result.insert(profile.to_string(), toml::Value::Array(array));
+        }
+        result
+    }
+
     pub fn get_package(&self, name: &str) -> Result<&Package> {
         self.packages
             .get(name)
@@ -159,6 +194,12 @@ impl Manifest {
 
     pub fn get_rust_version(&self) -> Result<&str> {
         self.get_package("rust").map(|p| &*p.version)
+    }
+
+    pub fn get_profile_components(&self, profile: Profile) -> Result<&Vec<String>> {
+        self.profiles
+            .get(&profile)
+            .ok_or_else(|| format!("profile not found: '{}'", profile).into())
     }
 
     fn validate_targeted_package(&self, tpkg: &TargetedPackage) -> Result<()> {

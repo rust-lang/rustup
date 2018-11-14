@@ -19,6 +19,7 @@ pub enum InstallMethod<'a> {
     // bool is whether to force an update
     Dist(
         &'a dist::ToolchainDesc,
+        dist::Profile,
         Option<&'a Path>,
         DownloadCfg<'a>,
         bool,
@@ -50,15 +51,14 @@ impl<'a> InstallMethod<'a> {
                 InstallMethod::tar_gz(src, path, &temp_cfg, notify_handler)?;
                 Ok(true)
             }
-            InstallMethod::Dist(toolchain, update_hash, dl_cfg, force_update) => {
+            InstallMethod::Dist(toolchain, profile, update_hash, dl_cfg, force_update) => {
                 let prefix = &InstallPrefix::from(path.to_owned());
                 let maybe_new_hash = dist::update_from_dist(
                     dl_cfg,
                     update_hash,
                     toolchain,
+                    profile,
                     prefix,
-                    &[],
-                    &[],
                     force_update,
                 )?;
 

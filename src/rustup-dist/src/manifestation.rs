@@ -94,10 +94,10 @@ impl Manifestation {
     ///
     /// `update` takes a manifest describing a release of Rust (which
     /// may be either a freshly-downloaded one, or the same one used
-    /// for the previous install), as well as lists off extension
+    /// for the previous install), as well as lists of extension
     /// components to add and remove.
 
-    /// From that it schedules a list of components to uninstall and
+    /// From that it schedules a list of components to install and
     /// to uninstall to bring the installation up to date.  It
     /// downloads the components' packages. Then in a Transaction
     /// uninstalls old packages and installs new packages, writes the

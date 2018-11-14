@@ -80,7 +80,7 @@ pub fn get_array(
         if let toml::Value::Array(s) = v {
             Ok(s)
         } else {
-            Err(ErrorKind::ExpectedType("table", path.to_owned() + key).into())
+            Err(ErrorKind::ExpectedType("array", path.to_owned() + key).into())
         }
     } else {
         Ok(toml::value::Array::new())

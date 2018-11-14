@@ -3,8 +3,8 @@ use errors::*;
 use notifications::*;
 use rustup_utils::{self, utils};
 use prefix::InstallPrefix;
-use manifest::Component;
 use manifest::Manifest as ManifestV2;
+use manifest::Component;
 use manifestation::{Changes, Manifestation, UpdateStatus};
 use download::DownloadCfg;
 
@@ -434,7 +434,7 @@ impl<'a> Manifest<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum Profile {
     Minimal,
     Default,
@@ -449,6 +449,11 @@ impl Profile {
             "complete" | "c" => Ok(Profile::Complete),
             _ => Err(ErrorKind::InvalidProfile(name.to_owned()).into()),
         }
+    }
+
+    // Non-required components that were required before profiles exist.
+    pub fn legacy_profile() -> Vec<String> {
+        vec!["rust-docs".to_owned()]
     }
 }
 
@@ -511,20 +516,23 @@ pub fn update_from_dist<'a>(
     download: DownloadCfg<'a>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
+    profile: Profile,
     prefix: &InstallPrefix,
-    add: &[Component],
-    remove: &[Component],
     force_update: bool,
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
+    let profile = if fresh_install {
+        Some(profile)
+    } else {
+        None
+    };
 
     let res = update_from_dist_(
         download,
         update_hash,
         toolchain,
+        profile,
         prefix,
-        add,
-        remove,
         force_update,
     );
 
@@ -539,22 +547,16 @@ pub fn update_from_dist<'a>(
     res
 }
 
-pub fn update_from_dist_<'a>(
+fn update_from_dist_<'a>(
     download: DownloadCfg<'a>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
+    profile: Option<Profile>,
     prefix: &InstallPrefix,
-    add: &[Component],
-    remove: &[Component],
     force_update: bool,
 ) -> Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
     let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
-
-    let changes = Changes {
-        add_extensions: add.to_owned(),
-        remove_extensions: remove.to_owned(),
-    };
 
     // TODO: Add a notification about which manifest version is going to be used
     (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
@@ -564,6 +566,25 @@ pub fn update_from_dist_<'a>(
                 &m.date,
                 m.get_rust_version().ok(),
             ));
+
+            let add_extensions = match profile {
+                Some(profile) => {
+                    m.get_profile_components(profile)
+                        .map(|v| v
+                            .iter()
+                            .map(|name| Component { pkg: name.to_owned(), target: Some(TargetTriple::from_host_or_build()) })
+                            .collect::<Vec<Component>>()
+                        )
+                        .unwrap_or_else(|_| Profile::legacy_profile().into_iter().map(|s| Component { pkg: s, target: Some(TargetTriple::from_host_or_build()) }).collect())
+                }
+                None => Vec::new(),
+            };
+
+            let changes = Changes {
+                add_extensions,
+                remove_extensions: Vec::new(),
+            };
+
             return match manifestation.update(
                 &m,
                 changes,

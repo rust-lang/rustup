@@ -174,6 +174,7 @@ impl<'a> Toolchain<'a> {
         let update_hash = self.update_hash()?;
         self.install(InstallMethod::Dist(
             &self.desc()?,
+            self.cfg.get_profile()?,
             update_hash.as_ref().map(|p| &**p),
             self.download_cfg(),
             force_update,
@@ -214,6 +215,7 @@ impl<'a> Toolchain<'a> {
         let update_hash = self.update_hash()?;
         self.install_if_not_installed(InstallMethod::Dist(
             &self.desc()?,
+            self.cfg.get_profile()?,
             update_hash.as_ref().map(|p| &**p),
             self.download_cfg(),
             false,
