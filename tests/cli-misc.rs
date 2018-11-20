@@ -589,6 +589,86 @@ fn rename_rls_after() {
 }
 
 #[test]
+fn rename_rls_add_old_name() {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+
+        assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
+        expect_ok(config, &["rls", "--version"]);
+    });
+}
+
+#[test]
+fn rename_rls_list() {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+
+        let out = run(
+            config,
+            "rustup",
+            &["component", "list"],
+            &[],
+        );
+        assert!(out.ok);
+        assert!(out.stdout.contains(&format!("rls-{}", this_host_triple()))
+        );
+    });
+}
+
+#[test]
+fn rename_rls_preview_list() {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+
+        let out = run(
+            config,
+            "rustup",
+            &["component", "list"],
+            &[],
+        );
+        assert!(out.ok);
+        assert!(out.stdout.contains(&format!("rls-{}", this_host_triple()))
+        );
+    });
+}
+
+#[test]
+fn rename_rls_remove() {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_ok(config, &["rls", "--version"]);
+        expect_ok(config, &["rustup", "component", "remove", "rls"]);
+        expect_err(config, &["rls", "--version"], "does not have the binary `rls`");
+
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_ok(config, &["rls", "--version"]);
+        expect_ok(config, &["rustup", "component", "remove", "rls-preview"]);
+        expect_err(config, &["rls", "--version"], "does not have the binary `rls`");
+    });
+}
+
+#[test]
 fn install_stops_if_rustc_exists() {
     let temp_dir = TempDir::new("fakebin").unwrap();
     // Create fake executable
