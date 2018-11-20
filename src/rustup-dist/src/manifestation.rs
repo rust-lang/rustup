@@ -212,8 +212,8 @@ impl Manifestation {
 
             // If the package doesn't contain the component that the
             // manifest says it does the somebody must be playing a joke on us.
-            if !package.contains(name, Some(short_name)) {
-                return Err(ErrorKind::CorruptComponent(component.pkg.clone()).into());
+            if !package.contains(name, Some(&short_name)) {
+                return Err(ErrorKind::CorruptComponent(short_name).into());
             }
 
             tx = package.install(&self.installation, name, Some(short_name), tx)?;

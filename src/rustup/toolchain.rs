@@ -617,6 +617,11 @@ impl<'a> Toolchain<'a> {
         let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
 
         if let Some(manifest) = manifestation.load_manifest()? {
+            // Rename the component if necessary.
+            if let Some(to) = manifest.renames.get(&component.pkg) {
+                component.pkg = to.to_owned();
+            }
+
             // Validate the component name
             let rust_pkg = manifest
                 .packages
@@ -679,6 +684,11 @@ impl<'a> Toolchain<'a> {
         let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
 
         if let Some(manifest) = manifestation.load_manifest()? {
+            // Rename the component if necessary.
+            if let Some(to) = manifest.renames.get(&component.pkg) {
+                component.pkg = to.to_owned();
+            }
+
             // Validate the component name
             let rust_pkg = manifest
                 .packages
