@@ -827,7 +827,7 @@ fn update_unavailable_std() {
             config,
             &["rustup", "update", "nightly"],
             &format!(
-                "component 'rust-std' for '{}' is unavailable for download",
+                "component 'rust-std' for target '{}' is unavailable for download",
                 trip
             ),
         );

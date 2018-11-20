@@ -533,7 +533,7 @@ fn telemetry_cleanup_removes_old_files() {
 fn rls_exists_in_toolchain() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
 
         assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
         expect_ok(config, &["rls", "--version"]);
@@ -563,7 +563,7 @@ fn rename_rls_before() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
 
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["rustup", "update", "--no-self-update"]);
@@ -581,7 +581,7 @@ fn rename_rls_after() {
 
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["rustup", "update", "--no-self-update"]);
-        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
 
         assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
         expect_ok(config, &["rls", "--version"]);

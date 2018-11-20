@@ -1311,7 +1311,7 @@ fn rls_proxy_set_up_after_install() {
                 EXE_SUFFIX
             ),
         );
-        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
         expect_ok(config, &["rls", "--version"]);
     });
 }
