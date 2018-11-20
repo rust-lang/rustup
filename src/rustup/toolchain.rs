@@ -521,10 +521,18 @@ impl<'a> Toolchain<'a> {
                     .get(&toolchain.target)
                     .expect("component should have target toolchain");
 
+                let mut component = component.clone();
+                // Rename components to the 'old' name. This may seem wrong, but
+                // it is a hack to name -preview versions of components back to
+                // their unsuffixed names.
+                if let Some(from) = manifest.reverse_renames.get(&component.pkg) {
+                    component.pkg = from.to_owned();
+                }
+
                 res.push(ComponentStatus {
-                    component: component.clone(),
+                    component,
                     required: true,
-                    installed: installed,
+                    installed,
                     available: component_target_pkg.available(),
                 });
             }
@@ -545,10 +553,15 @@ impl<'a> Toolchain<'a> {
                     .get(&toolchain.target)
                     .expect("extension should have target toolchain");
 
+                let mut component = extension.clone();
+                if let Some(from) = manifest.reverse_renames.get(&component.pkg) {
+                    component.pkg = from.to_owned();
+                }
+
                 res.push(ComponentStatus {
-                    component: extension.clone(),
+                    component,
                     required: false,
-                    installed: installed,
+                    installed,
                     available: extension_target_pkg.available(),
                 });
             }

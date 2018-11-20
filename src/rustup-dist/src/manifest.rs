@@ -26,6 +26,7 @@ pub struct Manifest {
     pub date: String,
     pub packages: HashMap<String, Package>,
     pub renames: HashMap<String, String>,
+    pub reverse_renames: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -78,11 +79,13 @@ impl Manifest {
         if !SUPPORTED_MANIFEST_VERSIONS.contains(&&*version) {
             return Err(ErrorKind::UnsupportedVersion(version).into());
         }
+        let (renames, reverse_renames) = Self::table_to_renames(&mut table, path)?;
         Ok(Manifest {
             manifest_version: version,
             date: get_string(&mut table, "date", path)?,
             packages: Self::table_to_packages(&mut table, path)?,
-            renames: Self::table_to_renames(table, path)?,
+            renames,
+            reverse_renames,
         })
     }
     pub fn to_toml(self) -> toml::value::Table {
@@ -127,19 +130,22 @@ impl Manifest {
     }
 
     fn table_to_renames(
-        mut table: toml::value::Table,
+        table: &mut toml::value::Table,
         path: &str,
-    ) -> Result<HashMap<String, String>> {
-        let mut result = HashMap::new();
-        let rename_table = get_table(&mut table, "rename", path)?;
+    ) -> Result<(HashMap<String, String>, HashMap<String, String>)> {
+        let mut renames = HashMap::new();
+        let mut reverse_renames = HashMap::new();
+        let rename_table = get_table(table, "rename", path)?;
 
         for (k, v) in rename_table {
             if let toml::Value::Table(mut t) = v {
-                result.insert(k.to_owned(), get_string(&mut t, "to", path)?);
+                let to = get_string(&mut t, "to", path)?;
+                renames.insert(k.to_owned(), to.clone());
+                reverse_renames.insert(to, k.to_owned());
             }
         }
 
-        Ok(result)
+        Ok((renames, reverse_renames))
     }
     fn renames_to_table(renames: HashMap<String, String>) -> toml::value::Table {
         let mut result = toml::value::Table::new();
