@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use temp;
 use toml;
 use rustup_utils;
-use manifest::Component;
+use manifest::{Component, Manifest};
 
 error_chain! {
     links {
@@ -82,15 +82,9 @@ error_chain! {
         ComponentFilePermissionsFailed {
             description("error setting file permissions during install")
         }
-        ComponentDownloadFailed(c: Component) {
+        ComponentDownloadFailed(c: String) {
             description("component download failed")
-            display("component download failed for {}{}", c.pkg, {
-                if let Some(ref t) = c.target {
-                    format!("-{}", t)
-                } else {
-                    "".to_owned()
-                }
-            })
+            display("component download failed for {}", c)
         }
         Parsing(e: toml::de::Error) {
             description("error parsing manifest")
@@ -107,42 +101,34 @@ error_chain! {
             description("missing package for the target of a rename")
             display("server sent a broken manifest: missing package for the target of a rename {}", name)
         }
-        RequestedComponentsUnavailable(c: Vec<Component>) {
+        RequestedComponentsUnavailable(c: Vec<Component>, manifest: Manifest) {
             description("some requested components are unavailable to download")
-            display("{}", component_unavailable_msg(&c))
+            display("{}", component_unavailable_msg(&c, &manifest))
         }
     }
 }
 
-fn component_unavailable_msg(cs: &[Component]) -> String {
+fn component_unavailable_msg(cs: &[Component], manifest: &Manifest) -> String {
     assert!(!cs.is_empty());
 
     let mut buf = vec![];
-
-    fn format_component(c: &Component) -> String {
-        if let Some(ref t) = c.target {
-            format!("'{}' for '{}'", c.pkg, t)
-        } else {
-            format!("'{}'", c.pkg)
-        }
-    }
 
     if cs.len() == 1 {
         let _ = write!(
             buf,
             "component {} is unavailable for download",
-            format_component(&cs[0])
+            &cs[0].description(manifest)
         );
     } else {
         use itertools::Itertools;
         let same_target = cs.iter()
             .all(|c| c.target == cs[0].target || c.target.is_none());
         if same_target {
-            let mut cs_strs = cs.iter().map(|c| format!("'{}'", c.pkg));
+            let mut cs_strs = cs.iter().map(|c| format!("'{}'", c.short_name(manifest)));
             let cs_str = cs_strs.join(", ");
             let _ = write!(buf, "some components unavailable for download: {}", cs_str);
         } else {
-            let mut cs_strs = cs.iter().map(format_component);
+            let mut cs_strs = cs.iter().map(|c| c.description(manifest));
             let cs_str = cs_strs.join(", ");
             let _ = write!(buf, "some components unavailable for download: {}", cs_str);
         }

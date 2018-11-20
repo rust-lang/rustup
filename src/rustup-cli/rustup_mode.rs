@@ -650,7 +650,7 @@ fn show(cfg: &Cfg) -> Result<()> {
             match t.list_components() {
                 Ok(cs_vec) => cs_vec
                     .into_iter()
-                    .filter(|c| c.component.pkg == "rust-std")
+                    .filter(|c| c.component.name_in_manifest() == "rust-std")
                     .filter(|c| c.installed)
                     .collect(),
                 Err(_) => vec![],
@@ -778,10 +778,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").expect("") {
-        let new_component = Component {
-            pkg: "rust-std".to_string(),
-            target: Some(TargetTriple::from_str(target)),
-        };
+        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::from_str(target)));
 
         toolchain.add_component(new_component)?;
     }
@@ -793,10 +790,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").expect("") {
-        let new_component = Component {
-            pkg: "rust-std".to_string(),
-            target: Some(TargetTriple::from_str(target)),
-        };
+        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::from_str(target)));
 
         toolchain.remove_component(new_component)?;
     }
@@ -823,10 +817,7 @@ fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         });
 
     for component in m.values_of("component").expect("") {
-        let new_component = Component {
-            pkg: component.to_string(),
-            target: target.clone(),
-        };
+        let new_component = Component::new(component.to_string(), target.clone());
 
         toolchain.add_component(new_component)?;
     }
@@ -847,10 +838,7 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
         });
 
     for component in m.values_of("component").expect("") {
-        let new_component = Component {
-            pkg: component.to_string(),
-            target: target.clone(),
-        };
+        let new_component = Component::new(component.to_string(), target.clone());
 
         toolchain.remove_component(new_component)?;
     }

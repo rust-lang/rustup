@@ -126,7 +126,7 @@ impl Manifestation {
         }
 
         // Make sure we don't accidentally uninstall the essential components! (see #1297)
-        update.missing_essential_components(&self.target_triple)?;
+        update.missing_essential_components(&self.target_triple, new_manifest)?;
 
         // Validate that the requested components are available
         match update.unavailable_components(new_manifest) {
@@ -142,7 +142,7 @@ impl Manifestation {
         let mut things_downloaded: Vec<String> = Vec::new();
         for (component, format, url, hash) in update.components_urls_and_hashes(new_manifest)? {
             notify_handler(Notification::DownloadingComponent(
-                &component.pkg,
+                &component.short_name(new_manifest),
                 &self.target_triple,
                 component.target.as_ref(),
             ));
@@ -154,13 +154,13 @@ impl Manifestation {
 
             let url_url = utils::parse_url(&url)?;
 
-            let dowloaded_file = download_cfg
+            let downloaded_file = download_cfg
                 .download(&url_url, &hash)
-                .chain_err(|| ErrorKind::ComponentDownloadFailed(component.clone()))?;
+                .chain_err(|| ErrorKind::ComponentDownloadFailed(component.name(new_manifest)))?;
 
             things_downloaded.push(hash);
 
-            things_to_install.push((component, format, dowloaded_file));
+            things_to_install.push((component, format, downloaded_file));
         }
 
         // Begin transaction
@@ -174,7 +174,7 @@ impl Manifestation {
         // Uninstall components
         for component in update.components_to_uninstall {
             notify_handler(Notification::RemovingComponent(
-                &component.pkg,
+                &component.short_name(new_manifest),
                 &self.target_triple,
                 component.target.as_ref(),
             ));
@@ -184,8 +184,15 @@ impl Manifestation {
 
         // Install components
         for (component, format, installer_file) in things_to_install {
+            // For historical reasons, the rust-installer component
+            // names are not the same as the dist manifest component
+            // names. Some are just the component name some are the
+            // component name plus the target triple.
+            let ref name = component.name(new_manifest);
+            let short_name = component.short_name(new_manifest);
+
             notify_handler(Notification::InstallingComponent(
-                &component.pkg,
+                &short_name,
                 &self.target_triple,
                 component.target.as_ref(),
             ));
@@ -203,15 +210,8 @@ impl Manifestation {
                 }
             };
 
-            // For historical reasons, the rust-installer component
-            // names are not the same as the dist manifest component
-            // names. Some are just the component name some are the
-            // component name plus the target triple.
-            let ref name = component.name(new_manifest);
-            let short_name = component.short_name(new_manifest);
-
             // If the package doesn't contain the component that the
-            // manifest says it does the somebody must be playing a joke on us.
+            // manifest says it does then somebody must be playing a joke on us.
             if !package.contains(name, Some(&short_name)) {
                 return Err(ErrorKind::CorruptComponent(short_name).into());
             }
@@ -283,7 +283,7 @@ impl Manifestation {
         // names. Some are just the component name some are the
         // component name plus the target triple.
         let ref name = component.name(manifest);
-        let ref short_name = format!("{}", component.pkg);
+        let ref short_name = component.short_name(manifest);
         if let Some(c) = self.installation.find(&name)? {
             tx = c.uninstall(tx)?;
         } else if let Some(c) = self.installation.find(&short_name)? {
@@ -537,10 +537,7 @@ impl Update {
             if !is_removed {
                 // If there is a rename in the (new) manifest, then we uninstall the component with the
                 // old name and install a component with the new name
-                if new_manifest.renames.contains_key(&existing_component.pkg) {
-                    let mut renamed_component = existing_component.clone();
-                    renamed_component.pkg =
-                        new_manifest.renames[&existing_component.pkg].to_owned();
+                if let Some(renamed_component) = new_manifest.rename_component(&existing_component) {
                     let is_already_included =
                         self.final_component_list.contains(&renamed_component);
                     if !is_already_included {
@@ -563,7 +560,7 @@ impl Update {
                             self.components_to_uninstall
                                 .push(existing_component.clone());
                             notify_handler(Notification::ComponentUnavailable(
-                                &existing_component.pkg,
+                                &existing_component.short_name(new_manifest),
                                 existing_component.target.as_ref(),
                             ));
                         }
@@ -577,24 +574,21 @@ impl Update {
         self.components_to_uninstall.is_empty() && self.components_to_install.is_empty()
     }
 
-    fn missing_essential_components(&self, target_triple: &TargetTriple) -> Result<()> {
+    fn missing_essential_components(&self, target_triple: &TargetTriple, manifest: &Manifest) -> Result<()> {
         let missing_essential_components = ["rustc", "cargo"]
             .iter()
             .filter_map(|pkg| {
-                if self.final_component_list.iter().any(|c| &c.pkg == pkg) {
+                if self.final_component_list.iter().any(|c| &c.name_in_manifest() == pkg) {
                     None
                 } else {
-                    Some(Component {
-                        pkg: pkg.to_string(),
-                        target: Some(target_triple.clone()),
-                    })
+                    Some(Component::new(pkg.to_string(), Some(target_triple.clone())))
                 }
             })
             .collect::<Vec<_>>();
 
         if !missing_essential_components.is_empty() {
             return Err(
-                ErrorKind::RequestedComponentsUnavailable(missing_essential_components).into(),
+                ErrorKind::RequestedComponentsUnavailable(missing_essential_components, manifest.clone()).into(),
             );
         }
 
@@ -606,7 +600,7 @@ impl Update {
             .iter()
             .filter(|c| {
                 use manifest::*;
-                let pkg: Option<&Package> = new_manifest.get_package(&c.pkg).ok();
+                let pkg: Option<&Package> = new_manifest.get_package(&c.name_in_manifest()).ok();
                 let target_pkg: Option<&TargetedPackage> =
                     pkg.and_then(|p| p.get_target(c.target.as_ref()).ok());
                 target_pkg.map(|tp| tp.available()) != Some(true)
@@ -617,7 +611,7 @@ impl Update {
         unavailable_components.extend_from_slice(&self.missing_components);
 
         if !unavailable_components.is_empty() {
-            return Err(ErrorKind::RequestedComponentsUnavailable(unavailable_components).into());
+            return Err(ErrorKind::RequestedComponentsUnavailable(unavailable_components, new_manifest.clone()).into());
         }
 
         Ok(())
@@ -630,7 +624,7 @@ impl Update {
     ) -> Result<Vec<(Component, Format, String, String)>> {
         let mut components_urls_and_hashes = Vec::new();
         for component in &self.components_to_install {
-            let package = new_manifest.get_package(&component.pkg)?;
+            let package = new_manifest.get_package(&component.name_in_manifest())?;
             let target_package = package.get_target(component.target.as_ref())?;
 
             let bins = target_package.bins.as_ref().expect("components available");

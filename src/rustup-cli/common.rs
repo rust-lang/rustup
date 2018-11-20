@@ -284,7 +284,7 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
 pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
     let mut t = term2::stdout();
     for component in toolchain.list_components()? {
-        if component.component.pkg == "rust-std" {
+        if component.component.name_in_manifest() == "rust-std" {
             let target = component
                 .component
                 .target
@@ -310,7 +310,7 @@ pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
 pub fn list_components(toolchain: &Toolchain) -> Result<()> {
     let mut t = term2::stdout();
     for component in toolchain.list_components()? {
-        let name = component.component.pkg;
+        let name = component.name;
         if component.required {
             let _ = t.attr(term2::Attr::Bold);
             let _ = writeln!(t, "{} (default)", name);

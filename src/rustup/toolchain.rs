@@ -34,6 +34,7 @@ pub struct Toolchain<'a> {
 /// Used by the `list_component` function
 pub struct ComponentStatus {
     pub component: Component,
+    pub name: String,
     pub required: bool,
     pub installed: bool,
     pub available: bool,
@@ -512,25 +513,18 @@ impl<'a> Toolchain<'a> {
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
-                let component_pkg = manifest.get_package(&component.pkg).expect(&format!(
+                let component_pkg = manifest.get_package(&component.name_in_manifest()).expect(&format!(
                     "manifest should contain component {}",
-                    &component.pkg
+                    &component.short_name(&manifest)
                 ));
                 let component_target_pkg = component_pkg
                     .targets
                     .get(&toolchain.target)
                     .expect("component should have target toolchain");
 
-                let mut component = component.clone();
-                // Rename components to the 'old' name. This may seem wrong, but
-                // it is a hack to name -preview versions of components back to
-                // their unsuffixed names.
-                if let Some(from) = manifest.reverse_renames.get(&component.pkg) {
-                    component.pkg = from.to_owned();
-                }
-
                 res.push(ComponentStatus {
-                    component,
+                    component: component.clone(),
+                    name: component.name(&manifest),
                     required: true,
                     installed,
                     available: component_target_pkg.available(),
@@ -544,22 +538,18 @@ impl<'a> Toolchain<'a> {
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
-                let extension_pkg = manifest.get_package(&extension.pkg).expect(&format!(
+                let extension_pkg = manifest.get_package(&extension.name_in_manifest()).expect(&format!(
                     "manifest should contain extension {}",
-                    &extension.pkg
+                    &extension.short_name(&manifest)
                 ));
                 let extension_target_pkg = extension_pkg
                     .targets
                     .get(&toolchain.target)
                     .expect("extension should have target toolchain");
 
-                let mut component = extension.clone();
-                if let Some(from) = manifest.reverse_renames.get(&component.pkg) {
-                    component.pkg = from.to_owned();
-                }
-
                 res.push(ComponentStatus {
-                    component,
+                    component: extension.clone(),
+                    name: extension.name(&manifest),
                     required: false,
                     installed,
                     available: extension_target_pkg.available(),
@@ -631,8 +621,8 @@ impl<'a> Toolchain<'a> {
 
         if let Some(manifest) = manifestation.load_manifest()? {
             // Rename the component if necessary.
-            if let Some(to) = manifest.renames.get(&component.pkg) {
-                component.pkg = to.to_owned();
+            if let Some(c) = manifest.rename_component(&component) {
+                component = c;
             }
 
             // Validate the component name
@@ -655,10 +645,7 @@ impl<'a> Toolchain<'a> {
             }
 
             if !targ_pkg.extensions.contains(&component) {
-                let wildcard_component = Component {
-                    target: None,
-                    ..component.clone()
-                };
+                let wildcard_component = component.wildcard();
                 if targ_pkg.extensions.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
@@ -704,8 +691,8 @@ impl<'a> Toolchain<'a> {
 
         if let Some(manifest) = manifestation.load_manifest()? {
             // Rename the component if necessary.
-            if let Some(to) = manifest.renames.get(&component.pkg) {
-                component.pkg = to.to_owned();
+            if let Some(c) = manifest.rename_component(&component) {
+                component = c;
             }
 
             // Validate the component name
@@ -729,10 +716,7 @@ impl<'a> Toolchain<'a> {
 
             let dist_config = manifestation.read_config()?.unwrap();
             if !dist_config.components.contains(&component) {
-                let wildcard_component = Component {
-                    target: None,
-                    ..component.clone()
-                };
+                let wildcard_component = component.wildcard();
                 if dist_config.components.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {

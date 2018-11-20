@@ -58,7 +58,7 @@ pub struct PackageBins {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Component {
-    pub pkg: String,
+    pkg: String,
     pub target: Option<TargetTriple>,
 }
 
@@ -199,6 +199,16 @@ impl Manifest {
         }
 
         Ok(())
+    }
+
+    // If the component should be renamed by this manifest, then return a new
+    // component with the new name. If not, return `None`.
+    pub fn rename_component(&self, component: &Component) -> Option<Component> {
+        self.renames.get(&component.pkg).map(|r| {
+            let mut c = component.clone();
+            c.pkg = r.clone();
+            c
+        })
     }
 }
 
@@ -365,6 +375,15 @@ impl TargetedPackage {
 }
 
 impl Component {
+    pub fn new(pkg: String, target: Option<TargetTriple>) -> Component {
+        Component { pkg, target }
+    }
+    pub fn wildcard(&self) -> Component {
+        Component {
+            pkg: self.pkg.clone(),
+            target: None,
+        }
+    }
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         Ok(Component {
             pkg: get_string(&mut table, "pkg", path)?,
@@ -399,11 +418,11 @@ impl Component {
         }
     }
     pub fn short_name(&self, manifest: &Manifest) -> String {
-        let mut pkg = self.pkg.clone();
-        if let Some(from) = manifest.reverse_renames.get(&pkg) {
-            pkg = from.to_owned();
+        if let Some(from) = manifest.reverse_renames.get(&self.pkg) {
+            from.to_owned()
+        } else {
+            self.pkg.clone()
         }
-        pkg
     }
     pub fn description(&self, manifest: &Manifest) -> String {
         let pkg = self.short_name(manifest);
@@ -412,5 +431,8 @@ impl Component {
         } else {
             format!("'{}'", pkg)
         }
+    }
+    pub fn name_in_manifest(&self) -> &String {
+        &self.pkg
     }
 }
