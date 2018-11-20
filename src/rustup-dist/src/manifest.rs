@@ -170,9 +170,9 @@ impl Manifest {
     fn validate_targeted_package(&self, tpkg: &TargetedPackage) -> Result<()> {
         for c in tpkg.components.iter().chain(tpkg.extensions.iter()) {
             let cpkg = self.get_package(&c.pkg)
-                .chain_err(|| ErrorKind::MissingPackageForComponent(c.clone()))?;
+                .chain_err(|| ErrorKind::MissingPackageForComponent(c.short_name(self)))?;
             let _ctpkg = cpkg.get_target(c.target.as_ref())
-                .chain_err(|| ErrorKind::MissingPackageForComponent(c.clone()))?;
+                .chain_err(|| ErrorKind::MissingPackageForComponent(c.short_name(self)))?;
         }
         Ok(())
     }
@@ -390,18 +390,27 @@ impl Component {
         result.insert("pkg".to_owned(), toml::Value::String(self.pkg));
         result
     }
-    pub fn name(&self) -> String {
+    pub fn name(&self, manifest: &Manifest) -> String {
+        let pkg = self.short_name(manifest);
         if let Some(ref t) = self.target {
-            format!("{}-{}", self.pkg, t)
+            format!("{}-{}", pkg, t)
         } else {
-            format!("{}", self.pkg)
+            format!("{}", pkg)
         }
     }
-    pub fn description(&self) -> String {
+    pub fn short_name(&self, manifest: &Manifest) -> String {
+        let mut pkg = self.pkg.clone();
+        if let Some(from) = manifest.reverse_renames.get(&pkg) {
+            pkg = from.to_owned();
+        }
+        pkg
+    }
+    pub fn description(&self, manifest: &Manifest) -> String {
+        let pkg = self.short_name(manifest);
         if let Some(ref t) = self.target {
-            format!("'{}' for target '{}'", self.pkg, t)
+            format!("'{}' for target '{}'", pkg, t)
         } else {
-            format!("'{}'", self.pkg)
+            format!("'{}'", pkg)
         }
     }
 }

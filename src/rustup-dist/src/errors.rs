@@ -99,9 +99,9 @@ error_chain! {
             description("unsupported manifest version")
             display("manifest version '{}' is not supported", v)
         }
-        MissingPackageForComponent(c: Component) {
+        MissingPackageForComponent(name: String) {
             description("missing package for component")
-            display("server sent a broken manifest: missing package for component {}", c.name())
+            display("server sent a broken manifest: missing package for component {}", name)
         }
         MissingPackageForRename(name: String) {
             description("missing package for the target of a rename")

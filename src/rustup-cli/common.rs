@@ -310,7 +310,7 @@ pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
 pub fn list_components(toolchain: &Toolchain) -> Result<()> {
     let mut t = term2::stdout();
     for component in toolchain.list_components()? {
-        let name = component.component.name();
+        let name = component.component.pkg;
         if component.required {
             let _ = t.attr(term2::Attr::Bold);
             let _ = writeln!(t, "{} (default)", name);

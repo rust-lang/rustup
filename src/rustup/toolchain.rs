@@ -647,7 +647,10 @@ impl<'a> Toolchain<'a> {
 
             if targ_pkg.components.contains(&component) {
                 return Err(
-                    ErrorKind::AddingRequiredComponent(self.name.to_string(), component).into(),
+                    ErrorKind::AddingRequiredComponent(
+                        self.name.to_string(),
+                        component.description(&manifest),
+                    ).into(),
                 );
             }
 
@@ -660,7 +663,10 @@ impl<'a> Toolchain<'a> {
                     component = wildcard_component;
                 } else {
                     return Err(
-                        ErrorKind::UnknownComponent(self.name.to_string(), component).into(),
+                        ErrorKind::UnknownComponent(
+                            self.name.to_string(),
+                            component.description(&manifest),
+                        ).into(),
                     );
                 }
             }
@@ -714,7 +720,10 @@ impl<'a> Toolchain<'a> {
 
             if targ_pkg.components.contains(&component) {
                 return Err(
-                    ErrorKind::RemovingRequiredComponent(self.name.to_string(), component).into(),
+                    ErrorKind::RemovingRequiredComponent(
+                        self.name.to_string(),
+                        component.description(&manifest),
+                    ).into(),
                 );
             }
 
@@ -728,7 +737,10 @@ impl<'a> Toolchain<'a> {
                     component = wildcard_component;
                 } else {
                     return Err(
-                        ErrorKind::UnknownComponent(self.name.to_string(), component).into(),
+                        ErrorKind::UnknownComponent(
+                            self.name.to_string(),
+                            component.description(&manifest),
+                        ).into(),
                     );
                 }
             }

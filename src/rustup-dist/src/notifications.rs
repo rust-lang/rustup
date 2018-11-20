@@ -3,7 +3,6 @@ use std::fmt::{self, Display};
 use temp;
 use rustup_utils;
 use rustup_utils::notify::NotificationLevel;
-use manifest::Component;
 use dist::TargetTriple;
 use errors::*;
 
@@ -13,7 +12,7 @@ pub enum Notification<'a> {
     Temp(temp::Notification<'a>),
 
     Extracting(&'a Path, &'a Path),
-    ComponentAlreadyInstalled(&'a Component),
+    ComponentAlreadyInstalled(&'a str),
     CantReadUpdateHash(&'a Path),
     NoUpdateHash(&'a Path),
     ChecksumValid(&'a str),
@@ -21,7 +20,7 @@ pub enum Notification<'a> {
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
     RollingBack,
-    ExtensionNotInstalled(&'a Component),
+    ExtensionNotInstalled(&'a str),
     NonFatalError(&'a Error),
     MissingInstalledComponent(&'a str),
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
@@ -84,7 +83,7 @@ impl<'a> Display for Notification<'a> {
             Utils(ref n) => n.fmt(f),
             Extracting(_, _) => write!(f, "extracting..."),
             ComponentAlreadyInstalled(ref c) => {
-                write!(f, "component {} is up to date", c.description())
+                write!(f, "component {} is up to date", c)
             }
             CantReadUpdateHash(path) => write!(
                 f,
@@ -97,7 +96,7 @@ impl<'a> Display for Notification<'a> {
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
             RollingBack => write!(f, "rolling back changes"),
-            ExtensionNotInstalled(c) => write!(f, "extension '{}' was not installed", c.name()),
+            ExtensionNotInstalled(c) => write!(f, "extension '{}' was not installed", c),
             NonFatalError(e) => write!(f, "{}", e),
             MissingInstalledComponent(c) => {
                 write!(f, "during uninstall component {} was not found", c)

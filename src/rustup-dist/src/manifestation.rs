@@ -179,7 +179,7 @@ impl Manifestation {
                 component.target.as_ref(),
             ));
 
-            tx = self.uninstall_component(&component, tx, notify_handler.clone())?;
+            tx = self.uninstall_component(&component, new_manifest, tx, notify_handler.clone())?;
         }
 
         // Install components
@@ -207,8 +207,8 @@ impl Manifestation {
             // names are not the same as the dist manifest component
             // names. Some are just the component name some are the
             // component name plus the target triple.
-            let ref name = component.name();
-            let ref short_name = format!("{}", component.pkg);
+            let ref name = component.name(new_manifest);
+            let short_name = component.short_name(new_manifest);
 
             // If the package doesn't contain the component that the
             // manifest says it does the somebody must be playing a joke on us.
@@ -216,7 +216,7 @@ impl Manifestation {
                 return Err(ErrorKind::CorruptComponent(short_name).into());
             }
 
-            tx = package.install(&self.installation, name, Some(short_name), tx)?;
+            tx = package.install(&self.installation, name, Some(&short_name), tx)?;
         }
 
         // Install new distribution manifest
@@ -246,7 +246,12 @@ impl Manifestation {
         Ok(UpdateStatus::Changed)
     }
 
-    pub fn uninstall(&self, temp_cfg: &temp::Cfg, notify_handler: &Fn(Notification)) -> Result<()> {
+    pub fn uninstall(
+        &self,
+        manifest: &Manifest,
+        temp_cfg: &temp::Cfg,
+        notify_handler: &Fn(Notification),
+    ) -> Result<()> {
         let prefix = self.installation.prefix();
 
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
@@ -259,7 +264,7 @@ impl Manifestation {
         tx.remove_file("dist config", rel_config_path)?;
 
         for component in config.components {
-            tx = self.uninstall_component(&component, tx, notify_handler)?;
+            tx = self.uninstall_component(&component, manifest, tx, notify_handler)?;
         }
         tx.commit();
 
@@ -269,6 +274,7 @@ impl Manifestation {
     fn uninstall_component<'a>(
         &self,
         component: &Component,
+        manifest: &Manifest,
         mut tx: Transaction<'a>,
         notify_handler: &Fn(Notification),
     ) -> Result<Transaction<'a>> {
@@ -276,7 +282,7 @@ impl Manifestation {
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
         // component name plus the target triple.
-        let ref name = component.name();
+        let ref name = component.name(manifest);
         let ref short_name = format!("{}", component.pkg);
         if let Some(c) = self.installation.find(&name)? {
             tx = c.uninstall(tx)?;
@@ -490,7 +496,9 @@ impl Update {
                     result.components_to_install.push(component.clone());
                 } else {
                     if changes.add_extensions.contains(&component) {
-                        notify_handler(Notification::ComponentAlreadyInstalled(&component));
+                        notify_handler(Notification::ComponentAlreadyInstalled(
+                            &component.description(new_manifest)
+                        ));
                     }
                 }
             }
