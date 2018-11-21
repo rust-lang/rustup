@@ -377,7 +377,7 @@ fn rustup_failed_path_search() {
             config,
             broken,
             &format!(
-                "toolchain 'custom' does not have the binary `fake_proxy{}`",
+                "'fake_proxy{}' is not installed for the toolchain 'custom'",
                 EXE_SUFFIX
             ),
         );
@@ -550,9 +550,9 @@ fn rls_does_not_exist_in_toolchain() {
             config,
             &["rls", "--version"],
             &format!(
-                "toolchain 'stable-{}' does not have the binary `rls{}`",
+                "'rls{}' is not installed for the toolchain 'stable-{}'",
+                EXE_SUFFIX,
                 this_host_triple(),
-                EXE_SUFFIX
             ),
         );
     });
@@ -659,12 +659,12 @@ fn rename_rls_remove() {
         expect_ok(config, &["rustup", "component", "add", "rls"]);
         expect_ok(config, &["rls", "--version"]);
         expect_ok(config, &["rustup", "component", "remove", "rls"]);
-        expect_err(config, &["rls", "--version"], "does not have the binary `rls`");
+        expect_err(config, &["rls", "--version"], "'rls' is not installed");
 
         expect_ok(config, &["rustup", "component", "add", "rls"]);
         expect_ok(config, &["rls", "--version"]);
         expect_ok(config, &["rustup", "component", "remove", "rls-preview"]);
-        expect_err(config, &["rls", "--version"], "does not have the binary `rls`");
+        expect_err(config, &["rls", "--version"], "'rls' is not installed");
     });
 }
 

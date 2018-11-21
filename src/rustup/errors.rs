@@ -1,5 +1,6 @@
 use rustup_dist::{self, temp};
 use rustup_utils;
+use component_for_bin;
 use toml;
 
 error_chain! {
@@ -27,7 +28,7 @@ error_chain! {
         }
         BinaryNotFound(t: String, bin: String) {
             description("toolchain does not contain binary")
-            display("toolchain '{}' does not have the binary `{}`", t, bin)
+            display("'{}' is not installed for the toolchain '{}'{}", bin, t, install_msg(bin))
         }
         NeedMetadataUpgrade {
             description("rustup's metadata is out of date. run `rustup self upgrade-data`")
@@ -69,5 +70,12 @@ error_chain! {
         TelemetryAnalysisError {
             description("error analyzing telemetry files")
         }
+    }
+}
+
+fn install_msg(bin: &str) -> String {
+    match component_for_bin(bin) {
+        Some(c) => format!("\nTo install, run `rustup component add {}`", c),
+        None => String::new(),
     }
 }

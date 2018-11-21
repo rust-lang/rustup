@@ -22,6 +22,29 @@ pub use config::*;
 pub use toolchain::*;
 pub use rustup_utils::{notify, toml_utils, utils};
 
+
+// A list of all binaries which Rustup will proxy.
+pub static TOOLS: &'static [&'static str] =
+    &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb", "rls", "cargo-clippy"];
+
+// Tools which are commonly installed by Cargo as well as rustup. We take a bit
+// more care with these to ensure we don't overwrite the user's previous
+// installation.
+pub static DUP_TOOLS: &'static [&'static str] = &["rustfmt", "cargo-fmt"];
+
+fn component_for_bin(binary: &str) -> Option<&'static str> {
+    match binary {
+        "rustc" | "rustdoc" => Some("rustc"),
+        "cargo" => Some("cargo"),
+        "rust-lldb" => Some("lldb-preview"),
+        "rust-gdb" => Some("gdb-preview"),
+        "rls" => Some("rls"),
+        "cargo-clippy" => Some("clippy"),
+        "rustfmt" | "cargo-fmt" => Some("rustfmt"),
+        _ => None,
+    }
+}
+
 mod errors;
 mod notifications;
 mod toolchain;
