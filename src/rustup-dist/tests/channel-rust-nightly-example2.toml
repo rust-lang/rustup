@@ -1,7 +1,7 @@
 manifest-version = "2"
 date = "2016-03-04"
 
-[rename.cargo-old]
+[renames.cargo-old]
 to = "cargo"
 
 [pkg.cargo]
