@@ -636,7 +636,7 @@ fn add_target_host() {
     setup(&|config| {
         let trip = TargetTriple::from_build();
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_err(config, &["rustup", "target", "add", &trip.to_string()],
+        expect_stdout_ok(config, &["rustup", "target", "add", &trip.to_string()],
                    for_host!("component 'rust-std' for target '{0}' was automatically added because it is required for toolchain 'nightly-{0}'"));
     });
 }

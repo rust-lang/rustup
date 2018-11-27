@@ -636,12 +636,14 @@ impl<'a> Toolchain<'a> {
                 .expect("installed manifest should have a known target");
 
             if targ_pkg.components.contains(&component) {
-                return Err(
+                // Treat it as a warning, see https://github.com/rust-lang/rustup.rs/issues/441
+                return Ok(println!(
+                    "{}",
                     ErrorKind::AddingRequiredComponent(
                         self.name.to_string(),
                         component.description(&manifest),
-                    ).into(),
-                );
+                    ),
+                ));
             }
 
             if !targ_pkg.extensions.contains(&component) {
