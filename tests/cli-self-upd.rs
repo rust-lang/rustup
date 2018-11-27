@@ -1306,12 +1306,12 @@ fn rls_proxy_set_up_after_install() {
             config,
             &["rls", "--version"],
             &format!(
-                "toolchain 'stable-{}' does not have the binary `rls{}`",
+                "'rls{}' is not installed for the toolchain 'stable-{}'",
+                EXE_SUFFIX,
                 this_host_triple(),
-                EXE_SUFFIX
             ),
         );
-        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
         expect_ok(config, &["rls", "--version"]);
     });
 }

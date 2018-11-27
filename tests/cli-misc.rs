@@ -377,7 +377,7 @@ fn rustup_failed_path_search() {
             config,
             broken,
             &format!(
-                "toolchain 'custom' does not have the binary `fake_proxy{}`",
+                "'fake_proxy{}' is not installed for the toolchain 'custom'",
                 EXE_SUFFIX
             ),
         );
@@ -533,7 +533,7 @@ fn telemetry_cleanup_removes_old_files() {
 fn rls_exists_in_toolchain() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
 
         assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
         expect_ok(config, &["rls", "--version"]);
@@ -550,9 +550,9 @@ fn rls_does_not_exist_in_toolchain() {
             config,
             &["rls", "--version"],
             &format!(
-                "toolchain 'stable-{}' does not have the binary `rls{}`",
+                "'rls{}' is not installed for the toolchain 'stable-{}'",
+                EXE_SUFFIX,
                 this_host_triple(),
-                EXE_SUFFIX
             ),
         );
     });
@@ -563,7 +563,7 @@ fn rename_rls_before() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
 
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["rustup", "update", "--no-self-update"]);
@@ -581,10 +581,90 @@ fn rename_rls_after() {
 
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+
+        assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
+        expect_ok(config, &["rls", "--version"]);
+    });
+}
+
+#[test]
+fn rename_rls_add_old_name() {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "--no-self-update"]);
         expect_ok(config, &["rustup", "component", "add", "rls"]);
 
         assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
         expect_ok(config, &["rls", "--version"]);
+    });
+}
+
+#[test]
+fn rename_rls_list() {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+
+        let out = run(
+            config,
+            "rustup",
+            &["component", "list"],
+            &[],
+        );
+        assert!(out.ok);
+        assert!(out.stdout.contains(&format!("rls-{}", this_host_triple()))
+        );
+    });
+}
+
+#[test]
+fn rename_rls_preview_list() {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+
+        let out = run(
+            config,
+            "rustup",
+            &["component", "list"],
+            &[],
+        );
+        assert!(out.ok);
+        assert!(out.stdout.contains(&format!("rls-{}", this_host_triple()))
+        );
+    });
+}
+
+#[test]
+fn rename_rls_remove() {
+    clitools::setup(Scenario::ArchivesV2, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_ok(config, &["rls", "--version"]);
+        expect_ok(config, &["rustup", "component", "remove", "rls"]);
+        expect_err(config, &["rls", "--version"], "'rls' is not installed");
+
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_ok(config, &["rls", "--version"]);
+        expect_ok(config, &["rustup", "component", "remove", "rls-preview"]);
+        expect_err(config, &["rls", "--version"], "'rls' is not installed");
     });
 }
 

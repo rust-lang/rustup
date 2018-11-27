@@ -34,6 +34,7 @@ use common::{self, Confirm};
 use errors::*;
 use rustup_dist::dist;
 use rustup_utils::utils;
+use rustup::{TOOLS, DUP_TOOLS};
 use same_file::Handle;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
@@ -191,14 +192,6 @@ If you will be targeting the GNU ABI or otherwise know what you are
 doing then it is fine to continue installation without the build
 tools, but otherwise, install the C++ build tools before proceeding.
 "#;
-
-static TOOLS: &'static [&'static str] =
-    &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb", "rls", "cargo-clippy"];
-
-// Tools which are commonly installed by Cargo as well as rustup. We take a bit
-// more care with these to ensure we don't overwrite the user's previous
-// installation.
-static DUP_TOOLS: &'static [&'static str] = &["rustfmt", "cargo-fmt"];
 
 static UPDATE_ROOT: &'static str = "https://static.rust-lang.org/rustup";
 

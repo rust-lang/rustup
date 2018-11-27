@@ -26,6 +26,7 @@ pub struct Manifest {
     pub date: String,
     pub packages: HashMap<String, Package>,
     pub renames: HashMap<String, String>,
+    pub reverse_renames: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -57,7 +58,7 @@ pub struct PackageBins {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Component {
-    pub pkg: String,
+    pkg: String,
     pub target: Option<TargetTriple>,
 }
 
@@ -78,11 +79,13 @@ impl Manifest {
         if !SUPPORTED_MANIFEST_VERSIONS.contains(&&*version) {
             return Err(ErrorKind::UnsupportedVersion(version).into());
         }
+        let (renames, reverse_renames) = Self::table_to_renames(&mut table, path)?;
         Ok(Manifest {
             manifest_version: version,
             date: get_string(&mut table, "date", path)?,
             packages: Self::table_to_packages(&mut table, path)?,
-            renames: Self::table_to_renames(table, path)?,
+            renames,
+            reverse_renames,
         })
     }
     pub fn to_toml(self) -> toml::value::Table {
@@ -127,19 +130,22 @@ impl Manifest {
     }
 
     fn table_to_renames(
-        mut table: toml::value::Table,
+        table: &mut toml::value::Table,
         path: &str,
-    ) -> Result<HashMap<String, String>> {
-        let mut result = HashMap::new();
-        let rename_table = get_table(&mut table, "rename", path)?;
+    ) -> Result<(HashMap<String, String>, HashMap<String, String>)> {
+        let mut renames = HashMap::new();
+        let mut reverse_renames = HashMap::new();
+        let rename_table = get_table(table, "rename", path)?;
 
         for (k, v) in rename_table {
             if let toml::Value::Table(mut t) = v {
-                result.insert(k.to_owned(), get_string(&mut t, "to", path)?);
+                let to = get_string(&mut t, "to", path)?;
+                renames.insert(k.to_owned(), to.clone());
+                reverse_renames.insert(to, k.to_owned());
             }
         }
 
-        Ok(result)
+        Ok((renames, reverse_renames))
     }
     fn renames_to_table(renames: HashMap<String, String>) -> toml::value::Table {
         let mut result = toml::value::Table::new();
@@ -164,9 +170,9 @@ impl Manifest {
     fn validate_targeted_package(&self, tpkg: &TargetedPackage) -> Result<()> {
         for c in tpkg.components.iter().chain(tpkg.extensions.iter()) {
             let cpkg = self.get_package(&c.pkg)
-                .chain_err(|| ErrorKind::MissingPackageForComponent(c.clone()))?;
+                .chain_err(|| ErrorKind::MissingPackageForComponent(c.short_name(self)))?;
             let _ctpkg = cpkg.get_target(c.target.as_ref())
-                .chain_err(|| ErrorKind::MissingPackageForComponent(c.clone()))?;
+                .chain_err(|| ErrorKind::MissingPackageForComponent(c.short_name(self)))?;
         }
         Ok(())
     }
@@ -193,6 +199,16 @@ impl Manifest {
         }
 
         Ok(())
+    }
+
+    // If the component should be renamed by this manifest, then return a new
+    // component with the new name. If not, return `None`.
+    pub fn rename_component(&self, component: &Component) -> Option<Component> {
+        self.renames.get(&component.pkg).map(|r| {
+            let mut c = component.clone();
+            c.pkg = r.clone();
+            c
+        })
     }
 }
 
@@ -359,6 +375,15 @@ impl TargetedPackage {
 }
 
 impl Component {
+    pub fn new(pkg: String, target: Option<TargetTriple>) -> Component {
+        Component { pkg, target }
+    }
+    pub fn wildcard(&self) -> Component {
+        Component {
+            pkg: self.pkg.clone(),
+            target: None,
+        }
+    }
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         Ok(Component {
             pkg: get_string(&mut table, "pkg", path)?,
@@ -384,18 +409,30 @@ impl Component {
         result.insert("pkg".to_owned(), toml::Value::String(self.pkg));
         result
     }
-    pub fn name(&self) -> String {
+    pub fn name(&self, manifest: &Manifest) -> String {
+        let pkg = self.short_name(manifest);
         if let Some(ref t) = self.target {
-            format!("{}-{}", self.pkg, t)
+            format!("{}-{}", pkg, t)
         } else {
-            format!("{}", self.pkg)
+            format!("{}", pkg)
         }
     }
-    pub fn description(&self) -> String {
-        if let Some(ref t) = self.target {
-            format!("'{}' for target '{}'", self.pkg, t)
+    pub fn short_name(&self, manifest: &Manifest) -> String {
+        if let Some(from) = manifest.reverse_renames.get(&self.pkg) {
+            from.to_owned()
         } else {
-            format!("'{}'", self.pkg)
+            self.pkg.clone()
         }
+    }
+    pub fn description(&self, manifest: &Manifest) -> String {
+        let pkg = self.short_name(manifest);
+        if let Some(ref t) = self.target {
+            format!("'{}' for target '{}'", pkg, t)
+        } else {
+            format!("'{}'", pkg)
+        }
+    }
+    pub fn name_in_manifest(&self) -> &String {
+        &self.pkg
     }
 }

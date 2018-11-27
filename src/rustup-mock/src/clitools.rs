@@ -485,11 +485,11 @@ fn build_mock_channel(
     ];
 
     if rename_rls {
+        let rls = build_mock_rls_installer(version, version_hash, true);
+        all.push(("rls-preview", vec![(rls, host_triple.clone())]));
+    } else {
         let rls = build_mock_rls_installer(version, version_hash, false);
         all.push(("rls", vec![(rls, host_triple.clone())]));
-    } else {
-        let rls_preview = build_mock_rls_installer(version, version_hash, true);
-        all.push(("rls-preview", vec![(rls_preview, host_triple.clone())]));
     }
 
     let more = vec![
@@ -526,11 +526,11 @@ fn build_mock_channel(
         all.extend(more);
 
         if rename_rls {
+            let rls = build_mock_rls_installer(version, version_hash, true);
+            all.push(("rls-preview", vec![(rls, triple.clone())]));
+        } else {
             let rls = build_mock_rls_installer(version, version_hash, false);
             all.push(("rls", vec![(rls, triple.clone())]));
-        } else {
-            let rls_preview = build_mock_rls_installer(version, version_hash, true);
-            all.push(("rls-preview", vec![(rls_preview, triple.clone())]));
         }
 
         let more = vec![
@@ -584,12 +584,12 @@ fn build_mock_channel(
             });
             if rename_rls {
                 target_pkg.extensions.push(MockComponent {
-                    name: "rls".to_string(),
+                    name: "rls-preview".to_string(),
                     target: target.to_string(),
                 });
             } else {
                 target_pkg.extensions.push(MockComponent {
-                    name: "rls-preview".to_string(),
+                    name: "rls".to_string(),
                     target: target.to_string(),
                 });
             }
@@ -614,7 +614,7 @@ fn build_mock_channel(
 
     let mut renames = HashMap::new();
     if rename_rls {
-        renames.insert("rls-preview".to_owned(), "rls".to_owned());
+        renames.insert("rls".to_owned(), "rls-preview".to_owned());
     }
 
     MockChannel {
@@ -634,7 +634,7 @@ fn build_mock_unavailable_channel(channel: &str, date: &str, version: &'static s
         "rust-docs",
         "rust-std",
         "rustc",
-        "rls-preview",
+        "rls",
         "rust-analysis",
     ];
     let packages = packages
@@ -764,13 +764,12 @@ fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstalle
 fn build_mock_rls_installer(
     version: &str,
     version_hash: &str,
-    preview: bool,
+    _preview: bool,
 ) -> MockInstallerBuilder {
-    let name = if preview { "rls-preview" } else { "rls" };
     MockInstallerBuilder {
         components: vec![
             MockComponentBuilder {
-                name: name.to_string(),
+                name: "rls".to_string(),
                 files: mock_bin("rls", version, version_hash),
             },
         ],

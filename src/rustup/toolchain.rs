@@ -34,6 +34,7 @@ pub struct Toolchain<'a> {
 /// Used by the `list_component` function
 pub struct ComponentStatus {
     pub component: Component,
+    pub name: String,
     pub required: bool,
     pub installed: bool,
     pub available: bool,
@@ -512,9 +513,9 @@ impl<'a> Toolchain<'a> {
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
-                let component_pkg = manifest.get_package(&component.pkg).expect(&format!(
+                let component_pkg = manifest.get_package(&component.name_in_manifest()).expect(&format!(
                     "manifest should contain component {}",
-                    &component.pkg
+                    &component.short_name(&manifest)
                 ));
                 let component_target_pkg = component_pkg
                     .targets
@@ -523,8 +524,9 @@ impl<'a> Toolchain<'a> {
 
                 res.push(ComponentStatus {
                     component: component.clone(),
+                    name: component.name(&manifest),
                     required: true,
-                    installed: installed,
+                    installed,
                     available: component_target_pkg.available(),
                 });
             }
@@ -536,9 +538,9 @@ impl<'a> Toolchain<'a> {
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
-                let extension_pkg = manifest.get_package(&extension.pkg).expect(&format!(
+                let extension_pkg = manifest.get_package(&extension.name_in_manifest()).expect(&format!(
                     "manifest should contain extension {}",
-                    &extension.pkg
+                    &extension.short_name(&manifest)
                 ));
                 let extension_target_pkg = extension_pkg
                     .targets
@@ -547,8 +549,9 @@ impl<'a> Toolchain<'a> {
 
                 res.push(ComponentStatus {
                     component: extension.clone(),
+                    name: extension.name(&manifest),
                     required: false,
-                    installed: installed,
+                    installed,
                     available: extension_target_pkg.available(),
                 });
             }
@@ -617,6 +620,11 @@ impl<'a> Toolchain<'a> {
         let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
 
         if let Some(manifest) = manifestation.load_manifest()? {
+            // Rename the component if necessary.
+            if let Some(c) = manifest.rename_component(&component) {
+                component = c;
+            }
+
             // Validate the component name
             let rust_pkg = manifest
                 .packages
@@ -629,20 +637,23 @@ impl<'a> Toolchain<'a> {
 
             if targ_pkg.components.contains(&component) {
                 return Err(
-                    ErrorKind::AddingRequiredComponent(self.name.to_string(), component).into(),
+                    ErrorKind::AddingRequiredComponent(
+                        self.name.to_string(),
+                        component.description(&manifest),
+                    ).into(),
                 );
             }
 
             if !targ_pkg.extensions.contains(&component) {
-                let wildcard_component = Component {
-                    target: None,
-                    ..component.clone()
-                };
+                let wildcard_component = component.wildcard();
                 if targ_pkg.extensions.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
                     return Err(
-                        ErrorKind::UnknownComponent(self.name.to_string(), component).into(),
+                        ErrorKind::UnknownComponent(
+                            self.name.to_string(),
+                            component.description(&manifest),
+                        ).into(),
                     );
                 }
             }
@@ -679,6 +690,11 @@ impl<'a> Toolchain<'a> {
         let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
 
         if let Some(manifest) = manifestation.load_manifest()? {
+            // Rename the component if necessary.
+            if let Some(c) = manifest.rename_component(&component) {
+                component = c;
+            }
+
             // Validate the component name
             let rust_pkg = manifest
                 .packages
@@ -691,21 +707,24 @@ impl<'a> Toolchain<'a> {
 
             if targ_pkg.components.contains(&component) {
                 return Err(
-                    ErrorKind::RemovingRequiredComponent(self.name.to_string(), component).into(),
+                    ErrorKind::RemovingRequiredComponent(
+                        self.name.to_string(),
+                        component.description(&manifest),
+                    ).into(),
                 );
             }
 
             let dist_config = manifestation.read_config()?.unwrap();
             if !dist_config.components.contains(&component) {
-                let wildcard_component = Component {
-                    target: None,
-                    ..component.clone()
-                };
+                let wildcard_component = component.wildcard();
                 if dist_config.components.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
                     return Err(
-                        ErrorKind::UnknownComponent(self.name.to_string(), component).into(),
+                        ErrorKind::UnknownComponent(
+                            self.name.to_string(),
+                            component.description(&manifest),
+                        ).into(),
                     );
                 }
             }

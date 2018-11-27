@@ -1,6 +1,6 @@
 use rustup_dist::{self, temp};
 use rustup_utils;
-use rustup_dist::manifest::Component;
+use component_for_bin;
 use toml;
 
 error_chain! {
@@ -28,7 +28,7 @@ error_chain! {
         }
         BinaryNotFound(t: String, bin: String) {
             description("toolchain does not contain binary")
-            display("toolchain '{}' does not have the binary `{}`", t, bin)
+            display("'{}' is not installed for the toolchain '{}'{}", bin, t, install_msg(bin))
         }
         NeedMetadataUpgrade {
             description("rustup's metadata is out of date. run `rustup self upgrade-data`")
@@ -44,22 +44,22 @@ error_chain! {
             description("toolchain does not support components")
             display("toolchain '{}' does not support components", t)
         }
-        UnknownComponent(t: String, c: Component) {
+        UnknownComponent(t: String, c: String) {
             description("toolchain does not contain component")
-            display("toolchain '{}' does not contain component {}", t, c.description())
+            display("toolchain '{}' does not contain component {}", t, c)
         }
-        AddingRequiredComponent(t: String, c: Component) {
+        AddingRequiredComponent(t: String, c: String) {
             description("required component cannot be added")
             display("component {} was automatically added because it is required for toolchain '{}'",
-                    c.description(), t)
+                    c, t)
         }
         ParsingSettings(e: toml::de::Error) {
             description("error parsing settings")
         }
-        RemovingRequiredComponent(t: String, c: Component) {
+        RemovingRequiredComponent(t: String, c: String) {
             description("required component cannot be removed")
             display("component {} is required for toolchain '{}' and cannot be removed",
-                    c.description(), t)
+                    c, t)
         }
         NoExeName {
             description("couldn't determine self executable name")
@@ -70,5 +70,12 @@ error_chain! {
         TelemetryAnalysisError {
             description("error analyzing telemetry files")
         }
+    }
+}
+
+fn install_msg(bin: &str) -> String {
+    match component_for_bin(bin) {
+        Some(c) => format!("\nTo install, run `rustup component add {}`", c),
+        None => String::new(),
     }
 }

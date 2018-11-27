@@ -33,11 +33,11 @@ fn parse_smoke_test() {
     assert_eq!(rust_target_pkg.bins.clone().unwrap().hash, "...");
 
     let ref component = rust_target_pkg.components[0];
-    assert_eq!(component.pkg, "rustc");
+    assert_eq!(component.name_in_manifest(), "rustc");
     assert_eq!(component.target.as_ref(), Some(&x86_64_unknown_linux_gnu));
 
     let ref component = rust_target_pkg.extensions[0];
-    assert_eq!(component.pkg, "rust-std");
+    assert_eq!(component.name_in_manifest(), "rust-std");
     assert_eq!(component.target.as_ref(), Some(&x86_64_unknown_linux_musl));
 
     let docs_pkg = pkg.get_package("rust-docs").unwrap();
