@@ -98,7 +98,7 @@ impl Manifest {
         );
 
         let renames = Self::renames_to_table(self.renames);
-        result.insert("rename".to_owned(), toml::Value::Table(renames));
+        result.insert("renames".to_owned(), toml::Value::Table(renames));
 
         let packages = Self::packages_to_table(self.packages);
         result.insert("pkg".to_owned(), toml::Value::Table(packages));
@@ -135,9 +135,9 @@ impl Manifest {
     ) -> Result<(HashMap<String, String>, HashMap<String, String>)> {
         let mut renames = HashMap::new();
         let mut reverse_renames = HashMap::new();
-        let rename_table = get_table(table, "rename", path)?;
+        let renames_table = get_table(table, "renames", path)?;
 
-        for (k, v) in rename_table {
+        for (k, v) in renames_table {
             if let toml::Value::Table(mut t) = v {
                 let to = get_string(&mut t, "to", path)?;
                 renames.insert(k.to_owned(), to.clone());

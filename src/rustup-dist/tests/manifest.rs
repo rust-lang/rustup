@@ -48,6 +48,15 @@ fn parse_smoke_test() {
 }
 
 #[test]
+fn renames() {
+    let manifest = Manifest::parse(EXAMPLE2).unwrap();
+    assert_eq!(1, manifest.renames.len());
+    assert_eq!(manifest.renames["cargo-old"], "cargo");
+    assert_eq!(1, manifest.reverse_renames.len());
+    assert_eq!(manifest.reverse_renames["cargo"], "cargo-old");
+}
+
+#[test]
 fn parse_round_trip() {
     let original = Manifest::parse(EXAMPLE).unwrap();
     let serialized = original.clone().stringify();

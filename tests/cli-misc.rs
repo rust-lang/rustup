@@ -620,8 +620,7 @@ fn rename_rls_list() {
             &[],
         );
         assert!(out.ok);
-        assert!(out.stdout.contains(&format!("rls-{}", this_host_triple()))
-        );
+        assert!(out.stdout.contains(&format!("rls-{}", this_host_triple())));
     });
 }
 
@@ -642,8 +641,7 @@ fn rename_rls_preview_list() {
             &[],
         );
         assert!(out.ok);
-        assert!(out.stdout.contains(&format!("rls-{}", this_host_triple()))
-        );
+        assert!(out.stdout.contains(&format!("rls-{}", this_host_triple())));
     });
 }
 
