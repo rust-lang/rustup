@@ -31,7 +31,7 @@ docker run \
   -c 'PATH=$PATH:/travis-rust/bin exec bash ci/run.sh'
 
 # check that rustup-init was built with ssl support
-# see https://github.com/rust-lang-nursery/rustup.rs/issues/1051
+# see https://github.com/rust-lang/rustup.rs/issues/1051
 if ! (nm target/$TARGET/release/rustup-init | grep Curl_ssl_version &> /dev/null); then
   echo "Missing ssl support!!!!" >&2
   exit 1

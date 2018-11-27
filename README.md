@@ -665,7 +665,7 @@ variable.
 work][s]. `rustup` performs all downloads over HTTPS, but does not
 yet validate signatures of downloads.
 
-[s]: https://github.com/rust-lang-nursery/rustup.rs/issues?q=is%3Aopen+is%3Aissue+label%3Asecurity
+[s]: https://github.com/rust-lang/rustup.rs/issues?q=is%3Aopen+is%3Aissue+label%3Asecurity
 
 ## FAQ
 
@@ -734,7 +734,7 @@ Apache-2.0 license, shall be dual licensed as above, without any
 additional terms or conditions.
 
 <!-- Badges -->
-[travis-build-status]: https://travis-ci.org/rust-lang-nursery/rustup.rs
-[travis-build-status-svg]: https://img.shields.io/travis/rust-lang-nursery/rustup.rs.svg
-[appveyor-build-status]: https://ci.appveyor.com/project/rust-lang-libs/rustup-rs
+[travis-build-status]: https://travis-ci.org/rust-lang/rustup.rs
+[travis-build-status-svg]: https://img.shields.io/travis/rust-lang/rustup.rs.svg
+[appveyor-build-status]: https://ci.appveyor.com/project/rust-lang/rustup-rs
 [appveyor-build-status-svg]: https://ci.appveyor.com/api/projects/status/ob64fa46mp25wp35?svg=true
