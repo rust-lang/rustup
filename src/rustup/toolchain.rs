@@ -513,7 +513,7 @@ impl<'a> Toolchain<'a> {
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
-                let component_pkg = manifest.get_package(&component.name_in_manifest()).expect(&format!(
+                let component_pkg = manifest.get_package(&component.short_name_in_manifest()).expect(&format!(
                     "manifest should contain component {}",
                     &component.short_name(&manifest)
                 ));
@@ -538,7 +538,7 @@ impl<'a> Toolchain<'a> {
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
-                let extension_pkg = manifest.get_package(&extension.name_in_manifest()).expect(&format!(
+                let extension_pkg = manifest.get_package(&extension.short_name_in_manifest()).expect(&format!(
                     "manifest should contain extension {}",
                     &extension.short_name(&manifest)
                 ));

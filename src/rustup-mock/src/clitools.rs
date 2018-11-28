@@ -764,12 +764,16 @@ fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstalle
 fn build_mock_rls_installer(
     version: &str,
     version_hash: &str,
-    _preview: bool,
+    preview: bool,
 ) -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![
             MockComponentBuilder {
-                name: "rls".to_string(),
+                name: if preview {
+                    "rls-preview".to_string()
+                } else {
+                    "rls".to_string()
+                },
                 files: mock_bin("rls", version, version_hash),
             },
         ],

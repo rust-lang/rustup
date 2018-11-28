@@ -188,7 +188,8 @@ impl Manifestation {
             // names are not the same as the dist manifest component
             // names. Some are just the component name some are the
             // component name plus the target triple.
-            let ref name = component.name(new_manifest);
+            let ref pkg_name = component.name_in_manifest();
+            let short_pkg_name = component.short_name_in_manifest();
             let short_name = component.short_name(new_manifest);
 
             notify_handler(Notification::InstallingComponent(
@@ -212,11 +213,11 @@ impl Manifestation {
 
             // If the package doesn't contain the component that the
             // manifest says it does then somebody must be playing a joke on us.
-            if !package.contains(name, Some(&short_name)) {
+            if !package.contains(pkg_name, Some(&short_pkg_name)) {
                 return Err(ErrorKind::CorruptComponent(short_name).into());
             }
 
-            tx = package.install(&self.installation, name, Some(&short_name), tx)?;
+            tx = package.install(&self.installation, pkg_name, Some(&short_pkg_name), tx)?;
         }
 
         // Install new distribution manifest
@@ -282,14 +283,14 @@ impl Manifestation {
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
         // component name plus the target triple.
-        let ref name = component.name(manifest);
-        let ref short_name = component.short_name(manifest);
+        let ref name = component.name_in_manifest();
+        let ref short_name = component.short_name_in_manifest();
         if let Some(c) = self.installation.find(&name)? {
             tx = c.uninstall(tx)?;
         } else if let Some(c) = self.installation.find(&short_name)? {
             tx = c.uninstall(tx)?;
         } else {
-            notify_handler(Notification::MissingInstalledComponent(&name));
+            notify_handler(Notification::MissingInstalledComponent(&component.short_name(manifest)));
         }
 
         Ok(tx)
@@ -578,7 +579,7 @@ impl Update {
         let missing_essential_components = ["rustc", "cargo"]
             .iter()
             .filter_map(|pkg| {
-                if self.final_component_list.iter().any(|c| &c.name_in_manifest() == pkg) {
+                if self.final_component_list.iter().any(|c| &c.short_name_in_manifest() == pkg) {
                     None
                 } else {
                     Some(Component::new(pkg.to_string(), Some(target_triple.clone())))
@@ -600,7 +601,7 @@ impl Update {
             .iter()
             .filter(|c| {
                 use manifest::*;
-                let pkg: Option<&Package> = new_manifest.get_package(&c.name_in_manifest()).ok();
+                let pkg: Option<&Package> = new_manifest.get_package(&c.short_name_in_manifest()).ok();
                 let target_pkg: Option<&TargetedPackage> =
                     pkg.and_then(|p| p.get_target(c.target.as_ref()).ok());
                 target_pkg.map(|tp| tp.available()) != Some(true)
@@ -624,7 +625,7 @@ impl Update {
     ) -> Result<Vec<(Component, Format, String, String)>> {
         let mut components_urls_and_hashes = Vec::new();
         for component in &self.components_to_install {
-            let package = new_manifest.get_package(&component.name_in_manifest())?;
+            let package = new_manifest.get_package(&component.short_name_in_manifest())?;
             let target_package = package.get_target(component.target.as_ref())?;
 
             let bins = target_package.bins.as_ref().expect("components available");

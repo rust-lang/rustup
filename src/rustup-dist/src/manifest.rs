@@ -432,7 +432,15 @@ impl Component {
             format!("'{}'", pkg)
         }
     }
-    pub fn name_in_manifest(&self) -> &String {
+    pub fn short_name_in_manifest(&self) -> &String {
         &self.pkg
+    }
+    pub fn name_in_manifest(&self) -> String {
+        let pkg = self.short_name_in_manifest();
+        if let Some(ref t) = self.target {
+            format!("{}-{}", pkg, t)
+        } else {
+            format!("{}", pkg)
+        }
     }
 }
