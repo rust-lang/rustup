@@ -650,7 +650,7 @@ fn show(cfg: &Cfg) -> Result<()> {
             match t.list_components() {
                 Ok(cs_vec) => cs_vec
                     .into_iter()
-                    .filter(|c| c.component.name_in_manifest() == "rust-std")
+                    .filter(|c| c.component.short_name_in_manifest() == "rust-std")
                     .filter(|c| c.installed)
                     .collect(),
                 Err(_) => vec![],

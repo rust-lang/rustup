@@ -233,7 +233,7 @@ fn bonus_component(name: &'static str, contents: Arc<Vec<u8>>) -> MockPackage {
                 installer: MockInstallerBuilder {
                     components: vec![
                         MockComponentBuilder {
-                            name: "bonus-x86_64-apple-darwin".to_owned(),
+                            name: format!("{}-x86_64-apple-darwin", name),
                             files: vec![MockFile::new_arc("bin/bonus", contents)],
                         },
                     ],

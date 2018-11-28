@@ -284,7 +284,7 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
 pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
     let mut t = term2::stdout();
     for component in toolchain.list_components()? {
-        if component.component.name_in_manifest() == "rust-std" {
+        if component.component.short_name_in_manifest() == "rust-std" {
             let target = component
                 .component
                 .target
