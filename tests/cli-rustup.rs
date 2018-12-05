@@ -6,7 +6,7 @@ extern crate rustup_utils;
 extern crate tempdir;
 
 use rustup_mock::clitools::{
-    self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok,
+    self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
     set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use rustup_utils::raw;
@@ -1555,5 +1555,85 @@ fn docs_with_path() {
 
         let out = cmd.output().unwrap();
         assert!(String::from_utf8(out.stdout).unwrap().contains("nightly"));
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn non_utf8_arg() {
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::OsStrExt;
+
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        let out = run(
+            config,
+            "rustc",
+            &[
+                OsStr::new("--echo-args"),
+                OsStr::new("echoed non-utf8 arg:"),
+                OsStr::from_bytes(b"\xc3\x28"),
+            ],
+            &[("RUST_BACKTRACE", "1")],
+        );
+        assert!(out.stderr.contains("echoed non-utf8 arg"));
+    });
+}
+
+#[cfg(windows)]
+#[test]
+fn non_utf8_arg() {
+    use std::ffi::OsString;
+    use std::os::windows::ffi::OsStringExt;
+
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        let out = run(
+            config,
+            "rustc",
+            &[
+                OsString::from("--echo-args".to_string()),
+                OsString::from("echoed non-utf8 arg:".to_string()),
+                OsString::from_wide(&[0xd801, 0xd801]),
+            ],
+            &[("RUST_BACKTRACE", "1")],
+        );
+        assert!(out.stderr.contains("echoed non-utf8 arg"));
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn non_utf8_toolchain() {
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::OsStrExt;
+
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        let out = run(
+            config,
+            "rustc",
+            &[OsStr::from_bytes(b"+\xc3\x28")],
+            &[("RUST_BACKTRACE", "1")],
+        );
+        assert!(out.stderr.contains("toolchain '�(' is not installed"));
+    });
+}
+
+#[cfg(windows)]
+#[test]
+fn non_utf8_toolchain() {
+    use std::ffi::OsString;
+    use std::os::windows::ffi::OsStringExt;
+
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        let out = run(
+            config,
+            "rustc",
+            &[OsString::from_wide(&[u16::from('+' as u8), 0xd801, 0xd801])],
+            &[("RUST_BACKTRACE", "1")],
+        );
+        assert!(out.stderr.contains("toolchain '��' is not installed"));
     });
 }

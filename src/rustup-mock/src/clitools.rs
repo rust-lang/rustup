@@ -10,6 +10,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
+use std::ffi::OsStr;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::mem;
@@ -296,7 +297,11 @@ pub struct SanitizedOutput {
     pub stderr: String,
 }
 
-pub fn cmd(config: &Config, name: &str, args: &[&str]) -> Command {
+pub fn cmd<I, A>(config: &Config, name: &str, args: I) -> Command
+where
+    I: IntoIterator<Item = A>,
+    A: AsRef<OsStr>,
+{
     let exe_path = config.exedir.join(format!("{}{}", name, EXE_SUFFIX));
     let mut cmd = Command::new(exe_path);
     cmd.args(args);
@@ -340,7 +345,11 @@ pub fn env(config: &Config, cmd: &mut Command) {
     cmd.env("RUSTUP_INIT_SKIP_PATH_CHECK", "yes");
 }
 
-pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> SanitizedOutput {
+pub fn run<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
+where
+    I: IntoIterator<Item = A>,
+    A: AsRef<OsStr>,
+{
     let mut cmd = cmd(config, name, args);
     for env in env {
         cmd.env(env.0, env.1);
