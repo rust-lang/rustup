@@ -981,7 +981,7 @@ dependencies = [
 
 [[package]]
 name = "rustup"
-version = "1.15.0"
+version = "1.16.0"
 dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "download 0.4.0",
@@ -995,9 +995,9 @@ dependencies = [
  "rand 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "remove_dir_all 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup-dist 1.15.0",
- "rustup-mock 1.15.0",
- "rustup-utils 1.15.0",
+ "rustup-dist 1.16.0",
+ "rustup-mock 1.16.0",
+ "rustup-utils 1.16.0",
  "same-file 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "scopeguard 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.79 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1017,7 +1017,7 @@ dependencies = [
 
 [[package]]
 name = "rustup-dist"
-version = "1.15.0"
+version = "1.16.0"
 dependencies = [
  "error-chain 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1026,8 +1026,8 @@ dependencies = [
  "ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "remove_dir_all 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup-mock 1.15.0",
- "rustup-utils 1.15.0",
+ "rustup-mock 1.16.0",
+ "rustup-utils 1.16.0",
  "sha2 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar 0.4.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1041,7 +1041,7 @@ dependencies = [
 
 [[package]]
 name = "rustup-mock"
-version = "1.15.0"
+version = "1.16.0"
 dependencies = [
  "flate2 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1059,7 +1059,7 @@ dependencies = [
 
 [[package]]
 name = "rustup-utils"
-version = "1.15.0"
+version = "1.16.0"
 dependencies = [
  "download 0.4.0",
  "error-chain 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1077,10 +1077,10 @@ dependencies = [
 
 [[package]]
 name = "rustup-win-installer"
-version = "1.15.0"
+version = "1.16.0"
 dependencies = [
  "gcc 0.3.54 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustup 1.15.0",
+ "rustup 1.16.0",
  "winapi 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
