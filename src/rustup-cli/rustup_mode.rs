@@ -577,6 +577,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let self_update = !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE;
     if let Some(names) = m.values_of("toolchain") {
         for name in names {
             update_bare_triple_check(cfg, name)?;
@@ -595,10 +596,13 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
                 common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
             }
         }
+        if self_update {
+            common::self_update(|| Ok(()))?;
+        }
     } else {
         common::update_all_channels(
             cfg,
-            !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE,
+            self_update,
             m.is_present("force"),
         )?;
     }
