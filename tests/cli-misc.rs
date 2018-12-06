@@ -657,12 +657,12 @@ fn rename_rls_remove() {
         expect_ok(config, &["rustup", "component", "add", "rls"]);
         expect_ok(config, &["rls", "--version"]);
         expect_ok(config, &["rustup", "component", "remove", "rls"]);
-        expect_err(config, &["rls", "--version"], "'rls' is not installed");
+        expect_err(config, &["rls", "--version"], &format!("'rls{}' is not installed", EXE_SUFFIX));
 
         expect_ok(config, &["rustup", "component", "add", "rls"]);
         expect_ok(config, &["rls", "--version"]);
         expect_ok(config, &["rustup", "component", "remove", "rls-preview"]);
-        expect_err(config, &["rls", "--version"], "'rls' is not installed");
+        expect_err(config, &["rls", "--version"], &format!("'rls{}' is not installed", EXE_SUFFIX));
     });
 }
 
