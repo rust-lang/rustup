@@ -282,7 +282,7 @@ Toolchain names that don't name a channel instead can be used to name
 ## Toolchain override shorthand
 
 The `rustup` toolchain proxies can be instructed directly to use a
-specific toolchain, a convience for developers who often test
+specific toolchain, a convenience for developers who often test
 different toolchains. If the first argument to `cargo`, `rustc` or
 other tools in the toolchain begins with `+`, it will be interpreted
 as a rustup toolchain name, and that toolchain will be preferred,
