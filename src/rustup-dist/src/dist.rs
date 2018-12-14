@@ -291,11 +291,25 @@ impl PartialToolchainDesc {
         }
     }
 
-    pub fn resolve(self, host: &TargetTriple) -> ToolchainDesc {
-        let host = PartialTargetTriple::from_str(&host.0)
-            .expect("host triple couldn't be converted to partial triple");
-        let host_arch = host.arch.expect("");
-        let host_os = host.os.expect("");
+    pub fn resolve(self, input_host: &TargetTriple) -> Result<ToolchainDesc> {
+        let host = PartialTargetTriple::from_str(&input_host.0).ok_or_else(|| {
+            format!(
+                "Provided host '{}' couldn't be converted to partial triple",
+                input_host.0
+            )
+        })?;
+        let host_arch = host.arch.ok_or_else(|| {
+            format!(
+                "Provided host '{}' did not specify a CPU architecture",
+                input_host.0
+            )
+        })?;
+        let host_os = host.os.ok_or_else(|| {
+            format!(
+                "Provided host '{}' did not specify an operating system",
+                input_host.0
+            )
+        })?;
         let host_env = host.env;
 
         // If OS was specified, don't default to host environment, even if the OS matches
@@ -314,11 +328,11 @@ impl PartialToolchainDesc {
             format!("{}-{}", arch, os)
         };
 
-        ToolchainDesc {
+        Ok(ToolchainDesc {
             channel: self.channel,
             date: self.date,
             target: TargetTriple(trip),
-        }
+        })
     }
 
     pub fn has_triple(&self) -> bool {
