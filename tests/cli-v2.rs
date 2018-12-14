@@ -837,3 +837,22 @@ fn update_unavailable_std() {
         );
     });
 }
+
+#[test]
+fn update_unavailable_force() {
+    setup(&|config| {
+        let ref trip = TargetTriple::from_build();
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "component", "add", "rls", "--toolchain", "nightly"]);
+        make_component_unavailable(config, "rls-preview", trip);
+        expect_err(
+            config,
+            &["rustup", "update", "nightly"],
+            &format!(
+                "component 'rls' for target '{}' is unavailable for download",
+                trip
+            ),
+        );
+        expect_ok(config, &["rustup", "update", "nightly", "--force"]);
+    });
+}
