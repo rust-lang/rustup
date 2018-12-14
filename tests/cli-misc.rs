@@ -549,14 +549,12 @@ fn rls_exists_in_toolchain() {
 #[test]
 fn rls_does_not_exist_in_toolchain() {
     setup(&|config| {
-        // FIXME: If rls exists in the toolchain, this should suggest a command
-        // to run to install it
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_err(
             config,
             &["rls", "--version"],
             &format!(
-                "'rls{}' is not installed for the toolchain 'stable-{}'",
+                "'rls{}' is not installed for the toolchain 'stable-{}'\nTo install, run `rustup component add rls`",
                 EXE_SUFFIX,
                 this_host_triple(),
             ),
