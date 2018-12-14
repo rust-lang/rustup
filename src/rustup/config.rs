@@ -99,7 +99,7 @@ impl Cfg {
         );
         let dist_root = dist_root_server.clone() + "/dist";
 
-        Ok(Cfg {
+        let cfg = Cfg {
             rustup_dir: rustup_dir,
             settings_file: settings_file,
             toolchains_dir: toolchains_dir,
@@ -111,7 +111,15 @@ impl Cfg {
             env_override: env_override,
             dist_root_url: dist_root,
             dist_root_server: dist_root_server,
-        })
+        };
+
+        // Run some basic checks against the constructed configuration
+        // For now, that means simply checking that 'stable' can resolve
+        // for the current configuration.
+        cfg.resolve_toolchain("stable")
+            .map_err(|e| format!("Unable parse configuration: {}", e))?;
+
+        Ok(cfg)
     }
 
     pub fn set_default(&self, toolchain: &str) -> Result<()> {
