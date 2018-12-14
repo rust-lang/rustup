@@ -493,7 +493,7 @@ impl Cfg {
     pub fn resolve_toolchain(&self, name: &str) -> Result<String> {
         if let Ok(desc) = dist::PartialToolchainDesc::from_str(name) {
             let host = self.get_default_host_triple()?;
-            Ok(desc.resolve(&host).to_string())
+            Ok(desc.resolve(&host)?.to_string())
         } else {
             Ok(name.to_owned())
         }
