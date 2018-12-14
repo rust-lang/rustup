@@ -73,7 +73,7 @@ fn install_toolchain_from_version() {
 #[test]
 fn default_existing_toolchain() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stderr_ok(
             config,
             &["rustup", "default", "nightly"],
@@ -89,7 +89,7 @@ fn update_channel() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
     });
 }
@@ -97,8 +97,8 @@ fn update_channel() {
 #[test]
 fn list_toolchains() {
     clitools::setup(Scenario::ArchivesV1, &|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(config, &["rustup", "update", "beta-2015-01-01"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "beta-2015-01-01", "--no-self-update"]);
         expect_stdout_ok(config, &["rustup", "toolchain", "list"], "nightly");
         expect_stdout_ok(config, &["rustup", "toolchain", "list"], "beta-2015-01-01");
     });
@@ -118,7 +118,7 @@ fn list_toolchains_with_none() {
 #[test]
 fn remove_toolchain() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
         expect_ok(config, &["rustup", "toolchain", "list"]);
         expect_stdout_ok(
@@ -320,8 +320,8 @@ fn remove_override_with_multiple_overrides() {
 #[test]
 fn no_update_on_channel_when_date_has_not_changed() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(config, &["rustup", "update", "nightly"], "unchanged");
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_stdout_ok(config, &["rustup", "update", "nightly", "--no-self-update"], "unchanged");
     });
 }
 
@@ -332,7 +332,7 @@ fn update_on_channel_when_date_has_changed() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
     });
 }
@@ -340,7 +340,7 @@ fn update_on_channel_when_date_has_changed() {
 #[test]
 fn run_command() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_ok(config, &["rustup", "default", "beta"]);
         expect_stdout_ok(
             config,
@@ -356,7 +356,7 @@ fn remove_toolchain_then_add_again() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "beta"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "beta"]);
-        expect_ok(config, &["rustup", "update", "beta"]);
+        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
         expect_ok(config, &["rustc", "--version"]);
     });
 }

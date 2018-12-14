@@ -133,7 +133,7 @@ fn upgrade_v2_metadata_to_v12() {
             &["rustc", "--version"],
             for_host!("toolchain 'nightly-{0}' is not installed"),
         );
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
     });
 }
@@ -185,7 +185,7 @@ fn update_all_no_update_whitespace() {
     setup(&|config| {
         expect_stdout_ok(
             config,
-            &["rustup", "update", "nightly"],
+            &["rustup", "update", "nightly", "--no-self-update"],
             for_host!(
                 r"
   nightly-{} installed - 1.3.0 (hash-n-2)
@@ -200,7 +200,7 @@ fn update_all_no_update_whitespace() {
 #[test]
 fn update_works_without_term() {
     setup(&|config| {
-        let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly"]);
+        let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly", "--no-self-update"]);
         clitools::env(config, &mut cmd);
         cmd.env_remove("TERM");
 
@@ -295,13 +295,13 @@ fn custom_toolchain_cargo_fallback_proxy() {
         );
         expect_ok(config, &["rustup", "default", "mytoolchain"]);
 
-        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         expect_stdout_ok(config, &["cargo", "--version"], "hash-s-2");
 
-        expect_ok(config, &["rustup", "update", "beta"]);
+        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
         expect_stdout_ok(config, &["cargo", "--version"], "hash-b-2");
 
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stdout_ok(config, &["cargo", "--version"], "hash-n-2");
     });
 }
@@ -323,21 +323,21 @@ fn custom_toolchain_cargo_fallback_run() {
         );
         expect_ok(config, &["rustup", "default", "mytoolchain"]);
 
-        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         expect_stdout_ok(
             config,
             &["rustup", "run", "mytoolchain", "cargo", "--version"],
             "hash-s-2",
         );
 
-        expect_ok(config, &["rustup", "update", "beta"]);
+        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
         expect_stdout_ok(
             config,
             &["rustup", "run", "mytoolchain", "cargo", "--version"],
             "hash-b-2",
         );
 
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stdout_ok(
             config,
             &["rustup", "run", "mytoolchain", "cargo", "--version"],
@@ -395,7 +395,7 @@ fn rustup_failed_path_search() {
 #[test]
 fn rustup_run_not_installed() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "install", "stable"]);
+        expect_ok(config, &["rustup", "install", "stable", "--no-self-update"]);
         expect_err(
             config,
             &["rustup", "run", "nightly", "rustc", "--version"],
@@ -407,7 +407,7 @@ fn rustup_run_not_installed() {
 #[test]
 fn rustup_run_install() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "install", "stable"]);
+        expect_ok(config, &["rustup", "install", "stable", "--no-self-update"]);
         expect_stderr_ok(
             config,
             &[
@@ -426,7 +426,7 @@ fn rustup_run_install() {
 #[test]
 fn multirust_env_compat() {
     setup(&|config| {
-        let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly"]);
+        let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly", "--no-self-update"]);
         clitools::env(config, &mut cmd);
         cmd.env_remove("RUSTUP_HOME");
         cmd.env("MULTIRUST_HOME", &config.rustupdir);

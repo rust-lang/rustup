@@ -132,6 +132,19 @@ pub fn cli() -> App<'static, 'static> {
                         .help(TOOLCHAIN_ARG_HELP)
                         .required(true)
                         .multiple(true),
+                )
+                .arg(
+                    Arg::with_name("no-self-update")
+                        .help("Don't perform self update when running the `rustup` command")
+                        .long("no-self-update")
+                        .takes_value(false)
+                        .hidden(true),
+                )
+                .arg(
+                    Arg::with_name("force")
+                        .help("Force an update, even if some components are missing")
+                        .long("force")
+                        .takes_value(false),
                 ),
         )
         .subcommand(
@@ -196,6 +209,13 @@ pub fn cli() -> App<'static, 'static> {
                                 .help(TOOLCHAIN_ARG_HELP)
                                 .required(true)
                                 .multiple(true),
+                        )
+                        .arg(
+                            Arg::with_name("no-self-update")
+                                .help("Don't perform self update when running the `rustup` command")
+                                .long("no-self-update")
+                                .takes_value(false)
+                                .hidden(true),
                         ),
                 )
                 .subcommand(

@@ -763,7 +763,7 @@ fn updater_is_deleted_after_running_rustup() {
         expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok(config, &["rustup", "self", "update"]);
 
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
 
         let setup = config
             .cargodir
