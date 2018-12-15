@@ -610,7 +610,7 @@ fn current_install_opts(opts: &InstallOpts) -> String {
 // Interactive editing of the install options
 fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
     println!(
-        "I'm going to ask you the value of each these installation options.\n\
+        "I'm going to ask you the value of each of these installation options.\n\
          You may simply press the Enter key to leave unchanged."
     );
 
