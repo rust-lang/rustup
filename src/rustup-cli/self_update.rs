@@ -468,7 +468,12 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
     // Verify that the installation options are vaguely sane
     (|| {
         let host_triple = dist::TargetTriple::from_str(&opts.default_host_triple);
-        let partial_channel = dist::PartialToolchainDesc::from_str(&opts.default_toolchain)?;
+        let toolchain_to_use = if opts.default_toolchain == "none" {
+            "stable"
+        } else {
+            &opts.default_toolchain
+        };
+        let partial_channel = dist::PartialToolchainDesc::from_str(toolchain_to_use)?;
         let resolved = partial_channel.resolve(&host_triple)?.to_string();
         debug!(
             "Successfully resolved installation toolchain as: {}",
