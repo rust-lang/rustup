@@ -223,6 +223,7 @@ fn canonical_cargo_home() -> Result<String> {
 /// and adding `CARGO_HOME`/bin to PATH.
 pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<()> {
     do_pre_install_sanity_checks()?;
+    do_pre_install_options_sanity_checks(&opts)?;
     check_existence_of_rustc_or_cargo_in_path(no_prompt)?;
     do_anti_sudo_check(no_prompt)?;
 
@@ -460,6 +461,30 @@ fn do_pre_install_sanity_checks() -> Result<()> {
         return Err("cannot install while rustup.sh is installed".into());
     }
 
+    Ok(())
+}
+
+fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
+    // Verify that the installation options are vaguely sane
+    (|| {
+        let host_triple = dist::TargetTriple::from_str(&opts.default_host_triple);
+        let partial_channel = dist::PartialToolchainDesc::from_str(&opts.default_toolchain)?;
+        let resolved = partial_channel.resolve(&host_triple)?.to_string();
+        debug!(
+            "Successfully resolved installation toolchain as: {}",
+            resolved
+        );
+        Ok(())
+    })()
+    .map_err(|e: Box<std::error::Error>| {
+        format!(
+            "Pre-checks for host and toolchain failed: {}\n\
+             If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
+             Valid host triples look something like: {}",
+            e,
+            dist::TargetTriple::from_host_or_build()
+        )
+    })?;
     Ok(())
 }
 
