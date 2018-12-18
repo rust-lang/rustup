@@ -3,11 +3,11 @@
 /// installation / uninstallation process.
 
 use rustup_utils::utils;
-use prefix::InstallPrefix;
-use errors::*;
+use crate::prefix::InstallPrefix;
+use crate::errors::*;
 
-use component::transaction::Transaction;
-use component::package::{INSTALLER_VERSION, VERSION_FILE};
+use crate::component::transaction::Transaction;
+use crate::component::package::{INSTALLER_VERSION, VERSION_FILE};
 
 use std::path::{Path, PathBuf};
 use std::fs::File;

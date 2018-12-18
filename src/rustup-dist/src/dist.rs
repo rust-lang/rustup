@@ -1,12 +1,12 @@
-use temp;
-use errors::*;
-use notifications::*;
+use crate::temp;
+use crate::errors::*;
+use crate::notifications::*;
 use rustup_utils::{self, utils};
-use prefix::InstallPrefix;
-use manifest::Component;
-use manifest::Manifest as ManifestV2;
-use manifestation::{Changes, Manifestation, UpdateStatus};
-use download::DownloadCfg;
+use crate::prefix::InstallPrefix;
+use crate::manifest::Component;
+use crate::manifest::Manifest as ManifestV2;
+use crate::manifestation::{Changes, Manifestation, UpdateStatus};
+use crate::download::DownloadCfg;
 
 use std::path::Path;
 use std::fmt;

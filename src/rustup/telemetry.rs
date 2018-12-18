@@ -1,4 +1,4 @@
-use errors::*;
+use crate::errors::*;
 use time;
 use rustup_utils::{raw, utils};
 use serde_json;

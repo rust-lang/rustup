@@ -1,10 +1,10 @@
 use std::path::Path;
 use std::fmt::{self, Display};
-use temp;
+use crate::temp;
 use rustup_utils;
 use rustup_utils::notify::NotificationLevel;
-use dist::TargetTriple;
-use errors::*;
+use crate::dist::TargetTriple;
+use crate::errors::*;
 
 #[derive(Debug)]
 pub enum Notification<'a> {

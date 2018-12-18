@@ -10,7 +10,7 @@ use url::Url;
 use download::*;
 
 mod support;
-use support::{file_contents, serve_file, tmp_dir, write_file};
+use crate::support::{file_contents, serve_file, tmp_dir, write_file};
 
 #[test]
 fn partially_downloaded_file_gets_resumed_from_byte_offset() {

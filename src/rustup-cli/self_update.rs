@@ -30,8 +30,8 @@
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
-use common::{self, Confirm};
-use errors::*;
+use crate::common::{self, Confirm};
+use crate::errors::*;
 use rustup_dist::dist;
 use rustup_utils::utils;
 use rustup::{TOOLS, DUP_TOOLS};
@@ -42,7 +42,7 @@ use std::path::{Component, Path, PathBuf};
 use std::process::{self, Command};
 use std::fs;
 use tempdir::TempDir;
-use term2;
+use crate::term2;
 use regex::Regex;
 
 pub struct InstallOpts {

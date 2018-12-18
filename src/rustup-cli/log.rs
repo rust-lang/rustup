@@ -1,4 +1,4 @@
-use term2;
+use crate::term2;
 use std::fmt;
 use std::io::Write;
 

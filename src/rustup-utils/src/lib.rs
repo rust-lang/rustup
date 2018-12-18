@@ -25,6 +25,6 @@ pub mod tty;
 pub mod utils;
 pub mod toml_utils;
 
-pub use errors::*;
-pub use notifications::Notification;
+pub use crate::errors::*;
+pub use crate::notifications::Notification;
 pub mod notify;

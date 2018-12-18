@@ -6,11 +6,11 @@ use std::time::Instant;
 use regex::Regex;
 use tempfile::tempfile;
 
-use Cfg;
-use errors::*;
-use notifications::*;
+use crate::Cfg;
+use crate::errors::*;
+use crate::notifications::*;
 use rustup_utils::{self, utils::ExitCode};
-use telemetry::{Telemetry, TelemetryEvent};
+use crate::telemetry::{Telemetry, TelemetryEvent};
 
 pub fn run_command_for_dir<S: AsRef<OsStr>>(
     cmd: Command,

@@ -1,5 +1,5 @@
-use errors::*;
-use notifications::*;
+use crate::errors::*;
+use crate::notifications::*;
 use rustup_dist;
 use rustup_dist::download::DownloadCfg;
 use rustup_utils::utils;
@@ -7,11 +7,11 @@ use rustup_dist::prefix::InstallPrefix;
 use rustup_dist::dist::ToolchainDesc;
 use rustup_dist::manifestation::{Changes, Manifestation};
 use rustup_dist::manifest::Component;
-use config::Cfg;
-use env_var;
-use install::{self, InstallMethod};
-use telemetry;
-use telemetry::{Telemetry, TelemetryEvent};
+use crate::config::Cfg;
+use crate::env_var;
+use crate::install::{self, InstallMethod};
+use crate::telemetry;
+use crate::telemetry::{Telemetry, TelemetryEvent};
 
 use std::env::consts::EXE_SUFFIX;
 use std::ffi::OsString;

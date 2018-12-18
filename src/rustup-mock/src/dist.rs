@@ -1,7 +1,7 @@
 //! Tools for building and working with the filesystem of a mock Rust
 //! distribution server, with v1 and v2 manifests.
 
-use MockInstallerBuilder;
+use crate::MockInstallerBuilder;
 use url::Url;
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -16,7 +16,7 @@ use xz2;
 use tar;
 use walkdir;
 
-use clitools::hard_link;
+use crate::clitools::hard_link;
 
 // This function changes the mock manifest for a given channel to that
 // of a particular date. For advancing the build from e.g. 2016-02-1

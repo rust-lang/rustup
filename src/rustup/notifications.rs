@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::fmt::{self, Display};
 
-use errors::*;
+use crate::errors::*;
 
 use rustup_dist::{self, temp};
 use rustup_utils;

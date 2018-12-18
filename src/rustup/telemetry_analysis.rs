@@ -8,8 +8,8 @@ use std::path::PathBuf;
 use itertools::Itertools;
 use serde_json;
 
-use errors::*;
-use telemetry::{LogMessage, TelemetryEvent};
+use crate::errors::*;
+use crate::telemetry::{LogMessage, TelemetryEvent};
 
 pub struct TelemetryAnalysis {
     telemetry_dir: PathBuf,

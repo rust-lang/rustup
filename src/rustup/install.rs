@@ -8,7 +8,7 @@ use rustup_dist::temp;
 use rustup_dist::dist;
 use rustup_dist::download::DownloadCfg;
 use rustup_dist::component::{Components, Package, TarGzPackage, Transaction};
-use errors::Result;
+use crate::errors::Result;
 use std::path::Path;
 
 #[derive(Copy, Clone)]

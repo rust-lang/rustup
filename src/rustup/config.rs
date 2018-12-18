@@ -6,13 +6,13 @@ use std::process::Command;
 use std::fmt::{self, Display};
 use std::sync::Arc;
 
-use errors::*;
-use notifications::*;
+use crate::errors::*;
+use crate::notifications::*;
 use rustup_dist::{dist, temp};
 use rustup_utils::utils;
-use toolchain::{Toolchain, UpdateStatus};
-use telemetry_analysis::*;
-use settings::{Settings, SettingsFile, TelemetryMode, DEFAULT_METADATA_VERSION};
+use crate::toolchain::{Toolchain, UpdateStatus};
+use crate::telemetry_analysis::*;
+use crate::settings::{Settings, SettingsFile, TelemetryMode, DEFAULT_METADATA_VERSION};
 
 #[derive(Debug)]
 pub enum OverrideReason {
