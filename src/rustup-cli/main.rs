@@ -58,7 +58,7 @@ mod help;
 use std::alloc::System;
 use std::env;
 use std::path::PathBuf;
-use errors::*;
+use crate::errors::*;
 use rustup_dist::dist::TargetTriple;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 

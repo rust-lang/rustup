@@ -2,10 +2,10 @@
 
 use rustup::{self, Cfg, Notification, Toolchain, UpdateStatus};
 use rustup::telemetry_analysis::TelemetryAnalysis;
-use errors::*;
+use crate::errors::*;
 use rustup_utils::utils;
 use rustup_utils::notify::NotificationLevel;
-use self_update;
+use crate::self_update;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
 use std::path::Path;
@@ -13,7 +13,7 @@ use std::{cmp, iter};
 use std::sync::Arc;
 use std::time::Duration;
 use std;
-use term2;
+use crate::term2;
 use wait_timeout::ChildExt;
 
 pub fn confirm(question: &str, default: bool) -> Result<bool> {
@@ -104,7 +104,7 @@ pub fn read_line() -> Result<String> {
 }
 
 pub fn set_globals(verbose: bool) -> Result<Cfg> {
-    use download_tracker::DownloadTracker;
+    use crate::download_tracker::DownloadTracker;
     use std::cell::RefCell;
 
     let download_tracker = RefCell::new(DownloadTracker::new());

@@ -16,10 +16,10 @@ extern crate time;
 extern crate toml;
 extern crate url;
 
-pub use errors::*;
-pub use notifications::*;
-pub use config::*;
-pub use toolchain::*;
+pub use crate::errors::*;
+pub use crate::notifications::*;
+pub use crate::config::*;
+pub use crate::toolchain::*;
 pub use rustup_utils::{notify, toml_utils, utils};
 
 

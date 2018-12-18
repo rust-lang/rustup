@@ -2,6 +2,7 @@
 
 name = "download"
 version = "0.4.0"
+edition = "2018"
 authors = [ "Brian Anderson <banderson@mozilla.com>" ]
 
 license = "MIT/Apache-2.0"

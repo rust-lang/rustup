@@ -2,6 +2,7 @@
 
 name = "rustup-dist"
 version = "1.16.0"
+edition = "2018"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Installation from a Rust distribution server"
 build = "build.rs"

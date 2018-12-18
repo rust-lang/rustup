@@ -2,6 +2,7 @@
 
 name = "rustup-utils"
 version = "1.16.0"
+edition = "2018"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Utility functions for rustup"
 

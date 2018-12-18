@@ -6,12 +6,12 @@ extern crate flate2;
 extern crate tar;
 extern crate xz2;
 
-use component::components::*;
-use component::transaction::*;
+use crate::component::components::*;
+use crate::component::transaction::*;
 
-use errors::*;
+use crate::errors::*;
 use rustup_utils::utils;
-use temp;
+use crate::temp;
 
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;

@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 use std::io::{self, Write};
-use temp;
+use crate::temp;
 use toml;
 use rustup_utils;
-use manifest::{Component, Manifest};
+use crate::manifest::{Component, Manifest};
 
 error_chain! {
     links {

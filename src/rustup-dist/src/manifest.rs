@@ -10,12 +10,12 @@
 //!
 //! See tests/channel-rust-nightly-example.toml for an example.
 
-use errors::*;
+use crate::errors::*;
 use toml;
 use rustup_utils::toml_utils::*;
 
 use std::collections::HashMap;
-use dist::TargetTriple;
+use crate::dist::TargetTriple;
 
 pub const SUPPORTED_MANIFEST_VERSIONS: [&'static str; 1] = ["2"];
 pub const DEFAULT_MANIFEST_VERSION: &'static str = "2";

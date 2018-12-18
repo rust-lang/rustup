@@ -13,8 +13,8 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::Duration;
 use tempdir::TempDir;
-use {MockComponentBuilder, MockFile, MockInstallerBuilder};
-use dist::{change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer,
+use crate::{MockComponentBuilder, MockFile, MockInstallerBuilder};
+use crate::dist::{change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer,
            MockPackage, MockTargetedPackage};
 use url::Url;
 use wait_timeout::ChildExt;

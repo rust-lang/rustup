@@ -19,8 +19,8 @@ extern crate winapi;
 #[cfg(windows)]
 extern crate winreg;
 
-pub use errors::*;
-pub use notifications::Notification;
+pub use crate::errors::*;
+pub use crate::notifications::Notification;
 
 pub mod temp;
 

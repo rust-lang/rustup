@@ -14,7 +14,7 @@ use url::Url;
 use std::path::Path;
 
 mod errors;
-pub use errors::*;
+pub use crate::errors::*;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Backend {
@@ -136,7 +136,7 @@ pub mod curl {
     extern crate curl;
 
     use self::curl::easy::Easy;
-    use errors::*;
+    use crate::errors::*;
     use std::cell::RefCell;
     use std::str;
     use std::time::Duration;
@@ -256,7 +256,7 @@ pub mod reqwest_be {
 
     use std::io;
     use std::time::Duration;
-    use errors::*;
+    use crate::errors::*;
     use url::Url;
     use super::Event;
     use reqwest::{header, Client, Proxy, Response};

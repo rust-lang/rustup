@@ -1,4 +1,4 @@
-use errors::*;
+use crate::errors::*;
 use std::path::{Path, PathBuf};
 use std::fs::{self, File};
 use std::io::{self, Write};
@@ -7,8 +7,8 @@ use std::ffi::OsString;
 use std::env;
 use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use sha2::Sha256;
-use notifications::Notification;
-use raw;
+use crate::notifications::Notification;
+use crate::raw;
 #[cfg(windows)]
 use winapi::shared::minwindef::DWORD;
 #[cfg(windows)]
@@ -16,7 +16,7 @@ use winreg;
 use std::cmp::Ord;
 use url::Url;
 
-pub use raw::{find_cmd, has_cmd, if_not_empty, is_directory, is_file, path_exists, prefix_arg,
+pub use crate::raw::{find_cmd, has_cmd, if_not_empty, is_directory, is_file, path_exists, prefix_arg,
               random_string};
 
 pub struct ExitCode(pub i32);

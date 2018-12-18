@@ -1,7 +1,7 @@
 use rustup_utils::utils;
-use errors::*;
-use temp;
-use notifications::*;
+use crate::errors::*;
+use crate::temp;
+use crate::notifications::*;
 use sha2::{Digest, Sha256};
 use url::Url;
 

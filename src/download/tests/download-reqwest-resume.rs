@@ -10,7 +10,7 @@ use url::Url;
 use download::*;
 
 mod support;
-use support::{file_contents, serve_file, tmp_dir, write_file};
+use crate::support::{file_contents, serve_file, tmp_dir, write_file};
 
 #[test]
 fn resume_partial_from_file_url() {

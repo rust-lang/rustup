@@ -1,22 +1,22 @@
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
-use common;
+use crate::common;
 use rustup::{command, Cfg, Toolchain};
 use rustup::settings::TelemetryMode;
-use errors::*;
+use crate::errors::*;
 use rustup_dist::manifest::Component;
 use rustup_dist::dist::{PartialTargetTriple, PartialToolchainDesc, TargetTriple};
 use rustup_utils::utils::{self, ExitCode};
-use self_update;
+use crate::self_update;
 use std::path::Path;
 use std::process::{self, Command};
 use std::iter;
 use std::error::Error;
-use term2;
+use crate::term2;
 use std::io::{self, Write};
-use help::*;
+use crate::help::*;
 
 pub fn main() -> Result<()> {
-    ::self_update::cleanup_self_updater()?;
+    crate::self_update::cleanup_self_updater()?;
 
     let ref matches = cli().get_matches();
     let verbose = matches.is_present("verbose");

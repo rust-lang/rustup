@@ -1,16 +1,16 @@
 //! Maintains a Rust installation by installing individual Rust
 //! platform components from a distribution server.
 
-use config::Config;
-use manifest::{Component, Manifest, TargetedPackage};
-use dist::{TargetTriple, DEFAULT_DIST_SERVER};
-use component::{Components, Package, TarGzPackage, TarXzPackage, Transaction};
-use temp;
-use errors::*;
-use notifications::*;
+use crate::config::Config;
+use crate::manifest::{Component, Manifest, TargetedPackage};
+use crate::dist::{TargetTriple, DEFAULT_DIST_SERVER};
+use crate::component::{Components, Package, TarGzPackage, TarXzPackage, Transaction};
+use crate::temp;
+use crate::errors::*;
+use crate::notifications::*;
 use rustup_utils::utils;
-use download::{DownloadCfg, File};
-use prefix::InstallPrefix;
+use crate::download::{DownloadCfg, File};
+use crate::prefix::InstallPrefix;
 use std::path::Path;
 
 pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
@@ -600,7 +600,7 @@ impl Update {
         let mut unavailable_components: Vec<Component> = self.components_to_install
             .iter()
             .filter(|c| {
-                use manifest::*;
+                use crate::manifest::*;
                 let pkg: Option<&Package> = new_manifest.get_package(&c.short_name_in_manifest()).ok();
                 let target_pkg: Option<&TargetedPackage> =
                     pkg.and_then(|p| p.get_target(c.target.as_ref()).ok());

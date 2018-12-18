@@ -10,10 +10,10 @@
 //! does not remove any dirs created by it.
 
 use rustup_utils::utils;
-use temp;
-use prefix::InstallPrefix;
-use errors::*;
-use notifications::*;
+use crate::temp;
+use crate::prefix::InstallPrefix;
+use crate::errors::*;
+use crate::notifications::*;
 
 use std::fs::File;
 use std::path::{Path, PathBuf};

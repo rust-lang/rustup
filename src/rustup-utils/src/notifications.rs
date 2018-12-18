@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 
 use url::Url;
 
-use notify::NotificationLevel;
+use crate::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
