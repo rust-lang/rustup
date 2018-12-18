@@ -10,8 +10,8 @@ extern crate lazy_static;
 #[cfg(feature = "reqwest-backend")]
 extern crate reqwest;
 
-use url::Url;
 use std::path::Path;
+use url::Url;
 
 mod errors;
 pub use crate::errors::*;
@@ -122,7 +122,7 @@ pub fn download_to_path_with_backend(
 
         Ok(())
     }()
-        .map_err(|e| {
+    .map_err(|e| {
         // TODO is there any point clearing up here? What kind of errors will leave us with an unusable partial?
         e
     })
@@ -136,12 +136,12 @@ pub mod curl {
     extern crate curl;
 
     use self::curl::easy::Easy;
+    use super::Event;
     use crate::errors::*;
     use std::cell::RefCell;
     use std::str;
     use std::time::Duration;
     use url::Url;
-    use super::Event;
 
     pub fn download(url: &Url, resume_from: u64, callback: &Fn(Event) -> Result<()>) -> Result<()> {
         // Fetch either a cached libcurl handle (which will preserve open
@@ -254,12 +254,12 @@ pub mod curl {
 pub mod reqwest_be {
     extern crate env_proxy;
 
+    use super::Event;
+    use crate::errors::*;
+    use reqwest::{header, Client, Proxy, Response};
     use std::io;
     use std::time::Duration;
-    use crate::errors::*;
     use url::Url;
-    use super::Event;
-    use reqwest::{header, Client, Proxy, Response};
 
     pub fn download(url: &Url, resume_from: u64, callback: &Fn(Event) -> Result<()>) -> Result<()> {
         // Short-circuit reqwest for the "file:" URL scheme
@@ -339,7 +339,8 @@ pub mod reqwest_be {
 
         // The file scheme is mostly for use by tests to mock the dist server
         if url.scheme() == "file" {
-            let src = url.to_file_path()
+            let src = url
+                .to_file_path()
                 .map_err(|_| Error::from(format!("bogus file url: '{}'", url)))?;
             if !src.is_file() {
                 // Because some of rustup's logic depends on checking
@@ -372,9 +373,9 @@ pub mod reqwest_be {
 #[cfg(not(feature = "curl-backend"))]
 pub mod curl {
 
+    use super::Event;
     use errors::*;
     use url::Url;
-    use super::Event;
 
     pub fn download(
         _url: &Url,
@@ -388,9 +389,9 @@ pub mod curl {
 #[cfg(not(feature = "reqwest-backend"))]
 pub mod reqwest_be {
 
+    use super::Event;
     use errors::*;
     use url::Url;
-    use super::Event;
 
     pub fn download(
         _url: &Url,

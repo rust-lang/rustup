@@ -1,16 +1,15 @@
+use crate::errors::*;
+use crate::prefix::InstallPrefix;
 /// The representation of the installed toolchain and its components.
 /// `Components` and `DirectoryPackage` are the two sides of the
 /// installation / uninstallation process.
-
 use rustup_utils::utils;
-use crate::prefix::InstallPrefix;
-use crate::errors::*;
 
-use crate::component::transaction::Transaction;
 use crate::component::package::{INSTALLER_VERSION, VERSION_FILE};
+use crate::component::transaction::Transaction;
 
-use std::path::{Path, PathBuf};
 use std::fs::File;
+use std::path::{Path, PathBuf};
 
 const COMPONENTS_FILE: &'static str = "components";
 
@@ -172,8 +171,10 @@ impl Component {
     pub fn parts(&self) -> Result<Vec<ComponentPart>> {
         let mut result = Vec::new();
         for line in utils::read_file("component", &self.manifest_file())?.lines() {
-            result.push(ComponentPart::decode(line)
-                .ok_or_else(|| ErrorKind::CorruptComponent(self.name.clone()))?);
+            result.push(
+                ComponentPart::decode(line)
+                    .ok_or_else(|| ErrorKind::CorruptComponent(self.name.clone()))?,
+            );
         }
         Ok(result)
     }
@@ -182,9 +183,7 @@ impl Component {
         let path = self.components.rel_components_file();
         let abs_path = self.components.prefix.abs_path(&path);
         let temp = tx.temp().new_file()?;
-        utils::filter_file("components", &abs_path, &temp, |l| {
-            (l != self.name)
-        })?;
+        utils::filter_file("components", &abs_path, &temp, |l| (l != self.name))?;
         tx.modify_file(path)?;
         utils::rename_file("components", &temp, &abs_path)?;
 
@@ -192,8 +191,8 @@ impl Component {
         // and the version file.
 
         // Track visited directories
-        use std::collections::HashSet;
         use std::collections::hash_set::IntoIter;
+        use std::collections::HashSet;
         use std::fs::read_dir;
 
         // dirs will contain the set of longest disjoint directory paths seen
@@ -258,11 +257,13 @@ impl Component {
                     Some(_) => {
                         let mut path_buf = self.path_buf.take().unwrap();
                         match path_buf.file_name() {
-                            Some(_) => if path_buf.pop() {
-                                Some(path_buf)
-                            } else {
-                                None
-                            },
+                            Some(_) => {
+                                if path_buf.pop() {
+                                    Some(path_buf)
+                                } else {
+                                    None
+                                }
+                            }
                             None => self.iter.next(),
                         }
                     }

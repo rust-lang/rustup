@@ -1,5 +1,5 @@
-use std::path::{Path, PathBuf};
 use std::fmt::{self, Display};
+use std::path::{Path, PathBuf};
 
 use crate::errors::*;
 

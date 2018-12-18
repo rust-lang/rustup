@@ -6,8 +6,8 @@ use std::error;
 use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::fs;
-use std::io::Write;
 use std::io;
+use std::io::Write;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 use std::str;
@@ -176,14 +176,14 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
 #[cfg(windows)]
 #[allow(non_snake_case)]
 fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+    use std::ptr;
     use winapi::shared::minwindef::*;
     use winapi::um::fileapi::*;
     use winapi::um::ioapiset::*;
     use winapi::um::winbase::*;
     use winapi::um::winioctl::FSCTL_SET_REPARSE_POINT;
     use winapi::um::winnt::*;
-    use std::ptr;
-    use std::os::windows::ffi::OsStrExt;
 
     const MAXIMUM_REPARSE_DATA_BUFFER_SIZE: usize = 16 * 1024;
 
@@ -359,8 +359,8 @@ pub fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
 pub fn open_browser(path: &Path) -> io::Result<bool> {
     #[cfg(not(windows))]
     fn inner(path: &Path) -> io::Result<bool> {
-        use std::process::Stdio;
         use std::env;
+        use std::process::Stdio;
 
         let env_browser = env::var_os("BROWSER").map(|b| env::split_paths(&b).collect::<Vec<_>>());
         let env_commands = env_browser
@@ -389,11 +389,11 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
     }
     #[cfg(windows)]
     fn inner(path: &Path) -> io::Result<bool> {
-        use winapi::ctypes;
-        use winapi::shared::windef::HWND;
-        use winapi::shared::ntdef::LPCWSTR;
-        use winapi::shared::minwindef::HINSTANCE;
         use std::ptr;
+        use winapi::ctypes;
+        use winapi::shared::minwindef::HINSTANCE;
+        use winapi::shared::ntdef::LPCWSTR;
+        use winapi::shared::windef::HWND;
 
         // FIXME: When winapi has this function, use their version
         extern "system" {
@@ -427,14 +427,14 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
 
 #[cfg(windows)]
 pub mod windows {
-    use winapi::um::{combaseapi, shlobj, shtypes};
-    use winapi::shared::guiddef::GUID;
+    use std::ffi::{OsStr, OsString};
     use std::io;
+    use std::os::windows::ffi::{OsStrExt, OsStringExt};
     use std::path::PathBuf;
     use std::ptr;
     use std::slice;
-    use std::ffi::{OsStr, OsString};
-    use std::os::windows::ffi::{OsStrExt, OsStringExt};
+    use winapi::shared::guiddef::GUID;
+    use winapi::um::{combaseapi, shlobj, shtypes};
 
     #[allow(non_upper_case_globals)]
     pub const FOLDERID_LocalAppData: GUID = GUID {

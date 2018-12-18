@@ -10,14 +10,14 @@ use crate::component::components::*;
 use crate::component::transaction::*;
 
 use crate::errors::*;
-use rustup_utils::utils;
 use crate::temp;
+use rustup_utils::utils;
 
-use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::fmt;
-use std::io::Read;
 use std::fs::File;
+use std::io::Read;
+use std::path::{Path, PathBuf};
 
 /// The current metadata revision used by rust-installer
 pub const INSTALLER_VERSION: &'static str = "3";
@@ -66,11 +66,12 @@ fn validate_installer_version(path: &Path) -> Result<()> {
 
 impl Package for DirectoryPackage {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
-        self.components.contains(component) || if let Some(n) = short_name {
-            self.components.contains(n)
-        } else {
-            false
-        }
+        self.components.contains(component)
+            || if let Some(n) = short_name {
+                self.components.contains(n)
+            } else {
+                false
+            }
     }
     fn install<'a>(
         &self,
@@ -157,7 +158,8 @@ fn set_file_perms(dest_path: &Path, src_path: &Path) -> Result<()> {
                 .chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
         }
     } else {
-        let meta = fs::metadata(dest_path).chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
+        let meta =
+            fs::metadata(dest_path).chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
         let mut perm = meta.permissions();
         perm.set_mode(if is_bin || needs_x(&meta) {
             0o755

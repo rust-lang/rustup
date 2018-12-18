@@ -6,11 +6,11 @@ extern crate rustup_mock;
 extern crate rustup_utils;
 extern crate scopeguard;
 
-use std::sync::Mutex;
-use std::process::Stdio;
-use std::io::Write;
 use rustup_mock::clitools::{self, expect_stdout_ok, Config, SanitizedOutput, Scenario};
 use rustup_mock::{get_path, restore_path};
+use std::io::Write;
+use std::process::Stdio;
+use std::sync::Mutex;
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, &|config| {
@@ -130,10 +130,9 @@ fn with_no_modify_path() {
     setup(&|config| {
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "\n\n");
         assert!(out.ok);
-        assert!(
-            out.stdout
-                .contains("This path needs to be in your PATH environment variable")
-        );
+        assert!(out
+            .stdout
+            .contains("This path needs to be in your PATH environment variable"));
 
         if cfg!(unix) {
             assert!(!config.homedir.join(".profile").exists());

@@ -6,10 +6,15 @@ extern crate rustup_mock;
 extern crate rustup_utils;
 extern crate tempdir;
 
-use rustup_mock::clitools::{self, expect_err_ex, expect_ok, expect_ok_ex, this_host_triple,
-                            Config, Scenario};
+use rustup_mock::clitools::{
+    self, expect_err_ex, expect_ok, expect_ok_ex, this_host_triple, Config, Scenario,
+};
 
-macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
+macro_rules! for_host {
+    ($s: expr) => {
+        &format!($s, this_host_triple())
+    };
+}
 
 fn setup(f: &Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);

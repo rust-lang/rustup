@@ -1,14 +1,14 @@
 //! Installation and upgrade of both distribution-managed and local
 //! toolchains
 
-use rustup_dist::Notification;
-use rustup_dist::prefix::InstallPrefix;
-use rustup_utils::utils;
-use rustup_dist::temp;
+use crate::errors::Result;
+use rustup_dist::component::{Components, Package, TarGzPackage, Transaction};
 use rustup_dist::dist;
 use rustup_dist::download::DownloadCfg;
-use rustup_dist::component::{Components, Package, TarGzPackage, Transaction};
-use crate::errors::Result;
+use rustup_dist::prefix::InstallPrefix;
+use rustup_dist::temp;
+use rustup_dist::Notification;
+use rustup_utils::utils;
 use std::path::Path;
 
 #[derive(Copy, Clone)]

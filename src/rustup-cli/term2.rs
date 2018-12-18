@@ -2,11 +2,11 @@
 //! that does not fail if `StdoutTerminal` etc can't be constructed, which happens
 //! if TERM isn't defined.
 
+use markdown::tokenize;
+use markdown::{Block, ListItem, Span};
+use rustup_utils::tty;
 use std::io;
 use term;
-use rustup_utils::tty;
-use markdown::{Block, ListItem, Span};
-use markdown::tokenize;
 
 pub use term::color;
 pub use term::Attr;
@@ -212,9 +212,11 @@ impl<'a, T: Instantiable + Isatty + io::Write + 'a> LineFormatter<'a, T> {
                         ListItem::Simple(spans) => {
                             self.do_spans(spans);
                         }
-                        ListItem::Paragraph(blocks) => for block in blocks {
-                            self.do_block(block);
-                        },
+                        ListItem::Paragraph(blocks) => {
+                            for block in blocks {
+                                self.do_block(block);
+                            }
+                        }
                     }
                     self.wrapper.write_line();
                     self.wrapper.indent -= 2;

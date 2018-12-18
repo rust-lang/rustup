@@ -1,16 +1,16 @@
 //! Maintains a Rust installation by installing individual Rust
 //! platform components from a distribution server.
 
-use crate::config::Config;
-use crate::manifest::{Component, Manifest, TargetedPackage};
-use crate::dist::{TargetTriple, DEFAULT_DIST_SERVER};
 use crate::component::{Components, Package, TarGzPackage, TarXzPackage, Transaction};
-use crate::temp;
-use crate::errors::*;
-use crate::notifications::*;
-use rustup_utils::utils;
+use crate::config::Config;
+use crate::dist::{TargetTriple, DEFAULT_DIST_SERVER};
 use crate::download::{DownloadCfg, File};
+use crate::errors::*;
+use crate::manifest::{Component, Manifest, TargetedPackage};
+use crate::notifications::*;
 use crate::prefix::InstallPrefix;
+use crate::temp;
+use rustup_utils::utils;
 use std::path::Path;
 
 pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
@@ -290,7 +290,9 @@ impl Manifestation {
         } else if let Some(c) = self.installation.find(&short_name)? {
             tx = c.uninstall(tx)?;
         } else {
-            notify_handler(Notification::MissingInstalledComponent(&component.short_name(manifest)));
+            notify_handler(Notification::MissingInstalledComponent(
+                &component.short_name(manifest),
+            ));
         }
 
         Ok(tx)
@@ -344,10 +346,12 @@ impl Manifestation {
             return Err(format!(
                 "binary package was not provided for '{}'",
                 self.target_triple.to_string()
-            ).into());
+            )
+            .into());
         }
         // Only replace once. The cost is inexpensive.
-        let url = url.unwrap()
+        let url = url
+            .unwrap()
             .replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str());
 
         notify_handler(Notification::DownloadingComponent(
@@ -498,7 +502,7 @@ impl Update {
                 } else {
                     if changes.add_extensions.contains(&component) {
                         notify_handler(Notification::ComponentAlreadyInstalled(
-                            &component.description(new_manifest)
+                            &component.description(new_manifest),
                         ));
                     }
                 }
@@ -538,7 +542,8 @@ impl Update {
             if !is_removed {
                 // If there is a rename in the (new) manifest, then we uninstall the component with the
                 // old name and install a component with the new name
-                if let Some(renamed_component) = new_manifest.rename_component(&existing_component) {
+                if let Some(renamed_component) = new_manifest.rename_component(&existing_component)
+                {
                     let is_already_included =
                         self.final_component_list.contains(&renamed_component);
                     if !is_already_included {
@@ -575,11 +580,19 @@ impl Update {
         self.components_to_uninstall.is_empty() && self.components_to_install.is_empty()
     }
 
-    fn missing_essential_components(&self, target_triple: &TargetTriple, manifest: &Manifest) -> Result<()> {
+    fn missing_essential_components(
+        &self,
+        target_triple: &TargetTriple,
+        manifest: &Manifest,
+    ) -> Result<()> {
         let missing_essential_components = ["rustc", "cargo"]
             .iter()
             .filter_map(|pkg| {
-                if self.final_component_list.iter().any(|c| &c.short_name_in_manifest() == pkg) {
+                if self
+                    .final_component_list
+                    .iter()
+                    .any(|c| &c.short_name_in_manifest() == pkg)
+                {
                     None
                 } else {
                     Some(Component::new(pkg.to_string(), Some(target_triple.clone())))
@@ -588,20 +601,24 @@ impl Update {
             .collect::<Vec<_>>();
 
         if !missing_essential_components.is_empty() {
-            return Err(
-                ErrorKind::RequestedComponentsUnavailable(missing_essential_components, manifest.clone()).into(),
-            );
+            return Err(ErrorKind::RequestedComponentsUnavailable(
+                missing_essential_components,
+                manifest.clone(),
+            )
+            .into());
         }
 
         Ok(())
     }
 
     fn unavailable_components(&self, new_manifest: &Manifest) -> Result<()> {
-        let mut unavailable_components: Vec<Component> = self.components_to_install
+        let mut unavailable_components: Vec<Component> = self
+            .components_to_install
             .iter()
             .filter(|c| {
                 use crate::manifest::*;
-                let pkg: Option<&Package> = new_manifest.get_package(&c.short_name_in_manifest()).ok();
+                let pkg: Option<&Package> =
+                    new_manifest.get_package(&c.short_name_in_manifest()).ok();
                 let target_pkg: Option<&TargetedPackage> =
                     pkg.and_then(|p| p.get_target(c.target.as_ref()).ok());
                 target_pkg.map(|tp| tp.available()) != Some(true)
@@ -612,7 +629,11 @@ impl Update {
         unavailable_components.extend_from_slice(&self.missing_components);
 
         if !unavailable_components.is_empty() {
-            return Err(ErrorKind::RequestedComponentsUnavailable(unavailable_components, new_manifest.clone()).into());
+            return Err(ErrorKind::RequestedComponentsUnavailable(
+                unavailable_components,
+                new_manifest.clone(),
+            )
+            .into());
         }
 
         Ok(())

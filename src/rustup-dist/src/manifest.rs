@@ -11,11 +11,11 @@
 //! See tests/channel-rust-nightly-example.toml for an example.
 
 use crate::errors::*;
-use toml;
 use rustup_utils::toml_utils::*;
+use toml;
 
-use std::collections::HashMap;
 use crate::dist::TargetTriple;
+use std::collections::HashMap;
 
 pub const SUPPORTED_MANIFEST_VERSIONS: [&'static str; 1] = ["2"];
 pub const DEFAULT_MANIFEST_VERSION: &'static str = "2";
@@ -169,9 +169,11 @@ impl Manifest {
 
     fn validate_targeted_package(&self, tpkg: &TargetedPackage) -> Result<()> {
         for c in tpkg.components.iter().chain(tpkg.extensions.iter()) {
-            let cpkg = self.get_package(&c.pkg)
+            let cpkg = self
+                .get_package(&c.pkg)
                 .chain_err(|| ErrorKind::MissingPackageForComponent(c.short_name(self)))?;
-            let _ctpkg = cpkg.get_target(c.target.as_ref())
+            let _ctpkg = cpkg
+                .get_target(c.target.as_ref())
                 .chain_err(|| ErrorKind::MissingPackageForComponent(c.short_name(self)))?;
         }
         Ok(())
@@ -184,9 +186,11 @@ impl Manifest {
                 PackageTargets::Wildcard(ref tpkg) => {
                     self.validate_targeted_package(tpkg)?;
                 }
-                PackageTargets::Targeted(ref tpkgs) => for (_, tpkg) in tpkgs {
-                    self.validate_targeted_package(tpkg)?;
-                },
+                PackageTargets::Targeted(ref tpkgs) => {
+                    for (_, tpkg) in tpkgs {
+                        self.validate_targeted_package(tpkg)?;
+                    }
+                }
             }
         }
 
@@ -235,8 +239,7 @@ impl Package {
 
         if let Some(toml::Value::Table(t)) = target_table.remove("*") {
             Ok(PackageTargets::Wildcard(TargetedPackage::from_toml(
-                t,
-                &path,
+                t, &path,
             )?))
         } else {
             let mut result = HashMap::new();
@@ -257,9 +260,11 @@ impl Package {
             PackageTargets::Wildcard(tpkg) => {
                 result.insert("*".to_owned(), toml::Value::Table(tpkg.to_toml()));
             }
-            PackageTargets::Targeted(tpkgs) => for (k, v) in tpkgs {
-                result.insert(k.to_string(), toml::Value::Table(v.to_toml()));
-            },
+            PackageTargets::Targeted(tpkgs) => {
+                for (k, v) in tpkgs {
+                    result.insert(k.to_string(), toml::Value::Table(v.to_toml()));
+                }
+            }
         }
         result
     }

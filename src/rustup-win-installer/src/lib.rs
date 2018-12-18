@@ -3,12 +3,12 @@
 extern crate rustup;
 extern crate winapi;
 
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::path::PathBuf;
-use std::collections::HashMap;
 
-use winapi::shared::ntdef::{HRESULT, LPCWSTR, LPWSTR, PCSTR};
 use winapi::shared::minwindef::{LPVOID, UINT};
+use winapi::shared::ntdef::{HRESULT, LPCWSTR, LPWSTR, PCSTR};
 
 pub type MSIHANDLE = u32;
 

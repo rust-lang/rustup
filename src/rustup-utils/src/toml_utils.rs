@@ -1,5 +1,5 @@
-use toml;
 use crate::errors::*;
+use toml;
 
 pub fn get_value(table: &mut toml::value::Table, key: &str, path: &str) -> Result<toml::Value> {
     table

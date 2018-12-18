@@ -1,23 +1,24 @@
 use crate::errors::*;
-use std::path::{Path, PathBuf};
-use std::fs::{self, File};
-use std::io::{self, Write};
-use std::process::Command;
-use std::ffi::OsString;
-use std::env;
-use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
-use sha2::Sha256;
 use crate::notifications::Notification;
 use crate::raw;
+use sha2::Sha256;
+use std::cmp::Ord;
+use std::env;
+use std::ffi::OsString;
+use std::fs::{self, File};
+use std::io::{self, Write};
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
+use url::Url;
 #[cfg(windows)]
 use winapi::shared::minwindef::DWORD;
 #[cfg(windows)]
 use winreg;
-use std::cmp::Ord;
-use url::Url;
 
-pub use crate::raw::{find_cmd, has_cmd, if_not_empty, is_directory, is_file, path_exists, prefix_arg,
-              random_string};
+pub use crate::raw::{
+    find_cmd, has_cmd, if_not_empty, is_directory, is_file, path_exists, prefix_arg, random_string,
+};
 
 pub struct ExitCode(pub i32);
 
@@ -28,7 +29,8 @@ pub fn ensure_dir_exists(
 ) -> Result<bool> {
     raw::ensure_dir_exists(path, |p| {
         notify_handler(Notification::CreatingDirectory(name, p))
-    }).chain_err(|| ErrorKind::CreatingDirectory {
+    })
+    .chain_err(|| ErrorKind::CreatingDirectory {
         name: name,
         path: PathBuf::from(path),
     })
@@ -166,10 +168,10 @@ fn download_file_(
     resume_from_partial: bool,
     notify_handler: &Fn(Notification),
 ) -> Result<()> {
-    use sha2::Digest;
-    use std::cell::RefCell;
     use download::download_to_path_with_backend;
     use download::{self, Backend, Event};
+    use sha2::Digest;
+    use std::cell::RefCell;
 
     notify_handler(Notification::DownloadingFile(url, path));
 
@@ -237,7 +239,8 @@ pub fn assert_is_file(path: &Path) -> Result<()> {
     if !is_file(path) {
         Err(ErrorKind::NotAFile {
             path: PathBuf::from(path),
-        }.into())
+        }
+        .into())
     } else {
         Ok(())
     }
@@ -247,7 +250,8 @@ pub fn assert_is_directory(path: &Path) -> Result<()> {
     if !is_directory(path) {
         Err(ErrorKind::NotADirectory {
             path: PathBuf::from(path),
-        }.into())
+        }
+        .into())
     } else {
         Ok(())
     }
@@ -289,7 +293,8 @@ pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     Err(ErrorKind::LinkingFile {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
-    }.into())
+    }
+    .into())
 }
 
 pub fn copy_dir(src: &Path, dest: &Path, notify_handler: &Fn(Notification)) -> Result<()> {
@@ -344,7 +349,7 @@ pub fn ensure_file_removed(name: &'static str, path: &Path) -> Result<()> {
     let result = fs::remove_file(path);
     if let Err(err) = &result {
         if err.kind() == io::ErrorKind::NotFound {
-            return Ok(())
+            return Ok(());
         }
     }
     result.chain_err(|| ErrorKind::RemovingFile {
@@ -424,6 +429,7 @@ pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
 // depending on whether you happened to install under msys.
 #[cfg(windows)]
 pub fn home_dir() -> Option<PathBuf> {
+    use scopeguard;
     use std::ptr;
     use winapi::shared::winerror::ERROR_INSUFFICIENT_BUFFER;
     use winapi::um::errhandlingapi::GetLastError;
@@ -431,7 +437,6 @@ pub fn home_dir() -> Option<PathBuf> {
     use winapi::um::processthreadsapi::{GetCurrentProcess, OpenProcessToken};
     use winapi::um::userenv::GetUserProfileDirectoryW;
     use winapi::um::winnt::TOKEN_READ;
-    use scopeguard;
 
     ::std::env::var_os("USERPROFILE")
         .map(PathBuf::from)
@@ -453,7 +458,8 @@ pub fn home_dir() -> Option<PathBuf> {
                     }
                 },
                 os2path,
-            ).ok()
+            )
+            .ok()
         })
 }
 
@@ -469,8 +475,8 @@ where
     F1: FnMut(*mut u16, DWORD) -> DWORD,
     F2: FnOnce(&[u16]) -> T,
 {
-    use winapi::um::errhandlingapi::{GetLastError, SetLastError};
     use winapi::shared::winerror::ERROR_INSUFFICIENT_BUFFER;
+    use winapi::um::errhandlingapi::{GetLastError, SetLastError};
 
     // Start off with a stack buf but then spill over to the heap if we end up
     // needing more space.
@@ -530,7 +536,8 @@ pub fn cargo_home() -> Result<PathBuf> {
     // multirust-rs to rustup upgrade seamless.
     let env_var = if let Some(v) = env_var {
         let vv = v.to_string_lossy().to_string();
-        if vv.contains(".multirust/cargo") || vv.contains(r".multirust\cargo")
+        if vv.contains(".multirust/cargo")
+            || vv.contains(r".multirust\cargo")
             || vv.trim().is_empty()
         {
             None
@@ -650,25 +657,26 @@ pub fn do_rustup_home_upgrade() -> bool {
     };
 
     // Now we're trying to move ~/.multirust to ~/.rustup
-    old_rustup_dir_removed && if multirust_dir_exists() {
-        if rustup_dir_exists() {
-            // There appears to be both a ~/.multirust dir and a valid ~/.rustup
-            // dir. Most likely because one is a symlink to the other, as configured
-            // below.
-            true
-        } else {
-            if rename_multirust_dir_to_rustup().is_ok() {
-                // Finally, making the hardlink from ~/.multirust back to
-                // ~/.rustup, for temporary compatibility.
-                let _ = create_legacy_multirust_symlink();
+    old_rustup_dir_removed
+        && if multirust_dir_exists() {
+            if rustup_dir_exists() {
+                // There appears to be both a ~/.multirust dir and a valid ~/.rustup
+                // dir. Most likely because one is a symlink to the other, as configured
+                // below.
                 true
             } else {
-                false
+                if rename_multirust_dir_to_rustup().is_ok() {
+                    // Finally, making the hardlink from ~/.multirust back to
+                    // ~/.rustup, for temporary compatibility.
+                    let _ = create_legacy_multirust_symlink();
+                    true
+                } else {
+                    false
+                }
             }
+        } else {
+            true
         }
-    } else {
-        true
-    }
 }
 
 // Creates a ~/.rustup folder and a ~/.multirust symlink
@@ -716,8 +724,8 @@ pub fn delete_legacy_multirust_symlink() -> Result<()> {
     let oldhome = legacy_multirust_home()?;
 
     if oldhome.exists() {
-        let meta =
-            fs::symlink_metadata(&oldhome).chain_err(|| "unable to get metadata for ~/.multirust")?;
+        let meta = fs::symlink_metadata(&oldhome)
+            .chain_err(|| "unable to get metadata for ~/.multirust")?;
         if meta.file_type().is_symlink() {
             // remove_dir handles unlinking symlinks
             raw::remove_dir(&oldhome)
@@ -785,8 +793,8 @@ pub fn string_to_winreg_bytes(s: &str) -> Vec<u8> {
 // conversion.
 #[cfg(windows)]
 pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<String> {
-    use winreg::enums::RegType;
     use std::slice;
+    use winreg::enums::RegType;
 
     match val.vtype {
         RegType::REG_SZ | RegType::REG_EXPAND_SZ => {

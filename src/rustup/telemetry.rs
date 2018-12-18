@@ -1,7 +1,7 @@
 use crate::errors::*;
-use time;
 use rustup_utils::{raw, utils};
 use serde_json;
+use time;
 
 use std::fs;
 use std::path::PathBuf;

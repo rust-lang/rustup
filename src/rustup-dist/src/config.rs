@@ -1,8 +1,8 @@
 use toml;
 
-use rustup_utils::toml_utils::*;
-use crate::errors::*;
 use super::manifest::Component;
+use crate::errors::*;
+use rustup_utils::toml_utils::*;
 
 pub const SUPPORTED_CONFIG_VERSIONS: [&'static str; 1] = ["1"];
 pub const DEFAULT_CONFIG_VERSION: &'static str = "1";

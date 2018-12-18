@@ -1,9 +1,9 @@
-use std::path::PathBuf;
-use std::io::{self, Write};
-use crate::temp;
-use toml;
-use rustup_utils;
 use crate::manifest::{Component, Manifest};
+use crate::temp;
+use rustup_utils;
+use std::io::{self, Write};
+use std::path::PathBuf;
+use toml;
 
 error_chain! {
     links {
@@ -121,7 +121,8 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest) -> String {
         );
     } else {
         use itertools::Itertools;
-        let same_target = cs.iter()
+        let same_target = cs
+            .iter()
             .all(|c| c.target == cs[0].target || c.target.is_none());
         if same_target {
             let mut cs_strs = cs.iter().map(|c| format!("'{}'", c.short_name(manifest)));

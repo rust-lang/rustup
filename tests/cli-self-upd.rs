@@ -17,22 +17,27 @@ extern crate winapi;
 #[cfg(windows)]
 extern crate winreg;
 
-use tempdir::TempDir;
-use std::sync::Mutex;
-use std::env;
-use std::env::consts::EXE_SUFFIX;
-use std::path::Path;
-use std::fs;
-use std::process::Command;
 use remove_dir_all::remove_dir_all;
-use rustup_mock::clitools::{self, expect_err, expect_err_ex, expect_ok, expect_ok_contains,
-                            expect_ok_ex, expect_stderr_ok, expect_stdout_ok, this_host_triple,
-                            Config, Scenario};
+use rustup_mock::clitools::{
+    self, expect_err, expect_err_ex, expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok,
+    expect_stdout_ok, this_host_triple, Config, Scenario,
+};
 use rustup_mock::dist::calc_hash;
 use rustup_mock::{get_path, restore_path};
 use rustup_utils::{raw, utils};
+use std::env;
+use std::env::consts::EXE_SUFFIX;
+use std::fs;
+use std::path::Path;
+use std::process::Command;
+use std::sync::Mutex;
+use tempdir::TempDir;
 
-macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
+macro_rules! for_host {
+    ($s: expr) => {
+        &format!($s, this_host_triple())
+    };
+}
 
 const TEST_VERSION: &'static str = "1.1.1";
 
@@ -530,19 +535,21 @@ fn install_doesnt_modify_path_if_passed_no_modify_path() {
 #[test]
 #[cfg(windows)]
 fn install_doesnt_modify_path_if_passed_no_modify_path() {
-    use winreg::RegKey;
     use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::RegKey;
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let old_path = environment.get_raw_value("PATH").unwrap();
 
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let new_path = environment.get_raw_value("PATH").unwrap();
 
@@ -556,7 +563,8 @@ fn update_exact() {
     let expected_output = &(r"info: checking for self-updates
 info: downloading self-update
 info: rustup updated successfully to "
-        .to_owned() + version
+        .to_owned()
+        + version
         + "
 ");
 
@@ -996,14 +1004,15 @@ fn rustup_init_works_with_weird_names() {
 #[test]
 #[cfg(windows)]
 fn doesnt_write_wrong_path_type_to_reg() {
-    use winreg::RegKey;
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::RegKey;
 
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.vtype == RegType::REG_EXPAND_SZ);
@@ -1011,7 +1020,8 @@ fn doesnt_write_wrong_path_type_to_reg() {
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.vtype == RegType::REG_EXPAND_SZ);
@@ -1023,19 +1033,21 @@ fn doesnt_write_wrong_path_type_to_reg() {
 #[test]
 #[cfg(windows)]
 fn windows_handle_empty_path_registry_key() {
-    use winreg::RegKey;
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::RegKey;
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let _ = environment.delete_value("PATH");
 
         expect_ok(config, &["rustup-init", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.vtype == RegType::REG_EXPAND_SZ);
@@ -1043,7 +1055,8 @@ fn windows_handle_empty_path_registry_key() {
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let path = environment.get_raw_value("PATH");
 
@@ -1054,12 +1067,13 @@ fn windows_handle_empty_path_registry_key() {
 #[test]
 #[cfg(windows)]
 fn windows_uninstall_removes_semicolon_from_path() {
-    use winreg::RegKey;
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::RegKey;
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
 
         // This time set the value of PATH and make sure it's restored exactly after uninstall,
@@ -1069,7 +1083,8 @@ fn windows_uninstall_removes_semicolon_from_path() {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.vtype == RegType::REG_EXPAND_SZ);
@@ -1077,7 +1092,8 @@ fn windows_uninstall_removes_semicolon_from_path() {
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let path: String = environment.get_value("PATH").unwrap();
         assert!(path == "foo");
@@ -1087,18 +1103,21 @@ fn windows_uninstall_removes_semicolon_from_path() {
 #[test]
 #[cfg(windows)]
 fn install_doesnt_mess_with_a_non_unicode_path() {
-    use winreg::{RegKey, RegValue};
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::{RegKey, RegValue};
 
     setup(&|config| {
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
 
         let reg_value = RegValue {
-            bytes: vec![0x00, 0xD8,  // leading surrogate
-                        0x01, 0x01,  // bogus trailing surrogate
-                        0x00, 0x00], // null
+            bytes: vec![
+                0x00, 0xD8, // leading surrogate
+                0x01, 0x01, // bogus trailing surrogate
+                0x00, 0x00,
+            ], // null
             vtype: RegType::REG_EXPAND_SZ,
         };
         environment.set_raw_value("PATH", &reg_value).unwrap();
@@ -1108,7 +1127,8 @@ fn install_doesnt_mess_with_a_non_unicode_path() {
                           Not modifying the PATH variable");
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.bytes == reg_value.bytes);
@@ -1118,20 +1138,23 @@ fn install_doesnt_mess_with_a_non_unicode_path() {
 #[test]
 #[cfg(windows)]
 fn uninstall_doesnt_mess_with_a_non_unicode_path() {
-    use winreg::{RegKey, RegValue};
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::{RegKey, RegValue};
 
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
 
         let reg_value = RegValue {
-            bytes: vec![0x00, 0xD8,  // leading surrogate
-                        0x01, 0x01,  // bogus trailing surrogate
-                        0x00, 0x00], // null
+            bytes: vec![
+                0x00, 0xD8, // leading surrogate
+                0x01, 0x01, // bogus trailing surrogate
+                0x00, 0x00,
+            ], // null
             vtype: RegType::REG_EXPAND_SZ,
         };
         environment.set_raw_value("PATH", &reg_value).unwrap();
@@ -1141,7 +1164,8 @@ fn uninstall_doesnt_mess_with_a_non_unicode_path() {
                           Not modifying the PATH variable");
 
         let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
         assert!(path.bytes == reg_value.bytes);
@@ -1222,12 +1246,10 @@ fn install_creates_legacy_home_symlink() {
         assert!(rustup_dir.exists());
         let multirust_dir = config.homedir.join(".multirust");
         assert!(multirust_dir.exists());
-        assert!(
-            fs::symlink_metadata(&multirust_dir)
-                .unwrap()
-                .file_type()
-                .is_symlink()
-        );
+        assert!(fs::symlink_metadata(&multirust_dir)
+            .unwrap()
+            .file_type()
+            .is_symlink());
     });
 }
 
@@ -1267,12 +1289,10 @@ fn install_over_unupgraded_multirust_dir() {
         // Directories should be set up correctly
         assert!(rustup_dir.exists());
         assert!(multirust_dir.exists());
-        assert!(
-            fs::symlink_metadata(&multirust_dir)
-                .unwrap()
-                .file_type()
-                .is_symlink()
-        );
+        assert!(fs::symlink_metadata(&multirust_dir)
+            .unwrap()
+            .file_type()
+            .is_symlink());
 
         // We should still be on nightly
         let mut cmd = clitools::cmd(config, "rustc", &["--version"]);
@@ -1376,7 +1396,9 @@ fn update_installs_clippy_cargo_and() {
         let version = env!("CARGO_PKG_VERSION");
         output_release_file(self_dist, "1", version);
 
-        let ref cargo_clippy_path = config.cargodir.join(format!("bin/cargo-clippy{}", EXE_SUFFIX));
+        let ref cargo_clippy_path = config
+            .cargodir
+            .join(format!("bin/cargo-clippy{}", EXE_SUFFIX));
         assert!(cargo_clippy_path.exists());
     });
 }

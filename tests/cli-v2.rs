@@ -6,15 +6,20 @@ extern crate rustup_mock;
 extern crate rustup_utils;
 extern crate tempdir;
 
+use rustup_mock::clitools::{
+    self, expect_err, expect_not_stdout_ok, expect_ok, expect_stderr_ok, expect_stdout_ok,
+    set_current_dist_date, this_host_triple, Config, Scenario,
+};
 use std::fs;
 use tempdir::TempDir;
-use rustup_mock::clitools::{self, expect_err, expect_not_stdout_ok, expect_ok, expect_stderr_ok,
-                            expect_stdout_ok, set_current_dist_date, this_host_triple, Config,
-                            Scenario};
 
 use rustup_dist::dist::TargetTriple;
 
-macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
+macro_rules! for_host {
+    ($s: expr) => {
+        &format!($s, this_host_triple())
+    };
+}
 
 pub fn setup(f: &Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);
@@ -787,7 +792,6 @@ fn remove_target_host() {
 // Issue #304
 fn remove_target_missing_update_hash() {
     setup(&|config| {
-
         expect_ok(config, &["rustup", "update", "nightly"]);
 
         let file_name = format!("nightly-{}", this_host_triple());

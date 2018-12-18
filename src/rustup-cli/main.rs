@@ -46,21 +46,21 @@ extern crate winreg;
 mod log;
 mod common;
 mod download_tracker;
-mod proxy_mode;
-mod setup_mode;
-mod rustup_mode;
-mod self_update;
-mod job;
-mod term2;
 mod errors;
 mod help;
+mod job;
+mod proxy_mode;
+mod rustup_mode;
+mod self_update;
+mod setup_mode;
+mod term2;
 
+use crate::errors::*;
+use rustup::env_var::RUST_RECURSION_COUNT_MAX;
+use rustup_dist::dist::TargetTriple;
 use std::alloc::System;
 use std::env;
 use std::path::PathBuf;
-use crate::errors::*;
-use rustup_dist::dist::TargetTriple;
-use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 
 // Always use the system allocator, to reduce binary size.
 #[global_allocator]
@@ -83,14 +83,16 @@ fn run_rustup() -> Result<()> {
 
     // The name of arg0 determines how the program is going to behave
     let arg0 = env::args().next().map(PathBuf::from);
-    let name = arg0.as_ref()
+    let name = arg0
+        .as_ref()
         .and_then(|a| a.file_stem())
         .and_then(|a| a.to_str());
 
     match name {
         Some("rustup") => rustup_mode::main(),
         Some(n)
-            if n.starts_with("multirust-setup") || n.starts_with("rustup-setup")
+            if n.starts_with("multirust-setup")
+                || n.starts_with("rustup-setup")
                 || n.starts_with("rustup-init") =>
         {
             // NB: The above check is only for the prefix of the file
@@ -171,8 +173,8 @@ fn make_environment_compatible() {
 // REG_SZ type, when it should be REG_EXPAND_SZ. Silently fix it.
 #[cfg(windows)]
 fn fix_windows_reg_key() {
-    use winreg::RegKey;
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::RegKey;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let env = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE);

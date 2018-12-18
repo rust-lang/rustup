@@ -1,7 +1,7 @@
 extern crate gcc;
 
-use std::env;
 use gcc::windows_registry::{self, VsVers};
+use std::env;
 
 fn main() {
     println!("cargo:rustc-link-lib=dylib=msi");

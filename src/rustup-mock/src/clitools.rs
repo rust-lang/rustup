@@ -1,10 +1,15 @@
 //! A mock distribution server used by tests/cli-v1.rs and
 //! tests/cli-v2.rs
 
+use crate::dist::{
+    change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer, MockPackage,
+    MockTargetedPackage,
+};
+use crate::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::env::consts::EXE_SUFFIX;
 use std::env;
+use std::env::consts::EXE_SUFFIX;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::mem;
@@ -13,9 +18,6 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::Duration;
 use tempdir::TempDir;
-use crate::{MockComponentBuilder, MockFile, MockInstallerBuilder};
-use crate::dist::{change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer,
-           MockPackage, MockTargetedPackage};
 use url::Url;
 use wait_timeout::ChildExt;
 
@@ -393,7 +395,8 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
     MockDistServer {
         path: path.to_owned(),
         channels: chans,
-    }.write(vs, true);
+    }
+    .write(vs, true);
 
     // Also create the manifests for stable releases by version
     if dates_count > 1 {
@@ -424,14 +427,16 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
                 host_triple
             )),
             path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple)),
-        ).unwrap();
+        )
+        .unwrap();
         hard_link(
             path.join(format!(
                 "dist/2015-01-01/rust-stable-{}.tar.gz.sha256",
                 host_triple
             )),
             path.join(format!("dist/rust-1.0.0-{}.tar.gz.sha256", host_triple)),
-        ).unwrap();
+        )
+        .unwrap();
     }
     hard_link(
         path.join(format!(
@@ -439,14 +444,16 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
             host_triple
         )),
         path.join(format!("dist/rust-1.1.0-{}.tar.gz", host_triple)),
-    ).unwrap();
+    )
+    .unwrap();
     hard_link(
         path.join(format!(
             "dist/2015-01-02/rust-stable-{}.tar.gz.sha256",
             host_triple
         )),
         path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple)),
-    ).unwrap();
+    )
+    .unwrap();
 }
 
 fn build_mock_channel(
@@ -642,15 +649,13 @@ fn build_mock_unavailable_channel(channel: &str, date: &str, version: &'static s
         .map(|name| MockPackage {
             name,
             version,
-            targets: vec![
-                MockTargetedPackage {
-                    target: host_triple.clone(),
-                    available: false,
-                    components: vec![],
-                    extensions: vec![],
-                    installer: MockInstallerBuilder { components: vec![] },
-                },
-            ],
+            targets: vec![MockTargetedPackage {
+                target: host_triple.clone(),
+                available: false,
+                components: vec![],
+                extensions: vec![],
+                installer: MockInstallerBuilder { components: vec![] },
+            }],
         })
         .collect();
 
@@ -700,28 +705,25 @@ pub fn this_host_triple() -> String {
 
 fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: format!("rust-std-{}", trip.clone()),
-                files: vec![
-                    MockFile::new(format!("lib/rustlib/{}/libstd.rlib", trip), b""),
-                ],
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: format!("rust-std-{}", trip.clone()),
+            files: vec![MockFile::new(
+                format!("lib/rustlib/{}/libstd.rlib", trip),
+                b"",
+            )],
+        }],
     }
 }
 
 fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: format!("rust-std-{}", target.clone()),
-                files: vec![
-                    MockFile::new(format!("lib/rustlib/{}/lib/libstd.rlib", target), b""),
-                    MockFile::new(format!("lib/rustlib/{}/lib/{}", target, date), b""),
-                ],
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: format!("rust-std-{}", target.clone()),
+            files: vec![
+                MockFile::new(format!("lib/rustlib/{}/lib/libstd.rlib", target), b""),
+                MockFile::new(format!("lib/rustlib/{}/lib/{}", target, date), b""),
+            ],
+        }],
     }
 }
 
@@ -741,23 +743,19 @@ fn build_mock_rustc_installer(
     }
 
     MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: "rustc".to_string(),
-                files: mock_bin("rustc", version, &version_hash),
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: "rustc".to_string(),
+            files: mock_bin("rustc", version, &version_hash),
+        }],
     }
 }
 
 fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: "cargo".to_string(),
-                files: mock_bin("cargo", version, &version_hash),
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: "cargo".to_string(),
+            files: mock_bin("cargo", version, &version_hash),
+        }],
     }
 }
 
@@ -767,51 +765,44 @@ fn build_mock_rls_installer(
     preview: bool,
 ) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: if preview {
-                    "rls-preview".to_string()
-                } else {
-                    "rls".to_string()
-                },
-                files: mock_bin("rls", version, version_hash),
+        components: vec![MockComponentBuilder {
+            name: if preview {
+                "rls-preview".to_string()
+            } else {
+                "rls".to_string()
             },
-        ],
+            files: mock_bin("rls", version, version_hash),
+        }],
     }
 }
 
 fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: "rust-docs".to_string(),
-                files: vec![MockFile::new("share/doc/rust/html/index.html", b"")],
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: "rust-docs".to_string(),
+            files: vec![MockFile::new("share/doc/rust/html/index.html", b"")],
+        }],
     }
 }
 
 fn build_mock_rust_analysis_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: format!("rust-analysis-{}", trip),
-                files: vec![
-                    MockFile::new(format!("lib/rustlib/{}/analysis/libfoo.json", trip), b""),
-                ],
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: format!("rust-analysis-{}", trip),
+            files: vec![MockFile::new(
+                format!("lib/rustlib/{}/analysis/libfoo.json", trip),
+                b"",
+            )],
+        }],
     }
 }
 
 fn build_mock_rust_src_installer() -> MockInstallerBuilder {
     MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: "rust-src".to_string(),
-                files: vec![MockFile::new("lib/rustlib/src/rust-src/foo.rs", b"")],
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: "rust-src".to_string(),
+            files: vec![MockFile::new("lib/rustlib/src/rust-src/foo.rs", b"")],
+        }],
     }
 }
 

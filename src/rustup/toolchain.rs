@@ -1,24 +1,24 @@
-use crate::errors::*;
-use crate::notifications::*;
-use rustup_dist;
-use rustup_dist::download::DownloadCfg;
-use rustup_utils::utils;
-use rustup_dist::prefix::InstallPrefix;
-use rustup_dist::dist::ToolchainDesc;
-use rustup_dist::manifestation::{Changes, Manifestation};
-use rustup_dist::manifest::Component;
 use crate::config::Cfg;
 use crate::env_var;
+use crate::errors::*;
 use crate::install::{self, InstallMethod};
+use crate::notifications::*;
 use crate::telemetry;
 use crate::telemetry::{Telemetry, TelemetryEvent};
+use rustup_dist;
+use rustup_dist::dist::ToolchainDesc;
+use rustup_dist::download::DownloadCfg;
+use rustup_dist::manifest::Component;
+use rustup_dist::manifestation::{Changes, Manifestation};
+use rustup_dist::prefix::InstallPrefix;
+use rustup_utils::utils;
 
-use std::env::consts::EXE_SUFFIX;
-use std::ffi::OsString;
-use std::process::Command;
-use std::path::{Path, PathBuf};
-use std::ffi::OsStr;
 use std::env;
+use std::env::consts::EXE_SUFFIX;
+use std::ffi::OsStr;
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use url::Url;
 
@@ -226,7 +226,8 @@ impl<'a> Toolchain<'a> {
     pub fn is_tracking(&self) -> bool {
         ToolchainDesc::from_str(&self.name)
             .ok()
-            .map(|d| d.is_tracking()) == Some(true)
+            .map(|d| d.is_tracking())
+            == Some(true)
     }
 
     fn ensure_custom(&self) -> Result<()> {
@@ -234,7 +235,8 @@ impl<'a> Toolchain<'a> {
             Err(
                 ErrorKind::Dist(::rustup_dist::ErrorKind::InvalidCustomToolchainName(
                     self.name.to_string(),
-                )).into(),
+                ))
+                .into(),
             )
         } else {
             Ok(())
@@ -344,7 +346,8 @@ impl<'a> Toolchain<'a> {
                 return Err(ErrorKind::BinaryNotFound(
                     self.name.clone(),
                     binary.to_string_lossy().into(),
-                ).into());
+                )
+                .into());
             }
             Path::new(&binary)
         };
@@ -390,7 +393,8 @@ impl<'a> Toolchain<'a> {
                 .chain_err(|| "unable to create dir to hold fallback exe")?;
             let fallback_file = fallback_dir.join("cargo.exe");
             if fallback_file.exists() {
-                fs::remove_file(&fallback_file).chain_err(|| "unable to unlink old fallback exe")?;
+                fs::remove_file(&fallback_file)
+                    .chain_err(|| "unable to unlink old fallback exe")?;
             }
             fs::hard_link(&src_file, &fallback_file)
                 .chain_err(|| "unable to hard link fallback exe")?;
@@ -513,10 +517,12 @@ impl<'a> Toolchain<'a> {
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
-                let component_pkg = manifest.get_package(&component.short_name_in_manifest()).expect(&format!(
-                    "manifest should contain component {}",
-                    &component.short_name(&manifest)
-                ));
+                let component_pkg = manifest
+                    .get_package(&component.short_name_in_manifest())
+                    .expect(&format!(
+                        "manifest should contain component {}",
+                        &component.short_name(&manifest)
+                    ));
                 let component_target_pkg = component_pkg
                     .targets
                     .get(&toolchain.target)
@@ -538,10 +544,12 @@ impl<'a> Toolchain<'a> {
                     .unwrap_or(false);
 
                 // Get the component so we can check if it is available
-                let extension_pkg = manifest.get_package(&extension.short_name_in_manifest()).expect(&format!(
-                    "manifest should contain extension {}",
-                    &extension.short_name(&manifest)
-                ));
+                let extension_pkg = manifest
+                    .get_package(&extension.short_name_in_manifest())
+                    .expect(&format!(
+                        "manifest should contain extension {}",
+                        &extension.short_name(&manifest)
+                    ));
                 let extension_target_pkg = extension_pkg
                     .targets
                     .get(&toolchain.target)
@@ -651,12 +659,11 @@ impl<'a> Toolchain<'a> {
                 if targ_pkg.extensions.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
-                    return Err(
-                        ErrorKind::UnknownComponent(
-                            self.name.to_string(),
-                            component.description(&manifest),
-                        ).into(),
-                    );
+                    return Err(ErrorKind::UnknownComponent(
+                        self.name.to_string(),
+                        component.description(&manifest),
+                    )
+                    .into());
                 }
             }
 
@@ -708,12 +715,11 @@ impl<'a> Toolchain<'a> {
                 .expect("installed manifest should have a known target");
 
             if targ_pkg.components.contains(&component) {
-                return Err(
-                    ErrorKind::RemovingRequiredComponent(
-                        self.name.to_string(),
-                        component.description(&manifest),
-                    ).into(),
-                );
+                return Err(ErrorKind::RemovingRequiredComponent(
+                    self.name.to_string(),
+                    component.description(&manifest),
+                )
+                .into());
             }
 
             let dist_config = manifestation.read_config()?.unwrap();
@@ -722,12 +728,11 @@ impl<'a> Toolchain<'a> {
                 if dist_config.components.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
-                    return Err(
-                        ErrorKind::UnknownComponent(
-                            self.name.to_string(),
-                            component.description(&manifest),
-                        ).into(),
-                    );
+                    return Err(ErrorKind::UnknownComponent(
+                        self.name.to_string(),
+                        component.description(&manifest),
+                    )
+                    .into());
                 }
             }
 

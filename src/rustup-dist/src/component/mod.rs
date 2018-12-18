@@ -1,10 +1,9 @@
+pub use self::components::*;
+pub use self::package::*;
 /// An interpreter for the rust-installer [1] installation format.
 ///
 /// https://github.com/rust-lang/rust-installer
-
 pub use self::transaction::*;
-pub use self::components::*;
-pub use self::package::*;
 
 // Transactional file system tools
 mod transaction;

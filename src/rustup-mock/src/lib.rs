@@ -17,8 +17,8 @@ extern crate winapi;
 #[cfg(windows)]
 extern crate winreg;
 
-pub mod dist;
 pub mod clitools;
+pub mod dist;
 
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
@@ -144,10 +144,12 @@ impl MockFile {
     pub fn build(&self, path: &Path) {
         let path = path.join(&self.path);
         match self.contents {
-            Contents::Dir(ref files) => for &(ref name, ref contents) in files {
-                let fname = path.join(name);
-                contents.build(&fname);
-            },
+            Contents::Dir(ref files) => {
+                for &(ref name, ref contents) in files {
+                    let fname = path.join(name);
+                    contents.build(&fname);
+                }
+            }
             Contents::File(ref contents) => contents.build(&path),
         }
     }
@@ -176,11 +178,12 @@ impl MockContents {
 
 #[cfg(windows)]
 pub fn get_path() -> Option<String> {
-    use winreg::RegKey;
     use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::RegKey;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+    let environment = root
+        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .unwrap();
 
     environment.get_value("PATH").ok()
@@ -188,11 +191,12 @@ pub fn get_path() -> Option<String> {
 
 #[cfg(windows)]
 pub fn restore_path(p: &Option<String>) {
-    use winreg::{RegKey, RegValue};
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::{RegKey, RegValue};
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+    let environment = root
+        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .unwrap();
 
     if let Some(p) = p.as_ref() {

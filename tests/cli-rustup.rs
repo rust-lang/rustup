@@ -5,16 +5,21 @@ extern crate rustup_mock;
 extern crate rustup_utils;
 extern crate tempdir;
 
-use std::fs;
+use rustup_mock::clitools::{
+    self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok,
+    set_current_dist_date, this_host_triple, Config, Scenario,
+};
+use rustup_utils::raw;
 use std::env::consts::EXE_SUFFIX;
+use std::fs;
 use std::path::MAIN_SEPARATOR;
 use std::process;
-use rustup_utils::raw;
-use rustup_mock::clitools::{self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok,
-                            expect_stdout_ok, set_current_dist_date, this_host_triple, Config,
-                            Scenario};
 
-macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
+macro_rules! for_host {
+    ($s: expr) => {
+        &format!($s, this_host_triple())
+    };
+}
 
 pub fn setup(f: &Fn(&Config)) {
     clitools::setup(Scenario::ArchivesV2, &|config| {
@@ -865,12 +870,7 @@ fn show_active_toolchain() {
 #[test]
 fn show_active_toolchain_none() {
     setup(&|config| {
-        expect_ok_ex(
-            config,
-            &["rustup", "show", "active-toolchain"],
-            r"",
-            r"",
-        );
+        expect_ok_ex(config, &["rustup", "show", "active-toolchain"], r"", r"");
     });
 }
 
@@ -1092,12 +1092,10 @@ fn multirust_dir_upgrade_rename_multirust_dir_to_rustup() {
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
         assert!(multirust_dir.exists());
-        assert!(
-            fs::symlink_metadata(&multirust_dir)
-                .unwrap()
-                .file_type()
-                .is_symlink()
-        );
+        assert!(fs::symlink_metadata(&multirust_dir)
+            .unwrap()
+            .file_type()
+            .is_symlink());
         assert!(rustup_dir.exists());
     });
 }
@@ -1140,12 +1138,10 @@ fn multirust_dir_upgrade_old_rustup_exists() {
         assert!(String::from_utf8(out.stdout).unwrap().contains("stable"));
 
         assert!(multirust_dir.exists());
-        assert!(
-            fs::symlink_metadata(&multirust_dir)
-                .unwrap()
-                .file_type()
-                .is_symlink()
-        );
+        assert!(fs::symlink_metadata(&multirust_dir)
+            .unwrap()
+            .file_type()
+            .is_symlink());
         assert!(rustup_dir.exists());
         assert!(!old_rustup_sh_version_file.exists());
         assert!(new_rustup_sh_version_file.exists());
@@ -1201,12 +1197,10 @@ fn multirust_dir_upgrade_old_rustup_existsand_new_rustup_sh_exists() {
 
         // .multirust is now a symlink to .rustup
         assert!(multirust_dir.exists());
-        assert!(
-            fs::symlink_metadata(&multirust_dir)
-                .unwrap()
-                .file_type()
-                .is_symlink()
-        );
+        assert!(fs::symlink_metadata(&multirust_dir)
+            .unwrap()
+            .file_type()
+            .is_symlink());
 
         assert!(rustup_dir.exists());
         assert!(!old_rustup_sh_version_file.exists());
@@ -1230,12 +1224,10 @@ fn multirust_upgrade_works_with_proxy() {
         run_no_home(config, &["rustc", "--version"], &[]);
 
         assert!(multirust_dir.exists());
-        assert!(
-            fs::symlink_metadata(&multirust_dir)
-                .unwrap()
-                .file_type()
-                .is_symlink()
-        );
+        assert!(fs::symlink_metadata(&multirust_dir)
+            .unwrap()
+            .file_type()
+            .is_symlink());
         assert!(rustup_dir.exists());
     });
 }
