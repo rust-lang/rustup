@@ -273,7 +273,7 @@ get_architecture() {
 
         mips64)
             _bitness="$(get_bitness)"
-            if [ "$_bitness" -eq "32" ]; then
+            if [ "$_bitness" -eq 32 ]; then
                 if [ "$_ostype" = "unknown-linux-gnu" ]; then
                     # 64-bit kernel with 32-bit userland
                     # endianness suffix is appended later
