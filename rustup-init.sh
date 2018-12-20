@@ -299,10 +299,17 @@ get_architecture() {
 
     esac
 
-    # Detect 64-bit linux with 32-bit userland
+    # Detect 64-bit linux with 32-bit userland for x86
     if [ $_ostype = unknown-linux-gnu -a $_cputype = x86_64 ]; then
         if [ "$(get_bitness)" = "32" ]; then
             local _cputype=i686
+        fi
+    fi
+
+    # Detect 64-bit linux with 32-bit userland for powerpc
+    if [ $_ostype = unknown-linux-gnu -a $_cputype = powerpc64 ]; then
+        if [ "$(get_bitness)" = "32" ]; then
+            local _cputype=powerpc
         fi
     fi
 
