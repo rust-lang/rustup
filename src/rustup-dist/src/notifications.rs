@@ -1,10 +1,10 @@
-use std::path::Path;
-use std::fmt::{self, Display};
+use crate::dist::TargetTriple;
+use crate::errors::*;
 use crate::temp;
 use rustup_utils;
 use rustup_utils::notify::NotificationLevel;
-use crate::dist::TargetTriple;
-use crate::errors::*;
+use std::fmt::{self, Display};
+use std::path::Path;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -82,9 +82,7 @@ impl<'a> Display for Notification<'a> {
             Temp(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
             Extracting(_, _) => write!(f, "extracting..."),
-            ComponentAlreadyInstalled(ref c) => {
-                write!(f, "component {} is up to date", c)
-            }
+            ComponentAlreadyInstalled(ref c) => write!(f, "component {} is up to date", c),
             CantReadUpdateHash(path) => write!(
                 f,
                 "can't read update hash file: '{}', can't skip update...",

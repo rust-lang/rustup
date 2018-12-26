@@ -2,19 +2,19 @@
 //! distribution server, with v1 and v2 manifests.
 
 use crate::MockInstallerBuilder;
-use url::Url;
+use flate2;
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use tempdir::TempDir;
-use sha2::{Digest, Sha256};
-use toml;
-use flate2;
-use xz2;
 use tar;
+use tempdir::TempDir;
+use toml;
+use url::Url;
 use walkdir;
+use xz2;
 
 use crate::clitools::hard_link;
 
@@ -204,8 +204,7 @@ impl MockDistServer {
         // Tarball creation can be super slow, so cache created tarballs
         // globally to avoid recreating and recompressing tons of tarballs.
         lazy_static! {
-            static ref TARBALLS: Mutex<HashMap<(String, MockTargetedPackage, String),
-                                               (Vec<u8>, String)>> =
+            static ref TARBALLS: Mutex<HashMap<(String, MockTargetedPackage, String), (Vec<u8>, String)>> =
                 Mutex::new(HashMap::new());
         }
 
@@ -327,7 +326,8 @@ impl MockDistServer {
                 } else {
                     format!("{}-{}.tar.gz", package.name, channel.name)
                 };
-                let path = self.path
+                let path = self
+                    .path
                     .join("dist")
                     .join(&channel.date)
                     .join(package_file_name);
@@ -415,7 +415,8 @@ impl MockDistServer {
         let ref archive_manifest_path = self.path.join(format!("{}.toml", archive_manifest_name));
         hard_link(manifest_path, archive_manifest_path).unwrap();
 
-        let ref archive_hash_path = self.path
+        let ref archive_hash_path = self
+            .path
             .join(format!("{}.toml.sha256", archive_manifest_name));
         hard_link(hash_path, archive_hash_path).unwrap();
     }

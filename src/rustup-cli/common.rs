@@ -1,19 +1,19 @@
 //! Just a dumping ground for cli stuff
 
-use rustup::{self, Cfg, Notification, Toolchain, UpdateStatus};
-use rustup::telemetry_analysis::TelemetryAnalysis;
 use crate::errors::*;
-use rustup_utils::utils;
-use rustup_utils::notify::NotificationLevel;
 use crate::self_update;
+use crate::term2;
+use rustup::telemetry_analysis::TelemetryAnalysis;
+use rustup::{self, Cfg, Notification, Toolchain, UpdateStatus};
+use rustup_utils::notify::NotificationLevel;
+use rustup_utils::utils;
+use std;
 use std::io::{BufRead, BufReader, Write};
-use std::process::{Command, Stdio};
 use std::path::Path;
-use std::{cmp, iter};
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::Duration;
-use std;
-use crate::term2;
+use std::{cmp, iter};
 use wait_timeout::ChildExt;
 
 pub fn confirm(question: &str, default: bool) -> Result<bool> {
@@ -178,7 +178,8 @@ fn show_channel_updates(
     let mut t = term2::stdout();
 
     let data: Vec<_> = data.collect();
-    let max_width = data.iter()
+    let max_width = data
+        .iter()
         .fold(0, |a, &(_, _, width, _, _)| cmp::max(a, width));
 
     for (name, banner, width, color, version) in data {
@@ -365,11 +366,8 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
             }
             println!(
                 "{:<40}\t{:<20}",
-                utils::format_path_for_display(&k) + if dir_exists {
-                    ""
-                } else {
-                    " (not a directory)"
-                },
+                utils::format_path_for_display(&k)
+                    + if dir_exists { "" } else { " (not a directory)" },
                 v
             )
         }

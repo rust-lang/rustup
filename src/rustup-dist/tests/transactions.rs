@@ -2,18 +2,18 @@ extern crate rustup_dist;
 extern crate rustup_utils;
 extern crate tempdir;
 
-use rustup_dist::prefix::InstallPrefix;
 use rustup_dist::component::Transaction;
 use rustup_dist::dist::DEFAULT_DIST_SERVER;
+use rustup_dist::prefix::InstallPrefix;
 use rustup_dist::temp;
-use rustup_dist::Notification;
 use rustup_dist::ErrorKind;
-use rustup_utils::utils;
+use rustup_dist::Notification;
 use rustup_utils::raw as utils_raw;
-use tempdir::TempDir;
+use rustup_utils::utils;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
+use tempdir::TempDir;
 
 #[test]
 fn add_file() {
@@ -172,7 +172,8 @@ fn copy_file_that_exists() {
     fs::create_dir_all(&prefixdir.path().join("foo")).unwrap();
     utils::write_file("", &prefixdir.path().join("foo/bar"), "").unwrap();
 
-    let err = tx.copy_file("c", PathBuf::from("foo/bar"), &srcpath)
+    let err = tx
+        .copy_file("c", PathBuf::from("foo/bar"), &srcpath)
         .unwrap_err();
 
     match err.0 {
@@ -271,7 +272,8 @@ fn copy_dir_that_exists() {
 
     fs::create_dir_all(prefix.path().join("a")).unwrap();
 
-    let err = tx.copy_dir("c", PathBuf::from("a"), srcdir.path())
+    let err = tx
+        .copy_dir("c", PathBuf::from("a"), srcdir.path())
         .unwrap_err();
 
     match err.0 {
@@ -508,7 +510,8 @@ fn write_file_that_exists() {
 
     let content = "hi".to_string();
     utils_raw::write_file(&prefix.path().join("a"), &content).unwrap();
-    let err = tx.write_file("c", PathBuf::from("a"), content.clone())
+    let err = tx
+        .write_file("c", PathBuf::from("a"), content.clone())
         .unwrap_err();
 
     match err.0 {

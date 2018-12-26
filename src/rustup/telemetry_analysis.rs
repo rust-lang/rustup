@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
-use std::io::BufReader;
 use std::io::BufRead;
+use std::io::BufReader;
 use std::path::PathBuf;
 
 use itertools::Itertools;
@@ -119,7 +119,8 @@ impl TelemetryAnalysis {
 
     pub fn import_telemery(&mut self) -> Result<Vec<TelemetryEvent>> {
         let mut events: Vec<TelemetryEvent> = Vec::new();
-        let contents = self.telemetry_dir
+        let contents = self
+            .telemetry_dir
             .read_dir()
             .chain_err(|| ErrorKind::TelemetryAnalysisError)?;
 
@@ -189,7 +190,8 @@ impl TelemetryAnalysis {
                     self.rustc_statistics.rustc_execution_count += 1;
                     rustc_durations.push(duration_ms);
 
-                    let exit_count = self.rustc_statistics
+                    let exit_count = self
+                        .rustc_statistics
                         .exit_codes_with_count
                         .entry(*exit_code)
                         .or_insert(0);
@@ -243,7 +245,8 @@ impl TelemetryAnalysis {
         let error_list = Itertools::flatten(error_list.into_iter());
 
         for e in error_list {
-            let error_count = self.rustc_statistics
+            let error_count = self
+                .rustc_statistics
                 .error_codes_with_counts
                 .entry(e)
                 .or_insert(0);

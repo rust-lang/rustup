@@ -1,11 +1,11 @@
+use rustup::Notification;
+use rustup_dist::Notification as In;
+use rustup_utils::tty;
+use rustup_utils::Notification as Un;
 use std::collections::VecDeque;
 use std::fmt;
 use term;
 use time::precise_time_s;
-use rustup::Notification;
-use rustup_dist::Notification as In;
-use rustup_utils::Notification as Un;
-use rustup_utils::tty;
 
 /// Keep track of this many past download amounts
 const DOWNLOAD_TRACK_COUNT: usize = 5;
@@ -123,7 +123,8 @@ impl DownloadTracker {
     /// Display the tracked download information to the terminal.
     fn display(&mut self) {
         let total_h = HumanReadable(self.total_downloaded as f64);
-        let sum = self.downloaded_last_few_secs
+        let sum = self
+            .downloaded_last_few_secs
             .iter()
             .fold(0., |a, &v| a + v as f64);
         let len = self.downloaded_last_few_secs.len();

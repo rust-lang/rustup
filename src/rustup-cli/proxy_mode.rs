@@ -1,13 +1,13 @@
 use crate::common::set_globals;
-use rustup::Cfg;
 use crate::errors::*;
-use rustup_utils::utils::{self, ExitCode};
+use crate::job;
 use rustup::command::run_command_for_dir;
+use rustup::Cfg;
+use rustup_utils::utils::{self, ExitCode};
 use std::env;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process;
-use crate::job;
 
 pub fn main() -> Result<()> {
     crate::self_update::cleanup_self_updater()?;
@@ -18,7 +18,8 @@ pub fn main() -> Result<()> {
         let mut args = env::args();
 
         let arg0 = args.next().map(PathBuf::from);
-        let arg0 = arg0.as_ref()
+        let arg0 = arg0
+            .as_ref()
             .and_then(|a| a.file_name())
             .and_then(|a| a.to_str());
         let ref arg0 = arg0.ok_or(ErrorKind::NoExeName)?;
@@ -48,7 +49,12 @@ pub fn main() -> Result<()> {
     process::exit(c)
 }
 
-fn direct_proxy(cfg: &Cfg, arg0: &str, toolchain: Option<&str>, args: &[OsString]) -> Result<ExitCode> {
+fn direct_proxy(
+    cfg: &Cfg,
+    arg0: &str,
+    toolchain: Option<&str>,
+    args: &[OsString],
+) -> Result<ExitCode> {
     let cmd = match toolchain {
         None => cfg.create_command_for_dir(&utils::current_dir()?, arg0)?,
         Some(tc) => cfg.create_command_for_toolchain(tc, false, arg0)?,

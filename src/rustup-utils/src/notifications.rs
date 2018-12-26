@@ -1,5 +1,5 @@
-use std::path::Path;
 use std::fmt::{self, Display};
+use std::path::Path;
 
 use url::Url;
 

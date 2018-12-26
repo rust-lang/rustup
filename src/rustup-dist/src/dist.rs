@@ -1,16 +1,16 @@
-use crate::temp;
+use crate::download::DownloadCfg;
 use crate::errors::*;
-use crate::notifications::*;
-use rustup_utils::{self, utils};
-use crate::prefix::InstallPrefix;
 use crate::manifest::Component;
 use crate::manifest::Manifest as ManifestV2;
 use crate::manifestation::{Changes, Manifestation, UpdateStatus};
-use crate::download::DownloadCfg;
+use crate::notifications::*;
+use crate::prefix::InstallPrefix;
+use crate::temp;
+use rustup_utils::{self, utils};
 
-use std::path::Path;
-use std::fmt;
 use std::env;
+use std::fmt;
+use std::path::Path;
 
 use regex::Regex;
 
@@ -125,8 +125,8 @@ impl TargetTriple {
     pub fn from_host() -> Option<Self> {
         #[cfg(windows)]
         fn inner() -> Option<TargetTriple> {
-            use winapi::um::sysinfoapi::GetNativeSystemInfo;
             use std::mem;
+            use winapi::um::sysinfoapi::GetNativeSystemInfo;
 
             // First detect architecture
             const PROCESSOR_ARCHITECTURE_AMD64: u16 = 9;
@@ -152,8 +152,8 @@ impl TargetTriple {
         #[cfg(not(windows))]
         fn inner() -> Option<TargetTriple> {
             use libc;
-            use std::mem;
             use std::ffi::CStr;
+            use std::mem;
 
             let mut sys_info;
             let (sysname, machine) = unsafe {
@@ -582,14 +582,13 @@ pub fn update_from_dist_<'a>(
     ) {
         Ok(None) => Ok(None),
         Ok(Some(hash)) => Ok(Some(hash)),
-        e @ Err(Error(ErrorKind::Utils(rustup_utils::ErrorKind::DownloadNotExists { .. }), _)) => {
-            e.chain_err(|| {
+        e @ Err(Error(ErrorKind::Utils(rustup_utils::ErrorKind::DownloadNotExists { .. }), _)) => e
+            .chain_err(|| {
                 format!(
                     "could not download nonexistent rust version `{}`",
                     toolchain_str
                 )
-            })
-        }
+            }),
         Err(e) => Err(e),
     }
 }

@@ -1,18 +1,18 @@
-use std::path::{Path, PathBuf};
 use std::borrow::Cow;
 use std::env;
-use std::io;
-use std::process::Command;
 use std::fmt::{self, Display};
+use std::io;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::Arc;
 
 use crate::errors::*;
 use crate::notifications::*;
+use crate::settings::{Settings, SettingsFile, TelemetryMode, DEFAULT_METADATA_VERSION};
+use crate::telemetry_analysis::*;
+use crate::toolchain::{Toolchain, UpdateStatus};
 use rustup_dist::{dist, temp};
 use rustup_utils::utils;
-use crate::toolchain::{Toolchain, UpdateStatus};
-use crate::telemetry_analysis::*;
-use crate::settings::{Settings, SettingsFile, TelemetryMode, DEFAULT_METADATA_VERSION};
 
 #[derive(Debug)]
 pub enum OverrideReason {
@@ -210,11 +210,13 @@ impl Cfg {
     }
 
     pub fn find_default(&self) -> Result<Option<Toolchain>> {
-        let opt_name = self.settings_file
+        let opt_name = self
+            .settings_file
             .with(|s| Ok(s.default_toolchain.clone()))?;
 
         if let Some(name) = opt_name {
-            let toolchain = self.verify_toolchain(&name)
+            let toolchain = self
+                .verify_toolchain(&name)
                 .chain_err(|| ErrorKind::ToolchainNotInstalled(name.to_string()))?;
 
             Ok(Some(toolchain))
@@ -478,7 +480,8 @@ impl Cfg {
     }
 
     pub fn get_default_host_triple(&self) -> Result<dist::TargetTriple> {
-        Ok(self.settings_file
+        Ok(self
+            .settings_file
             .with(|s| {
                 Ok(s.default_host_triple
                     .as_ref()

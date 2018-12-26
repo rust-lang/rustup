@@ -1,7 +1,7 @@
-use std::path::PathBuf;
-use std::ffi::OsString;
-use url::Url;
 use download;
+use std::ffi::OsString;
+use std::path::PathBuf;
+use url::Url;
 
 error_chain! {
     links {

@@ -7,19 +7,24 @@ extern crate rustup_utils;
 extern crate tempdir;
 extern crate time;
 
-use rustup_mock::clitools::{self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok,
-                            expect_stdout_ok, expect_timeout_ok, run, set_current_dist_date,
-                            this_host_triple, Config, Scenario};
+use rustup_mock::clitools::{
+    self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok,
+    expect_timeout_ok, run, set_current_dist_date, this_host_triple, Config, Scenario,
+};
 use rustup_utils::{raw, utils};
 
+use std::env::consts::EXE_SUFFIX;
 use std::ops::Add;
 use std::ops::Sub;
 use std::time::Duration as StdDuration;
-use std::env::consts::EXE_SUFFIX;
 use tempdir::TempDir;
 use time::Duration;
 
-macro_rules! for_host { ($s: expr) => (&format!($s, this_host_triple())) }
+macro_rules! for_host {
+    ($s: expr) => {
+        &format!($s, this_host_triple())
+    };
+}
 
 pub fn setup(f: &Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);
@@ -147,21 +152,21 @@ fn upgrade_toml_settings() {
             "rustup's metadata is out of date. run `rustup self upgrade-data`",
         );
         // Replace the metadata version
-        assert!(!rustup_utils::raw::is_file(&config
-            .rustupdir
-            .join("version")));
-        assert!(!rustup_utils::raw::is_file(&config
-            .rustupdir
-            .join("default")));
-        assert!(!rustup_utils::raw::is_file(&config
-            .rustupdir
-            .join("overrides")));
-        assert!(!rustup_utils::raw::is_file(&config
-            .rustupdir
-            .join("telemetry-on")));
-        assert!(rustup_utils::raw::is_file(&config
-            .rustupdir
-            .join("settings.toml")));
+        assert!(!rustup_utils::raw::is_file(
+            &config.rustupdir.join("version")
+        ));
+        assert!(!rustup_utils::raw::is_file(
+            &config.rustupdir.join("default")
+        ));
+        assert!(!rustup_utils::raw::is_file(
+            &config.rustupdir.join("overrides")
+        ));
+        assert!(!rustup_utils::raw::is_file(
+            &config.rustupdir.join("telemetry-on")
+        ));
+        assert!(rustup_utils::raw::is_file(
+            &config.rustupdir.join("settings.toml")
+        ));
 
         let content =
             rustup_utils::raw::read_file(&config.rustupdir.join("settings.toml")).unwrap();
@@ -613,12 +618,7 @@ fn rename_rls_list() {
         expect_ok(config, &["rustup", "update", "--no-self-update"]);
         expect_ok(config, &["rustup", "component", "add", "rls"]);
 
-        let out = run(
-            config,
-            "rustup",
-            &["component", "list"],
-            &[],
-        );
+        let out = run(config, "rustup", &["component", "list"], &[]);
         assert!(out.ok);
         assert!(out.stdout.contains(&format!("rls-{}", this_host_triple())));
     });
@@ -634,12 +634,7 @@ fn rename_rls_preview_list() {
         expect_ok(config, &["rustup", "update", "--no-self-update"]);
         expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
 
-        let out = run(
-            config,
-            "rustup",
-            &["component", "list"],
-            &[],
-        );
+        let out = run(config, "rustup", &["component", "list"], &[]);
         assert!(out.ok);
         assert!(out.stdout.contains(&format!("rls-{}", this_host_triple())));
     });
@@ -657,12 +652,20 @@ fn rename_rls_remove() {
         expect_ok(config, &["rustup", "component", "add", "rls"]);
         expect_ok(config, &["rls", "--version"]);
         expect_ok(config, &["rustup", "component", "remove", "rls"]);
-        expect_err(config, &["rls", "--version"], &format!("'rls{}' is not installed", EXE_SUFFIX));
+        expect_err(
+            config,
+            &["rls", "--version"],
+            &format!("'rls{}' is not installed", EXE_SUFFIX),
+        );
 
         expect_ok(config, &["rustup", "component", "add", "rls"]);
         expect_ok(config, &["rls", "--version"]);
         expect_ok(config, &["rustup", "component", "remove", "rls-preview"]);
-        expect_err(config, &["rls", "--version"], &format!("'rls{}' is not installed", EXE_SUFFIX));
+        expect_err(
+            config,
+            &["rls", "--version"],
+            &format!("'rls{}' is not installed", EXE_SUFFIX),
+        );
     });
 }
 
@@ -685,14 +688,12 @@ fn install_stops_if_rustc_exists() {
             ],
         );
         assert!(!out.ok);
-        assert!(
-            out.stderr
-                .contains("it looks like you have an existing installation of Rust at:")
-        );
-        assert!(
-            out.stderr
-                .contains("if this is what you want, restart the installation with `-y'")
-        );
+        assert!(out
+            .stderr
+            .contains("it looks like you have an existing installation of Rust at:"));
+        assert!(out
+            .stderr
+            .contains("if this is what you want, restart the installation with `-y'"));
     });
 }
 
@@ -715,14 +716,12 @@ fn install_stops_if_cargo_exists() {
             ],
         );
         assert!(!out.ok);
-        assert!(
-            out.stderr
-                .contains("it looks like you have an existing installation of Rust at:")
-        );
-        assert!(
-            out.stderr
-                .contains("if this is what you want, restart the installation with `-y'")
-        );
+        assert!(out
+            .stderr
+            .contains("it looks like you have an existing installation of Rust at:"));
+        assert!(out
+            .stderr
+            .contains("if this is what you want, restart the installation with `-y'"));
     });
 }
 
@@ -752,8 +751,8 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
 #[test]
 #[cfg(any(unix, windows))]
 fn toolchain_broken_symlink() {
-    use std::path::Path;
     use std::fs;
+    use std::path::Path;
 
     #[cfg(unix)]
     fn create_symlink_dir<P: AsRef<Path>, Q: AsRef<Path>>(src: P, dst: Q) {

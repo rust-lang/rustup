@@ -32,18 +32,18 @@
 
 use crate::common::{self, Confirm};
 use crate::errors::*;
+use crate::term2;
+use regex::Regex;
+use rustup::{DUP_TOOLS, TOOLS};
 use rustup_dist::dist;
 use rustup_utils::utils;
-use rustup::{TOOLS, DUP_TOOLS};
 use same_file::Handle;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
+use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::process::{self, Command};
-use std::fs;
 use tempdir::TempDir;
-use crate::term2;
-use regex::Regex;
 
 pub struct InstallOpts {
     pub default_host_triple: String,
@@ -61,8 +61,8 @@ pub const NEVER_SELF_UPDATE: bool = false;
 
 macro_rules! pre_install_msg_template {
     ($platform_msg: expr) => {
-concat!(
-r"
+        concat!(
+            r"
 # Welcome to Rust!
 
 This will download and install the official compiler for the Rust
@@ -74,45 +74,48 @@ Cargo's bin directory, located at:
     {cargo_home_bin}
 
 ",
-$platform_msg
-,
-r#"
+            $platform_msg,
+            r#"
 
 You can uninstall at any time with `rustup self uninstall` and
 these changes will be reverted.
 "#
-    )};
+        )
+    };
 }
 
 macro_rules! pre_install_msg_unix {
     () => {
-pre_install_msg_template!(
-"This path will then be added to your `PATH` environment variable by
+        pre_install_msg_template!(
+            "This path will then be added to your `PATH` environment variable by
 modifying the profile file{plural} located at:
 
 {rcfiles}"
-    )};
+        )
+    };
 }
 
 macro_rules! pre_install_msg_win {
     () => {
-pre_install_msg_template!(
-"This path will then be added to your `PATH` environment variable by
+        pre_install_msg_template!(
+            "This path will then be added to your `PATH` environment variable by
 modifying the `HKEY_CURRENT_USER/Environment/PATH` registry key."
-    )};
+        )
+    };
 }
 
 macro_rules! pre_install_msg_no_modify_path {
     () => {
-pre_install_msg_template!(
-"This path needs to be in your `PATH` environment variable,
+        pre_install_msg_template!(
+            "This path needs to be in your `PATH` environment variable,
 but will not be added automatically."
-    )};
+        )
+    };
 }
 
 macro_rules! post_install_msg_unix {
     () => {
-r"# Rust is installed now. Great!
+        r"# Rust is installed now. Great!
 
 To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
 environment variable. Next time you log in this will be done
@@ -125,7 +128,7 @@ To configure your current shell run `source {cargo_home}/env`
 
 macro_rules! post_install_msg_win {
     () => {
-r"# Rust is installed now. Great!
+        r"# Rust is installed now. Great!
 
 To get started you need Cargo's bin directory ({cargo_home}\bin) in your `PATH`
 environment variable. Future applications will automatically have the
@@ -136,7 +139,7 @@ correct environment, but you may need to restart your current shell.
 
 macro_rules! post_install_msg_unix_no_modify_path {
     () => {
-r"# Rust is installed now. Great!
+        r"# Rust is installed now. Great!
 
 To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
 environment variable.
@@ -148,7 +151,7 @@ To configure your current shell run `source {cargo_home}/env`
 
 macro_rules! post_install_msg_win_no_modify_path {
     () => {
-r"# Rust is installed now. Great!
+        r"# Rust is installed now. Great!
 
 To get started you need Cargo's bin directory ({cargo_home}\bin) in your `PATH`
 environment variable. This has not been done automatically.
@@ -158,13 +161,13 @@ environment variable. This has not been done automatically.
 
 macro_rules! pre_uninstall_msg {
     () => {
-r"# Thanks for hacking in Rust!
+        r"# Thanks for hacking in Rust!
 
 This will uninstall all Rust toolchains and data, and remove
 `{cargo_home}/bin` from your `PATH` environment variable.
 
 "
-    }
+    };
 }
 
 static MSVC_MESSAGE: &'static str = r#"# Rust Visual C++ prerequisites
@@ -333,9 +336,11 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
 fn rustc_or_cargo_exists_in_path() -> Result<()> {
     // Ignore rustc and cargo if present in $HOME/.cargo/bin or a few other directories
     fn ignore_paths(path: &PathBuf) -> bool {
-        !path.components()
+        !path
+            .components()
             .any(|c| c == Component::Normal(".cargo".as_ref()))
-            && !path.components()
+            && !path
+                .components()
                 .any(|c| c == Component::Normal(".multirust".as_ref()))
     }
 
@@ -477,7 +482,8 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         if env::var("RUSTUP_INIT_SKIP_SUDO_CHECK")
             .as_ref()
             .map(Deref::deref)
-            .ok() == Some("yes")
+            .ok()
+            == Some("yes")
         {
             return false;
         }
@@ -890,8 +896,8 @@ fn get_msi_product_code() -> Result<String> {
 
 #[cfg(feature = "msi-installed")]
 fn get_msi_product_code() -> Result<String> {
-    use winreg::RegKey;
     use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
+    use winreg::RegKey;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root.open_subkey_with_flags("SOFTWARE\\rustup", KEY_READ);
@@ -965,16 +971,16 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
     let numbah: u32 = rand::random();
     let gc_exe = work_path.join(&format!("rustup-gc-{:x}.exe", numbah));
 
+    use std::io;
+    use std::mem;
+    use std::os::windows::ffi::OsStrExt;
+    use std::ptr;
+    use winapi::shared::minwindef::DWORD;
     use winapi::um::fileapi::{CreateFileW, OPEN_EXISTING};
     use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
     use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
     use winapi::um::winbase::FILE_FLAG_DELETE_ON_CLOSE;
     use winapi::um::winnt::{FILE_SHARE_DELETE, FILE_SHARE_READ, GENERIC_READ};
-    use winapi::shared::minwindef::DWORD;
-    use std::os::windows::ffi::OsStrExt;
-    use std::ptr;
-    use std::io;
-    use std::mem;
 
     unsafe {
         // Copy rustup (probably this process's exe) to the gc exe
@@ -1055,18 +1061,19 @@ pub fn complete_windows_uninstall() -> Result<()> {
 
 #[cfg(windows)]
 fn wait_for_parent() -> Result<()> {
+    use scopeguard;
+    use std::io;
+    use std::mem;
+    use std::ptr;
     use winapi::shared::minwindef::DWORD;
     use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
     use winapi::um::processthreadsapi::{GetCurrentProcessId, OpenProcess};
     use winapi::um::synchapi::WaitForSingleObject;
-    use winapi::um::tlhelp32::{CreateToolhelp32Snapshot, PROCESSENTRY32, Process32First,
-                               Process32Next, TH32CS_SNAPPROCESS};
-    use winapi::um::winbase::{WAIT_OBJECT_0, INFINITE};
+    use winapi::um::tlhelp32::{
+        CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS,
+    };
+    use winapi::um::winbase::{INFINITE, WAIT_OBJECT_0};
     use winapi::um::winnt::SYNCHRONIZE;
-    use std::io;
-    use std::mem;
-    use std::ptr;
-    use scopeguard;
 
     unsafe {
         // Take a snapshot of system processes, one of which is ours
@@ -1204,12 +1211,13 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
-    use winreg::{RegKey, RegValue};
-    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winapi::shared::minwindef::*;
-    use winapi::um::winuser::{SendMessageTimeoutA, HWND_BROADCAST, SMTO_ABORTIFHUNG,
-                              WM_SETTINGCHANGE};
     use std::ptr;
+    use winapi::shared::minwindef::*;
+    use winapi::um::winuser::{
+        SendMessageTimeoutA, HWND_BROADCAST, SMTO_ABORTIFHUNG, WM_SETTINGCHANGE,
+    };
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::{RegKey, RegValue};
 
     let old_path = if let Some(s) = get_windows_path_var()? {
         s
@@ -1232,7 +1240,8 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     }
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+    let environment = root
+        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .chain_err(|| ErrorKind::PermissionDenied)?;
 
     let reg_value = RegValue {
@@ -1265,12 +1274,13 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 // should not mess with it.
 #[cfg(windows)]
 fn get_windows_path_var() -> Result<Option<String>> {
-    use winreg::RegKey;
-    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use std::io;
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::RegKey;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+    let environment = root
+        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .chain_err(|| ErrorKind::PermissionDenied)?;
 
     let reg_value = environment.get_raw_value("PATH");
@@ -1316,12 +1326,13 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
 fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
-    use winapi::shared::minwindef::*;
-    use winapi::um::winuser::{SendMessageTimeoutA, HWND_BROADCAST, SMTO_ABORTIFHUNG,
-                              WM_SETTINGCHANGE};
-    use winreg::{RegKey, RegValue};
-    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use std::ptr;
+    use winapi::shared::minwindef::*;
+    use winapi::um::winuser::{
+        SendMessageTimeoutA, HWND_BROADCAST, SMTO_ABORTIFHUNG, WM_SETTINGCHANGE,
+    };
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::{RegKey, RegValue};
 
     let old_path = if let Some(s) = get_windows_path_var()? {
         s
@@ -1351,7 +1362,8 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     new_path.push_str(&old_path[idx + len..]);
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+    let environment = root
+        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .chain_err(|| ErrorKind::PermissionDenied)?;
 
     if new_path.is_empty() {

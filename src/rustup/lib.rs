@@ -16,16 +16,22 @@ extern crate time;
 extern crate toml;
 extern crate url;
 
+pub use crate::config::*;
 pub use crate::errors::*;
 pub use crate::notifications::*;
-pub use crate::config::*;
 pub use crate::toolchain::*;
 pub use rustup_utils::{notify, toml_utils, utils};
 
-
 // A list of all binaries which Rustup will proxy.
-pub static TOOLS: &'static [&'static str] =
-    &["rustc", "rustdoc", "cargo", "rust-lldb", "rust-gdb", "rls", "cargo-clippy"];
+pub static TOOLS: &'static [&'static str] = &[
+    "rustc",
+    "rustdoc",
+    "cargo",
+    "rust-lldb",
+    "rust-gdb",
+    "rls",
+    "cargo-clippy",
+];
 
 // Tools which are commonly installed by Cargo as well as rustup. We take a bit
 // more care with these to ensure we don't overwrite the user's previous
@@ -45,13 +51,13 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
     }
 }
 
-mod errors;
-mod notifications;
-mod toolchain;
+pub mod command;
 mod config;
+pub mod env_var;
+mod errors;
 mod install;
+mod notifications;
 pub mod settings;
 pub mod telemetry;
-pub mod command;
 pub mod telemetry_analysis;
-pub mod env_var;
+mod toolchain;

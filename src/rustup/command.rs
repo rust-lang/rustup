@@ -1,16 +1,16 @@
+use regex::Regex;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Seek, SeekFrom, Write};
 use std::process::{self, Command, Stdio};
 use std::time::Instant;
-use regex::Regex;
 use tempfile::tempfile;
 
-use crate::Cfg;
 use crate::errors::*;
 use crate::notifications::*;
-use rustup_utils::{self, utils::ExitCode};
 use crate::telemetry::{Telemetry, TelemetryEvent};
+use crate::Cfg;
+use rustup_utils::{self, utils::ExitCode};
 
 pub fn run_command_for_dir<S: AsRef<OsStr>>(
     cmd: Command,
@@ -62,7 +62,8 @@ fn telemetry_rustc<S: AsRef<OsStr>>(
 
     // FIXME rust-lang/rust#32254. It's not clear to me
     // when and why this is needed.
-    let mut cmd = cmd.stdin(Stdio::inherit())
+    let mut cmd = cmd
+        .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(cmd_err_stdio)
         .spawn()

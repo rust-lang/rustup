@@ -9,11 +9,11 @@
 //! FIXME: This uses ensure_dir_exists in some places but rollback
 //! does not remove any dirs created by it.
 
-use rustup_utils::utils;
-use crate::temp;
-use crate::prefix::InstallPrefix;
 use crate::errors::*;
 use crate::notifications::*;
+use crate::prefix::InstallPrefix;
+use crate::temp;
+use rustup_utils::utils;
 
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -201,7 +201,8 @@ impl<'a> ChangedItem<'a> {
             Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            }.into())
+            }
+            .into())
         } else {
             if let Some(p) = abs_path.parent() {
                 utils::ensure_dir_exists("component", p, &|_| ())?;
@@ -223,7 +224,8 @@ impl<'a> ChangedItem<'a> {
             Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            }.into())
+            }
+            .into())
         } else {
             if let Some(p) = abs_path.parent() {
                 utils::ensure_dir_exists("component", p, &|_| ())?;
@@ -243,7 +245,8 @@ impl<'a> ChangedItem<'a> {
             Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            }.into())
+            }
+            .into())
         } else {
             if let Some(p) = abs_path.parent() {
                 utils::ensure_dir_exists("component", p, &|_| ())?;
@@ -264,7 +267,8 @@ impl<'a> ChangedItem<'a> {
             Err(ErrorKind::ComponentMissingFile {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            }.into())
+            }
+            .into())
         } else {
             utils::rename_file("component", &abs_path, &backup)?;
             Ok(ChangedItem::RemovedFile(relpath, backup))
@@ -282,7 +286,8 @@ impl<'a> ChangedItem<'a> {
             Err(ErrorKind::ComponentMissingDir {
                 name: component.to_owned(),
                 path: relpath.clone(),
-            }.into())
+            }
+            .into())
         } else {
             utils::rename_dir("component", &abs_path, &backup.join("bk"))?;
             Ok(ChangedItem::RemovedDir(relpath, backup))

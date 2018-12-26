@@ -1,13 +1,13 @@
-use rustup_utils::utils;
 use crate::errors::*;
-use crate::temp;
 use crate::notifications::*;
+use crate::temp;
+use rustup_utils::utils;
 use sha2::{Digest, Sha256};
 use url::Url;
 
-use std::path::{Path, PathBuf};
 use std::fs;
 use std::ops;
+use std::path::{Path, PathBuf};
 
 const UPDATE_HASH_LEN: usize = 20;
 
@@ -59,7 +59,8 @@ impl<'a> DownloadCfg<'a> {
                 .file_name()
                 .map(|s| s.to_str().unwrap_or("_"))
                 .unwrap_or("_")
-                .to_owned() + ".partial",
+                .to_owned()
+                + ".partial",
         );
 
         let mut hasher = Sha256::new();
@@ -80,7 +81,8 @@ impl<'a> DownloadCfg<'a> {
                 url: url.to_string(),
                 expected: hash.to_string(),
                 calculated: actual_hash,
-            }.into());
+            }
+            .into());
         } else {
             (self.notify_handler)(Notification::ChecksumValid(&url.to_string()));
 
@@ -152,7 +154,8 @@ impl<'a> DownloadCfg<'a> {
                 url: url_str.to_owned(),
                 expected: hash,
                 calculated: actual_hash,
-            }.into());
+            }
+            .into());
         } else {
             (self.notify_handler)(Notification::ChecksumValid(url_str));
         }

@@ -1,19 +1,19 @@
-use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 use crate::common;
-use rustup::{command, Cfg, Toolchain};
-use rustup::settings::TelemetryMode;
 use crate::errors::*;
-use rustup_dist::manifest::Component;
-use rustup_dist::dist::{PartialTargetTriple, PartialToolchainDesc, TargetTriple};
-use rustup_utils::utils::{self, ExitCode};
+use crate::help::*;
 use crate::self_update;
+use crate::term2;
+use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
+use rustup::settings::TelemetryMode;
+use rustup::{command, Cfg, Toolchain};
+use rustup_dist::dist::{PartialTargetTriple, PartialToolchainDesc, TargetTriple};
+use rustup_dist::manifest::Component;
+use rustup_utils::utils::{self, ExitCode};
+use std::error::Error;
+use std::io::{self, Write};
+use std::iter;
 use std::path::Path;
 use std::process::{self, Command};
-use std::iter;
-use std::error::Error;
-use crate::term2;
-use std::io::{self, Write};
-use crate::help::*;
 
 pub fn main() -> Result<()> {
     crate::self_update::cleanup_self_updater()?;
@@ -31,7 +31,7 @@ pub fn main() -> Result<()> {
     match matches.subcommand() {
         ("show", Some(c)) => match c.subcommand() {
             ("active-toolchain", Some(_)) => show_active_toolchain(cfg)?,
-            (_, _) => show(cfg)?
+            (_, _) => show(cfg)?,
         },
         ("install", Some(m)) => update(cfg, m)?,
         ("update", Some(m)) => update(cfg, m)?,
@@ -116,29 +116,34 @@ pub fn cli() -> App<'static, 'static> {
                 .after_help(SHOW_HELP)
                 .setting(AppSettings::VersionlessSubcommands)
                 .setting(AppSettings::DeriveDisplayOrder)
-                .subcommand(SubCommand::with_name("active-toolchain")
-                    .about("Show the active toolchain")
-                    .after_help(SHOW_ACTIVE_TOOLCHAIN_HELP)
+                .subcommand(
+                    SubCommand::with_name("active-toolchain")
+                        .about("Show the active toolchain")
+                        .after_help(SHOW_ACTIVE_TOOLCHAIN_HELP),
                 ),
         )
         .subcommand(
             SubCommand::with_name("install")
-            .about("Update Rust toolchains")
-            .after_help(INSTALL_HELP)
-            .setting(AppSettings::Hidden) // synonym for 'toolchain install'
-            .arg(Arg::with_name("toolchain")
-                .help(TOOLCHAIN_ARG_HELP)
-                .required(true)
-                .multiple(true)),
+                .about("Update Rust toolchains")
+                .after_help(INSTALL_HELP)
+                .setting(AppSettings::Hidden) // synonym for 'toolchain install'
+                .arg(
+                    Arg::with_name("toolchain")
+                        .help(TOOLCHAIN_ARG_HELP)
+                        .required(true)
+                        .multiple(true),
+                ),
         )
         .subcommand(
             SubCommand::with_name("uninstall")
-            .about("Uninstall Rust toolchains")
-            .setting(AppSettings::Hidden) // synonym for 'toolchain uninstall'
-            .arg(Arg::with_name("toolchain")
-                .help(TOOLCHAIN_ARG_HELP)
-                .required(true)
-                .multiple(true)),
+                .about("Uninstall Rust toolchains")
+                .setting(AppSettings::Hidden) // synonym for 'toolchain uninstall'
+                .arg(
+                    Arg::with_name("toolchain")
+                        .help(TOOLCHAIN_ARG_HELP)
+                        .required(true)
+                        .multiple(true),
+                ),
         )
         .subcommand(
             SubCommand::with_name("update")
@@ -429,34 +434,35 @@ pub fn cli() -> App<'static, 'static> {
             .subcommand(
                 SubCommand::with_name("upgrade-data").about("Upgrade the internal data format."),
             ),
-    ).subcommand(
-            SubCommand::with_name("telemetry")
-                .about("rustup telemetry commands")
-                .setting(AppSettings::Hidden)
-                .setting(AppSettings::VersionlessSubcommands)
-                .setting(AppSettings::DeriveDisplayOrder)
-                .setting(AppSettings::SubcommandRequiredElseHelp)
-                .subcommand(SubCommand::with_name("enable").about("Enable rustup telemetry"))
-                .subcommand(SubCommand::with_name("disable").about("Disable rustup telemetry"))
-                .subcommand(SubCommand::with_name("analyze").about("Analyze stored telemetry")),
-        )
-        .subcommand(
-            SubCommand::with_name("set")
-                .about("Alter rustup settings")
-                .setting(AppSettings::SubcommandRequiredElseHelp)
-                .subcommand(
-                    SubCommand::with_name("default-host")
-                        .about("The triple used to identify toolchains when not specified")
-                        .arg(Arg::with_name("host_triple").required(true)),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("completions")
-                .about("Generate completion scripts for your shell")
-                .after_help(COMPLETIONS_HELP)
-                .setting(AppSettings::ArgRequiredElseHelp)
-                .arg(Arg::with_name("shell").possible_values(&Shell::variants())),
-        )
+    )
+    .subcommand(
+        SubCommand::with_name("telemetry")
+            .about("rustup telemetry commands")
+            .setting(AppSettings::Hidden)
+            .setting(AppSettings::VersionlessSubcommands)
+            .setting(AppSettings::DeriveDisplayOrder)
+            .setting(AppSettings::SubcommandRequiredElseHelp)
+            .subcommand(SubCommand::with_name("enable").about("Enable rustup telemetry"))
+            .subcommand(SubCommand::with_name("disable").about("Disable rustup telemetry"))
+            .subcommand(SubCommand::with_name("analyze").about("Analyze stored telemetry")),
+    )
+    .subcommand(
+        SubCommand::with_name("set")
+            .about("Alter rustup settings")
+            .setting(AppSettings::SubcommandRequiredElseHelp)
+            .subcommand(
+                SubCommand::with_name("default-host")
+                    .about("The triple used to identify toolchains when not specified")
+                    .arg(Arg::with_name("host_triple").required(true)),
+            ),
+    )
+    .subcommand(
+        SubCommand::with_name("completions")
+            .about("Generate completion scripts for your shell")
+            .after_help(COMPLETIONS_HELP)
+            .setting(AppSettings::ArgRequiredElseHelp)
+            .arg(Arg::with_name("shell").possible_values(&Shell::variants())),
+    )
 }
 
 fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
@@ -606,12 +612,7 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let args: Vec<_> = args.collect();
     let cmd = cfg.create_command_for_toolchain(toolchain, m.is_present("install"), args[0])?;
 
-    let ExitCode(c) = command::run_command_for_dir(
-        cmd,
-        args[0],
-        &args[1..],
-        &cfg,
-    )?;
+    let ExitCode(c) = command::run_command_for_dir(cmd, args[0], &args[1..], &cfg)?;
 
     process::exit(c)
 }
@@ -619,7 +620,8 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let binary = m.value_of("command").expect("");
 
-    let binary_path = cfg.which_binary(&utils::current_dir()?, binary)?
+    let binary_path = cfg
+        .which_binary(&utils::current_dir()?, binary)?
         .expect("binary not found");
 
     utils::assert_is_file(&binary_path)?;
@@ -671,9 +673,11 @@ fn show(cfg: &Cfg) -> Result<()> {
         show_installed_toolchains,
         show_active_targets,
         show_active_toolchain,
-    ].iter()
-        .filter(|x| **x)
-        .count() > 1;
+    ]
+    .iter()
+    .filter(|x| **x)
+    .count()
+        > 1;
 
     if show_installed_toolchains {
         if show_headers {
@@ -760,7 +764,7 @@ fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
     match cfg.find_override_toolchain_or_default(cwd)? {
         Some((ref toolchain, _)) => {
             println!("{}", toolchain.name());
-        },
+        }
         None => {
             // Print nothing
         }
@@ -778,7 +782,8 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").expect("") {
-        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::from_str(target)));
+        let new_component =
+            Component::new("rust-std".to_string(), Some(TargetTriple::from_str(target)));
 
         toolchain.add_component(new_component)?;
     }
@@ -790,7 +795,8 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").expect("") {
-        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::from_str(target)));
+        let new_component =
+            Component::new("rust-std".to_string(), Some(TargetTriple::from_str(target)));
 
         toolchain.remove_component(new_component)?;
     }
@@ -806,7 +812,8 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    let target = m.value_of("target")
+    let target = m
+        .value_of("target")
         .map(TargetTriple::from_str)
         .or_else(|| {
             toolchain
@@ -827,7 +834,8 @@ fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 
 fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    let target = m.value_of("target")
+    let target = m
+        .value_of("target")
         .map(TargetTriple::from_str)
         .or_else(|| {
             toolchain
@@ -924,7 +932,8 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     };
 
     for path in paths {
-        if cfg.settings_file
+        if cfg
+            .settings_file
             .with_mut(|s| Ok(s.remove_override(&Path::new(&path), cfg.notify_handler.as_ref())))?
         {
             info!("override toolchain for '{}' removed", path);

@@ -4,18 +4,18 @@ extern crate rustup_utils;
 extern crate tempdir;
 
 use rustup_dist::component::Components;
-use rustup_dist::component::{DirectoryPackage, Package};
 use rustup_dist::component::Transaction;
+use rustup_dist::component::{DirectoryPackage, Package};
 use rustup_dist::dist::DEFAULT_DIST_SERVER;
+use rustup_dist::prefix::InstallPrefix;
 use rustup_dist::temp;
 use rustup_dist::ErrorKind;
 use rustup_dist::Notification;
+use rustup_mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 use rustup_utils::utils;
-use rustup_dist::prefix::InstallPrefix;
 use std::fs::File;
 use std::io::Write;
 use tempdir::TempDir;
-use rustup_mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 // Just testing that the mocks work
 #[test]
@@ -80,12 +80,10 @@ fn package_bad_version() {
     let tempdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: "mycomponent".to_string(),
-                files: vec![MockFile::new("bin/foo", b"foo")],
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: "mycomponent".to_string(),
+            files: vec![MockFile::new("bin/foo", b"foo")],
+        }],
     };
 
     mock.build(tempdir.path());
@@ -101,16 +99,14 @@ fn basic_install() {
     let pkgdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: "mycomponent".to_string(),
-                files: vec![
-                    MockFile::new("bin/foo", b"foo"),
-                    MockFile::new("lib/bar", b"bar"),
-                    MockFile::new_dir("doc/stuff", &[("doc1", b"", false), ("doc2", b"", false)]),
-                ],
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: "mycomponent".to_string(),
+            files: vec![
+                MockFile::new("bin/foo", b"foo"),
+                MockFile::new("lib/bar", b"bar"),
+                MockFile::new_dir("doc/stuff", &[("doc1", b"", false), ("doc2", b"", false)]),
+            ],
+        }],
     };
 
     mock.build(pkgdir.path());
@@ -260,12 +256,10 @@ fn component_bad_version() {
     let pkgdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: "mycomponent".to_string(),
-                files: vec![MockFile::new("bin/foo", b"foo")],
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: "mycomponent".to_string(),
+            files: vec![MockFile::new("bin/foo", b"foo")],
+        }],
     };
 
     mock.build(pkgdir.path());
@@ -305,30 +299,28 @@ fn component_bad_version() {
 #[test]
 #[cfg(unix)]
 fn unix_permissions() {
-    use std::os::unix::fs::PermissionsExt;
     use std::fs;
+    use std::os::unix::fs::PermissionsExt;
 
     let pkgdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: "mycomponent".to_string(),
-                files: vec![
-                    MockFile::new("bin/foo", b"foo"),
-                    MockFile::new("lib/bar", b"bar"),
-                    MockFile::new("lib/foobar", b"foobar").executable(true),
-                    MockFile::new_dir(
-                        "doc/stuff",
-                        &[
-                            ("doc1", b"", false),
-                            ("morestuff/doc2", b"", false),
-                            ("morestuff/tool", b"", true),
-                        ],
-                    ),
-                ],
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: "mycomponent".to_string(),
+            files: vec![
+                MockFile::new("bin/foo", b"foo"),
+                MockFile::new("lib/bar", b"bar"),
+                MockFile::new("lib/foobar", b"foobar").executable(true),
+                MockFile::new_dir(
+                    "doc/stuff",
+                    &[
+                        ("doc1", b"", false),
+                        ("morestuff/doc2", b"", false),
+                        ("morestuff/tool", b"", true),
+                    ],
+                ),
+            ],
+        }],
     };
 
     mock.build(pkgdir.path());
@@ -408,12 +400,10 @@ fn install_to_prefix_that_does_not_exist() {
     let pkgdir = TempDir::new("rustup").unwrap();
 
     let mock = MockInstallerBuilder {
-        components: vec![
-            MockComponentBuilder {
-                name: "mycomponent".to_string(),
-                files: vec![MockFile::new("bin/foo", b"foo")],
-            },
-        ],
+        components: vec![MockComponentBuilder {
+            name: "mycomponent".to_string(),
+            files: vec![MockFile::new("bin/foo", b"foo")],
+        }],
     };
 
     mock.build(pkgdir.path());

@@ -1,8 +1,8 @@
 extern crate rustup_dist;
 
+use rustup_dist::dist::TargetTriple;
 use rustup_dist::manifest::Manifest;
 use rustup_dist::ErrorKind;
-use rustup_dist::dist::TargetTriple;
 
 // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
 static EXAMPLE: &'static str = include_str!("channel-rust-nightly-example.toml");

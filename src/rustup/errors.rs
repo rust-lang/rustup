@@ -1,6 +1,6 @@
+use crate::component_for_bin;
 use rustup_dist::{self, temp};
 use rustup_utils;
-use crate::component_for_bin;
 use toml;
 
 error_chain! {

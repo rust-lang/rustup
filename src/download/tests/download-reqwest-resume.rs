@@ -59,14 +59,17 @@ fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
                     assert!(flag.is_none());
                     *flag = Some(len);
                 }
-                Event::DownloadDataReceived(data) => for b in data.iter() {
-                    received_in_callback.lock().unwrap().push(b.clone());
-                },
+                Event::DownloadDataReceived(data) => {
+                    for b in data.iter() {
+                        received_in_callback.lock().unwrap().push(b.clone());
+                    }
+                }
             }
 
             Ok(())
         }),
-    ).expect("Test download failed");
+    )
+    .expect("Test download failed");
 
     assert!(*callback_partial.lock().unwrap());
     assert_eq!(*callback_len.lock().unwrap(), Some(5));

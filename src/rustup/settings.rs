@@ -2,11 +2,11 @@ use crate::errors::*;
 use crate::notifications::*;
 use crate::toml_utils::*;
 use crate::utils;
-use toml;
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::cell::RefCell;
 use std::str::FromStr;
+use toml;
 
 pub const SUPPORTED_METADATA_VERSIONS: [&'static str; 2] = ["2", "12"];
 pub const DEFAULT_METADATA_VERSION: &'static str = "12";

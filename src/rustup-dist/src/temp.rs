@@ -1,12 +1,12 @@
 extern crate remove_dir_all;
 
+use rustup_utils::raw;
 use std::error;
+use std::fmt::{self, Display};
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::io;
 use std::ops;
-use std::fmt::{self, Display};
-use rustup_utils::raw;
+use std::path::{Path, PathBuf};
 
 use rustup_utils::notify::NotificationLevel;
 
@@ -140,7 +140,8 @@ impl Cfg {
     pub fn create_root(&self) -> Result<bool> {
         raw::ensure_dir_exists(&self.root_directory, |p| {
             (self.notify_handler)(Notification::CreatingRoot(p));
-        }).map_err(|e| Error::CreatingRoot {
+        })
+        .map_err(|e| Error::CreatingRoot {
             path: PathBuf::from(&self.root_directory),
             error: e,
         })

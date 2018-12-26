@@ -1,9 +1,9 @@
-use std::env;
-use crate::self_update::{self, InstallOpts};
+use crate::common;
 use crate::errors::*;
+use crate::self_update::{self, InstallOpts};
 use clap::{App, AppSettings, Arg};
 use rustup_dist::dist::TargetTriple;
-use crate::common;
+use std::env;
 
 pub fn main() -> Result<()> {
     let args: Vec<_> = env::args().collect();
