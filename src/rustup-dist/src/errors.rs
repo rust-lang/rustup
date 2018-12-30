@@ -5,6 +5,10 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 use toml;
 
+pub const TOOLSTATE_MSG: &str = "if you require these components, please install and use the latest successful build version, \
+                                which you can find at https://rust-lang-nursery.github.io/rust-toolstate, for example.\n\
+                                rustup install nightly-2018-12-27";
+
 error_chain! {
     links {
         Utils(rustup_utils::Error, rustup_utils::ErrorKind);
@@ -127,11 +131,21 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest) -> String {
         if same_target {
             let mut cs_strs = cs.iter().map(|c| format!("'{}'", c.short_name(manifest)));
             let cs_str = cs_strs.join(", ");
-            let _ = write!(buf, "some components unavailable for download: {}", cs_str);
+            let _ = write!(
+                    buf,
+                    "some components unavailable for download: {}\n{}",
+                    cs_str,
+                    TOOLSTATE_MSG,
+                );
         } else {
             let mut cs_strs = cs.iter().map(|c| c.description(manifest));
             let cs_str = cs_strs.join(", ");
-            let _ = write!(buf, "some components unavailable for download: {}", cs_str);
+            let _ = write!(
+                    buf,
+                    "some components unavailable for download: {}\n{}",
+                    cs_str,
+                    TOOLSTATE_MSG,
+                );
         }
     }
 
