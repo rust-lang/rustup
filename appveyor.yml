@@ -70,6 +70,7 @@ install:
   - where gcc rustc cargo
   - rustc -vV
   - cargo -vV
+  - rustfmt -vV
 
 build: false
 
@@ -79,6 +80,7 @@ test_script:
   - cargo test --release --target %TARGET% %FEATURES%
   - if defined BUILD_MSI pushd src\rustup-win-installer && cargo build --release --target %TARGET% & popd
   - if defined BUILD_MSI pushd src\rustup-win-installer\msi && powershell .\build.ps1 -Target %TARGET% & popd
+  - cargo fmt --all -- --check
 
 notifications:
   - provider: Webhook

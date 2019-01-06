@@ -728,6 +728,10 @@ affecting any existing installation. Remember to keep those two environment vari
 set when running your compiled `rustup-init` or the toolchains it installs, but _unset_
 when rebuilding `rustup` itself.
 
+We use `rustfmt` to keep our codebase consistently formatted.  Please ensure that
+you have correctly formatted your code (most editors will do this automatically
+when saving) or it may not pass the CI tests.
+
 Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the
 Apache-2.0 license, shall be dual licensed as above, without any
