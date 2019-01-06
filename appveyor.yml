@@ -59,6 +59,9 @@ install:
   # add mingw to PATH if necessary
   - if defined MINGW_DIR set PATH=C:\msys64\%MINGW_DIR%\bin;C:\msys64\usr\bin;%PATH%
 
+  # Add rustfmt support
+  - rustup component add rustfmt
+
   # set cargo features for MSI if requested (otherwise empty string)
   - set FEATURES=
   - if defined BUILD_MSI set FEATURES=--features msi-installed
