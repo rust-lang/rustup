@@ -7,12 +7,12 @@ extern crate rustup_utils;
 extern crate tempdir;
 extern crate time;
 
+use rustup_dist::errors::TOOLSTATE_MSG;
 use rustup_mock::clitools::{
     self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok,
     expect_timeout_ok, run, set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use rustup_utils::{raw, utils};
-use rustup_dist::errors::{TOOLSTATE_MSG};
 
 use std::env::consts::EXE_SUFFIX;
 use std::ops::Add;
@@ -812,7 +812,8 @@ fn update_unavailable_rustc() {
             format!(
                 "some components unavailable for download: 'rustc', 'cargo'\n{}",
                 TOOLSTATE_MSG
-            ).as_str(),
+            )
+            .as_str(),
         );
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
