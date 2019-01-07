@@ -15,7 +15,9 @@
 
 set -u
 
-RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup/dist"
+if [ -z "$RUSTUP_UPDATE_ROOT" ]; then
+    RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup"
+fi
 
 #XXX: If you change anything here, please make the same changes in setup_mode.rs
 usage() {
@@ -60,7 +62,7 @@ main() {
             ;;
     esac
 
-    local _url="$RUSTUP_UPDATE_ROOT/$_arch/rustup-init$_ext"
+    local _url="$RUSTUP_UPDATE_ROOT/dist/$_arch/rustup-init$_ext"
 
     local _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
     local _file="$_dir/rustup-init$_ext"
