@@ -312,7 +312,7 @@ get_architecture() {
     fi
 
     # Detect 64-bit linux with 32-bit userland for powerpc
-    if [ $_ostype = unknown-linux-gnu -a $_cputype = powerpc64 ]; then
+    if [ $_ostype = unknown-linux-gnu ] && [ $_cputype = powerpc64 ]; then
         if [ "$(get_bitness)" = "32" ]; then
             local _cputype=powerpc
         fi
