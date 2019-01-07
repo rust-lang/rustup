@@ -62,10 +62,11 @@ main() {
             ;;
     esac
 
-    local _url="$RUSTUP_UPDATE_ROOT/dist/$_arch/rustup-init$_ext"
+    local _url="${RUSTUP_UPDATE_ROOT}/dist/${_arch}/rustup-init${_ext}"
 
-    local _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
-    local _file="$_dir/rustup-init$_ext"
+    local _dir
+    _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
+    local _file="${_dir}/rustup-init${_ext}"
 
     local _ansi_escapes_are_valid=false
     if [ -t 2 ]; then
@@ -106,7 +107,7 @@ main() {
     ensure chmod u+x "$_file"
     if [ ! -x "$_file" ]; then
         printf '%s\n' "Cannot execute $_file (likely because of mounting /tmp as noexec)." 1>&2
-        printf '%s\n' "Please copy the file to a location where you can execute binaries and run ./rustup-init$_ext." 1>&2
+        printf '%s\n' "Please copy the file to a location where you can execute binaries and run ./rustup-init${_ext}." 1>&2
         exit 1
     fi
 
@@ -142,7 +143,8 @@ get_bitness() {
     #   0x02 for 64-bit.
     # The printf builtin on some shells like dash only supports octal
     # escape sequences, so we use those.
-    local _current_exe_head=$(head -c 5 /proc/self/exe )
+    local _current_exe_head
+    _current_exe_head=$(head -c 5 /proc/self/exe )
     if [ "$_current_exe_head" = "$(printf '\177ELF\001')" ]; then
         echo 32
     elif [ "$_current_exe_head" = "$(printf '\177ELF\002')" ]; then
@@ -161,7 +163,8 @@ get_endianness() {
     need_cmd head
     need_cmd tail
 
-    local _current_exe_endianness="$(head -c 6 /proc/self/exe | tail -c 1)"
+    local _current_exe_endianness
+    _current_exe_endianness="$(head -c 6 /proc/self/exe | tail -c 1)"
     if [ "$_current_exe_endianness" = "$(printf '\001')" ]; then
         echo "${cputype}${suffix_el}"
     elif [ "$_current_exe_endianness" = "$(printf '\002')" ]; then
@@ -172,51 +175,51 @@ get_endianness() {
 }
 
 get_architecture() {
-
-    local _ostype="$(uname -s)"
-    local _cputype="$(uname -m)"
+    local _ostype _cputype
+    _ostype="$(uname -s)"
+    _cputype="$(uname -m)"
 
     if [ "$_ostype" = Linux ]; then
         if [ "$(uname -o)" = Android ]; then
-            local _ostype=Android
+            _ostype=Android
         fi
     fi
 
-    if [ "$_ostype" = Darwin -a "$_cputype" = i386 ]; then
+    if [ "$_ostype" = Darwin ] && [ "$_cputype" = i386 ]; then
         # Darwin `uname -s` lies
         if sysctl hw.optional.x86_64 | grep -q ': 1'; then
-            local _cputype=x86_64
+            _cputype=x86_64
         fi
     fi
 
     case "$_ostype" in
 
         Android)
-            local _ostype=linux-android
+            _ostype=linux-android
             ;;
 
         Linux)
-            local _ostype=unknown-linux-gnu
+            _ostype=unknown-linux-gnu
             ;;
 
         FreeBSD)
-            local _ostype=unknown-freebsd
+            _ostype=unknown-freebsd
             ;;
 
         NetBSD)
-            local _ostype=unknown-netbsd
+            _ostype=unknown-netbsd
             ;;
 
         DragonFly)
-            local _ostype=unknown-dragonfly
+            _ostype=unknown-dragonfly
             ;;
 
         Darwin)
-            local _ostype=apple-darwin
+            _ostype=apple-darwin
             ;;
 
         MINGW* | MSYS* | CYGWIN*)
-            local _ostype=pc-windows-gnu
+            _ostype=pc-windows-gnu
             ;;
 
         *)
@@ -228,72 +231,72 @@ get_architecture() {
     case "$_cputype" in
 
         i386 | i486 | i686 | i786 | x86)
-            local _cputype=i686
+            _cputype=i686
             ;;
 
         xscale | arm)
-            local _cputype=arm
+            _cputype=arm
             if [ "$_ostype" = "linux-android" ]; then
-                local _ostype=linux-androideabi
+                _ostype=linux-androideabi
             fi
             ;;
 
         armv6l)
-            local _cputype=arm
+            _cputype=arm
             if [ "$_ostype" = "linux-android" ]; then
-                local _ostype=linux-androideabi
+                _ostype=linux-androideabi
             else
-                local _ostype="${_ostype}eabihf"
+                _ostype="${_ostype}eabihf"
             fi
             ;;
 
         armv7l | armv8l)
-            local _cputype=armv7
+            _cputype=armv7
             if [ "$_ostype" = "linux-android" ]; then
-                local _ostype=linux-androideabi
+                _ostype=linux-androideabi
             else
-                local _ostype="${_ostype}eabihf"
+                _ostype="${_ostype}eabihf"
             fi
             ;;
 
         aarch64)
-            local _cputype=aarch64
+            _cputype=aarch64
             ;;
 
         x86_64 | x86-64 | x64 | amd64)
-            local _cputype=x86_64
+            _cputype=x86_64
             ;;
 
         mips)
-            local _cputype="$(get_endianness $_cputype "" 'el')"
+            _cputype="$(get_endianness $_cputype "" 'el')"
             ;;
 
         mips64)
-            local _bitness="$(get_bitness)"
-            if [ $_bitness = "32" ]; then
-                if [ $_ostype = "unknown-linux-gnu" ]; then
+            _bitness="$(get_bitness)"
+            if [ "$_bitness" -eq 32 ]; then
+                if [ "$_ostype" = "unknown-linux-gnu" ]; then
                     # 64-bit kernel with 32-bit userland
                     # endianness suffix is appended later
-                    local _cputype=mips
+                    _cputype=mips
                 fi
             else
                 # only n64 ABI is supported for now
-                local _ostype="${_ostype}abi64"
+                _ostype="${_ostype}abi64"
             fi
 
-            local _cputype="$(get_endianness $_cputype "" 'el')"
+            _cputype="$(get_endianness "$_cputype" "" 'el')"
             ;;
 
         ppc)
-            local _cputype=powerpc
+            _cputype=powerpc
             ;;
 
         ppc64)
-            local _cputype=powerpc64
+            _cputype=powerpc64
             ;;
 
         ppc64le)
-            local _cputype=powerpc64le
+            _cputype=powerpc64le
             ;;
 
         *)
@@ -302,14 +305,14 @@ get_architecture() {
     esac
 
     # Detect 64-bit linux with 32-bit userland for x86
-    if [ $_ostype = unknown-linux-gnu -a $_cputype = x86_64 ]; then
+    if [ "$_ostype" = unknown-linux-gnu ] && [ "$_cputype" = x86_64 ]; then
         if [ "$(get_bitness)" = "32" ]; then
-            local _cputype=i686
+            _cputype=i686
         fi
     fi
 
     # Detect 64-bit linux with 32-bit userland for powerpc
-    if [ $_ostype = unknown-linux-gnu -a $_cputype = powerpc64 ]; then
+    if [ $_ostype = unknown-linux-gnu ] && [ $_cputype = powerpc64 ]; then
         if [ "$(get_bitness)" = "32" ]; then
             local _cputype=powerpc
         fi
@@ -318,20 +321,20 @@ get_architecture() {
     # Detect armv7 but without the CPU features Rust needs in that build,
     # and fall back to arm.
     # See https://github.com/rust-lang/rustup.rs/issues/587.
-    if [ $_ostype = "unknown-linux-gnueabihf" -a $_cputype = armv7 ]; then
+    if [ "$_ostype" = "unknown-linux-gnueabihf" ] && [ "$_cputype" = armv7 ]; then
         if ensure grep '^Features' /proc/cpuinfo | grep -q -v neon; then
             # At least one processor does not have NEON.
-            local _cputype=arm
+            _cputype=arm
         fi
     fi
 
-    local _arch="$_cputype-$_ostype"
+    _arch="${_cputype}-${_ostype}"
 
     RETVAL="$_arch"
 }
 
 say() {
-    echo "rustup: $1"
+    printf 'rustup: %s\n' "$1"
 }
 
 err() {
@@ -340,18 +343,17 @@ err() {
 }
 
 need_cmd() {
-    if ! check_cmd "$1"
-    then err "need '$1' (command not found)"
+    if ! check_cmd "$1"; then
+        err "need '$1' (command not found)"
     fi
 }
 
 check_cmd() {
     command -v "$1" > /dev/null 2>&1
-    return $?
 }
 
 need_ok() {
-    if [ $? != 0 ]; then err "$1"; fi
+    if [ $? -ne 0 ]; then err "$1"; fi
 }
 
 assert_nz() {
@@ -376,20 +378,22 @@ ignore() {
 # This wraps curl or wget. Try curl first, if not installed,
 # use wget instead.
 downloader() {
-    if check_cmd curl
-    then _dld=curl
-    elif check_cmd wget
-    then _dld=wget
-    else _dld='curl or wget' # to be used in error message of need_cmd
+    if check_cmd curl; then
+        _dld=curl
+    elif check_cmd wget; then
+        _dld=wget
+    else
+        _dld='curl or wget' # to be used in error message of need_cmd
     fi
 
-    if [ "$1" = --check ]
-    then need_cmd "$_dld"
-    elif [ "$_dld" = curl ]
-    then curl -sSfL "$1" -o "$2"
-    elif [ "$_dld" = wget ]
-    then wget "$1" -O "$2"
-    else err "Unknown downloader"   # should not reach here
+    if [ "$1" = --check ]; then
+        need_cmd "$_dld"
+    elif [ "$_dld" = curl ]; then
+        curl -sSfL "$1" -o "$2"
+    elif [ "$_dld" = wget ]; then
+        wget "$1" -O "$2"
+    else
+        err "Unknown downloader"   # should not reach here
     fi
 }
 
