@@ -22,7 +22,7 @@ fi
 #XXX: If you change anything here, please make the same changes in setup_mode.rs
 usage() {
     cat 1>&2 <<EOF
-rustup-init 1.0.0 (408ed84 2017-02-11)
+rustup-init 1.16.0 (beab5ac2b 2018-12-06)
 The installer for rustup
 
 USAGE:
@@ -111,8 +111,6 @@ main() {
         exit 1
     fi
 
-
-
     if [ "$need_tty" = "yes" ]; then
         # The installer is going to want to ask for confirmation by
         # reading stdin.  This script was piped into `sh` though and
@@ -175,7 +173,7 @@ get_endianness() {
 }
 
 get_architecture() {
-    local _ostype _cputype
+    local _ostype _cputype _bitness _arch
     _ostype="$(uname -s)"
     _cputype="$(uname -m)"
 
@@ -283,7 +281,6 @@ get_architecture() {
                 # only n64 ABI is supported for now
                 _ostype="${_ostype}abi64"
             fi
-
             _cputype="$(get_endianness "$_cputype" "" 'el')"
             ;;
 
@@ -378,6 +375,7 @@ ignore() {
 # This wraps curl or wget. Try curl first, if not installed,
 # use wget instead.
 downloader() {
+    local _dld
     if check_cmd curl; then
         _dld=curl
     elif check_cmd wget; then
