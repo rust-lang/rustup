@@ -132,6 +132,7 @@ matrix:
 
 install:
   - if [ -z "$NO_ADD" ]; then rustup target add $TARGET; fi
+  - rustup component add rustfmt
 
 script:
   - mkdir -p target/$TARGET;
