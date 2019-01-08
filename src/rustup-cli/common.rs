@@ -224,7 +224,8 @@ pub fn update_all_channels(cfg: &Cfg, do_self_update: bool, force_update: bool) 
 }
 
 pub fn self_update<F>(before_restart: F) -> Result<()>
-    where F: FnOnce() -> Result<()>
+where
+    F: FnOnce() -> Result<()>,
 {
     let setup_path = self_update::prepare_update()?;
 

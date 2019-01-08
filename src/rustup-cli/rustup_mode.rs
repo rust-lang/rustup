@@ -620,11 +620,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
             common::self_update(|| Ok(()))?;
         }
     } else {
-        common::update_all_channels(
-            cfg,
-            self_update,
-            m.is_present("force"),
-        )?;
+        common::update_all_channels(cfg, self_update, m.is_present("force"))?;
     }
 
     Ok(())

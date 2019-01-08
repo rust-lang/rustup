@@ -100,7 +100,10 @@ fn update_channel() {
 fn list_toolchains() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_ok(config, &["rustup", "update", "beta-2015-01-01", "--no-self-update"]);
+        expect_ok(
+            config,
+            &["rustup", "update", "beta-2015-01-01", "--no-self-update"],
+        );
         expect_stdout_ok(config, &["rustup", "toolchain", "list"], "nightly");
         expect_stdout_ok(config, &["rustup", "toolchain", "list"], "beta-2015-01-01");
     });
@@ -152,7 +155,10 @@ fn add_remove_multiple_toolchains() {
             let tch1 = "beta";
             let tch2 = "nightly";
 
-            expect_ok(config, &["rustup", "toolchain", add, tch1, tch2, "--no-self-update"]);
+            expect_ok(
+                config,
+                &["rustup", "toolchain", add, tch1, tch2, "--no-self-update"],
+            );
             expect_ok(config, &["rustup", "toolchain", "list"]);
             expect_stdout_ok(config, &["rustup", "toolchain", "list"], tch1);
             expect_stdout_ok(config, &["rustup", "toolchain", "list"], tch2);
@@ -418,7 +424,11 @@ fn remove_override_with_multiple_overrides() {
 fn no_update_on_channel_when_date_has_not_changed() {
     setup(&|config| {
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_stdout_ok(config, &["rustup", "update", "nightly", "--no-self-update"], "unchanged");
+        expect_stdout_ok(
+            config,
+            &["rustup", "update", "nightly", "--no-self-update"],
+            "unchanged",
+        );
     });
 }
 
