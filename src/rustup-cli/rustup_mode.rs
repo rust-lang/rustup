@@ -734,7 +734,7 @@ fn show(cfg: &Cfg) -> Result<()> {
                 }
             },
             Err(err) => {
-                if let Some(cause) = err.cause() {
+                if let Some(cause) = err.source() {
                     println!("(error: {}, {})", err, cause);
                 } else {
                     println!("(error: {})", err);

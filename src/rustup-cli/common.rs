@@ -256,7 +256,7 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
                             .expect("Child::stdout requested but not present");
                         let mut line = String::new();
                         if BufReader::new(out).read_line(&mut line).is_ok() {
-                            let lineend = line.trim_right_matches(&['\r', '\n'][..]).len();
+                            let lineend = line.trim_end_matches(&['\r', '\n'][..]).len();
                             line.truncate(lineend);
                             line1 = Some(line);
                         }

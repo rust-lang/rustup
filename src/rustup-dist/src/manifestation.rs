@@ -649,7 +649,10 @@ impl Update {
             let package = new_manifest.get_package(&component.short_name_in_manifest())?;
             let target_package = package.get_target(component.target.as_ref())?;
 
-            let bins = target_package.bins.as_ref().expect("components available");
+            let bins = match target_package.bins {
+                None => continue,
+                Some(ref bins) => bins,
+            };
             let c_u_h = if let (Some(url), Some(hash)) = (bins.xz_url.clone(), bins.xz_hash.clone())
             {
                 (component.clone(), Format::Xz, url, hash)

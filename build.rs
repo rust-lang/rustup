@@ -30,7 +30,7 @@ fn main() {
 // (git not installed or if this is not a git repository) just return an empty string.
 fn commit_info() -> String {
     match (commit_hash(), commit_date()) {
-        (Ok(hash), Ok(date)) => format!(" ({} {})", hash.trim_right(), date),
+        (Ok(hash), Ok(date)) => format!(" ({} {})", hash.trim_end(), date),
         _ => String::new(),
     }
 }
