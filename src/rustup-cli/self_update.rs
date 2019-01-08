@@ -383,9 +383,9 @@ fn do_pre_install_sanity_checks() -> Result<()> {
     let multirust_manifest_path = PathBuf::from("/usr/local/lib/rustlib/manifest-multirust");
     let rustc_manifest_path = PathBuf::from("/usr/local/lib/rustlib/manifest-rustc");
     let uninstaller_path = PathBuf::from("/usr/local/lib/rustlib/uninstall.sh");
-    let multirust_meta_path = env::home_dir().map(|d| d.join(".multirust"));
+    let multirust_meta_path = utils::home_dir().map(|d| d.join(".multirust"));
     let multirust_version_path = multirust_meta_path.as_ref().map(|p| p.join("version"));
-    let rustup_sh_path = env::home_dir().map(|d| d.join(".rustup"));
+    let rustup_sh_path = utils::home_dir().map(|d| d.join(".rustup"));
     let rustup_sh_version_path = rustup_sh_path.as_ref().map(|p| p.join("rustup-version"));
 
     let multirust_exists = multirust_manifest_path.exists() && uninstaller_path.exists();

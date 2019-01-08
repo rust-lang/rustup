@@ -522,7 +522,7 @@ where
 
 #[cfg(unix)]
 pub fn home_dir() -> Option<PathBuf> {
-    ::std::env::home_dir()
+    dirs::home_dir()
 }
 
 pub fn cargo_home() -> Result<PathBuf> {
