@@ -39,7 +39,15 @@ pub static TOOLS: &'static [&'static str] = &[
 pub static DUP_TOOLS: &'static [&'static str] = &["rustfmt", "cargo-fmt"];
 
 fn component_for_bin(binary: &str) -> Option<&'static str> {
-    match binary {
+    use std::env::consts::EXE_SUFFIX;
+
+    let binary_prefix = match binary.find(EXE_SUFFIX) {
+        _ if EXE_SUFFIX.is_empty() => binary,
+        Some(i) => &binary[..i],
+        None => binary,
+    };
+
+    match binary_prefix {
         "rustc" | "rustdoc" => Some("rustc"),
         "cargo" => Some("cargo"),
         "rust-lldb" => Some("lldb-preview"),
