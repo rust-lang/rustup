@@ -86,7 +86,7 @@ impl Cfg {
                     .and_then(utils::if_not_empty)
                     .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT), Cow::Owned)
                     .as_ref()
-                    .trim_right_matches("/dist")
+                    .trim_end_matches("/dist")
                     .to_owned()
             }
         };

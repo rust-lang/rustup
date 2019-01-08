@@ -70,9 +70,9 @@ fn serve_contents(
         // extract range "bytes={start}-"
         let range = range.to_str().expect("unexpected Range header");
         assert!(range.starts_with("bytes="));
-        let range = range.trim_left_matches("bytes=");
+        let range = range.trim_start_matches("bytes=");
         assert!(range.ends_with("-"));
-        let range = range.trim_right_matches("-");
+        let range = range.trim_end_matches("-");
         assert_eq!(range.split("-").count(), 1);
         let start: u64 = range.parse().expect("unexpected Range header");
 
