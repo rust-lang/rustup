@@ -873,6 +873,9 @@ fn update_unavailable_force() {
                 trip
             ),
         );
-        expect_ok(config, &["rustup", "update", "nightly", "--force", "--no-self-update"]);
+        expect_ok(
+            config,
+            &["rustup", "update", "nightly", "--force", "--no-self-update"],
+        );
     });
 }
