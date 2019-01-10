@@ -98,7 +98,7 @@ pub fn setup(s: Scenario, f: &Fn(&mut Config)) {
         distdir: distdir.path().to_owned(),
         rustupdir: rustupdir.path().to_owned(),
         customdir: customdir.path().to_owned(),
-        cargodir: cargodir,
+        cargodir,
         homedir: homedir.path().to_owned(),
         emptydir: emptydir.path().to_owned(),
         workdir: RefCell::new(workdir.path().to_owned()),
@@ -559,12 +559,12 @@ fn build_mock_channel(
                 available: true,
                 components: vec![],
                 extensions: vec![],
-                installer: installer,
+                installer,
             });
 
         MockPackage {
-            name: name,
-            version: version,
+            name,
+            version,
             targets: target_pkgs.collect(),
         }
     });
@@ -629,7 +629,7 @@ fn build_mock_channel(
     MockChannel {
         name: channel.to_string(),
         date: date.to_string(),
-        packages: packages,
+        packages,
         renames,
     }
 }

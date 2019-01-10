@@ -105,9 +105,9 @@ impl MockFile {
 
     fn _new(path: String, contents: Arc<Vec<u8>>) -> MockFile {
         MockFile {
-            path: path,
+            path,
             contents: Contents::File(MockContents {
-                contents: contents,
+                contents,
                 executable: false,
             }),
         }
