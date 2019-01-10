@@ -60,7 +60,7 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
 }
 
 // The manifest version created by this mock
-pub const MOCK_MANIFEST_VERSION: &'static str = "2";
+pub const MOCK_MANIFEST_VERSION: &str = "2";
 
 // A mock Rust v2 distribution server. Create it and and run `write`
 // to write its structure to a directory.
