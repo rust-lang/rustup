@@ -354,10 +354,12 @@ pub fn run(config: &Config, name: &str, args: &[&str], env: &[(&str, &str)]) -> 
         stdout: String::from_utf8(out.stdout).unwrap(),
         stderr: String::from_utf8(out.stderr).unwrap(),
     };
+
     println!("status: {}", out.status);
     println!("----- stdout\n{}", output.stdout);
     println!("----- stderr\n{}", output.stderr);
-    return output;
+
+    output
 }
 
 // Creates a mock dist server populated with some test data

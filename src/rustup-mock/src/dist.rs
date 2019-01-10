@@ -167,7 +167,7 @@ impl MockDistServer {
             );
         }
 
-        return hashes;
+        hashes
     }
 
     // Returns the hash of the tarball
