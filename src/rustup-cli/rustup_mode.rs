@@ -132,6 +132,19 @@ pub fn cli() -> App<'static, 'static> {
                         .help(TOOLCHAIN_ARG_HELP)
                         .required(true)
                         .multiple(true),
+                )
+                .arg(
+                    Arg::with_name("no-self-update")
+                        .help("Don't perform self update when running the `rustup` command")
+                        .long("no-self-update")
+                        .takes_value(false)
+                        .hidden(true),
+                )
+                .arg(
+                    Arg::with_name("force")
+                        .help("Force an update, even if some components are missing")
+                        .long("force")
+                        .takes_value(false),
                 ),
         )
         .subcommand(
@@ -196,6 +209,13 @@ pub fn cli() -> App<'static, 'static> {
                                 .help(TOOLCHAIN_ARG_HELP)
                                 .required(true)
                                 .multiple(true),
+                        )
+                        .arg(
+                            Arg::with_name("no-self-update")
+                                .help("Don't perform self update when running the `rustup` command")
+                                .long("no-self-update")
+                                .takes_value(false)
+                                .hidden(true),
                         ),
                 )
                 .subcommand(
@@ -577,6 +597,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+    let self_update = !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE;
     if let Some(names) = m.values_of("toolchain") {
         for name in names {
             update_bare_triple_check(cfg, name)?;
@@ -595,12 +616,11 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
                 common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
             }
         }
+        if self_update {
+            common::self_update(|| Ok(()))?;
+        }
     } else {
-        common::update_all_channels(
-            cfg,
-            !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE,
-            m.is_present("force"),
-        )?;
+        common::update_all_channels(cfg, self_update, m.is_present("force"))?;
     }
 
     Ok(())

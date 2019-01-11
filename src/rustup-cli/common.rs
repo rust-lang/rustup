@@ -200,30 +200,42 @@ fn show_channel_updates(
     Ok(())
 }
 
-pub fn update_all_channels(cfg: &Cfg, self_update: bool, force_update: bool) -> Result<()> {
+pub fn update_all_channels(cfg: &Cfg, do_self_update: bool, force_update: bool) -> Result<()> {
     let toolchains = cfg.update_all_channels(force_update)?;
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");
     }
 
-    let setup_path = if self_update {
-        self_update::prepare_update()?
-    } else {
-        None
+    let show_channel_updates = || {
+        if !toolchains.is_empty() {
+            println!("");
+
+            show_channel_updates(cfg, toolchains)?;
+        }
+        Ok(())
     };
 
-    if !toolchains.is_empty() {
-        println!("");
-
-        show_channel_updates(cfg, toolchains)?;
+    if do_self_update {
+        self_update(show_channel_updates)
+    } else {
+        show_channel_updates()
     }
+}
+
+pub fn self_update<F>(before_restart: F) -> Result<()>
+where
+    F: FnOnce() -> Result<()>,
+{
+    let setup_path = self_update::prepare_update()?;
+
+    before_restart()?;
 
     if let Some(ref setup_path) = setup_path {
         self_update::run_update(setup_path)?;
 
         unreachable!(); // update exits on success
-    } else if self_update {
+    } else {
         // Try again in case we emitted "tool `{}` is already installed" last time.
         self_update::install_proxies()?;
     }

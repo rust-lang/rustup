@@ -716,6 +716,38 @@ fn rustup_self_updates() {
 }
 
 #[test]
+fn rustup_self_updates_with_specified_toolchain() {
+    update_setup(&|config, _| {
+        expect_ok(config, &["rustup-init", "-y"]);
+
+        let ref bin = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
+        let before_hash = calc_hash(bin);
+
+        expect_ok(config, &["rustup", "update", "stable"]);
+
+        let after_hash = calc_hash(bin);
+
+        assert_ne!(before_hash, after_hash);
+    })
+}
+
+#[test]
+fn rustup_no_self_update_with_specified_toolchain() {
+    update_setup(&|config, _| {
+        expect_ok(config, &["rustup-init", "-y"]);
+
+        let ref bin = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
+        let before_hash = calc_hash(bin);
+
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
+
+        let after_hash = calc_hash(bin);
+
+        assert_eq!(before_hash, after_hash);
+    })
+}
+
+#[test]
 fn rustup_self_update_exact() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
@@ -763,7 +795,7 @@ fn updater_is_deleted_after_running_rustup() {
         expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok(config, &["rustup", "self", "update"]);
 
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
 
         let setup = config
             .cargodir

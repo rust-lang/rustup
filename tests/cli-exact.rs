@@ -25,7 +25,7 @@ fn update() {
     setup(&|config| {
         expect_ok_ex(
             config,
-            &["rustup", "update", "nightly"],
+            &["rustup", "update", "nightly", "--no-self-update"],
             for_host!(
                 r"
   nightly-{0} installed - 1.3.0 (hash-n-2)
@@ -52,10 +52,10 @@ info: installing component 'rust-docs'
 #[test]
 fn update_again() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_ok_ex(
             config,
-            &["rustup", "update", "nightly"],
+            &["rustup", "update", "nightly", "--no-self-update"],
             for_host!(
                 r"
   nightly-{0} unchanged - 1.3.0 (hash-n-2)

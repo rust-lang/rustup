@@ -31,7 +31,7 @@ pub fn setup(f: &Fn(&Config)) {
 fn rustup_stable() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         set_current_dist_date(config, "2015-01-02");
         expect_ok_ex(
             config,
@@ -67,7 +67,7 @@ info: installing component 'rust-docs'
 fn rustup_stable_no_change() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         expect_ok_ex(
             config,
             &["rustup", "update", "--no-self-update"],
@@ -89,9 +89,9 @@ fn rustup_stable_no_change() {
 fn rustup_all_channels() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "update", "stable"]);
-        expect_ok(config, &["rustup", "update", "beta"]);
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         set_current_dist_date(config, "2015-01-02");
         expect_ok_ex(
             config,
@@ -157,11 +157,11 @@ info: installing component 'rust-docs'
 fn rustup_some_channels_up_to_date() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "update", "stable"]);
-        expect_ok(config, &["rustup", "update", "beta"]);
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "beta"]);
+        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
         expect_ok_ex(
             config,
             &["rustup", "update", "--no-self-update"],
@@ -212,7 +212,7 @@ info: installing component 'rust-docs'
 #[test]
 fn rustup_no_channels() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "stable"]);
         expect_ok_ex(
             config,
@@ -260,7 +260,13 @@ fn rustup_xz() {
         set_current_dist_date(config, "2015-01-01");
         expect_stderr_ok(
             config,
-            &["rustup", "--verbose", "update", "nightly"],
+            &[
+                "rustup",
+                "--verbose",
+                "update",
+                "nightly",
+                "--no-self-update",
+            ],
             for_host!(r"dist/2015-01-01/rust-std-nightly-{0}.tar.xz"),
         );
     });
@@ -367,7 +373,7 @@ fn add_target_explicit() {
             &this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_ok(
             config,
             &[
@@ -391,7 +397,7 @@ fn remove_target_explicit() {
             &this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_ok(
             config,
             &[
@@ -422,7 +428,7 @@ fn remove_target_explicit() {
 #[test]
 fn list_targets_explicit() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stdout_ok(
             config,
             &["rustup", "target", "list", "--toolchain", "nightly"],
@@ -440,7 +446,7 @@ fn link() {
         expect_ok(config, &["rustup", "default", "custom"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-c-1");
         expect_stdout_ok(config, &["rustup", "show"], "custom (default)");
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustup", "show"], "custom");
     });
@@ -465,7 +471,7 @@ fn fallback_cargo_calls_correct_rustc() {
         let path = path.to_string_lossy();
         expect_ok(config, &["rustup", "toolchain", "link", "custom", &path]);
         expect_ok(config, &["rustup", "default", "custom"]);
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-c-1");
         expect_stdout_ok(config, &["cargo", "--version"], "hash-n-2");
 
@@ -519,7 +525,7 @@ nightly-{0} (default)
 fn show_multiple_toolchains() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         expect_ok_ex(
             config,
             &["rustup", "show"],
@@ -612,6 +618,7 @@ fn show_multiple_toolchains_and_targets() {
                 "rustup",
                 "update",
                 &format!("stable-{}", clitools::MULTI_ARCH1),
+                "--no-self-update",
             ],
         );
         expect_ok_ex(
@@ -903,7 +910,10 @@ fn set_default_host_invalid_triple() {
 fn update_doesnt_update_non_tracking_channels() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "update", "nightly-2015-01-01"]);
+        expect_ok(
+            config,
+            &["rustup", "update", "nightly-2015-01-01", "--no-self-update"],
+        );
         let mut cmd = clitools::cmd(config, "rustup", &["update"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
@@ -917,7 +927,16 @@ fn update_doesnt_update_non_tracking_channels() {
 #[test]
 fn toolchain_install_is_like_update() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
         expect_stdout_ok(
             config,
             &["rustup", "run", "nightly", "rustc", "--version"],
@@ -931,7 +950,7 @@ fn toolchain_install_is_like_update_except_that_bare_install_is_an_error() {
     setup(&|config| {
         expect_err(
             config,
-            &["rustup", "toolchain", "install"],
+            &["rustup", "toolchain", "install", "--no-self-update"],
             "arguments were not provided",
         );
     });
@@ -940,7 +959,16 @@ fn toolchain_install_is_like_update_except_that_bare_install_is_an_error() {
 #[test]
 fn toolchain_update_is_like_update() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "toolchain", "update", "nightly"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "update",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
         expect_stdout_ok(
             config,
             &["rustup", "run", "nightly", "rustc", "--version"],
@@ -977,7 +1005,16 @@ fn toolchain_update_is_like_update_except_that_bare_install_is_an_error() {
 fn proxy_toolchain_shorthand() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "toolchain", "update", "nightly"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "update",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
         expect_stdout_ok(config, &["rustc", "+stable", "--version"], "hash-s-2");
         expect_stdout_ok(config, &["rustc", "+nightly", "--version"], "hash-n-2");
@@ -1236,7 +1273,16 @@ fn multirust_upgrade_works_with_proxy() {
 fn file_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
 
@@ -1252,7 +1298,16 @@ fn file_override() {
 fn file_override_subdir() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
 
@@ -1274,7 +1329,13 @@ fn file_override_with_archive() {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(
             config,
-            &["rustup", "toolchain", "install", "nightly-2015-01-01"],
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly-2015-01-01",
+                "--no-self-update",
+            ],
         );
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
@@ -1291,8 +1352,20 @@ fn file_override_with_archive() {
 fn directory_override_beats_file_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+        expect_ok(
+            config,
+            &["rustup", "toolchain", "install", "beta", "--no-self-update"],
+        );
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
 
         expect_ok(config, &["rustup", "override", "set", "beta"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
@@ -1309,8 +1382,20 @@ fn directory_override_beats_file_override() {
 fn close_file_override_beats_far_directory_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+        expect_ok(
+            config,
+            &["rustup", "toolchain", "install", "beta", "--no-self-update"],
+        );
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
 
         expect_ok(config, &["rustup", "override", "set", "beta"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
@@ -1333,7 +1418,10 @@ fn close_file_override_beats_far_directory_override() {
 fn directory_override_doesnt_need_to_exist_unless_it_is_selected() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
+        expect_ok(
+            config,
+            &["rustup", "toolchain", "install", "beta", "--no-self-update"],
+        );
         // not installing nightly
 
         expect_ok(config, &["rustup", "override", "set", "beta"]);
@@ -1351,8 +1439,20 @@ fn directory_override_doesnt_need_to_exist_unless_it_is_selected() {
 fn env_override_beats_file_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+        expect_ok(
+            config,
+            &["rustup", "toolchain", "install", "beta", "--no-self-update"],
+        );
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
 
         let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
@@ -1371,8 +1471,20 @@ fn env_override_beats_file_override() {
 fn plus_override_beats_file_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "beta"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+        expect_ok(
+            config,
+            &["rustup", "toolchain", "install", "beta", "--no-self-update"],
+        );
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
 
         let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
@@ -1416,7 +1528,16 @@ fn file_override_with_target_info() {
 fn docs_with_path() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
 
         let mut cmd = clitools::cmd(config, "rustup", &["doc", "--path"]);
         clitools::env(config, &mut cmd);
