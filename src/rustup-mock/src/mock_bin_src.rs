@@ -14,34 +14,6 @@ fn main() {
             let mut hash_file = PathBuf::from(format!("{}.version-hash", me.display()));
             let mut version = String::new();
             let mut hash = String::new();
-            if !version_file.exists() {
-                // There's a "MAJOR HACKS" statement in `toolchain.rs` right
-                // now where custom toolchains use a `cargo.exe` that's
-                // temporarily located elsewhere so they can execute the correct
-                // `rustc.exe`. This means that our dummy version files may not
-                // be just next to use.
-                //
-                // Detect this here and work around it.
-                assert!(cfg!(windows));
-                assert!(env::var_os("RUSTUP_TOOLCHAIN").is_some());
-                let mut alt = me.clone();
-                alt.pop(); // remove our filename
-                assert!(alt.ends_with("fallback"));
-                alt.pop(); // pop 'fallback'
-                alt.push("toolchains");
-
-                let mut part = PathBuf::from("bin");
-                part.push(me.file_name().unwrap());
-
-                let path = alt.read_dir().unwrap()
-                    .map(|e| e.unwrap().path().join(&part))
-                    .filter(|p| p.exists())
-                    .find(|p| equivalent(&p, &me))
-                    .unwrap();
-
-                version_file = format!("{}.version", path.display()).into();
-                hash_file = format!("{}.version-hash", path.display()).into();
-            }
             File::open(&version_file).unwrap().read_to_string(&mut version).unwrap();
             File::open(&hash_file).unwrap().read_to_string(&mut hash).unwrap();
             println!("{} ({})", version, hash);
@@ -57,9 +29,9 @@ fn main() {
         }
         Some("--call-rustc") => {
             // Used by the fallback_cargo_calls_correct_rustc test. Tests that
-            // the environment has been set up right such that invoking rustc
-            // will actually invoke the wrapper
-            let rustc = &format!("rustc{}", EXE_SUFFIX);
+            // the environment has been set up right such that invoking cargo
+            // will invoke the correct rustc executable.
+            let rustc = env::var_os("RUSTC").unwrap_or(format!("rustc{}", EXE_SUFFIX).into());
             Command::new(rustc).arg("--version").status().unwrap();
         }
         _ => panic!("bad mock proxy commandline"),

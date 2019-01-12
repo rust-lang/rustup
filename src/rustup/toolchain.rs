@@ -373,38 +373,26 @@ impl<'a> Toolchain<'a> {
             return Err(ErrorKind::ToolchainNotInstalled(primary_toolchain.name.to_owned()).into());
         }
 
-        let src_file = self.path.join("bin").join(format!("cargo{}", EXE_SUFFIX));
+        let exe_path = self.path.join("bin").join(format!("cargo{}", EXE_SUFFIX));
 
-        // MAJOR HACKS: Copy cargo.exe to its own directory on windows before
-        // running it. This is so that the fallback cargo, when it in turn runs
-        // rustc.exe, will run the rustc.exe out of the PATH environment
-        // variable, _not_ the rustc.exe sitting in the same directory as the
-        // fallback. See the `fallback_cargo_calls_correct_rustc` testcase and
-        // PR 812.
+        let mut cmd = Command::new(exe_path);
+        self.set_env(&mut cmd);
+        cmd.env("RUSTUP_TOOLCHAIN", &primary_toolchain.name);
+
+        // Set the RUSTC environment variable to the primary toolchain binary
+        // on Windows. This is so that the fallback cargo will run that executable
+        // and _not_ the rustc.exe sitting in the same directory. See the
+        // `fallback_cargo_calls_correct_rustc` testcase.
         //
         // On Windows, spawning a process will search the running application's
         // directory for the exe to spawn before searching PATH, and we don't want
         // it to do that, because cargo's directory contains the _wrong_ rustc. See
         // the documantation for the lpCommandLine argument of CreateProcess.
-        let exe_path = if cfg!(windows) {
-            use std::fs;
-            let fallback_dir = self.cfg.rustup_dir.join("fallback");
-            fs::create_dir_all(&fallback_dir)
-                .chain_err(|| "unable to create dir to hold fallback exe")?;
-            let fallback_file = fallback_dir.join("cargo.exe");
-            if fallback_file.exists() {
-                fs::remove_file(&fallback_file)
-                    .chain_err(|| "unable to unlink old fallback exe")?;
+        if cfg!(windows) {
+            if env::var_os("RUSTC").is_none() {
+                cmd.env("RUSTC", primary_toolchain.binary_file("rustc"));
             }
-            fs::hard_link(&src_file, &fallback_file)
-                .chain_err(|| "unable to hard link fallback exe")?;
-            fallback_file
-        } else {
-            src_file
-        };
-        let mut cmd = Command::new(exe_path);
-        self.set_env(&mut cmd);
-        cmd.env("RUSTUP_TOOLCHAIN", &primary_toolchain.name);
+        }
         Ok(cmd)
     }
 
