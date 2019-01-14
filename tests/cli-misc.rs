@@ -41,7 +41,8 @@ fn smoke_test() {
 #[test]
 fn no_colors_in_piped_error_output() {
     setup(&|config| {
-        let out = run(config, "rustc", &[], &[]);
+        let args: Vec<&str> = vec![];
+        let out = run(config, "rustc", &args, &[]);
         assert!(!out.ok);
         assert!(!out.stderr.contains("\u{1b}"));
     });
@@ -50,7 +51,8 @@ fn no_colors_in_piped_error_output() {
 #[test]
 fn rustc_with_bad_rustup_toolchain_env_var() {
     setup(&|config| {
-        let out = run(config, "rustc", &[], &[("RUSTUP_TOOLCHAIN", "bogus")]);
+        let args: Vec<&str> = vec![];
+        let out = run(config, "rustc", &args, &[("RUSTUP_TOOLCHAIN", "bogus")]);
         assert!(!out.ok);
         assert!(out.stderr.contains("toolchain 'bogus' is not installed"));
     });
@@ -677,10 +679,11 @@ fn install_stops_if_rustc_exists() {
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     setup(&|config| {
+        let args: Vec<&str> = vec![];
         let out = run(
             config,
             "rustup-init",
-            &[],
+            &args,
             &[
                 ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
                 ("PATH", &temp_dir_path),
@@ -705,10 +708,11 @@ fn install_stops_if_cargo_exists() {
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     setup(&|config| {
+        let args: Vec<&str> = vec![];
         let out = run(
             config,
             "rustup-init",
-            &[],
+            &args,
             &[
                 ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
                 ("PATH", &temp_dir_path),

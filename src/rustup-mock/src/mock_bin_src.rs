@@ -6,8 +6,8 @@ use std::path::{PathBuf, Path};
 use std::process::Command;
 
 fn main() {
-    let mut args = env::args().skip(1);
-    match args.next().as_ref().map(|s| &**s) {
+    let mut args = env::args_os().skip(1);
+    match args.next().as_ref().and_then(|s| s.to_str()) {
         Some("--version") => {
             let me = env::current_exe().unwrap();
             let mut version_file = PathBuf::from(format!("{}.version", me.display()));
@@ -61,6 +61,12 @@ fn main() {
             // will actually invoke the wrapper
             let rustc = &format!("rustc{}", EXE_SUFFIX);
             Command::new(rustc).arg("--version").status().unwrap();
+        }
+        Some("--echo-args") => {
+            let mut out = io::stderr();
+            for arg in args {
+                writeln!(out, "{}", arg.to_string_lossy()).unwrap();
+            }
         }
         _ => panic!("bad mock proxy commandline"),
     }

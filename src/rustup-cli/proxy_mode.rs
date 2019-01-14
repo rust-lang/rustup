@@ -15,7 +15,7 @@ pub fn main() -> Result<()> {
     let ExitCode(c) = {
         let _setup = job::setup();
 
-        let mut args = env::args();
+        let mut args = env::args_os();
 
         let arg0 = args.next().map(PathBuf::from);
         let arg0 = arg0
@@ -26,13 +26,11 @@ pub fn main() -> Result<()> {
 
         // Check for a toolchain specifier.
         let arg1 = args.next();
-        let toolchain = arg1.as_ref().and_then(|arg1| {
-            if arg1.starts_with('+') {
-                Some(&arg1[1..])
-            } else {
-                None
-            }
-        });
+        let toolchain_arg = arg1
+            .as_ref()
+            .map(|arg| arg.to_string_lossy())
+            .filter(|arg| arg.starts_with('+'));
+        let toolchain = toolchain_arg.as_ref().map(|a| &a[1..]);
 
         // Build command args now while we know whether or not to skip arg 1.
         let cmd_args: Vec<_> = if toolchain.is_none() {
