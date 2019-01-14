@@ -399,20 +399,12 @@ pub fn cli() -> App<'static, 'static> {
                         .long("path")
                         .help("Only print the path to the documentation"),
                 )
-                .arg(
-                    Arg::with_name("book")
-                        .long("book")
-                        .help("The Rust Programming Language book"),
-                )
-                .arg(
-                    Arg::with_name("std")
-                        .long("std")
-                        .help("Standard library API documentation"),
-                )
-                .arg(
-                    Arg::with_name("reference")
-                        .long("reference")
-                        .help("The Rust Reference"),
+                .args(
+                    &DOCS_DATA.into_iter().map(|(name, help_msg, _)| {
+                        Arg::with_name(name)
+                            .long(name)
+                            .help(help_msg)
+                    }).collect::<Vec<_>>()
                 )
                 .arg(
                     Arg::with_name("toolchain")
@@ -420,7 +412,10 @@ pub fn cli() -> App<'static, 'static> {
                         .long("toolchain")
                         .takes_value(true),
                 )
-                .group(ArgGroup::with_name("page").args(&["book", "std", "reference"])),
+                .group(ArgGroup::with_name("page").args(
+                    &DOCS_DATA.into_iter().map(|(name, _, _)| *name)
+                        .collect::<Vec<_>>()
+                )),
         );
 
     if cfg!(not(target_os = "windows")) {
@@ -970,17 +965,34 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
+const DOCS_DATA: &[(&'static str, &'static str, &'static str,)] = &[
+    // flags can be used to open specific documents, e.g. `rustup doc --nomicon`
+    // tuple elements: document name used as flag, help message, document index path
+    ("alloc", "The Rust core allocation and collections library", "alloc/index.html"),
+    ("book", "The Rust Programming Language book", "book/index.html"),
+    ("cargo", "The Cargo Book", "cargo/index.html"),
+    ("core", "The Rust Core Library", "core/index.html"),
+    ("edition-guide", "The Rust Edition Guide", "edition-guide/index.html"),
+    ("nomicon", "The Dark Arts of Advanced and Unsafe Rust Programming", "nomicon/index.html"),
+    ("proc_macro", "A support library for macro authors when defining new macros", "proc_macro/index.html"),
+    ("reference", "The Rust Reference", "reference/index.html"),
+    ("rust-by-example", "A collection of runnable examples that illustrate various Rust concepts and standard libraries", "rust-by-example/index.html"),
+    ("rustc", "The compiler for the Rust programming language", "rustc/index.html"),
+    ("rustdoc", "Generate documentation for Rust projects", "rustdoc/index.html"),
+    ("std", "Standard library API documentation", "std/index.html"),
+    ("test", "Support code for rustc's built in unit-test and micro-benchmarking framework", "test/index.html"),
+    ("unstable-book", "The Unstable Book", "unstable-book/index.html"),
+];
+
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    let doc_url = if m.is_present("book") {
-        "book/index.html"
-    } else if m.is_present("std") {
-        "std/index.html"
-    } else if m.is_present("reference") {
-        "reference/index.html"
-    } else {
-        "index.html"
-    };
+
+    let doc_url =
+        if let Some((_, _, path)) = DOCS_DATA.into_iter().find(|(name, _, _)| m.is_present(name)) {
+            path
+        } else {
+            "index.html"
+        };
 
     if m.is_present("path") {
         let doc_path = toolchain.doc_path(doc_url)?;
