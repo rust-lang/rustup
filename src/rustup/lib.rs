@@ -31,6 +31,7 @@ pub static TOOLS: &'static [&'static str] = &[
     "rust-gdb",
     "rls",
     "cargo-clippy",
+    "cargo-miri",
 ];
 
 // Tools which are commonly installed by Cargo as well as rustup. We take a bit
@@ -54,6 +55,7 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
         "rust-gdb" => Some("gdb-preview"),
         "rls" => Some("rls"),
         "cargo-clippy" => Some("clippy"),
+        "cargo-miri" => Some("miri"),
         "rustfmt" | "cargo-fmt" => Some("rustfmt"),
         _ => None,
     }
