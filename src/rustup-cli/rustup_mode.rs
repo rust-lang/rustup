@@ -400,11 +400,10 @@ pub fn cli() -> App<'static, 'static> {
                         .help("Only print the path to the documentation"),
                 )
                 .args(
-                    &DOCS_DATA.into_iter().map(|(name, help_msg, _)| {
-                        Arg::with_name(name)
-                            .long(name)
-                            .help(help_msg)
-                    }).collect::<Vec<_>>()
+                    &DOCS_DATA
+                        .into_iter()
+                        .map(|(name, help_msg, _)| Arg::with_name(name).long(name).help(help_msg))
+                        .collect::<Vec<_>>(),
                 )
                 .arg(
                     Arg::with_name("toolchain")
@@ -412,10 +411,14 @@ pub fn cli() -> App<'static, 'static> {
                         .long("toolchain")
                         .takes_value(true),
                 )
-                .group(ArgGroup::with_name("page").args(
-                    &DOCS_DATA.into_iter().map(|(name, _, _)| *name)
-                        .collect::<Vec<_>>()
-                )),
+                .group(
+                    ArgGroup::with_name("page").args(
+                        &DOCS_DATA
+                            .into_iter()
+                            .map(|(name, _, _)| *name)
+                            .collect::<Vec<_>>(),
+                    ),
+                ),
         );
 
     if cfg!(not(target_os = "windows")) {
@@ -987,12 +990,14 @@ const DOCS_DATA: &[(&'static str, &'static str, &'static str,)] = &[
 fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
-    let doc_url =
-        if let Some((_, _, path)) = DOCS_DATA.into_iter().find(|(name, _, _)| m.is_present(name)) {
-            path
-        } else {
-            "index.html"
-        };
+    let doc_url = if let Some((_, _, path)) = DOCS_DATA
+        .into_iter()
+        .find(|(name, _, _)| m.is_present(name))
+    {
+        path
+    } else {
+        "index.html"
+    };
 
     if m.is_present("path") {
         let doc_path = toolchain.doc_path(doc_url)?;
