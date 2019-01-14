@@ -478,9 +478,11 @@ impl Cfg {
     }
 
     pub fn set_default_host_triple(&self, host_triple: &str) -> Result<()> {
-        if dist::PartialTargetTriple::from_str(host_triple).is_none() {
-            return Err("Invalid host triple".into());
-        }
+        // Ensure that the provided host_triple is capable of resolving
+        // against the 'stable' toolchain.  This provides early errors
+        // if the supplied triple is insufficient / bad.
+        dist::PartialToolchainDesc::from_str("stable")?
+            .resolve(&dist::TargetTriple::from_str(host_triple))?;
         self.settings_file.with_mut(|s| {
             s.default_host_triple = Some(host_triple.to_owned());
             Ok(())
