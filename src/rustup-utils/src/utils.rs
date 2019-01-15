@@ -854,6 +854,57 @@ fn rename(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
     })
 }
 
+pub struct FileReaderWithProgress<'a> {
+    fh: std::fs::File,
+    notify_handler: &'a Fn(Notification),
+    sent_start: bool,
+    nbytes: u64,
+    flen: u64,
+}
+
+impl<'a> FileReaderWithProgress<'a> {
+    pub fn new_file(path: &Path, notify_handler: &'a Fn(Notification)) -> Result<Self> {
+        let fh = match std::fs::File::open(path) {
+            Ok(fh) => fh,
+            Err(_) => Err(ErrorKind::ReadingFile {
+                name: "downloaded",
+                path: path.to_path_buf(),
+            })?,
+        };
+
+        Ok(FileReaderWithProgress {
+            fh,
+            notify_handler,
+            sent_start: false,
+            nbytes: 0,
+            flen: 0,
+        })
+    }
+}
+
+impl<'a> std::io::Read for FileReaderWithProgress<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        if !self.sent_start {
+            // Send the start notifications
+            let flen = self.fh.metadata()?.len();
+            self.flen = flen;
+            (self.notify_handler)(Notification::DownloadContentLengthReceived(flen));
+        }
+        match self.fh.read(buf) {
+            Ok(nbytes) => {
+                self.nbytes += nbytes as u64;
+                if (nbytes == 0) || (self.flen == self.nbytes) {
+                    (self.notify_handler)(Notification::DownloadFinished);
+                } else {
+                    (self.notify_handler)(Notification::DownloadDataReceived(&buf[0..nbytes]));
+                }
+                Ok(nbytes)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

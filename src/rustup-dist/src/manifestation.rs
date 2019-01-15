@@ -200,13 +200,18 @@ impl Manifestation {
 
             let gz;
             let xz;
+            let notification_converter = |notification: rustup_utils::Notification| {
+                notify_handler(Notification::Utils(notification));
+            };
+            let reader =
+                utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
             let package: &Package = match format {
                 Format::Gz => {
-                    gz = TarGzPackage::new_file(&installer_file, temp_cfg)?;
+                    gz = TarGzPackage::new(reader, temp_cfg)?;
                     &gz
                 }
                 Format::Xz => {
-                    xz = TarXzPackage::new_file(&installer_file, temp_cfg)?;
+                    xz = TarXzPackage::new(reader, temp_cfg)?;
                     &xz
                 }
             };
