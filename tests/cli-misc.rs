@@ -380,6 +380,9 @@ fn rustup_failed_path_search() {
                 &config.customdir.join("custom-1").to_string_lossy(),
             ],
         );
+
+        expect_ok(config, &["rustup", "default", "custom"]);
+
         let broken = &["rustup", "run", "custom", "fake_proxy"];
         expect_err(
             config,
@@ -389,6 +392,54 @@ fn rustup_failed_path_search() {
                 EXE_SUFFIX
             ),
         );
+
+        // Hardlink will be automatically cleaned up by test setup code
+    });
+}
+
+#[test]
+fn rustup_failed_path_search_toolchain() {
+    setup(&|config| {
+        use std::env::consts::EXE_SUFFIX;
+
+        let ref rustup_path = config.exedir.join(&format!("rustup{}", EXE_SUFFIX));
+        let ref tool_path = config.exedir.join(&format!("cargo-miri{}", EXE_SUFFIX));
+        utils::hardlink_file(rustup_path, tool_path)
+            .expect("Failed to create fake cargo-miri for test");
+
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "link",
+                "custom-1",
+                &config.customdir.join("custom-1").to_string_lossy(),
+            ],
+        );
+
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "link",
+                "custom-2",
+                &config.customdir.join("custom-2").to_string_lossy(),
+            ],
+        );
+
+        expect_ok(config, &["rustup", "default", "custom-2"]);
+
+        let broken = &["rustup", "run", "custom-1", "cargo-miri"];
+        expect_err(
+            config,
+            broken,
+            "rustup component add miri --toolchain custom-1",
+        );
+
+        let broken = &["rustup", "run", "custom-2", "cargo-miri"];
+        expect_err(config, broken, "rustup component add miri");
 
         // Hardlink will be automatically cleaned up by test setup code
     });
