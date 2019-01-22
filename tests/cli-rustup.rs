@@ -900,7 +900,19 @@ fn set_default_host_invalid_triple() {
         expect_err(
             config,
             &["rustup", "set", "default-host", "foo"],
-            "Invalid host triple",
+            "error: Provided host 'foo' couldn't be converted to partial triple",
+        );
+    });
+}
+
+// #745
+#[test]
+fn set_default_host_invalid_triple_valid_partial() {
+    setup(&|config| {
+        expect_err(
+            config,
+            &["rustup", "set", "default-host", "x86_64-msvc"],
+            "error: Provided host 'x86_64-msvc' did not specify an operating system",
         );
     });
 }

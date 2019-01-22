@@ -99,7 +99,7 @@ impl Cfg {
         );
         let dist_root = dist_root_server.clone() + "/dist";
 
-        Ok(Cfg {
+        let cfg = Cfg {
             rustup_dir: rustup_dir,
             settings_file: settings_file,
             toolchains_dir: toolchains_dir,
@@ -111,7 +111,15 @@ impl Cfg {
             env_override: env_override,
             dist_root_url: dist_root,
             dist_root_server: dist_root_server,
-        })
+        };
+
+        // Run some basic checks against the constructed configuration
+        // For now, that means simply checking that 'stable' can resolve
+        // for the current configuration.
+        cfg.resolve_toolchain("stable")
+            .map_err(|e| format!("Unable parse configuration: {}", e))?;
+
+        Ok(cfg)
     }
 
     pub fn set_default(&self, toolchain: &str) -> Result<()> {
@@ -470,9 +478,11 @@ impl Cfg {
     }
 
     pub fn set_default_host_triple(&self, host_triple: &str) -> Result<()> {
-        if dist::PartialTargetTriple::from_str(host_triple).is_none() {
-            return Err("Invalid host triple".into());
-        }
+        // Ensure that the provided host_triple is capable of resolving
+        // against the 'stable' toolchain.  This provides early errors
+        // if the supplied triple is insufficient / bad.
+        dist::PartialToolchainDesc::from_str("stable")?
+            .resolve(&dist::TargetTriple::from_str(host_triple))?;
         self.settings_file.with_mut(|s| {
             s.default_host_triple = Some(host_triple.to_owned());
             Ok(())
@@ -493,7 +503,7 @@ impl Cfg {
     pub fn resolve_toolchain(&self, name: &str) -> Result<String> {
         if let Ok(desc) = dist::PartialToolchainDesc::from_str(name) {
             let host = self.get_default_host_triple()?;
-            Ok(desc.resolve(&host).to_string())
+            Ok(desc.resolve(&host)?.to_string())
         } else {
             Ok(name.to_owned())
         }

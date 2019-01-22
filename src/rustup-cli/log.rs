@@ -16,6 +16,10 @@ macro_rules! verbose {
     ( $ ( $ arg : tt ) * ) => ( $crate::log::verbose_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 
+macro_rules! debug {
+    ( $ ( $ arg : tt ) * ) => ( $crate::log::debug_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+}
+
 pub fn warn_fmt(args: fmt::Arguments) {
     let mut t = term2::stderr();
     let _ = t.fg(term2::color::BRIGHT_YELLOW);
@@ -53,4 +57,16 @@ pub fn verbose_fmt(args: fmt::Arguments) {
     let _ = t.reset();
     let _ = t.write_fmt(args);
     let _ = write!(t, "\n");
+}
+
+pub fn debug_fmt(args: fmt::Arguments) {
+    if std::env::var("RUSTUP_DEBUG").is_ok() {
+        let mut t = term2::stderr();
+        let _ = t.fg(term2::color::BRIGHT_BLUE);
+        let _ = t.attr(term2::Attr::Bold);
+        let _ = write!(t, "verbose: ");
+        let _ = t.reset();
+        let _ = t.write_fmt(args);
+        let _ = write!(t, "\n");
+    }
 }
