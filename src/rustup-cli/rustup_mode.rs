@@ -702,34 +702,37 @@ fn show(cfg: &Cfg) -> Result<()> {
             print_header("installed toolchains")
         }
         let default_name = cfg.get_default()?;
-        for t in installed_toolchains {
-            if default_name == t {
-                println!("{} (default)", t);
+        let mut t = term2::stdout();
+        for it in installed_toolchains {
+            if default_name == it {
+                let _ = writeln!(t, "{} (default)", it);
             } else {
-                println!("{}", t);
+                let _ = writeln!(t, "{}", it);
             }
         }
         if show_headers {
-            println!("")
-        };
+            let _ = writeln!(t, "");
+        }
     }
 
     if show_active_targets {
         if show_headers {
             print_header("installed targets for active toolchain");
         }
-        for t in active_targets {
-            println!(
+        let mut t = term2::stdout();
+        for at in active_targets {
+            let _ = writeln!(
+                t,
                 "{}",
-                t.component
+                at.component
                     .target
                     .as_ref()
                     .expect("rust-std should have a target")
             );
         }
         if show_headers {
-            println!("")
-        };
+            let _ = writeln!(t, "");
+        }
     }
 
     if show_active_toolchain {
@@ -737,32 +740,34 @@ fn show(cfg: &Cfg) -> Result<()> {
             print_header("active toolchain")
         }
 
+        let mut t = term2::stdout();
+
         match active_toolchain {
             Ok(atc) => match atc {
                 Some((ref toolchain, Some(ref reason))) => {
-                    println!("{} ({})", toolchain.name(), reason);
-                    println!("{}", common::rustc_version(toolchain));
+                    let _ = writeln!(t, "{} ({})", toolchain.name(), reason);
+                    let _ = writeln!(t, "{}", common::rustc_version(toolchain));
                 }
                 Some((ref toolchain, None)) => {
-                    println!("{} (default)", toolchain.name());
-                    println!("{}", common::rustc_version(toolchain));
+                    let _ = writeln!(t, "{} (default)", toolchain.name());
+                    let _ = writeln!(t, "{}", common::rustc_version(toolchain));
                 }
                 None => {
-                    println!("no active toolchain");
+                    let _ = writeln!(t, "no active toolchain");
                 }
             },
             Err(err) => {
                 if let Some(cause) = err.source() {
-                    println!("(error: {}, {})", err, cause);
+                    let _ = writeln!(t, "(error: {}, {})", err, cause);
                 } else {
-                    println!("(error: {})", err);
+                    let _ = writeln!(t, "(error: {})", err);
                 }
             }
         }
 
         if show_headers {
-            println!("")
-        };
+            let _ = writeln!(t, "");
+        }
     }
 
     fn print_header(s: &str) {
