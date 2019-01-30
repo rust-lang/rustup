@@ -537,7 +537,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
                 for n in &candidates {
                     println!("{}", n);
                 }
-                println!("");
+                println!();
             }
         }
         return Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into());
@@ -587,7 +587,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     toolchain.make_default()?;
 
     if let Some(status) = status {
-        println!("");
+        println!();
         common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
     }
 
@@ -610,7 +610,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
             };
 
             if let Some(status) = status {
-                println!("");
+                println!();
                 common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
             }
         }
@@ -657,7 +657,7 @@ fn show(cfg: &Cfg) -> Result<()> {
         let _ = write!(t, "Default host: ");
         let _ = t.reset();
         println!("{}", cfg.get_default_host_triple()?);
-        println!("");
+        println!();
     }
 
     let ref cwd = utils::current_dir()?;
@@ -710,7 +710,7 @@ fn show(cfg: &Cfg) -> Result<()> {
             }
         }
         if show_headers {
-            println!("")
+            println!()
         };
     }
 
@@ -728,7 +728,7 @@ fn show(cfg: &Cfg) -> Result<()> {
             );
         }
         if show_headers {
-            println!("")
+            println!()
         };
     }
 
@@ -761,7 +761,7 @@ fn show(cfg: &Cfg) -> Result<()> {
         }
 
         if show_headers {
-            println!("")
+            println!()
         };
     }
 
@@ -916,7 +916,7 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     toolchain.make_override(&utils::current_dir()?)?;
 
     if let Some(status) = status {
-        println!("");
+        println!();
         common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
     }
 

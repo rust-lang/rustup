@@ -28,7 +28,7 @@ pub fn confirm(question: &str, default: bool) -> Result<bool> {
         _ => false,
     };
 
-    println!("");
+    println!();
 
     Ok(r)
 }
@@ -40,7 +40,7 @@ pub enum Confirm {
 }
 
 pub fn confirm_advanced() -> Result<Confirm> {
-    println!("");
+    println!();
     println!("1) Proceed with installation (default)");
     println!("2) Customize installation");
     println!("3) Cancel installation");
@@ -55,7 +55,7 @@ pub fn confirm_advanced() -> Result<Confirm> {
         _ => Confirm::No,
     };
 
-    println!("");
+    println!();
 
     Ok(r)
 }
@@ -65,7 +65,7 @@ pub fn question_str(question: &str, default: &str) -> Result<String> {
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
-    println!("");
+    println!();
 
     if input.is_empty() {
         Ok(default.to_string())
@@ -80,7 +80,7 @@ pub fn question_bool(question: &str, default: bool) -> Result<bool> {
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
-    println!("");
+    println!();
 
     if input.is_empty() {
         Ok(default)
@@ -209,7 +209,7 @@ pub fn update_all_channels(cfg: &Cfg, do_self_update: bool, force_update: bool) 
 
     let show_channel_updates = || {
         if !toolchains.is_empty() {
-            println!("");
+            println!();
 
             show_channel_updates(cfg, toolchains)?;
         }
@@ -384,7 +384,7 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
             )
         }
         if any_not_exist {
-            println!("");
+            println!();
             info!(
                 "you may remove overrides for non-existent directories with
 `rustup override unset --nonexistent`"
@@ -411,7 +411,7 @@ pub fn report_error(e: &Error) {
     if show_backtrace() {
         if let Some(backtrace) = e.backtrace() {
             info!("backtrace:");
-            println!("");
+            println!();
             println!("{:?}", backtrace);
         }
     } else {
