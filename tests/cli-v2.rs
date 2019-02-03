@@ -138,13 +138,12 @@ fn list_toolchains_with_none() {
 fn remove_toolchain() {
     setup(&|config| {
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
-        expect_ok(config, &["rustup", "toolchain", "list"]);
-        expect_stdout_ok(
+        expect_err(
             config,
-            &["rustup", "toolchain", "list"],
-            "no installed toolchains",
+            &["rustup", "toolchain", "remove", "nightly"],
+            for_host!("error: 'nightly-{0}' is the only toolchain left"),
         );
+        expect_ok(config, &["rustup", "toolchain", "list"]);
     });
 }
 
@@ -154,10 +153,19 @@ fn add_remove_multiple_toolchains() {
         setup(&|config| {
             let tch1 = "beta";
             let tch2 = "nightly";
+            let tch3 = "stable";
 
             expect_ok(
                 config,
-                &["rustup", "toolchain", add, tch1, tch2, "--no-self-update"],
+                &[
+                    "rustup",
+                    "toolchain",
+                    add,
+                    tch1,
+                    tch2,
+                    tch3,
+                    "--no-self-update",
+                ],
             );
             expect_ok(config, &["rustup", "toolchain", "list"]);
             expect_stdout_ok(config, &["rustup", "toolchain", "list"], tch1);
@@ -181,11 +189,10 @@ fn add_remove_multiple_toolchains() {
 fn remove_default_toolchain_err_handling() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
         expect_err(
             config,
-            &["rustc"],
-            for_host!("toolchain 'nightly-{0}' is not installed"),
+            &["rustup", "toolchain", "remove", "nightly"],
+            for_host!("error: 'nightly-{0}' is the only toolchain left"),
         );
     });
 }
@@ -462,8 +469,15 @@ fn remove_toolchain_then_add_again() {
     // Issue brson/multirust #53
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "beta"]);
-        expect_ok(config, &["rustup", "toolchain", "remove", "beta"]);
-        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_err(
+            config,
+            &["rustup", "toolchain", "remove", "beta"],
+            for_host!("error: 'beta-{0}' is the only toolchain left\n"),
+        );
+        // Use nightly as second toolchain to pass this error
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_ok(config, &["rustc", "--version"]);
     });
 }
@@ -802,6 +816,8 @@ fn remove_target_host() {
 // Issue #304
 fn remove_target_missing_update_hash() {
     setup(&|config| {
+        // Ensure there are at least two toolchains before removal
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
 
         let file_name = format!("nightly-{}", this_host_triple());

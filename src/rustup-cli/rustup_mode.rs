@@ -896,6 +896,11 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn toolchain_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     for toolchain in m.values_of("toolchain").expect("") {
         let toolchain = cfg.get_toolchain(toolchain, false)?;
+        let installed_toolchains = cfg.list_toolchains()?;
+        if installed_toolchains.len() == 1 && toolchain.name() == installed_toolchains[0] {
+            // Do not allow removal of toolchain if it's the only toolchain
+            return Err(ErrorKind::ToolchainUninstallOnly(toolchain.name().to_string()).into());
+        }
         toolchain.remove()?;
     }
     Ok(())

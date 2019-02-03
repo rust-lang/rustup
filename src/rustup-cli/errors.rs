@@ -27,6 +27,10 @@ error_chain! {
             description("toolchain is not installed")
             display("toolchain '{}' is not installed", t)
         }
+        ToolchainUninstallOnly(t: String) {
+            description("attempting to uninstall only remaining toolchain")
+            display("'{}' is the only toolchain left", t)
+        }
         InvalidToolchainName(t: String) {
             description("invalid toolchain name")
             display("invalid toolchain name: '{}'", t)

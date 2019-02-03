@@ -213,13 +213,10 @@ info: installing component 'rust-docs'
 fn rustup_no_channels() {
     setup(&|config| {
         expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
-        expect_ok(config, &["rustup", "toolchain", "remove", "stable"]);
-        expect_ok_ex(
+        expect_err(
             config,
-            &["rustup", "update", "--no-self-update"],
-            r"",
-            r"info: no updatable toolchains installed
-",
+            &["rustup", "toolchain", "remove", "stable"],
+            for_host!("error: 'stable-{0}' is the only toolchain left\n"),
         );
     })
 }
@@ -806,6 +803,8 @@ fn show_toolchain_toolchain_file_override_not_installed() {
 #[test]
 fn show_toolchain_override_not_installed() {
     setup(&|config| {
+        // Must have at least one toolchain installed after `remove nightly`
+        expect_ok(config, &["rustup", "override", "add", "stable"]);
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
         let mut cmd = clitools::cmd(config, "rustup", &["show"]);
