@@ -122,13 +122,14 @@ fn list_toolchains_with_none() {
 fn remove_toolchain() {
     setup(&|config| {
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
-        expect_ok(config, &["rustup", "toolchain", "list"]);
-        expect_stdout_ok(
+        expect_err(
             config,
-            &["rustup", "toolchain", "list"],
-            "no installed toolchains",
+            &["rustup", "toolchain", "remove", "nightly"],
+            for_host!("error: 'nightly-{0}' is the only toolchain left"),
         );
+        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_ok(config, &["rustup", "toolchain", "remove", "beta"]);
+        expect_ok(config, &["rustup", "toolchain", "list"]);
     });
 }
 
@@ -136,11 +137,10 @@ fn remove_toolchain() {
 fn remove_default_toolchain_err_handling() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
         expect_err(
             config,
-            &["rustc"],
-            for_host!("toolchain 'nightly-{0}' is not installed"),
+            &["rustup", "toolchain", "remove", "nightly"],
+            for_host!("error: 'nightly-{0}' is the only toolchain left"),
         );
     });
 }
@@ -362,8 +362,16 @@ fn remove_toolchain_then_add_again() {
     // Issue brson/multirust #53
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "beta"]);
-        expect_ok(config, &["rustup", "toolchain", "remove", "beta"]);
-        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        // Can't uninstall the only toolchain left
+        expect_err(
+            config,
+            &["rustup", "toolchain", "remove", "beta"],
+            for_host!("error: 'beta-{0}' is the only toolchain left\n"),
+        );
+        // Use nightly as second toolchain to pass this error
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_ok(config, &["rustc", "--version"]);
     });
 }

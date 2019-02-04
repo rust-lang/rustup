@@ -773,12 +773,19 @@ fn toolchain_broken_symlink() {
         // We artifically create a broken symlink toolchain -- but this can also happen "legitimately"
         // by having a proper toolchain there, using "toolchain link", and later removing the directory.
         fs::create_dir(config.rustupdir.join("toolchains")).unwrap();
+        // Have to have at least one toolchain left before attempting to uninstall
+        expect_ok(config, &["rustup", "default", "stable"]);
         create_symlink_dir(
             config.rustupdir.join("this-directory-does-not-exist"),
             config.rustupdir.join("toolchains").join("test"),
         );
         // Make sure this "fake install" actually worked
-        expect_ok_ex(config, &["rustup", "toolchain", "list"], "test\n", "");
+        expect_ok_ex(
+            config,
+            &["rustup", "toolchain", "list"],
+            for_host!("stable-{0} (default)\ntest\n"),
+            "",
+        );
         // Now try to uninstall it.  That should work only once.
         expect_ok_ex(
             config,
