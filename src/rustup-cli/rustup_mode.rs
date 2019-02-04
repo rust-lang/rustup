@@ -296,6 +296,12 @@ pub fn cli() -> App<'static, 'static> {
                                 .help(TOOLCHAIN_ARG_HELP)
                                 .long("toolchain")
                                 .takes_value(true),
+                        )
+                        .arg(
+                            Arg::with_name("filter")
+                                .help(FILTER_ARG_HELP)
+                                .long("filter")
+                                .takes_value(true),
                         ),
                 )
                 .subcommand(
@@ -825,7 +831,13 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
-    common::list_components(&toolchain)
+    let filter = match m.value_of("filter") {
+        Some("required") => common::ComponentFilter::Required,
+        Some("available") => common::ComponentFilter::Available,
+        Some("installed") => common::ComponentFilter::Installed,
+        _ => common::ComponentFilter::None,
+    };
+    common::list_components(&toolchain, &filter)
 }
 
 fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {

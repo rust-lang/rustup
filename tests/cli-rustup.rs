@@ -1093,6 +1093,80 @@ fn add_remove_multiple_components() {
     });
 }
 
+#[test]
+fn list_components_filter() {
+    setup(&|config| {
+        expect_err(
+            config,
+            &["rustup", "component", "list", "--filter", "required"],
+            "error: no default toolchain configured",
+        );
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok_ex(
+            config,
+            &["rustup", "component", "list", "--filter", "required"],
+            for_host!(
+                r"cargo-{0} (default)
+rust-docs-{0} (default)
+rust-std-{0} (default)
+rustc-{0} (default)
+"
+            ),
+            "",
+        );
+        expect_ok(
+            config,
+            &["rustup", "component", "list", "--filter", "available"],
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "component", "list", "--filter", "installed"],
+            for_host!(
+                "cargo-{0} (default)
+rust-docs-{0} (default)
+rust-std-{0} (default)
+rustc-{0} (default)
+"
+            ),
+            "",
+        );
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_ok_ex(
+            config,
+            &["rustup", "component", "list", "--filter", "installed"],
+            for_host!(
+                "cargo-{0} (default)
+rls-{0} (installed)
+rust-docs-{0} (default)
+rust-std-{0} (default)
+rustc-{0} (default)
+"
+            ),
+            "",
+        );
+        expect_err(
+            config,
+            &["rustup", "component", "list", "--filter"],
+            "error: The argument '--filter <filter>' requires a value but none was supplied",
+        );
+
+        // Don't show installed/default components in available filter
+        let mut cmd = clitools::cmd(
+            config,
+            "rustup",
+            &["component", "list", "--filter", "available"],
+        );
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+        assert!(!String::from_utf8(out.stdout.clone())
+            .unwrap()
+            .contains("(installed)"));
+        assert!(!String::from_utf8(out.stdout.clone())
+            .unwrap()
+            .contains("(default)"));
+    });
+}
+
 // Run without setting RUSTUP_HOME, with setting HOME and USERPROFILE
 fn run_no_home(config: &Config, args: &[&str], env: &[(&str, &str)]) -> process::Output {
     let home_dir_str = &format!("{}", config.homedir.display());

@@ -254,3 +254,6 @@ r"DISCUSSION:
 pub static TOOLCHAIN_ARG_HELP: &'static str = "Toolchain name, such as 'stable', 'nightly', \
                                                or '1.8.0'. For more information see `rustup \
                                                help toolchain`";
+
+pub static FILTER_ARG_HELP: &'static str =
+    "Component status: 'required', 'available', or 'installed'";

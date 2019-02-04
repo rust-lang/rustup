@@ -320,9 +320,25 @@ pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
     Ok(())
 }
 
-pub fn list_components(toolchain: &Toolchain) -> Result<()> {
+pub enum ComponentFilter {
+    Required,
+    Available,
+    Installed,
+    None,
+}
+
+pub fn list_components(toolchain: &Toolchain, filter: &ComponentFilter) -> Result<()> {
     let mut t = term2::stdout();
-    for component in toolchain.list_components()? {
+    let components = toolchain
+        .list_components()?
+        .into_iter()
+        .filter(|c| match filter {
+            ComponentFilter::Required => c.required,
+            ComponentFilter::Available => c.available && !c.installed,
+            ComponentFilter::Installed => c.installed,
+            ComponentFilter::None => c.required || c.available || c.installed,
+        });
+    for component in components {
         let name = component.name;
         if component.required {
             let _ = t.attr(term2::Attr::Bold);
