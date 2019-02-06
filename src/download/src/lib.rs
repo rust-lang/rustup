@@ -10,6 +10,7 @@ extern crate lazy_static;
 #[cfg(feature = "reqwest-backend")]
 extern crate reqwest;
 
+use std::env;
 use std::path::Path;
 use url::Url;
 
@@ -128,6 +129,10 @@ pub fn download_to_path_with_backend(
     })
 }
 
+fn use_unsafe_ssl() -> bool {
+    env::var_os("RUSTUP_USE_UNSAFE_SSL").unwrap_or("NO".into()) == "ACCEPT_RISKS"
+}
+
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
 #[cfg(feature = "curl-backend")]
@@ -136,6 +141,7 @@ pub mod curl {
     extern crate curl;
 
     use self::curl::easy::Easy;
+    use super::use_unsafe_ssl;
     use super::Event;
     use crate::errors::*;
     use std::cell::RefCell;
@@ -174,6 +180,12 @@ pub mod curl {
             handle
                 .connect_timeout(Duration::new(30, 0))
                 .chain_err(|| "failed to set connect timeout")?;
+
+            if use_unsafe_ssl() {
+                handle
+                    .ssl_verify_peer(false)
+                    .chain_err(|| "failed to configure unsafe SSL mode")?;
+            }
 
             {
                 let cberr = RefCell::new(None);
@@ -254,6 +266,7 @@ pub mod curl {
 pub mod reqwest_be {
     extern crate env_proxy;
 
+    use super::use_unsafe_ssl;
     use super::Event;
     use crate::errors::*;
     use reqwest::{header, Client, Proxy, Response};
@@ -302,6 +315,7 @@ pub mod reqwest_be {
                     .gzip(false)
                     .proxy(Proxy::custom(env_proxy))
                     .timeout(Duration::from_secs(30))
+                    .danger_accept_invalid_certs(use_unsafe_ssl())
                     .build()
             };
 
@@ -374,7 +388,7 @@ pub mod reqwest_be {
 pub mod curl {
 
     use super::Event;
-    use errors::*;
+    use crate::errors::*;
     use url::Url;
 
     pub fn download(
@@ -390,7 +404,7 @@ pub mod curl {
 pub mod reqwest_be {
 
     use super::Event;
-    use errors::*;
+    use crate::errors::*;
     use url::Url;
 
     pub fn download(

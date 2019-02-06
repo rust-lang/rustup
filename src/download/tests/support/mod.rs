@@ -1,14 +1,13 @@
-extern crate futures;
-extern crate hyper;
-extern crate tempdir;
-
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::net::SocketAddr;
 use std::path::Path;
 
-use self::futures::sync::oneshot;
-use self::tempdir::TempDir;
+use futures::sync::oneshot;
+use tempdir::TempDir;
+
+mod tls_proxy;
+use tls_proxy::proxy;
 
 pub fn tmp_dir() -> TempDir {
     TempDir::new("rustup-download-test-").expect("creating tempdir for test")
@@ -23,6 +22,7 @@ pub fn file_contents(path: &Path) -> String {
     result
 }
 
+#[allow(dead_code)]
 pub fn write_file(path: &Path, contents: &str) {
     let mut file = fs::OpenOptions::new()
         .write(true)
@@ -36,11 +36,11 @@ pub fn write_file(path: &Path, contents: &str) {
     file.sync_data().expect("writing test data");
 }
 
-pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
-    use self::futures::Future;
+pub fn serve_file(contents: Vec<u8>, use_ssl: bool) -> SocketAddr {
+    use futures::Future;
     use std::thread;
 
-    let addr = ([127, 0, 0, 1], 0).into();
+    let addr = ([0, 0, 0, 0], 0).into();
     let (addr_tx, addr_rx) = oneshot::channel();
 
     thread::spawn(move || {
@@ -57,8 +57,14 @@ pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
         addr_tx.send(addr).unwrap();
         hyper::rt::run(server.map_err(|e| panic!(e)));
     });
+
     let addr = addr_rx.wait().unwrap();
-    addr
+
+    if use_ssl {
+        proxy(addr)
+    } else {
+        addr
+    }
 }
 
 fn serve_contents(

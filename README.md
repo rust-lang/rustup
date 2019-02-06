@@ -580,6 +580,13 @@ Command | Description
 - `RUSTUP_UPDATE_ROOT` (default `https://static.rust-lang.org/rustup`)
   Sets the root URL for downloading self-updates.
 
+- `RUSTUP_USE_UNSAFE_SSL` (default: none)
+  If set to "ACCEPT_RISKS", rustup will not validate the SSL certificate 
+  when downloading files. This parameter should be used only in exceptional
+  circumstances when your computer is behind a corporate proxy that injects
+  its own certificates into HTTPS connections and you're unable to add these 
+  certificates to your root set.
+
 ## Other installation methods
 
 The primary installation method, as described at

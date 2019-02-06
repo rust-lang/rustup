@@ -385,13 +385,21 @@ downloader() {
     else
         _dld='curl or wget' # to be used in error message of need_cmd
     fi
+	
+	if [ "$RUSTUP_USE_UNSAFE_SSL" = "ACCEPT_RISKS" ]; then
+		_curl_unsafe = "--insecure"
+		_wget_unsafe = "--no-check-certificate"
+	else
+		_curl_unsafe = ""
+		_wget_unsafe = ""	
+	fi
 
     if [ "$1" = --check ]; then
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
-        curl -sSfL "$1" -o "$2"
+        curl -sSfL "$_curl_unsafe" "$1" -o "$2"
     elif [ "$_dld" = wget ]; then
-        wget "$1" -O "$2"
+        wget "$1" "$_wget_unsafe" -O "$2"
     else
         err "Unknown downloader"   # should not reach here
     fi
