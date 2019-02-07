@@ -13,6 +13,7 @@ use std::io::{self, Write};
 use std::iter;
 use std::path::Path;
 use std::process::{self, Command};
+use std::str::FromStr;
 
 fn handle_epipe(res: Result<()>) -> Result<()> {
     match res {
@@ -85,7 +86,12 @@ pub fn main() -> Result<()> {
         },
         ("completions", Some(c)) => {
             if let Some(shell) = c.value_of("shell") {
-                output_completion_script(shell.parse::<Shell>().unwrap())?;
+                output_completion_script(
+                    shell.parse::<Shell>().unwrap(),
+                    c.value_of("command")
+                        .and_then(|cmd| cmd.parse::<CompletionCommand>().ok())
+                        .unwrap_or(CompletionCommand::Rustup),
+                )?;
             }
         }
         (_, _) => unreachable!(),
@@ -438,40 +444,98 @@ pub fn cli() -> App<'static, 'static> {
         );
     }
 
+    app = app
+        .subcommand(
+            SubCommand::with_name("self")
+                .about("Modify the rustup installation")
+                .setting(AppSettings::VersionlessSubcommands)
+                .setting(AppSettings::DeriveDisplayOrder)
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("update").about("Download and install updates to rustup"),
+                )
+                .subcommand(
+                    SubCommand::with_name("uninstall")
+                        .about("Uninstall rustup.")
+                        .arg(Arg::with_name("no-prompt").short("y")),
+                )
+                .subcommand(
+                    SubCommand::with_name("upgrade-data")
+                        .about("Upgrade the internal data format."),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("set")
+                .about("Alter rustup settings")
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("default-host")
+                        .about("The triple used to identify toolchains when not specified")
+                        .arg(Arg::with_name("host_triple").required(true)),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("self")
+                .about("Modify the rustup installation")
+                .setting(AppSettings::VersionlessSubcommands)
+                .setting(AppSettings::DeriveDisplayOrder)
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("update").about("Download and install updates to rustup"),
+                )
+                .subcommand(
+                    SubCommand::with_name("uninstall")
+                        .about("Uninstall rustup.")
+                        .arg(Arg::with_name("no-prompt").short("y")),
+                )
+                .subcommand(
+                    SubCommand::with_name("upgrade-data")
+                        .about("Upgrade the internal data format."),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("telemetry")
+                .about("rustup telemetry commands")
+                .setting(AppSettings::Hidden)
+                .setting(AppSettings::VersionlessSubcommands)
+                .setting(AppSettings::DeriveDisplayOrder)
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(SubCommand::with_name("enable").about("Enable rustup telemetry"))
+                .subcommand(SubCommand::with_name("disable").about("Disable rustup telemetry"))
+                .subcommand(SubCommand::with_name("analyze").about("Analyze stored telemetry")),
+        )
+        .subcommand(
+            SubCommand::with_name("set")
+                .about("Alter rustup settings")
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("default-host")
+                        .about("The triple used to identify toolchains when not specified")
+                        .arg(Arg::with_name("host_triple").required(true)),
+                ),
+        );
+
+    // Clap provides no good way to say that help should be printed in all
+    // cases where an argument without a default is not provided. The following
+    // creates lists out all the conditions where the "shell" argument are
+    // provided and give the default of "rustup". This way if "shell" is not
+    // provided then the help will still be printed.
+    let completion_defaults = Shell::variants()
+        .iter()
+        .map(|&shell| ("shell", Some(shell), "rustup"))
+        .collect::<Vec<_>>();
+
     app.subcommand(
-        SubCommand::with_name("self")
-            .about("Modify the rustup installation")
-            .setting(AppSettings::VersionlessSubcommands)
-            .setting(AppSettings::DeriveDisplayOrder)
-            .setting(AppSettings::SubcommandRequiredElseHelp)
-            .subcommand(
-                SubCommand::with_name("update").about("Download and install updates to rustup"),
-            )
-            .subcommand(
-                SubCommand::with_name("uninstall")
-                    .about("Uninstall rustup.")
-                    .arg(Arg::with_name("no-prompt").short("y")),
-            )
-            .subcommand(
-                SubCommand::with_name("upgrade-data").about("Upgrade the internal data format."),
-            ),
-    )
-    .subcommand(
-        SubCommand::with_name("set")
-            .about("Alter rustup settings")
-            .setting(AppSettings::SubcommandRequiredElseHelp)
-            .subcommand(
-                SubCommand::with_name("default-host")
-                    .about("The triple used to identify toolchains when not specified")
-                    .arg(Arg::with_name("host_triple").required(true)),
-            ),
-    )
-    .subcommand(
         SubCommand::with_name("completions")
             .about("Generate completion scripts for your shell")
             .after_help(COMPLETIONS_HELP)
             .setting(AppSettings::ArgRequiredElseHelp)
-            .arg(Arg::with_name("shell").possible_values(&Shell::variants())),
+            .arg(Arg::with_name("shell").possible_values(&Shell::variants()))
+            .arg(
+                Arg::with_name("command")
+                    .possible_values(&CompletionCommand::variants())
+                    .default_value_ifs(&completion_defaults[..]),
+            ),
     )
 }
 
@@ -1047,33 +1111,58 @@ fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     Ok(())
 }
 
-fn output_completion_script(shell: Shell) -> Result<()> {
-    cli().gen_completions_to(
-        "rustup",
-        shell,
-        &mut io::stdout(),
-    );
+#[derive(Copy, Clone, Debug)]
+enum CompletionCommand {
+    Rustup,
+    Cargo,
+}
 
-    let prefix = "$(rustc --print sysroot)";
-    match shell {
-        Shell::Bash => {
-            writeln!(
-                &mut io::stdout(),
-                "{}{}",
-                prefix,
-                "/etc/bash_completion.d/cargo"
-            )?;
+impl CompletionCommand {
+    fn variants() -> [&'static str; 2] {
+        ["rustup", "cargo"]
+    }
+}
+
+impl FromStr for CompletionCommand {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            _ if s.eq_ignore_ascii_case("rustup") => Ok(CompletionCommand::Rustup),
+            _ if s.eq_ignore_ascii_case("cargo") => Ok(CompletionCommand::Cargo),
+            _ => Err(String::from("[valid values: rustup, cargo]")),
         }
-        Shell::Zsh => {
-            writeln!(
-                &mut io::stdout(),
-                "{}{}",
-                prefix,
-                "/share/zsh/site-functions/_cargo"
-            )?;
+    }
+}
+
+fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<()> {
+    match command {
+        CompletionCommand::Rustup => {
+            cli().gen_completions_to("rustup", shell, &mut io::stdout());
         }
-        _ => {}
-    };
+        CompletionCommand::Cargo => {
+            let prefix = "$(rustc --print sysroot)";
+            match shell {
+                Shell::Bash => {
+                    writeln!(
+                        &mut io::stdout(),
+                        "{}{}",
+                        prefix,
+                        "/etc/bash_completion.d/cargo"
+                    )?;
+                }
+                Shell::Zsh => {
+                    writeln!(
+                        &mut io::stdout(),
+                        "{}{}",
+                        prefix,
+                        "/share/zsh/site-functions/_cargo"
+                    )?;
+                }
+                _ => {}
+            };
+        }
+    }
 
     Ok(())
 }
