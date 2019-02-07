@@ -3,7 +3,6 @@
 use crate::errors::*;
 use crate::self_update;
 use crate::term2;
-use rustup::telemetry_analysis::TelemetryAnalysis;
 use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
 use rustup_utils::notify::NotificationLevel;
 use rustup_utils::utils;
@@ -432,12 +431,4 @@ pub fn report_error(e: &Error) {
 
         false
     }
-}
-
-pub fn show_telemetry(analysis: TelemetryAnalysis) -> Result<()> {
-    println!("Telemetry Analysis");
-
-    println!("{}", analysis);
-
-    Ok(())
 }

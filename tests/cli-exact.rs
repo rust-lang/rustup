@@ -386,30 +386,6 @@ info: installing component 'rust-std' for '{0}'
     });
 }
 
-#[test]
-fn enable_telemetry() {
-    setup(&|config| {
-        expect_ok_ex(
-            config,
-            &["rustup", "telemetry", "enable"],
-            r"",
-            "info: telemetry set to 'on'\n",
-        );
-    });
-}
-
-#[test]
-fn disable_telemetry() {
-    setup(&|config| {
-        expect_ok_ex(
-            config,
-            &["rustup", "telemetry", "disable"],
-            r"",
-            "info: telemetry set to 'off'\n",
-        );
-    });
-}
-
 // issue #927
 #[test]
 fn undefined_linked_toolchain() {

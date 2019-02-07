@@ -52,6 +52,4 @@ mod errors;
 mod install;
 mod notifications;
 pub mod settings;
-pub mod telemetry;
-pub mod telemetry_analysis;
 mod toolchain;

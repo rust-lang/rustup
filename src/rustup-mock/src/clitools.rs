@@ -16,12 +16,10 @@ use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::mem;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::Arc;
-use std::time::Duration;
 use tempdir::TempDir;
 use url::Url;
-use wait_timeout::ChildExt;
 
 /// The configuration used by the tests in this module
 pub struct Config {
@@ -250,25 +248,6 @@ pub fn expect_ok_contains(config: &Config, args: &[&str], stdout: &str, stderr: 
         print_indented("expected.stdout.contains", stdout);
         print_indented("expected.stderr.contains", stderr);
         panic!();
-    }
-}
-
-pub fn expect_timeout_ok(config: &Config, timeout: Duration, args: &[&str]) {
-    let mut child = cmd(config, args[0], &args[1..])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
-
-    match child.wait_timeout(timeout).unwrap() {
-        Some(status) => {
-            assert!(status.success(), "not ok {:?}", args);
-        }
-        None => {
-            // child hasn't exited yet
-            child.kill().unwrap();
-            panic!("command timed out: {:?}", args);
-        }
     }
 }
 
