@@ -22,7 +22,7 @@ pub enum OverrideReason {
 }
 
 impl Display for OverrideReason {
-    fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         match *self {
             OverrideReason::Environment => write!(f, "environment override by RUSTUP_TOOLCHAIN"),
             OverrideReason::OverrideDB(ref path) => {
@@ -46,11 +46,11 @@ pub struct Cfg {
     pub env_override: Option<String>,
     pub dist_root_url: String,
     pub dist_root_server: String,
-    pub notify_handler: Arc<Fn(Notification)>,
+    pub notify_handler: Arc<dyn Fn(Notification<'_>)>,
 }
 
 impl Cfg {
-    pub fn from_env(notify_handler: Arc<Fn(Notification)>) -> Result<Self> {
+    pub fn from_env(notify_handler: Arc<dyn Fn(Notification<'_>)>) -> Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = utils::rustup_home()?;
 
@@ -131,7 +131,7 @@ impl Cfg {
         Ok(())
     }
 
-    pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain> {
+    pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain<'_>> {
         if create_parent {
             utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {
                 (self.notify_handler)(n.into())
@@ -141,7 +141,7 @@ impl Cfg {
         Toolchain::from(self, name)
     }
 
-    pub fn verify_toolchain(&self, name: &str) -> Result<Toolchain> {
+    pub fn verify_toolchain(&self, name: &str) -> Result<Toolchain<'_>> {
         let toolchain = self.get_toolchain(name, false)?;
         toolchain.verify()?;
         Ok(toolchain)
@@ -217,7 +217,7 @@ impl Cfg {
         }
     }
 
-    pub fn find_default(&self) -> Result<Option<Toolchain>> {
+    pub fn find_default(&self) -> Result<Option<Toolchain<'_>>> {
         let opt_name = self
             .settings_file
             .with(|s| Ok(s.default_toolchain.clone()))?;
@@ -233,7 +233,7 @@ impl Cfg {
         }
     }
 
-    pub fn find_override(&self, path: &Path) -> Result<Option<(Toolchain, OverrideReason)>> {
+    pub fn find_override(&self, path: &Path) -> Result<Option<(Toolchain<'_>, OverrideReason)>> {
         let mut override_ = None;
 
         // First check RUSTUP_TOOLCHAIN
@@ -337,7 +337,7 @@ impl Cfg {
     pub fn find_override_toolchain_or_default(
         &self,
         path: &Path,
-    ) -> Result<Option<(Toolchain, Option<OverrideReason>)>> {
+    ) -> Result<Option<(Toolchain<'_>, Option<OverrideReason>)>> {
         Ok(
             if let Some((toolchain, reason)) = self.find_override(path)? {
                 Some((toolchain, Some(reason)))
@@ -411,7 +411,10 @@ impl Cfg {
         })
     }
 
-    pub fn toolchain_for_dir(&self, path: &Path) -> Result<(Toolchain, Option<OverrideReason>)> {
+    pub fn toolchain_for_dir(
+        &self,
+        path: &Path,
+    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
         self.find_override_toolchain_or_default(path)
             .and_then(|r| r.ok_or("no default toolchain configured".into()))
     }
@@ -448,7 +451,7 @@ impl Cfg {
     // try to find a different cargo.
     fn maybe_do_cargo_fallback(
         &self,
-        toolchain: &Toolchain,
+        toolchain: &Toolchain<'_>,
         binary: &str,
     ) -> Result<Option<Command>> {
         if !toolchain.is_custom() {

@@ -1,22 +1,5 @@
 //! Mocks for testing
 
-extern crate flate2;
-#[macro_use]
-extern crate lazy_static;
-extern crate sha2;
-extern crate tar;
-extern crate tempdir;
-extern crate toml;
-extern crate url;
-extern crate wait_timeout;
-extern crate walkdir;
-extern crate xz2;
-
-#[cfg(windows)]
-extern crate winapi;
-#[cfg(windows)]
-extern crate winreg;
-
 pub mod clitools;
 pub mod dist;
 

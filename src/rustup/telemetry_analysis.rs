@@ -6,7 +6,6 @@ use std::io::BufReader;
 use std::path::PathBuf;
 
 use itertools::Itertools;
-use serde_json;
 
 use crate::errors::*;
 use crate::telemetry::{LogMessage, TelemetryEvent};
@@ -39,7 +38,7 @@ impl RustcStatistics {
 }
 
 impl fmt::Display for RustcStatistics {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut errors: String = String::new();
 
         if !self.error_codes_with_counts.is_empty() {
@@ -90,7 +89,7 @@ impl fmt::Display for RustcStatistics {
 }
 
 impl fmt::Display for TelemetryAnalysis {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             r"

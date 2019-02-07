@@ -2,10 +2,6 @@
 //! for installing from a directory or tarball to an installation
 //! prefix, represented by a `Components` instance.
 
-extern crate flate2;
-extern crate tar;
-extern crate xz2;
-
 use crate::component::components::*;
 use crate::component::transaction::*;
 

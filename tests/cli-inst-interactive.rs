@@ -1,18 +1,13 @@
 //! Tests of the interactive console installer
 
-#[macro_use]
-extern crate lazy_static;
-extern crate rustup_mock;
-extern crate rustup_utils;
-extern crate scopeguard;
-
+use lazy_static::lazy_static;
 use rustup_mock::clitools::{self, expect_stdout_ok, Config, SanitizedOutput, Scenario};
 use rustup_mock::{get_path, restore_path};
 use std::io::Write;
 use std::process::Stdio;
 use std::sync::Mutex;
 
-pub fn setup(f: &Fn(&Config)) {
+pub fn setup(f: &dyn Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, &|config| {
         // Lock protects environment variables
         lazy_static! {

@@ -12,7 +12,6 @@
 
 use crate::errors::*;
 use rustup_utils::toml_utils::*;
-use toml;
 
 use crate::dist::TargetTriple;
 use std::collections::HashMap;

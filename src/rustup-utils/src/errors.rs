@@ -1,4 +1,6 @@
-use download;
+use error_chain::error_chain;
+use error_chain::error_chain_processing;
+use error_chain::{impl_error_chain_kind, impl_error_chain_processed, impl_extract_backtrace};
 use std::ffi::OsString;
 use std::path::PathBuf;
 use url::Url;

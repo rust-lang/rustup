@@ -1,14 +1,10 @@
-extern crate futures;
-extern crate hyper;
-extern crate tempdir;
-
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::net::SocketAddr;
 use std::path::Path;
 
-use self::futures::sync::oneshot;
-use self::tempdir::TempDir;
+use futures::sync::oneshot;
+use tempdir::TempDir;
 
 pub fn tmp_dir() -> TempDir {
     TempDir::new("rustup-download-test-").expect("creating tempdir for test")
@@ -37,7 +33,7 @@ pub fn write_file(path: &Path, contents: &str) {
 }
 
 pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
-    use self::futures::Future;
+    use futures::Future;
     use std::thread;
 
     let addr = ([127, 0, 0, 1], 0).into();

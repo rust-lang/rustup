@@ -4,10 +4,9 @@ use crate::errors::*;
 use crate::self_update;
 use crate::term2;
 use rustup::telemetry_analysis::TelemetryAnalysis;
-use rustup::{self, Cfg, Notification, Toolchain, UpdateStatus};
+use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
 use rustup_utils::notify::NotificationLevel;
 use rustup_utils::utils;
-use std;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -109,7 +108,7 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
 
     let download_tracker = RefCell::new(DownloadTracker::new());
 
-    Ok(Cfg::from_env(Arc::new(move |n: Notification| {
+    Ok(Cfg::from_env(Arc::new(move |n: Notification<'_>| {
         if download_tracker.borrow_mut().handle_notification(&n) {
             return;
         }
@@ -243,7 +242,7 @@ where
     Ok(())
 }
 
-pub fn rustc_version(toolchain: &Toolchain) -> String {
+pub fn rustc_version(toolchain: &Toolchain<'_>) -> String {
     if toolchain.exists() {
         let rustc_path = toolchain.binary_file("rustc");
         if utils::is_file(&rustc_path) {
@@ -294,7 +293,7 @@ pub fn rustc_version(toolchain: &Toolchain) -> String {
     }
 }
 
-pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
+pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<()> {
     let mut t = term2::stdout();
     for component in toolchain.list_components()? {
         if component.component.short_name_in_manifest() == "rust-std" {
@@ -320,7 +319,7 @@ pub fn list_targets(toolchain: &Toolchain) -> Result<()> {
     Ok(())
 }
 
-pub fn list_components(toolchain: &Toolchain) -> Result<()> {
+pub fn list_components(toolchain: &Toolchain<'_>) -> Result<()> {
     let mut t = term2::stdout();
     for component in toolchain.list_components()? {
         let name = component.name;

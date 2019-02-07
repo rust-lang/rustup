@@ -1,11 +1,6 @@
 //! Yet more cli test cases. These are testing that the output
 //! is exactly as expected.
 
-extern crate rustup_dist;
-extern crate rustup_mock;
-extern crate rustup_utils;
-extern crate tempdir;
-
 use rustup_mock::clitools::{
     self, expect_err_ex, expect_ok, expect_ok_ex, this_host_triple, Config, Scenario,
 };
@@ -16,7 +11,7 @@ macro_rules! for_host {
     };
 }
 
-fn setup(f: &Fn(&mut Config)) {
+fn setup(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);
 }
 

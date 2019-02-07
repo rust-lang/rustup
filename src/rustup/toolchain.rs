@@ -5,7 +5,6 @@ use crate::install::{self, InstallMethod};
 use crate::notifications::*;
 use crate::telemetry;
 use crate::telemetry::{Telemetry, TelemetryEvent};
-use rustup_dist;
 use rustup_dist::dist::ToolchainDesc;
 use rustup_dist::download::DownloadCfg;
 use rustup_dist::manifest::Component;
@@ -28,7 +27,7 @@ pub struct Toolchain<'a> {
     name: String,
     path: PathBuf,
     telemetry: telemetry::Telemetry,
-    dist_handler: Box<Fn(rustup_dist::Notification) + 'a>,
+    dist_handler: Box<dyn Fn(rustup_dist::Notification<'_>) + 'a>,
 }
 
 /// Used by the `list_component` function
@@ -103,7 +102,7 @@ impl<'a> Toolchain<'a> {
         }
         Ok(result?)
     }
-    fn install(&self, install_method: InstallMethod) -> Result<UpdateStatus> {
+    fn install(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
         let exists = self.exists();
         if exists {
@@ -129,7 +128,7 @@ impl<'a> Toolchain<'a> {
 
         Ok(status)
     }
-    fn install_if_not_installed(&self, install_method: InstallMethod) -> Result<UpdateStatus> {
+    fn install_if_not_installed(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
         (self.cfg.notify_handler)(Notification::LookingForToolchain(&self.name));
         if !self.exists() {
@@ -139,7 +138,7 @@ impl<'a> Toolchain<'a> {
             Ok(UpdateStatus::Unchanged)
         }
     }
-    fn is_valid_install_method(&self, install_method: InstallMethod) -> bool {
+    fn is_valid_install_method(&self, install_method: InstallMethod<'_>) -> bool {
         match install_method {
             InstallMethod::Copy(_) | InstallMethod::Link(_) | InstallMethod::Installer(..) => {
                 self.is_custom()
@@ -155,7 +154,7 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    fn download_cfg(&self) -> DownloadCfg {
+    fn download_cfg(&self) -> DownloadCfg<'_> {
         DownloadCfg {
             dist_root: &self.cfg.dist_root_url,
             temp_cfg: &self.cfg.temp_cfg,
@@ -361,7 +360,7 @@ impl<'a> Toolchain<'a> {
     pub fn create_fallback_command<T: AsRef<OsStr>>(
         &self,
         binary: T,
-        primary_toolchain: &Toolchain,
+        primary_toolchain: &Toolchain<'_>,
     ) -> Result<Command> {
         // With the hacks below this only works for cargo atm
         assert!(binary.as_ref() == "cargo" || binary.as_ref() == "cargo.exe");

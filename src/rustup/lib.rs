@@ -1,21 +1,5 @@
 #![recursion_limit = "1024"]
 
-#[macro_use]
-extern crate error_chain;
-extern crate itertools;
-#[cfg(unix)]
-extern crate libc;
-extern crate regex;
-extern crate rustup_dist;
-extern crate rustup_utils;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-extern crate tempfile;
-extern crate time;
-extern crate toml;
-extern crate url;
-
 pub use crate::config::*;
 pub use crate::errors::*;
 pub use crate::notifications::*;

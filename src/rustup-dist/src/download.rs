@@ -16,7 +16,7 @@ pub struct DownloadCfg<'a> {
     pub dist_root: &'a str,
     pub temp_cfg: &'a temp::Cfg,
     pub download_dir: &'a PathBuf,
-    pub notify_handler: &'a Fn(Notification),
+    pub notify_handler: &'a dyn Fn(Notification<'_>),
 }
 
 pub struct File {

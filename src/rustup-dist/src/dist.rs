@@ -6,7 +6,7 @@ use crate::manifestation::{Changes, Manifestation, UpdateStatus};
 use crate::notifications::*;
 use crate::prefix::InstallPrefix;
 use crate::temp;
-use rustup_utils::{self, utils};
+use rustup_utils::utils;
 
 use std::env;
 use std::fmt;
@@ -449,13 +449,13 @@ impl<'a> Manifest<'a> {
 }
 
 impl fmt::Display for TargetTriple {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }
 }
 
 impl fmt::Display for PartialToolchainDesc {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", &self.channel)?;
 
         if let Some(ref date) = self.date {
@@ -476,7 +476,7 @@ impl fmt::Display for PartialToolchainDesc {
 }
 
 impl fmt::Display for ToolchainDesc {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", &self.channel)?;
 
         if let Some(ref date) = self.date {

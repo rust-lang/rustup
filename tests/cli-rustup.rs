@@ -1,10 +1,5 @@
 //! Test cases for new rustup UI
 
-extern crate rustup_dist;
-extern crate rustup_mock;
-extern crate rustup_utils;
-extern crate tempdir;
-
 use rustup_mock::clitools::{
     self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
     set_current_dist_date, this_host_triple, Config, Scenario,
@@ -21,7 +16,7 @@ macro_rules! for_host {
     };
 }
 
-pub fn setup(f: &Fn(&Config)) {
+pub fn setup(f: &dyn Fn(&Config)) {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         f(config);
     });

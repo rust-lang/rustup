@@ -4,19 +4,7 @@
 // The `self update` and `self uninstall` commands just call `msiexec`.
 #![cfg(not(feature = "msi-installed"))]
 
-#[macro_use]
-extern crate lazy_static;
-extern crate remove_dir_all;
-extern crate rustup_mock;
-extern crate rustup_utils;
-extern crate scopeguard;
-extern crate tempdir;
-
-#[cfg(windows)]
-extern crate winapi;
-#[cfg(windows)]
-extern crate winreg;
-
+use lazy_static::lazy_static;
 use remove_dir_all::remove_dir_all;
 use rustup_mock::clitools::{
     self, expect_err, expect_err_ex, expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok,
@@ -41,7 +29,7 @@ macro_rules! for_host {
 
 const TEST_VERSION: &'static str = "1.1.1";
 
-pub fn setup(f: &Fn(&Config)) {
+pub fn setup(f: &dyn Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, &|config| {
         // Lock protects environment variables
         lazy_static! {
@@ -58,7 +46,7 @@ pub fn setup(f: &Fn(&Config)) {
     });
 }
 
-pub fn update_setup(f: &Fn(&Config, &Path)) {
+pub fn update_setup(f: &dyn Fn(&Config, &Path)) {
     setup(&|config| {
         // Create a mock self-update server
         let ref self_dist_tmp = TempDir::new("self_dist").unwrap();

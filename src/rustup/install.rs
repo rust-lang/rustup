@@ -26,7 +26,7 @@ pub enum InstallMethod<'a> {
 }
 
 impl<'a> InstallMethod<'a> {
-    pub fn run(self, path: &Path, notify_handler: &Fn(Notification)) -> Result<bool> {
+    pub fn run(self, path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
@@ -79,7 +79,7 @@ impl<'a> InstallMethod<'a> {
         src: &Path,
         path: &Path,
         temp_cfg: &temp::Cfg,
-        notify_handler: &Fn(Notification),
+        notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<()> {
         notify_handler(Notification::Extracting(src, path));
 
@@ -99,7 +99,7 @@ impl<'a> InstallMethod<'a> {
     }
 }
 
-pub fn uninstall(path: &Path, notify_handler: &Fn(Notification)) -> Result<()> {
+pub fn uninstall(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<()> {
     Ok(utils::remove_dir("install", path, &|n| {
         notify_handler(n.into())
     })?)
