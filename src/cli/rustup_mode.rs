@@ -85,34 +85,7 @@ pub fn main() -> Result<()> {
         },
         ("completions", Some(c)) => {
             if let Some(shell) = c.value_of("shell") {
-                let shell = shell.parse::<Shell>().unwrap();
-                let prefix = "~/.rustup/toolchains/$(rustup toolchain list --default)";
-
-                cli().gen_completions_to(
-                    "rustup",
-                    shell,
-                    &mut io::stdout(),
-                );
-
-                match shell {
-                    Shell::Bash => {
-                        writeln!(
-                            &mut io::stdout(),
-                            "\n. {}{}",
-                            prefix,
-                            "/etc/bash_completion.d/cargo"
-                        );
-                    }
-                    Shell::Zsh => {
-                        writeln!(
-                            &mut io::stdout(),
-                            "\n. {}{}",
-                            prefix,
-                            "/share/zsh/site-functions/_cargo"
-                        );
-                    }
-                    _ => (),
-                };
+                output_completion_script(shell.parse::<Shell>().unwrap())?;
             }
         }
         (_, _) => unreachable!(),
@@ -1071,5 +1044,36 @@ fn self_uninstall(m: &ArgMatches<'_>) -> Result<()> {
 
 fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     cfg.set_default_host_triple(m.value_of("host_triple").expect(""))?;
+    Ok(())
+}
+
+fn output_completion_script(shell: Shell) -> Result<()> {
+    cli().gen_completions_to(
+        "rustup",
+        shell,
+        &mut io::stdout(),
+    );
+
+    let prefix = "$(rustc --print sysroot)";
+    match shell {
+        Shell::Bash => {
+            writeln!(
+                &mut io::stdout(),
+                "{}{}",
+                prefix,
+                "/etc/bash_completion.d/cargo"
+            )?;
+        }
+        Shell::Zsh => {
+            writeln!(
+                &mut io::stdout(),
+                "{}{}",
+                prefix,
+                "/share/zsh/site-functions/_cargo"
+            )?;
+        }
+        _ => {}
+    };
+
     Ok(())
 }
