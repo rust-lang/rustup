@@ -1141,26 +1141,19 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
             cli().gen_completions_to("rustup", shell, &mut io::stdout());
         }
         CompletionCommand::Cargo => {
-            let prefix = "$(rustc --print sysroot)";
-            match shell {
-                Shell::Bash => {
-                    writeln!(
-                        &mut io::stdout(),
-                        "{}{}",
-                        prefix,
-                        "/etc/bash_completion.d/cargo"
-                    )?;
-                }
-                Shell::Zsh => {
-                    writeln!(
-                        &mut io::stdout(),
-                        "{}{}",
-                        prefix,
-                        "/share/zsh/site-functions/_cargo"
-                    )?;
-                }
-                _ => {}
+            let script = match shell {
+                Shell::Bash => Some("/etc/bash_completion.d/cargo"),
+                Shell::Zsh => Some("/share/zsh/site-functions/_cargo"),
+                _ => None,
             };
+
+            if let Some(script) = script {
+                writeln!(
+                    &mut io::stdout(),
+                    "source $(rustc --print sysroot){}",
+                    script,
+                )?;
+            }
         }
     }
 
