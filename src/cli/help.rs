@@ -251,7 +251,22 @@ r"DISCUSSION:
     into a separate file and source it inside our profile. To save the
     completions into our profile simply use
 
-        PS C:\> rustup completions powershell >> ${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1";
+        PS C:\> rustup completions powershell >> ${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
+
+    CARGO:
+
+    Rustup can also generate a completion script for `cargo`. The script output
+    by `rustup` will source the completion script distributed with your default
+    toolchain. Not all shells are currently supported. Here are examples for
+    the currently supported shells.
+
+    BASH:
+
+        $ rustup completions bash cargo >> ~/.local/share/bash_completion/completions/cargo
+
+    ZSH:
+
+        $ rustup completions zsh cargo > ~/.zfunc/_cargo";
 
 pub static TOOLCHAIN_ARG_HELP: &'static str = "Toolchain name, such as 'stable', 'nightly', \
                                                or '1.8.0'. For more information see `rustup \
