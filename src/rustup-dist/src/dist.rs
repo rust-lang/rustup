@@ -118,7 +118,7 @@ impl TargetTriple {
         if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
             TargetTriple::from_str(triple)
         } else {
-            TargetTriple::from_str(include_str!(concat!(env!("OUT_DIR"), "/target.txt")))
+            TargetTriple::from_str(env!("TARGET"))
         }
     }
 
