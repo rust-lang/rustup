@@ -779,13 +779,8 @@ fn show(cfg: &Cfg) -> Result<()> {
 
 fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
     let ref cwd = utils::current_dir()?;
-    match cfg.find_override_toolchain_or_default(cwd)? {
-        Some((ref toolchain, _)) => {
-            println!("{}", toolchain.name());
-        }
-        None => {
-            // Print nothing
-        }
+    if let Some((toolchain, _)) = cfg.find_override_toolchain_or_default(cwd)? {
+        writeln!(term2::stdout(), "{}", toolchain.name())?
     }
     Ok(())
 }
