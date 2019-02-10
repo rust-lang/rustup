@@ -27,9 +27,9 @@ error_chain! {
             description("override toolchain is not installed")
             display("override toolchain '{}' is not installed", t)
         }
-        BinaryNotFound(t: String, bin: String) {
+        BinaryNotFound(bin: String, t: String, is_default: bool) {
             description("toolchain does not contain binary")
-            display("'{}' is not installed for the toolchain '{}'{}", bin, t, install_msg(bin))
+            display("'{}' is not installed for the toolchain '{}'{}", bin, t, install_msg(bin, t, *is_default))
         }
         NeedMetadataUpgrade {
             description("rustup's metadata is out of date. run `rustup self upgrade-data`")
@@ -74,9 +74,15 @@ error_chain! {
     }
 }
 
-fn install_msg(bin: &str) -> String {
+fn install_msg(bin: &str, toolchain: &str, is_default: bool) -> String {
     match component_for_bin(bin) {
-        Some(c) => format!("\nTo install, run `rustup component add {}`", c),
+        Some(c) => format!("\nTo install, run `rustup component add {}{}`", c, {
+            if is_default {
+                String::new()
+            } else {
+                format!(" --toolchain {}", toolchain)
+            }
+        }),
         None => String::new(),
     }
 }

@@ -343,8 +343,9 @@ impl<'a> Toolchain<'a> {
                 .unwrap_or(0);
             if recursion_count > env_var::RUST_RECURSION_COUNT_MAX - 1 {
                 return Err(ErrorKind::BinaryNotFound(
-                    self.name.clone(),
                     binary.to_string_lossy().into(),
+                    self.name.clone(),
+                    Some(&self.name) == self.cfg.get_default().ok().as_ref(),
                 )
                 .into());
             }
