@@ -2,19 +2,15 @@
 //! distribution server, with v1 and v2 manifests.
 
 use crate::MockInstallerBuilder;
-use flate2;
+use lazy_static::lazy_static;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use tar;
 use tempdir::TempDir;
-use toml;
 use url::Url;
-use walkdir;
-use xz2;
 
 use crate::clitools::hard_link;
 
@@ -427,7 +423,7 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
     let outfile = File::create(dst).unwrap();
     let mut gzwriter;
     let mut xzwriter;
-    let writer: &mut Write = match &dst.to_string_lossy() {
+    let writer: &mut dyn Write = match &dst.to_string_lossy() {
         s if s.ends_with(".tar.gz") => {
             gzwriter = flate2::write::GzEncoder::new(outfile, flate2::Compression::none());
             &mut gzwriter

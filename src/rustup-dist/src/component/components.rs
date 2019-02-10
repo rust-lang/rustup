@@ -45,7 +45,7 @@ impl Components {
             Ok(None)
         }
     }
-    fn write_version(&self, tx: &mut Transaction) -> Result<()> {
+    fn write_version(&self, tx: &mut Transaction<'_>) -> Result<()> {
         tx.modify_file(self.prefix.rel_manifest_file(VERSION_FILE))?;
         utils::write_file(
             VERSION_FILE,

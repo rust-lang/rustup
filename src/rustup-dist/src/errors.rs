@@ -1,9 +1,10 @@
 use crate::manifest::{Component, Manifest};
 use crate::temp;
-use rustup_utils;
+use error_chain::error_chain;
+use error_chain::error_chain_processing;
+use error_chain::{impl_error_chain_kind, impl_error_chain_processed, impl_extract_backtrace};
 use std::io::{self, Write};
 use std::path::PathBuf;
-use toml;
 
 pub const TOOLSTATE_MSG: &str =
     "if you require these components, please install and use the latest successful build version, \

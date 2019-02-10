@@ -15,34 +15,6 @@
 #![recursion_limit = "1024"]
 
 #[macro_use]
-extern crate error_chain;
-extern crate rustup_dist;
-extern crate rustup_utils;
-
-extern crate clap;
-extern crate itertools;
-extern crate markdown;
-extern crate rand;
-extern crate regex;
-extern crate rustup;
-extern crate same_file;
-extern crate scopeguard;
-extern crate sha2;
-extern crate tempdir;
-extern crate term;
-extern crate time;
-extern crate toml;
-extern crate wait_timeout;
-
-#[cfg(windows)]
-extern crate gcc;
-extern crate libc;
-#[cfg(windows)]
-extern crate winapi;
-#[cfg(windows)]
-extern crate winreg;
-
-#[macro_use]
 mod log;
 mod common;
 mod download_tracker;

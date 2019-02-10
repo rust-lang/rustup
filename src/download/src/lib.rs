@@ -1,15 +1,5 @@
 //! Easy file downloading
 
-#[macro_use]
-extern crate error_chain;
-extern crate url;
-
-#[cfg(feature = "reqwest-backend")]
-#[macro_use]
-extern crate lazy_static;
-#[cfg(feature = "reqwest-backend")]
-extern crate reqwest;
-
 use std::path::Path;
 use url::Url;
 
@@ -35,7 +25,7 @@ fn download_with_backend(
     backend: Backend,
     url: &Url,
     resume_from: u64,
-    callback: &Fn(Event) -> Result<()>,
+    callback: &dyn Fn(Event<'_>) -> Result<()>,
 ) -> Result<()> {
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
@@ -48,7 +38,7 @@ pub fn download_to_path_with_backend(
     url: &Url,
     path: &Path,
     resume_from_partial: bool,
-    callback: Option<&Fn(Event) -> Result<()>>,
+    callback: Option<&dyn Fn(Event<'_>) -> Result<()>>,
 ) -> Result<()> {
     use std::cell::RefCell;
     use std::fs::OpenOptions;
@@ -133,7 +123,7 @@ pub fn download_to_path_with_backend(
 #[cfg(feature = "curl-backend")]
 pub mod curl {
 
-    extern crate curl;
+    use curl;
 
     use self::curl::easy::Easy;
     use super::Event;
@@ -143,7 +133,11 @@ pub mod curl {
     use std::time::Duration;
     use url::Url;
 
-    pub fn download(url: &Url, resume_from: u64, callback: &Fn(Event) -> Result<()>) -> Result<()> {
+    pub fn download(
+        url: &Url,
+        resume_from: u64,
+        callback: &dyn Fn(Event<'_>) -> Result<()>,
+    ) -> Result<()> {
         // Fetch either a cached libcurl handle (which will preserve open
         // connections) or create a new one if it isn't listed.
         //
@@ -239,7 +233,7 @@ pub mod curl {
                 .response_code()
                 .chain_err(|| "failed to get response code")?;
             match code {
-                0 | 200...299 => {}
+                0 | 200..=299 => {}
                 _ => {
                     return Err(ErrorKind::HttpStatus(code).into());
                 }
@@ -252,16 +246,19 @@ pub mod curl {
 
 #[cfg(feature = "reqwest-backend")]
 pub mod reqwest_be {
-    extern crate env_proxy;
-
     use super::Event;
     use crate::errors::*;
+    use lazy_static::lazy_static;
     use reqwest::{header, Client, Proxy, Response};
     use std::io;
     use std::time::Duration;
     use url::Url;
 
-    pub fn download(url: &Url, resume_from: u64, callback: &Fn(Event) -> Result<()>) -> Result<()> {
+    pub fn download(
+        url: &Url,
+        resume_from: u64,
+        callback: &dyn Fn(Event<'_>) -> Result<()>,
+    ) -> Result<()> {
         // Short-circuit reqwest for the "file:" URL scheme
         if download_from_file_url(url, resume_from, callback)? {
             return Ok(());
@@ -316,7 +313,7 @@ pub mod reqwest_be {
     }
 
     fn env_proxy(url: &Url) -> Option<Url> {
-        env_proxy::for_url(url).to_url()
+        ::env_proxy::for_url(url).to_url()
     }
 
     fn request(url: &Url, resume_from: u64) -> ::reqwest::Result<Response> {
@@ -332,7 +329,7 @@ pub mod reqwest_be {
     fn download_from_file_url(
         url: &Url,
         resume_from: u64,
-        callback: &Fn(Event) -> Result<()>,
+        callback: &dyn Fn(Event<'_>) -> Result<()>,
     ) -> Result<bool> {
         use std::fs;
         use std::io;

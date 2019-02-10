@@ -1,8 +1,3 @@
-extern crate rustup_dist;
-extern crate rustup_mock;
-extern crate rustup_utils;
-extern crate tempdir;
-
 use rustup_dist::component::Components;
 use rustup_dist::component::Transaction;
 use rustup_dist::component::{DirectoryPackage, Package};
@@ -120,7 +115,7 @@ fn basic_install() {
         DEFAULT_DIST_SERVER,
         Box::new(|_| ()),
     );
-    let notify = |_: Notification| ();
+    let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let components = Components::open(prefix.clone()).unwrap();
@@ -166,7 +161,7 @@ fn multiple_component_install() {
         DEFAULT_DIST_SERVER,
         Box::new(|_| ()),
     );
-    let notify = |_: Notification| ();
+    let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let components = Components::open(prefix.clone()).unwrap();
@@ -216,7 +211,7 @@ fn uninstall() {
         DEFAULT_DIST_SERVER,
         Box::new(|_| ()),
     );
-    let notify = |_: Notification| ();
+    let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let components = Components::open(prefix.clone()).unwrap();
@@ -228,7 +223,7 @@ fn uninstall() {
     tx.commit();
 
     // Now uninstall
-    let notify = |_: Notification| ();
+    let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
     for component in components.list().unwrap() {
         tx = component.uninstall(tx).unwrap();
@@ -273,7 +268,7 @@ fn component_bad_version() {
         DEFAULT_DIST_SERVER,
         Box::new(|_| ()),
     );
-    let notify = |_: Notification| ();
+    let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let components = Components::open(prefix.clone()).unwrap();
@@ -334,7 +329,7 @@ fn unix_permissions() {
         DEFAULT_DIST_SERVER,
         Box::new(|_| ()),
     );
-    let notify = |_: Notification| ();
+    let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let components = Components::open(prefix.clone()).unwrap();
@@ -419,7 +414,7 @@ fn install_to_prefix_that_does_not_exist() {
         DEFAULT_DIST_SERVER,
         Box::new(|_| ()),
     );
-    let notify = |_: Notification| ();
+    let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let components = Components::open(prefix.clone()).unwrap();

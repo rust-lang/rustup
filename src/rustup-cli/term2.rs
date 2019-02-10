@@ -6,7 +6,6 @@ use markdown::tokenize;
 use markdown::{Block, ListItem, Span};
 use rustup_utils::tty;
 use std::io;
-use term;
 
 pub use term::color;
 pub use term::Attr;
@@ -43,7 +42,7 @@ impl Isatty for io::Stderr {
     }
 }
 
-pub struct Terminal<T>(Option<Box<term::Terminal<Output = T> + Send>>)
+pub struct Terminal<T>(Option<Box<dyn term::Terminal<Output = T> + Send>>)
 where
     T: Instantiable + Isatty + io::Write;
 pub type StdoutTerminal = Terminal<io::Stdout>;
@@ -58,7 +57,7 @@ pub fn stderr() -> StderrTerminal {
 }
 
 // Handles the wrapping of text written to the console
-struct LineWrapper<'a, T: io::Write + 'a> {
+struct LineWrapper<'a, T: io::Write> {
     indent: u32,
     margin: u32,
     pos: u32,
@@ -136,7 +135,7 @@ impl<'a, T: io::Write + 'a> LineWrapper<'a, T> {
 }
 
 // Handles the formatting of text
-struct LineFormatter<'a, T: Instantiable + Isatty + io::Write + 'a> {
+struct LineFormatter<'a, T: Instantiable + Isatty + io::Write> {
     wrapper: LineWrapper<'a, Terminal<T>>,
     attrs: Vec<Attr>,
 }

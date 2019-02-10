@@ -35,7 +35,7 @@ pub struct Transaction<'a> {
     prefix: InstallPrefix,
     changes: Vec<ChangedItem<'a>>,
     temp_cfg: &'a temp::Cfg,
-    notify_handler: &'a Fn(Notification),
+    notify_handler: &'a dyn Fn(Notification<'_>),
     committed: bool,
 }
 
@@ -43,7 +43,7 @@ impl<'a> Transaction<'a> {
     pub fn new(
         prefix: InstallPrefix,
         temp_cfg: &'a temp::Cfg,
-        notify_handler: &'a Fn(Notification),
+        notify_handler: &'a dyn Fn(Notification<'_>),
     ) -> Self {
         Transaction {
             prefix: prefix,
@@ -136,7 +136,7 @@ impl<'a> Transaction<'a> {
     pub fn temp(&self) -> &'a temp::Cfg {
         self.temp_cfg
     }
-    pub fn notify_handler(&self) -> &'a Fn(Notification) {
+    pub fn notify_handler(&self) -> &'a dyn Fn(Notification<'_>) {
         self.notify_handler
     }
 }

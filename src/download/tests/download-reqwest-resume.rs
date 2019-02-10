@@ -1,8 +1,5 @@
 #![cfg(feature = "reqwest-backend")]
 
-extern crate download;
-extern crate url;
-
 use std::sync::Mutex;
 
 use url::Url;

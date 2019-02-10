@@ -6,6 +6,7 @@ use crate::dist::{
     MockTargetedPackage,
 };
 use crate::{MockComponentBuilder, MockFile, MockInstallerBuilder};
+use lazy_static::lazy_static;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::env;
@@ -66,7 +67,7 @@ pub static MULTI_ARCH1: &'static str = "i686-unknown-linux-gnu";
 
 /// Run this to create the test environment containing rustup, and
 /// a mock dist server.
-pub fn setup(s: Scenario, f: &Fn(&mut Config)) {
+pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     // Unset env variables that will break our testing
     env::remove_var("RUSTUP_TOOLCHAIN");
     env::remove_var("SHELL");
@@ -155,7 +156,7 @@ impl Config {
         self._change_dir(path, &mut f)
     }
 
-    fn _change_dir(&self, path: &Path, f: &mut FnMut()) {
+    fn _change_dir(&self, path: &Path, f: &mut dyn FnMut()) {
         let prev = mem::replace(&mut *self.workdir.borrow_mut(), path.to_owned());
         f();
         *self.workdir.borrow_mut() = prev;

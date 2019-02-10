@@ -1,17 +1,6 @@
 // Tests of installation and updates from a v2 Rust distribution
 // server (mocked on the file system)
 
-extern crate flate2;
-extern crate itertools;
-extern crate rustup_dist;
-extern crate rustup_mock;
-extern crate rustup_utils;
-extern crate tar;
-extern crate tempdir;
-extern crate toml;
-extern crate url;
-extern crate walkdir;
-
 use rustup_dist::dist::{TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER};
 use rustup_dist::download::DownloadCfg;
 use rustup_dist::errors::Result;
@@ -37,7 +26,7 @@ use tempdir::TempDir;
 // Creates a mock dist server populated with some test data
 pub fn create_mock_dist_server(
     path: &Path,
-    edit: Option<&Fn(&str, &mut [MockPackage])>,
+    edit: Option<&dyn Fn(&str, &mut [MockPackage])>,
 ) -> MockDistServer {
     MockDistServer {
         path: path.to_owned(),
@@ -51,7 +40,7 @@ pub fn create_mock_dist_server(
 pub fn create_mock_channel(
     channel: &str,
     date: &str,
-    edit: Option<&Fn(&str, &mut [MockPackage])>,
+    edit: Option<&dyn Fn(&str, &mut [MockPackage])>,
 ) -> MockChannel {
     // Put the date in the files so they can be differentiated
     let contents = Arc::new(date.as_bytes().to_vec());
@@ -386,7 +375,7 @@ fn update_from_dist(
     prefix: &InstallPrefix,
     add: &[Component],
     remove: &[Component],
-    download_cfg: &DownloadCfg,
+    download_cfg: &DownloadCfg<'_>,
     temp_cfg: &temp::Cfg,
 ) -> Result<UpdateStatus> {
     update_from_dist_(
@@ -407,7 +396,7 @@ fn update_from_dist_(
     prefix: &InstallPrefix,
     add: &[Component],
     remove: &[Component],
-    download_cfg: &DownloadCfg,
+    download_cfg: &DownloadCfg<'_>,
     temp_cfg: &temp::Cfg,
     force_update: bool,
 ) -> Result<UpdateStatus> {
@@ -449,7 +438,7 @@ fn uninstall(
     toolchain: &ToolchainDesc,
     prefix: &InstallPrefix,
     temp_cfg: &temp::Cfg,
-    notify_handler: &Fn(Notification),
+    notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
     let trip = toolchain.target.clone();
     let manifestation = Manifestation::open(prefix.clone(), trip)?;
@@ -461,9 +450,9 @@ fn uninstall(
 }
 
 fn setup(
-    edit: Option<&Fn(&str, &mut [MockPackage])>,
+    edit: Option<&dyn Fn(&str, &mut [MockPackage])>,
     enable_xz: bool,
-    f: &Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg, &temp::Cfg),
+    f: &dyn Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg<'_>, &temp::Cfg),
 ) {
     let dist_tempdir = TempDir::new("rustup").unwrap();
     let mock_dist_server = create_mock_dist_server(dist_tempdir.path(), edit);
@@ -475,7 +464,7 @@ fn setup_from_dist_server(
     server: MockDistServer,
     url: &Url,
     enable_xz: bool,
-    f: &Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg, &temp::Cfg),
+    f: &dyn Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg<'_>, &temp::Cfg),
 ) {
     server.write(&[ManifestVersion::V2], enable_xz);
 

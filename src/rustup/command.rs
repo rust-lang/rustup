@@ -10,7 +10,7 @@ use crate::errors::*;
 use crate::notifications::*;
 use crate::telemetry::{Telemetry, TelemetryEvent};
 use crate::Cfg;
-use rustup_utils::{self, utils::ExitCode};
+use rustup_utils::utils::ExitCode;
 
 pub fn run_command_for_dir<S: AsRef<OsStr>>(
     cmd: Command,

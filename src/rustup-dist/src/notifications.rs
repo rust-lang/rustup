@@ -1,7 +1,6 @@
 use crate::dist::TargetTriple;
 use crate::errors::*;
 use crate::temp;
-use rustup_utils;
 use rustup_utils::notify::NotificationLevel;
 use std::fmt::{self, Display};
 use std::path::Path;
@@ -76,7 +75,7 @@ impl<'a> Notification<'a> {
 }
 
 impl<'a> Display for Notification<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match *self {
             Temp(ref n) => n.fmt(f),

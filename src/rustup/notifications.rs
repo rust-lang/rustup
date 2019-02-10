@@ -3,8 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::errors::*;
 
-use rustup_dist::{self, temp};
-use rustup_utils;
+use rustup_dist::temp;
 use rustup_utils::notify::NotificationLevel;
 
 #[derive(Debug)]
@@ -85,7 +84,7 @@ impl<'a> Notification<'a> {
 }
 
 impl<'a> Display for Notification<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match *self {
             Install(ref n) => n.fmt(f),

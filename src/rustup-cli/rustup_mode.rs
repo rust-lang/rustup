@@ -483,7 +483,7 @@ pub fn cli() -> App<'static, 'static> {
     )
 }
 
-fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
+fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<bool> {
     match m.subcommand() {
         ("self", Some(c)) => match c.subcommand() {
             ("upgrade-data", Some(_)) => {
@@ -571,7 +571,7 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
     Ok(())
 }
 
-fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
     default_bare_triple_check(cfg, toolchain)?;
     let ref toolchain = cfg.get_toolchain(toolchain, false)?;
@@ -594,7 +594,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn update(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let self_update = !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE;
     if let Some(names) = m.values_of("toolchain") {
         for name in names {
@@ -624,7 +624,7 @@ fn update(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn run(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
@@ -635,7 +635,7 @@ fn run(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     process::exit(c)
 }
 
-fn which(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let binary = m.value_of("command").expect("");
 
     let binary_path = cfg
@@ -785,13 +785,13 @@ fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
     Ok(())
 }
 
-fn target_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn target_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     common::list_targets(&toolchain)
 }
 
-fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").expect("") {
@@ -804,7 +804,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").expect("") {
@@ -817,13 +817,13 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     common::list_components(&toolchain)
 }
 
-fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
     let target = m
         .value_of("target")
@@ -845,7 +845,7 @@ fn component_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
     let target = m
         .value_of("target")
@@ -867,7 +867,7 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolchain<'a>> {
+fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Toolchain<'a>> {
     let toolchain = m.value_of("toolchain");
     if let Some(toolchain) = toolchain {
         let toolchain = cfg.get_toolchain(toolchain, false)?;
@@ -880,7 +880,7 @@ fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches) -> Result<Toolcha
     Ok(toolchain)
 }
 
-fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
     let ref path = m.value_of("path").expect("");
     let toolchain = cfg.get_toolchain(toolchain, true)?;
@@ -888,7 +888,7 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(toolchain.install_from_dir(Path::new(path), true)?)
 }
 
-fn toolchain_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn toolchain_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     for toolchain in m.values_of("toolchain").expect("") {
         let toolchain = cfg.get_toolchain(toolchain, false)?;
         toolchain.remove()?;
@@ -896,7 +896,7 @@ fn toolchain_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let ref toolchain = m.value_of("toolchain").expect("");
     let toolchain = cfg.get_toolchain(toolchain, false)?;
 
@@ -918,7 +918,7 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let paths = if m.is_present("nonexistent") {
         let list: Vec<_> = cfg.settings_file.with(|s| {
             Ok(s.overrides
@@ -982,7 +982,7 @@ const DOCS_DATA: &[(&'static str, &'static str, &'static str,)] = &[
     ("unstable-book", "The Unstable Book", "unstable-book/index.html"),
 ];
 
-fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     let doc_url = if let Some((_, _, path)) = DOCS_DATA
@@ -1003,7 +1003,7 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     }
 }
 
-fn man(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn man(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let manpage = m.value_of("command").expect("");
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
     let mut man_path = toolchain.path().to_path_buf();
@@ -1019,7 +1019,7 @@ fn man(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
     Ok(())
 }
 
-fn self_uninstall(m: &ArgMatches) -> Result<()> {
+fn self_uninstall(m: &ArgMatches<'_>) -> Result<()> {
     let no_prompt = m.is_present("no-prompt");
 
     self_update::uninstall(no_prompt)
@@ -1037,7 +1037,7 @@ fn analyze_telemetry(cfg: &Cfg) -> Result<()> {
     common::show_telemetry(analysis)
 }
 
-fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     cfg.set_default_host_triple(m.value_of("host_triple").expect(""))?;
     Ok(())
 }

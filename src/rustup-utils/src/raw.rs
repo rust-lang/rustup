@@ -1,5 +1,3 @@
-extern crate remove_dir_all;
-
 use std::char::from_u32;
 use std::env;
 use std::error;
@@ -278,7 +276,7 @@ impl error::Error for CommandError {
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         use self::CommandError::*;
         match *self {
             Io(ref e) => Some(e),
@@ -288,7 +286,7 @@ impl error::Error for CommandError {
 }
 
 impl fmt::Display for CommandError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             CommandError::Io(ref e) => write!(f, "Io: {}", e),
             CommandError::Status(ref s) => write!(f, "Status: {}", s),

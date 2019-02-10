@@ -481,7 +481,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
         );
         Ok(())
     })()
-    .map_err(|e: Box<std::error::Error>| {
+    .map_err(|e: Box<dyn std::error::Error>| {
         format!(
             "Pre-checks for host and toolchain failed: {}\n\
              If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
@@ -500,7 +500,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
 fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
     #[cfg(unix)]
     pub fn home_mismatch() -> bool {
-        extern crate libc as c;
+        use libc as c;
 
         use std::env;
         use std::ffi::CStr;

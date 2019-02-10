@@ -1,5 +1,3 @@
-extern crate rustup_dist;
-
 use rustup_dist::dist::TargetTriple;
 use rustup_dist::manifest::Manifest;
 use rustup_dist::ErrorKind;

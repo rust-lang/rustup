@@ -109,8 +109,8 @@ impl Manifestation {
         new_manifest: &Manifest,
         changes: Changes,
         force_update: bool,
-        download_cfg: &DownloadCfg,
-        notify_handler: &Fn(Notification),
+        download_cfg: &DownloadCfg<'_>,
+        notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<UpdateStatus> {
         // Some vars we're going to need a few times
         let temp_cfg = download_cfg.temp_cfg;
@@ -200,12 +200,12 @@ impl Manifestation {
 
             let gz;
             let xz;
-            let notification_converter = |notification: rustup_utils::Notification| {
+            let notification_converter = |notification: rustup_utils::Notification<'_>| {
                 notify_handler(Notification::Utils(notification));
             };
             let reader =
                 utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
-            let package: &Package = match format {
+            let package: &dyn Package = match format {
                 Format::Gz => {
                     gz = TarGzPackage::new(reader, temp_cfg)?;
                     &gz
@@ -256,7 +256,7 @@ impl Manifestation {
         &self,
         manifest: &Manifest,
         temp_cfg: &temp::Cfg,
-        notify_handler: &Fn(Notification),
+        notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<()> {
         let prefix = self.installation.prefix();
 
@@ -282,7 +282,7 @@ impl Manifestation {
         component: &Component,
         manifest: &Manifest,
         mut tx: Transaction<'a>,
-        notify_handler: &Fn(Notification),
+        notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<Transaction<'a>> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
@@ -334,7 +334,7 @@ impl Manifestation {
         new_manifest: &[String],
         update_hash: Option<&Path>,
         temp_cfg: &temp::Cfg,
-        notify_handler: &Fn(Notification),
+        notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if self.read_config()?.is_some() {
@@ -447,7 +447,7 @@ impl Update {
         manifestation: &Manifestation,
         new_manifest: &Manifest,
         changes: Changes,
-        notify_handler: &Fn(Notification),
+        notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<Update> {
         // Load the configuration and list of installed components.
         let config = manifestation.read_config()?;
@@ -527,7 +527,7 @@ impl Update {
         rust_target_package: &TargetedPackage,
         new_manifest: &Manifest,
         changes: &Changes,
-        notify_handler: &Fn(Notification),
+        notify_handler: &dyn Fn(Notification<'_>),
     ) {
         // Add components required by the package, according to the
         // manifest

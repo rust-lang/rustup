@@ -1,5 +1,3 @@
-use toml;
-
 use super::manifest::Component;
 use crate::errors::*;
 use rustup_utils::toml_utils::*;

@@ -1,11 +1,6 @@
 //! Test cases of the rustup command, using v2 manifests, mostly
 //! derived from multirust/test-v2.sh
 
-extern crate rustup_dist;
-extern crate rustup_mock;
-extern crate rustup_utils;
-extern crate tempdir;
-
 use rustup_mock::clitools::{
     self, expect_err, expect_not_stdout_ok, expect_ok, expect_stderr_ok, expect_stdout_ok,
     set_current_dist_date, this_host_triple, Config, Scenario,
@@ -21,7 +16,7 @@ macro_rules! for_host {
     };
 }
 
-pub fn setup(f: &Fn(&mut Config)) {
+pub fn setup(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);
 }
 
