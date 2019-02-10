@@ -290,7 +290,7 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
         // the user an opportunity to see the error before the
         // window closes.
         if cfg!(windows) && !no_prompt {
-            println!("");
+            println!();
             println!("Press the Enter key to continue.");
             common::read_line()?;
         }
@@ -325,7 +325,7 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
         // that may have opened just for this purpose, require
         // the user to press a key to continue.
         if cfg!(windows) {
-            println!("");
+            println!();
             println!("Press the Enter key to continue.");
             common::read_line()?;
         }
@@ -650,7 +650,7 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
          You may simply press the Enter key to leave unchanged."
     );
 
-    println!("");
+    println!();
 
     opts.default_host_triple =
         common::question_str("Default host triple?", &opts.default_host_triple)?;
@@ -800,18 +800,18 @@ fn maybe_install_rust(toolchain_str: &str, default_host_triple: &str, verbose: b
     // possible to select a toolchain then have it not be installed.
     if toolchain_str == "none" {
         info!("skipping toolchain installation");
-        println!("");
+        println!();
     } else if cfg.find_default()?.is_none() {
         // Set host triple first as it will affect resolution of toolchain_str
         cfg.set_default_host_triple(default_host_triple)?;
         let toolchain = cfg.get_toolchain(toolchain_str, false)?;
         let status = toolchain.install_from_dist(false)?;
         cfg.set_default(toolchain_str)?;
-        println!("");
+        println!();
         common::show_channel_update(cfg, toolchain_str, Ok(status))?;
     } else {
         info!("updating existing rustup installation");
-        println!("");
+        println!();
     }
 
     Ok(())
@@ -846,7 +846,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     }
 
     if !no_prompt {
-        println!("");
+        println!();
         let ref msg = format!(pre_uninstall_msg!(), cargo_home = canonical_cargo_home()?);
         term2::stdout().md(msg);
         if !common::confirm("\nContinue? (y/N)", false)? {
