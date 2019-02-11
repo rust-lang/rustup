@@ -173,7 +173,12 @@ impl Manifestation {
 
         // Uninstall components
         for component in update.components_to_uninstall {
-            notify_handler(Notification::RemovingComponent(
+            let notification = if altered {
+                Notification::RemovingOldComponent
+            } else {
+                Notification::RemovingComponent
+            };
+            notify_handler(notification(
                 &component.short_name(new_manifest),
                 &self.target_triple,
                 component.target.as_ref(),
