@@ -189,7 +189,7 @@ pub fn cli() -> App<'static, 'static> {
                 .arg(
                     Arg::with_name("toolchain")
                         .help(TOOLCHAIN_ARG_HELP)
-                        .required(true),
+                        .required(false),
                 ),
         )
         .subcommand(
@@ -572,23 +572,37 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
 }
 
 fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
-    default_bare_triple_check(cfg, toolchain)?;
-    let ref toolchain = cfg.get_toolchain(toolchain, false)?;
+    if m.is_present("toolchain") {
+        let ref toolchain = m.value_of("toolchain").expect("");
+        default_bare_triple_check(cfg, toolchain)?;
+        let ref toolchain = cfg.get_toolchain(toolchain, false)?;
 
-    let status = if !toolchain.is_custom() {
-        Some(toolchain.install_from_dist_if_not_installed()?)
-    } else if !toolchain.exists() {
-        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
+        let status = if !toolchain.is_custom() {
+            Some(toolchain.install_from_dist_if_not_installed()?)
+        } else if !toolchain.exists() {
+            return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
+        } else {
+            None
+        };
+
+        toolchain.make_default()?;
+
+        if let Some(status) = status {
+            println!();
+            common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
+        }
     } else {
-        None
-    };
-
-    toolchain.make_default()?;
-
-    if let Some(status) = status {
-        println!();
-        common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
+        let installed_toolchains = cfg.list_toolchains()?;
+        if installed_toolchains.len() > 0 {
+            let default_toolchain = cfg.get_default()?;
+            if default_toolchain != "" {
+                let mut t = term2::stdout();
+                let _ = t.attr(term2::Attr::Bold);
+                let _ = write!(t, "Default toolchain: ");
+                let _ = t.reset();
+                println!("{}", default_toolchain);
+            }
+        }
     }
 
     Ok(())
