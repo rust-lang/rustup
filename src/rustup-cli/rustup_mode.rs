@@ -592,17 +592,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
         }
     } else {
-        let installed_toolchains = cfg.list_toolchains()?;
-        if installed_toolchains.len() > 0 {
-            let default_toolchain = cfg.get_default()?;
-            if default_toolchain != "" {
-                let mut t = term2::stdout();
-                let _ = t.attr(term2::Attr::Bold);
-                let _ = write!(t, "Default toolchain: ");
-                let _ = t.reset();
-                println!("{}", default_toolchain);
-            }
-        }
+        println!("{} (default)", cfg.get_default()?);
     }
 
     Ok(())
