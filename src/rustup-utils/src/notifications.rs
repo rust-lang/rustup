@@ -20,8 +20,6 @@ pub enum Notification<'a> {
     DownloadFinished,
     NoCanonicalPath(&'a Path),
     ResumingPartialDownload,
-    UsingCurl,
-    UsingReqwest,
     UsingHyperDeprecated,
 }
 
@@ -36,9 +34,7 @@ impl<'a> Notification<'a> {
             | DownloadContentLengthReceived(_)
             | DownloadDataReceived(_)
             | DownloadFinished
-            | ResumingPartialDownload
-            | UsingCurl
-            | UsingReqwest => NotificationLevel::Verbose,
+            | ResumingPartialDownload => NotificationLevel::Verbose,
             UsingHyperDeprecated | NoCanonicalPath(_) => NotificationLevel::Warn,
         }
     }
@@ -62,12 +58,9 @@ impl<'a> Display for Notification<'a> {
             DownloadFinished => write!(f, "download finished"),
             NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
             ResumingPartialDownload => write!(f, "resuming partial download"),
-            UsingCurl => write!(f, "downloading with curl"),
-            UsingReqwest => write!(f, "downloading with reqwest"),
-            UsingHyperDeprecated => f.write_str(
-                "RUSTUP_USE_HYPER environment variable is deprecated,\
-                 use RUSTUP_USE_REQWEST instead",
-            ),
+            UsingHyperDeprecated => {
+                f.write_str("RUSTUP_USE_HYPER environment variable is deprecated.")
+            }
         }
     }
 }

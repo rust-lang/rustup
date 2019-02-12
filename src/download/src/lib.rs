@@ -7,12 +7,6 @@ mod errors;
 pub use crate::errors::*;
 
 #[derive(Debug, Copy, Clone)]
-pub enum Backend {
-    Curl,
-    Reqwest,
-}
-
-#[derive(Debug, Copy, Clone)]
 pub enum Event<'a> {
     ResumingPartialDownload,
     /// Received the Content-Length of the to-be downloaded data.
@@ -21,20 +15,7 @@ pub enum Event<'a> {
     DownloadDataReceived(&'a [u8]),
 }
 
-fn download_with_backend(
-    backend: Backend,
-    url: &Url,
-    resume_from: u64,
-    callback: &dyn Fn(Event<'_>) -> Result<()>,
-) -> Result<()> {
-    match backend {
-        Backend::Curl => curl::download(url, resume_from, callback),
-        Backend::Reqwest => reqwest_be::download(url, resume_from, callback),
-    }
-}
-
-pub fn download_to_path_with_backend(
-    backend: Backend,
+pub fn download_to_path(
     url: &Url,
     path: &Path,
     resume_from_partial: bool,
@@ -94,7 +75,7 @@ pub fn download_to_path_with_backend(
 
         let file = RefCell::new(file);
 
-        download_with_backend(backend, url, resume_from, &|event| {
+        reqwest_be::download(url, resume_from, &|event| {
             if let Event::DownloadDataReceived(data) = event {
                 file.borrow_mut()
                     .write_all(data)
@@ -118,133 +99,6 @@ pub fn download_to_path_with_backend(
     })
 }
 
-/// Download via libcurl; encrypt with the native (or OpenSSl) TLS
-/// stack via libcurl
-#[cfg(feature = "curl-backend")]
-pub mod curl {
-
-    use curl;
-
-    use self::curl::easy::Easy;
-    use super::Event;
-    use crate::errors::*;
-    use std::cell::RefCell;
-    use std::str;
-    use std::time::Duration;
-    use url::Url;
-
-    pub fn download(
-        url: &Url,
-        resume_from: u64,
-        callback: &dyn Fn(Event<'_>) -> Result<()>,
-    ) -> Result<()> {
-        // Fetch either a cached libcurl handle (which will preserve open
-        // connections) or create a new one if it isn't listed.
-        //
-        // Once we've acquired it, reset the lifetime from 'static to our local
-        // scope.
-        thread_local!(static EASY: RefCell<Easy> = RefCell::new(Easy::new()));
-        EASY.with(|handle| {
-            let mut handle = handle.borrow_mut();
-
-            handle
-                .url(&url.to_string())
-                .chain_err(|| "failed to set url")?;
-            handle
-                .follow_location(true)
-                .chain_err(|| "failed to set follow redirects")?;
-
-            if resume_from > 0 {
-                handle
-                    .resume_from(resume_from)
-                    .chain_err(|| "setting the range header for download resumption")?;
-            } else {
-                // an error here indicates that the range header isn't supported by underlying curl,
-                // so there's nothing to "clear" - safe to ignore this error.
-                let _ = handle.resume_from(0);
-            }
-
-            // Take at most 30s to connect
-            handle
-                .connect_timeout(Duration::new(30, 0))
-                .chain_err(|| "failed to set connect timeout")?;
-
-            {
-                let cberr = RefCell::new(None);
-                let mut transfer = handle.transfer();
-
-                // Data callback for libcurl which is called with data that's
-                // downloaded. We just feed it into our hasher and also write it out
-                // to disk.
-                transfer
-                    .write_function(|data| match callback(Event::DownloadDataReceived(data)) {
-                        Ok(()) => Ok(data.len()),
-                        Err(e) => {
-                            *cberr.borrow_mut() = Some(e);
-                            Ok(0)
-                        }
-                    })
-                    .chain_err(|| "failed to set write")?;
-
-                // Listen for headers and parse out a `Content-Length` (case-insensitive) if it
-                // comes so we know how much we're downloading.
-                transfer
-                    .header_function(|header| {
-                        if let Ok(data) = str::from_utf8(header) {
-                            let prefix = "content-length: ";
-                            if data.to_ascii_lowercase().starts_with(prefix) {
-                                if let Ok(s) = data[prefix.len()..].trim().parse::<u64>() {
-                                    let msg = Event::DownloadContentLengthReceived(s + resume_from);
-                                    match callback(msg) {
-                                        Ok(()) => (),
-                                        Err(e) => {
-                                            *cberr.borrow_mut() = Some(e);
-                                            return false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        true
-                    })
-                    .chain_err(|| "failed to set header")?;
-
-                // If an error happens check to see if we had a filesystem error up
-                // in `cberr`, but we always want to punt it up.
-                transfer.perform().or_else(|e| {
-                    // If the original error was generated by one of our
-                    // callbacks, return it.
-                    match cberr.borrow_mut().take() {
-                        Some(cberr) => Err(cberr),
-                        None => {
-                            // Otherwise, return the error from curl
-                            if e.is_file_couldnt_read_file() {
-                                Err(e).chain_err(|| ErrorKind::FileNotFound)
-                            } else {
-                                Err(e).chain_err(|| "error during download")
-                            }
-                        }
-                    }
-                })?;
-            }
-
-            // If we didn't get a 20x or 0 ("OK" for files) then return an error
-            let code = handle
-                .response_code()
-                .chain_err(|| "failed to get response code")?;
-            match code {
-                0 | 200..=299 => {}
-                _ => {
-                    return Err(ErrorKind::HttpStatus(code).into());
-                }
-            };
-
-            Ok(())
-        })
-    }
-}
-
-#[cfg(feature = "reqwest-backend")]
 pub mod reqwest_be {
     use super::Event;
     use crate::errors::*;
@@ -302,12 +156,8 @@ pub mod reqwest_be {
                     .build()
             };
 
-            // woah, an unwrap?!
-            // It's OK. This is the same as what is happening in curl.
-            //
-            // The curl::Easy::new() internally assert!s that the initialized
-            // Easy is not null. Inside reqwest, the errors here would be from
-            // the TLS library returning a null pointer as well.
+            // Inside reqwest, the errors here would be from the TLS library
+            // returning a null pointer.
             catcher().unwrap()
         };
     }
@@ -364,37 +214,5 @@ pub mod reqwest_be {
         } else {
             Ok(false)
         }
-    }
-}
-
-#[cfg(not(feature = "curl-backend"))]
-pub mod curl {
-
-    use super::Event;
-    use errors::*;
-    use url::Url;
-
-    pub fn download(
-        _url: &Url,
-        _resume_from: u64,
-        _callback: &Fn(Event) -> Result<()>,
-    ) -> Result<()> {
-        Err(ErrorKind::BackendUnavailable("curl").into())
-    }
-}
-
-#[cfg(not(feature = "reqwest-backend"))]
-pub mod reqwest_be {
-
-    use super::Event;
-    use errors::*;
-    use url::Url;
-
-    pub fn download(
-        _url: &Url,
-        _resume_from: u64,
-        _callback: &Fn(Event) -> Result<()>,
-    ) -> Result<()> {
-        Err(ErrorKind::BackendUnavailable("reqwest").into())
     }
 }

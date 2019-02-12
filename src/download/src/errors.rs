@@ -18,9 +18,5 @@ error_chain! {
         FileNotFound {
             description("file not found")
         }
-        BackendUnavailable(be: &'static str) {
-            description("download backend unavailable")
-            display("download backend '{}' unavailable", be)
-        }
     }
 }

@@ -167,8 +167,8 @@ fn download_file_(
     resume_from_partial: bool,
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
-    use download::download_to_path_with_backend;
-    use download::{self, Backend, Event};
+    use download::download_to_path;
+    use download::{self, Event};
     use sha2::Digest;
     use std::cell::RefCell;
 
@@ -210,14 +210,7 @@ fn download_file_(
     if use_hyper_backend && DEPRECATED_HYPER_WARNED.swap(true, Ordering::Relaxed) {
         notify_handler(Notification::UsingHyperDeprecated);
     }
-    let use_reqwest_backend = use_hyper_backend || env::var_os("RUSTUP_USE_REQWEST").is_some();
-    let (backend, notification) = if use_reqwest_backend {
-        (Backend::Reqwest, Notification::UsingReqwest)
-    } else {
-        (Backend::Curl, Notification::UsingCurl)
-    };
-    notify_handler(notification);
-    download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback))?;
+    download_to_path(url, path, resume_from_partial, Some(callback))?;
 
     notify_handler(Notification::DownloadFinished);
 

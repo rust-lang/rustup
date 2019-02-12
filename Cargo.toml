@@ -20,10 +20,6 @@ build = "build.rs"
 
 [features]
 
-default = ["curl-backend", "reqwest-backend"]
-
-curl-backend = ["download/curl-backend"]
-reqwest-backend = ["download/reqwest-backend"]
 vendored-openssl = ['openssl/vendored']
 
 # Include in the default set to disable self-update and uninstall.
