@@ -591,6 +591,12 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             println!();
             common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
         }
+
+        let cwd = utils::current_dir()?;
+        if let Some((toolchain, reason)) = cfg.find_override(&cwd)? {
+            info!("using override set by current environment");
+            info!("{} ({})", toolchain.name(), reason);
+        }
     } else {
         let installed_toolchains = cfg.list_toolchains()?;
         if installed_toolchains.len() > 0 {
