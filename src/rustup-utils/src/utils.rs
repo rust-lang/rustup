@@ -210,11 +210,11 @@ fn download_file_(
     if use_hyper_backend && DEPRECATED_HYPER_WARNED.swap(true, Ordering::Relaxed) {
         notify_handler(Notification::UsingHyperDeprecated);
     }
-    let use_reqwest_backend = use_hyper_backend || env::var_os("RUSTUP_USE_REQWEST").is_some();
-    let (backend, notification) = if use_reqwest_backend {
-        (Backend::Reqwest, Notification::UsingReqwest)
-    } else {
+    let use_curl_backend = env::var_os("RUSTUP_USE_CURL").is_some();
+    let (backend, notification) = if use_curl_backend {
         (Backend::Curl, Notification::UsingCurl)
+    } else {
+        (Backend::Reqwest, Notification::UsingReqwest)
     };
     notify_handler(notification);
     download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback))?;
