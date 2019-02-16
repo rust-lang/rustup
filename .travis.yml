@@ -10,83 +10,45 @@ matrix:
     # "super old glibc" to ensure that it runs on as many platforms as possible.
     - os: linux
       env: TARGET=x86_64-unknown-linux-gnu NO_ADD=1
-    - os: linux
+    - &linux
+      os: linux
       env: TARGET=i686-unknown-linux-gnu
       if: branch != master
 
     # Cross builds happen in the `rust-slave-linux-cross` image to ensure that
     # we use the right cross compilers for these targets. That image should
     # bundle all the gcc cross compilers to enable us to build OpenSSL
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabi
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabihf
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=armv7-unknown-linux-gnueabihf
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=aarch64-unknown-linux-gnu
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=x86_64-unknown-freebsd
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=powerpc-unknown-linux-gnu
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=powerpc64-unknown-linux-gnu
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=powerpc64le-unknown-linux-gnu
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=mips-unknown-linux-gnu
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=mipsel-unknown-linux-gnu
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=mips64-unknown-linux-gnuabi64
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=mips64el-unknown-linux-gnuabi64
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=s390x-unknown-linux-gnu
-      if: branch != master
-
-    # Android use a local docker image
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=arm-linux-androideabi
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=armv7-linux-androideabi
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=aarch64-linux-android
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=i686-linux-android
-      if: branch != master
-    - os: linux
-      env: SKIP_TESTS=1 TARGET=x86_64-linux-android
-      if: branch != master
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabi       }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabihf     }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=armv7-unknown-linux-gnueabihf   }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=aarch64-unknown-linux-gnu       }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=x86_64-unknown-freebsd          }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc-unknown-linux-gnu       }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc64-unknown-linux-gnu     }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc64le-unknown-linux-gnu   }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips-unknown-linux-gnu          }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mipsel-unknown-linux-gnu        }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips64-unknown-linux-gnuabi64   }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips64el-unknown-linux-gnuabi64 }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=s390x-unknown-linux-gnu         }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-linux-androideabi           }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=armv7-linux-androideabi         }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=aarch64-linux-android           }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=i686-linux-android              }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=x86_64-linux-android            }
 
     # On OSX we want to target 10.7 so we ensure that the appropriate
     # environment variable is set to tell the linker what we want.
     #
     # TODO: figure out why `xcode9.3`, the first image with OSX 10.13, breaks.
     # Unclear why!
-    - os: osx
+    - &mac
+      os: osx
       osx_image: xcode9.2
       if: branch != master
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
-    - os: osx
+    - <<: *mac
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin NO_ADD=1
-      if: branch != master
-      osx_image: xcode9.2
 
 install:
   - if [ -z "$NO_ADD" ]; then rustup target add $TARGET; fi
