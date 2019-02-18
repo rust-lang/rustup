@@ -870,6 +870,20 @@ fn show_active_toolchain() {
 }
 
 #[test]
+fn show_active_toolchain_with_override() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "override", "set", "stable"]);
+        expect_stdout_ok(
+            config,
+            &["rustup", "show", "active-toolchain"],
+            for_host!("stable-{0} (directory override for"),
+        );
+    });
+}
+
+#[test]
 fn show_active_toolchain_none() {
     setup(&|config| {
         expect_ok_ex(config, &["rustup", "show", "active-toolchain"], r"", r"");
