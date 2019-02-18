@@ -594,8 +594,11 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
         let cwd = utils::current_dir()?;
         if let Some((toolchain, reason)) = cfg.find_override(&cwd)? {
-            info!("using override set by current environment");
-            info!("{} ({})", toolchain.name(), reason);
+            info!(
+                "note that the toolchain '{}' is currently in use ({})",
+                toolchain.name(),
+                reason
+            );
         }
     } else {
         let installed_toolchains = cfg.list_toolchains()?;
