@@ -4,7 +4,6 @@ use crate::help::*;
 use crate::self_update;
 use crate::term2;
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
-use rustup::settings::TelemetryMode;
 use rustup::{command, Cfg, Toolchain};
 use rustup_dist::dist::{PartialTargetTriple, PartialToolchainDesc, TargetTriple};
 use rustup_dist::manifest::Component;
@@ -78,12 +77,6 @@ pub fn main() -> Result<()> {
         ("self", Some(c)) => match c.subcommand() {
             ("update", Some(_)) => self_update::update()?,
             ("uninstall", Some(m)) => self_uninstall(m)?,
-            (_, _) => unreachable!(),
-        },
-        ("telemetry", Some(c)) => match c.subcommand() {
-            ("enable", Some(_)) => set_telemetry(&cfg, TelemetryMode::On)?,
-            ("disable", Some(_)) => set_telemetry(&cfg, TelemetryMode::Off)?,
-            ("analyze", Some(_)) => analyze_telemetry(&cfg)?,
             (_, _) => unreachable!(),
         },
         ("set", Some(c)) => match c.subcommand() {
@@ -463,17 +456,6 @@ pub fn cli() -> App<'static, 'static> {
             ),
     )
     .subcommand(
-        SubCommand::with_name("telemetry")
-            .about("rustup telemetry commands")
-            .setting(AppSettings::Hidden)
-            .setting(AppSettings::VersionlessSubcommands)
-            .setting(AppSettings::DeriveDisplayOrder)
-            .setting(AppSettings::SubcommandRequiredElseHelp)
-            .subcommand(SubCommand::with_name("enable").about("Enable rustup telemetry"))
-            .subcommand(SubCommand::with_name("disable").about("Disable rustup telemetry"))
-            .subcommand(SubCommand::with_name("analyze").about("Analyze stored telemetry")),
-    )
-    .subcommand(
         SubCommand::with_name("set")
             .about("Alter rustup settings")
             .setting(AppSettings::SubcommandRequiredElseHelp)
@@ -653,7 +635,7 @@ fn run(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let args: Vec<_> = args.collect();
     let cmd = cfg.create_command_for_toolchain(toolchain, m.is_present("install"), args[0])?;
 
-    let ExitCode(c) = command::run_command_for_dir(cmd, args[0], &args[1..], &cfg)?;
+    let ExitCode(c) = command::run_command_for_dir(cmd, args[0], &args[1..])?;
 
     process::exit(c)
 }
@@ -1050,18 +1032,6 @@ fn self_uninstall(m: &ArgMatches<'_>) -> Result<()> {
     let no_prompt = m.is_present("no-prompt");
 
     self_update::uninstall(no_prompt)
-}
-
-fn set_telemetry(cfg: &Cfg, t: TelemetryMode) -> Result<()> {
-    match t {
-        TelemetryMode::On => Ok(cfg.set_telemetry(true)?),
-        TelemetryMode::Off => Ok(cfg.set_telemetry(false)?),
-    }
-}
-
-fn analyze_telemetry(cfg: &Cfg) -> Result<()> {
-    let analysis = cfg.analyze_telemetry()?;
-    common::show_telemetry(analysis)
 }
 
 fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {

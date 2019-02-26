@@ -76,7 +76,6 @@ impl SettingsFile {
 
             let override_db = multirust_dir.join("overrides");
             let default_file = multirust_dir.join("default");
-            let telemetry_file = multirust_dir.join("telemetry-on");
             // Legacy upgrade
             self.with_mut(|s| {
                 s.version = utils::read_file("version", &legacy_version_file)?
@@ -98,9 +97,6 @@ impl SettingsFile {
                         }
                     }
                 }
-                if utils::is_file(&telemetry_file) {
-                    s.telemetry = TelemetryMode::On;
-                }
                 Ok(())
             })?;
 
@@ -108,16 +104,9 @@ impl SettingsFile {
             let _ = utils::remove_file("version", &legacy_version_file);
             let _ = utils::remove_file("default", &default_file);
             let _ = utils::remove_file("overrides", &override_db);
-            let _ = utils::remove_file("telemetry", &telemetry_file);
         }
         Ok(())
     }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum TelemetryMode {
-    On,
-    Off,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -126,7 +115,6 @@ pub struct Settings {
     pub default_host_triple: Option<String>,
     pub default_toolchain: Option<String>,
     pub overrides: BTreeMap<String, String>,
-    pub telemetry: TelemetryMode,
 }
 
 impl Default for Settings {
@@ -136,7 +124,6 @@ impl Default for Settings {
             default_host_triple: None,
             default_toolchain: None,
             overrides: BTreeMap::new(),
-            telemetry: TelemetryMode::Off,
         }
     }
 }
@@ -199,11 +186,6 @@ impl Settings {
             default_host_triple: get_opt_string(&mut table, "default_host_triple", path)?,
             default_toolchain: get_opt_string(&mut table, "default_toolchain", path)?,
             overrides: Self::table_to_overrides(&mut table, path)?,
-            telemetry: if get_opt_bool(&mut table, "telemetry", path)?.unwrap_or(false) {
-                TelemetryMode::On
-            } else {
-                TelemetryMode::Off
-            },
         })
     }
     pub fn to_toml(self) -> toml::value::Table {
@@ -221,9 +203,6 @@ impl Settings {
 
         let overrides = Self::overrides_to_table(self.overrides);
         result.insert("overrides".to_owned(), toml::Value::Table(overrides));
-
-        let telemetry = self.telemetry == TelemetryMode::On;
-        result.insert("telemetry".to_owned(), toml::Value::Boolean(telemetry));
 
         result
     }

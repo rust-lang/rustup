@@ -31,9 +31,6 @@ pub enum Notification<'a> {
     NonFatalError(&'a Error),
     UpgradeRemovesToolchains,
     MissingFileDuringSelfUninstall(PathBuf),
-    SetTelemetry(&'a str),
-
-    TelemetryCleanupError(&'a Error),
 }
 
 impl<'a> From<rustup_dist::Notification<'a>> for Notification<'a> {
@@ -66,8 +63,7 @@ impl<'a> Notification<'a> {
             | UpdatingToolchain(_)
             | ReadMetadataVersion(_)
             | InstalledToolchain(_)
-            | UpdateHashMatches
-            | TelemetryCleanupError(_) => NotificationLevel::Verbose,
+            | UpdateHashMatches => NotificationLevel::Verbose,
             SetDefaultToolchain(_)
             | SetOverrideToolchain(_, _)
             | UsingExistingToolchain(_)
@@ -75,8 +71,7 @@ impl<'a> Notification<'a> {
             | UninstalledToolchain(_)
             | ToolchainNotInstalled(_)
             | UpgradingMetadata(_, _)
-            | MetadataUpgradeNotNeeded(_)
-            | SetTelemetry(_) => NotificationLevel::Info,
+            | MetadataUpgradeNotNeeded(_) => NotificationLevel::Info,
             NonFatalError(_) => NotificationLevel::Error,
             UpgradeRemovesToolchains | MissingFileDuringSelfUninstall(_) => NotificationLevel::Warn,
         }
@@ -129,8 +124,6 @@ impl<'a> Display for Notification<'a> {
                 "expected file does not exist to uninstall: {}",
                 p.display()
             ),
-            SetTelemetry(telemetry_status) => write!(f, "telemetry set to '{}'", telemetry_status),
-            TelemetryCleanupError(e) => write!(f, "unable to remove old telemetry files: '{}'", e),
         }
     }
 }

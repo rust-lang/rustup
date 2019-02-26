@@ -3,8 +3,6 @@ use crate::env_var;
 use crate::errors::*;
 use crate::install::{self, InstallMethod};
 use crate::notifications::*;
-use crate::telemetry;
-use crate::telemetry::{Telemetry, TelemetryEvent};
 use rustup_dist::dist::ToolchainDesc;
 use rustup_dist::download::DownloadCfg;
 use rustup_dist::manifest::Component;
@@ -26,7 +24,6 @@ pub struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: String,
     path: PathBuf,
-    telemetry: telemetry::Telemetry,
     dist_handler: Box<dyn Fn(rustup_dist::Notification<'_>) + 'a>,
 }
 
@@ -53,7 +50,6 @@ impl<'a> Toolchain<'a> {
             cfg: cfg,
             name: resolved_name,
             path: path.clone(),
-            telemetry: Telemetry::new(cfg.rustup_dir.join("telemetry")),
             dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
         })
     }
@@ -164,13 +160,6 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn install_from_dist(&self, force_update: bool) -> Result<UpdateStatus> {
-        if self.cfg.telemetry_enabled()? {
-            return self.install_from_dist_with_telemetry(force_update);
-        }
-        self.install_from_dist_inner(force_update)
-    }
-
-    pub fn install_from_dist_inner(&self, force_update: bool) -> Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
         self.install(InstallMethod::Dist(
             &self.desc()?,
@@ -178,36 +167,6 @@ impl<'a> Toolchain<'a> {
             self.download_cfg(),
             force_update,
         ))
-    }
-
-    pub fn install_from_dist_with_telemetry(&self, force_update: bool) -> Result<UpdateStatus> {
-        let result = self.install_from_dist_inner(force_update);
-
-        match result {
-            Ok(us) => {
-                let te = TelemetryEvent::ToolchainUpdate {
-                    toolchain: self.name().to_string(),
-                    success: true,
-                };
-                match self.telemetry.log_telemetry(te) {
-                    Ok(_) => Ok(us),
-                    Err(e) => {
-                        (self.cfg.notify_handler)(Notification::TelemetryCleanupError(&e));
-                        Ok(us)
-                    }
-                }
-            }
-            Err(e) => {
-                let te = TelemetryEvent::ToolchainUpdate {
-                    toolchain: self.name().to_string(),
-                    success: true,
-                };
-                let _ = self.telemetry.log_telemetry(te).map_err(|xe| {
-                    (self.cfg.notify_handler)(Notification::TelemetryCleanupError(&xe));
-                });
-                Err(e)
-            }
-        }
     }
 
     pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
@@ -572,50 +531,7 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    pub fn add_component(&self, component: Component) -> Result<()> {
-        if self.cfg.telemetry_enabled()? {
-            return self.telemetry_add_component(component);
-        }
-        self.add_component_without_telemetry(component)
-    }
-
-    fn telemetry_add_component(&self, component: Component) -> Result<()> {
-        let output = self.bare_add_component(component);
-
-        match output {
-            Ok(_) => {
-                let te = TelemetryEvent::ToolchainUpdate {
-                    toolchain: self.name.to_owned(),
-                    success: true,
-                };
-
-                match self.telemetry.log_telemetry(te) {
-                    Ok(_) => Ok(()),
-                    Err(e) => {
-                        (self.cfg.notify_handler)(Notification::TelemetryCleanupError(&e));
-                        Ok(())
-                    }
-                }
-            }
-            Err(e) => {
-                let te = TelemetryEvent::ToolchainUpdate {
-                    toolchain: self.name.to_owned(),
-                    success: false,
-                };
-
-                let _ = self.telemetry.log_telemetry(te).map_err(|xe| {
-                    (self.cfg.notify_handler)(Notification::TelemetryCleanupError(&xe));
-                });
-                Err(e)
-            }
-        }
-    }
-
-    fn add_component_without_telemetry(&self, component: Component) -> Result<()> {
-        self.bare_add_component(component)
-    }
-
-    fn bare_add_component(&self, mut component: Component) -> Result<()> {
+    pub fn add_component(&self, mut component: Component) -> Result<()> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }

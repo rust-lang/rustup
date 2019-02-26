@@ -65,12 +65,6 @@ error_chain! {
         NoExeName {
             description("couldn't determine self executable name")
         }
-        TelemetryCleanupError {
-            description("unable to remove old telemetry files")
-        }
-        TelemetryAnalysisError {
-            description("error analyzing telemetry files")
-        }
     }
 }
 

@@ -8,8 +8,7 @@ use std::sync::Arc;
 
 use crate::errors::*;
 use crate::notifications::*;
-use crate::settings::{Settings, SettingsFile, TelemetryMode, DEFAULT_METADATA_VERSION};
-use crate::telemetry_analysis::*;
+use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
 use crate::toolchain::{Toolchain, UpdateStatus};
 use rustup_dist::{dist, temp};
 use rustup_utils::utils;
@@ -510,53 +509,5 @@ impl Cfg {
         } else {
             Ok(name.to_owned())
         }
-    }
-
-    pub fn set_telemetry(&self, telemetry_enabled: bool) -> Result<()> {
-        if telemetry_enabled {
-            self.enable_telemetry()
-        } else {
-            self.disable_telemetry()
-        }
-    }
-
-    fn enable_telemetry(&self) -> Result<()> {
-        self.settings_file.with_mut(|s| {
-            s.telemetry = TelemetryMode::On;
-            Ok(())
-        })?;
-
-        let _ = utils::ensure_dir_exists("telemetry", &self.rustup_dir.join("telemetry"), &|_| ());
-
-        (self.notify_handler)(Notification::SetTelemetry("on"));
-
-        Ok(())
-    }
-
-    fn disable_telemetry(&self) -> Result<()> {
-        self.settings_file.with_mut(|s| {
-            s.telemetry = TelemetryMode::Off;
-            Ok(())
-        })?;
-
-        (self.notify_handler)(Notification::SetTelemetry("off"));
-
-        Ok(())
-    }
-
-    pub fn telemetry_enabled(&self) -> Result<bool> {
-        Ok(match self.settings_file.with(|s| Ok(s.telemetry))? {
-            TelemetryMode::On => true,
-            TelemetryMode::Off => false,
-        })
-    }
-
-    pub fn analyze_telemetry(&self) -> Result<TelemetryAnalysis> {
-        let mut t = TelemetryAnalysis::new(self.rustup_dir.join("telemetry"));
-
-        let events = t.import_telemery()?;
-        t.analyze_telemetry_events(&events)?;
-
-        Ok(t)
     }
 }

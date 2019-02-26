@@ -3,17 +3,13 @@
 
 use rustup_dist::errors::TOOLSTATE_MSG;
 use rustup_mock::clitools::{
-    self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok,
-    expect_timeout_ok, run, set_current_dist_date, this_host_triple, Config, Scenario,
+    self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
+    set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use rustup_utils::{raw, utils};
 
 use std::env::consts::EXE_SUFFIX;
-use std::ops::Add;
-use std::ops::Sub;
-use std::time::Duration as StdDuration;
 use tempdir::TempDir;
-use time::Duration;
 
 macro_rules! for_host {
     ($s: expr) => {
@@ -142,7 +138,6 @@ fn upgrade_toml_settings() {
         rustup_utils::raw::write_file(&config.rustupdir.join("default"), "beta").unwrap();
         rustup_utils::raw::write_file(&config.rustupdir.join("overrides"), "a;nightly\nb;stable")
             .unwrap();
-        rustup_utils::raw::write_file(&config.rustupdir.join("telemetry-on"), "").unwrap();
         expect_err(
             config,
             &["rustup", "default", "nightly"],
@@ -158,9 +153,6 @@ fn upgrade_toml_settings() {
         assert!(!rustup_utils::raw::is_file(
             &config.rustupdir.join("overrides")
         ));
-        assert!(!rustup_utils::raw::is_file(
-            &config.rustupdir.join("telemetry-on")
-        ));
         assert!(rustup_utils::raw::is_file(
             &config.rustupdir.join("settings.toml")
         ));
@@ -171,7 +163,6 @@ fn upgrade_toml_settings() {
         assert!(content.contains("[overrides]"));
         assert!(content.contains("a = \"nightly"));
         assert!(content.contains("b = \"stable"));
-        assert!(content.contains("telemetry = true"));
     });
 }
 
@@ -509,76 +500,6 @@ fn proxies_pass_empty_args() {
             config,
             &["rustup", "run", "nightly", "rustc", "--empty-arg-test", ""],
         );
-    });
-}
-
-#[test]
-fn enabling_telemetry_and_compiling_creates_log() {
-    setup(&|config| {
-        expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "telemetry", "enable"]);
-        expect_ok(config, &["rustc", "--version"]);
-
-        let telemetry_dir = config.rustupdir.join("telemetry");
-        let _ = utils::assert_is_directory(telemetry_dir.as_path());
-
-        let out = telemetry_dir.read_dir();
-        assert!(out.is_ok());
-
-        let contents = out.unwrap();
-        assert!(contents.count() > 0);
-    });
-}
-
-#[test]
-fn telemetry_supports_huge_output() {
-    setup(&|config| {
-        expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "telemetry", "enable"]);
-        expect_timeout_ok(
-            config,
-            StdDuration::from_secs(5),
-            &["rustc", "--huge-output"],
-        );
-        expect_stdout_ok(
-            config,
-            &["rustup", "telemetry", "analyze"],
-            "'E0428': 10000",
-        )
-    })
-}
-
-#[test]
-fn telemetry_cleanup_removes_old_files() {
-    setup(&|config| {
-        expect_ok(config, &["rustup", "default", "stable"]);
-        expect_ok(config, &["rustup", "telemetry", "enable"]);
-
-        let telemetry_dir = config.rustupdir.join("telemetry");
-
-        let mut d = time::now_utc().sub(Duration::days(120));
-        let one_day = time::Duration::days(1);
-
-        for _ in 0..110 {
-            let file_name = format!(
-                "log-{}-{:02}-{:02}.json",
-                d.tm_year + 1900,
-                d.tm_mon + 1,
-                d.tm_mday
-            );
-            let _ = raw::write_file(&telemetry_dir.join(&file_name), "");
-            d = d.add(one_day);
-        }
-
-        expect_ok(config, &["rustc", "--version"]);
-
-        let out = telemetry_dir.read_dir();
-        assert!(out.is_ok());
-
-        let contents = out.unwrap();
-        let count = contents.count();
-
-        assert_eq!(count, 100);
     });
 }
 
