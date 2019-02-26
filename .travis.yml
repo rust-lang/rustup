@@ -9,126 +9,46 @@ matrix:
     # Linux builds use the `rust-slave-dist` image so we link them against a
     # "super old glibc" to ensure that it runs on as many platforms as possible.
     - os: linux
+      env: TARGET=x86_64-unknown-linux-gnu NO_ADD=1
+    - &linux
+      os: linux
       env: TARGET=i686-unknown-linux-gnu
-           DOCKER=i686-unknown-linux-gnu
       if: branch != master
-    - os: linux
-      env: TARGET=x86_64-unknown-linux-gnu
-           DOCKER=x86_64-unknown-linux-gnu
-           NO_ADD=1
 
     # Cross builds happen in the `rust-slave-linux-cross` image to ensure that
     # we use the right cross compilers for these targets. That image should
     # bundle all the gcc cross compilers to enable us to build OpenSSL
-    - os: linux
-      env: TARGET=arm-unknown-linux-gnueabi
-           DOCKER=arm-unknown-linux-gnueabi
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=arm-unknown-linux-gnueabihf
-           DOCKER=arm-unknown-linux-gnueabihf
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=armv7-unknown-linux-gnueabihf
-           DOCKER=armv7-unknown-linux-gnueabihf
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=aarch64-unknown-linux-gnu
-           DOCKER=aarch64-unknown-linux-gnu
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=x86_64-unknown-freebsd
-           DOCKER=x86_64-unknown-freebsd
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=powerpc-unknown-linux-gnu
-           DOCKER=powerpc-unknown-linux-gnu
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=powerpc64-unknown-linux-gnu
-           DOCKER=powerpc64-unknown-linux-gnu
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=powerpc64le-unknown-linux-gnu
-           DOCKER=powerpc64le-unknown-linux-gnu
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=mips-unknown-linux-gnu
-           DOCKER=mips-unknown-linux-gnu
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=mipsel-unknown-linux-gnu
-           DOCKER=mipsel-unknown-linux-gnu
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=mips64-unknown-linux-gnuabi64
-           DOCKER=mips64-unknown-linux-gnuabi64
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=mips64el-unknown-linux-gnuabi64
-           DOCKER=mips64el-unknown-linux-gnuabi64
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=s390x-unknown-linux-gnu
-           DOCKER=s390x-unknown-linux-gnu
-           SKIP_TESTS=1
-      if: branch != master
-
-    # Android use a local docker image
-    - os: linux
-      env: TARGET=arm-linux-androideabi
-           DOCKER=android
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=armv7-linux-androideabi
-           DOCKER=android
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=aarch64-linux-android
-           DOCKER=android
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=i686-linux-android
-           DOCKER=android
-           SKIP_TESTS=1
-      if: branch != master
-    - os: linux
-      env: TARGET=x86_64-linux-android
-           DOCKER=android
-           SKIP_TESTS=1
-      if: branch != master
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabi       }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabihf     }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=armv7-unknown-linux-gnueabihf   }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=aarch64-unknown-linux-gnu       }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=x86_64-unknown-freebsd          }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc-unknown-linux-gnu       }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc64-unknown-linux-gnu     }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc64le-unknown-linux-gnu   }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips-unknown-linux-gnu          }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mipsel-unknown-linux-gnu        }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips64-unknown-linux-gnuabi64   }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips64el-unknown-linux-gnuabi64 }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=s390x-unknown-linux-gnu         }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-linux-androideabi           }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=armv7-linux-androideabi         }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=aarch64-linux-android           }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=i686-linux-android              }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=x86_64-linux-android            }
 
     # On OSX we want to target 10.7 so we ensure that the appropriate
     # environment variable is set to tell the linker what we want.
     #
     # TODO: figure out why `xcode9.3`, the first image with OSX 10.13, breaks.
     # Unclear why!
-    - os: osx
-      env: TARGET=i686-apple-darwin
-           MACOSX_DEPLOYMENT_TARGET=10.7
-      if: branch != master
+    - &mac
+      os: osx
       osx_image: xcode9.2
-    - os: osx
-      env: TARGET=x86_64-apple-darwin
-           MACOSX_DEPLOYMENT_TARGET=10.7
-           NO_ADD=1
       if: branch != master
-      osx_image: xcode9.2
+      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
+    - <<: *mac
+      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin NO_ADD=1
 
 install:
   - if [ -z "$NO_ADD" ]; then rustup target add $TARGET; fi
@@ -137,6 +57,12 @@ install:
 script:
   - mkdir -p target/$TARGET;
   - >
+      case "$TARGET" in
+        *-linux-android)     DOCKER=android ;; # Android uses a local docker image
+        *-linux-androideabi) DOCKER=android ;;
+        *-apple-darwin)                     ;;
+        *)                   DOCKER=$TARGET ;;
+      esac;
       if [ ! -z "$DOCKER" ]; then
           sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
       else
