@@ -15,6 +15,15 @@ use std::iter;
 use std::path::Path;
 use std::process::{self, Command};
 
+fn handle_epipe(res: Result<()>) -> Result<()> {
+    match res {
+        Err(Error(ErrorKind::Io(ref err), _)) if err.kind() == std::io::ErrorKind::BrokenPipe => {
+            Ok(())
+        }
+        res => res,
+    }
+}
+
 pub fn main() -> Result<()> {
     crate::self_update::cleanup_self_updater()?;
 
@@ -30,8 +39,8 @@ pub fn main() -> Result<()> {
 
     match matches.subcommand() {
         ("show", Some(c)) => match c.subcommand() {
-            ("active-toolchain", Some(_)) => show_active_toolchain(cfg)?,
-            (_, _) => show(cfg)?,
+            ("active-toolchain", Some(_)) => handle_epipe(show_active_toolchain(cfg))?,
+            (_, _) => handle_epipe(show(cfg))?,
         },
         ("install", Some(m)) => update(cfg, m)?,
         ("update", Some(m)) => update(cfg, m)?,
@@ -667,11 +676,11 @@ fn show(cfg: &Cfg) -> Result<()> {
     // Print host triple
     {
         let mut t = term2::stdout();
-        let _ = t.attr(term2::Attr::Bold);
-        let _ = write!(t, "Default host: ");
-        let _ = t.reset();
-        println!("{}", cfg.get_default_host_triple()?);
-        println!();
+        t.attr(term2::Attr::Bold)?;
+        write!(t, "Default host: ")?;
+        t.reset()?;
+        writeln!(t, "{}", cfg.get_default_host_triple()?)?;
+        writeln!(t)?;
     }
 
     let ref cwd = utils::current_dir()?;
@@ -712,80 +721,84 @@ fn show(cfg: &Cfg) -> Result<()> {
         > 1;
 
     if show_installed_toolchains {
+        let mut t = term2::stdout();
         if show_headers {
-            print_header("installed toolchains")
+            print_header(&mut t, "installed toolchains")?;
         }
         let default_name = cfg.get_default()?;
-        for t in installed_toolchains {
-            if default_name == t {
-                println!("{} (default)", t);
+        for it in installed_toolchains {
+            if default_name == it {
+                writeln!(t, "{} (default)", it)?;
             } else {
-                println!("{}", t);
+                writeln!(t, "{}", it)?;
             }
         }
         if show_headers {
-            println!()
+            writeln!(t)?
         };
     }
 
     if show_active_targets {
+        let mut t = term2::stdout();
         if show_headers {
-            print_header("installed targets for active toolchain");
+            print_header(&mut t, "installed targets for active toolchain")?;
         }
-        for t in active_targets {
-            println!(
+        for at in active_targets {
+            writeln!(
+                t,
                 "{}",
-                t.component
+                at.component
                     .target
                     .as_ref()
                     .expect("rust-std should have a target")
-            );
+            )?;
         }
         if show_headers {
-            println!()
+            writeln!(t)?;
         };
     }
 
     if show_active_toolchain {
+        let mut t = term2::stdout();
         if show_headers {
-            print_header("active toolchain")
+            print_header(&mut t, "active toolchain")?;
         }
 
         match active_toolchain {
             Ok(atc) => match atc {
                 Some((ref toolchain, Some(ref reason))) => {
-                    println!("{} ({})", toolchain.name(), reason);
-                    println!("{}", common::rustc_version(toolchain));
+                    writeln!(t, "{} ({})", toolchain.name(), reason)?;
+                    writeln!(t, "{}", common::rustc_version(toolchain))?;
                 }
                 Some((ref toolchain, None)) => {
-                    println!("{} (default)", toolchain.name());
-                    println!("{}", common::rustc_version(toolchain));
+                    writeln!(t, "{} (default)", toolchain.name())?;
+                    writeln!(t, "{}", common::rustc_version(toolchain))?;
                 }
                 None => {
-                    println!("no active toolchain");
+                    writeln!(t, "no active toolchain")?;
                 }
             },
             Err(err) => {
                 if let Some(cause) = err.source() {
-                    println!("(error: {}, {})", err, cause);
+                    writeln!(t, "(error: {}, {})", err, cause)?;
                 } else {
-                    println!("(error: {})", err);
+                    writeln!(t, "(error: {})", err)?;
                 }
             }
         }
 
         if show_headers {
-            println!()
-        };
+            writeln!(t)?
+        }
     }
 
-    fn print_header(s: &str) {
-        let mut t = term2::stdout();
-        let _ = t.attr(term2::Attr::Bold);
-        let _ = writeln!(t, "{}", s);
-        let _ = writeln!(t, "{}", iter::repeat("-").take(s.len()).collect::<String>());
-        let _ = writeln!(t, "");
-        let _ = t.reset();
+    fn print_header(t: &mut term2::Terminal<std::io::Stdout>, s: &str) -> Result<()> {
+        t.attr(term2::Attr::Bold)?;
+        writeln!(t, "{}", s)?;
+        writeln!(t, "{}", iter::repeat("-").take(s.len()).collect::<String>())?;
+        writeln!(t)?;
+        t.reset()?;
+        Ok(())
     }
 
     Ok(())
