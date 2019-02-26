@@ -395,6 +395,13 @@ will provide assistance installing the NDK components as well.
 
 [Android NDK]: https://developer.android.com/tools/sdk/ndk/index.html
 
+To install a target for a toolchain that isn't the default toolchain
+use the `--toolchain` argument of `rustup target add`, like so:
+
+```
+$ rustup target add --toolchain <toolchain> <target>...
+```
+
 To see a list of available targets, `rustup target list`. To remove a
 previously-added target, `rustup target remove`.
 
