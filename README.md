@@ -59,11 +59,11 @@ you are ready to Rust. If you decide Rust isn't your thing, you can
 completely remove it from your system by running `rustup self
 uninstall`.
 
-#### Enable tab completion for Bash, Fish, or Zsh
+#### Enable tab completion for Bash, Fish, Zsh, or PowerShell
 
 `rustup` now supports generating completion scripts for Bash, Fish,
-and Zsh. See `rustup help completions` for full details, but the
-gist is as simple as using one of the following:
+Zsh, and PowerShell. See `rustup help completions` for full details,
+but the gist is as simple as using one of the following:
 
 ```
 # Bash
@@ -77,6 +77,11 @@ $ rustup completions fish > ~/.config/fish/completions/rustup.fish
 
 # Zsh
 $ rustup completions zsh > ~/.zfunc/_rustup
+
+# PowerShell v5.0+
+$ rustup completions powershell >> $PROFILE.CurrentUserCurrentHost
+# or
+$ rustup completions powershell | Out-String | Invoke-Expression
 ```
 
 *Note:* you may need to restart your shell in order for the changes to take
