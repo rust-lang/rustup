@@ -16,7 +16,7 @@
 //! During upgrade (`rustup self upgrade`):
 //!
 //! * download rustup-init to $CARGO_HOME/bin/rustup-init
-//! * run rustu-init with appropriate flags to indicate
+//! * run rustup-init with appropriate flags to indicate
 //!   this is a self-upgrade
 //! * rustup-init copies bins and hardlinks into place. On windows
 //!   this happens *after* the upgrade command exits successfully.
