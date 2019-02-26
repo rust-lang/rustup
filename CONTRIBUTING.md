@@ -28,3 +28,14 @@ Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the
 Apache-2.0 license, shall be dual licensed as in the README, without any
 additional terms or conditions.
+
+## Making a release
+
+Producing the final release artifacts is a bit involved because of the way Rustup
+is distributed. The steps for a release are:
+
+* Update the version number in all Cargo.tomls
+* `cargo build` to update the lock files.
+* commit and tag (`git commit -a` and `git tag -a $VER_NUM -m $VER_NUM`)
+* push the branch and tag (`git push upstream master` and `git push upstream $VER_NUM`)
+* ping somebody on the release team to do the final steps.
