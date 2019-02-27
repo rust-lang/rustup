@@ -1,9 +1,5 @@
 //! Testing self install, uninstall and update
 
-// Disable these tests for MSI-based installation.
-// The `self update` and `self uninstall` commands just call `msiexec`.
-#![cfg(not(feature = "msi-installed"))]
-
 use lazy_static::lazy_static;
 use remove_dir_all::remove_dir_all;
 use rustup_mock::clitools::{
