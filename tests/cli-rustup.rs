@@ -861,10 +861,24 @@ fn show_active_toolchain() {
             config,
             &["rustup", "show", "active-toolchain"],
             for_host!(
-                r"nightly-{0}
+                r"nightly-{0} (default)
 "
             ),
             r"",
+        );
+    });
+}
+
+#[test]
+fn show_active_toolchain_with_override() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "override", "set", "stable"]);
+        expect_stdout_ok(
+            config,
+            &["rustup", "show", "active-toolchain"],
+            for_host!("stable-{0} (directory override for"),
         );
     });
 }
