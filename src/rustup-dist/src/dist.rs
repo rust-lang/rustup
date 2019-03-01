@@ -556,6 +556,7 @@ pub fn update_from_dist_<'a>(
                 force_update,
                 &download,
                 download.notify_handler.clone(),
+                &toolchain.manifest_name(),
             )? {
                 UpdateStatus::Unchanged => Ok(None),
                 UpdateStatus::Changed => Ok(Some(hash)),

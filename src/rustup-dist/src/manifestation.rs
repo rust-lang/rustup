@@ -111,6 +111,7 @@ impl Manifestation {
         force_update: bool,
         download_cfg: &DownloadCfg<'_>,
         notify_handler: &dyn Fn(Notification<'_>),
+        toolchain_str: &str,
     ) -> Result<UpdateStatus> {
         // Some vars we're going to need a few times
         let temp_cfg = download_cfg.temp_cfg;
@@ -126,10 +127,10 @@ impl Manifestation {
         }
 
         // Make sure we don't accidentally uninstall the essential components! (see #1297)
-        update.missing_essential_components(&self.target_triple, new_manifest)?;
+        update.missing_essential_components(&self.target_triple, new_manifest, toolchain_str)?;
 
         // Validate that the requested components are available
-        match update.unavailable_components(new_manifest) {
+        match update.unavailable_components(new_manifest, toolchain_str) {
             Ok(_) => {}
             _ if force_update => {}
             Err(e) => return Err(e),
@@ -594,6 +595,7 @@ impl Update {
         &self,
         target_triple: &TargetTriple,
         manifest: &Manifest,
+        toolchain_str: &str,
     ) -> Result<()> {
         let missing_essential_components = ["rustc", "cargo"]
             .iter()
@@ -614,6 +616,7 @@ impl Update {
             return Err(ErrorKind::RequestedComponentsUnavailable(
                 missing_essential_components,
                 manifest.clone(),
+                toolchain_str.to_owned(),
             )
             .into());
         }
@@ -621,7 +624,7 @@ impl Update {
         Ok(())
     }
 
-    fn unavailable_components(&self, new_manifest: &Manifest) -> Result<()> {
+    fn unavailable_components(&self, new_manifest: &Manifest, toolchain_str: &str) -> Result<()> {
         let mut unavailable_components: Vec<Component> = self
             .components_to_install
             .iter()
@@ -642,6 +645,7 @@ impl Update {
             return Err(ErrorKind::RequestedComponentsUnavailable(
                 unavailable_components,
                 new_manifest.clone(),
+                toolchain_str.to_owned(),
             )
             .into());
         }
