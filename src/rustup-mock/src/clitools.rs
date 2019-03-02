@@ -225,6 +225,8 @@ pub fn expect_ok_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) 
         println!("expected.ok: {}", true);
         print_indented("expected.stdout", stdout);
         print_indented("expected.stderr", stderr);
+        dbg!(out.stdout == stdout);
+        dbg!(out.stderr == stderr);
         panic!();
     }
 }
