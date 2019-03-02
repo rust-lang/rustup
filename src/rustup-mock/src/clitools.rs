@@ -269,7 +269,12 @@ fn print_command(args: &[&str], out: &SanitizedOutput) {
 }
 
 fn print_indented(heading: &str, text: &str) {
-    println!("{}:\n    {}", heading, text.replace("\n", "\n    "));
+    println!(
+        "{} ({} lines):\n    {}",
+        heading,
+        text.lines().count(),
+        text.replace("\n", "\n    ")
+    );
 }
 
 #[derive(Debug)]
