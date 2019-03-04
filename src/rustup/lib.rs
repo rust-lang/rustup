@@ -15,6 +15,7 @@ pub static TOOLS: &'static [&'static str] = &[
     "rust-gdb",
     "rls",
     "cargo-clippy",
+    "clippy-driver",
     "cargo-miri",
 ];
 
@@ -39,6 +40,7 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
         "rust-gdb" => Some("gdb-preview"),
         "rls" => Some("rls"),
         "cargo-clippy" => Some("clippy"),
+        "clippy-driver" => Some("clippy"),
         "cargo-miri" => Some("miri"),
         "rustfmt" | "cargo-fmt" => Some("rustfmt"),
         _ => None,

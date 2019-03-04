@@ -27,6 +27,7 @@ static TOOLS: &'static [&'static str] = &[
     "rustfmt",
     "cargo-fmt",
     "cargo-clippy",
+    "clippy-driver",
     "cargo-miri",
 ];
 
