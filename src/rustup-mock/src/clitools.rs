@@ -225,6 +225,8 @@ pub fn expect_ok_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) 
         println!("expected.ok: {}", true);
         print_indented("expected.stdout", stdout);
         print_indented("expected.stderr", stderr);
+        dbg!(out.stdout == stdout);
+        dbg!(out.stderr == stderr);
         panic!();
     }
 }
@@ -267,7 +269,12 @@ fn print_command(args: &[&str], out: &SanitizedOutput) {
 }
 
 fn print_indented(heading: &str, text: &str) {
-    println!("{}:\n    {}", heading, text.replace("\n", "\n    "));
+    println!(
+        "{} ({} lines):\n    {}",
+        heading,
+        text.lines().count(),
+        text.replace("\n", "\n    ")
+    );
 }
 
 #[derive(Debug)]
