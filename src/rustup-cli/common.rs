@@ -323,18 +323,28 @@ pub fn list_components(toolchain: &Toolchain<'_>) -> Result<()> {
     for component in toolchain.list_components()? {
         let name = component.name;
         if component.required {
-            let _ = t.attr(term2::Attr::Bold);
-            let _ = writeln!(t, "{} (default)", name);
-            let _ = t.reset();
+            t.attr(term2::Attr::Bold)?;
+            writeln!(t, "{} (default)", name)?;
+            t.reset()?;
         } else if component.installed {
-            let _ = t.attr(term2::Attr::Bold);
-            let _ = writeln!(t, "{} (installed)", name);
-            let _ = t.reset();
+            t.attr(term2::Attr::Bold)?;
+            writeln!(t, "{} (installed)", name)?;
+            t.reset()?;
         } else if component.available {
-            let _ = writeln!(t, "{}", name);
+            writeln!(t, "{}", name)?;
         }
     }
 
+    Ok(())
+}
+
+pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<()> {
+    let mut t = term2::stdout();
+    for component in toolchain.list_components()? {
+        if component.installed {
+            writeln!(t, "{}", component.name)?;
+        }
+    }
     Ok(())
 }
 
