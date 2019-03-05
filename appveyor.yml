@@ -5,12 +5,10 @@ environment:
   - TARGET: x86_64-pc-windows-msvc
     ALLOW_PR: 1
   - TARGET: i686-pc-windows-msvc
-  - TARGET: i686-pc-windows-msvc
-    BUILD_MSI: 1
-  - TARGET: i686-pc-windows-gnu
-    MINGW_DIR: mingw32
   - TARGET: x86_64-pc-windows-gnu
     MINGW_DIR: mingw64
+  - TARGET: i686-pc-windows-gnu
+    MINGW_DIR: mingw32
   access_token:
     secure: q8Wqx0brgfpOYFQqWauvucE2h0o1WYb41a3gKaCKV9QiE4eTz6qLNlqyC3mdsp4Q
 branches:
@@ -47,8 +45,6 @@ install:
       } else {
         Write-Host "MSYS2 not required" -ForegroundColor Green
       }
-  - pwsh: |
-      Install-Module Pester -Force
 
   # Install rust, x86_64-pc-windows-msvc host
   - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
@@ -64,10 +60,6 @@ install:
   # Add rustfmt support
   - rustup component add rustfmt
 
-  # set cargo features for MSI if requested (otherwise empty string)
-  - set FEATURES=
-  - if defined BUILD_MSI set FEATURES=--features msi-installed
-
   # let's see what we got
   - where gcc rustc cargo
   - rustc -vV
@@ -77,15 +69,10 @@ install:
 build: false
 
 test_script:
-  - cargo build --release --target %TARGET% %FEATURES% --locked
+  - cargo build --release --target %TARGET% --locked
   - cargo test --release -p rustup-dist --target %TARGET%
-  - cargo test --release --target %TARGET% %FEATURES%
-  - if defined BUILD_MSI pushd src\rustup-win-installer && cargo build --release --target %TARGET% & popd
-  - if defined BUILD_MSI pushd src\rustup-win-installer\msi && powershell .\build.ps1 -Target %TARGET% & popd
+  - cargo test --release --target %TARGET%
   - cargo fmt --all -- --check
-  - pwsh: |
-      $pesterOutputFile = 'src\rustup-win-installer\msi\PesterTestsResults.xml'
-      Invoke-Pester -OutputFormat NUnitXml -OutputFile $pesterOutputFile
 
 notifications:
   - provider: Webhook

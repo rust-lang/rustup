@@ -29,9 +29,6 @@ vendored-openssl = ['openssl/vendored']
 # Include in the default set to disable self-update and uninstall.
 no-self-update = []
 
-# Used to change behavior of self-update and uninstall if installed via MSI
-msi-installed = []
-
 [dependencies]
 rustup-dist = { path = "src/rustup-dist" }
 rustup-utils = { path = "src/rustup-utils" }
@@ -65,7 +62,7 @@ rustup-mock = { path = "src/rustup-mock", version = "1.1.0" }
 lazy_static = "1.0.0"
 
 [workspace]
-members = ["src/rustup-win-installer"]
+members = ["src/download"]
 
 [lib]
 name = "rustup"

@@ -824,18 +824,6 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         process::exit(1);
     }
 
-    if cfg!(feature = "msi-installed") {
-        // Get the product code of the MSI installer from the registry
-        // and spawn `msiexec /x`, then exit immediately
-        let product_code = get_msi_product_code()?;
-        Command::new("msiexec")
-            .arg("/x")
-            .arg(product_code)
-            .spawn()
-            .chain_err(|| ErrorKind::WindowsUninstallMadness)?;
-        process::exit(0);
-    }
-
     let ref cargo_home = utils::cargo_home()?;
 
     if !cargo_home
@@ -917,28 +905,6 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     info!("rustup is uninstalled");
 
     process::exit(0);
-}
-
-#[cfg(not(feature = "msi-installed"))]
-fn get_msi_product_code() -> Result<String> {
-    unreachable!()
-}
-
-#[cfg(feature = "msi-installed")]
-fn get_msi_product_code() -> Result<String> {
-    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
-    use winreg::RegKey;
-
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root.open_subkey_with_flags("SOFTWARE\\rustup", KEY_READ);
-
-    match environment {
-        Ok(env) => match env.get_value("InstalledProductCode") {
-            Ok(val) => Ok(val),
-            Err(e) => Err(e).chain_err(|| ErrorKind::WindowsUninstallMadness),
-        },
-        Err(e) => Err(e).chain_err(|| ErrorKind::WindowsUninstallMadness),
-    }
 }
 
 #[cfg(unix)]
