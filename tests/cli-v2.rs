@@ -836,8 +836,8 @@ fn update_unavailable_std() {
             config,
             &["rustup", "update", "nightly", "--no-self-update"],
             &format!(
-                "component 'rust-std' for target '{}' is unavailable for download",
-                trip
+                "component 'rust-std' for target '{}' is unavailable for download for channel 'nightly'",
+                trip,
             ),
         );
     });
@@ -864,8 +864,8 @@ fn update_unavailable_force() {
             config,
             &["rustup", "update", "nightly", "--no-self-update"],
             &format!(
-                "component 'rls' for target '{}' is unavailable for download",
-                trip
+                "component 'rls' for target '{}' is unavailable for download for channel 'nightly'",
+                trip,
             ),
         );
         expect_ok(

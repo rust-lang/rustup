@@ -422,6 +422,7 @@ fn update_from_dist_(
         force_update,
         download_cfg,
         download_cfg.notify_handler.clone(),
+        &toolchain.to_string(),
     )
 }
 
