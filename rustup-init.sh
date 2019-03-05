@@ -22,7 +22,7 @@ fi
 #XXX: If you change anything here, please make the same changes in setup_mode.rs
 usage() {
     cat 1>&2 <<EOF
-rustup-init 1.16.0 (beab5ac2b 2018-12-06)
+rustup-init 1.17.0 (046b6d667 2019-03-05)
 The installer for rustup
 
 USAGE:
