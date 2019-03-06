@@ -15,9 +15,8 @@
 
 set -u
 
-if [ -z "$RUSTUP_UPDATE_ROOT" ]; then
-    RUSTUP_UPDATE_ROOT="https://static.rust-lang.org/rustup"
-fi
+# If RUSTUP_UPDATE_ROOT is unset or empty, default it.
+RUSTUP_UPDATE_ROOT="${RUSTUP_UPDATE_ROOT:-https://static.rust-lang.org/rustup}"
 
 #XXX: If you change anything here, please make the same changes in setup_mode.rs
 usage() {
