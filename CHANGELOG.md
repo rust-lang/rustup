@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.14.0] - 2018-10-04
+
+* [Fix Windows job management][pr#1511]
+* [Preserve symlinks when installing][pr#1504]
+* [Add `--toolchain` option to `rustup doc`][pr#1478]
+* [Fix removing toolchain fail when update-hash does not exist][pr#1472]
+* [Add note about installing the Windows SDK component][pr#1468]
+
+[pr#1511]: https://github.com/rust-lang/rustup.rs/pull/1511
+[pr#1504]: https://github.com/rust-lang/rustup.rs/pull/1504
+[pr#1478]: https://github.com/rust-lang/rustup.rs/pull/1478
+[pr#1472]: https://github.com/rust-lang/rustup.rs/pull/1472
+[pr#1468]: https://github.com/rust-lang/rustup.rs/pull/1468
+
 ## [1.13.0] - 2018-07-16
 
 * [Add clippy to the tools list][pr1461]
