@@ -1,4 +1,6 @@
-# 1.13.0
+# Changelog
+
+## [1.13.0] - 2018-07-16
 
 * [Add clippy to the tools list][pr1461]
 
@@ -6,7 +8,7 @@
 
 Contributors: Jane Lusby
 
-# 1.12.0
+## [1.12.0] - 2018-07-07
 
 * [Add --path flag to 'rustup doc'][pr1453]
 * [Add flag to "rustup show" for active-toolchain][pr1449]
@@ -49,7 +51,7 @@ Kornel, Stuart Dootson, Pietro Albini, Diggory Blake, Yuji Nakao,
 Johannes Hofmann, CrLF0710, Aaron Lee, Brian Anderson, Mateusz Mikuła,
 Segev Finer, Dan Aloni, Joeri van Ruth
 
-# 1.11.0
+## [1.11.0] - 2018-02-13
 
 * [windows: detect architecture on website, update to matching arch][pr1354]
 
@@ -85,7 +87,7 @@ Contributors: Alex Crichton
 
 Contributors: Alex Crichton, kennytm, Nick Cameron, Simon Sapin, Who? Me?!
 
-# 1.7.0
+## [1.7.0] - 2017-10-30
 
 * [Improve clarity of component errors][pr1255]
 * [Support `--default-toolchain none`][pr1257]
@@ -98,7 +100,7 @@ Contributors: Alex Crichton, kennytm, Nick Cameron, Simon Sapin, Who? Me?!
 Contributors: Aidan Hobson Sayers, Alan Du, Alex Crichton, Christoph Wurst,
 Jason Mobarak, Leon Isenberg, Simon Sapin, Vadim Petrochenkov
 
-# 1.6.0
+## [1.6.0] - 2017-08-30
 
 * [Fix support for s390x][pr1228]
 * [Fix `show` so it displays helpful information if the active toolchain is not installed][pr1189]
@@ -118,7 +120,7 @@ Contributors: Alex Crichton, Chen Rotem Levy, Krishna Sundarram, Martin Geisler,
 Matt Brubeck, Matt Ickstadt, Michael Benfield, Michael Fletcher, Nick Cameron,
 Patrick Reisert, Ralf Jung, Sean McArthur, Steven Fackler
 
-# 1.5.0
+## [1.5.0] - 2017-06-24
 
 * [Rename references to multirust to rustup where applicable](https://github.com/rust-lang/rustup.rs/pull/1148)
 * [Update platform support in README](https://github.com/rust-lang/rustup.rs/pull/1159)
@@ -132,7 +134,7 @@ Patrick Reisert, Ralf Jung, Sean McArthur, Steven Fackler
 Contributors: Allen Welkie, bors, Brian Anderson, Diggory Blake, Erick
 Tryzelaar, Ricardo Martins, Артём Павлов [Artyom Pavlov]
 
-# 1.4.0
+## [1.4.0] - 2017-06-09
 
 * [set_file_perms: if the file is already executable, keep it executable](https://github.com/rust-lang/rustup.rs/pull/1141)
 * [Disable man support on Windows](https://github.com/rust-lang/rustup.rs/pull/1139)
@@ -167,7 +169,7 @@ A L Barbosa, Mateusz Mikula, Matthew, Matt Ickstadt, Mikhail Modin, Patrick
 Deuster, pxdeu, Ralf Jung, Raphaël Huchet, Robert Vally, theindigamer, Tommy Ip,
 Xidorn Quan
 
-# 1.3.0
+## [1.3.0] - 2017-05-09
 
 * [Add armv8l support](https://github.com/rust-lang/rustup.rs/pull/1055)
 * [Update curl crate](https://github.com/rust-lang/rustup.rs/pull/1101)
@@ -182,7 +184,7 @@ Xidorn Quan
 Contributors: bors, Brian Anderson, Diggory Blake, Greg Alexander, James Elford,
 Jordan Hiltunen, Justin Noah, Kang Seonghoon, Kevin K, Marco A L Barbosa
 
-# 1.2.0
+## [1.2.0] - 2017-04-08
 
 * [Check ZDOTDIR when adding path to .zprofile](https://github.com/rust-lang/rustup.rs/pull/1038)
 * [Update links and install page to include android support](https://github.com/rust-lang/rustup.rs/pull/1037)
@@ -193,7 +195,7 @@ Jordan Hiltunen, Justin Noah, Kang Seonghoon, Kevin K, Marco A L Barbosa
 Contributors: Brian Anderson, James Elford, Jason Dreyzehner, Marco A
 L Barbosa, Wim Looman
 
-# 1.1.0
+## [1.1.0] - 2017-04-06
 
 * [Fix browser detection for Linux ppc64 and NetBSD](https://github.com/rust-lang/rustup.rs/pull/875)
 * [Update windows info](https://github.com/rust-lang/rustup.rs/pull/879)
@@ -237,7 +239,7 @@ Bruno, Lyuha, Manish Goregaokar, Marc-Antoine Perennou, Marco A L
 Barbosa, Mikhail Pak, Nick Cameron, polonez, Sam Marshall, Steve
 Klabnik, Tomáš Hübelbauer, topecongiro, Wang Xuerui
 
-# 1.0.0
+## [1.0.0] - 2016-12-15
 
 * [Statically link MSVC CRT](https://github.com/rust-lang/rustup.rs/pull/843)
 * [Upgrade ~/.multirust correctly from rustup-init](https://github.com/rust-lang/rustup.rs/pull/858)
@@ -257,7 +259,7 @@ Cramer, theindigamer, Tim Neumann, Tobias Bucher, trolleyman, Vadim
 Petrochenkov, Virgile Andreani, V Jackson, Vladimir, Wang Xuerui, Wayne Warren,
 Wesley Moore, Yasushi Abe, Y. T. Chung
 
-# 0.7.0
+## [0.7.0] - 2016-12-11
 
 * [Correctly "detect" host endianness on MIPS](https://github.com/rust-lang/rustup.rs/pull/802)
 * [Add powershell completions](https://github.com/rust-lang/rustup.rs/pull/801)
@@ -278,7 +280,7 @@ Wesley Moore, Yasushi Abe, Y. T. Chung
 Contributors: Alex Crichton, Arch, bors, Brian Anderson, Diggory Blake, Kai
 Roßwag, Kevin K, Oliver Schneider, Ryan Havar, Tobias Bucher, Wang Xuerui
 
-# 0.6.5
+## [0.6.5] - 2016-11-04
 
 * [Update bundled curl code](https://github.com/rust-lang/rustup.rs/pull/790)
 * [Remove old zsh completions](https://github.com/rust-lang/rustup.rs/pull/779)
@@ -289,7 +291,7 @@ Roßwag, Kevin K, Oliver Schneider, Ryan Havar, Tobias Bucher, Wang Xuerui
 Contributors: Alex Crichton, Björn Steinbrink, Brian Anderson, Jian Zeng, Matt
 Brubeck
 
-# 0.6.4
+## [0.6.4] - 2016-10-24
 
 * [making rustup prepend cargo bin to path instead of append](https://github.com/rust-lang/rustup.rs/pull/707)
 * [Use released version of rustls dependency](https://github.com/rust-lang/rustup.rs/pull/711)
@@ -312,28 +314,28 @@ Contributors: Alex Crichton, Andrew Koroluk, Brian Anderson, Chungmin Park,
 Diggory Blake, Guillaume Fraux, Jake Goldsborough, jethrogb, Kamal Marhubi,
 Kevin K, Kevin Rauwolf, Raphael Cohn, Ricardo Martins
 
-# 0.6.3
+## [0.6.3] - 2016-08-28
 
 * [Disable anti-sudo check](https://github.com/rust-lang/rustup.rs/pull/698)
 * [Fixed CI toolchain pinning](https://github.com/rust-lang/rustup.rs/pull/696)
 
 Contributors: Brian Anderson
 
-# 0.6.2
+## [0.6.2] - 2016-08-27
 
 * [Add basic autocompletion for Zsh](https://github.com/rust-lang/rustup.rs/pull/689)
 * [Sort toolchains by semantic version](https://github.com/rust-lang/rustup.rs/pull/688)
 
 Contributors: Brian Anderson, Diggory Blake, Knight, Marco A L Barbosa
 
-# 0.6.1
+## [0.6.1] - 2016-08-24
 
 * [Fix mysterious crash on OS X 10.10+](https://github.com/rust-lang/rustup.rs/pull/684)
 * [Fix `component remove` command and add a test for it](https://github.com/rust-lang/rustup.rs/pull/683)
 
 Contributors: Brian Anderson, Diggory Blake
 
-# 0.6.0
+## [0.6.0] - 2016-08-23
 
 * [Print rustup version after update](https://github.com/rust-lang/rustup.rs/pull/614)
 * [Don't spawn processes for copying](https://github.com/rust-lang/rustup.rs/pull/630)
@@ -349,7 +351,7 @@ Contributors: Brian Anderson, Diggory Blake
 Contributors: Alex Crichton, Brian Anderson, Diggory Blake, Ivan Nejgebauer Josh
 Machol, Julien Blanchard, Patrick Reisert, Ri, Tim Neumann
 
-# 0.5.0
+## [0.5.0] - 2016-07-30
 
 * [List custom toolchains in `rustup show`](https://github.com/rust-lang/rustup.rs/pull/620)
 * [Add a usage example for local builds](https://github.com/rust-lang/rustup.rs/pull/622)
@@ -362,7 +364,7 @@ Machol, Julien Blanchard, Patrick Reisert, Ri, Tim Neumann
 Contributors: Brian Anderson, Cam Swords, Daniel Keep, Diggory Blake,
 Florian Gilcher, Ivan Nejgebauer, theindigamer
 
-# 0.4.0
+## [0.4.0] - 2016-07-22
 
 * [Improve rustls CA certificate loading](https://github.com/rust-lang/rustup.rs/pull/585)
 * [Detect ARMv7 CPUs without NEON extensions and treat as ARMv6](https://github.com/rust-lang/rustup.rs/pull/593)
@@ -381,7 +383,7 @@ Florian Gilcher, Ivan Nejgebauer, theindigamer
 Contributors: Alex Crichton, Brian Anderson, Ivan Nejgebauer, Jimmy
 Cuadra, Martin Pool, Wesley Moore
 
-# 0.3.0
+## [0.3.0] - 2016-07-14
 
 * [Teach rustup to download manifests from the `/staging/` directory](https://github.com/rust-lang/rustup.rs/pull/579).
 * [Treat all HTTP client errors the same](https://github.com/rust-lang/rustup.rs/pull/578).
@@ -407,7 +409,7 @@ Contributors: Alex Crichton, Brian Anderson, Drew Fisher, geemili,
 Ivan Petkov, James Lucas, jethrogb, Kevin Yap, leonardo.yvens, Michael
 DeWitt, Nate Mara, Virgile Andreani
 
-# 0.2.0
+## [0.2.0] - 2016-06-21
 
 * [Indicate correct path to remove in multirust upgrade instructions](https://github.com/rust-lang/rustup.rs/pull/518).
 * [Bring back optional hyper with proxy support](https://github.com/rust-lang/rustup.rs/pull/532).
@@ -433,17 +435,17 @@ Michael, Brian Anderson, Diggory Blake, Erick Tryzelaar, Ivan
 Nejgebauer, Jeremiah Peschka, Josh Stone, Knight, mdinger, Ryan Kung,
 Tad Hardesty
 
-# 0.1.12
+## [0.1.12] - 2016-05-12
 
 * [Don't install when multirust metadata exists](https://github.com/rust-lang/rustup.rs/pull/456).
 
-# 0.1.11
+## [0.1.11] - 2016-05-12
 
 * [Actually dispatch the `rustup install` command](https://github.com/rust-lang/rustup.rs/pull/444).
 * [Migrate to libcurl instead of hyper](https://github.com/rust-lang/rustup.rs/pull/434).
 * [Add error for downloading bogus versions](https://github.com/rust-lang/rustup.rs/pull/428).
 
-# 0.1.10
+## [0.1.10] - 2016-05-09
 
 * [Multiple cli improvements](https://github.com/rust-lang/rustup.rs/pull/419).
 * [Support HTTP protocol again](https://github.com/rust-lang/rustup.rs/pull/431).
@@ -452,7 +454,7 @@ Tad Hardesty
 * [Don't panic when NativeSslStream lock is poisoned](https://github.com/rust-lang/rustup.rs/pull/429).
 * [Fix multiple issues in schannel bindings](https://github.com/sfackler/schannel-rs/pull/1)
 
-# 0.1.9
+## [0.1.9] - 2016-05-07
 
 * [Do TLS hostname verification](https://github.com/rust-lang/rustup.rs/pull/400).
 * [Expand `rustup show`](https://github.com/rust-lang/rustup.rs/pull/406).
@@ -462,7 +464,7 @@ Tad Hardesty
 * [Fix color display during telemetry capture](https://github.com/rust-lang/rustup.rs/pull/394).
 * [Make it less of an error for the self-update hash to be wrong](https://github.com/rust-lang/rustup.rs/pull/372).
 
-# 0.1.8
+## [0.1.8] - 2016-04-28
 
 * [Initial telemetry implementation (disabled)](https://github.com/rust-lang/rustup.rs/pull/289)
 * [Add hash to `--version`](https://github.com/rust-lang/rustup.rs/pull/347)
@@ -471,7 +473,7 @@ Tad Hardesty
 * [Add armv7l support to www](https://github.com/rust-lang/rustup.rs/pull/359)
 * [Overhaul website](https://github.com/rust-lang/rustup.rs/pull/363)
 
-# 0.1.7
+## [0.1.7] - 2016-04-17
 
 * [Fix overrides for Windows root directories](https://github.com/rust-lang/rustup.rs/pull/317).
 * [Remove 'multirust' binary and rename crates](https://github.com/rust-lang/rustup.rs/pull/312).
