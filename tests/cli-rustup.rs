@@ -250,6 +250,24 @@ info: default toolchain set to 'nightly-{0}'
 }
 
 #[test]
+fn default_override() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "override", "set", "nightly"]);
+        expect_stderr_ok(
+            config,
+            &["rustup", "default", "stable"],
+            for_host!(
+                r"info: using existing install for 'stable-{0}'
+info: default toolchain set to 'stable-{0}'
+info: note that the toolchain 'nightly-{0}' is currently in use (directory override for"
+            ),
+        );
+    });
+}
+
+#[test]
 fn rustup_xz() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
