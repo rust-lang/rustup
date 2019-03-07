@@ -159,7 +159,7 @@ Segev Finer, Dan Aloni, Joeri van Ruth
 
 Contributors: Steffen Butzer
 
-# 1.10.0
+## [1.10.0] - 2018-01-25
 
 * [Warn when tools are missing and allow an override][pr1337]
 
@@ -167,7 +167,7 @@ Contributors: Steffen Butzer
 
 Contributors: Nick Cameron, Steffen Butzer
 
-# 1.9.0
+## [1.9.0] - 2018-01-04
 
 * [Fix self update errors filling in missing proxies][pr1326]
 
@@ -175,7 +175,7 @@ Contributors: Nick Cameron, Steffen Butzer
 
 Contributors: Alex Crichton
 
-# 1.8.0
+## [1.8.0] - 2017-12-19
 
 * [Add `rustup run --install`][pr1295]
 * [Prevent `rustup update` to a toolchain without `rustc` or `cargo`][pr1298]
