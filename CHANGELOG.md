@@ -1,5 +1,69 @@
 # Changelog
 
+## [1.17.0] - 2019-03-05
+
+* [Allow using inherited RUSTUP_UPDATE_ROOT variable in rustup-init.sh.][pr#1495]
+* [Fix `utils::copy_file` for symlink.][pr#1521]
+* [Improve formatting of longer download times in download tracker][pr#1547]
+* [Basic 2018 edition fix][pr#1583]
+* [Update rustup-init.sh for 32bit powerpc userland][pr#1587]
+* [Reformat the entire codebase using `cargo fmt`][pr#1585]
+* [Support to open more documents directly in `rustup doc`][pr#1597]
+* [Fix HumanReadable#fmt][pr#1603]
+* [Add more detail error messages when installing with some components has failed.][pr#1595]
+* [Fix a panic when a component is missing][pr#1576]
+* [Update to use `dirs::home_dir()`][pr#1588]
+* [Self update after updating a specific toolchain][pr#1605]
+* [Add miri to rustup][pr#1606]
+* [allow non-utf8 arguments to proxies][pr#1599]
+* [rustup-dist: Use Download notifications to track install][pr#1593]
+* [Deal cleanly with malformed default-host][pr#1578]
+* [Better error message for missing binary][pr#1619]
+* [Add tab completion instructions for PowerShell][pr#1623]
+* [Add tab completion test for PowerShell][pr#1629]
+* [When updating, show "removing old component" to avoid confusion][pr#1639]
+* [Upgrade to Rust 2018 edition idioms][pr#1643]
+* [Simplify host triplet passing code][pr#1645]
+* [Remove telemetry][pr#1642]
+* [Print default toolchain on `rustup default` without arguments][pr#1633]
+* [Bring output of `rustup show active-toolchain` and `rustup default` into line with rest of rustup][pr#1654]
+* [Deprecate cURL][pr#1660]
+* [Thread toolchain through to error message][pr#1616]
+* [Add Listing of Installed Components (`rustup component list --installed`)][pr#1659 ]
+* [Add `clippy-driver` as a proxy][pr#1679]
+* [Remove the `rustup-win-installer` directory][pr#1666]
+
+[pr#1495]: https://github.com/rust-lang/rustup.rs/pull/1495
+[pr#1521]: https://github.com/rust-lang/rustup.rs/pull/1521
+[pr#1547]: https://github.com/rust-lang/rustup.rs/pull/1547
+[pr#1583]: https://github.com/rust-lang/rustup.rs/pull/1583
+[pr#1587]: https://github.com/rust-lang/rustup.rs/pull/1587
+[pr#1585]: https://github.com/rust-lang/rustup.rs/pull/1585
+[pr#1597]: https://github.com/rust-lang/rustup.rs/pull/1597
+[pr#1603]: https://github.com/rust-lang/rustup.rs/pull/1603
+[pr#1595]: https://github.com/rust-lang/rustup.rs/pull/1595
+[pr#1576]: https://github.com/rust-lang/rustup.rs/pull/1576
+[pr#1588]: https://github.com/rust-lang/rustup.rs/pull/1588
+[pr#1605]: https://github.com/rust-lang/rustup.rs/pull/1605
+[pr#1606]: https://github.com/rust-lang/rustup.rs/pull/1606
+[pr#1599]: https://github.com/rust-lang/rustup.rs/pull/1599
+[pr#1593]: https://github.com/rust-lang/rustup.rs/pull/1593
+[pr#1578]: https://github.com/rust-lang/rustup.rs/pull/1578
+[pr#1619]: https://github.com/rust-lang/rustup.rs/pull/1619
+[pr#1623]: https://github.com/rust-lang/rustup.rs/pull/1623
+[pr#1629]: https://github.com/rust-lang/rustup.rs/pull/1629
+[pr#1639]: https://github.com/rust-lang/rustup.rs/pull/1639
+[pr#1643]: https://github.com/rust-lang/rustup.rs/pull/1643
+[pr#1645]: https://github.com/rust-lang/rustup.rs/pull/1645
+[pr#1642]: https://github.com/rust-lang/rustup.rs/pull/1642
+[pr#1633]: https://github.com/rust-lang/rustup.rs/pull/1633
+[pr#1654]: https://github.com/rust-lang/rustup.rs/pull/1654
+[pr#1660]: https://github.com/rust-lang/rustup.rs/pull/1660
+[pr#1616]: https://github.com/rust-lang/rustup.rs/pull/1616
+[pr#1659]: https://github.com/rust-lang/rustup.rs/pull/1659
+[pr#1679]: https://github.com/rust-lang/rustup.rs/pull/1679
+[pr#1666]: https://github.com/rust-lang/rustup.rs/pull/1666
+
 ## [1.16.0] - 2018-12-06
 
 * [Fix rename_rls_remove test on Windows][pr#1561]
