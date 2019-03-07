@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.15.0] - 2018-11-27
+
+* [More tweaks to renames][pr#1554]
+* [Return Ok status when trying to add required component][pr#1553]
+* [Use `renames` instead of `rename` to match the actual manifest][pr#1552]
+* [Size optimizations: Build with LTO and alloc_system][pr#1526]
+* [Use `openssl-src` from crates.io to link to OpenSSL][pr#1536]
+* [Change handling of renames][pr#1549]
+
+[pr#1554]: https://github.com/rust-lang/rustup.rs/pull/1554
+[pr#1553]: https://github.com/rust-lang/rustup.rs/pull/1553
+[pr#1552]: https://github.com/rust-lang/rustup.rs/pull/1552
+[pr#1526]: https://github.com/rust-lang/rustup.rs/pull/1526
+[pr#1536]: https://github.com/rust-lang/rustup.rs/pull/1536
+[pr#1549]: https://github.com/rust-lang/rustup.rs/pull/1549
+
 ## [1.14.0] - 2018-10-04
 
 * [Fix Windows job management][pr#1511]
