@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.16.0] - 2018-12-06
+
+* [Fix rename_rls_remove test on Windows][pr#1561]
+
+[pr#1561]: https://github.com/rust-lang/rustup.rs/pull/1561
+
 ## [1.15.0] - 2018-11-27
 
 * [More tweaks to renames][pr#1554]
