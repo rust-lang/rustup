@@ -18,7 +18,7 @@ reqwest-backend = ["reqwest", "env_proxy", "lazy_static"]
 error-chain = "0.12"
 url = "1.7"
 curl = { version = "0.4.11", optional = true }
-env_proxy = { version = "0.2.0", optional = true }
+env_proxy = { version = "0.3.0", optional = true }
 lazy_static = { version = "1.0", optional = true }
 reqwest = { version = "0.9", optional = true }
 
