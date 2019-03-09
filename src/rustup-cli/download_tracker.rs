@@ -176,29 +176,30 @@ impl fmt::Display for HumanReadable {
 
             if sec.is_infinite() {
                 write!(f, "Unknown")
-            } else if sec > 48. * 3600. {
-                let sec = self.0;
-                let d = sec / (24. * 3600.);
-                let h = sec % (24. * 3600.);
-                let min = sec % 3600.;
-                let sec = sec % 60.;
-
-                write!(f, "{:3} days {:2} h {:2} min {:2} s", d, h, min, sec) // XYZ days PQ h RS min TU s
-            } else if sec > 6_000. {
-                let sec = self.0;
-                let h = sec / 3600.;
-                let min = sec % 3600.;
-                let sec = sec % 60.;
-
-                write!(f, "{:3} h {:2} min {:2} s", h, min, sec) // XYZ h PQ min RS s
-            } else if sec > 100. {
-                let sec = self.0;
-                let min = sec / 60.;
-                let sec = sec % 60.;
-
-                write!(f, "{:3} min {:2} s", min, sec) // XYZ min PQ s
             } else {
-                write!(f, "{:3.0} s", self.0) // XYZ s
+                // we're doing modular arithmetic, treat as integer
+                let sec = sec as u32;
+                if sec > 48 * 3600 {
+                    let d = sec / (24 * 3600);
+                    let h = sec % (24 * 3600);
+                    let min = sec % 3600;
+                    let sec = sec % 60;
+
+                    write!(f, "{:3} days {:2} h {:2} min {:2} s", d, h, min, sec) // XYZ days PQ h RS min TU s
+                } else if sec > 6_000 {
+                    let h = sec / 3600;
+                    let min = sec % 3600;
+                    let sec = sec % 60;
+
+                    write!(f, "{:3} h {:2} min {:2} s", h, min, sec) // XYZ h PQ min RS s
+                } else if sec > 100 {
+                    let min = sec / 60;
+                    let sec = sec % 60;
+
+                    write!(f, "{:3} min {:2} s", min, sec) // XYZ min PQ s
+                } else {
+                    write!(f, "{:3.0} s", self.0) // XYZ s
+                }
             }
         } else {
             const KIB: f64 = 1024.0;
