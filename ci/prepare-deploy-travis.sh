@@ -2,16 +2,12 @@
 
 set -u -e
 
-if [ "$TRAVIS_PULL_REQUEST" == "true" ]; then
-    exit 0
-fi
-
-if [ "$TRAVIS_BRANCH" == "auto" ]; then
+if [ "$TRAVIS_PULL_REQUEST" = "true" ] || [ "$TRAVIS_BRANCH" = "auto" ]; then
     exit 0
 fi
 
 # Upload docs
-if [[ "$TARGET" == "x86_64-unknown-linux-gnu" && "$TRAVIS_BRANCH" == "stable" ]]; then
+if [ "$TARGET" = "x86_64-unknown-linux-gnu" ] && [ "$TRAVIS_BRANCH" = "stable" ]; then
     # FIXME rust-lang/rust#32532
     printf "not uploading docs"
     #git config --global credential.helper store;
@@ -24,13 +20,13 @@ if [[ "$TARGET" == "x86_64-unknown-linux-gnu" && "$TRAVIS_BRANCH" == "stable" ]]
 fi;
 
 # Copy rustup-init to rustup-setup for backwards compatibility
-cp target/$TARGET/release/rustup-init target/$TARGET/release/rustup-setup
+cp target/"$TARGET"/release/rustup-init target/"$TARGET"/release/rustup-setup
 
 # Generate hashes
-if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-    find "target/$TARGET/release/" -maxdepth 1 -type f -exec sh -c 'shasum -a 256 -b "{}" > "{}.sha256"' \;;
+if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+    find target/"$TARGET"/release/ -maxdepth 1 -type f -exec sh -c 'fn="$1"; shasum -a 256 -b "$fn" > "$fn".sha256' _ {} \;
 else
-    find "target/$TARGET/release/" -maxdepth 1 -type f -exec sh -c 'sha256sum -b "{}" > "{}.sha256"' \;;
+    find target/"$TARGET"/release/ -maxdepth 1 -type f -exec sh -c 'fn="$1"; sha256sum -b "$fn" > "$fn".sha256' _ {} \;
 fi
 
 # The directory for deployment artifacts
@@ -39,10 +35,10 @@ dest="deploy"
 # Prepare bins for upload
 bindest="$dest/dist/$TARGET"
 mkdir -p "$bindest/"
-cp target/$TARGET/release/rustup-init "$bindest/"
-cp target/$TARGET/release/rustup-init.sha256 "$bindest/"
-cp target/$TARGET/release/rustup-setup "$bindest/"
-cp target/$TARGET/release/rustup-setup.sha256 "$bindest/"
+cp target/"$TARGET"/release/rustup-init "$bindest/"
+cp target/"$TARGET"/release/rustup-init.sha256 "$bindest/"
+cp target/"$TARGET"/release/rustup-setup "$bindest/"
+cp target/"$TARGET"/release/rustup-setup.sha256 "$bindest/"
 
 if [ "$TARGET" != "x86_64-unknown-linux-gnu" ]; then
     exit 0

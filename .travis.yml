@@ -63,10 +63,10 @@ script:
         *-apple-darwin)                     ;;
         *)                   DOCKER=$TARGET ;;
       esac;
-      if [ ! -z "$DOCKER" ]; then
+      if [ -n "$DOCKER" ]; then
           sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
       else
-          PATH=$HOME/rust/bin:$PATH sh ci/run.sh;
+          PATH="$HOME/rust/bin:$PATH" sh ci/run.sh;
       fi
 
 before_deploy:
