@@ -13,7 +13,7 @@ repository = "https://github.com/rust-lang/rustup.rs"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-download = { path = "../download" }
+download = { path = "../../download" }
 error-chain = "0.12"
 libc = "0.2.0"
 rand = "0.5.2"
