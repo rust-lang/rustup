@@ -50,6 +50,7 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
 pub mod command;
 mod config;
 pub mod env_var;
+#[allow(deprecated)] // WORKAROUND https://github.com/rust-lang-nursery/error-chain/issues/254
 mod errors;
 mod install;
 mod notifications;

@@ -18,6 +18,7 @@
 mod log;
 mod common;
 mod download_tracker;
+#[allow(deprecated)] // WORKAROUND https://github.com/rust-lang-nursery/error-chain/issues/254
 mod errors;
 mod help;
 mod job;
