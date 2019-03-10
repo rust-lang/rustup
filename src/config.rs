@@ -6,11 +6,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 
+use crate::dist::{dist, temp};
 use crate::errors::*;
 use crate::notifications::*;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
 use crate::toolchain::{Toolchain, UpdateStatus};
-use rustup_dist::{dist, temp};
 use rustup_utils::utils;
 
 #[derive(Debug)]

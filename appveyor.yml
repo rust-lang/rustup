@@ -70,7 +70,6 @@ build: false
 
 test_script:
   - cargo build --release --target %TARGET% --locked
-  - cargo test --release -p rustup-dist --target %TARGET%
   - cargo test --release --target %TARGET%
   - cargo fmt --all -- --check
 

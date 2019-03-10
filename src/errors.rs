@@ -1,12 +1,12 @@
 use crate::component_for_bin;
+use crate::dist::temp;
 use error_chain::error_chain;
 use error_chain::error_chain_processing;
 use error_chain::{impl_error_chain_kind, impl_error_chain_processed, impl_extract_backtrace};
-use rustup_dist::temp;
 
 error_chain! {
     links {
-        Dist(rustup_dist::Error, rustup_dist::ErrorKind);
+        Dist(crate::dist::Error, crate::dist::ErrorKind);
         Utils(rustup_utils::Error, rustup_utils::ErrorKind);
     }
 

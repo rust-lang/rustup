@@ -1,15 +1,15 @@
 // Tests of installation and updates from a v2 Rust distribution
 // server (mocked on the file system)
 
-use rustup_dist::dist::{TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER};
-use rustup_dist::download::DownloadCfg;
-use rustup_dist::errors::Result;
-use rustup_dist::manifest::{Component, Manifest};
-use rustup_dist::manifestation::{Changes, Manifestation, UpdateStatus};
-use rustup_dist::prefix::InstallPrefix;
-use rustup_dist::temp;
-use rustup_dist::ErrorKind;
-use rustup_dist::Notification;
+use rustup::dist::dist::{TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER};
+use rustup::dist::download::DownloadCfg;
+use rustup::dist::errors::Result;
+use rustup::dist::manifest::{Component, Manifest};
+use rustup::dist::manifestation::{Changes, Manifestation, UpdateStatus};
+use rustup::dist::prefix::InstallPrefix;
+use rustup::dist::temp;
+use rustup::dist::ErrorKind;
+use rustup::dist::Notification;
 use rustup_mock::dist::*;
 use rustup_mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 use rustup_utils::raw as utils_raw;

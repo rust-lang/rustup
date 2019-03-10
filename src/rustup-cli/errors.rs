@@ -6,12 +6,12 @@ use std::path::PathBuf;
 use error_chain::error_chain;
 use error_chain::error_chain_processing;
 use error_chain::{impl_error_chain_kind, impl_error_chain_processed, impl_extract_backtrace};
-use rustup_dist::temp;
+use rustup::dist::temp;
 
 error_chain! {
     links {
         Rustup(rustup::Error, rustup::ErrorKind);
-        Dist(rustup_dist::Error, rustup_dist::ErrorKind);
+        Dist(rustup::dist::Error, rustup::dist::ErrorKind);
         Utils(rustup_utils::Error, rustup_utils::ErrorKind);
     }
 

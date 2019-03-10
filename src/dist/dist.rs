@@ -1,11 +1,11 @@
-use crate::download::DownloadCfg;
-use crate::errors::*;
-use crate::manifest::Component;
-use crate::manifest::Manifest as ManifestV2;
-use crate::manifestation::{Changes, Manifestation, UpdateStatus};
-use crate::notifications::*;
-use crate::prefix::InstallPrefix;
-use crate::temp;
+use crate::dist::download::DownloadCfg;
+use crate::dist::errors::*;
+use crate::dist::manifest::Component;
+use crate::dist::manifest::Manifest as ManifestV2;
+use crate::dist::manifestation::{Changes, Manifestation, UpdateStatus};
+use crate::dist::notifications::*;
+use crate::dist::prefix::InstallPrefix;
+use crate::dist::temp;
 use rustup_utils::utils;
 
 use std::env;

@@ -17,12 +17,15 @@ where
 }
 
 fn main() {
-    let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    let target = env::var("TARGET").unwrap();
+    println!("cargo:rustc-env=TARGET={}", target);
 
+    let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     File::create(out_dir.join("commit-info.txt"))
         .unwrap()
         .write_all(commit_info().as_bytes())
         .unwrap();
+
     println!("cargo:rerun-if-changed=build.rs");
 }
 

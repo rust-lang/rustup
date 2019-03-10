@@ -1,15 +1,15 @@
 //! Maintains a Rust installation by installing individual Rust
 //! platform components from a distribution server.
 
-use crate::component::{Components, Package, TarGzPackage, TarXzPackage, Transaction};
-use crate::config::Config;
-use crate::dist::{TargetTriple, DEFAULT_DIST_SERVER};
-use crate::download::{DownloadCfg, File};
-use crate::errors::*;
-use crate::manifest::{Component, Manifest, TargetedPackage};
-use crate::notifications::*;
-use crate::prefix::InstallPrefix;
-use crate::temp;
+use crate::dist::component::{Components, Package, TarGzPackage, TarXzPackage, Transaction};
+use crate::dist::config::Config;
+use crate::dist::dist::{TargetTriple, DEFAULT_DIST_SERVER};
+use crate::dist::download::{DownloadCfg, File};
+use crate::dist::errors::*;
+use crate::dist::manifest::{Component, Manifest, TargetedPackage};
+use crate::dist::notifications::*;
+use crate::dist::prefix::InstallPrefix;
+use crate::dist::temp;
 use rustup_utils::utils;
 use std::path::Path;
 
@@ -629,7 +629,7 @@ impl Update {
             .components_to_install
             .iter()
             .filter(|c| {
-                use crate::manifest::*;
+                use crate::dist::manifest::*;
                 let pkg: Option<&Package> =
                     new_manifest.get_package(&c.short_name_in_manifest()).ok();
                 let target_pkg: Option<&TargetedPackage> =

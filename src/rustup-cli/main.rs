@@ -29,8 +29,8 @@ mod setup_mode;
 mod term2;
 
 use crate::errors::*;
+use rustup::dist::dist::TargetTriple;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
-use rustup_dist::dist::TargetTriple;
 use std::alloc::System;
 use std::env;
 use std::path::PathBuf;

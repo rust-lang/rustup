@@ -2,11 +2,11 @@
 //! for installing from a directory or tarball to an installation
 //! prefix, represented by a `Components` instance.
 
-use crate::component::components::*;
-use crate::component::transaction::*;
+use crate::dist::component::components::*;
+use crate::dist::component::transaction::*;
 
-use crate::errors::*;
-use crate::temp;
+use crate::dist::errors::*;
+use crate::dist::temp;
 use rustup_utils::utils;
 
 use std::collections::HashSet;

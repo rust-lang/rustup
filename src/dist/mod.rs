@@ -1,7 +1,7 @@
-#![recursion_limit = "1024"]
+//! Installation from a Rust distribution server
 
-pub use crate::errors::*;
-pub use crate::notifications::Notification;
+pub use crate::dist::errors::*;
+pub use crate::dist::notifications::Notification;
 
 pub mod temp;
 

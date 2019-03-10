@@ -1,7 +1,7 @@
 //! Test cases of the rustup command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 
-use rustup_dist::errors::TOOLSTATE_MSG;
+use rustup::dist::errors::TOOLSTATE_MSG;
 use rustup_mock::clitools::{
     self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
     set_current_dist_date, this_host_triple, Config, Scenario,

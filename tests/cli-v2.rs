@@ -8,7 +8,7 @@ use rustup_mock::clitools::{
 use std::fs;
 use tempdir::TempDir;
 
-use rustup_dist::dist::TargetTriple;
+use rustup::dist::dist::TargetTriple;
 
 macro_rules! for_host {
     ($s: expr) => {
@@ -807,7 +807,7 @@ fn remove_target_missing_update_hash() {
 }
 
 fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple) {
-    use rustup_dist::manifest::Manifest;
+    use rustup::dist::manifest::Manifest;
     use rustup_mock::dist::create_hash;
 
     let ref manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");

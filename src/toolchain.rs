@@ -1,13 +1,13 @@
 use crate::config::Cfg;
+use crate::dist::dist::ToolchainDesc;
+use crate::dist::download::DownloadCfg;
+use crate::dist::manifest::Component;
+use crate::dist::manifestation::{Changes, Manifestation};
+use crate::dist::prefix::InstallPrefix;
 use crate::env_var;
 use crate::errors::*;
 use crate::install::{self, InstallMethod};
 use crate::notifications::*;
-use rustup_dist::dist::ToolchainDesc;
-use rustup_dist::download::DownloadCfg;
-use rustup_dist::manifest::Component;
-use rustup_dist::manifestation::{Changes, Manifestation};
-use rustup_dist::prefix::InstallPrefix;
 use rustup_utils::utils;
 
 use std::env;
@@ -24,7 +24,7 @@ pub struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: String,
     path: PathBuf,
-    dist_handler: Box<dyn Fn(rustup_dist::Notification<'_>) + 'a>,
+    dist_handler: Box<dyn Fn(crate::dist::Notification<'_>) + 'a>,
 }
 
 /// Used by the `list_component` function
@@ -191,7 +191,7 @@ impl<'a> Toolchain<'a> {
     fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
             Err(
-                ErrorKind::Dist(::rustup_dist::ErrorKind::InvalidCustomToolchainName(
+                ErrorKind::Dist(crate::dist::ErrorKind::InvalidCustomToolchainName(
                     self.name.to_string(),
                 ))
                 .into(),

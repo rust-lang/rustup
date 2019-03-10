@@ -1,6 +1,6 @@
-use crate::dist::TargetTriple;
-use crate::errors::*;
-use crate::temp;
+use crate::dist::dist::TargetTriple;
+use crate::dist::errors::*;
+use crate::dist::temp;
 use rustup_utils::notify::NotificationLevel;
 use std::fmt::{self, Display};
 use std::path::Path;

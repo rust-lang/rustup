@@ -1,5 +1,5 @@
+use rustup::dist::Notification as In;
 use rustup::Notification;
-use rustup_dist::Notification as In;
 use rustup_utils::tty;
 use rustup_utils::Notification as Un;
 use std::collections::VecDeque;

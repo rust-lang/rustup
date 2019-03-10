@@ -1,9 +1,9 @@
-use rustup_dist::component::Transaction;
-use rustup_dist::dist::DEFAULT_DIST_SERVER;
-use rustup_dist::prefix::InstallPrefix;
-use rustup_dist::temp;
-use rustup_dist::ErrorKind;
-use rustup_dist::Notification;
+use rustup::dist::component::Transaction;
+use rustup::dist::dist::DEFAULT_DIST_SERVER;
+use rustup::dist::prefix::InstallPrefix;
+use rustup::dist::temp;
+use rustup::dist::ErrorKind;
+use rustup::dist::Notification;
 use rustup_utils::raw as utils_raw;
 use rustup_utils::utils;
 use std::fs;

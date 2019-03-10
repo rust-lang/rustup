@@ -3,12 +3,12 @@ use std::path::{Path, PathBuf};
 
 use crate::errors::*;
 
-use rustup_dist::temp;
+use crate::dist::temp;
 use rustup_utils::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
-    Install(rustup_dist::Notification<'a>),
+    Install(crate::dist::Notification<'a>),
     Utils(rustup_utils::Notification<'a>),
     Temp(temp::Notification<'a>),
 
@@ -33,8 +33,8 @@ pub enum Notification<'a> {
     MissingFileDuringSelfUninstall(PathBuf),
 }
 
-impl<'a> From<rustup_dist::Notification<'a>> for Notification<'a> {
-    fn from(n: rustup_dist::Notification<'a>) -> Notification<'a> {
+impl<'a> From<crate::dist::Notification<'a>> for Notification<'a> {
+    fn from(n: crate::dist::Notification<'a>) -> Notification<'a> {
         Notification::Install(n)
     }
 }

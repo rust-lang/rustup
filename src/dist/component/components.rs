@@ -1,12 +1,12 @@
-use crate::errors::*;
-use crate::prefix::InstallPrefix;
+use crate::dist::errors::*;
+use crate::dist::prefix::InstallPrefix;
 /// The representation of the installed toolchain and its components.
 /// `Components` and `DirectoryPackage` are the two sides of the
 /// installation / uninstallation process.
 use rustup_utils::utils;
 
-use crate::component::package::{INSTALLER_VERSION, VERSION_FILE};
-use crate::component::transaction::Transaction;
+use crate::dist::component::package::{INSTALLER_VERSION, VERSION_FILE};
+use crate::dist::component::transaction::Transaction;
 
 use std::fs::File;
 use std::path::{Path, PathBuf};

@@ -30,30 +30,34 @@ vendored-openssl = ['openssl/vendored']
 no-self-update = []
 
 [dependencies]
-rustup-dist = { path = "src/rustup-dist" }
 rustup-utils = { path = "src/rustup-utils" }
 download = { path = "download" }
 clap = "2.18.0"
 error-chain = "0.12.0"
+flate2 = "1.0.1"
 itertools = "0.7.6"
 libc = "0.2.0"
 markdown = "0.2"
+ole32-sys = "0.2.0"
 rand = "0.5.2"
 regex = "1.0.1"
 remove_dir_all = "0.5.1"
 same-file = "1.0"
 scopeguard = "0.3"
 sha2 = "0.7.0"
+tar = "0.4.0"
 tempdir = "0.3.4"
 term = "0.5.1"
 time = "0.1.34"
 toml = "0.4"
 url = "1.1.0"
 wait-timeout = "0.1.5"
+walkdir = "2.0"
+xz2 = "0.1.3"
 openssl = { version = '0.10.15', optional = true }
 
 [target."cfg(windows)".dependencies]
-winapi = { version = "0.3", features = ["jobapi", "jobapi2", "processthreadsapi", "psapi", "synchapi", "winuser"] }
+winapi = { version = "0.3", features = ["handleapi", "jobapi", "jobapi2", "processthreadsapi", "psapi", "synchapi", "sysinfoapi", "tlhelp32", "winnt", "winuser"] }
 winreg = "0.5.0"
 gcc = "0.3.50"
 

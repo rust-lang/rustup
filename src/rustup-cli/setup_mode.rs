@@ -2,7 +2,7 @@ use crate::common;
 use crate::errors::*;
 use crate::self_update::{self, InstallOpts};
 use clap::{App, AppSettings, Arg};
-use rustup_dist::dist::TargetTriple;
+use rustup::dist::dist::TargetTriple;
 use std::env;
 
 pub fn main() -> Result<()> {
