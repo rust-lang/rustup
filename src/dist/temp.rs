@@ -1,4 +1,4 @@
-use rustup_utils::raw;
+use crate::utils::raw;
 use std::error;
 use std::fmt::{self, Display};
 use std::fs;
@@ -6,7 +6,7 @@ use std::io;
 use std::ops;
 use std::path::{Path, PathBuf};
 
-use rustup_utils::notify::NotificationLevel;
+use crate::utils::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub enum Error {

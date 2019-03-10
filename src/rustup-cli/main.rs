@@ -172,7 +172,7 @@ fn fix_windows_reg_key() {}
 
 // rustup used to be called 'multirust'. This deletes the old bin.
 fn delete_multirust_bin() {
-    use rustup_utils::utils;
+    use rustup::utils::utils;
     use std::env::consts::EXE_SUFFIX;
     use std::fs;
 

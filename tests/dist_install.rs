@@ -1,3 +1,6 @@
+pub mod mock;
+
+use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 use rustup::dist::component::Components;
 use rustup::dist::component::Transaction;
 use rustup::dist::component::{DirectoryPackage, Package};
@@ -6,8 +9,7 @@ use rustup::dist::prefix::InstallPrefix;
 use rustup::dist::temp;
 use rustup::dist::ErrorKind;
 use rustup::dist::Notification;
-use rustup_mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
-use rustup_utils::utils;
+use rustup::utils::utils;
 use std::fs::File;
 use std::io::Write;
 use tempdir::TempDir;

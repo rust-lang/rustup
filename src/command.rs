@@ -3,7 +3,7 @@ use std::io;
 use std::process::{self, Command};
 
 use crate::errors::*;
-use rustup_utils::utils::ExitCode;
+use crate::utils::utils::ExitCode;
 
 pub fn run_command_for_dir<S: AsRef<OsStr>>(
     mut cmd: Command,
@@ -16,7 +16,7 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(
     // when and why this is needed.
     cmd.stdin(process::Stdio::inherit());
 
-    return exec(&mut cmd).chain_err(|| rustup_utils::ErrorKind::RunningCommand {
+    return exec(&mut cmd).chain_err(|| crate::utils::ErrorKind::RunningCommand {
         name: OsStr::new(arg0).to_owned(),
     });
 

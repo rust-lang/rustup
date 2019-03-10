@@ -13,7 +13,7 @@ use crate::dist::errors::*;
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-use rustup_utils::utils;
+use crate::utils::utils;
 
 use std::fs::File;
 use std::path::{Path, PathBuf};

@@ -1,4 +1,4 @@
-#![recursion_limit = "1024"] // for error_chain!
+///!  Utility functions for rustup
 
 #[allow(deprecated)] // WORKAROUND https://github.com/rust-lang-nursery/error-chain/issues/254
 pub mod errors;
@@ -8,6 +8,6 @@ pub mod toml_utils;
 pub mod tty;
 pub mod utils;
 
-pub use crate::errors::*;
-pub use crate::notifications::Notification;
+pub use crate::utils::errors::*;
+pub use crate::utils::notifications::Notification;
 pub mod notify;

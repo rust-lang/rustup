@@ -11,7 +11,7 @@
 //! See tests/channel-rust-nightly-example.toml for an example.
 
 use crate::dist::errors::*;
-use rustup_utils::toml_utils::*;
+use crate::utils::toml_utils::*;
 
 use crate::dist::dist::TargetTriple;
 use std::collections::HashMap;

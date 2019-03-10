@@ -10,7 +10,7 @@ use crate::dist::manifest::{Component, Manifest, TargetedPackage};
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-use rustup_utils::utils;
+use crate::utils::utils;
 use std::path::Path;
 
 pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
@@ -206,7 +206,7 @@ impl Manifestation {
 
             let gz;
             let xz;
-            let notification_converter = |notification: rustup_utils::Notification<'_>| {
+            let notification_converter = |notification: crate::utils::Notification<'_>| {
                 notify_handler(Notification::Utils(notification));
             };
             let reader =

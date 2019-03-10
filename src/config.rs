@@ -11,7 +11,7 @@ use crate::errors::*;
 use crate::notifications::*;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
 use crate::toolchain::{Toolchain, UpdateStatus};
-use rustup_utils::utils;
+use crate::utils::utils;
 
 #[derive(Debug)]
 pub enum OverrideReason {

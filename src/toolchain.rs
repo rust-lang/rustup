@@ -8,7 +8,7 @@ use crate::env_var;
 use crate::errors::*;
 use crate::install::{self, InstallMethod};
 use crate::notifications::*;
-use rustup_utils::utils;
+use crate::utils::utils;
 
 use std::env;
 use std::env::consts::EXE_SUFFIX;

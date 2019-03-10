@@ -1,13 +1,13 @@
 use crate::dist::dist::TargetTriple;
 use crate::dist::errors::*;
 use crate::dist::temp;
-use rustup_utils::notify::NotificationLevel;
+use crate::utils::notify::NotificationLevel;
 use std::fmt::{self, Display};
 use std::path::Path;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
-    Utils(rustup_utils::Notification<'a>),
+    Utils(crate::utils::Notification<'a>),
     Temp(temp::Notification<'a>),
 
     Extracting(&'a Path, &'a Path),
@@ -33,8 +33,8 @@ pub enum Notification<'a> {
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
 }
 
-impl<'a> From<rustup_utils::Notification<'a>> for Notification<'a> {
-    fn from(n: rustup_utils::Notification<'a>) -> Notification<'a> {
+impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
+    fn from(n: crate::utils::Notification<'a>) -> Notification<'a> {
         Notification::Utils(n)
     }
 }

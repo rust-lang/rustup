@@ -3,7 +3,7 @@ use crate::dist::prefix::InstallPrefix;
 /// The representation of the installed toolchain and its components.
 /// `Components` and `DirectoryPackage` are the two sides of the
 /// installation / uninstallation process.
-use rustup_utils::utils;
+use crate::utils::utils;
 
 use crate::dist::component::package::{INSTALLER_VERSION, VERSION_FILE};
 use crate::dist::component::transaction::Transaction;

@@ -1,7 +1,7 @@
 use rustup::dist::Notification as In;
+use rustup::utils::tty;
+use rustup::utils::Notification as Un;
 use rustup::Notification;
-use rustup_utils::tty;
-use rustup_utils::Notification as Un;
 use std::collections::VecDeque;
 use std::fmt;
 use time::precise_time_s;

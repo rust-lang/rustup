@@ -1,7 +1,7 @@
 use crate::errors::*;
 use crate::notifications::*;
 use crate::toml_utils::*;
-use crate::utils;
+use crate::utils::utils;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

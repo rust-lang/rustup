@@ -1,12 +1,14 @@
 //! Test cases of the rustup command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 
-use rustup::dist::errors::TOOLSTATE_MSG;
-use rustup_mock::clitools::{
+pub mod mock;
+
+use crate::mock::clitools::{
     self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
     set_current_dist_date, this_host_triple, Config, Scenario,
 };
-use rustup_utils::{raw, utils};
+use rustup::dist::errors::TOOLSTATE_MSG;
+use rustup::utils::{raw, utils};
 
 use std::env::consts::EXE_SUFFIX;
 use tempdir::TempDir;
@@ -95,7 +97,7 @@ fn running_with_v2_metadata() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         // Replace the metadata version
-        rustup_utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
+        rustup::utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
         expect_err(
             config,
             &["rustup", "default", "nightly"],
@@ -117,7 +119,7 @@ fn upgrade_v2_metadata_to_v12() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         // Replace the metadata version
-        rustup_utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
+        rustup::utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
         expect_stderr_ok(config, &["rustup", "self", "upgrade-data"],
                          "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");
         expect_err(
@@ -134,9 +136,9 @@ fn upgrade_v2_metadata_to_v12() {
 #[test]
 fn upgrade_toml_settings() {
     setup(&|config| {
-        rustup_utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
-        rustup_utils::raw::write_file(&config.rustupdir.join("default"), "beta").unwrap();
-        rustup_utils::raw::write_file(&config.rustupdir.join("overrides"), "a;nightly\nb;stable")
+        rustup::utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
+        rustup::utils::raw::write_file(&config.rustupdir.join("default"), "beta").unwrap();
+        rustup::utils::raw::write_file(&config.rustupdir.join("overrides"), "a;nightly\nb;stable")
             .unwrap();
         expect_err(
             config,
@@ -144,21 +146,21 @@ fn upgrade_toml_settings() {
             "rustup's metadata is out of date. run `rustup self upgrade-data`",
         );
         // Replace the metadata version
-        assert!(!rustup_utils::raw::is_file(
+        assert!(!rustup::utils::raw::is_file(
             &config.rustupdir.join("version")
         ));
-        assert!(!rustup_utils::raw::is_file(
+        assert!(!rustup::utils::raw::is_file(
             &config.rustupdir.join("default")
         ));
-        assert!(!rustup_utils::raw::is_file(
+        assert!(!rustup::utils::raw::is_file(
             &config.rustupdir.join("overrides")
         ));
-        assert!(rustup_utils::raw::is_file(
+        assert!(rustup::utils::raw::is_file(
             &config.rustupdir.join("settings.toml")
         ));
 
         let content =
-            rustup_utils::raw::read_file(&config.rustupdir.join("settings.toml")).unwrap();
+            rustup::utils::raw::read_file(&config.rustupdir.join("settings.toml")).unwrap();
         assert!(content.contains("version = \"2\""));
         assert!(content.contains("[overrides]"));
         assert!(content.contains("a = \"nightly"));

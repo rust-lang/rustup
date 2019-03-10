@@ -4,12 +4,12 @@ use std::path::{Path, PathBuf};
 use crate::errors::*;
 
 use crate::dist::temp;
-use rustup_utils::notify::NotificationLevel;
+use crate::utils::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
-    Utils(rustup_utils::Notification<'a>),
+    Utils(crate::utils::Notification<'a>),
     Temp(temp::Notification<'a>),
 
     SetDefaultToolchain(&'a str),
@@ -38,8 +38,8 @@ impl<'a> From<crate::dist::Notification<'a>> for Notification<'a> {
         Notification::Install(n)
     }
 }
-impl<'a> From<rustup_utils::Notification<'a>> for Notification<'a> {
-    fn from(n: rustup_utils::Notification<'a>) -> Notification<'a> {
+impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
+    fn from(n: crate::utils::Notification<'a>) -> Notification<'a> {
         Notification::Utils(n)
     }
 }

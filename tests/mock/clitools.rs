@@ -1,11 +1,11 @@
 //! A mock distribution server used by tests/cli-v1.rs and
 //! tests/cli-v2.rs
 
-use crate::dist::{
+use crate::mock::dist::{
     change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer, MockPackage,
     MockTargetedPackage,
 };
-use crate::{MockComponentBuilder, MockFile, MockInstallerBuilder};
+use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 use lazy_static::lazy_static;
 use std::cell::RefCell;
 use std::collections::HashMap;

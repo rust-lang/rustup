@@ -1,6 +1,6 @@
-use crate::errors::*;
-use crate::notifications::Notification;
-use crate::raw;
+use crate::utils::errors::*;
+use crate::utils::notifications::Notification;
+use crate::utils::raw;
 use sha2::Sha256;
 use std::cmp::Ord;
 use std::env;
@@ -14,7 +14,7 @@ use url::Url;
 #[cfg(windows)]
 use winapi::shared::minwindef::DWORD;
 
-pub use crate::raw::{
+pub use crate::utils::utils::raw::{
     find_cmd, has_cmd, if_not_empty, is_directory, is_file, path_exists, prefix_arg, random_string,
 };
 

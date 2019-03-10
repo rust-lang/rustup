@@ -3,9 +3,9 @@
 use crate::errors::*;
 use crate::self_update;
 use crate::term2;
+use rustup::utils::notify::NotificationLevel;
+use rustup::utils::utils;
 use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
-use rustup_utils::notify::NotificationLevel;
-use rustup_utils::utils;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};

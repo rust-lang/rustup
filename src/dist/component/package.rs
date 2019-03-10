@@ -7,7 +7,7 @@ use crate::dist::component::transaction::*;
 
 use crate::dist::errors::*;
 use crate::dist::temp;
-use rustup_utils::utils;
+use crate::utils::utils;
 
 use std::collections::HashSet;
 use std::fmt;

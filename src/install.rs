@@ -8,7 +8,7 @@ use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::dist::Notification;
 use crate::errors::Result;
-use rustup_utils::utils;
+use crate::utils::utils;
 use std::path::Path;
 
 #[derive(Copy, Clone)]

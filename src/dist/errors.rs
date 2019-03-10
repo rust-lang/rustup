@@ -13,7 +13,7 @@ pub const TOOLSTATE_MSG: &str =
 
 error_chain! {
     links {
-        Utils(rustup_utils::Error, rustup_utils::ErrorKind);
+        Utils(crate::utils::Error, crate::utils::ErrorKind);
     }
 
     foreign_links {

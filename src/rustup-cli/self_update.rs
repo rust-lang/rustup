@@ -35,8 +35,8 @@ use crate::errors::*;
 use crate::term2;
 use regex::Regex;
 use rustup::dist::dist;
+use rustup::utils::utils;
 use rustup::{DUP_TOOLS, TOOLS};
-use rustup_utils::utils;
 use same_file::Handle;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
@@ -689,7 +689,7 @@ fn cleanup_legacy() -> Result<()> {
 
     #[cfg(windows)]
     fn legacy_multirust_home_dir() -> Result<PathBuf> {
-        use rustup_utils::raw::windows::{get_special_folder, FOLDERID_LocalAppData};
+        use rustup::utils::raw::windows::{get_special_folder, FOLDERID_LocalAppData};
 
         // FIXME: This looks bogus. Where is the .multirust dir?
         Ok(get_special_folder(&FOLDERID_LocalAppData).unwrap_or(PathBuf::from(".")))

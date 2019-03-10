@@ -1,7 +1,7 @@
 use crate::dist::errors::*;
 use crate::dist::notifications::*;
 use crate::dist::temp;
-use rustup_utils::utils;
+use crate::utils::utils;
 use sha2::{Digest, Sha256};
 use url::Url;
 

@@ -1,6 +1,10 @@
 // Tests of installation and updates from a v2 Rust distribution
 // server (mocked on the file system)
 
+pub mod mock;
+
+use crate::mock::dist::*;
+use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 use rustup::dist::dist::{TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER};
 use rustup::dist::download::DownloadCfg;
 use rustup::dist::errors::Result;
@@ -10,10 +14,8 @@ use rustup::dist::prefix::InstallPrefix;
 use rustup::dist::temp;
 use rustup::dist::ErrorKind;
 use rustup::dist::Notification;
-use rustup_mock::dist::*;
-use rustup_mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
-use rustup_utils::raw as utils_raw;
-use rustup_utils::utils;
+use rustup::utils::raw as utils_raw;
+use rustup::utils::utils;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs;

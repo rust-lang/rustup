@@ -1,8 +1,10 @@
 //! Tests of the interactive console installer
 
+pub mod mock;
+
+use crate::mock::clitools::{self, expect_stdout_ok, Config, SanitizedOutput, Scenario};
+use crate::mock::{get_path, restore_path};
 use lazy_static::lazy_static;
-use rustup_mock::clitools::{self, expect_stdout_ok, Config, SanitizedOutput, Scenario};
-use rustup_mock::{get_path, restore_path};
 use std::io::Write;
 use std::process::Stdio;
 use std::sync::Mutex;

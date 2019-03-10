@@ -3,7 +3,7 @@ use std::path::Path;
 
 use url::Url;
 
-use crate::notify::NotificationLevel;
+use crate::utils::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
