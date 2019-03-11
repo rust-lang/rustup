@@ -66,8 +66,12 @@ Zsh, and PowerShell. See `rustup help completions` for full details,
 but the gist is as simple as using one of the following:
 
 ```console
-# Bash
-$ rustup completions bash > ~/.local/share/bash_completion/completions/rustup
+# Bash (system wide)
+$ rustup completions bash > /etc/bash_completion.d/rustup.bash-completion
+
+# Bash (per user)
+$ mkdir -p ~/.local/share/bash-completion/completions
+$ rustup completions bash > ~/.local/share/bash-completion/completions/rustup
 
 # Bash (macOS/Homebrew)
 $ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion

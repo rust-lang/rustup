@@ -162,17 +162,33 @@ r"DISCUSSION:
     Here are some common set ups for the three supported shells under
     Unix and similar operating systems (such as GNU/Linux).
 
-    BASH:
+    BASH (system wide):
 
     Completion files are commonly stored in `/etc/bash_completion.d/` for
     system-wide commands, but can be stored in in
     `~/.local/share/bash_completion/completions` for user-specific commands.
+
     Run the command:
 
         $ rustup completions bash >> ~/.local/share/bash_completion/completions/rustup
 
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take affect.
+
+    BASH (per user):
+
+    Per user completion files are commonly stored in
+    `~/.local/share/bash-completion/completions/`.
+    First create the required directory structure. Run the command:
+
+        $ mkdir -p ~/.local/share/bash-completion/completions
+
+    Then install the completion script there. Run the command:
+
+        $ rustup completions bash > ~/.local/share/bash-completion/completions/rustup
+
+    You may have to log out and log back in to your shell session for
+    the changes to take affect.
 
     BASH (macOS/Homebrew):
 
