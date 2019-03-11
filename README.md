@@ -576,6 +576,7 @@ Command                                                     | Description
 `rustup show`                                               | Show which toolchain will be used in the current directory
 `rustup toolchain uninstall nightly`                        | Uninstall a given toolchain
 `rustup toolchain help`                                     | Show the `help` page for a subcommand (like `toolchain`)
+`rustup man cargo`                                          | \(*Unix only*\) View the man page for a given command (like `cargo`)
 
 ## Environment variables
 
