@@ -5,13 +5,13 @@
 | Travis       | [![Travis Build Status][travis-build-status-svg]][travis-build-status]       |
 | AppVeyor     | [![AppVeyor Build Status][appveyor-build-status-svg]][appveyor-build-status] |
 
-*rustup* installs [The Rust Programming Language] from the official
+*rustup* installs [The Rust Programming Language][rustlang] from the official
 release channels, enabling you to easily switch between stable, beta,
 and nightly compilers and keep them updated. It makes cross-compiling
 simpler with binary builds of the standard library for common platforms.
 And it runs on all platforms Rust supports, including Windows.
 
-[The Rust Programming Language]: https://www.rust-lang.org
+[rustlang]: https://www.rust-lang.org
 
 * [Installation](#installation)
 * [How rustup works](#how-rustup-works)
@@ -36,7 +36,7 @@ And it runs on all platforms Rust supports, including Windows.
 
 ## Installation
 
-Follow the instructions at [www.rustup.rs](https://www.rustup.rs). If
+Follow the instructions at https://rustup.rs. If
 that doesn't work for you there are [other installation
 methods](#other-installation-methods).
 
@@ -281,7 +281,7 @@ $ rustup install stable-msvc
 Toolchain names that don't name a channel instead can be used to name
 [custom toolchains].
 
-[MSVC-based toolchain]: https://www.rust-lang.org/downloads.html#win-foot
+[MSVC-based toolchain]: https://www.rust-lang.org/tools/install
 [custom toolchains]: #working-with-custom-toolchains-and-local-builds
 
 ## Toolchain override shorthand
@@ -456,7 +456,7 @@ $ rustup target add i686-pc-windows-msvc
 $ rustup target add i686-pc-windows-gnu
 ```
 
-[d]: https://www.rust-lang.org/downloads.html#win-foot
+[d]: https://www.rust-lang.org/tools/install
 [ABIs]: https://en.wikipedia.org/wiki/Application_binary_interface
 [Visual Studio]: https://www.visualstudio.com/
 [GCC toolchain]: https://gcc.gnu.org/
@@ -601,8 +601,7 @@ Command | Description
 
 ## Other installation methods
 
-The primary installation method, as described at
-[www.rustup.rs](https://www.rustup.rs), differs by platform:
+The primary installation method, as described at https://rustup.rs, differs by platform:
 
 * On Windows, download and run the [rustup-init.exe built for
   `i686-pc-windows-gnu` target][setup]. In general, this is the build of rustup
@@ -691,7 +690,7 @@ yet validate signatures of downloads.
 ### Is this an official Rust project?
 
 Yes. rustup is an official Rust project. It is the recommended way
-to install Rust at www.rust-lang.org.
+to install Rust at https://www.rust-lang.org.
 
 ### How is this related to multirust?
 
