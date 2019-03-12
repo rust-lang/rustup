@@ -72,7 +72,7 @@ error_chain! {
             display("component manifest for '{}' is corrupt", name)
         }
         ExtractingPackage {
-            description("failed to extract package")
+            description("failed to extract package (perhaps you ran out of disk space?)")
         }
         BadInstallerVersion(v: String) {
             description("unsupported installer version")
