@@ -1,9 +1,9 @@
 # rustup: the Rust toolchain installer
 
-| Build Status |                                                                              |
-|--------------|------------------------------------------------------------------------------|
-| Travis       | [![Travis Build Status][travis-build-status-svg]][travis-build-status]       |
-| AppVeyor     | [![AppVeyor Build Status][appveyor-build-status-svg]][appveyor-build-status] |
+| CI           | Build Status                                             |
+|--------------|----------------------------------------------------------|
+| Travis       | [![Travis Build Status][travis-badge]][travis-url]       |
+| AppVeyor     | [![AppVeyor Build Status][appveyor-badge]][appveyor-url] |
 
 *rustup* installs [The Rust Programming Language][rustlang] from the official
 release channels, enabling you to easily switch between stable, beta,
@@ -725,7 +725,7 @@ Licensed under either of
 at your option.
 
 <!-- Badges -->
-[travis-build-status]: https://travis-ci.org/rust-lang/rustup.rs
-[travis-build-status-svg]: https://img.shields.io/travis/rust-lang/rustup.rs.svg
-[appveyor-build-status]: https://ci.appveyor.com/project/rust-lang/rustup-rs
-[appveyor-build-status-svg]: https://ci.appveyor.com/api/projects/status/ob64fa46mp25wp35?svg=true
+[travis-url]: https://travis-ci.com/rust-lang/rustup.rs
+[travis-badge]: https://travis-ci.com/rust-lang/rustup.rs.svg
+[appveyor-url]: https://ci.appveyor.com/project/rust-lang-libs/rustup-rs
+[appveyor-badge]: https://ci.appveyor.com/api/projects/status/github/rust-lang/rustup.rs?svg=true
