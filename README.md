@@ -244,7 +244,7 @@ info: downloading self-updates
 Many `rustup` commands deal with *toolchains*, a single installation
 of the Rust compiler. `rustup` supports multiple types of
 toolchains. The most basic track the official release channels:
-'stable', 'beta' and 'nightly'; but `rustup` can also install
+*stable*, *beta* and *nightly*; but `rustup` can also install
 toolchains from the official archives, for alternate host platforms,
 and from local builds.
 
@@ -258,9 +258,9 @@ Standard release channel toolchain names have the following form:
 <host>          = <target-triple>
 ```
 
-'channel' is either a named release channel or an explicit version
-number, such as "1.8.0". Channel names can be optionally appended with
-an archive date, as in 'nightly-2014-12-18', in which case the
+`channel` is either a named release channel or an explicit version
+number, such as `1.8.0`. Channel names can be optionally appended with
+an archive date, as in `nightly-2014-12-18`, in which case the
 toolchain is downloaded from the archive for that date.
 
 Finally, the host may be specified as a target triple. This is most
@@ -409,7 +409,7 @@ previously-added target, `rustup target remove`.
 
 `rustup` works the same on Windows as it does on Unix, but there are
 some special considerations for Rust developers on Windows. As
-[mentioned on the Rust download page][d], there are two [ABIs] in use
+[mentioned on the Rust download page][rust-install], there are two [ABIs] in use
 on Windows: the native (MSVC) ABI used by [Visual Studio], and the GNU
 ABI used by the [GCC toolchain]. Which version of Rust you need depends
 largely on what C/C++ libraries you want to interoperate with: for
@@ -456,12 +456,11 @@ $ rustup target add i686-pc-windows-msvc
 $ rustup target add i686-pc-windows-gnu
 ```
 
-[d]: https://www.rust-lang.org/tools/install
+[rust-install]: https://www.rust-lang.org/tools/install
 [ABIs]: https://en.wikipedia.org/wiki/Application_binary_interface
-[Visual Studio]: https://www.visualstudio.com/
+[Visual Studio]: https://visualstudio.microsoft.com/
 [GCC toolchain]: https://gcc.gnu.org/
 [MinGW/MSYS2 toolchain]: https://msys2.github.io/
-[vs]: https://www.visualstudio.com/downloads
 
 ## Working with distribution Rust packages
 
@@ -668,7 +667,7 @@ Visual Studio, make sure to check the "C++ tools" option. No
 additional software installation is necessary for basic use of
 the GNU build.
 
-[vs]: https://www.visualstudio.com/downloads
+[vs]: https://visualstudio.microsoft.com/downloads/
 
 You can fetch an older version from `https://static.rust-lang.org/rustup/archive/{rustup-version}/{target-triple}/rustup-init[.exe]`
 
