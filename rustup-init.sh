@@ -348,10 +348,6 @@ check_cmd() {
     command -v "$1" > /dev/null 2>&1
 }
 
-need_ok() {
-    if [ $? -ne 0 ]; then err "$1"; fi
-}
-
 assert_nz() {
     if [ -z "$1" ]; then err "assert_nz $2"; fi
 }
@@ -360,8 +356,7 @@ assert_nz() {
 # will immediately terminate with an error showing the failing
 # command.
 ensure() {
-    "$@"
-    need_ok "command failed: $*"
+    if ! "$@"; then err "command failed: $*"; fi
 }
 
 # This is just for indicating that commands' results are being
