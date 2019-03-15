@@ -1,7 +1,9 @@
 //! Test cases of the rustup command, using v1 manifests, mostly
 //! derived from multirust/test-v2.sh
 
-use rustup_mock::clitools::{
+pub mod mock;
+
+use crate::mock::clitools::{
     self, expect_err, expect_ok, expect_stderr_ok, expect_stdout_ok, set_current_dist_date,
     this_host_triple, Config, Scenario,
 };
@@ -161,11 +163,11 @@ fn remove_override_toolchain_err_handling() {
 fn bad_sha_on_manifest() {
     setup(&|config| {
         let sha_file = config.distdir.join("dist/channel-rust-nightly.sha256");
-        let sha_str = rustup_utils::raw::read_file(&sha_file).unwrap();
+        let sha_str = rustup::utils::raw::read_file(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
         let sha_str = String::from_utf8(sha_bytes).unwrap();
-        rustup_utils::raw::write_file(&sha_file, &sha_str).unwrap();
+        rustup::utils::raw::write_file(&sha_file, &sha_str).unwrap();
         expect_err(config, &["rustup", "default", "nightly"], "checksum failed");
     });
 }
@@ -179,7 +181,7 @@ fn bad_sha_on_installer() {
             let path = file.path();
             let filename = path.to_string_lossy();
             if filename.ends_with(".tar.gz") || filename.ends_with(".tar.xz") {
-                rustup_utils::raw::write_file(&path, "xxx").unwrap();
+                rustup::utils::raw::write_file(&path, "xxx").unwrap();
             }
         }
         expect_err(config, &["rustup", "default", "nightly"], "checksum failed");

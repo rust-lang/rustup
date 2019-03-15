@@ -1,7 +1,9 @@
 //! Yet more cli test cases. These are testing that the output
 //! is exactly as expected.
 
-use rustup_mock::clitools::{
+pub mod mock;
+
+use crate::mock::clitools::{
     self, expect_err_ex, expect_ok, expect_ok_ex, this_host_triple, Config, Scenario,
 };
 
@@ -227,7 +229,7 @@ fn remove_override_nonexistent() {
                 path
             };
             // FIXME TempDir seems to succumb to difficulties removing dirs on windows
-            let _ = rustup_utils::raw::remove_dir(&path);
+            let _ = rustup::utils::raw::remove_dir(&path);
             assert!(!path.exists());
             expect_ok_ex(
                 config,
@@ -280,7 +282,7 @@ fn list_overrides_with_nonexistent() {
             std::fs::canonicalize(dir.path()).unwrap()
         };
         // FIXME TempDir seems to succumb to difficulties removing dirs on windows
-        let _ = rustup_utils::raw::remove_dir(&nonexistent_path);
+        let _ = rustup::utils::raw::remove_dir(&nonexistent_path);
         assert!(!nonexistent_path.exists());
         let mut path_formatted = format!("{}", nonexistent_path.display()).to_string();
 

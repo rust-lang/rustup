@@ -1,10 +1,12 @@
 //! Test cases for new rustup UI
 
-use rustup_mock::clitools::{
+pub mod mock;
+
+use crate::mock::clitools::{
     self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
     set_current_dist_date, this_host_triple, Config, Scenario,
 };
-use rustup_utils::raw;
+use rustup::utils::raw;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::MAIN_SEPARATOR;

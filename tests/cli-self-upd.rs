@@ -1,14 +1,16 @@
 //! Testing self install, uninstall and update
 
-use lazy_static::lazy_static;
-use remove_dir_all::remove_dir_all;
-use rustup_mock::clitools::{
+pub mod mock;
+
+use crate::mock::clitools::{
     self, expect_err, expect_err_ex, expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok,
     expect_stdout_ok, this_host_triple, Config, Scenario,
 };
-use rustup_mock::dist::calc_hash;
-use rustup_mock::{get_path, restore_path};
-use rustup_utils::{raw, utils};
+use crate::mock::dist::calc_hash;
+use crate::mock::{get_path, restore_path};
+use lazy_static::lazy_static;
+use remove_dir_all::remove_dir_all;
+use rustup::utils::{raw, utils};
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;

@@ -1,14 +1,16 @@
 //! Test cases of the rustup command, using v2 manifests, mostly
 //! derived from multirust/test-v2.sh
 
-use rustup_mock::clitools::{
+pub mod mock;
+
+use crate::mock::clitools::{
     self, expect_err, expect_not_stdout_ok, expect_ok, expect_stderr_ok, expect_stdout_ok,
     set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use std::fs;
 use tempdir::TempDir;
 
-use rustup_dist::dist::TargetTriple;
+use rustup::dist::dist::TargetTriple;
 
 macro_rules! for_host {
     ($s: expr) => {
@@ -112,7 +114,7 @@ fn list_toolchains_with_bogus_file() {
 
         let name = "bogus_regular_file.txt";
         let path = config.rustupdir.join("toolchains").join(name);
-        rustup_utils::utils::write_file(name, &path, "").unwrap();
+        rustup::utils::utils::write_file(name, &path, "").unwrap();
         expect_stdout_ok(config, &["rustup", "toolchain", "list"], "nightly");
         expect_not_stdout_ok(config, &["rustup", "toolchain", "list"], name);
     });
@@ -207,7 +209,7 @@ fn file_override_toolchain_err_handling() {
     setup(&|config| {
         let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
-        rustup_utils::raw::write_file(&toolchain_file, "beta").unwrap();
+        rustup::utils::raw::write_file(&toolchain_file, "beta").unwrap();
         expect_stderr_ok(
             config,
             &["rustc", "--version"],
@@ -232,11 +234,11 @@ fn bad_sha_on_manifest() {
     setup(&|config| {
         // Corrupt the sha
         let sha_file = config.distdir.join("dist/channel-rust-nightly.toml.sha256");
-        let sha_str = rustup_utils::raw::read_file(&sha_file).unwrap();
+        let sha_str = rustup::utils::raw::read_file(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
         let sha_str = String::from_utf8(sha_bytes).unwrap();
-        rustup_utils::raw::write_file(&sha_file, &sha_str).unwrap();
+        rustup::utils::raw::write_file(&sha_file, &sha_str).unwrap();
         expect_ok(config, &["rustup", "default", "nightly"]);
     });
 }
@@ -251,7 +253,7 @@ fn bad_sha_on_installer() {
             let path = file.path();
             let filename = path.to_string_lossy();
             if filename.ends_with(".tar.gz") || filename.ends_with(".tar.xz") {
-                rustup_utils::raw::write_file(&path, "xxx").unwrap();
+                rustup::utils::raw::write_file(&path, "xxx").unwrap();
             }
         }
         expect_err(config, &["rustup", "default", "nightly"], "checksum failed");
@@ -807,11 +809,11 @@ fn remove_target_missing_update_hash() {
 }
 
 fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple) {
-    use rustup_dist::manifest::Manifest;
-    use rustup_mock::dist::create_hash;
+    use crate::mock::dist::create_hash;
+    use rustup::dist::manifest::Manifest;
 
     let ref manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");
-    let ref manifest_str = rustup_utils::raw::read_file(manifest_path).unwrap();
+    let ref manifest_str = rustup::utils::raw::read_file(manifest_path).unwrap();
     let mut manifest = Manifest::parse(manifest_str).unwrap();
     {
         let std_pkg = manifest.packages.get_mut(name).unwrap();
@@ -819,7 +821,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple
         target_pkg.bins = None;
     }
     let ref manifest_str = manifest.stringify();
-    rustup_utils::raw::write_file(manifest_path, manifest_str).unwrap();
+    rustup::utils::raw::write_file(manifest_path, manifest_str).unwrap();
 
     // Have to update the hash too
     let ref hash_path = manifest_path.with_extension("toml.sha256");
