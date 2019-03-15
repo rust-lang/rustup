@@ -197,6 +197,7 @@ get_architecture() {
 
         Linux)
             _ostype=unknown-linux-gnu
+            _bitness=$(get_bitness)
             ;;
 
         FreeBSD)
@@ -265,22 +266,15 @@ get_architecture() {
             ;;
 
         mips)
-            _cputype="$(get_endianness $_cputype "" 'el')"
+            _cputype=$(get_endianness mips '' el)
             ;;
 
         mips64)
-            _bitness="$(get_bitness)"
-            if [ "$_bitness" -eq 32 ]; then
-                if [ "$_ostype" = "unknown-linux-gnu" ]; then
-                    # 64-bit kernel with 32-bit userland
-                    # endianness suffix is appended later
-                    _cputype=mips
-                fi
-            else
+            if [ "$_bitness" -eq 64 ]; then
                 # only n64 ABI is supported for now
                 _ostype="${_ostype}abi64"
+                _cputype=$(get_endianness mips64 '' el)
             fi
-            _cputype="$(get_endianness "$_cputype" "" 'el')"
             ;;
 
         ppc)
@@ -300,18 +294,19 @@ get_architecture() {
 
     esac
 
-    # Detect 64-bit linux with 32-bit userland for x86
-    if [ "$_ostype" = unknown-linux-gnu ] && [ "$_cputype" = x86_64 ]; then
-        if [ "$(get_bitness)" = "32" ]; then
-            _cputype=i686
-        fi
-    fi
-
-    # Detect 64-bit linux with 32-bit userland for powerpc
-    if [ $_ostype = unknown-linux-gnu ] && [ $_cputype = powerpc64 ]; then
-        if [ "$(get_bitness)" = "32" ]; then
-            local _cputype=powerpc
-        fi
+    # Detect 64-bit linux with 32-bit userland
+    if [ "${_ostype}" = unknown-linux-gnu ] && [ "${_bitness}" -eq 32 ]; then
+        case $_cputype in
+            x86_64)
+                _cputype=i686
+                ;;
+            mips64)
+                _cputype=$(get_endianness mips '' el)
+                ;;
+            powerpc64)
+                _cputype=powerpc
+                ;;
+        esac
     fi
 
     # Detect armv7 but without the CPU features Rust needs in that build,
