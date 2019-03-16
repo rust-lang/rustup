@@ -1117,9 +1117,14 @@ enum CompletionCommand {
     Cargo,
 }
 
+static COMPLETIONS: &[(&'static str, CompletionCommand)] = &[
+    ("rustup", CompletionCommand::Rustup),
+    ("cargo", CompletionCommand::Cargo),
+];
+
 impl CompletionCommand {
-    fn variants() -> [&'static str; 2] {
-        ["rustup", "cargo"]
+    fn variants() -> Vec<&'static str> {
+        COMPLETIONS.iter().map(|&(s, _)| s).collect::<Vec<_>>()
     }
 }
 
@@ -1127,10 +1132,13 @@ impl FromStr for CompletionCommand {
     type Err = String;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        match s {
-            _ if s.eq_ignore_ascii_case("rustup") => Ok(CompletionCommand::Rustup),
-            _ if s.eq_ignore_ascii_case("cargo") => Ok(CompletionCommand::Cargo),
-            _ => Err(String::from("[valid values: rustup, cargo]")),
+        match COMPLETIONS
+            .iter()
+            .filter(|&(val, _)| val.eq_ignore_ascii_case(s))
+            .next()
+        {
+            Some(&(_, cmd)) => Ok(cmd),
+            None => Err(String::from("[valid values: rustup, cargo]")),
         }
     }
 }
