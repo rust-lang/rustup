@@ -262,14 +262,10 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
     }
 
     let install_res: Result<()> = (|| {
-        cleanup_legacy()?;
         install_bins()?;
         if !opts.no_modify_path {
             do_add_to_path(&get_add_path_methods())?;
         }
-        // Create ~/.rustup and a compatibility ~/.multirust symlink.
-        // FIXME: Someday we can stop setting up the symlink, and when
-        // we do that we can stop creating ~/.rustup as well.
         utils::create_rustup_home()?;
         maybe_install_rust(&opts.default_toolchain, &opts.default_host_triple, verbose)?;
 
@@ -340,9 +336,6 @@ fn rustc_or_cargo_exists_in_path() -> Result<()> {
         !path
             .components()
             .any(|c| c == Component::Normal(".cargo".as_ref()))
-            && !path
-                .components()
-                .any(|c| c == Component::Normal(".multirust".as_ref()))
     }
 
     if let Some(paths) = env::var_os("PATH") {
@@ -381,62 +374,13 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool) -> Result<()> {
 }
 
 fn do_pre_install_sanity_checks() -> Result<()> {
-    let multirust_manifest_path = PathBuf::from("/usr/local/lib/rustlib/manifest-multirust");
     let rustc_manifest_path = PathBuf::from("/usr/local/lib/rustlib/manifest-rustc");
     let uninstaller_path = PathBuf::from("/usr/local/lib/rustlib/uninstall.sh");
-    let multirust_meta_path = utils::home_dir().map(|d| d.join(".multirust"));
-    let multirust_version_path = multirust_meta_path.as_ref().map(|p| p.join("version"));
     let rustup_sh_path = utils::home_dir().map(|d| d.join(".rustup"));
     let rustup_sh_version_path = rustup_sh_path.as_ref().map(|p| p.join("rustup-version"));
 
-    let multirust_exists = multirust_manifest_path.exists() && uninstaller_path.exists();
     let rustc_exists = rustc_manifest_path.exists() && uninstaller_path.exists();
     let rustup_sh_exists = rustup_sh_version_path.map(|p| p.exists()) == Some(true);
-    let old_multirust_meta_exists = if let Some(ref multirust_version_path) = multirust_version_path
-    {
-        multirust_version_path.exists() && {
-            let version = utils::read_file("old-multirust", multirust_version_path);
-            let version = version.unwrap_or(String::new());
-            let version = version.parse().unwrap_or(0);
-            let cutoff_version = 12; // First rustup version
-
-            version < cutoff_version
-        }
-    } else {
-        false
-    };
-
-    match (multirust_exists, old_multirust_meta_exists) {
-        (true, false) => {
-            warn!("it looks like you have an existing installation of multirust");
-            warn!("rustup cannot be installed alongside multirust");
-            warn!(
-                "run `{}` as root to uninstall multirust before installing rustup",
-                uninstaller_path.display()
-            );
-            return Err("cannot install while multirust is installed".into());
-        }
-        (false, true) => {
-            warn!("it looks like you have existing multirust metadata");
-            warn!("rustup cannot be installed alongside multirust");
-            warn!(
-                "delete `{}` before installing rustup",
-                multirust_meta_path.expect("").display()
-            );
-            return Err("cannot install while multirust is installed".into());
-        }
-        (true, true) => {
-            warn!("it looks like you have an existing installation of multirust");
-            warn!("rustup cannot be installed alongside multirust");
-            warn!(
-                "run `{}` as root and delete `{}` before installing rustup",
-                uninstaller_path.display(),
-                multirust_meta_path.expect("").display()
-            );
-            return Err("cannot install while multirust is installed".into());
-        }
-        (false, false) => (),
-    }
 
     if rustc_exists {
         warn!("it looks like you have an existing installation of Rust");
@@ -666,36 +610,6 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
     Ok(opts)
 }
 
-// Before rustup-rs installed bins to $CARGO_HOME/bin it installed
-// them to $RUSTUP_HOME/bin. If those bins continue to exist after
-// upgrade and are on the $PATH, it would cause major confusion. This
-// method silently deletes them.
-fn cleanup_legacy() -> Result<()> {
-    let legacy_bin_dir = legacy_multirust_home_dir()?.join("bin");
-
-    for tool in TOOLS.iter().cloned().chain(vec!["multirust", "rustup"]) {
-        let ref file = legacy_bin_dir.join(&format!("{}{}", tool, EXE_SUFFIX));
-        if file.exists() {
-            utils::remove_file("legacy-bin", file)?;
-        }
-    }
-
-    return Ok(());
-
-    #[cfg(unix)]
-    fn legacy_multirust_home_dir() -> Result<PathBuf> {
-        Ok(utils::legacy_multirust_home()?)
-    }
-
-    #[cfg(windows)]
-    fn legacy_multirust_home_dir() -> Result<PathBuf> {
-        use rustup::utils::raw::windows::{get_special_folder, FOLDERID_LocalAppData};
-
-        // FIXME: This looks bogus. Where is the .multirust dir?
-        Ok(get_special_folder(&FOLDERID_LocalAppData).unwrap_or(PathBuf::from(".")))
-    }
-}
-
 fn install_bins() -> Result<()> {
     let ref bin_path = utils::cargo_home()?.join("bin");
     let ref this_exe_path = utils::current_exe()?;
@@ -844,8 +758,6 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     }
 
     info!("removing rustup home");
-
-    utils::delete_legacy_multirust_symlink()?;
 
     // Delete RUSTUP_HOME
     let ref rustup_dir = utils::rustup_home()?;
@@ -1629,13 +1541,6 @@ pub fn cleanup_self_updater() -> Result<()> {
 
     if setup.exists() {
         utils::remove_file("setup", setup)?;
-    }
-
-    // Transitional
-    let ref old_setup = cargo_home.join(&format!("bin/multirust-setup{}", EXE_SUFFIX));
-
-    if old_setup.exists() {
-        utils::remove_file("setup", old_setup)?;
     }
 
     Ok(())

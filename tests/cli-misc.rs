@@ -92,82 +92,6 @@ fn custom_invalid_names_with_archive_dates() {
     });
 }
 
-#[test]
-fn running_with_v2_metadata() {
-    setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        // Replace the metadata version
-        rustup::utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
-        expect_err(
-            config,
-            &["rustup", "default", "nightly"],
-            "rustup's metadata is out of date. run `rustup self upgrade-data`",
-        );
-        expect_err(
-            config,
-            &["rustc", "--version"],
-            "rustup's metadata is out of date. run `rustup self upgrade-data`",
-        );
-    });
-}
-
-// The thing that changed in the version bump from 2 -> 12 was the
-// toolchain format. Check that on the upgrade all the toolchains.
-// are deleted.
-#[test]
-fn upgrade_v2_metadata_to_v12() {
-    setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        // Replace the metadata version
-        rustup::utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
-        expect_stderr_ok(config, &["rustup", "self", "upgrade-data"],
-                         "warning: this upgrade will remove all existing toolchains. you will need to reinstall them");
-        expect_err(
-            config,
-            &["rustc", "--version"],
-            for_host!("toolchain 'nightly-{0}' is not installed"),
-        );
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
-    });
-}
-
-// Verifies the conversion from separate files to a single settings.toml
-#[test]
-fn upgrade_toml_settings() {
-    setup(&|config| {
-        rustup::utils::raw::write_file(&config.rustupdir.join("version"), "2").unwrap();
-        rustup::utils::raw::write_file(&config.rustupdir.join("default"), "beta").unwrap();
-        rustup::utils::raw::write_file(&config.rustupdir.join("overrides"), "a;nightly\nb;stable")
-            .unwrap();
-        expect_err(
-            config,
-            &["rustup", "default", "nightly"],
-            "rustup's metadata is out of date. run `rustup self upgrade-data`",
-        );
-        // Replace the metadata version
-        assert!(!rustup::utils::raw::is_file(
-            &config.rustupdir.join("version")
-        ));
-        assert!(!rustup::utils::raw::is_file(
-            &config.rustupdir.join("default")
-        ));
-        assert!(!rustup::utils::raw::is_file(
-            &config.rustupdir.join("overrides")
-        ));
-        assert!(rustup::utils::raw::is_file(
-            &config.rustupdir.join("settings.toml")
-        ));
-
-        let content =
-            rustup::utils::raw::read_file(&config.rustupdir.join("settings.toml")).unwrap();
-        assert!(content.contains("version = \"2\""));
-        assert!(content.contains("[overrides]"));
-        assert!(content.contains("a = \"nightly"));
-        assert!(content.contains("b = \"stable"));
-    });
-}
-
 // Regression test for newline placement
 #[test]
 fn update_all_no_update_whitespace() {
@@ -459,22 +383,6 @@ fn rustup_run_install() {
                 "--version",
             ],
             "info: installing component 'rustc'",
-        );
-    });
-}
-
-#[test]
-fn multirust_env_compat() {
-    setup(&|config| {
-        let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly", "--no-self-update"]);
-        clitools::env(config, &mut cmd);
-        cmd.env_remove("RUSTUP_HOME");
-        cmd.env("MULTIRUST_HOME", &config.rustupdir);
-        let out = cmd.output().unwrap();
-        assert!(out.status.success());
-        let stderr = String::from_utf8(out.stderr).unwrap();
-        assert!(
-            stderr.contains("environment variable MULTIRUST_HOME is deprecated. Use RUSTUP_HOME")
         );
     });
 }

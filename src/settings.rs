@@ -5,7 +5,6 @@ use crate::utils::utils;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 pub const SUPPORTED_METADATA_VERSIONS: [&'static str; 2] = ["2", "12"];
 pub const DEFAULT_METADATA_VERSION: &'static str = "12";
@@ -60,52 +59,6 @@ impl SettingsFile {
         let result = { f(self.cache.borrow_mut().as_mut().unwrap())? };
         self.write_settings()?;
         Ok(result)
-    }
-    pub fn maybe_upgrade_from_legacy(&self, multirust_dir: &Path) -> Result<()> {
-        // Data locations
-        let legacy_version_file = multirust_dir.join("version");
-        if utils::is_file(&legacy_version_file) {
-            fn split_override<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
-                s.find(separator).and_then(|index| {
-                    match (T::from_str(&s[..index]), T::from_str(&s[index + 1..])) {
-                        (Ok(l), Ok(r)) => Some((l, r)),
-                        _ => None,
-                    }
-                })
-            }
-
-            let override_db = multirust_dir.join("overrides");
-            let default_file = multirust_dir.join("default");
-            // Legacy upgrade
-            self.with_mut(|s| {
-                s.version = utils::read_file("version", &legacy_version_file)?
-                    .trim()
-                    .to_owned();
-
-                if utils::is_file(&default_file) {
-                    s.default_toolchain = Some(
-                        utils::read_file("default", &default_file)?
-                            .trim()
-                            .to_owned(),
-                    );
-                }
-                if utils::is_file(&override_db) {
-                    let overrides = utils::read_file("overrides", &override_db)?;
-                    for o in overrides.lines() {
-                        if let Some((k, v)) = split_override(o, ';') {
-                            s.overrides.insert(k, v);
-                        }
-                    }
-                }
-                Ok(())
-            })?;
-
-            // Failure to delete these is not a fatal error
-            let _ = utils::remove_file("version", &legacy_version_file);
-            let _ = utils::remove_file("default", &default_file);
-            let _ = utils::remove_file("overrides", &override_db);
-        }
-        Ok(())
     }
 }
 

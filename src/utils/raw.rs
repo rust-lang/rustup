@@ -425,50 +425,9 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
 
 #[cfg(windows)]
 pub mod windows {
-    use std::ffi::{OsStr, OsString};
+    use std::ffi::OsStr;
     use std::io;
-    use std::os::windows::ffi::{OsStrExt, OsStringExt};
-    use std::path::PathBuf;
-    use std::ptr;
-    use std::slice;
-    use winapi::shared::guiddef::GUID;
-    use winapi::um::{combaseapi, shlobj, shtypes};
-
-    #[allow(non_upper_case_globals)]
-    pub const FOLDERID_LocalAppData: GUID = GUID {
-        Data1: 0xF1B32785,
-        Data2: 0x6FBA,
-        Data3: 0x4FCF,
-        Data4: [0x9D, 0x55, 0x7B, 0x8E, 0x7F, 0x15, 0x70, 0x91],
-    };
-    #[allow(non_upper_case_globals)]
-    pub const FOLDERID_Profile: GUID = GUID {
-        Data1: 0x5E6C858F,
-        Data2: 0x0E22,
-        Data3: 0x4760,
-        Data4: [0x9A, 0xFE, 0xEA, 0x33, 0x17, 0xB6, 0x71, 0x73],
-    };
-
-    pub fn get_special_folder(id: &shtypes::KNOWNFOLDERID) -> io::Result<PathBuf> {
-        let mut path = ptr::null_mut();
-        let result;
-
-        unsafe {
-            let code = shlobj::SHGetKnownFolderPath(id, 0, ptr::null_mut(), &mut path);
-            if code == 0 {
-                let mut length = 0usize;
-                while *path.offset(length as isize) != 0 {
-                    length += 1;
-                }
-                let slice = slice::from_raw_parts(path, length);
-                result = Ok(OsString::from_wide(slice).into());
-            } else {
-                result = Err(io::Error::from_raw_os_error(code));
-            }
-            combaseapi::CoTaskMemFree(path as *mut _);
-        }
-        result
-    }
+    use std::os::windows::ffi::OsStrExt;
 
     pub fn to_u16s<S: AsRef<OsStr>>(s: S) -> io::Result<Vec<u16>> {
         fn inner(s: &OsStr) -> io::Result<Vec<u16>> {

@@ -56,8 +56,6 @@ impl Cfg {
         utils::ensure_dir_exists("home", &rustup_dir, &|n| notify_handler(n.into()))?;
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
-        // Convert from old settings format if necessary
-        settings_file.maybe_upgrade_from_legacy(&rustup_dir)?;
 
         let toolchains_dir = rustup_dir.join("toolchains");
         let update_hash_dir = rustup_dir.join("update-hashes");
