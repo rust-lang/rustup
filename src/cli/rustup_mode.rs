@@ -9,7 +9,7 @@ use rustup::dist::manifest::Component;
 use rustup::utils::utils::{self, ExitCode};
 use rustup::{command, Cfg, Toolchain};
 use std::error::Error;
-use std::io::{self, Write};
+use std::io::Write;
 use std::iter;
 use std::path::Path;
 use std::process::{self, Command};
@@ -1138,7 +1138,7 @@ impl FromStr for CompletionCommand {
 fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<()> {
     match command {
         CompletionCommand::Rustup => {
-            cli().gen_completions_to("rustup", shell, &mut io::stdout());
+            cli().gen_completions_to("rustup", shell, &mut term2::stdout());
         }
         CompletionCommand::Cargo => {
             let script = match shell {
@@ -1149,13 +1149,13 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
 
             if let Some(script) = script {
                 writeln!(
-                    &mut io::stdout(),
+                    &mut term2::stdout(),
                     "source $(rustc --print sysroot){}",
                     script,
                 )?;
             } else {
                 writeln!(
-                    &mut io::stderr(),
+                    &mut term2::stderr(),
                     "Cargo does not currently support completions for {}.",
                     shell,
                 )?;
