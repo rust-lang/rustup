@@ -23,6 +23,7 @@ use url::Url;
 pub struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: String,
+    desc: String,
     path: PathBuf,
     dist_handler: Box<dyn Fn(crate::dist::Notification<'_>) + 'a>,
 }
@@ -44,11 +45,23 @@ pub enum UpdateStatus {
 
 impl<'a> Toolchain<'a> {
     pub fn from(cfg: &'a Cfg, name: &str) -> Result<Self> {
+        let v: Vec<&str> = name.split('/').collect();
+        let name = v[0];
+
         let resolved_name = cfg.resolve_toolchain(name)?;
         let path = cfg.toolchains_dir.join(&resolved_name);
+
+        let resolved_name_dated = if v.len() > 1 {
+            let name_dated = name.to_string() + "-" + v[1];
+            cfg.resolve_toolchain(&name_dated)?
+        } else {
+            resolved_name.clone()
+        };
+
         Ok(Toolchain {
             cfg: cfg,
             name: resolved_name,
+            desc: resolved_name_dated,
             path: path.clone(),
             dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
         })
@@ -57,7 +70,7 @@ impl<'a> Toolchain<'a> {
         &self.name
     }
     pub fn desc(&self) -> Result<ToolchainDesc> {
-        Ok(ToolchainDesc::from_str(&self.name)?)
+        Ok(ToolchainDesc::from_str(&self.desc)?)
     }
     pub fn path(&self) -> &Path {
         &self.path
