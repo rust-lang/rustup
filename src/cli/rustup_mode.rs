@@ -1153,6 +1153,12 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
                     "source $(rustc --print sysroot){}",
                     script,
                 )?;
+            } else {
+                writeln!(
+                    &mut io::stderr(),
+                    "Cargo does not currently support completions for {}.",
+                    shell,
+                )?;
             }
         }
     }
