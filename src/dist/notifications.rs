@@ -8,7 +8,6 @@ use std::path::Path;
 pub enum Notification<'a> {
     Utils(crate::utils::Notification<'a>),
 
-    CantReadUpdateHash(&'a Path),
     NoUpdateHash(&'a Path),
     ChecksumValid(&'a str),
     SignatureValid(&'a str),
@@ -53,8 +52,7 @@ impl<'a> Notification<'a> {
             | RollingBack
             | DownloadingManifest(_)
             | DownloadedManifest(_, _) => NotificationLevel::Info,
-            CantReadUpdateHash(_)
-            | ExtensionNotInstalled(_)
+            ExtensionNotInstalled(_)
             | MissingInstalledComponent(_)
             | CachedFileChecksumFailed
             | ComponentUnavailable(_, _) => NotificationLevel::Warn,
@@ -68,11 +66,6 @@ impl<'a> Display for Notification<'a> {
         use self::Notification::*;
         match *self {
             Utils(ref n) => n.fmt(f),
-            CantReadUpdateHash(path) => write!(
-                f,
-                "can't read update hash file: '{}', can't skip update...",
-                path.display()
-            ),
             NoUpdateHash(path) => write!(f, "no update hash at: '{}'", path.display()),
             ChecksumValid(_) => write!(f, "checksum passed"),
             SignatureValid(_) => write!(f, "signature valid"),

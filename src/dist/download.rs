@@ -3,6 +3,7 @@ use crate::dist::notifications::*;
 use crate::dist::temp;
 use crate::utils::utils;
 use crate::Verbosity;
+use log::warn;
 use sha2::{Digest, Sha256};
 use url::Url;
 
@@ -133,7 +134,10 @@ impl<'a> DownloadCfg<'a> {
                         return Ok(None);
                     }
                 } else {
-                    (self.notify_handler)(Notification::CantReadUpdateHash(hash_file));
+                    warn!(
+                        "can't read update hash file: '{}', can't skip update...",
+                        hash_file.display()
+                    )
                 }
             } else {
                 (self.notify_handler)(Notification::NoUpdateHash(hash_file));
