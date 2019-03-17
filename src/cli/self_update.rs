@@ -33,6 +33,7 @@
 use crate::common::{self, Confirm};
 use crate::errors::*;
 use crate::term2;
+use log::{error, debug, info, warn};
 use regex::Regex;
 use rustup::dist::dist;
 use rustup::utils::utils;
@@ -370,10 +371,10 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool) -> Result<()> {
     }
 
     if let Err(path) = rustc_or_cargo_exists_in_path() {
-        err!("it looks like you have an existing installation of Rust at:");
-        err!("{}", path);
-        err!("rustup cannot be installed alongside Rust. Please uninstall first");
-        err!("if this is what you want, restart the installation with `-y'");
+        error!("it looks like you have an existing installation of Rust at:");
+        error!("{}", path);
+        error!("rustup cannot be installed alongside Rust. Please uninstall first");
+        error!("if this is what you want, restart the installation with `-y'");
         Err("cannot install while Rust is installed".into())
     } else {
         Ok(())
@@ -550,8 +551,8 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
     match (home_mismatch(), no_prompt) {
         (false, _) => (),
         (true, false) => {
-            err!("$HOME differs from euid-obtained home directory: you may be using sudo");
-            err!("if this is what you want, restart the installation with `-y'");
+            error!("$HOME differs from euid-obtained home directory: you may be using sudo");
+            error!("if this is what you want, restart the installation with `-y'");
             process::exit(1);
         }
         (true, true) => {
@@ -819,8 +820,8 @@ fn maybe_install_rust(toolchain_str: &str, default_host_triple: &str, verbose: b
 
 pub fn uninstall(no_prompt: bool) -> Result<()> {
     if NEVER_SELF_UPDATE {
-        err!("self-uninstall is disabled for this build of rustup");
-        err!("you should probably use your system package manager to uninstall rustup");
+        error!("self-uninstall is disabled for this build of rustup");
+        error!("you should probably use your system package manager to uninstall rustup");
         process::exit(1);
     }
 
@@ -1438,8 +1439,8 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 /// time rustup runs.
 pub fn update() -> Result<()> {
     if NEVER_SELF_UPDATE {
-        err!("self-update is disabled for this build of rustup");
-        err!("you should probably use your system package manager to update rustup");
+        error!("self-update is disabled for this build of rustup");
+        error!("you should probably use your system package manager to update rustup");
         process::exit(1);
     }
     let setup_path = prepare_update()?;
@@ -1447,7 +1448,7 @@ pub fn update() -> Result<()> {
         let version = match get_new_rustup_version(p) {
             Some(new_version) => parse_new_rustup_version(new_version),
             None => {
-                err!("failed to get rustup version");
+                error!("failed to get rustup version");
                 process::exit(1);
             }
         };

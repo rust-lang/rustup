@@ -46,14 +46,9 @@ pub struct Terminal<T>(Option<Box<dyn term::Terminal<Output = T> + Send>>)
 where
     T: Instantiable + Isatty + io::Write;
 pub type StdoutTerminal = Terminal<io::Stdout>;
-pub type StderrTerminal = Terminal<io::Stderr>;
 
 pub fn stdout() -> StdoutTerminal {
     Terminal(term::stdout())
-}
-
-pub fn stderr() -> StderrTerminal {
-    Terminal(term::stderr())
 }
 
 // Handles the wrapping of text written to the console

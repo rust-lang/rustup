@@ -14,8 +14,6 @@
 
 #![recursion_limit = "1024"]
 
-#[macro_use]
-mod log;
 mod common;
 mod download_tracker;
 #[allow(deprecated)] // WORKAROUND https://github.com/rust-lang-nursery/error-chain/issues/254
@@ -29,6 +27,7 @@ mod setup_mode;
 mod term2;
 
 use crate::errors::*;
+use log::warn;
 use rustup::dist::dist::TargetTriple;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 use std::alloc::System;

@@ -3,6 +3,7 @@
 use crate::errors::*;
 use crate::self_update;
 use crate::term2;
+use log::{debug, error, info, warn};
 use rustup::utils::notify::NotificationLevel;
 use rustup::utils::utils;
 use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
@@ -115,7 +116,7 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
         match n.level() {
             NotificationLevel::Verbose => {
                 if verbose {
-                    verbose!("{}", n);
+                    debug!("{}", n)
                 }
             }
             NotificationLevel::Info => {
@@ -125,7 +126,7 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
                 warn!("{}", n);
             }
             NotificationLevel::Error => {
-                err!("{}", n);
+                error!("{}", n);
             }
         }
     }))?)
@@ -410,7 +411,7 @@ pub fn version() -> &'static str {
 }
 
 pub fn report_error(e: &Error) {
-    err!("{}", e);
+    error!("{}", e);
 
     for e in e.iter().skip(1) {
         info!("caused by: {}", e);

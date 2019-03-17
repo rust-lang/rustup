@@ -4,6 +4,7 @@ use crate::help::*;
 use crate::self_update;
 use crate::term2;
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
+use log::{error, info, warn};
 use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, TargetTriple};
 use rustup::dist::manifest::Component;
 use rustup::utils::utils::{self, ExitCode};
@@ -526,7 +527,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
             }
         }
         match candidates.len() {
-            0 => err!("no candidate toolchains found"),
+            0 => error!("no candidate toolchains found"),
             1 => println!("\nyou may use the following toolchain: {}\n", candidates[0]),
             _ => {
                 println!("\nyou may use one of the following toolchains:");
