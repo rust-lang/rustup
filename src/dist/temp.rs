@@ -21,7 +21,6 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
-    CreatingDirectory(&'a Path),
     FileDeletion(&'a Path, io::Result<()>),
     DirectoryDeletion(&'a Path, io::Result<()>),
 }
@@ -49,7 +48,6 @@ impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match *self {
-            CreatingDirectory(_) => NotificationLevel::Verbose,
             FileDeletion(_, ref result) | DirectoryDeletion(_, ref result) => {
                 if result.is_ok() {
                     NotificationLevel::Verbose
@@ -65,7 +63,6 @@ impl<'a> Display for Notification<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match *self {
-            CreatingDirectory(path) => write!(f, "creating temp directory: {}", path.display()),
             FileDeletion(path, ref result) => {
                 if result.is_ok() {
                     write!(f, "deleted temp file: {}", path.display())
@@ -160,7 +157,10 @@ impl Cfg {
             // This is technically racey, but the probability of getting the same
             // random names at exactly the same time is... low.
             if !raw::path_exists(&temp_dir) {
-                (self.notify_handler)(Notification::CreatingDirectory(&temp_dir));
+                match self.verbosity {
+                    Verbosity::Verbose => debug!("creating temp directory: {}", temp_dir.display()),
+                    Verbosity::NotVerbose => (),
+                };
                 fs::create_dir(&temp_dir).map_err(|e| Error::CreatingDirectory {
                     path: PathBuf::from(&temp_dir),
                     error: e,
