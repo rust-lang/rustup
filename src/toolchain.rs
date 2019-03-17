@@ -86,7 +86,7 @@ impl<'a> Toolchain<'a> {
     }
     pub fn remove(&self) -> Result<()> {
         if self.exists() || self.is_symlink() {
-            (self.cfg.notify_handler)(Notification::UninstallingToolchain(&self.name));
+            info!("uninstalling toolchain '{}'", self.name);
         } else {
             (self.cfg.notify_handler)(Notification::ToolchainNotInstalled(&self.name));
             return Ok(());
