@@ -120,7 +120,10 @@ impl<'a> Toolchain<'a> {
         if !updated {
             (self.cfg.notify_handler)(Notification::UpdateHashMatches);
         } else {
-            (self.cfg.notify_handler)(Notification::InstalledToolchain(&self.name));
+            match self.cfg.verbosity {
+                Verbosity::Verbose => debug!("toolchain '{}' installed", self.name),
+                Verbosity::NotVerbose => (),
+            };
         }
 
         let status = match (updated, exists) {
