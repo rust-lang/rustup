@@ -176,10 +176,10 @@ impl Cfg {
             return Ok(());
         }
 
-        (self.notify_handler)(Notification::UpgradingMetadata(
-            &current_version,
-            DEFAULT_METADATA_VERSION,
-        ));
+        info!(
+            "upgrading metadata version from '{}' to '{}'",
+            current_version, DEFAULT_METADATA_VERSION
+        );
 
         match &*current_version {
             "2" => {
