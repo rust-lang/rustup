@@ -23,12 +23,8 @@ impl<'a> Notification<'a> {
             Verbosity::NotVerbose => false,
         };
         match self {
-            DownloadContentLengthReceived(_) | DownloadDataReceived(_) | DownloadFinished
-                if !verbose => {}
+            DownloadContentLengthReceived(_) | DownloadDataReceived(_) | DownloadFinished => {}
             FileAlreadyDownloaded if !verbose => (),
-            DownloadContentLengthReceived(len) => debug!("download size is: '{}'", len),
-            DownloadDataReceived(data) => debug!("received some data of size {}", data.len()),
-            DownloadFinished => debug!("download finished"),
             FileAlreadyDownloaded => debug!("reusing previously downloaded file"),
             CachedFileChecksumFailed => warn!("bad checksum for cached download"),
         }
