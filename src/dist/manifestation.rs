@@ -200,12 +200,12 @@ impl Manifestation {
             let ref pkg_name = component.name_in_manifest();
             let short_pkg_name = component.short_name_in_manifest();
             let short_name = component.short_name(new_manifest);
+            let target = component.target.as_ref();
 
-            notify_handler(Notification::InstallingComponent(
-                &short_name,
-                &self.target_triple,
-                component.target.as_ref(),
-            ));
+            match target.filter(|t| *t != &self.target_triple) {
+                None => info!("installing component '{}'", short_name),
+                Some(t) => info!("installing component '{}' for '{}'", short_name, t),
+            }
 
             let gz;
             let xz;
@@ -389,11 +389,7 @@ impl Manifestation {
 
         let prefix = self.installation.prefix();
 
-        notify_handler(Notification::InstallingComponent(
-            "rust",
-            &self.target_triple,
-            Some(&self.target_triple),
-        ));
+        info!("installing component 'rust'");
 
         // Begin transaction
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);

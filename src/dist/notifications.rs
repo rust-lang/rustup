@@ -8,7 +8,6 @@ pub enum Notification<'a> {
 
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
-    InstallingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     RemovingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     RemovingOldComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     DownloadingManifest(&'a str),
@@ -30,8 +29,7 @@ impl<'a> Notification<'a> {
         match *self {
             Utils(ref n) => n.level(),
             FileAlreadyDownloaded | DownloadingLegacyManifest => NotificationLevel::Verbose,
-            InstallingComponent(_, _, _)
-            | RemovingComponent(_, _, _)
+            RemovingComponent(_, _, _)
             | RemovingOldComponent(_, _, _)
             | ManifestChecksumFailedHack
             | DownloadingManifest(_)
@@ -48,13 +46,6 @@ impl<'a> Display for Notification<'a> {
             Utils(ref n) => n.fmt(f),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
-            InstallingComponent(c, h, t) => {
-                if Some(h) == t || t.is_none() {
-                    write!(f, "installing component '{}'", c)
-                } else {
-                    write!(f, "installing component '{}' for '{}'", c, t.unwrap())
-                }
-            }
             RemovingComponent(c, h, t) => {
                 if Some(h) == t || t.is_none() {
                     write!(f, "removing component '{}'", c)
