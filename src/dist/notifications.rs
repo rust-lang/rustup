@@ -1,6 +1,6 @@
 use crate::dist::dist::TargetTriple;
-use crate::utils::notify::NotificationLevel;
-use std::fmt::{self, Display};
+use crate::Verbosity;
+use log::{debug, warn};
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -18,32 +18,23 @@ impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
 }
 
 impl<'a> Notification<'a> {
-    pub fn level(&self) -> NotificationLevel {
+    pub fn log_with_verbosity(&self, verbosity: Verbosity) {
         use self::Notification::*;
-        match *self {
-            Utils(ref n) => n.level(),
-            FileAlreadyDownloaded => NotificationLevel::Verbose,
-            CachedFileChecksumFailed | ComponentUnavailable(_, _) => NotificationLevel::Warn,
-        }
-    }
-}
-
-impl<'a> Display for Notification<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
-        use self::Notification::*;
-        match *self {
-            Utils(ref n) => n.fmt(f),
-            FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
-            CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
+        match self {
+            Notification::Utils(n) => n.log_with_verbosity(verbosity),
+            FileAlreadyDownloaded => match verbosity {
+                Verbosity::Verbose => debug!("reusing previously downloaded file"),
+                Verbosity::NotVerbose => (),
+            },
+            CachedFileChecksumFailed => warn!("bad checksum for cached download"),
             ComponentUnavailable(pkg, toolchain) => {
                 if let Some(tc) = toolchain {
-                    write!(
-                        f,
+                    warn!(
                         "component '{}' is not available anymore on target '{}'",
                         pkg, tc
                     )
                 } else {
-                    write!(f, "component '{}' is not available anymore", pkg)
+                    warn!("component '{}' is not available anymore", pkg)
                 }
             }
         }

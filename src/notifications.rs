@@ -1,6 +1,4 @@
-use std::fmt::{self, Display};
-
-use crate::utils::notify::NotificationLevel;
+use crate::config::Verbosity;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -20,21 +18,10 @@ impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
 }
 
 impl<'a> Notification<'a> {
-    pub fn level(&self) -> NotificationLevel {
-        use self::Notification::*;
-        match *self {
-            Install(ref n) => n.level(),
-            Utils(ref n) => n.level(),
-        }
-    }
-}
-
-impl<'a> Display for Notification<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
-        use self::Notification::*;
-        match *self {
-            Install(ref n) => n.fmt(f),
-            Utils(ref n) => n.fmt(f),
+    pub fn log_with_verbosity(&self, verbosity: Verbosity) {
+        match self {
+            Notification::Install(n) => n.log_with_verbosity(verbosity),
+            Notification::Utils(n) => n.log_with_verbosity(verbosity),
         }
     }
 }

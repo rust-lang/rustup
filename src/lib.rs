@@ -4,7 +4,7 @@ pub use crate::config::*;
 pub use crate::errors::*;
 pub use crate::notifications::*;
 pub use crate::toolchain::*;
-pub use crate::utils::{notify, toml_utils};
+pub use crate::utils::toml_utils;
 
 // A list of all binaries which Rustup will proxy.
 pub static TOOLS: &'static [&'static str] = &[

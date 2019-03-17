@@ -1,6 +1,6 @@
-use std::fmt::{self, Display};
+use log::debug;
 
-use crate::utils::notify::NotificationLevel;
+use crate::Verbosity;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -14,25 +14,20 @@ pub enum Notification<'a> {
 }
 
 impl<'a> Notification<'a> {
-    pub fn level(&self) -> NotificationLevel {
-        use self::Notification::*;
-        match *self {
-            DownloadContentLengthReceived(_)
-            | DownloadDataReceived(_)
-            | DownloadFinished
-            | ResumingPartialDownload => NotificationLevel::Verbose,
-        }
-    }
-}
-
-impl<'a> Display for Notification<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
-        use self::Notification::*;
-        match *self {
-            DownloadContentLengthReceived(len) => write!(f, "download size is: '{}'", len),
-            DownloadDataReceived(data) => write!(f, "received some data of size {}", data.len()),
-            DownloadFinished => write!(f, "download finished"),
-            ResumingPartialDownload => write!(f, "resuming partial download"),
+    pub fn log_with_verbosity(&self, verbosity: Verbosity) {
+        match verbosity {
+            Verbosity::Verbose => {
+                use self::Notification::*;
+                match self {
+                    DownloadContentLengthReceived(len) => debug!("download size is: '{}'", len),
+                    DownloadDataReceived(data) => {
+                        debug!("received some data of size {}", data.len())
+                    }
+                    DownloadFinished => debug!("download finished"),
+                    ResumingPartialDownload => debug!("resuming partial download"),
+                }
+            }
+            Verbosity::NotVerbose => (),
         }
     }
 }

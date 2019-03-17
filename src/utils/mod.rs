@@ -10,4 +10,3 @@ pub mod utils;
 
 pub use crate::utils::errors::*;
 pub use crate::utils::notifications::Notification;
-pub mod notify;

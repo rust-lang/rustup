@@ -3,8 +3,7 @@
 use crate::errors::*;
 use crate::self_update;
 use crate::term2;
-use log::{debug, error, info, warn};
-use rustup::utils::notify::NotificationLevel;
+use log::{error, info};
 use rustup::utils::utils;
 use rustup::{Cfg, Notification, Toolchain, UpdateStatus, Verbosity};
 use std::io::{BufRead, BufReader, Write};
@@ -108,30 +107,22 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
 
     let download_tracker = RefCell::new(DownloadTracker::new());
 
-    let verbosity = if verbose { Verbosity::Verbose } else { Verbosity::NotVerbose };
+    let verbosity = if verbose {
+        Verbosity::Verbose
+    } else {
+        Verbosity::NotVerbose
+    };
 
-    Ok(Cfg::from_env(verbosity, Arc::new(move |n: Notification<'_>| {
-        if download_tracker.borrow_mut().handle_notification(&n) {
-            return;
-        }
+    Ok(Cfg::from_env(
+        verbosity,
+        Arc::new(move |n: Notification<'_>| {
+            if download_tracker.borrow_mut().handle_notification(&n) {
+                return;
+            }
 
-        match n.level() {
-            NotificationLevel::Verbose => {
-                if verbose {
-                    debug!("{}", n)
-                }
-            }
-            NotificationLevel::Info => {
-                info!("{}", n);
-            }
-            NotificationLevel::Warn => {
-                warn!("{}", n);
-            }
-            NotificationLevel::Error => {
-                error!("{}", n);
-            }
-        }
-    }))?)
+            n.log_with_verbosity(verbosity);
+        }),
+    )?)
 }
 
 pub fn show_channel_update(
