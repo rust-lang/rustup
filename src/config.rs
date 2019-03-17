@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 
-use log::{debug, info};
+use log::{debug, error, info};
 
 use crate::dist::{dist, temp};
 use crate::errors::*;
@@ -388,7 +388,7 @@ impl Cfg {
             let t = t.and_then(|t| {
                 let t = t.install_from_dist(force_update);
                 if let Err(ref e) = t {
-                    (self.notify_handler)(Notification::NonFatalError(e));
+                    error!("{}", e);
                 }
                 t
             });

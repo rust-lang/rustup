@@ -1,8 +1,6 @@
 use std::fmt::{self, Display};
 use std::path::PathBuf;
 
-use crate::errors::*;
-
 use crate::utils::notify::NotificationLevel;
 
 #[derive(Debug)]
@@ -10,7 +8,6 @@ pub enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
     Utils(crate::utils::Notification<'a>),
 
-    NonFatalError(&'a Error),
     UpgradeRemovesToolchains,
     MissingFileDuringSelfUninstall(PathBuf),
 }
@@ -32,7 +29,6 @@ impl<'a> Notification<'a> {
         match *self {
             Install(ref n) => n.level(),
             Utils(ref n) => n.level(),
-            NonFatalError(_) => NotificationLevel::Error,
             UpgradeRemovesToolchains | MissingFileDuringSelfUninstall(_) => NotificationLevel::Warn,
         }
     }
@@ -44,7 +40,6 @@ impl<'a> Display for Notification<'a> {
         match *self {
             Install(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
-            NonFatalError(e) => write!(f, "{}", e),
             UpgradeRemovesToolchains => write!(
                 f,
                 "this upgrade will remove all existing toolchains. you will need to reinstall them"
