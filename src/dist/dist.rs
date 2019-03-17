@@ -12,6 +12,7 @@ use std::env;
 use std::fmt;
 use std::path::Path;
 
+use log::info;
 use regex::Regex;
 
 pub const DEFAULT_DIST_SERVER: &'static str = "https://static.rust-lang.org";
@@ -540,8 +541,7 @@ pub fn update_from_dist_<'a>(
         remove_extensions: remove.to_owned(),
     };
 
-    // TODO: Add a notification about which manifest version is going to be used
-    (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
+    info!("syncing channel updates for '{}'", toolchain_str);
     match dl_v2_manifest(download, update_hash, toolchain) {
         Ok(Some((m, hash))) => {
             (download.notify_handler)(Notification::DownloadedManifest(

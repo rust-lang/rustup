@@ -8,7 +8,6 @@ pub enum Notification<'a> {
 
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
-    DownloadingManifest(&'a str),
     DownloadedManifest(&'a str, Option<&'a str>),
     DownloadingLegacyManifest,
     ManifestChecksumFailedHack,
@@ -27,9 +26,7 @@ impl<'a> Notification<'a> {
         match *self {
             Utils(ref n) => n.level(),
             FileAlreadyDownloaded | DownloadingLegacyManifest => NotificationLevel::Verbose,
-            ManifestChecksumFailedHack | DownloadingManifest(_) | DownloadedManifest(_, _) => {
-                NotificationLevel::Info
-            }
+            ManifestChecksumFailedHack | DownloadedManifest(_, _) => NotificationLevel::Info,
             CachedFileChecksumFailed | ComponentUnavailable(_, _) => NotificationLevel::Warn,
         }
     }
@@ -42,7 +39,6 @@ impl<'a> Display for Notification<'a> {
             Utils(ref n) => n.fmt(f),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
-            DownloadingManifest(t) => write!(f, "syncing channel updates for '{}'", t),
             DownloadedManifest(date, Some(version)) => {
                 write!(f, "latest update on {}, rust version {}", date, version)
             }
