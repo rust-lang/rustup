@@ -112,9 +112,7 @@ impl<'a> Toolchain<'a> {
             }
             Verbosity::NotVerbose => (),
         };
-        let updated = install_method.run(&self.path, self.cfg.verbosity, &|n| {
-            (self.cfg.notify_handler)(n.into())
-        })?;
+        let updated = install_method.run(&self.path, self.cfg.verbosity)?;
 
         match self.cfg.verbosity {
             Verbosity::Verbose if updated => debug!("toolchain '{}' installed", self.name),

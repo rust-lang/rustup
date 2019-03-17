@@ -9,7 +9,7 @@ use rustup::dist::prefix::InstallPrefix;
 use rustup::dist::temp;
 use rustup::dist::ErrorKind;
 use rustup::utils::utils;
-use rustup::{Notification, Verbosity};
+use rustup::Verbosity;
 use std::fs::File;
 use std::io::Write;
 use tempdir::TempDir;
@@ -117,8 +117,7 @@ fn basic_install() {
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
     );
-    let notify = |_: Notification<'_>| ();
-    let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let tx = Transaction::new(prefix.clone(), &tmpcfg);
 
     let components = Components::open(prefix.clone()).unwrap();
 
@@ -163,8 +162,7 @@ fn multiple_component_install() {
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
     );
-    let notify = |_: Notification<'_>| ();
-    let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let tx = Transaction::new(prefix.clone(), &tmpcfg);
 
     let components = Components::open(prefix.clone()).unwrap();
 
@@ -213,8 +211,7 @@ fn uninstall() {
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
     );
-    let notify = |_: Notification<'_>| ();
-    let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let tx = Transaction::new(prefix.clone(), &tmpcfg);
 
     let components = Components::open(prefix.clone()).unwrap();
 
@@ -225,8 +222,7 @@ fn uninstall() {
     tx.commit();
 
     // Now uninstall
-    let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let mut tx = Transaction::new(prefix.clone(), &tmpcfg);
     for component in components.list().unwrap() {
         tx = component.uninstall(tx).unwrap();
     }
@@ -270,8 +266,7 @@ fn component_bad_version() {
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
     );
-    let notify = |_: Notification<'_>| ();
-    let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let tx = Transaction::new(prefix.clone(), &tmpcfg);
 
     let components = Components::open(prefix.clone()).unwrap();
 
@@ -331,8 +326,7 @@ fn unix_permissions() {
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
     );
-    let notify = |_: Notification<'_>| ();
-    let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let tx = Transaction::new(prefix.clone(), &tmpcfg);
 
     let components = Components::open(prefix.clone()).unwrap();
 
@@ -416,8 +410,7 @@ fn install_to_prefix_that_does_not_exist() {
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
     );
-    let notify = |_: Notification<'_>| ();
-    let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let tx = Transaction::new(prefix.clone(), &tmpcfg);
 
     let components = Components::open(prefix.clone()).unwrap();
 

@@ -167,7 +167,7 @@ impl Manifestation {
         }
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
+        let mut tx = Transaction::new(prefix.clone(), temp_cfg);
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
@@ -255,15 +255,10 @@ impl Manifestation {
         Ok(UpdateStatus::Changed)
     }
 
-    pub fn uninstall(
-        &self,
-        manifest: &Manifest,
-        temp_cfg: &temp::Cfg,
-        notify_handler: &dyn Fn(Notification<'_>),
-    ) -> Result<()> {
+    pub fn uninstall(&self, manifest: &Manifest, temp_cfg: &temp::Cfg) -> Result<()> {
         let prefix = self.installation.prefix();
 
-        let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
+        let mut tx = Transaction::new(prefix.clone(), temp_cfg);
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
@@ -386,7 +381,7 @@ impl Manifestation {
         info!("installing component 'rust'");
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
+        let mut tx = Transaction::new(prefix.clone(), temp_cfg);
 
         // Uninstall components
         for component in self.installation.list()? {

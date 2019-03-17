@@ -13,7 +13,7 @@ use crate::dist::errors::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::utils::utils;
-use crate::{Notification, Verbosity};
+use crate::Verbosity;
 
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -37,21 +37,15 @@ pub struct Transaction<'a> {
     prefix: InstallPrefix,
     changes: Vec<ChangedItem<'a>>,
     temp_cfg: &'a temp::Cfg,
-    notify_handler: &'a dyn Fn(Notification<'_>),
     committed: bool,
 }
 
 impl<'a> Transaction<'a> {
-    pub fn new(
-        prefix: InstallPrefix,
-        temp_cfg: &'a temp::Cfg,
-        notify_handler: &'a dyn Fn(Notification<'_>),
-    ) -> Self {
+    pub fn new(prefix: InstallPrefix, temp_cfg: &'a temp::Cfg) -> Self {
         Transaction {
             prefix: prefix,
             changes: Vec::new(),
             temp_cfg: temp_cfg,
-            notify_handler: notify_handler,
             committed: false,
         }
     }
@@ -137,9 +131,6 @@ impl<'a> Transaction<'a> {
 
     pub fn temp(&self) -> &'a temp::Cfg {
         self.temp_cfg
-    }
-    pub fn notify_handler(&self) -> &'a dyn Fn(Notification<'_>) {
-        self.notify_handler
     }
 }
 

@@ -8,7 +8,7 @@ use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::Result;
 use crate::utils::utils;
-use crate::{Notification, Verbosity};
+use crate::Verbosity;
 use log::info;
 use std::path::Path;
 
@@ -27,12 +27,7 @@ pub enum InstallMethod<'a> {
 }
 
 impl<'a> InstallMethod<'a> {
-    pub fn run(
-        self,
-        path: &Path,
-        verbosity: Verbosity,
-        notify_handler: &dyn Fn(Notification<'_>),
-    ) -> Result<bool> {
+    pub fn run(self, path: &Path, verbosity: Verbosity) -> Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
@@ -51,7 +46,7 @@ impl<'a> InstallMethod<'a> {
                 Ok(true)
             }
             InstallMethod::Installer(src, temp_cfg) => {
-                InstallMethod::tar_gz(src, path, &temp_cfg, notify_handler)?;
+                InstallMethod::tar_gz(src, path, &temp_cfg)?;
                 Ok(true)
             }
             InstallMethod::Dist(toolchain, update_hash, dl_cfg, force_update) => {
@@ -79,19 +74,14 @@ impl<'a> InstallMethod<'a> {
         }
     }
 
-    fn tar_gz(
-        src: &Path,
-        path: &Path,
-        temp_cfg: &temp::Cfg,
-        notify_handler: &dyn Fn(Notification<'_>),
-    ) -> Result<()> {
+    fn tar_gz(src: &Path, path: &Path, temp_cfg: &temp::Cfg) -> Result<()> {
         info!("extracting...");
 
         let prefix = InstallPrefix::from(path.to_owned());
         let installation = Components::open(prefix.clone())?;
         let package = TarGzPackage::new_file(src, temp_cfg)?;
 
-        let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
+        let mut tx = Transaction::new(prefix.clone(), temp_cfg);
 
         for component in package.components() {
             tx = package.install(&installation, &component, None, tx)?;

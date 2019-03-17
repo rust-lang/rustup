@@ -447,13 +447,12 @@ fn uninstall(
     toolchain: &ToolchainDesc,
     prefix: &InstallPrefix,
     temp_cfg: &temp::Cfg,
-    notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
     let trip = toolchain.target.clone();
     let manifestation = Manifestation::open(prefix.clone(), trip)?;
     let manifest = manifestation.load_manifest()?.unwrap();
 
-    manifestation.uninstall(&manifest, temp_cfg, notify_handler.clone())?;
+    manifestation.uninstall(&manifest, temp_cfg)?;
 
     Ok(())
 }
@@ -535,7 +534,7 @@ fn test_uninstall() {
                          download_cfg,
                          temp_cfg| {
         update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
-        uninstall(toolchain, prefix, temp_cfg, &|_| ()).unwrap();
+        uninstall(toolchain, prefix, temp_cfg).unwrap();
 
         assert!(!utils::path_exists(&prefix.path().join("bin/rustc")));
         assert!(!utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
@@ -553,7 +552,7 @@ fn uninstall_removes_config_file() {
         assert!(utils::path_exists(
             &prefix.manifest_file("multirust-config.toml")
         ));
-        uninstall(toolchain, prefix, temp_cfg, &|_| ()).unwrap();
+        uninstall(toolchain, prefix, temp_cfg).unwrap();
         assert!(!utils::path_exists(
             &prefix.manifest_file("multirust-config.toml")
         ));
