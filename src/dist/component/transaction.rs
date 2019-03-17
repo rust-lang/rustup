@@ -252,7 +252,7 @@ impl<'a> ChangedItem<'a> {
             if let Some(p) = abs_path.parent() {
                 utils::ensure_dir_exists("component", p, Verbosity::NotVerbose)?;
             }
-            utils::copy_dir(src, &abs_path, &|_| ())?;
+            utils::copy_dir(src, &abs_path, Verbosity::NotVerbose)?;
             Ok(ChangedItem::AddedDir(relpath))
         }
     }

@@ -40,7 +40,7 @@ impl<'a> InstallMethod<'a> {
 
         match self {
             InstallMethod::Copy(src) => {
-                utils::copy_dir(src, path, &|n| notify_handler(n.into()))?;
+                utils::copy_dir(src, path, verbosity)?;
                 Ok(true)
             }
             InstallMethod::Link(src) => {

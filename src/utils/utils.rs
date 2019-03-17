@@ -297,8 +297,11 @@ pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     .into())
 }
 
-pub fn copy_dir(src: &Path, dest: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<()> {
-    notify_handler(Notification::CopyingDirectory(src, dest));
+pub fn copy_dir(src: &Path, dest: &Path, verbosity: Verbosity) -> Result<()> {
+    match verbosity {
+        Verbosity::Verbose => debug!("coping directory from: '{}'", src.display()),
+        Verbosity::NotVerbose => (),
+    }
     raw::copy_dir(src, dest).chain_err(|| ErrorKind::CopyingDirectory {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
