@@ -10,7 +10,6 @@ pub enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
     Utils(crate::utils::Notification<'a>),
 
-    SetDefaultToolchain(&'a str),
     SetOverrideToolchain(&'a Path, &'a str),
     LookingForToolchain(&'a str),
     ToolchainDirectory(&'a Path, &'a str),
@@ -56,8 +55,7 @@ impl<'a> Notification<'a> {
             | ReadMetadataVersion(_)
             | InstalledToolchain(_)
             | UpdateHashMatches => NotificationLevel::Verbose,
-            SetDefaultToolchain(_)
-            | SetOverrideToolchain(_, _)
+            SetOverrideToolchain(_, _)
             | UsingExistingToolchain(_)
             | UninstallingToolchain(_)
             | UninstalledToolchain(_)
@@ -76,7 +74,6 @@ impl<'a> Display for Notification<'a> {
         match *self {
             Install(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
-            SetDefaultToolchain(name) => write!(f, "default toolchain set to '{}'", name),
             SetOverrideToolchain(path, name) => write!(
                 f,
                 "override toolchain for '{}' set to '{}'",

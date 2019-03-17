@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 
+use log::info;
+
 use crate::dist::{dist, temp};
 use crate::errors::*;
 use crate::notifications::*;
@@ -132,7 +134,7 @@ impl Cfg {
             s.default_toolchain = Some(toolchain.to_owned());
             Ok(())
         })?;
-        (self.notify_handler)(Notification::SetDefaultToolchain(toolchain));
+        info!("default toolchain set to '{}'", toolchain);
         Ok(())
     }
 
