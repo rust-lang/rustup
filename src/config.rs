@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 
-use log::info;
+use log::{debug, info};
 
 use crate::dist::{dist, temp};
 use crate::errors::*;
@@ -403,7 +403,10 @@ impl Cfg {
         utils::assert_is_directory(&self.rustup_dir)?;
 
         self.settings_file.with(|s| {
-            (self.notify_handler)(Notification::ReadMetadataVersion(&s.version));
+            match self.verbosity {
+                Verbosity::Verbose => debug!("read metadata version: '{}'", s.version),
+                Verbosity::NotVerbose => (),
+            };
             if s.version == DEFAULT_METADATA_VERSION {
                 Ok(())
             } else {
