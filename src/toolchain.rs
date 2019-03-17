@@ -7,7 +7,6 @@ use crate::dist::prefix::InstallPrefix;
 use crate::env_var;
 use crate::errors::*;
 use crate::install::{self, InstallMethod};
-use crate::notifications::*;
 use crate::utils::utils;
 use crate::Verbosity;
 
@@ -117,14 +116,11 @@ impl<'a> Toolchain<'a> {
             (self.cfg.notify_handler)(n.into())
         })?;
 
-        if !updated {
-            (self.cfg.notify_handler)(Notification::UpdateHashMatches);
-        } else {
-            match self.cfg.verbosity {
-                Verbosity::Verbose => debug!("toolchain '{}' installed", self.name),
-                Verbosity::NotVerbose => (),
-            };
-        }
+        match self.cfg.verbosity {
+            Verbosity::Verbose if updated => debug!("toolchain '{}' installed", self.name),
+            Verbosity::Verbose => debug!("toolchain is already up to date"),
+            Verbosity::NotVerbose => (),
+        };
 
         let status = match (updated, exists) {
             (true, false) => UpdateStatus::Installed,
