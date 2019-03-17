@@ -144,11 +144,12 @@ impl Manifestation {
         let mut things_to_install: Vec<(Component, Format, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
         for (component, format, url, hash) in update.components_urls_and_hashes(new_manifest)? {
-            notify_handler(Notification::DownloadingComponent(
-                &component.short_name(new_manifest),
-                &self.target_triple,
-                component.target.as_ref(),
-            ));
+            let name = component.short_name(new_manifest);
+            let target = component.target.as_ref();
+            match target.filter(|t| *t != &self.target_triple) {
+                None => info!("downloading component '{}'", name),
+                Some(t) => info!("downloading component '{}' for '{}'", name, t),
+            }
             let url = if altered {
                 url.replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str())
             } else {
@@ -368,11 +369,7 @@ impl Manifestation {
             .unwrap()
             .replace(DEFAULT_DIST_SERVER, temp_cfg.dist_server.as_str());
 
-        notify_handler(Notification::DownloadingComponent(
-            "rust",
-            &self.target_triple,
-            Some(&self.target_triple),
-        ));
+        info!("downloading component 'rust'");
 
         use std::path::PathBuf;
         let dld_dir = PathBuf::from("bogus");
