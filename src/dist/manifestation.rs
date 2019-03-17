@@ -12,6 +12,7 @@ use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::utils::utils;
 use crate::Verbosity;
+use log::info;
 use std::path::Path;
 
 pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
@@ -515,9 +516,10 @@ impl Update {
                     result.components_to_install.push(component.clone());
                 } else {
                     if changes.add_extensions.contains(&component) {
-                        notify_handler(Notification::ComponentAlreadyInstalled(
-                            &component.description(new_manifest),
-                        ));
+                        info!(
+                            "component {} is up to date",
+                            component.description(new_manifest)
+                        );
                     }
                 }
             }

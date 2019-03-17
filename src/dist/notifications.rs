@@ -8,7 +8,6 @@ use std::path::Path;
 pub enum Notification<'a> {
     Utils(crate::utils::Notification<'a>),
 
-    ComponentAlreadyInstalled(&'a str),
     CantReadUpdateHash(&'a Path),
     NoUpdateHash(&'a Path),
     ChecksumValid(&'a str),
@@ -50,7 +49,6 @@ impl<'a> Notification<'a> {
             | InstallingComponent(_, _, _)
             | RemovingComponent(_, _, _)
             | RemovingOldComponent(_, _, _)
-            | ComponentAlreadyInstalled(_)
             | ManifestChecksumFailedHack
             | RollingBack
             | DownloadingManifest(_)
@@ -70,7 +68,6 @@ impl<'a> Display for Notification<'a> {
         use self::Notification::*;
         match *self {
             Utils(ref n) => n.fmt(f),
-            ComponentAlreadyInstalled(ref c) => write!(f, "component {} is up to date", c),
             CantReadUpdateHash(path) => write!(
                 f,
                 "can't read update hash file: '{}', can't skip update...",
