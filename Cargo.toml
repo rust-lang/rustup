@@ -33,10 +33,12 @@ no-self-update = []
 dirs = "1.0"
 download = { path = "download" }
 clap = "2.18.0"
+env_logger = "0.6.1"
 error-chain = "0.12.0"
 flate2 = "1.0.1"
 itertools = "0.7.6"
 libc = "0.2.0"
+log = "0.4.6"
 markdown = "0.2"
 ole32-sys = "0.2.0"
 rand = "0.5.2"

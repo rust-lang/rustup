@@ -40,6 +40,7 @@ use std::path::PathBuf;
 static _ALLOCATOR: System = System;
 
 fn main() {
+    env_logger::init_from_env("RUSTUP_LOG");
     if let Err(ref e) = run_rustup() {
         common::report_error(e);
         std::process::exit(1);
