@@ -7,7 +7,6 @@ use std::fmt::{self, Display};
 pub enum Notification<'a> {
     Utils(crate::utils::Notification<'a>),
 
-    ChecksumValid(&'a str),
     SignatureValid(&'a str),
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
@@ -37,9 +36,7 @@ impl<'a> Notification<'a> {
         use self::Notification::*;
         match *self {
             Utils(ref n) => n.level(),
-            ChecksumValid(_) | FileAlreadyDownloaded | DownloadingLegacyManifest => {
-                NotificationLevel::Verbose
-            }
+            FileAlreadyDownloaded | DownloadingLegacyManifest => NotificationLevel::Verbose,
             SignatureValid(_)
             | DownloadingComponent(_, _, _)
             | InstallingComponent(_, _, _)
@@ -63,7 +60,6 @@ impl<'a> Display for Notification<'a> {
         use self::Notification::*;
         match *self {
             Utils(ref n) => n.fmt(f),
-            ChecksumValid(_) => write!(f, "checksum passed"),
             SignatureValid(_) => write!(f, "signature valid"),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),

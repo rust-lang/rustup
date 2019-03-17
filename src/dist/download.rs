@@ -47,7 +47,10 @@ impl<'a> DownloadCfg<'a> {
             let cached_result = file_hash(&target_file)?;
             if hash == cached_result {
                 (self.notify_handler)(Notification::FileAlreadyDownloaded);
-                (self.notify_handler)(Notification::ChecksumValid(&url.to_string()));
+                match self.verbosity {
+                    Verbosity::Verbose => debug!("checksum passed"),
+                    Verbosity::NotVerbose => (),
+                };
                 return Ok(File { path: target_file });
             } else {
                 (self.notify_handler)(Notification::CachedFileChecksumFailed);
@@ -86,7 +89,10 @@ impl<'a> DownloadCfg<'a> {
             }
             .into());
         } else {
-            (self.notify_handler)(Notification::ChecksumValid(&url.to_string()));
+            match self.verbosity {
+                Verbosity::Verbose => debug!("checksum passed"),
+                Verbosity::NotVerbose => (),
+            };
 
             utils::rename_file("downloaded", &partial_file_path, &target_file)?;
             return Ok(File { path: target_file });
@@ -165,7 +171,10 @@ impl<'a> DownloadCfg<'a> {
             }
             .into());
         } else {
-            (self.notify_handler)(Notification::ChecksumValid(url_str));
+            match self.verbosity {
+                Verbosity::Verbose => debug!("checksum passed"),
+                Verbosity::NotVerbose => (),
+            };
         }
 
         // TODO: Check the signature of the file
