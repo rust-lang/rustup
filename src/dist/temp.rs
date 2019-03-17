@@ -8,8 +8,6 @@ use std::io;
 use std::ops;
 use std::path::{Path, PathBuf};
 
-use crate::utils::notify::NotificationLevel;
-
 #[derive(Debug)]
 pub enum Error {
     CreatingRoot { path: PathBuf, error: io::Error },
@@ -19,16 +17,10 @@ pub enum Error {
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
-#[derive(Debug)]
-pub enum Notification<'a> {
-    DirectoryDeletion(&'a Path, io::Result<()>),
-}
-
 pub struct Cfg {
     root_directory: PathBuf,
     pub dist_server: String,
     verbosity: Verbosity,
-    notify_handler: Box<dyn Fn(Notification<'_>)>,
 }
 
 #[derive(Debug)]
@@ -41,36 +33,6 @@ pub struct Dir<'a> {
 pub struct File<'a> {
     cfg: &'a Cfg,
     path: PathBuf,
-}
-
-impl<'a> Notification<'a> {
-    pub fn level(&self) -> NotificationLevel {
-        use self::Notification::*;
-        match *self {
-            DirectoryDeletion(_, ref result) => {
-                if result.is_ok() {
-                    NotificationLevel::Verbose
-                } else {
-                    NotificationLevel::Warn
-                }
-            }
-        }
-    }
-}
-
-impl<'a> Display for Notification<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
-        use self::Notification::*;
-        match *self {
-            DirectoryDeletion(path, ref result) => {
-                if result.is_ok() {
-                    write!(f, "deleted temp directory: {}", path.display())
-                } else {
-                    write!(f, "could not delete temp directory: {}", path.display())
-                }
-            }
-        }
-    }
 }
 
 impl error::Error for Error {
@@ -111,17 +73,11 @@ impl Display for Error {
 }
 
 impl Cfg {
-    pub fn new(
-        root_directory: PathBuf,
-        dist_server: &str,
-        verbosity: Verbosity,
-        notify_handler: Box<dyn Fn(Notification<'_>)>,
-    ) -> Self {
+    pub fn new(root_directory: PathBuf, dist_server: &str, verbosity: Verbosity) -> Self {
         Cfg {
             root_directory: root_directory,
             dist_server: dist_server.to_owned(),
             verbosity,
-            notify_handler: notify_handler,
         }
     }
 
@@ -225,11 +181,10 @@ impl<'a> ops::Deref for File<'a> {
 impl<'a> Drop for Dir<'a> {
     fn drop(&mut self) {
         if raw::is_directory(&self.path) {
-            let n = Notification::DirectoryDeletion(
-                &self.path,
-                remove_dir_all::remove_dir_all(&self.path),
-            );
-            (self.cfg.notify_handler)(n);
+            match remove_dir_all::remove_dir_all(&self.path) {
+                Ok(_) => debug!("deleted temp directory: {}", self.path.display()),
+                Err(_) => warn!("could not delete temp directory: {}", self.path.display()),
+            }
         }
     }
 }

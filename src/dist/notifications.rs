@@ -1,6 +1,5 @@
 use crate::dist::dist::TargetTriple;
 use crate::dist::errors::*;
-use crate::dist::temp;
 use crate::utils::notify::NotificationLevel;
 use std::fmt::{self, Display};
 use std::path::Path;
@@ -8,7 +7,6 @@ use std::path::Path;
 #[derive(Debug)]
 pub enum Notification<'a> {
     Utils(crate::utils::Notification<'a>),
-    Temp(temp::Notification<'a>),
 
     Extracting(&'a Path, &'a Path),
     ComponentAlreadyInstalled(&'a str),
@@ -39,17 +37,10 @@ impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
     }
 }
 
-impl<'a> From<temp::Notification<'a>> for Notification<'a> {
-    fn from(n: temp::Notification<'a>) -> Notification<'a> {
-        Notification::Temp(n)
-    }
-}
-
 impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match *self {
-            Temp(ref n) => n.level(),
             Utils(ref n) => n.level(),
             ChecksumValid(_)
             | NoUpdateHash(_)
@@ -80,7 +71,6 @@ impl<'a> Display for Notification<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match *self {
-            Temp(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
             Extracting(_, _) => write!(f, "extracting..."),
             ComponentAlreadyInstalled(ref c) => write!(f, "component {} is up to date", c),

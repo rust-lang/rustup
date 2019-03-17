@@ -485,7 +485,6 @@ fn setup_from_dist_server(
         work_tempdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
-        Box::new(|_| ()),
     );
 
     let ref toolchain = ToolchainDesc::from_str("nightly-x86_64-apple-darwin").unwrap();

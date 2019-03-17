@@ -117,7 +117,6 @@ fn basic_install() {
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
-        Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -164,7 +163,6 @@ fn multiple_component_install() {
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
-        Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -215,7 +213,6 @@ fn uninstall() {
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
-        Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -273,7 +270,6 @@ fn component_bad_version() {
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
-        Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -335,7 +331,6 @@ fn unix_permissions() {
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
-        Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
@@ -421,7 +416,6 @@ fn install_to_prefix_that_does_not_exist() {
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
         Verbosity::NotVerbose,
-        Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);

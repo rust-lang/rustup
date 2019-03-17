@@ -3,14 +3,12 @@ use std::path::{Path, PathBuf};
 
 use crate::errors::*;
 
-use crate::dist::temp;
 use crate::utils::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
     Utils(crate::utils::Notification<'a>),
-    Temp(temp::Notification<'a>),
 
     SetDefaultToolchain(&'a str),
     SetOverrideToolchain(&'a Path, &'a str),
@@ -43,11 +41,6 @@ impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
         Notification::Utils(n)
     }
 }
-impl<'a> From<temp::Notification<'a>> for Notification<'a> {
-    fn from(n: temp::Notification<'a>) -> Notification<'a> {
-        Notification::Temp(n)
-    }
-}
 
 impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
@@ -55,7 +48,6 @@ impl<'a> Notification<'a> {
         match *self {
             Install(ref n) => n.level(),
             Utils(ref n) => n.level(),
-            Temp(ref n) => n.level(),
             ToolchainDirectory(_, _)
             | LookingForToolchain(_)
             | WritingMetadataVersion(_)
@@ -84,7 +76,6 @@ impl<'a> Display for Notification<'a> {
         match *self {
             Install(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
-            Temp(ref n) => n.fmt(f),
             SetDefaultToolchain(name) => write!(f, "default toolchain set to '{}'", name),
             SetOverrideToolchain(path, name) => write!(
                 f,
