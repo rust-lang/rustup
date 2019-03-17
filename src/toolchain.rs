@@ -108,7 +108,10 @@ impl<'a> Toolchain<'a> {
         } else {
             (self.cfg.notify_handler)(Notification::InstallingToolchain(&self.name));
         }
-        (self.cfg.notify_handler)(Notification::ToolchainDirectory(&self.path, &self.name));
+        match self.cfg.verbosity {
+            Verbosity::Verbose => debug!("toolchain directory: '{}'", self.path.display()),
+            Verbosity::NotVerbose => (),
+        };
         let updated = install_method.run(&self.path, self.cfg.verbosity, &|n| {
             (self.cfg.notify_handler)(n.into())
         })?;

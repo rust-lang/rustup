@@ -1,5 +1,5 @@
 use std::fmt::{self, Display};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::errors::*;
 
@@ -10,7 +10,6 @@ pub enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
     Utils(crate::utils::Notification<'a>),
 
-    ToolchainDirectory(&'a Path, &'a str),
     UpdatingToolchain(&'a str),
     InstallingToolchain(&'a str),
     InstalledToolchain(&'a str),
@@ -45,8 +44,7 @@ impl<'a> Notification<'a> {
         match *self {
             Install(ref n) => n.level(),
             Utils(ref n) => n.level(),
-            ToolchainDirectory(_, _)
-            | WritingMetadataVersion(_)
+            WritingMetadataVersion(_)
             | InstallingToolchain(_)
             | UpdatingToolchain(_)
             | ReadMetadataVersion(_)
@@ -70,7 +68,6 @@ impl<'a> Display for Notification<'a> {
         match *self {
             Install(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
-            ToolchainDirectory(path, _) => write!(f, "toolchain directory: '{}'", path.display()),
             UpdatingToolchain(name) => write!(f, "updating existing install for '{}'", name),
             InstallingToolchain(name) => write!(f, "installing toolchain '{}'", name),
             InstalledToolchain(name) => write!(f, "toolchain '{}' installed", name),
