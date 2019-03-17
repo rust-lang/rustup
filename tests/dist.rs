@@ -406,7 +406,13 @@ fn update_from_dist_(
     // Download the dist manifest and place it into the installation prefix
     let ref manifest_url = make_manifest_url(dist_server, toolchain)?;
     let manifest_file = temp_cfg.new_file()?;
-    utils::download_file(manifest_url, &manifest_file, None, Verbosity::NotVerbose, &|_| {})?;
+    utils::download_file(
+        manifest_url,
+        &manifest_file,
+        None,
+        Verbosity::NotVerbose,
+        &|_| {},
+    )?;
     let manifest_str = utils::read_file("manifest", &manifest_file)?;
     let manifest = Manifest::parse(&manifest_str)?;
 
@@ -478,6 +484,7 @@ fn setup_from_dist_server(
     let ref temp_cfg = temp::Cfg::new(
         work_tempdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 

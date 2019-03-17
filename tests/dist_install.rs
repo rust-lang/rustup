@@ -10,6 +10,7 @@ use rustup::dist::temp;
 use rustup::dist::ErrorKind;
 use rustup::dist::Notification;
 use rustup::utils::utils;
+use rustup::Verbosity;
 use std::fs::File;
 use std::io::Write;
 use tempdir::TempDir;
@@ -115,6 +116,7 @@ fn basic_install() {
     let tmpcfg = temp::Cfg::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
@@ -161,6 +163,7 @@ fn multiple_component_install() {
     let tmpcfg = temp::Cfg::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
@@ -211,6 +214,7 @@ fn uninstall() {
     let tmpcfg = temp::Cfg::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
@@ -268,6 +272,7 @@ fn component_bad_version() {
     let tmpcfg = temp::Cfg::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
@@ -329,6 +334,7 @@ fn unix_permissions() {
     let tmpcfg = temp::Cfg::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();
@@ -414,6 +420,7 @@ fn install_to_prefix_that_does_not_exist() {
     let tmpcfg = temp::Cfg::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
     let notify = |_: Notification<'_>| ();

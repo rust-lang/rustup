@@ -104,6 +104,7 @@ impl Cfg {
         let temp_cfg = temp::Cfg::new(
             rustup_dir.join("tmp"),
             dist_root_server.as_str(),
+            verbosity,
             Box::new(move |n| (notify_clone)(n.into())),
         );
         let dist_root = dist_root_server.clone() + "/dist";

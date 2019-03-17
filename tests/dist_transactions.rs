@@ -6,6 +6,7 @@ use rustup::dist::ErrorKind;
 use rustup::dist::Notification;
 use rustup::utils::raw as utils_raw;
 use rustup::utils::utils;
+use rustup::Verbosity;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
@@ -21,6 +22,7 @@ fn add_file() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -49,6 +51,7 @@ fn add_file_then_rollback() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -69,6 +72,7 @@ fn add_file_that_exists() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -100,6 +104,7 @@ fn copy_file() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -127,6 +132,7 @@ fn copy_file_then_rollback() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -154,6 +160,7 @@ fn copy_file_that_exists() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -190,6 +197,7 @@ fn copy_dir() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -224,6 +232,7 @@ fn copy_dir_then_rollback() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -258,6 +267,7 @@ fn copy_dir_that_exists() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -289,6 +299,7 @@ fn remove_file() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -314,6 +325,7 @@ fn remove_file_then_rollback() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -339,6 +351,7 @@ fn remove_file_that_not_exists() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -366,6 +379,7 @@ fn remove_dir() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -392,6 +406,7 @@ fn remove_dir_then_rollback() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -418,6 +433,7 @@ fn remove_dir_that_not_exists() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -445,6 +461,7 @@ fn write_file() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -472,6 +489,7 @@ fn write_file_then_rollback() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -496,6 +514,7 @@ fn write_file_that_exists() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -529,6 +548,7 @@ fn modify_file_that_not_exists() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -553,6 +573,7 @@ fn modify_file_that_exists() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -577,6 +598,7 @@ fn modify_file_that_not_exists_then_rollback() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -599,6 +621,7 @@ fn modify_file_that_exists_then_rollback() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -626,6 +649,7 @@ fn modify_twice_then_rollback() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -653,6 +677,7 @@ fn do_multiple_op_transaction(rollback: bool) {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 
@@ -754,6 +779,7 @@ fn rollback_failure_keeps_going() {
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
+        Verbosity::NotVerbose,
         Box::new(|_| ()),
     );
 

@@ -1,4 +1,6 @@
 use crate::utils::raw;
+use crate::Verbosity;
+use log::debug;
 use std::error;
 use std::fmt::{self, Display};
 use std::fs;
@@ -19,7 +21,6 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
-    CreatingRoot(&'a Path),
     CreatingFile(&'a Path),
     CreatingDirectory(&'a Path),
     FileDeletion(&'a Path, io::Result<()>),
@@ -29,6 +30,7 @@ pub enum Notification<'a> {
 pub struct Cfg {
     root_directory: PathBuf,
     pub dist_server: String,
+    verbosity: Verbosity,
     notify_handler: Box<dyn Fn(Notification<'_>)>,
 }
 
@@ -48,7 +50,7 @@ impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match *self {
-            CreatingRoot(_) | CreatingFile(_) | CreatingDirectory(_) => NotificationLevel::Verbose,
+            CreatingFile(_) | CreatingDirectory(_) => NotificationLevel::Verbose,
             FileDeletion(_, ref result) | DirectoryDeletion(_, ref result) => {
                 if result.is_ok() {
                     NotificationLevel::Verbose
@@ -64,7 +66,6 @@ impl<'a> Display for Notification<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match *self {
-            CreatingRoot(path) => write!(f, "creating temp root: {}", path.display()),
             CreatingFile(path) => write!(f, "creating temp file: {}", path.display()),
             CreatingDirectory(path) => write!(f, "creating temp directory: {}", path.display()),
             FileDeletion(path, ref result) => {
@@ -126,18 +127,23 @@ impl Cfg {
     pub fn new(
         root_directory: PathBuf,
         dist_server: &str,
+        verbosity: Verbosity,
         notify_handler: Box<dyn Fn(Notification<'_>)>,
     ) -> Self {
         Cfg {
             root_directory: root_directory,
             dist_server: dist_server.to_owned(),
+            verbosity,
             notify_handler: notify_handler,
         }
     }
 
     pub fn create_root(&self) -> Result<bool> {
         raw::ensure_dir_exists(&self.root_directory, |p| {
-            (self.notify_handler)(Notification::CreatingRoot(p));
+            match self.verbosity {
+                Verbosity::Verbose => debug!("creating temp root: {}", p.display()),
+                Verbosity::NotVerbose => (),
+            };
         })
         .map_err(|e| Error::CreatingRoot {
             path: PathBuf::from(&self.root_directory),
