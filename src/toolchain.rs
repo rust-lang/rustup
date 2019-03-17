@@ -439,7 +439,7 @@ impl<'a> Toolchain<'a> {
     }
     pub fn make_override(&self, path: &Path) -> Result<()> {
         Ok(self.cfg.settings_file.with_mut(|s| {
-            s.add_override(path, self.name.clone(), self.cfg.notify_handler.as_ref());
+            s.add_override(path, self.name.clone());
             Ok(())
         })?)
     }

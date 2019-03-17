@@ -1,7 +1,7 @@
 use crate::errors::*;
-use crate::notifications::*;
 use crate::toml_utils::*;
 use crate::utils::utils;
+use log::info;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -142,14 +142,13 @@ impl Settings {
         self.overrides.remove(&key).is_some()
     }
 
-    pub fn add_override(
-        &mut self,
-        path: &Path,
-        toolchain: String,
-        notify_handler: &dyn Fn(Notification<'_>),
-    ) {
+    pub fn add_override(&mut self, path: &Path, toolchain: String) {
         let key = Self::path_to_key(path);
-        notify_handler(Notification::SetOverrideToolchain(path, &toolchain));
+        info!(
+            "override toolchain for '{}' set to '{}'",
+            path.display(),
+            toolchain
+        );
         self.overrides.insert(key, toolchain);
     }
 
