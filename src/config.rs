@@ -172,7 +172,10 @@ impl Cfg {
         let current_version = self.settings_file.with(|s| Ok(s.version.clone()))?;
 
         if current_version == DEFAULT_METADATA_VERSION {
-            (self.notify_handler)(Notification::MetadataUpgradeNotNeeded(&current_version));
+            info!(
+                "nothing to upgrade: metadata version is already '{}'",
+                current_version
+            );
             return Ok(());
         }
 
