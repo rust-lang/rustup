@@ -10,7 +10,6 @@ pub enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
     Utils(crate::utils::Notification<'a>),
 
-    LookingForToolchain(&'a str),
     ToolchainDirectory(&'a Path, &'a str),
     UpdatingToolchain(&'a str),
     InstallingToolchain(&'a str),
@@ -47,7 +46,6 @@ impl<'a> Notification<'a> {
             Install(ref n) => n.level(),
             Utils(ref n) => n.level(),
             ToolchainDirectory(_, _)
-            | LookingForToolchain(_)
             | WritingMetadataVersion(_)
             | InstallingToolchain(_)
             | UpdatingToolchain(_)
@@ -72,7 +70,6 @@ impl<'a> Display for Notification<'a> {
         match *self {
             Install(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
-            LookingForToolchain(name) => write!(f, "looking for installed toolchain '{}'", name),
             ToolchainDirectory(path, _) => write!(f, "toolchain directory: '{}'", path.display()),
             UpdatingToolchain(name) => write!(f, "updating existing install for '{}'", name),
             InstallingToolchain(name) => write!(f, "installing toolchain '{}'", name),

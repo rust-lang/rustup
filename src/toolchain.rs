@@ -9,6 +9,7 @@ use crate::errors::*;
 use crate::install::{self, InstallMethod};
 use crate::notifications::*;
 use crate::utils::utils;
+use crate::Verbosity;
 
 use std::env;
 use std::env::consts::EXE_SUFFIX;
@@ -17,6 +18,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use log::debug;
 use url::Url;
 
 /// A fully resolved reference to a toolchain which may or may not exist
@@ -128,7 +130,10 @@ impl<'a> Toolchain<'a> {
     }
     fn install_if_not_installed(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
-        (self.cfg.notify_handler)(Notification::LookingForToolchain(&self.name));
+        match self.cfg.verbosity {
+            Verbosity::Verbose => debug!("looking for installed toolchain '{}'", self.name),
+            Verbosity::NotVerbose => (),
+        };
         if !self.exists() {
             Ok(self.install(install_method)?)
         } else {
