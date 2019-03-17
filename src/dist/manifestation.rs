@@ -12,7 +12,7 @@ use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::utils::utils;
 use crate::Verbosity;
-use log::info;
+use log::{info, warn};
 use std::path::Path;
 
 pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
@@ -187,7 +187,7 @@ impl Manifestation {
                 component.target.as_ref(),
             ));
 
-            tx = self.uninstall_component(&component, new_manifest, tx, notify_handler.clone())?;
+            tx = self.uninstall_component(&component, new_manifest, tx)?;
         }
 
         // Install components
@@ -278,7 +278,7 @@ impl Manifestation {
         tx.remove_file("dist config", rel_config_path)?;
 
         for component in config.components {
-            tx = self.uninstall_component(&component, manifest, tx, notify_handler)?;
+            tx = self.uninstall_component(&component, manifest, tx)?;
         }
         tx.commit();
 
@@ -290,7 +290,6 @@ impl Manifestation {
         component: &Component,
         manifest: &Manifest,
         mut tx: Transaction<'a>,
-        notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<Transaction<'a>> {
         // For historical reasons, the rust-installer component
         // names are not the same as the dist manifest component
@@ -303,9 +302,10 @@ impl Manifestation {
         } else if let Some(c) = self.installation.find(&short_name)? {
             tx = c.uninstall(tx)?;
         } else {
-            notify_handler(Notification::MissingInstalledComponent(
-                &component.short_name(manifest),
-            ));
+            warn!(
+                "during uninstall component {} was not found",
+                component.short_name(manifest)
+            );
         }
 
         Ok(tx)
