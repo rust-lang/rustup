@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 
 use crate::dist::{dist, temp};
 use crate::errors::*;
@@ -187,7 +187,7 @@ impl Cfg {
         match &*current_version {
             "2" => {
                 // The toolchain installation format changed. Just delete them all.
-                (self.notify_handler)(Notification::UpgradeRemovesToolchains);
+                warn!("this upgrade will remove all existing toolchains. you will need to reinstall them");
 
                 let dirs = utils::read_dir("toolchains", &self.toolchains_dir)?;
                 for dir in dirs {

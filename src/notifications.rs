@@ -8,7 +8,6 @@ pub enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
     Utils(crate::utils::Notification<'a>),
 
-    UpgradeRemovesToolchains,
     MissingFileDuringSelfUninstall(PathBuf),
 }
 
@@ -29,7 +28,7 @@ impl<'a> Notification<'a> {
         match *self {
             Install(ref n) => n.level(),
             Utils(ref n) => n.level(),
-            UpgradeRemovesToolchains | MissingFileDuringSelfUninstall(_) => NotificationLevel::Warn,
+            MissingFileDuringSelfUninstall(_) => NotificationLevel::Warn,
         }
     }
 }
@@ -40,10 +39,6 @@ impl<'a> Display for Notification<'a> {
         match *self {
             Install(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
-            UpgradeRemovesToolchains => write!(
-                f,
-                "this upgrade will remove all existing toolchains. you will need to reinstall them"
-            ),
             MissingFileDuringSelfUninstall(ref p) => write!(
                 f,
                 "expected file does not exist to uninstall: {}",
