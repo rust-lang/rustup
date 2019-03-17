@@ -20,34 +20,27 @@ pub enum Notification<'a> {
 impl<'a> Notification<'a> {
     pub fn log_with_verbosity(&self, verbosity: Verbosity) {
         use self::Notification::*;
+        let verbose = match verbosity {
+            Verbosity::Verbose => true,
+            Verbosity::NotVerbose => false,
+        };
         match self {
-            DownloadContentLengthReceived(len) => match verbosity {
-                Verbosity::Verbose => debug!("download size is: '{}'", len),
-                Verbosity::NotVerbose => (),
-            },
-            DownloadDataReceived(data) => match verbosity {
-                Verbosity::Verbose => debug!("received some data of size {}", data.len()),
-                Verbosity::NotVerbose => (),
-            },
-            DownloadFinished => match verbosity {
-                Verbosity::Verbose => debug!("download finished"),
-                Verbosity::NotVerbose => (),
-            },
-            FileAlreadyDownloaded => match verbosity {
-                Verbosity::Verbose => debug!("reusing previously downloaded file"),
-                Verbosity::NotVerbose => (),
-            },
+            DownloadContentLengthReceived(_) | DownloadDataReceived(_) | DownloadFinished
+                if !verbose => {}
+            FileAlreadyDownloaded if !verbose => (),
+            DownloadContentLengthReceived(len) => debug!("download size is: '{}'", len),
+            DownloadDataReceived(data) => debug!("received some data of size {}", data.len()),
+            DownloadFinished => debug!("download finished"),
+            FileAlreadyDownloaded => debug!("reusing previously downloaded file"),
             CachedFileChecksumFailed => warn!("bad checksum for cached download"),
-            ComponentUnavailable(pkg, toolchain) => {
-                if let Some(tc) = toolchain {
-                    warn!(
-                        "component '{}' is not available anymore on target '{}'",
-                        pkg, tc
-                    )
-                } else {
-                    warn!("component '{}' is not available anymore", pkg)
+            ComponentUnavailable(pkg, toolchain) => warn!(
+                "component '{}' is not available anymore{}",
+                pkg,
+                match toolchain {
+                    Some(tc) => format!(" on target '{}'", tc),
+                    None => "".to_string(),
                 }
-            }
+            ),
         }
     }
 }
