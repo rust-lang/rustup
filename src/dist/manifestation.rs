@@ -121,7 +121,7 @@ impl Manifestation {
         let ref installed_manifest_path = prefix.path().join(rel_installed_manifest_path);
 
         // Create the lists of components needed for installation
-        let update = Update::build_update(self, new_manifest, changes, notify_handler)?;
+        let update = Update::build_update(self, new_manifest, changes)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
@@ -439,7 +439,6 @@ impl Update {
         manifestation: &Manifestation,
         new_manifest: &Manifest,
         changes: Changes,
-        notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<Update> {
         // Load the configuration and list of installed components.
         let config = manifestation.read_config()?;
@@ -471,7 +470,6 @@ impl Update {
             rust_target_package,
             new_manifest,
             &changes,
-            notify_handler,
         );
 
         // If this is a full upgrade then the list of components to
@@ -520,7 +518,6 @@ impl Update {
         rust_target_package: &TargetedPackage,
         new_manifest: &Manifest,
         changes: &Changes,
-        notify_handler: &dyn Fn(Notification<'_>),
     ) {
         // Add components required by the package, according to the
         // manifest
@@ -563,10 +560,14 @@ impl Update {
                             // a removed component.
                             self.components_to_uninstall
                                 .push(existing_component.clone());
-                            notify_handler(Notification::ComponentUnavailable(
-                                &existing_component.short_name(new_manifest),
-                                existing_component.target.as_ref(),
-                            ));
+                            warn!(
+                                "component '{}' is not available anymore{}",
+                                existing_component.short_name(new_manifest),
+                                match existing_component.target.as_ref() {
+                                    Some(tc) => format!(" on target '{}'", tc),
+                                    None => "".to_string(),
+                                }
+                            )
                         }
                     }
                 }

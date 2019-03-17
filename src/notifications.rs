@@ -1,6 +1,5 @@
 use log::{debug, warn};
 
-use crate::dist::dist::TargetTriple;
 use crate::Verbosity;
 
 #[derive(Debug)]
@@ -14,7 +13,6 @@ pub enum Notification<'a> {
 
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
-    ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
 }
 
 impl<'a> Notification<'a> {
@@ -33,14 +31,6 @@ impl<'a> Notification<'a> {
             DownloadFinished => debug!("download finished"),
             FileAlreadyDownloaded => debug!("reusing previously downloaded file"),
             CachedFileChecksumFailed => warn!("bad checksum for cached download"),
-            ComponentUnavailable(pkg, toolchain) => warn!(
-                "component '{}' is not available anymore{}",
-                pkg,
-                match toolchain {
-                    Some(tc) => format!(" on target '{}'", tc),
-                    None => "".to_string(),
-                }
-            ),
         }
     }
 }

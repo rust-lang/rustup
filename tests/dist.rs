@@ -650,31 +650,15 @@ fn removed_component() {
         Some(edit),
         false,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
-            let received_notification = Arc::new(Cell::new(false));
-
-            let download_cfg = DownloadCfg {
-                dist_root: download_cfg.dist_root,
-                temp_cfg: download_cfg.temp_cfg,
-                download_dir: download_cfg.download_dir,
-                verbosity: Verbosity::NotVerbose,
-                notify_handler: &|n| {
-                    if let Notification::ComponentUnavailable("bonus", Some(_)) = n {
-                        received_notification.set(true);
-                    }
-                },
-            };
-
-            change_channel_date(url, "nightly", "2016-02-01");
             // Update with bonus.
+            change_channel_date(url, "nightly", "2016-02-01");
             update_from_dist(url, toolchain, prefix, &[], &[], &download_cfg, temp_cfg).unwrap();
             assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
-            change_channel_date(url, "nightly", "2016-02-02");
 
-            // Update without bonus, should emit a notify and remove the bonus component
+            // Update without bonus, should remove the bonus component
+            change_channel_date(url, "nightly", "2016-02-02");
             update_from_dist(url, toolchain, prefix, &[], &[], &download_cfg, temp_cfg).unwrap();
             assert!(!utils::path_exists(&prefix.path().join("bin/bonus")));
-
-            assert!(received_notification.get());
         },
     );
 }
