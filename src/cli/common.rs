@@ -116,11 +116,7 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
     Ok(Cfg::from_env(
         verbosity,
         Arc::new(move |n: Notification<'_>| {
-            if download_tracker.borrow_mut().handle_notification(&n) {
-                return;
-            }
-
-            n.log();
+            download_tracker.borrow_mut().handle_notification(&n);
         }),
     )?)
 }

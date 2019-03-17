@@ -56,6 +56,7 @@ impl<'a> DownloadCfg<'a> {
                 return Ok(File { path: target_file });
             } else {
                 (self.notify_handler)(Notification::CachedFileChecksumFailed);
+                warn!("bad checksum for cached download");
                 fs::remove_file(&target_file).chain_err(|| "cleaning up previous download")?;
             }
         }
