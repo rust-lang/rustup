@@ -23,11 +23,9 @@ pub use crate::utils::utils::raw::{
 pub struct ExitCode(pub i32);
 
 pub fn ensure_dir_exists(name: &'static str, path: &Path, verbosity: Verbosity) -> Result<bool> {
-    raw::ensure_dir_exists(path, |p| {
-        match verbosity {
-            Verbosity::Verbose => debug!("creating {} directory: '{}'", name, p.display()),
-            Verbosity::NotVerbose => (),
-        }
+    raw::ensure_dir_exists(path, |p| match verbosity {
+        Verbosity::Verbose => debug!("creating {} directory: '{}'", name, p.display()),
+        Verbosity::NotVerbose => (),
     })
     .chain_err(|| ErrorKind::CreatingDirectory {
         name: name,
@@ -250,11 +248,7 @@ pub fn assert_is_directory(path: &Path) -> Result<()> {
     }
 }
 
-pub fn symlink_dir(
-    src: &Path,
-    dest: &Path,
-    verbosity: Verbosity,
-) -> Result<()> {
+pub fn symlink_dir(src: &Path, dest: &Path, verbosity: Verbosity) -> Result<()> {
     match verbosity {
         Verbosity::Verbose => debug!("linking directory from: '{}'", dest.display()),
         Verbosity::NotVerbose => (),
@@ -325,12 +319,11 @@ pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
     }
 }
 
-pub fn remove_dir(
-    name: &'static str,
-    path: &Path,
-    notify_handler: &dyn Fn(Notification<'_>),
-) -> Result<()> {
-    notify_handler(Notification::RemovingDirectory(name, path));
+pub fn remove_dir(name: &'static str, path: &Path, verbosity: Verbosity) -> Result<()> {
+    match verbosity {
+        Verbosity::Verbose => debug!("removing {} directory: '{}'", name, path.display()),
+        Verbosity::NotVerbose => (),
+    }
     raw::remove_dir(path).chain_err(|| ErrorKind::RemovingDirectory {
         name: name,
         path: PathBuf::from(path),

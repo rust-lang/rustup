@@ -189,9 +189,7 @@ impl Cfg {
                 let dirs = utils::read_dir("toolchains", &self.toolchains_dir)?;
                 for dir in dirs {
                     let dir = dir.chain_err(|| ErrorKind::UpgradeIoError)?;
-                    utils::remove_dir("toolchain", &dir.path(), &|n| {
-                        (self.notify_handler)(n.into())
-                    })?;
+                    utils::remove_dir("toolchain", &dir.path(), self.verbosity)?;
                 }
 
                 // Also delete the update hashes
@@ -212,9 +210,7 @@ impl Cfg {
 
     pub fn delete_data(&self) -> Result<()> {
         if utils::path_exists(&self.rustup_dir) {
-            Ok(utils::remove_dir("home", &self.rustup_dir, &|n| {
-                (self.notify_handler)(n.into())
-            })?)
+            Ok(utils::remove_dir("home", &self.rustup_dir, self.verbosity)?)
         } else {
             Ok(())
         }

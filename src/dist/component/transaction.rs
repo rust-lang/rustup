@@ -180,7 +180,7 @@ impl<'a> ChangedItem<'a> {
         use self::ChangedItem::*;
         match *self {
             AddedFile(ref path) => utils::remove_file("component", &prefix.abs_path(path))?,
-            AddedDir(ref path) => utils::remove_dir("component", &prefix.abs_path(path), &|_| ())?,
+            AddedDir(ref path) => utils::remove_dir("component", &prefix.abs_path(path), Verbosity::NotVerbose)?,
             RemovedFile(ref path, ref tmp) | ModifiedFile(ref path, Some(ref tmp)) => {
                 utils::rename_file("component", &tmp, &prefix.abs_path(path))?
             }

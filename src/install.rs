@@ -32,9 +32,7 @@ impl<'a> InstallMethod<'a> {
             // Don't uninstall first for Dist method
             match self {
                 InstallMethod::Dist(..) | InstallMethod::Installer(..) => {}
-                _ => {
-                    uninstall(path, notify_handler)?;
-                }
+                _ => uninstall(path, verbosity)?
             }
         }
 
@@ -100,8 +98,6 @@ impl<'a> InstallMethod<'a> {
     }
 }
 
-pub fn uninstall(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<()> {
-    Ok(utils::remove_dir("install", path, &|n| {
-        notify_handler(n.into())
-    })?)
+pub fn uninstall(path: &Path, verbosity: Verbosity) -> Result<()> {
+    Ok(utils::remove_dir("install", path, verbosity)?)
 }

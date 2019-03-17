@@ -851,7 +851,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     // Delete RUSTUP_HOME
     let ref rustup_dir = utils::rustup_home()?;
     if rustup_dir.exists() {
-        utils::remove_dir("rustup_home", rustup_dir, &|_| {})?;
+        utils::remove_dir("rustup_home", rustup_dir, Verbosity::NotVerbose)?;
     }
 
     let read_dir_err = "failure reading directory";
@@ -869,7 +869,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         let dirent = dirent.chain_err(|| read_dir_err)?;
         if dirent.file_name().to_str() != Some("bin") {
             if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path(), &|_| {})?;
+                utils::remove_dir("cargo_home", &dirent.path(), Verbosity::NotVerbose)?;
             } else {
                 utils::remove_file("cargo_home", &dirent.path())?;
             }
@@ -889,7 +889,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));
         if file_is_tool == Some(false) {
             if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path(), &|_| {})?;
+                utils::remove_dir("cargo_home", &dirent.path(), Verbosity::NotVerbose)?;
             } else {
                 utils::remove_file("cargo_home", &dirent.path())?;
             }
@@ -911,7 +911,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 #[cfg(unix)]
 fn delete_rustup_and_cargo_home() -> Result<()> {
     let ref cargo_home = utils::cargo_home()?;
-    utils::remove_dir("cargo_home", cargo_home, &|_| ())?;
+    utils::remove_dir("cargo_home", cargo_home, Verbosity::NotVerbose)?;
 
     Ok(())
 }
