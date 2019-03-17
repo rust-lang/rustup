@@ -19,6 +19,8 @@ use crate::Verbosity;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
+use log::info;
+
 /// A Transaction tracks changes to the file system, allowing them to
 /// be rolled back in case of an error. Instead of deleting or
 /// overwriting file, the old copies are moved to a temporary
@@ -147,7 +149,7 @@ impl<'a> Transaction<'a> {
 impl<'a> Drop for Transaction<'a> {
     fn drop(&mut self) {
         if !self.committed {
-            (self.notify_handler)(Notification::RollingBack);
+            info!("rolling back changes");
             for item in self.changes.iter().rev() {
                 // ok_ntfy!(self.notify_handler,
                 //          Notification::NonFatalError,
@@ -180,7 +182,9 @@ impl<'a> ChangedItem<'a> {
         use self::ChangedItem::*;
         match *self {
             AddedFile(ref path) => utils::remove_file("component", &prefix.abs_path(path))?,
-            AddedDir(ref path) => utils::remove_dir("component", &prefix.abs_path(path), Verbosity::NotVerbose)?,
+            AddedDir(ref path) => {
+                utils::remove_dir("component", &prefix.abs_path(path), Verbosity::NotVerbose)?
+            }
             RemovedFile(ref path, ref tmp) | ModifiedFile(ref path, Some(ref tmp)) => {
                 utils::rename_file("component", &tmp, &prefix.abs_path(path))?
             }
