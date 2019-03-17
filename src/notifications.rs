@@ -10,7 +10,6 @@ pub enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
     Utils(crate::utils::Notification<'a>),
 
-    WritingMetadataVersion(&'a str),
     ReadMetadataVersion(&'a str),
     NonFatalError(&'a Error),
     UpgradeRemovesToolchains,
@@ -34,7 +33,7 @@ impl<'a> Notification<'a> {
         match *self {
             Install(ref n) => n.level(),
             Utils(ref n) => n.level(),
-            WritingMetadataVersion(_) | ReadMetadataVersion(_) => NotificationLevel::Verbose,
+            ReadMetadataVersion(_) => NotificationLevel::Verbose,
             NonFatalError(_) => NotificationLevel::Error,
             UpgradeRemovesToolchains | MissingFileDuringSelfUninstall(_) => NotificationLevel::Warn,
         }
@@ -47,7 +46,6 @@ impl<'a> Display for Notification<'a> {
         match *self {
             Install(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
-            WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{}'", ver),
             ReadMetadataVersion(ver) => write!(f, "read metadata version: '{}'", ver),
             NonFatalError(e) => write!(f, "{}", e),
             UpgradeRemovesToolchains => write!(
