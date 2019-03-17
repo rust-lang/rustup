@@ -18,7 +18,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use log::debug;
+use log::{debug, info};
 use url::Url;
 
 /// A fully resolved reference to a toolchain which may or may not exist
@@ -144,7 +144,7 @@ impl<'a> Toolchain<'a> {
         if !self.exists() {
             Ok(self.install(install_method)?)
         } else {
-            (self.cfg.notify_handler)(Notification::UsingExistingToolchain(&self.name));
+            info!("using existing install for '{}'", self.name);
             Ok(UpdateStatus::Unchanged)
         }
     }
