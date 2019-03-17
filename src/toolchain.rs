@@ -96,7 +96,7 @@ impl<'a> Toolchain<'a> {
         }
         let result = install::uninstall(&self.path, self.cfg.verbosity);
         if !self.exists() {
-            (self.cfg.notify_handler)(Notification::UninstalledToolchain(&self.name));
+            info!("toolchain '{}' uninstalled", self.name);
         }
         Ok(result?)
     }
