@@ -1,4 +1,3 @@
-use rustup::dist::Notification as In;
 use rustup::utils::tty;
 use rustup::Notification;
 use std::collections::VecDeque;
@@ -50,17 +49,17 @@ impl DownloadTracker {
 
     pub fn handle_notification(&mut self, n: &Notification<'_>) -> bool {
         match *n {
-            Notification::Install(In::DownloadContentLengthReceived(content_len)) => {
+            Notification::DownloadContentLengthReceived(content_len) => {
                 self.content_length_received(content_len);
                 true
             }
-            Notification::Install(In::DownloadDataReceived(data)) => {
+            Notification::DownloadDataReceived(data) => {
                 if tty::stdout_isatty() && self.term.is_some() {
                     self.data_received(data.len());
                 }
                 true
             }
-            Notification::Install(In::DownloadFinished) => {
+            Notification::DownloadFinished => {
                 self.download_finished();
                 true
             }

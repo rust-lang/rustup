@@ -1,7 +1,6 @@
-use crate::dist::Notification;
 use crate::utils::errors::*;
 use crate::utils::raw;
-use crate::Verbosity;
+use crate::{Notification, Verbosity};
 use log::{debug, warn};
 use sha2::Sha256;
 use std::cmp::Ord;

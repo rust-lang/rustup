@@ -1,8 +1,7 @@
 use crate::dist::errors::*;
-use crate::dist::notifications::*;
 use crate::dist::temp;
 use crate::utils::utils;
-use crate::Verbosity;
+use crate::{Notification, Verbosity};
 use log::{debug, warn};
 use sha2::{Digest, Sha256};
 use url::Url;

@@ -6,10 +6,9 @@ use crate::dist::dist;
 use crate::dist::download::DownloadCfg;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-use crate::dist::Notification;
 use crate::errors::Result;
 use crate::utils::utils;
-use crate::Verbosity;
+use crate::{Notification, Verbosity};
 use log::info;
 use std::path::Path;
 

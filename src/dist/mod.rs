@@ -1,7 +1,6 @@
 //! Installation from a Rust distribution server
 
 pub use crate::dist::errors::*;
-pub use crate::dist::notifications::Notification;
 
 pub mod temp;
 
@@ -13,5 +12,4 @@ pub mod download;
 pub mod errors;
 pub mod manifest;
 pub mod manifestation;
-pub mod notifications;
 pub mod prefix;

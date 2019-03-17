@@ -7,11 +7,10 @@ use crate::dist::dist::{TargetTriple, DEFAULT_DIST_SERVER};
 use crate::dist::download::{DownloadCfg, File};
 use crate::dist::errors::*;
 use crate::dist::manifest::{Component, Manifest, TargetedPackage};
-use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::utils::utils;
-use crate::Verbosity;
+use crate::{Notification, Verbosity};
 use log::{info, warn};
 use std::path::Path;
 

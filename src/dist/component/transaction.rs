@@ -10,11 +10,10 @@
 //! does not remove any dirs created by it.
 
 use crate::dist::errors::*;
-use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::utils::utils;
-use crate::Verbosity;
+use crate::{Notification, Verbosity};
 
 use std::fs::File;
 use std::path::{Path, PathBuf};

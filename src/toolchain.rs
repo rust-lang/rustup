@@ -25,7 +25,7 @@ pub struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: String,
     path: PathBuf,
-    dist_handler: Box<dyn Fn(crate::dist::Notification<'_>) + 'a>,
+    dist_handler: Box<dyn Fn(crate::Notification<'_>) + 'a>,
 }
 
 /// Used by the `list_component` function
