@@ -544,10 +544,10 @@ pub fn update_from_dist_<'a>(
     info!("syncing channel updates for '{}'", toolchain_str);
     match dl_v2_manifest(download, update_hash, toolchain) {
         Ok(Some((m, hash))) => {
-            (download.notify_handler)(Notification::DownloadedManifest(
-                &m.date,
-                m.get_rust_version().ok(),
-            ));
+            match m.get_rust_version() {
+                Ok(version) => info!("latest update on {}, rust version {}", m.date, version),
+                Err(_) => info!("latest update on {}, no rust version", m.date),
+            }
             return match manifestation.update(
                 &m,
                 changes,
