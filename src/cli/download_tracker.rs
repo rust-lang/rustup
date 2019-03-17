@@ -53,7 +53,6 @@ impl DownloadTracker {
         match *n {
             Notification::Install(In::Utils(Un::DownloadContentLengthReceived(content_len))) => {
                 self.content_length_received(content_len);
-
                 true
             }
             Notification::Install(In::Utils(Un::DownloadDataReceived(data))) => {

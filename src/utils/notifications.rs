@@ -10,7 +10,6 @@ pub enum Notification<'a> {
     DownloadDataReceived(&'a [u8]),
     /// Download has finished.
     DownloadFinished,
-    ResumingPartialDownload,
 }
 
 impl<'a> Notification<'a> {
@@ -24,7 +23,6 @@ impl<'a> Notification<'a> {
                         debug!("received some data of size {}", data.len())
                     }
                     DownloadFinished => debug!("download finished"),
-                    ResumingPartialDownload => debug!("resuming partial download"),
                 }
             }
             Verbosity::NotVerbose => (),

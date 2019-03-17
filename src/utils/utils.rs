@@ -204,9 +204,10 @@ fn download_file_(
             Event::DownloadDataReceived(data) => {
                 notify_handler(Notification::DownloadDataReceived(data));
             }
-            Event::ResumingPartialDownload => {
-                notify_handler(Notification::ResumingPartialDownload);
-            }
+            Event::ResumingPartialDownload => match verbosity {
+                Verbosity::Verbose => debug!("resuming partial download"),
+                Verbosity::NotVerbose => (),
+            },
         }
 
         Ok(())
