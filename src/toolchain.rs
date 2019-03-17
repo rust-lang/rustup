@@ -103,16 +103,14 @@ impl<'a> Toolchain<'a> {
     fn install(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
         let exists = self.exists();
-        if exists {
-            match self.cfg.verbosity {
-                Verbosity::Verbose => debug!("updating existing install for '{}'", self.name),
-                Verbosity::NotVerbose => (),
-            };
-        } else {
-            (self.cfg.notify_handler)(Notification::InstallingToolchain(&self.name));
-        }
         match self.cfg.verbosity {
-            Verbosity::Verbose => debug!("toolchain directory: '{}'", self.path.display()),
+            Verbosity::Verbose => {
+                match exists {
+                    true => debug!("updating existing install for '{}'", self.name),
+                    false => debug!("installing toolchain '{}'", self.name),
+                }
+                debug!("toolchain directory: '{}'", self.path.display())
+            }
             Verbosity::NotVerbose => (),
         };
         let updated = install_method.run(&self.path, self.cfg.verbosity, &|n| {

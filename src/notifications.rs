@@ -10,7 +10,6 @@ pub enum Notification<'a> {
     Install(crate::dist::Notification<'a>),
     Utils(crate::utils::Notification<'a>),
 
-    InstallingToolchain(&'a str),
     InstalledToolchain(&'a str),
     UsingExistingToolchain(&'a str),
     UninstallingToolchain(&'a str),
@@ -44,7 +43,6 @@ impl<'a> Notification<'a> {
             Install(ref n) => n.level(),
             Utils(ref n) => n.level(),
             WritingMetadataVersion(_)
-            | InstallingToolchain(_)
             | ReadMetadataVersion(_)
             | InstalledToolchain(_)
             | UpdateHashMatches => NotificationLevel::Verbose,
@@ -66,7 +64,6 @@ impl<'a> Display for Notification<'a> {
         match *self {
             Install(ref n) => n.fmt(f),
             Utils(ref n) => n.fmt(f),
-            InstallingToolchain(name) => write!(f, "installing toolchain '{}'", name),
             InstalledToolchain(name) => write!(f, "toolchain '{}' installed", name),
             UsingExistingToolchain(name) => write!(f, "using existing install for '{}'", name),
             UninstallingToolchain(name) => write!(f, "uninstalling toolchain '{}'", name),
