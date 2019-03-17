@@ -177,17 +177,16 @@ impl Manifestation {
 
         // Uninstall components
         for component in update.components_to_uninstall {
-            let notification = if altered {
-                Notification::RemovingOldComponent
-            } else {
-                Notification::RemovingComponent
-            };
-            notify_handler(notification(
-                &component.short_name(new_manifest),
-                &self.target_triple,
-                component.target.as_ref(),
-            ));
-
+            let short_name = component.short_name(new_manifest);
+            let target = component.target.as_ref();
+            let altered_prefix = if altered { "previous version of " } else { "" };
+            match target.filter(|t| *t != &self.target_triple) {
+                None => info!("removing {}component '{}'", altered_prefix, short_name),
+                Some(t) => info!(
+                    "removing {}component '{}' for '{}'",
+                    altered_prefix, short_name, t
+                ),
+            }
             tx = self.uninstall_component(&component, new_manifest, tx)?;
         }
 
