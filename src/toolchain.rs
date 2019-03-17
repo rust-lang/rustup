@@ -88,7 +88,7 @@ impl<'a> Toolchain<'a> {
         if self.exists() || self.is_symlink() {
             info!("uninstalling toolchain '{}'", self.name);
         } else {
-            (self.cfg.notify_handler)(Notification::ToolchainNotInstalled(&self.name));
+            info!("no toolchain installed for '{}'", self.name);
             return Ok(());
         }
         if let Some(update_hash) = self.update_hash()? {
