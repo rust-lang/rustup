@@ -2,7 +2,7 @@ use crate::utils::errors::*;
 use crate::utils::notifications::Notification;
 use crate::utils::raw;
 use crate::Verbosity;
-use log::debug;
+use log::{debug, warn};
 use sha2::Sha256;
 use std::cmp::Ord;
 use std::env;
@@ -100,9 +100,9 @@ pub fn match_file<T, F: FnMut(&str) -> Option<T>>(
     })
 }
 
-pub fn canonicalize_path(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> PathBuf {
+pub fn canonicalize_path(path: &Path) -> PathBuf {
     fs::canonicalize(path).unwrap_or_else(|_| {
-        notify_handler(Notification::NoCanonicalPath(path));
+        warn!("could not canonicalize path: '{}'", path.display());
         PathBuf::from(path)
     })
 }

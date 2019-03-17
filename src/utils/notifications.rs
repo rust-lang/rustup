@@ -1,5 +1,4 @@
 use std::fmt::{self, Display};
-use std::path::Path;
 
 use crate::utils::notify::NotificationLevel;
 
@@ -11,7 +10,6 @@ pub enum Notification<'a> {
     DownloadDataReceived(&'a [u8]),
     /// Download has finished.
     DownloadFinished,
-    NoCanonicalPath(&'a Path),
     ResumingPartialDownload,
     UsingCurl,
     UsingReqwest,
@@ -27,7 +25,6 @@ impl<'a> Notification<'a> {
             | ResumingPartialDownload
             | UsingCurl
             | UsingReqwest => NotificationLevel::Verbose,
-            NoCanonicalPath(_) => NotificationLevel::Warn,
         }
     }
 }
@@ -39,7 +36,6 @@ impl<'a> Display for Notification<'a> {
             DownloadContentLengthReceived(len) => write!(f, "download size is: '{}'", len),
             DownloadDataReceived(data) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished => write!(f, "download finished"),
-            NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
             ResumingPartialDownload => write!(f, "resuming partial download"),
             UsingCurl => write!(f, "downloading with curl"),
             UsingReqwest => write!(f, "downloading with reqwest"),

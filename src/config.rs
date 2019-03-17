@@ -56,7 +56,10 @@ pub struct Cfg {
 }
 
 impl Cfg {
-    pub fn from_env(verbosity: Verbosity, notify_handler: Arc<dyn Fn(Notification<'_>)>) -> Result<Self> {
+    pub fn from_env(
+        verbosity: Verbosity,
+        notify_handler: Arc<dyn Fn(Notification<'_>)>,
+    ) -> Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = utils::rustup_home()?;
 
@@ -298,13 +301,12 @@ impl Cfg {
         dir: &Path,
         settings: &Settings,
     ) -> Result<Option<(String, OverrideReason)>> {
-        let notify = self.notify_handler.as_ref();
-        let dir = utils::canonicalize_path(dir, &|n| notify(n.into()));
+        let dir = utils::canonicalize_path(dir);
         let mut dir = Some(&*dir);
 
         while let Some(d) = dir {
             // First check the override database
-            if let Some(name) = settings.dir_override(d, notify) {
+            if let Some(name) = settings.dir_override(d) {
                 let reason = OverrideReason::OverrideDB(d.to_owned());
                 return Ok(Some((name, reason)));
             }

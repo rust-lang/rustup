@@ -969,7 +969,7 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     for path in paths {
         if cfg
             .settings_file
-            .with_mut(|s| Ok(s.remove_override(&Path::new(&path), cfg.notify_handler.as_ref())))?
+            .with_mut(|s| Ok(s.remove_override(&Path::new(&path))))?
         {
             info!("override toolchain for '{}' removed", path);
         } else {
