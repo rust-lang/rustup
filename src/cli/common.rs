@@ -120,7 +120,7 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
                 return;
             }
 
-            n.log_with_verbosity(verbosity);
+            n.log();
         }),
     )?)
 }

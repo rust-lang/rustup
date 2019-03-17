@@ -1,6 +1,4 @@
-use log::{debug, warn};
-
-use crate::Verbosity;
+use log::warn;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -16,16 +14,11 @@ pub enum Notification<'a> {
 }
 
 impl<'a> Notification<'a> {
-    pub fn log_with_verbosity(&self, verbosity: Verbosity) {
+    pub fn log(&self) {
         use self::Notification::*;
-        let verbose = match verbosity {
-            Verbosity::Verbose => true,
-            Verbosity::NotVerbose => false,
-        };
         match self {
             DownloadContentLengthReceived(_) | DownloadDataReceived(_) | DownloadFinished => {}
-            FileAlreadyDownloaded if !verbose => (),
-            FileAlreadyDownloaded => debug!("reusing previously downloaded file"),
+            FileAlreadyDownloaded => (),
             CachedFileChecksumFailed => warn!("bad checksum for cached download"),
         }
     }

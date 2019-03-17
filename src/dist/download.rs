@@ -47,7 +47,10 @@ impl<'a> DownloadCfg<'a> {
             if hash == cached_result {
                 (self.notify_handler)(Notification::FileAlreadyDownloaded);
                 match self.verbosity {
-                    Verbosity::Verbose => debug!("checksum passed"),
+                    Verbosity::Verbose => {
+                        debug!("reusing previously downloaded file");
+                        debug!("checksum passed");
+                    }
                     Verbosity::NotVerbose => (),
                 };
                 return Ok(File { path: target_file });
