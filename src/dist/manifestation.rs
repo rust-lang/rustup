@@ -208,11 +208,7 @@ impl Manifestation {
 
             let gz;
             let xz;
-            let notification_converter = |notification: crate::utils::Notification<'_>| {
-                notify_handler(Notification::Utils(notification));
-            };
-            let reader =
-                utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
+            let reader = utils::FileReaderWithProgress::new_file(&installer_file, &notify_handler)?;
             let package: &dyn Package = match format {
                 Format::Gz => {
                     gz = TarGzPackage::new(reader, temp_cfg)?;

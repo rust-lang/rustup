@@ -1,5 +1,5 @@
+use crate::dist::Notification;
 use crate::utils::errors::*;
-use crate::utils::notifications::Notification;
 use crate::utils::raw;
 use crate::Verbosity;
 use log::{debug, warn};

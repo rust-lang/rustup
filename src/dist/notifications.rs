@@ -4,24 +4,34 @@ use log::{debug, warn};
 
 #[derive(Debug)]
 pub enum Notification<'a> {
-    Utils(crate::utils::Notification<'a>),
+    /// Received the Content-Length of the to-be downloaded data.
+    DownloadContentLengthReceived(u64),
+    /// Received some data.
+    DownloadDataReceived(&'a [u8]),
+    /// Download has finished.
+    DownloadFinished,
 
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
 }
 
-impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
-    fn from(n: crate::utils::Notification<'a>) -> Notification<'a> {
-        Notification::Utils(n)
-    }
-}
-
 impl<'a> Notification<'a> {
     pub fn log_with_verbosity(&self, verbosity: Verbosity) {
         use self::Notification::*;
         match self {
-            Notification::Utils(n) => n.log_with_verbosity(verbosity),
+            DownloadContentLengthReceived(len) => match verbosity {
+                Verbosity::Verbose => debug!("download size is: '{}'", len),
+                Verbosity::NotVerbose => (),
+            },
+            DownloadDataReceived(data) => match verbosity {
+                Verbosity::Verbose => debug!("received some data of size {}", data.len()),
+                Verbosity::NotVerbose => (),
+            },
+            DownloadFinished => match verbosity {
+                Verbosity::Verbose => debug!("download finished"),
+                Verbosity::NotVerbose => (),
+            },
             FileAlreadyDownloaded => match verbosity {
                 Verbosity::Verbose => debug!("reusing previously downloaded file"),
                 Verbosity::NotVerbose => (),
