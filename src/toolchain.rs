@@ -104,7 +104,10 @@ impl<'a> Toolchain<'a> {
         assert!(self.is_valid_install_method(install_method));
         let exists = self.exists();
         if exists {
-            (self.cfg.notify_handler)(Notification::UpdatingToolchain(&self.name));
+            match self.cfg.verbosity {
+                Verbosity::Verbose => debug!("updating existing install for '{}'", self.name),
+                Verbosity::NotVerbose => (),
+            };
         } else {
             (self.cfg.notify_handler)(Notification::InstallingToolchain(&self.name));
         }
