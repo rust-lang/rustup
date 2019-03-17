@@ -16,6 +16,7 @@ use rustup::dist::ErrorKind;
 use rustup::dist::Notification;
 use rustup::utils::raw as utils_raw;
 use rustup::utils::utils;
+use rustup::Verbosity;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs;
@@ -486,6 +487,7 @@ fn setup_from_dist_server(
         dist_root: "phony",
         temp_cfg: temp_cfg,
         download_dir: &prefix.path().to_owned().join("downloads"),
+        verbosity: Verbosity::NotVerbose,
         notify_handler: &|_| {},
     };
 
@@ -650,6 +652,7 @@ fn removed_component() {
                 dist_root: download_cfg.dist_root,
                 temp_cfg: download_cfg.temp_cfg,
                 download_dir: download_cfg.download_dir,
+                verbosity: Verbosity::NotVerbose,
                 notify_handler: &|n| {
                     if let Notification::ComponentUnavailable("bonus", Some(_)) = n {
                         received_notification.set(true);
@@ -1366,7 +1369,12 @@ fn unable_to_download_component() {
 }
 
 fn prevent_installation(prefix: &InstallPrefix) {
-    utils::ensure_dir_exists("installation path", &prefix.path().join("lib"), &|_| {}).unwrap();
+    utils::ensure_dir_exists(
+        "installation path",
+        &prefix.path().join("lib"),
+        Verbosity::NotVerbose,
+    )
+    .unwrap();
     let install_blocker = prefix.path().join("lib").join("rustlib");
     utils::write_file("install-blocker", &install_blocker, "fail-installation").unwrap();
 }
@@ -1391,6 +1399,7 @@ fn reuse_downloaded_file() {
             dist_root: download_cfg.dist_root,
             temp_cfg: download_cfg.temp_cfg,
             download_dir: download_cfg.download_dir,
+            verbosity: Verbosity::NotVerbose,
             notify_handler: &|n| {
                 if let Notification::FileAlreadyDownloaded = n {
                     reuse_notification_fired.set(true);
@@ -1424,7 +1433,12 @@ fn checks_files_hashes_before_reuse() {
         .unwrap()[..64]
             .to_owned();
         let prev_download = download_cfg.download_dir.join(target_hash);
-        utils::ensure_dir_exists("download dir", &download_cfg.download_dir, &|_| {}).unwrap();
+        utils::ensure_dir_exists(
+            "download dir",
+            &download_cfg.download_dir,
+            Verbosity::NotVerbose,
+        )
+        .unwrap();
         utils::write_file("bad previous download", &prev_download, "bad content").unwrap();
         println!("wrote previous download to {}", prev_download.display());
 
@@ -1433,6 +1447,7 @@ fn checks_files_hashes_before_reuse() {
             dist_root: download_cfg.dist_root,
             temp_cfg: download_cfg.temp_cfg,
             download_dir: download_cfg.download_dir,
+            verbosity: Verbosity::NotVerbose,
             notify_handler: &|n| {
                 if let Notification::CachedFileChecksumFailed = n {
                     noticed_bad_checksum.set(true);

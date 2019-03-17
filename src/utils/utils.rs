@@ -1,6 +1,8 @@
 use crate::utils::errors::*;
 use crate::utils::notifications::Notification;
 use crate::utils::raw;
+use crate::Verbosity;
+use log::debug;
 use sha2::Sha256;
 use std::cmp::Ord;
 use std::env;
@@ -20,13 +22,12 @@ pub use crate::utils::utils::raw::{
 
 pub struct ExitCode(pub i32);
 
-pub fn ensure_dir_exists(
-    name: &'static str,
-    path: &Path,
-    notify_handler: &dyn Fn(Notification<'_>),
-) -> Result<bool> {
+pub fn ensure_dir_exists(name: &'static str, path: &Path, verbosity: Verbosity) -> Result<bool> {
     raw::ensure_dir_exists(path, |p| {
-        notify_handler(Notification::CreatingDirectory(name, p))
+        match verbosity {
+            Verbosity::Verbose => debug!("creating {} directory: '{}'", name, p.display()),
+            Verbosity::NotVerbose => (),
+        }
     })
     .chain_err(|| ErrorKind::CreatingDirectory {
         name: name,

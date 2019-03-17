@@ -593,6 +593,7 @@ pub fn update_from_dist_<'a>(
         &manifest,
         update_hash,
         &download.temp_cfg,
+        download.verbosity,
         download.notify_handler.clone(),
     ) {
         Ok(None) => Ok(None),

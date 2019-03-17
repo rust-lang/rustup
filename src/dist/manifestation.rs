@@ -11,6 +11,7 @@ use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::utils::utils;
+use crate::Verbosity;
 use std::path::Path;
 
 pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
@@ -340,6 +341,7 @@ impl Manifestation {
         new_manifest: &[String],
         update_hash: Option<&Path>,
         temp_cfg: &temp::Cfg,
+        verbosity: Verbosity,
         notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
@@ -377,6 +379,7 @@ impl Manifestation {
             dist_root: "bogus",
             download_dir: &dld_dir,
             temp_cfg: temp_cfg,
+            verbosity,
             notify_handler: notify_handler,
         };
 

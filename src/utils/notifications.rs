@@ -7,7 +7,6 @@ use crate::utils::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
-    CreatingDirectory(&'a str, &'a Path),
     LinkingDirectory(&'a Path, &'a Path),
     CopyingDirectory(&'a Path, &'a Path),
     RemovingDirectory(&'a str, &'a Path),
@@ -28,7 +27,7 @@ impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match *self {
-            CreatingDirectory(_, _) | RemovingDirectory(_, _) => NotificationLevel::Verbose,
+            RemovingDirectory(_, _) => NotificationLevel::Verbose,
             LinkingDirectory(_, _)
             | CopyingDirectory(_, _)
             | DownloadingFile(_, _)
@@ -47,9 +46,6 @@ impl<'a> Display for Notification<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match *self {
-            CreatingDirectory(name, path) => {
-                write!(f, "creating {} directory: '{}'", name, path.display())
-            }
             LinkingDirectory(_, dest) => write!(f, "linking directory from: '{}'", dest.display()),
             CopyingDirectory(src, _) => write!(f, "coping directory from: '{}'", src.display()),
             RemovingDirectory(name, path) => {

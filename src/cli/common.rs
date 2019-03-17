@@ -6,7 +6,7 @@ use crate::term2;
 use log::{debug, error, info, warn};
 use rustup::utils::notify::NotificationLevel;
 use rustup::utils::utils;
-use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
+use rustup::{Cfg, Notification, Toolchain, UpdateStatus, Verbosity};
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -108,7 +108,9 @@ pub fn set_globals(verbose: bool) -> Result<Cfg> {
 
     let download_tracker = RefCell::new(DownloadTracker::new());
 
-    Ok(Cfg::from_env(Arc::new(move |n: Notification<'_>| {
+    let verbosity = if verbose { Verbosity::Verbose } else { Verbosity::NotVerbose };
+
+    Ok(Cfg::from_env(verbosity, Arc::new(move |n: Notification<'_>| {
         if download_tracker.borrow_mut().handle_notification(&n) {
             return;
         }
@@ -423,7 +425,6 @@ pub fn report_error(e: &Error) {
             println!();
             println!("{:?}", backtrace);
         }
-    } else {
     }
 
     fn show_backtrace() -> bool {

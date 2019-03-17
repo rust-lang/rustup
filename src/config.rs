@@ -13,6 +13,12 @@ use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
 use crate::toolchain::{Toolchain, UpdateStatus};
 use crate::utils::utils;
 
+#[derive(Clone, Copy, Debug)]
+pub enum Verbosity {
+    Verbose,
+    NotVerbose,
+}
+
 #[derive(Debug)]
 pub enum OverrideReason {
     Environment,
@@ -45,15 +51,16 @@ pub struct Cfg {
     pub env_override: Option<String>,
     pub dist_root_url: String,
     pub dist_root_server: String,
+    pub verbosity: Verbosity,
     pub notify_handler: Arc<dyn Fn(Notification<'_>)>,
 }
 
 impl Cfg {
-    pub fn from_env(notify_handler: Arc<dyn Fn(Notification<'_>)>) -> Result<Self> {
+    pub fn from_env(verbosity: Verbosity, notify_handler: Arc<dyn Fn(Notification<'_>)>) -> Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = utils::rustup_home()?;
 
-        utils::ensure_dir_exists("home", &rustup_dir, &|n| notify_handler(n.into()))?;
+        utils::ensure_dir_exists("home", &rustup_dir, verbosity)?;
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
         // Convert from old settings format if necessary
@@ -106,6 +113,7 @@ impl Cfg {
             download_dir: download_dir,
             temp_cfg: temp_cfg,
             gpg_key: gpg_key,
+            verbosity,
             notify_handler: notify_handler,
             env_override: env_override,
             dist_root_url: dist_root,
@@ -132,9 +140,7 @@ impl Cfg {
 
     pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain<'_>> {
         if create_parent {
-            utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {
-                (self.notify_handler)(n.into())
-            })?;
+            utils::ensure_dir_exists("toolchains", &self.toolchains_dir, self.verbosity)?;
         }
 
         Toolchain::from(self, name)
@@ -148,9 +154,7 @@ impl Cfg {
 
     pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> Result<PathBuf> {
         if create_parent {
-            utils::ensure_dir_exists("update-hash", &self.update_hash_dir, &|n| {
-                (self.notify_handler)(n.into())
-            })?;
+            utils::ensure_dir_exists("update-hash", &self.update_hash_dir, self.verbosity)?;
         }
 
         Ok(self.update_hash_dir.join(toolchain))

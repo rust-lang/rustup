@@ -14,6 +14,7 @@ use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::utils::utils;
+use crate::Verbosity;
 
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -205,7 +206,7 @@ impl<'a> ChangedItem<'a> {
             .into())
         } else {
             if let Some(p) = abs_path.parent() {
-                utils::ensure_dir_exists("component", p, &|_| ())?;
+                utils::ensure_dir_exists("component", p, Verbosity::NotVerbose)?;
             }
             let file = File::create(&abs_path)
                 .chain_err(|| format!("error creating file '{}'", abs_path.display()))?;
@@ -228,7 +229,7 @@ impl<'a> ChangedItem<'a> {
             .into())
         } else {
             if let Some(p) = abs_path.parent() {
-                utils::ensure_dir_exists("component", p, &|_| ())?;
+                utils::ensure_dir_exists("component", p, Verbosity::NotVerbose)?;
             }
             utils::copy_file(src, &abs_path)?;
             Ok(ChangedItem::AddedFile(relpath))
@@ -249,7 +250,7 @@ impl<'a> ChangedItem<'a> {
             .into())
         } else {
             if let Some(p) = abs_path.parent() {
-                utils::ensure_dir_exists("component", p, &|_| ())?;
+                utils::ensure_dir_exists("component", p, Verbosity::NotVerbose)?;
             }
             utils::copy_dir(src, &abs_path, &|_| ())?;
             Ok(ChangedItem::AddedDir(relpath))
@@ -306,7 +307,7 @@ impl<'a> ChangedItem<'a> {
             Ok(ChangedItem::ModifiedFile(relpath, Some(backup)))
         } else {
             if let Some(p) = abs_path.parent() {
-                utils::ensure_dir_exists("component", p, &|_| {})?;
+                utils::ensure_dir_exists("component", p, Verbosity::NotVerbose)?;
             }
             Ok(ChangedItem::ModifiedFile(relpath, None))
         }

@@ -155,6 +155,7 @@ impl<'a> Toolchain<'a> {
             dist_root: &self.cfg.dist_root_url,
             temp_cfg: &self.cfg.temp_cfg,
             download_dir: &self.cfg.download_dir,
+            verbosity: self.cfg.verbosity,
             notify_handler: &*self.dist_handler,
         }
     }

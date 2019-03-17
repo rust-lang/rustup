@@ -37,7 +37,7 @@ use log::{error, debug, info, warn};
 use regex::Regex;
 use rustup::dist::dist;
 use rustup::utils::utils;
-use rustup::{DUP_TOOLS, TOOLS};
+use rustup::{DUP_TOOLS, TOOLS, Verbosity};
 use same_file::Handle;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
@@ -702,7 +702,7 @@ fn install_bins() -> Result<()> {
     let ref this_exe_path = utils::current_exe()?;
     let ref rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
 
-    utils::ensure_dir_exists("bin", bin_path, &|_| {})?;
+    utils::ensure_dir_exists("bin", bin_path, Verbosity::NotVerbose)?;
     // NB: Even on Linux we can't just copy the new binary over the (running)
     // old binary; we must unlink it first.
     if rustup_path.exists() {

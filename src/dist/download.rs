@@ -2,6 +2,7 @@ use crate::dist::errors::*;
 use crate::dist::notifications::*;
 use crate::dist::temp;
 use crate::utils::utils;
+use crate::Verbosity;
 use sha2::{Digest, Sha256};
 use url::Url;
 
@@ -16,6 +17,7 @@ pub struct DownloadCfg<'a> {
     pub dist_root: &'a str,
     pub temp_cfg: &'a temp::Cfg,
     pub download_dir: &'a PathBuf,
+    pub verbosity: Verbosity,
     pub notify_handler: &'a dyn Fn(Notification<'_>),
 }
 
@@ -37,9 +39,7 @@ impl<'a> DownloadCfg<'a> {
     /// target file already exists, then the hash is checked and it is returned
     /// immediately without re-downloading.
     pub fn download(&self, url: &Url, hash: &str) -> Result<File> {
-        utils::ensure_dir_exists("Download Directory", &self.download_dir, &|n| {
-            (self.notify_handler)(n.into())
-        })?;
+        utils::ensure_dir_exists("Download Directory", &self.download_dir, self.verbosity)?;
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
