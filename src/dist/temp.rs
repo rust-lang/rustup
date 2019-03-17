@@ -1,6 +1,6 @@
 use crate::utils::raw;
 use crate::Verbosity;
-use log::debug;
+use log::{debug, warn};
 use std::error;
 use std::fmt::{self, Display};
 use std::fs;
@@ -21,7 +21,6 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
-    FileDeletion(&'a Path, io::Result<()>),
     DirectoryDeletion(&'a Path, io::Result<()>),
 }
 
@@ -48,7 +47,7 @@ impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match *self {
-            FileDeletion(_, ref result) | DirectoryDeletion(_, ref result) => {
+            DirectoryDeletion(_, ref result) => {
                 if result.is_ok() {
                     NotificationLevel::Verbose
                 } else {
@@ -63,13 +62,6 @@ impl<'a> Display for Notification<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match *self {
-            FileDeletion(path, ref result) => {
-                if result.is_ok() {
-                    write!(f, "deleted temp file: {}", path.display())
-                } else {
-                    write!(f, "could not delete temp file: {}", path.display())
-                }
-            }
             DirectoryDeletion(path, ref result) => {
                 if result.is_ok() {
                     write!(f, "deleted temp directory: {}", path.display())
@@ -245,8 +237,10 @@ impl<'a> Drop for Dir<'a> {
 impl<'a> Drop for File<'a> {
     fn drop(&mut self) {
         if raw::is_file(&self.path) {
-            let n = Notification::FileDeletion(&self.path, fs::remove_file(&self.path));
-            (self.cfg.notify_handler)(n);
+            match fs::remove_file(&self.path) {
+                Ok(_) => debug!("deleted temp file: {}", self.path.display()),
+                Err(_) => warn!("could not delete temp file: {}", self.path.display()),
+            }
         }
     }
 }
