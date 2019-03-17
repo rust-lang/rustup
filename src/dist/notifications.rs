@@ -1,5 +1,4 @@
 use crate::dist::dist::TargetTriple;
-use crate::dist::errors::*;
 use crate::utils::notify::NotificationLevel;
 use std::fmt::{self, Display};
 
@@ -9,7 +8,6 @@ pub enum Notification<'a> {
 
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
-    NonFatalError(&'a Error),
     MissingInstalledComponent(&'a str),
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     InstallingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
@@ -44,7 +42,6 @@ impl<'a> Notification<'a> {
             MissingInstalledComponent(_)
             | CachedFileChecksumFailed
             | ComponentUnavailable(_, _) => NotificationLevel::Warn,
-            NonFatalError(_) => NotificationLevel::Error,
         }
     }
 }
@@ -56,7 +53,6 @@ impl<'a> Display for Notification<'a> {
             Utils(ref n) => n.fmt(f),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
-            NonFatalError(e) => write!(f, "{}", e),
             MissingInstalledComponent(c) => {
                 write!(f, "during uninstall component {} was not found", c)
             }

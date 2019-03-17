@@ -19,7 +19,7 @@ use crate::Verbosity;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-use log::info;
+use log::{error, info};
 
 /// A Transaction tracks changes to the file system, allowing them to
 /// be rolled back in case of an error. Instead of deleting or
@@ -155,9 +155,7 @@ impl<'a> Drop for Transaction<'a> {
                 //          Notification::NonFatalError,
                 match item.roll_back(&self.prefix) {
                     Ok(()) => {}
-                    Err(e) => {
-                        (self.notify_handler)(Notification::NonFatalError(&e));
-                    }
+                    Err(e) => error!("{}", e),
                 }
             }
         }
