@@ -3,7 +3,7 @@ use crate::dist::notifications::*;
 use crate::dist::temp;
 use crate::utils::utils;
 use crate::Verbosity;
-use log::warn;
+use log::{debug, warn};
 use sha2::{Digest, Sha256};
 use url::Url;
 
@@ -140,7 +140,10 @@ impl<'a> DownloadCfg<'a> {
                     )
                 }
             } else {
-                (self.notify_handler)(Notification::NoUpdateHash(hash_file));
+                match self.verbosity {
+                    Verbosity::Verbose => debug!("no update hash at: '{}'", hash_file.display()),
+                    Verbosity::NotVerbose => (),
+                };
             }
         }
 

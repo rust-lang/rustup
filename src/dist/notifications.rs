@@ -2,13 +2,11 @@ use crate::dist::dist::TargetTriple;
 use crate::dist::errors::*;
 use crate::utils::notify::NotificationLevel;
 use std::fmt::{self, Display};
-use std::path::Path;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
     Utils(crate::utils::Notification<'a>),
 
-    NoUpdateHash(&'a Path),
     ChecksumValid(&'a str),
     SignatureValid(&'a str),
     FileAlreadyDownloaded,
@@ -39,10 +37,9 @@ impl<'a> Notification<'a> {
         use self::Notification::*;
         match *self {
             Utils(ref n) => n.level(),
-            ChecksumValid(_)
-            | NoUpdateHash(_)
-            | FileAlreadyDownloaded
-            | DownloadingLegacyManifest => NotificationLevel::Verbose,
+            ChecksumValid(_) | FileAlreadyDownloaded | DownloadingLegacyManifest => {
+                NotificationLevel::Verbose
+            }
             SignatureValid(_)
             | DownloadingComponent(_, _, _)
             | InstallingComponent(_, _, _)
@@ -66,7 +63,6 @@ impl<'a> Display for Notification<'a> {
         use self::Notification::*;
         match *self {
             Utils(ref n) => n.fmt(f),
-            NoUpdateHash(path) => write!(f, "no update hash at: '{}'", path.display()),
             ChecksumValid(_) => write!(f, "checksum passed"),
             SignatureValid(_) => write!(f, "signature valid"),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
