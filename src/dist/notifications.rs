@@ -8,7 +8,6 @@ pub enum Notification<'a> {
 
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
-    DownloadingLegacyManifest,
     ManifestChecksumFailedHack,
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
 }
@@ -24,7 +23,7 @@ impl<'a> Notification<'a> {
         use self::Notification::*;
         match *self {
             Utils(ref n) => n.level(),
-            FileAlreadyDownloaded | DownloadingLegacyManifest => NotificationLevel::Verbose,
+            FileAlreadyDownloaded => NotificationLevel::Verbose,
             ManifestChecksumFailedHack => NotificationLevel::Info,
             CachedFileChecksumFailed | ComponentUnavailable(_, _) => NotificationLevel::Warn,
         }
@@ -38,7 +37,6 @@ impl<'a> Display for Notification<'a> {
             Utils(ref n) => n.fmt(f),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
-            DownloadingLegacyManifest => write!(f, "manifest not found. trying legacy manifest"),
             ManifestChecksumFailedHack => {
                 write!(f, "update not yet available, sorry! try again later")
             }

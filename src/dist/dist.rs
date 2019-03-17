@@ -7,12 +7,13 @@ use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::utils::utils;
+use crate::Verbosity;
 
 use std::env;
 use std::fmt;
 use std::path::Path;
 
-use log::info;
+use log::{debug, info};
 use regex::Regex;
 
 pub const DEFAULT_DIST_SERVER: &'static str = "https://static.rust-lang.org";
@@ -562,8 +563,10 @@ pub fn update_from_dist_<'a>(
         }
         Ok(None) => return Ok(None),
         Err(Error(ErrorKind::Utils(crate::utils::ErrorKind::DownloadNotExists { .. }), _)) => {
-            // Proceed to try v1 as a fallback
-            (download.notify_handler)(Notification::DownloadingLegacyManifest);
+            match download.verbosity {
+                Verbosity::Verbose => debug!("manifest not found. trying legacy manifest"),
+                Verbosity::NotVerbose => (),
+            };
         }
         Err(Error(ErrorKind::ChecksumFailed { .. }, _)) => return Ok(None),
         Err(e) => return Err(e),
