@@ -16,7 +16,7 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(
     // when and why this is needed.
     cmd.stdin(process::Stdio::inherit());
 
-    return exec(&mut cmd).chain_err(|| crate::utils::ErrorKind::RunningCommand {
+    return exec(&mut cmd).chain_err(|| crate::dist::ErrorKind::RunningCommand {
         name: OsStr::new(arg0).to_owned(),
     });
 

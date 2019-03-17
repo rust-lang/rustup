@@ -1,4 +1,4 @@
-use crate::utils::errors::*;
+use crate::dist::errors::*;
 use crate::utils::notifications::Notification;
 use crate::utils::raw;
 use sha2::Sha256;

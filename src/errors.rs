@@ -7,7 +7,6 @@ use error_chain::{impl_error_chain_kind, impl_error_chain_processed, impl_extrac
 error_chain! {
     links {
         Dist(crate::dist::Error, crate::dist::ErrorKind);
-        Utils(crate::utils::Error, crate::utils::ErrorKind);
     }
 
     foreign_links {
