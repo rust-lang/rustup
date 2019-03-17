@@ -8,7 +8,6 @@ pub enum Notification<'a> {
 
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
-    ManifestChecksumFailedHack,
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
 }
 
@@ -24,7 +23,6 @@ impl<'a> Notification<'a> {
         match *self {
             Utils(ref n) => n.level(),
             FileAlreadyDownloaded => NotificationLevel::Verbose,
-            ManifestChecksumFailedHack => NotificationLevel::Info,
             CachedFileChecksumFailed | ComponentUnavailable(_, _) => NotificationLevel::Warn,
         }
     }
@@ -37,9 +35,6 @@ impl<'a> Display for Notification<'a> {
             Utils(ref n) => n.fmt(f),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
-            ManifestChecksumFailedHack => {
-                write!(f, "update not yet available, sorry! try again later")
-            }
             ComponentUnavailable(pkg, toolchain) => {
                 if let Some(tc) = toolchain {
                     write!(

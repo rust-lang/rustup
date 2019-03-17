@@ -3,7 +3,6 @@ use crate::dist::errors::*;
 use crate::dist::manifest::Component;
 use crate::dist::manifest::Manifest as ManifestV2;
 use crate::dist::manifestation::{Changes, Manifestation, UpdateStatus};
-use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::utils::utils;
@@ -633,9 +632,9 @@ fn dl_v2_manifest<'a>(
         match *manifest_dl_res.as_ref().unwrap_err().kind() {
             // Checksum failed - issue warning to try again later
             ErrorKind::ChecksumFailed { .. } => {
-                (download.notify_handler)(Notification::ManifestChecksumFailedHack)
+                info!("update not yet available, sorry! try again later")
             }
-            _ => {}
+            _ => (),
         }
         Err(manifest_dl_res.unwrap_err())
     }
