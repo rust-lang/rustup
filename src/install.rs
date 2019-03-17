@@ -10,6 +10,7 @@ use crate::dist::Notification;
 use crate::errors::Result;
 use crate::utils::utils;
 use crate::Verbosity;
+use log::info;
 use std::path::Path;
 
 #[derive(Copy, Clone)]
@@ -27,12 +28,17 @@ pub enum InstallMethod<'a> {
 }
 
 impl<'a> InstallMethod<'a> {
-    pub fn run(self, path: &Path, verbosity: Verbosity, notify_handler: &dyn Fn(Notification<'_>)) -> Result<bool> {
+    pub fn run(
+        self,
+        path: &Path,
+        verbosity: Verbosity,
+        notify_handler: &dyn Fn(Notification<'_>),
+    ) -> Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
                 InstallMethod::Dist(..) | InstallMethod::Installer(..) => {}
-                _ => uninstall(path, verbosity)?
+                _ => uninstall(path, verbosity)?,
             }
         }
 
@@ -80,7 +86,7 @@ impl<'a> InstallMethod<'a> {
         temp_cfg: &temp::Cfg,
         notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<()> {
-        notify_handler(Notification::Extracting(src, path));
+        info!("extracting...");
 
         let prefix = InstallPrefix::from(path.to_owned());
         let installation = Components::open(prefix.clone())?;

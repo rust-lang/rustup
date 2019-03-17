@@ -8,7 +8,6 @@ use std::path::Path;
 pub enum Notification<'a> {
     Utils(crate::utils::Notification<'a>),
 
-    Extracting(&'a Path, &'a Path),
     ComponentAlreadyInstalled(&'a str),
     CantReadUpdateHash(&'a Path),
     NoUpdateHash(&'a Path),
@@ -46,8 +45,7 @@ impl<'a> Notification<'a> {
             | NoUpdateHash(_)
             | FileAlreadyDownloaded
             | DownloadingLegacyManifest => NotificationLevel::Verbose,
-            Extracting(_, _)
-            | SignatureValid(_)
+            SignatureValid(_)
             | DownloadingComponent(_, _, _)
             | InstallingComponent(_, _, _)
             | RemovingComponent(_, _, _)
@@ -72,7 +70,6 @@ impl<'a> Display for Notification<'a> {
         use self::Notification::*;
         match *self {
             Utils(ref n) => n.fmt(f),
-            Extracting(_, _) => write!(f, "extracting..."),
             ComponentAlreadyInstalled(ref c) => write!(f, "component {} is up to date", c),
             CantReadUpdateHash(path) => write!(
                 f,
