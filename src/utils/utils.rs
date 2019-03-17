@@ -133,7 +133,14 @@ pub fn download_file_with_resume(
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
     use download::ErrorKind as DEK;
-    match download_file_(url, path, hasher, resume_from_partial, verbosity, notify_handler) {
+    match download_file_(
+        url,
+        path,
+        hasher,
+        resume_from_partial,
+        verbosity,
+        notify_handler,
+    ) {
         Ok(_) => Ok(()),
         Err(e) => {
             let is_client_error = match e.kind() {
@@ -207,14 +214,23 @@ fn download_file_(
 
     // Download the file
 
-    // Keep the hyper env var around for a bit
     let use_curl_backend = env::var_os("RUSTUP_USE_CURL").is_some();
-    let (backend, notification) = if use_curl_backend {
-        (Backend::Curl, Notification::UsingCurl)
+    let backend = if use_curl_backend {
+        Backend::Curl
     } else {
-        (Backend::Reqwest, Notification::UsingReqwest)
+        Backend::Reqwest
     };
-    notify_handler(notification);
+    match verbosity {
+        Verbosity::Verbose => debug!(
+            "downloading with {}",
+            match backend {
+                Backend::Curl => "curl",
+                Backend::Reqwest => "reqwest",
+            }
+        ),
+        Verbosity::NotVerbose => (),
+    }
+
     download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback))?;
 
     notify_handler(Notification::DownloadFinished);

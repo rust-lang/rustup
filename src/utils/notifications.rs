@@ -11,8 +11,6 @@ pub enum Notification<'a> {
     /// Download has finished.
     DownloadFinished,
     ResumingPartialDownload,
-    UsingCurl,
-    UsingReqwest,
 }
 
 impl<'a> Notification<'a> {
@@ -22,9 +20,7 @@ impl<'a> Notification<'a> {
             DownloadContentLengthReceived(_)
             | DownloadDataReceived(_)
             | DownloadFinished
-            | ResumingPartialDownload
-            | UsingCurl
-            | UsingReqwest => NotificationLevel::Verbose,
+            | ResumingPartialDownload => NotificationLevel::Verbose,
         }
     }
 }
@@ -37,8 +33,6 @@ impl<'a> Display for Notification<'a> {
             DownloadDataReceived(data) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished => write!(f, "download finished"),
             ResumingPartialDownload => write!(f, "resuming partial download"),
-            UsingCurl => write!(f, "downloading with curl"),
-            UsingReqwest => write!(f, "downloading with reqwest"),
         }
     }
 }
