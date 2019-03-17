@@ -118,9 +118,10 @@ pub fn download_file(
     url: &Url,
     path: &Path,
     hasher: Option<&mut Sha256>,
+    verbosity: Verbosity,
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
-    download_file_with_resume(&url, &path, hasher, false, &notify_handler)
+    download_file_with_resume(&url, &path, hasher, false, verbosity, &notify_handler)
 }
 
 pub fn download_file_with_resume(
@@ -128,10 +129,11 @@ pub fn download_file_with_resume(
     path: &Path,
     hasher: Option<&mut Sha256>,
     resume_from_partial: bool,
+    verbosity: Verbosity,
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
     use download::ErrorKind as DEK;
-    match download_file_(url, path, hasher, resume_from_partial, notify_handler) {
+    match download_file_(url, path, hasher, resume_from_partial, verbosity, notify_handler) {
         Ok(_) => Ok(()),
         Err(e) => {
             let is_client_error = match e.kind() {
@@ -161,6 +163,7 @@ fn download_file_(
     path: &Path,
     hasher: Option<&mut Sha256>,
     resume_from_partial: bool,
+    verbosity: Verbosity,
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
     use download::download_to_path_with_backend;
@@ -168,7 +171,10 @@ fn download_file_(
     use sha2::Digest;
     use std::cell::RefCell;
 
-    notify_handler(Notification::DownloadingFile(url, path));
+    match verbosity {
+        Verbosity::Verbose => debug!("downloading file from: '{}'", url),
+        Verbosity::NotVerbose => (),
+    }
 
     let hasher = RefCell::new(hasher);
 

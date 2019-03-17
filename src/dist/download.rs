@@ -70,6 +70,7 @@ impl<'a> DownloadCfg<'a> {
             &partial_file_path,
             Some(&mut hasher),
             true,
+            self.verbosity,
             &|n| (self.notify_handler)(n.into()),
         )?;
 
@@ -105,7 +106,7 @@ impl<'a> DownloadCfg<'a> {
         let hash_url = utils::parse_url(&(url.to_owned() + ".sha256"))?;
         let hash_file = self.temp_cfg.new_file()?;
 
-        utils::download_file(&hash_url, &hash_file, None, &|n| {
+        utils::download_file(&hash_url, &hash_file, None, self.verbosity, &|n| {
             (self.notify_handler)(n.into())
         })?;
 
@@ -143,7 +144,7 @@ impl<'a> DownloadCfg<'a> {
         let file = self.temp_cfg.new_file_with_ext("", ext)?;
 
         let mut hasher = Sha256::new();
-        utils::download_file(&url, &file, Some(&mut hasher), &|n| {
+        utils::download_file(&url, &file, Some(&mut hasher), self.verbosity, &|n| {
             (self.notify_handler)(n.into())
         })?;
         let actual_hash = format!("{:x}", hasher.result());

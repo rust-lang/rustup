@@ -1525,7 +1525,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let release_file_url = format!("{}/release-stable.toml", update_root);
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
-    utils::download_file(&release_file_url, &release_file, None, &|_| ())?;
+    utils::download_file(&release_file_url, &release_file, None, Verbosity::NotVerbose, &|_| ())?;
     let release_toml_str = utils::read_file("rustup release", &release_file)?;
     let release_toml: toml::Value = toml::from_str(&release_toml_str)
         .map_err(|_| Error::from("unable to parse rustup release file"))?;
@@ -1565,7 +1565,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 
     // Download new version
     info!("downloading self-update");
-    utils::download_file(&download_url, &setup_path, None, &|_| ())?;
+    utils::download_file(&download_url, &setup_path, None, Verbosity::NotVerbose, &|_| ())?;
 
     // Mark as executable
     utils::make_executable(setup_path)?;

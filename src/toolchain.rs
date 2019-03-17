@@ -232,7 +232,7 @@ impl<'a> Toolchain<'a> {
             if let Some(url) = url {
                 // Download to a local file
                 let local_installer = self.cfg.temp_cfg.new_file_with_ext("", ".tar.gz")?;
-                utils::download_file(&url, &local_installer, None, &|n| {
+                utils::download_file(&url, &local_installer, None, self.cfg.verbosity, &|n| {
                     (self.cfg.notify_handler)(n.into())
                 })?;
                 self.install(InstallMethod::Installer(

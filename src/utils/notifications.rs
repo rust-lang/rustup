@@ -1,13 +1,10 @@
 use std::fmt::{self, Display};
 use std::path::Path;
 
-use url::Url;
-
 use crate::utils::notify::NotificationLevel;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
-    DownloadingFile(&'a Url, &'a Path),
     /// Received the Content-Length of the to-be downloaded data.
     DownloadContentLengthReceived(u64),
     /// Received some data.
@@ -24,8 +21,7 @@ impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match *self {
-            DownloadingFile(_, _)
-            | DownloadContentLengthReceived(_)
+            DownloadContentLengthReceived(_)
             | DownloadDataReceived(_)
             | DownloadFinished
             | ResumingPartialDownload
@@ -40,7 +36,6 @@ impl<'a> Display for Notification<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
         match *self {
-            DownloadingFile(url, _) => write!(f, "downloading file from: '{}'", url),
             DownloadContentLengthReceived(len) => write!(f, "download size is: '{}'", len),
             DownloadDataReceived(data) => write!(f, "received some data of size {}", data.len()),
             DownloadFinished => write!(f, "download finished"),
