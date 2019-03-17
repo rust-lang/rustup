@@ -253,9 +253,12 @@ pub fn assert_is_directory(path: &Path) -> Result<()> {
 pub fn symlink_dir(
     src: &Path,
     dest: &Path,
-    notify_handler: &dyn Fn(Notification<'_>),
+    verbosity: Verbosity,
 ) -> Result<()> {
-    notify_handler(Notification::LinkingDirectory(src, dest));
+    match verbosity {
+        Verbosity::Verbose => debug!("linking directory from: '{}'", dest.display()),
+        Verbosity::NotVerbose => (),
+    }
     raw::symlink_dir(src, dest).chain_err(|| ErrorKind::LinkingDirectory {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),

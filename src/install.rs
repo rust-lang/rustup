@@ -9,6 +9,7 @@ use crate::dist::temp;
 use crate::dist::Notification;
 use crate::errors::Result;
 use crate::utils::utils;
+use crate::Verbosity;
 use std::path::Path;
 
 #[derive(Copy, Clone)]
@@ -26,7 +27,7 @@ pub enum InstallMethod<'a> {
 }
 
 impl<'a> InstallMethod<'a> {
-    pub fn run(self, path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<bool> {
+    pub fn run(self, path: &Path, verbosity: Verbosity, notify_handler: &dyn Fn(Notification<'_>)) -> Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
@@ -43,7 +44,7 @@ impl<'a> InstallMethod<'a> {
                 Ok(true)
             }
             InstallMethod::Link(src) => {
-                utils::symlink_dir(src, &path, &|n| notify_handler(n.into()))?;
+                utils::symlink_dir(src, &path, verbosity)?;
                 Ok(true)
             }
             InstallMethod::Installer(src, temp_cfg) => {

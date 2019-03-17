@@ -107,7 +107,9 @@ impl<'a> Toolchain<'a> {
             (self.cfg.notify_handler)(Notification::InstallingToolchain(&self.name));
         }
         (self.cfg.notify_handler)(Notification::ToolchainDirectory(&self.path, &self.name));
-        let updated = install_method.run(&self.path, &|n| (self.cfg.notify_handler)(n.into()))?;
+        let updated = install_method.run(&self.path, self.cfg.verbosity, &|n| {
+            (self.cfg.notify_handler)(n.into())
+        })?;
 
         if !updated {
             (self.cfg.notify_handler)(Notification::UpdateHashMatches);
