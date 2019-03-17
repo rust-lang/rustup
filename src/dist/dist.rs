@@ -1,11 +1,11 @@
 use crate::dist::download::DownloadCfg;
-use crate::dist::errors::*;
 use crate::dist::manifest::Component;
 use crate::dist::manifest::Manifest as ManifestV2;
 use crate::dist::manifestation::{Changes, Manifestation, UpdateStatus};
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
+use crate::errors::*;
 use crate::utils::utils;
 
 use std::env;
@@ -563,7 +563,7 @@ pub fn update_from_dist_<'a>(
             };
         }
         Ok(None) => return Ok(None),
-        Err(Error(crate::dist::ErrorKind::DownloadNotExists { .. }, _)) => {
+        Err(Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => {
             // Proceed to try v1 as a fallback
             (download.notify_handler)(Notification::DownloadingLegacyManifest);
         }
@@ -574,7 +574,7 @@ pub fn update_from_dist_<'a>(
     // If the v2 manifest is not found then try v1
     let manifest = match dl_v1_manifest(download, toolchain) {
         Ok(m) => m,
-        Err(Error(crate::dist::ErrorKind::DownloadNotExists { .. }, _)) => {
+        Err(Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => {
             return Err(format!("no release found for '{}'", toolchain.manifest_name()).into());
         }
         Err(e @ Error(ErrorKind::ChecksumFailed { .. }, _)) => {
@@ -597,7 +597,7 @@ pub fn update_from_dist_<'a>(
     ) {
         Ok(None) => Ok(None),
         Ok(Some(hash)) => Ok(Some(hash)),
-        e @ Err(Error(crate::dist::ErrorKind::DownloadNotExists { .. }, _)) => e.chain_err(|| {
+        e @ Err(Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => e.chain_err(|| {
             format!(
                 "could not download nonexistent rust version `{}`",
                 toolchain_str

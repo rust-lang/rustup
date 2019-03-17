@@ -5,8 +5,8 @@
 use crate::dist::component::components::*;
 use crate::dist::component::transaction::*;
 
-use crate::dist::errors::*;
 use crate::dist::temp;
+use crate::errors::*;
 use crate::utils::utils;
 
 use std::collections::HashSet;

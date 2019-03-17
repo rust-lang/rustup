@@ -9,10 +9,10 @@
 //! FIXME: This uses ensure_dir_exists in some places but rollback
 //! does not remove any dirs created by it.
 
-use crate::dist::errors::*;
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
+use crate::errors::*;
 use crate::utils::utils;
 
 use std::fs::File;

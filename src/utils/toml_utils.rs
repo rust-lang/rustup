@@ -1,4 +1,4 @@
-use crate::dist::errors::*;
+use crate::errors::*;
 
 pub fn get_value(table: &mut toml::value::Table, key: &str, path: &str) -> Result<toml::Value> {
     table

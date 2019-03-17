@@ -1,5 +1,5 @@
 use super::manifest::Component;
-use crate::dist::errors::*;
+use crate::errors::*;
 use crate::utils::toml_utils::*;
 
 pub const SUPPORTED_CONFIG_VERSIONS: [&'static str; 1] = ["1"];

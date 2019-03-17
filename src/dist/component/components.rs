@@ -1,5 +1,5 @@
-use crate::dist::errors::*;
 use crate::dist::prefix::InstallPrefix;
+use crate::errors::*;
 /// The representation of the installed toolchain and its components.
 /// `Components` and `DirectoryPackage` are the two sides of the
 /// installation / uninstallation process.

@@ -5,11 +5,11 @@ use crate::dist::component::{Components, Package, TarGzPackage, TarXzPackage, Tr
 use crate::dist::config::Config;
 use crate::dist::dist::{TargetTriple, DEFAULT_DIST_SERVER};
 use crate::dist::download::{DownloadCfg, File};
-use crate::dist::errors::*;
 use crate::dist::manifest::{Component, Manifest, TargetedPackage};
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
+use crate::errors::*;
 use crate::utils::utils;
 use std::path::Path;
 

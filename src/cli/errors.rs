@@ -11,7 +11,6 @@ use rustup::dist::temp;
 error_chain! {
     links {
         Rustup(rustup::Error, rustup::ErrorKind);
-        Dist(rustup::dist::Error, rustup::dist::ErrorKind);
     }
 
     foreign_links {

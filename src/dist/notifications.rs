@@ -1,6 +1,6 @@
 use crate::dist::dist::TargetTriple;
-use crate::dist::errors::*;
 use crate::dist::temp;
+use crate::errors::*;
 use crate::utils::notify::NotificationLevel;
 use std::fmt::{self, Display};
 use std::path::Path;
