@@ -23,6 +23,10 @@ error_chain! {
             description("toolchain is not installed")
             display("toolchain '{}' is not installed", t)
         }
+        BadToolchainName(n: String){
+            description("invalid format of toolchain name")
+            display("invalid format of toolchain name '{}'", n)
+        }
         OverrideToolchainNotInstalled(t: String) {
             description("override toolchain is not installed")
             display("override toolchain '{}' is not installed", t)

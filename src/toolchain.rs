@@ -17,6 +17,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use regex::Regex;
 use url::Url;
 
 /// A fully resolved reference to a toolchain which may or may not exist
@@ -43,20 +44,74 @@ pub enum UpdateStatus {
     Unchanged,
 }
 
+enum ToolchainName<'a> {
+    // Like ("nightly", "x86_64-unknown-linux-gnu", "2019-03-15")
+    Dated(&'a str, &'a str, &'a str),
+
+    // TODO
+    // Like ("stable", "i686", "1.33.0")
+    // Versioned(&'a str, &'a str, &'a str),
+
+    // Like ("beta", "")
+    Normal(&'a str),
+}
+
+// Toolchain name pattern, only nightly-target@yyyy-MM-dd is supported currently.
+const NAME_PATTERN: &str = r"^(nightly)(-(.*))?@(\d{4}-\d{2}-\d{2})$";
+
+impl<'a> ToolchainName<'a> {
+    /// Parse toolchain name to enum.
+    fn new(name: &'a str) -> Self {
+        // We know that the unwraps will success.
+        let re = Regex::new(NAME_PATTERN).unwrap();
+        match re.captures(name) {
+            Some(caps) => {
+                let channel = caps.get(1).unwrap().as_str();
+                let date = caps.get(4).unwrap().as_str();
+                let target = match caps.get(3) {
+                    Some(t) => t.as_str(),
+                    None => "",
+                };
+                ToolchainName::Dated(channel, target, date)
+            }
+            None => ToolchainName::Normal(name),
+        }
+    }
+
+    /// Parse toolchain name into (resolved_name, resolved_name_dated).
+    fn resolve_name_pair(&self, cfg: &'a Cfg) -> Result<(String, String)> {
+        match self {
+            ToolchainName::Normal(normal_name) => {
+                let resolved_name = cfg.resolve_toolchain(normal_name)?;
+                let resolved_name_dated = resolved_name.clone();
+                Ok((resolved_name, resolved_name_dated))
+            }
+            ToolchainName::Dated(channel, target, date) => {
+                let normal_name = format!("{}-{}", channel, target);
+                let resolved_name = cfg.resolve_toolchain(&normal_name)?;
+                let name_dated = format!("{}-{}-{}", channel, date, target);
+                let resolved_name_dated = match cfg.resolve_toolchain(&name_dated) {
+                    Ok(n) => n,
+                    Err(_) => {
+                        // Translate error
+                        return Err(ErrorKind::BadToolchainName(format!(
+                            "Dated: channel {}, target {}, date {}",
+                            channel, target, date
+                        ))
+                        .into());
+                    }
+                };
+                Ok((resolved_name, resolved_name_dated))
+            }
+        }
+    }
+}
+
 impl<'a> Toolchain<'a> {
     pub fn from(cfg: &'a Cfg, name: &str) -> Result<Self> {
-        let v: Vec<&str> = name.split('/').collect();
-        let name = v[0];
-
-        let resolved_name = cfg.resolve_toolchain(name)?;
+        let (resolved_name, resolved_name_dated) =
+            ToolchainName::new(name).resolve_name_pair(cfg)?;
         let path = cfg.toolchains_dir.join(&resolved_name);
-
-        let resolved_name_dated = if v.len() > 1 {
-            let name_dated = name.to_string() + "-" + v[1];
-            cfg.resolve_toolchain(&name_dated)?
-        } else {
-            resolved_name.clone()
-        };
 
         Ok(Toolchain {
             cfg: cfg,
