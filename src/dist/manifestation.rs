@@ -12,6 +12,33 @@ use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::utils::utils;
 use std::path::Path;
+use std::thread;
+use std::time::{Duration, SystemTime};
+
+macro_rules! retry_with_backoff {
+    ( $( $call:expr )+ ) => {
+        {
+            let mut ret;
+            let mut retries = 3;
+            let mut timeout = Duration::new(0, 0);
+            loop {
+                let clock = SystemTime::now();
+                $(
+                    ret = $call;
+                )+
+                let duration = clock.elapsed().unwrap();
+                if ret.is_err() && retries > 0 {
+                    timeout += duration;
+                    retries -= 1;
+                    thread::sleep(timeout);
+                } else {
+                    break;
+                }
+            }
+            ret
+        };
+    }
+}
 
 pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
 pub const CONFIG_FILE: &'static str = "multirust-config.toml";
@@ -155,8 +182,7 @@ impl Manifestation {
 
             let url_url = utils::parse_url(&url)?;
 
-            let downloaded_file = download_cfg
-                .download(&url_url, &hash)
+            let downloaded_file = retry_with_backoff!(download_cfg.download(&url_url, &hash))
                 .chain_err(|| ErrorKind::ComponentDownloadFailed(component.name(new_manifest)))?;
 
             things_downloaded.push(hash);
