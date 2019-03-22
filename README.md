@@ -265,7 +265,7 @@ toolchain is downloaded from the archive for that date.
 
 Finally, the host may be specified as a target triple. This is most
 useful for installing a 32-bit compiler on a 64-bit platform, or for
-installing the [MSVC-based toolchain] on Windows. For example:
+installing the [MSVC-based toolchain][msvc-toolchain] on Windows. For example:
 
 ```console
 $ rustup install stable-x86_64-pc-windows-msvc
@@ -281,7 +281,7 @@ $ rustup install stable-msvc
 Toolchain names that don't name a channel instead can be used to name
 [custom toolchains].
 
-[MSVC-based toolchain]: https://www.rust-lang.org/tools/install
+[msvc-toolchain]: https://www.rust-lang.org/tools/install?platform_override=win
 [custom toolchains]: #working-with-custom-toolchains-and-local-builds
 
 ## Toolchain override shorthand
@@ -409,7 +409,7 @@ previously-added target, `rustup target remove`.
 
 `rustup` works the same on Windows as it does on Unix, but there are
 some special considerations for Rust developers on Windows. As
-[mentioned on the Rust download page][rust-install], there are two [ABIs] in use
+[mentioned on the Rust download page][msvc-toolchain], there are two [ABIs] in use
 on Windows: the native (MSVC) ABI used by [Visual Studio], and the GNU
 ABI used by the [GCC toolchain]. Which version of Rust you need depends
 largely on what C/C++ libraries you want to interoperate with: for
@@ -456,7 +456,6 @@ $ rustup target add i686-pc-windows-msvc
 $ rustup target add i686-pc-windows-gnu
 ```
 
-[rust-install]: https://www.rust-lang.org/tools/install
 [ABIs]: https://en.wikipedia.org/wiki/Application_binary_interface
 [Visual Studio]: https://visualstudio.microsoft.com/
 [GCC toolchain]: https://gcc.gnu.org/
