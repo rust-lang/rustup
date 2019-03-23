@@ -8,6 +8,7 @@ DOCKER="$1"
 TARGET="$2"
 SKIP_TESTS="$3"
 
+bash ci/fetch-rust-docker.sh "$TARGET"
 if [ -f "ci/docker/$DOCKER/Dockerfile" ]; then
   docker build -t "$DOCKER" "ci/docker/$DOCKER/"
 fi
