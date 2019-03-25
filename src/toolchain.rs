@@ -344,7 +344,7 @@ impl<'a> Toolchain<'a> {
         // On Windows, spawning a process will search the running application's
         // directory for the exe to spawn before searching PATH, and we don't want
         // it to do that, because cargo's directory contains the _wrong_ rustc. See
-        // the documantation for the lpCommandLine argument of CreateProcess.
+        // the documentation for the lpCommandLine argument of CreateProcess.
         let exe_path = if cfg!(windows) {
             use std::fs;
             let fallback_dir = self.cfg.rustup_dir.join("fallback");
