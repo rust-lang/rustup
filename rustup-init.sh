@@ -376,9 +376,9 @@ downloader() {
     if [ "$1" = --check ]; then
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
-        curl -sSfL "$1" -o "$2"
+        curl --proto =https --tlsv1.2 --silent --show-error --fail --location "$1" --output "$2"
     elif [ "$_dld" = wget ]; then
-        wget "$1" -O "$2"
+        wget --https-only --secure-protocol=TLSv1_2 "$1" -O "$2"
     else
         err "Unknown downloader"   # should not reach here
     fi
