@@ -1025,16 +1025,22 @@ fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 }
 
 fn man(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    let manpage = m.value_of("command").expect("");
+    let command = m.value_of("command").unwrap();
+
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    let mut man_path = toolchain.path().to_path_buf();
-    man_path.push("share");
-    man_path.push("man");
-    man_path.push("man1");
-    man_path.push(manpage.to_owned() + ".1");
-    utils::assert_is_file(&man_path)?;
+    let mut toolchain = toolchain.path().to_path_buf();
+    toolchain.push("share");
+    toolchain.push("man");
+    utils::assert_is_directory(&toolchain)?;
+
+    let mut manpaths = std::ffi::OsString::from(toolchain);
+    manpaths.push(":"); // prepend to the default MANPATH list
+    if let Some(path) = std::env::var_os("MANPATH") {
+        manpaths.push(path);
+    }
     Command::new("man")
-        .arg(man_path)
+        .env("MANPATH", manpaths)
+        .arg(command)
         .status()
         .expect("failed to open man page");
     Ok(())
