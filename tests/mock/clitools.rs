@@ -253,6 +253,18 @@ pub fn expect_ok_contains(config: &Config, args: &[&str], stdout: &str, stderr: 
     }
 }
 
+pub fn expect_ok_eq(config: &Config, args1: &[&str], args2: &[&str]) {
+    let out1 = run(config, args1[0], &args1[1..], &[]);
+    let out2 = run(config, args2[0], &args2[1..], &[]);
+    if !out1.ok || !out2.ok || out1.stdout != out2.stdout || out1.stderr != out2.stderr {
+        print_command(args1, &out1);
+        println!("expected.ok: {}", true);
+        print_command(args2, &out2);
+        println!("expected.ok: {}", true);
+        panic!();
+    }
+}
+
 fn print_command(args: &[&str], out: &SanitizedOutput) {
     print!("\n>");
     for arg in args {
