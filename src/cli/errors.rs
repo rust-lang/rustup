@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 
+use crate::rustup_mode::CompletionCommand;
+
 use std::io;
 use std::path::PathBuf;
 
+use clap::Shell;
 use error_chain::error_chain;
 use error_chain::error_chain_processing;
 use error_chain::{impl_error_chain_kind, impl_error_chain_processed, impl_extract_backtrace};
@@ -45,6 +48,10 @@ error_chain! {
         }
         WindowsUninstallMadness {
             description("failure during windows uninstall")
+        }
+        UnsupportedCompletionShell(shell: Shell, cmd: CompletionCommand) {
+            description("completion script for shell not yet supported for tool")
+            display("{} does not currently support completions for {}", cmd, shell)
         }
     }
 }

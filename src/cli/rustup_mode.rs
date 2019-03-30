@@ -9,6 +9,7 @@ use rustup::dist::manifest::Component;
 use rustup::utils::utils::{self, ExitCode};
 use rustup::{command, Cfg, Toolchain};
 use std::error::Error;
+use std::fmt;
 use std::io::Write;
 use std::iter;
 use std::path::Path;
@@ -1111,8 +1112,8 @@ fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     Ok(())
 }
 
-#[derive(Copy, Clone, Debug)]
-enum CompletionCommand {
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum CompletionCommand {
     Rustup,
     Cargo,
 }
@@ -1138,7 +1139,25 @@ impl FromStr for CompletionCommand {
             .next()
         {
             Some(&(_, cmd)) => Ok(cmd),
-            None => Err(String::from("[valid values: rustup, cargo]")),
+            None => {
+                let completion_options = COMPLETIONS
+                    .iter()
+                    .map(|&(v, _)| v)
+                    .fold("".to_owned(), |s, v| format!("{}{}, ", s, v));
+                Err(format!(
+                    "[valid values: {}]",
+                    completion_options.trim_end_matches(", ")
+                ))
+            }
+        }
+    }
+}
+
+impl fmt::Display for CompletionCommand {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match COMPLETIONS.iter().filter(|&(_, cmd)| cmd == self).next() {
+            Some(&(val, _)) => write!(f, "{}", val),
+            None => unreachable!(),
         }
     }
 }
@@ -1150,24 +1169,16 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
         }
         CompletionCommand::Cargo => {
             let script = match shell {
-                Shell::Bash => Some("/etc/bash_completion.d/cargo"),
-                Shell::Zsh => Some("/share/zsh/site-functions/_cargo"),
-                _ => None,
+                Shell::Bash => "/etc/bash_completion.d/cargo",
+                Shell::Zsh => "/share/zsh/site-functions/_cargo",
+                _ => return Err(ErrorKind::UnsupportedCompletionShell(shell, command).into()),
             };
 
-            if let Some(script) = script {
-                writeln!(
-                    &mut term2::stdout(),
-                    "source $(rustc --print sysroot){}",
-                    script,
-                )?;
-            } else {
-                writeln!(
-                    &mut term2::stderr(),
-                    "Cargo does not currently support completions for {}.",
-                    shell,
-                )?;
-            }
+            writeln!(
+                &mut term2::stdout(),
+                "source $(rustc --print sysroot){}",
+                script,
+            )?;
         }
     }
 
