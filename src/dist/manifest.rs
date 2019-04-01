@@ -10,7 +10,7 @@
 //!
 //! See tests/channel-rust-nightly-example.toml for an example.
 
-use crate::dist::errors::*;
+use crate::errors::*;
 use crate::utils::toml_utils::*;
 
 use crate::dist::dist::TargetTriple;

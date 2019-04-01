@@ -190,12 +190,7 @@ impl<'a> Toolchain<'a> {
 
     fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
-            Err(
-                ErrorKind::Dist(crate::dist::ErrorKind::InvalidCustomToolchainName(
-                    self.name.to_string(),
-                ))
-                .into(),
-            )
+            Err(crate::ErrorKind::InvalidCustomToolchainName(self.name.to_string()).into())
         } else {
             Ok(())
         }

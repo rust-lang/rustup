@@ -7,7 +7,7 @@ use crate::mock::clitools::{
     self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
     set_current_dist_date, this_host_triple, Config, Scenario,
 };
-use rustup::dist::errors::TOOLSTATE_MSG;
+use rustup::errors::TOOLSTATE_MSG;
 use rustup::utils::{raw, utils};
 
 use std::env::consts::EXE_SUFFIX;
