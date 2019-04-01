@@ -1,31 +1,22 @@
 [package]
-
 name = "rustup"
 version = "1.17.0"
 edition = "2018"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Manage multiple rust installations with ease"
-
-documentation = "http://rust-lang.github.io/rustup.rs/rustup/index.html"
+documentation = "https://rust-lang.github.io/rustup.rs/rustup/index.html"
 homepage = "https://github.com/rust-lang/rustup.rs"
 repository = "https://github.com/rust-lang/rustup.rs"
-
 readme = "README.md"
-
 keywords = ["rustup", "multirust", "install", "proxy"]
-
 license = "MIT OR Apache-2.0"
-
 build = "build.rs"
 
 [features]
-
 default = ["curl-backend", "reqwest-backend"]
-
 curl-backend = ["download/curl-backend"]
 reqwest-backend = ["download/reqwest-backend"]
 vendored-openssl = ['openssl/vendored']
-
 # Include in the default set to disable self-update and uninstall.
 no-self-update = []
 

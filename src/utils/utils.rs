@@ -518,31 +518,11 @@ pub fn home_dir() -> Option<PathBuf> {
 }
 
 pub fn cargo_home() -> Result<PathBuf> {
-    let env_var = env::var_os("CARGO_HOME");
-
-    // NB: During the multirust-rs -> rustup transition the install
-    // dir changed from ~/.multirust/bin to ~/.cargo/bin. Because
-    // multirust used to explicitly set CARGO_HOME it's possible to
-    // get here when e.g. installing under `cargo run` and decide to
-    // install to the wrong place. This check is to make the
-    // multirust-rs to rustup upgrade seamless.
-    let env_var = if let Some(v) = env_var {
-        let vv = v.to_string_lossy().to_string();
-        if vv.contains(".multirust/cargo")
-            || vv.contains(r".multirust\cargo")
-            || vv.trim().is_empty()
-        {
-            None
-        } else {
-            Some(v)
-        }
-    } else {
-        None
-    };
-
-    let cargo_home = if env_var.is_some() {
+    let cargo_home = env::var_os("CARGO_HOME");
+    let cargo_home = cargo_home.filter(|v| !v.to_string_lossy().trim().is_empty());
+    let cargo_home = if let Some(home) = cargo_home {
         let cwd = env::current_dir().chain_err(|| ErrorKind::GettingCwd)?;
-        env_var.clone().map(|home| cwd.join(home))
+        Some(cwd.join(home))
     } else {
         None
     };
@@ -551,179 +531,16 @@ pub fn cargo_home() -> Result<PathBuf> {
     cargo_home.or(user_home).ok_or(ErrorKind::CargoHome.into())
 }
 
-// Convert the ~/.multirust folder to ~/.rustup while dealing with rustup.sh
-// metadata, which used to also live in ~/.rustup, but now lives in ~/rustup.sh.
-pub fn do_rustup_home_upgrade() -> bool {
-    fn rustup_home_is_set() -> bool {
-        env::var_os("RUSTUP_HOME").is_some()
-    }
-
-    fn rustup_dir() -> Option<PathBuf> {
-        dot_dir(".rustup")
-    }
-
-    fn rustup_sh_dir() -> Option<PathBuf> {
-        dot_dir(".rustup.sh")
-    }
-
-    fn multirust_dir() -> Option<PathBuf> {
-        dot_dir(".multirust")
-    }
-
-    fn rustup_dir_exists() -> bool {
-        rustup_dir().map(|p| p.exists()).unwrap_or(false)
-    }
-
-    fn rustup_sh_dir_exists() -> bool {
-        rustup_sh_dir().map(|p| p.exists()).unwrap_or(false)
-    }
-
-    fn multirust_dir_exists() -> bool {
-        multirust_dir().map(|p| p.exists()).unwrap_or(false)
-    }
-
-    fn rustup_old_version_exists() -> bool {
-        rustup_dir()
-            .map(|p| p.join("rustup-version").exists())
-            .unwrap_or(false)
-    }
-
-    fn delete_rustup_dir() -> Result<()> {
-        if let Some(dir) = rustup_dir() {
-            raw::remove_dir(&dir).chain_err(|| "unable to delete rustup dir")?;
-        }
-
-        Ok(())
-    }
-
-    fn rename_rustup_dir_to_rustup_sh() -> Result<()> {
-        let dirs = (rustup_dir(), rustup_sh_dir());
-        if let (Some(rustup), Some(rustup_sh)) = dirs {
-            rename_dir("installation", &rustup, &rustup_sh)
-                .chain_err(|| "unable to rename rustup dir")?;
-        }
-
-        Ok(())
-    }
-
-    fn rename_multirust_dir_to_rustup() -> Result<()> {
-        let dirs = (multirust_dir(), rustup_dir());
-        if let (Some(rustup), Some(rustup_sh)) = dirs {
-            rename_dir("multirust installation", &rustup, &rustup_sh)
-                .chain_err(|| "unable to rename multirust dir")?;
-        }
-
-        Ok(())
-    }
-
-    // If RUSTUP_HOME is set then its default path doesn't matter, so we're
-    // not going to risk doing any I/O work and making a mess.
-    if rustup_home_is_set() {
-        return true;
-    }
-
-    // Now we are just trying to get a bogus, rustup.sh-created ~/.rustup out
-    // of the way in the manner that is least likely to take time and generate
-    // errors. First try to rename it to ~/.rustup.sh, then try to delete it.
-    // If that doesn't work we can't use the ~/.rustup name.
-    let old_rustup_dir_removed = if rustup_old_version_exists() {
-        if !rustup_sh_dir_exists() {
-            if rename_rustup_dir_to_rustup_sh().is_ok() {
-                true
-            } else {
-                if delete_rustup_dir().is_ok() {
-                    true
-                } else {
-                    false
-                }
-            }
-        } else {
-            if delete_rustup_dir().is_ok() {
-                true
-            } else {
-                false
-            }
-        }
-    } else {
-        true
-    };
-
-    // Now we're trying to move ~/.multirust to ~/.rustup
-    old_rustup_dir_removed
-        && if multirust_dir_exists() {
-            if rustup_dir_exists() {
-                // There appears to be both a ~/.multirust dir and a valid ~/.rustup
-                // dir. Most likely because one is a symlink to the other, as configured
-                // below.
-                true
-            } else {
-                if rename_multirust_dir_to_rustup().is_ok() {
-                    // Finally, making the hardlink from ~/.multirust back to
-                    // ~/.rustup, for temporary compatibility.
-                    let _ = create_legacy_multirust_symlink();
-                    true
-                } else {
-                    false
-                }
-            }
-        } else {
-            true
-        }
-}
-
-// Creates a ~/.rustup folder and a ~/.multirust symlink
+// Creates a ~/.rustup folder
 pub fn create_rustup_home() -> Result<()> {
-    // If there's an existing install, then try to upgrade
-    do_rustup_home_upgrade();
-
     // If RUSTUP_HOME is set then don't make any assumptions about where it's
-    // ok to put ~/.multirust
+    // ok to put ~/.rustup
     if env::var_os("RUSTUP_HOME").is_some() {
         return Ok(());
     }
 
     let home = rustup_home_in_user_dir()?;
     fs::create_dir_all(&home).chain_err(|| "unable to create ~/.rustup")?;
-
-    // This is a temporary compatibility symlink
-    create_legacy_multirust_symlink()?;
-
-    Ok(())
-}
-
-// Create a symlink from ~/.multirust to ~/.rustup to temporarily
-// accomodate old tools that are expecting that directory
-fn create_legacy_multirust_symlink() -> Result<()> {
-    let newhome = rustup_home_in_user_dir()?;
-    let oldhome = legacy_multirust_home()?;
-
-    if oldhome.exists() {
-        return Ok(());
-    }
-
-    raw::symlink_dir(&newhome, &oldhome).chain_err(|| {
-        format!(
-            "unable to symlink {} from {}",
-            newhome.display(),
-            oldhome.display()
-        )
-    })?;
-
-    Ok(())
-}
-
-pub fn delete_legacy_multirust_symlink() -> Result<()> {
-    let oldhome = legacy_multirust_home()?;
-
-    if oldhome.exists() {
-        let meta = fs::symlink_metadata(&oldhome)
-            .chain_err(|| "unable to get metadata for ~/.multirust")?;
-        if meta.file_type().is_symlink() {
-            // remove_dir handles unlinking symlinks
-            raw::remove_dir(&oldhome)
-                .chain_err(|| format!("unable to delete legacy symlink {}", oldhome.display()))?;
-        }
-    }
 
     Ok(())
 }
@@ -732,16 +549,11 @@ fn dot_dir(name: &str) -> Option<PathBuf> {
     home_dir().map(|p| p.join(name))
 }
 
-pub fn legacy_multirust_home() -> Result<PathBuf> {
-    dot_dir(".multirust").ok_or(ErrorKind::RustupHome.into())
-}
-
 pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
     dot_dir(".rustup").ok_or(ErrorKind::RustupHome.into())
 }
 
 pub fn rustup_home() -> Result<PathBuf> {
-    let use_rustup_dir = do_rustup_home_upgrade();
     let rustup_home_env = env::var_os("RUSTUP_HOME");
 
     let rustup_home = if rustup_home_env.is_some() {
@@ -751,11 +563,7 @@ pub fn rustup_home() -> Result<PathBuf> {
         None
     };
 
-    let user_home = if use_rustup_dir {
-        dot_dir(".rustup")
-    } else {
-        dot_dir(".multirust")
-    };
+    let user_home = dot_dir(".rustup");
     rustup_home
         .or(user_home)
         .ok_or(ErrorKind::RustupHome.into())
