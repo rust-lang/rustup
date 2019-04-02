@@ -3,6 +3,8 @@
 use crate::errors::*;
 use crate::self_update;
 use crate::term2;
+use git_testament::{git_testament, render_testament};
+use lazy_static::lazy_static;
 use rustup::utils::notify::NotificationLevel;
 use rustup::utils::utils;
 use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
@@ -402,11 +404,13 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
     Ok(())
 }
 
+git_testament!(TESTAMENT);
+
 pub fn version() -> &'static str {
-    concat!(
-        env!("CARGO_PKG_VERSION"),
-        include_str!(concat!(env!("OUT_DIR"), "/commit-info.txt"))
-    )
+    lazy_static! {
+        static ref RENDERED: String = render_testament!(TESTAMENT);
+    }
+    &RENDERED
 }
 
 pub fn report_error(e: &Error) {
