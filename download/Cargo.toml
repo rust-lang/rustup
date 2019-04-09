@@ -20,7 +20,7 @@ url = "1.7"
 curl = { version = "0.4.11", optional = true }
 env_proxy = { version = "0.3.0", optional = true }
 lazy_static = { version = "1.0", optional = true }
-reqwest = { version = "0.9", optional = true }
+reqwest = { version = "0.9.14", features = ["socks"], optional = true }
 
 [dev-dependencies]
 futures = "0.1"
