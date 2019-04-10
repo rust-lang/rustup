@@ -918,7 +918,7 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
         }
 
         let _g = scopeguard::guard(gc_handle, |h| {
-            let _ = CloseHandle(*h);
+            let _ = CloseHandle(h);
         });
 
         Command::new(gc_exe)
@@ -990,7 +990,7 @@ fn wait_for_parent() -> Result<()> {
         }
 
         let _g = scopeguard::guard(snapshot, |h| {
-            let _ = CloseHandle(*h);
+            let _ = CloseHandle(h);
         });
 
         let mut entry: PROCESSENTRY32 = mem::zeroed();
@@ -1025,7 +1025,7 @@ fn wait_for_parent() -> Result<()> {
         }
 
         let _g = scopeguard::guard(parent, |h| {
-            let _ = CloseHandle(*h);
+            let _ = CloseHandle(h);
         });
 
         // Wait for our parent to exit

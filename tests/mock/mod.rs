@@ -173,7 +173,7 @@ pub fn get_path() -> Option<String> {
 }
 
 #[cfg(windows)]
-pub fn restore_path(p: &Option<String>) {
+pub fn restore_path(p: Option<String>) {
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
 
@@ -206,4 +206,4 @@ pub fn get_path() -> Option<String> {
 }
 
 #[cfg(unix)]
-pub fn restore_path(_: &Option<String>) {}
+pub fn restore_path(_: Option<String>) {}
