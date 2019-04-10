@@ -515,7 +515,7 @@ fn do_msvc_check(opts: &InstallOpts) -> Result<bool> {
         return Ok(true);
     }
 
-    use gcc::windows_registry;
+    use cc::windows_registry;
     let installing_msvc = opts.default_host_triple.contains("msvc");
     let have_msvc = windows_registry::find_tool(&opts.default_host_triple, "cl.exe").is_some();
     if installing_msvc && !have_msvc {
