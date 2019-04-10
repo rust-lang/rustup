@@ -246,6 +246,16 @@ impl<T: Instantiable + Isatty + io::Write> io::Write for Terminal<T> {
     }
 }
 
+macro_rules! swallow_unsupported {
+    ( $call:expr ) => {{
+        use term::Error::*;
+        match $call {
+            Ok(()) | Err(ColorOutOfRange) | Err(NotSupported) => Ok(()),
+            Err(e) => Err(e),
+        }
+    }};
+}
+
 impl<T: Instantiable + Isatty + io::Write> Terminal<T> {
     pub fn fg(&mut self, color: color::Color) -> Result<(), term::Error> {
         if !T::isatty() {
@@ -253,7 +263,7 @@ impl<T: Instantiable + Isatty + io::Write> Terminal<T> {
         }
 
         if let Some(ref mut t) = self.0 {
-            t.fg(color)
+            swallow_unsupported!(t.fg(color))
         } else {
             Ok(())
         }
@@ -268,8 +278,8 @@ impl<T: Instantiable + Isatty + io::Write> Terminal<T> {
             if let Err(e) = t.attr(attr) {
                 // If `attr` is not supported, try to emulate it
                 match attr {
-                    Attr::Bold => t.fg(color::BRIGHT_WHITE),
-                    _ => Err(e),
+                    Attr::Bold => swallow_unsupported!(t.fg(color::BRIGHT_WHITE)),
+                    _ => swallow_unsupported!(Err(e)),
                 }
             } else {
                 Ok(())
@@ -285,7 +295,7 @@ impl<T: Instantiable + Isatty + io::Write> Terminal<T> {
         }
 
         if let Some(ref mut t) = self.0 {
-            t.reset()
+            swallow_unsupported!(t.reset())
         } else {
             Ok(())
         }
