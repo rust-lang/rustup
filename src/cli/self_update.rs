@@ -859,8 +859,6 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
 // http://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 #[cfg(windows)]
 fn delete_rustup_and_cargo_home() -> Result<()> {
-    use rand;
-    use scopeguard;
     use std::thread;
     use std::time::Duration;
 
@@ -969,7 +967,6 @@ pub fn complete_windows_uninstall() -> Result<()> {
 
 #[cfg(windows)]
 fn wait_for_parent() -> Result<()> {
-    use scopeguard;
     use std::io;
     use std::mem;
     use std::ptr;
@@ -1395,8 +1392,6 @@ fn parse_new_rustup_version(version: String) -> String {
 }
 
 pub fn prepare_update() -> Result<Option<PathBuf>> {
-    use toml;
-
     let ref cargo_home = utils::cargo_home()?;
     let ref rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
     let ref setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));

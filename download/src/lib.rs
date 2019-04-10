@@ -123,12 +123,9 @@ pub fn download_to_path_with_backend(
 /// stack via libcurl
 #[cfg(feature = "curl-backend")]
 pub mod curl {
-
-    use curl;
-
-    use self::curl::easy::Easy;
     use super::Event;
     use crate::errors::*;
+    use curl::easy::Easy;
     use std::cell::RefCell;
     use std::str;
     use std::time::Duration;

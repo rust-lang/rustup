@@ -151,7 +151,6 @@ impl TargetTriple {
 
         #[cfg(not(windows))]
         fn inner() -> Option<TargetTriple> {
-            use libc;
             use std::ffi::CStr;
             use std::mem;
 
