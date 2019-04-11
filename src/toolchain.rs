@@ -380,7 +380,7 @@ impl<'a> Toolchain<'a> {
     }
 
     pub fn set_ldpath(&self, cmd: &mut Command) {
-        let new_path = self.path.join("lib");
+        let mut new_path = vec![self.path.join("lib")];
 
         #[cfg(not(target_os = "macos"))]
         mod sysenv {
@@ -388,9 +388,35 @@ impl<'a> Toolchain<'a> {
         }
         #[cfg(target_os = "macos")]
         mod sysenv {
-            pub const LOADER_PATH: &str = "DYLD_LIBRARY_PATH";
+            // When loading and linking a dynamic library or bundle, dlopen
+            // searches in LD_LIBRARY_PATH, DYLD_LIBRARY_PATH, PWD, and
+            // DYLD_FALLBACK_LIBRARY_PATH.
+            // In the Mach-O format, a dynamic library has an "install path."
+            // Clients linking against the library record this path, and the
+            // dynamic linker, dyld, uses it to locate the library.
+            // dyld searches DYLD_LIBRARY_PATH *before* the install path.
+            // dyld searches DYLD_FALLBACK_LIBRARY_PATH only if it cannot
+            // find the library in the install path.
+            // Setting DYLD_LIBRARY_PATH can easily have unintended
+            // consequences.
+            pub const LOADER_PATH: &str = "DYLD_FALLBACK_LIBRARY_PATH";
         }
-        env_var::prepend_path(sysenv::LOADER_PATH, vec![new_path.clone()], cmd);
+        if cfg!(target_os = "macos")
+            && env::var_os(sysenv::LOADER_PATH)
+                .filter(|x| x.len() > 0)
+                .is_none()
+        {
+            // These are the defaults when DYLD_FALLBACK_LIBRARY_PATH isn't
+            // set or set to an empty string. Since we are explicitly setting
+            // the value, make sure the defaults still work.
+            if let Some(home) = env::var_os("HOME") {
+                new_path.push(PathBuf::from(home).join("lib"));
+            }
+            new_path.push(PathBuf::from("/usr/local/lib"));
+            new_path.push(PathBuf::from("/usr/lib"));
+        }
+
+        env_var::prepend_path(sysenv::LOADER_PATH, new_path, cmd);
 
         // Prepend CARGO_HOME/bin to the PATH variable so that we're sure to run
         // cargo/rustc via the proxy bins. There is no fallback case for if the
