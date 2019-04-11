@@ -1,3 +1,4 @@
+# Source from https://github.com/rust-lang-deprecated/rust-buildbot/blob/master/slaves/dist/Dockerfile
 FROM alexcrichton/rust-slave-dist:2015-10-20b
 USER root
 
