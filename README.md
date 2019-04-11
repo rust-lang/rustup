@@ -179,13 +179,13 @@ info: downloading self-updates
 ## Working with nightly Rust
 
 Rustup gives you easy access to the nightly compiler and its
-[experimental features]. To add it just run `rustup install
+[experimental features]. To add it just run `rustup toolchain install
 nightly`:
 
 [experimental features]: https://doc.rust-lang.org/unstable-book/
 
 ```console
-$ rustup install nightly
+$ rustup toolchain install nightly
 info: syncing channel updates for 'nightly'
 info: downloading toolchain manifest
 info: downloading component 'rustc'
@@ -268,14 +268,14 @@ useful for installing a 32-bit compiler on a 64-bit platform, or for
 installing the [MSVC-based toolchain][msvc-toolchain] on Windows. For example:
 
 ```console
-$ rustup install stable-x86_64-pc-windows-msvc
+$ rustup toolchain install stable-x86_64-pc-windows-msvc
 ```
 
 For convenience, elements of the target triple that are omitted will be
 inferred, so the above could be written:
 
 ```console
-$ rustup install stable-msvc
+$ rustup toolchain install stable-msvc
 ```
 
 Toolchain names that don't name a channel instead can be used to name
@@ -440,10 +440,10 @@ $ rustup set default-host x86_64-pc-windows-msvc
 
 Since the MSVC ABI provides the best interoperation with other Windows software
 it is recommended for most purposes. The GNU toolchain is always available, even
-if you don't use it by default. Just install it with `rustup install`:
+if you don't use it by default. Just install it with `rustup toolchain install`:
 
 ```console
-$ rustup install stable-gnu
+$ rustup toolchain install stable-gnu
 ```
 
 You don't need to switch toolchains to support all windows targets though;
