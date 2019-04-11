@@ -423,17 +423,25 @@ of Visual Studio 2013 (or later) or the Visual C++ Build Tools
 check the "C++ tools" option. No additional software installation is
 necessary for basic use of the GNU build.
 
-By default rustup on Windows configures Rust to target the 32-bit MSVC
-ABI, that is the `i686-pc-windows-msvc` target triple. More
-specifically, the toolchains that rustup chooses to install, unless
+By default rustup on Windows configures Rust to target the MSVC
+ABI, that is a target triple of either `i686-pc-windows-msvc` or
+`x86_64-pc-windows-msvc` depending on the CPU architecture of the
+host Windows OS. The toolchains that rustup chooses to install, unless
 told otherwise through the [toolchain specification], will be compiled
-to run on a `i686-pc-windows-msvc` host, and will target that platform
-by default. When you write `rustup update nightly`, rustup interprets
-it as `rustup update nightly-i686-pc-windows-msvc`. You can change this
-behavior with `rustup set default-host` or during installation.
+to run on that target triple host and will target that triple by default.
+
+You can change this behavior with `rustup set default-host` or during installation.
+
+For example, to explicitly select the 32-bit MSVC host:
 
 ```console
-$ rustup set default-host x86_64-pc-windows-msvc
+$ rustup set default-host i686-pc-windows-msvc
+```
+
+Or to choose the 64 bit GNU toolchain:
+
+```console
+$ rustup set default-host x86_64-pc-windows-gnu
 ```
 
 [toolchain specification]: #toolchain-specification
