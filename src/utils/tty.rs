@@ -1,7 +1,6 @@
 // Copied from rustc. atty crate did not work as expected
 #[cfg(unix)]
 pub fn stderr_isatty() -> bool {
-    use libc;
     unsafe { libc::isatty(libc::STDERR_FILENO) != 0 }
 }
 
@@ -26,7 +25,6 @@ pub fn stderr_isatty() -> bool {
 
 #[cfg(unix)]
 pub fn stdout_isatty() -> bool {
-    use libc;
     unsafe { libc::isatty(libc::STDOUT_FILENO) != 0 }
 }
 

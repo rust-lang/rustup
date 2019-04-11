@@ -515,7 +515,7 @@ fn do_msvc_check(opts: &InstallOpts) -> Result<bool> {
         return Ok(true);
     }
 
-    use gcc::windows_registry;
+    use cc::windows_registry;
     let installing_msvc = opts.default_host_triple.contains("msvc");
     let have_msvc = windows_registry::find_tool(&opts.default_host_triple, "cl.exe").is_some();
     if installing_msvc && !have_msvc {
@@ -859,8 +859,6 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
 // http://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 #[cfg(windows)]
 fn delete_rustup_and_cargo_home() -> Result<()> {
-    use rand;
-    use scopeguard;
     use std::thread;
     use std::time::Duration;
 
@@ -920,7 +918,7 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
         }
 
         let _g = scopeguard::guard(gc_handle, |h| {
-            let _ = CloseHandle(*h);
+            let _ = CloseHandle(h);
         });
 
         Command::new(gc_exe)
@@ -969,7 +967,6 @@ pub fn complete_windows_uninstall() -> Result<()> {
 
 #[cfg(windows)]
 fn wait_for_parent() -> Result<()> {
-    use scopeguard;
     use std::io;
     use std::mem;
     use std::ptr;
@@ -993,7 +990,7 @@ fn wait_for_parent() -> Result<()> {
         }
 
         let _g = scopeguard::guard(snapshot, |h| {
-            let _ = CloseHandle(*h);
+            let _ = CloseHandle(h);
         });
 
         let mut entry: PROCESSENTRY32 = mem::zeroed();
@@ -1028,7 +1025,7 @@ fn wait_for_parent() -> Result<()> {
         }
 
         let _g = scopeguard::guard(parent, |h| {
-            let _ = CloseHandle(*h);
+            let _ = CloseHandle(h);
         });
 
         // Wait for our parent to exit
@@ -1395,8 +1392,6 @@ fn parse_new_rustup_version(version: String) -> String {
 }
 
 pub fn prepare_update() -> Result<Option<PathBuf>> {
-    use toml;
-
     let ref cargo_home = utils::cargo_home()?;
     let ref rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
     let ref setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));

@@ -165,7 +165,7 @@ fn download_file_(
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
     use download::download_to_path_with_backend;
-    use download::{self, Backend, Event};
+    use download::{Backend, Event};
     use sha2::Digest;
     use std::cell::RefCell;
 
@@ -421,7 +421,6 @@ pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
 // depending on whether you happened to install under msys.
 #[cfg(windows)]
 pub fn home_dir() -> Option<PathBuf> {
-    use scopeguard;
     use std::ptr;
     use winapi::shared::winerror::ERROR_INSUFFICIENT_BUFFER;
     use winapi::um::errhandlingapi::GetLastError;
@@ -439,7 +438,7 @@ pub fn home_dir() -> Option<PathBuf> {
                 return None;
             }
             let _g = scopeguard::guard(token, |h| {
-                let _ = CloseHandle(*h);
+                let _ = CloseHandle(h);
             });
             fill_utf16_buf(
                 |buf, mut sz| {

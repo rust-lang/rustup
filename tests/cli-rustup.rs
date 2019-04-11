@@ -10,7 +10,6 @@ use rustup::utils::raw;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::MAIN_SEPARATOR;
-use std::process;
 
 macro_rules! for_host {
     ($s: expr) => {
