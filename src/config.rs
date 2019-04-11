@@ -97,17 +97,17 @@ impl Cfg {
         let dist_root = dist_root_server.clone() + "/dist";
 
         let cfg = Cfg {
-            rustup_dir: rustup_dir,
-            settings_file: settings_file,
-            toolchains_dir: toolchains_dir,
-            update_hash_dir: update_hash_dir,
-            download_dir: download_dir,
-            temp_cfg: temp_cfg,
-            gpg_key: gpg_key,
-            notify_handler: notify_handler,
-            env_override: env_override,
+            rustup_dir,
+            settings_file,
+            toolchains_dir,
+            update_hash_dir,
+            download_dir,
+            temp_cfg,
+            gpg_key,
+            notify_handler,
+            env_override,
             dist_root_url: dist_root,
-            dist_root_server: dist_root_server,
+            dist_root_server,
         };
 
         // Run some basic checks against the constructed configuration
@@ -206,9 +206,9 @@ impl Cfg {
 
     pub fn delete_data(&self) -> Result<()> {
         if utils::path_exists(&self.rustup_dir) {
-            Ok(utils::remove_dir("home", &self.rustup_dir, &|n| {
+            utils::remove_dir("home", &self.rustup_dir, &|n| {
                 (self.notify_handler)(n.into())
-            })?)
+            })
         } else {
             Ok(())
         }
@@ -254,9 +254,10 @@ impl Cfg {
             // on a line after the proximate error.
 
             let reason_err = match reason {
-                OverrideReason::Environment => format!(
+                OverrideReason::Environment => {
                     "the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"
-                ),
+                        .to_string()
+                }
                 OverrideReason::OverrideDB(ref path) => format!(
                     "the directory override for '{}' specifies an uninstalled toolchain",
                     path.display()
@@ -413,7 +414,7 @@ impl Cfg {
         path: &Path,
     ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
         self.find_override_toolchain_or_default(path)
-            .and_then(|r| r.ok_or("no default toolchain configured".into()))
+            .and_then(|r| r.ok_or_else(|| "no default toolchain configured".into()))
     }
 
     pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
@@ -432,12 +433,12 @@ impl Cfg {
         install_if_missing: bool,
         binary: &str,
     ) -> Result<Command> {
-        let ref toolchain = self.get_toolchain(toolchain, false)?;
+        let toolchain = self.get_toolchain(toolchain, false)?;
         if install_if_missing && !toolchain.exists() {
             toolchain.install_from_dist(false)?;
         }
 
-        if let Some(cmd) = self.maybe_do_cargo_fallback(toolchain, binary)? {
+        if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {
             Ok(cmd)
         } else {
             toolchain.create_command(binary)

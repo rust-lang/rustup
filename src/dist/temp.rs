@@ -109,13 +109,13 @@ impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Error::*;
         match *self {
-            CreatingRoot { ref path, error: _ } => {
+            CreatingRoot { ref path, .. } => {
                 write!(f, "could not create temp root: {}", path.display())
             }
-            CreatingFile { ref path, error: _ } => {
+            CreatingFile { ref path, .. } => {
                 write!(f, "could not create temp file: {}", path.display())
             }
-            CreatingDirectory { ref path, error: _ } => {
+            CreatingDirectory { ref path, .. } => {
                 write!(f, "could not create temp directory: {}", path.display())
             }
         }
@@ -129,9 +129,9 @@ impl Cfg {
         notify_handler: Box<dyn Fn(Notification<'_>)>,
     ) -> Self {
         Cfg {
-            root_directory: root_directory,
+            root_directory,
             dist_server: dist_server.to_owned(),
-            notify_handler: notify_handler,
+            notify_handler,
         }
     }
 

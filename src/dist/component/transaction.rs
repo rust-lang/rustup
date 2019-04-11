@@ -46,10 +46,10 @@ impl<'a> Transaction<'a> {
         notify_handler: &'a dyn Fn(Notification<'_>),
     ) -> Self {
         Transaction {
-            prefix: prefix,
+            prefix,
             changes: Vec::new(),
-            temp_cfg: temp_cfg,
-            notify_handler: notify_handler,
+            temp_cfg,
+            notify_handler,
             committed: false,
         }
     }

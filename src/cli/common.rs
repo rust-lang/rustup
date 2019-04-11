@@ -100,7 +100,7 @@ pub fn read_line() -> Result<String> {
     lines
         .next()
         .and_then(|l| l.ok())
-        .ok_or("unable to read from stdin for confirmation".into())
+        .ok_or_else(|| "unable to read from stdin for confirmation".into())
 }
 
 pub fn set_globals(verbose: bool) -> Result<Cfg> {
@@ -146,8 +146,8 @@ fn show_channel_updates(
     toolchains: Vec<(String, rustup::Result<UpdateStatus>)>,
 ) -> Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
-        let ref toolchain = cfg.get_toolchain(&name, false).expect("");
-        let version = rustc_version(toolchain);
+        let toolchain = cfg.get_toolchain(&name, false).expect("");
+        let version = rustc_version(&toolchain);
 
         let banner;
         let color;
@@ -195,7 +195,7 @@ fn show_channel_updates(
         let _ = t.reset();
         let _ = writeln!(t, " - {}", version);
     }
-    let _ = writeln!(t, "");
+    let _ = writeln!(t);
 
     Ok(())
 }
@@ -355,20 +355,18 @@ pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
 
     if toolchains.is_empty() {
         println!("no installed toolchains");
+    } else if let Ok(Some(def_toolchain)) = cfg.find_default() {
+        for toolchain in toolchains {
+            let if_default = if def_toolchain.name() == &*toolchain {
+                " (default)"
+            } else {
+                ""
+            };
+            println!("{}{}", &toolchain, if_default);
+        }
     } else {
-        if let Ok(Some(def_toolchain)) = cfg.find_default() {
-            for toolchain in toolchains {
-                let if_default = if def_toolchain.name() == &*toolchain {
-                    " (default)"
-                } else {
-                    ""
-                };
-                println!("{}{}", &toolchain, if_default);
-            }
-        } else {
-            for toolchain in toolchains {
-                println!("{}", &toolchain);
-            }
+        for toolchain in toolchains {
+            println!("{}", &toolchain);
         }
     }
     Ok(())

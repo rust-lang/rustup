@@ -16,8 +16,8 @@ use crate::utils::toml_utils::*;
 use crate::dist::dist::TargetTriple;
 use std::collections::HashMap;
 
-pub const SUPPORTED_MANIFEST_VERSIONS: [&'static str; 1] = ["2"];
-pub const DEFAULT_MANIFEST_VERSION: &'static str = "2";
+pub const SUPPORTED_MANIFEST_VERSIONS: [&str; 1] = ["2"];
+pub const DEFAULT_MANIFEST_VERSION: &str = "2";
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Manifest {
@@ -70,7 +70,7 @@ impl Manifest {
         Ok(manifest)
     }
     pub fn stringify(self) -> String {
-        toml::Value::Table(self.to_toml()).to_string()
+        toml::Value::Table(self.into_toml()).to_string()
     }
 
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
@@ -87,7 +87,7 @@ impl Manifest {
             reverse_renames,
         })
     }
-    pub fn to_toml(self) -> toml::value::Table {
+    pub fn into_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
 
         result.insert("date".to_owned(), toml::Value::String(self.date));
@@ -123,7 +123,7 @@ impl Manifest {
     fn packages_to_table(packages: HashMap<String, Package>) -> toml::value::Table {
         let mut result = toml::value::Table::new();
         for (k, v) in packages {
-            result.insert(k, toml::Value::Table(v.to_toml()));
+            result.insert(k, toml::Value::Table(v.into_toml()));
         }
         result
     }
@@ -180,13 +180,13 @@ impl Manifest {
 
     fn validate(&self) -> Result<()> {
         // Every component mentioned must have an actual package to download
-        for (_, pkg) in &self.packages {
+        for pkg in self.packages.values() {
             match pkg.targets {
                 PackageTargets::Wildcard(ref tpkg) => {
                     self.validate_targeted_package(tpkg)?;
                 }
                 PackageTargets::Targeted(ref tpkgs) => {
-                    for (_, tpkg) in tpkgs {
+                    for tpkg in tpkgs.values() {
                         self.validate_targeted_package(tpkg)?;
                     }
                 }
@@ -222,7 +222,7 @@ impl Package {
             targets: Self::toml_to_targets(table, path)?,
         })
     }
-    pub fn to_toml(self) -> toml::value::Table {
+    pub fn into_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
 
         result.insert("version".to_owned(), toml::Value::String(self.version));
@@ -257,11 +257,11 @@ impl Package {
         let mut result = toml::value::Table::new();
         match targets {
             PackageTargets::Wildcard(tpkg) => {
-                result.insert("*".to_owned(), toml::Value::Table(tpkg.to_toml()));
+                result.insert("*".to_owned(), toml::Value::Table(tpkg.into_toml()));
             }
             PackageTargets::Targeted(tpkgs) => {
                 for (k, v) in tpkgs {
-                    result.insert(k.to_string(), toml::Value::Table(v.to_toml()));
+                    result.insert(k.to_string(), toml::Value::Table(v.into_toml()));
                 }
             }
         }
@@ -329,7 +329,7 @@ impl TargetedPackage {
             })
         }
     }
-    pub fn to_toml(self) -> toml::value::Table {
+    pub fn into_toml(self) -> toml::value::Table {
         let extensions = Self::components_to_toml(self.extensions);
         let components = Self::components_to_toml(self.components);
         let mut result = toml::value::Table::new();
@@ -372,7 +372,7 @@ impl TargetedPackage {
     fn components_to_toml(components: Vec<Component>) -> toml::value::Array {
         let mut result = toml::value::Array::new();
         for v in components {
-            result.push(toml::Value::Table(v.to_toml()));
+            result.push(toml::Value::Table(v.into_toml()));
         }
         result
     }
@@ -400,7 +400,7 @@ impl Component {
             })?,
         })
     }
-    pub fn to_toml(self) -> toml::value::Table {
+    pub fn into_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
         result.insert(
             "target".to_owned(),
@@ -418,7 +418,7 @@ impl Component {
         if let Some(ref t) = self.target {
             format!("{}-{}", pkg, t)
         } else {
-            format!("{}", pkg)
+            pkg
         }
     }
     pub fn short_name(&self, manifest: &Manifest) -> String {
@@ -444,7 +444,7 @@ impl Component {
         if let Some(ref t) = self.target {
             format!("{}-{}", pkg, t)
         } else {
-            format!("{}", pkg)
+            pkg.to_string()
         }
     }
 }

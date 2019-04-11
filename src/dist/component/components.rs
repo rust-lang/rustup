@@ -11,7 +11,7 @@ use crate::dist::component::transaction::Transaction;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-const COMPONENTS_FILE: &'static str = "components";
+const COMPONENTS_FILE: &str = "components";
 
 #[derive(Clone, Debug)]
 pub struct Components {
@@ -20,7 +20,7 @@ pub struct Components {
 
 impl Components {
     pub fn open(prefix: InstallPrefix) -> Result<Self> {
-        let c = Components { prefix: prefix };
+        let c = Components { prefix };
 
         // Validate that the metadata uses a format we know
         if let Some(v) = c.read_version()? {
@@ -74,12 +74,12 @@ impl Components {
             components: self.clone(),
             name: name.to_owned(),
             parts: Vec::new(),
-            tx: tx,
+            tx,
         }
     }
     pub fn find(&self, name: &str) -> Result<Option<Component>> {
         let result = self.list()?;
-        Ok(result.into_iter().filter(|c| (c.name() == name)).next())
+        Ok(result.into_iter().find(|c| (c.name() == name)))
     }
     pub fn prefix(&self) -> InstallPrefix {
         self.prefix.clone()
@@ -151,7 +151,7 @@ impl ComponentPart {
         format!("{}:{}", &self.0, &self.1.to_string_lossy())
     }
     pub fn decode(line: &str) -> Option<Self> {
-        line.find(":")
+        line.find(':')
             .map(|pos| ComponentPart(line[0..pos].to_owned(), PathBuf::from(&line[(pos + 1)..])))
     }
 }
@@ -277,9 +277,7 @@ impl Component {
                         }
                     }
                 };
-                if self.path_buf.is_none() {
-                    return None;
-                }
+                self.path_buf.as_ref()?;
                 let full_path = self.prefix.join(self.path_buf.as_ref().unwrap());
                 let empty = match read_dir(full_path) {
                     Ok(dir) => dir.count() == 0,

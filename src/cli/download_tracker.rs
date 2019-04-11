@@ -105,7 +105,7 @@ impl DownloadTracker {
         if self.displayed_progress {
             // Display the finished state
             self.display();
-            let _ = writeln!(self.term.as_mut().unwrap(), "");
+            let _ = writeln!(self.term.as_mut().unwrap());
         }
         self.prepare_for_new_download();
     }

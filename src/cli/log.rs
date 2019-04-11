@@ -27,7 +27,7 @@ pub fn warn_fmt(args: fmt::Arguments<'_>) {
     let _ = write!(t, "warning: ");
     let _ = t.reset();
     let _ = t.write_fmt(args);
-    let _ = write!(t, "\n");
+    let _ = writeln!(t);
 }
 
 pub fn err_fmt(args: fmt::Arguments<'_>) {
@@ -37,7 +37,7 @@ pub fn err_fmt(args: fmt::Arguments<'_>) {
     let _ = write!(t, "error: ");
     let _ = t.reset();
     let _ = t.write_fmt(args);
-    let _ = write!(t, "\n");
+    let _ = writeln!(t);
 }
 
 pub fn info_fmt(args: fmt::Arguments<'_>) {
@@ -46,7 +46,7 @@ pub fn info_fmt(args: fmt::Arguments<'_>) {
     let _ = write!(t, "info: ");
     let _ = t.reset();
     let _ = t.write_fmt(args);
-    let _ = write!(t, "\n");
+    let _ = writeln!(t);
 }
 
 pub fn verbose_fmt(args: fmt::Arguments<'_>) {
@@ -56,7 +56,7 @@ pub fn verbose_fmt(args: fmt::Arguments<'_>) {
     let _ = write!(t, "verbose: ");
     let _ = t.reset();
     let _ = t.write_fmt(args);
-    let _ = write!(t, "\n");
+    let _ = writeln!(t);
 }
 
 pub fn debug_fmt(args: fmt::Arguments<'_>) {
@@ -67,6 +67,6 @@ pub fn debug_fmt(args: fmt::Arguments<'_>) {
         let _ = write!(t, "verbose: ");
         let _ = t.reset();
         let _ = t.write_fmt(args);
-        let _ = write!(t, "\n");
+        let _ = writeln!(t);
     }
 }

@@ -686,7 +686,7 @@ fn list_default_toolchain() {
 }
 
 #[test]
-#[ignore(windows)] // FIXME Windows shows UNC paths
+#[ignore = "FIXME: Windows shows UNC paths"]
 fn show_toolchain_override() {
     setup(&|config| {
         let cwd = config.current_dir();
@@ -709,7 +709,7 @@ nightly-{0} (directory override for '{1}')
 }
 
 #[test]
-#[ignore(windows)] // FIXME Windows shows UNC paths
+#[ignore = "FIXME: Windows shows UNC paths"]
 fn show_toolchain_toolchain_file_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
@@ -748,7 +748,7 @@ nightly-{0} (overridden by '{1}')
 }
 
 #[test]
-#[ignore(windows)] // FIXME Windows shows UNC paths
+#[ignore = "FIXME: Windows shows UNC paths"]
 fn show_toolchain_version_nested_file_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
@@ -792,7 +792,7 @@ nightly-{0} (overridden by '{1}')
 }
 
 #[test]
-#[ignore(windows)] // FIXME Windows shows UNC paths
+#[ignore = "FIXME: Windows shows UNC paths"]
 fn show_toolchain_toolchain_file_override_not_installed() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);

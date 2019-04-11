@@ -26,11 +26,11 @@ fn handle_epipe(res: Result<()>) -> Result<()> {
 pub fn main() -> Result<()> {
     crate::self_update::cleanup_self_updater()?;
 
-    let ref matches = cli().get_matches();
+    let matches = cli().get_matches();
     let verbose = matches.is_present("verbose");
-    let ref cfg = common::set_globals(verbose)?;
+    let cfg = &common::set_globals(verbose)?;
 
-    if maybe_upgrade_data(cfg, matches)? {
+    if maybe_upgrade_data(cfg, &matches)? {
         return Ok(());
     }
 
@@ -408,7 +408,7 @@ pub fn cli() -> App<'static, 'static> {
                 )
                 .args(
                     &DOCS_DATA
-                        .into_iter()
+                        .iter()
                         .map(|(name, help_msg, _)| Arg::with_name(name).long(name).help(help_msg))
                         .collect::<Vec<_>>(),
                 )
@@ -421,7 +421,7 @@ pub fn cli() -> App<'static, 'static> {
                 .group(
                     ArgGroup::with_name("page").args(
                         &DOCS_DATA
-                            .into_iter()
+                            .iter()
                             .map(|(name, _, _)| *name)
                             .collect::<Vec<_>>(),
                     ),
@@ -497,7 +497,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
         warn!("(partial) target triple specified instead of toolchain name");
         let installed_toolchains = cfg.list_toolchains()?;
         let default = cfg.find_default()?;
-        let default_name = default.map(|t| t.name().to_string()).unwrap_or("".into());
+        let default_name = default.map(|t| t.name().to_string()).unwrap_or_default();
         let mut candidates = vec![];
         for t in installed_toolchains {
             if t == default_name {
@@ -545,11 +545,11 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
     if let Some(triple) = PartialTargetTriple::from_str(name) {
         warn!("(partial) target triple specified instead of toolchain name");
         let default = cfg.find_default()?;
-        let default_name = default.map(|t| t.name().to_string()).unwrap_or("".into());
+        let default_name = default.map(|t| t.name().to_string()).unwrap_or_default();
         if let Ok(mut desc) = PartialToolchainDesc::from_str(&default_name) {
             desc.target = triple;
             let maybe_toolchain = format!("{}", desc);
-            let ref toolchain = cfg.get_toolchain(maybe_toolchain.as_ref(), false)?;
+            let toolchain = cfg.get_toolchain(maybe_toolchain.as_ref(), false)?;
             if toolchain.name() == default_name {
                 warn!(
                     "(partial) triple '{}' resolves to a toolchain that is already default",
@@ -569,9 +569,9 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
 
 fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     if m.is_present("toolchain") {
-        let ref toolchain = m.value_of("toolchain").expect("");
+        let toolchain = m.value_of("toolchain").expect("");
         default_bare_triple_check(cfg, toolchain)?;
-        let ref toolchain = cfg.get_toolchain(toolchain, false)?;
+        let toolchain = cfg.get_toolchain(toolchain, false)?;
 
         let status = if !toolchain.is_custom() {
             Some(toolchain.install_from_dist_if_not_installed()?)
@@ -634,7 +634,7 @@ fn update(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 }
 
 fn run(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
+    let toolchain = m.value_of("toolchain").expect("");
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
     let cmd = cfg.create_command_for_toolchain(toolchain, m.is_present("install"), args[0])?;
@@ -669,9 +669,9 @@ fn show(cfg: &Cfg) -> Result<()> {
         writeln!(t)?;
     }
 
-    let ref cwd = utils::current_dir()?;
+    let cwd = utils::current_dir()?;
     let installed_toolchains = cfg.list_toolchains()?;
-    let active_toolchain = cfg.find_override_toolchain_or_default(cwd);
+    let active_toolchain = cfg.find_override_toolchain_or_default(&cwd);
 
     // active_toolchain will carry the reason we don't have one in its detail.
     let active_targets = if let Ok(ref at) = active_toolchain {
@@ -791,8 +791,8 @@ fn show(cfg: &Cfg) -> Result<()> {
 }
 
 fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
-    let ref cwd = utils::current_dir()?;
-    if let Some((toolchain, reason)) = cfg.find_override_toolchain_or_default(cwd)? {
+    let cwd = utils::current_dir()?;
+    if let Some((toolchain, reason)) = cfg.find_override_toolchain_or_default(&cwd)? {
         if reason.is_some() {
             println!("{} ({})", toolchain.name(), reason.unwrap());
         } else {
@@ -895,18 +895,20 @@ fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Too
         return Ok(toolchain);
     }
 
-    let ref cwd = utils::current_dir()?;
-    let (toolchain, _) = cfg.toolchain_for_dir(cwd)?;
+    let cwd = utils::current_dir()?;
+    let (toolchain, _) = cfg.toolchain_for_dir(&cwd)?;
 
     Ok(toolchain)
 }
 
 fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
-    let ref path = m.value_of("path").expect("");
+    let toolchain = m.value_of("toolchain").expect("");
+    let path = m.value_of("path").expect("");
     let toolchain = cfg.get_toolchain(toolchain, true)?;
 
-    Ok(toolchain.install_from_dir(Path::new(path), true)?)
+    toolchain
+        .install_from_dir(Path::new(path), true)
+        .map_err(|e| e.into())
 }
 
 fn toolchain_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
@@ -918,7 +920,7 @@ fn toolchain_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 }
 
 fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    let ref toolchain = m.value_of("toolchain").expect("");
+    let toolchain = m.value_of("toolchain").expect("");
     let toolchain = cfg.get_toolchain(toolchain, false)?;
 
     let status = if !toolchain.is_custom() {
@@ -957,12 +959,10 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             info!("no nonexistent paths detected");
         }
         list
+    } else if m.is_present("path") {
+        vec![m.value_of("path").unwrap().to_string()]
     } else {
-        if m.is_present("path") {
-            vec![m.value_of("path").unwrap().to_string()]
-        } else {
-            vec![utils::current_dir()?.to_str().unwrap().to_string()]
-        }
+        vec![utils::current_dir()?.to_str().unwrap().to_string()]
     };
 
     for path in paths {
@@ -984,7 +984,7 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     Ok(())
 }
 
-const DOCS_DATA: &[(&'static str, &'static str, &'static str,)] = &[
+const DOCS_DATA: &[(&str, &str, &str,)] = &[
     // flags can be used to open specific documents, e.g. `rustup doc --nomicon`
     // tuple elements: document name used as flag, help message, document index path
     ("alloc", "The Rust core allocation and collections library", "alloc/index.html"),
@@ -1006,21 +1006,19 @@ const DOCS_DATA: &[(&'static str, &'static str, &'static str,)] = &[
 fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
-    let doc_url = if let Some((_, _, path)) = DOCS_DATA
-        .into_iter()
-        .find(|(name, _, _)| m.is_present(name))
-    {
-        path
-    } else {
-        "index.html"
-    };
+    let doc_url =
+        if let Some((_, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.is_present(name)) {
+            path
+        } else {
+            "index.html"
+        };
 
     if m.is_present("path") {
         let doc_path = toolchain.doc_path(doc_url)?;
         println!("{}", doc_path.display());
         Ok(())
     } else {
-        Ok(toolchain.open_docs(doc_url)?)
+        toolchain.open_docs(doc_url).map_err(Into::into)
     }
 }
 

@@ -77,21 +77,21 @@ impl<'a> DownloadCfg<'a> {
 
         if hash != actual_hash {
             // Incorrect hash
-            return Err(ErrorKind::ChecksumFailed {
+            Err(ErrorKind::ChecksumFailed {
                 url: url.to_string(),
                 expected: hash.to_string(),
                 calculated: actual_hash,
             }
-            .into());
+            .into())
         } else {
             (self.notify_handler)(Notification::ChecksumValid(&url.to_string()));
 
             utils::rename_file("downloaded", &partial_file_path, &target_file)?;
-            return Ok(File { path: target_file });
+            Ok(File { path: target_file })
         }
     }
 
-    pub fn clean(&self, hashes: &Vec<String>) -> Result<()> {
+    pub fn clean(&self, hashes: &[String]) -> Result<()> {
         for hash in hashes.iter() {
             let used_file = self.download_dir.join(hash);
             if self.download_dir.join(&used_file).exists() {
@@ -171,15 +171,11 @@ fn file_hash(path: &Path) -> Result<String> {
     use std::io::Read;
     let mut downloaded = fs::File::open(&path).chain_err(|| "opening already downloaded file")?;
     let mut buf = vec![0; 32768];
-    loop {
-        if let Ok(n) = downloaded.read(&mut buf) {
-            if n == 0 {
-                break;
-            }
-            hasher.input(&buf[..n]);
-        } else {
+    while let Ok(n) = downloaded.read(&mut buf) {
+        if n == 0 {
             break;
         }
+        hasher.input(&buf[..n]);
     }
 
     Ok(format!("{:x}", hasher.result()))
