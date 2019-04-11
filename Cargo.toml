@@ -47,6 +47,8 @@ wait-timeout = "0.2"
 walkdir = "2"
 xz2 = "0.1.3"
 openssl = { version = "0.10", optional = true }
+git-testament = "0.1"
+lazy_static = "1"
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = ["combaseapi", "errhandlingapi", "fileapi", "handleapi", "ioapiset", "jobapi", "jobapi2", "minwindef", "processthreadsapi", "psapi", "shlobj", "shtypes", "synchapi", "sysinfoapi", "tlhelp32", "userenv", "winbase", "winerror", "winioctl", "winnt", "winuser"] }
