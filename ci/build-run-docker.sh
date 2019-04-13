@@ -1,6 +1,12 @@
 #!/bin/bash
 
-set -ex
+# Start loading environment before `set -x`
+script_dir=$(cd "$(dirname "$0")" && pwd)
+. "$script_dir/shared.bash"
+
+set -e
+# Disable cause it makes helper script failed to work properly.
+# set -x
 
 mkdir -p target
 
@@ -8,9 +14,18 @@ DOCKER="$1"
 TARGET="$2"
 SKIP_TESTS="$3"
 
-bash ci/fetch-rust-docker.sh "$TARGET"
+travis_fold start "fetch.image.${TARGET}"
+travis_time_start
+travis_do_cmd bash ci/fetch-rust-docker.sh "$TARGET"
+travis_time_finish
+travis_fold end "fetch.image.${TARGET}"
+
 if [ -f "ci/docker/$DOCKER/Dockerfile" ]; then
-  docker build -t "$DOCKER" "ci/docker/$DOCKER/"
+  travis_fold start "Build.Dockerfile.${DOCKER}"
+  travis_time_start
+  travis_do_cmd docker build -t "$DOCKER" "ci/docker/$DOCKER/"
+  travis_time_finish
+  travis_fold end "Build.Dockerfile.${DOCKER}"
 fi
 
 docker run \

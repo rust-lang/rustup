@@ -7,26 +7,6 @@ TARGET="$1"
 RUST_REPO="https://github.com/rust-lang/rust"
 S3_BASE_URL="https://s3-us-west-1.amazonaws.com/rust-lang-ci2/rustc-builds"
 
-# See http://unix.stackexchange.com/questions/82598
-# Duplicated from rust-lang/rust/src/ci/shared.sh
-function retry {
-  echo "Attempting with retry:" "$@"
-  local n=1
-  local max=5
-  while true; do
-    "$@" && break || {
-      if [[ $n -lt $max ]]; then
-        sleep $n  # don't retry immediately
-        ((n++))
-        echo "Command failed. Attempt $n/$max:"
-      else
-        echo "The command has failed after $n attempts."
-        return 1
-      fi
-    }
-  done
-}
-
 # Use images from rustc master
 case "$TARGET" in
   mips-unknown-linux-gnu)          image=dist-mips-linux ;;
@@ -54,7 +34,7 @@ if ! docker tag "$digest" "rust-$TARGET"; then
   echo "Attempting to download $url"
   rm -f "$cache"
   set +e
-  retry curl -y 30 -Y 10 --connect-timeout 30 -f -L -C - -o "$cache" "$url"
+  travis_retry curl -y 30 -Y 10 --connect-timeout 30 -f -L -C - -o "$cache" "$url"
   docker load -i "$cache"
   set -e
   docker tag "$digest" "rust-$TARGET"

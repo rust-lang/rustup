@@ -64,9 +64,9 @@ script:
         *)                   DOCKER=$TARGET ;;
       esac;
       if [ -n "$DOCKER" ]; then
-          sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
+          bash ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
       else
-          PATH="$HOME/rust/bin:$PATH" sh ci/run.sh;
+          PATH="$HOME/rust/bin:$PATH" bash ci/run.sh;
       fi
 
 before_deploy:
