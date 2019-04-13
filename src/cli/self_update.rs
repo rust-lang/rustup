@@ -170,7 +170,7 @@ This will uninstall all Rust toolchains and data, and remove
     };
 }
 
-static MSVC_MESSAGE: &'static str = r#"# Rust Visual C++ prerequisites
+static MSVC_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
 
 Rust requires the Microsoft C++ build tools for Visual Studio 2013 or
 later, but they don't seem to be installed.
@@ -196,7 +196,7 @@ doing then it is fine to continue installation without the build
 tools, but otherwise, install the C++ build tools before proceeding.
 "#;
 
-static UPDATE_ROOT: &'static str = "https://static.rust-lang.org/rustup";
+static UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 
 /// `CARGO_HOME` suitable for display, possibly with $HOME
 /// substituted for the directory prefix
@@ -219,7 +219,7 @@ fn canonical_cargo_home() -> Result<String> {
 }
 
 /// Installing is a simple matter of coping the running binary to
-/// `CARGO_HOME`/bin, hardlinking the various Rust tools to it,
+/// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
 /// and adding `CARGO_HOME`/bin to PATH.
 pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<()> {
     do_pre_install_sanity_checks()?;
