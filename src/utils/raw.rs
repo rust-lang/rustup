@@ -1,4 +1,3 @@
-use std::char::from_u32;
 use std::env;
 use std::error;
 use std::ffi::{OsStr, OsString};
@@ -9,8 +8,6 @@ use std::io::Write;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 use std::str;
-
-use rand::random;
 
 pub fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
     path: P,
@@ -37,9 +34,11 @@ pub fn path_exists<P: AsRef<Path>>(path: P) -> bool {
 }
 
 pub fn random_string(length: usize) -> String {
-    let chars = b"abcdefghijklmnopqrstuvwxyz0123456789_";
+    use rand::Rng;
+    const CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyz0123456789_";
+    let mut rng = rand::thread_rng();
     (0..length)
-        .map(|_| from_u32(u32::from(chars[random::<usize>() % chars.len()])).unwrap())
+        .map(|_| char::from(CHARSET[rng.gen_range(0, CHARSET.len())]))
         .collect()
 }
 
