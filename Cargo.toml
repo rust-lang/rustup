@@ -26,7 +26,6 @@ download = { path = "download" }
 clap = "2"
 error-chain = "0.12"
 flate2 = "1"
-itertools = "0.8"
 libc = "0.2"
 markdown = "0.2"
 rand = "0.6"
