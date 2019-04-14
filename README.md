@@ -176,6 +176,10 @@ info: checking for self-updates
 info: downloading self-updates
 ```
 
+**Note**: `rustup` will automatically update itself at the end of any toolchain
+installation as well.  You can prevent this automatic behaviour by passing the
+`--no-self-update` argument when running `rustup update` or `rustup toolchain install`.
+
 ## Working with nightly Rust
 
 Rustup gives you easy access to the nightly compiler and its
