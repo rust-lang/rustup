@@ -164,10 +164,12 @@ r"DISCUSSION:
 
     BASH:
 
-    Completion files are commonly stored in `/etc/bash_completion.d/`.
+    Completion files are commonly stored in `/etc/bash_completion.d/` for
+    system-wide commands, but can be stored in in
+    `~/.local/share/bash_completion/completions` for user-specific commands.
     Run the command:
 
-        $ rustup completions bash > /etc/bash_completion.d/rustup.bash-completion
+        $ rustup completions bash >> ~/.local/share/bash_completion/completions/rustup
 
     This installs the completion script. You may have to log out and
     log back in to your shell session for the changes to take affect.
@@ -249,7 +251,22 @@ r"DISCUSSION:
     into a separate file and source it inside our profile. To save the
     completions into our profile simply use
 
-        PS C:\> rustup completions powershell >> ${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1";
+        PS C:\> rustup completions powershell >> ${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
+
+    CARGO:
+
+    Rustup can also generate a completion script for `cargo`. The script output
+    by `rustup` will source the completion script distributed with your default
+    toolchain. Not all shells are currently supported. Here are examples for
+    the currently supported shells.
+
+    BASH:
+
+        $ rustup completions bash cargo >> ~/.local/share/bash_completion/completions/cargo
+
+    ZSH:
+
+        $ rustup completions zsh cargo > ~/.zfunc/_cargo";
 
 pub static TOOLCHAIN_ARG_HELP: &'static str = "Toolchain name, such as 'stable', 'nightly', \
                                                or '1.8.0'. For more information see `rustup \

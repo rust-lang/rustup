@@ -9,10 +9,12 @@ use rustup::dist::manifest::Component;
 use rustup::utils::utils::{self, ExitCode};
 use rustup::{command, Cfg, Toolchain};
 use std::error::Error;
-use std::io::{self, Write};
+use std::fmt;
+use std::io::Write;
 use std::iter;
 use std::path::Path;
 use std::process::{self, Command};
+use std::str::FromStr;
 
 fn handle_epipe(res: Result<()>) -> Result<()> {
     match res {
@@ -85,11 +87,12 @@ pub fn main() -> Result<()> {
         },
         ("completions", Some(c)) => {
             if let Some(shell) = c.value_of("shell") {
-                cli().gen_completions_to(
-                    "rustup",
+                output_completion_script(
                     shell.parse::<Shell>().unwrap(),
-                    &mut io::stdout(),
-                );
+                    c.value_of("command")
+                        .and_then(|cmd| cmd.parse::<CompletionCommand>().ok())
+                        .unwrap_or(CompletionCommand::Rustup),
+                )?;
             }
         }
         (_, _) => unreachable!(),
@@ -442,40 +445,98 @@ pub fn cli() -> App<'static, 'static> {
         );
     }
 
+    app = app
+        .subcommand(
+            SubCommand::with_name("self")
+                .about("Modify the rustup installation")
+                .setting(AppSettings::VersionlessSubcommands)
+                .setting(AppSettings::DeriveDisplayOrder)
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("update").about("Download and install updates to rustup"),
+                )
+                .subcommand(
+                    SubCommand::with_name("uninstall")
+                        .about("Uninstall rustup.")
+                        .arg(Arg::with_name("no-prompt").short("y")),
+                )
+                .subcommand(
+                    SubCommand::with_name("upgrade-data")
+                        .about("Upgrade the internal data format."),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("set")
+                .about("Alter rustup settings")
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("default-host")
+                        .about("The triple used to identify toolchains when not specified")
+                        .arg(Arg::with_name("host_triple").required(true)),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("self")
+                .about("Modify the rustup installation")
+                .setting(AppSettings::VersionlessSubcommands)
+                .setting(AppSettings::DeriveDisplayOrder)
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("update").about("Download and install updates to rustup"),
+                )
+                .subcommand(
+                    SubCommand::with_name("uninstall")
+                        .about("Uninstall rustup.")
+                        .arg(Arg::with_name("no-prompt").short("y")),
+                )
+                .subcommand(
+                    SubCommand::with_name("upgrade-data")
+                        .about("Upgrade the internal data format."),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("telemetry")
+                .about("rustup telemetry commands")
+                .setting(AppSettings::Hidden)
+                .setting(AppSettings::VersionlessSubcommands)
+                .setting(AppSettings::DeriveDisplayOrder)
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(SubCommand::with_name("enable").about("Enable rustup telemetry"))
+                .subcommand(SubCommand::with_name("disable").about("Disable rustup telemetry"))
+                .subcommand(SubCommand::with_name("analyze").about("Analyze stored telemetry")),
+        )
+        .subcommand(
+            SubCommand::with_name("set")
+                .about("Alter rustup settings")
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("default-host")
+                        .about("The triple used to identify toolchains when not specified")
+                        .arg(Arg::with_name("host_triple").required(true)),
+                ),
+        );
+
+    // Clap provides no good way to say that help should be printed in all
+    // cases where an argument without a default is not provided. The following
+    // creates lists out all the conditions where the "shell" argument are
+    // provided and give the default of "rustup". This way if "shell" is not
+    // provided then the help will still be printed.
+    let completion_defaults = Shell::variants()
+        .iter()
+        .map(|&shell| ("shell", Some(shell), "rustup"))
+        .collect::<Vec<_>>();
+
     app.subcommand(
-        SubCommand::with_name("self")
-            .about("Modify the rustup installation")
-            .setting(AppSettings::VersionlessSubcommands)
-            .setting(AppSettings::DeriveDisplayOrder)
-            .setting(AppSettings::SubcommandRequiredElseHelp)
-            .subcommand(
-                SubCommand::with_name("update").about("Download and install updates to rustup"),
-            )
-            .subcommand(
-                SubCommand::with_name("uninstall")
-                    .about("Uninstall rustup.")
-                    .arg(Arg::with_name("no-prompt").short("y")),
-            )
-            .subcommand(
-                SubCommand::with_name("upgrade-data").about("Upgrade the internal data format."),
-            ),
-    )
-    .subcommand(
-        SubCommand::with_name("set")
-            .about("Alter rustup settings")
-            .setting(AppSettings::SubcommandRequiredElseHelp)
-            .subcommand(
-                SubCommand::with_name("default-host")
-                    .about("The triple used to identify toolchains when not specified")
-                    .arg(Arg::with_name("host_triple").required(true)),
-            ),
-    )
-    .subcommand(
         SubCommand::with_name("completions")
             .about("Generate completion scripts for your shell")
             .after_help(COMPLETIONS_HELP)
             .setting(AppSettings::ArgRequiredElseHelp)
-            .arg(Arg::with_name("shell").possible_values(&Shell::variants())),
+            .arg(Arg::with_name("shell").possible_values(&Shell::variants()))
+            .arg(
+                Arg::with_name("command")
+                    .possible_values(&CompletionCommand::variants())
+                    .default_value_ifs(&completion_defaults[..]),
+            ),
     )
 }
 
@@ -1054,5 +1115,78 @@ fn self_uninstall(m: &ArgMatches<'_>) -> Result<()> {
 
 fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     cfg.set_default_host_triple(m.value_of("host_triple").expect(""))?;
+    Ok(())
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum CompletionCommand {
+    Rustup,
+    Cargo,
+}
+
+static COMPLETIONS: &[(&'static str, CompletionCommand)] = &[
+    ("rustup", CompletionCommand::Rustup),
+    ("cargo", CompletionCommand::Cargo),
+];
+
+impl CompletionCommand {
+    fn variants() -> Vec<&'static str> {
+        COMPLETIONS.iter().map(|&(s, _)| s).collect::<Vec<_>>()
+    }
+}
+
+impl FromStr for CompletionCommand {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match COMPLETIONS
+            .iter()
+            .filter(|&(val, _)| val.eq_ignore_ascii_case(s))
+            .next()
+        {
+            Some(&(_, cmd)) => Ok(cmd),
+            None => {
+                let completion_options = COMPLETIONS
+                    .iter()
+                    .map(|&(v, _)| v)
+                    .fold("".to_owned(), |s, v| format!("{}{}, ", s, v));
+                Err(format!(
+                    "[valid values: {}]",
+                    completion_options.trim_end_matches(", ")
+                ))
+            }
+        }
+    }
+}
+
+impl fmt::Display for CompletionCommand {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match COMPLETIONS.iter().filter(|&(_, cmd)| cmd == self).next() {
+            Some(&(val, _)) => write!(f, "{}", val),
+            None => unreachable!(),
+        }
+    }
+}
+
+fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<()> {
+    match command {
+        CompletionCommand::Rustup => {
+            cli().gen_completions_to("rustup", shell, &mut term2::stdout());
+        }
+        CompletionCommand::Cargo => {
+            let script = match shell {
+                Shell::Bash => "/etc/bash_completion.d/cargo",
+                Shell::Zsh => "/share/zsh/site-functions/_cargo",
+                _ => return Err(ErrorKind::UnsupportedCompletionShell(shell, command).into()),
+            };
+
+            writeln!(
+                &mut term2::stdout(),
+                "source $(rustc --print sysroot){}",
+                script,
+            )?;
+        }
+    }
+
     Ok(())
 }

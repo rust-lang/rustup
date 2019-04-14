@@ -4,8 +4,8 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
-    set_current_dist_date, this_host_triple, Config, Scenario,
+    self, expect_err, expect_ok, expect_ok_eq, expect_ok_ex, expect_stderr_ok, expect_stdout_ok,
+    run, set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use rustup::errors::TOOLSTATE_MSG;
 use rustup::utils::{raw, utils};
@@ -695,5 +695,68 @@ fn update_unavailable_rustc() {
         );
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+    });
+}
+
+#[test]
+fn completion_rustup() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "completions", "bash", "rustup"]);
+    });
+}
+
+#[test]
+fn completion_cargo() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "completions", "bash", "cargo"]);
+    });
+}
+
+#[test]
+fn completion_default() {
+    setup(&|config| {
+        expect_ok_eq(
+            config,
+            &["rustup", "completions", "bash"],
+            &["rustup", "completions", "bash", "rustup"],
+        );
+    });
+}
+
+#[test]
+fn completion_bad_shell() {
+    setup(&|config| {
+        expect_err(
+            config,
+            &["rustup", "completions", "fake"],
+            "error: 'fake' isn't a valid value for '<shell>'",
+        );
+        expect_err(
+            config,
+            &["rustup", "completions", "fake", "cargo"],
+            "error: 'fake' isn't a valid value for '<shell>'",
+        );
+    });
+}
+
+#[test]
+fn completion_bad_tool() {
+    setup(&|config| {
+        expect_err(
+            config,
+            &["rustup", "completions", "bash", "fake"],
+            "error: 'fake' isn't a valid value for '<command>'",
+        );
+    });
+}
+
+#[test]
+fn completion_cargo_unsupported_shell() {
+    setup(&|config| {
+        expect_err(
+            config,
+            &["rustup", "completions", "fish", "cargo"],
+            "error: cargo does not currently support completions for ",
+        );
     });
 }
