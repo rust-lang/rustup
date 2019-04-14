@@ -33,7 +33,6 @@
 use crate::common::{self, Confirm};
 use crate::errors::*;
 use crate::term2;
-use regex::Regex;
 use rustup::dist::dist;
 use rustup::utils::utils;
 use rustup::{DUP_TOOLS, TOOLS};
@@ -1378,8 +1377,14 @@ fn get_new_rustup_version(path: &Path) -> Option<String> {
 }
 
 fn parse_new_rustup_version(version: String) -> String {
-    let re = Regex::new(r"\d+.\d+.\d+[0-9a-zA-Z-]*").unwrap();
-    let capture = re.captures(&version);
+    use lazy_static::lazy_static;
+    use regex::Regex;
+
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"\d+.\d+.\d+[0-9a-zA-Z-]*").unwrap();
+    }
+
+    let capture = RE.captures(&version);
     let matched_version = match capture {
         Some(cap) => cap.get(0).unwrap().as_str(),
         None => "(unknown)",

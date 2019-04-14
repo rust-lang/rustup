@@ -8,6 +8,7 @@ use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::utils;
 
+use lazy_static::lazy_static;
 use regex::Regex;
 
 use std::env;
@@ -223,15 +224,16 @@ impl PartialTargetTriple {
         // we can count  on all triple components being
         // delineated by it.
         let name = format!("-{}", name);
-        let pattern = format!(
-            r"^(?:-({}))?(?:-({}))?(?:-({}))?$",
-            LIST_ARCHS.join("|"),
-            LIST_OSES.join("|"),
-            LIST_ENVS.join("|")
-        );
-
-        let re = Regex::new(&pattern).unwrap();
-        re.captures(&name).map(|c| {
+        lazy_static! {
+            static ref PATTERN: String = format!(
+                r"^(?:-({}))?(?:-({}))?(?:-({}))?$",
+                LIST_ARCHS.join("|"),
+                LIST_OSES.join("|"),
+                LIST_ENVS.join("|")
+            );
+            static ref RE: Regex = Regex::new(&PATTERN).unwrap();
+        }
+        RE.captures(&name).map(|c| {
             fn fn_map(s: &str) -> Option<String> {
                 if s == "" {
                     None
@@ -259,13 +261,14 @@ impl PartialToolchainDesc {
             r"\d{1}\.\d{2}\.\d{1}",
         ];
 
-        let pattern = format!(
-            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
-            CHANNELS.join("|")
-        );
-
-        let re = Regex::new(&pattern).unwrap();
-        let d = re.captures(name).map(|c| {
+        lazy_static! {
+            static ref PATTERN: String = format!(
+                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
+                CHANNELS.join("|")
+            );
+            static ref RE: Regex = Regex::new(&PATTERN).unwrap();
+        }
+        let d = RE.captures(name).map(|c| {
             fn fn_map(s: &str) -> Option<String> {
                 if s == "" {
                     None
@@ -349,13 +352,15 @@ impl ToolchainDesc {
             r"\d{1}\.\d{2}\.\d{1}",
         ];
 
-        let pattern = format!(
-            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?-(.*)?$",
-            CHANNELS.join("|"),
-        );
+        lazy_static! {
+            static ref PATTERN: String = format!(
+                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?-(.*)?$",
+                CHANNELS.join("|"),
+            );
+            static ref RE: Regex = Regex::new(&PATTERN).unwrap();
+        }
 
-        let re = Regex::new(&pattern).unwrap();
-        re.captures(name)
+        RE.captures(name)
             .map(|c| {
                 fn fn_map(s: &str) -> Option<String> {
                     if s == "" {
