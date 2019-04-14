@@ -122,6 +122,17 @@ fn update_works_without_term() {
     });
 }
 
+// Issue #1738
+#[test]
+fn show_works_with_dumb_term() {
+    setup(&|config| {
+        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        clitools::env(config, &mut cmd);
+        cmd.env("TERM", "dumb");
+        assert!(cmd.spawn().unwrap().wait().unwrap().success());
+    });
+}
+
 // Issue #140
 // Don't panic when `target`, `update` etc. are called without subcommands.
 #[test]
