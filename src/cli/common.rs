@@ -406,7 +406,10 @@ git_testament!(TESTAMENT);
 
 pub fn version() -> &'static str {
     lazy_static! {
-        static ref RENDERED: String = render_testament!(TESTAMENT);
+        // Because we trust our `stable` branch given the careful release
+        // process, we mark it trusted here so that our version numbers look
+        // right when built from CI before the tag is pushed
+        static ref RENDERED: String = render_testament!(TESTAMENT, "stable");
     }
     &RENDERED
 }
