@@ -22,7 +22,7 @@ pub fn main() -> Result<()> {
             .as_ref()
             .and_then(|a| a.file_name())
             .and_then(|a| a.to_str());
-        let ref arg0 = arg0.ok_or(ErrorKind::NoExeName)?;
+        let arg0 = arg0.ok_or(ErrorKind::NoExeName)?;
 
         // Check for a toolchain specifier.
         let arg1 = args.next();
@@ -41,7 +41,7 @@ pub fn main() -> Result<()> {
 
         let cfg = set_globals(false)?;
         cfg.check_metadata_version()?;
-        direct_proxy(&cfg, arg0, toolchain, &cmd_args)?
+        direct_proxy(&cfg, &arg0, toolchain, &cmd_args)?
     };
 
     process::exit(c)

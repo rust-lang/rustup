@@ -13,8 +13,8 @@ use crate::errors::*;
 use crate::utils::utils;
 use std::path::Path;
 
-pub const DIST_MANIFEST: &'static str = "multirust-channel-manifest.toml";
-pub const CONFIG_FILE: &'static str = "multirust-config.toml";
+pub const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
+pub const CONFIG_FILE: &str = "multirust-config.toml";
 
 enum Format {
     Gz,
@@ -116,8 +116,8 @@ impl Manifestation {
         // Some vars we're going to need a few times
         let temp_cfg = download_cfg.temp_cfg;
         let prefix = self.installation.prefix();
-        let ref rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
-        let ref installed_manifest_path = prefix.path().join(rel_installed_manifest_path);
+        let rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
+        let installed_manifest_path = prefix.path().join(&rel_installed_manifest_path);
 
         // Create the lists of components needed for installation
         let update = Update::build_update(self, new_manifest, changes, notify_handler)?;
@@ -169,8 +169,8 @@ impl Manifestation {
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
-        let ref config = self.read_config()?;
-        tx = self.maybe_handle_v2_upgrade(config, tx)?;
+        let config = self.read_config()?;
+        tx = self.maybe_handle_v2_upgrade(&config, tx)?;
 
         // Uninstall components
         for component in update.components_to_uninstall {
@@ -185,7 +185,7 @@ impl Manifestation {
                 component.target.as_ref(),
             ));
 
-            tx = self.uninstall_component(&component, new_manifest, tx, notify_handler.clone())?;
+            tx = self.uninstall_component(&component, new_manifest, tx, &notify_handler)?;
         }
 
         // Install components
@@ -194,7 +194,7 @@ impl Manifestation {
             // names are not the same as the dist manifest component
             // names. Some are just the component name some are the
             // component name plus the target triple.
-            let ref pkg_name = component.name_in_manifest();
+            let pkg_name = component.name_in_manifest();
             let short_pkg_name = component.short_name_in_manifest();
             let short_name = component.short_name(new_manifest);
 
@@ -224,17 +224,17 @@ impl Manifestation {
 
             // If the package doesn't contain the component that the
             // manifest says it does then somebody must be playing a joke on us.
-            if !package.contains(pkg_name, Some(&short_pkg_name)) {
+            if !package.contains(&pkg_name, Some(&short_pkg_name)) {
                 return Err(ErrorKind::CorruptComponent(short_name).into());
             }
 
-            tx = package.install(&self.installation, pkg_name, Some(&short_pkg_name), tx)?;
+            tx = package.install(&self.installation, &pkg_name, Some(&short_pkg_name), tx)?;
         }
 
         // Install new distribution manifest
-        let ref new_manifest_str = new_manifest.clone().stringify();
+        let new_manifest_str = new_manifest.clone().stringify();
         tx.modify_file(rel_installed_manifest_path.to_owned())?;
-        utils::write_file("manifest", installed_manifest_path, new_manifest_str)?;
+        utils::write_file("manifest", &installed_manifest_path, &new_manifest_str)?;
 
         // Write configuration.
         //
@@ -244,11 +244,11 @@ impl Manifestation {
         // name/target. Needs to be fixed in rust-installer.
         let mut config = Config::new();
         config.components = update.final_component_list;
-        let ref config_str = config.stringify();
-        let ref rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
-        let ref config_path = prefix.path().join(rel_config_path);
+        let config_str = config.stringify();
+        let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
+        let config_path = prefix.path().join(&rel_config_path);
         tx.modify_file(rel_config_path.to_owned())?;
-        utils::write_file("dist config", config_path, config_str)?;
+        utils::write_file("dist config", &config_path, &config_str)?;
 
         // End transaction
         tx.commit();
@@ -270,9 +270,8 @@ impl Manifestation {
 
         // Read configuration and delete it
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
-        let ref config_str =
-            utils::read_file("dist config", &prefix.path().join(&rel_config_path))?;
-        let config = Config::parse(config_str)?;
+        let config_str = utils::read_file("dist config", &prefix.path().join(&rel_config_path))?;
+        let config = Config::parse(&config_str)?;
         tx.remove_file("dist config", rel_config_path)?;
 
         for component in config.components {
@@ -294,8 +293,8 @@ impl Manifestation {
         // names are not the same as the dist manifest component
         // names. Some are just the component name some are the
         // component name plus the target triple.
-        let ref name = component.name_in_manifest();
-        let ref short_name = component.short_name_in_manifest();
+        let name = component.name_in_manifest();
+        let short_name = component.short_name_in_manifest();
         if let Some(c) = self.installation.find(&name)? {
             tx = c.uninstall(tx)?;
         } else if let Some(c) = self.installation.find(&short_name)? {
@@ -313,11 +312,11 @@ impl Manifestation {
     // for v2 installations.
     pub fn read_config(&self) -> Result<Option<Config>> {
         let prefix = self.installation.prefix();
-        let ref rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
-        let ref config_path = prefix.path().join(rel_config_path);
-        if utils::path_exists(config_path) {
-            let ref config_str = utils::read_file("dist config", config_path)?;
-            Ok(Some(Config::parse(config_str)?))
+        let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
+        let config_path = prefix.path().join(rel_config_path);
+        if utils::path_exists(&config_path) {
+            let config_str = utils::read_file("dist config", &config_path)?;
+            Ok(Some(Config::parse(&config_str)?))
         } else {
             Ok(None)
         }
@@ -325,10 +324,10 @@ impl Manifestation {
 
     pub fn load_manifest(&self) -> Result<Option<Manifest>> {
         let prefix = self.installation.prefix();
-        let ref old_manifest_path = prefix.manifest_file(DIST_MANIFEST);
-        if utils::path_exists(old_manifest_path) {
-            let ref manifest_str = utils::read_file("installed manifest", old_manifest_path)?;
-            Ok(Some(Manifest::parse(manifest_str)?))
+        let old_manifest_path = prefix.manifest_file(DIST_MANIFEST);
+        if utils::path_exists(&old_manifest_path) {
+            let manifest_str = utils::read_file("installed manifest", &old_manifest_path)?;
+            Ok(Some(Manifest::parse(&manifest_str)?))
         } else {
             Ok(None)
         }
@@ -376,8 +375,8 @@ impl Manifestation {
         let dlcfg = DownloadCfg {
             dist_root: "bogus",
             download_dir: &dld_dir,
-            temp_cfg: temp_cfg,
-            notify_handler: notify_handler,
+            temp_cfg,
+            notify_handler,
         };
 
         let dl = dlcfg.download_and_check(&url, update_hash, ".tar.gz")?;
@@ -468,7 +467,7 @@ impl Update {
         let starting_list = config
             .as_ref()
             .map(|c| c.components.clone())
-            .unwrap_or(Vec::new());
+            .unwrap_or_default();
 
         let mut result = Update {
             components_to_uninstall: vec![],
@@ -510,12 +509,10 @@ impl Update {
             for component in &result.final_component_list {
                 if !starting_list.contains(component) {
                     result.components_to_install.push(component.clone());
-                } else {
-                    if changes.add_extensions.contains(&component) {
-                        notify_handler(Notification::ComponentAlreadyInstalled(
-                            &component.description(new_manifest),
-                        ));
-                    }
+                } else if changes.add_extensions.contains(&component) {
+                    notify_handler(Notification::ComponentAlreadyInstalled(
+                        &component.description(new_manifest),
+                    ));
                 }
             }
         } else {
@@ -603,7 +600,7 @@ impl Update {
                 if self
                     .final_component_list
                     .iter()
-                    .any(|c| &c.short_name_in_manifest() == pkg)
+                    .any(|c| c.short_name_in_manifest() == pkg)
                 {
                     None
                 } else {

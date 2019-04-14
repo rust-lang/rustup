@@ -100,7 +100,5 @@ impl<'a> InstallMethod<'a> {
 }
 
 pub fn uninstall(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<()> {
-    Ok(utils::remove_dir("install", path, &|n| {
-        notify_handler(n.into())
-    })?)
+    utils::remove_dir("install", path, &|n| notify_handler(n.into()))
 }

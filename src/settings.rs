@@ -6,8 +6,8 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-pub const SUPPORTED_METADATA_VERSIONS: [&'static str; 2] = ["2", "12"];
-pub const DEFAULT_METADATA_VERSION: &'static str = "12";
+pub const SUPPORTED_METADATA_VERSIONS: [&str; 2] = ["2", "12"];
+pub const DEFAULT_METADATA_VERSION: &str = "12";
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SettingsFile {
@@ -18,7 +18,7 @@ pub struct SettingsFile {
 impl SettingsFile {
     pub fn new(path: PathBuf) -> Self {
         SettingsFile {
-            path: path,
+            path,
             cache: RefCell::new(None),
         }
     }
@@ -118,7 +118,7 @@ impl Settings {
         notify_handler: &dyn Fn(Notification<'_>),
     ) -> Option<String> {
         let key = Self::path_to_key(dir, notify_handler);
-        self.overrides.get(&key).map(|s| s.clone())
+        self.overrides.get(&key).cloned()
     }
 
     pub fn parse(data: &str) -> Result<Self> {
@@ -126,7 +126,7 @@ impl Settings {
         Self::from_toml(value, "")
     }
     pub fn stringify(self) -> String {
-        toml::Value::Table(self.to_toml()).to_string()
+        toml::Value::Table(self.into_toml()).to_string()
     }
 
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
@@ -135,13 +135,13 @@ impl Settings {
             return Err(ErrorKind::UnknownMetadataVersion(version).into());
         }
         Ok(Settings {
-            version: version,
+            version,
             default_host_triple: get_opt_string(&mut table, "default_host_triple", path)?,
             default_toolchain: get_opt_string(&mut table, "default_toolchain", path)?,
             overrides: Self::table_to_overrides(&mut table, path)?,
         })
     }
-    pub fn to_toml(self) -> toml::value::Table {
+    pub fn into_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
 
         result.insert("version".to_owned(), toml::Value::String(self.version));

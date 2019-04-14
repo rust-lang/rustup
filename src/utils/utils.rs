@@ -29,42 +29,42 @@ pub fn ensure_dir_exists(
         notify_handler(Notification::CreatingDirectory(name, p))
     })
     .chain_err(|| ErrorKind::CreatingDirectory {
-        name: name,
+        name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
     raw::read_file(path).chain_err(|| ErrorKind::ReadingFile {
-        name: name,
+        name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn write_file(name: &'static str, path: &Path, contents: &str) -> Result<()> {
     raw::write_file(path, contents).chain_err(|| ErrorKind::WritingFile {
-        name: name,
+        name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn append_file(name: &'static str, path: &Path, line: &str) -> Result<()> {
     raw::append_file(path, line).chain_err(|| ErrorKind::WritingFile {
-        name: name,
+        name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn write_line(name: &'static str, file: &mut File, path: &Path, line: &str) -> Result<()> {
     writeln!(file, "{}", line).chain_err(|| ErrorKind::WritingFile {
-        name: name,
+        name,
         path: path.to_path_buf(),
     })
 }
 
 pub fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> Result<()> {
     write!(file, "{}", s).chain_err(|| ErrorKind::WritingFile {
-        name: name,
+        name,
         path: path.to_path_buf(),
     })
 }
@@ -84,7 +84,7 @@ pub fn filter_file<F: FnMut(&str) -> bool>(
     filter: F,
 ) -> Result<usize> {
     raw::filter_file(src, dest, filter).chain_err(|| ErrorKind::FilteringFile {
-        name: name,
+        name,
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
     })
@@ -96,7 +96,7 @@ pub fn match_file<T, F: FnMut(&str) -> Option<T>>(
     f: F,
 ) -> Result<Option<T>> {
     raw::match_file(src, f).chain_err(|| ErrorKind::ReadingFile {
-        name: name,
+        name,
         path: PathBuf::from(src),
     })
 }
@@ -110,7 +110,7 @@ pub fn canonicalize_path(path: &Path, notify_handler: &dyn Fn(Notification<'_>))
 
 pub fn tee_file<W: io::Write>(name: &'static str, path: &Path, w: &mut W) -> Result<()> {
     raw::tee_file(path, w).chain_err(|| ErrorKind::ReadingFile {
-        name: name,
+        name,
         path: PathBuf::from(path),
     })
 }
@@ -136,8 +136,8 @@ pub fn download_file_with_resume(
         Ok(_) => Ok(()),
         Err(e) => {
             let is_client_error = match e.kind() {
-                &ErrorKind::Download(DEK::HttpStatus(400..=499)) => true,
-                &ErrorKind::Download(DEK::FileNotFound) => true,
+                ErrorKind::Download(DEK::HttpStatus(400..=499)) => true,
+                ErrorKind::Download(DEK::FileNotFound) => true,
                 _ => false,
             };
             Err(e).chain_err(|| {
@@ -176,13 +176,10 @@ fn download_file_(
     // This callback will write the download to disk and optionally
     // hash the contents, then forward the notification up the stack
     let callback: &dyn Fn(Event<'_>) -> download::Result<()> = &|msg| {
-        match msg {
-            Event::DownloadDataReceived(data) => {
-                if let Some(ref mut h) = *hasher.borrow_mut() {
-                    h.input(data);
-                }
+        if let Event::DownloadDataReceived(data) = msg {
+            if let Some(ref mut h) = *hasher.borrow_mut() {
+                h.input(data);
             }
-            _ => (),
         }
 
         match msg {
@@ -325,14 +322,14 @@ pub fn remove_dir(
 ) -> Result<()> {
     notify_handler(Notification::RemovingDirectory(name, path));
     raw::remove_dir(path).chain_err(|| ErrorKind::RemovingDirectory {
-        name: name,
+        name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
     fs::remove_file(path).chain_err(|| ErrorKind::RemovingFile {
-        name: name,
+        name,
         path: PathBuf::from(path),
     })
 }
@@ -345,14 +342,14 @@ pub fn ensure_file_removed(name: &'static str, path: &Path) -> Result<()> {
         }
     }
     result.chain_err(|| ErrorKind::RemovingFile {
-        name: name,
+        name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
     fs::read_dir(path).chain_err(|| ErrorKind::ReadingDirectory {
-        name: name,
+        name,
         path: PathBuf::from(path),
     })
 }
@@ -527,7 +524,9 @@ pub fn cargo_home() -> Result<PathBuf> {
     };
 
     let user_home = home_dir().map(|p| p.join(".cargo"));
-    cargo_home.or(user_home).ok_or(ErrorKind::CargoHome.into())
+    cargo_home
+        .or(user_home)
+        .ok_or_else(|| ErrorKind::CargoHome.into())
 }
 
 // Creates a ~/.rustup folder
@@ -549,7 +548,7 @@ fn dot_dir(name: &str) -> Option<PathBuf> {
 }
 
 pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
-    dot_dir(".rustup").ok_or(ErrorKind::RustupHome.into())
+    dot_dir(".rustup").ok_or_else(|| ErrorKind::RustupHome.into())
 }
 
 pub fn rustup_home() -> Result<PathBuf> {
@@ -565,7 +564,7 @@ pub fn rustup_home() -> Result<PathBuf> {
     let user_home = dot_dir(".rustup");
     rustup_home
         .or(user_home)
-        .ok_or(ErrorKind::RustupHome.into())
+        .ok_or_else(|| ErrorKind::RustupHome.into())
 }
 
 pub fn format_path_for_display(path: &str) -> String {
@@ -651,7 +650,7 @@ pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
 
 fn rename(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
     fs::rename(src, dest).chain_err(|| ErrorKind::RenamingFile {
-        name: name,
+        name,
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
     })

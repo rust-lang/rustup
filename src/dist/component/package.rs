@@ -16,8 +16,8 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 /// The current metadata revision used by rust-installer
-pub const INSTALLER_VERSION: &'static str = "3";
-pub const VERSION_FILE: &'static str = "rust-installer-version";
+pub const INSTALLER_VERSION: &str = "3";
+pub const VERSION_FILE: &str = "rust-installer-version";
 
 pub trait Package: fmt::Debug {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool;
@@ -45,9 +45,9 @@ impl DirectoryPackage {
         let content = utils::read_file("package components", &path.join("components"))?;
         let components = content.lines().map(|l| l.to_owned()).collect();
         Ok(DirectoryPackage {
-            path: path,
-            components: components,
-            copy: copy,
+            path,
+            components,
+            copy,
         })
     }
 }

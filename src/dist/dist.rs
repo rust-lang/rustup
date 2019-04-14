@@ -14,10 +14,10 @@ use std::path::Path;
 
 use regex::Regex;
 
-pub const DEFAULT_DIST_SERVER: &'static str = "https://static.rust-lang.org";
+pub const DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
 // Deprecated
-pub const DEFAULT_DIST_ROOT: &'static str = "https://static.rust-lang.org/dist";
+pub const DEFAULT_DIST_ROOT: &str = "https://static.rust-lang.org/dist";
 
 // A toolchain descriptor from rustup's perspective. These contain
 // 'partial target triples', which allow toolchain names like
@@ -100,14 +100,14 @@ static LIST_ENVS: &'static [&'static str] = &[
 // Hence we could distinguish between the variants with compile-time cfg()
 // attributes alone.
 #[cfg(all(not(windows), target_endian = "big"))]
-const TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &'static str = "mips-unknown-linux-gnu";
+const TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mips-unknown-linux-gnu";
 #[cfg(all(not(windows), target_endian = "little"))]
-const TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &'static str = "mipsel-unknown-linux-gnu";
+const TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mipsel-unknown-linux-gnu";
 
 #[cfg(all(not(windows), target_endian = "big"))]
-const TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &'static str = "mips64-unknown-linux-gnuabi64";
+const TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi64";
 #[cfg(all(not(windows), target_endian = "little"))]
-const TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &'static str = "mips64el-unknown-linux-gnuabi64";
+const TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
 
 impl TargetTriple {
     pub fn from_str(name: &str) -> Self {
@@ -371,7 +371,7 @@ impl ToolchainDesc {
                     target: TargetTriple(c.get(3).unwrap().as_str().to_owned()),
                 }
             })
-            .ok_or(ErrorKind::InvalidToolchainName(name.to_string()).into())
+            .ok_or_else(|| ErrorKind::InvalidToolchainName(name.to_string()).into())
     }
 
     pub fn manifest_v1_url(&self, dist_root: &str) -> String {
@@ -397,7 +397,7 @@ impl ToolchainDesc {
 
     pub fn package_dir(&self, dist_root: &str) -> String {
         match self.date {
-            None => format!("{}", dist_root),
+            None => dist_root.to_string(),
             Some(ref date) => format!("{}/{}", dist_root, date),
         }
     }
@@ -554,7 +554,7 @@ pub fn update_from_dist_<'a>(
                 changes,
                 force_update,
                 &download,
-                download.notify_handler.clone(),
+                &download.notify_handler,
                 &toolchain.manifest_name(),
             )? {
                 UpdateStatus::Unchanged => Ok(None),
@@ -592,7 +592,7 @@ pub fn update_from_dist_<'a>(
         &manifest,
         update_hash,
         &download.temp_cfg,
-        download.notify_handler.clone(),
+        &download.notify_handler,
     ) {
         Ok(None) => Ok(None),
         Ok(Some(hash)) => Ok(Some(hash)),
@@ -626,12 +626,9 @@ fn dl_v2_manifest<'a>(
 
         Ok(Some((manifest, manifest_hash)))
     } else {
-        match *manifest_dl_res.as_ref().unwrap_err().kind() {
-            // Checksum failed - issue warning to try again later
-            ErrorKind::ChecksumFailed { .. } => {
-                (download.notify_handler)(Notification::ManifestChecksumFailedHack)
-            }
-            _ => {}
+        // Checksum failed - issue warning to try again later
+        if let ErrorKind::ChecksumFailed { .. } = manifest_dl_res.as_ref().unwrap_err().kind() {
+            (download.notify_handler)(Notification::ManifestChecksumFailedHack)
         }
         Err(manifest_dl_res.unwrap_err())
     }

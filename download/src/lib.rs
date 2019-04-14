@@ -266,7 +266,7 @@ pub mod reqwest_be {
 
         if !res.status().is_success() {
             let code: u16 = res.status().into();
-            return Err(ErrorKind::HttpStatus(code as u32).into());
+            return Err(ErrorKind::HttpStatus(u32::from(code)).into());
         }
 
         let buffer_size = 0x10000;
@@ -345,13 +345,13 @@ pub mod reqwest_be {
                 return Err(ErrorKind::FileNotFound.into());
             }
 
-            let ref mut f = fs::File::open(src).chain_err(|| "unable to open downloaded file")?;
-            io::Seek::seek(f, io::SeekFrom::Start(resume_from))?;
+            let mut f = fs::File::open(src).chain_err(|| "unable to open downloaded file")?;
+            io::Seek::seek(&mut f, io::SeekFrom::Start(resume_from))?;
 
-            let ref mut buffer = vec![0u8; 0x10000];
+            let mut buffer = vec![0u8; 0x10000];
             loop {
-                let bytes_read =
-                    io::Read::read(f, buffer).chain_err(|| "unable to read downloaded file")?;
+                let bytes_read = io::Read::read(&mut f, &mut buffer)
+                    .chain_err(|| "unable to read downloaded file")?;
                 if bytes_read == 0 {
                     break;
                 }

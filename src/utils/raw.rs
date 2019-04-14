@@ -39,7 +39,7 @@ pub fn path_exists<P: AsRef<Path>>(path: P) -> bool {
 pub fn random_string(length: usize) -> String {
     let chars = b"abcdefghijklmnopqrstuvwxyz0123456789_";
     (0..length)
-        .map(|_| from_u32(chars[random::<usize>() % chars.len()] as u32).unwrap())
+        .map(|_| from_u32(u32::from(chars[random::<usize>() % chars.len()])).unwrap())
         .collect()
 }
 
@@ -140,7 +140,7 @@ pub fn tee_file<W: io::Write>(path: &Path, w: &mut W) -> io::Result<()> {
         let bytes_read = io::Read::read(&mut file, &mut buffer)?;
 
         if bytes_read != 0 {
-            io::Write::write_all(w, &mut buffer[0..bytes_read])?;
+            io::Write::write_all(w, &buffer[0..bytes_read])?;
         } else {
             return Ok(());
         }
@@ -344,14 +344,14 @@ pub fn prefix_arg<S: AsRef<OsStr>>(name: &str, s: S) -> OsString {
 
 pub fn has_cmd(cmd: &str) -> bool {
     let cmd = format!("{}{}", cmd, env::consts::EXE_SUFFIX);
-    let path = env::var_os("PATH").unwrap_or(OsString::new());
+    let path = env::var_os("PATH").unwrap_or_default();
     env::split_paths(&path)
         .map(|p| p.join(&cmd))
         .any(|p| p.exists())
 }
 
 pub fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
-    cmds.into_iter().map(|&s| s).filter(|&s| has_cmd(s)).next()
+    cmds.iter().cloned().find(|&s| has_cmd(s))
 }
 
 pub fn open_browser(path: &Path) -> io::Result<bool> {
@@ -361,10 +361,10 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
         use std::process::Stdio;
 
         let env_browser = env::var_os("BROWSER").map(|b| env::split_paths(&b).collect::<Vec<_>>());
-        let env_commands = env_browser
+        let env_commands: Vec<&str> = env_browser
             .as_ref()
             .map(|cmds| cmds.iter().by_ref().filter_map(|b| b.to_str()).collect())
-            .unwrap_or(vec![]);
+            .unwrap_or_default();
 
         let commands = [
             "xdg-open",
@@ -373,7 +373,7 @@ pub fn open_browser(path: &Path) -> io::Result<bool> {
             "chromium",
             "sensible-browser",
         ];
-        if let Some(cmd) = find_cmd(&env_commands).or(find_cmd(&commands)) {
+        if let Some(cmd) = find_cmd(&env_commands).or_else(|| find_cmd(&commands)) {
             Command::new(cmd)
                 .arg(path)
                 .stdin(Stdio::null())

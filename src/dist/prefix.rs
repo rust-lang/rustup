@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-const REL_MANIFEST_DIR: &'static str = "lib/rustlib";
+const REL_MANIFEST_DIR: &str = "lib/rustlib";
 
 #[derive(Clone, Debug)]
 pub struct InstallPrefix {
@@ -8,7 +8,7 @@ pub struct InstallPrefix {
 }
 impl InstallPrefix {
     pub fn from(path: PathBuf) -> Self {
-        InstallPrefix { path: path }
+        InstallPrefix { path }
     }
     pub fn path(&self) -> &Path {
         &self.path

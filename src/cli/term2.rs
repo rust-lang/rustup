@@ -67,7 +67,7 @@ struct LineWrapper<'a, T: io::Write> {
 impl<'a, T: io::Write + 'a> LineWrapper<'a, T> {
     // Just write a newline
     fn write_line(&mut self) {
-        let _ = writeln!(self.w, "");
+        let _ = writeln!(self.w);
         // Reset column position to start of line
         self.pos = 0;
     }
@@ -126,10 +126,10 @@ impl<'a, T: io::Write + 'a> LineWrapper<'a, T> {
     // Constructor
     fn new(w: &'a mut T, indent: u32, margin: u32) -> Self {
         LineWrapper {
-            indent: indent,
-            margin: margin,
+            indent,
+            margin,
             pos: indent,
-            w: w,
+            w,
         }
     }
 }

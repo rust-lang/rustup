@@ -47,7 +47,7 @@ impl<'a> Toolchain<'a> {
         let resolved_name = cfg.resolve_toolchain(name)?;
         let path = cfg.toolchains_dir.join(&resolved_name);
         Ok(Toolchain {
-            cfg: cfg,
+            cfg,
             name: resolved_name,
             path: path.clone(),
             dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
@@ -80,7 +80,7 @@ impl<'a> Toolchain<'a> {
         utils::is_directory(&self.path) || is_symlink
     }
     pub fn verify(&self) -> Result<()> {
-        Ok(utils::assert_is_directory(&self.path)?)
+        utils::assert_is_directory(&self.path)
     }
     pub fn remove(&self) -> Result<()> {
         if self.exists() || self.is_symlink() {
@@ -96,7 +96,7 @@ impl<'a> Toolchain<'a> {
         if !self.exists() {
             (self.cfg.notify_handler)(Notification::UninstalledToolchain(&self.name));
         }
-        Ok(result?)
+        result
     }
     fn install(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
@@ -384,11 +384,11 @@ impl<'a> Toolchain<'a> {
 
         #[cfg(not(target_os = "macos"))]
         mod sysenv {
-            pub const LOADER_PATH: &'static str = "LD_LIBRARY_PATH";
+            pub const LOADER_PATH: &str = "LD_LIBRARY_PATH";
         }
         #[cfg(target_os = "macos")]
         mod sysenv {
-            pub const LOADER_PATH: &'static str = "DYLD_LIBRARY_PATH";
+            pub const LOADER_PATH: &str = "DYLD_LIBRARY_PATH";
         }
         env_var::prepend_path(sysenv::LOADER_PATH, vec![new_path.clone()], cmd);
 
@@ -423,17 +423,17 @@ impl<'a> Toolchain<'a> {
     pub fn open_docs(&self, relative: &str) -> Result<()> {
         self.verify()?;
 
-        Ok(utils::open_browser(&self.doc_path(relative)?)?)
+        utils::open_browser(&self.doc_path(relative)?)
     }
 
     pub fn make_default(&self) -> Result<()> {
         self.cfg.set_default(&self.name)
     }
     pub fn make_override(&self, path: &Path) -> Result<()> {
-        Ok(self.cfg.settings_file.with_mut(|s| {
+        self.cfg.settings_file.with_mut(|s| {
             s.add_override(path, self.name.clone(), self.cfg.notify_handler.as_ref());
             Ok(())
-        })?)
+        })
     }
 
     pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
@@ -442,7 +442,7 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = ToolchainDesc::from_str(toolchain)
+        let toolchain = ToolchainDesc::from_str(toolchain)
             .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))?;
 
         let prefix = InstallPrefix::from(self.path.to_owned());
@@ -473,10 +473,12 @@ impl<'a> Toolchain<'a> {
                 // Get the component so we can check if it is available
                 let component_pkg = manifest
                     .get_package(&component.short_name_in_manifest())
-                    .expect(&format!(
-                        "manifest should contain component {}",
-                        &component.short_name(&manifest)
-                    ));
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "manifest should contain component {}",
+                            &component.short_name(&manifest)
+                        )
+                    });
                 let component_target_pkg = component_pkg
                     .targets
                     .get(&toolchain.target)
@@ -500,10 +502,12 @@ impl<'a> Toolchain<'a> {
                 // Get the component so we can check if it is available
                 let extension_pkg = manifest
                     .get_package(&extension.short_name_in_manifest())
-                    .expect(&format!(
-                        "manifest should contain extension {}",
-                        &extension.short_name(&manifest)
-                    ));
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "manifest should contain extension {}",
+                            &extension.short_name(&manifest)
+                        )
+                    });
                 let extension_target_pkg = extension_pkg
                     .targets
                     .get(&toolchain.target)
@@ -532,7 +536,7 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = ToolchainDesc::from_str(toolchain)
+        let toolchain = ToolchainDesc::from_str(toolchain)
             .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))?;
 
         let prefix = InstallPrefix::from(self.path.to_owned());
@@ -556,13 +560,14 @@ impl<'a> Toolchain<'a> {
 
             if targ_pkg.components.contains(&component) {
                 // Treat it as a warning, see https://github.com/rust-lang/rustup.rs/issues/441
-                return Ok(println!(
+                eprintln!(
                     "{}",
                     ErrorKind::AddingRequiredComponent(
                         self.name.to_string(),
                         component.description(&manifest),
                     ),
-                ));
+                );
+                return Ok(());
             }
 
             if !targ_pkg.extensions.contains(&component) {
@@ -588,7 +593,7 @@ impl<'a> Toolchain<'a> {
                 changes,
                 false,
                 &self.download_cfg(),
-                self.download_cfg().notify_handler.clone(),
+                &self.download_cfg().notify_handler,
                 &toolchain.manifest_name(),
             )?;
 
@@ -604,7 +609,7 @@ impl<'a> Toolchain<'a> {
         }
 
         let toolchain = &self.name;
-        let ref toolchain = ToolchainDesc::from_str(toolchain)
+        let toolchain = ToolchainDesc::from_str(toolchain)
             .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))?;
 
         let prefix = InstallPrefix::from(self.path.to_owned());
@@ -658,7 +663,7 @@ impl<'a> Toolchain<'a> {
                 changes,
                 false,
                 &self.download_cfg(),
-                self.download_cfg().notify_handler.clone(),
+                &self.download_cfg().notify_handler,
                 &toolchain.manifest_name(),
             )?;
 
