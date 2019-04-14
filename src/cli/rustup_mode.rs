@@ -1001,6 +1001,7 @@ const DOCS_DATA: &[(&'static str, &'static str, &'static str,)] = &[
     ("std", "Standard library API documentation", "std/index.html"),
     ("test", "Support code for rustc's built in unit-test and micro-benchmarking framework", "test/index.html"),
     ("unstable-book", "The Unstable Book", "unstable-book/index.html"),
+    ("embedded-book", "The Embedded Rust Book", "embedded-book/index.html"),
 ];
 
 fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
