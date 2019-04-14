@@ -140,10 +140,9 @@ pub fn cli() -> App<'static, 'static> {
                 )
                 .arg(
                     Arg::with_name("no-self-update")
-                        .help("Don't perform self update when running the `rustup` command")
+                        .help("Don't perform self-update when running the `rustup install` command")
                         .long("no-self-update")
                         .takes_value(false)
-                        .hidden(true),
                 )
                 .arg(
                     Arg::with_name("force")
@@ -175,10 +174,9 @@ pub fn cli() -> App<'static, 'static> {
                 )
                 .arg(
                     Arg::with_name("no-self-update")
-                        .help("Don't perform self update when running the `rustup` command")
+                        .help("Don't perform self update when running the `rustup update` command")
                         .long("no-self-update")
                         .takes_value(false)
-                        .hidden(true),
                 )
                 .arg(
                     Arg::with_name("force")
@@ -217,10 +215,9 @@ pub fn cli() -> App<'static, 'static> {
                         )
                         .arg(
                             Arg::with_name("no-self-update")
-                                .help("Don't perform self update when running the `rustup` command")
+                                .help("Don't perform self update when running the `rustup toolchain install` command")
                                 .long("no-self-update")
                                 .takes_value(false)
-                                .hidden(true),
                         ),
                 )
                 .subcommand(
