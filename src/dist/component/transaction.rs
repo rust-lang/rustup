@@ -133,6 +133,22 @@ impl<'a> Transaction<'a> {
         Ok(())
     }
 
+    /// Move a file to a relative path of the install prefix.
+    pub fn move_file(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
+        assert!(relpath.is_relative());
+        let item = ChangedItem::move_file(&self.prefix, component, relpath, src)?;
+        self.change(item);
+        Ok(())
+    }
+
+    /// Recursively move a directory to a relative path of the install prefix.
+    pub fn move_dir(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
+        assert!(relpath.is_relative());
+        let item = ChangedItem::move_dir(&self.prefix, component, relpath, src)?;
+        self.change(item);
+        Ok(())
+    }
+
     pub fn temp(&self) -> &'a temp::Cfg {
         self.temp_cfg
     }
@@ -195,8 +211,12 @@ impl<'a> ChangedItem<'a> {
         }
         Ok(())
     }
-    fn add_file(prefix: &InstallPrefix, component: &str, relpath: PathBuf) -> Result<(Self, File)> {
-        let abs_path = prefix.abs_path(&relpath);
+    fn dest_abs_path(
+        prefix: &InstallPrefix,
+        component: &str,
+        relpath: &PathBuf,
+    ) -> Result<PathBuf> {
+        let abs_path = prefix.abs_path(relpath);
         if utils::path_exists(&abs_path) {
             Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
@@ -207,11 +227,14 @@ impl<'a> ChangedItem<'a> {
             if let Some(p) = abs_path.parent() {
                 utils::ensure_dir_exists("component", p, &|_| ())?;
             }
-            let file = File::create(&abs_path)
-                .chain_err(|| format!("error creating file '{}'", abs_path.display()))?;
-
-            Ok((ChangedItem::AddedFile(relpath), file))
+            Ok(abs_path)
         }
+    }
+    fn add_file(prefix: &InstallPrefix, component: &str, relpath: PathBuf) -> Result<(Self, File)> {
+        let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
+        let file = File::create(&abs_path)
+            .chain_err(|| format!("error creating file '{}'", abs_path.display()))?;
+        Ok((ChangedItem::AddedFile(relpath), file))
     }
     fn copy_file(
         prefix: &InstallPrefix,
@@ -219,20 +242,9 @@ impl<'a> ChangedItem<'a> {
         relpath: PathBuf,
         src: &Path,
     ) -> Result<Self> {
-        let abs_path = prefix.abs_path(&relpath);
-        if utils::path_exists(&abs_path) {
-            Err(ErrorKind::ComponentConflict {
-                name: component.to_owned(),
-                path: relpath.clone(),
-            }
-            .into())
-        } else {
-            if let Some(p) = abs_path.parent() {
-                utils::ensure_dir_exists("component", p, &|_| ())?;
-            }
-            utils::copy_file(src, &abs_path)?;
-            Ok(ChangedItem::AddedFile(relpath))
-        }
+        let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
+        utils::copy_file(src, &abs_path)?;
+        Ok(ChangedItem::AddedFile(relpath))
     }
     fn copy_dir(
         prefix: &InstallPrefix,
@@ -240,20 +252,9 @@ impl<'a> ChangedItem<'a> {
         relpath: PathBuf,
         src: &Path,
     ) -> Result<Self> {
-        let abs_path = prefix.abs_path(&relpath);
-        if utils::path_exists(&abs_path) {
-            Err(ErrorKind::ComponentConflict {
-                name: component.to_owned(),
-                path: relpath.clone(),
-            }
-            .into())
-        } else {
-            if let Some(p) = abs_path.parent() {
-                utils::ensure_dir_exists("component", p, &|_| ())?;
-            }
-            utils::copy_dir(src, &abs_path, &|_| ())?;
-            Ok(ChangedItem::AddedDir(relpath))
-        }
+        let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
+        utils::copy_dir(src, &abs_path, &|_| ())?;
+        Ok(ChangedItem::AddedDir(relpath))
     }
     fn remove_file(
         prefix: &InstallPrefix,
@@ -310,5 +311,25 @@ impl<'a> ChangedItem<'a> {
             }
             Ok(ChangedItem::ModifiedFile(relpath, None))
         }
+    }
+    fn move_file(
+        prefix: &InstallPrefix,
+        component: &str,
+        relpath: PathBuf,
+        src: &Path,
+    ) -> Result<Self> {
+        let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
+        utils::rename_file("component", src, &abs_path)?;
+        Ok(ChangedItem::AddedFile(relpath))
+    }
+    fn move_dir(
+        prefix: &InstallPrefix,
+        component: &str,
+        relpath: PathBuf,
+        src: &Path,
+    ) -> Result<Self> {
+        let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
+        utils::rename_dir("component", src, &abs_path)?;
+        Ok(ChangedItem::AddedDir(relpath))
     }
 }

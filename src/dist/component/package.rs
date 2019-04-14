@@ -35,10 +35,11 @@ pub trait Package: fmt::Debug {
 pub struct DirectoryPackage {
     path: PathBuf,
     components: HashSet<String>,
+    copy: bool,
 }
 
 impl DirectoryPackage {
-    pub fn new(path: PathBuf) -> Result<Self> {
+    pub fn new(path: PathBuf, copy: bool) -> Result<Self> {
         validate_installer_version(&path)?;
 
         let content = utils::read_file("package components", &path.join("components"))?;
@@ -46,6 +47,7 @@ impl DirectoryPackage {
         Ok(DirectoryPackage {
             path: path,
             components: components,
+            copy: copy,
         })
     }
 }
@@ -97,8 +99,20 @@ impl Package for DirectoryPackage {
             let src_path = root.join(&path);
 
             match &*part.0 {
-                "file" => builder.copy_file(path.clone(), &src_path)?,
-                "dir" => builder.copy_dir(path.clone(), &src_path)?,
+                "file" => {
+                    if self.copy {
+                        builder.copy_file(path.clone(), &src_path)?
+                    } else {
+                        builder.move_file(path.clone(), &src_path)?
+                    }
+                }
+                "dir" => {
+                    if self.copy {
+                        builder.copy_dir(path.clone(), &src_path)?
+                    } else {
+                        builder.move_dir(path.clone(), &src_path)?
+                    }
+                }
                 _ => return Err(ErrorKind::CorruptComponent(name.to_owned()).into()),
             }
 
@@ -187,7 +201,7 @@ impl<'a> TarPackage<'a> {
         unpack_without_first_dir(&mut archive, &*temp_dir)?;
 
         Ok(TarPackage(
-            DirectoryPackage::new(temp_dir.to_owned())?,
+            DirectoryPackage::new(temp_dir.to_owned(), false)?,
             temp_dir,
         ))
     }

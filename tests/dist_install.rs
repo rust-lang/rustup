@@ -67,7 +67,7 @@ fn package_contains() {
 
     mock.build(tempdir.path());
 
-    let package = DirectoryPackage::new(tempdir.path().to_owned()).unwrap();
+    let package = DirectoryPackage::new(tempdir.path().to_owned(), true).unwrap();
     assert!(package.contains("mycomponent", None));
     assert!(package.contains("mycomponent2", None));
 }
@@ -88,7 +88,7 @@ fn package_bad_version() {
     let mut ver = File::create(tempdir.path().join("rust-installer-version")).unwrap();
     writeln!(ver, "100").unwrap();
 
-    assert!(DirectoryPackage::new(tempdir.path().to_owned()).is_err());
+    assert!(DirectoryPackage::new(tempdir.path().to_owned(), true).is_err());
 }
 
 #[test]
@@ -122,7 +122,7 @@ fn basic_install() {
 
     let components = Components::open(prefix.clone()).unwrap();
 
-    let pkg = DirectoryPackage::new(pkgdir.path().to_owned()).unwrap();
+    let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
 
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     tx.commit();
@@ -168,7 +168,7 @@ fn multiple_component_install() {
 
     let components = Components::open(prefix.clone()).unwrap();
 
-    let pkg = DirectoryPackage::new(pkgdir.path().to_owned()).unwrap();
+    let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
 
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     let tx = pkg.install(&components, "mycomponent2", None, tx).unwrap();
@@ -218,7 +218,7 @@ fn uninstall() {
 
     let components = Components::open(prefix.clone()).unwrap();
 
-    let pkg = DirectoryPackage::new(pkgdir.path().to_owned()).unwrap();
+    let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
 
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     let tx = pkg.install(&components, "mycomponent2", None, tx).unwrap();
@@ -275,7 +275,7 @@ fn component_bad_version() {
 
     let components = Components::open(prefix.clone()).unwrap();
 
-    let pkg = DirectoryPackage::new(pkgdir.path().to_owned()).unwrap();
+    let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
 
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     tx.commit();
@@ -336,7 +336,7 @@ fn unix_permissions() {
 
     let components = Components::open(prefix.clone()).unwrap();
 
-    let pkg = DirectoryPackage::new(pkgdir.path().to_owned()).unwrap();
+    let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
 
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     tx.commit();
@@ -421,7 +421,7 @@ fn install_to_prefix_that_does_not_exist() {
 
     let components = Components::open(prefix.clone()).unwrap();
 
-    let pkg = DirectoryPackage::new(pkgdir.path().to_owned()).unwrap();
+    let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
 
     let tx = pkg.install(&components, "mycomponent", None, tx).unwrap();
     tx.commit();

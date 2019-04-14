@@ -109,7 +109,16 @@ impl<'a> ComponentBuilder<'a> {
             .push(ComponentPart("dir".to_owned(), path.clone()));
         self.tx.copy_dir(&self.name, path, src)
     }
-
+    pub fn move_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
+        self.parts
+            .push(ComponentPart("file".to_owned(), path.clone()));
+        self.tx.move_file(&self.name, path, src)
+    }
+    pub fn move_dir(&mut self, path: PathBuf, src: &Path) -> Result<()> {
+        self.parts
+            .push(ComponentPart("dir".to_owned(), path.clone()));
+        self.tx.move_dir(&self.name, path, src)
+    }
     pub fn finish(mut self) -> Result<Transaction<'a>> {
         // Write component manifest
         let path = self.components.rel_component_manifest(&self.name);
