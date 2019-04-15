@@ -848,7 +848,7 @@ fn override_set_unset_with_path() {
         expect_ok_ex(
             config,
             &["rustup", "override", "list"],
-            &format!("{}\tnightly-x86_64-unknown-linux-gnu\n", &workdir),
+            &format!("{}\tnightly-{}\n", &workdir, this_host_triple()),
             r"",
         );
         config.change_dir(&config.emptydir, &|| {
