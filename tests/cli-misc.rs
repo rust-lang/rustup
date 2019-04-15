@@ -699,7 +699,7 @@ fn update_unavailable_rustc() {
             config,
             &["rustup", "update", "nightly"],
             format!(
-                "some components unavailable for download: 'rustc', 'cargo'\n{}",
+                "some components unavailable for download: 'rustc', 'cargo' for channel 'nightly'\n{}",
                 TOOLSTATE_MSG
             )
             .as_str(),
