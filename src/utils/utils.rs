@@ -389,9 +389,15 @@ pub fn make_executable(path: &Path) -> Result<()> {
             path: PathBuf::from(path),
         })?;
         let mut perms = metadata.permissions();
-        let new_mode = (perms.mode() & !0o777) | 0o755;
-        perms.set_mode(new_mode);
+        let mode = perms.mode();
+        let new_mode = (mode & !0o777) | 0o755;
 
+        // Check if permissions are ok already - #1638
+        if mode == new_mode {
+            return Ok(());
+        }
+
+        perms.set_mode(new_mode);
         set_permissions(path, perms)
     }
 
