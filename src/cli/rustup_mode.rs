@@ -1140,8 +1140,7 @@ impl FromStr for CompletionCommand {
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match COMPLETIONS
             .iter()
-            .filter(|&(val, _)| val.eq_ignore_ascii_case(s))
-            .next()
+            .find(|&(val, _)| val.eq_ignore_ascii_case(s))
         {
             Some(&(_, cmd)) => Ok(cmd),
             None => {
@@ -1160,7 +1159,7 @@ impl FromStr for CompletionCommand {
 
 impl fmt::Display for CompletionCommand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match COMPLETIONS.iter().filter(|&(_, cmd)| cmd == self).next() {
+        match COMPLETIONS.iter().find(|&(_, cmd)| cmd == self) {
             Some(&(val, _)) => write!(f, "{}", val),
             None => unreachable!(),
         }
