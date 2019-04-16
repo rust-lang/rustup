@@ -10,9 +10,12 @@ use std::path::PathBuf;
 use url::Url;
 
 pub const TOOLSTATE_MSG: &str =
-    "if you require these components, please install and use the latest successful build version, \
-     which you can find at https://rust-lang-nursery.github.io/rust-toolstate, for example.\n\
-     rustup install nightly-2018-12-27";
+    "If you require these components, please install and use the latest successful build version,\n\
+     which you can find at https://rust-lang-nursery.github.io/rust-toolstate.\n\nAfter determining \
+     the correct date, install it with a command such as:\n\n    \
+     rustup toolchain install nightly-2018-12-27\n\n\
+     Then you can use the toolchain with commands such as:\n\n    \
+     cargo +nightly-2018-12-27 build";
 
 error_chain! {
     links {
@@ -267,7 +270,7 @@ error_chain! {
         }
         RequestedComponentsUnavailable(c: Vec<Component>, manifest: Manifest, toolchain: String) {
             description("some requested components are unavailable to download")
-            display("{} for channel '{}'", component_unavailable_msg(&c, &manifest), toolchain)
+            display("{} for channel '{}'\n{}", component_unavailable_msg(&c, &manifest), toolchain, TOOLSTATE_MSG)
         }
         UnknownMetadataVersion(v: String) {
             description("unknown metadata version")
@@ -341,19 +344,11 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest) -> String {
         if same_target {
             let mut cs_strs = cs.iter().map(|c| format!("'{}'", c.short_name(manifest)));
             let cs_str = cs_strs.join(", ");
-            let _ = write!(
-                buf,
-                "some components unavailable for download: {}\n{}",
-                cs_str, TOOLSTATE_MSG,
-            );
+            let _ = write!(buf, "some components unavailable for download: {}", cs_str,);
         } else {
             let mut cs_strs = cs.iter().map(|c| c.description(manifest));
             let cs_str = cs_strs.join(", ");
-            let _ = write!(
-                buf,
-                "some components unavailable for download: {}\n{}",
-                cs_str, TOOLSTATE_MSG,
-            );
+            let _ = write!(buf, "some components unavailable for download: {}", cs_str,);
         }
     }
 
