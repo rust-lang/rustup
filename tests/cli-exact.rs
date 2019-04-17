@@ -330,7 +330,7 @@ fn update_invalid_toolchain() {
             r"",
             r"info: syncing channel updates for 'nightly-2016-03-1'
 info: latest update on 2015-01-02, rust version 1.3.0
-error: target not found: '2016-03-1'
+error: target '2016-03-1' not found in channel.  Perhaps check https://forge.rust-lang.org/platform-support.html for available targets
 ",
         );
     });
@@ -345,7 +345,7 @@ fn default_invalid_toolchain() {
             r"",
             r"info: syncing channel updates for 'nightly-2016-03-1'
 info: latest update on 2015-01-02, rust version 1.3.0
-error: target not found: '2016-03-1'
+error: target '2016-03-1' not found in channel.  Perhaps check https://forge.rust-lang.org/platform-support.html for available targets
 ",
         );
     });

@@ -275,7 +275,8 @@ impl Package {
                 if let Some(t) = target {
                     tpkgs
                         .get(t)
-                        .ok_or_else(|| format!("target not found: '{}'", t).into())
+                        .ok_or_else(|| format!("target '{}' not found in channel.  \
+                        Perhaps check https://forge.rust-lang.org/platform-support.html for available targets", t).into())
                 } else {
                     Err("no target specified".into())
                 }
