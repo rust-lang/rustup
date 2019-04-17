@@ -419,7 +419,7 @@ toolchain] use the GNU build.
 
 When targeting the MSVC ABI, Rust additionally requires an [installation
 of Visual Studio 2013 (or later) or the Visual C++ Build Tools
-2015][vs] so rustc can use its linker. For Visual Studio, make sure to
+2019][vs] so rustc can use its linker. For Visual Studio, make sure to
 check the "C++ tools" option. No additional software installation is
 necessary for basic use of the GNU build.
 
@@ -465,7 +465,7 @@ $ rustup target add i686-pc-windows-gnu
 ```
 
 [ABIs]: https://en.wikipedia.org/wiki/Application_binary_interface
-[Visual Studio]: https://visualstudio.microsoft.com/
+[Visual Studio]: https://visualstudio.microsoft.com/downloads/
 [GCC toolchain]: https://gcc.gnu.org/
 [MinGW/MSYS2 toolchain]: https://msys2.github.io/
 
@@ -649,7 +649,7 @@ platform of your choice:
 - [i686-apple-darwin](https://static.rust-lang.org/rustup/dist/i686-apple-darwin/rustup-init)
 - [i686-linux-android](https://static.rust-lang.org/rustup/dist/i686-linux-android/rustup-init)
 - [i686-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe)
-- [i686-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-init.exe)<sup>[†](#vs2015)</sup>
+- [i686-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-init.exe)<sup>[†](#vs2019)</sup>
 - [i686-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/i686-unknown-linux-gnu/rustup-init)
 - [mips-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/mips-unknown-linux-gnu/rustup-init)
 - [mips64-unknown-linux-gnuabi64](https://static.rust-lang.org/rustup/dist/mips64-unknown-linux-gnuabi64/rustup-init)
@@ -662,14 +662,14 @@ platform of your choice:
 - [x86_64-apple-darwin](https://static.rust-lang.org/rustup/dist/x86_64-apple-darwin/rustup-init)
 - [x86_64-linux-android](https://static.rust-lang.org/rustup/dist/x86_64-linux-android/rustup-init)
 - [x86_64-pc-windows-gnu](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe)
-- [x86_64-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe)<sup>[†](#vs2015)</sup>
+- [x86_64-pc-windows-msvc](https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe)<sup>[†](#vs2019)</sup>
 - [x86_64-unknown-freebsd](https://static.rust-lang.org/rustup/dist/x86_64-unknown-freebsd/rustup-init)
 - [x86_64-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init)
 - [x86_64-unknown-netbsd](https://static.rust-lang.org/rustup/dist/x86_64-unknown-netbsd/rustup-init)
 
-<a name="vs2015">†</a>
+<a name="vs2019">†</a>
 MSVC builds of `rustup` additionally require an [installation of
-Visual Studio 2015 or the Visual C++ Build Tools 2015][vs]. For
+Visual Studio 2019 or the Visual C++ Build Tools 2019][vs]. For
 Visual Studio, make sure to check the "C++ tools" option. No
 additional software installation is necessary for basic use of
 the GNU build.
