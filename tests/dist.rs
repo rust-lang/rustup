@@ -423,7 +423,7 @@ fn update_from_dist_(
         changes,
         force_update,
         download_cfg,
-        download_cfg.notify_handler.clone(),
+        download_cfg.notify_handler,
         &toolchain.to_string(),
     )
 }
@@ -447,7 +447,7 @@ fn uninstall(
     let manifestation = Manifestation::open(prefix.clone(), trip)?;
     let manifest = manifestation.load_manifest()?.unwrap();
 
-    manifestation.uninstall(&manifest, temp_cfg, notify_handler.clone())?;
+    manifestation.uninstall(&manifest, temp_cfg, notify_handler)?;
 
     Ok(())
 }

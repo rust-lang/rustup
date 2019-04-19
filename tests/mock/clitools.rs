@@ -716,7 +716,7 @@ pub fn this_host_triple() -> String {
 fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
-            name: format!("rust-std-{}", trip.clone()),
+            name: format!("rust-std-{}", trip),
             files: vec![MockFile::new(
                 format!("lib/rustlib/{}/libstd.rlib", trip),
                 b"",
@@ -728,7 +728,7 @@ fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
 fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
-            name: format!("rust-std-{}", target.clone()),
+            name: format!("rust-std-{}", target),
             files: vec![
                 MockFile::new(format!("lib/rustlib/{}/lib/libstd.rlib", target), b""),
                 MockFile::new(format!("lib/rustlib/{}/lib/{}", target, date), b""),
