@@ -197,11 +197,11 @@ impl MockDistServer {
 
         fs::create_dir_all(&installer_dir).unwrap();
 
+        type Tarball = HashMap<(String, MockTargetedPackage, String), (Vec<u8>, String)>;
         // Tarball creation can be super slow, so cache created tarballs
         // globally to avoid recreating and recompressing tons of tarballs.
         lazy_static! {
-            static ref TARBALLS: Mutex<HashMap<(String, MockTargetedPackage, String), (Vec<u8>, String)>> =
-                Mutex::new(HashMap::new());
+            static ref TARBALLS: Mutex<Tarball> = Mutex::new(HashMap::new());
         }
 
         let key = (
