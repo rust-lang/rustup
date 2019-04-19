@@ -201,7 +201,7 @@ pub fn create_mock_channel(
 
 fn bonus_component(name: &'static str, contents: Arc<Vec<u8>>) -> MockPackage {
     MockPackage {
-        name: name,
+        name,
         version: "1.0.0",
         targets: vec![MockTargetedPackage {
             target: "x86_64-apple-darwin".to_string(),
