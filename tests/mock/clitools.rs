@@ -173,7 +173,7 @@ pub fn expect_ok(config: &Config, args: &[&str]) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         panic!();
     }
 }
@@ -182,7 +182,7 @@ pub fn expect_err(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if out.ok || !out.stderr.contains(expected) {
         print_command(args, &out);
-        println!("expected.ok: {}", false);
+        println!("expected.ok: false");
         print_indented("expected.stderr.contains", expected);
         panic!();
     }
@@ -192,7 +192,7 @@ pub fn expect_stdout_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || !out.stdout.contains(expected) {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_indented("expected.stdout.contains", expected);
         panic!();
     }
@@ -202,7 +202,7 @@ pub fn expect_not_stdout_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || out.stdout.contains(expected) {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_indented("expected.stdout.does_not_contain", expected);
         panic!();
     }
@@ -212,7 +212,7 @@ pub fn expect_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || !out.stderr.contains(expected) {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_indented("expected.stderr.contains", expected);
         panic!();
     }
@@ -222,7 +222,7 @@ pub fn expect_ok_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) 
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || out.stdout != stdout || out.stderr != stderr {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_indented("expected.stdout", stdout);
         print_indented("expected.stderr", stderr);
         dbg!(out.stdout == stdout);
@@ -235,7 +235,7 @@ pub fn expect_err_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str)
     let out = run(config, args[0], &args[1..], &[]);
     if out.ok || out.stdout != stdout || out.stderr != stderr {
         print_command(args, &out);
-        println!("expected.ok: {}", false);
+        println!("expected.ok: false");
         print_indented("expected.stdout", stdout);
         print_indented("expected.stderr", stderr);
         panic!();
@@ -246,7 +246,7 @@ pub fn expect_ok_contains(config: &Config, args: &[&str], stdout: &str, stderr: 
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_indented("expected.stdout.contains", stdout);
         print_indented("expected.stderr.contains", stderr);
         panic!();
@@ -258,9 +258,9 @@ pub fn expect_ok_eq(config: &Config, args1: &[&str], args2: &[&str]) {
     let out2 = run(config, args2[0], &args2[1..], &[]);
     if !out1.ok || !out2.ok || out1.stdout != out2.stdout || out1.stderr != out2.stderr {
         print_command(args1, &out1);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_command(args2, &out2);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         panic!();
     }
 }
