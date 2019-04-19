@@ -117,9 +117,8 @@ impl MockFile {
     }
 
     pub fn executable(mut self, exe: bool) -> Self {
-        match self.contents {
-            Contents::File(ref mut c) => c.executable = exe,
-            _ => {}
+        if let Contents::File(c) = &mut self.contents {
+            c.executable = exe;
         }
         self
     }
