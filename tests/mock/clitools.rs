@@ -745,12 +745,11 @@ fn build_mock_rustc_installer(
     // For cross-host rustc's modify the version_hash so they can be identified from
     // test cases.
     let this_host = this_host_triple();
-    let version_hash;
-    if this_host != target {
-        version_hash = format!("xxxx-{}", &version_hash_[5..]);
+    let version_hash = if this_host != target {
+        format!("xxxx-{}", &version_hash_[5..])
     } else {
-        version_hash = version_hash_.to_string();
-    }
+        version_hash_.to_string()
+    };
 
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
