@@ -460,8 +460,7 @@ fn when_cargo_home_is_the_default_write_path_specially() {
         assert!(cmd.output().unwrap().status.success());
 
         let new_profile = raw::read_file(&profile).unwrap();
-        let addition = format!(r#"export PATH="$HOME/.cargo/bin:$PATH""#);
-        let expected = format!("{}\n{}\n", my_profile, addition);
+        let expected = format!("{}\nexport PATH=\"$HOME/.cargo/bin:$PATH\"\n", my_profile);
         assert_eq!(new_profile, expected);
 
         let mut cmd = clitools::cmd(config, "rustup", &["self", "uninstall", "-y"]);

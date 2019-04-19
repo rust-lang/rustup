@@ -34,11 +34,11 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
 
     // V1
     let manifest_name = format!("dist/channel-rust-{}", channel);
-    let manifest_path = path.join(format!("{}", manifest_name));
+    let manifest_path = path.join(&manifest_name);
     let hash_path = path.join(format!("{}.sha256", manifest_name));
 
     let archive_manifest_name = format!("dist/{}/channel-rust-{}", date, channel);
-    let archive_manifest_path = path.join(format!("{}", archive_manifest_name));
+    let archive_manifest_path = path.join(&archive_manifest_name);
     let archive_hash_path = path.join(format!("{}.sha256", archive_manifest_name));
 
     let _ = hard_link(archive_manifest_path, manifest_path);
@@ -267,7 +267,7 @@ impl MockDistServer {
         }
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
-        let manifest_path = self.path.join(format!("{}", manifest_name));
+        let manifest_path = self.path.join(&manifest_name);
         write_file(&manifest_path, &buf);
 
         let hash_path = self.path.join(format!("{}.sha256", manifest_name));
@@ -275,7 +275,7 @@ impl MockDistServer {
 
         // Also copy the manifest and hash into the archive folder
         let archive_manifest_name = format!("dist/{}/channel-rust-{}", channel.date, channel.name);
-        let archive_manifest_path = self.path.join(format!("{}", archive_manifest_name));
+        let archive_manifest_path = self.path.join(&archive_manifest_name);
         hard_link(manifest_path, archive_manifest_path).unwrap();
 
         let archive_hash_path = self.path.join(format!("{}.sha256", archive_manifest_name));
