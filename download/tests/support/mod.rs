@@ -53,8 +53,7 @@ pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
         addr_tx.send(addr).unwrap();
         hyper::rt::run(server.map_err(|e| panic!(e)));
     });
-    let addr = addr_rx.wait().unwrap();
-    addr
+    addr_rx.wait().unwrap()
 }
 
 fn serve_contents(
