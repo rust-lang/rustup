@@ -176,18 +176,19 @@ Rust requires the Microsoft C++ build tools for Visual Studio 2013 or
 later, but they don't seem to be installed.
 
 The easiest way to acquire the build tools is by installing Microsoft
-Visual C++ Build Tools 2017 which provides just the Visual C++ build
+Visual C++ Build Tools 2019 which provides just the Visual C++ build
 tools:
 
-    https://aka.ms/buildtools
+    https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019
 
 Please ensure the Windows 10 SDK component is included when installing
 the Visual C++ Build Tools.
 
-Alternately, you can install Visual Studio 2015 or Visual
-Studio 2013 and during install select the "C++ tools":
+Alternately, you can install Visual Studio 2019, Visual Studio 2017,
+Visual Studio 2015, or Visual Studio 2013 and during install select
+the "C++ tools":
 
-    https://www.visualstudio.com/downloads/
+    https://visualstudio.microsoft.com/downloads/
 
 _Install the C++ build tools before proceeding_.
 
