@@ -268,7 +268,7 @@ pub fn expect_ok_eq(config: &Config, args1: &[&str], args2: &[&str]) {
 fn print_command(args: &[&str], out: &SanitizedOutput) {
     print!("\n>");
     for arg in args {
-        if arg.contains(" ") {
+        if arg.contains(' ') {
             print!(" {:?}", arg);
         } else {
             print!(" {}", arg);

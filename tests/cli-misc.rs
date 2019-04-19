@@ -36,7 +36,7 @@ fn no_colors_in_piped_error_output() {
         let args: Vec<&str> = vec![];
         let out = run(config, "rustc", &args, &[]);
         assert!(!out.ok);
-        assert!(!out.stderr.contains("\u{1b}"));
+        assert!(!out.stderr.contains('\x1b'));
     });
 }
 
