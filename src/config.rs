@@ -377,8 +377,8 @@ impl Cfg {
         let toolchains = toolchains.map(|n| (n.clone(), self.get_toolchain(&n, true)));
 
         // Filter out toolchains that don't track a release channel
-        let toolchains =
-            toolchains.filter(|&(_, ref t)| t.as_ref().map(|t| t.is_tracking()).unwrap_or(false));
+        let toolchains = toolchains
+            .filter(|&(_, ref t)| t.as_ref().map(Toolchain::is_tracking).unwrap_or(false));
 
         // Update toolchains and collect the results
         let toolchains = toolchains.map(|(n, t)| {

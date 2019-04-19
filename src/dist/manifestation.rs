@@ -631,7 +631,7 @@ impl Update {
                     new_manifest.get_package(&c.short_name_in_manifest()).ok();
                 let target_pkg: Option<&TargetedPackage> =
                     pkg.and_then(|p| p.get_target(c.target.as_ref()).ok());
-                target_pkg.map(|tp| tp.available()) != Some(true)
+                target_pkg.map(TargetedPackage::available) != Some(true)
             })
             .cloned()
             .collect();

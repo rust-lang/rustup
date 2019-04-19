@@ -436,7 +436,11 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
     let mut tar = tar::Builder::new(writer);
     for entry in walkdir::WalkDir::new(src) {
         let entry = entry.unwrap();
-        let parts: Vec<_> = entry.path().iter().map(|p| p.to_owned()).collect();
+        let parts: Vec<_> = entry
+            .path()
+            .iter()
+            .map(std::borrow::ToOwned::to_owned)
+            .collect();
         let parts_len = parts.len();
         let parts = parts.into_iter().skip(parts_len - entry.depth());
         let mut relpath = relpath.to_owned();
