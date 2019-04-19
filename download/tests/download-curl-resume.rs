@@ -70,7 +70,7 @@ fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
 
     assert!(*callback_partial.lock().unwrap());
     assert_eq!(*callback_len.lock().unwrap(), Some(5));
-    let ref observed_bytes = *received_in_callback.lock().unwrap();
-    assert_eq!(observed_bytes, &vec![b'1', b'2', b'3', b'4', b'5']);
+    let observed_bytes = received_in_callback.into_inner().unwrap();
+    assert_eq!(observed_bytes, vec![b'1', b'2', b'3', b'4', b'5']);
     assert_eq!(file_contents(&target_path), "12345");
 }

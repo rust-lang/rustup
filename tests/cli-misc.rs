@@ -196,8 +196,8 @@ fn multi_host_smoke_test() {
     }
 
     clitools::setup(Scenario::MultiHost, &|config| {
-        let ref toolchain = format!("nightly-{}", clitools::MULTI_ARCH1);
-        expect_ok(config, &["rustup", "default", toolchain]);
+        let toolchain = format!("nightly-{}", clitools::MULTI_ARCH1);
+        expect_ok(config, &["rustup", "default", &toolchain]);
         expect_stdout_ok(config, &["rustc", "--version"], "xxxx-n-2"); // cross-host mocks have their own versions
     });
 }
@@ -288,9 +288,10 @@ fn rustup_failed_path_search() {
     setup(&|config| {
         use std::env::consts::EXE_SUFFIX;
 
-        let ref rustup_path = config.exedir.join(&format!("rustup{}", EXE_SUFFIX));
-        let ref tool_path = config.exedir.join(&format!("fake_proxy{}", EXE_SUFFIX));
-        utils::hardlink_file(rustup_path, tool_path).expect("Failed to create fake proxy for test");
+        let rustup_path = config.exedir.join(&format!("rustup{}", EXE_SUFFIX));
+        let tool_path = config.exedir.join(&format!("fake_proxy{}", EXE_SUFFIX));
+        utils::hardlink_file(&rustup_path, &tool_path)
+            .expect("Failed to create fake proxy for test");
 
         expect_ok(
             config,
@@ -324,9 +325,9 @@ fn rustup_failed_path_search_toolchain() {
     setup(&|config| {
         use std::env::consts::EXE_SUFFIX;
 
-        let ref rustup_path = config.exedir.join(&format!("rustup{}", EXE_SUFFIX));
-        let ref tool_path = config.exedir.join(&format!("cargo-miri{}", EXE_SUFFIX));
-        utils::hardlink_file(rustup_path, tool_path)
+        let rustup_path = config.exedir.join(&format!("rustup{}", EXE_SUFFIX));
+        let tool_path = config.exedir.join(&format!("cargo-miri{}", EXE_SUFFIX));
+        utils::hardlink_file(&rustup_path, &tool_path)
             .expect("Failed to create fake cargo-miri for test");
 
         expect_ok(
@@ -561,8 +562,8 @@ fn rename_rls_remove() {
 fn install_stops_if_rustc_exists() {
     let temp_dir = TempDir::new("fakebin").unwrap();
     // Create fake executable
-    let ref fake_exe = temp_dir.path().join(&format!("{}{}", "rustc", EXE_SUFFIX));
-    raw::append_file(fake_exe, "").unwrap();
+    let fake_exe = temp_dir.path().join(&format!("{}{}", "rustc", EXE_SUFFIX));
+    raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     setup(&|config| {
@@ -590,8 +591,8 @@ fn install_stops_if_rustc_exists() {
 fn install_stops_if_cargo_exists() {
     let temp_dir = TempDir::new("fakebin").unwrap();
     // Create fake executable
-    let ref fake_exe = temp_dir.path().join(&format!("{}{}", "cargo", EXE_SUFFIX));
-    raw::append_file(fake_exe, "").unwrap();
+    let fake_exe = temp_dir.path().join(&format!("{}{}", "cargo", EXE_SUFFIX));
+    raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     setup(&|config| {
@@ -619,8 +620,8 @@ fn install_stops_if_cargo_exists() {
 fn with_no_prompt_install_succeeds_if_rustc_exists() {
     let temp_dir = TempDir::new("fakebin").unwrap();
     // Create fake executable
-    let ref fake_exe = temp_dir.path().join(&format!("{}{}", "rustc", EXE_SUFFIX));
-    raw::append_file(fake_exe, "").unwrap();
+    let fake_exe = temp_dir.path().join(&format!("{}{}", "rustc", EXE_SUFFIX));
+    raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     setup(&|config| {

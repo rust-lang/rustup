@@ -812,28 +812,28 @@ fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple
     use crate::mock::dist::create_hash;
     use rustup::dist::manifest::Manifest;
 
-    let ref manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");
-    let ref manifest_str = rustup::utils::raw::read_file(manifest_path).unwrap();
-    let mut manifest = Manifest::parse(manifest_str).unwrap();
+    let manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");
+    let manifest_str = rustup::utils::raw::read_file(&manifest_path).unwrap();
+    let mut manifest = Manifest::parse(&manifest_str).unwrap();
     {
         let std_pkg = manifest.packages.get_mut(name).unwrap();
         let target_pkg = std_pkg.targets.get_mut(target).unwrap();
         target_pkg.bins = None;
     }
-    let ref manifest_str = manifest.stringify();
-    rustup::utils::raw::write_file(manifest_path, manifest_str).unwrap();
+    let manifest_str = manifest.stringify();
+    rustup::utils::raw::write_file(&manifest_path, &manifest_str).unwrap();
 
     // Have to update the hash too
-    let ref hash_path = manifest_path.with_extension("toml.sha256");
+    let hash_path = manifest_path.with_extension("toml.sha256");
     println!("{}", hash_path.display());
-    create_hash(manifest_path, hash_path);
+    create_hash(&manifest_path, &hash_path);
 }
 
 #[test]
 fn update_unavailable_std() {
     setup(&|config| {
-        let ref trip = TargetTriple::from_build();
-        make_component_unavailable(config, "rust-std", trip);
+        let trip = TargetTriple::from_build();
+        make_component_unavailable(config, "rust-std", &trip);
         expect_err(
             config,
             &["rustup", "update", "nightly", "--no-self-update"],
@@ -848,7 +848,7 @@ fn update_unavailable_std() {
 #[test]
 fn update_unavailable_force() {
     setup(&|config| {
-        let ref trip = TargetTriple::from_build();
+        let trip = TargetTriple::from_build();
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_ok(
             config,
@@ -861,7 +861,7 @@ fn update_unavailable_force() {
                 "nightly",
             ],
         );
-        make_component_unavailable(config, "rls-preview", trip);
+        make_component_unavailable(config, "rls-preview", &trip);
         expect_err(
             config,
             &["rustup", "update", "nightly", "--no-self-update"],

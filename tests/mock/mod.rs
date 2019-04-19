@@ -43,7 +43,7 @@ impl MockInstallerBuilder {
         for component in &self.components {
             // Update the components file
             let comp_file = path.join("components");
-            let ref mut comp_file = OpenOptions::new()
+            let mut comp_file = OpenOptions::new()
                 .write(true)
                 .append(true)
                 .create(true)
@@ -58,7 +58,7 @@ impl MockInstallerBuilder {
             }
 
             // Create the component files and manifest
-            let ref mut manifest = File::create(component_dir.join("manifest.in")).unwrap();
+            let mut manifest = File::create(component_dir.join("manifest.in")).unwrap();
             for file in component.files.iter() {
                 match file.contents {
                     Contents::Dir(_) => {
