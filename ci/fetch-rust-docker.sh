@@ -41,6 +41,6 @@ if [ -z "$(docker images -q "rust-$TARGET")" ]; then
   set +e
   travis_retry curl -y 30 -Y 10 --connect-timeout 30 -f -L -C - -o "$cache" "$url"
   set -e
-  docker load -i "$cache"
+  docker load --quiet -i "$cache"
   docker tag "$digest" "rust-$TARGET"
 fi
