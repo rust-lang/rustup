@@ -356,7 +356,6 @@ pub fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
 pub fn open_browser(path: &Path) -> io::Result<bool> {
     #[cfg(not(windows))]
     fn inner(path: &Path) -> io::Result<bool> {
-        use std::env;
         use std::process::Stdio;
 
         let env_browser = env::var_os("BROWSER").map(|b| env::split_paths(&b).collect::<Vec<_>>());

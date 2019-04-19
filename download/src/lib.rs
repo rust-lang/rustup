@@ -330,7 +330,6 @@ pub mod reqwest_be {
         callback: &dyn Fn(Event<'_>) -> Result<()>,
     ) -> Result<bool> {
         use std::fs;
-        use std::io;
 
         // The file scheme is mostly for use by tests to mock the dist server
         if url.scheme() == "file" {
