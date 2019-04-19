@@ -337,17 +337,22 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest) -> String {
             &cs[0].description(manifest)
         );
     } else {
-        use itertools::Itertools;
         let same_target = cs
             .iter()
             .all(|c| c.target == cs[0].target || c.target.is_none());
         if same_target {
-            let mut cs_strs = cs.iter().map(|c| format!("'{}'", c.short_name(manifest)));
-            let cs_str = cs_strs.join(", ");
+            let cs_str = cs
+                .iter()
+                .map(|c| format!("'{}'", c.short_name(manifest)))
+                .collect::<Vec<_>>()
+                .join(", ");
             let _ = write!(buf, "some components unavailable for download: {}", cs_str,);
         } else {
-            let mut cs_strs = cs.iter().map(|c| c.description(manifest));
-            let cs_str = cs_strs.join(", ");
+            let cs_str = cs
+                .iter()
+                .map(|c| c.description(manifest))
+                .collect::<Vec<_>>()
+                .join(", ");
             let _ = write!(buf, "some components unavailable for download: {}", cs_str,);
         }
     }

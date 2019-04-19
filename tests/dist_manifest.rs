@@ -3,9 +3,9 @@ use rustup::dist::manifest::Manifest;
 use rustup::ErrorKind;
 
 // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
-static EXAMPLE: &'static str = include_str!("channel-rust-nightly-example.toml");
+static EXAMPLE: &str = include_str!("channel-rust-nightly-example.toml");
 // From brson's live build-rust-manifest.py script
-static EXAMPLE2: &'static str = include_str!("channel-rust-nightly-example2.toml");
+static EXAMPLE2: &str = include_str!("channel-rust-nightly-example2.toml");
 
 #[test]
 fn parse_smoke_test() {

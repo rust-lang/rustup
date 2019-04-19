@@ -8,16 +8,17 @@ use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::utils;
 
+use lazy_static::lazy_static;
+use regex::Regex;
+
 use std::env;
 use std::fmt;
 use std::path::Path;
 
-use regex::Regex;
-
-pub const DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
+pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
 // Deprecated
-pub const DEFAULT_DIST_ROOT: &str = "https://static.rust-lang.org/dist";
+pub static DEFAULT_DIST_ROOT: &str = "https://static.rust-lang.org/dist";
 
 // A toolchain descriptor from rustup's perspective. These contain
 // 'partial target triples', which allow toolchain names like
@@ -56,7 +57,7 @@ pub struct TargetTriple(String);
 // These lists contain the targets known to rustup, and used to build
 // the PartialTargetTriple.
 
-static LIST_ARCHS: &'static [&'static str] = &[
+static LIST_ARCHS: &[&str] = &[
     "i386",
     "i586",
     "i686",
@@ -74,7 +75,7 @@ static LIST_ARCHS: &'static [&'static str] = &[
     "powerpc64le",
     "s390x",
 ];
-static LIST_OSES: &'static [&'static str] = &[
+static LIST_OSES: &[&str] = &[
     "pc-windows",
     "unknown-linux",
     "apple-darwin",
@@ -84,7 +85,7 @@ static LIST_OSES: &'static [&'static str] = &[
     "rumprun-netbsd",
     "unknown-freebsd",
 ];
-static LIST_ENVS: &'static [&'static str] = &[
+static LIST_ENVS: &[&str] = &[
     "gnu",
     "msvc",
     "gnueabi",
@@ -100,14 +101,14 @@ static LIST_ENVS: &'static [&'static str] = &[
 // Hence we could distinguish between the variants with compile-time cfg()
 // attributes alone.
 #[cfg(all(not(windows), target_endian = "big"))]
-const TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mips-unknown-linux-gnu";
+static TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mips-unknown-linux-gnu";
 #[cfg(all(not(windows), target_endian = "little"))]
-const TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mipsel-unknown-linux-gnu";
+static TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mipsel-unknown-linux-gnu";
 
 #[cfg(all(not(windows), target_endian = "big"))]
-const TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi64";
+static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi64";
 #[cfg(all(not(windows), target_endian = "little"))]
-const TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
+static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
 
 impl TargetTriple {
     pub fn from_str(name: &str) -> Self {
@@ -223,15 +224,16 @@ impl PartialTargetTriple {
         // we can count  on all triple components being
         // delineated by it.
         let name = format!("-{}", name);
-        let pattern = format!(
-            r"^(?:-({}))?(?:-({}))?(?:-({}))?$",
-            LIST_ARCHS.join("|"),
-            LIST_OSES.join("|"),
-            LIST_ENVS.join("|")
-        );
-
-        let re = Regex::new(&pattern).unwrap();
-        re.captures(&name).map(|c| {
+        lazy_static! {
+            static ref PATTERN: String = format!(
+                r"^(?:-({}))?(?:-({}))?(?:-({}))?$",
+                LIST_ARCHS.join("|"),
+                LIST_OSES.join("|"),
+                LIST_ENVS.join("|")
+            );
+            static ref RE: Regex = Regex::new(&PATTERN).unwrap();
+        }
+        RE.captures(&name).map(|c| {
             fn fn_map(s: &str) -> Option<String> {
                 if s == "" {
                     None
@@ -251,7 +253,7 @@ impl PartialTargetTriple {
 
 impl PartialToolchainDesc {
     pub fn from_str(name: &str) -> Result<Self> {
-        let channels = [
+        static CHANNELS: &[&str] = &[
             "nightly",
             "beta",
             "stable",
@@ -259,13 +261,14 @@ impl PartialToolchainDesc {
             r"\d{1}\.\d{2}\.\d{1}",
         ];
 
-        let pattern = format!(
-            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
-            channels.join("|")
-        );
-
-        let re = Regex::new(&pattern).unwrap();
-        let d = re.captures(name).map(|c| {
+        lazy_static! {
+            static ref PATTERN: String = format!(
+                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
+                CHANNELS.join("|")
+            );
+            static ref RE: Regex = Regex::new(&PATTERN).unwrap();
+        }
+        let d = RE.captures(name).map(|c| {
             fn fn_map(s: &str) -> Option<String> {
                 if s == "" {
                     None
@@ -341,7 +344,7 @@ impl PartialToolchainDesc {
 
 impl ToolchainDesc {
     pub fn from_str(name: &str) -> Result<Self> {
-        let channels = [
+        static CHANNELS: &[&str] = &[
             "nightly",
             "beta",
             "stable",
@@ -349,13 +352,15 @@ impl ToolchainDesc {
             r"\d{1}\.\d{2}\.\d{1}",
         ];
 
-        let pattern = format!(
-            r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?-(.*)?$",
-            channels.join("|"),
-        );
+        lazy_static! {
+            static ref PATTERN: String = format!(
+                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?-(.*)?$",
+                CHANNELS.join("|"),
+            );
+            static ref RE: Regex = Regex::new(&PATTERN).unwrap();
+        }
 
-        let re = Regex::new(&pattern).unwrap();
-        re.captures(name)
+        RE.captures(name)
             .map(|c| {
                 fn fn_map(s: &str) -> Option<String> {
                     if s == "" {

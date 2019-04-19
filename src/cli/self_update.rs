@@ -33,7 +33,6 @@
 use crate::common::{self, Confirm};
 use crate::errors::*;
 use crate::term2;
-use regex::Regex;
 use rustup::dist::dist;
 use rustup::utils::utils;
 use rustup::{DUP_TOOLS, TOOLS};
@@ -170,7 +169,7 @@ This will uninstall all Rust toolchains and data, and remove
     };
 }
 
-static MSVC_MESSAGE: &'static str = r#"# Rust Visual C++ prerequisites
+static MSVC_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
 
 Rust requires the Microsoft C++ build tools for Visual Studio 2013 or
 later, but they don't seem to be installed.
@@ -197,7 +196,7 @@ doing then it is fine to continue installation without the build
 tools, but otherwise, install the C++ build tools before proceeding.
 "#;
 
-static UPDATE_ROOT: &'static str = "https://static.rust-lang.org/rustup";
+static UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 
 /// `CARGO_HOME` suitable for display, possibly with $HOME
 /// substituted for the directory prefix
@@ -220,7 +219,7 @@ fn canonical_cargo_home() -> Result<String> {
 }
 
 /// Installing is a simple matter of coping the running binary to
-/// `CARGO_HOME`/bin, hardlinking the various Rust tools to it,
+/// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
 /// and adding `CARGO_HOME`/bin to PATH.
 pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<()> {
     do_pre_install_sanity_checks()?;
@@ -465,7 +464,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
             libc::getpwuid_r(
                 libc::geteuid(),
                 &mut pwd,
-                &mut buf as *mut [u8] as *mut i8,
+                &mut buf as *mut [u8] as *mut libc::c_char,
                 buf.len(),
                 &mut pwdp,
             )
@@ -1379,8 +1378,14 @@ fn get_new_rustup_version(path: &Path) -> Option<String> {
 }
 
 fn parse_new_rustup_version(version: String) -> String {
-    let re = Regex::new(r"\d+.\d+.\d+[0-9a-zA-Z-]*").unwrap();
-    let capture = re.captures(&version);
+    use lazy_static::lazy_static;
+    use regex::Regex;
+
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"\d+.\d+.\d+[0-9a-zA-Z-]*").unwrap();
+    }
+
+    let capture = RE.captures(&version);
     let matched_version = match capture {
         Some(cap) => cap.get(0).unwrap().as_str(),
         None => "(unknown)",

@@ -30,13 +30,8 @@ mod term2;
 
 use crate::errors::*;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
-use std::alloc::System;
 use std::env;
 use std::path::PathBuf;
-
-// Always use the system allocator, to reduce binary size.
-#[global_allocator]
-static _ALLOCATOR: System = System;
 
 fn main() {
     if let Err(ref e) = run_rustup() {

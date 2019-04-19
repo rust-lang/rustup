@@ -7,7 +7,7 @@ pub use crate::toolchain::*;
 pub use crate::utils::{notify, toml_utils};
 
 // A list of all binaries which Rustup will proxy.
-pub static TOOLS: &'static [&'static str] = &[
+pub static TOOLS: &[&str] = &[
     "rustc",
     "rustdoc",
     "cargo",
@@ -22,7 +22,7 @@ pub static TOOLS: &'static [&'static str] = &[
 // Tools which are commonly installed by Cargo as well as rustup. We take a bit
 // more care with these to ensure we don't overwrite the user's previous
 // installation.
-pub static DUP_TOOLS: &'static [&'static str] = &["rustfmt", "cargo-fmt"];
+pub static DUP_TOOLS: &[&str] = &["rustfmt", "cargo-fmt"];
 
 fn component_for_bin(binary: &str) -> Option<&'static str> {
     use std::env::consts::EXE_SUFFIX;
