@@ -380,28 +380,6 @@ fn update_from_dist(
     download_cfg: &DownloadCfg<'_>,
     temp_cfg: &temp::Cfg,
 ) -> Result<UpdateStatus> {
-    update_from_dist_(
-        dist_server,
-        toolchain,
-        prefix,
-        add,
-        remove,
-        download_cfg,
-        temp_cfg,
-        false,
-    )
-}
-
-fn update_from_dist_(
-    dist_server: &Url,
-    toolchain: &ToolchainDesc,
-    prefix: &InstallPrefix,
-    add: &[Component],
-    remove: &[Component],
-    download_cfg: &DownloadCfg<'_>,
-    temp_cfg: &temp::Cfg,
-    force_update: bool,
-) -> Result<UpdateStatus> {
     // Download the dist manifest and place it into the installation prefix
     let manifest_url = make_manifest_url(dist_server, toolchain)?;
     let manifest_file = temp_cfg.new_file()?;
@@ -421,7 +399,7 @@ fn update_from_dist_(
     manifestation.update(
         &manifest,
         changes,
-        force_update,
+        false,
         download_cfg,
         download_cfg.notify_handler,
         &toolchain.to_string(),
