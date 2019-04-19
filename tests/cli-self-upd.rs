@@ -25,7 +25,7 @@ macro_rules! for_host {
     };
 }
 
-const TEST_VERSION: &'static str = "1.1.1";
+const TEST_VERSION: &str = "1.1.1";
 
 pub fn setup(f: &dyn Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, &|config| {
