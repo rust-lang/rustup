@@ -13,6 +13,7 @@ if [ -f "ci/docker/$DOCKER/Dockerfile" ]; then
   docker build -t "$DOCKER" "ci/docker/$DOCKER/"
 fi
 
+# shellcheck disable=SC2016
 docker run \
   --entrypoint bash \
   --user "$(id -u)":"$(id -g)" \
@@ -29,7 +30,7 @@ docker run \
   --tty \
   --init \
   "$DOCKER" \
-  -c 'PATH="$PATH":/travis-rust/bin exec bash ci/run.sh'
+  -c 'PATH="$PATH":/travis-rust/bin exec sh ci/run.sh'
 
 # check that rustup-init was built with ssl support
 # see https://github.com/rust-lang/rustup.rs/issues/1051

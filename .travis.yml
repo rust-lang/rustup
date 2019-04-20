@@ -1,4 +1,3 @@
-sudo: required
 dist: trusty
 services:
   - docker
@@ -51,11 +50,11 @@ matrix:
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin NO_ADD=1
 
 install:
-  - if [ -z "$NO_ADD" ]; then rustup target add $TARGET; fi
+  - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
   - rustup component add rustfmt
 
 script:
-  - mkdir -p target/$TARGET;
+  - mkdir -p target/"$TARGET";
   - >
       case "$TARGET" in
         *-linux-android)     DOCKER=android ;; # Android uses a local docker image
@@ -68,9 +67,12 @@ script:
       else
           PATH="$HOME/rust/bin:$PATH" sh ci/run.sh;
       fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then
+      shellcheck -s dash -e SC1090 -- rustup-init.sh ci/*.sh;
+    fi
 
 before_deploy:
-  - bash ci/prepare-deploy-travis.sh
+  - sh ci/prepare-deploy-travis.sh
 
 deploy:
   - provider: s3
