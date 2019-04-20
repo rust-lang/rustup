@@ -73,6 +73,7 @@ $ rustup completions bash > ~/.local/share/bash_completion/completions/rustup
 $ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
 
 # Fish
+$ mkdir ~/.config/fish/completions
 $ rustup completions fish > ~/.config/fish/completions/rustup.fish
 
 # Zsh
