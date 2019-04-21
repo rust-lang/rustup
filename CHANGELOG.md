@@ -1,5 +1,55 @@
 # Changelog
 
+## [1.18.0] - 2019-XX-XX
+### Added
+* [Output shell completions for cargo by `rustup completions <shell> cargo`][pr#1646]
+* [Add `--embedded-book` flag to `rustup doc`][pr#1762]
+* [Add --path option to `rustup override set`][pr#1524]
+
+### Changed
+* [`rustup default` now tells user if current directory is override][pr#1655]
+* [`rustup-init`: Force highest TLS version supported][pr#1716]
+* [Switch to git-testament rather than old `build.rs`][pr#1701]
+* [Less copying during dist installation][pr#1744]
+* [Improve error messages when missing nightly components][pr#1769]
+* [Improve `rustup install` error message][pr#1770]
+* [Update Visual C++ install instructions, to link to Visual Studio 2019][pr#1773]
+* [Use `DYLD_FALLBACK_LIBRARY_PATH` for `dylib_path_envvar` on macOS][pr#1752]
+
+### Fixed
+* [`rustup-init.sh`: Fix unset variable usage][pr#1683]
+* [Treat time in seconds as an integer for download times][pr#1699]
+* [Fix man proxy in FreeBSD][pr#1725]
+* [Fix networking failure after using socks5 proxy][pr#1746]
+* [Fix `rustup show` fails on terminal without color][pr#1747]
+* [Fix installation failed if `rustup-init` is owned by another user][pr#1767]
+* [Fix panics with "Broken pipe" when using in a shell pipeline][pr#1765]
+* [Document `--no-self-update` properly][pr#1763]
+
+### Removed
+* [Remove old `multirust` & compatibility code][pr#1715]
+
+[pr#1646]: https://github.com/rust-lang/rustup.rs/pull/1646
+[pr#1762]: https://github.com/rust-lang/rustup.rs/pull/1762
+[pr#1524]: https://github.com/rust-lang/rustup.rs/pull/1524
+[pr#1655]: https://github.com/rust-lang/rustup.rs/pull/1655
+[pr#1716]: https://github.com/rust-lang/rustup.rs/pull/1716
+[pr#1701]: https://github.com/rust-lang/rustup.rs/pull/1701
+[pr#1744]: https://github.com/rust-lang/rustup.rs/pull/1744
+[pr#1769]: https://github.com/rust-lang/rustup.rs/pull/1769
+[pr#1770]: https://github.com/rust-lang/rustup.rs/pull/1770
+[pr#1773]: https://github.com/rust-lang/rustup.rs/pull/1773
+[pr#1752]: https://github.com/rust-lang/rustup.rs/pull/1752
+[pr#1683]: https://github.com/rust-lang/rustup.rs/pull/1683
+[pr#1699]: https://github.com/rust-lang/rustup.rs/pull/1699
+[pr#1725]: https://github.com/rust-lang/rustup.rs/pull/1725
+[pr#1746]: https://github.com/rust-lang/rustup.rs/pull/1746
+[pr#1747]: https://github.com/rust-lang/rustup.rs/pull/1747
+[pr#1767]: https://github.com/rust-lang/rustup.rs/pull/1767
+[pr#1765]: https://github.com/rust-lang/rustup.rs/pull/1765
+[pr#1763]: https://github.com/rust-lang/rustup.rs/pull/1763
+[pr#1715]: https://github.com/rust-lang/rustup.rs/pull/1715
+
 ## [1.17.0] - 2019-03-05
 
 * [Allow using inherited RUSTUP_UPDATE_ROOT variable in rustup-init.sh.][pr#1495]
