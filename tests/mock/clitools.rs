@@ -14,7 +14,6 @@ use std::env::consts::EXE_SUFFIX;
 use std::ffi::OsStr;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
-use std::mem;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
@@ -155,7 +154,7 @@ impl Config {
     }
 
     fn _change_dir(&self, path: &Path, f: &mut dyn FnMut()) {
-        let prev = mem::replace(&mut *self.workdir.borrow_mut(), path.to_owned());
+        let prev = self.workdir.replace(path.to_owned());
         f();
         *self.workdir.borrow_mut() = prev;
     }
