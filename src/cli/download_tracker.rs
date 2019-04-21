@@ -130,6 +130,10 @@ impl DownloadTracker {
         let speed = if len > 0 { sum / len as f64 } else { 0. };
         let speed_h = HumanReadable(speed);
 
+        // First, move to the start of the current line and clear it.
+        let _ = self.term.as_mut().unwrap().carriage_return();
+        let _ = self.term.as_mut().unwrap().delete_line();
+
         match self.content_len {
             Some(content_len) => {
                 let content_len = content_len as f64;
@@ -156,11 +160,9 @@ impl DownloadTracker {
                 );
             }
         }
-        // delete_line() doesn't seem to clear the line properly.
-        // Instead, let's just print some whitespace to clear it.
-        let _ = write!(self.term.as_mut().unwrap(), "                ");
+
+        // Since stdout is typically line-buffered and we don't print a newline, we manually flush.
         let _ = self.term.as_mut().unwrap().flush();
-        let _ = self.term.as_mut().unwrap().carriage_return();
         self.displayed_progress = true;
     }
 }
