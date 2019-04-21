@@ -169,6 +169,7 @@ r"DISCUSSION:
     `~/.local/share/bash_completion/completions` for user-specific commands.
     Run the command:
 
+        $ mkdir -p ~/.local/share/bash_completion/completions
         $ rustup completions bash >> ~/.local/share/bash_completion/completions/rustup
 
     This installs the completion script. You may have to log out and
@@ -179,6 +180,7 @@ r"DISCUSSION:
     Homebrew stores bash completion files within the Homebrew directory.
     With the `bash-completion` brew formula installed, run the command:
 
+        $ mkdir -p $(brew --prefix)/etc/bash_completion.d
         $ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
 
     FISH:
@@ -186,6 +188,7 @@ r"DISCUSSION:
     Fish completion files are commonly stored in
     `$HOME/.config/fish/completions`. Run the command:
 
+        $ mkdir -p ~/.config/fish/completions
         $ rustup completions fish > ~/.config/fish/completions/rustup.fish
 
     This installs the completion script. You may have to log out and
