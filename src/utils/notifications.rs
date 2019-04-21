@@ -27,7 +27,7 @@ pub enum Notification<'a> {
 impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
-        match *self {
+        match self {
             CreatingDirectory(_, _) | RemovingDirectory(_, _) => NotificationLevel::Verbose,
             LinkingDirectory(_, _)
             | CopyingDirectory(_, _)
@@ -46,7 +46,7 @@ impl<'a> Notification<'a> {
 impl<'a> Display for Notification<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
-        match *self {
+        match self {
             CreatingDirectory(name, path) => {
                 write!(f, "creating {} directory: '{}'", name, path.display())
             }

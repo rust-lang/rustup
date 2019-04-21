@@ -52,10 +52,10 @@ impl<'a> From<temp::Notification<'a>> for Notification<'a> {
 impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
-        match *self {
-            Install(ref n) => n.level(),
-            Utils(ref n) => n.level(),
-            Temp(ref n) => n.level(),
+        match self {
+            Install(n) => n.level(),
+            Utils(n) => n.level(),
+            Temp(n) => n.level(),
             ToolchainDirectory(_, _)
             | LookingForToolchain(_)
             | WritingMetadataVersion(_)
@@ -81,10 +81,10 @@ impl<'a> Notification<'a> {
 impl<'a> Display for Notification<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
-        match *self {
-            Install(ref n) => n.fmt(f),
-            Utils(ref n) => n.fmt(f),
-            Temp(ref n) => n.fmt(f),
+        match self {
+            Install(n) => n.fmt(f),
+            Utils(n) => n.fmt(f),
+            Temp(n) => n.fmt(f),
             SetDefaultToolchain(name) => write!(f, "default toolchain set to '{}'", name),
             SetOverrideToolchain(path, name) => write!(
                 f,
@@ -119,7 +119,7 @@ impl<'a> Display for Notification<'a> {
                 f,
                 "this upgrade will remove all existing toolchains. you will need to reinstall them"
             ),
-            MissingFileDuringSelfUninstall(ref p) => write!(
+            MissingFileDuringSelfUninstall(p) => write!(
                 f,
                 "expected file does not exist to uninstall: {}",
                 p.display()

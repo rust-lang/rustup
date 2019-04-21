@@ -22,14 +22,12 @@ pub enum OverrideReason {
 
 impl Display for OverrideReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
-        match *self {
+        match self {
             OverrideReason::Environment => write!(f, "environment override by RUSTUP_TOOLCHAIN"),
-            OverrideReason::OverrideDB(ref path) => {
+            OverrideReason::OverrideDB(path) => {
                 write!(f, "directory override for '{}'", path.display())
             }
-            OverrideReason::ToolchainFile(ref path) => {
-                write!(f, "overridden by '{}'", path.display())
-            }
+            OverrideReason::ToolchainFile(path) => write!(f, "overridden by '{}'", path.display()),
         }
     }
 }
