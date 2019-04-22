@@ -28,6 +28,7 @@
 * [Fix panics with "Broken pipe" when using in a shell pipeline][pr#1765]
 * [Document `--no-self-update` properly][pr#1763]
 * [Clear line properly in download progress][pr#1781]
+* [More download progress line clearing fixes][pr#1788]
 * [Fix a bunch of clippy warnings/errors][pr#1778]
 
 ### Removed
@@ -57,6 +58,7 @@
 [pr#1778]: https://github.com/rust-lang/rustup.rs/pull/1778
 [pr#1780]: https://github.com/rust-lang/rustup.rs/pull/1780
 [pr#1781]: https://github.com/rust-lang/rustup.rs/pull/1781
+[pr#1781]: https://github.com/rust-lang/rustup.rs/pull/1788
 
 ## [1.17.0] - 2019-03-05
 
