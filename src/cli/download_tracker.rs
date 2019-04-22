@@ -31,7 +31,10 @@ pub struct DownloadTracker {
     /// If the download is quick enough, we don't have time to
     /// display the progress info.
     /// In that case, we do not want to do some cleanup stuff we normally do.
-    displayed_progress: bool,
+    ///
+    /// If we have displayed progress, this is the number of characters we
+    /// rendered, so we can erase it cleanly.
+    displayed_charcount: Option<usize>,
 }
 
 impl DownloadTracker {
@@ -45,7 +48,7 @@ impl DownloadTracker {
             seconds_elapsed: 0,
             last_sec: None,
             term: term::stdout(),
-            displayed_progress: false,
+            displayed_charcount: None,
         }
     }
 
@@ -102,7 +105,7 @@ impl DownloadTracker {
     }
     /// Notifies self that the download has finished.
     pub fn download_finished(&mut self) {
-        if self.displayed_progress {
+        if self.displayed_charcount.is_some() {
             // Display the finished state
             self.display();
             let _ = writeln!(self.term.as_mut().unwrap());
@@ -117,7 +120,7 @@ impl DownloadTracker {
         self.downloaded_last_few_secs.clear();
         self.seconds_elapsed = 0;
         self.last_sec = None;
-        self.displayed_progress = false;
+        self.displayed_charcount = None;
     }
     /// Display the tracked download information to the terminal.
     fn display(&mut self) {
@@ -132,38 +135,38 @@ impl DownloadTracker {
 
         // First, move to the start of the current line and clear it.
         let _ = self.term.as_mut().unwrap().carriage_return();
-        let _ = self.term.as_mut().unwrap().delete_line();
+        // We'd prefer to use delete_line() but on Windows it seems to
+        // sometimes do unusual things
+        // let _ = self.term.as_mut().unwrap().delete_line();
+        // So instead we do:
+        if let Some(n) = self.displayed_charcount {
+            // This is not ideal as very narrow terminals might mess up,
+            // but it is more likely to succeed until term's windows console
+            // fixes whatever's up with delete_line().
+            let _ = write!(self.term.as_mut().unwrap(), "{}", " ".repeat(n));
+            let _ = self.term.as_mut().unwrap().flush();
+            let _ = self.term.as_mut().unwrap().carriage_return();
+        }
 
-        match self.content_len {
+        let output = match self.content_len {
             Some(content_len) => {
                 let content_len = content_len as f64;
                 let percent = (self.total_downloaded as f64 / content_len) * 100.;
                 let content_len_h = HumanReadable(content_len);
                 let remaining = content_len - self.total_downloaded as f64;
                 let eta_h = HumanReadable(remaining / speed);
-                let _ = write!(
-                    self.term.as_mut().unwrap(),
+                format!(
                     "{} / {} ({:3.0} %) {}/s ETA: {:#}",
-                    total_h,
-                    content_len_h,
-                    percent,
-                    speed_h,
-                    eta_h
-                );
+                    total_h, content_len_h, percent, speed_h, eta_h
+                )
             }
-            None => {
-                let _ = write!(
-                    self.term.as_mut().unwrap(),
-                    "Total: {} Speed: {}/s",
-                    total_h,
-                    speed_h
-                );
-            }
-        }
+            None => format!("Total: {} Speed: {}/s", total_h, speed_h),
+        };
 
+        let _ = write!(self.term.as_mut().unwrap(), "{}", output);
         // Since stdout is typically line-buffered and we don't print a newline, we manually flush.
         let _ = self.term.as_mut().unwrap().flush();
-        self.displayed_progress = true;
+        self.displayed_charcount = Some(output.chars().count());
     }
 }
 
