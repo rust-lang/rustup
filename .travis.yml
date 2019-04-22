@@ -50,9 +50,9 @@ matrix:
       os: osx
       osx_image: xcode9.2
       if: branch != master
-      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
-    - <<: *mac
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin NO_ADD=1
+    - <<: *mac
+      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
 
 install:
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
