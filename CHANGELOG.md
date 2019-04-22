@@ -15,6 +15,8 @@
 * [Improve `rustup install` error message][pr#1770]
 * [Update Visual C++ install instructions, to link to Visual Studio 2019][pr#1773]
 * [Use `DYLD_FALLBACK_LIBRARY_PATH` for `dylib_path_envvar` on macOS][pr#1752]
+* [Improved documentation for shell completion enabling][pr#1780]
+* [Added shellcheck and Travis folding][pr#1776]
 
 ### Fixed
 * [`rustup-init.sh`: Fix unset variable usage][pr#1683]
@@ -25,6 +27,8 @@
 * [Fix installation failed if `rustup-init` is owned by another user][pr#1767]
 * [Fix panics with "Broken pipe" when using in a shell pipeline][pr#1765]
 * [Document `--no-self-update` properly][pr#1763]
+* [Clear line properly in download progress][pr#1781]
+* [Fix a bunch of clippy warnings/errors][pr#1778]
 
 ### Removed
 * [Remove old `multirust` & compatibility code][pr#1715]
@@ -49,6 +53,10 @@
 [pr#1765]: https://github.com/rust-lang/rustup.rs/pull/1765
 [pr#1763]: https://github.com/rust-lang/rustup.rs/pull/1763
 [pr#1715]: https://github.com/rust-lang/rustup.rs/pull/1715
+[pr#1776]: https://github.com/rust-lang/rustup.rs/pull/1776
+[pr#1778]: https://github.com/rust-lang/rustup.rs/pull/1778
+[pr#1780]: https://github.com/rust-lang/rustup.rs/pull/1780
+[pr#1781]: https://github.com/rust-lang/rustup.rs/pull/1781
 
 ## [1.17.0] - 2019-03-05
 
