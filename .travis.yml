@@ -14,6 +14,13 @@ matrix:
       os: linux
       env: TARGET=i686-unknown-linux-gnu
       if: branch != master
+    - os: linux
+      env: TARGET=rustdoc-x86_64-unknown-linux-gnu
+      install: true
+      script: true
+      before_deploy:
+        - cargo doc --no-deps --features vendored-openssl
+        - echo '<meta http-equiv=refresh content=0;url=rustup/index.html>' > target/doc/index.html;
 
     # Cross builds happen in the `rust-slave-linux-cross` image to ensure that
     # we use the right cross compilers for these targets. That image should
@@ -84,3 +91,11 @@ deploy:
     secret_access_key: $AWS_SECRET_ACCESS_KEY
     on:
       branch: stable
+  - provider: pages
+    skip-cleanup: true
+    local-dir: target/doc
+    github-token: "$GITHUB_OAUTH_TOKEN"
+    keep-history: false
+    on:
+      branch: master
+      condition: $TARGET = rustdoc-x86_64-unknown-linux-gnu
