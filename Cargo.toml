@@ -1,6 +1,6 @@
 [package]
 name = "rustup"
-version = "1.17.0"
+version = "1.18.0"
 edition = "2018"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 description = "Manage multiple rust installations with ease"
