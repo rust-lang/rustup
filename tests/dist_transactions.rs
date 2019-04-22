@@ -561,12 +561,12 @@ fn modify_file_that_exists() {
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
-    let ref path = prefix.path().join("foo");
-    utils_raw::write_file(path, "wow").unwrap();
+    let path = prefix.path().join("foo");
+    utils_raw::write_file(&path, "wow").unwrap();
     tx.modify_file(PathBuf::from("foo")).unwrap();
     tx.commit();
 
-    assert_eq!(utils_raw::read_file(path).unwrap(), "wow");
+    assert_eq!(utils_raw::read_file(&path).unwrap(), "wow");
 }
 
 #[test]
@@ -607,13 +607,13 @@ fn modify_file_that_exists_then_rollback() {
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
-    let ref path = prefix.path().join("foo");
-    utils_raw::write_file(path, "wow").unwrap();
+    let path = prefix.path().join("foo");
+    utils_raw::write_file(&path, "wow").unwrap();
     tx.modify_file(PathBuf::from("foo")).unwrap();
-    utils_raw::write_file(path, "eww").unwrap();
+    utils_raw::write_file(&path, "eww").unwrap();
     drop(tx);
 
-    assert_eq!(utils_raw::read_file(path).unwrap(), "wow");
+    assert_eq!(utils_raw::read_file(&path).unwrap(), "wow");
 }
 
 // This is testing that the backup scheme is smart enough not
@@ -634,15 +634,15 @@ fn modify_twice_then_rollback() {
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
-    let ref path = prefix.path().join("foo");
-    utils_raw::write_file(path, "wow").unwrap();
+    let path = prefix.path().join("foo");
+    utils_raw::write_file(&path, "wow").unwrap();
     tx.modify_file(PathBuf::from("foo")).unwrap();
-    utils_raw::write_file(path, "eww").unwrap();
+    utils_raw::write_file(&path, "eww").unwrap();
     tx.modify_file(PathBuf::from("foo")).unwrap();
-    utils_raw::write_file(path, "ewww").unwrap();
+    utils_raw::write_file(&path, "ewww").unwrap();
     drop(tx);
 
-    assert_eq!(utils_raw::read_file(path).unwrap(), "wow");
+    assert_eq!(utils_raw::read_file(&path).unwrap(), "wow");
 }
 
 fn do_multiple_op_transaction(rollback: bool) {
@@ -675,40 +675,40 @@ fn do_multiple_op_transaction(rollback: bool) {
     // remove_dir
     let relpath8 = PathBuf::from("olddoc/htm/index.html");
 
-    let ref path1 = prefix.path().join(&relpath1);
-    let ref path2 = prefix.path().join(&relpath2);
-    let ref path4 = prefix.path().join(&relpath4);
-    let ref path5 = prefix.path().join(&relpath5);
-    let ref path6 = prefix.path().join(&relpath6);
-    let ref path7 = prefix.path().join(&relpath7);
-    let ref path8 = prefix.path().join(&relpath8);
+    let path1 = prefix.path().join(&relpath1);
+    let path2 = prefix.path().join(&relpath2);
+    let path4 = prefix.path().join(&relpath4);
+    let path5 = prefix.path().join(&relpath5);
+    let path6 = prefix.path().join(&relpath6);
+    let path7 = prefix.path().join(&relpath7);
+    let path8 = prefix.path().join(&relpath8);
 
-    let ref srcpath1 = srcdir.path().join(&relpath1);
+    let srcpath1 = srcdir.path().join(&relpath1);
     fs::create_dir_all(srcpath1.parent().unwrap()).unwrap();
-    utils_raw::write_file(srcpath1, "").unwrap();
-    tx.copy_file("", relpath1, srcpath1).unwrap();
+    utils_raw::write_file(&srcpath1, "").unwrap();
+    tx.copy_file("", relpath1, &srcpath1).unwrap();
 
-    let ref srcpath2 = srcdir.path().join(&relpath2);
-    utils_raw::write_file(srcpath2, "").unwrap();
-    tx.copy_file("", relpath2, srcpath2).unwrap();
+    let srcpath2 = srcdir.path().join(&relpath2);
+    utils_raw::write_file(&srcpath2, "").unwrap();
+    tx.copy_file("", relpath2, &srcpath2).unwrap();
 
-    let ref srcpath4 = srcdir.path().join(&relpath4);
+    let srcpath4 = srcdir.path().join(&relpath4);
     fs::create_dir_all(srcpath4.parent().unwrap()).unwrap();
-    utils_raw::write_file(srcpath4, "").unwrap();
+    utils_raw::write_file(&srcpath4, "").unwrap();
     tx.copy_dir("", PathBuf::from("doc"), &srcdir.path().join("doc"))
         .unwrap();
 
     tx.modify_file(relpath5).unwrap();
-    utils_raw::write_file(path5, "").unwrap();
+    utils_raw::write_file(&path5, "").unwrap();
 
     tx.write_file("", relpath6, "".to_string()).unwrap();
 
     fs::create_dir_all(path7.parent().unwrap()).unwrap();
-    utils_raw::write_file(path7, "").unwrap();
+    utils_raw::write_file(&path7, "").unwrap();
     tx.remove_file("", relpath7).unwrap();
 
     fs::create_dir_all(path8.parent().unwrap()).unwrap();
-    utils_raw::write_file(path8, "").unwrap();
+    utils_raw::write_file(&path8, "").unwrap();
     tx.remove_dir("", PathBuf::from("olddoc")).unwrap();
 
     if !rollback {

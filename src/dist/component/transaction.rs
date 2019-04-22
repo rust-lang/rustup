@@ -193,16 +193,16 @@ enum ChangedItem<'a> {
 impl<'a> ChangedItem<'a> {
     fn roll_back(&self, prefix: &InstallPrefix) -> Result<()> {
         use self::ChangedItem::*;
-        match *self {
-            AddedFile(ref path) => utils::remove_file("component", &prefix.abs_path(path))?,
-            AddedDir(ref path) => utils::remove_dir("component", &prefix.abs_path(path), &|_| ())?,
-            RemovedFile(ref path, ref tmp) | ModifiedFile(ref path, Some(ref tmp)) => {
+        match self {
+            AddedFile(path) => utils::remove_file("component", &prefix.abs_path(path))?,
+            AddedDir(path) => utils::remove_dir("component", &prefix.abs_path(path), &|_| ())?,
+            RemovedFile(path, tmp) | ModifiedFile(path, Some(tmp)) => {
                 utils::rename_file("component", &tmp, &prefix.abs_path(path))?
             }
-            RemovedDir(ref path, ref tmp) => {
+            RemovedDir(path, tmp) => {
                 utils::rename_dir("component", &tmp.join("bk"), &prefix.abs_path(path))?
             }
-            ModifiedFile(ref path, None) => {
+            ModifiedFile(path, None) => {
                 let abs_path = prefix.abs_path(path);
                 if utils::is_file(&abs_path) {
                     utils::remove_file("component", &abs_path)?;

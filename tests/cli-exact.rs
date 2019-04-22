@@ -396,7 +396,7 @@ fn undefined_linked_toolchain() {
             config,
             &["cargo", "+bogus", "test"],
             r"",
-            &format!("error: toolchain 'bogus' is not installed\n"),
+            "error: toolchain 'bogus' is not installed\n",
         );
     });
 }

@@ -53,8 +53,7 @@ pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
         addr_tx.send(addr).unwrap();
         hyper::rt::run(server.map_err(|e| panic!(e)));
     });
-    let addr = addr_rx.wait().unwrap();
-    addr
+    addr_rx.wait().unwrap()
 }
 
 fn serve_contents(
@@ -67,9 +66,9 @@ fn serve_contents(
         let range = range.to_str().expect("unexpected Range header");
         assert!(range.starts_with("bytes="));
         let range = range.trim_start_matches("bytes=");
-        assert!(range.ends_with("-"));
-        let range = range.trim_end_matches("-");
-        assert_eq!(range.split("-").count(), 1);
+        assert!(range.ends_with('-'));
+        let range = range.trim_end_matches('-');
+        assert_eq!(range.split('-').count(), 1);
         let start: u64 = range.parse().expect("unexpected Range header");
 
         range_header = Some(format!("bytes {}-{len}/{len}", start, len = contents.len()));

@@ -47,9 +47,9 @@ pub struct File<'a> {
 impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
-        match *self {
+        match self {
             CreatingRoot(_) | CreatingFile(_) | CreatingDirectory(_) => NotificationLevel::Verbose,
-            FileDeletion(_, ref result) | DirectoryDeletion(_, ref result) => {
+            FileDeletion(_, result) | DirectoryDeletion(_, result) => {
                 if result.is_ok() {
                     NotificationLevel::Verbose
                 } else {
@@ -63,18 +63,18 @@ impl<'a> Notification<'a> {
 impl<'a> Display for Notification<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
-        match *self {
+        match self {
             CreatingRoot(path) => write!(f, "creating temp root: {}", path.display()),
             CreatingFile(path) => write!(f, "creating temp file: {}", path.display()),
             CreatingDirectory(path) => write!(f, "creating temp directory: {}", path.display()),
-            FileDeletion(path, ref result) => {
+            FileDeletion(path, result) => {
                 if result.is_ok() {
                     write!(f, "deleted temp file: {}", path.display())
                 } else {
                     write!(f, "could not delete temp file: {}", path.display())
                 }
             }
-            DirectoryDeletion(path, ref result) => {
+            DirectoryDeletion(path, result) => {
                 if result.is_ok() {
                     write!(f, "deleted temp directory: {}", path.display())
                 } else {
@@ -88,7 +88,7 @@ impl<'a> Display for Notification<'a> {
 impl error::Error for Error {
     fn description(&self) -> &str {
         use self::Error::*;
-        match *self {
+        match self {
             CreatingRoot { .. } => "could not create temp root",
             CreatingFile { .. } => "could not create temp file",
             CreatingDirectory { .. } => "could not create temp directory",
@@ -97,10 +97,10 @@ impl error::Error for Error {
 
     fn cause(&self) -> Option<&dyn error::Error> {
         use self::Error::*;
-        match *self {
-            CreatingRoot { ref error, .. }
-            | CreatingFile { ref error, .. }
-            | CreatingDirectory { ref error, .. } => Some(error),
+        match self {
+            CreatingRoot { error, .. }
+            | CreatingFile { error, .. }
+            | CreatingDirectory { error, .. } => Some(error),
         }
     }
 }
@@ -108,14 +108,14 @@ impl error::Error for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Error::*;
-        match *self {
-            CreatingRoot { ref path, .. } => {
+        match self {
+            CreatingRoot { path, .. } => {
                 write!(f, "could not create temp root: {}", path.display())
             }
-            CreatingFile { ref path, .. } => {
+            CreatingFile { path, .. } => {
                 write!(f, "could not create temp file: {}", path.display())
             }
-            CreatingDirectory { ref path, .. } => {
+            CreatingDirectory { path, .. } => {
                 write!(f, "could not create temp directory: {}", path.display())
             }
         }

@@ -287,15 +287,15 @@ impl Package {
 
 impl PackageTargets {
     pub fn get<'a>(&'a self, target: &TargetTriple) -> Option<&'a TargetedPackage> {
-        match *self {
-            PackageTargets::Wildcard(ref tpkg) => Some(tpkg),
-            PackageTargets::Targeted(ref tpkgs) => tpkgs.get(target),
+        match self {
+            PackageTargets::Wildcard(tpkg) => Some(tpkg),
+            PackageTargets::Targeted(tpkgs) => tpkgs.get(target),
         }
     }
     pub fn get_mut<'a>(&'a mut self, target: &TargetTriple) -> Option<&'a mut TargetedPackage> {
-        match *self {
-            PackageTargets::Wildcard(ref mut tpkg) => Some(tpkg),
-            PackageTargets::Targeted(ref mut tpkgs) => tpkgs.get_mut(target),
+        match self {
+            PackageTargets::Wildcard(tpkg) => Some(tpkg),
+            PackageTargets::Targeted(tpkgs) => tpkgs.get_mut(target),
         }
     }
 }

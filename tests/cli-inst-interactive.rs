@@ -20,7 +20,7 @@ pub fn setup(f: &dyn Fn(&Config)) {
         // An windows these tests mess with the user's PATH. Save
         // and restore them here to keep from trashing things.
         let saved_path = get_path();
-        let _g = scopeguard::guard(saved_path, |p| restore_path(p));
+        let _g = scopeguard::guard(saved_path, restore_path);
 
         f(config);
     });

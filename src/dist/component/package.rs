@@ -43,7 +43,10 @@ impl DirectoryPackage {
         validate_installer_version(&path)?;
 
         let content = utils::read_file("package components", &path.join("components"))?;
-        let components = content.lines().map(|l| l.to_owned()).collect();
+        let components = content
+            .lines()
+            .map(std::borrow::ToOwned::to_owned)
+            .collect();
         Ok(DirectoryPackage {
             path,
             components,

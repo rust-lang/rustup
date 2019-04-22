@@ -48,9 +48,9 @@ impl<'a> From<temp::Notification<'a>> for Notification<'a> {
 impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
-        match *self {
-            Temp(ref n) => n.level(),
-            Utils(ref n) => n.level(),
+        match self {
+            Temp(n) => n.level(),
+            Utils(n) => n.level(),
             ChecksumValid(_)
             | NoUpdateHash(_)
             | FileAlreadyDownloaded
@@ -79,11 +79,11 @@ impl<'a> Notification<'a> {
 impl<'a> Display for Notification<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         use self::Notification::*;
-        match *self {
-            Temp(ref n) => n.fmt(f),
-            Utils(ref n) => n.fmt(f),
+        match self {
+            Temp(n) => n.fmt(f),
+            Utils(n) => n.fmt(f),
             Extracting(_, _) => write!(f, "extracting..."),
-            ComponentAlreadyInstalled(ref c) => write!(f, "component {} is up to date", c),
+            ComponentAlreadyInstalled(c) => write!(f, "component {} is up to date", c),
             CantReadUpdateHash(path) => write!(
                 f,
                 "can't read update hash file: '{}', can't skip update...",
@@ -101,28 +101,28 @@ impl<'a> Display for Notification<'a> {
                 write!(f, "during uninstall component {} was not found", c)
             }
             DownloadingComponent(c, h, t) => {
-                if Some(h) == t || t.is_none() {
+                if Some(h) == t.as_ref() || t.is_none() {
                     write!(f, "downloading component '{}'", c)
                 } else {
                     write!(f, "downloading component '{}' for '{}'", c, t.unwrap())
                 }
             }
             InstallingComponent(c, h, t) => {
-                if Some(h) == t || t.is_none() {
+                if Some(h) == t.as_ref() || t.is_none() {
                     write!(f, "installing component '{}'", c)
                 } else {
                     write!(f, "installing component '{}' for '{}'", c, t.unwrap())
                 }
             }
             RemovingComponent(c, h, t) => {
-                if Some(h) == t || t.is_none() {
+                if Some(h) == t.as_ref() || t.is_none() {
                     write!(f, "removing component '{}'", c)
                 } else {
                     write!(f, "removing component '{}' for '{}'", c, t.unwrap())
                 }
             }
             RemovingOldComponent(c, h, t) => {
-                if Some(h) == t || t.is_none() {
+                if Some(h) == t.as_ref() || t.is_none() {
                     write!(f, "removing previous version of component '{}'", c)
                 } else {
                     write!(

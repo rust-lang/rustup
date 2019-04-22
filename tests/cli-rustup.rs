@@ -303,19 +303,19 @@ fn add_target() {
 #[test]
 fn remove_target() {
     setup(&|config| {
-        let ref path = format!(
+        let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             &this_host_triple(),
             clitools::CROSS_ARCH1
         );
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        assert!(config.rustupdir.join(path).exists());
+        assert!(config.rustupdir.join(&path).exists());
         expect_ok(
             config,
             &["rustup", "target", "remove", clitools::CROSS_ARCH1],
         );
-        assert!(!config.rustupdir.join(path).exists());
+        assert!(!config.rustupdir.join(&path).exists());
     });
 }
 
@@ -406,7 +406,7 @@ fn add_target_explicit() {
 #[test]
 fn remove_target_explicit() {
     setup(&|config| {
-        let ref path = format!(
+        let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             &this_host_triple(),
             clitools::CROSS_ARCH1
@@ -423,7 +423,7 @@ fn remove_target_explicit() {
                 clitools::CROSS_ARCH1,
             ],
         );
-        assert!(config.rustupdir.join(path).exists());
+        assert!(config.rustupdir.join(&path).exists());
         expect_ok(
             config,
             &[
@@ -435,7 +435,7 @@ fn remove_target_explicit() {
                 clitools::CROSS_ARCH1,
             ],
         );
-        assert!(!config.rustupdir.join(path).exists());
+        assert!(!config.rustupdir.join(&path).exists());
     });
 }
 
@@ -474,11 +474,11 @@ fn fallback_cargo_calls_correct_rustc() {
     setup(&|config| {
         // Hm, this is the _only_ test that assumes that toolchain proxies
         // exist in CARGO_HOME. Adding that proxy here.
-        let ref rustup_path = config.exedir.join(format!("rustup{}", EXE_SUFFIX));
-        let ref cargo_bin_path = config.cargodir.join("bin");
-        fs::create_dir_all(cargo_bin_path).unwrap();
-        let ref rustc_path = cargo_bin_path.join(format!("rustc{}", EXE_SUFFIX));
-        fs::hard_link(rustup_path, rustc_path).unwrap();
+        let rustup_path = config.exedir.join(format!("rustup{}", EXE_SUFFIX));
+        let cargo_bin_path = config.cargodir.join("bin");
+        fs::create_dir_all(&cargo_bin_path).unwrap();
+        let rustc_path = cargo_bin_path.join(format!("rustc{}", EXE_SUFFIX));
+        fs::hard_link(&rustup_path, &rustc_path).unwrap();
 
         // Install a custom toolchain and a nightly toolchain for the cargo fallback
         let path = config.customdir.join("custom-1");

@@ -22,34 +22,34 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
 
     // V2
     let manifest_name = format!("dist/channel-rust-{}", channel);
-    let ref manifest_path = path.join(format!("{}.toml", manifest_name));
-    let ref hash_path = path.join(format!("{}.toml.sha256", manifest_name));
+    let manifest_path = path.join(format!("{}.toml", manifest_name));
+    let hash_path = path.join(format!("{}.toml.sha256", manifest_name));
 
     let archive_manifest_name = format!("dist/{}/channel-rust-{}", date, channel);
-    let ref archive_manifest_path = path.join(format!("{}.toml", archive_manifest_name));
-    let ref archive_hash_path = path.join(format!("{}.toml.sha256", archive_manifest_name));
+    let archive_manifest_path = path.join(format!("{}.toml", archive_manifest_name));
+    let archive_hash_path = path.join(format!("{}.toml.sha256", archive_manifest_name));
 
     let _ = hard_link(archive_manifest_path, manifest_path);
     let _ = hard_link(archive_hash_path, hash_path);
 
     // V1
     let manifest_name = format!("dist/channel-rust-{}", channel);
-    let ref manifest_path = path.join(format!("{}", manifest_name));
-    let ref hash_path = path.join(format!("{}.sha256", manifest_name));
+    let manifest_path = path.join(&manifest_name);
+    let hash_path = path.join(format!("{}.sha256", manifest_name));
 
     let archive_manifest_name = format!("dist/{}/channel-rust-{}", date, channel);
-    let ref archive_manifest_path = path.join(format!("{}", archive_manifest_name));
-    let ref archive_hash_path = path.join(format!("{}.sha256", archive_manifest_name));
+    let archive_manifest_path = path.join(&archive_manifest_name);
+    let archive_hash_path = path.join(format!("{}.sha256", archive_manifest_name));
 
     let _ = hard_link(archive_manifest_path, manifest_path);
     let _ = hard_link(archive_hash_path, hash_path);
 
     // Copy all files that look like rust-* for the v1 installers
-    let ref archive_path = path.join(format!("dist/{}", date));
+    let archive_path = path.join(format!("dist/{}", date));
     for dir in fs::read_dir(archive_path).unwrap() {
         let dir = dir.unwrap();
         if dir.file_name().to_str().unwrap().contains("rust-") {
-            let ref path = path.join(format!("dist/{}", dir.file_name().to_str().unwrap()));
+            let path = path.join(format!("dist/{}", dir.file_name().to_str().unwrap()));
             hard_link(&dir.path(), path).unwrap();
         }
     }
@@ -121,7 +121,7 @@ impl MockDistServer {
         fs::create_dir_all(&self.path).unwrap();
 
         for channel in self.channels.iter() {
-            let ref mut hashes = HashMap::new();
+            let mut hashes = HashMap::new();
             for package in &channel.packages {
                 let new_hashes = self.build_package(&channel, &package, enable_xz);
                 hashes.extend(new_hashes.into_iter());
@@ -129,7 +129,7 @@ impl MockDistServer {
             for v in vs {
                 match *v {
                     ManifestVersion::V1 => self.write_manifest_v1(&channel),
-                    ManifestVersion::V2 => self.write_manifest_v2(&channel, hashes),
+                    ManifestVersion::V2 => self.write_manifest_v2(&channel, &hashes),
                 }
             }
         }
@@ -175,15 +175,15 @@ impl MockDistServer {
         format: &str,
     ) -> String {
         // This is where the tarball, sums and sigs will go
-        let ref dist_dir = self.path.join("dist");
-        let ref archive_dir = dist_dir.join(&channel.date);
+        let dist_dir = self.path.join("dist");
+        let archive_dir = dist_dir.join(&channel.date);
 
-        fs::create_dir_all(archive_dir).unwrap();
+        fs::create_dir_all(&archive_dir).unwrap();
 
         let tmpdir = TempDir::new("rustup").unwrap();
 
         let workdir = tmpdir.path().join("work");
-        let ref installer_name = if target_package.target != "*" {
+        let installer_name = if target_package.target != "*" {
             format!(
                 "{}-{}-{}",
                 package.name, channel.name, target_package.target
@@ -191,17 +191,17 @@ impl MockDistServer {
         } else {
             format!("{}-{}", package.name, channel.name)
         };
-        let ref installer_dir = workdir.join(installer_name);
-        let ref installer_tarball = archive_dir.join(format!("{}{}", installer_name, format));
-        let ref installer_hash = archive_dir.join(format!("{}{}.sha256", installer_name, format));
+        let installer_dir = workdir.join(&installer_name);
+        let installer_tarball = archive_dir.join(format!("{}{}", installer_name, format));
+        let installer_hash = archive_dir.join(format!("{}{}.sha256", installer_name, format));
 
-        fs::create_dir_all(installer_dir).unwrap();
+        fs::create_dir_all(&installer_dir).unwrap();
 
+        type Tarball = HashMap<(String, MockTargetedPackage, String), (Vec<u8>, String)>;
         // Tarball creation can be super slow, so cache created tarballs
         // globally to avoid recreating and recompressing tons of tarballs.
         lazy_static! {
-            static ref TARBALLS: Mutex<HashMap<(String, MockTargetedPackage, String), (Vec<u8>, String)>> =
-                Mutex::new(HashMap::new());
+            static ref TARBALLS: Mutex<Tarball> = Mutex::new(HashMap::new());
         }
 
         let key = (
@@ -223,18 +223,18 @@ impl MockDistServer {
             hash.clone()
         } else {
             drop(tarballs);
-            target_package.installer.build(installer_dir);
+            target_package.installer.build(&installer_dir);
             create_tarball(
-                &PathBuf::from(installer_name),
-                installer_dir,
-                installer_tarball,
+                &PathBuf::from(&installer_name),
+                &installer_dir,
+                &installer_tarball,
             );
             let mut contents = Vec::new();
-            File::open(installer_tarball)
+            File::open(&installer_tarball)
                 .unwrap()
                 .read_to_end(&mut contents)
                 .unwrap();
-            let hash = create_hash(installer_tarball, installer_hash);
+            let hash = create_hash(&installer_tarball, &installer_hash);
             TARBALLS
                 .lock()
                 .unwrap()
@@ -244,9 +244,8 @@ impl MockDistServer {
 
         // Copy from the archive to the main dist directory
         if package.name == "rust" {
-            let ref main_installer_tarball = dist_dir.join(format!("{}{}", installer_name, format));
-            let ref main_installer_hash =
-                dist_dir.join(format!("{}{}.sha256", installer_name, format));
+            let main_installer_tarball = dist_dir.join(format!("{}{}", installer_name, format));
+            let main_installer_hash = dist_dir.join(format!("{}{}.sha256", installer_name, format));
             hard_link(installer_tarball, main_installer_tarball).unwrap();
             hard_link(installer_hash, main_installer_hash).unwrap();
         }
@@ -268,19 +267,19 @@ impl MockDistServer {
         }
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
-        let ref manifest_path = self.path.join(format!("{}", manifest_name));
-        write_file(manifest_path, &buf);
+        let manifest_path = self.path.join(&manifest_name);
+        write_file(&manifest_path, &buf);
 
-        let ref hash_path = self.path.join(format!("{}.sha256", manifest_name));
-        create_hash(manifest_path, hash_path);
+        let hash_path = self.path.join(format!("{}.sha256", manifest_name));
+        create_hash(&manifest_path, &hash_path);
 
         // Also copy the manifest and hash into the archive folder
         let archive_manifest_name = format!("dist/{}/channel-rust-{}", channel.date, channel.name);
-        let ref archive_manifest_path = self.path.join(format!("{}", archive_manifest_name));
+        let archive_manifest_path = self.path.join(&archive_manifest_name);
         hard_link(manifest_path, archive_manifest_path).unwrap();
 
-        let ref archive_hash_path = self.path.join(format!("{}.sha256", archive_manifest_name));
-        hard_link(hash_path, archive_hash_path).unwrap();
+        let archive_hash_path = self.path.join(format!("{}.sha256", archive_manifest_name));
+        hard_link(&hash_path, archive_hash_path).unwrap();
     }
 
     fn write_manifest_v2(
@@ -330,11 +329,11 @@ impl MockDistServer {
                 let url = format!("file://{}", path.to_string_lossy());
                 toml_target.insert(String::from("url"), toml::Value::String(url.clone()));
 
-                let ref component = MockComponent {
+                let component = MockComponent {
                     name: package.name.to_owned(),
                     target: target.target.to_owned(),
                 };
-                let hash = hashes[component].clone();
+                let hash = hashes[&component].clone();
                 toml_target.insert(String::from("hash"), toml::Value::String(hash.gz));
 
                 if let Some(xz_hash) = hash.xz {
@@ -400,18 +399,18 @@ impl MockDistServer {
         toml_manifest.insert(String::from("renames"), toml::Value::Table(toml_renames));
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
-        let ref manifest_path = self.path.join(format!("{}.toml", manifest_name));
-        write_file(manifest_path, &toml::to_string(&toml_manifest).unwrap());
+        let manifest_path = self.path.join(format!("{}.toml", manifest_name));
+        write_file(&manifest_path, &toml::to_string(&toml_manifest).unwrap());
 
-        let ref hash_path = self.path.join(format!("{}.toml.sha256", manifest_name));
-        create_hash(manifest_path, hash_path);
+        let hash_path = self.path.join(format!("{}.toml.sha256", manifest_name));
+        create_hash(&manifest_path, &hash_path);
 
         // Also copy the manifest and hash into the archive folder
         let archive_manifest_name = format!("dist/{}/channel-rust-{}", channel.date, channel.name);
-        let ref archive_manifest_path = self.path.join(format!("{}.toml", archive_manifest_name));
-        hard_link(manifest_path, archive_manifest_path).unwrap();
+        let archive_manifest_path = self.path.join(format!("{}.toml", archive_manifest_name));
+        hard_link(&manifest_path, archive_manifest_path).unwrap();
 
-        let ref archive_hash_path = self
+        let archive_hash_path = self
             .path
             .join(format!("{}.toml.sha256", archive_manifest_name));
         hard_link(hash_path, archive_hash_path).unwrap();
@@ -437,7 +436,11 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
     let mut tar = tar::Builder::new(writer);
     for entry in walkdir::WalkDir::new(src) {
         let entry = entry.unwrap();
-        let parts: Vec<_> = entry.path().iter().map(|p| p.to_owned()).collect();
+        let parts: Vec<_> = entry
+            .path()
+            .iter()
+            .map(std::borrow::ToOwned::to_owned)
+            .collect();
         let parts_len = parts.len();
         let parts = parts.into_iter().skip(parts_len - entry.depth());
         let mut relpath = relpath.to_owned();
@@ -445,8 +448,8 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
             relpath = relpath.join(part);
         }
         if entry.file_type().is_file() {
-            let ref mut srcfile = File::open(entry.path()).unwrap();
-            tar.append_file(relpath, srcfile).unwrap();
+            let mut srcfile = File::open(entry.path()).unwrap();
+            tar.append_file(relpath, &mut srcfile).unwrap();
         } else if entry.file_type().is_dir() {
             tar.append_dir(relpath, entry.path()).unwrap();
         }
@@ -455,8 +458,8 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
 }
 
 pub fn calc_hash(src: &Path) -> String {
-    let ref mut buf = Vec::new();
-    File::open(src).unwrap().read_to_end(buf).unwrap();
+    let mut buf = Vec::new();
+    File::open(src).unwrap().read_to_end(&mut buf).unwrap();
     let mut hasher = Sha256::new();
     hasher.input(buf);
     format!("{:x}", hasher.result())
@@ -465,8 +468,8 @@ pub fn calc_hash(src: &Path) -> String {
 pub fn create_hash(src: &Path, dst: &Path) -> String {
     let hex = calc_hash(src);
     let src_file = src.file_name().unwrap();
-    let ref file_contents = format!("{} *{}\n", hex, src_file.to_string_lossy());
-    write_file(dst, file_contents);
+    let file_contents = format!("{} *{}\n", hex, src_file.to_string_lossy());
+    write_file(dst, &file_contents);
     hex
 }
 

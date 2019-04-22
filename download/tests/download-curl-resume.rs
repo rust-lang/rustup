@@ -1,5 +1,6 @@
 #![cfg(feature = "curl-backend")]
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use url::Url;
@@ -35,7 +36,7 @@ fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
 
     let from_url = format!("http://{}", addr).parse().unwrap();
 
-    let callback_partial = Mutex::new(false);
+    let callback_partial = AtomicBool::new(false);
     let callback_len = Mutex::new(None);
     let received_in_callback = Mutex::new(Vec::new());
 
@@ -47,9 +48,8 @@ fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
         Some(&|msg| {
             match msg {
                 Event::ResumingPartialDownload => {
-                    let mut flag = callback_partial.lock().unwrap();
-                    assert!(!*flag);
-                    *flag = true;
+                    assert!(!callback_partial.load(Ordering::SeqCst));
+                    callback_partial.store(true, Ordering::SeqCst);
                 }
                 Event::DownloadContentLengthReceived(len) => {
                     let mut flag = callback_len.lock().unwrap();
@@ -68,9 +68,9 @@ fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
     )
     .expect("Test download failed");
 
-    assert!(*callback_partial.lock().unwrap());
+    assert!(callback_partial.into_inner());
     assert_eq!(*callback_len.lock().unwrap(), Some(5));
-    let ref observed_bytes = *received_in_callback.lock().unwrap();
-    assert_eq!(observed_bytes, &vec![b'1', b'2', b'3', b'4', b'5']);
+    let observed_bytes = received_in_callback.into_inner().unwrap();
+    assert_eq!(observed_bytes, vec![b'1', b'2', b'3', b'4', b'5']);
     assert_eq!(file_contents(&target_path), "12345");
 }

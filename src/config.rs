@@ -22,14 +22,12 @@ pub enum OverrideReason {
 
 impl Display for OverrideReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
-        match *self {
+        match self {
             OverrideReason::Environment => write!(f, "environment override by RUSTUP_TOOLCHAIN"),
-            OverrideReason::OverrideDB(ref path) => {
+            OverrideReason::OverrideDB(path) => {
                 write!(f, "directory override for '{}'", path.display())
             }
-            OverrideReason::ToolchainFile(ref path) => {
-                write!(f, "overridden by '{}'", path.display())
-            }
+            OverrideReason::ToolchainFile(path) => write!(f, "overridden by '{}'", path.display()),
         }
     }
 }
@@ -377,8 +375,8 @@ impl Cfg {
         let toolchains = toolchains.map(|n| (n.clone(), self.get_toolchain(&n, true)));
 
         // Filter out toolchains that don't track a release channel
-        let toolchains =
-            toolchains.filter(|&(_, ref t)| t.as_ref().map(|t| t.is_tracking()).unwrap_or(false));
+        let toolchains = toolchains
+            .filter(|&(_, ref t)| t.as_ref().map(Toolchain::is_tracking).unwrap_or(false));
 
         // Update toolchains and collect the results
         let toolchains = toolchains.map(|(n, t)| {

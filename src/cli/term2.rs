@@ -228,7 +228,7 @@ impl<'a, T: Instantiable + Isatty + io::Write + 'a> LineFormatter<'a, T> {
 
 impl<T: Instantiable + Isatty + io::Write> io::Write for Terminal<T> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
-        if let Some(ref mut t) = self.0 {
+        if let Some(t) = self.0.as_mut() {
             t.write(buf)
         } else {
             let mut t = T::instance();
@@ -237,7 +237,7 @@ impl<T: Instantiable + Isatty + io::Write> io::Write for Terminal<T> {
     }
 
     fn flush(&mut self) -> Result<(), io::Error> {
-        if let Some(ref mut t) = self.0 {
+        if let Some(t) = self.0.as_mut() {
             t.flush()
         } else {
             let mut t = T::instance();
@@ -262,7 +262,7 @@ impl<T: Instantiable + Isatty + io::Write> Terminal<T> {
             return Ok(());
         }
 
-        if let Some(ref mut t) = self.0 {
+        if let Some(t) = self.0.as_mut() {
             swallow_unsupported!(t.fg(color))
         } else {
             Ok(())
@@ -274,7 +274,7 @@ impl<T: Instantiable + Isatty + io::Write> Terminal<T> {
             return Ok(());
         }
 
-        if let Some(ref mut t) = self.0 {
+        if let Some(t) = self.0.as_mut() {
             if let Err(e) = t.attr(attr) {
                 // If `attr` is not supported, try to emulate it
                 match attr {
@@ -294,7 +294,7 @@ impl<T: Instantiable + Isatty + io::Write> Terminal<T> {
             return Ok(());
         }
 
-        if let Some(ref mut t) = self.0 {
+        if let Some(t) = self.0.as_mut() {
             swallow_unsupported!(t.reset())
         } else {
             Ok(())

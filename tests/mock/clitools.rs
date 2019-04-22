@@ -14,7 +14,6 @@ use std::env::consts::EXE_SUFFIX;
 use std::ffi::OsStr;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
-use std::mem;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
@@ -106,19 +105,19 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
 
     create_mock_dist_server(&config.distdir, s);
 
-    let ref build_path = exe_dir.join(format!("rustup-init{}", EXE_SUFFIX));
+    let build_path = exe_dir.join(format!("rustup-init{}", EXE_SUFFIX));
 
-    let ref rustup_path = config.exedir.join(format!("rustup{}", EXE_SUFFIX));
+    let rustup_path = config.exedir.join(format!("rustup{}", EXE_SUFFIX));
     let setup_path = config.exedir.join(format!("rustup-init{}", EXE_SUFFIX));
     let rustc_path = config.exedir.join(format!("rustc{}", EXE_SUFFIX));
     let cargo_path = config.exedir.join(format!("cargo{}", EXE_SUFFIX));
     let rls_path = config.exedir.join(format!("rls{}", EXE_SUFFIX));
 
     hard_link(&build_path, &rustup_path).unwrap();
-    hard_link(rustup_path, setup_path).unwrap();
-    hard_link(rustup_path, rustc_path).unwrap();
-    hard_link(rustup_path, cargo_path).unwrap();
-    hard_link(rustup_path, rls_path).unwrap();
+    hard_link(&rustup_path, setup_path).unwrap();
+    hard_link(&rustup_path, rustc_path).unwrap();
+    hard_link(&rustup_path, cargo_path).unwrap();
+    hard_link(&rustup_path, rls_path).unwrap();
 
     // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
@@ -155,7 +154,7 @@ impl Config {
     }
 
     fn _change_dir(&self, path: &Path, f: &mut dyn FnMut()) {
-        let prev = mem::replace(&mut *self.workdir.borrow_mut(), path.to_owned());
+        let prev = self.workdir.replace(path.to_owned());
         f();
         *self.workdir.borrow_mut() = prev;
     }
@@ -163,9 +162,9 @@ impl Config {
 
 /// Change the current distribution manifest to a particular date
 pub fn set_current_dist_date(config: &Config, date: &str) {
-    let ref url = Url::from_file_path(&config.distdir).unwrap();
+    let url = Url::from_file_path(&config.distdir).unwrap();
     for channel in &["nightly", "beta", "stable"] {
-        change_channel_date(url, channel, date);
+        change_channel_date(&url, channel, date);
     }
 }
 
@@ -173,7 +172,7 @@ pub fn expect_ok(config: &Config, args: &[&str]) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         panic!();
     }
 }
@@ -182,7 +181,7 @@ pub fn expect_err(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if out.ok || !out.stderr.contains(expected) {
         print_command(args, &out);
-        println!("expected.ok: {}", false);
+        println!("expected.ok: false");
         print_indented("expected.stderr.contains", expected);
         panic!();
     }
@@ -192,7 +191,7 @@ pub fn expect_stdout_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || !out.stdout.contains(expected) {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_indented("expected.stdout.contains", expected);
         panic!();
     }
@@ -202,7 +201,7 @@ pub fn expect_not_stdout_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || out.stdout.contains(expected) {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_indented("expected.stdout.does_not_contain", expected);
         panic!();
     }
@@ -212,7 +211,7 @@ pub fn expect_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || !out.stderr.contains(expected) {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_indented("expected.stderr.contains", expected);
         panic!();
     }
@@ -222,7 +221,7 @@ pub fn expect_ok_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) 
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || out.stdout != stdout || out.stderr != stderr {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_indented("expected.stdout", stdout);
         print_indented("expected.stderr", stderr);
         dbg!(out.stdout == stdout);
@@ -235,7 +234,7 @@ pub fn expect_err_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str)
     let out = run(config, args[0], &args[1..], &[]);
     if out.ok || out.stdout != stdout || out.stderr != stderr {
         print_command(args, &out);
-        println!("expected.ok: {}", false);
+        println!("expected.ok: false");
         print_indented("expected.stdout", stdout);
         print_indented("expected.stderr", stderr);
         panic!();
@@ -246,7 +245,7 @@ pub fn expect_ok_contains(config: &Config, args: &[&str], stdout: &str, stderr: 
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
         print_command(args, &out);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_indented("expected.stdout.contains", stdout);
         print_indented("expected.stderr.contains", stderr);
         panic!();
@@ -258,9 +257,9 @@ pub fn expect_ok_eq(config: &Config, args1: &[&str], args2: &[&str]) {
     let out2 = run(config, args2[0], &args2[1..], &[]);
     if !out1.ok || !out2.ok || out1.stdout != out2.stdout || out1.stderr != out2.stderr {
         print_command(args1, &out1);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         print_command(args2, &out2);
-        println!("expected.ok: {}", true);
+        println!("expected.ok: true");
         panic!();
     }
 }
@@ -268,7 +267,7 @@ pub fn expect_ok_eq(config: &Config, args1: &[&str], args2: &[&str]) {
 fn print_command(args: &[&str], out: &SanitizedOutput) {
     print!("\n>");
     for arg in args {
-        if arg.contains(" ") {
+        if arg.contains(' ') {
             print!(" {:?}", arg);
         } else {
             print!(" {}", arg);
@@ -394,7 +393,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
     let c6 = build_mock_channel(s, "stable", "2015-01-02", "1.1.0", "hash-s-2", false);
     chans.extend(vec![c4, c5, c6]);
 
-    let ref vs = match s {
+    let vs = match s {
         Scenario::Full => vec![ManifestVersion::V1, ManifestVersion::V2],
         Scenario::SimpleV1 | Scenario::ArchivesV1 => vec![ManifestVersion::V1],
         Scenario::SimpleV2 | Scenario::ArchivesV2 | Scenario::MultiHost | Scenario::Unavailable => {
@@ -406,7 +405,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         path: path.to_owned(),
         channels: chans,
     }
-    .write(vs, true);
+    .write(&vs, true);
 
     // Also create the manifests for stable releases by version
     if dates_count > 1 {
@@ -475,16 +474,16 @@ fn build_mock_channel(
     rename_rls: bool,
 ) -> MockChannel {
     // Build the mock installers
-    let ref host_triple = this_host_triple();
-    let std = build_mock_std_installer(host_triple);
-    let rustc = build_mock_rustc_installer(host_triple, version, version_hash);
+    let host_triple = this_host_triple();
+    let std = build_mock_std_installer(&host_triple);
+    let rustc = build_mock_rustc_installer(&host_triple, version, version_hash);
     let cargo = build_mock_cargo_installer(version, version_hash);
     let rust_docs = build_mock_rust_doc_installer();
     let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
     let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
     let cross_std2 = build_mock_cross_std_installer(CROSS_ARCH2, date);
     let rust_src = build_mock_rust_src_installer();
-    let rust_analysis = build_mock_rust_analysis_installer(host_triple);
+    let rust_analysis = build_mock_rust_analysis_installer(&host_triple);
 
     // Convert the mock installers to mock package definitions for the
     // mock dist server
@@ -582,7 +581,7 @@ fn build_mock_channel(
     {
         let rust_pkg = packages.last_mut().unwrap();
         for target_pkg in rust_pkg.targets.iter_mut() {
-            let ref target = target_pkg.target;
+            let target = &target_pkg.target;
             target_pkg.components.push(MockComponent {
                 name: "rust-std".to_string(),
                 target: target.to_string(),
@@ -643,7 +642,7 @@ fn build_mock_channel(
 }
 
 fn build_mock_unavailable_channel(channel: &str, date: &str, version: &'static str) -> MockChannel {
-    let ref host_triple = this_host_triple();
+    let host_triple = this_host_triple();
 
     let packages = [
         "cargo",
@@ -716,7 +715,7 @@ pub fn this_host_triple() -> String {
 fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
-            name: format!("rust-std-{}", trip.clone()),
+            name: format!("rust-std-{}", trip),
             files: vec![MockFile::new(
                 format!("lib/rustlib/{}/libstd.rlib", trip),
                 b"",
@@ -728,7 +727,7 @@ fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
 fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
-            name: format!("rust-std-{}", target.clone()),
+            name: format!("rust-std-{}", target),
             files: vec![
                 MockFile::new(format!("lib/rustlib/{}/lib/libstd.rlib", target), b""),
                 MockFile::new(format!("lib/rustlib/{}/lib/{}", target, date), b""),
@@ -745,12 +744,11 @@ fn build_mock_rustc_installer(
     // For cross-host rustc's modify the version_hash so they can be identified from
     // test cases.
     let this_host = this_host_triple();
-    let version_hash;
-    if this_host != target {
-        version_hash = format!("xxxx-{}", &version_hash_[5..]);
+    let version_hash = if this_host != target {
+        format!("xxxx-{}", &version_hash_[5..])
     } else {
-        version_hash = version_hash_.to_string();
-    }
+        version_hash_.to_string()
+    };
 
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
@@ -836,13 +834,13 @@ fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
     lazy_static! {
         static ref MOCK_BIN: Arc<Vec<u8>> = {
             // Create a temp directory to hold the source and the output
-            let ref tempdir = TempDir::new("rustup").unwrap();
-            let ref source_path = tempdir.path().join("in.rs");
-            let ref dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
+            let tempdir = TempDir::new("rustup").unwrap();
+            let source_path = tempdir.path().join("in.rs");
+            let dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
 
             // Write the source
             let source = include_str!("mock_bin_src.rs");
-            File::create(source_path).and_then(|mut f| f.write_all(source.as_bytes())).unwrap();
+            File::create(&source_path).and_then(|mut f| f.write_all(source.as_bytes())).unwrap();
 
             // Create the executable
             let status = Command::new("rustc")
@@ -880,13 +878,13 @@ fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
 
 // These are toolchains for installation with --link-local and --copy-local
 fn create_custom_toolchains(customdir: &Path) {
-    let ref libdir = customdir.join("custom-1/lib");
+    let libdir = customdir.join("custom-1/lib");
     fs::create_dir_all(libdir).unwrap();
     for file in mock_bin("rustc", "1.0.0", "hash-c-1") {
         file.build(&customdir.join("custom-1"));
     }
 
-    let ref libdir = customdir.join("custom-2/lib");
+    let libdir = customdir.join("custom-2/lib");
     fs::create_dir_all(libdir).unwrap();
     for file in mock_bin("rustc", "1.0.0", "hash-c-2") {
         file.build(&customdir.join("custom-2"));
