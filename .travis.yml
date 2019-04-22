@@ -14,7 +14,7 @@ matrix:
       os: linux
       env: TARGET=i686-unknown-linux-gnu
       if: branch != master
-    - os: linux
+    - <<: *linux
       env: TARGET=rustdoc-x86_64-unknown-linux-gnu
       install: true
       script: true
