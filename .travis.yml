@@ -1,10 +1,14 @@
-sudo: required
-dist: trusty
+dist: xenial
 services:
   - docker
 language: rust
 
+git:
+  depth: false
+  quiet: true
+
 matrix:
+  fast_finish: true
   include:
     # Linux builds use the `rust-slave-dist` image so we link them against a
     # "super old glibc" to ensure that it runs on as many platforms as possible.
@@ -46,16 +50,16 @@ matrix:
       os: osx
       osx_image: xcode9.2
       if: branch != master
-      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
-    - <<: *mac
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin NO_ADD=1
+    - <<: *mac
+      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
 
 install:
-  - if [ -z "$NO_ADD" ]; then rustup target add $TARGET; fi
+  - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
   - rustup component add rustfmt
 
 script:
-  - mkdir -p target/$TARGET;
+  - mkdir -p target/"$TARGET";
   - >
       case "$TARGET" in
         *-linux-android)     DOCKER=android ;; # Android uses a local docker image
@@ -68,9 +72,12 @@ script:
       else
           PATH="$HOME/rust/bin:$PATH" sh ci/run.sh;
       fi
+  - if [ "${TRAVIS_OS_NAME}" = linux ]; then
+      shellcheck -s dash -e SC1090 -- rustup-init.sh ci/*.sh;
+    fi
 
 before_deploy:
-  - bash ci/prepare-deploy-travis.sh
+  - sh ci/prepare-deploy-travis.sh
 
 deploy:
   - provider: s3

@@ -1,31 +1,16 @@
 #!/bin/bash
 
-set -ex
+script_dir=$(cd "$(dirname "$0")" && pwd)
+. "$script_dir/shared.sh"
+
+set -e
+# Disable cause it makes shared script not to work properly
+#set -x
 
 TARGET="$1"
 
 RUST_REPO="https://github.com/rust-lang/rust"
 S3_BASE_URL="https://s3-us-west-1.amazonaws.com/rust-lang-ci2/rustc-builds"
-
-# See http://unix.stackexchange.com/questions/82598
-# Duplicated from rust-lang/rust/src/ci/shared.sh
-function retry {
-  echo "Attempting with retry:" "$@"
-  local n=1
-  local max=5
-  while true; do
-    "$@" && break || {
-      if [[ $n -lt $max ]]; then
-        sleep $n  # don't retry immediately
-        ((n++))
-        echo "Command failed. Attempt $n/$max:"
-      else
-        echo "The command has failed after $n attempts."
-        return 1
-      fi
-    }
-  done
-}
 
 # Use images from rustc master
 case "$TARGET" in
@@ -48,14 +33,14 @@ rm -f "$info"
 curl -o "$info" "$image_url"
 digest=$(grep -m1 ^sha "$info")
 
-if ! docker tag "$digest" "rust-$TARGET"; then
+if [ -z "$(docker images -q "rust-$TARGET")" ]; then
   url=$(grep -m1 ^https "$info")
   cache=/tmp/rustci_docker_cache
   echo "Attempting to download $url"
   rm -f "$cache"
   set +e
-  retry curl -y 30 -Y 10 --connect-timeout 30 -f -L -C - -o "$cache" "$url"
-  docker load -i "$cache"
+  travis_retry curl -y 30 -Y 10 --connect-timeout 30 -f -L -C - -o "$cache" "$url"
   set -e
+  docker load --quiet -i "$cache"
   docker tag "$digest" "rust-$TARGET"
 fi
