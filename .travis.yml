@@ -1,9 +1,14 @@
-dist: trusty
+dist: xenial
 services:
   - docker
 language: rust
 
+git:
+  depth: false
+  quiet: true
+
 matrix:
+  fast_finish: true
   include:
     # Linux builds use the `rust-slave-dist` image so we link them against a
     # "super old glibc" to ensure that it runs on as many platforms as possible.
