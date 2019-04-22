@@ -1,6 +1,7 @@
 # Changelog
 
-## [1.18.0] - 2019-XX-XX
+## [1.18.0] - 2019-04-22
+
 ### Added
 * [Output shell completions for cargo by `rustup completions <shell> cargo`][pr#1646]
 * [Add `--embedded-book` flag to `rustup doc`][pr#1762]
