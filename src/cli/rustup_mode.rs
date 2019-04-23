@@ -477,46 +477,6 @@ pub fn cli() -> App<'static, 'static> {
                         .about("The triple used to identify toolchains when not specified")
                         .arg(Arg::with_name("host_triple").required(true)),
                 ),
-        )
-        .subcommand(
-            SubCommand::with_name("self")
-                .about("Modify the rustup installation")
-                .setting(AppSettings::VersionlessSubcommands)
-                .setting(AppSettings::DeriveDisplayOrder)
-                .setting(AppSettings::SubcommandRequiredElseHelp)
-                .subcommand(
-                    SubCommand::with_name("update").about("Download and install updates to rustup"),
-                )
-                .subcommand(
-                    SubCommand::with_name("uninstall")
-                        .about("Uninstall rustup.")
-                        .arg(Arg::with_name("no-prompt").short("y")),
-                )
-                .subcommand(
-                    SubCommand::with_name("upgrade-data")
-                        .about("Upgrade the internal data format."),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("telemetry")
-                .about("rustup telemetry commands")
-                .setting(AppSettings::Hidden)
-                .setting(AppSettings::VersionlessSubcommands)
-                .setting(AppSettings::DeriveDisplayOrder)
-                .setting(AppSettings::SubcommandRequiredElseHelp)
-                .subcommand(SubCommand::with_name("enable").about("Enable rustup telemetry"))
-                .subcommand(SubCommand::with_name("disable").about("Disable rustup telemetry"))
-                .subcommand(SubCommand::with_name("analyze").about("Analyze stored telemetry")),
-        )
-        .subcommand(
-            SubCommand::with_name("set")
-                .about("Alter rustup settings")
-                .setting(AppSettings::SubcommandRequiredElseHelp)
-                .subcommand(
-                    SubCommand::with_name("default-host")
-                        .about("The triple used to identify toolchains when not specified")
-                        .arg(Arg::with_name("host_triple").required(true)),
-                ),
         );
 
     // Clap provides no good way to say that help should be printed in all
