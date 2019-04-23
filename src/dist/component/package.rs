@@ -280,7 +280,6 @@ pub struct TarGzPackage<'a>(TarPackage<'a>);
 impl<'a> TarGzPackage<'a> {
     pub fn new<R: Read>(stream: R, temp_cfg: &'a temp::Cfg) -> Result<Self> {
         let stream = flate2::read::GzDecoder::new(stream);
-
         Ok(TarGzPackage(TarPackage::new(stream, temp_cfg)?))
     }
     pub fn new_file(path: &Path, temp_cfg: &'a temp::Cfg) -> Result<Self> {
@@ -313,7 +312,6 @@ pub struct TarXzPackage<'a>(TarPackage<'a>);
 impl<'a> TarXzPackage<'a> {
     pub fn new<R: Read>(stream: R, temp_cfg: &'a temp::Cfg) -> Result<Self> {
         let stream = xz2::read::XzDecoder::new(stream);
-
         Ok(TarXzPackage(TarPackage::new(stream, temp_cfg)?))
     }
     pub fn new_file(path: &Path, temp_cfg: &'a temp::Cfg) -> Result<Self> {
