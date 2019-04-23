@@ -59,7 +59,7 @@
 [pr#1778]: https://github.com/rust-lang/rustup.rs/pull/1778
 [pr#1780]: https://github.com/rust-lang/rustup.rs/pull/1780
 [pr#1781]: https://github.com/rust-lang/rustup.rs/pull/1781
-[pr#1781]: https://github.com/rust-lang/rustup.rs/pull/1788
+[pr#1788]: https://github.com/rust-lang/rustup.rs/pull/1788
 
 ## [1.17.0] - 2019-03-05
 
