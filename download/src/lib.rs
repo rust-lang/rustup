@@ -368,7 +368,7 @@ pub mod reqwest_be {
 pub mod curl {
 
     use super::Event;
-    use errors::*;
+    use crate::errors::*;
     use url::Url;
 
     pub fn download(
@@ -384,7 +384,7 @@ pub mod curl {
 pub mod reqwest_be {
 
     use super::Event;
-    use errors::*;
+    use crate::errors::*;
     use url::Url;
 
     pub fn download(
