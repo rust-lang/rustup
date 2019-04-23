@@ -29,13 +29,15 @@
 # Run the invalidation in cloudfront-invalidation.txt,
 # then tag the release.
 
+from __future__ import print_function
+
 import sys
 import os
 import subprocess
 import shutil
 
 def usage():
-    print ("usage: sync-dist dev-to-local [--live-run]\n"
+    print("usage: sync-dist dev-to-local [--live-run]\n"
            "       sync-dist local-to-dev-archives $version [--live-run]\n"
            "       sync-dist update-dev-release $version [--live-run]\n"
            "       sync-dist local-to-prod-archives $version [--live-run]\n"
@@ -78,9 +80,9 @@ s3_bucket = dev_s3_bucket
 if "prod" in command:
     s3_bucket = prod_s3_bucket
 
-print "s3 bucket: " + s3_bucket
-print "command: " + command
-print "archive version: " + str(archive_version)
+print("s3 bucket: " + s3_bucket)
+print("command: " + command)
+print("archive version: " + str(archive_version))
 
 # First, deal with the binaries
 
@@ -101,8 +103,8 @@ elif command == "update-dev-release" \
 else:
     sys.exit(1)
 
-print "s3 command: {}".format(s3cmd)
-print
+print("s3 command: {}".format(s3cmd))
+print()
 
 # Create the release information
 if command == "update-dev-release" \
@@ -121,7 +123,7 @@ def run_s3cmd(command):
     # be touched ever again.
     if "cloudfront" not in command:
         s3cmd += ["--exclude=*rustup-setup*"]
-    print('executing: ', s3cmd);
+    print('executing: ', s3cmd)
 
     subprocess.check_call(s3cmd)
 
