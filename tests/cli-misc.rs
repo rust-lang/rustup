@@ -413,6 +413,17 @@ fn toolchains_are_resolved_early() {
     });
 }
 
+#[test]
+fn no_panic_on_default_toolchain_missing() {
+    setup(&|config| {
+        expect_err(
+            config,
+            &["rustup", "default"],
+            "no default toolchain configured",
+        );
+    });
+}
+
 // #190
 #[test]
 fn proxies_pass_empty_args() {
