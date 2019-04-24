@@ -64,10 +64,9 @@ script:
   - mkdir -p target/"$TARGET";
   - >
       case "$TARGET" in
-        *-linux-android)     DOCKER=android ;; # Android uses a local docker image
-        *-linux-androideabi) DOCKER=android ;;
-        *-apple-darwin)                     ;;
-        *)                   DOCKER=$TARGET ;;
+        *-linux-android*) DOCKER=android  ;; # Android uses a local docker image
+        *-apple-darwin)                   ;;
+        *)                DOCKER="$TARGET";;
       esac;
       if [ -n "$DOCKER" ]; then
           sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
