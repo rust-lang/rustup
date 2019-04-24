@@ -371,12 +371,49 @@ downloader() {
     if [ "$1" = --check ]; then
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
-        curl --proto '=https' --tlsv1.2 --silent --show-error --fail --location "$1" --output "$2"
+        if ! check_help_for curl --proto --tlsv1.2; then
+            echo "Warning: Not forcing TLS v1.2, this is potentially less secure"
+            curl --silent --show-error --fail --location "$1" --output "$2"
+        else
+            curl --proto '=https' --tlsv1.2 --silent --show-error --fail --location "$1" --output "$2"
+        fi
     elif [ "$_dld" = wget ]; then
-        wget --https-only --secure-protocol=TLSv1_2 "$1" -O "$2"
+        if ! check_help_for wget --https-only --secure-protocol; then
+            echo "Warning: Not forcing TLS v1.2, this is potentially less secure"
+            wget "$1" -O "$2"
+        else
+            wget --https-only --secure-protocol=TLSv1_2 "$1" -O "$2"
+        fi
     else
         err "Unknown downloader"   # should not reach here
     fi
+}
+
+check_help_for() {
+    local _cmd
+    local _arg
+    local _ok
+    _cmd="$1"
+    _ok="y"
+    shift
+
+    # If we're running on OS-X, older than 10.13, then we always
+    # fail to find these options to force fallback
+    if check_cmd sw_vers; then
+        if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
+            # Older than 10.13
+            echo "Warning: Detected OS X platform older than 10.13"
+            _ok="n"
+        fi
+    fi
+
+    for _arg in "$@"; do
+        if ! "$_cmd" --help | grep -q -- "$_arg"; then
+            _ok="n"
+        fi
+    done
+
+    test "$_ok" = "y"
 }
 
 main "$@" || exit 1
