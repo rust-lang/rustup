@@ -323,6 +323,10 @@ say() {
     printf 'rustup: %s\n' "$1"
 }
 
+warn() {
+    printf 'warn: %s\n' "$1" >&2
+}
+
 err() {
     say "$1" >&2
     exit 1
@@ -359,7 +363,7 @@ ignore() {
 # This wraps curl or wget. Try curl first, if not installed,
 # use wget instead.
 downloader() {
-    local _dld
+    local _dld curl_secure_flags wget_secure_flags
     if check_cmd curl; then
         _dld=curl
     elif check_cmd wget; then
@@ -371,49 +375,72 @@ downloader() {
     if [ "$1" = --check ]; then
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
-        if ! check_help_for curl --proto --tlsv1.2; then
-            echo "Warning: Not forcing TLS v1.2, this is potentially less secure"
-            curl --silent --show-error --fail --location "$1" --output "$2"
+        curl_secure_flags=$(check_curl_options)
+        if [ -n "$curl_secure_flags" ]; then
+            # shellcheck disable=SC2086
+            curl $curl_secure_flags --silent --show-error --fail --location "$1" --output "$2"
         else
-            curl --proto '=https' --tlsv1.2 --silent --show-error --fail --location "$1" --output "$2"
+            curl --silent --show-error --fail --location "$1" --output "$2"
         fi
     elif [ "$_dld" = wget ]; then
-        if ! check_help_for wget --https-only --secure-protocol; then
-            echo "Warning: Not forcing TLS v1.2, this is potentially less secure"
-            wget "$1" -O "$2"
+        wget_secure_flags=$(check_wget_options)
+        if [ -n "$wget_secure_flags" ]; then
+            # shellcheck disable=SC2086
+            wget $wget_secure_flags "$1" -O "$2"
         else
-            wget --https-only --secure-protocol=TLSv1_2 "$1" -O "$2"
+            wget "$1" -O "$2"
         fi
     else
         err "Unknown downloader"   # should not reach here
     fi
 }
 
-check_help_for() {
-    local _cmd
-    local _arg
-    local _ok
-    _cmd="$1"
-    _ok="y"
-    shift
-
-    # If we're running on OS-X, older than 10.13, then we always
-    # fail to find these options to force fallback
-    if check_cmd sw_vers; then
-        if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
-            # Older than 10.13
-            echo "Warning: Detected OS X platform older than 10.13"
-            _ok="n"
-        fi
-    fi
-
-    for _arg in "$@"; do
-        if ! "$_cmd" --help | grep -q -- "$_arg"; then
-            _ok="n"
+check_curl_options() {
+    local flags tls_protocol
+    for tls in '--tlsv1.2' '--tlsv1.1' '--tlsv1.0' '--tlsv1'; do
+        if ! ( curl "$tls" 2>&1 > /dev/null | grep -q unknown ); then
+            tls_protocol="$tls"
+            break
         fi
     done
+    if [ -z "$tls_protocol" ]; then
+        warn 'cannot use secure protocol to download'
+    elif [ "$tls_protocol" != "--tlsv1.2" ]; then
+        warn "fallback to TLS${tls_protocol#--tls}"
+    fi
+    flags="$tls_protocol"
+    if curl --proto 2>&1 > /dev/null | grep -q unknown; then
+        warn 'cannot limit to https protocol'
+    else
+        flags="--proto =https $flags"
+    fi
+    echo "$flags"
+}
 
-    test "$_ok" = "y"
+check_wget_options() {
+    local flags tls_protocol
+    if ! (wget --secure-protocol 2>&1 > /dev/null | grep -q unrecognized); then
+        for tls in TLSv1_2 TLSv1_1 TLSv1; do
+            if ! ( wget --secure-protocol="$tls" 2>&1 > /dev/null | grep -q Invalid ); then
+                tls_protocol="$tls"
+                break
+            fi
+        done
+    fi
+    if [ -z "$tls_protocol" ]; then
+        warn 'cannot use secure protocol to download'
+    else
+        if [ "$tls_protocol" != "TLSv1_2" ]; then
+            warn "fallback to ${tls_protocol}"
+        fi
+        flags="--secure-protocol=$tls_protocol"
+    fi
+    if wget --https-only 2>&1 > /dev/null | grep -q unrecognized; then
+        warn 'cannot limit to https protocol'
+    else
+        flags="--https-only $flags"
+    fi
+    echo "$flags"
 }
 
 main "$@" || exit 1

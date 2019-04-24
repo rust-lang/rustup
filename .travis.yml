@@ -54,6 +54,26 @@ matrix:
     - <<: *mac
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
 
+    - &init_script
+      name: rustup-init.sh installation
+      language: minimal
+      install: true
+      script:
+        - docker run
+            --entrypoint /bin/bash
+            --volume "$TRAVIS_BUILD_DIR":/src:ro
+            --workdir /src
+            --rm
+            -it
+            centos:6
+            -c 'sh ./rustup-init.sh --default-toolchain none -y && . $HOME/.cargo/env && rustup -Vv'
+    - <<: *init_script
+      os: osx
+      # Oldest macOS image in Travis CI
+      osx_image: xcode6.4
+      script:
+        - sh ./rustup-init.sh --default-toolchain none -y && . $HOME/.cargo/env && rustup -Vv
+
 install:
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
   - rustup component add rustfmt
@@ -70,7 +90,7 @@ script:
       if [ -n "$DOCKER" ]; then
           sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
       else
-          PATH="$HOME/rust/bin:$PATH" sh ci/run.sh;
+          sh ci/run.sh;
       fi
   - if [ "${TARGET}" = x86_64-unknown-linux-gnu ]; then
       shellcheck -s dash -e SC1090 -- rustup-init.sh ci/*.sh;
