@@ -280,6 +280,10 @@ get_architecture() {
             _cputype=powerpc64le
             ;;
 
+        s390x)
+            _cputype=s390x
+            ;;
+
         *)
             err "unknown CPU type: $_cputype"
 
