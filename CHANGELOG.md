@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.18.1] - 2019-04-25
+
+### Changed
+* [Fix panic when no default toolchain is installed][pr#1787]
+* [Remove repeated CLI subcommands][pr#1796]
+* [Detect s390x in rustup-init.sh][pr#1797]
+* [Fallback to less secure curl/wget invocation][pr#1803]
+
+[pr#1781]: https://github.com/rust-lang/rustup.rs/pull/1787
+[pr#1796]: https://github.com/rust-lang/rustup.rs/pull/1796
+[pr#1797]: https://github.com/rust-lang/rustup.rs/pull/1797
+[pr#1803]: https://github.com/rust-lang/rustup.rs/pull/1803
+
 ## [1.18.0] - 2019-04-22
 
 ### Added

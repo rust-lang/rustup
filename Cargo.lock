@@ -1226,7 +1226,7 @@ dependencies = [
 
 [[package]]
 name = "rustup"
-version = "1.18.0"
+version = "1.18.1"
 dependencies = [
  "cc 1.0.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
