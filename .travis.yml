@@ -55,7 +55,7 @@ matrix:
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
 
     - &init_script
-      name: rustup-init.sh installation
+      name: test rustup-init.sh installation
       language: minimal
       install: true
       script:
@@ -66,13 +66,13 @@ matrix:
             --rm
             -it
             centos:6
-            -c 'sh ./rustup-init.sh --default-toolchain none -y && . $HOME/.cargo/env && rustup -Vv'
+            -c 'sh ./ci/raw_init.sh'
     - <<: *init_script
       os: osx
       # Oldest macOS image in Travis CI
       osx_image: xcode6.4
       script:
-        - sh ./rustup-init.sh --default-toolchain none -y && . $HOME/.cargo/env && rustup -Vv
+        - sh ./ci/raw_init.sh
 
 install:
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
