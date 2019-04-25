@@ -1,13 +1,21 @@
 #!/bin/bash
 
-script_dir=$(cd "$(dirname "$0")" && pwd)
+root_dir="$TRAVIS_BUILD_DIR"
+script_dir="$root_dir/ci"
+objdir="$root_dir"/obj
+
 . "$script_dir/shared.sh"
 
 set -e
 # Disable cause it makes shared script not to work properly
 #set -x
 
-mkdir -p target
+mkdir -p "$HOME"/.cargo
+mkdir -p "$objdir"/cores
+mkdir -p "$HOME"/.cache/sccache
+
+# Enable core dump on Linux
+sudo sh -c 'echo "/checkout/obj/cores/core.%p.%E" > /proc/sys/kernel/core_pattern';
 
 DOCKER="$1"
 TARGET="$2"
@@ -27,23 +35,34 @@ if [ -f "ci/docker/$DOCKER/Dockerfile" ]; then
   travis_fold end "build.Dockerfile.${DOCKER}"
 fi
 
+# Run containers as privileged as it should give them access to some more
+# syscalls such as ptrace and whatnot. In the upgrade to LLVM 5.0 it was
+# discovered that the leak sanitizer apparently needs these syscalls nowadays so
+# we'll need `--privileged` for at least the `x86_64-gnu` builder, so this just
+# goes ahead and sets it for all builders.
 # shellcheck disable=SC2016
 docker run \
-  --entrypoint sh \
+  --entrypoint /bin/sh \
   --user "$(id -u)":"$(id -g)" \
-  --volume "$(rustc --print sysroot)":/travis-rust:ro \
-  --volume "$(pwd)":/src:ro \
-  --volume "$(pwd)"/target:/src/target \
-  --workdir /src \
+  --volume "$(rustc --print sysroot)":/rustc-sysroot:ro \
+  --volume "$root_dir":/checkout:ro \
+  --volume "$root_dir"/target:/checkout/target \
+  --volume "$objdir":/checkout/obj \
+  --workdir /checkout \
+  --privileged \
   --env TARGET="$TARGET" \
   --env SKIP_TESTS="$SKIP_TESTS" \
-  --env CARGO_HOME=/src/target/cargo-home \
-  --env CARGO_TARGET_DIR=/src/target \
+  --volume "$HOME/.cargo:/cargo" \
+  --env CARGO_HOME=/cargo \
+  --env CARGO_TARGET_DIR=/checkout/target \
   --env LIBZ_SYS_STATIC=1 \
+  --volume "$HOME"/.cache/sccache:/sccache \
+  --env SCCACHE_DIR=/sccache \
   --tty \
   --init \
+  --rm \
   "$DOCKER" \
-  -c 'PATH="$PATH":/travis-rust/bin exec sh ci/run.sh'
+  -c 'PATH="$PATH":/rustc-sysroot/bin sh ci/run.sh'
 
 # check that rustup-init was built with ssl support
 # see https://github.com/rust-lang/rustup.rs/issues/1051

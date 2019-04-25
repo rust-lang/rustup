@@ -1,6 +1,8 @@
 #!/bin/bash
 
-script_dir=$(cd "$(dirname "$0")" && pwd)
+root_dir="$TRAVIS_BUILD_DIR"
+script_dir="$root_dir/ci"
+
 . "$script_dir/shared.sh"
 
 set -e

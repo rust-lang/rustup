@@ -1,7 +1,11 @@
 dist: xenial
 services:
   - docker
-language: generic
+language: minimal
+addons:
+  apt:
+    packages:
+      - gdb
 
 git:
   depth: false
@@ -55,8 +59,8 @@ matrix:
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
 
 install:
-  - sh rustup-init.sh --default-toolchain=stable -y
-  - export PATH="$PATH:$HOME/.cargo/bin"
+  - sh ./rustup-init.sh --default-toolchain=stable -y
+  - . "$HOME/.cargo/env"
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
   - rustup component add rustfmt
 
@@ -71,11 +75,44 @@ script:
       if [ -n "$DOCKER" ]; then
           sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
       else
-          PATH="$HOME/rust/bin:$PATH" sh ci/run.sh;
+          sh ci/run.sh;
       fi
+  # Check the formatting last because test failures are more interesting to have
+  # discovered for contributors lacking some platform access for testing beforehand
   - if [ "${TARGET}" = x86_64-unknown-linux-gnu ]; then
       shellcheck -s dash -e SC1090 -- rustup-init.sh ci/*.sh;
+      cargo fmt --all -- --check;
     fi
+
+# Random attempt at debugging currently. Just poking around in here to see if
+# anything shows up.
+after_failure:
+  # Dump backtrace for macOS
+  - ls -lat "$HOME"/Library/Logs/DiagnosticReports/
+  - find "$HOME"/Library/Logs/DiagnosticReports
+      -type f
+      -name '*.crash'
+      -not -name '*.stage2-*.crash'
+      -not -name 'com.apple.CoreSimulator.CoreSimulatorService-*.crash'
+      -exec printf travis_fold":start:crashlog\n\033[31;1m%s\033[0m\n" {} \;
+      -exec head -750 {} \;
+      -exec echo travis_fold":"end:crashlog \; || true
+
+  # Dump backtrace for Linux
+  - ln -s . checkout &&
+    for CORE in obj/cores/core.*; do
+      EXE=$(echo $CORE | sed 's@obj/cores/core\.[0-9]*\.!checkout!\(.*\)@\1@;y@!@/@');
+      if [ -f "$EXE" ]; then
+        printf travis_fold":start:crashlog\n\033[31;1m%s\033[0m\n" "$CORE";
+        gdb --batch -q -c "$CORE" "$EXE"
+          -iex 'set auto-load off'
+          -iex 'dir src/'
+          -iex 'set sysroot .'
+          -ex bt
+          -ex q;
+        echo travis_fold":"end:crashlog;
+      fi;
+    done || true
 
 before_deploy:
   - sh ci/prepare-deploy-travis.sh
