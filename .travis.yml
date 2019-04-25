@@ -1,7 +1,7 @@
 dist: xenial
 services:
   - docker
-language: rust
+language: generic
 
 git:
   depth: false
@@ -55,6 +55,8 @@ matrix:
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
 
 install:
+  - sh rustup-init.sh --default-toolchain=stable -y
+  - export PATH="$PATH:$HOME/.cargo/bin"
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
   - rustup component add rustfmt
 
