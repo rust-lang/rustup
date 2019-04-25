@@ -4,10 +4,11 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_err, expect_not_stdout_ok, expect_ok, expect_stderr_ok, expect_stdout_ok,
-    set_current_dist_date, this_host_triple, Config, Scenario,
+    self, expect_err, expect_not_stdout_ok, expect_ok, expect_ok_ex, expect_stderr_ok,
+    expect_stdout_ok, set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use std::fs;
+use std::io::Write;
 use tempdir::TempDir;
 
 use rustup::dist::dist::TargetTriple;
@@ -815,6 +816,61 @@ fn remove_target_missing_update_hash() {
         fs::remove_file(config.rustupdir.join("update-hashes").join(file_name)).unwrap();
 
         expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
+    });
+}
+
+// Issue #1777
+#[test]
+fn warn_about_and_remove_stray_hash() {
+    setup(&|config| {
+        let mut hash_path = config.rustupdir.join("update-hashes");
+        fs::create_dir_all(&hash_path).expect("Unable to make the update-hashes directory");
+
+        hash_path.push(for_host!("nightly-{}"));
+        println!("Update-hash path: {}", hash_path.display());
+
+        let mut file = fs::File::create(&hash_path).expect("Unable to open update-hash file");
+        file.write_all(b"LEGITHASH")
+            .expect("Unable to write update-hash");
+        drop(file);
+
+        expect_ok_ex(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+            for_host!(
+                r"
+  nightly-{0} installed - 1.3.0 (hash-n-2)
+
+"
+            ),
+            &format!(
+                r"{}
+{}",
+                format!(
+                    r"warning: removing stray hash found at '{}' in order to continue",
+                    hash_path.display()
+                ),
+                for_host!(
+                    r"info: syncing channel updates for 'nightly-{0}'
+info: latest update on 2015-01-02, rust version 1.3.0
+info: downloading component 'rust-std'
+info: downloading component 'rustc'
+info: downloading component 'cargo'
+info: downloading component 'rust-docs'
+info: installing component 'rust-std'
+info: installing component 'rustc'
+info: installing component 'cargo'
+info: installing component 'rust-docs'
+"
+                )
+            ),
+        );
     });
 }
 
