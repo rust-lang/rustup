@@ -8,7 +8,7 @@
 * [Detect s390x in rustup-init.sh][pr#1797]
 * [Fallback to less secure curl/wget invocation][pr#1803]
 
-[pr#1781]: https://github.com/rust-lang/rustup.rs/pull/1787
+[pr#1787]: https://github.com/rust-lang/rustup.rs/pull/1787
 [pr#1796]: https://github.com/rust-lang/rustup.rs/pull/1796
 [pr#1797]: https://github.com/rust-lang/rustup.rs/pull/1797
 [pr#1803]: https://github.com/rust-lang/rustup.rs/pull/1803
