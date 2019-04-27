@@ -371,6 +371,31 @@ fn list_targets() {
 }
 
 #[test]
+fn list_installed_targets() {
+    setup(&|config| {
+        let trip = this_host_triple();
+        let mut sorted = vec![
+            trip,
+            clitools::CROSS_ARCH1.to_string(),
+            clitools::CROSS_ARCH2.to_string(),
+        ];
+        sorted.sort();
+
+        let expected = format!("{}\n{}\n{}\n", sorted[0], sorted[1], sorted[2]);
+
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH2]);
+        expect_ok_ex(
+            config,
+            &["rustup", "target", "list", "--installed"],
+            &expected,
+            r"",
+        );
+    });
+}
+
+#[test]
 fn cross_install_indicates_target() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);

@@ -544,6 +544,16 @@ fn list_targets() {
 }
 
 #[test]
+fn list_installed_targets() {
+    setup(&|config| {
+        let trip = this_host_triple();
+
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_stdout_ok(config, &["rustup", "target", "list", "--installed"], &trip);
+    });
+}
+
+#[test]
 fn add_target() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);

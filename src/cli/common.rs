@@ -320,6 +320,23 @@ pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<()> {
     Ok(())
 }
 
+pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<()> {
+    let mut t = term2::stdout();
+    for component in toolchain.list_components()? {
+        if component.component.short_name_in_manifest() == "rust-std" {
+            let target = component
+                .component
+                .target
+                .as_ref()
+                .expect("rust-std should have a target");
+            if component.installed {
+                writeln!(t, "{}", target)?;
+            }
+        }
+    }
+    Ok(())
+}
+
 pub fn list_components(toolchain: &Toolchain<'_>) -> Result<()> {
     let mut t = term2::stdout();
     for component in toolchain.list_components()? {

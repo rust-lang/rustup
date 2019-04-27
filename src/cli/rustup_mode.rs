@@ -253,6 +253,11 @@ pub fn cli() -> App<'static, 'static> {
                     SubCommand::with_name("list")
                         .about("List installed and available targets")
                         .arg(
+                            Arg::with_name("installed")
+                                .long("--installed")
+                                .help("List only installed targets"),
+                        )
+                        .arg(
                             Arg::with_name("toolchain")
                                 .help(TOOLCHAIN_ARG_HELP)
                                 .long("toolchain")
@@ -829,7 +834,11 @@ fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
 fn target_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
-    common::list_targets(&toolchain)
+    if m.is_present("installed") {
+        common::list_installed_targets(&toolchain)
+    } else {
+        common::list_targets(&toolchain)
+    }
 }
 
 fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
