@@ -165,7 +165,7 @@ r"DISCUSSION:
     BASH:
 
     Completion files are commonly stored in `/etc/bash_completion.d/` for
-    system-wide commands, but can be stored in in
+    system-wide commands, but can be stored in
     `~/.local/share/bash-completion/completions` for user-specific commands.
     Run the command:
 
