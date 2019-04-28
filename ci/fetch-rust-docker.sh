@@ -22,6 +22,8 @@ case "$TARGET" in
   powerpc64-unknown-linux-gnu)     image=dist-powerpc64-linux ;;
   powerpc64le-unknown-linux-gnu)   image=dist-powerpc64le-linux ;;
   s390x-unknown-linux-gnu)         image=dist-s390x-linux ;;
+  x86_64-unknown-linux-gnu)        image=dist-x86_64-linux ;;
+  i686-unknown-linux-gnu)          image=dist-i686-linux ;;
   *) exit ;;
 esac
 
