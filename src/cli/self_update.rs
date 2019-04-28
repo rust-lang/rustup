@@ -442,7 +442,6 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
 fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
     #[cfg(unix)]
     pub fn home_mismatch() -> bool {
-        use std::env;
         use std::ffi::CStr;
         use std::mem;
         use std::ops::Deref;
