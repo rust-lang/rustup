@@ -4,8 +4,8 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_err, expect_not_stdout_ok, expect_ok, expect_ok_ex, expect_stderr_ok,
-    expect_stdout_ok, set_current_dist_date, this_host_triple, Config, Scenario,
+    self, expect_err, expect_not_stdout_ok, expect_ok, expect_stderr_ok, expect_stdout_ok,
+    set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use std::fs;
 use std::io::Write;
@@ -827,14 +827,13 @@ fn warn_about_and_remove_stray_hash() {
         fs::create_dir_all(&hash_path).expect("Unable to make the update-hashes directory");
 
         hash_path.push(for_host!("nightly-{}"));
-        println!("Update-hash path: {}", hash_path.display());
 
         let mut file = fs::File::create(&hash_path).expect("Unable to open update-hash file");
         file.write_all(b"LEGITHASH")
             .expect("Unable to write update-hash");
         drop(file);
 
-        expect_ok_ex(
+        expect_stderr_ok(
             config,
             &[
                 "rustup",
@@ -843,34 +842,13 @@ fn warn_about_and_remove_stray_hash() {
                 "nightly",
                 "--no-self-update",
             ],
-            for_host!(
-                r"
-  nightly-{0} installed - 1.3.0 (hash-n-2)
-
-"
-            ),
             &format!(
-                r"{}
-{}",
-                format!(
-                    r"warning: removing stray hash found at '{}' in order to continue",
-                    hash_path.display()
-                ),
-                for_host!(
-                    r"info: syncing channel updates for 'nightly-{0}'
-info: latest update on 2015-01-02, rust version 1.3.0
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
-info: installing component 'cargo'
-info: installing component 'rust-docs'
-"
-                )
+                "removing stray hash found at '{}' in order to continue",
+                hash_path.display()
             ),
         );
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "1.3.0");
     });
 }
 
