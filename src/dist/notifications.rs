@@ -31,6 +31,7 @@ pub enum Notification<'a> {
     DownloadingLegacyManifest,
     ManifestChecksumFailedHack,
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
+    StrayHash(&'a Path),
 }
 
 impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
@@ -70,7 +71,8 @@ impl<'a> Notification<'a> {
             | ExtensionNotInstalled(_)
             | MissingInstalledComponent(_)
             | CachedFileChecksumFailed
-            | ComponentUnavailable(_, _) => NotificationLevel::Warn,
+            | ComponentUnavailable(_, _)
+            | StrayHash(_) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
         }
     }
@@ -155,6 +157,11 @@ impl<'a> Display for Notification<'a> {
                     write!(f, "component '{}' is not available anymore", pkg)
                 }
             }
+            StrayHash(path) => write!(
+                f,
+                "removing stray hash found at '{}' in order to continue",
+                path.display()
+            ),
         }
     }
 }

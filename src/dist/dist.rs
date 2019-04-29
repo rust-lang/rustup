@@ -507,6 +507,14 @@ pub fn update_from_dist<'a>(
     force_update: bool,
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
+    let hash_exists = update_hash.map(Path::exists).unwrap_or(false);
+
+    // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
+    if fresh_install && hash_exists {
+        // It's ok to unwrap, because hash have to exist at this point
+        (download.notify_handler)(Notification::StrayHash(update_hash.unwrap()));
+        std::fs::remove_file(update_hash.unwrap())?;
+    }
 
     let res = update_from_dist_(
         download,
