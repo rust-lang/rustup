@@ -22,6 +22,7 @@ mod download_tracker;
 mod errors;
 mod help;
 mod job;
+mod markdown;
 mod proxy_mode;
 mod rustup_mode;
 mod self_update;
