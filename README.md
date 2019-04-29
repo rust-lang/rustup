@@ -724,6 +724,11 @@ scanning in the background. Disable antivirus scanner and try again.
 [multirust]: https://github.com/brson/multirust
 [Diggory Blake]: https://github.com/Diggsey
 
+### I get "error: could not remove 'rustup-bin' file: 'C:\Users\USER\\.cargo\bin\rustup.exe'"
+
+If rustup fails to self-update in this way it's usually becasue RLS is running (your editor is open and running RLS).
+The solution is to stop RLS (by closing your editor) and try again.
+
 ## License
 
 Copyright Diggory Blake, the Mozilla Corporation, and rustup
