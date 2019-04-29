@@ -57,21 +57,16 @@ install:
   # add mingw to PATH if necessary
   - if defined MINGW_DIR set PATH=C:\msys64\%MINGW_DIR%\bin;C:\msys64\usr\bin;%PATH%
 
-  # Add rustfmt support
-  - rustup component add rustfmt
-
   # let's see what we got
   - where gcc rustc cargo
   - rustc -vV
   - cargo -vV
-  - rustfmt -vV
 
 build: false
 
 test_script:
   - cargo build --release --target %TARGET% --locked
   - cargo test --release --target %TARGET%
-  - cargo fmt --all -- --check
 
 notifications:
   - provider: Webhook

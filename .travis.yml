@@ -68,26 +68,30 @@ matrix:
 
 install:
   - sh rustup-init.sh --default-toolchain=stable -y
-  - export PATH="$PATH:$HOME/.cargo/bin"
+  - . "$HOME"/.cargo/env
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
-  - rustup component add rustfmt
 
 script:
   - mkdir -p target/"$TARGET";
   - >
       case "$TARGET" in
-        *-linux-android)     DOCKER=android ;; # Android uses a local docker image
-        *-linux-androideabi) DOCKER=android ;;
-        *-apple-darwin)                     ;;
-        *)                   DOCKER=$TARGET ;;
+        *-linux-android*) DOCKER=android   ;; # Android uses a local docker image
+        *-apple-darwin)                    ;;
+        *)                DOCKER="$TARGET" ;;
       esac;
       if [ -n "$DOCKER" ]; then
-          sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
+        sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
       else
-          PATH="$HOME/rust/bin:$PATH" sh ci/run.sh;
+        sh ci/run.sh;
       fi
+
+  # Check the formatting last because test failures are more interesting to have
+  # discovered for contributors lacking some platform access for testing beforehand
   - if [ "${TARGET}" = x86_64-unknown-linux-gnu ]; then
       shellcheck -s dash -e SC1090 -- rustup-init.sh ci/*.sh;
+      rustup component add rustfmt;
+      rustfmt -vV;
+      cargo fmt --all -- --check;
     fi
 
 before_deploy:
