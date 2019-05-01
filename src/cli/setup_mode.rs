@@ -13,6 +13,13 @@ pub fn main() -> Result<()> {
     if arg1 == Some("--self-replace") {
         return self_update::self_replace();
     }
+
+    // Internal testament dump used during CI.  Not for users.
+    if arg1 == Some("--dump-testament") {
+        common::dump_testament();
+        return Ok(());
+    }
+
     // XXX: If you change anything here, please make the same changes in rustup-init.sh
     let cli = App::new("rustup-init")
         .version(common::version())

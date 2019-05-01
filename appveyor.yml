@@ -50,6 +50,7 @@ install:
   - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init.exe -y --default-host=x86_64-pc-windows-msvc
   - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - del rustup-init.exe
 
   # Install the target we're compiling for
   - if NOT "%TARGET%" == "x86_64-pc-windows-msvc" rustup target add %TARGET%
@@ -66,6 +67,7 @@ build: false
 
 test_script:
   - cargo build --release --target %TARGET% --locked
+  - cargo run --release --target %TARGET% --locked -- --dump-testament
   - cargo test --release --target %TARGET%
 
 notifications:

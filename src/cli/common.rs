@@ -431,6 +431,30 @@ pub fn version() -> &'static str {
     &RENDERED
 }
 
+pub fn dump_testament() {
+    use git_testament::GitModification::*;
+    println!("Rustup version renders as: {}", version());
+    println!("Current crate version: {}", env!("CARGO_PKG_VERSION"));
+    if TESTAMENT.branch_name.is_some() {
+        println!("Built from branch: {}", TESTAMENT.branch_name.unwrap());
+    } else {
+        println!("Branch information missing");
+    }
+    println!("Commit info: {}", TESTAMENT.commit);
+    if TESTAMENT.modifications.is_empty() {
+        println!("Working tree is clean");
+    } else {
+        for fmod in TESTAMENT.modifications {
+            match fmod {
+                Added(f) => println!("Added: {}", String::from_utf8_lossy(f)),
+                Removed(f) => println!("Removed: {}", String::from_utf8_lossy(f)),
+                Modified(f) => println!("Modified: {}", String::from_utf8_lossy(f)),
+                Untracked(f) => println!("Untracked: {}", String::from_utf8_lossy(f)),
+            }
+        }
+    }
+}
+
 pub fn report_error(e: &Error) {
     err!("{}", e);
 

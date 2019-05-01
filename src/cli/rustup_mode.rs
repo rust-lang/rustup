@@ -39,6 +39,7 @@ pub fn main() -> Result<()> {
     cfg.check_metadata_version()?;
 
     match matches.subcommand() {
+        ("dump-testament", _) => common::dump_testament(),
         ("show", Some(c)) => match c.subcommand() {
             ("active-toolchain", Some(_)) => handle_epipe(show_active_toolchain(cfg))?,
             (_, _) => handle_epipe(show(cfg))?,
@@ -114,6 +115,11 @@ pub fn cli() -> App<'static, 'static> {
                 .help("Enable verbose output")
                 .short("v")
                 .long("verbose"),
+        )
+        .subcommand(
+            SubCommand::with_name("dump-testament")
+                .about("Dump information about the build")
+                .setting(AppSettings::Hidden) // Not for users, only CI
         )
         .subcommand(
             SubCommand::with_name("show")

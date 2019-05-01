@@ -51,6 +51,9 @@ Rustup is distributed. The steps for a release are:
 5. While you wait for green CI, double-check the `rustup-init.sh` functionality
    and `rustup-init` just in case.
 6. Ensure all of CI is green on the `stable` branch.
+   Once it is, check through a representative proportion of the builds looking
+   for the reported version statements to ensure that we definitely built something
+   cleanly which reports as the right version number when run `--version`.
 7. Ping someone in the release team to perform the actual release.
    They can find instructions in `ci/sync-dist.py`
    Note: Some manual testing occurs here, so hopefully they'll catch
