@@ -67,6 +67,7 @@ build: false
 
 test_script:
   - cargo build --release --target %TARGET% --locked
+  - cargo run --release --target %TARGET% --locked -- --dump-testament
   - cargo test --release --target %TARGET%
 
 notifications:
