@@ -448,4 +448,12 @@ impl Component {
             pkg.to_string()
         }
     }
+    pub fn description_in_manifest(&self) -> String {
+        let pkg = self.short_name_in_manifest();
+        if let Some(ref t) = self.target {
+            format!("'{}' for target '{}'", pkg, t)
+        } else {
+            format!("'{}'", pkg)
+        }
+    }
 }

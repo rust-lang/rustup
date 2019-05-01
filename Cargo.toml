@@ -29,6 +29,7 @@ error-chain = "0.12"
 flate2 = "1"
 git-testament = "0.1.4"
 lazy_static = "1"
+levenshtein = "1.0.4"
 libc = "0.2"
 markdown = "0.2"
 # Used by `curl` or `reqwest` backend although it isn't imported

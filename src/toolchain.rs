@@ -604,6 +604,7 @@ impl<'a> Toolchain<'a> {
                     return Err(ErrorKind::UnknownComponent(
                         self.name.to_string(),
                         component.description(&manifest),
+                        self.get_component_suggestion(&component),
                     )
                     .into());
                 }
@@ -626,6 +627,50 @@ impl<'a> Toolchain<'a> {
             Ok(())
         } else {
             Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
+        }
+    }
+
+    fn get_component_suggestion(&self, component: &Component) -> String {
+        use levenshtein::levenshtein;
+        // Suggest only for very small differences
+        // High number can result in innacurate suggestions for short queries e.g. `rls`
+        const MAX_DISTANCE: usize = 3;
+
+        let components = self.list_components();
+        if let Ok(components) = components {
+            let min = components
+                .iter()
+                .filter(|c| c.installed)
+                .map(|c| {
+                    (
+                        levenshtein(
+                            &c.component.name_in_manifest()[..],
+                            &component.name_in_manifest()[..],
+                        ),
+                        c,
+                    )
+                })
+                .min_by_key(|t| t.0)
+                .expect("There should be always at least one component");
+
+            // If suggestion is to different don't suggest anything
+            if min.0 > MAX_DISTANCE {
+                return String::new();
+            }
+            // If compnent differs suggest only component
+            if min.1.component.short_name_in_manifest() == component.short_name_in_manifest() {
+                return format!(
+                    " - Did you mean {} (targets differ)?",
+                    min.1.component.description_in_manifest()
+                );
+            }
+
+            format!(
+                " - Did you mean {}?",
+                min.1.component.short_name_in_manifest()
+            )
+        } else {
+            String::new()
         }
     }
 
@@ -674,6 +719,7 @@ impl<'a> Toolchain<'a> {
                     return Err(ErrorKind::UnknownComponent(
                         self.name.to_string(),
                         component.description(&manifest),
+                        self.get_component_suggestion(&component),
                     )
                     .into());
                 }
