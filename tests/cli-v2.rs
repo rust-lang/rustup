@@ -920,3 +920,68 @@ fn update_unavailable_force() {
         );
     });
 }
+
+#[test]
+fn add_component_suggest_best_match() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_err(
+            config,
+            &["rustup", "component", "add", "rustd"],
+            "Did you mean 'rustc'?",
+        );
+    });
+}
+
+#[test]
+fn remove_component_suggest_best_match() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_err(
+            config,
+            &["rustup", "component", "remove", "rustd"],
+            "Did you mean 'rustc'?",
+        );
+    });
+}
+
+#[test]
+fn add_target_suggest_best_match() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_err(
+            config,
+            &[
+                "rustup",
+                "target",
+                "add",
+                &format!("{}a", clitools::CROSS_ARCH1)[..],
+            ],
+            &format!(
+                "Did you mean 'rust-std' for target '{}' (targets differ)?",
+                clitools::CROSS_ARCH1
+            )[..],
+        );
+    });
+}
+
+#[test]
+fn remove_target_suggest_best_match() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        expect_err(
+            config,
+            &[
+                "rustup",
+                "target",
+                "remove",
+                &format!("{}a", clitools::CROSS_ARCH1)[..],
+            ],
+            &format!(
+                "Did you mean 'rust-std' for target '{}' (targets differ)?",
+                clitools::CROSS_ARCH1
+            )[..],
+        );
+    });
+}

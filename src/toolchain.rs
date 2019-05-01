@@ -604,7 +604,7 @@ impl<'a> Toolchain<'a> {
                     return Err(ErrorKind::UnknownComponent(
                         self.name.to_string(),
                         component.description(&manifest),
-                        self.get_component_suggestion(&component),
+                        self.get_component_suggestion(&component, false),
                     )
                     .into());
                 }
@@ -630,8 +630,8 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    fn get_component_suggestion(&self, component: &Component) -> String {
-        use levenshtein::levenshtein;
+    fn get_component_suggestion(&self, component: &Component, only_instaled: bool) -> String {
+        use strsim::damerau_levenshtein;;
         // Suggest only for very small differences
         // High number can result in innacurate suggestions for short queries e.g. `rls`
         const MAX_DISTANCE: usize = 3;
@@ -640,10 +640,10 @@ impl<'a> Toolchain<'a> {
         if let Ok(components) = components {
             let min = components
                 .iter()
-                .filter(|c| c.installed)
+                .filter(|c| !only_instaled || c.installed)
                 .map(|c| {
                     (
-                        levenshtein(
+                        damerau_levenshtein(
                             &c.component.name_in_manifest()[..],
                             &component.name_in_manifest()[..],
                         ),
@@ -653,11 +653,11 @@ impl<'a> Toolchain<'a> {
                 .min_by_key(|t| t.0)
                 .expect("There should be always at least one component");
 
-            // If suggestion is to different don't suggest anything
+            // If suggestion is too different don't suggest anything
             if min.0 > MAX_DISTANCE {
                 return String::new();
             }
-            // If compnent differs suggest only component
+            // If component parts are the same include whole description
             if min.1.component.short_name_in_manifest() == component.short_name_in_manifest() {
                 return format!(
                     " - Did you mean {} (targets differ)?",
@@ -666,7 +666,7 @@ impl<'a> Toolchain<'a> {
             }
 
             format!(
-                " - Did you mean {}?",
+                " - Did you mean '{}'?",
                 min.1.component.short_name_in_manifest()
             )
         } else {
@@ -719,7 +719,7 @@ impl<'a> Toolchain<'a> {
                     return Err(ErrorKind::UnknownComponent(
                         self.name.to_string(),
                         component.description(&manifest),
-                        self.get_component_suggestion(&component),
+                        self.get_component_suggestion(&component, true),
                     )
                     .into());
                 }
