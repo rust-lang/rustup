@@ -448,4 +448,11 @@ impl Component {
             pkg.to_string()
         }
     }
+    pub fn target(&self) -> String {
+        if let Some(ref t) = self.target {
+            format!("{}", t)
+        } else {
+            format!("")
+        }
+    }
 }

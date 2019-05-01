@@ -4,8 +4,8 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_err, expect_not_stdout_ok, expect_ok, expect_stderr_ok, expect_stdout_ok,
-    set_current_dist_date, this_host_triple, Config, Scenario,
+    self, expect_err, expect_not_stderr_ok, expect_not_stdout_ok, expect_ok, expect_stderr_ok,
+    expect_stdout_ok, set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use std::fs;
 use std::io::Write;
@@ -917,6 +917,102 @@ fn update_unavailable_force() {
         expect_ok(
             config,
             &["rustup", "update", "nightly", "--force", "--no-self-update"],
+        );
+    });
+}
+
+#[test]
+fn add_component_suggest_best_match() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_err(
+            config,
+            &["rustup", "component", "add", "rsl"],
+            "did you mean 'rls'?",
+        );
+        expect_err(
+            config,
+            &["rustup", "component", "add", "rsl-preview"],
+            "did you mean 'rls-preview'?",
+        );
+        expect_not_stderr_ok(
+            config,
+            &["rustup", "component", "add", "potato"],
+            "did you mean",
+        );
+    });
+}
+
+#[test]
+fn remove_component_suggest_best_match() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_not_stderr_ok(
+            config,
+            &["rustup", "component", "remove", "rsl"],
+            "did you mean 'rls'?",
+        );
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_err(
+            config,
+            &["rustup", "component", "remove", "rsl"],
+            "did you mean 'rls'?",
+        );
+        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
+        expect_err(
+            config,
+            &["rustup", "component", "add", "rsl-preview"],
+            "did you mean 'rls-preview'?",
+        );
+    });
+}
+
+#[test]
+fn add_target_suggest_best_match() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_err(
+            config,
+            &[
+                "rustup",
+                "target",
+                "add",
+                &clitools::CROSS_ARCH1.replace("x", "y"),
+            ],
+            &format!("did you mean '{}'", clitools::CROSS_ARCH1),
+        );
+        expect_not_stderr_ok(
+            config,
+            &["rustup", "target", "add", "potato"],
+            "did you mean",
+        );
+    });
+}
+
+#[test]
+fn remove_target_suggest_best_match() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_not_stderr_ok(
+            config,
+            &[
+                "rustup",
+                "target",
+                "remove",
+                &format!("{}a", clitools::CROSS_ARCH1)[..],
+            ],
+            &format!("did you mean '{}'", clitools::CROSS_ARCH1),
+        );
+        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        expect_err(
+            config,
+            &[
+                "rustup",
+                "target",
+                "remove",
+                &clitools::CROSS_ARCH1.replace("x", "y"),
+            ],
+            &format!("did you mean '{}'", clitools::CROSS_ARCH1),
         );
     });
 }

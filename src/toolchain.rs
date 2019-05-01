@@ -2,6 +2,7 @@ use crate::config::Cfg;
 use crate::dist::dist::ToolchainDesc;
 use crate::dist::download::DownloadCfg;
 use crate::dist::manifest::Component;
+use crate::dist::manifest::Manifest;
 use crate::dist::manifestation::{Changes, Manifestation};
 use crate::dist::prefix::InstallPrefix;
 use crate::env_var;
@@ -10,6 +11,7 @@ use crate::install::{self, InstallMethod};
 use crate::notifications::*;
 use crate::utils::utils;
 
+use std::collections::HashMap;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::ffi::OsStr;
@@ -17,6 +19,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use strsim::damerau_levenshtein;
 use url::Url;
 
 /// A fully resolved reference to a toolchain which may or may not exist
@@ -556,6 +559,111 @@ impl<'a> Toolchain<'a> {
         }
     }
 
+    fn find_most_similar_component(
+        &self,
+        component: &Component,
+        manifest: &Manifest,
+        collection: &Vec<Component>,
+    ) -> String {
+        let short_name_distances: HashMap<usize, &Component> = collection
+            .iter()
+            .map(|s| {
+                (
+                    damerau_levenshtein(&component.short_name(manifest), &s.short_name(&manifest)),
+                    s,
+                )
+            })
+            .collect();
+
+        let long_name_distances: HashMap<usize, &Component> = collection
+            .iter()
+            .map(|s| {
+                (
+                    damerau_levenshtein(
+                        &component.short_name(manifest),
+                        &s.short_name_in_manifest(),
+                    ),
+                    s,
+                )
+            })
+            .collect();
+
+        let mut least_distance = std::usize::MAX;
+        let mut closest_component = component;
+        let mut closest_match = "".to_string();
+
+        for (k, v) in &short_name_distances {
+            if k < &least_distance {
+                least_distance = *k;
+                closest_component = *v;
+                closest_match = v.short_name(manifest).to_string();
+            }
+        }
+
+        for (k, v) in &long_name_distances {
+            if k < &least_distance {
+                least_distance = *k;
+                closest_component = *v;
+                closest_match = v.short_name_in_manifest().to_string();
+            }
+        }
+
+        if component.short_name(manifest) == closest_component.short_name(manifest) {
+            let target_distances: HashMap<usize, &Component> = collection
+                .iter()
+                .filter(|s| s.short_name(manifest) == component.short_name(manifest))
+                .map(|s| (damerau_levenshtein(&component.target(), &s.target()), s))
+                .collect();
+
+            let long_name_distance = components
+                .iter()
+                .filter(|c| !only_instaled || c.installed)
+                .map(|c| {
+                    (
+                        damerau_levenshtein(
+                            &c.component.name_in_manifest()[..],
+                            &component.name(manifest)[..],
+                        ),
+                        c,
+                    )
+                })
+                .min_by_key(|t| t.0)
+                .expect("There should be always at least one component");
+
+            let mut closest_distance = short_name_distance;
+            let mut closest_match = short_name_distance.1.component.short_name(manifest);
+
+            // Find closer suggestion
+            if short_name_distance.0 > long_name_distance.0 {
+                closest_distance = long_name_distance;
+
+                // Check if only targets differ
+                if closest_distance.1.component.short_name_in_manifest()
+                    == component.short_name_in_manifest()
+                {
+                    closest_match = long_name_distance.1.component.target();
+                } else {
+                    closest_match = long_name_distance
+                        .1
+                        .component
+                        .short_name_in_manifest()
+                        .to_string();
+                }
+            } else {
+                // Check if only targets differ
+                if closest_distance.1.component.short_name(manifest)
+                    == component.short_name(manifest)
+                {
+                    closest_match = short_name_distance.1.component.target().to_string();
+                }
+            }
+
+            return target_closest_match;
+        } else {
+            return closest_match;
+        }
+    }
+
     pub fn add_component(&self, mut component: Component) -> Result<()> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
@@ -601,9 +709,16 @@ impl<'a> Toolchain<'a> {
                 if targ_pkg.extensions.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
+                    let most_similar_component = self.find_most_similar_component(
+                        &component,
+                        &manifest,
+                        &targ_pkg.extensions,
+                    );
+
                     return Err(ErrorKind::UnknownComponent(
                         self.name.to_string(),
                         component.description(&manifest),
+                        most_similar_component,
                     )
                     .into());
                 }
@@ -671,9 +786,16 @@ impl<'a> Toolchain<'a> {
                 if dist_config.components.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
+                    let most_similar_component = self.find_most_similar_component(
+                        &component,
+                        &manifest,
+                        &dist_config.components,
+                    );
+
                     return Err(ErrorKind::UnknownComponent(
                         self.name.to_string(),
                         component.description(&manifest),
+                        most_similar_component,
                     )
                     .into());
                 }
