@@ -7,6 +7,13 @@ git:
   depth: false
   quiet: true
 
+cache:
+  directories:
+    - "$HOME/.cargo"
+    - "$HOME/.cache/sccache"
+before_cache:
+  - rm -rf "$HOME/.cargo/registry"
+
 matrix:
   fast_finish: true
   include:
