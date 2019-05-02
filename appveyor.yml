@@ -57,6 +57,8 @@ install:
 
   # add mingw to PATH if necessary
   - if defined MINGW_DIR set PATH=C:\msys64\%MINGW_DIR%\bin;C:\msys64\usr\bin;%PATH%
+  # And if mingw, re-put appveyor's git in place
+  - if defined MINGW_DIR set PATH=C:\Program Files\Git\cmd;%PATH%
 
   # let's see what we got
   - where gcc rustc cargo
