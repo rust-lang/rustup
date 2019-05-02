@@ -57,6 +57,7 @@ matrix:
     - name: rustup-init.sh on CentOS 6
       language: minimal
       install: true
+      env: SKIP_DEPLOY=1
       script:
         - docker run
             --volume "$TRAVIS_BUILD_DIR":/checkout:ro

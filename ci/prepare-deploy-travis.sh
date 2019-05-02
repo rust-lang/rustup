@@ -2,6 +2,10 @@
 
 set -u -e
 
+if [ "${SKIP_DEPLOY:-0}" = "1" ]; then
+    exit 0
+fi
+
 if [ "$TRAVIS_PULL_REQUEST" = "true" ] || [ "$TRAVIS_BRANCH" = "auto" ]; then
     exit 0
 fi
