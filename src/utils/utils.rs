@@ -355,11 +355,7 @@ pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
 }
 
 pub fn open_browser(path: &Path) -> Result<()> {
-    match raw::open_browser(path) {
-        Ok(true) => Ok(()),
-        Ok(false) => Err("no browser installed".into()),
-        Err(e) => Err(e).chain_err(|| "could not open browser"),
-    }
+    opener::open(path).chain_err(|| "couldn't open browser")
 }
 
 pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {

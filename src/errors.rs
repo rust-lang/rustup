@@ -25,6 +25,7 @@ error_chain! {
     foreign_links {
         Temp(temp::Error);
         Io(io::Error);
+        Open(opener::OpenError);
     }
 
     errors {
