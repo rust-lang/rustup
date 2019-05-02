@@ -5,8 +5,6 @@
 ### Changed
 
 - [Fix local bash-completion directory path][pr#1809]
-- [Removed duplicate wording in help][pr#1812]
-- [Removed duplicated import of std::env][pr#1817]
 - [Handle stray toolchain hashes during install][pr#1801]
 - [Update to env_proxy 0.3.1][pr#1819]
 - [Improvements to release process around Windows versions][pr#1822]
@@ -17,9 +15,20 @@
 - [Added CI of CentOS 6 support for rustup-init.sh][pr#1810]
 - [FAQ entry about not being able to update rustup on Windows][pr#1813]
 
+### Thanks
+
+This release was made, in part, thanks to:
+
+* Brian Ericson
+* Onat Mercam
+* Lzu Tao
+* Takuto Ikuta
+* Jason Williams
+* Filip Demski
+* Michael Maclean
+* Daniel Silverstone
+
 [pr#1809]: https://github.com/rust-lang/rustup.rs/pull/1809
-[pr#1812]: https://github.com/rust-lang/rustup.rs/pull/1812
-[pr#1817]: https://github.com/rust-lang/rustup.rs/pull/1817
 [pr#1801]: https://github.com/rust-lang/rustup.rs/pull/1801
 [pr#1819]: https://github.com/rust-lang/rustup.rs/pull/1819
 [pr#1822]: https://github.com/rust-lang/rustup.rs/pull/1822
