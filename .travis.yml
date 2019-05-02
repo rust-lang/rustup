@@ -96,6 +96,8 @@ script:
     fi
 
 before_deploy:
+  # Make the deploy directory dirst, just in case
+  - mkdir -p deploy
   - sh ci/prepare-deploy-travis.sh
 
 deploy:
