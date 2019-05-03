@@ -20,7 +20,7 @@
 This release was made, in part, thanks to:
 
 * Brian Ericson
-* Onat Mercam
+* Onat Mercan
 * Lzu Tao
 * Takuto Ikuta
 * Jason Williams
