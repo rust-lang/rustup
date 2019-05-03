@@ -94,7 +94,6 @@ test = false # no unit tests
 [[bin]]
 name = "rustup-init"
 path = "src/cli/main.rs"
-test = false # no unit tests
 
 [profile.release]
 lto = true

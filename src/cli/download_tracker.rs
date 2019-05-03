@@ -118,6 +118,15 @@ impl DownloadTracker {
         }
         self.prepare_for_new_download();
     }
+    // we're doing modular arithmetic, treat as integer
+    pub fn from_seconds(sec: u32) -> (u32, u32, u32, u32) {
+        let d = sec / (24 * 3600);
+        let h = sec % (24 * 3600) / 3600;
+        let min = sec % 3600 / 60;
+        let sec = sec % 60;
+
+        (d, h, min, sec)
+    }
     /// Resets the state to be ready for a new download.
     fn prepare_for_new_download(&mut self) {
         self.content_len = None;
@@ -188,28 +197,11 @@ impl fmt::Display for Duration {
         if sec.is_infinite() {
             write!(f, "Unknown")
         } else {
-            // we're doing modular arithmetic, treat as integer
-            let sec = sec as u32;
-            if sec > 48 * 3600 {
-                let d = sec / (24 * 3600);
-                let h = sec % (24 * 3600);
-                let min = sec % 3600;
-                let sec = sec % 60;
-
-                write!(f, "{:3} days {:2} h {:2} min {:2} s", d, h, min, sec) // XYZ days PQ h RS min TU s
-            } else if sec > 6_000 {
-                let h = sec / 3600;
-                let min = sec % 3600;
-                let sec = sec % 60;
-
-                write!(f, "{:3} h {:2} min {:2} s", h, min, sec) // XYZ h PQ min RS s
-            } else if sec > 100 {
-                let min = sec / 60;
-                let sec = sec % 60;
-
-                write!(f, "{:3} min {:2} s", min, sec) // XYZ min PQ s
-            } else {
-                write!(f, "{:3.0} s", self.0) // XYZ s
+            match DownloadTracker::from_seconds(sec as u32) {
+                (d, h, m, s) if d > 0 => write!(f, "{:3.0}d {:2.0}h {:2.0}m {:2.0}s", d, h, m, s),
+                (0, h, m, s) if h > 0 => write!(f, "{:2.0}h {:2.0}m {:2.0}s", h, m, s),
+                (0, 0, m, s) if m > 0 => write!(f, "{:2.0}m {:2.0}s", m, s),
+                (_, _, _, s) => write!(f, "{:2.0}s", s),
             }
         }
     }
@@ -232,4 +224,25 @@ impl fmt::Display for Size {
             write!(f, "{:3.0} B", size)
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn download_tracker_from_seconds_test() {
+        use crate::download_tracker::DownloadTracker;
+        assert_eq!(DownloadTracker::from_seconds(2), (0, 0, 0, 2));
+
+        assert_eq!(DownloadTracker::from_seconds(60), (0, 0, 1, 0));
+
+        assert_eq!(DownloadTracker::from_seconds(3600), (0, 1, 0, 0));
+
+        assert_eq!(DownloadTracker::from_seconds(3600 * 24), (1, 0, 0, 0));
+
+        assert_eq!(DownloadTracker::from_seconds(52292), (0, 14, 31, 32));
+
+        assert_eq!(DownloadTracker::from_seconds(222292), (2, 13, 44, 52));
+    }
+
 }
