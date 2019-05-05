@@ -32,6 +32,7 @@
 
 use crate::common::{self, Confirm};
 use crate::errors::*;
+use crate::markdown::md;
 use crate::term2;
 use rustup::dist::dist;
 use rustup::utils::utils;
@@ -227,11 +228,12 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
     check_existence_of_rustc_or_cargo_in_path(no_prompt)?;
     do_anti_sudo_check(no_prompt)?;
 
+    let mut term = term2::stdout();
     if !do_msvc_check(&opts)? {
         if no_prompt {
             warn!("installing msvc toolchain without its prerequisites");
         } else {
-            term2::stdout().md(MSVC_MESSAGE);
+            md(&mut term, MSVC_MESSAGE);
             if !common::confirm("\nContinue? (Y/n)", true)? {
                 info!("aborting installation");
                 return Ok(());
@@ -242,10 +244,10 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
     if !no_prompt {
         let msg = pre_install_msg(opts.no_modify_path)?;
 
-        term2::stdout().md(msg);
+        md(&mut term, msg);
 
         loop {
-            term2::stdout().md(current_install_opts(&opts));
+            md(&mut term, current_install_opts(&opts));
             match common::confirm_advanced()? {
                 Confirm::No => {
                     info!("aborting installation");
@@ -312,7 +314,7 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
             cargo_home = cargo_home
         )
     };
-    term2::stdout().md(msg);
+    md(&mut term, msg);
 
     if !no_prompt {
         // On windows, where installation happens in a console
@@ -745,7 +747,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     if !no_prompt {
         println!();
         let msg = format!(pre_uninstall_msg!(), cargo_home = canonical_cargo_home()?);
-        term2::stdout().md(msg);
+        md(&mut term2::stdout(), msg);
         if !common::confirm("\nContinue? (y/N)", false)? {
             info!("aborting uninstallation");
             return Ok(());

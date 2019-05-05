@@ -3,6 +3,7 @@ use crate::errors::*;
 use crate::help::*;
 use crate::self_update;
 use crate::term2;
+use crate::term2::Terminal;
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, TargetTriple};
 use rustup::dist::manifest::Component;
@@ -813,7 +814,7 @@ fn show(cfg: &Cfg) -> Result<()> {
         }
     }
 
-    fn print_header(t: &mut term2::Terminal<std::io::Stdout>, s: &str) -> Result<()> {
+    fn print_header(t: &mut term::StdoutTerminal, s: &str) -> Result<()> {
         t.attr(term2::Attr::Bold)?;
         writeln!(t, "{}", s)?;
         writeln!(t, "{}", iter::repeat("-").take(s.len()).collect::<String>())?;

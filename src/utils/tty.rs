@@ -1,4 +1,4 @@
-// Copied from rustc. atty crate did not work as expected
+// Copied from rustc. isatty crate did not work as expected
 #[cfg(unix)]
 pub fn stderr_isatty() -> bool {
     isatty(libc::STDERR_FILENO)

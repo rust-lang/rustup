@@ -14,6 +14,7 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{cmp, iter};
+use term2::Terminal;
 use wait_timeout::ChildExt;
 
 pub fn confirm(question: &str, default: bool) -> Result<bool> {
