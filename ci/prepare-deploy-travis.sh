@@ -2,26 +2,9 @@
 
 set -u -e
 
-if [ "${SKIP_DEPLOY:-0}" = "1" ]; then
-    exit 0
-fi
-
 if [ "$TRAVIS_PULL_REQUEST" = "true" ] || [ "$TRAVIS_BRANCH" = "auto" ]; then
     exit 0
 fi
-
-# Upload docs
-if [ "$TARGET" = "x86_64-unknown-linux-gnu" ] && [ "$TRAVIS_BRANCH" = "stable" ]; then
-    # FIXME rust-lang/rust#32532
-    printf "not uploading docs"
-    #git config --global credential.helper store;
-    #echo "https://${TOKEN}:x-oauth-basic@github.com" >> ~/.git-credentials;
-    #cargo doc --release;
-    #echo '<meta http-equiv=refresh content=0;url=rustup/index.html>' > target/doc/index.html;
-    #sudo pip install ghp-import;
-    #ghp-import -n target/doc;
-    #git push -qf https://${TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages;
-fi;
 
 # Copy rustup-init to rustup-setup for backwards compatibility
 cp target/"$TARGET"/release/rustup-init target/"$TARGET"/release/rustup-setup
