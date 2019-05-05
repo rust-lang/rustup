@@ -1,9 +1,12 @@
+use crate::term2;
 use rustup::dist::Notification as In;
 use rustup::utils::tty;
 use rustup::utils::Notification as Un;
 use rustup::Notification;
 use std::collections::VecDeque;
 use std::fmt;
+use std::io::Write;
+use term::Terminal;
 use time::precise_time_s;
 
 /// Keep track of this many past download amounts
@@ -25,7 +28,10 @@ pub struct DownloadTracker {
     /// How many seconds have elapsed since the download started
     seconds_elapsed: u32,
     /// The terminal we write the information to.
-    term: Option<Box<term::StdoutTerminal>>,
+    /// XXX: Could be a term trait, but with #1818 on the horizon that
+    ///      is a pointless change to make - better to let that transition
+    ///      happen and take stock after that.
+    term: term2::StdoutTerminal,
     /// Whether we displayed progress for the download or not.
     ///
     /// If the download is quick enough, we don't have time to
@@ -47,7 +53,7 @@ impl DownloadTracker {
             downloaded_last_few_secs: VecDeque::with_capacity(DOWNLOAD_TRACK_COUNT),
             seconds_elapsed: 0,
             last_sec: None,
-            term: term::stdout(),
+            term: term2::stdout(),
             displayed_charcount: None,
         }
     }
@@ -60,7 +66,7 @@ impl DownloadTracker {
                 true
             }
             Notification::Install(In::Utils(Un::DownloadDataReceived(data))) => {
-                if tty::stdout_isatty() && self.term.is_some() {
+                if tty::stdout_isatty() {
                     self.data_received(data.len());
                 }
                 true
@@ -108,7 +114,7 @@ impl DownloadTracker {
         if self.displayed_charcount.is_some() {
             // Display the finished state
             self.display();
-            let _ = writeln!(self.term.as_mut().unwrap());
+            let _ = writeln!(self.term);
         }
         self.prepare_for_new_download();
     }
@@ -134,7 +140,7 @@ impl DownloadTracker {
         let speed_h = HumanReadable(speed);
 
         // First, move to the start of the current line and clear it.
-        let _ = self.term.as_mut().unwrap().carriage_return();
+        let _ = self.term.carriage_return();
         // We'd prefer to use delete_line() but on Windows it seems to
         // sometimes do unusual things
         // let _ = self.term.as_mut().unwrap().delete_line();
@@ -143,9 +149,9 @@ impl DownloadTracker {
             // This is not ideal as very narrow terminals might mess up,
             // but it is more likely to succeed until term's windows console
             // fixes whatever's up with delete_line().
-            let _ = write!(self.term.as_mut().unwrap(), "{}", " ".repeat(n));
-            let _ = self.term.as_mut().unwrap().flush();
-            let _ = self.term.as_mut().unwrap().carriage_return();
+            let _ = write!(self.term, "{}", " ".repeat(n));
+            let _ = self.term.flush();
+            let _ = self.term.carriage_return();
         }
 
         let output = match self.content_len {
@@ -163,9 +169,9 @@ impl DownloadTracker {
             None => format!("Total: {} Speed: {}/s", total_h, speed_h),
         };
 
-        let _ = write!(self.term.as_mut().unwrap(), "{}", output);
+        let _ = write!(self.term, "{}", output);
         // Since stdout is typically line-buffered and we don't print a newline, we manually flush.
-        let _ = self.term.as_mut().unwrap().flush();
+        let _ = self.term.flush();
         self.displayed_charcount = Some(output.chars().count());
     }
 }
