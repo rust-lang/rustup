@@ -935,6 +935,11 @@ fn add_component_suggest_best_match() {
             &["rustup", "component", "add", "rsl-preview"],
             "did you mean 'rls-preview'?",
         );
+        expect_err(
+            config,
+            &["rustup", "component", "add", "rustd"],
+            "did you mean 'rustc'?",
+        );
         expect_not_stderr_ok(
             config,
             &["rustup", "component", "add", "potato"],
@@ -964,6 +969,11 @@ fn remove_component_suggest_best_match() {
             &["rustup", "component", "add", "rsl-preview"],
             "did you mean 'rls-preview'?",
         );
+        expect_err(
+            config,
+            &["rustup", "component", "remove", "rustd"],
+            "did you mean 'rustc'?",
+        );
     });
 }
 
@@ -977,7 +987,7 @@ fn add_target_suggest_best_match() {
                 "rustup",
                 "target",
                 "add",
-                &clitools::CROSS_ARCH1.replace("x", "y"),
+                &format!("{}a", clitools::CROSS_ARCH1)[..],
             ],
             &format!("did you mean '{}'", clitools::CROSS_ARCH1),
         );
@@ -1010,7 +1020,7 @@ fn remove_target_suggest_best_match() {
                 "rustup",
                 "target",
                 "remove",
-                &clitools::CROSS_ARCH1.replace("x", "y"),
+                &format!("{}a", clitools::CROSS_ARCH1)[..],
             ],
             &format!("did you mean '{}'", clitools::CROSS_ARCH1),
         );

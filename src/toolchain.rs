@@ -11,7 +11,6 @@ use crate::install::{self, InstallMethod};
 use crate::notifications::*;
 use crate::utils::utils;
 
-use std::collections::HashMap;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::ffi::OsStr;
@@ -19,7 +18,6 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use strsim::damerau_levenshtein;
 use url::Url;
 
 /// A fully resolved reference to a toolchain which may or may not exist
@@ -559,65 +557,38 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    fn find_most_similar_component(
+    fn get_component_suggestion(
         &self,
         component: &Component,
         manifest: &Manifest,
-        collection: &Vec<Component>,
-    ) -> String {
-        let short_name_distances: HashMap<usize, &Component> = collection
-            .iter()
-            .map(|s| {
-                (
-                    damerau_levenshtein(&component.short_name(manifest), &s.short_name(&manifest)),
-                    s,
-                )
-            })
-            .collect();
+        only_installed: bool,
+    ) -> Option<String> {
+        use strsim::damerau_levenshtein;
 
-        let long_name_distances: HashMap<usize, &Component> = collection
-            .iter()
-            .map(|s| {
-                (
-                    damerau_levenshtein(
-                        &component.short_name(manifest),
-                        &s.short_name_in_manifest(),
-                    ),
-                    s,
-                )
-            })
-            .collect();
+        // Suggest only for very small differences
+        // High number can result in innacurate suggestions for short queries e.g. `rls`
+        const MAX_DISTANCE: usize = 3;
 
-        let mut least_distance = std::usize::MAX;
-        let mut closest_component = component;
-        let mut closest_match = "".to_string();
-
-        for (k, v) in &short_name_distances {
-            if k < &least_distance {
-                least_distance = *k;
-                closest_component = *v;
-                closest_match = v.short_name(manifest).to_string();
-            }
-        }
-
-        for (k, v) in &long_name_distances {
-            if k < &least_distance {
-                least_distance = *k;
-                closest_component = *v;
-                closest_match = v.short_name_in_manifest().to_string();
-            }
-        }
-
-        if component.short_name(manifest) == closest_component.short_name(manifest) {
-            let target_distances: HashMap<usize, &Component> = collection
+        let components = self.list_components();
+        if let Ok(components) = components {
+            let short_name_distance = components
                 .iter()
-                .filter(|s| s.short_name(manifest) == component.short_name(manifest))
-                .map(|s| (damerau_levenshtein(&component.target(), &s.target()), s))
-                .collect();
+                .filter(|c| !only_installed || c.installed)
+                .map(|c| {
+                    (
+                        damerau_levenshtein(
+                            &c.component.name(manifest)[..],
+                            &component.name(manifest)[..],
+                        ),
+                        c,
+                    )
+                })
+                .min_by_key(|t| t.0)
+                .expect("There should be always at least one component");
 
             let long_name_distance = components
                 .iter()
-                .filter(|c| !only_instaled || c.installed)
+                .filter(|c| !only_installed || c.installed)
                 .map(|c| {
                     (
                         damerau_levenshtein(
@@ -658,9 +629,14 @@ impl<'a> Toolchain<'a> {
                 }
             }
 
-            return target_closest_match;
+            // If suggestion is too different don't suggest anything
+            if closest_distance.0 > MAX_DISTANCE {
+                return None;
+            } else {
+                return Some(closest_match.to_string());
+            }
         } else {
-            return closest_match;
+            return None;
         }
     }
 
@@ -709,16 +685,10 @@ impl<'a> Toolchain<'a> {
                 if targ_pkg.extensions.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
-                    let most_similar_component = self.find_most_similar_component(
-                        &component,
-                        &manifest,
-                        &targ_pkg.extensions,
-                    );
-
                     return Err(ErrorKind::UnknownComponent(
                         self.name.to_string(),
                         component.description(&manifest),
-                        most_similar_component,
+                        self.get_component_suggestion(&component, &manifest, false),
                     )
                     .into());
                 }
@@ -786,16 +756,10 @@ impl<'a> Toolchain<'a> {
                 if dist_config.components.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
-                    let most_similar_component = self.find_most_similar_component(
-                        &component,
-                        &manifest,
-                        &dist_config.components,
-                    );
-
                     return Err(ErrorKind::UnknownComponent(
                         self.name.to_string(),
                         component.description(&manifest),
-                        most_similar_component,
+                        self.get_component_suggestion(&component, &manifest, true),
                     )
                     .into());
                 }
