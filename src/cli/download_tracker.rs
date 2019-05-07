@@ -21,12 +21,13 @@ pub struct DownloadTracker {
     /// Data downloaded this second.
     downloaded_this_sec: usize,
     /// Keeps track of amount of data downloaded every last few secs.
-    /// Used for averaging the download speed.
+    /// Used for averaging the download speed. NB: This does not necessarily
+    /// represent adjacent seconds; thus it may not show the average at all.
     downloaded_last_few_secs: VecDeque<usize>,
     /// Time stamp of the last second
     last_sec: Option<f64>,
-    /// How many seconds have elapsed since the download started
-    seconds_elapsed: u32,
+    /// Time stamp of the start of the download
+    start_sec: f64,
     /// The terminal we write the information to.
     /// XXX: Could be a term trait, but with #1818 on the horizon that
     ///      is a pointless change to make - better to let that transition
@@ -51,7 +52,7 @@ impl DownloadTracker {
             total_downloaded: 0,
             downloaded_this_sec: 0,
             downloaded_last_few_secs: VecDeque::with_capacity(DOWNLOAD_TRACK_COUNT),
-            seconds_elapsed: 0,
+            start_sec: precise_time_s(),
             last_sec: None,
             term: term2::stdout(),
             displayed_charcount: None,
@@ -93,11 +94,9 @@ impl DownloadTracker {
 
         match self.last_sec {
             None => self.last_sec = Some(current_time),
-            Some(start) => {
-                let elapsed = current_time - start;
+            Some(prev) => {
+                let elapsed = current_time - prev;
                 if elapsed >= 1.0 {
-                    self.seconds_elapsed += 1;
-
                     self.display();
                     self.last_sec = Some(current_time);
                     if self.downloaded_last_few_secs.len() == DOWNLOAD_TRACK_COUNT {
@@ -125,7 +124,7 @@ impl DownloadTracker {
         self.total_downloaded = 0;
         self.downloaded_this_sec = 0;
         self.downloaded_last_few_secs.clear();
-        self.seconds_elapsed = 0;
+        self.start_sec = precise_time_s();
         self.last_sec = None;
         self.displayed_charcount = None;
     }
@@ -136,6 +135,7 @@ impl DownloadTracker {
         let len = self.downloaded_last_few_secs.len();
         let speed = if len > 0 { sum / len } else { 0 };
         let speed_h = Size(speed);
+        let elapsed_h = Duration(precise_time_s() - self.start_sec);
 
         // First, move to the start of the current line and clear it.
         let _ = self.term.carriage_return();
@@ -160,11 +160,14 @@ impl DownloadTracker {
                 let remaining = content_len - self.total_downloaded as f64;
                 let eta_h = Duration(remaining / speed as f64);
                 format!(
-                    "{} / {} ({:3.0} %) {}/s ETA: {}",
-                    total_h, content_len_h, percent, speed_h, eta_h
+                    "{} / {} ({:3.0} %) {}/s in {} ETA: {}",
+                    total_h, content_len_h, percent, speed_h, elapsed_h, eta_h
                 )
             }
-            None => format!("Total: {} Speed: {}/s", total_h, speed_h),
+            None => format!(
+                "Total: {} Speed: {}/s Elapsed: {}",
+                total_h, speed_h, elapsed_h
+            ),
         };
 
         let _ = write!(self.term, "{}", output);
