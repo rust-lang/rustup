@@ -15,7 +15,7 @@ const DOWNLOAD_TRACK_COUNT: usize = 5;
 /// Tracks download progress and displays information about it to a terminal.
 pub struct DownloadTracker {
     /// Content-Length of the to-be downloaded object.
-    content_len: Option<u64>,
+    content_len: Option<usize>,
     /// Total data downloaded in bytes.
     total_downloaded: usize,
     /// Data downloaded this second.
@@ -81,8 +81,9 @@ impl DownloadTracker {
 
     /// Notifies self that Content-Length information has been received.
     pub fn content_length_received(&mut self, content_len: u64) {
-        self.content_len = Some(content_len);
+        self.content_len = Some(content_len as usize);
     }
+
     /// Notifies self that data of size `len` has been received.
     pub fn data_received(&mut self, len: usize) {
         self.total_downloaded += len;
@@ -130,14 +131,11 @@ impl DownloadTracker {
     }
     /// Display the tracked download information to the terminal.
     fn display(&mut self) {
-        let total_h = HumanReadable(self.total_downloaded as f64);
-        let sum = self
-            .downloaded_last_few_secs
-            .iter()
-            .fold(0., |a, &v| a + v as f64);
+        let total_h = Size(self.total_downloaded);
+        let sum = self.downloaded_last_few_secs.iter().fold(0, |a, &v| a + v);
         let len = self.downloaded_last_few_secs.len();
-        let speed = if len > 0 { sum / len as f64 } else { 0. };
-        let speed_h = HumanReadable(speed);
+        let speed = if len > 0 { sum / len } else { 0 };
+        let speed_h = Size(speed);
 
         // First, move to the start of the current line and clear it.
         let _ = self.term.carriage_return();
@@ -156,13 +154,13 @@ impl DownloadTracker {
 
         let output = match self.content_len {
             Some(content_len) => {
+                let content_len_h = Size(content_len);
                 let content_len = content_len as f64;
                 let percent = (self.total_downloaded as f64 / content_len) * 100.;
-                let content_len_h = HumanReadable(content_len);
                 let remaining = content_len - self.total_downloaded as f64;
-                let eta_h = HumanReadable(remaining / speed);
+                let eta_h = Duration(remaining / speed as f64);
                 format!(
-                    "{} / {} ({:3.0} %) {}/s ETA: {:#}",
+                    "{} / {} ({:3.0} %) {}/s ETA: {}",
                     total_h, content_len_h, percent, speed_h, eta_h
                 )
             }
@@ -176,54 +174,59 @@ impl DownloadTracker {
     }
 }
 
-/// Human readable representation of data size in bytes
-struct HumanReadable(f64);
+/// Human readable representation of duration(seconds).
+struct Duration(f64);
 
-impl fmt::Display for HumanReadable {
+impl fmt::Display for Duration {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            // repurposing the alternate mode for ETA
-            let sec = self.0;
+        // repurposing the alternate mode for ETA
+        let sec = self.0;
 
-            if sec.is_infinite() {
-                write!(f, "Unknown")
-            } else {
-                // we're doing modular arithmetic, treat as integer
-                let sec = sec as u32;
-                if sec > 48 * 3600 {
-                    let d = sec / (24 * 3600);
-                    let h = sec % (24 * 3600);
-                    let min = sec % 3600;
-                    let sec = sec % 60;
-
-                    write!(f, "{:3} days {:2} h {:2} min {:2} s", d, h, min, sec) // XYZ days PQ h RS min TU s
-                } else if sec > 6_000 {
-                    let h = sec / 3600;
-                    let min = sec % 3600;
-                    let sec = sec % 60;
-
-                    write!(f, "{:3} h {:2} min {:2} s", h, min, sec) // XYZ h PQ min RS s
-                } else if sec > 100 {
-                    let min = sec / 60;
-                    let sec = sec % 60;
-
-                    write!(f, "{:3} min {:2} s", min, sec) // XYZ min PQ s
-                } else {
-                    write!(f, "{:3.0} s", self.0) // XYZ s
-                }
-            }
+        if sec.is_infinite() {
+            write!(f, "Unknown")
         } else {
-            const KIB: f64 = 1024.0;
-            const MIB: f64 = KIB * KIB;
-            let size = self.0;
+            // we're doing modular arithmetic, treat as integer
+            let sec = sec as u32;
+            if sec > 48 * 3600 {
+                let d = sec / (24 * 3600);
+                let h = sec % (24 * 3600);
+                let min = sec % 3600;
+                let sec = sec % 60;
 
-            if size >= MIB {
-                write!(f, "{:5.1} MiB", size / MIB) // XYZ.P MiB
-            } else if size >= KIB {
-                write!(f, "{:5.1} KiB", size / KIB)
+                write!(f, "{:3} days {:2} h {:2} min {:2} s", d, h, min, sec) // XYZ days PQ h RS min TU s
+            } else if sec > 6_000 {
+                let h = sec / 3600;
+                let min = sec % 3600;
+                let sec = sec % 60;
+
+                write!(f, "{:3} h {:2} min {:2} s", h, min, sec) // XYZ h PQ min RS s
+            } else if sec > 100 {
+                let min = sec / 60;
+                let sec = sec % 60;
+
+                write!(f, "{:3} min {:2} s", min, sec) // XYZ min PQ s
             } else {
-                write!(f, "{:3.0} B", size)
+                write!(f, "{:3.0} s", self.0) // XYZ s
             }
+        }
+    }
+}
+
+/// Human readable size (bytes)
+struct Size(usize);
+
+impl fmt::Display for Size {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        const KIB: f64 = 1024.0;
+        const MIB: f64 = KIB * KIB;
+        let size = self.0 as f64;
+
+        if size >= MIB {
+            write!(f, "{:5.1} MiB", size / MIB) // XYZ.P MiB
+        } else if size >= KIB {
+            write!(f, "{:5.1} KiB", size / KIB)
+        } else {
+            write!(f, "{:3.0} B", size)
         }
     }
 }
