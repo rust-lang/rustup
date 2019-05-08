@@ -214,6 +214,7 @@ fn unpack_without_first_dir<R: Read>(archive: &mut tar::Archive<R>, path: &Path)
     let entries = archive
         .entries()
         .chain_err(|| ErrorKind::ExtractingPackage)?;
+    let mut checked_parents: HashSet<PathBuf> = HashSet::new();
     for entry in entries {
         let mut entry = entry.chain_err(|| ErrorKind::ExtractingPackage)?;
         let relpath = {
@@ -228,8 +229,21 @@ fn unpack_without_first_dir<R: Read>(archive: &mut tar::Archive<R>, path: &Path)
 
         // Create the full path to the entry if it does not exist already
         match full_path.parent() {
-            Some(parent) if !parent.exists() => {
-                ::std::fs::create_dir_all(&parent).chain_err(|| ErrorKind::ExtractingPackage)?
+            Some(parent) => {
+                if !checked_parents.contains(parent) {
+                    checked_parents.insert(parent.clone().to_owned());
+                    // It would be nice to optimise this stat out, but the tar could be like so:
+                    // a/deep/file.txt
+                    // a/file.txt
+                    // which would require tracking the segments rather than a simple hash.
+                    // Until profile shows that one stat per dir is a problem (vs one stat per file)
+                    // leave till later.
+
+                    if !parent.exists() {
+                        ::std::fs::create_dir_all(&parent)
+                            .chain_err(|| ErrorKind::ExtractingPackage)?
+                    }
+                }
             }
             _ => (),
         };
