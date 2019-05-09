@@ -695,10 +695,11 @@ impl<'a> std::io::Read for FileReaderWithProgress<'a> {
         match self.fh.read(buf) {
             Ok(nbytes) => {
                 self.nbytes += nbytes as u64;
+                if (nbytes != 0) {
+                    (self.notify_handler)(Notification::DownloadDataReceived(&buf[0..nbytes]));
+                }
                 if (nbytes == 0) || (self.flen == self.nbytes) {
                     (self.notify_handler)(Notification::DownloadFinished);
-                } else {
-                    (self.notify_handler)(Notification::DownloadDataReceived(&buf[0..nbytes]));
                 }
                 Ok(nbytes)
             }
