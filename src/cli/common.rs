@@ -22,9 +22,9 @@ pub fn confirm(question: &str, default: bool) -> Result<bool> {
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
-    let r = match &*input {
-        "y" | "Y" => true,
-        "n" | "N" => false,
+    let r = match &*input.to_lowercase() {
+        "y" | "yes" => true,
+        "n" | "no" => false,
         "" => default,
         _ => false,
     };
@@ -86,9 +86,9 @@ pub fn question_bool(question: &str, default: bool) -> Result<bool> {
     if input.is_empty() {
         Ok(default)
     } else {
-        match &*input {
-            "y" | "Y" | "yes" => Ok(true),
-            "n" | "N" | "no" => Ok(false),
+        match &*input.to_lowercase() {
+            "y" | "yes" => Ok(true),
+            "n" | "no" => Ok(false),
             _ => Ok(default),
         }
     }
