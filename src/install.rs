@@ -85,7 +85,11 @@ impl<'a> InstallMethod<'a> {
 
         let prefix = InstallPrefix::from(path.to_owned());
         let installation = Components::open(prefix.clone())?;
-        let package = TarGzPackage::new_file(src, temp_cfg)?;
+        let notification_converter = |notification: crate::utils::Notification<'_>| {
+            notify_handler(notification.into());
+        };
+        let reader = utils::FileReaderWithProgress::new_file(&src, &notification_converter)?;
+        let package: &dyn Package = &TarGzPackage::new(reader, temp_cfg)?;
 
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
 
