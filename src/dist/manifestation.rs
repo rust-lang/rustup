@@ -207,7 +207,7 @@ impl Manifestation {
             let gz;
             let xz;
             let notification_converter = |notification: crate::utils::Notification<'_>| {
-                notify_handler(Notification::Utils(notification));
+                notify_handler(notification.into());
             };
             let reader =
                 utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
@@ -402,7 +402,12 @@ impl Manifestation {
         }
 
         // Install all the components in the installer
-        let package = TarGzPackage::new_file(&installer_file, temp_cfg)?;
+        let notification_converter = |notification: crate::utils::Notification<'_>| {
+            notify_handler(notification.into());
+        };
+        let reader =
+            utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
+        let package: &dyn Package = &TarGzPackage::new(reader, temp_cfg)?;
 
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;
