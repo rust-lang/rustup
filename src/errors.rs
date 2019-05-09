@@ -303,9 +303,13 @@ error_chain! {
             description("toolchain does not support components")
             display("toolchain '{}' does not support components", t)
         }
-        UnknownComponent(t: String, c: String) {
+        UnknownComponent(t: String, c: String, s: Option<String>) {
             description("toolchain does not contain component")
-            display("toolchain '{}' does not contain component {}", t, c)
+            display("toolchain '{}' does not contain component {}{}", t, c, if let Some(suggestion) = s {
+                format!("; did you mean '{}'?", suggestion)
+            } else {
+                "".to_string()
+            })
         }
         AddingRequiredComponent(t: String, c: String) {
             description("required component cannot be added")

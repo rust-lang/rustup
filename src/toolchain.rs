@@ -2,6 +2,7 @@ use crate::config::Cfg;
 use crate::dist::dist::ToolchainDesc;
 use crate::dist::download::DownloadCfg;
 use crate::dist::manifest::Component;
+use crate::dist::manifest::Manifest;
 use crate::dist::manifestation::{Changes, Manifestation};
 use crate::dist::prefix::InstallPrefix;
 use crate::env_var;
@@ -556,6 +557,89 @@ impl<'a> Toolchain<'a> {
         }
     }
 
+    fn get_component_suggestion(
+        &self,
+        component: &Component,
+        manifest: &Manifest,
+        only_installed: bool,
+    ) -> Option<String> {
+        use strsim::damerau_levenshtein;
+
+        // Suggest only for very small differences
+        // High number can result in innacurate suggestions for short queries e.g. `rls`
+        const MAX_DISTANCE: usize = 3;
+
+        let components = self.list_components();
+        if let Ok(components) = components {
+            let short_name_distance = components
+                .iter()
+                .filter(|c| !only_installed || c.installed)
+                .map(|c| {
+                    (
+                        damerau_levenshtein(
+                            &c.component.name(manifest)[..],
+                            &component.name(manifest)[..],
+                        ),
+                        c,
+                    )
+                })
+                .min_by_key(|t| t.0)
+                .expect("There should be always at least one component");
+
+            let long_name_distance = components
+                .iter()
+                .filter(|c| !only_installed || c.installed)
+                .map(|c| {
+                    (
+                        damerau_levenshtein(
+                            &c.component.name_in_manifest()[..],
+                            &component.name(manifest)[..],
+                        ),
+                        c,
+                    )
+                })
+                .min_by_key(|t| t.0)
+                .expect("There should be always at least one component");
+
+            let mut closest_distance = short_name_distance;
+            let mut closest_match = short_name_distance.1.component.short_name(manifest);
+
+            // Find closer suggestion
+            if short_name_distance.0 > long_name_distance.0 {
+                closest_distance = long_name_distance;
+
+                // Check if only targets differ
+                if closest_distance.1.component.short_name_in_manifest()
+                    == component.short_name_in_manifest()
+                {
+                    closest_match = long_name_distance.1.component.target();
+                } else {
+                    closest_match = long_name_distance
+                        .1
+                        .component
+                        .short_name_in_manifest()
+                        .to_string();
+                }
+            } else {
+                // Check if only targets differ
+                if closest_distance.1.component.short_name(manifest)
+                    == component.short_name(manifest)
+                {
+                    closest_match = short_name_distance.1.component.target().to_string();
+                }
+            }
+
+            // If suggestion is too different don't suggest anything
+            if closest_distance.0 > MAX_DISTANCE {
+                return None;
+            } else {
+                return Some(closest_match.to_string());
+            }
+        } else {
+            return None;
+        }
+    }
+
     pub fn add_component(&self, mut component: Component) -> Result<()> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
@@ -604,6 +688,7 @@ impl<'a> Toolchain<'a> {
                     return Err(ErrorKind::UnknownComponent(
                         self.name.to_string(),
                         component.description(&manifest),
+                        self.get_component_suggestion(&component, &manifest, false),
                     )
                     .into());
                 }
@@ -674,6 +759,7 @@ impl<'a> Toolchain<'a> {
                     return Err(ErrorKind::UnknownComponent(
                         self.name.to_string(),
                         component.description(&manifest),
+                        self.get_component_suggestion(&component, &manifest, true),
                     )
                     .into());
                 }
