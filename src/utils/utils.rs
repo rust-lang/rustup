@@ -6,7 +6,7 @@ use std::cmp::Ord;
 use std::env;
 use std::ffi::OsString;
 use std::fs::{self, File};
-use std::io::{self, Write};
+use std::io::{self, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use url::Url;
@@ -659,9 +659,8 @@ fn rename(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
 }
 
 pub struct FileReaderWithProgress<'a> {
-    fh: std::fs::File,
+    fh: std::io::BufReader<std::fs::File>,
     notify_handler: &'a dyn Fn(Notification<'_>),
-    sent_start: bool,
     nbytes: u64,
     flen: u64,
 }
@@ -676,24 +675,23 @@ impl<'a> FileReaderWithProgress<'a> {
             })?,
         };
 
+        // Inform the tracker of the file size
+        let flen = fh.metadata()?.len();
+        (notify_handler)(Notification::DownloadContentLengthReceived(flen));
+
+        let fh = BufReader::with_capacity(8 * 1024 * 1024, fh);
+
         Ok(FileReaderWithProgress {
             fh,
             notify_handler,
-            sent_start: false,
             nbytes: 0,
-            flen: 0,
+            flen: flen,
         })
     }
 }
 
 impl<'a> std::io::Read for FileReaderWithProgress<'a> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        if !self.sent_start {
-            // Send the start notifications
-            let flen = self.fh.metadata()?.len();
-            self.flen = flen;
-            (self.notify_handler)(Notification::DownloadContentLengthReceived(flen));
-        }
         match self.fh.read(buf) {
             Ok(nbytes) => {
                 self.nbytes += nbytes as u64;
