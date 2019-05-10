@@ -11,7 +11,6 @@ use crate::utils::utils;
 
 use std::collections::HashSet;
 use std::fmt;
-use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -282,10 +281,6 @@ impl<'a> TarGzPackage<'a> {
         let stream = flate2::read::GzDecoder::new(stream);
         Ok(TarGzPackage(TarPackage::new(stream, temp_cfg)?))
     }
-    pub fn new_file(path: &Path, temp_cfg: &'a temp::Cfg) -> Result<Self> {
-        let file = File::open(path).chain_err(|| ErrorKind::ExtractingPackage)?;
-        Self::new(file, temp_cfg)
-    }
 }
 
 impl<'a> Package for TarGzPackage<'a> {
@@ -313,10 +308,6 @@ impl<'a> TarXzPackage<'a> {
     pub fn new<R: Read>(stream: R, temp_cfg: &'a temp::Cfg) -> Result<Self> {
         let stream = xz2::read::XzDecoder::new(stream);
         Ok(TarXzPackage(TarPackage::new(stream, temp_cfg)?))
-    }
-    pub fn new_file(path: &Path, temp_cfg: &'a temp::Cfg) -> Result<Self> {
-        let file = File::open(path).chain_err(|| ErrorKind::ExtractingPackage)?;
-        Self::new(file, temp_cfg)
     }
 }
 
