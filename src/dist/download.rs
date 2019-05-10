@@ -43,7 +43,7 @@ impl<'a> DownloadCfg<'a> {
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
-            let cached_result = file_hash(&target_file)?;
+            let cached_result = file_hash(&target_file, self.notify_handler)?;
             if hash == cached_result {
                 (self.notify_handler)(Notification::FileAlreadyDownloaded);
                 (self.notify_handler)(Notification::ChecksumValid(&url.to_string()));
@@ -166,10 +166,13 @@ impl<'a> DownloadCfg<'a> {
     }
 }
 
-fn file_hash(path: &Path) -> Result<String> {
+fn file_hash(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<String> {
     let mut hasher = Sha256::new();
+    let notification_converter = |notification: crate::utils::Notification<'_>| {
+        notify_handler(notification.into());
+    };
+    let mut downloaded = utils::FileReaderWithProgress::new_file(&path, &notification_converter)?;
     use std::io::Read;
-    let mut downloaded = fs::File::open(&path).chain_err(|| "opening already downloaded file")?;
     let mut buf = vec![0; 32768];
     while let Ok(n) = downloaded.read(&mut buf) {
         if n == 0 {
