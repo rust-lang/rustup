@@ -51,7 +51,7 @@ impl<'a> Display for Notification<'a> {
                 write!(f, "creating {} directory: '{}'", name, path.display())
             }
             LinkingDirectory(_, dest) => write!(f, "linking directory from: '{}'", dest.display()),
-            CopyingDirectory(src, _) => write!(f, "coping directory from: '{}'", src.display()),
+            CopyingDirectory(src, _) => write!(f, "copying directory from: '{}'", src.display()),
             RemovingDirectory(name, path) => {
                 write!(f, "removing {} directory: '{}'", name, path.display())
             }

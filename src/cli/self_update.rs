@@ -219,7 +219,7 @@ fn canonical_cargo_home() -> Result<String> {
     Ok(path_str)
 }
 
-/// Installing is a simple matter of coping the running binary to
+/// Installing is a simple matter of copying the running binary to
 /// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
 /// and adding `CARGO_HOME`/bin to PATH.
 pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<()> {
