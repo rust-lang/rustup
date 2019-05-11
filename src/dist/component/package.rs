@@ -246,7 +246,7 @@ fn unpack_without_first_dir<R: Read>(archive: &mut tar::Archive<R>, path: &Path)
             }
             _ => (),
         };
-
+        entry.set_preserve_mtime(false);
         entry
             .unpack(&full_path)
             .chain_err(|| ErrorKind::ExtractingPackage)?;
