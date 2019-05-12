@@ -89,7 +89,8 @@ impl<'a> InstallMethod<'a> {
             notify_handler(notification.into());
         };
         let reader = utils::FileReaderWithProgress::new_file(&src, &notification_converter)?;
-        let package: &dyn Package = &TarGzPackage::new(reader, temp_cfg)?;
+        let package: &dyn Package =
+            &TarGzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
 
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
 
