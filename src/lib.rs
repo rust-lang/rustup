@@ -51,7 +51,6 @@ pub mod command;
 mod config;
 pub mod dist;
 pub mod env_var;
-#[allow(deprecated)] // WORKAROUND https://github.com/rust-lang-nursery/error-chain/issues/254
 pub mod errors;
 mod install;
 mod notifications;
