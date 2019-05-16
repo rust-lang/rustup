@@ -3,7 +3,6 @@
 use std::path::Path;
 use url::Url;
 
-#[allow(deprecated)] // WORKAROUND https://github.com/rust-lang-nursery/error-chain/issues/254
 mod errors;
 pub use crate::errors::*;
 
