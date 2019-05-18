@@ -209,7 +209,7 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
             path.as_ptr(),
             GENERIC_WRITE,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            0 as *mut _,
+            ptr::null_mut(),
             OPEN_EXISTING,
             FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
             ptr::null_mut(),
