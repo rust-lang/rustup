@@ -211,7 +211,7 @@ impl TargetTriple {
 }
 
 impl PartialTargetTriple {
-    pub fn from_str(name: &str) -> Option<Self> {
+    pub fn new(name: &str) -> Option<Self> {
         if name.is_empty() {
             return Some(PartialTargetTriple {
                 arch: None,
@@ -278,7 +278,7 @@ impl PartialToolchainDesc {
             }
 
             let trip = c.get(3).map(|c| c.as_str()).unwrap_or("");
-            let trip = PartialTargetTriple::from_str(&trip);
+            let trip = PartialTargetTriple::new(&trip);
             trip.map(|t| PartialToolchainDesc {
                 channel: c.get(1).unwrap().as_str().to_owned(),
                 date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
@@ -294,7 +294,7 @@ impl PartialToolchainDesc {
     }
 
     pub fn resolve(self, input_host: &TargetTriple) -> Result<ToolchainDesc> {
-        let host = PartialTargetTriple::from_str(&input_host.0).ok_or_else(|| {
+        let host = PartialTargetTriple::new(&input_host.0).ok_or_else(|| {
             format!(
                 "Provided host '{}' couldn't be converted to partial triple",
                 input_host.0

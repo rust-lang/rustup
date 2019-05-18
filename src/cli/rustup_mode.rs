@@ -529,7 +529,7 @@ fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<bool> {
 }
 
 fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
-    if let Some(triple) = PartialTargetTriple::from_str(name) {
+    if let Some(triple) = PartialTargetTriple::new(name) {
         warn!("(partial) target triple specified instead of toolchain name");
         let installed_toolchains = cfg.list_toolchains()?;
         let default = cfg.find_default()?;
@@ -578,7 +578,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
 }
 
 fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
-    if let Some(triple) = PartialTargetTriple::from_str(name) {
+    if let Some(triple) = PartialTargetTriple::new(name) {
         warn!("(partial) target triple specified instead of toolchain name");
         let default = cfg.find_default()?;
         let default_name = default.map(|t| t.name().to_string()).unwrap_or_default();
