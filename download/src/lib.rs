@@ -1,4 +1,5 @@
 //! Easy file downloading
+#![deny(rust_2018_idioms)]
 
 use std::path::Path;
 use url::Url;

@@ -1,3 +1,4 @@
+#![deny(rust_2018_idioms)]
 #![recursion_limit = "1024"]
 
 pub use crate::config::*;

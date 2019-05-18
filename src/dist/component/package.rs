@@ -229,7 +229,7 @@ mod unpacker {
     }
 
     impl<'a> Unpacker<'a> {
-        pub fn new(notify_handler: Option<&'a dyn Fn(Notification<'_>)>) -> Unpacker {
+        pub fn new(notify_handler: Option<&'a dyn Fn(Notification<'_>)>) -> Self {
             // Defaults to hardware thread count threads; this is suitable for
             // our needs as IO bound operations tend to show up as write latencies
             // rather than close latencies, so we don't need to look at
