@@ -685,7 +685,7 @@ impl<'a> FileReaderWithProgress<'a> {
             fh,
             notify_handler,
             nbytes: 0,
-            flen: flen,
+            flen,
         })
     }
 }
