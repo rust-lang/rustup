@@ -21,7 +21,7 @@ pub enum OverrideReason {
 }
 
 impl Display for OverrideReason {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         match self {
             OverrideReason::Environment => write!(f, "environment override by RUSTUP_TOOLCHAIN"),
             OverrideReason::OverrideDB(path) => {

@@ -195,7 +195,7 @@ pub fn restore_path(p: Option<String>) {
         use std::ffi::OsString;
         use std::os::windows::ffi::OsStrExt;
         let v: Vec<_> = OsString::from(format!("{}\x00", s)).encode_wide().collect();
-        unsafe { ::std::slice::from_raw_parts(v.as_ptr() as *const u8, v.len() * 2).to_vec() }
+        unsafe { std::slice::from_raw_parts(v.as_ptr() as *const u8, v.len() * 2).to_vec() }
     }
 }
 

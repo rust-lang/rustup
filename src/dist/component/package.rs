@@ -355,7 +355,7 @@ fn unpack_without_first_dir<'a, R: Read>(
                     // leave till later.
 
                     if !parent.exists() {
-                        ::std::fs::create_dir_all(&parent)
+                        std::fs::create_dir_all(&parent)
                             .chain_err(|| ErrorKind::ExtractingPackage)?
                     }
                 }

@@ -311,10 +311,10 @@ pub mod reqwest_be {
     }
 
     fn env_proxy(url: &Url) -> Option<Url> {
-        ::env_proxy::for_url(url).to_url()
+        env_proxy::for_url(url).to_url()
     }
 
-    fn request(url: &Url, resume_from: u64) -> ::reqwest::Result<Response> {
+    fn request(url: &Url, resume_from: u64) -> reqwest::Result<Response> {
         let mut req = CLIENT.get(url.as_str());
 
         if resume_from != 0 {

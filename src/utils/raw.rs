@@ -156,7 +156,7 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
     }
     #[cfg(not(windows))]
     fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
-        ::std::os::unix::fs::symlink(src, dest)
+        std::os::unix::fs::symlink(src, dest)
     }
 
     let _ = remove_dir(dest);
@@ -264,7 +264,7 @@ pub enum CommandError {
     Status(ExitStatus),
 }
 
-pub type CommandResult<T> = ::std::result::Result<T, CommandError>;
+pub type CommandResult<T> = std::result::Result<T, CommandError>;
 
 impl error::Error for CommandError {
     fn description(&self) -> &str {

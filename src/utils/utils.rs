@@ -274,7 +274,7 @@ pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
 
 #[cfg(unix)]
 pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
-    ::std::os::unix::fs::symlink(src, dest).chain_err(|| ErrorKind::LinkingFile {
+    std::os::unix::fs::symlink(src, dest).chain_err(|| ErrorKind::LinkingFile {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
     })
@@ -428,7 +428,7 @@ pub fn home_dir() -> Option<PathBuf> {
     use winapi::um::userenv::GetUserProfileDirectoryW;
     use winapi::um::winnt::TOKEN_READ;
 
-    ::std::env::var_os("USERPROFILE")
+    std::env::var_os("USERPROFILE")
         .map(PathBuf::from)
         .or_else(|| unsafe {
             let me = GetCurrentProcess();
@@ -584,7 +584,7 @@ pub fn string_to_winreg_bytes(s: &str) -> Vec<u8> {
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStrExt;
     let v: Vec<_> = OsString::from(format!("{}\x00", s)).encode_wide().collect();
-    unsafe { ::std::slice::from_raw_parts(v.as_ptr() as *const u8, v.len() * 2).to_vec() }
+    unsafe { std::slice::from_raw_parts(v.as_ptr() as *const u8, v.len() * 2).to_vec() }
 }
 
 // This is used to decode the value of HKCU\Environment\PATH. If that
