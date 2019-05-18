@@ -446,10 +446,10 @@ impl Component {
         }
     }
     pub fn target(&self) -> String {
-        if let Some(ref t) = self.target {
-            format!("{}", t)
+        if let Some(t) = self.target.as_ref() {
+            t.to_string()
         } else {
-            format!("")
+            String::new()
         }
     }
 }
