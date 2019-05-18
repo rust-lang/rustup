@@ -5,6 +5,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
+use std::str::FromStr;
 
 use crate::dist::{dist, temp};
 use crate::errors::*;

@@ -14,6 +14,7 @@ use regex::Regex;
 use std::env;
 use std::fmt;
 use std::path::Path;
+use std::str::FromStr;
 
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
@@ -251,8 +252,9 @@ impl PartialTargetTriple {
     }
 }
 
-impl PartialToolchainDesc {
-    pub fn from_str(name: &str) -> Result<Self> {
+impl FromStr for PartialToolchainDesc {
+    type Err = Error;
+    fn from_str(name: &str) -> Result<Self> {
         static CHANNELS: &[&str] = &[
             "nightly",
             "beta",
@@ -292,7 +294,9 @@ impl PartialToolchainDesc {
             Err(ErrorKind::InvalidToolchainName(name.to_string()).into())
         }
     }
+}
 
+impl PartialToolchainDesc {
     pub fn resolve(self, input_host: &TargetTriple) -> Result<ToolchainDesc> {
         let host = PartialTargetTriple::new(&input_host.0).ok_or_else(|| {
             format!(

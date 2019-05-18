@@ -409,6 +409,7 @@ fn do_pre_install_sanity_checks() -> Result<()> {
 }
 
 fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
+    use std::str::FromStr;
     // Verify that the installation options are vaguely sane
     (|| {
         let host_triple = dist::TargetTriple::from_str(&opts.default_host_triple);
