@@ -525,9 +525,9 @@ pub fn cargo_home() -> Result<PathBuf> {
         None
     };
 
-    let user_home = home_dir().map(|p| p.join(".cargo"));
+    let user_home = || home_dir().map(|p| p.join(".cargo"));
     cargo_home
-        .or(user_home)
+        .or_else(user_home)
         .ok_or_else(|| ErrorKind::CargoHome.into())
 }
 
@@ -563,9 +563,9 @@ pub fn rustup_home() -> Result<PathBuf> {
         None
     };
 
-    let user_home = dot_dir(".rustup");
+    let user_home = || dot_dir(".rustup");
     rustup_home
-        .or(user_home)
+        .or_else(user_home)
         .ok_or_else(|| ErrorKind::RustupHome.into())
 }
 
