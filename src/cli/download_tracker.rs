@@ -42,6 +42,8 @@ pub struct DownloadTracker {
     /// If we have displayed progress, this is the number of characters we
     /// rendered, so we can erase it cleanly.
     displayed_charcount: Option<usize>,
+    /// What units to show progress in
+    units: Vec<String>,
 }
 
 impl DownloadTracker {
@@ -56,6 +58,7 @@ impl DownloadTracker {
             last_sec: None,
             term: term2::stdout(),
             displayed_charcount: None,
+            units: vec!["B".into(); 1],
         }
     }
 
@@ -76,6 +79,15 @@ impl DownloadTracker {
                 self.download_finished();
                 true
             }
+            Notification::Install(In::Utils(Un::DownloadPushUnits(units))) => {
+                self.push_units(units.into());
+                true
+            }
+            Notification::Install(In::Utils(Un::DownloadPopUnits)) => {
+                self.pop_units();
+                true
+            }
+
             _ => false,
         }
     }
@@ -139,11 +151,13 @@ impl DownloadTracker {
     }
     /// Display the tracked download information to the terminal.
     fn display(&mut self) {
-        let total_h = Size(self.total_downloaded);
+        // Panic if someone pops the default bytes unit...
+        let units = &self.units.last().unwrap();
+        let total_h = Size(self.total_downloaded, units);
         let sum = self.downloaded_last_few_secs.iter().fold(0, |a, &v| a + v);
         let len = self.downloaded_last_few_secs.len();
         let speed = if len > 0 { sum / len } else { 0 };
-        let speed_h = Size(speed);
+        let speed_h = Size(speed, units);
         let elapsed_h = Duration(precise_time_s() - self.start_sec);
 
         // First, move to the start of the current line and clear it.
@@ -163,7 +177,7 @@ impl DownloadTracker {
 
         let output = match self.content_len {
             Some(content_len) => {
-                let content_len_h = Size(content_len);
+                let content_len_h = Size(content_len, units);
                 let content_len = content_len as f64;
                 let percent = (self.total_downloaded as f64 / content_len) * 100.;
                 let remaining = content_len - self.total_downloaded as f64;
@@ -183,6 +197,14 @@ impl DownloadTracker {
         // Since stdout is typically line-buffered and we don't print a newline, we manually flush.
         let _ = self.term.flush();
         self.displayed_charcount = Some(output.chars().count());
+    }
+
+    pub fn push_units(&mut self, new_units: String) {
+        self.units.push(new_units);
+    }
+
+    pub fn pop_units(&mut self) {
+        self.units.pop();
     }
 }
 
@@ -207,21 +229,21 @@ impl fmt::Display for Duration {
     }
 }
 
-/// Human readable size (bytes)
-struct Size(usize);
+/// Human readable size (some units)
+struct Size<'a>(usize, &'a str);
 
-impl fmt::Display for Size {
+impl<'a> fmt::Display for Size<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        const KIB: f64 = 1024.0;
-        const MIB: f64 = KIB * KIB;
+        const KI: f64 = 1024.0;
+        const MI: f64 = KI * KI;
         let size = self.0 as f64;
 
-        if size >= MIB {
-            write!(f, "{:5.1} MiB", size / MIB) // XYZ.P MiB
-        } else if size >= KIB {
-            write!(f, "{:5.1} KiB", size / KIB)
+        if size >= MI {
+            write!(f, "{:5.1} Mi{}", size / MI, self.1) // XYZ.P Mi
+        } else if size >= KI {
+            write!(f, "{:5.1} Ki{}", size / KI, self.1)
         } else {
-            write!(f, "{:3.0} B", size)
+            write!(f, "{:3.0} {}", size, self.1)
         }
     }
 }
