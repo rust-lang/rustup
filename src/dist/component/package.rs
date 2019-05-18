@@ -345,7 +345,7 @@ fn unpack_without_first_dir<'a, R: Read>(
         // Create the full path to the entry if it does not exist already
         if let Some(parent) = full_path.parent() {
             if !checked_parents.contains(parent) {
-                checked_parents.insert(parent.clone().to_owned());
+                checked_parents.insert(parent.to_owned());
                 // It would be nice to optimise this stat out, but the tar could be like so:
                 // a/deep/file.txt
                 // a/file.txt
