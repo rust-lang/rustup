@@ -21,7 +21,7 @@ pub fn main() -> Result<()> {
         let arg0 = arg0
             .as_ref()
             .and_then(|a| a.file_name())
-            .and_then(|a| a.to_str());
+            .and_then(std::ffi::OsStr::to_str);
         let arg0 = arg0.ok_or(ErrorKind::NoExeName)?;
 
         // Check for a toolchain specifier.

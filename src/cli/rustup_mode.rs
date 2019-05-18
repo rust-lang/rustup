@@ -940,7 +940,7 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
     toolchain
         .install_from_dir(Path::new(path), true)
-        .map_err(|e| e.into())
+        .map_err(std::convert::Into::into)
 }
 
 fn toolchain_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {

@@ -50,7 +50,7 @@ fn run_rustup() -> Result<()> {
     let name = arg0
         .as_ref()
         .and_then(|a| a.file_stem())
-        .and_then(|a| a.to_str());
+        .and_then(std::ffi::OsStr::to_str);
 
     match name {
         Some("rustup") => rustup_mode::main(),
