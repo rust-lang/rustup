@@ -412,7 +412,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
     use std::str::FromStr;
     // Verify that the installation options are vaguely sane
     (|| {
-        let host_triple = dist::TargetTriple::from_str(&opts.default_host_triple);
+        let host_triple = dist::TargetTriple::new(&opts.default_host_triple);
         let toolchain_to_use = if opts.default_toolchain == "none" {
             "stable"
         } else {

@@ -112,15 +112,15 @@ static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi
 static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
 
 impl TargetTriple {
-    pub fn from_str(name: &str) -> Self {
+    pub fn new(name: &str) -> Self {
         TargetTriple(name.to_string())
     }
 
     pub fn from_build() -> Self {
         if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
-            TargetTriple::from_str(triple)
+            TargetTriple::new(triple)
         } else {
-            TargetTriple::from_str(env!("TARGET"))
+            TargetTriple::new(env!("TARGET"))
         }
     }
 
@@ -196,7 +196,7 @@ impl TargetTriple {
                 _ => None,
             };
 
-            host_triple.map(TargetTriple::from_str)
+            host_triple.map(TargetTriple::new)
         }
 
         if let Ok(triple) = env::var("RUSTUP_OVERRIDE_HOST_TRIPLE") {

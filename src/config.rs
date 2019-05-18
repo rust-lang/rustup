@@ -4,8 +4,8 @@ use std::fmt::{self, Display};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Arc;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use crate::dist::{dist, temp};
 use crate::errors::*;
@@ -485,7 +485,7 @@ impl Cfg {
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied triple is insufficient / bad.
         dist::PartialToolchainDesc::from_str("stable")?
-            .resolve(&dist::TargetTriple::from_str(host_triple))?;
+            .resolve(&dist::TargetTriple::new(host_triple))?;
         self.settings_file.with_mut(|s| {
             s.default_host_triple = Some(host_triple.to_owned());
             Ok(())
@@ -498,7 +498,7 @@ impl Cfg {
             .with(|s| {
                 Ok(s.default_host_triple
                     .as_ref()
-                    .map(|s| dist::TargetTriple::from_str(&s)))
+                    .map(|s| dist::TargetTriple::new(&s)))
             })?
             .unwrap_or_else(dist::TargetTriple::from_build))
     }

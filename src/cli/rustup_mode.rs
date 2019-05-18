@@ -852,8 +852,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").expect("") {
-        let new_component =
-            Component::new("rust-std".to_string(), Some(TargetTriple::from_str(target)));
+        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::new(target)));
 
         toolchain.add_component(new_component)?;
     }
@@ -865,8 +864,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").expect("") {
-        let new_component =
-            Component::new("rust-std".to_string(), Some(TargetTriple::from_str(target)));
+        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::new(target)));
 
         toolchain.remove_component(new_component)?;
     }
@@ -886,16 +884,13 @@ fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    let target = m
-        .value_of("target")
-        .map(TargetTriple::from_str)
-        .or_else(|| {
-            toolchain
-                .desc()
-                .as_ref()
-                .ok()
-                .map(|desc| desc.target.clone())
-        });
+    let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
+        toolchain
+            .desc()
+            .as_ref()
+            .ok()
+            .map(|desc| desc.target.clone())
+    });
 
     for component in m.values_of("component").expect("") {
         let new_component = Component::new(component.to_string(), target.clone());
@@ -908,16 +903,13 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    let target = m
-        .value_of("target")
-        .map(TargetTriple::from_str)
-        .or_else(|| {
-            toolchain
-                .desc()
-                .as_ref()
-                .ok()
-                .map(|desc| desc.target.clone())
-        });
+    let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
+        toolchain
+            .desc()
+            .as_ref()
+            .ok()
+            .map(|desc| desc.target.clone())
+    });
 
     for component in m.values_of("component").expect("") {
         let new_component = Component::new(component.to_string(), target.clone());
