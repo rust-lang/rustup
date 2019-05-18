@@ -16,8 +16,6 @@ mod termhack {
     use std::collections::HashMap;
     use std::io;
     use term::terminfo::TermInfo;
-    #[cfg(windows)]
-    use term::WinConsole;
     use term::{StderrTerminal, StdoutTerminal, Terminal, TerminfoTerminal};
 
     // Works around stdio instances being unclonable.
@@ -43,18 +41,21 @@ mod termhack {
     where
         T: 'static + io::Write + Send + Instantiable,
     {
-        let mut result = terminfo
+        let result = terminfo
             .map(move |ti| TerminfoTerminal::new_with_terminfo(T::instance(), ti.clone()))
             .map(|t| Box::new(t) as Box<Terminal<Output = T> + Send>);
         #[cfg(windows)]
         {
-            result = result.or_else(|| {
-                WinConsole::new(T::instance())
+            result.or_else(|| {
+                term::WinConsole::new(T::instance())
                     .ok()
                     .map(|t| Box::new(t) as Box<Terminal<Output = T> + Send>)
             })
         }
-        result
+        #[cfg(not(windows))]
+        {
+            result
+        }
     }
 
     fn make_terminal_with_fallback<T>(
