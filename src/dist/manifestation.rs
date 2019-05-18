@@ -204,20 +204,20 @@ impl Manifestation {
                 component.target.as_ref(),
             ));
 
-            let gz;
-            let xz;
             let notification_converter = |notification: crate::utils::Notification<'_>| {
                 notify_handler(notification.into());
             };
+            let gz;
+            let xz;
             let reader =
                 utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
             let package: &dyn Package = match format {
                 Format::Gz => {
-                    gz = TarGzPackage::new(reader, temp_cfg)?;
+                    gz = TarGzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
                     &gz
                 }
                 Format::Xz => {
-                    xz = TarXzPackage::new(reader, temp_cfg)?;
+                    xz = TarXzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
                     &xz
                 }
             };
@@ -407,7 +407,8 @@ impl Manifestation {
         };
         let reader =
             utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
-        let package: &dyn Package = &TarGzPackage::new(reader, temp_cfg)?;
+        let package: &dyn Package =
+            &TarGzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
 
         for component in package.components() {
             tx = package.install(&self.installation, &component, None, tx)?;
