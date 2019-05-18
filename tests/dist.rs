@@ -20,6 +20,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::Arc;
 use url::Url;
 

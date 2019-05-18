@@ -346,8 +346,9 @@ impl PartialToolchainDesc {
     }
 }
 
-impl ToolchainDesc {
-    pub fn from_str(name: &str) -> Result<Self> {
+impl FromStr for ToolchainDesc {
+    type Err = Error;
+    fn from_str(name: &str) -> Result<Self> {
         static CHANNELS: &[&str] = &[
             "nightly",
             "beta",
@@ -382,7 +383,9 @@ impl ToolchainDesc {
             })
             .ok_or_else(|| ErrorKind::InvalidToolchainName(name.to_string()).into())
     }
+}
 
+impl ToolchainDesc {
     pub fn manifest_v1_url(&self, dist_root: &str) -> String {
         let do_manifest_staging = env::var("RUSTUP_STAGED_MANIFEST").is_ok();
         match (self.date.as_ref(), do_manifest_staging) {
