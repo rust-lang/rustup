@@ -14,6 +14,7 @@ use regex::Regex;
 use std::env;
 use std::fmt;
 use std::path::Path;
+use std::str::FromStr;
 
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
@@ -111,15 +112,15 @@ static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi
 static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
 
 impl TargetTriple {
-    pub fn from_str(name: &str) -> Self {
+    pub fn new(name: &str) -> Self {
         TargetTriple(name.to_string())
     }
 
     pub fn from_build() -> Self {
         if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
-            TargetTriple::from_str(triple)
+            TargetTriple::new(triple)
         } else {
-            TargetTriple::from_str(env!("TARGET"))
+            TargetTriple::new(env!("TARGET"))
         }
     }
 
@@ -195,7 +196,7 @@ impl TargetTriple {
                 _ => None,
             };
 
-            host_triple.map(TargetTriple::from_str)
+            host_triple.map(TargetTriple::new)
         }
 
         if let Ok(triple) = env::var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
@@ -211,7 +212,7 @@ impl TargetTriple {
 }
 
 impl PartialTargetTriple {
-    pub fn from_str(name: &str) -> Option<Self> {
+    pub fn new(name: &str) -> Option<Self> {
         if name.is_empty() {
             return Some(PartialTargetTriple {
                 arch: None,
@@ -251,8 +252,9 @@ impl PartialTargetTriple {
     }
 }
 
-impl PartialToolchainDesc {
-    pub fn from_str(name: &str) -> Result<Self> {
+impl FromStr for PartialToolchainDesc {
+    type Err = Error;
+    fn from_str(name: &str) -> Result<Self> {
         static CHANNELS: &[&str] = &[
             "nightly",
             "beta",
@@ -278,7 +280,7 @@ impl PartialToolchainDesc {
             }
 
             let trip = c.get(3).map(|c| c.as_str()).unwrap_or("");
-            let trip = PartialTargetTriple::from_str(&trip);
+            let trip = PartialTargetTriple::new(&trip);
             trip.map(|t| PartialToolchainDesc {
                 channel: c.get(1).unwrap().as_str().to_owned(),
                 date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
@@ -292,9 +294,11 @@ impl PartialToolchainDesc {
             Err(ErrorKind::InvalidToolchainName(name.to_string()).into())
         }
     }
+}
 
+impl PartialToolchainDesc {
     pub fn resolve(self, input_host: &TargetTriple) -> Result<ToolchainDesc> {
-        let host = PartialTargetTriple::from_str(&input_host.0).ok_or_else(|| {
+        let host = PartialTargetTriple::new(&input_host.0).ok_or_else(|| {
             format!(
                 "Provided host '{}' couldn't be converted to partial triple",
                 input_host.0
@@ -342,8 +346,9 @@ impl PartialToolchainDesc {
     }
 }
 
-impl ToolchainDesc {
-    pub fn from_str(name: &str) -> Result<Self> {
+impl FromStr for ToolchainDesc {
+    type Err = Error;
+    fn from_str(name: &str) -> Result<Self> {
         static CHANNELS: &[&str] = &[
             "nightly",
             "beta",
@@ -378,7 +383,9 @@ impl ToolchainDesc {
             })
             .ok_or_else(|| ErrorKind::InvalidToolchainName(name.to_string()).into())
     }
+}
 
+impl ToolchainDesc {
     pub fn manifest_v1_url(&self, dist_root: &str) -> String {
         let do_manifest_staging = env::var("RUSTUP_STAGED_MANIFEST").is_ok();
         match (self.date.as_ref(), do_manifest_staging) {

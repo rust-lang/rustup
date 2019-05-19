@@ -156,7 +156,7 @@ pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
     }
     #[cfg(not(windows))]
     fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
-        ::std::os::unix::fs::symlink(src, dest)
+        std::os::unix::fs::symlink(src, dest)
     }
 
     let _ = remove_dir(dest);
@@ -209,7 +209,7 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
             path.as_ptr(),
             GENERIC_WRITE,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            0 as *mut _,
+            ptr::null_mut(),
             OPEN_EXISTING,
             FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS,
             ptr::null_mut(),
@@ -264,7 +264,7 @@ pub enum CommandError {
     Status(ExitStatus),
 }
 
-pub type CommandResult<T> = ::std::result::Result<T, CommandError>;
+pub type CommandResult<T> = std::result::Result<T, CommandError>;
 
 impl error::Error for CommandError {
     fn description(&self) -> &str {

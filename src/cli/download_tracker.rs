@@ -154,7 +154,7 @@ impl DownloadTracker {
         // Panic if someone pops the default bytes unit...
         let units = &self.units.last().unwrap();
         let total_h = Size(self.total_downloaded, units);
-        let sum = self.downloaded_last_few_secs.iter().fold(0, |a, &v| a + v);
+        let sum: usize = self.downloaded_last_few_secs.iter().sum();
         let len = self.downloaded_last_few_secs.len();
         let speed = if len > 0 { sum / len } else { 0 };
         let speed_h = Size(speed, units);

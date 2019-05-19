@@ -100,7 +100,7 @@ pub fn read_line() -> Result<String> {
     let mut lines = stdin.lines();
     lines
         .next()
-        .and_then(|l| l.ok())
+        .and_then(std::result::Result::ok)
         .ok_or_else(|| "unable to read from stdin for confirmation".into())
 }
 

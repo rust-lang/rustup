@@ -229,7 +229,7 @@ mod unpacker {
     }
 
     impl<'a> Unpacker<'a> {
-        pub fn new(notify_handler: Option<&'a dyn Fn(Notification<'_>)>) -> Unpacker {
+        pub fn new(notify_handler: Option<&'a dyn Fn(Notification<'_>)>) -> Self {
             // Defaults to hardware thread count threads; this is suitable for
             // our needs as IO bound operations tend to show up as write latencies
             // rather than close latencies, so we don't need to look at
@@ -343,25 +343,21 @@ fn unpack_without_first_dir<'a, R: Read>(
         let full_path = path.join(&components.as_path());
 
         // Create the full path to the entry if it does not exist already
-        match full_path.parent() {
-            Some(parent) => {
-                if !checked_parents.contains(parent) {
-                    checked_parents.insert(parent.clone().to_owned());
-                    // It would be nice to optimise this stat out, but the tar could be like so:
-                    // a/deep/file.txt
-                    // a/file.txt
-                    // which would require tracking the segments rather than a simple hash.
-                    // Until profile shows that one stat per dir is a problem (vs one stat per file)
-                    // leave till later.
+        if let Some(parent) = full_path.parent() {
+            if !checked_parents.contains(parent) {
+                checked_parents.insert(parent.to_owned());
+                // It would be nice to optimise this stat out, but the tar could be like so:
+                // a/deep/file.txt
+                // a/file.txt
+                // which would require tracking the segments rather than a simple hash.
+                // Until profile shows that one stat per dir is a problem (vs one stat per file)
+                // leave till later.
 
-                    if !parent.exists() {
-                        ::std::fs::create_dir_all(&parent)
-                            .chain_err(|| ErrorKind::ExtractingPackage)?
-                    }
+                if !parent.exists() {
+                    std::fs::create_dir_all(&parent).chain_err(|| ErrorKind::ExtractingPackage)?
                 }
             }
-            _ => (),
-        };
+        }
         entry.set_preserve_mtime(false);
         entry
             .unpack(&full_path)

@@ -244,10 +244,7 @@ impl Package {
             let mut result = HashMap::new();
             for (k, v) in target_table {
                 if let toml::Value::Table(t) = v {
-                    result.insert(
-                        TargetTriple::from_str(&k),
-                        TargetedPackage::from_toml(t, &path)?,
-                    );
+                    result.insert(TargetTriple::new(&k), TargetedPackage::from_toml(t, &path)?);
                 }
             }
             Ok(PackageTargets::Targeted(result))
@@ -396,7 +393,7 @@ impl Component {
                 if s == "*" {
                     None
                 } else {
-                    Some(TargetTriple::from_str(&s))
+                    Some(TargetTriple::new(&s))
                 }
             })?,
         })
@@ -449,10 +446,10 @@ impl Component {
         }
     }
     pub fn target(&self) -> String {
-        if let Some(ref t) = self.target {
-            format!("{}", t)
+        if let Some(t) = self.target.as_ref() {
+            t.to_string()
         } else {
-            format!("")
+            String::new()
         }
     }
 }

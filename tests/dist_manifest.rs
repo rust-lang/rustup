@@ -9,8 +9,8 @@ static EXAMPLE2: &str = include_str!("channel-rust-nightly-example2.toml");
 
 #[test]
 fn parse_smoke_test() {
-    let x86_64_unknown_linux_gnu = TargetTriple::from_str("x86_64-unknown-linux-gnu");
-    let x86_64_unknown_linux_musl = TargetTriple::from_str("x86_64-unknown-linux-musl");
+    let x86_64_unknown_linux_gnu = TargetTriple::new("x86_64-unknown-linux-gnu");
+    let x86_64_unknown_linux_musl = TargetTriple::new("x86_64-unknown-linux-musl");
 
     let pkg = Manifest::parse(EXAMPLE).unwrap();
 

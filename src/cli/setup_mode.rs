@@ -59,7 +59,7 @@ pub fn main() -> Result<()> {
     let verbose = matches.is_present("verbose");
     let default_host = matches
         .value_of("default-host")
-        .map(|s| s.to_owned())
+        .map(std::borrow::ToOwned::to_owned)
         .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string());
     let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
     let no_modify_path = matches.is_present("no-modify-path");

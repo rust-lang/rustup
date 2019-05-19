@@ -529,7 +529,7 @@ fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<bool> {
 }
 
 fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
-    if let Some(triple) = PartialTargetTriple::from_str(name) {
+    if let Some(triple) = PartialTargetTriple::new(name) {
         warn!("(partial) target triple specified instead of toolchain name");
         let installed_toolchains = cfg.list_toolchains()?;
         let default = cfg.find_default()?;
@@ -578,7 +578,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
 }
 
 fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
-    if let Some(triple) = PartialTargetTriple::from_str(name) {
+    if let Some(triple) = PartialTargetTriple::new(name) {
         warn!("(partial) target triple specified instead of toolchain name");
         let default = cfg.find_default()?;
         let default_name = default.map(|t| t.name().to_string()).unwrap_or_default();
@@ -852,8 +852,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").expect("") {
-        let new_component =
-            Component::new("rust-std".to_string(), Some(TargetTriple::from_str(target)));
+        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::new(target)));
 
         toolchain.add_component(new_component)?;
     }
@@ -865,8 +864,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").expect("") {
-        let new_component =
-            Component::new("rust-std".to_string(), Some(TargetTriple::from_str(target)));
+        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::new(target)));
 
         toolchain.remove_component(new_component)?;
     }
@@ -886,16 +884,13 @@ fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    let target = m
-        .value_of("target")
-        .map(TargetTriple::from_str)
-        .or_else(|| {
-            toolchain
-                .desc()
-                .as_ref()
-                .ok()
-                .map(|desc| desc.target.clone())
-        });
+    let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
+        toolchain
+            .desc()
+            .as_ref()
+            .ok()
+            .map(|desc| desc.target.clone())
+    });
 
     for component in m.values_of("component").expect("") {
         let new_component = Component::new(component.to_string(), target.clone());
@@ -908,16 +903,13 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    let target = m
-        .value_of("target")
-        .map(TargetTriple::from_str)
-        .or_else(|| {
-            toolchain
-                .desc()
-                .as_ref()
-                .ok()
-                .map(|desc| desc.target.clone())
-        });
+    let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
+        toolchain
+            .desc()
+            .as_ref()
+            .ok()
+            .map(|desc| desc.target.clone())
+    });
 
     for component in m.values_of("component").expect("") {
         let new_component = Component::new(component.to_string(), target.clone());
@@ -948,7 +940,7 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
     toolchain
         .install_from_dir(Path::new(path), true)
-        .map_err(|e| e.into())
+        .map_err(std::convert::Into::into)
 }
 
 fn toolchain_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {

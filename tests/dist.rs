@@ -20,6 +20,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::Arc;
 use url::Url;
 
@@ -660,11 +661,11 @@ fn update_preserves_extensions() {
         let adds = vec![
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-apple-darwin")),
+                Some(TargetTriple::new("i686-apple-darwin")),
             ),
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-unknown-linux-gnu")),
+                Some(TargetTriple::new("i686-unknown-linux-gnu")),
             ),
         ];
 
@@ -722,7 +723,7 @@ fn update_preserves_extensions_that_became_components() {
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
             let adds = vec![Component::new(
                 "bonus".to_string(),
-                Some(TargetTriple::from_str("x86_64-apple-darwin")),
+                Some(TargetTriple::new("x86_64-apple-darwin")),
             )];
 
             change_channel_date(url, "nightly", "2016-02-01");
@@ -803,11 +804,11 @@ fn add_extensions_for_initial_install() {
         let adds = vec![
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-apple-darwin")),
+                Some(TargetTriple::new("i686-apple-darwin")),
             ),
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-unknown-linux-gnu")),
+                Some(TargetTriple::new("i686-unknown-linux-gnu")),
             ),
         ];
 
@@ -833,11 +834,11 @@ fn add_extensions_for_same_manifest() {
         let adds = vec![
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-apple-darwin")),
+                Some(TargetTriple::new("i686-apple-darwin")),
             ),
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-unknown-linux-gnu")),
+                Some(TargetTriple::new("i686-unknown-linux-gnu")),
             ),
         ];
 
@@ -868,11 +869,11 @@ fn add_extensions_for_upgrade() {
         let adds = vec![
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-apple-darwin")),
+                Some(TargetTriple::new("i686-apple-darwin")),
             ),
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-unknown-linux-gnu")),
+                Some(TargetTriple::new("i686-unknown-linux-gnu")),
             ),
         ];
 
@@ -897,7 +898,7 @@ fn add_extension_not_in_manifest() {
                          temp_cfg| {
         let adds = vec![Component::new(
             "rust-bogus".to_string(),
-            Some(TargetTriple::from_str("i686-apple-darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
         )];
 
         update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
@@ -914,7 +915,7 @@ fn add_extension_that_is_required_component() {
                          temp_cfg| {
         let adds = vec![Component::new(
             "rustc".to_string(),
-            Some(TargetTriple::from_str("x86_64-apple-darwin")),
+            Some(TargetTriple::new("x86_64-apple-darwin")),
         )];
 
         update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
@@ -940,7 +941,7 @@ fn add_extensions_does_not_remove_other_components() {
 
         let adds = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-apple-darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
         )];
 
         update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
@@ -960,7 +961,7 @@ fn remove_extensions_for_initial_install() {
                          temp_cfg| {
         let removes = vec![Component::new(
             "rustc".to_string(),
-            Some(TargetTriple::from_str("x86_64-apple-darwin")),
+            Some(TargetTriple::new("x86_64-apple-darwin")),
         )];
 
         update_from_dist(
@@ -986,11 +987,11 @@ fn remove_extensions_for_same_manifest() {
         let adds = vec![
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-apple-darwin")),
+                Some(TargetTriple::new("i686-apple-darwin")),
             ),
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-unknown-linux-gnu")),
+                Some(TargetTriple::new("i686-unknown-linux-gnu")),
             ),
         ];
 
@@ -998,7 +999,7 @@ fn remove_extensions_for_same_manifest() {
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-apple-darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
         )];
 
         update_from_dist(
@@ -1033,11 +1034,11 @@ fn remove_extensions_for_upgrade() {
         let adds = vec![
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-apple-darwin")),
+                Some(TargetTriple::new("i686-apple-darwin")),
             ),
             Component::new(
                 "rust-std".to_string(),
-                Some(TargetTriple::from_str("i686-unknown-linux-gnu")),
+                Some(TargetTriple::new("i686-unknown-linux-gnu")),
             ),
         ];
 
@@ -1047,7 +1048,7 @@ fn remove_extensions_for_upgrade() {
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-apple-darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
         )];
 
         update_from_dist(
@@ -1086,7 +1087,7 @@ fn remove_extension_not_in_manifest() {
 
         let removes = vec![Component::new(
             "rust-bogus".to_string(),
-            Some(TargetTriple::from_str("i686-apple-darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
         )];
 
         update_from_dist(
@@ -1129,7 +1130,7 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
 
             let adds = vec![Component::new(
                 "bonus".to_string(),
-                Some(TargetTriple::from_str("x86_64-apple-darwin")),
+                Some(TargetTriple::new("x86_64-apple-darwin")),
             )];
             update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
             assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
@@ -1138,7 +1139,7 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
 
             let removes = vec![Component::new(
                 "bonus".to_string(),
-                Some(TargetTriple::from_str("x86_64-apple-darwin")),
+                Some(TargetTriple::new("x86_64-apple-darwin")),
             )];
             update_from_dist(
                 url,
@@ -1166,7 +1167,7 @@ fn remove_extension_that_is_required_component() {
 
         let removes = vec![Component::new(
             "rustc".to_string(),
-            Some(TargetTriple::from_str("x86_64-apple-darwin")),
+            Some(TargetTriple::new("x86_64-apple-darwin")),
         )];
 
         update_from_dist(
@@ -1194,7 +1195,7 @@ fn remove_extension_not_installed() {
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-apple-darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
         )];
 
         update_from_dist(
@@ -1223,14 +1224,14 @@ fn remove_extensions_does_not_remove_other_components() {
                          temp_cfg| {
         let adds = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-apple-darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
         )];
 
         update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-apple-darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
         )];
 
         update_from_dist(
@@ -1259,7 +1260,7 @@ fn add_and_remove_for_upgrade() {
 
         let adds = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-unknown-linux-gnu")),
+            Some(TargetTriple::new("i686-unknown-linux-gnu")),
         )];
 
         update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
@@ -1268,12 +1269,12 @@ fn add_and_remove_for_upgrade() {
 
         let adds = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-apple-darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
         )];
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-unknown-linux-gnu")),
+            Some(TargetTriple::new("i686-unknown-linux-gnu")),
         )];
 
         update_from_dist(
@@ -1305,19 +1306,19 @@ fn add_and_remove() {
                          temp_cfg| {
         let adds = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-unknown-linux-gnu")),
+            Some(TargetTriple::new("i686-unknown-linux-gnu")),
         )];
 
         update_from_dist(url, toolchain, prefix, &adds, &[], download_cfg, temp_cfg).unwrap();
 
         let adds = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-apple-darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
         )];
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-unknown-linux-gnu")),
+            Some(TargetTriple::new("i686-unknown-linux-gnu")),
         )];
 
         update_from_dist(
@@ -1352,12 +1353,12 @@ fn add_and_remove_same_component() {
 
         let adds = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-apple-darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
         )];
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::from_str("i686-apple_darwin")),
+            Some(TargetTriple::new("i686-apple_darwin")),
         )];
 
         update_from_dist(
