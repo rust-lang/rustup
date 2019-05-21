@@ -1,5 +1,46 @@
 # Changelog
 
+## [1.18.3] - 2019-05-22
+
+### Changed
+
+- [Improve performance by only opening terminfo once][pr#1820]
+- [Use same webpage opening logic as cargo][pr#1830]
+- [Report download duration on completion][pr#1837]
+- [Reduce stat() usage in unpacking][pr#1839]
+- [Buffer reads from tarfile during unpacking][pr#1840]
+- [Buffer for hashing of dist content][pr#1845]
+- [Don't set mtime on unpacked toolchain files][pr#1847]
+- [UI consistency/improvement in download speeds][pr#1832]
+- [Avoid blocking on CloseHandle][pr#1850]
+
+### Added
+
+- [Suggest possible components or targets if misspelled][pr#1824]
+
+### Thanks
+
+- Robert Collins (who has tirelessly worked to improve
+  the performance of Rustup, particularly on Windows)
+- Lucien Greathouse
+- Filip Demski
+- Peter Hrvola
+- Bogdan Kulbida
+- Srinivas Reddy Thatiparthy
+- Sunjay Varma
+- Lzu Tao (behind the scenes, lots of housekeeping and CI)
+
+[pr#1820]: https://github.com/rust-lang/rustup.rs/pull/1820
+[pr#1830]: https://github.com/rust-lang/rustup.rs/pull/1830
+[pr#1837]: https://github.com/rust-lang/rustup.rs/pull/1837
+[pr#1839]: https://github.com/rust-lang/rustup.rs/pull/1839
+[pr#1840]: https://github.com/rust-lang/rustup.rs/pull/1840
+[pr#1845]: https://github.com/rust-lang/rustup.rs/pull/1845
+[pr#1847]: https://github.com/rust-lang/rustup.rs/pull/1847
+[pr#1832]: https://github.com/rust-lang/rustup.rs/pull/1832
+[pr#1850]: https://github.com/rust-lang/rustup.rs/pull/1850
+[pr#1824]: https://github.com/rust-lang/rustup.rs/pull/1824
+
 ## [1.18.2] - 2019-05-02
 
 ### Changed
