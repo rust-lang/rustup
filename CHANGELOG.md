@@ -19,14 +19,14 @@
 
 This release was made, in part, thanks to:
 
-* Brian Ericson
-* Onat Mercan
-* Lzu Tao
-* Takuto Ikuta
-* Jason Williams
-* Filip Demski
-* Michael Maclean
-* Daniel Silverstone
+- Brian Ericson
+- Onat Mercan
+- Lzu Tao
+- Takuto Ikuta
+- Jason Williams
+- Filip Demski
+- Michael Maclean
+- Daniel Silverstone
 
 [pr#1809]: https://github.com/rust-lang/rustup.rs/pull/1809
 [pr#1801]: https://github.com/rust-lang/rustup.rs/pull/1801
