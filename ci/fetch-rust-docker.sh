@@ -24,6 +24,7 @@ case "$TARGET" in
   s390x-unknown-linux-gnu)         image=dist-s390x-linux ;;
   x86_64-unknown-linux-gnu)        image=dist-x86_64-linux ;;
   i686-unknown-linux-gnu)          image=dist-i686-linux ;;
+  x86_64-unknown-freebsd)          image=dist-x86_64-freebsd ;;
   *) exit ;;
 esac
 
