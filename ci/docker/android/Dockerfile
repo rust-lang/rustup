@@ -1,4 +1,5 @@
 FROM ubuntu:18.04
+USER root
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -9,6 +10,9 @@ RUN apt-get update && \
     libc6-dev \
     make \
     pkg-config
+
+COPY ci/docker/scripts/sccache.sh /scripts/
+RUN sh /scripts/sccache.sh
 
 RUN apt-get install -y --no-install-recommends \
     unzip \
