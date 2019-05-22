@@ -42,7 +42,7 @@ matrix:
     - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips64-unknown-linux-gnuabi64   }
     - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips64el-unknown-linux-gnuabi64 }
     - { <<: *linux, env: SKIP_TESTS=1 TARGET=s390x-unknown-linux-gnu         }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=x86_64-unknown-linux-musl       }
+    - { os: linux, env: SKIP_TESTS=1 TARGET=x86_64-unknown-linux-musl        }
     - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-linux-androideabi           }
     - { <<: *linux, env: SKIP_TESTS=1 TARGET=armv7-linux-androideabi         }
     - { <<: *linux, env: SKIP_TESTS=1 TARGET=aarch64-linux-android           }
