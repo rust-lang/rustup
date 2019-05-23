@@ -14,6 +14,11 @@ S3_BASE_URL="https://s3-us-west-1.amazonaws.com/rust-lang-ci2/rustc-builds"
 
 # Use images from rustc master
 case "$TARGET" in
+  aarch64-unknown-linux-gnu)       image=dist-aarch64-linux ;;
+  arm-unknown-linux-gnueabi)       image=dist-arm-linux ;;
+  arm-unknown-linux-gnueabihf)     image=dist-armhf-linux ;;
+  armv7-unknown-linux-gnueabihf)   image=dist-armv7-linux ;;
+  i686-unknown-linux-gnu)          image=dist-i686-linux ;;
   mips-unknown-linux-gnu)          image=dist-mips-linux ;;
   mips64-unknown-linux-gnuabi64)   image=dist-mips64-linux ;;
   mips64el-unknown-linux-gnuabi64) image=dist-mips64el-linux ;;
@@ -22,9 +27,8 @@ case "$TARGET" in
   powerpc64-unknown-linux-gnu)     image=dist-powerpc64-linux ;;
   powerpc64le-unknown-linux-gnu)   image=dist-powerpc64le-linux ;;
   s390x-unknown-linux-gnu)         image=dist-s390x-linux ;;
-  x86_64-unknown-linux-gnu)        image=dist-x86_64-linux ;;
-  i686-unknown-linux-gnu)          image=dist-i686-linux ;;
   x86_64-unknown-freebsd)          image=dist-x86_64-freebsd ;;
+  x86_64-unknown-linux-gnu)        image=dist-x86_64-linux ;;
   *) exit ;;
 esac
 
