@@ -275,7 +275,15 @@ pub fn cli() -> App<'static, 'static> {
                     SubCommand::with_name("add")
                         .about("Add a target to a Rust toolchain")
                         .alias("install")
-                        .arg(Arg::with_name("target").required(true).multiple(true))
+                        .arg(
+                            Arg::with_name("target")
+                                .required(true)
+                                .multiple(true)
+                                .help(
+                                    "List of targets to install; \
+                                     \"all\" installs all available targets"
+                                )
+                        )
                         .arg(
                             Arg::with_name("toolchain")
                                 .help(TOOLCHAIN_ARG_HELP)
@@ -851,9 +859,31 @@ fn target_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
-    for target in m.values_of("target").expect("") {
-        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::new(target)));
+    let mut targets: Vec<String> = m
+        .values_of("target")
+        .expect("")
+        .map(ToString::to_string)
+        .collect();
 
+    if targets.contains(&"all".to_string()) {
+        targets.clear();
+        for component in toolchain.list_components()? {
+            if component.component.short_name_in_manifest() == "rust-std"
+                && component.available
+                && !component.installed
+            {
+                let target = component
+                    .component
+                    .target
+                    .as_ref()
+                    .expect("rust-std should have a target");
+                targets.push(target.to_string());
+            }
+        }
+    }
+
+    for target in &targets {
+        let new_component = Component::new("rust-std".to_string(), Some(TargetTriple::new(target)));
         toolchain.add_component(new_component)?;
     }
 
