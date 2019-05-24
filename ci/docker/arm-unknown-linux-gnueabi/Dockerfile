@@ -1,7 +1,4 @@
-FROM alexcrichton/rust-slave-linux-cross:2016-11-11
-USER root
+FROM rust-arm-unknown-linux-gnueabi
 
-ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABI_LINKER=arm-linux-gnueabi-gcc
-
-COPY ci/docker/scripts/sccache.sh /scripts/
-RUN sh /scripts/sccache.sh
+ENV CC_arm_unknown_linux_gnueabi=arm-unknown-linux-gnueabi-gcc
+ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABI_LINKER=arm-unknown-linux-gnueabi-gcc
