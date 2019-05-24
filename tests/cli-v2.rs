@@ -603,6 +603,29 @@ fn add_all_targets() {
 }
 
 #[test]
+fn add_all_targets_fail() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_err(
+            config,
+            &[
+                "rustup",
+                "target",
+                "add",
+                clitools::CROSS_ARCH1,
+                "all",
+                clitools::CROSS_ARCH2,
+            ],
+            &format!(
+                "`rustup target add {} all {}` includes `all`",
+                clitools::CROSS_ARCH1,
+                clitools::CROSS_ARCH2
+            ),
+        );
+    });
+}
+
+#[test]
 fn add_target_no_toolchain() {
     setup(&|config| {
         expect_err(

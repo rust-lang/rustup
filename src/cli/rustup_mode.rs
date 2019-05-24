@@ -866,6 +866,10 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         .collect();
 
     if targets.contains(&"all".to_string()) {
+        if targets.len() != 1 {
+            return Err(ErrorKind::TargetAllSpecifiedWithTargets(targets).into());
+        }
+
         targets.clear();
         for component in toolchain.list_components()? {
             if component.component.short_name_in_manifest() == "rust-std"

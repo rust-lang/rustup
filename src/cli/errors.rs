@@ -49,5 +49,12 @@ error_chain! {
             description("completion script for shell not yet supported for tool")
             display("{} does not currently support completions for {}", cmd, shell)
         }
+        TargetAllSpecifiedWithTargets(t: Vec<String>) {
+            description(
+                "the `all` target, which installs all available targets, \
+                 cannot be combined with other targets"
+            )
+            display("`rustup target add {}` includes `all`", t.join(" "))
+        }
     }
 }
