@@ -555,7 +555,7 @@ fn list_installed_targets() {
 }
 
 #[test]
-fn add_target() {
+fn add_target1() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
@@ -565,6 +565,63 @@ fn add_target() {
             clitools::CROSS_ARCH1
         );
         assert!(config.rustupdir.join(path).exists());
+    });
+}
+
+#[test]
+fn add_target2() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH2]);
+        let path = format!(
+            "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+            this_host_triple(),
+            clitools::CROSS_ARCH2
+        );
+        assert!(config.rustupdir.join(path).exists());
+    });
+}
+
+#[test]
+fn add_all_targets() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "target", "add", "all"]);
+        let path = format!(
+            "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+            this_host_triple(),
+            clitools::CROSS_ARCH1
+        );
+        assert!(config.rustupdir.join(path).exists());
+        let path = format!(
+            "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
+            this_host_triple(),
+            clitools::CROSS_ARCH2
+        );
+        assert!(config.rustupdir.join(path).exists());
+    });
+}
+
+#[test]
+fn add_all_targets_fail() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_err(
+            config,
+            &[
+                "rustup",
+                "target",
+                "add",
+                clitools::CROSS_ARCH1,
+                "all",
+                clitools::CROSS_ARCH2,
+            ],
+            &format!(
+                "`rustup target add {} all {}` includes `all`",
+                clitools::CROSS_ARCH1,
+                clitools::CROSS_ARCH2
+            ),
+        );
     });
 }
 
