@@ -55,6 +55,10 @@ wait-timeout = "0.2"
 walkdir = "2"
 xz2 = "0.1.3"
 
+[dependencies.retry]
+version = "0.5"
+default-features = false
+
 [target."cfg(windows)".dependencies]
 cc = "1"
 winreg = "0.6"
