@@ -11,6 +11,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use url::Url;
 
+use retry::delay::{jitter, Fibonacci};
+use retry::{retry, OperationResult};
+
 #[cfg(windows)]
 use winapi::shared::minwindef::DWORD;
 
@@ -651,7 +654,21 @@ pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
 }
 
 fn rename(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
-    fs::rename(src, dest).chain_err(|| ErrorKind::RenamingFile {
+    // https://github.com/rust-lang/rustup.rs/issues/1870
+    // 21 fib steps from 1 sums to ~28 seconds, hopefully more than enough
+    // for our previous poor performance that avoided the race condition with
+    // McAfee and Norton.
+    retry(
+        Fibonacci::from_millis(1).map(jitter).take(21),
+        || match fs::rename(src, dest) {
+            Ok(v) => OperationResult::Ok(v),
+            Err(e) => match e.kind() {
+                io::ErrorKind::PermissionDenied => OperationResult::Retry(e),
+                _ => OperationResult::Err(e),
+            },
+        },
+    )
+    .chain_err(|| ErrorKind::RenamingFile {
         name,
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
