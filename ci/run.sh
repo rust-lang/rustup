@@ -2,6 +2,9 @@
 
 set -ex
 
+RUST_BACKTRACE=1
+export RUST_BACKTRACE
+
 rustc -vV
 cargo -vV
 
