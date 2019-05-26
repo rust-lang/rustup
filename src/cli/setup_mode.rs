@@ -20,7 +20,9 @@ pub fn main() -> Result<()> {
         return Ok(());
     }
 
-    // XXX: If you change anything here, please make the same changes in rustup-init.sh
+    // XXX: If you change anything here, please make the same changes in `src/cli/setup_mode.rs`
+    // and `rustup-init.sh`. This keeps the usage output of the bootstrapping scripts consistent
+    // with the `rustup-init` executable.
     let cli = App::new("rustup-init")
         .version(common::version())
         .about("The installer for rustup")
