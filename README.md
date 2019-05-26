@@ -611,6 +611,11 @@ Command                                                     | Description
 - `RUSTUP_UPDATE_ROOT` (default `https://static.rust-lang.org/rustup`)
   Sets the root URL for downloading self-updates.
 
+- `RUSTUP_IO_THREADS` (defaults to reported cpu count). Sets the
+  number of threads to perform close IO in. Set to `disabled` to force
+  single-threaded IO for troubleshooting, or an arbitrary number to
+  override automatic detection.
+
 ## Other installation methods
 
 The primary installation method, as described at https://rustup.rs, differs by platform:
