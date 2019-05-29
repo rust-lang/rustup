@@ -50,6 +50,7 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
 
 pub mod command;
 mod config;
+pub mod diskio;
 pub mod dist;
 pub mod env_var;
 pub mod errors;

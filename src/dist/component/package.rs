@@ -2,19 +2,20 @@
 //! for installing from a directory or tarball to an installation
 //! prefix, represented by a `Components` instance.
 
+use crate::diskio::{get_executor, Executor, Item, Kind};
 use crate::dist::component::components::*;
 use crate::dist::component::transaction::*;
-
 use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::notifications::Notification;
 use crate::utils::utils;
 
 use std::collections::HashSet;
-use std::env;
 use std::fmt;
-use std::io::Read;
+use std::io::{self, ErrorKind as IOErrorKind, Read};
 use std::path::{Path, PathBuf};
+
+use tar::EntryType;
 
 /// The current metadata revision used by rust-installer
 pub const INSTALLER_VERSION: &str = "3";
@@ -215,133 +216,22 @@ impl<'a> TarPackage<'a> {
     }
 }
 
-trait Unpacker {
-    fn handle(&mut self, unpacked: tar::Unpacked);
-}
-
-mod threadedunpacker {
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::Arc;
-    use threadpool;
-
-    use crate::utils::notifications::Notification;
-
-    pub struct Unpacker<'a> {
-        n_files: Arc<AtomicUsize>,
-        pool: threadpool::ThreadPool,
-        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
-    }
-
-    impl<'a> Unpacker<'a> {
-        pub fn new(notify_handler: Option<&'a dyn Fn(Notification<'_>)>) -> Self {
-            // Defaults to hardware thread count threads; this is suitable for
-            // our needs as IO bound operations tend to show up as write latencies
-            // rather than close latencies, so we don't need to look at
-            // more threads to get more IO dispatched at this stage in the process.
-            let pool = threadpool::Builder::new()
-                .thread_name("CloseHandle".into())
-                .build();
-            Unpacker {
-                n_files: Arc::new(AtomicUsize::new(0)),
-                pool,
-                notify_handler,
+// Handle the async result of io operations
+fn filter_result(op: Item) -> io::Result<()> {
+    match op.result {
+        Ok(_) => Ok(()),
+        Err(e) => match e.kind() {
+            // TODO: the IO execution logic should pass this back rather than
+            // being the code to ignore it.
+            IOErrorKind::AlreadyExists => {
+                if let Kind::Directory = op.kind {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
             }
-        }
-
-        pub fn new_with_threads(
-            notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
-            thread_count: usize,
-        ) -> Self {
-            // Defaults to hardware thread count threads; this is suitable for
-            // our needs as IO bound operations tend to show up as write latencies
-            // rather than close latencies, so we don't need to look at
-            // more threads to get more IO dispatched at this stage in the process.
-            let pool = threadpool::Builder::new()
-                .thread_name("CloseHandle".into())
-                .num_threads(thread_count)
-                .build();
-            Unpacker {
-                n_files: Arc::new(AtomicUsize::new(0)),
-                pool,
-                notify_handler,
-            }
-        }
-    }
-
-    impl<'a> super::Unpacker for Unpacker<'a> {
-        fn handle(&mut self, unpacked: tar::Unpacked) {
-            if let tar::Unpacked::File(f) = unpacked {
-                self.n_files.fetch_add(1, Ordering::Relaxed);
-                let n_files = self.n_files.clone();
-                self.pool.execute(move || {
-                    drop(f);
-                    n_files.fetch_sub(1, Ordering::Relaxed);
-                });
-            }
-        }
-    }
-
-    impl<'a> Drop for Unpacker<'a> {
-        fn drop(&mut self) {
-            // Some explanation is in order. Even though the tar we are reading from (if
-            // any) will have had its FileWithProgress download tracking
-            // completed before we hit drop, that is not true if we are unwinding due to a
-            // failure, where the logical ownership of the progress bar is
-            // ambiguous, and as the tracker itself is abstracted out behind
-            // notifications etc we cannot just query for that. So: we assume no
-            // more reads of the underlying tar will take place: either the
-            // error unwinding will stop reads, or we completed; either way, we
-            // notify finished to the tracker to force a reset to zero; we set
-            // the units to files, show our progress, and set our units back
-            // afterwards. The largest archives today - rust docs - have ~20k
-            // items, and the download tracker's progress is confounded with
-            // actual handling of data today, we synthesis a data buffer and
-            // pretend to have bytes to deliver.
-            self.notify_handler
-                .map(|handler| handler(Notification::DownloadFinished));
-            self.notify_handler
-                .map(|handler| handler(Notification::DownloadPushUnits("handles")));
-            let mut prev_files = self.n_files.load(Ordering::Relaxed);
-            self.notify_handler.map(|handler| {
-                handler(Notification::DownloadContentLengthReceived(
-                    prev_files as u64,
-                ))
-            });
-            if prev_files > 50 {
-                println!("Closing {} deferred file handles", prev_files);
-            }
-            let buf: Vec<u8> = vec![0; prev_files];
-            assert!(32767 > prev_files);
-            let mut current_files = prev_files;
-            while current_files != 0 {
-                use std::thread::sleep;
-                sleep(std::time::Duration::from_millis(100));
-                prev_files = current_files;
-                current_files = self.n_files.load(Ordering::Relaxed);
-                let step_count = prev_files - current_files;
-                self.notify_handler.map(|handler| {
-                    handler(Notification::DownloadDataReceived(&buf[0..step_count]))
-                });
-            }
-            self.pool.join();
-            self.notify_handler
-                .map(|handler| handler(Notification::DownloadFinished));
-            self.notify_handler
-                .map(|handler| handler(Notification::DownloadPopUnits));
-        }
-    }
-}
-
-mod unpacker {
-    use crate::utils::notifications::Notification;
-    pub struct Unpacker {}
-    impl Unpacker {
-        pub fn new<'a>(_notify_handler: Option<&'a dyn Fn(Notification<'_>)>) -> Unpacker {
-            Unpacker {}
-        }
-    }
-    impl super::Unpacker for Unpacker {
-        fn handle(&mut self, _unpacked: tar::Unpacked) {}
+            _ => Err(e),
+        },
     }
 }
 
@@ -350,22 +240,7 @@ fn unpack_without_first_dir<'a, R: Read>(
     path: &Path,
     notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
 ) -> Result<()> {
-    let mut unpacker : Box<dyn Unpacker> =
-        // If this gets lots of use, consider exposing via the config file.
-        if let Ok(thread_str) = env::var("RUSTUP_IO_THREADS") {
-            if thread_str == "disabled" {
-                Box::new(unpacker::Unpacker::new(notify_handler))
-            } else {
-                if let Ok(thread_count) = thread_str.parse::<usize>() {
-                    Box::new(threadedunpacker::Unpacker::new_with_threads(notify_handler, thread_count))
-                } else {
-                    Box::new(threadedunpacker::Unpacker::new(notify_handler))
-                }
-            }
-        } else {
-            Box::new(threadedunpacker::Unpacker::new(notify_handler))
-        }
-    ;
+    let mut io_executor: Box<dyn Executor> = get_executor(notify_handler);
     let entries = archive
         .entries()
         .chain_err(|| ErrorKind::ExtractingPackage)?;
@@ -378,13 +253,40 @@ fn unpack_without_first_dir<'a, R: Read>(
             let path = path.chain_err(|| ErrorKind::ExtractingPackage)?;
             path.into_owned()
         };
+        // Reject path components that are not normal (.|..|/| etc)
+        for part in relpath.components() {
+            match part {
+                std::path::Component::Normal(_) => {}
+                _ => return Err(ErrorKind::BadPath(relpath).into()),
+            }
+        }
         let mut components = relpath.components();
-        // Throw away the first path component
+        // Throw away the first path component: we make our own root
         components.next();
         let full_path = path.join(&components.as_path());
 
+        let size = entry.header().size()?;
+        if size > 100_000_000 {
+            return Err(format!("File too big {} {}", relpath.display(), size).into());
+        }
+        // Bail out if we get hard links, device nodes or any other unusual content
+        // - it is most likely an attack, as rusts cross-platform nature precludes
+        // such artifacts
+        let kind = entry.header().entry_type();
+        let mode = entry.header().mode().ok().unwrap();
+        let item = match kind {
+            EntryType::Directory => Item::make_dir(full_path, mode),
+            EntryType::Regular => {
+                let mut v = Vec::with_capacity(size as usize);
+                entry.read_to_end(&mut v)?;
+                Item::write_file(full_path, v, mode)
+            }
+            _ => return Err(ErrorKind::UnsupportedKind(format!("{:?}", kind)).into()),
+        };
+
+        // FUTURE: parallelise or delete (surely all distribution tars are well formed in this regard).
         // Create the full path to the entry if it does not exist already
-        if let Some(parent) = full_path.parent() {
+        if let Some(parent) = item.full_path.parent() {
             if !checked_parents.contains(parent) {
                 checked_parents.insert(parent.to_owned());
                 // It would be nice to optimise this stat out, but the tar could be like so:
@@ -399,11 +301,27 @@ fn unpack_without_first_dir<'a, R: Read>(
                 }
             }
         }
-        entry.set_preserve_mtime(false);
-        entry
-            .unpack(&full_path)
-            .map(|unpacked| unpacker.handle(unpacked))
-            .chain_err(|| ErrorKind::ExtractingPackage)?;
+
+        for item in io_executor.execute(item) {
+            // TODO capture metrics, add directories to created cache
+            filter_result(item).chain_err(|| ErrorKind::ExtractingPackage)?;
+        }
+
+        // drain completed results to keep memory pressure low
+        if let Some(iter) = io_executor.completed() {
+            for prev_item in iter {
+                // TODO capture metrics, add directories to created cache
+                filter_result(prev_item).chain_err(|| ErrorKind::ExtractingPackage)?;
+            }
+        }
+    }
+
+    if let Some(iter) = io_executor.join() {
+        for item in iter {
+            // handle final IOs
+            // TODO capture metrics, add directories to created cache
+            filter_result(item).chain_err(|| ErrorKind::ExtractingPackage)?;
+        }
     }
 
     Ok(())
