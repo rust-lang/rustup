@@ -10,7 +10,7 @@ set -e
 TARGET="$1"
 
 RUST_REPO="https://github.com/rust-lang/rust"
-S3_BASE_URL="https://s3-us-west-1.amazonaws.com/rust-lang-ci2/rustc-builds"
+S3_BASE_URL="https://rust-lang-ci2.s3.amazonaws.com/rustc-builds"
 
 # Use images from rustc master
 case "$TARGET" in
