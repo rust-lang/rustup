@@ -37,9 +37,11 @@ impl<'a> DownloadCfg<'a> {
     /// target file already exists, then the hash is checked and it is returned
     /// immediately without re-downloading.
     pub fn download(&self, url: &Url, hash: &str) -> Result<File> {
-        utils::ensure_dir_exists("Download Directory", &self.download_dir, &|n| {
-            (self.notify_handler)(n.into())
-        })?;
+        utils::ensure_dir_exists(
+            "Download Directory",
+            &self.download_dir,
+            &self.notify_handler,
+        )?;
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {

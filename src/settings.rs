@@ -84,7 +84,7 @@ impl Default for Settings {
 impl Settings {
     fn path_to_key(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> String {
         if path.exists() {
-            utils::canonicalize_path(path, &|n| notify_handler(n.into()))
+            utils::canonicalize_path(path, notify_handler)
                 .display()
                 .to_string()
         } else {

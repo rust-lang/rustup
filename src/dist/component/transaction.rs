@@ -195,7 +195,11 @@ impl<'a> ChangedItem<'a> {
         use self::ChangedItem::*;
         match self {
             AddedFile(path) => utils::remove_file("component", &prefix.abs_path(path))?,
-            AddedDir(path) => utils::remove_dir("component", &prefix.abs_path(path), &|_| ())?,
+            AddedDir(path) => {
+                utils::remove_dir("component", &prefix.abs_path(path), &|_: Notification<
+                    '_,
+                >| ())?
+            }
             RemovedFile(path, tmp) | ModifiedFile(path, Some(tmp)) => {
                 utils::rename_file("component", &tmp, &prefix.abs_path(path))?
             }
@@ -225,7 +229,7 @@ impl<'a> ChangedItem<'a> {
             .into())
         } else {
             if let Some(p) = abs_path.parent() {
-                utils::ensure_dir_exists("component", p, &|_| ())?;
+                utils::ensure_dir_exists("component", p, &|_: Notification<'_>| ())?;
             }
             Ok(abs_path)
         }
@@ -253,7 +257,7 @@ impl<'a> ChangedItem<'a> {
         src: &Path,
     ) -> Result<Self> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
-        utils::copy_dir(src, &abs_path, &|_| ())?;
+        utils::copy_dir(src, &abs_path, &|_: Notification<'_>| ())?;
         Ok(ChangedItem::AddedDir(relpath))
     }
     fn remove_file(
@@ -307,7 +311,7 @@ impl<'a> ChangedItem<'a> {
             Ok(ChangedItem::ModifiedFile(relpath, Some(backup)))
         } else {
             if let Some(p) = abs_path.parent() {
-                utils::ensure_dir_exists("component", p, &|_| {})?;
+                utils::ensure_dir_exists("component", p, &|_: Notification<'_>| {})?;
             }
             Ok(ChangedItem::ModifiedFile(relpath, None))
         }

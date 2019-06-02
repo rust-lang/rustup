@@ -52,7 +52,7 @@ impl Cfg {
         // Set up the rustup home directory
         let rustup_dir = utils::rustup_home()?;
 
-        utils::ensure_dir_exists("home", &rustup_dir, &|n| notify_handler(n.into()))?;
+        utils::ensure_dir_exists("home", &rustup_dir, notify_handler.as_ref())?;
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
 
@@ -130,7 +130,7 @@ impl Cfg {
     pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain<'_>> {
         if create_parent {
             utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {
-                (self.notify_handler)(n.into())
+                (self.notify_handler)(n)
             })?;
         }
 
@@ -145,9 +145,11 @@ impl Cfg {
 
     pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> Result<PathBuf> {
         if create_parent {
-            utils::ensure_dir_exists("update-hash", &self.update_hash_dir, &|n| {
-                (self.notify_handler)(n.into())
-            })?;
+            utils::ensure_dir_exists(
+                "update-hash",
+                &self.update_hash_dir,
+                self.notify_handler.as_ref(),
+            )?;
         }
 
         Ok(self.update_hash_dir.join(toolchain))
@@ -182,9 +184,7 @@ impl Cfg {
                 let dirs = utils::read_dir("toolchains", &self.toolchains_dir)?;
                 for dir in dirs {
                     let dir = dir.chain_err(|| ErrorKind::UpgradeIoError)?;
-                    utils::remove_dir("toolchain", &dir.path(), &|n| {
-                        (self.notify_handler)(n.into())
-                    })?;
+                    utils::remove_dir("toolchain", &dir.path(), self.notify_handler.as_ref())?;
                 }
 
                 // Also delete the update hashes
@@ -205,9 +205,7 @@ impl Cfg {
 
     pub fn delete_data(&self) -> Result<()> {
         if utils::path_exists(&self.rustup_dir) {
-            utils::remove_dir("home", &self.rustup_dir, &|n| {
-                (self.notify_handler)(n.into())
-            })
+            utils::remove_dir("home", &self.rustup_dir, self.notify_handler.as_ref())
         } else {
             Ok(())
         }
@@ -297,7 +295,7 @@ impl Cfg {
         settings: &Settings,
     ) -> Result<Option<(String, OverrideReason)>> {
         let notify = self.notify_handler.as_ref();
-        let dir = utils::canonicalize_path(dir, &|n| notify(n.into()));
+        let dir = utils::canonicalize_path(dir, notify);
         let mut dir = Some(&*dir);
 
         while let Some(d) = dir {

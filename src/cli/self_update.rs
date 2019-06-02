@@ -36,6 +36,7 @@ use crate::markdown::md;
 use crate::term2;
 use rustup::dist::dist;
 use rustup::utils::utils;
+use rustup::utils::Notification;
 use rustup::{DUP_TOOLS, TOOLS};
 use same_file::Handle;
 use std::env;
@@ -613,7 +614,7 @@ fn install_bins() -> Result<()> {
     let this_exe_path = utils::current_exe()?;
     let rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
 
-    utils::ensure_dir_exists("bin", &bin_path, &|_| {})?;
+    utils::ensure_dir_exists("bin", &bin_path, &|_: Notification<'_>| {})?;
     // NB: Even on Linux we can't just copy the new binary over the (running)
     // old binary; we must unlink it first.
     if rustup_path.exists() {
@@ -760,7 +761,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     // Delete RUSTUP_HOME
     let rustup_dir = utils::rustup_home()?;
     if rustup_dir.exists() {
-        utils::remove_dir("rustup_home", &rustup_dir, &|_| {})?;
+        utils::remove_dir("rustup_home", &rustup_dir, &|_: Notification<'_>| {})?;
     }
 
     let read_dir_err = "failure reading directory";
@@ -778,7 +779,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         let dirent = dirent.chain_err(|| read_dir_err)?;
         if dirent.file_name().to_str() != Some("bin") {
             if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path(), &|_| {})?;
+                utils::remove_dir("cargo_home", &dirent.path(), &|_: Notification<'_>| {})?;
             } else {
                 utils::remove_file("cargo_home", &dirent.path())?;
             }
@@ -798,7 +799,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));
         if file_is_tool == Some(false) {
             if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path(), &|_| {})?;
+                utils::remove_dir("cargo_home", &dirent.path(), &|_: Notification<'_>| {})?;
             } else {
                 utils::remove_file("cargo_home", &dirent.path())?;
             }
@@ -946,7 +947,7 @@ pub fn complete_windows_uninstall() -> Result<()> {
 
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME
     let cargo_home = utils::cargo_home()?;
-    utils::remove_dir("cargo_home", &cargo_home, &|_| ())?;
+    utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())?;
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc

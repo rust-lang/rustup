@@ -23,13 +23,16 @@ pub use crate::utils::utils::raw::{
 
 pub struct ExitCode(pub i32);
 
-pub fn ensure_dir_exists(
+pub fn ensure_dir_exists<'a, N>(
     name: &'static str,
-    path: &Path,
-    notify_handler: &dyn Fn(Notification<'_>),
-) -> Result<bool> {
-    raw::ensure_dir_exists(path, |p| {
-        notify_handler(Notification::CreatingDirectory(name, p))
+    path: &'a Path,
+    notify_handler: &'a dyn Fn(N),
+) -> Result<bool>
+where
+    N: From<Notification<'a>>,
+{
+    raw::ensure_dir_exists(path, |_| {
+        notify_handler(Notification::CreatingDirectory(name, path).into())
     })
     .chain_err(|| ErrorKind::CreatingDirectory {
         name,
@@ -104,9 +107,12 @@ pub fn match_file<T, F: FnMut(&str) -> Option<T>>(
     })
 }
 
-pub fn canonicalize_path(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> PathBuf {
+pub fn canonicalize_path<'a, N>(path: &'a Path, notify_handler: &dyn Fn(N)) -> PathBuf
+where
+    N: From<Notification<'a>>,
+{
     fs::canonicalize(path).unwrap_or_else(|_| {
-        notify_handler(Notification::NoCanonicalPath(path));
+        notify_handler(Notification::NoCanonicalPath(path).into());
         PathBuf::from(path)
     })
 }
@@ -249,12 +255,11 @@ pub fn assert_is_directory(path: &Path) -> Result<()> {
     }
 }
 
-pub fn symlink_dir(
-    src: &Path,
-    dest: &Path,
-    notify_handler: &dyn Fn(Notification<'_>),
-) -> Result<()> {
-    notify_handler(Notification::LinkingDirectory(src, dest));
+pub fn symlink_dir<'a, N>(src: &'a Path, dest: &'a Path, notify_handler: &dyn Fn(N)) -> Result<()>
+where
+    N: From<Notification<'a>>,
+{
+    notify_handler(Notification::LinkingDirectory(src, dest).into());
     raw::symlink_dir(src, dest).chain_err(|| ErrorKind::LinkingDirectory {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
@@ -293,8 +298,11 @@ pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     .into())
 }
 
-pub fn copy_dir(src: &Path, dest: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<()> {
-    notify_handler(Notification::CopyingDirectory(src, dest));
+pub fn copy_dir<'a, N>(src: &'a Path, dest: &'a Path, notify_handler: &dyn Fn(N)) -> Result<()>
+where
+    N: From<Notification<'a>>,
+{
+    notify_handler(Notification::CopyingDirectory(src, dest).into());
     raw::copy_dir(src, dest).chain_err(|| ErrorKind::CopyingDirectory {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
@@ -318,12 +326,15 @@ pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
     }
 }
 
-pub fn remove_dir(
+pub fn remove_dir<'a, N>(
     name: &'static str,
-    path: &Path,
-    notify_handler: &dyn Fn(Notification<'_>),
-) -> Result<()> {
-    notify_handler(Notification::RemovingDirectory(name, path));
+    path: &'a Path,
+    notify_handler: &dyn Fn(N),
+) -> Result<()>
+where
+    N: From<Notification<'a>>,
+{
+    notify_handler(Notification::RemovingDirectory(name, path).into());
     raw::remove_dir(path).chain_err(|| ErrorKind::RemovingDirectory {
         name,
         path: PathBuf::from(path),
