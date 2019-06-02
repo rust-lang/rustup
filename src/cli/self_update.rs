@@ -821,7 +821,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 #[cfg(unix)]
 fn delete_rustup_and_cargo_home() -> Result<()> {
     let cargo_home = utils::cargo_home()?;
-    utils::remove_dir("cargo_home", &cargo_home, &|_| ())?;
+    utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())?;
 
     Ok(())
 }

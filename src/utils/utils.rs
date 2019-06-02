@@ -75,12 +75,28 @@ pub fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> R
     })
 }
 
-pub fn rename_file(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
-    rename(name, src, dest)
+pub fn rename_file<'a, N>(
+    name: &'static str,
+    src: &'a Path,
+    dest: &'a Path,
+    notify: &'a dyn Fn(N),
+) -> Result<()>
+where
+    N: From<Notification<'a>>,
+{
+    rename(name, src, dest, notify)
 }
 
-pub fn rename_dir(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
-    rename(name, src, dest)
+pub fn rename_dir<'a, N>(
+    name: &'static str,
+    src: &'a Path,
+    dest: &'a Path,
+    notify: &'a dyn Fn(N),
+) -> Result<()>
+where
+    N: From<Notification<'a>>,
+{
+    rename(name, src, dest, notify)
 }
 
 pub fn filter_file<F: FnMut(&str) -> bool>(
@@ -664,7 +680,15 @@ pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
     });
 }
 
-fn rename(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
+fn rename<'a, N>(
+    name: &'static str,
+    src: &'a Path,
+    dest: &'a Path,
+    notify_handler: &'a dyn Fn(N),
+) -> Result<()>
+where
+    N: From<Notification<'a>>,
+{
     // https://github.com/rust-lang/rustup.rs/issues/1870
     // 21 fib steps from 1 sums to ~28 seconds, hopefully more than enough
     // for our previous poor performance that avoided the race condition with
@@ -674,7 +698,10 @@ fn rename(name: &'static str, src: &Path, dest: &Path) -> Result<()> {
         || match fs::rename(src, dest) {
             Ok(v) => OperationResult::Ok(v),
             Err(e) => match e.kind() {
-                io::ErrorKind::PermissionDenied => OperationResult::Retry(e),
+                io::ErrorKind::PermissionDenied => {
+                    notify_handler(Notification::RenameInUse(&src, &dest).into());
+                    OperationResult::Retry(e)
+                }
                 _ => OperationResult::Err(e),
             },
         },

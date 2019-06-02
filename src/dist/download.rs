@@ -88,7 +88,12 @@ impl<'a> DownloadCfg<'a> {
         } else {
             (self.notify_handler)(Notification::ChecksumValid(&url.to_string()));
 
-            utils::rename_file("downloaded", &partial_file_path, &target_file)?;
+            utils::rename_file(
+                "downloaded",
+                &partial_file_path,
+                &target_file,
+                self.notify_handler,
+            )?;
             Ok(File { path: target_file })
         }
     }

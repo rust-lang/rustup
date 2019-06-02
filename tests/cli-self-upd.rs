@@ -11,6 +11,7 @@ use crate::mock::{get_path, restore_path};
 use lazy_static::lazy_static;
 use remove_dir_all::remove_dir_all;
 use rustup::utils::{raw, utils};
+use rustup::Notification;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
@@ -952,7 +953,7 @@ fn rustup_init_works_with_weird_names() {
     setup(&|config| {
         let old = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
         let new = config.exedir.join(&format!("rustup-init(2){}", EXE_SUFFIX));
-        utils::rename_file("test", &old, &new).unwrap();
+        utils::rename_file("test", &old, &new, &|_: Notification<'_>| {}).unwrap();
         expect_ok(config, &["rustup-init(2)", "-y"]);
         let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         assert!(rustup.exists());
