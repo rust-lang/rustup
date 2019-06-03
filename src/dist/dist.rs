@@ -97,6 +97,13 @@ static LIST_ENVS: &[&str] = &[
     "musl",
 ];
 
+// Linux hosts don't indicate clib in uname, however binaries only
+// run on boxes with the same clib, as expected.
+#[cfg(all(not(windows), not(target_env = "musl")))]
+const TRIPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-gnu";
+#[cfg(all(not(windows), target_env = "musl"))]
+const TRIPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-musl";
+
 // MIPS platforms don't indicate endianness in uname, however binaries only
 // run on boxes with the same endianness, as expected.
 // Hence we could distinguish between the variants with compile-time cfg()
@@ -176,7 +183,7 @@ impl TargetTriple {
                 (_, b"aarch64") if cfg!(target_os = "android") => Some("aarch64-linux-android"),
                 (_, b"i686") if cfg!(target_os = "android") => Some("i686-linux-android"),
                 (_, b"x86_64") if cfg!(target_os = "android") => Some("x86_64-linux-android"),
-                (b"Linux", b"x86_64") => Some("x86_64-unknown-linux-gnu"),
+                (b"Linux", b"x86_64") => Some(TRIPLE_X86_64_UNKNOWN_LINUX),
                 (b"Linux", b"i686") => Some("i686-unknown-linux-gnu"),
                 (b"Linux", b"mips") => Some(TRIPLE_MIPS_UNKNOWN_LINUX_GNU),
                 (b"Linux", b"mips64") => Some(TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64),

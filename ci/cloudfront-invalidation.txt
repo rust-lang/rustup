@@ -53,5 +53,7 @@ rustup/dist/x86_64-unknown-freebsd/rustup-init
 rustup/dist/x86_64-unknown-freebsd/rustup-init.sha256
 rustup/dist/x86_64-unknown-linux-gnu/rustup-init
 rustup/dist/x86_64-unknown-linux-gnu/rustup-init.sha256
+rustup/dist/x86_64-unknown-linux-musl/rustup-init
+rustup/dist/x86_64-unknown-linux-musl/rustup-init.sha256
 rustup/dist/x86_64-unknown-netbsd/rustup-init
 rustup/dist/x86_64-unknown-netbsd/rustup-init.sha256

@@ -163,13 +163,17 @@ get_endianness() {
 }
 
 get_architecture() {
-    local _ostype _cputype _bitness _arch
+    local _ostype _cputype _bitness _arch _clibtype
     _ostype="$(uname -s)"
     _cputype="$(uname -m)"
+    _clibtype="gnu"
 
     if [ "$_ostype" = Linux ]; then
         if [ "$(uname -o)" = Android ]; then
             _ostype=Android
+        fi
+        if ldd --version 2>&1 | grep -q 'musl'; then
+            _clibtype="musl"
         fi
     fi
 
@@ -187,7 +191,7 @@ get_architecture() {
             ;;
 
         Linux)
-            _ostype=unknown-linux-gnu
+            _ostype=unknown-linux-$_clibtype
             _bitness=$(get_bitness)
             ;;
 
