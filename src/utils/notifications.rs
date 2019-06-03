@@ -28,14 +28,21 @@ pub enum Notification<'a> {
     ResumingPartialDownload,
     UsingCurl,
     UsingReqwest,
+    /// Renaming encountered a file in use error and is retrying.
+    /// The InUse aspect is a heuristic - the OS specifies
+    /// Permission denied, but as we work in users home dirs and
+    /// running programs like virus scanner are known to cause this
+    /// the heuristic is quite good.
+    RenameInUse(&'a Path, &'a Path),
 }
 
 impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match self {
-            CreatingDirectory(_, _) | RemovingDirectory(_, _) => NotificationLevel::Verbose,
-            LinkingDirectory(_, _)
+            CreatingDirectory(_, _)
+            | RemovingDirectory(_, _)
+            | LinkingDirectory(_, _)
             | CopyingDirectory(_, _)
             | DownloadingFile(_, _)
             | DownloadContentLengthReceived(_)
@@ -46,6 +53,7 @@ impl<'a> Notification<'a> {
             | ResumingPartialDownload
             | UsingCurl
             | UsingReqwest => NotificationLevel::Verbose,
+            RenameInUse(_, _) => NotificationLevel::Info,
             NoCanonicalPath(_) => NotificationLevel::Warn,
         }
     }
@@ -63,6 +71,12 @@ impl<'a> Display for Notification<'a> {
             RemovingDirectory(name, path) => {
                 write!(f, "removing {} directory: '{}'", name, path.display())
             }
+            RenameInUse(src, dest) => write!(
+                f,
+                "retrying renaming '{}' to '{}'",
+                src.display(),
+                dest.display()
+            ),
             DownloadingFile(url, _) => write!(f, "downloading file from: '{}'", url),
             DownloadContentLengthReceived(len) => write!(f, "download size is: '{}'", len),
             DownloadDataReceived(data) => write!(f, "received some data of size {}", data.len()),

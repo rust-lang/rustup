@@ -1417,7 +1417,12 @@ fn unable_to_download_component() {
 }
 
 fn prevent_installation(prefix: &InstallPrefix) {
-    utils::ensure_dir_exists("installation path", &prefix.path().join("lib"), &|_| {}).unwrap();
+    utils::ensure_dir_exists(
+        "installation path",
+        &prefix.path().join("lib"),
+        &|_: Notification<'_>| {},
+    )
+    .unwrap();
     let install_blocker = prefix.path().join("lib").join("rustlib");
     utils::write_file("install-blocker", &install_blocker, "fail-installation").unwrap();
 }
@@ -1475,7 +1480,12 @@ fn checks_files_hashes_before_reuse() {
         .unwrap()[..64]
             .to_owned();
         let prev_download = download_cfg.download_dir.join(target_hash);
-        utils::ensure_dir_exists("download dir", &download_cfg.download_dir, &|_| {}).unwrap();
+        utils::ensure_dir_exists(
+            "download dir",
+            &download_cfg.download_dir,
+            &|_: Notification<'_>| {},
+        )
+        .unwrap();
         utils::write_file("bad previous download", &prev_download, "bad content").unwrap();
         println!("wrote previous download to {}", prev_download.display());
 

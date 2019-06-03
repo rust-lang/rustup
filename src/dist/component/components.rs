@@ -194,7 +194,7 @@ impl Component {
         let temp = tx.temp().new_file()?;
         utils::filter_file("components", &abs_path, &temp, |l| (l != self.name))?;
         tx.modify_file(path)?;
-        utils::rename_file("components", &temp, &abs_path)?;
+        utils::rename_file("components", &temp, &abs_path, tx.notify_handler())?;
 
         // TODO: If this is the last component remove the components file
         // and the version file.
