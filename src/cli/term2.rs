@@ -37,19 +37,19 @@ mod termhack {
 
     /// Return a Terminal object for T on this platform.
     /// If there is no terminfo and the platform requires terminfo, then None is returned.
-    fn make_terminal<T>(terminfo: Option<TermInfo>) -> Option<Box<Terminal<Output = T> + Send>>
+    fn make_terminal<T>(terminfo: Option<TermInfo>) -> Option<Box<dyn Terminal<Output = T> + Send>>
     where
         T: 'static + io::Write + Send + Instantiable,
     {
         let result = terminfo
             .map(move |ti| TerminfoTerminal::new_with_terminfo(T::instance(), ti.clone()))
-            .map(|t| Box::new(t) as Box<Terminal<Output = T> + Send>);
+            .map(|t| Box::new(t) as Box<dyn Terminal<Output = T> + Send>);
         #[cfg(windows)]
         {
             result.or_else(|| {
                 term::WinConsole::new(T::instance())
                     .ok()
-                    .map(|t| Box::new(t) as Box<Terminal<Output = T> + Send>)
+                    .map(|t| Box::new(t) as Box<dyn Terminal<Output = T> + Send>)
             })
         }
         #[cfg(not(windows))]
@@ -60,7 +60,7 @@ mod termhack {
 
     fn make_terminal_with_fallback<T>(
         terminfo: Option<TermInfo>,
-    ) -> Box<Terminal<Output = T> + Send>
+    ) -> Box<dyn Terminal<Output = T> + Send>
     where
         T: 'static + io::Write + Send + Instantiable,
     {
@@ -73,7 +73,7 @@ mod termhack {
                     strings: HashMap::new(),
                 };
                 let t = TerminfoTerminal::new_with_terminfo(T::instance(), ti);
-                Some(Box::new(t) as Box<Terminal<Output = T> + Send>)
+                Some(Box::new(t) as Box<dyn Terminal<Output = T> + Send>)
             })
             .unwrap()
     }
