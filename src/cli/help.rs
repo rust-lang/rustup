@@ -64,20 +64,24 @@ pub static TOOLCHAIN_HELP: &str = r"DISCUSSION:
     with an archive date, as in 'nightly-2017-05-09', in which case
     the toolchain is downloaded from the archive for that date.
 
-    Finally, the host may be specified as a target triple. This is
-    most useful for installing a 32-bit compiler on a 64-bit platform,
-    or for installing the [MSVC-based toolchain] on Windows. For
-    example:
+    The host may be specified as a target triple. This is most useful
+    for installing a 32-bit compiler on a 64-bit platform, or for
+    installing the [MSVC-based toolchain] on Windows. For example:
 
         $ rustup toolchain install stable-x86_64-pc-windows-msvc
 
-    For convenience, elements of the target triple that are omitted
-    will be inferred, so the above could be written:
+    For convenience, omitted elements of the target triple will be
+    inferred, so the above could be written:
+
+        $ rustup toolchain install stable-msvc
+
+    The `rustup default` command may be used to both install and set
+    the desired toolchain as default in a single command:
 
         $ rustup default stable-msvc
 
     rustup can also manage symlinked local toolchain builds, which are
-    often used to for developing Rust itself. For more information see
+    often used for developing Rust itself. For more information see
     `rustup toolchain help link`.";
 
 pub static TOOLCHAIN_LINK_HELP: &str = r"DISCUSSION:
