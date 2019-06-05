@@ -616,6 +616,13 @@ Command                                                     | Description
   single-threaded IO for troubleshooting, or an arbitrary number to
   override automatic detection.
 
+- `RUSTUP_TRACE_DIR` (default: no tracing)
+  Enables tracing and determines the directory that traces will be
+  written too. Traces are of the form PID.trace. Traces can be read
+  by the Catapult project [tracing viewer][tv].
+
+  [tv]: (https://github.com/catapult-project/catapult/blob/master/tracing/README.md)
+
 ## Other installation methods
 
 The primary installation method, as described at https://rustup.rs, differs by platform:

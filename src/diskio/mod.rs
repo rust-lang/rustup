@@ -166,15 +166,30 @@ pub fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(
         use std::os::unix::fs::OpenOptionsExt;
         opts.mode(mode);
     }
-    opts.write(true)
-        .create(true)
-        .truncate(true)
-        .open(path.as_ref())?
-        .write_all(contents.as_ref())
+    let path = path.as_ref();
+    let path_display = format!("{}", path.display());
+    let mut f = {
+        trace_scoped!("creat", "name": path_display);
+        opts.write(true).create(true).truncate(true).open(path)?
+    };
+    let contents = contents.as_ref();
+    let len = contents.len();
+    {
+        trace_scoped!("write", "name": path_display, "len": len);
+        f.write_all(contents)?;
+    }
+    {
+        trace_scoped!("close", "name:": path_display);
+        drop(f);
+    }
+    Ok(())
 }
 
 pub fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
-    std::fs::create_dir(path.as_ref())
+    let path = path.as_ref();
+    let path_display = format!("{}", path.display());
+    trace_scoped!("create_dir", "name": path_display);
+    std::fs::create_dir(path)
 }
 
 /// Get the executor for disk IO.

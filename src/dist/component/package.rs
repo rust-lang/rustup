@@ -297,6 +297,8 @@ fn unpack_without_first_dir<'a, R: Read>(
                 // leave till later.
 
                 if !parent.exists() {
+                    let path_display = format!("{}", parent.display());
+                    trace_scoped!("create_dir_all", "name": path_display);
                     std::fs::create_dir_all(&parent).chain_err(|| ErrorKind::ExtractingPackage)?
                 }
             }

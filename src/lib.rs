@@ -7,6 +7,9 @@ pub use crate::notifications::*;
 pub use crate::toolchain::*;
 pub use crate::utils::{notify, toml_utils};
 
+#[macro_use]
+extern crate rs_tracing;
+
 // A list of all binaries which Rustup will proxy.
 pub static TOOLS: &[&str] = &[
     "rustc",

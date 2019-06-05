@@ -30,8 +30,11 @@ mod term2;
 
 use crate::errors::*;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
+
 use std::env;
 use std::path::PathBuf;
+
+use rs_tracing::*;
 
 fn main() {
     if let Err(ref e) = run_rustup() {
@@ -41,6 +44,17 @@ fn main() {
 }
 
 fn run_rustup() -> Result<()> {
+    if let Ok(dir) = env::var("RUSTUP_TRACE_DIR") {
+        open_trace_file!(dir)?;
+    }
+    let result = run_rustup_inner();
+    if let Ok(_) = env::var("RUSTUP_TRACE_DIR") {
+        close_trace_file!();
+    }
+    result
+}
+
+fn run_rustup_inner() -> Result<()> {
     // Guard against infinite proxy recursion. This mostly happens due to
     // bugs in rustup.
     do_recursion_guard()?;
