@@ -696,7 +696,7 @@ where
     retry(
         Fibonacci::from_millis(1).map(jitter).take(21),
         || match fs::rename(src, dest) {
-            Ok(v) => OperationResult::Ok(v),
+            Ok(()) => OperationResult::Ok(()),
             Err(e) => match e.kind() {
                 io::ErrorKind::PermissionDenied => {
                     notify_handler(Notification::RenameInUse(&src, &dest).into());
