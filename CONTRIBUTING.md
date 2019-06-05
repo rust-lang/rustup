@@ -111,3 +111,14 @@ Rustup is distributed. The steps for a release are:
      signing the tag)
    * `git push origin HEAD:master`
    * `git push origin $VER_NUM`
+
+## Developer tips and tricks
+
+The environment variable RUSTUP_FORCE_ARG0 can be used to get rustup to think
+its a particular binary, rather than e.g. copying it, symlinking it or other
+tricks with exec. This is handy when testing particular code paths from cargo
+run.
+
+```
+$ RUSTUP_FORCE_ARG0=rustup cargo run -- uninstall nightly
+```
