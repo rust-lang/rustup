@@ -212,6 +212,7 @@ impl DownloadTracker {
 struct Duration(f64);
 
 impl fmt::Display for Duration {
+    #[allow(clippy::many_single_char_names)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // repurposing the alternate mode for ETA
         let sec = self.0;
