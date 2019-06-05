@@ -1,3 +1,4 @@
+#![allow(clippy::large_enum_variant)]
 #![allow(dead_code)]
 
 use crate::rustup_mode::CompletionCommand;
