@@ -46,7 +46,11 @@ fn run_rustup() -> Result<()> {
     do_recursion_guard()?;
 
     // The name of arg0 determines how the program is going to behave
-    let arg0 = env::args().next().map(PathBuf::from);
+    let arg0 = match env::var("RUSTUP_FORCE_ARG0") {
+        Ok(v) => Some(v),
+        Err(_) => env::args().next(),
+    }
+    .map(PathBuf::from);
     let name = arg0
         .as_ref()
         .and_then(|a| a.file_stem())
