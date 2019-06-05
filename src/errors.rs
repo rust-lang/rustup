@@ -362,6 +362,9 @@ error_chain! {
             description("invalid PGP key"),
             display("unable to read the PGP key '{}'", v.display())
         }
+        BrokenPartialFile {
+            description("partially downloaded file may have been damaged and was removed, please try again")
+        }
     }
 }
 
