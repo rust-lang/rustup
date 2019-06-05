@@ -847,22 +847,27 @@ fn show_toolchain_override_not_installed() {
 #[test]
 fn override_set_unset_with_path() {
     setup(&|config| {
-        let workdir = config.current_dir();
-        let workdir = workdir.to_string_lossy();
+        let cwd = fs::canonicalize(config.current_dir()).unwrap();
+        let mut cwd_str = cwd.to_str().unwrap();
+
+        if cfg!(windows) {
+            cwd_str = &cwd_str[4..];
+        }
+
         config.change_dir(&config.emptydir, &|| {
             expect_ok(
                 config,
-                &["rustup", "override", "set", "nightly", "--path", &workdir],
+                &["rustup", "override", "set", "nightly", "--path", cwd_str],
             );
         });
         expect_ok_ex(
             config,
             &["rustup", "override", "list"],
-            &format!("{}\tnightly-{}\n", &workdir, this_host_triple()),
+            &format!("{}\tnightly-{}\n", cwd_str, this_host_triple()),
             r"",
         );
         config.change_dir(&config.emptydir, &|| {
-            expect_ok(config, &["rustup", "override", "unset", "--path", &workdir]);
+            expect_ok(config, &["rustup", "override", "unset", "--path", cwd_str]);
         });
         expect_ok_ex(
             config,
