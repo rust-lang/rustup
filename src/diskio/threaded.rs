@@ -98,7 +98,7 @@ impl<'a> Executor for Threaded<'a> {
         })
     }
 
-    fn join(&mut self) -> Option<Box<dyn '_ + Iterator<Item = Item>>> {
+    fn join(&mut self) -> Box<dyn '_ + Iterator<Item = Item>> {
         // Some explanation is in order. Even though the tar we are reading from (if
         // any) will have had its FileWithProgress download tracking
         // completed before we hit drop, that is not true if we are unwinding due to a
@@ -157,26 +157,24 @@ impl<'a> Executor for Threaded<'a> {
         self.tx
             .send(Task::Sentinel)
             .expect("must still be listening");
-        Some(Box::new(JoinIterator {
+        Box::new(JoinIterator {
             iter: self.rx.iter(),
             consume_sentinel: false,
-        }))
+        })
     }
 
-    fn completed(&mut self) -> Option<Box<dyn '_ + Iterator<Item = Item>>> {
-        Some(Box::new(JoinIterator {
+    fn completed(&mut self) -> Box<dyn '_ + Iterator<Item = Item>> {
+        Box::new(JoinIterator {
             iter: self.rx.try_iter(),
             consume_sentinel: true,
-        }))
+        })
     }
 }
 
 impl<'a> Drop for Threaded<'a> {
     fn drop(&mut self) {
         // We are not permitted to fail - consume but do not handle the items.
-        if let Some(iter) = self.join() {
-            for _ in iter {}
-        }
+        self.join().for_each(drop);
     }
 }
 

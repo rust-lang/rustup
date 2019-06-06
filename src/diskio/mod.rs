@@ -136,10 +136,10 @@ pub trait Executor {
     /// All operations submitted before the join will have been
     /// returned either through ready/complete or join once join
     /// returns.
-    fn join(&mut self) -> Option<Box<dyn '_ + Iterator<Item = Item>>>;
+    fn join(&mut self) -> Box<dyn '_ + Iterator<Item = Item>>;
 
     /// Iterate over completed items.
-    fn completed(&mut self) -> Option<Box<dyn '_ + Iterator<Item = Item>>>;
+    fn completed(&mut self) -> Box<dyn '_ + Iterator<Item = Item>>;
 }
 
 /// Trivial single threaded IO to be used from executors.
