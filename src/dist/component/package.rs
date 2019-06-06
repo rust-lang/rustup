@@ -120,8 +120,6 @@ impl Package for DirectoryPackage {
                 }
                 _ => return Err(ErrorKind::CorruptComponent(name.to_owned()).into()),
             }
-
-            set_file_perms(&target.prefix().path().join(path), &src_path)?;
         }
 
         let tx = builder.finish()?;
@@ -132,65 +130,6 @@ impl Package for DirectoryPackage {
     fn components(&self) -> Vec<String> {
         self.components.iter().cloned().collect()
     }
-}
-
-// On Unix we need to set up the file permissions correctly so
-// binaries are executable and directories readable. This shouldn't be
-// necessary: the source files *should* have the right permissions,
-// but due to rust-lang/rust#25479 they don't.
-#[cfg(unix)]
-fn set_file_perms(dest_path: &Path, src_path: &Path) -> Result<()> {
-    use std::fs::{self, Metadata};
-    use std::os::unix::fs::PermissionsExt;
-    use walkdir::WalkDir;
-
-    // Compute whether this entry needs the X bit
-    fn needs_x(meta: &Metadata) -> bool {
-        meta.is_dir() || // Directories need it
-        meta.permissions().mode() & 0o700 == 0o700 // If it is rwx for the user, it gets the X bit
-    }
-
-    // By convention, anything in the bin/ directory of the package is a binary
-    let is_bin = if let Some(p) = src_path.parent() {
-        p.ends_with("bin")
-    } else {
-        false
-    };
-
-    let is_dir = utils::is_directory(dest_path);
-
-    if is_dir {
-        // Walk the directory setting everything
-        for entry in WalkDir::new(dest_path) {
-            let entry = entry.chain_err(|| ErrorKind::ComponentDirPermissionsFailed)?;
-            let meta = entry
-                .metadata()
-                .chain_err(|| ErrorKind::ComponentDirPermissionsFailed)?;
-
-            let mut perm = meta.permissions();
-            perm.set_mode(if needs_x(&meta) { 0o755 } else { 0o644 });
-            fs::set_permissions(entry.path(), perm)
-                .chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
-        }
-    } else {
-        let meta =
-            fs::metadata(dest_path).chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
-        let mut perm = meta.permissions();
-        perm.set_mode(if is_bin || needs_x(&meta) {
-            0o755
-        } else {
-            0o644
-        });
-        fs::set_permissions(dest_path, perm)
-            .chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
-    }
-
-    Ok(())
-}
-
-#[cfg(windows)]
-fn set_file_perms(_dest_path: &Path, _src_path: &Path) -> Result<()> {
-    Ok(())
 }
 
 #[derive(Debug)]
@@ -273,7 +212,30 @@ fn unpack_without_first_dir<'a, R: Read>(
         // - it is most likely an attack, as rusts cross-platform nature precludes
         // such artifacts
         let kind = entry.header().entry_type();
-        let mode = entry.header().mode().ok().unwrap();
+        // https://github.com/rust-lang/rustup.rs/issues/1140 and before that
+        // https://github.com/rust-lang/rust/issues/25479
+        // tl;dr: code got convoluted and we *may* have damaged tarballs out
+        // there.
+        // However the mandate we have is very simple: unpack as the current
+        // user with modes matching the tar contents. No documented tars with
+        // bad modes are in the bug tracker : the previous permission splatting
+        // code was inherited from interactions with sudo that are best
+        // addressed outside of rustup (run with an appropriate effective uid).
+        // THAT SAID: If regressions turn up immediately post release this code -
+        // https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=a8549057f0827bf3a068d8917256765a
+        // is a translation of the prior helper function into an in-iterator
+        // application.
+        let tar_mode = entry.header().mode().ok().unwrap();
+        // That said, the tarballs that are shipped way back have single-user
+        // permissions:
+        // -rwx------ rustbuild/rustbuild  ..... release/test-release.sh
+        // so we should normalise the mode to match the previous behaviour users
+        // may be expecting where the above file would end up with mode 0o755
+        let u_mode = tar_mode & 0o700;
+        let g_mode = (u_mode & 0o0500) >> 3;
+        let o_mode = g_mode >> 3;
+        let mode = u_mode | g_mode | o_mode;
+
         let item = match kind {
             EntryType::Directory => Item::make_dir(full_path, mode),
             EntryType::Regular => {
