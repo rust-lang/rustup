@@ -641,7 +641,10 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             );
         }
     } else {
-        println!("{} (default)", cfg.get_default()?);
+        let default_toolchain: Result<String> = cfg
+            .get_default()?
+            .ok_or_else(|| "no default toolchain configured".into());
+        println!("{} (default)", default_toolchain?);
     }
 
     Ok(())
@@ -755,7 +758,10 @@ fn show(cfg: &Cfg) -> Result<()> {
         if show_headers {
             print_header(&mut t, "installed toolchains")?;
         }
-        let default_name = cfg.get_default()?;
+        let default_name: Result<String> = cfg
+            .get_default()?
+            .ok_or_else(|| "no default toolchain configured".into());
+        let default_name = default_name?;
         for it in installed_toolchains {
             if default_name == it {
                 writeln!(t, "{} (default)", it)?;

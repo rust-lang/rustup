@@ -342,12 +342,8 @@ impl Cfg {
         )
     }
 
-    pub fn get_default(&self) -> Result<String> {
-        self.settings_file.with(|s| {
-            s.default_toolchain
-                .clone()
-                .ok_or_else(|| "no default toolchain configured".into())
-        })
+    pub fn get_default(&self) -> Result<Option<String>> {
+        self.settings_file.with(|s| Ok(s.default_toolchain.clone()))
     }
 
     pub fn list_toolchains(&self) -> Result<Vec<String>> {
