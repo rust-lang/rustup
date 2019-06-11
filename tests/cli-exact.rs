@@ -40,6 +40,7 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
 info: installing component 'rust-docs'
+info: default toolchain set to 'nightly-{0}'
 "
             ),
         );

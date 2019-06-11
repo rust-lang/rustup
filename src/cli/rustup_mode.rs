@@ -669,6 +669,13 @@ fn update(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
                 println!();
                 common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
             }
+
+            if cfg.get_default()?.is_none() {
+                use rustup::UpdateStatus;
+                if let Some(UpdateStatus::Installed) = status {
+                    toolchain.make_default()?;
+                }
+            }
         }
         if self_update {
             common::self_update(|| Ok(()))?;
