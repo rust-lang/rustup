@@ -444,8 +444,10 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
 // sudo is configured not to change $HOME. Don't let that bogosity happen.
 #[allow(dead_code)]
 fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
+    use std::ffi::OsString;
+
     #[cfg(unix)]
-    pub fn home_mismatch() -> bool {
+    pub fn home_mismatch() -> (bool, OsString, String) {
         use std::ffi::CStr;
         use std::mem;
         use std::ops::Deref;
@@ -458,7 +460,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
             .ok()
             == Some("yes")
         {
-            return false;
+            return (false, OsString::new(), String::new());
         }
         let mut buf = [0u8; 1024];
         let mut pwd = unsafe { mem::uninitialized::<libc::passwd>() };
@@ -474,31 +476,35 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         };
         if rv != 0 || pwdp.is_null() {
             warn!("getpwuid_r: couldn't get user data");
-            return false;
+            return (false, OsString::new(), String::new());
         }
         let pw_dir = unsafe { CStr::from_ptr(pwd.pw_dir) }.to_str().ok();
         let env_home = env::var_os("HOME");
         let env_home = env_home.as_ref().map(Deref::deref);
         match (env_home, pw_dir) {
-            (None, _) | (_, None) => false,
-            (Some(eh), Some(pd)) => eh != pd,
+            (None, _) | (_, None) => (false, OsString::new(), String::new()),
+            (Some(eh), Some(pd)) => (eh != pd, OsString::from(eh), String::from(pd)),
         }
     }
 
     #[cfg(not(unix))]
-    pub fn home_mismatch() -> bool {
-        false
+    pub fn home_mismatch() -> (bool, OsString, String) {
+        (false, OsString::new(), String::new())
     }
 
     match (home_mismatch(), no_prompt) {
-        (false, _) => (),
-        (true, false) => {
+        ((false, _, _), _) => (),
+        ((true, env_home, euid_home), false) => {
             err!("$HOME differs from euid-obtained home directory: you may be using sudo");
+            err!("$HOME directory: {:?}", env_home);
+            err!("euid-obtained home directory: {}", euid_home);
             err!("if this is what you want, restart the installation with `-y'");
             process::exit(1);
         }
-        (true, true) => {
+        ((true, env_home, euid_home), true) => {
             warn!("$HOME differs from euid-obtained home directory: you may be using sudo");
+            warn!("$HOME directory: {:?}", env_home);
+            warn!("euid-obtained home directory: {}", euid_home);
         }
     }
 
