@@ -591,6 +591,7 @@ Command                                                     | Description
 
 ## Environment variables
 
+
 - `RUSTUP_HOME` (default: `~/.rustup` or `%USERPROFILE%/.rustup`)
   Sets the root rustup folder, used for storing installed
   toolchains and configuration options.
@@ -611,17 +612,20 @@ Command                                                     | Description
 - `RUSTUP_UPDATE_ROOT` (default `https://static.rust-lang.org/rustup`)
   Sets the root URL for downloading self-updates.
 
-- `RUSTUP_IO_THREADS` (defaults to reported cpu count). Sets the
+- `RUSTUP_IO_THREADS` *unstable* (defaults to reported cpu count). Sets the
   number of threads to perform close IO in. Set to `disabled` to force
   single-threaded IO for troubleshooting, or an arbitrary number to
   override automatic detection.
 
-- `RUSTUP_TRACE_DIR` (default: no tracing)
+- `RUSTUP_TRACE_DIR` *unstable* (default: no tracing)
   Enables tracing and determines the directory that traces will be
   written too. Traces are of the form PID.trace. Traces can be read
   by the Catapult project [tracing viewer][tv].
 
   [tv]: (https://github.com/catapult-project/catapult/blob/master/tracing/README.md)
+
+- `RUSTUP_UNPACK_RAM` *unstable* (default 400M, min 100M)
+  Caps the amount of RAM rustup will use for IO tasks while unpacking.
 
 ## Other installation methods
 

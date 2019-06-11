@@ -11,6 +11,7 @@ use crate::utils::notifications::Notification;
 use crate::utils::utils;
 
 use std::collections::{HashMap, HashSet};
+use std::env;
 use std::fmt;
 use std::io::{self, ErrorKind as IOErrorKind, Read};
 use std::iter::FromIterator;
@@ -157,6 +158,51 @@ impl<'a> TarPackage<'a> {
     }
 }
 
+struct MemoryBudget {
+    limit: usize,
+    used: usize,
+}
+
+// Probably this should live in diskio but ¯\_(ツ)_/¯
+impl MemoryBudget {
+    fn new(max_file_size: usize) -> MemoryBudget {
+        const DEFAULT_UNPACK_RAM: usize = 400 * 1024 * 1024;
+        let unpack_ram = if let Ok(budget_str) = env::var("RUSTUP_UNPACK_RAM") {
+            if let Ok(budget) = budget_str.parse::<usize>() {
+                budget
+            } else {
+                DEFAULT_UNPACK_RAM
+            }
+        } else {
+            DEFAULT_UNPACK_RAM
+        };
+        if max_file_size > unpack_ram {
+            panic!("RUSTUP_UNPACK_RAM must be larger than {}", max_file_size);
+        }
+        MemoryBudget {
+            limit: unpack_ram,
+            used: 0,
+        }
+    }
+    fn reclaim(&mut self, op: &Item) {
+        match &op.kind {
+            Kind::Directory => {}
+            Kind::File(content) => self.used -= content.len(),
+        };
+    }
+
+    fn claim(&mut self, op: &Item) {
+        match &op.kind {
+            Kind::Directory => {}
+            Kind::File(content) => self.used += content.len(),
+        };
+    }
+
+    fn available(&self) -> usize {
+        self.limit - self.used
+    }
+}
+
 /// Handle the async result of io operations
 /// Replaces op.result with Ok(())
 fn filter_result(op: &mut Item) -> io::Result<()> {
@@ -187,6 +233,7 @@ fn filter_result(op: &mut Item) -> io::Result<()> {
 fn trigger_children(
     io_executor: &mut dyn Executor,
     directories: &mut HashMap<PathBuf, DirStatus>,
+    budget: &mut MemoryBudget,
     item: Item,
 ) -> Result<usize> {
     let mut result = 0;
@@ -206,8 +253,9 @@ fn trigger_children(
         for pending_item in pending.into_iter() {
             for mut item in Vec::from_iter(io_executor.execute(pending_item)) {
                 // TODO capture metrics
+                budget.reclaim(&item);
                 filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-                result += trigger_children(io_executor, directories, item)?;
+                result += trigger_children(io_executor, directories, budget, item)?;
             }
         }
     };
@@ -229,6 +277,9 @@ fn unpack_without_first_dir<'a, R: Read>(
     let entries = archive
         .entries()
         .chain_err(|| ErrorKind::ExtractingPackage)?;
+    const MAX_FILE_SIZE: u64 = 100_000_000;
+    let mut budget = MemoryBudget::new(MAX_FILE_SIZE as usize);
+
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
     directories.insert(path.to_owned(), DirStatus::Exists);
@@ -239,8 +290,9 @@ fn unpack_without_first_dir<'a, R: Read>(
         // our unpacked item is pending dequeue)
         for mut item in Vec::from_iter(io_executor.completed()) {
             // TODO capture metrics
+            budget.reclaim(&item);
             filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-            trigger_children(&mut *io_executor, &mut directories, item)?;
+            trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
         }
 
         let mut entry = entry.chain_err(|| ErrorKind::ExtractingPackage)?;
@@ -266,8 +318,16 @@ fn unpack_without_first_dir<'a, R: Read>(
         }
 
         let size = entry.header().size()?;
-        if size > 100_000_000 {
+        if size > MAX_FILE_SIZE {
             return Err(format!("File too big {} {}", relpath.display(), size).into());
+        }
+        while size > budget.available() as u64 {
+            for mut item in Vec::from_iter(io_executor.completed()) {
+                // TODO capture metrics
+                budget.reclaim(&item);
+                filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+                trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+            }
         }
         // Bail out if we get hard links, device nodes or any other unusual content
         // - it is most likely an attack, as rusts cross-platform nature precludes
@@ -309,6 +369,7 @@ fn unpack_without_first_dir<'a, R: Read>(
             }
             _ => return Err(ErrorKind::UnsupportedKind(format!("{:?}", kind)).into()),
         };
+        budget.claim(&item);
 
         let item = loop {
             // Create the full path to the entry if it does not exist already
@@ -343,8 +404,9 @@ fn unpack_without_first_dir<'a, R: Read>(
 
         for mut item in Vec::from_iter(io_executor.execute(item)) {
             // TODO capture metrics
+            budget.reclaim(&item);
             filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-            trigger_children(&mut *io_executor, &mut directories, item)?;
+            trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
         }
     }
 
@@ -353,8 +415,9 @@ fn unpack_without_first_dir<'a, R: Read>(
         for mut item in Vec::from_iter(io_executor.join()) {
             // handle final IOs
             // TODO capture metrics
+            budget.reclaim(&item);
             filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-            triggered += trigger_children(&mut *io_executor, &mut directories, item)?;
+            triggered += trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
         }
         if triggered == 0 {
             // None of the IO submitted before the prior join triggered any new

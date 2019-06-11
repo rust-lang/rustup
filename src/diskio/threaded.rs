@@ -40,6 +40,7 @@ impl<'a> Threaded<'a> {
         // more threads to get more IO dispatched at this stage in the process.
         let pool = threadpool::Builder::new()
             .thread_name("CloseHandle".into())
+            .thread_stack_size(1_048_576)
             .build();
         let (tx, rx) = channel();
         Threaded {
@@ -62,6 +63,7 @@ impl<'a> Threaded<'a> {
         let pool = threadpool::Builder::new()
             .thread_name("CloseHandle".into())
             .num_threads(thread_count)
+            .thread_stack_size(1_048_576)
             .build();
         let (tx, rx) = channel();
         Threaded {
