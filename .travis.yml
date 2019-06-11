@@ -77,19 +77,32 @@ matrix:
       before_deploy:
       deploy:
 
+    - &windows
+      os: windows
+      env: TARGET=x86_64-pc-windows-msvc NO_ADD=1
+      services: nil
+      language: bash
+
 install:
   - sh rustup-init.sh --default-toolchain=stable -y
-  - . "$HOME"/.cargo/env
+  - |
+    if [ -r "$HOME/.cargo/env" ]; then
+      . "$HOME"/.cargo/env;
+    else
+      export PATH="$HOME/.cargo/bin:$PATH";
+    fi
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
 
 script:
   - mkdir -p target/"$TARGET";
-  - >
+  - |
     case "$TARGET" in
       *-linux-android*) DOCKER=android   ;; # Android uses a local docker image
       *-apple-darwin)                    ;;
+      *-pc-windows-*)                    ;;
       *)                DOCKER="$TARGET" ;;
-    esac;
+    esac
+  - |
     if [ -n "$DOCKER" ]; then
       sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
     else
