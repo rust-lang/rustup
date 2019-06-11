@@ -38,6 +38,7 @@ pub struct ComponentStatus {
     pub available: bool,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum UpdateStatus {
     Installed,
     Updated,
