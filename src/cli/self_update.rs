@@ -1351,11 +1351,26 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 /// rustup-init is stored in `CARGO_HOME`/bin, and then deleted next
 /// time rustup runs.
 pub fn update() -> Result<()> {
-    if NEVER_SELF_UPDATE {
-        err!("self-update is disabled for this build of rustup");
-        err!("you should probably use your system package manager to update rustup");
-        process::exit(1);
+    use common::SelfUpdatePermission::*;
+    let update_permitted = if NEVER_SELF_UPDATE {
+        HardFail
+    } else {
+        common::self_update_permitted(true)?
+    };
+    match update_permitted {
+        HardFail => {
+            // TODO: Detect which package manager and be more useful.
+            err!("self-update is disabled for this build of rustup");
+            err!("you should probably use your system package manager to update rustup");
+            process::exit(1);
+        }
+        Skip => {
+            info!("Skipping self-update at this time");
+            return Ok(());
+        }
+        Permit => {}
     }
+
     let setup_path = prepare_update()?;
     if let Some(ref p) = setup_path {
         let version = match get_new_rustup_version(p) {

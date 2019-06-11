@@ -8,12 +8,12 @@ use lazy_static::lazy_static;
 use rustup::utils::notify::NotificationLevel;
 use rustup::utils::utils;
 use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, ErrorKind, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::Duration;
-use std::{cmp, iter};
+use std::{cmp, env, iter};
 use term2::Terminal;
 use wait_timeout::ChildExt;
 
@@ -224,10 +224,71 @@ pub fn update_all_channels(cfg: &Cfg, do_self_update: bool, force_update: bool) 
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum SelfUpdatePermission {
+    HardFail,
+    Skip,
+    Permit,
+}
+
+pub fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
+    if cfg!(windows) {
+        Ok(SelfUpdatePermission::Permit)
+    } else {
+        // Detect if rustup is not meant to self-update
+        match env::var("SNAP") {
+            Ok(_) => {
+                // We're running under snappy so don't even bother
+                // trying to self-update
+                // TODO: Report this to the user?
+                // TODO: Maybe ask snapd if there's an update and report
+                //       that to the user instead?
+                debug!("Skipping self-update because SNAP was detected");
+                if explicit {
+                    return Ok(SelfUpdatePermission::HardFail);
+                } else {
+                    return Ok(SelfUpdatePermission::Skip);
+                }
+            }
+            Err(env::VarError::NotPresent) => {}
+            Err(e) => Err(format!(
+                "Could not interrogate SNAP environment variable: {}",
+                e
+            ))?,
+        }
+        let current_exe = env::current_exe()?;
+        let current_exe_dir = current_exe.parent().expect("Rustup isn't in a directory‽");
+        match tempdir::TempDir::new_in(current_exe_dir, "updtest") {
+            Ok(_) => {}
+            Err(e) => match e.kind() {
+                ErrorKind::PermissionDenied => {
+                    debug!("Skipping self-update because we cannot write to the rustup dir");
+                    if explicit {
+                        return Ok(SelfUpdatePermission::HardFail);
+                    } else {
+                        return Ok(SelfUpdatePermission::Skip);
+                    }
+                }
+                _ => Err(e)?,
+            },
+        }
+        Ok(SelfUpdatePermission::Permit)
+    }
+}
+
 pub fn self_update<F>(before_restart: F) -> Result<()>
 where
     F: FnOnce() -> Result<()>,
 {
+    match self_update_permitted(false)? {
+        SelfUpdatePermission::HardFail => {
+            err!("Unable to self-update.  STOP");
+            std::process::exit(1);
+        }
+        SelfUpdatePermission::Skip => return Ok(()),
+        SelfUpdatePermission::Permit => {}
+    }
+
     let setup_path = self_update::prepare_update()?;
 
     before_restart()?;
@@ -473,7 +534,6 @@ pub fn report_error(e: &Error) {
     }
 
     fn show_backtrace() -> bool {
-        use std::env;
         use std::ops::Deref;
 
         if env::var("RUST_BACKTRACE").as_ref().map(Deref::deref) == Ok("1") {
