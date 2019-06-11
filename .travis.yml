@@ -29,25 +29,25 @@ matrix:
     # Cross builds happen in the `rust-slave-linux-cross` image to ensure that
     # we use the right cross compilers for these targets. That image should
     # bundle all the gcc cross compilers to enable us to build OpenSSL
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabi       }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabihf     }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=armv7-unknown-linux-gnueabihf   }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=aarch64-unknown-linux-gnu       }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=x86_64-unknown-freebsd          }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc-unknown-linux-gnu       }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc64-unknown-linux-gnu     }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc64le-unknown-linux-gnu   }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips-unknown-linux-gnu          }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mipsel-unknown-linux-gnu        }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips64-unknown-linux-gnuabi64   }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabi }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabihf }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=armv7-unknown-linux-gnueabihf }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=aarch64-unknown-linux-gnu }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=x86_64-unknown-freebsd }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc-unknown-linux-gnu }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc64-unknown-linux-gnu }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=powerpc64le-unknown-linux-gnu }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips-unknown-linux-gnu }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mipsel-unknown-linux-gnu }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips64-unknown-linux-gnuabi64 }
     - { <<: *linux, env: SKIP_TESTS=1 TARGET=mips64el-unknown-linux-gnuabi64 }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=s390x-unknown-linux-gnu         }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=x86_64-unknown-linux-musl       }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-linux-androideabi           }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=armv7-linux-androideabi         }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=aarch64-linux-android           }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=i686-linux-android              }
-    - { <<: *linux, env: SKIP_TESTS=1 TARGET=x86_64-linux-android            }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=s390x-unknown-linux-gnu }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=x86_64-unknown-linux-musl }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=arm-linux-androideabi }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=armv7-linux-androideabi }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=aarch64-linux-android }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=i686-linux-android }
+    - { <<: *linux, env: SKIP_TESTS=1 TARGET=x86_64-linux-android }
 
     # On OSX we want to target 10.7 so we ensure that the appropriate
     # environment variable is set to tell the linker what we want.
@@ -66,7 +66,8 @@ matrix:
       language: minimal
       install:
       script:
-        - docker run
+        - >
+          docker run
             --volume "$TRAVIS_BUILD_DIR":/checkout:ro
             --workdir /checkout
             --rm
@@ -84,20 +85,21 @@ install:
 script:
   - mkdir -p target/"$TARGET";
   - >
-      case "$TARGET" in
-        *-linux-android*) DOCKER=android   ;; # Android uses a local docker image
-        *-apple-darwin)                    ;;
-        *)                DOCKER="$TARGET" ;;
-      esac;
-      if [ -n "$DOCKER" ]; then
-        sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
-      else
-        sh ci/run.sh;
-      fi
+    case "$TARGET" in
+      *-linux-android*) DOCKER=android   ;; # Android uses a local docker image
+      *-apple-darwin)                    ;;
+      *)                DOCKER="$TARGET" ;;
+    esac;
+    if [ -n "$DOCKER" ]; then
+      sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
+    else
+      sh ci/run.sh;
+    fi
 
   # Check the formatting last because test failures are more interesting to have
   # discovered for contributors lacking some platform access for testing beforehand
-  - if [ "${TARGET}" = x86_64-unknown-linux-gnu ]; then
+  - >
+    if [ "${TARGET}" = x86_64-unknown-linux-gnu ]; then
       shellcheck -s dash -e SC1090 -- rustup-init.sh ci/*.sh;
       rustup component add rustfmt;
       rustfmt -vV;
