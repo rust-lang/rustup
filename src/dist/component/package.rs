@@ -398,7 +398,8 @@ fn unpack_without_first_dir<'a, R: Read>(
                     }
                 }
             } else {
-                unreachable!();
+                // We should never see a path with no parent.
+                panic!();
             }
         };
 

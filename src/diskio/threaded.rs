@@ -129,6 +129,8 @@ impl<'a> Executor for Threaded<'a> {
             println!("{} deferred IO operations", prev_files);
         }
         let buf: Vec<u8> = vec![0; prev_files];
+        // Cheap wrap-around correctness check - we have 20k files, more than
+        // 32K means we subtracted from 0 somewhere.
         assert!(32767 > prev_files);
         let mut current_files = prev_files;
         while current_files != 0 {
