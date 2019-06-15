@@ -2,18 +2,23 @@
 //! for installing from a directory or tarball to an installation
 //! prefix, represented by a `Components` instance.
 
+use crate::diskio::{get_executor, Executor, Item, Kind};
 use crate::dist::component::components::*;
 use crate::dist::component::transaction::*;
-
 use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::notifications::Notification;
 use crate::utils::utils;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::env;
 use std::fmt;
-use std::io::Read;
+use std::io::{self, ErrorKind as IOErrorKind, Read};
+use std::iter::FromIterator;
+use std::mem;
 use std::path::{Path, PathBuf};
+
+use tar::EntryType;
 
 /// The current metadata revision used by rust-installer
 pub const INSTALLER_VERSION: &str = "3";
@@ -118,8 +123,6 @@ impl Package for DirectoryPackage {
                 }
                 _ => return Err(ErrorKind::CorruptComponent(name.to_owned()).into()),
             }
-
-            set_file_perms(&target.prefix().path().join(path), &src_path)?;
         }
 
         let tx = builder.finish()?;
@@ -130,65 +133,6 @@ impl Package for DirectoryPackage {
     fn components(&self) -> Vec<String> {
         self.components.iter().cloned().collect()
     }
-}
-
-// On Unix we need to set up the file permissions correctly so
-// binaries are executable and directories readable. This shouldn't be
-// necessary: the source files *should* have the right permissions,
-// but due to rust-lang/rust#25479 they don't.
-#[cfg(unix)]
-fn set_file_perms(dest_path: &Path, src_path: &Path) -> Result<()> {
-    use std::fs::{self, Metadata};
-    use std::os::unix::fs::PermissionsExt;
-    use walkdir::WalkDir;
-
-    // Compute whether this entry needs the X bit
-    fn needs_x(meta: &Metadata) -> bool {
-        meta.is_dir() || // Directories need it
-        meta.permissions().mode() & 0o700 == 0o700 // If it is rwx for the user, it gets the X bit
-    }
-
-    // By convention, anything in the bin/ directory of the package is a binary
-    let is_bin = if let Some(p) = src_path.parent() {
-        p.ends_with("bin")
-    } else {
-        false
-    };
-
-    let is_dir = utils::is_directory(dest_path);
-
-    if is_dir {
-        // Walk the directory setting everything
-        for entry in WalkDir::new(dest_path) {
-            let entry = entry.chain_err(|| ErrorKind::ComponentDirPermissionsFailed)?;
-            let meta = entry
-                .metadata()
-                .chain_err(|| ErrorKind::ComponentDirPermissionsFailed)?;
-
-            let mut perm = meta.permissions();
-            perm.set_mode(if needs_x(&meta) { 0o755 } else { 0o644 });
-            fs::set_permissions(entry.path(), perm)
-                .chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
-        }
-    } else {
-        let meta =
-            fs::metadata(dest_path).chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
-        let mut perm = meta.permissions();
-        perm.set_mode(if is_bin || needs_x(&meta) {
-            0o755
-        } else {
-            0o644
-        });
-        fs::set_permissions(dest_path, perm)
-            .chain_err(|| ErrorKind::ComponentFilePermissionsFailed)?;
-    }
-
-    Ok(())
-}
-
-#[cfg(windows)]
-fn set_file_perms(_dest_path: &Path, _src_path: &Path) -> Result<()> {
-    Ok(())
 }
 
 #[derive(Debug)]
@@ -214,109 +158,114 @@ impl<'a> TarPackage<'a> {
     }
 }
 
-#[cfg(windows)]
-mod unpacker {
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::Arc;
-    use threadpool;
+struct MemoryBudget {
+    limit: usize,
+    used: usize,
+}
 
-    use crate::utils::notifications::Notification;
-
-    pub struct Unpacker<'a> {
-        n_files: Arc<AtomicUsize>,
-        pool: threadpool::ThreadPool,
-        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
-    }
-
-    impl<'a> Unpacker<'a> {
-        pub fn new(notify_handler: Option<&'a dyn Fn(Notification<'_>)>) -> Self {
-            // Defaults to hardware thread count threads; this is suitable for
-            // our needs as IO bound operations tend to show up as write latencies
-            // rather than close latencies, so we don't need to look at
-            // more threads to get more IO dispatched at this stage in the process.
-            let pool = threadpool::Builder::new()
-                .thread_name("CloseHandle".into())
-                .build();
-            Unpacker {
-                n_files: Arc::new(AtomicUsize::new(0)),
-                pool: pool,
-                notify_handler: notify_handler,
+// Probably this should live in diskio but ¯\_(ツ)_/¯
+impl MemoryBudget {
+    fn new(max_file_size: usize) -> MemoryBudget {
+        const DEFAULT_UNPACK_RAM: usize = 400 * 1024 * 1024;
+        let unpack_ram = if let Ok(budget_str) = env::var("RUSTUP_UNPACK_RAM") {
+            if let Ok(budget) = budget_str.parse::<usize>() {
+                budget
+            } else {
+                DEFAULT_UNPACK_RAM
             }
+        } else {
+            DEFAULT_UNPACK_RAM
+        };
+        if max_file_size > unpack_ram {
+            panic!("RUSTUP_UNPACK_RAM must be larger than {}", max_file_size);
         }
-
-        pub fn handle(&mut self, unpacked: tar::Unpacked) {
-            if let tar::Unpacked::File(f) = unpacked {
-                self.n_files.fetch_add(1, Ordering::Relaxed);
-                let n_files = self.n_files.clone();
-                self.pool.execute(move || {
-                    drop(f);
-                    n_files.fetch_sub(1, Ordering::Relaxed);
-                });
-            }
+        MemoryBudget {
+            limit: unpack_ram,
+            used: 0,
         }
     }
+    fn reclaim(&mut self, op: &Item) {
+        match &op.kind {
+            Kind::Directory => {}
+            Kind::File(content) => self.used -= content.len(),
+        };
+    }
 
-    impl<'a> Drop for Unpacker<'a> {
-        fn drop(&mut self) {
-            // Some explanation is in order. Even though the tar we are reading from (if
-            // any) will have had its FileWithProgress download tracking
-            // completed before we hit drop, that is not true if we are unwinding due to a
-            // failure, where the logical ownership of the progress bar is
-            // ambiguous, and as the tracker itself is abstracted out behind
-            // notifications etc we cannot just query for that. So: we assume no
-            // more reads of the underlying tar will take place: either the
-            // error unwinding will stop reads, or we completed; either way, we
-            // notify finished to the tracker to force a reset to zero; we set
-            // the units to files, show our progress, and set our units back
-            // afterwards. The largest archives today - rust docs - have ~20k
-            // items, and the download tracker's progress is confounded with
-            // actual handling of data today, we synthesis a data buffer and
-            // pretend to have bytes to deliver.
-            self.notify_handler
-                .map(|handler| handler(Notification::DownloadFinished));
-            self.notify_handler
-                .map(|handler| handler(Notification::DownloadPushUnits("handles")));
-            let mut prev_files = self.n_files.load(Ordering::Relaxed);
-            self.notify_handler.map(|handler| {
-                handler(Notification::DownloadContentLengthReceived(
-                    prev_files as u64,
-                ))
-            });
-            if prev_files > 50 {
-                println!("Closing {} deferred file handles", prev_files);
-            }
-            let buf: Vec<u8> = vec![0; prev_files];
-            assert!(32767 > prev_files);
-            let mut current_files = prev_files;
-            while current_files != 0 {
-                use std::thread::sleep;
-                sleep(std::time::Duration::from_millis(100));
-                prev_files = current_files;
-                current_files = self.n_files.load(Ordering::Relaxed);
-                let step_count = prev_files - current_files;
-                self.notify_handler.map(|handler| {
-                    handler(Notification::DownloadDataReceived(&buf[0..step_count]))
-                });
-            }
-            self.pool.join();
-            self.notify_handler
-                .map(|handler| handler(Notification::DownloadFinished));
-            self.notify_handler
-                .map(|handler| handler(Notification::DownloadPopUnits));
-        }
+    fn claim(&mut self, op: &Item) {
+        match &op.kind {
+            Kind::Directory => {}
+            Kind::File(content) => self.used += content.len(),
+        };
+    }
+
+    fn available(&self) -> usize {
+        self.limit - self.used
     }
 }
 
-#[cfg(not(windows))]
-mod unpacker {
-    use crate::utils::notifications::Notification;
-    pub struct Unpacker {}
-    impl Unpacker {
-        pub fn new<'a>(_notify_handler: Option<&'a dyn Fn(Notification<'_>)>) -> Unpacker {
-            Unpacker {}
-        }
-        pub fn handle(&mut self, _unpacked: tar::Unpacked) {}
+/// Handle the async result of io operations
+/// Replaces op.result with Ok(())
+fn filter_result(op: &mut Item) -> io::Result<()> {
+    let result = mem::replace(&mut op.result, Ok(()));
+    match result {
+        Ok(_) => Ok(()),
+        Err(e) => match e.kind() {
+            IOErrorKind::AlreadyExists => {
+                // mkdir of e.g. ~/.rustup already existing is just fine;
+                // for others it would be better to know whether it is
+                // expected to exist or not -so put a flag in the state.
+                if let Kind::Directory = op.kind {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            }
+            _ => Err(e),
+        },
     }
+}
+
+/// Dequeue the children of directories queued up waiting for the directory to
+/// be created.
+///
+/// Currently the volume of queued items does not count as backpressure against
+/// the main tar extraction process.
+fn trigger_children(
+    io_executor: &mut dyn Executor,
+    directories: &mut HashMap<PathBuf, DirStatus>,
+    budget: &mut MemoryBudget,
+    item: Item,
+) -> Result<usize> {
+    let mut result = 0;
+    if let Kind::Directory = item.kind {
+        let mut pending = Vec::new();
+        directories
+            .entry(item.full_path)
+            .and_modify(|status| match status {
+                DirStatus::Exists => unreachable!(),
+                DirStatus::Pending(pending_inner) => {
+                    pending.append(pending_inner);
+                    *status = DirStatus::Exists;
+                }
+            })
+            .or_insert_with(|| unreachable!());
+        result += pending.len();
+        for pending_item in pending.into_iter() {
+            for mut item in Vec::from_iter(io_executor.execute(pending_item)) {
+                // TODO capture metrics
+                budget.reclaim(&item);
+                filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+                result += trigger_children(io_executor, directories, budget, item)?;
+            }
+        }
+    };
+    Ok(result)
+}
+
+/// What is the status of this directory ?
+enum DirStatus {
+    Exists,
+    Pending(Vec<Item>),
 }
 
 fn unpack_without_first_dir<'a, R: Read>(
@@ -324,45 +273,158 @@ fn unpack_without_first_dir<'a, R: Read>(
     path: &Path,
     notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
 ) -> Result<()> {
-    let mut unpacker = unpacker::Unpacker::new(notify_handler);
+    let mut io_executor: Box<dyn Executor> = get_executor(notify_handler);
     let entries = archive
         .entries()
         .chain_err(|| ErrorKind::ExtractingPackage)?;
-    let mut checked_parents: HashSet<PathBuf> = HashSet::new();
+    const MAX_FILE_SIZE: u64 = 100_000_000;
+    let mut budget = MemoryBudget::new(MAX_FILE_SIZE as usize);
 
-    for entry in entries {
+    let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
+    // Path is presumed to exist. Call it a precondition.
+    directories.insert(path.to_owned(), DirStatus::Exists);
+
+    'entries: for entry in entries {
+        // drain completed results to keep memory pressure low and respond
+        // rapidly to completed events even if we couldn't submit work (because
+        // our unpacked item is pending dequeue)
+        for mut item in Vec::from_iter(io_executor.completed()) {
+            // TODO capture metrics
+            budget.reclaim(&item);
+            filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+            trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+        }
+
         let mut entry = entry.chain_err(|| ErrorKind::ExtractingPackage)?;
         let relpath = {
             let path = entry.path();
             let path = path.chain_err(|| ErrorKind::ExtractingPackage)?;
             path.into_owned()
         };
-        let mut components = relpath.components();
-        // Throw away the first path component
-        components.next();
-        let full_path = path.join(&components.as_path());
-
-        // Create the full path to the entry if it does not exist already
-        if let Some(parent) = full_path.parent() {
-            if !checked_parents.contains(parent) {
-                checked_parents.insert(parent.to_owned());
-                // It would be nice to optimise this stat out, but the tar could be like so:
-                // a/deep/file.txt
-                // a/file.txt
-                // which would require tracking the segments rather than a simple hash.
-                // Until profile shows that one stat per dir is a problem (vs one stat per file)
-                // leave till later.
-
-                if !parent.exists() {
-                    std::fs::create_dir_all(&parent).chain_err(|| ErrorKind::ExtractingPackage)?
-                }
+        // Reject path components that are not normal (.|..|/| etc)
+        for part in relpath.components() {
+            match part {
+                std::path::Component::Normal(_) => {}
+                _ => return Err(ErrorKind::BadPath(relpath).into()),
             }
         }
-        entry.set_preserve_mtime(false);
-        entry
-            .unpack(&full_path)
-            .map(|unpacked| unpacker.handle(unpacked))
-            .chain_err(|| ErrorKind::ExtractingPackage)?;
+        let mut components = relpath.components();
+        // Throw away the first path component: our root was supplied.
+        components.next();
+        let full_path = path.join(&components.as_path());
+        if full_path == path {
+            // The tmp dir code makes the root dir for us.
+            continue;
+        }
+
+        let size = entry.header().size()?;
+        if size > MAX_FILE_SIZE {
+            return Err(format!("File too big {} {}", relpath.display(), size).into());
+        }
+        while size > budget.available() as u64 {
+            for mut item in Vec::from_iter(io_executor.completed()) {
+                // TODO capture metrics
+                budget.reclaim(&item);
+                filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+                trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+            }
+        }
+        // Bail out if we get hard links, device nodes or any other unusual content
+        // - it is most likely an attack, as rusts cross-platform nature precludes
+        // such artifacts
+        let kind = entry.header().entry_type();
+        // https://github.com/rust-lang/rustup.rs/issues/1140 and before that
+        // https://github.com/rust-lang/rust/issues/25479
+        // tl;dr: code got convoluted and we *may* have damaged tarballs out
+        // there.
+        // However the mandate we have is very simple: unpack as the current
+        // user with modes matching the tar contents. No documented tars with
+        // bad modes are in the bug tracker : the previous permission splatting
+        // code was inherited from interactions with sudo that are best
+        // addressed outside of rustup (run with an appropriate effective uid).
+        // THAT SAID: If regressions turn up immediately post release this code -
+        // https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=a8549057f0827bf3a068d8917256765a
+        // is a translation of the prior helper function into an in-iterator
+        // application.
+        let tar_mode = entry.header().mode().ok().unwrap();
+        // That said, the tarballs that are shipped way back have single-user
+        // permissions:
+        // -rwx------ rustbuild/rustbuild  ..... release/test-release.sh
+        // so we should normalise the mode to match the previous behaviour users
+        // may be expecting where the above file would end up with mode 0o755
+        let u_mode = tar_mode & 0o700;
+        let g_mode = (u_mode & 0o0500) >> 3;
+        let o_mode = g_mode >> 3;
+        let mode = u_mode | g_mode | o_mode;
+
+        let mut item = match kind {
+            EntryType::Directory => {
+                directories.insert(full_path.to_owned(), DirStatus::Pending(Vec::new()));
+                Item::make_dir(full_path, mode)
+            }
+            EntryType::Regular => {
+                let mut v = Vec::with_capacity(size as usize);
+                entry.read_to_end(&mut v)?;
+                Item::write_file(full_path, v, mode)
+            }
+            _ => return Err(ErrorKind::UnsupportedKind(format!("{:?}", kind)).into()),
+        };
+        budget.claim(&item);
+
+        let item = loop {
+            // Create the full path to the entry if it does not exist already
+            if let Some(parent) = item.full_path.to_owned().parent() {
+                match directories.get_mut(parent) {
+                    None => {
+                        // Tar has item before containing directory
+                        // Complain about this so we can see if these exist.
+                        eprintln!(
+                            "Unexpected: missing parent '{}' for '{}'",
+                            parent.display(),
+                            entry.path()?.display()
+                        );
+                        directories.insert(parent.to_owned(), DirStatus::Pending(vec![item]));
+                        item = Item::make_dir(parent.to_owned(), 0o755);
+                        // Check the parent's parent
+                        continue;
+                    }
+                    Some(DirStatus::Exists) => {
+                        break item;
+                    }
+                    Some(DirStatus::Pending(pending)) => {
+                        // Parent dir is being made, take next item from tar
+                        pending.push(item);
+                        continue 'entries;
+                    }
+                }
+            } else {
+                // We should never see a path with no parent.
+                panic!();
+            }
+        };
+
+        for mut item in Vec::from_iter(io_executor.execute(item)) {
+            // TODO capture metrics
+            budget.reclaim(&item);
+            filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+            trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+        }
+    }
+
+    loop {
+        let mut triggered = 0;
+        for mut item in Vec::from_iter(io_executor.join()) {
+            // handle final IOs
+            // TODO capture metrics
+            budget.reclaim(&item);
+            filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+            triggered += trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+        }
+        if triggered == 0 {
+            // None of the IO submitted before the prior join triggered any new
+            // submissions
+            break;
+        }
     }
 
     Ok(())

@@ -59,6 +59,10 @@ xz2 = "0.1.3"
 version = "0.5"
 default-features = false
 
+[dependencies.rs_tracing]
+version = "1.0.1"
+features = ["rs_tracing"]
+
 [target."cfg(windows)".dependencies]
 cc = "1"
 winreg = "0.6"

@@ -24,6 +24,7 @@ error_chain! {
         Temp(temp::Error);
         Io(io::Error);
         Open(opener::OpenError);
+        Thread(std::sync::mpsc::RecvError);
     }
 
     errors {
@@ -324,6 +325,14 @@ error_chain! {
         }
         NoExeName {
             description("couldn't determine self executable name")
+        }
+        UnsupportedKind(v: String) {
+            description("unsupported tar entry")
+            display("tar entry kind '{}' is not supported", v)
+        }
+        BadPath(v: PathBuf) {
+            description("bad path in tar")
+            display("tar path '{}' is not supported", v.display())
         }
     }
 }
