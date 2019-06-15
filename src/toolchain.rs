@@ -38,6 +38,7 @@ pub struct ComponentStatus {
     pub available: bool,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum UpdateStatus {
     Installed,
     Updated,
@@ -298,10 +299,11 @@ impl<'a> Toolchain<'a> {
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
             if recursion_count > env_var::RUST_RECURSION_COUNT_MAX - 1 {
+                let defaults = self.cfg.get_default()?;
                 return Err(ErrorKind::BinaryNotFound(
                     binary.to_string_lossy().into(),
                     self.name.clone(),
-                    Some(&self.name) == self.cfg.get_default().ok().as_ref(),
+                    Some(&self.name) == defaults.as_ref(),
                 )
                 .into());
             }

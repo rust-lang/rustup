@@ -641,7 +641,10 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             );
         }
     } else {
-        println!("{} (default)", cfg.get_default()?);
+        let default_toolchain: Result<String> = cfg
+            .get_default()?
+            .ok_or_else(|| "no default toolchain configured".into());
+        println!("{} (default)", default_toolchain?);
     }
 
     Ok(())
@@ -665,6 +668,13 @@ fn update(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             if let Some(status) = status {
                 println!();
                 common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
+            }
+
+            if cfg.get_default()?.is_none() {
+                use rustup::UpdateStatus;
+                if let Some(UpdateStatus::Installed) = status {
+                    toolchain.make_default()?;
+                }
             }
         }
         if self_update {
@@ -755,7 +765,10 @@ fn show(cfg: &Cfg) -> Result<()> {
         if show_headers {
             print_header(&mut t, "installed toolchains")?;
         }
-        let default_name = cfg.get_default()?;
+        let default_name: Result<String> = cfg
+            .get_default()?
+            .ok_or_else(|| "no default toolchain configured".into());
+        let default_name = default_name?;
         for it in installed_toolchains {
             if default_name == it {
                 writeln!(t, "{} (default)", it)?;

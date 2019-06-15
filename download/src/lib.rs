@@ -374,7 +374,7 @@ pub mod curl {
     pub fn download(
         _url: &Url,
         _resume_from: u64,
-        _callback: &Fn(Event) -> Result<()>,
+        _callback: &dyn Fn(Event<'_>) -> Result<()>,
     ) -> Result<()> {
         Err(ErrorKind::BackendUnavailable("curl").into())
     }
@@ -390,7 +390,7 @@ pub mod reqwest_be {
     pub fn download(
         _url: &Url,
         _resume_from: u64,
-        _callback: &Fn(Event) -> Result<()>,
+        _callback: &dyn Fn(Event<'_>) -> Result<()>,
     ) -> Result<()> {
         Err(ErrorKind::BackendUnavailable("reqwest").into())
     }
