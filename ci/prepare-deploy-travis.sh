@@ -7,7 +7,7 @@ if [ "$TRAVIS_PULL_REQUEST" = "true" ] || [ "$TRAVIS_BRANCH" = "auto" ]; then
 fi
 
 # Copy rustup-init to rustup-setup for backwards compatibility
-cp target/"$TARGET"/release/rustup-init target/"$TARGET"/release/rustup-setup
+cp target/"$TARGET"/release/rustup-init$EXE_EXT target/"$TARGET"/release/rustup-setup$EXE_EXT
 
 # Generate hashes
 if [ "$TRAVIS_OS_NAME" = "osx" ]; then
@@ -22,10 +22,10 @@ dest="deploy"
 # Prepare bins for upload
 bindest="$dest/dist/$TARGET"
 mkdir -p "$bindest/"
-cp target/"$TARGET"/release/rustup-init "$bindest/"
-cp target/"$TARGET"/release/rustup-init.sha256 "$bindest/"
-cp target/"$TARGET"/release/rustup-setup "$bindest/"
-cp target/"$TARGET"/release/rustup-setup.sha256 "$bindest/"
+cp target/"$TARGET"/release/rustup-init"${EXE_EXT}" "$bindest/"
+cp target/"$TARGET"/release/rustup-init"${EXE_EXT}".sha256 "$bindest/"
+cp target/"$TARGET"/release/rustup-setup"${EXE_EXT}" "$bindest/"
+cp target/"$TARGET"/release/rustup-setup"${EXE_EXT}".sha256 "$bindest/"
 
 if [ "$TARGET" != "x86_64-unknown-linux-gnu" ]; then
     exit 0
