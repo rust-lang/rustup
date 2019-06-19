@@ -115,8 +115,8 @@ hr {
     color: white;
     margin-left: auto;
     margin-right: auto;
-    padding-top: 1rem;
-    padding-bottom: 1rem;
+    padding: 1rem;
+    width: 32rem;
     text-align: center;
     border-radius: 3px;
     box-shadow: inset 0px 0px 20px 0px #333333;
