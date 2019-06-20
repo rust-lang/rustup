@@ -208,7 +208,7 @@ impl<T: Iterator<Item = Task>> Iterator for JoinIterator<T> {
     }
 }
 
-struct SubmitIterator<'a, 'b: 'a> {
+struct SubmitIterator<'a, 'b> {
     executor: &'a mut Threaded<'b>,
     item: Cell<Task>,
 }
