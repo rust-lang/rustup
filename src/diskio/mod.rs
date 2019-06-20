@@ -200,15 +200,13 @@ pub fn get_executor<'a>(
     if let Ok(thread_str) = env::var("RUSTUP_IO_THREADS") {
         if thread_str == "disabled" {
             Box::new(immediate::ImmediateUnpacker::new())
+        } else if let Ok(thread_count) = thread_str.parse::<usize>() {
+            Box::new(threaded::Threaded::new_with_threads(
+                notify_handler,
+                thread_count,
+            ))
         } else {
-            if let Ok(thread_count) = thread_str.parse::<usize>() {
-                Box::new(threaded::Threaded::new_with_threads(
-                    notify_handler,
-                    thread_count,
-                ))
-            } else {
-                Box::new(threaded::Threaded::new(notify_handler))
-            }
+            Box::new(threaded::Threaded::new(notify_handler))
         }
     } else {
         Box::new(threaded::Threaded::new(notify_handler))
