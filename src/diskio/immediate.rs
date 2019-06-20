@@ -4,6 +4,7 @@
 /// threaded code paths.
 use super::{perform, Executor, Item};
 
+#[derive(Default)]
 pub struct ImmediateUnpacker {}
 impl ImmediateUnpacker {
     pub fn new() -> ImmediateUnpacker {
