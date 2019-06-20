@@ -6,7 +6,7 @@ use super::{perform, Executor, Item};
 
 pub struct ImmediateUnpacker {}
 impl ImmediateUnpacker {
-    pub fn new<'a>() -> ImmediateUnpacker {
+    pub fn new() -> ImmediateUnpacker {
         ImmediateUnpacker {}
     }
 }
