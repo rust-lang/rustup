@@ -89,7 +89,7 @@ pub struct Item {
 
 impl Item {
     pub fn make_dir(full_path: PathBuf, mode: u32) -> Self {
-        Item {
+        Self {
             full_path,
             kind: Kind::Directory,
             start: 0.0,
@@ -102,7 +102,7 @@ impl Item {
 
     pub fn write_file(full_path: PathBuf, content: Vec<u8>, mode: u32) -> Self {
         let len = content.len();
-        Item {
+        Self {
             full_path,
             kind: Kind::File(content),
             start: 0.0,

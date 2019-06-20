@@ -7,8 +7,8 @@ use super::{perform, Executor, Item};
 #[derive(Default)]
 pub struct ImmediateUnpacker {}
 impl ImmediateUnpacker {
-    pub fn new() -> ImmediateUnpacker {
-        ImmediateUnpacker {}
+    pub fn new() -> Self {
+        Self {}
     }
 }
 

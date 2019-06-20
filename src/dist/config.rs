@@ -22,7 +22,7 @@ impl Config {
         let components =
             Self::toml_to_components(components, &format!("{}{}.", path, "components"))?;
 
-        Ok(Config {
+        Ok(Self {
             config_version: version,
             components,
         })
@@ -77,7 +77,7 @@ impl Config {
 
 impl Default for Config {
     fn default() -> Self {
-        Config {
+        Self {
             config_version: DEFAULT_CONFIG_VERSION.to_owned(),
             components: Vec::new(),
         }

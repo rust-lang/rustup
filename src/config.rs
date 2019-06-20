@@ -95,7 +95,7 @@ impl Cfg {
         );
         let dist_root = dist_root_server.clone() + "/dist";
 
-        let cfg = Cfg {
+        let cfg = Self {
             rustup_dir,
             settings_file,
             toolchains_dir,

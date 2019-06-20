@@ -79,7 +79,7 @@ impl Manifest {
             return Err(ErrorKind::UnsupportedVersion(version).into());
         }
         let (renames, reverse_renames) = Self::table_to_renames(&mut table, path)?;
-        Ok(Manifest {
+        Ok(Self {
             manifest_version: version,
             date: get_string(&mut table, "date", path)?,
             packages: Self::table_to_packages(&mut table, path)?,
@@ -217,7 +217,7 @@ impl Manifest {
 
 impl Package {
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
-        Ok(Package {
+        Ok(Self {
             version: get_string(&mut table, "version", path)?,
             targets: Self::toml_to_targets(table, path)?,
         })
@@ -303,7 +303,7 @@ impl TargetedPackage {
         let extensions = get_array(&mut table, "extensions", path)?;
 
         if get_bool(&mut table, "available", path)? {
-            Ok(TargetedPackage {
+            Ok(Self {
                 bins: Some(PackageBins {
                     url: get_string(&mut table, "url", path)?,
                     hash: get_string(&mut table, "hash", path)?,
@@ -320,7 +320,7 @@ impl TargetedPackage {
                 )?,
             })
         } else {
-            Ok(TargetedPackage {
+            Ok(Self {
                 bins: None,
                 components: vec![],
                 extensions: vec![],
@@ -377,17 +377,17 @@ impl TargetedPackage {
 }
 
 impl Component {
-    pub fn new(pkg: String, target: Option<TargetTriple>) -> Component {
-        Component { pkg, target }
+    pub fn new(pkg: String, target: Option<TargetTriple>) -> Self {
+        Self { pkg, target }
     }
-    pub fn wildcard(&self) -> Component {
-        Component {
+    pub fn wildcard(&self) -> Self {
+        Self {
             pkg: self.pkg.clone(),
             target: None,
         }
     }
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
-        Ok(Component {
+        Ok(Self {
             pkg: get_string(&mut table, "pkg", path)?,
             target: get_string(&mut table, "target", path).map(|s| {
                 if s == "*" {
