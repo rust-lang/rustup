@@ -48,7 +48,7 @@ fn run_rustup() -> Result<()> {
         open_trace_file!(dir)?;
     }
     let result = run_rustup_inner();
-    if let Ok(_) = env::var("RUSTUP_TRACE_DIR") {
+    if env::var("RUSTUP_TRACE_DIR").is_ok() {
         close_trace_file!();
     }
     result
