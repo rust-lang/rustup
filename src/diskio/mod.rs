@@ -122,7 +122,7 @@ pub trait Executor {
     /// During overload situations previously queued items may
     /// need to be completed before the item is accepted:
     /// consume the returned iterator.
-    fn execute(&mut self, mut item: Item) -> Box<dyn '_ + Iterator<Item = Item>> {
+    fn execute(&mut self, mut item: Item) -> Box<dyn Iterator<Item = Item> + '_> {
         item.start = precise_time_s();
         self.dispatch(item)
     }
@@ -130,16 +130,16 @@ pub trait Executor {
     /// Actually dispatch a operation.
     /// This is called by the default execute() implementation and
     /// should not be called directly.
-    fn dispatch(&mut self, item: Item) -> Box<dyn '_ + Iterator<Item = Item>>;
+    fn dispatch(&mut self, item: Item) -> Box<dyn Iterator<Item = Item> + '_>;
 
     /// Wrap up any pending operations and iterate over them.
     /// All operations submitted before the join will have been
     /// returned either through ready/complete or join once join
     /// returns.
-    fn join(&mut self) -> Box<dyn '_ + Iterator<Item = Item>>;
+    fn join(&mut self) -> Box<dyn Iterator<Item = Item> + '_>;
 
     /// Iterate over completed items.
-    fn completed(&mut self) -> Box<dyn '_ + Iterator<Item = Item>>;
+    fn completed(&mut self) -> Box<dyn Iterator<Item = Item> + '_>;
 }
 
 /// Trivial single threaded IO to be used from executors.
