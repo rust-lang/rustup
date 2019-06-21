@@ -1,7 +1,7 @@
 use std::env::consts::EXE_SUFFIX;
 use std::env;
 use std::fs::File;
-use std::io::{self, Write, Read};
+use std::io::{self, Write};
 use std::path::{PathBuf, Path};
 use std::process::Command;
 
@@ -12,8 +12,6 @@ fn main() {
             let me = env::current_exe().unwrap();
             let mut version_file = PathBuf::from(format!("{}.version", me.display()));
             let mut hash_file = PathBuf::from(format!("{}.version-hash", me.display()));
-            let mut version = String::new();
-            let mut hash = String::new();
             if !version_file.exists() {
                 // There's a "MAJOR HACKS" statement in `toolchain.rs` right
                 // now where custom toolchains use a `cargo.exe` that's
@@ -42,8 +40,8 @@ fn main() {
                 version_file = format!("{}.version", path.display()).into();
                 hash_file = format!("{}.version-hash", path.display()).into();
             }
-            File::open(&version_file).unwrap().read_to_string(&mut version).unwrap();
-            File::open(&hash_file).unwrap().read_to_string(&mut hash).unwrap();
+            let version = std::fs::read_to_string(&version_file).unwrap();
+            let hash = std::fs::read_to_string(&hash_file).unwrap();
             println!("{} ({})", version, hash);
         }
         Some("--empty-arg-test") => {

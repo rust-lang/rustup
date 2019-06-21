@@ -64,16 +64,6 @@ pub fn write_file(path: &Path, contents: &str) -> io::Result<()> {
     Ok(())
 }
 
-pub fn read_file(path: &Path) -> io::Result<String> {
-    let mut file = fs::OpenOptions::new().read(true).open(path)?;
-
-    let mut contents = String::new();
-
-    io::Read::read_to_string(&mut file, &mut contents)?;
-
-    Ok(contents)
-}
-
 pub fn filter_file<F: FnMut(&str) -> bool>(
     src: &Path,
     dest: &Path,

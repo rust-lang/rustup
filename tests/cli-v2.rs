@@ -235,7 +235,7 @@ fn bad_sha_on_manifest() {
     setup(&|config| {
         // Corrupt the sha
         let sha_file = config.distdir.join("dist/channel-rust-nightly.toml.sha256");
-        let sha_str = rustup::utils::raw::read_file(&sha_file).unwrap();
+        let sha_str = fs::read_to_string(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
         let sha_str = String::from_utf8(sha_bytes).unwrap();
@@ -914,7 +914,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple
     use rustup::dist::manifest::Manifest;
 
     let manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");
-    let manifest_str = rustup::utils::raw::read_file(&manifest_path).unwrap();
+    let manifest_str = fs::read_to_string(&manifest_path).unwrap();
     let mut manifest = Manifest::parse(&manifest_str).unwrap();
     {
         let std_pkg = manifest.packages.get_mut(name).unwrap();

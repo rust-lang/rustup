@@ -543,13 +543,13 @@ fn upgrade() {
         update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
         assert_eq!(
             "2016-02-01",
-            utils_raw::read_file(&prefix.path().join("bin/rustc")).unwrap()
+            fs::read_to_string(&prefix.path().join("bin/rustc")).unwrap()
         );
         change_channel_date(url, "nightly", "2016-02-02");
         update_from_dist(url, toolchain, prefix, &[], &[], download_cfg, temp_cfg).unwrap();
         assert_eq!(
             "2016-02-02",
-            utils_raw::read_file(&prefix.path().join("bin/rustc")).unwrap()
+            fs::read_to_string(&prefix.path().join("bin/rustc")).unwrap()
         );
     });
 }

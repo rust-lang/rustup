@@ -163,7 +163,7 @@ fn remove_override_toolchain_err_handling() {
 fn bad_sha_on_manifest() {
     setup(&|config| {
         let sha_file = config.distdir.join("dist/channel-rust-nightly.sha256");
-        let sha_str = rustup::utils::raw::read_file(&sha_file).unwrap();
+        let sha_str = fs::read_to_string(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
         let sha_str = String::from_utf8(sha_bytes).unwrap();
