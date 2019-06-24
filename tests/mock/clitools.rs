@@ -69,7 +69,11 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     env::remove_var("RUSTUP_TOOLCHAIN");
     env::remove_var("SHELL");
     env::remove_var("ZDOTDIR");
-    env::remove_var("RUST_BACKTRACE");
+
+    match env::var("RUSTUP_BACKTRACE") {
+        Ok(val) => env::set_var("RUST_BACKTRACE", val),
+        _ => env::remove_var("RUST_BACKTRACE"),
+    }
 
     let current_exe_path = env::current_exe().map(PathBuf::from).unwrap();
     let mut exe_dir = current_exe_path.parent().unwrap();
