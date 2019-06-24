@@ -1,5 +1,5 @@
-use std::fs::{self, File};
-use std::io::{self, Read};
+use std::fs;
+use std::io;
 use std::net::SocketAddr;
 use std::path::Path;
 
@@ -8,15 +8,6 @@ use tempdir::TempDir;
 
 pub fn tmp_dir() -> TempDir {
     TempDir::new("rustup-download-test-").expect("creating tempdir for test")
-}
-
-pub fn file_contents(path: &Path) -> String {
-    let mut result = String::new();
-    File::open(&path)
-        .unwrap()
-        .read_to_string(&mut result)
-        .expect("reading test result file");
-    result
 }
 
 pub fn write_file(path: &Path, contents: &str) {

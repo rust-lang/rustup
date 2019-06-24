@@ -34,7 +34,7 @@ fn add_file() {
     drop(file);
 
     assert_eq!(
-        utils_raw::read_file(&prefix.path().join("foo/bar")).unwrap(),
+        fs::read_to_string(&prefix.path().join("foo/bar")).unwrap(),
         "test"
     );
 }
@@ -460,7 +460,7 @@ fn write_file() {
 
     let path = prefix.path().join("foo/bar");
     assert!(utils::is_file(&path));
-    let file_content = utils_raw::read_file(&path).unwrap();
+    let file_content = fs::read_to_string(&path).unwrap();
     assert_eq!(content, file_content);
 }
 
@@ -566,7 +566,7 @@ fn modify_file_that_exists() {
     tx.modify_file(PathBuf::from("foo")).unwrap();
     tx.commit();
 
-    assert_eq!(utils_raw::read_file(&path).unwrap(), "wow");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "wow");
 }
 
 #[test]
@@ -613,7 +613,7 @@ fn modify_file_that_exists_then_rollback() {
     utils_raw::write_file(&path, "eww").unwrap();
     drop(tx);
 
-    assert_eq!(utils_raw::read_file(&path).unwrap(), "wow");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "wow");
 }
 
 // This is testing that the backup scheme is smart enough not
@@ -642,7 +642,7 @@ fn modify_twice_then_rollback() {
     utils_raw::write_file(&path, "ewww").unwrap();
     drop(tx);
 
-    assert_eq!(utils_raw::read_file(&path).unwrap(), "wow");
+    assert_eq!(fs::read_to_string(&path).unwrap(), "wow");
 }
 
 fn do_multiple_op_transaction(rollback: bool) {

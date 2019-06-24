@@ -41,7 +41,7 @@ where
 }
 
 pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
-    raw::read_file(path).chain_err(|| ErrorKind::ReadingFile {
+    fs::read_to_string(path).chain_err(|| ErrorKind::ReadingFile {
         name,
         path: PathBuf::from(path),
     })

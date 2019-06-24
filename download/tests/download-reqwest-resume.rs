@@ -8,7 +8,7 @@ use url::Url;
 use download::*;
 
 mod support;
-use crate::support::{file_contents, serve_file, tmp_dir, write_file};
+use crate::support::{serve_file, tmp_dir, write_file};
 
 #[test]
 fn resume_partial_from_file_url() {
@@ -23,7 +23,7 @@ fn resume_partial_from_file_url() {
     download_to_path_with_backend(Backend::Reqwest, &from_url, &target_path, true, None)
         .expect("Test download failed");
 
-    assert_eq!(file_contents(&target_path), "12345");
+    assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "12345");
 }
 
 #[test]
@@ -72,5 +72,5 @@ fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
     assert_eq!(*callback_len.lock().unwrap(), Some(5));
     let observed_bytes = received_in_callback.into_inner().unwrap();
     assert_eq!(observed_bytes, vec![b'1', b'2', b'3', b'4', b'5']);
-    assert_eq!(file_contents(&target_path), "12345");
+    assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "12345");
 }
