@@ -52,7 +52,7 @@ impl DirectoryPackage {
             .lines()
             .map(std::borrow::ToOwned::to_owned)
             .collect();
-        Ok(DirectoryPackage {
+        Ok(Self {
             path,
             components,
             copy,
@@ -165,7 +165,7 @@ struct MemoryBudget {
 
 // Probably this should live in diskio but ¯\_(ツ)_/¯
 impl MemoryBudget {
-    fn new(max_file_size: usize) -> MemoryBudget {
+    fn new(max_file_size: usize) -> Self {
         const DEFAULT_UNPACK_RAM: usize = 400 * 1024 * 1024;
         let unpack_ram = if let Ok(budget_str) = env::var("RUSTUP_UNPACK_RAM") {
             if let Ok(budget) = budget_str.parse::<usize>() {
@@ -179,7 +179,7 @@ impl MemoryBudget {
         if max_file_size > unpack_ram {
             panic!("RUSTUP_UNPACK_RAM must be larger than {}", max_file_size);
         }
-        MemoryBudget {
+        Self {
             limit: unpack_ram,
             used: 0,
         }

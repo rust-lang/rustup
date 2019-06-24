@@ -35,7 +35,7 @@ pub struct Changes {
 
 impl Changes {
     pub fn none() -> Self {
-        Changes {
+        Self {
             add_extensions: Vec::new(),
             remove_extensions: Vec::new(),
         }
@@ -83,7 +83,7 @@ impl Manifestation {
     pub fn open(prefix: InstallPrefix, triple: TargetTriple) -> Result<Self> {
         // TODO: validate the triple with the existing install as well
         // as the metadata format of the existing install
-        Ok(Manifestation {
+        Ok(Self {
             installation: Components::open(prefix)?,
             target_triple: triple,
         })
@@ -459,7 +459,7 @@ impl Update {
         new_manifest: &Manifest,
         changes: Changes,
         notify_handler: &dyn Fn(Notification<'_>),
-    ) -> Result<Update> {
+    ) -> Result<Self> {
         // Load the configuration and list of installed components.
         let config = manifestation.read_config()?;
 
@@ -475,7 +475,7 @@ impl Update {
             .map(|c| c.components.clone())
             .unwrap_or_default();
 
-        let mut result = Update {
+        let mut result = Self {
             components_to_uninstall: vec![],
             components_to_install: vec![],
             final_component_list: vec![],

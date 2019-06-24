@@ -212,6 +212,7 @@ impl DownloadTracker {
 struct Duration(f64);
 
 impl fmt::Display for Duration {
+    #[allow(clippy::many_single_char_names)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // repurposing the alternate mode for ETA
         let sec = self.0;
@@ -258,13 +259,13 @@ mod tests {
 
         assert_eq!(DownloadTracker::from_seconds(60), (0, 0, 1, 0));
 
-        assert_eq!(DownloadTracker::from_seconds(3600), (0, 1, 0, 0));
+        assert_eq!(DownloadTracker::from_seconds(3_600), (0, 1, 0, 0));
 
-        assert_eq!(DownloadTracker::from_seconds(3600 * 24), (1, 0, 0, 0));
+        assert_eq!(DownloadTracker::from_seconds(3_600 * 24), (1, 0, 0, 0));
 
-        assert_eq!(DownloadTracker::from_seconds(52292), (0, 14, 31, 32));
+        assert_eq!(DownloadTracker::from_seconds(52_292), (0, 14, 31, 32));
 
-        assert_eq!(DownloadTracker::from_seconds(222292), (2, 13, 44, 52));
+        assert_eq!(DownloadTracker::from_seconds(222_292), (2, 13, 44, 52));
     }
 
 }

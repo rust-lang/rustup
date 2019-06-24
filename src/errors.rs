@@ -1,3 +1,5 @@
+#![allow(clippy::large_enum_variant)]
+
 use crate::component_for_bin;
 use crate::dist::manifest::{Component, Manifest};
 use crate::dist::temp;

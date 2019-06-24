@@ -20,7 +20,7 @@ pub struct Components {
 
 impl Components {
     pub fn open(prefix: InstallPrefix) -> Result<Self> {
-        let c = Components { prefix };
+        let c = Self { prefix };
 
         // Validate that the metadata uses a format we know
         if let Some(v) = c.read_version()? {
@@ -152,7 +152,7 @@ impl ComponentPart {
     }
     pub fn decode(line: &str) -> Option<Self> {
         line.find(':')
-            .map(|pos| ComponentPart(line[0..pos].to_owned(), PathBuf::from(&line[(pos + 1)..])))
+            .map(|pos| Self(line[0..pos].to_owned(), PathBuf::from(&line[(pos + 1)..])))
     }
 }
 

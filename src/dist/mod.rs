@@ -6,6 +6,7 @@ pub mod temp;
 
 pub mod component;
 pub mod config;
+#[allow(clippy::module_inception)]
 pub mod dist;
 pub mod download;
 pub mod manifest;

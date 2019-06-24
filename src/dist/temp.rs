@@ -128,7 +128,7 @@ impl Cfg {
         dist_server: &str,
         notify_handler: Box<dyn Fn(Notification<'_>)>,
     ) -> Self {
-        Cfg {
+        Self {
             root_directory,
             dist_server: dist_server.to_owned(),
             notify_handler,

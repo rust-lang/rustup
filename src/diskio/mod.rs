@@ -89,7 +89,7 @@ pub struct Item {
 
 impl Item {
     pub fn make_dir(full_path: PathBuf, mode: u32) -> Self {
-        Item {
+        Self {
             full_path,
             kind: Kind::Directory,
             start: 0.0,
@@ -102,7 +102,7 @@ impl Item {
 
     pub fn write_file(full_path: PathBuf, content: Vec<u8>, mode: u32) -> Self {
         let len = content.len();
-        Item {
+        Self {
             full_path,
             kind: Kind::File(content),
             start: 0.0,
@@ -122,7 +122,7 @@ pub trait Executor {
     /// During overload situations previously queued items may
     /// need to be completed before the item is accepted:
     /// consume the returned iterator.
-    fn execute(&mut self, mut item: Item) -> Box<dyn '_ + Iterator<Item = Item>> {
+    fn execute(&mut self, mut item: Item) -> Box<dyn Iterator<Item = Item> + '_> {
         item.start = precise_time_s();
         self.dispatch(item)
     }
@@ -130,16 +130,16 @@ pub trait Executor {
     /// Actually dispatch a operation.
     /// This is called by the default execute() implementation and
     /// should not be called directly.
-    fn dispatch(&mut self, item: Item) -> Box<dyn '_ + Iterator<Item = Item>>;
+    fn dispatch(&mut self, item: Item) -> Box<dyn Iterator<Item = Item> + '_>;
 
     /// Wrap up any pending operations and iterate over them.
     /// All operations submitted before the join will have been
     /// returned either through ready/complete or join once join
     /// returns.
-    fn join(&mut self) -> Box<dyn '_ + Iterator<Item = Item>>;
+    fn join(&mut self) -> Box<dyn Iterator<Item = Item> + '_>;
 
     /// Iterate over completed items.
-    fn completed(&mut self) -> Box<dyn '_ + Iterator<Item = Item>>;
+    fn completed(&mut self) -> Box<dyn Iterator<Item = Item> + '_>;
 }
 
 /// Trivial single threaded IO to be used from executors.
@@ -200,15 +200,13 @@ pub fn get_executor<'a>(
     if let Ok(thread_str) = env::var("RUSTUP_IO_THREADS") {
         if thread_str == "disabled" {
             Box::new(immediate::ImmediateUnpacker::new())
+        } else if let Ok(thread_count) = thread_str.parse::<usize>() {
+            Box::new(threaded::Threaded::new_with_threads(
+                notify_handler,
+                thread_count,
+            ))
         } else {
-            if let Ok(thread_count) = thread_str.parse::<usize>() {
-                Box::new(threaded::Threaded::new_with_threads(
-                    notify_handler,
-                    thread_count,
-                ))
-            } else {
-                Box::new(threaded::Threaded::new(notify_handler))
-            }
+            Box::new(threaded::Threaded::new(notify_handler))
         }
     } else {
         Box::new(threaded::Threaded::new(notify_handler))

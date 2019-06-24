@@ -1146,7 +1146,7 @@ pub enum CompletionCommand {
     Cargo,
 }
 
-static COMPLETIONS: &[(&'static str, CompletionCommand)] = &[
+static COMPLETIONS: &[(&str, CompletionCommand)] = &[
     ("rustup", CompletionCommand::Rustup),
     ("cargo", CompletionCommand::Cargo),
 ];

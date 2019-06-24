@@ -120,14 +120,14 @@ static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnua
 
 impl TargetTriple {
     pub fn new(name: &str) -> Self {
-        TargetTriple(name.to_string())
+        Self(name.to_string())
     }
 
     pub fn from_build() -> Self {
         if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
-            TargetTriple::new(triple)
+            Self::new(triple)
         } else {
-            TargetTriple::new(env!("TARGET"))
+            Self::new(env!("TARGET"))
         }
     }
 
@@ -207,7 +207,7 @@ impl TargetTriple {
         }
 
         if let Ok(triple) = env::var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
-            Some(TargetTriple(triple))
+            Some(Self(triple))
         } else {
             inner()
         }
@@ -221,7 +221,7 @@ impl TargetTriple {
 impl PartialTargetTriple {
     pub fn new(name: &str) -> Option<Self> {
         if name.is_empty() {
-            return Some(PartialTargetTriple {
+            return Some(Self {
                 arch: None,
                 os: None,
                 env: None,
@@ -250,7 +250,7 @@ impl PartialTargetTriple {
                 }
             }
 
-            PartialTargetTriple {
+            Self {
                 arch: c.get(1).map(|s| s.as_str()).and_then(fn_map),
                 os: c.get(2).map(|s| s.as_str()).and_then(fn_map),
                 env: c.get(3).map(|s| s.as_str()).and_then(fn_map),
@@ -288,7 +288,7 @@ impl FromStr for PartialToolchainDesc {
 
             let trip = c.get(3).map(|c| c.as_str()).unwrap_or("");
             let trip = PartialTargetTriple::new(&trip);
-            trip.map(|t| PartialToolchainDesc {
+            trip.map(|t| Self {
                 channel: c.get(1).unwrap().as_str().to_owned(),
                 date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
                 target: t,
@@ -382,7 +382,7 @@ impl FromStr for ToolchainDesc {
                     }
                 }
 
-                ToolchainDesc {
+                Self {
                     channel: c.get(1).unwrap().as_str().to_owned(),
                     date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
                     target: TargetTriple(c.get(3).unwrap().as_str().to_owned()),

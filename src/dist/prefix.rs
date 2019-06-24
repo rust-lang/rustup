@@ -8,7 +8,7 @@ pub struct InstallPrefix {
 }
 impl InstallPrefix {
     pub fn from(path: PathBuf) -> Self {
-        InstallPrefix { path }
+        Self { path }
     }
     pub fn path(&self) -> &Path {
         &self.path

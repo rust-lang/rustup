@@ -611,7 +611,6 @@ pub fn format_path_for_display(path: &str) -> String {
 /// Encodes a utf-8 string as a null-terminated UCS-2 string in bytes
 #[cfg(windows)]
 pub fn string_to_winreg_bytes(s: &str) -> Vec<u8> {
-    use std::ffi::OsString;
     use std::os::windows::ffi::OsStrExt;
     let v: Vec<_> = OsString::from(format!("{}\x00", s)).encode_wide().collect();
     unsafe { std::slice::from_raw_parts(v.as_ptr() as *const u8, v.len() * 2).to_vec() }
@@ -696,7 +695,7 @@ where
     retry(
         Fibonacci::from_millis(1).map(jitter).take(21),
         || match fs::rename(src, dest) {
-            Ok(v) => OperationResult::Ok(v),
+            Ok(()) => OperationResult::Ok(()),
             Err(e) => match e.kind() {
                 io::ErrorKind::PermissionDenied => {
                     notify_handler(Notification::RenameInUse(&src, &dest).into());

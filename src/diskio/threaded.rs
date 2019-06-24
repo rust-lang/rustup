@@ -89,7 +89,7 @@ impl<'a> Threaded<'a> {
 }
 
 impl<'a> Executor for Threaded<'a> {
-    fn dispatch(&mut self, item: Item) -> Box<dyn '_ + Iterator<Item = Item>> {
+    fn dispatch(&mut self, item: Item) -> Box<dyn Iterator<Item = Item> + '_> {
         // Yield any completed work before accepting new work - keep memory
         // pressure under control
         // - return an iterator that runs until we can submit and then submits
@@ -100,7 +100,7 @@ impl<'a> Executor for Threaded<'a> {
         })
     }
 
-    fn join(&mut self) -> Box<dyn '_ + Iterator<Item = Item>> {
+    fn join(&mut self) -> Box<dyn Iterator<Item = Item> + '_> {
         // Some explanation is in order. Even though the tar we are reading from (if
         // any) will have had its FileWithProgress download tracking
         // completed before we hit drop, that is not true if we are unwinding due to a
@@ -115,16 +115,14 @@ impl<'a> Executor for Threaded<'a> {
         // items, and the download tracker's progress is confounded with
         // actual handling of data today, we synthesis a data buffer and
         // pretend to have bytes to deliver.
-        self.notify_handler
-            .map(|handler| handler(Notification::DownloadFinished));
-        self.notify_handler
-            .map(|handler| handler(Notification::DownloadPushUnits("iops")));
         let mut prev_files = self.n_files.load(Ordering::Relaxed);
-        self.notify_handler.map(|handler| {
+        if let Some(handler) = self.notify_handler {
+            handler(Notification::DownloadFinished);
+            handler(Notification::DownloadPushUnits("iops"));
             handler(Notification::DownloadContentLengthReceived(
                 prev_files as u64,
-            ))
-        });
+            ));
+        }
         if prev_files > 50 {
             println!("{} deferred IO operations", prev_files);
         }
@@ -139,14 +137,15 @@ impl<'a> Executor for Threaded<'a> {
             prev_files = current_files;
             current_files = self.n_files.load(Ordering::Relaxed);
             let step_count = prev_files - current_files;
-            self.notify_handler
-                .map(|handler| handler(Notification::DownloadDataReceived(&buf[0..step_count])));
+            if let Some(handler) = self.notify_handler {
+                handler(Notification::DownloadDataReceived(&buf[0..step_count]));
+            }
         }
         self.pool.join();
-        self.notify_handler
-            .map(|handler| handler(Notification::DownloadFinished));
-        self.notify_handler
-            .map(|handler| handler(Notification::DownloadPopUnits));
+        if let Some(handler) = self.notify_handler {
+            handler(Notification::DownloadFinished);
+            handler(Notification::DownloadPopUnits);
+        }
         // close the feedback channel so that blocking reads on it can
         // complete. send is atomic, and we know the threads completed from the
         // pool join, so this is race-free. It is possible that try_iter is safe
@@ -167,7 +166,7 @@ impl<'a> Executor for Threaded<'a> {
         })
     }
 
-    fn completed(&mut self) -> Box<dyn '_ + Iterator<Item = Item>> {
+    fn completed(&mut self) -> Box<dyn Iterator<Item = Item> + '_> {
         Box::new(JoinIterator {
             iter: self.rx.try_iter(),
             consume_sentinel: true,

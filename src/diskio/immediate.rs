@@ -4,15 +4,16 @@
 /// threaded code paths.
 use super::{perform, Executor, Item};
 
+#[derive(Default)]
 pub struct ImmediateUnpacker {}
 impl ImmediateUnpacker {
-    pub fn new<'a>() -> ImmediateUnpacker {
-        ImmediateUnpacker {}
+    pub fn new() -> Self {
+        Self {}
     }
 }
 
 impl Executor for ImmediateUnpacker {
-    fn dispatch(&mut self, mut item: Item) -> Box<dyn '_ + Iterator<Item = Item>> {
+    fn dispatch(&mut self, mut item: Item) -> Box<dyn Iterator<Item = Item> + '_> {
         perform(&mut item);
         Box::new(Some(item).into_iter())
     }
