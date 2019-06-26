@@ -82,14 +82,14 @@ matrix:
           rustup component add clippy;
       script:
         - cargo clippy --all --all-targets
-        - >
-          docker run
-            --volume "$TRAVIS_BUILD_DIR":/checkout:ro
-            --workdir /checkout
-            --rm
-            -it
-            centos:6
-            sh ./ci/raw_init.sh
+        - |
+          docker run \
+            --volume "$TRAVIS_BUILD_DIR":/checkout:ro \
+            --workdir /checkout \
+            --rm \
+            -it \
+            centos:6 \
+            sh ./ci/raw_init.sh;
       before_deploy:
       deploy:
 
@@ -127,7 +127,7 @@ script:
 
   # Check the formatting last because test failures are more interesting to have
   # discovered for contributors lacking some platform access for testing beforehand
-  - >
+  - |
     if [ "${TARGET}" = x86_64-unknown-linux-gnu ]; then
       shellcheck -s dash -e SC1090 -- rustup-init.sh ci/*.sh;
       rustup component add rustfmt;
