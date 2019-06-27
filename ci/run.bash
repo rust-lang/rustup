@@ -30,11 +30,12 @@ if [ -z "$SKIP_TESTS" ]; then
   runtest --bin rustup-init
   runtest --lib --all
   runtest --doc --all
-  for TEST in $(cd tests; ls *.rs | cut -d. -f1); do
-    if [ "x$TEST" = "xdist" ]; then
-      runtest --test "$TEST" -- --test-threads 1
-    else
-      runtest --test "$TEST"
-    fi
+
+  runtest --test dist -- --test-threads 1
+
+  find ./tests -maxdepth 1 -type f ! -path '*/dist.rs' -name '*.rs' \
+  | sed -E 's@\./tests/(.+)\.rs@\1@g' \
+  | while read -r test; do
+    runtest --test "${test}"
   done
 fi
