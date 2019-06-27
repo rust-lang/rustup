@@ -4,12 +4,9 @@ environment:
   RUST_BACKTRACE: 1
   matrix:
   - TARGET: x86_64-pc-windows-msvc
+    NO_ADD: 1
     ALLOW_PR: 1
   - TARGET: i686-pc-windows-msvc
-  - TARGET: x86_64-pc-windows-gnu
-    MINGW_DIR: mingw64
-  - TARGET: i686-pc-windows-gnu
-    MINGW_DIR: mingw32
   access_token:
     secure: q8Wqx0brgfpOYFQqWauvucE2h0o1WYb41a3gKaCKV9QiE4eTz6qLNlqyC3mdsp4Q
 branches:
@@ -25,28 +22,6 @@ install:
   - if defined APPVEYOR_PULL_REQUEST_NUMBER if NOT defined ALLOW_PR appveyor exit
   - if "%APPVEYOR_REPO_BRANCH%" == "master" if NOT defined ALLOW_PR appveyor exit
 
-  # Install MSYS2 and MINGW (32-bit & 64-bit)
-  - ps: |
-      # Check if MSYS2 was restored from cache
-      if($env:MINGW_DIR) {
-        if($env:MINGW_DIR -eq "mingw32") {
-          # Download and install MINGW (32-bit)
-          Write-Host "Installing MinGW (32-bit)..." -ForegroundColor Cyan
-          Write-Host "Downloading installation package..."
-          appveyor-retry appveyor DownloadFile https://rust-lang-ci.s3.amazonaws.com/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z -FileName mingw.7z
-        } elseif($env:MINGW_DIR -eq "mingw64") {
-          # Download and install MINGW (64-bit)
-          Write-Host "Installing MinGW (64-bit)..." -ForegroundColor Cyan
-          Write-Host "Downloading installation package..."
-          appveyor-retry appveyor DownloadFile https://rust-lang-ci.s3.amazonaws.com/x86_64-4.9.2-release-win32-seh-rt_v4-rev4.7z -FileName mingw.7z
-        }
-        Write-Host "Extracting installation package..."
-        7z x -y mingw.7z -oC:\msys64 | Out-Null
-        del mingw.7z
-      } else {
-        Write-Host "MSYS2 not required" -ForegroundColor Green
-      }
-
   # Install rust, x86_64-pc-windows-msvc host
   - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init.exe -y --default-host=x86_64-pc-windows-msvc
@@ -54,12 +29,7 @@ install:
   - del rustup-init.exe
 
   # Install the target we're compiling for
-  - if NOT "%TARGET%" == "x86_64-pc-windows-msvc" rustup target add %TARGET%
-
-  # add mingw to PATH if necessary
-  - if defined MINGW_DIR set PATH=C:\msys64\%MINGW_DIR%\bin;C:\msys64\usr\bin;%PATH%
-  # And if mingw, re-put appveyor's git in place
-  - if defined MINGW_DIR set PATH=C:\Program Files\Git\cmd;%PATH%
+  - if NOT defined NO_ADD rustup target add %TARGET%
 
   # let's see what we got
   - where gcc rustc cargo
@@ -72,10 +42,6 @@ test_script:
   - cargo build --release --target %TARGET% --locked
   - cargo run --release --target %TARGET% --locked -- --dump-testament
   - cargo test --release --target %TARGET%
-
-notifications:
-  - provider: Webhook
-    url: https://webhooks.gitter.im/e/9907ad94eb7a5ff291c3
 
 after_test:
   - powershell -File ci/prepare-deploy-appveyor.ps1
