@@ -11,8 +11,7 @@ cache:
   directories:
     - "$HOME/.cargo"
     - "$HOME/.cache/sccache"
-before_cache:
-  - rm -rf "$HOME/.cargo/registry"
+    - "$HOME/.rustup"
 
 matrix:
   fast_finish: true
