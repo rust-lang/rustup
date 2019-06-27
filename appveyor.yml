@@ -1,19 +1,30 @@
 image: Visual Studio 2017
-environment:
-  RUSTFLAGS: -Ctarget-feature=+crt-static
-  RUST_BACKTRACE: 1
-  matrix:
-  - TARGET: x86_64-pc-windows-msvc
-    NO_ADD: 1
-    ALLOW_PR: 1
-  - TARGET: i686-pc-windows-msvc
-  access_token:
-    secure: q8Wqx0brgfpOYFQqWauvucE2h0o1WYb41a3gKaCKV9QiE4eTz6qLNlqyC3mdsp4Q
+
+# branches to build
 branches:
+  # whitelist
   only:
     - master
     - stable
     - auto
+cache:
+  - '%USERPROFILE%\.cargo\registry'
+  - target
+
+environment:
+  global:
+    RUSTFLAGS: -Ctarget-feature=+crt-static
+    RUST_BACKTRACE: 1
+  matrix:
+    - TARGET: x86_64-pc-windows-msvc
+      NO_ADD: 1
+      ALLOW_PR: 1
+    - TARGET: i686-pc-windows-msvc
+  access_token:
+    secure: q8Wqx0brgfpOYFQqWauvucE2h0o1WYb41a3gKaCKV9QiE4eTz6qLNlqyC3mdsp4Q
+
+matrix:
+  fast_finish: true     # set this flag to immediately finish build once one of the jobs fails.
 
 install:
   # If this is a PR and we're not allowed to test PRs, skip the whole build.
@@ -25,22 +36,25 @@ install:
   # Install rust, x86_64-pc-windows-msvc host
   - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init.exe -y --default-host=x86_64-pc-windows-msvc
-  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - del rustup-init.exe
 
   # Install the target we're compiling for
   - if NOT defined NO_ADD rustup target add %TARGET%
 
   # let's see what we got
-  - where gcc rustc cargo
+  - where rustc cargo
   - rustc -vV
-  - cargo -vV
+  - cargo -V
 
+# Build settings, not to be confused with "before_build" and "after_build".
 build: false
 
-test_script:
+build_script:
   - cargo build --release --target %TARGET% --locked
   - cargo run --release --target %TARGET% --locked -- --dump-testament
+
+test_script:
   # The rest of this relies on the set of things to test not changing
   # because I have no idea how to script it.  TODO: Get someone to script it?
   - cargo test --release --target %TARGET% -p download
