@@ -23,7 +23,6 @@ no-self-update = []
 # Sorted by alphabetic order
 [dependencies]
 clap = "2"
-dirs = "2"
 download = { path = "download" }
 error-chain = "0.12"
 flate2 = "1"
