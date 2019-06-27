@@ -450,16 +450,10 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
     pub fn home_mismatch() -> (bool, OsString, String) {
         use std::ffi::CStr;
         use std::mem;
-        use std::ops::Deref;
         use std::ptr;
 
         // test runner should set this, nothing else
-        if env::var("RUSTUP_INIT_SKIP_SUDO_CHECK")
-            .as_ref()
-            .map(Deref::deref)
-            .ok()
-            == Some("yes")
-        {
+        if let Ok(true) = env::var("RUSTUP_INIT_SKIP_SUDO_CHECK").map(|s| s == "yes") {
             return (false, OsString::new(), String::new());
         }
         let mut buf = [0u8; 1024];
@@ -469,9 +463,9 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
             libc::getpwuid_r(
                 libc::geteuid(),
                 &mut pwd,
-                &mut buf as *mut [u8] as *mut libc::c_char,
+                buf.as_mut_ptr() as *mut libc::c_char,
                 buf.len(),
-                &mut pwdp,
+                (&mut pwdp) as *mut *mut libc::passwd,
             )
         };
         if rv != 0 || pwdp.is_null() {
@@ -480,10 +474,9 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         }
         let pw_dir = unsafe { CStr::from_ptr(pwd.pw_dir) }.to_str().ok();
         let env_home = env::var_os("HOME");
-        let env_home = env_home.as_ref().map(Deref::deref);
         match (env_home, pw_dir) {
             (None, _) | (_, None) => (false, OsString::new(), String::new()),
-            (Some(eh), Some(pd)) => (eh != pd, OsString::from(eh), String::from(pd)),
+            (Some(eh), Some(pd)) => (eh != pd, eh, String::from(pd)),
         }
     }
 

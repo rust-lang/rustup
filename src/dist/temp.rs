@@ -211,7 +211,7 @@ impl<'a> ops::Deref for Dir<'a> {
     type Target = Path;
 
     fn deref(&self) -> &Path {
-        ops::Deref::deref(&self.path)
+        self.path.as_path()
     }
 }
 
@@ -219,7 +219,7 @@ impl<'a> ops::Deref for File<'a> {
     type Target = Path;
 
     fn deref(&self) -> &Path {
-        ops::Deref::deref(&self.path)
+        self.path.as_path()
     }
 }
 

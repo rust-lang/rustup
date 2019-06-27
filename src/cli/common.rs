@@ -534,9 +534,7 @@ pub fn report_error(e: &Error) {
     }
 
     fn show_backtrace() -> bool {
-        use std::ops::Deref;
-
-        if env::var("RUST_BACKTRACE").as_ref().map(Deref::deref) == Ok("1") {
+        if let Ok(true) = env::var("RUST_BACKTRACE").map(|s| s == "1") {
             return true;
         }
 
