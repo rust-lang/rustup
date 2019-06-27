@@ -546,19 +546,7 @@ pub fn home_dir() -> Option<PathBuf> {
 }
 
 pub fn cargo_home() -> Result<PathBuf> {
-    let cargo_home = env::var_os("CARGO_HOME");
-    let cargo_home = cargo_home.filter(|v| !v.to_string_lossy().trim().is_empty());
-    let cargo_home = if let Some(home) = cargo_home {
-        let cwd = env::current_dir().chain_err(|| ErrorKind::GettingCwd)?;
-        Some(cwd.join(home))
-    } else {
-        None
-    };
-
-    let user_home = || home_dir().map(|p| p.join(".cargo"));
-    cargo_home
-        .or_else(user_home)
-        .ok_or_else(|| ErrorKind::CargoHome.into())
+    home::cargo_home().map_err(|e| Error::from_kind(ErrorKind::Io(e)))
 }
 
 // Creates a ~/.rustup folder
@@ -584,19 +572,7 @@ pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
 }
 
 pub fn rustup_home() -> Result<PathBuf> {
-    let rustup_home_env = env::var_os("RUSTUP_HOME");
-
-    let rustup_home = if rustup_home_env.is_some() {
-        let cwd = env::current_dir().chain_err(|| ErrorKind::GettingCwd)?;
-        rustup_home_env.clone().map(|home| cwd.join(home))
-    } else {
-        None
-    };
-
-    let user_home = || dot_dir(".rustup");
-    rustup_home
-        .or_else(user_home)
-        .ok_or_else(|| ErrorKind::RustupHome.into())
+    home::rustup_home().map_err(|e| Error::from_kind(ErrorKind::Io(e)))
 }
 
 pub fn format_path_for_display(path: &str) -> String {

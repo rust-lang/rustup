@@ -28,6 +28,7 @@ download = { path = "download" }
 error-chain = "0.12"
 flate2 = "1"
 git-testament = "0.1.4"
+home = "0.3.4"
 lazy_static = "1"
 libc = "0.2"
 markdown = "0.2"
