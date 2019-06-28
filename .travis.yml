@@ -93,11 +93,11 @@ matrix:
       before_deploy:
       deploy:
 
-    - &windows
-      os: windows
-      env: TARGET=x86_64-pc-windows-msvc NO_ADD=1 EXE_EXT=.exe
-      services: nil
-      language: bash
+    # - &windows
+    #   os: windows
+    #   env: TARGET=x86_64-pc-windows-msvc NO_ADD=1 EXE_EXT=.exe
+    #   services: nil
+    #   language: bash
 
 install:
   - sh rustup-init.sh --default-toolchain=stable -y
