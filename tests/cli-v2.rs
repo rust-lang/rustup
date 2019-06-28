@@ -188,6 +188,10 @@ fn add_remove_multiple_toolchains() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "FIXME(issue #1900): fail to deleting files on windows"
+)]
 fn remove_default_toolchain_err_handling() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
@@ -201,6 +205,10 @@ fn remove_default_toolchain_err_handling() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "FIXME(issue #1900): fail to deleting files on windows"
+)]
 fn remove_override_toolchain_err_handling() {
     setup(&|config| {
         let tempdir = TempDir::new("rustup").unwrap();
@@ -232,6 +240,10 @@ fn file_override_toolchain_err_handling() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "FIXME(issue #1900): fail to deleting files on windows"
+)]
 fn plus_override_toolchain_err_handling() {
     setup(&|config| {
         expect_err(
@@ -383,6 +395,10 @@ fn change_override() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "FIXME(issue #1900): fail to deleting files on windows"
+)]
 fn remove_override_no_default() {
     setup(&|config| {
         let tempdir = TempDir::new("rustup").unwrap();
@@ -395,6 +411,10 @@ fn remove_override_no_default() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "FIXME(issue #1900): fail to deleting files on windows"
+)]
 fn remove_override_with_default() {
     setup(&|config| {
         let tempdir = TempDir::new("rustup").unwrap();
@@ -408,6 +428,10 @@ fn remove_override_with_default() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "FIXME(issue #1900): fail to deleting files on windows"
+)]
 fn remove_override_with_multiple_overrides() {
     setup(&|config| {
         let tempdir1 = TempDir::new("rustup").unwrap();
@@ -1086,6 +1110,10 @@ fn add_component_suggest_best_match() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "FIXME(issue #1900): fail to deleting files on windows"
+)]
 fn remove_component_suggest_best_match() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
