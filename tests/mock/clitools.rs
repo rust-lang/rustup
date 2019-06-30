@@ -114,7 +114,7 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     let cargo_path = config.exedir.join(format!("cargo{}", EXE_SUFFIX));
     let rls_path = config.exedir.join(format!("rls{}", EXE_SUFFIX));
 
-    hard_link(&build_path, &rustup_path).unwrap();
+    copy_binary(&build_path, &rustup_path).unwrap();
     hard_link(&rustup_path, setup_path).unwrap();
     hard_link(&rustup_path, rustc_path).unwrap();
     hard_link(&rustup_path, cargo_path).unwrap();
@@ -354,6 +354,22 @@ pub fn env(config: &Config, cmd: &mut Command) {
     cmd.env("RUSTUP_INIT_SKIP_PATH_CHECK", "yes");
 }
 
+use std::sync::RwLock;
+
+/// Returns the lock to be used when creating test environments.
+///
+/// Essentially we use this in `.read()` mode to gate access to `fork()`
+/// new subprocesses, and in `.write()` mode to gate creation of new test
+/// environments. In doing this we can ensure that new test environment creation
+/// does not result in ETXTBSY because the FDs in question happen to be in
+/// newly `fork()`d but not yet `exec()`d subprocesses of other tests.
+pub fn cmd_lock() -> &'static RwLock<()> {
+    lazy_static! {
+        static ref LOCK: RwLock<()> = RwLock::new(());
+    };
+    &LOCK
+}
+
 pub fn run<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
 where
     I: IntoIterator<Item = A>,
@@ -365,7 +381,10 @@ where
     }
 
     println!("running {:?}", cmd);
-    let out = cmd.output().expect("failed to run test command");
+    let lock = cmd_lock().read().unwrap();
+    let out = cmd.output();
+    drop(lock);
+    let out = out.expect("failed to run test command");
 
     let output = SanitizedOutput {
         ok: out.status.success(),
@@ -909,4 +928,19 @@ where
 {
     drop(fs::remove_file(b.as_ref()));
     fs::hard_link(a, b).map(|_| ())
+}
+
+pub fn copy_binary<A, B>(a: A, b: B) -> io::Result<()>
+where
+    A: AsRef<Path>,
+    B: AsRef<Path>,
+{
+    eprintln!(
+        "Copying from {} to {}",
+        a.as_ref().display(),
+        b.as_ref().display()
+    );
+    let _lock = cmd_lock().write().unwrap();
+    drop(fs::remove_file(b.as_ref()));
+    fs::copy(a, b).map(|_| ())
 }

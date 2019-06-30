@@ -1,6 +1,5 @@
 use std::env::consts::EXE_SUFFIX;
 use std::env;
-use std::fs::File;
 use std::io::{self, Write};
 use std::path::{PathBuf, Path};
 use std::process::Command;
@@ -79,6 +78,7 @@ fn equivalent(a: &Path, b: &Path) -> bool {
     use std::mem;
     use std::os::windows::prelude::*;
     use std::os::windows::raw::HANDLE;
+    use std::fs::File;
 
     extern "system" {
         fn GetFileInformationByHandle(a: HANDLE, b: *mut BY_HANDLE_FILE_INFORMATION)
