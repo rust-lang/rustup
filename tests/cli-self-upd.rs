@@ -345,6 +345,24 @@ fn install_does_not_add_path_to_bash_profile_that_doesnt_exist() {
 
 #[test]
 #[cfg(unix)]
+fn install_errors_when_rc_file_cannot_be_updated() {
+    setup(&|config| {
+        let rc = config.homedir.join(".bash_profile");
+        fs::File::create(&rc).unwrap();
+        let mut perms = fs::metadata(&rc).unwrap().permissions();
+        perms.set_readonly(true);
+        fs::set_permissions(&rc, perms).unwrap();
+
+        expect_err(
+            config,
+            &["rustup-init", "-y"],
+            "amend shell",
+        );
+    });
+}
+
+#[test]
+#[cfg(unix)]
 fn install_with_zsh_adds_path_to_zprofile() {
     setup(&|config| {
         let my_rc = "foo\nbar\nbaz";
