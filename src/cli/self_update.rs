@@ -74,6 +74,15 @@ Cargo's bin directory, located at:
 
     {cargo_home_bin}
 
+This can be modified with the CARGO_HOME environment variable.
+
+Rustup metadata and toolchains will be installed into the Rustup
+home directory, located at:
+
+    {rustup_home}
+
+This can be modified with the RUSTUP_HOME environment variable.
+
 ",
             $platform_msg,
             r#"
@@ -538,6 +547,7 @@ fn do_msvc_check(_opts: &InstallOpts) -> Result<bool> {
 fn pre_install_msg(no_modify_path: bool) -> Result<String> {
     let cargo_home = utils::cargo_home()?;
     let cargo_home_bin = cargo_home.join("bin");
+    let rustup_home = utils::rustup_home()?;
 
     if !no_modify_path {
         if cfg!(unix) {
@@ -562,18 +572,21 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
                 pre_install_msg_unix!(),
                 cargo_home_bin = cargo_home_bin.display(),
                 plural = plural,
-                rcfiles = rcfiles
+                rcfiles = rcfiles,
+                rustup_home = rustup_home.display(),
             ))
         } else {
             Ok(format!(
                 pre_install_msg_win!(),
-                cargo_home_bin = cargo_home_bin.display()
+                cargo_home_bin = cargo_home_bin.display(),
+                rustup_home = rustup_home.display(),
             ))
         }
     } else {
         Ok(format!(
             pre_install_msg_no_modify_path!(),
-            cargo_home_bin = cargo_home_bin.display()
+            cargo_home_bin = cargo_home_bin.display(),
+            rustup_home = rustup_home.display(),
         ))
     }
 }
