@@ -9,7 +9,6 @@ use crate::mock::clitools::{
 };
 use std::fs;
 use std::io::Write;
-use tempdir::TempDir;
 
 use rustup::dist::dist::TargetTriple;
 
@@ -191,7 +190,7 @@ fn remove_default_toolchain_err_handling() {
 #[test]
 fn remove_override_toolchain_err_handling() {
     setup(&|config| {
-        let tempdir = TempDir::new("rustup").unwrap();
+        let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "default", "nightly"]);
             expect_ok(config, &["rustup", "override", "add", "beta"]);
@@ -296,7 +295,7 @@ fn install_override_toolchain_from_version() {
 #[test]
 fn override_overrides_default() {
     setup(&|config| {
-        let tempdir = TempDir::new("rustup").unwrap();
+        let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         expect_ok(config, &["rustup", "default", "nightly"]);
         config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "beta"]);
@@ -308,8 +307,8 @@ fn override_overrides_default() {
 #[test]
 fn multiple_overrides() {
     setup(&|config| {
-        let tempdir1 = TempDir::new("rustup").unwrap();
-        let tempdir2 = TempDir::new("rustup").unwrap();
+        let tempdir1 = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+        let tempdir2 = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
         expect_ok(config, &["rustup", "default", "nightly"]);
         config.change_dir(tempdir1.path(), &|| {
@@ -361,7 +360,7 @@ fn override_windows_root() {
 #[test]
 fn change_override() {
     setup(&|config| {
-        let tempdir = TempDir::new("rustup").unwrap();
+        let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "nightly"]);
             expect_ok(config, &["rustup", "override", "add", "beta"]);
@@ -373,7 +372,7 @@ fn change_override() {
 #[test]
 fn remove_override_no_default() {
     setup(&|config| {
-        let tempdir = TempDir::new("rustup").unwrap();
+        let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "nightly"]);
             expect_ok(config, &["rustup", "override", "remove"]);
@@ -385,7 +384,7 @@ fn remove_override_no_default() {
 #[test]
 fn remove_override_with_default() {
     setup(&|config| {
-        let tempdir = TempDir::new("rustup").unwrap();
+        let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "default", "nightly"]);
             expect_ok(config, &["rustup", "override", "add", "beta"]);
@@ -398,8 +397,8 @@ fn remove_override_with_default() {
 #[test]
 fn remove_override_with_multiple_overrides() {
     setup(&|config| {
-        let tempdir1 = TempDir::new("rustup").unwrap();
-        let tempdir2 = TempDir::new("rustup").unwrap();
+        let tempdir1 = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+        let tempdir2 = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         expect_ok(config, &["rustup", "default", "nightly"]);
         config.change_dir(tempdir1.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "beta"]);

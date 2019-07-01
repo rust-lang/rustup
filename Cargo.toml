@@ -44,7 +44,7 @@ semver = "0.9"
 sha2 = "0.8"
 strsim = "0.9.1"
 tar = "0.4.26"
-tempdir = "0.3.4"
+tempfile = "3.1"
 # FIXME(issue #1788)
 term = "=0.5.1"
 threadpool = "1"

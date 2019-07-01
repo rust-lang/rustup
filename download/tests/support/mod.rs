@@ -4,10 +4,13 @@ use std::net::SocketAddr;
 use std::path::Path;
 
 use futures::sync::oneshot;
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 pub fn tmp_dir() -> TempDir {
-    TempDir::new("rustup-download-test-").expect("creating tempdir for test")
+    tempfile::Builder::new()
+        .prefix("rustup-download-test-")
+        .tempdir()
+        .expect("creating tempdir for test")
 }
 
 pub fn write_file(path: &Path, contents: &str) {

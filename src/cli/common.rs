@@ -258,9 +258,11 @@ pub fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
         }
         let current_exe = env::current_exe()?;
         let current_exe_dir = current_exe.parent().expect("Rustup isn't in a directory‽");
-        match tempdir::TempDir::new_in(current_exe_dir, "updtest") {
-            Ok(_) => {}
-            Err(e) => match e.kind() {
+        if let Err(e) = tempfile::Builder::new()
+            .prefix("updtest")
+            .tempdir_in(current_exe_dir)
+        {
+            match e.kind() {
                 ErrorKind::PermissionDenied => {
                     debug!("Skipping self-update because we cannot write to the rustup dir");
                     if explicit {
@@ -270,7 +272,7 @@ pub fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
                     }
                 }
                 _ => Err(e)?,
-            },
+            }
         }
         Ok(SelfUpdatePermission::Permit)
     }

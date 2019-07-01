@@ -24,8 +24,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 use url::Url;
 
-use tempdir::TempDir;
-
 // Creates a mock dist server populated with some test data
 pub fn create_mock_dist_server(
     path: &Path,
@@ -221,7 +219,7 @@ fn bonus_component(name: &'static str, contents: Arc<Vec<u8>>) -> MockPackage {
 
 #[test]
 fn mock_dist_server_smoke_test() {
-    let tempdir = TempDir::new("rustup").unwrap();
+    let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let path = tempdir.path();
 
     create_mock_dist_server(&path, None).write(&[ManifestVersion::V2], false);
@@ -262,7 +260,7 @@ fn mock_dist_server_smoke_test() {
 // the next day to the new name.
 #[test]
 fn rename_component() {
-    let dist_tempdir = TempDir::new("rustup").unwrap();
+    let dist_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
 
     let edit_1 = &|_: &str, pkgs: &mut [MockPackage]| {
@@ -322,7 +320,7 @@ fn rename_component() {
 // Test that a rename is ignored if the component with the old name was never installed.
 #[test]
 fn rename_component_new() {
-    let dist_tempdir = TempDir::new("rustup").unwrap();
+    let dist_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
 
     let edit_2 = &|_: &str, pkgs: &mut [MockPackage]| {
@@ -436,7 +434,7 @@ fn setup(
     enable_xz: bool,
     f: &dyn Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg<'_>, &temp::Cfg),
 ) {
-    let dist_tempdir = TempDir::new("rustup").unwrap();
+    let dist_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let mock_dist_server = create_mock_dist_server(dist_tempdir.path(), edit);
     let url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
     setup_from_dist_server(mock_dist_server, &url, enable_xz, f);
@@ -450,9 +448,9 @@ fn setup_from_dist_server(
 ) {
     server.write(&[ManifestVersion::V2], enable_xz);
 
-    let prefix_tempdir = TempDir::new("rustup").unwrap();
+    let prefix_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
-    let work_tempdir = TempDir::new("rustup").unwrap();
+    let work_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let temp_cfg = temp::Cfg::new(
         work_tempdir.path().to_owned(),
         DEFAULT_DIST_SERVER,

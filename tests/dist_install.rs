@@ -12,12 +12,11 @@ use rustup::utils::utils;
 use rustup::ErrorKind;
 use std::fs::File;
 use std::io::Write;
-use tempdir::TempDir;
 
 // Just testing that the mocks work
 #[test]
 fn mock_smoke_test() {
-    let tempdir = TempDir::new("rustup").unwrap();
+    let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![
@@ -50,7 +49,7 @@ fn mock_smoke_test() {
 
 #[test]
 fn package_contains() {
-    let tempdir = TempDir::new("rustup").unwrap();
+    let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![
@@ -74,7 +73,7 @@ fn package_contains() {
 
 #[test]
 fn package_bad_version() {
-    let tempdir = TempDir::new("rustup").unwrap();
+    let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![MockComponentBuilder {
@@ -93,7 +92,7 @@ fn package_bad_version() {
 
 #[test]
 fn basic_install() {
-    let pkgdir = TempDir::new("rustup").unwrap();
+    let pkgdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![MockComponentBuilder {
@@ -108,10 +107,10 @@ fn basic_install() {
 
     mock.build(pkgdir.path());
 
-    let instdir = TempDir::new("rustup").unwrap();
+    let instdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
-    let tmpdir = TempDir::new("rustup").unwrap();
+    let tmpdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let tmpcfg = temp::Cfg::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
@@ -137,7 +136,7 @@ fn basic_install() {
 
 #[test]
 fn multiple_component_install() {
-    let pkgdir = TempDir::new("rustup").unwrap();
+    let pkgdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![
@@ -154,10 +153,10 @@ fn multiple_component_install() {
 
     mock.build(pkgdir.path());
 
-    let instdir = TempDir::new("rustup").unwrap();
+    let instdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
-    let tmpdir = TempDir::new("rustup").unwrap();
+    let tmpdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let tmpcfg = temp::Cfg::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
@@ -183,7 +182,7 @@ fn multiple_component_install() {
 
 #[test]
 fn uninstall() {
-    let pkgdir = TempDir::new("rustup").unwrap();
+    let pkgdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![
@@ -204,10 +203,10 @@ fn uninstall() {
 
     mock.build(pkgdir.path());
 
-    let instdir = TempDir::new("rustup").unwrap();
+    let instdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
-    let tmpdir = TempDir::new("rustup").unwrap();
+    let tmpdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let tmpcfg = temp::Cfg::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
@@ -250,7 +249,7 @@ fn uninstall_best_effort() {
 
 #[test]
 fn component_bad_version() {
-    let pkgdir = TempDir::new("rustup").unwrap();
+    let pkgdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![MockComponentBuilder {
@@ -261,10 +260,10 @@ fn component_bad_version() {
 
     mock.build(pkgdir.path());
 
-    let instdir = TempDir::new("rustup").unwrap();
+    let instdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let prefix = InstallPrefix::from(instdir.path().to_owned());
 
-    let tmpdir = TempDir::new("rustup").unwrap();
+    let tmpdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let tmpcfg = temp::Cfg::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,
@@ -294,7 +293,7 @@ fn component_bad_version() {
 // Installing to a prefix that doesn't exist creates it automatically
 #[test]
 fn install_to_prefix_that_does_not_exist() {
-    let pkgdir = TempDir::new("rustup").unwrap();
+    let pkgdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let mock = MockInstallerBuilder {
         components: vec![MockComponentBuilder {
@@ -305,12 +304,12 @@ fn install_to_prefix_that_does_not_exist() {
 
     mock.build(pkgdir.path());
 
-    let instdir = TempDir::new("rustup").unwrap();
+    let instdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     // The directory that does not exist
     let does_not_exist = instdir.path().join("super_not_real");
     let prefix = InstallPrefix::from(does_not_exist.clone());
 
-    let tmpdir = TempDir::new("rustup").unwrap();
+    let tmpdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let tmpcfg = temp::Cfg::new(
         tmpdir.path().to_owned(),
         DEFAULT_DIST_SERVER,

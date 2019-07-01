@@ -9,12 +9,11 @@ use rustup::ErrorKind;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
-use tempdir::TempDir;
 
 #[test]
 fn add_file() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -41,8 +40,8 @@ fn add_file() {
 
 #[test]
 fn add_file_then_rollback() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
@@ -63,8 +62,8 @@ fn add_file_then_rollback() {
 
 #[test]
 fn add_file_that_exists() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -93,9 +92,9 @@ fn add_file_that_exists() {
 
 #[test]
 fn copy_file() {
-    let srcdir = TempDir::new("rustup").unwrap();
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -120,9 +119,9 @@ fn copy_file() {
 
 #[test]
 fn copy_file_then_rollback() {
-    let srcdir = TempDir::new("rustup").unwrap();
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -147,9 +146,9 @@ fn copy_file_then_rollback() {
 
 #[test]
 fn copy_file_that_exists() {
-    let srcdir = TempDir::new("rustup").unwrap();
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -183,9 +182,9 @@ fn copy_file_that_exists() {
 
 #[test]
 fn copy_dir() {
-    let srcdir = TempDir::new("rustup").unwrap();
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -217,9 +216,9 @@ fn copy_dir() {
 
 #[test]
 fn copy_dir_then_rollback() {
-    let srcdir = TempDir::new("rustup").unwrap();
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -251,9 +250,9 @@ fn copy_dir_then_rollback() {
 
 #[test]
 fn copy_dir_that_exists() {
-    let srcdir = TempDir::new("rustup").unwrap();
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -283,8 +282,8 @@ fn copy_dir_that_exists() {
 
 #[test]
 fn remove_file() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -308,8 +307,8 @@ fn remove_file() {
 
 #[test]
 fn remove_file_then_rollback() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -333,8 +332,8 @@ fn remove_file_then_rollback() {
 
 #[test]
 fn remove_file_that_not_exists() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -360,8 +359,8 @@ fn remove_file_that_not_exists() {
 
 #[test]
 fn remove_dir() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -386,8 +385,8 @@ fn remove_dir() {
 
 #[test]
 fn remove_dir_then_rollback() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -412,8 +411,8 @@ fn remove_dir_then_rollback() {
 
 #[test]
 fn remove_dir_that_not_exists() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -439,8 +438,8 @@ fn remove_dir_that_not_exists() {
 
 #[test]
 fn write_file() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -466,8 +465,8 @@ fn write_file() {
 
 #[test]
 fn write_file_then_rollback() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -490,8 +489,8 @@ fn write_file_then_rollback() {
 
 #[test]
 fn write_file_that_exists() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -523,8 +522,8 @@ fn write_file_that_exists() {
 // but the file is not.
 #[test]
 fn modify_file_that_not_exists() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -547,8 +546,8 @@ fn modify_file_that_not_exists() {
 // If the file does exist, then it's just backed up
 #[test]
 fn modify_file_that_exists() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -571,8 +570,8 @@ fn modify_file_that_exists() {
 
 #[test]
 fn modify_file_that_not_exists_then_rollback() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -593,8 +592,8 @@ fn modify_file_that_not_exists_then_rollback() {
 
 #[test]
 fn modify_file_that_exists_then_rollback() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -620,8 +619,8 @@ fn modify_file_that_exists_then_rollback() {
 // to overwrite the earliest backup.
 #[test]
 fn modify_twice_then_rollback() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -646,9 +645,9 @@ fn modify_twice_then_rollback() {
 }
 
 fn do_multiple_op_transaction(rollback: bool) {
-    let srcdir = TempDir::new("rustup").unwrap();
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let srcdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),
@@ -748,8 +747,8 @@ fn multiple_op_transaction_then_rollback() {
 // continue to rollback other steps.
 #[test]
 fn rollback_failure_keeps_going() {
-    let prefixdir = TempDir::new("rustup").unwrap();
-    let txdir = TempDir::new("rustup").unwrap();
+    let prefixdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+    let txdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
     let tmpcfg = temp::Cfg::new(
         txdir.path().to_owned(),

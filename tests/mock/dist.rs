@@ -9,7 +9,6 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use tempdir::TempDir;
 use url::Url;
 
 use crate::mock::clitools::hard_link;
@@ -180,7 +179,7 @@ impl MockDistServer {
 
         fs::create_dir_all(&archive_dir).unwrap();
 
-        let tmpdir = TempDir::new("rustup").unwrap();
+        let tmpdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
         let workdir = tmpdir.path().join("work");
         let installer_name = if target_package.target != "*" {

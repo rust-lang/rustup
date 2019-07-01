@@ -11,7 +11,6 @@ use rustup::errors::TOOLSTATE_MSG;
 use rustup::utils::{raw, utils};
 
 use std::env::consts::EXE_SUFFIX;
-use tempdir::TempDir;
 
 macro_rules! for_host {
     ($s: expr) => {
@@ -571,7 +570,10 @@ fn rename_rls_remove() {
 
 #[test]
 fn install_stops_if_rustc_exists() {
-    let temp_dir = TempDir::new("fakebin").unwrap();
+    let temp_dir = tempfile::Builder::new()
+        .prefix("fakebin")
+        .tempdir()
+        .unwrap();
     // Create fake executable
     let fake_exe = temp_dir.path().join(&format!("{}{}", "rustc", EXE_SUFFIX));
     raw::append_file(&fake_exe, "").unwrap();
@@ -600,7 +602,10 @@ fn install_stops_if_rustc_exists() {
 
 #[test]
 fn install_stops_if_cargo_exists() {
-    let temp_dir = TempDir::new("fakebin").unwrap();
+    let temp_dir = tempfile::Builder::new()
+        .prefix("fakebin")
+        .tempdir()
+        .unwrap();
     // Create fake executable
     let fake_exe = temp_dir.path().join(&format!("{}{}", "cargo", EXE_SUFFIX));
     raw::append_file(&fake_exe, "").unwrap();
@@ -629,7 +634,10 @@ fn install_stops_if_cargo_exists() {
 
 #[test]
 fn with_no_prompt_install_succeeds_if_rustc_exists() {
-    let temp_dir = TempDir::new("fakebin").unwrap();
+    let temp_dir = tempfile::Builder::new()
+        .prefix("fakebin")
+        .tempdir()
+        .unwrap();
     // Create fake executable
     let fake_exe = temp_dir.path().join(&format!("{}{}", "rustc", EXE_SUFFIX));
     raw::append_file(&fake_exe, "").unwrap();

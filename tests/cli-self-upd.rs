@@ -18,7 +18,6 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 use std::sync::Mutex;
-use tempdir::TempDir;
 
 macro_rules! for_host {
     ($s: expr) => {
@@ -48,7 +47,10 @@ pub fn setup(f: &dyn Fn(&Config)) {
 pub fn update_setup(f: &dyn Fn(&Config, &Path)) {
     setup(&|config| {
         // Create a mock self-update server
-        let self_dist_tmp = TempDir::new("self_dist").unwrap();
+        let self_dist_tmp = tempfile::Builder::new()
+            .prefix("self_dist")
+            .tempdir()
+            .unwrap();
         let self_dist = self_dist_tmp.path();
 
         let trip = this_host_triple();
@@ -380,7 +382,10 @@ fn install_with_zsh_adds_path_to_zprofile() {
 #[cfg(unix)]
 fn install_with_zsh_adds_path_to_zdotdir_zprofile() {
     setup(&|config| {
-        let zdotdir = TempDir::new("zdotdir").unwrap();
+        let zdotdir = tempfile::Builder::new()
+            .prefix("zdotdir")
+            .tempdir()
+            .unwrap();
         let my_rc = "foo\nbar\nbaz";
         let rc = zdotdir.path().join(".zprofile");
         raw::write_file(&rc, my_rc).unwrap();
