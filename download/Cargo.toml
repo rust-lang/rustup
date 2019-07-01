@@ -25,4 +25,4 @@ reqwest = { version = "0.9.14", features = ["socks"], optional = true }
 [dev-dependencies]
 futures = "0.1"
 hyper = "0.12"
-tempdir = "0.3.4"
+tempfile = "3"

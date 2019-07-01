@@ -162,7 +162,10 @@ info: you may use `--path <path>` option to remove override toolchain for a spec
 fn remove_override_with_path() {
     for keyword in &["remove", "unset"] {
         setup(&|config| {
-            let dir = tempdir::TempDir::new("rustup-test").unwrap();
+            let dir = tempfile::Builder::new()
+                .prefix("rustup-test")
+                .tempdir()
+                .unwrap();
             config.change_dir(dir.path(), || {
                 expect_ok(config, &["rustup", "override", "add", "nightly"]);
             });
@@ -190,7 +193,10 @@ fn remove_override_with_path_deleted() {
     for keyword in &["remove", "unset"] {
         setup(&|config| {
             let path = {
-                let dir = tempdir::TempDir::new("rustup-test").unwrap();
+                let dir = tempfile::Builder::new()
+                    .prefix("rustup-test")
+                    .tempdir()
+                    .unwrap();
                 let path = std::fs::canonicalize(dir.path()).unwrap();
                 config.change_dir(&path, || {
                     expect_ok(config, &["rustup", "override", "add", "nightly"]);
@@ -222,7 +228,10 @@ fn remove_override_nonexistent() {
     for keyword in &["remove", "unset"] {
         setup(&|config| {
             let path = {
-                let dir = tempdir::TempDir::new("rustup-test").unwrap();
+                let dir = tempfile::Builder::new()
+                    .prefix("rustup-test")
+                    .tempdir()
+                    .unwrap();
                 let path = std::fs::canonicalize(dir.path()).unwrap();
                 config.change_dir(&path, || {
                     expect_ok(config, &["rustup", "override", "add", "nightly"]);
@@ -276,7 +285,10 @@ fn list_overrides_with_nonexistent() {
         let trip = this_host_triple();
 
         let nonexistent_path = {
-            let dir = tempdir::TempDir::new("rustup-test").unwrap();
+            let dir = tempfile::Builder::new()
+                .prefix("rustup-test")
+                .tempdir()
+                .unwrap();
             config.change_dir(dir.path(), || {
                 expect_ok(config, &["rustup", "override", "add", "nightly"]);
             });

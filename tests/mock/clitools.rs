@@ -17,7 +17,6 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
-use tempdir::TempDir;
 use url::Url;
 
 /// The configuration used by the tests in this module
@@ -83,29 +82,37 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     let test_dir = exe_dir.parent().unwrap().join("tests");
     fs::create_dir_all(&test_dir).unwrap();
 
-    let exedir = TempDir::new_in(&test_dir, "rustup-exe").unwrap();
-    let distdir = TempDir::new_in(&test_dir, "rustup-dist").unwrap();
-    let rustupdir = TempDir::new_in(&test_dir, "rustup").unwrap();
-    let customdir = TempDir::new_in(&test_dir, "rustup-custom").unwrap();
-    let cargodir = TempDir::new_in(&test_dir, "rustup-cargo").unwrap();
-    let homedir = TempDir::new_in(&test_dir, "rustup-home").unwrap();
-    let emptydir = TempDir::new_in(&test_dir, "rustup-empty").unwrap();
-    let workdir = TempDir::new_in(&test_dir, "rustup-workdir").unwrap();
+    fn tempdir_in_with_prefix(path: &Path, prefix: &str) -> PathBuf {
+        tempfile::Builder::new()
+            .prefix(prefix)
+            .tempdir_in(path)
+            .unwrap()
+            .into_path()
+    }
+
+    let exedir = tempdir_in_with_prefix(&test_dir, "rustup-exe");
+    let distdir = tempdir_in_with_prefix(&test_dir, "rustup-dist");
+    let rustupdir = tempdir_in_with_prefix(&test_dir, "rustup");
+    let customdir = tempdir_in_with_prefix(&test_dir, "rustup-custom");
+    let cargodir = tempdir_in_with_prefix(&test_dir, "rustup-cargo");
+    let homedir = tempdir_in_with_prefix(&test_dir, "rustup-home");
+    let emptydir = tempdir_in_with_prefix(&test_dir, "rustup-empty");
+    let workdir = tempdir_in_with_prefix(&test_dir, "rustup-workdir");
 
     // The uninstall process on windows involves using the directory above
     // CARGO_HOME, so make sure it's a subdir of our tempdir
-    let cargodir = cargodir.path().join("ch");
+    let cargodir = cargodir.join("ch");
     fs::create_dir(&cargodir).unwrap();
 
     let mut config = Config {
-        exedir: exedir.path().to_owned(),
-        distdir: distdir.path().to_owned(),
-        rustupdir: rustupdir.path().to_owned(),
-        customdir: customdir.path().to_owned(),
+        exedir,
+        distdir,
+        rustupdir,
+        customdir,
         cargodir,
-        homedir: homedir.path().to_owned(),
-        emptydir: emptydir.path().to_owned(),
-        workdir: RefCell::new(workdir.path().to_owned()),
+        homedir,
+        emptydir,
+        workdir: RefCell::new(workdir),
     };
 
     create_mock_dist_server(&config.distdir, s);
@@ -868,7 +875,7 @@ fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
     lazy_static! {
         static ref MOCK_BIN: Arc<Vec<u8>> = {
             // Create a temp directory to hold the source and the output
-            let tempdir = TempDir::new("rustup").unwrap();
+            let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
             let source_path = tempdir.path().join("in.rs");
             let dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
 

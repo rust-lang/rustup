@@ -44,7 +44,6 @@ use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::process::{self, Command};
-use tempdir::TempDir;
 
 pub struct InstallOpts {
     pub default_host_triple: String,
@@ -1457,7 +1456,10 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 
     let update_root = env::var("RUSTUP_UPDATE_ROOT").unwrap_or_else(|_| String::from(UPDATE_ROOT));
 
-    let tempdir = TempDir::new("rustup-update").chain_err(|| "error creating temp directory")?;
+    let tempdir = tempfile::Builder::new()
+        .prefix("rustup-update")
+        .tempdir()
+        .chain_err(|| "error creating temp directory")?;
 
     // Get current version
     let current_version = env!("CARGO_PKG_VERSION");
