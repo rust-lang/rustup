@@ -353,11 +353,7 @@ fn install_errors_when_rc_file_cannot_be_updated() {
         perms.set_readonly(true);
         fs::set_permissions(&rc, perms).unwrap();
 
-        expect_err(
-            config,
-            &["rustup-init", "-y"],
-            "amend shell",
-        );
+        expect_err(config, &["rustup-init", "-y"], "amend shell");
     });
 }
 
