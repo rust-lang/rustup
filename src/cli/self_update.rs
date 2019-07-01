@@ -1107,7 +1107,11 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
             };
             let addition = format!("\n{}", shell_export_string()?);
             if !file.contains(&addition) {
-                utils::append_file("rcfile", rcpath, &addition)?;
+                utils::append_file("rcfile", rcpath, &addition).chain_err(|| {
+                    ErrorKind::WritingShellProfile {
+                        path: rcpath.to_path_buf(),
+                    }
+                })?;
             }
         } else {
             unreachable!()

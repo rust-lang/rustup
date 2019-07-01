@@ -57,5 +57,11 @@ error_chain! {
             )
             display("`rustup target add {}` includes `all`", t.join(" "))
         }
+        WritingShellProfile {
+            path: PathBuf,
+        } {
+            description("could not amend shell profile")
+            display("could not amend shell profile: '{}'", path.display())
+        }
     }
 }
