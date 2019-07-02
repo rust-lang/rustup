@@ -629,17 +629,15 @@ pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<String> {
         RegType::REG_SZ | RegType::REG_EXPAND_SZ => {
             // Copied from winreg
             let words = unsafe {
+                #[allow(clippy::cast_ptr_alignment)]
                 slice::from_raw_parts(val.bytes.as_ptr() as *const u16, val.bytes.len() / 2)
             };
-            let mut s = if let Ok(s) = String::from_utf16(words) {
-                s
-            } else {
-                return None;
-            };
-            while s.ends_with('\u{0}') {
-                s.pop();
-            }
-            Some(s)
+            String::from_utf16(words).ok().and_then(|mut s| {
+                while s.ends_with('\u{0}') {
+                    s.pop();
+                }
+                Some(s)
+            })
         }
         _ => None,
     }

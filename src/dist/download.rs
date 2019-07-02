@@ -27,7 +27,7 @@ impl ops::Deref for File {
     type Target = Path;
 
     fn deref(&self) -> &Path {
-        ops::Deref::deref(&self.path)
+        self.path.as_path()
     }
 }
 

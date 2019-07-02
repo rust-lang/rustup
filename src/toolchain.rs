@@ -634,12 +634,12 @@ impl<'a> Toolchain<'a> {
 
             // If suggestion is too different don't suggest anything
             if closest_distance.0 > MAX_DISTANCE {
-                return None;
+                None
             } else {
-                return Some(closest_match.to_string());
+                Some(closest_match.to_string())
             }
         } else {
-            return None;
+            None
         }
     }
 

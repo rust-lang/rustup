@@ -73,18 +73,23 @@ matrix:
       if: branch != master
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
 
-    - name: rustup-init.sh on CentOS 6
+    - name: clippy/rustup-init.sh
       language: minimal
       install:
+        - |
+          sh ./rustup-init.sh --default-toolchain=beta -y;
+          . "$HOME"/.cargo/env;
+          rustup component add clippy;
       script:
-        - >
-          docker run
-            --volume "$TRAVIS_BUILD_DIR":/checkout:ro
-            --workdir /checkout
-            --rm
-            -it
-            centos:6
-            sh ./ci/raw_init.sh
+        - cargo clippy --all --all-targets
+        - |
+          docker run \
+            --volume "$TRAVIS_BUILD_DIR":/checkout:ro \
+            --workdir /checkout \
+            --rm \
+            -it \
+            centos:6 \
+            sh ./ci/raw_init.sh;
       before_deploy:
       deploy:
 
@@ -122,7 +127,7 @@ script:
 
   # Check the formatting last because test failures are more interesting to have
   # discovered for contributors lacking some platform access for testing beforehand
-  - >
+  - |
     if [ "${TARGET}" = x86_64-unknown-linux-gnu ]; then
       shellcheck -s dash -e SC1090 -- rustup-init.sh ci/*.sh;
       rustup component add rustfmt;
