@@ -1,4 +1,5 @@
 use crate::config::Cfg;
+use crate::dist::dist::TargetTriple;
 use crate::dist::dist::ToolchainDesc;
 use crate::dist::download::DownloadCfg;
 use crate::dist::manifest::Component;
@@ -529,6 +530,8 @@ impl<'a> Toolchain<'a> {
                     .map(|c| c.components.contains(extension))
                     .unwrap_or(false);
 
+                let extension_target = TargetTriple::new(&extension.target());
+
                 // Get the component so we can check if it is available
                 let extension_pkg = manifest
                     .get_package(&extension.short_name_in_manifest())
@@ -540,8 +543,8 @@ impl<'a> Toolchain<'a> {
                     });
                 let extension_target_pkg = extension_pkg
                     .targets
-                    .get(&toolchain.target)
-                    .expect("extension should have target toolchain");
+                    .get(&extension_target)
+                    .expect("extension should have listed toolchain");
 
                 res.push(ComponentStatus {
                     component: extension.clone(),
