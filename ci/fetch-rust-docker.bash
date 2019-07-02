@@ -11,6 +11,7 @@ TARGET="$1"
 
 RUST_REPO="https://github.com/rust-lang/rust"
 S3_BASE_URL="https://rust-lang-ci2.s3.amazonaws.com/rustc-builds"
+LOCAL_DOCKER_TAG="rust-$TARGET"
 
 # Use images from rustc master
 case "$TARGET" in
@@ -19,6 +20,7 @@ case "$TARGET" in
   arm-unknown-linux-gnueabihf)     image=dist-armhf-linux ;;
   armv7-unknown-linux-gnueabihf)   image=dist-armv7-linux ;;
   i686-unknown-linux-gnu)          image=dist-i686-linux ;;
+  *-linux-android*)                image=dist-android; LOCAL_DOCKER_TAG=rust-android ;;
   mips-unknown-linux-gnu)          image=dist-mips-linux ;;
   mips64-unknown-linux-gnuabi64)   image=dist-mips64-linux ;;
   mips64el-unknown-linux-gnuabi64) image=dist-mips64el-linux ;;
@@ -40,7 +42,7 @@ rm -f "$info"
 curl -o "$info" "$image_url"
 digest=$(grep -m1 ^sha "$info")
 
-if [ -z "$(docker images -q "rust-$TARGET")" ]; then
+if [ -z "$(docker images -q "${LOCAL_DOCKER_TAG}")" ]; then
   url=$(grep -m1 ^https "$info")
   cache=/tmp/rustci_docker_cache
   echo "Attempting to download $url"
@@ -49,5 +51,5 @@ if [ -z "$(docker images -q "rust-$TARGET")" ]; then
   travis_retry curl -y 30 -Y 10 --connect-timeout 30 -f -L -C - -o "$cache" "$url"
   set -e
   docker load --quiet -i "$cache"
-  docker tag "$digest" "rust-$TARGET"
+  docker tag "$digest" "${LOCAL_DOCKER_TAG}"
 fi
