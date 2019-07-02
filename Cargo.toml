@@ -35,7 +35,7 @@ opener = "0.4.0"
 # Used by `curl` or `reqwest` backend although it isn't imported
 # by our rustup.
 openssl = { version = "0.10", optional = true }
-rand = "0.6"
+rand = "0.7"
 regex = "1"
 remove_dir_all = "0.5.1"
 same-file = "1"
