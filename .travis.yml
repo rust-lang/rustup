@@ -11,7 +11,7 @@ cache:
   directories:
     - "$HOME/.cargo"
     - "$HOME/.cache/sccache"
-    - "$HOME/.rustup"
+    - "$TRAVIS_BUILD_DIR/target"
 
 matrix:
   fast_finish: true
