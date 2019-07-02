@@ -73,15 +73,14 @@ matrix:
       if: branch != master
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
 
-    - name: clippy/rustup-init.sh
+    - name: rustfmt/clippy/rustup-init.sh/shellcheck
       language: minimal
       install:
         - |
           sh ./rustup-init.sh --default-toolchain=beta -y;
           . "$HOME"/.cargo/env;
-          rustup component add clippy;
+          rustup component add rustfmt clippy;
       script:
-        - cargo clippy --all --all-targets
         - |
           docker run \
             --volume "$TRAVIS_BUILD_DIR":/checkout:ro \
@@ -90,6 +89,11 @@ matrix:
             -it \
             centos:6 \
             sh ./ci/raw_init.sh;
+        - shellcheck -s dash -- rustup-init.sh;
+        - git ls-files -- '*.sh' | xargs shellcheck -s dash -e SC1090;
+        - git ls-files -- '*.bash' | xargs shellcheck -s bash -e SC1090;
+        - cargo fmt --all -- --check;
+        - cargo clippy --all --all-targets
       before_deploy:
       deploy:
 
@@ -120,23 +124,13 @@ script:
     esac
   - |
     if [ -n "$DOCKER" ]; then
-      sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
+      bash ci/build-run-docker.bash "$DOCKER" "$TARGET" "$SKIP_TESTS";
     else
-      sh ci/run.sh;
-    fi
-
-  # Check the formatting last because test failures are more interesting to have
-  # discovered for contributors lacking some platform access for testing beforehand
-  - |
-    if [ "${TARGET}" = x86_64-unknown-linux-gnu ]; then
-      shellcheck -s dash -e SC1090 -- rustup-init.sh ci/*.sh;
-      rustup component add rustfmt;
-      rustfmt -vV;
-      cargo fmt --all -- --check;
+      bash ci/run.bash;
     fi
 
 before_deploy:
-  - sh ci/prepare-deploy-travis.sh
+  - bash ci/prepare-deploy-travis.bash
 
 deploy:
   - provider: s3

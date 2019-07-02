@@ -7,7 +7,7 @@ if [ "$TRAVIS_PULL_REQUEST" = "true" ] || [ "$TRAVIS_BRANCH" = "auto" ]; then
 fi
 
 # Copy rustup-init to rustup-setup for backwards compatibility
-cp target/"$TARGET"/release/rustup-init$EXE_EXT target/"$TARGET"/release/rustup-setup$EXE_EXT
+cp target/"$TARGET"/release/rustup-init"${EXE_EXT}" target/"$TARGET"/release/rustup-setup"${EXE_EXT}"
 
 # Generate hashes
 if [ "$TRAVIS_OS_NAME" = "osx" ]; then

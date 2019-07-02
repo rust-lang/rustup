@@ -267,5 +267,4 @@ mod tests {
 
         assert_eq!(DownloadTracker::from_seconds(222_292), (2, 13, 44, 52));
     }
-
 }

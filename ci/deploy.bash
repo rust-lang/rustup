@@ -5,13 +5,13 @@
 # Usage:
 #
 # 1. Deploy the release on the dev environment:
-#    ./deploy.sh dev VERSION_NUMBER
+#    ./deploy.bash dev VERSION_NUMBER
 #
 # 2. Test everything works correctly:
 #    RUSTUP_UPDATE_ROOT=https://dev-static.rust-lang.org/rustup rustup self update
 #
 # 3. Deploy the release to the prod environment:
-#    ./deploy.sh prod VERSION_NUMBER
+#    ./deploy.bash prod VERSION_NUMBER
 
 set -euo pipefail
 IFS=$'\n\t'
