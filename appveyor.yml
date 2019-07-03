@@ -59,7 +59,7 @@ build_script:
   - cargo run --release --target %TARGET% --locked -- --dump-testament
 
 test_script:
-  - .\Procmon.exe -accepteula
+  - .\Procmon.exe -accepteula /Terminate
   - powershell -File Start-ProcMon.ps1 -Filter "ProcessName,BeginsWith,dist,Include" -Duration 600
   - cargo test --release --target %TARGET% --test dist
 
