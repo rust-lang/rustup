@@ -26,7 +26,7 @@ install:
   - export PATH="$HOME/.cargo/bin:$PATH";
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
   - wget https://live.sysinternals.com/Procmon.exe -O Procmon.exe
-  - wget http://tiny.cc/rsz58y -O Start-Procmon.ps1
+  - wget 'https://raw.githubusercontent.com/jaapbrasser/Events/master/TugaITLisbon2017/From%20zero%20to%20hero%20%E2%80%93%20Learn%20how%20to%20automate%20from%20the%20GUI/Start-Procmon.ps1' -O Start-Procmon.ps1
 
 script:
   - ./Procmon.exe -accepteula /Terminate
