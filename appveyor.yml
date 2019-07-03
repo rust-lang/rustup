@@ -71,7 +71,8 @@ build: false
 test_script:
   - cargo build --release --target %TARGET% --locked
   - cargo run --release --target %TARGET% --locked -- --dump-testament
-  - RUST_TEST_THREADS=1 cargo test --release --target %TARGET%
+  - set RUST_TEST_THREADS=1
+  - cargo test --release --target %TARGET%
 
 notifications:
   - provider: Webhook
