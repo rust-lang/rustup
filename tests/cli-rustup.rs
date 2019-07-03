@@ -17,6 +17,12 @@ macro_rules! for_host {
     };
 }
 
+macro_rules! for_host_and_home {
+    ($config:ident, $s: expr) => {
+        &format!($s, this_host_triple(), $config.rustupdir.display())
+    };
+}
+
 pub fn setup(f: &dyn Fn(&Config)) {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         f(config);
@@ -510,13 +516,30 @@ fn fallback_cargo_calls_correct_rustc() {
 }
 
 #[test]
+fn show_home() {
+    setup(&|config| {
+        expect_ok_ex(
+            config,
+            &["rustup", "show", "home"],
+            &format!(
+                r"{}
+", 
+                config.rustupdir.display()
+            ),
+            r"",
+        );
+    });
+}
+
+#[test]
 fn show_toolchain_none() {
     setup(&|config| {
         expect_ok_ex(
             config,
             &["rustup", "show"],
-            for_host!(
+            &for_host_and_home!(config,
                 r"Default host: {0}
+rustup home:  {1}
 
 no active toolchain
 "
@@ -533,8 +556,9 @@ fn show_toolchain_default() {
         expect_ok_ex(
             config,
             &["rustup", "show"],
-            for_host!(
+            for_host_and_home!(config,
                 r"Default host: {0}
+rustup home:  {1}
 
 nightly-{0} (default)
 1.3.0 (hash-n-2)
@@ -553,8 +577,9 @@ fn show_multiple_toolchains() {
         expect_ok_ex(
             config,
             &["rustup", "show"],
-            for_host!(
+            for_host_and_home!(config,
                 r"Default host: {0}
+rustup home:  {1}
 
 installed toolchains
 --------------------
@@ -597,6 +622,7 @@ fn show_multiple_targets() {
             &["rustup", "show"],
             &format!(
                 r"Default host: {2}
+rustup home:  {3}
 
 installed targets for active toolchain
 --------------------------------------
@@ -613,7 +639,8 @@ nightly-{0} (default)
 ",
                 clitools::MULTI_ARCH1,
                 clitools::CROSS_ARCH2,
-                this_host_triple()
+                this_host_triple(),
+                config.rustupdir.display()
             ),
             r"",
         );
@@ -650,6 +677,7 @@ fn show_multiple_toolchains_and_targets() {
             &["rustup", "show"],
             &format!(
                 r"Default host: {2}
+rustup home:  {3}
 
 installed toolchains
 --------------------
@@ -672,7 +700,8 @@ nightly-{0} (default)
 ",
                 clitools::MULTI_ARCH1,
                 clitools::CROSS_ARCH2,
-                this_host_triple()
+                this_host_triple(),
+                config.rustupdir.display()
             ),
             r"",
         );
@@ -706,12 +735,14 @@ fn show_toolchain_override() {
             &["rustup", "show"],
             &format!(
                 r"Default host: {0}
+rustup home:  {1}
 
-nightly-{0} (directory override for '{1}')
+nightly-{0} (directory override for '{2}')
 1.3.0 (hash-n-2)
 ",
                 this_host_triple(),
-                cwd.display()
+                config.rustupdir.display(),
+                cwd.display(),
             ),
             r"",
         );
@@ -735,6 +766,7 @@ fn show_toolchain_toolchain_file_override() {
             &["rustup", "show"],
             &format!(
                 r"Default host: {0}
+rustup home:  {1}
 
 installed toolchains
 --------------------
@@ -745,11 +777,12 @@ nightly-{0}
 active toolchain
 ----------------
 
-nightly-{0} (overridden by '{1}')
+nightly-{0} (overridden by '{2}')
 1.3.0 (hash-n-2)
 
 ",
                 this_host_triple(),
+                config.rustupdir.display(),
                 toolchain_file.display()
             ),
             r"",
@@ -890,8 +923,9 @@ fn show_toolchain_env() {
         let stdout = String::from_utf8(out.stdout).unwrap();
         assert_eq!(
             &stdout,
-            for_host!(
+            for_host_and_home!(config,
                 r"Default host: {0}
+rustup home:  {1}
 
 nightly-{0} (environment override by RUSTUP_TOOLCHAIN)
 1.3.0 (hash-n-2)
