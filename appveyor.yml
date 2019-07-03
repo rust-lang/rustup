@@ -61,11 +61,14 @@ build_script:
 test_script:
   # run procmon in background
   - .\Procmon.exe -accepteula /Terminate
-  - start .\Start-ProcMon.ps1 -Filter 'ProcessName,BeginsWith,dist,Include' -Duration 60
+  - ps: Start-Process -NoNewWindow -File .\Start-ProcMon.ps1 -Filter 'ProcessName,BeginsWith,dist,Include' -Duration 120
   - cargo test --release --target %TARGET% --test dist
 
 after_test:
-  - powershell -File ci/prepare-deploy-appveyor.ps1
+  - ps: .\ci\prepare-deploy-appveyor.ps1
+
+on_failure:
+  - ps: Wait-Job
 
 artifacts:
   - path: dist\$(TARGET)\rustup-init.exe
