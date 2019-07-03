@@ -1083,3 +1083,19 @@ fn remove_target_suggest_best_match() {
         );
     });
 }
+
+#[test]
+fn target_list_ignores_unavailable_targets() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        let target_list = &["rustup", "target", "list"];
+        expect_stdout_ok(config, target_list, clitools::CROSS_ARCH1);
+        let trip = TargetTriple::new(clitools::CROSS_ARCH1);
+        make_component_unavailable(config, "rust-std", &trip);
+        expect_ok(
+            config,
+            &["rustup", "update", "nightly", "--force", "--no-self-update"],
+        );
+        expect_not_stdout_ok(config, target_list, clitools::CROSS_ARCH1);
+    })
+}
