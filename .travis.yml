@@ -14,7 +14,8 @@ cache:
     - "$HOME/.rustup"
     - "$TRAVIS_BUILD_DIR/target"
 before_cache:
-  - rm -rf "$HOME"/.rustup/toolchains/*/share/doc
+  - rm -rf "$HOME"/.rustup/toolchains/*/share
+  - rm -rf "$HOME"/.rustup/toolchains/*/etc
 
 matrix:
   fast_finish: true
