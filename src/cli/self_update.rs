@@ -510,9 +510,9 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         }
     }
 
-    #[cfg(unix)]
     /// Attempt to detect sudo with environment variables defined in `man 8 sudo`.
     /// Should act as a backup method to the more rigorous home directory detection.
+    #[cfg(unix)]
     pub fn sudo_env() -> bool {
         if env::var_os("SUDO_GID").is_some()
             || env::var_os("SUDO_UID").is_some()
@@ -533,6 +533,35 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         (true, true) => {
             err!("Environment variables specific to sudo are set: you may be using sudo");
             err!("if this is what you want, restart the installation with `-y'");
+        }
+    }
+
+    /// Attempt to detect a discrepancy between actual and effective IDs.
+    /// Should indicate that the user is executing the installation binary under
+    /// sudo-like circumstances, which is probably also bad.
+    /// Another backup method to the more rigorous home directory detection.
+    #[cfg(unix)]
+    pub fn effective_mismatch() -> bool {
+        let gid = unsafe { libc::getgid() };
+        let egid = unsafe { libc::getegid() };
+        let uid = unsafe { libc::getuid() };
+        let euid = unsafe { libc::geteuid() };
+
+        if (gid != egid) || (uid != euid) {
+            return true;
+        }
+        false
+    }
+
+    #[cfg(not(unix))]
+    pub fn effective_mismatch() -> bool {
+        false
+    }
+
+    match (effective_mismatch(), no_prompt) {
+        (false, _) | (true, false) => (),
+        (true, true) => {
+            warn!("Your actual and effective IDs differ: you may be using sudo");
         }
     }
 
