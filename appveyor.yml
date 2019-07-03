@@ -49,7 +49,7 @@ install:
 
   # download procmon and its utilities
   - appveyor-retry appveyor DownloadFile https://live.sysinternals.com/Procmon.exe -FileName Procmon.exe
-  - appveyor-retry appveyor DownloadFile https://github.com/jaapbrasser/Events/raw/master/TugaITLisbon2017/From%20zero%20to%20hero%20%E2%80%93%20Learn%20how%20to%20automate%20from%20the%20GUI/Start-Procmon.ps1 -FileName Start-Procmon.ps1
+  - appveyor-retry appveyor DownloadFile 'https://github.com/jaapbrasser/Events/raw/master/TugaITLisbon2017/From%20zero%20to%20hero%20%E2%80%93%20Learn%20how%20to%20automate%20from%20the%20GUI/Start-Procmon.ps1' -FileName Start-Procmon.ps1
 
 # Build settings, not to be confused with "before_build" and "after_build".
 build: false
