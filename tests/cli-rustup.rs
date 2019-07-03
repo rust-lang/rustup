@@ -523,7 +523,7 @@ fn show_home() {
             &["rustup", "show", "home"],
             &format!(
                 r"{}
-", 
+",
                 config.rustupdir.display()
             ),
             r"",
@@ -537,7 +537,8 @@ fn show_toolchain_none() {
         expect_ok_ex(
             config,
             &["rustup", "show"],
-            &for_host_and_home!(config,
+            &for_host_and_home!(
+                config,
                 r"Default host: {0}
 rustup home:  {1}
 
@@ -556,7 +557,8 @@ fn show_toolchain_default() {
         expect_ok_ex(
             config,
             &["rustup", "show"],
-            for_host_and_home!(config,
+            for_host_and_home!(
+                config,
                 r"Default host: {0}
 rustup home:  {1}
 
@@ -577,7 +579,8 @@ fn show_multiple_toolchains() {
         expect_ok_ex(
             config,
             &["rustup", "show"],
-            for_host_and_home!(config,
+            for_host_and_home!(
+                config,
                 r"Default host: {0}
 rustup home:  {1}
 
@@ -923,7 +926,8 @@ fn show_toolchain_env() {
         let stdout = String::from_utf8(out.stdout).unwrap();
         assert_eq!(
             &stdout,
-            for_host_and_home!(config,
+            for_host_and_home!(
+                config,
                 r"Default host: {0}
 rustup home:  {1}
 
