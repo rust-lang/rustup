@@ -11,142 +11,29 @@ cache:
   directories:
     - "$HOME/.cargo"
     - "$HOME/.cache/sccache"
-before_cache:
-  - rm -rf "$HOME/.cargo/registry"
+    - "$TRAVIS_BUILD_DIR/target"
 
 matrix:
   fast_finish: true
   include:
-    # Linux builds use the `rust-slave-dist` image so we link them against a
-    # "super old glibc" to ensure that it runs on as many platforms as possible.
-    # These builds always run.  PRs, master, staging, stable, etc.
-    - &linuxalways
-      os: linux
-      env: TARGET=x86_64-unknown-linux-gnu NO_ADD=1
-    # Most builds consuming this only run on the stable and staging branches
-    - &linuxstable
-      os: linux
-      env: TARGET=i686-unknown-linux-gnu
-      if: branch != master
-    # These builds run on non-pull-requests, so master, staging, stable...
-    - &linuxmaster
-      os: linux
-      env: SKIP_TESTS=1 TARGET=aarch64-unknown-linux-gnu
-      if: type != pull_request
-
-    # Cross builds happen in the `rust-slave-linux-cross` image to ensure that
-    # we use the right cross compilers for these targets. That image should
-    # bundle all the gcc cross compilers to enable us to build OpenSSL
-    # Builds which occur only on stable (and staging branches) take linuxstable
-    # Those which occur on master or any other branch (but not PRs) linuxmaster
-    # And those which run always (PRs, master, staging, etc) linuxalways
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabi }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabihf }
-    - { <<: *linuxalways, env: SKIP_TESTS=1 TARGET=armv7-unknown-linux-gnueabihf }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=x86_64-unknown-freebsd }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=powerpc-unknown-linux-gnu }
-    - { <<: *linuxmaster, env: SKIP_TESTS=1 TARGET=powerpc64-unknown-linux-gnu }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=powerpc64le-unknown-linux-gnu }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=mips-unknown-linux-gnu }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=mipsel-unknown-linux-gnu }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=mips64-unknown-linux-gnuabi64 }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=mips64el-unknown-linux-gnuabi64 }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=s390x-unknown-linux-gnu }
-    - { <<: *linuxmaster, env: SKIP_TESTS=1 TARGET=x86_64-unknown-linux-musl }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=arm-linux-androideabi }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=armv7-linux-androideabi }
-    - { <<: *linuxalways, env: SKIP_TESTS=1 TARGET=aarch64-linux-android }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=i686-linux-android }
-    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=x86_64-linux-android }
-
-    # On OSX we want to target 10.7 so we ensure that the appropriate
-    # environment variable is set to tell the linker what we want.
-    #
-    # TODO: figure out why `xcode9.3`, the first image with OSX 10.13, breaks.
-    # Unclear why!
-    - &mac
-      os: osx
-      osx_image: xcode9.2
-      if: type != pull_request
-      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin NO_ADD=1
-    - <<: *mac
-      if: branch != master
-      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
-
-    - name: clippy/rustup-init.sh
-      language: minimal
-      install:
-        - |
-          sh ./rustup-init.sh --default-toolchain=beta -y;
-          . "$HOME"/.cargo/env;
-          rustup component add clippy;
-      script:
-        - cargo clippy --all --all-targets
-        - |
-          docker run \
-            --volume "$TRAVIS_BUILD_DIR":/checkout:ro \
-            --workdir /checkout \
-            --rm \
-            -it \
-            centos:6 \
-            sh ./ci/raw_init.sh;
-      before_deploy:
-      deploy:
-
-    - &windows
-      os: windows
+    - os: windows
       env: TARGET=x86_64-pc-windows-msvc NO_ADD=1 EXE_EXT=.exe
       services: nil
       language: bash
 
 install:
   - sh rustup-init.sh --default-toolchain=stable -y
-  - |
-    if [ -r "$HOME/.cargo/env" ]; then
-      . "$HOME"/.cargo/env;
-    else
-      export PATH="$HOME/.cargo/bin:$PATH";
-    fi
+  - export PATH="$HOME/.cargo/bin:$PATH";
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
+  - wget https://live.sysinternals.com/Procmon.exe -O Procmon.exe
+  - wget http://tiny.cc/rsz58y -O Start-Procmon.ps1
 
 script:
-  - mkdir -p target/"$TARGET";
-  - |
-    case "$TARGET" in
-      *-linux-android*) DOCKER=android   ;; # Android uses a local docker image
-      *-apple-darwin)                    ;;
-      *-pc-windows-*)                    ;;
-      *)                DOCKER="$TARGET" ;;
-    esac
-  - |
-    if [ -n "$DOCKER" ]; then
-      sh ci/build-run-docker.sh "$DOCKER" "$TARGET" "$SKIP_TESTS";
-    else
-      sh ci/run.sh;
-    fi
+  - ./Procmon.exe -accepteula /Terminate
+  - cargo build --release --target "$TARGET" --locked
+  - cargo run --locked --release --target "$TARGET"-- --dump-testament
+  - cargo test --release --target "$TARGET"
 
-  # Check the formatting last because test failures are more interesting to have
-  # discovered for contributors lacking some platform access for testing beforehand
-  - |
-    if [ "${TARGET}" = x86_64-unknown-linux-gnu ]; then
-      shellcheck -s dash -e SC1090 -- rustup-init.sh ci/*.sh;
-      rustup component add rustfmt;
-      rustfmt -vV;
-      cargo fmt --all -- --check;
-    fi
-
-before_deploy:
-  - sh ci/prepare-deploy-travis.sh
-
-deploy:
-  - provider: s3
-    bucket: dev-static-rust-lang-org
-    skip_cleanup: true
-    local_dir: deploy
-    upload_dir: rustup
-    acl: public_read
-    region: us-west-1
-    access_key_id: $AWS_ACCESS_KEY_ID
-    secret_access_key: $AWS_SECRET_ACCESS_KEY
-    on:
-      branch: stable
+after_failure:
+  - powershell Start-Process -NoNewWindow -File ./Start-ProcMon.ps1 -Filter 'ProcessName,BeginsWith,dist,Include' -Duration 120
+  - cargo test --release --target "$TARGET" --test dist
