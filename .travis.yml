@@ -95,7 +95,7 @@ matrix:
 
     - &windows
       os: windows
-      env: TARGET=x86_64-pc-windows-msvc NO_ADD=1 EXE_EXT=.exe
+      env: RUST_TEST_THREADS=1 TARGET=x86_64-pc-windows-msvc NO_ADD=1 EXE_EXT=.exe
       services: nil
       language: bash
 

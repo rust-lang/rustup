@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 set -ex
 
@@ -21,8 +21,20 @@ cargo build --locked -v --release --target "$TARGET" $FEATURES
 if [ -z "$SKIP_TESTS" ]; then
   # shellcheck disable=SC2086
   cargo run --locked --release --target "$TARGET" $FEATURES -- --dump-testament
-  # shellcheck disable=SC2086
-  cargo test --release -p download --target "$TARGET" $FEATURES
-  # shellcheck disable=SC2086
-  cargo test --release --target "$TARGET" $FEATURES
+
+  case $TARGET in
+      *windows*)
+          export RUST_TEST_THREADS=1
+          # shellcheck disable=SC2086
+          cargo test --release -p download --target "$TARGET" $FEATURES
+          # shellcheck disable=SC2086
+          cargo test --release --target "$TARGET" $FEATURES
+      ;;
+      *)
+          # shellcheck disable=SC2086
+          cargo test --release -p download --target "$TARGET" $FEATURES
+          # shellcheck disable=SC2086
+          cargo test --release --target "$TARGET" $FEATURES
+      ;;
+  esac
 fi
