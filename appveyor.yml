@@ -61,7 +61,7 @@ build_script:
 test_script:
   # run procmon in background
   - .\Procmon.exe -accepteula /Terminate
-  - start powershell -File Start-ProcMon.ps1 -Filter "ProcessName,BeginsWith,dist,Include" -Duration 600
+  - start .\Start-ProcMon.ps1 -Filter 'ProcessName,BeginsWith,dist,Include' -Duration 60
   - cargo test --release --target %TARGET% --test dist
 
 after_test:
