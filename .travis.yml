@@ -37,3 +37,4 @@ script:
 after_failure:
   - powershell Start-Process -NoNewWindow -File ./Start-ProcMon.ps1 -Filter 'ProcessName,BeginsWith,dist,Include' -Duration 120
   - cargo test --release --target "$TARGET" --test dist
+  - powershell Wait-Job
