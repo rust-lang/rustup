@@ -43,6 +43,10 @@ error_chain! {
             description("rustup is not installed")
             display("rustup is not installed at '{}'", p.display())
         }
+        WindowsBinaryRename(from: PathBuf, to: PathBuf) {
+            description("failure during windows binary installation")
+            display("Unable to rename {} to {} during windows binary installation", from.display(), to.display())
+        }
         WindowsUninstallMadness {
             description("failure during windows uninstall")
         }

@@ -630,7 +630,17 @@ fn install_bins() -> Result<()> {
     // NB: Even on Linux we can't just copy the new binary over the (running)
     // old binary; we must unlink it first.
     if rustup_path.exists() {
-        utils::remove_file("rustup-bin", &rustup_path)?;
+        if cfg!(windows) {
+            let removal_path = bin_path.join(&format!("rustup-to-delete{}", EXE_SUFFIX));
+            if removal_path.exists() {
+                utils::remove_file("rustup-to-delete", &removal_path)?;
+            }
+            fs::rename(&rustup_path, &removal_path).chain_err(|| {
+                ErrorKind::WindowsBinaryRename(rustup_path.clone(), removal_path.clone())
+            })?;
+        } else {
+            utils::remove_file("rustup-bin", &rustup_path)?;
+        }
     }
     utils::copy_file(&this_exe_path, &rustup_path)?;
     utils::make_executable(&rustup_path)?;
@@ -669,17 +679,19 @@ pub fn install_proxies() -> Result<()> {
     // overwrite all the previous hard links with new ones.
     for tool in TOOLS {
         let tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
+        let tool_path_del = bin_path.join(&format!("{}-to-delete{}", tool, EXE_SUFFIX));
         if let Ok(handle) = Handle::from_path(&tool_path) {
             tool_handles.push(handle);
             if rustup == *tool_handles.last().unwrap() {
                 continue;
             }
         }
-        link_afterwards.push(tool_path);
+        link_afterwards.push((tool_path, tool_path_del));
     }
 
     for tool in DUP_TOOLS {
         let tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
+        let tool_path_del = bin_path.join(&format!("{}-to-delete{}", tool, EXE_SUFFIX));
         if let Ok(handle) = Handle::from_path(&tool_path) {
             // Like above, don't clobber anything that's already hardlinked to
             // avoid extraneous errors from being returned.
@@ -705,12 +717,12 @@ pub fn install_proxies() -> Result<()> {
                 continue;
             }
         }
-        utils::hard_or_symlink_file(&rustup_path, &tool_path)?;
+        utils::hard_or_symlink_file(&rustup_path, &tool_path, &tool_path_del)?;
     }
 
     drop(tool_handles);
     for path in link_afterwards {
-        utils::hard_or_symlink_file(&rustup_path, &path)?;
+        utils::hard_or_symlink_file(&rustup_path, &path.0, &path.1)?;
     }
 
     Ok(())
@@ -1518,12 +1530,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 /// Tell the upgrader to replace the rustup bins, then delete
 /// itself. Like with uninstallation, on Windows we're going to
 /// have to jump through hoops to make everything work right.
-///
-/// On windows we're not going to wait for it to finish before exiting
-/// successfully, so it should not do much, and it should try
-/// really hard to succeed, because at this point the upgrade is
-/// considered successful.
-#[cfg(unix)]
+/// Though we hopefully won't have to jump through quite so many.
 pub fn run_update(setup_path: &Path) -> Result<()> {
     let status = Command::new(setup_path)
         .arg("--self-replace")
@@ -1531,36 +1538,16 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
         .chain_err(|| "unable to run updater")?;
 
     if !status.success() {
-        return Err("self-updated failed to replace rustup executable".into());
+        return Err("self-updater failed to replace rustup executable".into());
     }
-
-    process::exit(0);
-}
-
-#[cfg(windows)]
-pub fn run_update(setup_path: &Path) -> Result<()> {
-    Command::new(setup_path)
-        .arg("--self-replace")
-        .spawn()
-        .chain_err(|| "unable to run updater")?;
 
     process::exit(0);
 }
 
 /// This function is as the final step of a self-upgrade. It replaces
 /// `CARGO_HOME`/bin/rustup with the running exe, and updates the the
-/// links to it. On windows this will run *after* the original
-/// rustup process exits.
-#[cfg(unix)]
+/// links to it.
 pub fn self_replace() -> Result<()> {
-    install_bins()?;
-
-    Ok(())
-}
-
-#[cfg(windows)]
-pub fn self_replace() -> Result<()> {
-    wait_for_parent()?;
     install_bins()?;
 
     Ok(())
@@ -1574,5 +1561,18 @@ pub fn cleanup_self_updater() -> Result<()> {
         utils::remove_file("setup", &setup)?;
     }
 
+    let binaries = TOOLS
+        .iter()
+        .chain(DUP_TOOLS.iter())
+        .cloned()
+        .chain(std::iter::once("rustup"));
+
+    for bin in binaries {
+        let to_delete = cargo_home.join(&format!("bin/{}-to-delete{}", bin, EXE_SUFFIX));
+
+        if to_delete.exists() {
+            utils::remove_file("to-delete", &to_delete)?;
+        }
+    }
     Ok(())
 }

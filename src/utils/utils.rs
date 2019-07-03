@@ -282,7 +282,13 @@ where
     })
 }
 
-pub fn hard_or_symlink_file(src: &Path, dest: &Path) -> Result<()> {
+pub fn hard_or_symlink_file(src: &Path, dest: &Path, to_del: &Path) -> Result<()> {
+    if to_del.exists() {
+        remove_file("remove-file", to_del)?;
+    }
+    if dest.exists() {
+        fs::rename(dest, to_del)?;
+    }
     if hardlink_file(src, dest).is_err() {
         symlink_file(src, dest)?;
     }
