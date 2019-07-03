@@ -510,6 +510,32 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         }
     }
 
+    #[cfg(unix)]
+    /// Attempt to detect sudo with environment variables defined in `man 8 sudo`.
+    /// Should act as a backup method to the more rigorous home directory detection.
+    pub fn sudo_env() -> bool {
+        if env::var_os("SUDO_GID").is_some()
+            || env::var_os("SUDO_UID").is_some()
+            || env::var_os("SUDO_USER").is_some()
+        {
+            return true;
+        }
+        false
+    }
+
+    #[cfg(not(unix))]
+    pub fn sudo_env() -> bool {
+        false
+    }
+
+    match (sudo_env(), no_prompt) {
+        (false, _) | (true, false) => (),
+        (true, true) => {
+            err!("Environment variables specific to sudo are set: you may be using sudo");
+            err!("if this is what you want, restart the installation with `-y'");
+        }
+    }
+
     Ok(())
 }
 
