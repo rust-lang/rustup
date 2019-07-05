@@ -9,7 +9,10 @@ git:
 
 cache:
   directories:
-    - "$HOME/.cargo"
+    - "$HOME/.cargo/bin"            # installed bins
+    - "$HOME/.cargo/git/db"         # bare git repos
+    - "$HOME/.cargo/registry/index" # registry index
+    - "$HOME/.cargo/registry/cache" # crate tarballs
     - "$HOME/.cache/sccache"
     - "$HOME/.rustup"
     - "$TRAVIS_BUILD_DIR/target"
