@@ -746,7 +746,7 @@ scanning in the background. Disable antivirus scanner and try again.
 
 ### I get "error: could not remove 'rustup-bin' file: 'C:\Users\USER\\.cargo\bin\rustup.exe'"
 
-If rustup fails to self-update in this way it's usually becasue RLS is running (your editor is open and running RLS).
+If rustup fails to self-update in this way it's usually because RLS is running (your editor is open and running RLS).
 The solution is to stop RLS (by closing your editor) and try again.
 
 ## License
