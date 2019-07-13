@@ -232,7 +232,7 @@ fn canonical_cargo_home() -> Result<String> {
 /// Installing is a simple matter of copying the running binary to
 /// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
 /// and adding `CARGO_HOME`/bin to PATH.
-pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<()> {
+pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpts) -> Result<()> {
     do_pre_install_sanity_checks()?;
     do_pre_install_options_sanity_checks(&opts)?;
     check_existence_of_rustc_or_cargo_in_path(no_prompt)?;
@@ -284,6 +284,7 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
             &opts.profile,
             &opts.default_host_triple,
             verbose,
+            quiet,
         )?;
 
         if cfg!(unix) {
@@ -737,8 +738,9 @@ fn maybe_install_rust(
     profile_str: &str,
     default_host_triple: &str,
     verbose: bool,
+    quiet: bool,
 ) -> Result<()> {
-    let cfg = common::set_globals(verbose)?;
+    let cfg = common::set_globals(verbose, quiet)?;
     cfg.set_profile(profile_str)?;
 
     // If there is already an install, then `toolchain_str` may not be

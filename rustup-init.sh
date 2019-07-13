@@ -20,6 +20,7 @@ USAGE:
 
 FLAGS:
     -v, --verbose           Enable verbose output
+    -q, --quiet             Disable progress output
     -y                      Disable confirmation prompt.
         --no-modify-path    Don't configure the PATH environment variable
     -h, --help              Prints help information
