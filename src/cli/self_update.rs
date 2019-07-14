@@ -191,8 +191,8 @@ tools:
 
     https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019
 
-Please ensure the Windows 10 SDK component is included when installing
-the Visual C++ Build Tools.
+Please ensure the Windows 10 SDK and the English language pack components
+are included when installing the Visual C++ Build Tools.
 
 Alternately, you can install Visual Studio 2019, Visual Studio 2017,
 Visual Studio 2015, or Visual Studio 2013 and during install select
