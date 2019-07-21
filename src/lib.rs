@@ -18,6 +18,7 @@ pub static TOOLS: &[&str] = &[
     "cargo",
     "rust-lldb",
     "rust-gdb",
+    "rust-gdbgui",
     "rls",
     "cargo-clippy",
     "clippy-driver",
