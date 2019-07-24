@@ -244,6 +244,16 @@ info: downloading self-updates
 
 ```
 
+_A note about nightly stability_: Nightly toolchains may fail to build, so for
+any given date and target platform there may not be a toolchain available.
+Furthermore, nightly builds may be published with missing non-default components
+(e.g. [`clippy`]). As such, it can be difficult to find fully-working nightlies.
+Use the [rustup-components-history][rch] project to find the build status of
+recent nightly toolchains and components.
+
+[`clippy`]: https://github.com/rust-lang/rust-clippy
+[rch]: https://rust-lang.github.io/rustup-components-history/
+
 ## Toolchain specification
 
 Many `rustup` commands deal with *toolchains*, a single installation
