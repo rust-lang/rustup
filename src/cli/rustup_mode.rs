@@ -511,7 +511,7 @@ pub fn cli() -> App<'static, 'static> {
 
     app.subcommand(
         SubCommand::with_name("completions")
-            .about("Generate completion scripts for your shell")
+            .about("Generate tab-completion scripts for your shell")
             .after_help(COMPLETIONS_HELP)
             .setting(AppSettings::ArgRequiredElseHelp)
             .arg(Arg::with_name("shell").possible_values(&Shell::variants()))
