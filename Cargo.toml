@@ -13,12 +13,13 @@ repository = "https://github.com/rust-lang/rustup.rs"
 description = "Manage multiple rust installations with ease"
 
 [features]
-default = ["curl-backend", "reqwest-backend"]
+default = ["curl-backend", "reqwest-backend", "signature-check"]
 curl-backend = ["download/curl-backend"]
 reqwest-backend = ["download/reqwest-backend"]
 vendored-openssl = ['openssl/vendored']
 # Include in the default set to disable self-update and uninstall.
 no-self-update = []
+signature-check = ["sequoia-openpgp"]
 
 # Sorted by alphabetic order
 [dependencies]
@@ -42,6 +43,7 @@ remove_dir_all = "0.5.1"
 same-file = "1"
 scopeguard = "1"
 semver = "0.9"
+sequoia-openpgp = { version="0.9.0", features=["vendored-nettle"], optional=true}
 sha2 = "0.8"
 strsim = "0.9.1"
 tar = "0.4.26"
