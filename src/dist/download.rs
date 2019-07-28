@@ -119,6 +119,32 @@ impl<'a> DownloadCfg<'a> {
         Ok(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())?)
     }
 
+    #[cfg(feature = "signature-check")]
+    fn download_signature(&self, url: &str) -> Result<String> {
+        let sig_url = utils::parse_url(&(url.to_owned() + ".asc"))?;
+        let sig_file = self.temp_cfg.new_file()?;
+
+        utils::download_file(&sig_url, &sig_file, None, &|n| {
+            (self.notify_handler)(n.into())
+        })?;
+
+        Ok(utils::read_file("signature", &sig_file).map(|s| s.to_owned())?)
+    }
+
+    #[cfg(feature = "signature-check")]
+    fn check_signature(&self, url: &str, file: &temp::File<'_>) -> Result<()> {
+        let signature = self.download_signature(url)?;
+        let content = utils::read_file("channel data", file).map(|s| s.to_owned())?;
+        if !crate::dist::signatures::verify_signature(&content, &signature)? {
+            Err(ErrorKind::SignatureVerificationFailed {
+                url: url.to_owned(),
+            }
+            .into())
+        } else {
+            Ok(())
+        }
+    }
+
     /// Downloads a file, sourcing its hash from the same url with a `.sha256` suffix.
     /// If `update_hash` is present, then that will be compared to the downloaded hash,
     /// and if they match, the download is skipped.
@@ -167,7 +193,8 @@ impl<'a> DownloadCfg<'a> {
             (self.notify_handler)(Notification::ChecksumValid(url_str));
         }
 
-        // TODO: Check the signature of the file
+        #[cfg(feature = "signature-check")]
+        self.check_signature(&url_str, &file)?;
 
         Ok(Some((file, partial_hash)))
     }
