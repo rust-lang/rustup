@@ -155,13 +155,12 @@ pub static DOC_HELP: &str = r"DISCUSSION:
 
 pub static COMPLETIONS_HELP: &str =
 r"DISCUSSION:
-    One can generate a completion script for `rustup` that is
-    compatible with a given shell. The script is output on `stdout`
-    allowing one to re-direct the output to the file of their
-    choosing. Where you place the file will depend on which shell, and
-    which operating system you are using. Your particular
-    configuration may also determine where these scripts need to be
-    placed.
+    Enable tab completion for Bash, Fish, Zsh, or PowerShell
+    The script is output on `stdout`, allowing one to re-direct the
+    output to the file of their choosing. Where you place the file
+    will depend on which shell, and which operating system you are
+    using. Your particular configuration may also determine where
+    these scripts need to be placed.
 
     Here are some common set ups for the three supported shells under
     Unix and similar operating systems (such as GNU/Linux).
