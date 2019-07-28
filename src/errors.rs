@@ -208,6 +208,16 @@ error_chain! {
                     expected,
                     calculated)
         }
+        SignatureVerificationInternalError(msg: String) {
+            description("internal error verifying signature")
+            display("internal error verifying signature: {}", msg)
+        }
+        SignatureVerificationFailed {
+            url: String,
+        } {
+            description("signature verification failed")
+            display("signature verification failed for {}", url)
+        }
         ComponentConflict {
             name: String,
             path: PathBuf,
