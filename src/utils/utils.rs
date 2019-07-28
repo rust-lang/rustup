@@ -767,13 +767,14 @@ mod tests {
     #[test]
     fn test_cargo_home() {
         // CARGO_HOME unset, we'll get the default ending in /.cargo
+        env::remove_var("CARGO_HOME");
         let cargo_home1 = cargo_home();
         let ch = format!("{}", cargo_home1.unwrap().display());
-        assert!(ch.contains("/.cargo"));
+        assert!(ch.contains("/.cargo") || ch.contains("\\.cargo"));
 
         env::set_var("CARGO_HOME", "/test");
         let cargo_home2 = cargo_home();
-        assert_eq!("/test", format!("{}", cargo_home2.unwrap().display()));
+        assert!(format!("{}", cargo_home2.unwrap().display()).contains("/test"));
     }
 
     #[test]
