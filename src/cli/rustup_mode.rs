@@ -43,6 +43,7 @@ pub fn main() -> Result<()> {
         ("dump-testament", _) => common::dump_testament(),
         ("show", Some(c)) => match c.subcommand() {
             ("active-toolchain", Some(_)) => handle_epipe(show_active_toolchain(cfg))?,
+            ("home", Some(_)) => handle_epipe(show_rustup_home(cfg))?,
             (_, _) => handle_epipe(show(cfg))?,
         },
         ("install", Some(m)) => update(cfg, m)?,
@@ -132,7 +133,11 @@ pub fn cli() -> App<'static, 'static> {
                     SubCommand::with_name("active-toolchain")
                         .about("Show the active toolchain")
                         .after_help(SHOW_ACTIVE_TOOLCHAIN_HELP),
-                ),
+                )
+                .subcommand(
+                    SubCommand::with_name("home")
+                        .about("Display the computed value of RUSTUP_HOME"),
+                )
         )
         .subcommand(
             SubCommand::with_name("install")
@@ -720,6 +725,15 @@ fn show(cfg: &Cfg) -> Result<()> {
         write!(t, "Default host: ")?;
         t.reset()?;
         writeln!(t, "{}", cfg.get_default_host_triple()?)?;
+    }
+
+    // Print rustup home directory
+    {
+        let mut t = term2::stdout();
+        t.attr(term2::Attr::Bold)?;
+        write!(t, "rustup home:  ")?;
+        t.reset()?;
+        writeln!(t, "{}", cfg.rustup_dir.display())?;
         writeln!(t)?;
     }
 
@@ -856,6 +870,11 @@ fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
             println!("{} (default)", toolchain.name());
         }
     }
+    Ok(())
+}
+
+fn show_rustup_home(cfg: &Cfg) -> Result<()> {
+    println!("{}", cfg.rustup_dir.display());
     Ok(())
 }
 
