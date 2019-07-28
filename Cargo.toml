@@ -113,3 +113,7 @@ path = "src/cli/main.rs"
 [profile.release]
 lto = true
 codegen-units = 1
+
+[patch.crates-io.sequoia-openpgp]
+git = "https://gitlab.com/sequoia-pgp/sequoia.git"
+rev = "b411430e6bc394454058f27137c331c0dc6d4c0f"
