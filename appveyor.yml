@@ -71,7 +71,23 @@ build: false
 test_script:
   - cargo build --release --target %TARGET% --locked
   - cargo run --release --target %TARGET% --locked -- --dump-testament
-  - cargo test --release --target %TARGET%
+  # The rest of this relies on the set of things to test not changing
+  # because I have no idea how to script it.  TODO: Get someone to script it?
+  - cargo test --release --target %TARGET% -p download
+  - cargo test --release --target %TARGET% --bin rustup-init
+  - cargo test --release --target %TARGET% --lib --all
+  - cargo test --release --target %TARGET% --doc --all
+  - cargo test --release --target %TARGET% --test cli-exact
+  - cargo test --release --target %TARGET% --test cli-inst-interactive
+  - cargo test --release --target %TARGET% --test cli-misc
+  - cargo test --release --target %TARGET% --test cli-rustup
+  - cargo test --release --target %TARGET% --test cli-self-upd
+  - cargo test --release --target %TARGET% --test cli-v1
+  - cargo test --release --target %TARGET% --test cli-v2
+  - cargo test --release --target %TARGET% --test dist_install
+  - cargo test --release --target %TARGET% --test dist_manifest
+  - cargo test --release --target %TARGET% --test dist -- --test-threads 1
+  - cargo test --release --target %TARGET% --test dist_transactions
 
 notifications:
   - provider: Webhook

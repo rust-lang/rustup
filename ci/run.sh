@@ -18,11 +18,23 @@ fi
 # shellcheck disable=SC2086
 cargo build --locked -v --release --target "$TARGET" $FEATURES
 
+runtest () {
+  # shellcheck disable=SC2086
+  cargo test --release --target "$TARGET" $FEATURES "$@"
+}
+
 if [ -z "$SKIP_TESTS" ]; then
   # shellcheck disable=SC2086
   cargo run --locked --release --target "$TARGET" $FEATURES -- --dump-testament
-  # shellcheck disable=SC2086
-  cargo test --release -p download --target "$TARGET" $FEATURES
-  # shellcheck disable=SC2086
-  cargo test --release --target "$TARGET" $FEATURES
+  runtest -p download
+  runtest --bin rustup-init
+  runtest --lib --all
+  runtest --doc --all
+  for TEST in $(cd tests; ls *.rs | cut -d. -f1); do
+    if [ "x$TEST" = "xdist" ]; then
+      runtest --test "$TEST" -- --test-threads 1
+    else
+      runtest --test "$TEST"
+    fi
+  done
 fi
