@@ -637,6 +637,9 @@ Command                                                     | Description
 - `RUSTUP_UNPACK_RAM` *unstable* (default 400M, min 100M)
   Caps the amount of RAM rustup will use for IO tasks while unpacking.
 
+- `RUSTUP_NO_BACKTRACE`
+  Disables backtraces on non-panic errors even when `RUST_BACKTRACE` is set.
+
 ## Other installation methods
 
 The primary installation method, as described at https://rustup.rs, differs by platform:
