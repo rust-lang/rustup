@@ -37,13 +37,13 @@ pub enum Notification<'a> {
 }
 
 impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
-    fn from(n: crate::utils::Notification<'a>) -> Notification<'a> {
+    fn from(n: crate::utils::Notification<'a>) -> Self {
         Notification::Utils(n)
     }
 }
 
 impl<'a> From<temp::Notification<'a>> for Notification<'a> {
-    fn from(n: temp::Notification<'a>) -> Notification<'a> {
+    fn from(n: temp::Notification<'a>) -> Self {
         Notification::Temp(n)
     }
 }
