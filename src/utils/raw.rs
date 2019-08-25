@@ -277,8 +277,8 @@ impl error::Error for CommandError {
 impl fmt::Display for CommandError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CommandError::Io(e) => write!(f, "Io: {}", e),
-            CommandError::Status(s) => write!(f, "Status: {}", s),
+            Self::Io(e) => write!(f, "Io: {}", e),
+            Self::Status(s) => write!(f, "Status: {}", s),
         }
     }
 }
