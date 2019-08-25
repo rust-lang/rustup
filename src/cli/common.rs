@@ -251,10 +251,11 @@ pub fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
                 }
             }
             Err(env::VarError::NotPresent) => {}
-            Err(e) => Err(format!(
-                "Could not interrogate SNAP environment variable: {}",
-                e
-            ))?,
+            Err(e) => {
+                return Err(
+                    format!("Could not interrogate SNAP environment variable: {}", e).into(),
+                )
+            }
         }
         let current_exe = env::current_exe()?;
         let current_exe_dir = current_exe.parent().expect("Rustup isn't in a directory‽");
@@ -271,7 +272,7 @@ pub fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
                         return Ok(SelfUpdatePermission::Skip);
                     }
                 }
-                _ => Err(e)?,
+                _ => return Err(e.into()),
             }
         }
         Ok(SelfUpdatePermission::Permit)
