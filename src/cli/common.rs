@@ -536,6 +536,10 @@ pub fn report_error(e: &Error) {
     }
 
     fn show_backtrace() -> bool {
+        if let Ok(true) = env::var("RUSTUP_NO_BACKTRACE").map(|s| s == "1") {
+            return false;
+        }
+
         if let Ok(true) = env::var("RUST_BACKTRACE").map(|s| s == "1") {
             return true;
         }
