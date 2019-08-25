@@ -457,7 +457,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
     #[cfg(unix)]
     pub fn home_mismatch() -> (bool, OsString, String) {
         use std::ffi::CStr;
-        use std::mem;
+        use std::mem::MaybeUninit;
         use std::ptr;
 
         // test runner should set this, nothing else
@@ -465,12 +465,12 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
             return (false, OsString::new(), String::new());
         }
         let mut buf = [0u8; 1024];
-        let mut pwd = unsafe { mem::uninitialized::<libc::passwd>() };
+        let mut pwd = MaybeUninit::<libc::passwd>::uninit();
         let mut pwdp: *mut libc::passwd = ptr::null_mut();
         let rv = unsafe {
             libc::getpwuid_r(
                 libc::geteuid(),
-                &mut pwd,
+                pwd.as_mut_ptr(),
                 buf.as_mut_ptr() as *mut libc::c_char,
                 buf.len(),
                 (&mut pwdp) as *mut *mut libc::passwd,
@@ -480,6 +480,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
             warn!("getpwuid_r: couldn't get user data");
             return (false, OsString::new(), String::new());
         }
+        let pwd = unsafe { pwd.assume_init() };
         let pw_dir = unsafe { CStr::from_ptr(pwd.pw_dir) }.to_str().ok();
         let env_home = env::var_os("HOME");
         match (env_home, pw_dir) {
