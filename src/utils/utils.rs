@@ -601,10 +601,13 @@ impl<'a> FileReaderWithProgress<'a> {
     pub fn new_file(path: &Path, notify_handler: &'a dyn Fn(Notification<'_>)) -> Result<Self> {
         let fh = match std::fs::File::open(path) {
             Ok(fh) => fh,
-            Err(_) => Err(ErrorKind::ReadingFile {
-                name: "downloaded",
-                path: path.to_path_buf(),
-            })?,
+            Err(_) => {
+                return Err(ErrorKind::ReadingFile {
+                    name: "downloaded",
+                    path: path.to_path_buf(),
+                }
+                .into())
+            }
         };
 
         // Inform the tracker of the file size

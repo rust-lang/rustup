@@ -20,7 +20,7 @@ enum Task {
 
 impl Default for Task {
     fn default() -> Self {
-        Task::Sentinel
+        Self::Sentinel
     }
 }
 
@@ -43,7 +43,7 @@ impl<'a> Threaded<'a> {
             .thread_stack_size(1_048_576)
             .build();
         let (tx, rx) = channel();
-        Threaded {
+        Self {
             n_files: Arc::new(AtomicUsize::new(0)),
             pool,
             notify_handler,
@@ -66,7 +66,7 @@ impl<'a> Threaded<'a> {
             .thread_stack_size(1_048_576)
             .build();
         let (tx, rx) = channel();
-        Threaded {
+        Self {
             n_files: Arc::new(AtomicUsize::new(0)),
             pool,
             notify_handler,
