@@ -1,5 +1,56 @@
 # Changelog
 
+## [1.19.0] - UNRELEASED
+
+### Changed
+
+- [Fix race condition with some virus scanners][pr#1873]
+- [UI improvements for race condition fix][pr#1885]
+- [Improve home mismatch explanation][pr#1895]
+- [Enable fully threaded IO for installs][pr#1876]
+- [Improve look of rustup homepage][pr#1901]
+- [Improve messaging if shell profile cannot be updated][pr#1925]
+- [Improve messaging around directory names during install][pr#1914]
+- [Disregard unavailable targets][pr#1931]
+- [No longer provide non-panic backtraces by default][pr#1961]
+
+### Added
+
+- [Add support for `rustup target add all`][pr#1868]
+- [Add `rustup show home`][pr#1933]
+
+### Thanks
+
+- Lzu Tao
+- Gonzalo Brito Gadeschi
+- Paul Oppenheimer
+- Robert Collins
+- KennyTM
+- Daniel Silverstone
+- Nicholas Parker
+- Caleb Cartwright
+- Josh Holland
+- Charlie Saunders
+- Wesley Van Melle
+- Jason Cooke
+- CrLF0710
+- Brian Anderson
+- Bryan Dady
+- Fisher Darling
+- Bjorn3
+
+[pr#1873]: https://github.com/rust-lang/rustup.rs/pulls/1873
+[pr#1885]: https://github.com/rust-lang/rustup.rs/pulls/1885
+[pr#1895]: https://github.com/rust-lang/rustup.rs/pulls/1895
+[pr#1876]: https://github.com/rust-lang/rustup.rs/pulls/1876
+[pr#1901]: https://github.com/rust-lang/rustup.rs/pulls/1901
+[pr#1925]: https://github.com/rust-lang/rustup.rs/pulls/1925
+[pr#1914]: https://github.com/rust-lang/rustup.rs/pulls/1914
+[pr#1931]: https://github.com/rust-lang/rustup.rs/pulls/1931
+[pr#1961]: https://github.com/rust-lang/rustup.rs/pulls/1961
+[pr#1868]: https://github.com/rust-lang/rustup.rs/pulls/1868
+[pr#1933]: https://github.com/rust-lang/rustup.rs/pulls/1933
+
 ## [1.18.3] - 2019-05-22
 
 ### Changed
