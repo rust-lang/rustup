@@ -177,6 +177,7 @@ pub fn cli() -> App<'static, 'static> {
         .subcommand(
             SubCommand::with_name("update")
                 .about("Update Rust toolchains and rustup")
+                .aliases(&["date"])
                 .after_help(UPDATE_HELP)
                 .arg(
                     Arg::with_name("toolchain")
