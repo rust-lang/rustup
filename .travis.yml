@@ -77,7 +77,7 @@ matrix:
       language: minimal
       install:
         - |
-          sh ./rustup-init.sh --default-toolchain=beta -y;
+          sh ./rustup-init.sh --default-toolchain=nightly -y;
           . "$HOME"/.cargo/env;
           rustup component add clippy;
       script:
