@@ -679,7 +679,7 @@ fn update_from_dist_<'a>(
     }
 }
 
-fn dl_v2_manifest<'a>(
+pub fn dl_v2_manifest<'a>(
     download: DownloadCfg<'a>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,

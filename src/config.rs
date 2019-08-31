@@ -390,10 +390,7 @@ impl Cfg {
         }
     }
 
-    pub fn update_all_channels(
-        &self,
-        force_update: bool,
-    ) -> Result<Vec<(String, Result<UpdateStatus>)>> {
+    pub fn list_channels(&self) -> Result<Vec<(String, Result<Toolchain<'_>>)>> {
         let toolchains = self.list_toolchains()?;
 
         // Convert the toolchain strings to Toolchain values
@@ -401,11 +398,20 @@ impl Cfg {
         let toolchains = toolchains.map(|n| (n.clone(), self.get_toolchain(&n, true)));
 
         // Filter out toolchains that don't track a release channel
-        let toolchains = toolchains
-            .filter(|&(_, ref t)| t.as_ref().map(Toolchain::is_tracking).unwrap_or(false));
+        Ok(toolchains
+            .filter(|&(_, ref t)| t.as_ref().map(Toolchain::is_tracking).unwrap_or(false))
+            .collect())
+    }
+
+    pub fn update_all_channels(
+        &self,
+        force_update: bool,
+    ) -> Result<Vec<(String, Result<UpdateStatus>)>> {
+        let channels = self.list_channels()?;
+        let channels = channels.into_iter();
 
         // Update toolchains and collect the results
-        let toolchains = toolchains.map(|(n, t)| {
+        let channels = channels.map(|(n, t)| {
             let t = t.and_then(|t| {
                 let t = t.install_from_dist(force_update);
                 if let Err(ref e) = t {
@@ -417,7 +423,7 @@ impl Cfg {
             (n, t)
         });
 
-        Ok(toolchains.collect())
+        Ok(channels.collect())
     }
 
     pub fn check_metadata_version(&self) -> Result<()> {
