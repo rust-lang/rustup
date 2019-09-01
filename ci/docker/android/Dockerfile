@@ -11,8 +11,8 @@ RUN apt-get update && \
     make \
     pkg-config
 
-COPY ci/docker/scripts/sccache.sh /scripts/
-RUN sh /scripts/sccache.sh
+COPY ci/docker/scripts/sccache.bash /scripts/
+RUN bash /scripts/sccache.bash
 
 RUN apt-get install -y --no-install-recommends \
     unzip \

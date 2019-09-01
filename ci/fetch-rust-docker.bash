@@ -1,7 +1,7 @@
 #!/bin/bash
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
-. "$script_dir/shared.sh"
+. "$script_dir/shared.bash"
 
 set -e
 # Disable cause it makes shared script not to work properly

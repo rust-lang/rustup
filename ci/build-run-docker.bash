@@ -3,7 +3,7 @@
 script_dir=$(cd "$(dirname "$0")" && pwd)
 root_dir="${script_dir}/.."
 
-. "${script_dir}/shared.sh"
+. "${script_dir}/shared.bash"
 
 set -e
 # Disable cause it makes shared script not to work properly
@@ -19,7 +19,7 @@ SKIP_TESTS="$3"
 
 travis_fold start "fetch.image.${TARGET}"
 travis_time_start
-travis_do_cmd sh ci/fetch-rust-docker.sh "${TARGET}"
+travis_do_cmd bash ci/fetch-rust-docker.bash "${TARGET}"
 travis_time_finish
 travis_fold end "fetch.image.${TARGET}"
 
@@ -52,7 +52,7 @@ docker run \
   --init \
   --rm \
   "${DOCKER}" \
-  -c 'PATH="${PATH}":/rustc-sysroot/bin sh ci/run.sh'
+  -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
 
 # check that rustup-init was built with ssl support
 # see https://github.com/rust-lang/rustup.rs/issues/1051

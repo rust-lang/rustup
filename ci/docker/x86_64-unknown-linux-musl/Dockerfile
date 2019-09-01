@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-COPY ci/docker/scripts/sccache.sh /scripts/
+COPY ci/docker/scripts/sccache.bash /scripts/
 
 RUN \
   apt-get update && \
@@ -12,4 +12,4 @@ RUN \
     perl \
     make \
     gcc && \
-  sh /scripts/sccache.sh
+  bash /scripts/sccache.bash

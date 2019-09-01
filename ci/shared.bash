@@ -49,7 +49,7 @@ travis_nanoseconds() {
   local cmd='date'
   local format='+%s%N'
 
-  if command -v gdate >/dev/null 2>&1; then
+  if command -v gdate >/dev/null; then
     cmd='gdate'
   elif [ "$(uname)" = Darwin ]; then
     format='+%s000000000'
