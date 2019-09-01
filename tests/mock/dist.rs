@@ -80,7 +80,7 @@ pub struct MockChannel {
 pub struct MockPackage {
     // rust, rustc, rust-std-$triple, rust-doc, etc.
     pub name: &'static str,
-    pub version: &'static str,
+    pub version: String,
     pub targets: Vec<MockTargetedPackage>,
 }
 

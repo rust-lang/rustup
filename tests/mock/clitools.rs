@@ -485,7 +485,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         chans.extend(vec![c1, c2, c3]);
     }
     let c4 = if s == Scenario::Unavailable {
-        build_mock_unavailable_channel("nightly", "2015-01-02", "1.3.0")
+        build_mock_unavailable_channel("nightly", "2015-01-02", "1.3.0", "hash-n-2")
     } else {
         build_mock_channel(
             s,
@@ -693,7 +693,7 @@ fn build_mock_channel(
 
         MockPackage {
             name,
-            version,
+            version: format!("{} ({})", version, version_hash),
             targets: target_pkgs.collect(),
         }
     });
@@ -773,7 +773,12 @@ fn build_mock_channel(
     }
 }
 
-fn build_mock_unavailable_channel(channel: &str, date: &str, version: &'static str) -> MockChannel {
+fn build_mock_unavailable_channel(
+    channel: &str,
+    date: &str,
+    version: &str,
+    version_hash: &str,
+) -> MockChannel {
     let host_triple = this_host_triple();
 
     let packages = [
@@ -789,7 +794,7 @@ fn build_mock_unavailable_channel(channel: &str, date: &str, version: &'static s
         .iter()
         .map(|name| MockPackage {
             name,
-            version,
+            version: format!("{} ({})", version, version_hash),
             targets: vec![MockTargetedPackage {
                 target: host_triple.clone(),
                 available: false,

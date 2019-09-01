@@ -46,7 +46,7 @@ fn rustup_stable() {
             ),
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
-info: latest update on 2015-01-02, rust version 1.1.0
+info: latest update on 2015-01-02, rust version 1.1.0 (hash-s-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -108,7 +108,7 @@ fn rustup_all_channels() {
             ),
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
-info: latest update on 2015-01-02, rust version 1.1.0
+info: latest update on 2015-01-02, rust version 1.1.0 (hash-s-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -122,7 +122,7 @@ info: installing component 'cargo'
 info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: syncing channel updates for 'beta-{0}'
-info: latest update on 2015-01-02, rust version 1.2.0
+info: latest update on 2015-01-02, rust version 1.2.0 (hash-b-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -136,7 +136,7 @@ info: installing component 'cargo'
 info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: syncing channel updates for 'nightly-{0}'
-info: latest update on 2015-01-02, rust version 1.3.0
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -177,7 +177,7 @@ fn rustup_some_channels_up_to_date() {
             ),
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
-info: latest update on 2015-01-02, rust version 1.1.0
+info: latest update on 2015-01-02, rust version 1.1.0 (hash-s-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -192,7 +192,7 @@ info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: syncing channel updates for 'beta-{0}'
 info: syncing channel updates for 'nightly-{0}'
-info: latest update on 2015-01-02, rust version 1.3.0
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -240,7 +240,7 @@ fn default() {
             ),
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
-info: latest update on 2015-01-02, rust version 1.3.0
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
