@@ -81,11 +81,15 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     }
     let test_dir = exe_dir.parent().unwrap().join("tests");
     fs::create_dir_all(&test_dir).unwrap();
+    let test_dir = tempfile::Builder::new()
+        .prefix("running-test-")
+        .tempdir_in(test_dir)
+        .unwrap();
 
-    fn tempdir_in_with_prefix(path: &Path, prefix: &str) -> PathBuf {
+    fn tempdir_in_with_prefix<P: AsRef<Path>>(path: P, prefix: &str) -> PathBuf {
         tempfile::Builder::new()
             .prefix(prefix)
-            .tempdir_in(path)
+            .tempdir_in(path.as_ref())
             .unwrap()
             .into_path()
     }
