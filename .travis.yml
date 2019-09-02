@@ -44,6 +44,7 @@ matrix:
     - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=arm-unknown-linux-gnueabihf }
     - { <<: *linuxalways, env: SKIP_TESTS=1 TARGET=armv7-unknown-linux-gnueabihf }
     - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=x86_64-unknown-freebsd }
+    - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=x86_64-unknown-netbsd }
     - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=powerpc-unknown-linux-gnu }
     - { <<: *linuxmaster, env: SKIP_TESTS=1 TARGET=powerpc64-unknown-linux-gnu }
     - { <<: *linuxstable, env: SKIP_TESTS=1 TARGET=powerpc64le-unknown-linux-gnu }
