@@ -12,6 +12,11 @@ if [ "$TRAVIS_OS_NAME" != "windows" ]; then
   FEATURES=('--features' 'vendored-openssl')
 fi
 
+# rustc only supports armv7: https://forge.rust-lang.org/platform-support.html
+if [ "$TARGET" = arm-linux-androideabi ]; then
+  export CFLAGS='-march=armv7'
+fi
+
 cargo build --locked -v --release --target "$TARGET" "${FEATURES[@]}"
 
 runtest () {
