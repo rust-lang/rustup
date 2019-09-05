@@ -32,8 +32,8 @@ if [ -z "$SKIP_TESTS" ]; then
 
   runtest --test dist -- --test-threads 1
 
-  find ./tests -maxdepth 1 -type f ! -path '*/dist.rs' -name '*.rs' \
-  | sed -E 's@\./tests/(.+)\.rs@\1@g' \
+  find tests -maxdepth 1 -type f ! -path '*/dist.rs' -name '*.rs' \
+  | sed -e 's@^tests/@@;s@\.rs$@@g' \
   | while read -r test; do
     runtest --test "${test}"
   done
