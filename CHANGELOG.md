@@ -19,6 +19,7 @@
 - [Add support for `rustup target add all`][pr#1868]
 - [Add `rustup show home`][pr#1933]
 - [Add NetBSD target to CI][pr#1978]
+- [Add x86_64 musl to CI][pr#1882]
 
 ### Thanks
 
@@ -43,6 +44,7 @@
 
 [pr#1873]: https://github.com/rust-lang/rustup.rs/pulls/1873
 [pr#1885]: https://github.com/rust-lang/rustup.rs/pulls/1885
+[pr#1882]: https://github.com/rust-lang/rustup.rs/pulls/1882
 [pr#1895]: https://github.com/rust-lang/rustup.rs/pulls/1895
 [pr#1876]: https://github.com/rust-lang/rustup.rs/pulls/1876
 [pr#1901]: https://github.com/rust-lang/rustup.rs/pulls/1901
