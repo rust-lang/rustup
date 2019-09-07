@@ -2,6 +2,10 @@
 
 set -u -e
 
+# Not every build sets EXE_EXT since it is empty for non .exe builds
+# So this sets it explicitly to the empty string if it's unset.
+EXE_EXT=${EXE_EXT:=}
+
 if [ "$TRAVIS_PULL_REQUEST" = "true" ] || [ "$TRAVIS_BRANCH" = "auto" ]; then
     exit 0
 fi
