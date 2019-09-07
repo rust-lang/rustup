@@ -301,7 +301,7 @@ dependencies = [
 
 [[package]]
 name = "download"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "curl 0.4.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_proxy 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1217,11 +1217,11 @@ dependencies = [
 
 [[package]]
 name = "rustup"
-version = "1.18.3"
+version = "1.19.0"
 dependencies = [
  "cc 1.0.40 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "download 0.6.2",
+ "download 0.6.3",
  "error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 1.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "git-testament 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
