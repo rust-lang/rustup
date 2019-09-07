@@ -1,6 +1,6 @@
 [package]
 name = "rustup"
-version = "1.18.3"
+version = "1.19.0"
 authors = [ "Diggory Blake <diggsey@googlemail.com>" ]
 build = "build.rs"
 documentation = "https://rust-lang.github.io/rustup.rs/rustup/index.html"
