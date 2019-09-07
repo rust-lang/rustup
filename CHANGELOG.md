@@ -18,6 +18,7 @@
 
 - [Add support for `rustup target add all`][pr#1868]
 - [Add `rustup show home`][pr#1933]
+- [Add NetBSD target to CI][pr#1978]
 
 ### Thanks
 
@@ -38,6 +39,7 @@
 - Bryan Dady
 - Fisher Darling
 - Bjorn3
+- Iku Iwasa
 
 [pr#1873]: https://github.com/rust-lang/rustup.rs/pulls/1873
 [pr#1885]: https://github.com/rust-lang/rustup.rs/pulls/1885
@@ -50,6 +52,7 @@
 [pr#1961]: https://github.com/rust-lang/rustup.rs/pulls/1961
 [pr#1868]: https://github.com/rust-lang/rustup.rs/pulls/1868
 [pr#1933]: https://github.com/rust-lang/rustup.rs/pulls/1933
+[pr#1978]: https://github.com/rust-lang/rustup.rs/pulls/1978
 
 ## [1.18.3] - 2019-05-22
 
