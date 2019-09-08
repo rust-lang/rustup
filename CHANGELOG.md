@@ -42,19 +42,19 @@
 - Bjorn3
 - Iku Iwasa
 
-[pr#1873]: https://github.com/rust-lang/rustup.rs/pulls/1873
-[pr#1885]: https://github.com/rust-lang/rustup.rs/pulls/1885
-[pr#1882]: https://github.com/rust-lang/rustup.rs/pulls/1882
-[pr#1895]: https://github.com/rust-lang/rustup.rs/pulls/1895
-[pr#1876]: https://github.com/rust-lang/rustup.rs/pulls/1876
-[pr#1901]: https://github.com/rust-lang/rustup.rs/pulls/1901
-[pr#1925]: https://github.com/rust-lang/rustup.rs/pulls/1925
-[pr#1914]: https://github.com/rust-lang/rustup.rs/pulls/1914
-[pr#1931]: https://github.com/rust-lang/rustup.rs/pulls/1931
-[pr#1961]: https://github.com/rust-lang/rustup.rs/pulls/1961
-[pr#1868]: https://github.com/rust-lang/rustup.rs/pulls/1868
-[pr#1933]: https://github.com/rust-lang/rustup.rs/pulls/1933
-[pr#1978]: https://github.com/rust-lang/rustup.rs/pulls/1978
+[pr#1873]: https://github.com/rust-lang/rustup.rs/pull/1873
+[pr#1885]: https://github.com/rust-lang/rustup.rs/pull/1885
+[pr#1882]: https://github.com/rust-lang/rustup.rs/pull/1882
+[pr#1895]: https://github.com/rust-lang/rustup.rs/pull/1895
+[pr#1876]: https://github.com/rust-lang/rustup.rs/pull/1876
+[pr#1901]: https://github.com/rust-lang/rustup.rs/pull/1901
+[pr#1925]: https://github.com/rust-lang/rustup.rs/pull/1925
+[pr#1914]: https://github.com/rust-lang/rustup.rs/pull/1914
+[pr#1931]: https://github.com/rust-lang/rustup.rs/pull/1931
+[pr#1961]: https://github.com/rust-lang/rustup.rs/pull/1961
+[pr#1868]: https://github.com/rust-lang/rustup.rs/pull/1868
+[pr#1933]: https://github.com/rust-lang/rustup.rs/pull/1933
+[pr#1978]: https://github.com/rust-lang/rustup.rs/pull/1978
 
 ## [1.18.3] - 2019-05-22
 
