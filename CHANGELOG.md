@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.19.0] - UNRELEASED
+## [1.19.0] - 2019-09-09
 
 ### Changed
 
