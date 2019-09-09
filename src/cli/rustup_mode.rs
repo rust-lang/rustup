@@ -53,7 +53,7 @@ pub fn main() -> Result<()> {
         ("default", Some(m)) => default_(cfg, m)?,
         ("toolchain", Some(c)) => match c.subcommand() {
             ("install", Some(m)) => update(cfg, m)?,
-            ("list", Some(_)) => handle_epipe(common::list_toolchains(cfg))?,
+            ("list", Some(m)) => handle_epipe(toolchain_list(cfg, m))?,
             ("link", Some(m)) => toolchain_link(cfg, m)?,
             ("uninstall", Some(m)) => toolchain_remove(cfg, m)?,
             (_, _) => unreachable!(),
@@ -217,7 +217,17 @@ pub fn cli() -> App<'static, 'static> {
                 .setting(AppSettings::VersionlessSubcommands)
                 .setting(AppSettings::DeriveDisplayOrder)
                 .setting(AppSettings::SubcommandRequiredElseHelp)
-                .subcommand(SubCommand::with_name("list").about("List installed toolchains"))
+                .subcommand(
+                    SubCommand::with_name("list")
+                        .about("List installed toolchains")
+                        .arg(
+                            Arg::with_name("verbose")
+                                .help("Enable verbose output with toolchain information")
+                                .takes_value(false)
+                                .short("v")
+                                .long("verbose"),
+                        )
+                )
                 .subcommand(
                     SubCommand::with_name("install")
                         .about("Install or update a given toolchain")
@@ -1018,6 +1028,10 @@ fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Too
     let (toolchain, _) = cfg.toolchain_for_dir(&cwd)?;
 
     Ok(toolchain)
+}
+
+fn toolchain_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+    common::list_toolchains(cfg, m.is_present("verbose"))
 }
 
 fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {

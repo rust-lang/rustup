@@ -102,7 +102,19 @@ fn list_toolchains() {
             &["rustup", "update", "beta-2015-01-01", "--no-self-update"],
         );
         expect_stdout_ok(config, &["rustup", "toolchain", "list"], "nightly");
+        expect_stdout_ok(
+            config,
+            &["rustup", "toolchain", "list", "-v"],
+            "(default)\t",
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "toolchain", "list", "--verbose"],
+            "(default)\t",
+        );
         expect_stdout_ok(config, &["rustup", "toolchain", "list"], "beta-2015-01-01");
+        expect_stdout_ok(config, &["rustup", "toolchain", "list", "-v"], "\t");
+        expect_stdout_ok(config, &["rustup", "toolchain", "list", "--verbose"], "\t");
     });
 }
 
