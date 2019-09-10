@@ -591,7 +591,6 @@ fn install_profile() {
 
         expect_component_executable(config, "rustup");
         expect_component_executable(config, "rustc");
-        // TODO failing
         expect_component_not_executable(config, "cargo");
     });
 }

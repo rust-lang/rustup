@@ -75,6 +75,7 @@ Cargo's bin directory, located at:
     {cargo_home_bin}
 
 This can be modified with the CARGO_HOME environment variable.
+
 Rustup metadata and toolchains will be installed into the Rustup
 home directory, located at:
 

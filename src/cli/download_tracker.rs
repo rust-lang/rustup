@@ -251,7 +251,6 @@ impl<'a> fmt::Display for Size<'a> {
 
 #[cfg(test)]
 mod tests {
-
     #[test]
     fn download_tracker_from_seconds_test() {
         use crate::download_tracker::DownloadTracker;

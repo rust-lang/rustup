@@ -311,8 +311,7 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
 
 pub fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
     fs::create_dir(dest)?;
-    let diriter = src.read_dir()?;
-    for entry in diriter {
+    for entry in src.read_dir()? {
         let entry = entry?;
         let kind = entry.file_type()?;
         let src = entry.path();

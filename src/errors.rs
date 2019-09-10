@@ -196,8 +196,7 @@ error_chain! {
         }
         InvalidProfile(t: String) {
             description("invalid profile name")
-            display("invalid profile name: '{}'; valid names are: \
-                     `minimal`, `default`, and `complete`", t)
+            display("invalid profile name: '{}'; valid names are: {}", t, valid_profile_names())
         }
         ChecksumFailed {
             url: String,
@@ -323,11 +322,7 @@ error_chain! {
             display(
                 "unknown profile name: '{}'; valid profile names are {}",
                 p,
-                Profile::names()
-                    .iter()
-                    .map(|s| format!("'{}'", s))
-                    .collect::<Vec<_>>()
-                    .join(", "),
+                valid_profile_names(),
             )
         }
         AddingRequiredComponent(t: String, c: String) {
@@ -350,6 +345,14 @@ error_chain! {
             display("tar path '{}' is not supported", v.display())
         }
     }
+}
+
+fn valid_profile_names() -> String {
+    Profile::names()
+        .iter()
+        .map(|s| format!("'{}'", s))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &str) -> String {
