@@ -1577,6 +1577,39 @@ fn docs_with_path() {
     });
 }
 
+#[test]
+fn docs_topical_with_path() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+
+        for (topic, path) in mock::topical_doc_data::test_cases() {
+            let mut cmd = clitools::cmd(config, "rustup", &["doc", "--path", topic]);
+            clitools::env(config, &mut cmd);
+
+            let out = cmd.output().unwrap();
+            eprintln!("{:?}", String::from_utf8(out.stderr).unwrap());
+            let out_str = String::from_utf8(out.stdout).unwrap();
+            assert!(
+                out_str.contains(&path),
+                "comparing path\ntopic: '{}'\npath: '{}'\noutput: {}\n\n\n",
+                topic,
+                path,
+                out_str,
+            );
+        }
+    });
+}
+
 #[cfg(unix)]
 #[test]
 fn non_utf8_arg() {

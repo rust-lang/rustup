@@ -4,6 +4,7 @@ use crate::help::*;
 use crate::self_update;
 use crate::term2;
 use crate::term2::Terminal;
+use crate::topical_doc;
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use rustup::dist::manifest::Component;
@@ -510,7 +511,11 @@ pub fn cli() -> App<'static, 'static> {
                             .map(|(name, _, _)| *name)
                             .collect::<Vec<_>>(),
                     ),
-                ),
+                )
+                .arg(
+                    Arg::with_name("topic")
+                         .help("Topic such as 'core', 'fn', 'usize', 'eprintln!', 'core::arch', 'alloc::format!', 'std::fs', 'std::fs::read_dir', 'std::io::Bytes', 'std::iter::Sum', 'std::io::error::Result' etc..."),
+                    ),
         );
 
     if cfg!(not(target_os = "windows")) {
@@ -1240,13 +1245,16 @@ const DOCS_DATA: &[(&str, &str, &str,)] = &[
 
 fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
+    let topical_path: PathBuf;
 
-    let doc_url =
-        if let Some((_, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.is_present(name)) {
-            path
-        } else {
-            "index.html"
-        };
+    let doc_url = if let Some(topic) = m.value_of("topic") {
+        topical_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
+        topical_path.to_str().unwrap()
+    } else if let Some((_, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.is_present(name)) {
+        path
+    } else {
+        "index.html"
+    };
 
     if m.is_present("path") {
         let doc_path = toolchain.doc_path(doc_url)?;

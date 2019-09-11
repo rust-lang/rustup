@@ -27,6 +27,7 @@ mod rustup_mode;
 mod self_update;
 mod setup_mode;
 mod term2;
+mod topical_doc;
 
 use crate::errors::*;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
