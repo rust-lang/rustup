@@ -67,6 +67,7 @@ pub struct Settings {
     pub version: String,
     pub default_host_triple: Option<String>,
     pub default_toolchain: Option<String>,
+    pub profile: Option<String>,
     pub overrides: BTreeMap<String, String>,
 }
 
@@ -76,6 +77,7 @@ impl Default for Settings {
             version: DEFAULT_METADATA_VERSION.to_owned(),
             default_host_triple: None,
             default_toolchain: None,
+            profile: Some("default".to_owned()),
             overrides: BTreeMap::new(),
         }
     }
@@ -138,6 +140,7 @@ impl Settings {
             version,
             default_host_triple: get_opt_string(&mut table, "default_host_triple", path)?,
             default_toolchain: get_opt_string(&mut table, "default_toolchain", path)?,
+            profile: get_opt_string(&mut table, "profile", path)?,
             overrides: Self::table_to_overrides(&mut table, path)?,
         })
     }
@@ -152,6 +155,10 @@ impl Settings {
 
         if let Some(v) = self.default_toolchain {
             result.insert("default_toolchain".to_owned(), toml::Value::String(v));
+        }
+
+        if let Some(v) = self.profile {
+            result.insert("profile".to_owned(), toml::Value::String(v));
         }
 
         let overrides = Self::overrides_to_table(self.overrides);

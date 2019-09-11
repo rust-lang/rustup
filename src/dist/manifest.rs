@@ -13,8 +13,9 @@
 use crate::errors::*;
 use crate::utils::toml_utils::*;
 
-use crate::dist::dist::TargetTriple;
+use crate::dist::dist::{Profile, TargetTriple};
 use std::collections::HashMap;
+use std::str::FromStr;
 
 pub const SUPPORTED_MANIFEST_VERSIONS: [&str; 1] = ["2"];
 pub const DEFAULT_MANIFEST_VERSION: &str = "2";
@@ -26,6 +27,7 @@ pub struct Manifest {
     pub packages: HashMap<String, Package>,
     pub renames: HashMap<String, String>,
     pub reverse_renames: HashMap<String, String>,
+    pub profiles: HashMap<Profile, Vec<String>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -44,7 +46,6 @@ pub enum PackageTargets {
 pub struct TargetedPackage {
     pub bins: Option<PackageBins>,
     pub components: Vec<Component>,
-    pub extensions: Vec<Component>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -55,10 +56,19 @@ pub struct PackageBins {
     pub xz_hash: Option<String>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug, Eq, Ord, PartialOrd)]
 pub struct Component {
     pkg: String,
     pub target: Option<TargetTriple>,
+    // Older Rustup distinguished between components (which are essential) and
+    // extensions (which are not).
+    is_extension: bool,
+}
+
+impl PartialEq for Component {
+    fn eq(&self, other: &Self) -> bool {
+        self.pkg == other.pkg && self.target == other.target
+    }
 }
 
 impl Manifest {
@@ -85,6 +95,7 @@ impl Manifest {
             packages: Self::table_to_packages(&mut table, path)?,
             renames,
             reverse_renames,
+            profiles: Self::table_to_profiles(&mut table, path)?,
         })
     }
     pub fn into_toml(self) -> toml::value::Table {
@@ -101,6 +112,9 @@ impl Manifest {
 
         let packages = Self::packages_to_table(self.packages);
         result.insert("pkg".to_owned(), toml::Value::Table(packages));
+
+        let profiles = Self::profiles_to_table(self.profiles);
+        result.insert("profiles".to_owned(), toml::Value::Table(profiles));
 
         result
     }
@@ -156,6 +170,40 @@ impl Manifest {
         result
     }
 
+    fn table_to_profiles(
+        table: &mut toml::value::Table,
+        path: &str,
+    ) -> Result<HashMap<Profile, Vec<String>>> {
+        let mut result = HashMap::new();
+        let profile_table = match get_table(table, "profiles", path) {
+            Ok(t) => t,
+            Err(_) => return Ok(result),
+        };
+
+        for (k, v) in profile_table {
+            if let toml::Value::Array(a) = v {
+                let values = a
+                    .into_iter()
+                    .filter_map(|v| match v {
+                        toml::Value::String(s) => Some(s),
+                        _ => None,
+                    })
+                    .collect();
+                result.insert(Profile::from_str(&k)?, values);
+            }
+        }
+
+        Ok(result)
+    }
+    fn profiles_to_table(profiles: HashMap<Profile, Vec<String>>) -> toml::value::Table {
+        let mut result = toml::value::Table::new();
+        for (profile, values) in profiles {
+            let array = values.into_iter().map(toml::Value::String).collect();
+            result.insert(profile.to_string(), toml::Value::Array(array));
+        }
+        result
+    }
+
     pub fn get_package(&self, name: &str) -> Result<&Package> {
         self.packages
             .get(name)
@@ -166,8 +214,50 @@ impl Manifest {
         self.get_package("rust").map(|p| &*p.version)
     }
 
+    pub fn get_legacy_components(&self, target: &TargetTriple) -> Result<Vec<Component>> {
+        // Build a profile from the components/extensions.
+        let result = self
+            .get_package("rust")?
+            .get_target(Some(target))?
+            .components
+            .iter()
+            .filter(|c| !c.is_extension && c.target.as_ref().map(|t| t == target).unwrap_or(true))
+            .cloned()
+            .collect();
+
+        Ok(result)
+    }
+    pub fn get_profile_components(
+        &self,
+        profile: Profile,
+        target: &TargetTriple,
+    ) -> Result<Vec<Component>> {
+        // An older manifest with no profiles section.
+        if self.profiles.is_empty() {
+            return self.get_legacy_components(target);
+        }
+
+        let profile = self
+            .profiles
+            .get(&profile)
+            .ok_or_else(|| format!("profile not found: '{}'", profile))?;
+
+        let rust_pkg = self.get_package("rust")?.get_target(Some(target))?;
+        let result = profile
+            .iter()
+            .filter(|s| {
+                rust_pkg
+                    .components
+                    .iter()
+                    .any(|c| &c.pkg == *s && c.target.as_ref().map(|t| t == target).unwrap_or(true))
+            })
+            .map(|s| Component::new(s.to_owned(), Some(target.clone()), false))
+            .collect();
+        Ok(result)
+    }
+
     fn validate_targeted_package(&self, tpkg: &TargetedPackage) -> Result<()> {
-        for c in tpkg.components.iter().chain(tpkg.extensions.iter()) {
+        for c in tpkg.components.iter() {
             let cpkg = self
                 .get_package(&c.pkg)
                 .chain_err(|| ErrorKind::MissingPackageForComponent(c.short_name(self)))?;
@@ -302,6 +392,14 @@ impl TargetedPackage {
         let components = get_array(&mut table, "components", path)?;
         let extensions = get_array(&mut table, "extensions", path)?;
 
+        let mut components =
+            Self::toml_to_components(components, &format!("{}{}.", path, "components"), false)?;
+        components.append(&mut Self::toml_to_components(
+            extensions,
+            &format!("{}{}.", path, "extensions"),
+            true,
+        )?);
+
         if get_bool(&mut table, "available", path)? {
             Ok(Self {
                 bins: Some(PackageBins {
@@ -310,32 +408,23 @@ impl TargetedPackage {
                     xz_url: get_string(&mut table, "xz_url", path).ok(),
                     xz_hash: get_string(&mut table, "xz_hash", path).ok(),
                 }),
-                components: Self::toml_to_components(
-                    components,
-                    &format!("{}{}.", path, "components"),
-                )?,
-                extensions: Self::toml_to_components(
-                    extensions,
-                    &format!("{}{}.", path, "extensions"),
-                )?,
+                components,
             })
         } else {
             Ok(Self {
                 bins: None,
                 components: vec![],
-                extensions: vec![],
             })
         }
     }
     pub fn into_toml(self) -> toml::value::Table {
-        let extensions = Self::components_to_toml(self.extensions);
-        let components = Self::components_to_toml(self.components);
         let mut result = toml::value::Table::new();
-        if !extensions.is_empty() {
-            result.insert("extensions".to_owned(), toml::Value::Array(extensions));
-        }
+        let (components, extensions) = Self::components_to_toml(self.components);
         if !components.is_empty() {
             result.insert("components".to_owned(), toml::Value::Array(components));
+        }
+        if !extensions.is_empty() {
+            result.insert("extensions".to_owned(), toml::Value::Array(extensions));
         }
         if let Some(bins) = self.bins.clone() {
             result.insert("hash".to_owned(), toml::Value::String(bins.hash));
@@ -355,38 +444,56 @@ impl TargetedPackage {
         self.bins.is_some()
     }
 
-    fn toml_to_components(arr: toml::value::Array, path: &str) -> Result<Vec<Component>> {
+    fn toml_to_components(
+        arr: toml::value::Array,
+        path: &str,
+        is_extension: bool,
+    ) -> Result<Vec<Component>> {
         let mut result = Vec::new();
 
         for (i, v) in arr.into_iter().enumerate() {
             if let toml::Value::Table(t) = v {
                 let path = format!("{}[{}]", path, i);
-                result.push(Component::from_toml(t, &path)?);
+                result.push(Component::from_toml(t, &path, is_extension)?);
             }
         }
 
         Ok(result)
     }
-    fn components_to_toml(components: Vec<Component>) -> toml::value::Array {
-        let mut result = toml::value::Array::new();
-        for v in components {
-            result.push(toml::Value::Table(v.into_toml()));
+    fn components_to_toml(data: Vec<Component>) -> (toml::value::Array, toml::value::Array) {
+        let mut components = toml::value::Array::new();
+        let mut extensions = toml::value::Array::new();
+        for v in data {
+            if v.is_extension {
+                extensions.push(toml::Value::Table(v.into_toml()));
+            } else {
+                components.push(toml::Value::Table(v.into_toml()));
+            }
         }
-        result
+        (components, extensions)
     }
 }
 
 impl Component {
-    pub fn new(pkg: String, target: Option<TargetTriple>) -> Self {
-        Self { pkg, target }
+    pub fn new(pkg: String, target: Option<TargetTriple>, is_extension: bool) -> Self {
+        Self {
+            pkg,
+            target,
+            is_extension,
+        }
     }
     pub fn wildcard(&self) -> Self {
         Self {
             pkg: self.pkg.clone(),
             target: None,
+            is_extension: false,
         }
     }
-    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
+    pub fn from_toml(
+        mut table: toml::value::Table,
+        path: &str,
+        is_extension: bool,
+    ) -> Result<Self> {
         Ok(Self {
             pkg: get_string(&mut table, "pkg", path)?,
             target: get_string(&mut table, "target", path).map(|s| {
@@ -396,6 +503,7 @@ impl Component {
                     Some(TargetTriple::new(&s))
                 }
             })?,
+            is_extension,
         })
     }
     pub fn into_toml(self) -> toml::value::Table {

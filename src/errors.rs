@@ -1,6 +1,7 @@
 #![allow(clippy::large_enum_variant)]
 
 use crate::component_for_bin;
+use crate::dist::dist::Profile;
 use crate::dist::manifest::{Component, Manifest};
 use crate::dist::temp;
 use error_chain::error_chain;
@@ -193,6 +194,10 @@ error_chain! {
             description("invalid custom toolchain name")
             display("invalid custom toolchain name: '{}'", t)
         }
+        InvalidProfile(t: String) {
+            description("invalid profile name")
+            display("invalid profile name: '{}'; valid names are: {}", t, valid_profile_names())
+        }
         ChecksumFailed {
             url: String,
             expected: String,
@@ -272,7 +277,7 @@ error_chain! {
         }
         RequestedComponentsUnavailable(c: Vec<Component>, manifest: Manifest, toolchain: String) {
             description("some requested components are unavailable to download")
-            display("{} for channel '{}'\n{}", component_unavailable_msg(&c, &manifest), toolchain, TOOLSTATE_MSG)
+            display("{}", component_unavailable_msg(&c, &manifest, &toolchain))
         }
         UnknownMetadataVersion(v: String) {
             description("unknown metadata version")
@@ -312,6 +317,14 @@ error_chain! {
                 "".to_string()
             })
         }
+        UnknownProfile(p: String) {
+            description("unknown profile name")
+            display(
+                "unknown profile name: '{}'; valid profile names are {}",
+                p,
+                valid_profile_names(),
+            )
+        }
         AddingRequiredComponent(t: String, c: String) {
             description("required component cannot be added")
             display("component {} was automatically added because it is required for toolchain '{}'",
@@ -319,11 +332,6 @@ error_chain! {
         }
         ParsingSettings(e: toml::de::Error) {
             description("error parsing settings")
-        }
-        RemovingRequiredComponent(t: String, c: String) {
-            description("required component cannot be removed")
-            display("component {} is required for toolchain '{}' and cannot be removed",
-                    c, t)
         }
         NoExeName {
             description("couldn't determine self executable name")
@@ -339,7 +347,15 @@ error_chain! {
     }
 }
 
-fn component_unavailable_msg(cs: &[Component], manifest: &Manifest) -> String {
+fn valid_profile_names() -> String {
+    Profile::names()
+        .iter()
+        .map(|s| format!("'{}'", s))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &str) -> String {
     assert!(!cs.is_empty());
 
     let mut buf = vec![];
@@ -347,8 +363,9 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest) -> String {
     if cs.len() == 1 {
         let _ = write!(
             buf,
-            "component {} is unavailable for download",
-            &cs[0].description(manifest)
+            "component {} is unavailable for download for channel {}",
+            &cs[0].description(manifest),
+            toolchain
         );
     } else {
         let same_target = cs
@@ -360,14 +377,22 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest) -> String {
                 .map(|c| format!("'{}'", c.short_name(manifest)))
                 .collect::<Vec<_>>()
                 .join(", ");
-            let _ = write!(buf, "some components unavailable for download: {}", cs_str,);
+            let _ = write!(
+                buf,
+                "some components unavailable for download for channel {}: {}\n{}",
+                toolchain, cs_str, TOOLSTATE_MSG,
+            );
         } else {
             let cs_str = cs
                 .iter()
                 .map(|c| c.description(manifest))
                 .collect::<Vec<_>>()
                 .join(", ");
-            let _ = write!(buf, "some components unavailable for download: {}", cs_str,);
+            let _ = write!(
+                buf,
+                "some components unavailable for download for channel {}: {}\n{}",
+                toolchain, cs_str, TOOLSTATE_MSG,
+            );
         }
     }
 

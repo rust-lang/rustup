@@ -34,7 +34,7 @@ use crate::common::{self, Confirm};
 use crate::errors::*;
 use crate::markdown::md;
 use crate::term2;
-use rustup::dist::dist;
+use rustup::dist::dist::{self, Profile};
 use rustup::utils::utils;
 use rustup::utils::Notification;
 use rustup::{DUP_TOOLS, TOOLS};
@@ -48,6 +48,7 @@ use std::process::{self, Command};
 pub struct InstallOpts {
     pub default_host_triple: String,
     pub default_toolchain: String,
+    pub profile: String,
     pub no_modify_path: bool,
 }
 
@@ -278,7 +279,12 @@ pub fn install(no_prompt: bool, verbose: bool, mut opts: InstallOpts) -> Result<
             do_add_to_path(&get_add_path_methods())?;
         }
         utils::create_rustup_home()?;
-        maybe_install_rust(&opts.default_toolchain, &opts.default_host_triple, verbose)?;
+        maybe_install_rust(
+            &opts.default_toolchain,
+            &opts.profile,
+            &opts.default_host_triple,
+            verbose,
+        )?;
 
         if cfg!(unix) {
             let env_file = utils::cargo_home()?.join("env");
@@ -590,10 +596,12 @@ fn current_install_opts(opts: &InstallOpts) -> String {
 
 - ` `default host triple: `{}`
 - `   `default toolchain: `{}`
+- `             `profile: `{}`
 - modify PATH variable: `{}`
 ",
         opts.default_host_triple,
         opts.default_toolchain,
+        opts.profile,
         if !opts.no_modify_path { "yes" } else { "no" }
     )
 }
@@ -613,6 +621,14 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
     opts.default_toolchain = common::question_str(
         "Default toolchain? (stable/beta/nightly/none)",
         &opts.default_toolchain,
+    )?;
+
+    opts.profile = common::question_str(
+        &format!(
+            "Profile (which tools and data to install)? ({})",
+            Profile::names().join("/")
+        ),
+        &opts.profile,
     )?;
 
     opts.no_modify_path =
@@ -716,8 +732,14 @@ pub fn install_proxies() -> Result<()> {
     Ok(())
 }
 
-fn maybe_install_rust(toolchain_str: &str, default_host_triple: &str, verbose: bool) -> Result<()> {
+fn maybe_install_rust(
+    toolchain_str: &str,
+    profile_str: &str,
+    default_host_triple: &str,
+    verbose: bool,
+) -> Result<()> {
     let cfg = common::set_globals(verbose)?;
+    cfg.set_profile(profile_str)?;
 
     // If there is already an install, then `toolchain_str` may not be
     // a toolchain the user actually wants. Don't do anything.  FIXME:
@@ -787,7 +809,8 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     // Delete everything in CARGO_HOME *except* the rustup bin
 
     // First everything except the bin directory
-    for dirent in fs::read_dir(&cargo_home).chain_err(|| read_dir_err)? {
+    let diriter = fs::read_dir(&cargo_home).chain_err(|| read_dir_err)?;
+    for dirent in diriter {
         let dirent = dirent.chain_err(|| read_dir_err)?;
         if dirent.file_name().to_str() != Some("bin") {
             if dirent.path().is_dir() {
@@ -805,7 +828,8 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         .chain(DUP_TOOLS.iter())
         .map(|t| format!("{}{}", t, EXE_SUFFIX));
     let tools: Vec<_> = tools.chain(vec![format!("rustup{}", EXE_SUFFIX)]).collect();
-    for dirent in fs::read_dir(&cargo_home.join("bin")).chain_err(|| read_dir_err)? {
+    let diriter = fs::read_dir(&cargo_home.join("bin")).chain_err(|| read_dir_err)?;
+    for dirent in diriter {
         let dirent = dirent.chain_err(|| read_dir_err)?;
         let name = dirent.file_name();
         let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));

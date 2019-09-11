@@ -3,7 +3,7 @@
 
 use crate::dist::component::{Components, Package, TarGzPackage, TarXzPackage, Transaction};
 use crate::dist::config::Config;
-use crate::dist::dist::{TargetTriple, DEFAULT_DIST_SERVER};
+use crate::dist::dist::{Profile, TargetTriple, DEFAULT_DIST_SERVER};
 use crate::dist::download::{DownloadCfg, File};
 use crate::dist::manifest::{Component, Manifest, TargetedPackage};
 use crate::dist::notifications::*;
@@ -29,37 +29,33 @@ pub struct Manifestation {
 
 #[derive(Debug)]
 pub struct Changes {
-    pub add_extensions: Vec<Component>,
-    pub remove_extensions: Vec<Component>,
+    pub explicit_add_components: Vec<Component>,
+    pub remove_components: Vec<Component>,
 }
 
 impl Changes {
     pub fn none() -> Self {
         Self {
-            add_extensions: Vec::new(),
-            remove_extensions: Vec::new(),
+            explicit_add_components: Vec::new(),
+            remove_components: Vec::new(),
         }
     }
 
-    fn check_invariants(&self, rust_target_package: &TargetedPackage, config: &Option<Config>) {
-        for component_to_add in &self.add_extensions {
+    fn iter_add_components(&self) -> impl Iterator<Item = &Component> {
+        self.explicit_add_components.iter()
+    }
+
+    fn check_invariants(&self, config: &Option<Config>) {
+        for component_to_add in self.iter_add_components() {
             assert!(
-                rust_target_package.extensions.contains(component_to_add),
-                "package must contain extension to add"
-            );
-            assert!(
-                !self.remove_extensions.contains(component_to_add),
-                "can't both add and remove extensions"
+                !self.remove_components.contains(component_to_add),
+                "can't both add and remove components"
             );
         }
-        for component_to_remove in &self.remove_extensions {
-            assert!(
-                rust_target_package.extensions.contains(component_to_remove),
-                "package must contain extension to remove"
-            );
+        for component_to_remove in &self.remove_components {
             let config = config
                 .as_ref()
-                .expect("removing extension on fresh install?");
+                .expect("removing component on fresh install?");
             assert!(
                 config.components.contains(component_to_remove),
                 "removing package that isn't installed"
@@ -94,10 +90,10 @@ impl Manifestation {
     ///
     /// `update` takes a manifest describing a release of Rust (which
     /// may be either a freshly-downloaded one, or the same one used
-    /// for the previous install), as well as lists off extension
+    /// for the previous install), as well as lists of extension
     /// components to add and remove.
 
-    /// From that it schedules a list of components to uninstall and
+    /// From that it schedules a list of components to install and
     /// to uninstall to bring the installation up to date.  It
     /// downloads the components' packages. Then in a Transaction
     /// uninstalls old packages and installs new packages, writes the
@@ -120,14 +116,12 @@ impl Manifestation {
         let installed_manifest_path = prefix.path().join(&rel_installed_manifest_path);
 
         // Create the lists of components needed for installation
-        let update = Update::build_update(self, new_manifest, changes, notify_handler)?;
+        let config = self.read_config()?;
+        let update = Update::build_update(self, new_manifest, &changes, &config, notify_handler)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
         }
-
-        // Make sure we don't accidentally uninstall the essential components! (see #1297)
-        update.missing_essential_components(&self.target_triple, new_manifest, toolchain_str)?;
 
         // Validate that the requested components are available
         match update.unavailable_components(new_manifest, toolchain_str) {
@@ -141,7 +135,8 @@ impl Manifestation {
         // Download component packages and validate hashes
         let mut things_to_install: Vec<(Component, Format, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
-        for (component, format, url, hash) in update.components_urls_and_hashes(new_manifest)? {
+        let components = update.components_urls_and_hashes(new_manifest)?;
+        for (component, format, url, hash) in components {
             notify_handler(Notification::DownloadingComponent(
                 &component.short_name(new_manifest),
                 &self.target_triple,
@@ -169,11 +164,10 @@ impl Manifestation {
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
-        let config = self.read_config()?;
         tx = self.maybe_handle_v2_upgrade(&config, tx)?;
 
         // Uninstall components
-        for component in update.components_to_uninstall {
+        for component in &update.components_to_uninstall {
             let notification = if altered {
                 Notification::RemovingOldComponent
             } else {
@@ -242,9 +236,9 @@ impl Manifestation {
         // that identify installed components. The rust-installer metadata maintained by
         // `Components` *also* tracks what is installed, but it only tracks names, not
         // name/target. Needs to be fixed in rust-installer.
-        let mut config = Config::new();
-        config.components = update.final_component_list;
-        let config_str = config.stringify();
+        let mut new_config = Config::new();
+        new_config.components = update.final_component_list;
+        let config_str = new_config.stringify();
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
         let config_path = prefix.path().join(&rel_config_path);
         tx.modify_file(rel_config_path.to_owned())?;
@@ -397,7 +391,8 @@ impl Manifestation {
         let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
 
         // Uninstall components
-        for component in self.installation.list()? {
+        let components = self.installation.list()?;
+        for component in components {
             tx = component.uninstall(tx)?;
         }
 
@@ -444,6 +439,7 @@ impl Manifestation {
     }
 }
 
+#[derive(Debug)]
 struct Update {
     components_to_uninstall: Vec<Component>,
     components_to_install: Vec<Component>,
@@ -457,23 +453,29 @@ impl Update {
     fn build_update(
         manifestation: &Manifestation,
         new_manifest: &Manifest,
-        changes: Changes,
+        changes: &Changes,
+        config: &Option<Config>,
         notify_handler: &dyn Fn(Notification<'_>),
     ) -> Result<Self> {
-        // Load the configuration and list of installed components.
-        let config = manifestation.read_config()?;
-
         // The package to install.
         let rust_package = new_manifest.get_package("rust")?;
         let rust_target_package = rust_package.get_target(Some(&manifestation.target_triple))?;
 
-        changes.check_invariants(rust_target_package, &config);
+        changes.check_invariants(&config);
 
         // The list of components already installed, empty if a new install
-        let starting_list = config
+        let mut starting_list = config
             .as_ref()
             .map(|c| c.components.clone())
             .unwrap_or_default();
+
+        let installed_components = manifestation.installation.list()?;
+        let looks_like_v1 = config.is_none() && !installed_components.is_empty();
+        if looks_like_v1 {
+            let mut profile_components = new_manifest
+                .get_profile_components(Profile::Default, &manifestation.target_triple)?;
+            starting_list.append(&mut profile_components);
+        }
 
         let mut result = Self {
             components_to_uninstall: vec![],
@@ -483,14 +485,13 @@ impl Update {
         };
 
         // Find the final list of components we want to be left with when
-        // we're done: required components, added extensions, and existing
-        // installed extensions.
+        // we're done: required components, added components, and existing
+        // installed components.
         result.build_final_component_list(
             &starting_list,
             rust_target_package,
             new_manifest,
             &changes,
-            notify_handler,
         );
 
         // If this is a full upgrade then the list of components to
@@ -515,7 +516,7 @@ impl Update {
             for component in &result.final_component_list {
                 if !starting_list.contains(component) {
                     result.components_to_install.push(component.clone());
-                } else if changes.add_extensions.contains(&component) {
+                } else if changes.explicit_add_components.contains(&component) {
                     notify_handler(Notification::ComponentAlreadyInstalled(
                         &component.description(new_manifest),
                     ));
@@ -536,24 +537,17 @@ impl Update {
         rust_target_package: &TargetedPackage,
         new_manifest: &Manifest,
         changes: &Changes,
-        notify_handler: &dyn Fn(Notification<'_>),
     ) {
-        // Add components required by the package, according to the
-        // manifest
-        for required_component in &rust_target_package.components {
-            self.final_component_list.push(required_component.clone());
+        // Add requested components
+        for component in &changes.explicit_add_components {
+            self.final_component_list.push(component.clone());
         }
 
-        // Add requested extension components
-        for extension in &changes.add_extensions {
-            self.final_component_list.push(extension.clone());
-        }
-
-        // Add extensions that are already installed
+        // Add components that are already installed
         for existing_component in starting_list {
-            let is_removed = changes.remove_extensions.contains(existing_component);
+            let removed = changes.remove_components.contains(existing_component);
 
-            if !is_removed {
+            if !removed {
                 // If there is a rename in the (new) manifest, then we uninstall the component with the
                 // old name and install a component with the new name
                 if let Some(renamed_component) = new_manifest.rename_component(&existing_component)
@@ -568,21 +562,12 @@ impl Update {
                         self.final_component_list.contains(existing_component);
                     if !is_already_included {
                         let component_is_present =
-                            rust_target_package.extensions.contains(existing_component)
-                                || rust_target_package.components.contains(existing_component);
+                            rust_target_package.components.contains(existing_component);
 
                         if component_is_present {
                             self.final_component_list.push(existing_component.clone());
                         } else {
-                            // If a component is not available anymore for the target remove it
-                            // This prevents errors when trying to update to a newer version with
-                            // a removed component.
-                            self.components_to_uninstall
-                                .push(existing_component.clone());
-                            notify_handler(Notification::ComponentUnavailable(
-                                &existing_component.short_name(new_manifest),
-                                existing_component.target.as_ref(),
-                            ));
+                            self.missing_components.push(existing_component.clone());
                         }
                     }
                 }
@@ -592,39 +577,6 @@ impl Update {
 
     fn nothing_changes(&self) -> bool {
         self.components_to_uninstall.is_empty() && self.components_to_install.is_empty()
-    }
-
-    fn missing_essential_components(
-        &self,
-        target_triple: &TargetTriple,
-        manifest: &Manifest,
-        toolchain_str: &str,
-    ) -> Result<()> {
-        let missing_essential_components = ["rustc", "cargo"]
-            .iter()
-            .filter_map(|pkg| {
-                if self
-                    .final_component_list
-                    .iter()
-                    .any(|c| c.short_name_in_manifest() == pkg)
-                {
-                    None
-                } else {
-                    Some(Component::new(pkg.to_string(), Some(target_triple.clone())))
-                }
-            })
-            .collect::<Vec<_>>();
-
-        if !missing_essential_components.is_empty() {
-            return Err(ErrorKind::RequestedComponentsUnavailable(
-                missing_essential_components,
-                manifest.clone(),
-                toolchain_str.to_owned(),
-            )
-            .into());
-        }
-
-        Ok(())
     }
 
     fn unavailable_components(&self, new_manifest: &Manifest, toolchain_str: &str) -> Result<()> {

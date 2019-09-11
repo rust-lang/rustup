@@ -13,9 +13,9 @@ pub struct Config {
 
 impl Config {
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
-        let version = get_string(&mut table, "config_version", path)?;
-        if !SUPPORTED_CONFIG_VERSIONS.contains(&&*version) {
-            return Err(ErrorKind::UnsupportedVersion(version).into());
+        let config_version = get_string(&mut table, "config_version", path)?;
+        if !SUPPORTED_CONFIG_VERSIONS.contains(&&*config_version) {
+            return Err(ErrorKind::UnsupportedVersion(config_version).into());
         }
 
         let components = get_array(&mut table, "components", path)?;
@@ -23,7 +23,7 @@ impl Config {
             Self::toml_to_components(components, &format!("{}{}.", path, "components"))?;
 
         Ok(Self {
-            config_version: version,
+            config_version,
             components,
         })
     }
@@ -55,7 +55,7 @@ impl Config {
         for (i, v) in arr.into_iter().enumerate() {
             if let toml::Value::Table(t) = v {
                 let path = format!("{}[{}]", path, i);
-                result.push(Component::from_toml(t, &path)?);
+                result.push(Component::from_toml(t, &path, false)?);
             }
         }
 

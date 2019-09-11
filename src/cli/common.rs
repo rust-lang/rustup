@@ -368,11 +368,7 @@ pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<()> {
                 .target
                 .as_ref()
                 .expect("rust-std should have a target");
-            if component.required {
-                let _ = t.attr(term2::Attr::Bold);
-                let _ = writeln!(t, "{} (default)", target);
-                let _ = t.reset();
-            } else if component.installed {
+            if component.installed {
                 let _ = t.attr(term2::Attr::Bold);
                 let _ = writeln!(t, "{} (installed)", target);
                 let _ = t.reset();
@@ -406,11 +402,7 @@ pub fn list_components(toolchain: &Toolchain<'_>) -> Result<()> {
     let mut t = term2::stdout();
     for component in toolchain.list_components()? {
         let name = component.name;
-        if component.required {
-            t.attr(term2::Attr::Bold)?;
-            writeln!(t, "{} (default)", name)?;
-            t.reset()?;
-        } else if component.installed {
+        if component.installed {
             t.attr(term2::Attr::Bold)?;
             writeln!(t, "{} (installed)", name)?;
             t.reset()?;

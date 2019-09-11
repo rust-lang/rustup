@@ -179,7 +179,7 @@ fn with_non_release_channel_non_default_toolchain() {
 #[test]
 fn set_nightly_toolchain() {
     setup(&|config| {
-        let out = run_input(config, &["rustup-init"], "2\n\nnightly\n\n\n\n");
+        let out = run_input(config, &["rustup-init"], "2\n\nnightly\n\n\n\n\n");
         assert!(out.ok);
 
         expect_stdout_ok(config, &["rustup", "show"], "nightly");
@@ -189,7 +189,7 @@ fn set_nightly_toolchain() {
 #[test]
 fn set_no_modify_path() {
     setup(&|config| {
-        let out = run_input(config, &["rustup-init"], "2\n\n\nno\n\n\n");
+        let out = run_input(config, &["rustup-init"], "2\n\n\n\nno\n\n\n");
         assert!(out.ok);
 
         if cfg!(unix) {
@@ -204,7 +204,7 @@ fn set_nightly_toolchain_and_unset() {
         let out = run_input(
             config,
             &["rustup-init"],
-            "2\n\nnightly\n\n2\n\nbeta\n\n\n\n",
+            "2\n\nnightly\n\n\n2\n\nbeta\n\n\n\n\n",
         );
         assert!(out.ok);
 
@@ -215,7 +215,7 @@ fn set_nightly_toolchain_and_unset() {
 #[test]
 fn user_says_nope_after_advanced_install() {
     setup(&|config| {
-        let out = run_input(config, &["rustup-init"], "2\n\n\n\nn\n\n");
+        let out = run_input(config, &["rustup-init"], "2\n\n\n\n\nn\n\n\n");
         assert!(out.ok);
         assert!(!config.cargodir.join("bin").exists());
     });

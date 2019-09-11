@@ -14,6 +14,7 @@ pub enum Notification<'a> {
 
     SetDefaultToolchain(&'a str),
     SetOverrideToolchain(&'a Path, &'a str),
+    SetProfile(&'a str),
     LookingForToolchain(&'a str),
     ToolchainDirectory(&'a Path, &'a str),
     UpdatingToolchain(&'a str),
@@ -66,6 +67,7 @@ impl<'a> Notification<'a> {
             | UpdateHashMatches => NotificationLevel::Verbose,
             SetDefaultToolchain(_)
             | SetOverrideToolchain(_, _)
+            | SetProfile(_)
             | UsingExistingToolchain(_)
             | UninstallingToolchain(_)
             | UninstalledToolchain(_)
@@ -92,6 +94,7 @@ impl<'a> Display for Notification<'a> {
                 path.display(),
                 name
             ),
+            SetProfile(name) => write!(f, "profile set to '{}'", name),
             LookingForToolchain(name) => write!(f, "looking for installed toolchain '{}'", name),
             ToolchainDirectory(path, _) => write!(f, "toolchain directory: '{}'", path.display()),
             UpdatingToolchain(name) => write!(f, "updating existing install for '{}'", name),

@@ -14,9 +14,6 @@ use url::Url;
 use retry::delay::{jitter, Fibonacci};
 use retry::{retry, OperationResult};
 
-#[cfg(windows)]
-use winapi::shared::minwindef::DWORD;
-
 pub use crate::utils::utils::raw::{
     find_cmd, has_cmd, if_not_empty, is_directory, is_file, path_exists, prefix_arg, random_string,
 };

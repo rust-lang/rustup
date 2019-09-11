@@ -47,17 +47,17 @@ fn rustup_stable() {
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0
-info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
+info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rustc'
 info: removing previous version of component 'cargo'
+info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rust-docs'
-info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
+info: installing component 'rust-std'
 info: installing component 'rust-docs'
 "
             ),
@@ -109,45 +109,45 @@ fn rustup_all_channels() {
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0
-info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
+info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rustc'
 info: removing previous version of component 'cargo'
+info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rust-docs'
-info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
+info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: syncing channel updates for 'beta-{0}'
 info: latest update on 2015-01-02, rust version 1.2.0
-info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
+info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rustc'
 info: removing previous version of component 'cargo'
+info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rust-docs'
-info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
+info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0
-info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
+info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rustc'
 info: removing previous version of component 'cargo'
+info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rust-docs'
-info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
+info: installing component 'rust-std'
 info: installing component 'rust-docs'
 "
             ),
@@ -178,32 +178,32 @@ fn rustup_some_channels_up_to_date() {
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0
-info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
+info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rustc'
 info: removing previous version of component 'cargo'
+info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rust-docs'
-info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
+info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: syncing channel updates for 'beta-{0}'
 info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0
-info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
+info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rustc'
 info: removing previous version of component 'cargo'
+info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rust-docs'
-info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
+info: installing component 'rust-std'
 info: installing component 'rust-docs'
 "
             ),
@@ -241,13 +241,13 @@ fn default() {
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0
-info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: downloading component 'cargo'
+info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: installing component 'rust-std'
 info: installing component 'rustc'
 info: installing component 'cargo'
+info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: default toolchain set to 'nightly-{0}'
 "
@@ -988,6 +988,20 @@ fn show_active_toolchain_with_override() {
 fn show_active_toolchain_none() {
     setup(&|config| {
         expect_ok_ex(config, &["rustup", "show", "active-toolchain"], r"", r"");
+    });
+}
+
+#[test]
+fn show_profile() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_stdout_ok(config, &["rustup", "show", "profile"], "default");
+
+        // Check we get the same thing after we add or remove a component.
+        expect_ok(config, &["rustup", "component", "add", "rust-src"]);
+        expect_stdout_ok(config, &["rustup", "show", "profile"], "default");
+        expect_ok(config, &["rustup", "component", "remove", "rustc"]);
+        expect_stdout_ok(config, &["rustup", "show", "profile"], "default");
     });
 }
 

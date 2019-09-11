@@ -34,7 +34,6 @@ pub struct Toolchain<'a> {
 pub struct ComponentStatus {
     pub component: Component,
     pub name: String,
-    pub required: bool,
     pub installed: bool,
     pub available: bool,
 }
@@ -167,9 +166,11 @@ impl<'a> Toolchain<'a> {
         let update_hash = self.update_hash()?;
         self.install(InstallMethod::Dist(
             &self.desc()?,
+            self.cfg.get_profile()?,
             update_hash.as_ref().map(|p| &**p),
             self.download_cfg(),
             force_update,
+            self.exists(),
         ))
     }
 
@@ -177,8 +178,10 @@ impl<'a> Toolchain<'a> {
         let update_hash = self.update_hash()?;
         self.install_if_not_installed(InstallMethod::Dist(
             &self.desc()?,
+            self.cfg.get_profile()?,
             update_hash.as_ref().map(|p| &**p),
             self.download_cfg(),
+            false,
             false,
         ))
     }
@@ -501,6 +504,8 @@ impl<'a> Toolchain<'a> {
                     .map(|c| c.components.contains(component))
                     .unwrap_or(false);
 
+                let component_target = TargetTriple::new(&component.target());
+
                 // Get the component so we can check if it is available
                 let component_pkg = manifest
                     .get_package(&component.short_name_in_manifest())
@@ -512,46 +517,14 @@ impl<'a> Toolchain<'a> {
                     });
                 let component_target_pkg = component_pkg
                     .targets
-                    .get(&toolchain.target)
+                    .get(&component_target)
                     .expect("component should have target toolchain");
 
                 res.push(ComponentStatus {
                     component: component.clone(),
                     name: component.name(&manifest),
-                    required: true,
                     installed,
                     available: component_target_pkg.available(),
-                });
-            }
-
-            for extension in &targ_pkg.extensions {
-                let installed = config
-                    .as_ref()
-                    .map(|c| c.components.contains(extension))
-                    .unwrap_or(false);
-
-                let extension_target = TargetTriple::new(&extension.target());
-
-                // Get the component so we can check if it is available
-                let extension_pkg = manifest
-                    .get_package(&extension.short_name_in_manifest())
-                    .unwrap_or_else(|_| {
-                        panic!(
-                            "manifest should contain extension {}",
-                            &extension.short_name(&manifest)
-                        )
-                    });
-                let extension_target_pkg = extension_pkg
-                    .targets
-                    .get(&extension_target)
-                    .expect("extension should have listed toolchain");
-
-                res.push(ComponentStatus {
-                    component: extension.clone(),
-                    name: extension.name(&manifest),
-                    required: false,
-                    installed,
-                    available: extension_target_pkg.available(),
                 });
             }
 
@@ -674,21 +647,9 @@ impl<'a> Toolchain<'a> {
                 .get(&toolchain.target)
                 .expect("installed manifest should have a known target");
 
-            if targ_pkg.components.contains(&component) {
-                // Treat it as a warning, see https://github.com/rust-lang/rustup.rs/issues/441
-                eprintln!(
-                    "{}",
-                    ErrorKind::AddingRequiredComponent(
-                        self.name.to_string(),
-                        component.description(&manifest),
-                    ),
-                );
-                return Ok(());
-            }
-
-            if !targ_pkg.extensions.contains(&component) {
+            if !targ_pkg.components.contains(&component) {
                 let wildcard_component = component.wildcard();
-                if targ_pkg.extensions.contains(&wildcard_component) {
+                if targ_pkg.components.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
                     return Err(ErrorKind::UnknownComponent(
@@ -701,8 +662,8 @@ impl<'a> Toolchain<'a> {
             }
 
             let changes = Changes {
-                add_extensions: vec![component],
-                remove_extensions: vec![],
+                explicit_add_components: vec![component],
+                remove_components: vec![],
             };
 
             manifestation.update(
@@ -738,24 +699,6 @@ impl<'a> Toolchain<'a> {
                 component = c;
             }
 
-            // Validate the component name
-            let rust_pkg = manifest
-                .packages
-                .get("rust")
-                .expect("manifest should cantain a rust package");
-            let targ_pkg = rust_pkg
-                .targets
-                .get(&toolchain.target)
-                .expect("installed manifest should have a known target");
-
-            if targ_pkg.components.contains(&component) {
-                return Err(ErrorKind::RemovingRequiredComponent(
-                    self.name.to_string(),
-                    component.description(&manifest),
-                )
-                .into());
-            }
-
             let dist_config = manifestation.read_config()?.unwrap();
             if !dist_config.components.contains(&component) {
                 let wildcard_component = component.wildcard();
@@ -772,8 +715,8 @@ impl<'a> Toolchain<'a> {
             }
 
             let changes = Changes {
-                add_extensions: vec![],
-                remove_extensions: vec![component],
+                explicit_add_components: vec![],
+                remove_components: vec![component],
             };
 
             manifestation.update(

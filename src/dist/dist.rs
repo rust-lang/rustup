@@ -1,5 +1,4 @@
 use crate::dist::download::DownloadCfg;
-use crate::dist::manifest::Component;
 use crate::dist::manifest::Manifest as ManifestV2;
 use crate::dist::manifestation::{Changes, Manifestation, UpdateStatus};
 use crate::dist::notifications::*;
@@ -466,6 +465,42 @@ impl<'a> Manifest<'a> {
     }
 }
 
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+pub enum Profile {
+    Minimal,
+    Default,
+    Complete,
+}
+
+impl FromStr for Profile {
+    type Err = Error;
+
+    fn from_str(name: &str) -> Result<Self> {
+        match name {
+            "minimal" | "m" => Ok(Profile::Minimal),
+            "default" | "d" | "" => Ok(Profile::Default),
+            "complete" | "c" => Ok(Profile::Complete),
+            _ => Err(ErrorKind::InvalidProfile(name.to_owned()).into()),
+        }
+    }
+}
+
+impl Profile {
+    pub fn names() -> &'static [&'static str] {
+        &["minimal", "default", "complete"]
+    }
+
+    pub fn default_name() -> &'static str {
+        "default"
+    }
+}
+
+impl Default for Profile {
+    fn default() -> Self {
+        Profile::Default
+    }
+}
+
 impl fmt::Display for TargetTriple {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
@@ -506,6 +541,16 @@ impl fmt::Display for ToolchainDesc {
     }
 }
 
+impl fmt::Display for Profile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Profile::Minimal => write!(f, "minimal"),
+            Profile::Default => write!(f, "default"),
+            Profile::Complete => write!(f, "complete"),
+        }
+    }
+}
+
 // Installs or updates a toolchain from a dist server. If an initial
 // install then it will be installed with the default components. If
 // an upgrade then all the existing components will be upgraded.
@@ -515,9 +560,8 @@ pub fn update_from_dist<'a>(
     download: DownloadCfg<'a>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
+    profile: Option<Profile>,
     prefix: &InstallPrefix,
-    add: &[Component],
-    remove: &[Component],
     force_update: bool,
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
@@ -534,9 +578,8 @@ pub fn update_from_dist<'a>(
         download,
         update_hash,
         toolchain,
+        profile,
         prefix,
-        add,
-        remove,
         force_update,
     );
 
@@ -549,22 +592,16 @@ pub fn update_from_dist<'a>(
     res
 }
 
-pub fn update_from_dist_<'a>(
+fn update_from_dist_<'a>(
     download: DownloadCfg<'a>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
+    profile: Option<Profile>,
     prefix: &InstallPrefix,
-    add: &[Component],
-    remove: &[Component],
     force_update: bool,
 ) -> Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
     let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
-
-    let changes = Changes {
-        add_extensions: add.to_owned(),
-        remove_extensions: remove.to_owned(),
-    };
 
     // TODO: Add a notification about which manifest version is going to be used
     (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
@@ -574,6 +611,17 @@ pub fn update_from_dist_<'a>(
                 &m.date,
                 m.get_rust_version().ok(),
             ));
+
+            let profile_components = match profile {
+                Some(profile) => m.get_profile_components(profile, &toolchain.target)?,
+                None => Vec::new(),
+            };
+
+            let changes = Changes {
+                explicit_add_components: profile_components,
+                remove_components: Vec::new(),
+            };
+
             return match manifestation.update(
                 &m,
                 changes,

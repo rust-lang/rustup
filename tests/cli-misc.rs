@@ -4,8 +4,9 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_err, expect_ok, expect_ok_eq, expect_ok_ex, expect_stderr_ok, expect_stdout_ok,
-    run, set_current_dist_date, this_host_triple, Config, Scenario,
+    self, expect_component_executable, expect_component_not_executable, expect_err, expect_ok,
+    expect_ok_eq, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date,
+    this_host_triple, Config, Scenario,
 };
 use rustup::errors::TOOLSTATE_MSG;
 use rustup::utils::{raw, utils};
@@ -569,6 +570,32 @@ fn rename_rls_remove() {
 }
 
 #[test]
+fn install_profile() {
+    let temp_dir = tempfile::Builder::new()
+        .prefix("fakebin")
+        .tempdir()
+        .unwrap();
+    let temp_dir_path = temp_dir.path().to_str().unwrap();
+
+    setup(&|config| {
+        let args: Vec<&str> = vec!["-y", "--profile", "minimal"];
+        run(
+            config,
+            "rustup-init",
+            &args,
+            &[
+                ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
+                ("PATH", &temp_dir_path),
+            ],
+        );
+
+        expect_component_executable(config, "rustup");
+        expect_component_executable(config, "rustc");
+        expect_component_not_executable(config, "cargo");
+    });
+}
+
+#[test]
 fn install_stops_if_rustc_exists() {
     let temp_dir = tempfile::Builder::new()
         .prefix("fakebin")
@@ -719,7 +746,7 @@ fn update_unavailable_rustc() {
             config,
             &["rustup", "update", "nightly"],
             format!(
-                "some components unavailable for download: 'rustc', 'cargo' for channel 'nightly'\n{}",
+                "some components unavailable for download for channel nightly: 'rustc', 'cargo', 'rust-std', 'rust-docs'\n{}",
                 TOOLSTATE_MSG
             )
             .as_str(),
@@ -789,5 +816,17 @@ fn completion_cargo_unsupported_shell() {
             &["rustup", "completions", "fish", "cargo"],
             "error: cargo does not currently support completions for ",
         );
+    });
+}
+
+#[test]
+fn add_remove_component() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_component_executable(config, "rustc");
+        expect_ok(config, &["rustup", "component", "remove", "rustc"]);
+        expect_component_not_executable(config, "rustc");
+        expect_ok(config, &["rustup", "component", "add", "rustc"]);
+        expect_component_executable(config, "rustc");
     });
 }

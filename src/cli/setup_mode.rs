@@ -2,7 +2,7 @@ use crate::common;
 use crate::errors::*;
 use crate::self_update::{self, InstallOpts};
 use clap::{App, AppSettings, Arg};
-use rustup::dist::dist::TargetTriple;
+use rustup::dist::dist::{Profile, TargetTriple};
 use std::env;
 
 pub fn main() -> Result<()> {
@@ -49,6 +49,12 @@ pub fn main() -> Result<()> {
                 .help("Choose a default toolchain to install"),
         )
         .arg(
+            Arg::with_name("profile")
+                .long("profile")
+                .possible_values(Profile::names())
+                .default_value(Profile::default_name()),
+        )
+        .arg(
             Arg::with_name("no-modify-path")
                 .long("no-modify-path")
                 .help("Don't configure the PATH environment variable"),
@@ -62,11 +68,15 @@ pub fn main() -> Result<()> {
         .map(std::borrow::ToOwned::to_owned)
         .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string());
     let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
+    let profile = matches
+        .value_of("profile")
+        .expect("Unreachable: Clap should supply a default");
     let no_modify_path = matches.is_present("no-modify-path");
 
     let opts = InstallOpts {
         default_host_triple: default_host,
         default_toolchain: default_toolchain.to_owned(),
+        profile: profile.to_owned(),
         no_modify_path,
     };
 
