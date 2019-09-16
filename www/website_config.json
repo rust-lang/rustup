@@ -4,6 +4,7 @@
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
         "X-XSS-Protection": "1; mode=block",
-        "Referrer-Policy": "no-referrer, strict-origin-when-cross-origin"
+        "Referrer-Policy": "no-referrer, strict-origin-when-cross-origin",
+        "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://www.rust-lang.org; font-src 'self'"
     }
 }

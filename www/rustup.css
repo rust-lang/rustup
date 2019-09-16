@@ -158,3 +158,15 @@ hr {
     margin-right: auto;
     padding: 1em;
 }
+
+.display-none {
+    display: none;
+}
+
+.display-block {
+    display: block;
+}
+
+.display-inline {
+    display: inline;
+}

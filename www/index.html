@@ -13,7 +13,7 @@
 
 <body id="idx">
 
-<a id="platform-button" style="display: none;" href="#">
+<a id="platform-button" class="display-none" href="#">
   click or press "n" to cycle platforms
 </a>
 
@@ -23,13 +23,13 @@
   <a href="https://www.rust-lang.org">Rust</a>
 </p>
 
-<div id="platform-instructions-unix" class="instructions" style="display: none;">
+<div id="platform-instructions-unix" class="instructions display-none">
   <p>Run the following in your terminal, then follow the onscreen instructions.</p>
   <pre>curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh</pre>
   <p class="other-platforms-help">You appear to be running Unix. If not, <a class="default-platform-button" href="#">display all supported installers</a>.</p>
 </div>
 
-<div id="platform-instructions-win32" class="instructions" style="display: none;">
+<div id="platform-instructions-win32" class="instructions display-none">
   <p>
     To install Rust, download and run
     <a class="windows-download" href="https://win.rustup.rs/i686">rustup&#x2011;init.exe</a>
@@ -40,7 +40,7 @@
   <p class="other-platforms-help">You appear to be running Windows 32-bit. If not, <a class="default-platform-button" href="#">display all supported installers</a>.</p>
 </div>
 
-<div id="platform-instructions-win64" class="instructions" style="display: none;">
+<div id="platform-instructions-win64" class="instructions display-none">
   <p>
     To install Rust, download and run
     <a class="windows-download" href="https://win.rustup.rs/x86_64">rustup&#x2011;init.exe</a>
@@ -51,7 +51,7 @@
   <p class="other-platforms-help">You appear to be running Windows 64-bit. If not, <a class="default-platform-button" href="#">display all supported installers</a>.</p>
 </div>
 
-<div id="platform-instructions-unknown" class="instructions" style="display: none;">
+<div id="platform-instructions-unknown" class="instructions display-none">
   <!-- unrecognized platform: ask for help -->
   <p>I don't recognize your platform.</p>
   <p>

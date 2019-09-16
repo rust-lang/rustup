@@ -53,6 +53,17 @@ function detect_platform() {
     return os;
 }
 
+function vis(elem, value) {
+    var possible = ["block", "inline", "none"];
+    for (var i = 0; i < possible.length; i++) {
+        if (possible[i] === value) {
+            elem.classList.add("display-" + possible[i]);
+        } else {
+            elem.classList.remove("display-" + possible[i]);
+        }
+    }
+}
+
 function adjust_for_platform() {
     "use strict";
 
@@ -60,9 +71,9 @@ function adjust_for_platform() {
 
     platforms.forEach(function (platform_elem) {
         var platform_div = document.getElementById("platform-instructions-" + platform_elem);
-        platform_div.style.display = "none";
+        vis(platform_div, "none");
         if (platform == platform_elem) {
-            platform_div.style.display = "block";
+            vis(platform_div, "block");
         }
     });
 
@@ -81,15 +92,15 @@ function adjust_platform_specific_instrs(platform) {
         }
         if (platform == "win64" || platform == "win32") {
             if (el_is_not_win) {
-                el.style.display = "none";
+                vis(el, "none");
             } else {
-                el.style.display = el_visible_style;
+                vis(el, el_visible_style);
             }
         } else {
             if (el_is_not_win) {
-                el.style.display = el_visible_style;
+                vis(el, el_visible_style);
             } else {
-                el.style.display = "none";
+                vis(el, "none");
             }
         }
     }
@@ -121,7 +132,7 @@ function set_up_cycle_button() {
             idx += 1;
 
             if (idx == key.length) {
-                cycle_button.style.display = "block";
+                vis(cycle_button, "block");
                 unlocked = true;
                 cycle_platform();
             }
