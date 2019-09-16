@@ -1,4 +1,5 @@
 use crate::dist::dist::TargetTriple;
+use crate::dist::manifest::Component;
 use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::notify::NotificationLevel;
@@ -29,6 +30,7 @@ pub enum Notification<'a> {
     DownloadingManifest(&'a str),
     DownloadedManifest(&'a str, Option<&'a str>),
     DownloadingLegacyManifest,
+    SkippingNightlyMissingComponent(&'a [Component]),
     ManifestChecksumFailedHack,
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
     StrayHash(&'a Path),
@@ -66,6 +68,7 @@ impl<'a> Notification<'a> {
             | ManifestChecksumFailedHack
             | RollingBack
             | DownloadingManifest(_)
+            | SkippingNightlyMissingComponent(_)
             | DownloadedManifest(_, _) => NotificationLevel::Info,
             CantReadUpdateHash(_)
             | ExtensionNotInstalled(_)
@@ -157,6 +160,11 @@ impl<'a> Display for Notification<'a> {
                 f,
                 "removing stray hash found at '{}' in order to continue",
                 path.display()
+            ),
+            SkippingNightlyMissingComponent(components) => write!(
+                f,
+                "skipping nightly which is missing installed component '{}'",
+                components[0].short_name_in_manifest()
             ),
         }
     }

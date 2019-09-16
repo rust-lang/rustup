@@ -43,14 +43,15 @@ pub struct Config {
 // Building the mock server is slow, so use simple scenario when possible.
 #[derive(PartialEq, Copy, Clone)]
 pub enum Scenario {
-    Full,           // Two dates, two manifests
-    ArchivesV2,     // Two dates, v2 manifests
-    ArchivesV1,     // Two dates, v1 manifests
-    SimpleV2,       // One date, v2 manifests
-    SimpleV1,       // One date, v1 manifests
-    MultiHost,      // One date, v2 manifests, MULTI_ARCH1 host
-    Unavailable,    // Two dates, v2 manifests, everything unavailable in second date.
-    UnavailableRls, // Two dates, v2 manifests, RLS unavailable in first date, restored on second.
+    Full,             // Two dates, two manifests
+    ArchivesV2,       // Two dates, v2 manifests
+    ArchivesV1,       // Two dates, v1 manifests
+    SimpleV2,         // One date, v2 manifests
+    SimpleV1,         // One date, v1 manifests
+    MultiHost,        // One date, v2 manifests, MULTI_ARCH1 host
+    Unavailable,      // Two dates, v2 manifests, everything unavailable in second date.
+    UnavailableRls,   // Two dates, v2 manifests, RLS unavailable in first date, restored on second.
+    MissingComponent, // Three dates, v2 manifests, RLS available in first and last, not middle
 }
 
 pub static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
@@ -451,9 +452,36 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         | Scenario::ArchivesV2
         | Scenario::Unavailable
         | Scenario::UnavailableRls => 2,
+        Scenario::MissingComponent => 3,
     };
 
-    if dates_count > 1 {
+    if let Scenario::MissingComponent = s {
+        let c1 = build_mock_channel(
+            s,
+            "nightly",
+            "2019-09-12",
+            "1.37.0",
+            "hash-n-1",
+            RlsStatus::Available,
+        );
+        let c2 = build_mock_channel(
+            s,
+            "nightly",
+            "2019-09-13",
+            "1.37.0",
+            "hash-n-2",
+            RlsStatus::Available,
+        );
+        let c3 = build_mock_channel(
+            s,
+            "nightly",
+            "2019-09-14",
+            "1.37.0",
+            "hash-n-3",
+            RlsStatus::Unavailable,
+        );
+        chans.extend(vec![c1, c2, c3]);
+    } else if dates_count > 1 {
         let c1 = build_mock_channel(
             s,
             "nightly",
@@ -484,35 +512,37 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         );
         chans.extend(vec![c1, c2, c3]);
     }
-    let c4 = if s == Scenario::Unavailable {
-        build_mock_unavailable_channel("nightly", "2015-01-02", "1.3.0", "hash-n-2")
-    } else {
-        build_mock_channel(
+    if s != Scenario::MissingComponent {
+        let c4 = if s == Scenario::Unavailable {
+            build_mock_unavailable_channel("nightly", "2015-01-02", "1.3.0", "hash-n-2")
+        } else {
+            build_mock_channel(
+                s,
+                "nightly",
+                "2015-01-02",
+                "1.3.0",
+                "hash-n-2",
+                RlsStatus::Renamed,
+            )
+        };
+        let c5 = build_mock_channel(
             s,
-            "nightly",
+            "beta",
             "2015-01-02",
-            "1.3.0",
-            "hash-n-2",
-            RlsStatus::Renamed,
-        )
-    };
-    let c5 = build_mock_channel(
-        s,
-        "beta",
-        "2015-01-02",
-        "1.2.0",
-        "hash-b-2",
-        RlsStatus::Available,
-    );
-    let c6 = build_mock_channel(
-        s,
-        "stable",
-        "2015-01-02",
-        "1.1.0",
-        "hash-s-2",
-        RlsStatus::Available,
-    );
-    chans.extend(vec![c4, c5, c6]);
+            "1.2.0",
+            "hash-b-2",
+            RlsStatus::Available,
+        );
+        let c6 = build_mock_channel(
+            s,
+            "stable",
+            "2015-01-02",
+            "1.1.0",
+            "hash-s-2",
+            RlsStatus::Available,
+        );
+        chans.extend(vec![c4, c5, c6]);
+    }
 
     let vs = match s {
         Scenario::Full => vec![ManifestVersion::V1, ManifestVersion::V2],
@@ -521,7 +551,8 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         | Scenario::ArchivesV2
         | Scenario::MultiHost
         | Scenario::Unavailable
-        | Scenario::UnavailableRls => vec![ManifestVersion::V2],
+        | Scenario::UnavailableRls
+        | Scenario::MissingComponent => vec![ManifestVersion::V2],
     };
 
     MockDistServer {
@@ -530,62 +561,64 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
     }
     .write(&vs, true);
 
-    // Also create the manifests for stable releases by version
-    if dates_count > 1 {
+    if s != Scenario::MissingComponent {
+        // Also create the manifests for stable releases by version
+        if dates_count > 1 {
+            let _ = hard_link(
+                path.join("dist/2015-01-01/channel-rust-stable.toml"),
+                path.join("dist/channel-rust-1.0.0.toml"),
+            );
+            let _ = hard_link(
+                path.join("dist/2015-01-01/channel-rust-stable.toml.sha256"),
+                path.join("dist/channel-rust-1.0.0.toml.sha256"),
+            );
+        }
         let _ = hard_link(
-            path.join("dist/2015-01-01/channel-rust-stable.toml"),
-            path.join("dist/channel-rust-1.0.0.toml"),
+            path.join("dist/2015-01-02/channel-rust-stable.toml"),
+            path.join("dist/channel-rust-1.1.0.toml"),
         );
         let _ = hard_link(
-            path.join("dist/2015-01-01/channel-rust-stable.toml.sha256"),
-            path.join("dist/channel-rust-1.0.0.toml.sha256"),
+            path.join("dist/2015-01-02/channel-rust-stable.toml.sha256"),
+            path.join("dist/channel-rust-1.1.0.toml.sha256"),
         );
-    }
-    let _ = hard_link(
-        path.join("dist/2015-01-02/channel-rust-stable.toml"),
-        path.join("dist/channel-rust-1.1.0.toml"),
-    );
-    let _ = hard_link(
-        path.join("dist/2015-01-02/channel-rust-stable.toml.sha256"),
-        path.join("dist/channel-rust-1.1.0.toml.sha256"),
-    );
 
-    // Same for v1 manifests. These are just the installers.
-    let host_triple = this_host_triple();
-    if dates_count > 1 {
+        // Same for v1 manifests. These are just the installers.
+        let host_triple = this_host_triple();
+        if dates_count > 1 {
+            hard_link(
+                path.join(format!(
+                    "dist/2015-01-01/rust-stable-{}.tar.gz",
+                    host_triple
+                )),
+                path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple)),
+            )
+            .unwrap();
+            hard_link(
+                path.join(format!(
+                    "dist/2015-01-01/rust-stable-{}.tar.gz.sha256",
+                    host_triple
+                )),
+                path.join(format!("dist/rust-1.0.0-{}.tar.gz.sha256", host_triple)),
+            )
+            .unwrap();
+        }
         hard_link(
             path.join(format!(
-                "dist/2015-01-01/rust-stable-{}.tar.gz",
+                "dist/2015-01-02/rust-stable-{}.tar.gz",
                 host_triple
             )),
-            path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple)),
+            path.join(format!("dist/rust-1.1.0-{}.tar.gz", host_triple)),
         )
         .unwrap();
         hard_link(
             path.join(format!(
-                "dist/2015-01-01/rust-stable-{}.tar.gz.sha256",
+                "dist/2015-01-02/rust-stable-{}.tar.gz.sha256",
                 host_triple
             )),
-            path.join(format!("dist/rust-1.0.0-{}.tar.gz.sha256", host_triple)),
+            path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple)),
         )
         .unwrap();
     }
-    hard_link(
-        path.join(format!(
-            "dist/2015-01-02/rust-stable-{}.tar.gz",
-            host_triple
-        )),
-        path.join(format!("dist/rust-1.1.0-{}.tar.gz", host_triple)),
-    )
-    .unwrap();
-    hard_link(
-        path.join(format!(
-            "dist/2015-01-02/rust-stable-{}.tar.gz.sha256",
-            host_triple
-        )),
-        path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple)),
-    )
-    .unwrap();
 }
 
 fn build_mock_channel(

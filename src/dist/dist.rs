@@ -7,6 +7,7 @@ use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::utils;
 
+use chrono::prelude::*;
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -600,6 +601,77 @@ fn update_from_dist_<'a>(
     prefix: &InstallPrefix,
     force_update: bool,
 ) -> Result<Option<String>> {
+    let mut toolchain = toolchain.clone();
+    let mut fetched = String::new();
+    let mut first_err = None;
+    let backtrack = toolchain.channel == "nightly" && toolchain.date.is_none();
+    loop {
+        match try_update_from_dist_(
+            download,
+            update_hash,
+            &toolchain,
+            profile,
+            prefix,
+            force_update,
+            &mut fetched,
+        ) {
+            Ok(v) => break Ok(v),
+            Err(e) => {
+                if !backtrack {
+                    break Err(e);
+                }
+
+                if let ErrorKind::RequestedComponentsUnavailable(components, ..) = e.kind() {
+                    (download.notify_handler)(Notification::SkippingNightlyMissingComponent(
+                        components,
+                    ));
+
+                    if first_err.is_none() {
+                        first_err = Some(e);
+                    }
+                } else if let Some(e) = first_err {
+                    // if we fail to find a suitable nightly, we abort the search and give the
+                    // original "components unavailable for download" error.
+                    break Err(e);
+                } else {
+                    break Err(e);
+                }
+
+                // The user asked to update their nightly, but the latest nightly does not have all
+                // the components that the user currently has installed. Let's try the previous
+                // nightlies in reverse chronological order until we find a nightly that does,
+                // starting at one date earlier than the current manifest's date.
+                //
+                // NOTE: we don't need to explicitly check for the case where the next nightly to
+                // try is _older_ than the current nightly, since we know that the user's current
+                // nightlys supports the components they have installed, and thus would always
+                // terminate the search.
+                toolchain.date = Some(
+                    Utc.from_utc_date(
+                        &NaiveDate::parse_from_str(
+                            toolchain.date.as_ref().unwrap_or(&fetched),
+                            "%Y-%m-%d",
+                        )
+                        .expect("Malformed manifest date"),
+                    )
+                    .pred()
+                    .format("%Y-%m-%d")
+                    .to_string(),
+                );
+            }
+        }
+    }
+}
+
+fn try_update_from_dist_<'a>(
+    download: DownloadCfg<'a>,
+    update_hash: Option<&Path>,
+    toolchain: &ToolchainDesc,
+    profile: Option<Profile>,
+    prefix: &InstallPrefix,
+    force_update: bool,
+    fetched: &mut String,
+) -> Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
     let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
 
@@ -621,6 +693,8 @@ fn update_from_dist_<'a>(
                 explicit_add_components: profile_components,
                 remove_components: Vec::new(),
             };
+
+            *fetched = m.date.clone();
 
             return match manifestation.update(
                 &m,
