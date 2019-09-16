@@ -26,13 +26,13 @@ fn update() {
             &["rustup", "update", "nightly", "--no-self-update"],
             for_host!(
                 r"
-  nightly-{0} installed - 1.3.0 (hash-n-2)
+  nightly-{0} installed - 1.3.0 (hash-nightly-2)
 
 "
             ),
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -57,7 +57,7 @@ fn update_again() {
             &["rustup", "update", "nightly", "--no-self-update"],
             for_host!(
                 r"
-  nightly-{0} unchanged - 1.3.0 (hash-n-2)
+  nightly-{0} unchanged - 1.3.0 (hash-nightly-2)
 
 "
             ),
@@ -80,9 +80,9 @@ fn check_updates_none() {
             config,
             &["rustup", "check"],
             for_host!(
-                r"stable-{0} - Up to date : 1.0.0 (hash-s-1)
-beta-{0} - Up to date : 1.1.0 (hash-b-1)
-nightly-{0} - Up to date : 1.2.0 (hash-n-1)
+                r"stable-{0} - Up to date : 1.0.0 (hash-stable-1.0.0)
+beta-{0} - Up to date : 1.1.0 (hash-beta-1.1.0)
+nightly-{0} - Up to date : 1.2.0 (hash-nightly-1)
 "
             ),
         );
@@ -101,9 +101,9 @@ fn check_updates_some() {
             config,
             &["rustup", "check"],
             for_host!(
-                r"stable-{0} - Update available : 1.0.0 (hash-s-1) -> 1.1.0 (hash-s-2)
-beta-{0} - Update available : 1.1.0 (hash-b-1) -> 1.2.0 (hash-b-2)
-nightly-{0} - Update available : 1.2.0 (hash-n-1) -> 1.3.0 (hash-n-2)
+                r"stable-{0} - Update available : 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
+beta-{0} - Update available : 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
+nightly-{0} - Update available : 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
 "
             ),
         );
@@ -121,9 +121,9 @@ fn check_updates_with_update() {
             config,
             &["rustup", "check"],
             for_host!(
-                r"stable-{0} - Up to date : 1.0.0 (hash-s-1)
-beta-{0} - Up to date : 1.1.0 (hash-b-1)
-nightly-{0} - Up to date : 1.2.0 (hash-n-1)
+                r"stable-{0} - Up to date : 1.0.0 (hash-stable-1.0.0)
+beta-{0} - Up to date : 1.1.0 (hash-beta-1.1.0)
+nightly-{0} - Up to date : 1.2.0 (hash-nightly-1)
 "
             ),
         );
@@ -132,9 +132,9 @@ nightly-{0} - Up to date : 1.2.0 (hash-n-1)
             config,
             &["rustup", "check"],
             for_host!(
-                r"stable-{0} - Update available : 1.0.0 (hash-s-1) -> 1.1.0 (hash-s-2)
-beta-{0} - Update available : 1.1.0 (hash-b-1) -> 1.2.0 (hash-b-2)
-nightly-{0} - Update available : 1.2.0 (hash-n-1) -> 1.3.0 (hash-n-2)
+                r"stable-{0} - Update available : 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
+beta-{0} - Update available : 1.1.0 (hash-beta-1.1.0) -> 1.2.0 (hash-beta-1.2.0)
+nightly-{0} - Update available : 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
 "
             ),
         );
@@ -143,9 +143,9 @@ nightly-{0} - Update available : 1.2.0 (hash-n-1) -> 1.3.0 (hash-n-2)
             config,
             &["rustup", "check"],
             for_host!(
-                r"stable-{0} - Update available : 1.0.0 (hash-s-1) -> 1.1.0 (hash-s-2)
-beta-{0} - Up to date : 1.2.0 (hash-b-2)
-nightly-{0} - Update available : 1.2.0 (hash-n-1) -> 1.3.0 (hash-n-2)
+                r"stable-{0} - Update available : 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
+beta-{0} - Up to date : 1.2.0 (hash-beta-1.2.0)
+nightly-{0} - Update available : 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2)
 "
             ),
         );
@@ -160,13 +160,13 @@ fn default() {
             &["rustup", "default", "nightly"],
             for_host!(
                 r"
-  nightly-{0} installed - 1.3.0 (hash-n-2)
+  nightly-{0} installed - 1.3.0 (hash-nightly-2)
 
 "
             ),
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -192,7 +192,7 @@ fn override_again() {
             &["rustup", "override", "add", "nightly"],
             for_host!(
                 r"
-  nightly-{} unchanged - 1.3.0 (hash-n-2)
+  nightly-{} unchanged - 1.3.0 (hash-nightly-2)
 
 "
             ),
@@ -426,7 +426,7 @@ fn update_invalid_toolchain() {
             &["rustup", "update", "nightly-2016-03-1"],
             r"",
             r"info: syncing channel updates for 'nightly-2016-03-1'
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
 error: target '2016-03-1' not found in channel.  Perhaps check https://forge.rust-lang.org/platform-support.html for available targets
 ",
         );
@@ -441,7 +441,7 @@ fn default_invalid_toolchain() {
             &["rustup", "default", "nightly-2016-03-1"],
             r"",
             r"info: syncing channel updates for 'nightly-2016-03-1'
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
 error: target '2016-03-1' not found in channel.  Perhaps check https://forge.rust-lang.org/platform-support.html for available targets
 ",
         );

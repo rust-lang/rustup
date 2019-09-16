@@ -84,7 +84,7 @@ fn blank_lines_around_stderr_log_output_install() {
 3) Cancel installation
 >
 
-  stable installed - 1.1.0 (hash-s-2)
+  stable installed - 1.1.0 (hash-stable-1.1.0)
 
 
 Rust is installed now. Great!

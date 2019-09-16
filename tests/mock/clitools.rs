@@ -441,108 +441,162 @@ enum RlsStatus {
     Unavailable,
 }
 
+struct Release {
+    // Either "nightly", "stable", "beta", or an explicit version number
+    channel: String,
+    date: String,
+    version: String,
+    hash: String,
+    rls: RlsStatus,
+    available: bool,
+    multi_arch: bool,
+}
+
+impl Release {
+    fn stable(version: &str, date: &str) -> Self {
+        Release::new("stable", version, date, version)
+    }
+
+    fn beta(version: &str, date: &str) -> Self {
+        Release::new("beta", version, date, version)
+    }
+
+    fn with_rls(mut self, status: RlsStatus) -> Self {
+        self.rls = status;
+        self
+    }
+
+    fn unavailable(mut self) -> Self {
+        self.available = false;
+        self
+    }
+
+    fn multi_arch(mut self) -> Self {
+        self.multi_arch = true;
+        self
+    }
+
+    fn new(channel: &str, version: &str, date: &str, suffix: &str) -> Self {
+        Release {
+            channel: channel.to_string(),
+            date: date.to_string(),
+            version: version.to_string(),
+            hash: format!("hash-{}-{}", channel, suffix),
+            available: true,
+            multi_arch: false,
+            rls: RlsStatus::Available,
+        }
+    }
+
+    fn mock(&self) -> MockChannel {
+        if self.available {
+            build_mock_channel(
+                &self.channel,
+                &self.date,
+                &self.version,
+                &self.hash,
+                self.rls,
+                self.multi_arch,
+            )
+        } else {
+            if self.multi_arch {
+                unimplemented!("no support for multi-arch unavailable channels");
+            }
+            if self.rls != RlsStatus::Available {
+                unimplemented!(
+                    "no support for rls availability customization on unavailable channels"
+                );
+            }
+
+            build_mock_unavailable_channel(&self.channel, &self.date, &self.version, &self.hash)
+        }
+    }
+
+    fn link(&self, path: &Path) {
+        // Also create the manifests for releases by version
+        let _ = hard_link(
+            path.join(format!(
+                "dist/{}/channel-rust-{}.toml",
+                self.date, self.channel
+            )),
+            path.join(format!("dist/channel-rust-{}.toml", self.version)),
+        );
+        let _ = hard_link(
+            path.join(format!(
+                "dist/{}/channel-rust-{}.toml.sha256",
+                self.date, self.channel
+            )),
+            path.join(format!("dist/channel-rust-{}.toml.sha256", self.version)),
+        );
+
+        if self.channel == "stable" {
+            // Same for v1 manifests. These are just the installers.
+            let host_triple = this_host_triple();
+
+            let _ = hard_link(
+                path.join(format!(
+                    "dist/{}/rust-stable-{}.tar.gz",
+                    self.date, host_triple
+                )),
+                path.join(format!("dist/rust-{}-{}.tar.gz", self.version, host_triple)),
+            )
+            .unwrap();
+            let _ = hard_link(
+                path.join(format!(
+                    "dist/{}/rust-stable-{}.tar.gz.sha256",
+                    self.date, host_triple
+                )),
+                path.join(format!(
+                    "dist/rust-{}-{}.tar.gz.sha256",
+                    self.version, host_triple
+                )),
+            )
+            .unwrap();
+        }
+    }
+}
+
 // Creates a mock dist server populated with some test data
 fn create_mock_dist_server(path: &Path, s: Scenario) {
-    let mut chans = Vec::new();
-
-    let dates_count = match s {
-        Scenario::SimpleV1 | Scenario::SimpleV2 | Scenario::MultiHost => 1,
-        Scenario::Full
-        | Scenario::ArchivesV1
-        | Scenario::ArchivesV2
-        | Scenario::Unavailable
-        | Scenario::UnavailableRls => 2,
-        Scenario::MissingComponent => 3,
+    let chans = match s {
+        Scenario::MissingComponent => vec![
+            Release::new("nightly", "1.37.0", "2019-09-12", "1"),
+            Release::new("nightly", "1.37.0", "2019-09-13", "2"),
+            Release::new("nightly", "1.37.0", "2019-09-14", "3").with_rls(RlsStatus::Unavailable),
+        ],
+        Scenario::Unavailable => vec![
+            Release::new("nightly", "1.2.0", "2015-01-01", "1"),
+            Release::beta("1.1.0", "2015-01-01"),
+            Release::stable("1.0.0", "2015-01-01"),
+            Release::new("nightly", "1.3.0", "2015-01-02", "2").unavailable(),
+        ],
+        Scenario::Full | Scenario::ArchivesV1 | Scenario::ArchivesV2 | Scenario::UnavailableRls => {
+            vec![
+                Release::new("nightly", "1.2.0", "2015-01-01", "1").with_rls(
+                    if s == Scenario::UnavailableRls {
+                        RlsStatus::Unavailable
+                    } else {
+                        RlsStatus::Available
+                    },
+                ),
+                Release::beta("1.1.0", "2015-01-01"),
+                Release::stable("1.0.0", "2015-01-01"),
+                Release::new("nightly", "1.3.0", "2015-01-02", "2").with_rls(RlsStatus::Renamed),
+                Release::beta("1.2.0", "2015-01-02"),
+                Release::stable("1.1.0", "2015-01-02"),
+            ]
+        }
+        Scenario::SimpleV1 | Scenario::SimpleV2 => vec![
+            Release::new("nightly", "1.3.0", "2015-01-02", "2").with_rls(RlsStatus::Renamed),
+            Release::beta("1.2.0", "2015-01-02"),
+            Release::stable("1.1.0", "2015-01-02"),
+        ],
+        Scenario::MultiHost => vec![
+            Release::new("nightly", "1.3.0", "2015-01-02", "2").multi_arch(),
+            Release::beta("1.2.0", "2015-01-02").multi_arch(),
+            Release::stable("1.1.0", "2015-01-02").multi_arch(),
+        ],
     };
-
-    if let Scenario::MissingComponent = s {
-        let c1 = build_mock_channel(
-            s,
-            "nightly",
-            "2019-09-12",
-            "1.37.0",
-            "hash-n-1",
-            RlsStatus::Available,
-        );
-        let c2 = build_mock_channel(
-            s,
-            "nightly",
-            "2019-09-13",
-            "1.37.0",
-            "hash-n-2",
-            RlsStatus::Available,
-        );
-        let c3 = build_mock_channel(
-            s,
-            "nightly",
-            "2019-09-14",
-            "1.37.0",
-            "hash-n-3",
-            RlsStatus::Unavailable,
-        );
-        chans.extend(vec![c1, c2, c3]);
-    } else if dates_count > 1 {
-        let c1 = build_mock_channel(
-            s,
-            "nightly",
-            "2015-01-01",
-            "1.2.0",
-            "hash-n-1",
-            if s == Scenario::UnavailableRls {
-                RlsStatus::Unavailable
-            } else {
-                RlsStatus::Available
-            },
-        );
-        let c2 = build_mock_channel(
-            s,
-            "beta",
-            "2015-01-01",
-            "1.1.0",
-            "hash-b-1",
-            RlsStatus::Available,
-        );
-        let c3 = build_mock_channel(
-            s,
-            "stable",
-            "2015-01-01",
-            "1.0.0",
-            "hash-s-1",
-            RlsStatus::Available,
-        );
-        chans.extend(vec![c1, c2, c3]);
-    }
-    if s != Scenario::MissingComponent {
-        let c4 = if s == Scenario::Unavailable {
-            build_mock_unavailable_channel("nightly", "2015-01-02", "1.3.0", "hash-n-2")
-        } else {
-            build_mock_channel(
-                s,
-                "nightly",
-                "2015-01-02",
-                "1.3.0",
-                "hash-n-2",
-                RlsStatus::Renamed,
-            )
-        };
-        let c5 = build_mock_channel(
-            s,
-            "beta",
-            "2015-01-02",
-            "1.2.0",
-            "hash-b-2",
-            RlsStatus::Available,
-        );
-        let c6 = build_mock_channel(
-            s,
-            "stable",
-            "2015-01-02",
-            "1.1.0",
-            "hash-s-2",
-            RlsStatus::Available,
-        );
-        chans.extend(vec![c4, c5, c6]);
-    }
 
     let vs = match s {
         Scenario::Full => vec![ManifestVersion::V1, ManifestVersion::V2],
@@ -557,77 +611,22 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
 
     MockDistServer {
         path: path.to_owned(),
-        channels: chans,
+        channels: chans.iter().map(|c| c.mock()).collect(),
     }
     .write(&vs, true);
 
-    if s != Scenario::MissingComponent {
-        // Also create the manifests for stable releases by version
-        if dates_count > 1 {
-            let _ = hard_link(
-                path.join("dist/2015-01-01/channel-rust-stable.toml"),
-                path.join("dist/channel-rust-1.0.0.toml"),
-            );
-            let _ = hard_link(
-                path.join("dist/2015-01-01/channel-rust-stable.toml.sha256"),
-                path.join("dist/channel-rust-1.0.0.toml.sha256"),
-            );
-        }
-        let _ = hard_link(
-            path.join("dist/2015-01-02/channel-rust-stable.toml"),
-            path.join("dist/channel-rust-1.1.0.toml"),
-        );
-        let _ = hard_link(
-            path.join("dist/2015-01-02/channel-rust-stable.toml.sha256"),
-            path.join("dist/channel-rust-1.1.0.toml.sha256"),
-        );
-
-        // Same for v1 manifests. These are just the installers.
-        let host_triple = this_host_triple();
-        if dates_count > 1 {
-            hard_link(
-                path.join(format!(
-                    "dist/2015-01-01/rust-stable-{}.tar.gz",
-                    host_triple
-                )),
-                path.join(format!("dist/rust-1.0.0-{}.tar.gz", host_triple)),
-            )
-            .unwrap();
-            hard_link(
-                path.join(format!(
-                    "dist/2015-01-01/rust-stable-{}.tar.gz.sha256",
-                    host_triple
-                )),
-                path.join(format!("dist/rust-1.0.0-{}.tar.gz.sha256", host_triple)),
-            )
-            .unwrap();
-        }
-        hard_link(
-            path.join(format!(
-                "dist/2015-01-02/rust-stable-{}.tar.gz",
-                host_triple
-            )),
-            path.join(format!("dist/rust-1.1.0-{}.tar.gz", host_triple)),
-        )
-        .unwrap();
-        hard_link(
-            path.join(format!(
-                "dist/2015-01-02/rust-stable-{}.tar.gz.sha256",
-                host_triple
-            )),
-            path.join(format!("dist/rust-1.1.0-{}.tar.gz.sha256", host_triple)),
-        )
-        .unwrap();
+    for chan in &chans {
+        chan.link(path)
     }
 }
 
 fn build_mock_channel(
-    s: Scenario,
     channel: &str,
     date: &str,
-    version: &'static str,
+    version: &str,
     version_hash: &str,
     rls: RlsStatus,
+    multi_arch: bool,
 ) -> MockChannel {
     // Build the mock installers
     let host_triple = this_host_triple();
@@ -672,7 +671,7 @@ fn build_mock_channel(
     ];
     all.extend(more);
 
-    if s == Scenario::MultiHost {
+    if multi_arch {
         let std = build_mock_std_installer(MULTI_ARCH1);
         let rustc = build_mock_rustc_installer(MULTI_ARCH1, version, version_hash);
         let cargo = build_mock_cargo_installer(version, version_hash);

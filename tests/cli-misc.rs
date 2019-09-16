@@ -100,7 +100,7 @@ fn update_all_no_update_whitespace() {
             &["rustup", "update", "nightly", "--no-self-update"],
             for_host!(
                 r"
-  nightly-{} installed - 1.3.0 (hash-n-2)
+  nightly-{} installed - 1.3.0 (hash-nightly-2)
 
 "
             ),
@@ -197,7 +197,7 @@ fn multi_host_smoke_test() {
     clitools::setup(Scenario::MultiHost, &|config| {
         let toolchain = format!("nightly-{}", clitools::MULTI_ARCH1);
         expect_ok(config, &["rustup", "default", &toolchain]);
-        expect_stdout_ok(config, &["rustc", "--version"], "xxxx-n-2"); // cross-host mocks have their own versions
+        expect_stdout_ok(config, &["rustc", "--version"], "xxxx-nightly-2"); // cross-host mocks have their own versions
     });
 }
 
@@ -219,13 +219,13 @@ fn custom_toolchain_cargo_fallback_proxy() {
         expect_ok(config, &["rustup", "default", "mytoolchain"]);
 
         expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
-        expect_stdout_ok(config, &["cargo", "--version"], "hash-s-2");
+        expect_stdout_ok(config, &["cargo", "--version"], "hash-stable-1.1.0");
 
         expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
-        expect_stdout_ok(config, &["cargo", "--version"], "hash-b-2");
+        expect_stdout_ok(config, &["cargo", "--version"], "hash-beta-1.2.0");
 
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_stdout_ok(config, &["cargo", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["cargo", "--version"], "hash-nightly-2");
     });
 }
 
@@ -250,21 +250,21 @@ fn custom_toolchain_cargo_fallback_run() {
         expect_stdout_ok(
             config,
             &["rustup", "run", "mytoolchain", "cargo", "--version"],
-            "hash-s-2",
+            "hash-stable-1.1.0",
         );
 
         expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
         expect_stdout_ok(
             config,
             &["rustup", "run", "mytoolchain", "cargo", "--version"],
-            "hash-b-2",
+            "hash-beta-1.2.0",
         );
 
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stdout_ok(
             config,
             &["rustup", "run", "mytoolchain", "cargo", "--version"],
-            "hash-n-2",
+            "hash-nightly-2",
         );
     });
 }
@@ -738,13 +738,13 @@ fn update_unavailable_rustc() {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "default", "nightly"]);
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
 
         // latest nightly is unavailable
         set_current_dist_date(config, "2015-01-02");
         // update should do nothing
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
     });
 }
 
@@ -754,7 +754,7 @@ fn update_nightly_even_with_incompat() {
         set_current_dist_date(config, "2019-09-12");
         expect_ok(config, &["rustup", "default", "nightly"]);
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
         expect_ok(config, &["rustup", "component", "add", "rls"]);
         expect_component_executable(config, "rls");
 
@@ -764,7 +764,7 @@ fn update_nightly_even_with_incompat() {
         expect_component_executable(config, "rls");
         // update should bring us to latest nightly that does
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         expect_component_executable(config, "rls");
     });
 }
@@ -775,14 +775,14 @@ fn nightly_backtrack_skips_missing() {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "default", "nightly"]);
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
 
         // nightly is missing on latest
         set_current_dist_date(config, "2015-01-02");
 
         // update should not change nightly, and should not error
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
     });
 }
 
