@@ -869,7 +869,7 @@ fn first_install_exact() {
 ",
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
-info: latest update on 2015-01-02, rust version 1.1.0
+info: latest update on 2015-01-02, rust version 1.1.0 (hash-s-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'

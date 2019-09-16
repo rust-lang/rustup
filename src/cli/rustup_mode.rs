@@ -49,6 +49,7 @@ pub fn main() -> Result<()> {
         },
         ("install", Some(m)) => update(cfg, m)?,
         ("update", Some(m)) => update(cfg, m)?,
+        ("check", Some(_)) => check_updates(cfg)?,
         ("uninstall", Some(m)) => toolchain_remove(cfg, m)?,
         ("default", Some(m)) => default_(cfg, m)?,
         ("toolchain", Some(c)) => match c.subcommand() {
@@ -199,6 +200,10 @@ pub fn cli() -> App<'static, 'static> {
                         .long("force")
                         .takes_value(false),
                 ),
+        )
+        .subcommand(
+            SubCommand::with_name("check")
+                .about("Check for updates to Rust toolchains")
         )
         .subcommand(
             SubCommand::with_name("default")
@@ -665,6 +670,48 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         println!("{} (default)", default_toolchain?);
     }
 
+    Ok(())
+}
+
+fn check_updates(cfg: &Cfg) -> Result<()> {
+    let mut t = term2::stdout();
+    let channels = cfg.list_channels()?;
+
+    for channel in channels {
+        match channel {
+            (ref name, Ok(ref toolchain)) => {
+                let current_version = toolchain.show_version()?;
+                let dist_version = toolchain.show_dist_version()?;
+                let _ = t.attr(term2::Attr::Bold);
+                write!(t, "{} - ", name)?;
+                match (current_version, dist_version) {
+                    (None, None) => {
+                        let _ = t.fg(term2::color::BRIGHT_RED);
+                        writeln!(t, "Cannot identify installed or update versions")?;
+                    }
+                    (Some(cv), None) => {
+                        let _ = t.fg(term2::color::BRIGHT_GREEN);
+                        write!(t, "Up to date")?;
+                        let _ = t.reset();
+                        writeln!(t, " : {}", cv)?;
+                    }
+                    (Some(cv), Some(dv)) => {
+                        let _ = t.fg(term2::color::BRIGHT_YELLOW);
+                        write!(t, "Update available")?;
+                        let _ = t.reset();
+                        writeln!(t, " : {} -> {}", cv, dv)?;
+                    }
+                    (None, Some(dv)) => {
+                        let _ = t.fg(term2::color::BRIGHT_YELLOW);
+                        write!(t, "Update available")?;
+                        let _ = t.reset();
+                        writeln!(t, " : (Unknown version) -> {}", dv)?;
+                    }
+                }
+            }
+            (_, Err(err)) => return Err(err.into()),
+        }
+    }
     Ok(())
 }
 

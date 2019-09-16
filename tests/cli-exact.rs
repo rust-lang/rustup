@@ -4,7 +4,8 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_err_ex, expect_ok, expect_ok_ex, this_host_triple, Config, Scenario,
+    self, expect_err_ex, expect_ok, expect_ok_ex, expect_stdout_ok, set_current_dist_date,
+    this_host_triple, Config, Scenario,
 };
 
 macro_rules! for_host {
@@ -14,7 +15,7 @@ macro_rules! for_host {
 }
 
 fn setup(f: &dyn Fn(&mut Config)) {
-    clitools::setup(Scenario::SimpleV2, f);
+    clitools::setup(Scenario::ArchivesV2, f);
 }
 
 #[test]
@@ -31,7 +32,7 @@ fn update() {
             ),
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
-info: latest update on 2015-01-02, rust version 1.3.0
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -69,6 +70,89 @@ fn update_again() {
 }
 
 #[test]
+fn check_updates_none() {
+    setup(&|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_stdout_ok(
+            config,
+            &["rustup", "check"],
+            for_host!(
+                r"stable-{0} - Up to date : 1.0.0 (hash-s-1)
+beta-{0} - Up to date : 1.1.0 (hash-b-1)
+nightly-{0} - Up to date : 1.2.0 (hash-n-1)
+"
+            ),
+        );
+    })
+}
+
+#[test]
+fn check_updates_some() {
+    setup(&|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        set_current_dist_date(config, "2015-01-02");
+        expect_stdout_ok(
+            config,
+            &["rustup", "check"],
+            for_host!(
+                r"stable-{0} - Update available : 1.0.0 (hash-s-1) -> 1.1.0 (hash-s-2)
+beta-{0} - Update available : 1.1.0 (hash-b-1) -> 1.2.0 (hash-b-2)
+nightly-{0} - Update available : 1.2.0 (hash-n-1) -> 1.3.0 (hash-n-2)
+"
+            ),
+        );
+    })
+}
+
+#[test]
+fn check_updates_with_update() {
+    setup(&|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_stdout_ok(
+            config,
+            &["rustup", "check"],
+            for_host!(
+                r"stable-{0} - Up to date : 1.0.0 (hash-s-1)
+beta-{0} - Up to date : 1.1.0 (hash-b-1)
+nightly-{0} - Up to date : 1.2.0 (hash-n-1)
+"
+            ),
+        );
+        set_current_dist_date(config, "2015-01-02");
+        expect_stdout_ok(
+            config,
+            &["rustup", "check"],
+            for_host!(
+                r"stable-{0} - Update available : 1.0.0 (hash-s-1) -> 1.1.0 (hash-s-2)
+beta-{0} - Update available : 1.1.0 (hash-b-1) -> 1.2.0 (hash-b-2)
+nightly-{0} - Update available : 1.2.0 (hash-n-1) -> 1.3.0 (hash-n-2)
+"
+            ),
+        );
+        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_stdout_ok(
+            config,
+            &["rustup", "check"],
+            for_host!(
+                r"stable-{0} - Update available : 1.0.0 (hash-s-1) -> 1.1.0 (hash-s-2)
+beta-{0} - Up to date : 1.2.0 (hash-b-2)
+nightly-{0} - Update available : 1.2.0 (hash-n-1) -> 1.3.0 (hash-n-2)
+"
+            ),
+        );
+    })
+}
+
+#[test]
 fn default() {
     setup(&|config| {
         expect_ok_ex(
@@ -82,7 +166,7 @@ fn default() {
             ),
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
-info: latest update on 2015-01-02, rust version 1.3.0
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -342,7 +426,7 @@ fn update_invalid_toolchain() {
             &["rustup", "update", "nightly-2016-03-1"],
             r"",
             r"info: syncing channel updates for 'nightly-2016-03-1'
-info: latest update on 2015-01-02, rust version 1.3.0
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
 error: target '2016-03-1' not found in channel.  Perhaps check https://forge.rust-lang.org/platform-support.html for available targets
 ",
         );
@@ -357,7 +441,7 @@ fn default_invalid_toolchain() {
             &["rustup", "default", "nightly-2016-03-1"],
             r"",
             r"info: syncing channel updates for 'nightly-2016-03-1'
-info: latest update on 2015-01-02, rust version 1.3.0
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
 error: target '2016-03-1' not found in channel.  Perhaps check https://forge.rust-lang.org/platform-support.html for available targets
 ",
         );

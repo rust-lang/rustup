@@ -470,6 +470,36 @@ impl<'a> Toolchain<'a> {
         })
     }
 
+    pub fn show_version(&self) -> Result<Option<String>> {
+        if !self.exists() {
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
+        }
+
+        let toolchain = &self.name;
+        let toolchain = ToolchainDesc::from_str(toolchain)?;
+
+        let prefix = InstallPrefix::from(self.path.to_owned());
+        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
+
+        match manifestation.load_manifest()? {
+            Some(manifest) => Ok(Some(manifest.get_rust_version()?.to_string())),
+            None => Ok(None),
+        }
+    }
+
+    pub fn show_dist_version(&self) -> Result<Option<String>> {
+        let update_hash = self.update_hash()?;
+
+        match crate::dist::dist::dl_v2_manifest(
+            self.download_cfg(),
+            update_hash.as_ref().map(|p| &**p),
+            &self.desc()?,
+        )? {
+            Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
+            None => Ok(None),
+        }
+    }
+
     pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());

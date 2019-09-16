@@ -50,7 +50,7 @@ pub fn create_mock_channel(
 
     packages.push(MockPackage {
         name: "rust",
-        version: "1.0.0",
+        version: "1.0.0".to_string(),
         targets: vec![
             MockTargetedPackage {
                 target: "x86_64-apple-darwin".to_string(),
@@ -113,7 +113,7 @@ pub fn create_mock_channel(
         let pkg = &bin[4..];
         packages.push(MockPackage {
             name: pkg,
-            version: "1.0.0",
+            version: "1.0.0".to_string(),
             targets: vec![
                 MockTargetedPackage {
                     target: "x86_64-apple-darwin".to_string(),
@@ -138,7 +138,7 @@ pub fn create_mock_channel(
 
     packages.push(MockPackage {
         name: "rust-std",
-        version: "1.0.0",
+        version: "1.0.0".to_string(),
         targets: vec![
             MockTargetedPackage {
                 target: "x86_64-apple-darwin".to_string(),
@@ -203,7 +203,7 @@ pub fn create_mock_channel(
 fn bonus_component(name: &'static str, contents: Arc<Vec<u8>>) -> MockPackage {
     MockPackage {
         name,
-        version: "1.0.0",
+        version: "1.0.0".to_string(),
         targets: vec![MockTargetedPackage {
             target: "x86_64-apple-darwin".to_string(),
             available: true,
