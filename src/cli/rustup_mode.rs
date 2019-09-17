@@ -1309,6 +1309,10 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
             cli().gen_completions_to("rustup", shell, &mut term2::stdout());
         }
         CompletionCommand::Cargo => {
+            if let Shell::Zsh = shell {
+                writeln!(&mut term2::stdout(), "#compdef cargo")?;
+            }
+
             let script = match shell {
                 Shell::Bash => "/etc/bash_completion.d/cargo",
                 Shell::Zsh => "/share/zsh/site-functions/_cargo",
