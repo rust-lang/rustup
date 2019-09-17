@@ -41,11 +41,11 @@ fn expected_bins_exist() {
 fn install_toolchain_from_channel() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         expect_ok(config, &["rustup", "default", "beta"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
         expect_ok(config, &["rustup", "default", "stable"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
     });
 }
 
@@ -53,11 +53,11 @@ fn install_toolchain_from_channel() {
 fn install_toolchain_from_archive() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         expect_ok(config, &["rustup", "default", "nightly-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
         expect_ok(config, &["rustup", "default", "beta-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.1.0");
         expect_ok(config, &["rustup", "default", "stable-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.0.0");
     });
 }
 
@@ -65,7 +65,7 @@ fn install_toolchain_from_archive() {
 fn install_toolchain_from_version() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "1.1.0"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
     });
 }
 
@@ -86,10 +86,10 @@ fn update_channel() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
     });
 }
 
@@ -276,11 +276,11 @@ fn bad_sha_on_installer() {
 fn install_override_toolchain_from_channel() {
     setup(&|config| {
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         expect_ok(config, &["rustup", "override", "add", "beta"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
         expect_ok(config, &["rustup", "override", "add", "stable"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
     });
 }
 
@@ -288,11 +288,11 @@ fn install_override_toolchain_from_channel() {
 fn install_override_toolchain_from_archive() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         expect_ok(config, &["rustup", "override", "add", "nightly-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
         expect_ok(config, &["rustup", "override", "add", "beta-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.1.0");
         expect_ok(config, &["rustup", "override", "add", "stable-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.0.0");
     });
 }
 
@@ -300,7 +300,7 @@ fn install_override_toolchain_from_archive() {
 fn install_override_toolchain_from_version() {
     setup(&|config| {
         expect_ok(config, &["rustup", "override", "add", "1.1.0"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
     });
 }
 
@@ -311,7 +311,7 @@ fn override_overrides_default() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "beta"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
         });
     });
 }
@@ -330,13 +330,13 @@ fn multiple_overrides() {
             expect_ok(config, &["rustup", "override", "add", "stable"]);
         });
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
 
         config.change_dir(tempdir1.path(), &|| {
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
         });
         config.change_dir(tempdir2.path(), &|| {
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
         });
     });
 }
@@ -362,9 +362,9 @@ fn override_windows_root() {
         config.change_dir(&PathBuf::from(&prefix), &|| {
             expect_ok(config, &["rustup", "default", "stable"]);
             expect_ok(config, &["rustup", "override", "add", "nightly"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
             expect_ok(config, &["rustup", "override", "remove"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
         });
     });
 }
@@ -376,7 +376,7 @@ fn change_override() {
         config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "nightly"]);
             expect_ok(config, &["rustup", "override", "add", "beta"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
         });
     });
 }
@@ -401,7 +401,7 @@ fn remove_override_with_default() {
             expect_ok(config, &["rustup", "default", "nightly"]);
             expect_ok(config, &["rustup", "override", "add", "beta"]);
             expect_ok(config, &["rustup", "override", "remove"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         });
     });
 }
@@ -418,13 +418,13 @@ fn remove_override_with_multiple_overrides() {
         config.change_dir(tempdir2.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "stable"]);
         });
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         config.change_dir(tempdir1.path(), &|| {
             expect_ok(config, &["rustup", "override", "remove"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         });
         config.change_dir(tempdir2.path(), &|| {
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
         });
     });
 }
@@ -446,10 +446,10 @@ fn update_on_channel_when_date_has_changed() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
     });
 }
 
@@ -461,7 +461,7 @@ fn run_command() {
         expect_stdout_ok(
             config,
             &["rustup", "run", "nightly", "rustc", "--version"],
-            "hash-n-2",
+            "hash-nightly-2",
         );
     });
 }
@@ -484,10 +484,10 @@ fn upgrade_v1_to_v2() {
         // Delete the v2 manifest so the first day we install from the v1s
         fs::remove_file(config.distdir.join("dist/channel-rust-nightly.toml.sha256")).unwrap();
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
     });
 }
 

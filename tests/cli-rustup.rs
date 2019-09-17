@@ -40,13 +40,13 @@ fn rustup_stable() {
             &["rustup", "update", "--no-self-update"],
             for_host!(
                 r"
-  stable-{0} updated - 1.1.0 (hash-s-2)
+  stable-{0} updated - 1.1.0 (hash-stable-1.1.0)
 
 "
             ),
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
-info: latest update on 2015-01-02, rust version 1.1.0 (hash-s-2)
+info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -75,7 +75,7 @@ fn rustup_stable_no_change() {
             &["rustup", "update", "--no-self-update"],
             for_host!(
                 r"
-  stable-{0} unchanged - 1.0.0 (hash-s-1)
+  stable-{0} unchanged - 1.0.0 (hash-stable-1.0.0)
 
 "
             ),
@@ -100,15 +100,15 @@ fn rustup_all_channels() {
             &["rustup", "update", "--no-self-update"],
             for_host!(
                 r"
-   stable-{0} updated - 1.1.0 (hash-s-2)
-     beta-{0} updated - 1.2.0 (hash-b-2)
-  nightly-{0} updated - 1.3.0 (hash-n-2)
+   stable-{0} updated - 1.1.0 (hash-stable-1.1.0)
+     beta-{0} updated - 1.2.0 (hash-beta-1.2.0)
+  nightly-{0} updated - 1.3.0 (hash-nightly-2)
 
 "
             ),
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
-info: latest update on 2015-01-02, rust version 1.1.0 (hash-s-2)
+info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -122,7 +122,7 @@ info: installing component 'cargo'
 info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: syncing channel updates for 'beta-{0}'
-info: latest update on 2015-01-02, rust version 1.2.0 (hash-b-2)
+info: latest update on 2015-01-02, rust version 1.2.0 (hash-beta-1.2.0)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -136,7 +136,7 @@ info: installing component 'cargo'
 info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: syncing channel updates for 'nightly-{0}'
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -169,15 +169,15 @@ fn rustup_some_channels_up_to_date() {
             &["rustup", "update", "--no-self-update"],
             for_host!(
                 r"
-   stable-{0} updated - 1.1.0 (hash-s-2)
-   beta-{0} unchanged - 1.2.0 (hash-b-2)
-  nightly-{0} updated - 1.3.0 (hash-n-2)
+   stable-{0} updated - 1.1.0 (hash-stable-1.1.0)
+   beta-{0} unchanged - 1.2.0 (hash-beta-1.2.0)
+  nightly-{0} updated - 1.3.0 (hash-nightly-2)
 
 "
             ),
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
-info: latest update on 2015-01-02, rust version 1.1.0 (hash-s-2)
+info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -192,7 +192,7 @@ info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: syncing channel updates for 'beta-{0}'
 info: syncing channel updates for 'nightly-{0}'
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -234,13 +234,13 @@ fn default() {
             &["rustup", "default", "nightly"],
             for_host!(
                 r"
-  nightly-{0} installed - 1.3.0 (hash-n-2)
+  nightly-{0} installed - 1.3.0 (hash-nightly-2)
 
 "
             ),
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-n-2)
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -503,7 +503,7 @@ fn fallback_cargo_calls_correct_rustc() {
         expect_ok(config, &["rustup", "default", "custom"]);
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-c-1");
-        expect_stdout_ok(config, &["cargo", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["cargo", "--version"], "hash-nightly-2");
 
         assert!(rustc_path.exists());
 
@@ -563,7 +563,7 @@ fn show_toolchain_default() {
 rustup home:  {1}
 
 nightly-{0} (default)
-1.3.0 (hash-n-2)
+1.3.0 (hash-nightly-2)
 "
             ),
             r"",
@@ -594,7 +594,7 @@ active toolchain
 ----------------
 
 nightly-{0} (default)
-1.3.0 (hash-n-2)
+1.3.0 (hash-nightly-2)
 
 "
             ),
@@ -637,7 +637,7 @@ active toolchain
 ----------------
 
 nightly-{0} (default)
-1.3.0 (xxxx-n-2)
+1.3.0 (xxxx-nightly-2)
 
 ",
                 clitools::MULTI_ARCH1,
@@ -698,7 +698,7 @@ active toolchain
 ----------------
 
 nightly-{0} (default)
-1.3.0 (xxxx-n-2)
+1.3.0 (xxxx-nightly-2)
 
 ",
                 clitools::MULTI_ARCH1,
@@ -741,7 +741,7 @@ fn show_toolchain_override() {
 rustup home:  {1}
 
 nightly-{0} (directory override for '{2}')
-1.3.0 (hash-n-2)
+1.3.0 (hash-nightly-2)
 ",
                 this_host_triple(),
                 config.rustupdir.display(),
@@ -781,7 +781,7 @@ active toolchain
 ----------------
 
 nightly-{0} (overridden by '{2}')
-1.3.0 (hash-n-2)
+1.3.0 (hash-nightly-2)
 
 ",
                 this_host_triple(),
@@ -825,7 +825,7 @@ active toolchain
 ----------------
 
 nightly-{0} (overridden by '{1}')
-1.3.0 (hash-n-2)
+1.3.0 (hash-nightly-2)
 
 ",
                     this_host_triple(),
@@ -932,7 +932,7 @@ fn show_toolchain_env() {
 rustup home:  {1}
 
 nightly-{0} (environment override by RUSTUP_TOOLCHAIN)
-1.3.0 (hash-n-2)
+1.3.0 (hash-nightly-2)
 "
             )
         );
@@ -1076,7 +1076,7 @@ fn toolchain_install_is_like_update() {
         expect_stdout_ok(
             config,
             &["rustup", "run", "nightly", "rustc", "--version"],
-            "hash-n-2",
+            "hash-nightly-2",
         );
     });
 }
@@ -1108,7 +1108,7 @@ fn toolchain_update_is_like_update() {
         expect_stdout_ok(
             config,
             &["rustup", "run", "nightly", "rustc", "--version"],
-            "hash-n-2",
+            "hash-nightly-2",
         );
     });
 }
@@ -1151,9 +1151,17 @@ fn proxy_toolchain_shorthand() {
                 "--no-self-update",
             ],
         );
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
-        expect_stdout_ok(config, &["rustc", "+stable", "--version"], "hash-s-2");
-        expect_stdout_ok(config, &["rustc", "+nightly", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+        expect_stdout_ok(
+            config,
+            &["rustc", "+stable", "--version"],
+            "hash-stable-1.1.0",
+        );
+        expect_stdout_ok(
+            config,
+            &["rustc", "+nightly", "--version"],
+            "hash-nightly-2",
+        );
     });
 }
 
@@ -1232,13 +1240,13 @@ fn file_override() {
             ],
         );
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
 
         let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
     });
 }
 
@@ -1257,7 +1265,7 @@ fn file_override_subdir() {
             ],
         );
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
 
         let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
@@ -1266,7 +1274,7 @@ fn file_override_subdir() {
         let subdir = cwd.join("subdir");
         fs::create_dir_all(&subdir).unwrap();
         config.change_dir(&subdir, &|| {
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         });
     });
 }
@@ -1286,13 +1294,13 @@ fn file_override_with_archive() {
             ],
         );
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
 
         let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly-2015-01-01").unwrap();
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
     });
 }
 
@@ -1316,13 +1324,13 @@ fn directory_override_beats_file_override() {
         );
 
         expect_ok(config, &["rustup", "override", "set", "beta"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
 
         let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
     });
 }
 
@@ -1346,7 +1354,7 @@ fn close_file_override_beats_far_directory_override() {
         );
 
         expect_ok(config, &["rustup", "override", "set", "beta"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
 
         let cwd = config.current_dir();
 
@@ -1357,7 +1365,7 @@ fn close_file_override_beats_far_directory_override() {
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
         config.change_dir(&subdir, &|| {
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         });
     });
 }
@@ -1373,13 +1381,13 @@ fn directory_override_doesnt_need_to_exist_unless_it_is_selected() {
         // not installing nightly
 
         expect_ok(config, &["rustup", "override", "set", "beta"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
 
         let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
     });
 }
 
@@ -1411,7 +1419,9 @@ fn env_override_beats_file_override() {
         cmd.env("RUSTUP_TOOLCHAIN", "beta");
 
         let out = cmd.output().unwrap();
-        assert!(String::from_utf8(out.stdout).unwrap().contains("hash-b-2"));
+        assert!(String::from_utf8(out.stdout)
+            .unwrap()
+            .contains("hash-beta-1.2.0"));
     });
 }
 
@@ -1438,7 +1448,7 @@ fn plus_override_beats_file_override() {
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
-        expect_stdout_ok(config, &["rustc", "+beta", "--version"], "hash-b-2");
+        expect_stdout_ok(config, &["rustc", "+beta", "--version"], "hash-beta-1.2.0");
     });
 }
 

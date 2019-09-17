@@ -762,7 +762,7 @@ fn rustup_self_update_exact() {
             &["rustup", "update"],
             for_host!(
                 r"
-  stable-{0} unchanged - 1.1.0 (hash-s-2)
+  stable-{0} unchanged - 1.1.0 (hash-stable-1.1.0)
 
 "
             ),
@@ -831,9 +831,9 @@ fn rustup_still_works_after_update() {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "self", "update"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         expect_ok(config, &["rustup", "default", "beta"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-b-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
     });
 }
 
@@ -864,12 +864,12 @@ fn first_install_exact() {
             config,
             &["rustup-init", "-y"],
             r"
-  stable installed - 1.1.0 (hash-s-2)
+  stable installed - 1.1.0 (hash-stable-1.1.0)
 
 ",
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
-info: latest update on 2015-01-02, rust version 1.1.0 (hash-s-2)
+info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'rustc'
 info: downloading component 'cargo'
 info: downloading component 'rust-std'
@@ -923,7 +923,7 @@ fn doesnt_produce_env_file_on_windows() {}
 fn install_sets_up_stable() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-s-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
     });
 }
 
@@ -934,7 +934,7 @@ fn install_sets_up_stable_unless_a_different_default_is_requested() {
             config,
             &["rustup-init", "-y", "--default-toolchain", "nightly"],
         );
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
     });
 }
 
@@ -945,7 +945,7 @@ fn install_sets_up_stable_unless_there_is_already_a_default() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "stable"]);
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         expect_err(
             config,
             &["rustup", "run", "stable", "rustc", "--version"],
