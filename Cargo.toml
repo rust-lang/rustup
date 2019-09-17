@@ -22,6 +22,7 @@ no-self-update = []
 
 # Sorted by alphabetic order
 [dependencies]
+chrono = "0.4"
 clap = "2"
 download = { path = "download" }
 error-chain = "0.12"

@@ -8,7 +8,6 @@ use crate::mock::clitools::{
     expect_ok_eq, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date,
     this_host_triple, Config, Scenario,
 };
-use rustup::errors::TOOLSTATE_MSG;
 use rustup::utils::{raw, utils};
 
 use std::env::consts::EXE_SUFFIX;
@@ -741,17 +740,48 @@ fn update_unavailable_rustc() {
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
 
+        // latest nightly is unavailable
         set_current_dist_date(config, "2015-01-02");
-        expect_err(
-            config,
-            &["rustup", "update", "nightly"],
-            format!(
-                "some components unavailable for download for channel nightly: 'rustc', 'cargo', 'rust-std', 'rust-docs'\n{}",
-                TOOLSTATE_MSG
-            )
-            .as_str(),
-        );
+        // update should do nothing
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+    });
+}
 
+#[test]
+fn update_nightly_even_with_incompat() {
+    clitools::setup(Scenario::MissingComponent, &|config| {
+        set_current_dist_date(config, "2019-09-12");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_component_executable(config, "rls");
+
+        // latest nightly is now one that does not have RLS
+        set_current_dist_date(config, "2019-09-14");
+
+        expect_component_executable(config, "rls");
+        // update should bring us to latest nightly that does
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-2");
+        expect_component_executable(config, "rls");
+    });
+}
+
+#[test]
+fn nightly_backtrack_skips_missing() {
+    clitools::setup(Scenario::Unavailable, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+
+        // nightly is missing on latest
+        set_current_dist_date(config, "2015-01-02");
+
+        // update should not change nightly, and should not error
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
     });
 }
