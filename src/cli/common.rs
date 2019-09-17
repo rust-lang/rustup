@@ -424,8 +424,13 @@ pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<()> {
     Ok(())
 }
 
-pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
+pub fn list_toolchains(cfg: &Cfg, is_verbose: bool) -> Result<()> {
     let toolchains = cfg.list_toolchains()?;
+    let toolchain_info = if is_verbose {
+        format!("\t{}", &cfg.rustup_dir.display())
+    } else {
+        String::from("")
+    };
 
     if toolchains.is_empty() {
         println!("no installed toolchains");
@@ -436,11 +441,11 @@ pub fn list_toolchains(cfg: &Cfg) -> Result<()> {
             } else {
                 ""
             };
-            println!("{}{}", &toolchain, if_default);
+            println!("{}{}{}", &toolchain, if_default, toolchain_info);
         }
     } else {
         for toolchain in toolchains {
-            println!("{}", &toolchain);
+            println!("{}{}", &toolchain, toolchain_info);
         }
     }
     Ok(())
