@@ -770,6 +770,23 @@ fn update_nightly_even_with_incompat() {
 }
 
 #[test]
+fn nightly_backtrack_skips_missing() {
+    clitools::setup(Scenario::Unavailable, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+
+        // nightly is missing on latest
+        set_current_dist_date(config, "2015-01-02");
+
+        // update should not change nightly, and should not error
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-n-1");
+    });
+}
+
+#[test]
 fn completion_rustup() {
     setup(&|config| {
         expect_ok(config, &["rustup", "completions", "bash", "rustup"]);
