@@ -275,6 +275,10 @@ error_chain! {
             description("missing package for the target of a rename")
             display("server sent a broken manifest: missing package for the target of a rename {}", name)
         }
+        MissingReleaseForToolchain(name: String) {
+            description("missing release for a toolchain")
+            display("no release found for '{}'", name)
+        }
         RequestedComponentsUnavailable(c: Vec<Component>, manifest: Manifest, toolchain: String) {
             description("some requested components are unavailable to download")
             display("{}", component_unavailable_msg(&c, &manifest, &toolchain))

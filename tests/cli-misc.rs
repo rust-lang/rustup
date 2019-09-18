@@ -771,14 +771,16 @@ fn update_nightly_even_with_incompat() {
 
 #[test]
 fn nightly_backtrack_skips_missing() {
-    clitools::setup(Scenario::Unavailable, &|config| {
-        set_current_dist_date(config, "2015-01-01");
+    clitools::setup(Scenario::MissingNightly, &|config| {
+        set_current_dist_date(config, "2019-09-16");
         expect_ok(config, &["rustup", "default", "nightly"]);
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_component_executable(config, "rls");
 
-        // nightly is missing on latest
-        set_current_dist_date(config, "2015-01-02");
+        // rls is missing on latest, nightly is missing on second-to-latest
+        set_current_dist_date(config, "2019-09-18");
 
         // update should not change nightly, and should not error
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);

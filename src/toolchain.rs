@@ -164,6 +164,7 @@ impl<'a> Toolchain<'a> {
 
     pub fn install_from_dist(&self, force_update: bool) -> Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
+        let old_date = self.get_manifest().ok().and_then(|m| m.map(|m| m.date));
         self.install(InstallMethod::Dist(
             &self.desc()?,
             self.cfg.get_profile()?,
@@ -171,6 +172,7 @@ impl<'a> Toolchain<'a> {
             self.download_cfg(),
             force_update,
             self.exists(),
+            old_date.as_ref().map(|s| &**s),
         ))
     }
 
@@ -183,6 +185,7 @@ impl<'a> Toolchain<'a> {
             self.download_cfg(),
             false,
             false,
+            None,
         ))
     }
     pub fn is_custom(&self) -> bool {
@@ -470,7 +473,7 @@ impl<'a> Toolchain<'a> {
         })
     }
 
-    pub fn show_version(&self) -> Result<Option<String>> {
+    pub fn get_manifest(&self) -> Result<Option<Manifest>> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
@@ -481,7 +484,11 @@ impl<'a> Toolchain<'a> {
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
 
-        match manifestation.load_manifest()? {
+        manifestation.load_manifest()
+    }
+
+    pub fn show_version(&self) -> Result<Option<String>> {
+        match self.get_manifest()? {
             Some(manifest) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
         }

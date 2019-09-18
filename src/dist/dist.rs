@@ -564,6 +564,7 @@ pub fn update_from_dist<'a>(
     profile: Option<Profile>,
     prefix: &InstallPrefix,
     force_update: bool,
+    old_date: Option<&str>,
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
     let hash_exists = update_hash.map(Path::exists).unwrap_or(false);
@@ -582,6 +583,7 @@ pub fn update_from_dist<'a>(
         profile,
         prefix,
         force_update,
+        old_date,
     );
 
     // Don't leave behind an empty / broken installation directory
@@ -600,11 +602,29 @@ fn update_from_dist_<'a>(
     profile: Option<Profile>,
     prefix: &InstallPrefix,
     force_update: bool,
+    old_date: Option<&str>,
 ) -> Result<Option<String>> {
     let mut toolchain = toolchain.clone();
     let mut fetched = String::new();
     let mut first_err = None;
     let backtrack = toolchain.channel == "nightly" && toolchain.date.is_none();
+
+    // We never want to backtrack further back than the nightly that's already installed.
+    //
+    // If no nightly is installed, it makes no sense to backtrack beyond the first ever manifest,
+    // which is 2014-12-20 according to
+    // https://static.rust-lang.org/cargo-dist/index.html.
+    //
+    // We could arguably use the date of the first rustup release here, but that would break a
+    // bunch of the tests, which (inexplicably) use 2015-01-01 as their manifest dates.
+    let first_manifest = old_date
+        .map(|date| {
+            Utc.from_utc_date(
+                &NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("Malformed manifest date"),
+            )
+        })
+        .unwrap_or_else(|| Utc.from_utc_date(&NaiveDate::from_ymd(2014, 12, 20)));
+
     loop {
         match try_update_from_dist_(
             download,
@@ -629,6 +649,9 @@ fn update_from_dist_<'a>(
                     if first_err.is_none() {
                         first_err = Some(e);
                     }
+                } else if let ErrorKind::MissingReleaseForToolchain(..) = e.kind() {
+                    // no need to even print anything for missing nightlies,
+                    // since we don't really "skip" them
                 } else if let Some(e) = first_err {
                     // if we fail to find a suitable nightly, we abort the search and give the
                     // original "components unavailable for download" error.
@@ -641,23 +664,28 @@ fn update_from_dist_<'a>(
                 // the components that the user currently has installed. Let's try the previous
                 // nightlies in reverse chronological order until we find a nightly that does,
                 // starting at one date earlier than the current manifest's date.
-                //
-                // NOTE: we don't need to explicitly check for the case where the next nightly to
-                // try is _older_ than the current nightly, since we know that the user's current
-                // nightlys supports the components they have installed, and thus would always
-                // terminate the search.
-                toolchain.date = Some(
-                    Utc.from_utc_date(
+                let try_next = Utc
+                    .from_utc_date(
                         &NaiveDate::parse_from_str(
                             toolchain.date.as_ref().unwrap_or(&fetched),
                             "%Y-%m-%d",
                         )
                         .expect("Malformed manifest date"),
                     )
-                    .pred()
-                    .format("%Y-%m-%d")
-                    .to_string(),
-                );
+                    .pred();
+
+                if try_next < first_manifest {
+                    // Wouldn't be an update if we go further back than the user's current nightly.
+                    if let Some(e) = first_err {
+                        break Err(e);
+                    } else {
+                        // In this case, all newer nightlies are missing, which means there are no
+                        // updates, so the user is already at the latest nightly.
+                        break Ok(None);
+                    }
+                }
+
+                toolchain.date = Some(try_next.format("%Y-%m-%d").to_string());
             }
         }
     }
@@ -721,7 +749,9 @@ fn try_update_from_dist_<'a>(
     let manifest = match dl_v1_manifest(download, toolchain) {
         Ok(m) => m,
         Err(Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => {
-            return Err(format!("no release found for '{}'", toolchain.manifest_name()).into());
+            return Err(Error::from(ErrorKind::MissingReleaseForToolchain(
+                toolchain.manifest_name(),
+            )));
         }
         Err(e @ Error(ErrorKind::ChecksumFailed { .. }, _)) => {
             return Err(e);

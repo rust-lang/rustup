@@ -52,6 +52,7 @@ pub enum Scenario {
     Unavailable,      // Two dates, v2 manifests, everything unavailable in second date.
     UnavailableRls,   // Two dates, v2 manifests, RLS unavailable in first date, restored on second.
     MissingComponent, // Three dates, v2 manifests, RLS available in first and last, not middle
+    MissingNightly,   // Three dates, v2 manifests, RLS available in first, middle missing nightly
 }
 
 pub static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
@@ -564,6 +565,11 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
             Release::new("nightly", "1.37.0", "2019-09-13", "2"),
             Release::new("nightly", "1.37.0", "2019-09-14", "3").with_rls(RlsStatus::Unavailable),
         ],
+        Scenario::MissingNightly => vec![
+            Release::new("nightly", "1.37.0", "2019-09-16", "1"),
+            Release::stable("1.37.0", "2019-09-17"),
+            Release::new("nightly", "1.37.0", "2019-09-18", "2").with_rls(RlsStatus::Unavailable),
+        ],
         Scenario::Unavailable => vec![
             Release::new("nightly", "1.2.0", "2015-01-01", "1"),
             Release::beta("1.1.0", "2015-01-01"),
@@ -606,6 +612,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         | Scenario::MultiHost
         | Scenario::Unavailable
         | Scenario::UnavailableRls
+        | Scenario::MissingNightly
         | Scenario::MissingComponent => vec![ManifestVersion::V2],
     };
 
