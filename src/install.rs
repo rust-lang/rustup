@@ -26,6 +26,8 @@ pub enum InstallMethod<'a> {
         bool,
         // toolchain already exists
         bool,
+        // currently installed date
+        Option<&'a str>,
     ),
 }
 
@@ -54,7 +56,15 @@ impl<'a> InstallMethod<'a> {
                 InstallMethod::tar_gz(src, path, &temp_cfg, notify_handler)?;
                 Ok(true)
             }
-            InstallMethod::Dist(toolchain, profile, update_hash, dl_cfg, force_update, exists) => {
+            InstallMethod::Dist(
+                toolchain,
+                profile,
+                update_hash,
+                dl_cfg,
+                force_update,
+                exists,
+                old_date,
+            ) => {
                 let prefix = &InstallPrefix::from(path.to_owned());
                 let maybe_new_hash = dist::update_from_dist(
                     dl_cfg,
@@ -63,6 +73,7 @@ impl<'a> InstallMethod<'a> {
                     if exists { None } else { profile },
                     prefix,
                     force_update,
+                    old_date,
                 )?;
 
                 if let Some(hash) = maybe_new_hash {
