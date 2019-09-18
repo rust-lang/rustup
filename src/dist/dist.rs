@@ -629,6 +629,9 @@ fn update_from_dist_<'a>(
                     if first_err.is_none() {
                         first_err = Some(e);
                     }
+                } else if let ErrorKind::MissingReleaseForToolchain(..) = e.kind() {
+                    // no need to even print anything for missing nightlies,
+                    // since we don't really "skip" them
                 } else if let Some(e) = first_err {
                     // if we fail to find a suitable nightly, we abort the search and give the
                     // original "components unavailable for download" error.
@@ -721,7 +724,9 @@ fn try_update_from_dist_<'a>(
     let manifest = match dl_v1_manifest(download, toolchain) {
         Ok(m) => m,
         Err(Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => {
-            return Err(format!("no release found for '{}'", toolchain.manifest_name()).into());
+            return Err(Error::from(ErrorKind::MissingReleaseForToolchain(
+                toolchain.manifest_name(),
+            )));
         }
         Err(e @ Error(ErrorKind::ChecksumFailed { .. }, _)) => {
             return Err(e);
