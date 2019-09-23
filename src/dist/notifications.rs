@@ -120,23 +120,10 @@ impl<'a> Display for Notification<'a> {
                 }
             }
             RemovingComponent(c, h, t) => {
-                if Some(h) == t.as_ref() || t.is_none() {
-                    write!(f, "removing component '{}'", c)
-                } else {
-                    write!(f, "removing component '{}' for '{}'", c, t.unwrap())
-                }
+                write!(f, "{}", parse_remove_component_notification(c, h, t))
             }
             RemovingOldComponent(c, h, t) => {
-                if Some(h) == t.as_ref() || t.is_none() {
-                    write!(f, "removing previous version of component '{}'", c)
-                } else {
-                    write!(
-                        f,
-                        "removing previous version of component '{}' for '{}'",
-                        c,
-                        t.unwrap()
-                    )
-                }
+                write!(f, "{}", parse_remove_component_notification(c, h, t))
             }
             DownloadingManifest(t) => write!(f, "syncing channel updates for '{}'", t),
             DownloadedManifest(date, Some(version)) => {
@@ -168,4 +155,20 @@ impl<'a> Display for Notification<'a> {
             ),
         }
     }
+}
+
+fn parse_remove_component_notification(
+    c: &&str,
+    h: &&TargetTriple,
+    t: &Option<&TargetTriple>,
+) -> String {
+    return if Some(h) == t.as_ref() || t.is_none() {
+        format!("removing previous version of component '{}'", c)
+    } else {
+        format!(
+            "removing previous version of component '{}' for '{}'",
+            c,
+            t.unwrap()
+        )
+    };
 }
