@@ -53,7 +53,6 @@ time = "0.1.34"
 toml = "0.5"
 url = "1"
 wait-timeout = "0.2"
-walkdir = "2"
 xz2 = "0.1.3"
 
 [dependencies.retry]
@@ -93,6 +92,9 @@ features = [
     "winnt",
     "winuser",
 ]
+
+[dev-dependencies]
+walkdir = "2"
 
 [workspace]
 members = ["download"]
