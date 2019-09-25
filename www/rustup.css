@@ -120,6 +120,7 @@ hr {
     text-align: center;
     border-radius: 3px;
     box-shadow: inset 0px 0px 20px 0px #333333;
+    overflow-x: scroll;
 }
 
 #platform-instructions-win32 a.windows-download,
