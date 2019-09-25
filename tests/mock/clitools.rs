@@ -534,7 +534,7 @@ impl Release {
             // Same for v1 manifests. These are just the installers.
             let host_triple = this_host_triple();
 
-            let _ = hard_link(
+            hard_link(
                 path.join(format!(
                     "dist/{}/rust-stable-{}.tar.gz",
                     self.date, host_triple
@@ -542,7 +542,7 @@ impl Release {
                 path.join(format!("dist/rust-{}-{}.tar.gz", self.version, host_triple)),
             )
             .unwrap();
-            let _ = hard_link(
+            hard_link(
                 path.join(format!(
                     "dist/{}/rust-stable-{}.tar.gz.sha256",
                     self.date, host_triple
