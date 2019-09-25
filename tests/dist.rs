@@ -1452,7 +1452,7 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
             change_channel_date(url, "nightly", "2016-02-01");
 
-            let ref adds = vec![Component::new(
+            let adds = [Component::new(
                 "bonus".to_string(),
                 Some(TargetTriple::new("x86_64-apple-darwin")),
                 true,
