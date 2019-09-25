@@ -460,6 +460,7 @@ fn update_from_dist(
         download_cfg,
         download_cfg.notify_handler,
         &toolchain.manifest_name(),
+        true,
     )
 }
 

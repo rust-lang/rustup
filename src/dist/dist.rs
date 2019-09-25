@@ -731,6 +731,7 @@ fn try_update_from_dist_<'a>(
                 &download,
                 &download.notify_handler,
                 &toolchain.manifest_name(),
+                true,
             )? {
                 UpdateStatus::Unchanged => Ok(None),
                 UpdateStatus::Changed => Ok(Some(hash)),
