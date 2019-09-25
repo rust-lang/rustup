@@ -33,6 +33,7 @@ pub fn main() -> Result<()> {
         )
         .arg(
             Arg::with_name("quiet")
+                .conflicts_with("verbose")
                 .short("q")
                 .long("quiet")
                 .help("Disable progress output"),

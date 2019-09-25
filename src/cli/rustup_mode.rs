@@ -124,6 +124,7 @@ pub fn cli() -> App<'static, 'static> {
         )
         .arg(
             Arg::with_name("quiet")
+                .conflicts_with("verbose")
                 .help("Disable progress output")
                 .short("q")
                 .long("quiet"),
