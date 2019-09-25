@@ -28,6 +28,21 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(
 
     #[cfg(windows)]
     fn exec(cmd: &mut Command) -> io::Result<ExitCode> {
+        use winapi::shared::minwindef::{BOOL, DWORD, FALSE, TRUE};
+        use winapi::um::consoleapi::SetConsoleCtrlHandler;
+
+        unsafe extern "system" fn ctrlc_handler(_: DWORD) -> BOOL {
+            // Do nothing. Let the child process handle it.
+            TRUE
+        }
+        unsafe {
+            if SetConsoleCtrlHandler(Some(ctrlc_handler), TRUE) == FALSE {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "Unable to set console handler",
+                ));
+            }
+        }
         let status = cmd.status()?;
         Ok(ExitCode(status.code().unwrap()))
     }
