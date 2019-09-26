@@ -32,6 +32,13 @@ pub fn main() -> Result<()> {
                 .help("Enable verbose output"),
         )
         .arg(
+            Arg::with_name("quiet")
+                .conflicts_with("verbose")
+                .short("q")
+                .long("quiet")
+                .help("Disable progress output"),
+        )
+        .arg(
             Arg::with_name("no-prompt")
                 .short("y")
                 .help("Disable confirmation prompt."),
@@ -63,6 +70,7 @@ pub fn main() -> Result<()> {
     let matches = cli.get_matches();
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
+    let quiet = matches.is_present("quiet");
     let default_host = matches
         .value_of("default-host")
         .map(std::borrow::ToOwned::to_owned)
@@ -80,7 +88,7 @@ pub fn main() -> Result<()> {
         no_modify_path,
     };
 
-    self_update::install(no_prompt, verbose, opts)?;
+    self_update::install(no_prompt, verbose, quiet, opts)?;
 
     Ok(())
 }

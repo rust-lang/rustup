@@ -104,11 +104,11 @@ pub fn read_line() -> Result<String> {
         .ok_or_else(|| "unable to read from stdin for confirmation".into())
 }
 
-pub fn set_globals(verbose: bool) -> Result<Cfg> {
+pub fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
     use crate::download_tracker::DownloadTracker;
     use std::cell::RefCell;
 
-    let download_tracker = RefCell::new(DownloadTracker::new());
+    let download_tracker = RefCell::new(DownloadTracker::new().with_display_progress(!quiet));
 
     Ok(Cfg::from_env(Arc::new(move |n: Notification<'_>| {
         if download_tracker.borrow_mut().handle_notification(&n) {

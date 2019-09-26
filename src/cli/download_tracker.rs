@@ -44,6 +44,8 @@ pub struct DownloadTracker {
     displayed_charcount: Option<usize>,
     /// What units to show progress in
     units: Vec<String>,
+    /// Whether we display progress
+    display_progress: bool,
 }
 
 impl DownloadTracker {
@@ -59,7 +61,13 @@ impl DownloadTracker {
             term: term2::stdout(),
             displayed_charcount: None,
             units: vec!["B".into(); 1],
+            display_progress: true,
         }
+    }
+
+    pub fn with_display_progress(mut self, display_progress: bool) -> DownloadTracker {
+        self.display_progress = display_progress;
+        self
     }
 
     pub fn handle_notification(&mut self, n: &Notification<'_>) -> bool {
@@ -109,7 +117,9 @@ impl DownloadTracker {
             Some(prev) => {
                 let elapsed = current_time - prev;
                 if elapsed >= 1.0 {
-                    self.display();
+                    if self.display_progress {
+                        self.display();
+                    }
                     self.last_sec = Some(current_time);
                     if self.downloaded_last_few_secs.len() == DOWNLOAD_TRACK_COUNT {
                         self.downloaded_last_few_secs.pop_back();

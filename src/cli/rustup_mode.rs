@@ -31,7 +31,8 @@ pub fn main() -> Result<()> {
 
     let matches = cli().get_matches();
     let verbose = matches.is_present("verbose");
-    let cfg = &common::set_globals(verbose)?;
+    let quiet = matches.is_present("quiet");
+    let cfg = &common::set_globals(verbose, quiet)?;
 
     if maybe_upgrade_data(cfg, &matches)? {
         return Ok(());
@@ -120,6 +121,13 @@ pub fn cli() -> App<'static, 'static> {
                 .help("Enable verbose output")
                 .short("v")
                 .long("verbose"),
+        )
+        .arg(
+            Arg::with_name("quiet")
+                .conflicts_with("verbose")
+                .help("Disable progress output")
+                .short("q")
+                .long("quiet"),
         )
         .subcommand(
             SubCommand::with_name("dump-testament")

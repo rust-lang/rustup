@@ -66,6 +66,45 @@ info: installing component 'rust-docs'
 }
 
 #[test]
+fn rustup_stable_quiet() {
+    setup(&|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(
+            config,
+            &["rustup", "--quiet", "update", "stable", "--no-self-update"],
+        );
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok_ex(
+            config,
+            &["rustup", "--quiet", "update", "--no-self-update"],
+            for_host!(
+                r"
+  stable-{0} updated - 1.1.0 (hash-stable-1.1.0)
+
+"
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
+info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
+info: downloading component 'rustc'
+info: downloading component 'cargo'
+info: downloading component 'rust-std'
+info: downloading component 'rust-docs'
+info: removing previous version of component 'rustc'
+info: removing previous version of component 'cargo'
+info: removing previous version of component 'rust-std'
+info: removing previous version of component 'rust-docs'
+info: installing component 'rustc'
+info: installing component 'cargo'
+info: installing component 'rust-std'
+info: installing component 'rust-docs'
+"
+            ),
+        );
+    });
+}
+
+#[test]
 fn rustup_stable_no_change() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
@@ -1067,6 +1106,28 @@ fn toolchain_install_is_like_update() {
             config,
             &[
                 "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "run", "nightly", "rustc", "--version"],
+            "hash-nightly-2",
+        );
+    });
+}
+
+#[test]
+fn toolchain_install_is_like_update_quiet() {
+    setup(&|config| {
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "--quiet",
                 "toolchain",
                 "install",
                 "nightly",
