@@ -24,7 +24,7 @@
 // Single core machines - thread anyway, they probably don't have SSDs?
 // How many service points? Blocking latency due to networks and disks
 // is independent of CPU: more threads will garner more throughput up
-// to actual resource service capapbility.
+// to actual resource service capability.
 // so:
 // a) measure time around each IO op from dispatch to completion.
 // b) create more threads than CPUs - 2x for now (because threadpool
@@ -39,7 +39,7 @@
 //    on shared components. Perhaps time-to-completion should be scaled by size.
 // d) if we have a lot of (iii) we should respond to it the same as (i), so
 //    lets reduce this to (i) and (ii). Being unable to tell the difference
-//    between load we created and anothers, we have to throttle back when
+//    between load we created and others, we have to throttle back when
 //    the system saturates. Our most throttled position will be one service
 //    worker: dispatch IO, extract the next text, wait for IO completion,
 //    repeat.

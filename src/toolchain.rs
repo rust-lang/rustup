@@ -344,7 +344,7 @@ impl<'a> Toolchain<'a> {
         // running it. This is so that the fallback cargo, when it in turn runs
         // rustc.exe, will run the rustc.exe out of the PATH environment
         // variable, _not_ the rustc.exe sitting in the same directory as the
-        // fallback. See the `fallback_cargo_calls_correct_rustc` testcase and
+        // fallback. See the `fallback_cargo_calls_correct_rustc` test case and
         // PR 812.
         //
         // On Windows, spawning a process will search the running application's
@@ -529,7 +529,7 @@ impl<'a> Toolchain<'a> {
             let rust_pkg = manifest
                 .packages
                 .get("rust")
-                .expect("manifest should cantain a rust package");
+                .expect("manifest should contain a rust package");
             let targ_pkg = rust_pkg
                 .targets
                 .get(&toolchain.target)
@@ -582,7 +582,7 @@ impl<'a> Toolchain<'a> {
         use strsim::damerau_levenshtein;
 
         // Suggest only for very small differences
-        // High number can result in innacurate suggestions for short queries e.g. `rls`
+        // High number can result in inaccurate suggestions for short queries e.g. `rls`
         const MAX_DISTANCE: usize = 3;
 
         let components = self.list_components();

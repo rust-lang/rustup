@@ -417,7 +417,7 @@ impl Manifestation {
 
     // If the previous installation was from a v1 manifest, then it
     // doesn't have a configuration or manifest-derived list of
-    // component/target pairs. Uninstall it using the intaller's
+    // component/target pairs. Uninstall it using the installer's
     // component list before upgrading.
     fn maybe_handle_v2_upgrade<'a>(
         &self,

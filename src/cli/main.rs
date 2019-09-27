@@ -8,7 +8,7 @@
 //! application; when it is called 'rustc' it behaves as a proxy to
 //! 'rustc'.
 //!
-//! This scheme is further used to distingush the rustup installer,
+//! This scheme is further used to distinguish the rustup installer,
 //! called 'rustup-init' which is again just the rustup binary under a
 //! different name.
 
