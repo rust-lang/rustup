@@ -1216,7 +1216,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 }
 
 // Get the windows PATH variable out of the registry as a String. If
-// this returns None then the PATH varible is not unicode and we
+// this returns None then the PATH variable is not unicode and we
 // should not mess with it.
 #[cfg(windows)]
 fn get_windows_path_var() -> Result<Option<String>> {
@@ -1374,7 +1374,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 /// Self update downloads rustup-init to `CARGO_HOME`/bin/rustup-init
 /// and runs it.
 ///
-/// It does a few things to accomodate self-delete problems on windows:
+/// It does a few things to accommodate self-delete problems on windows:
 ///
 /// rustup-init is run in two stages, first with `--self-upgrade`,
 /// which displays update messages and asks for confirmations, etc;
