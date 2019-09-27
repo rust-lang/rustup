@@ -421,6 +421,7 @@ fn rename_component_new() {
 // install then it will be installed with the default components.  If
 // an upgrade then all the existing components will be upgraded.
 // FIXME: Unify this with dist::update_from_dist
+#[allow(clippy::too_many_arguments)]
 fn update_from_dist(
     dist_server: &Url,
     toolchain: &ToolchainDesc,
