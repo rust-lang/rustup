@@ -710,6 +710,7 @@ impl<'a> Toolchain<'a> {
                 &self.download_cfg(),
                 &self.download_cfg().notify_handler,
                 &toolchain.manifest_name(),
+                false,
             )?;
 
             Ok(())
@@ -763,6 +764,7 @@ impl<'a> Toolchain<'a> {
                 &self.download_cfg(),
                 &self.download_cfg().notify_handler,
                 &toolchain.manifest_name(),
+                false,
             )?;
 
             Ok(())

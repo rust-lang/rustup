@@ -108,6 +108,7 @@ impl Manifestation {
         download_cfg: &DownloadCfg<'_>,
         notify_handler: &dyn Fn(Notification<'_>),
         toolchain_str: &str,
+        implicit_modify: bool,
     ) -> Result<UpdateStatus> {
         // Some vars we're going to need a few times
         let temp_cfg = download_cfg.temp_cfg;
@@ -168,7 +169,7 @@ impl Manifestation {
 
         // Uninstall components
         for component in &update.components_to_uninstall {
-            let notification = if altered {
+            let notification = if implicit_modify {
                 Notification::RemovingOldComponent
             } else {
                 Notification::RemovingComponent
