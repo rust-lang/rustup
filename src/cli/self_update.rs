@@ -45,11 +45,13 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::process::{self, Command};
 
-pub struct InstallOpts {
+pub struct InstallOpts<'a> {
     pub default_host_triple: String,
     pub default_toolchain: String,
     pub profile: String,
     pub no_modify_path: bool,
+    pub components: &'a [&'a str],
+    pub targets: &'a [&'a str],
 }
 
 #[cfg(feature = "no-self-update")]
@@ -283,6 +285,8 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
             &opts.default_toolchain,
             &opts.profile,
             &opts.default_host_triple,
+            opts.components,
+            opts.targets,
             verbose,
             quiet,
         )?;
@@ -737,6 +741,8 @@ fn maybe_install_rust(
     toolchain_str: &str,
     profile_str: &str,
     default_host_triple: &str,
+    components: &[&str],
+    targets: &[&str],
     verbose: bool,
     quiet: bool,
 ) -> Result<()> {
@@ -754,7 +760,7 @@ fn maybe_install_rust(
         // Set host triple first as it will affect resolution of toolchain_str
         cfg.set_default_host_triple(default_host_triple)?;
         let toolchain = cfg.get_toolchain(toolchain_str, false)?;
-        let status = toolchain.install_from_dist(false)?;
+        let status = toolchain.install_from_dist(false, components, targets)?;
         cfg.set_default(toolchain_str)?;
         println!();
         common::show_channel_update(&cfg, toolchain_str, Ok(status))?;

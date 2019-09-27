@@ -162,7 +162,12 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    pub fn install_from_dist(&self, force_update: bool) -> Result<UpdateStatus> {
+    pub fn install_from_dist(
+        &self,
+        force_update: bool,
+        components: &[&str],
+        targets: &[&str],
+    ) -> Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
         let old_date = self.get_manifest().ok().and_then(|m| m.map(|m| m.date));
         self.install(InstallMethod::Dist(
@@ -173,6 +178,8 @@ impl<'a> Toolchain<'a> {
             force_update,
             self.exists(),
             old_date.as_ref().map(|s| &**s),
+            components,
+            targets,
         ))
     }
 
@@ -186,6 +193,8 @@ impl<'a> Toolchain<'a> {
             false,
             false,
             None,
+            &[],
+            &[],
         ))
     }
     pub fn is_custom(&self) -> bool {

@@ -256,6 +256,22 @@ pub fn cli() -> App<'static, 'static> {
                                 .help("Don't perform self update when running the `rustup toolchain install` command")
                                 .long("no-self-update")
                                 .takes_value(false)
+                        )
+                        .arg(
+                            Arg::with_name("components")
+                                .help("Add specific components on installation")
+                                .long("component")
+                                .short("c")
+                                .takes_value(true)
+                                .multiple(true)
+                        )
+                        .arg(
+                            Arg::with_name("targets")
+                                .help("Add specific targets on installation")
+                                .long("target")
+                                .short("t")
+                                .takes_value(true)
+                                .multiple(true)
                         ),
                 )
                 .subcommand(
@@ -741,7 +757,15 @@ fn update(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             let toolchain = cfg.get_toolchain(name, false)?;
 
             let status = if !toolchain.is_custom() {
-                Some(toolchain.install_from_dist(m.is_present("force"))?)
+                let components: Vec<_> = m
+                    .values_of("components")
+                    .map(|v| v.collect())
+                    .unwrap_or_else(Vec::new);
+                let targets: Vec<_> = m
+                    .values_of("targets")
+                    .map(|v| v.collect())
+                    .unwrap_or_else(Vec::new);
+                Some(toolchain.install_from_dist(m.is_present("force"), &components, &targets)?)
             } else if !toolchain.exists() {
                 return Err(ErrorKind::InvalidToolchainName(toolchain.name().to_string()).into());
             } else {

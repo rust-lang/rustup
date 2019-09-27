@@ -565,6 +565,8 @@ pub fn update_from_dist<'a>(
     prefix: &InstallPrefix,
     force_update: bool,
     old_date: Option<&str>,
+    components: &[&str],
+    targets: &[&str],
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
     let hash_exists = update_hash.map(Path::exists).unwrap_or(false);
@@ -584,6 +586,8 @@ pub fn update_from_dist<'a>(
         prefix,
         force_update,
         old_date,
+        components,
+        targets,
     );
 
     // Don't leave behind an empty / broken installation directory
@@ -603,6 +607,8 @@ fn update_from_dist_<'a>(
     prefix: &InstallPrefix,
     force_update: bool,
     old_date: Option<&str>,
+    components: &[&str],
+    targets: &[&str],
 ) -> Result<Option<String>> {
     let mut toolchain = toolchain.clone();
     let mut fetched = String::new();
@@ -633,6 +639,8 @@ fn update_from_dist_<'a>(
             profile,
             prefix,
             force_update,
+            components,
+            targets,
             &mut fetched,
         ) {
             Ok(v) => break Ok(v),
@@ -701,6 +709,8 @@ fn try_update_from_dist_<'a>(
     profile: Option<Profile>,
     prefix: &InstallPrefix,
     force_update: bool,
+    components: &[&str],
+    targets: &[&str],
     fetched: &mut String,
 ) -> Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
@@ -708,7 +718,15 @@ fn try_update_from_dist_<'a>(
 
     // TODO: Add a notification about which manifest version is going to be used
     (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
-    match dl_v2_manifest(download, update_hash, toolchain) {
+    match dl_v2_manifest(
+        download,
+        if components.is_empty() && targets.is_empty() {
+            update_hash
+        } else {
+            None
+        },
+        toolchain,
+    ) {
         Ok(Some((m, hash))) => {
             (download.notify_handler)(Notification::DownloadedManifest(
                 &m.date,
@@ -720,10 +738,33 @@ fn try_update_from_dist_<'a>(
                 None => Vec::new(),
             };
 
-            let changes = Changes {
+            let mut changes = Changes {
                 explicit_add_components: profile_components,
                 remove_components: Vec::new(),
             };
+
+            for component in components {
+                let mut component = crate::dist::manifest::Component::new(
+                    component.to_string(),
+                    Some(toolchain.target.clone()),
+                    false,
+                );
+                if let Some(renamed) = m.rename_component(&component) {
+                    component = renamed;
+                }
+                changes.explicit_add_components.push(component);
+            }
+
+            for target in targets {
+                let triple = TargetTriple::new(target);
+                changes
+                    .explicit_add_components
+                    .push(crate::dist::manifest::Component::new(
+                        "rust-std".to_string(),
+                        Some(triple),
+                        false,
+                    ));
+            }
 
             *fetched = m.date.clone();
 
