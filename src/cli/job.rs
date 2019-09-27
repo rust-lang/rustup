@@ -17,6 +17,8 @@
 //! child will be associated with the job object as well. This means if we add
 //! ourselves to the job object we create then everything will get torn down!
 
+#![allow(clippy::missing_safety_doc)]
+
 pub use self::imp::Setup;
 
 pub fn setup() -> Option<Setup> {
