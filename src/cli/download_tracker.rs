@@ -51,7 +51,7 @@ pub struct DownloadTracker {
 impl DownloadTracker {
     /// Creates a new DownloadTracker.
     pub fn new() -> Self {
-        DownloadTracker {
+        Self {
             content_len: None,
             total_downloaded: 0,
             downloaded_this_sec: 0,
@@ -65,7 +65,7 @@ impl DownloadTracker {
         }
     }
 
-    pub fn with_display_progress(mut self, display_progress: bool) -> DownloadTracker {
+    pub fn with_display_progress(mut self, display_progress: bool) -> Self {
         self.display_progress = display_progress;
         self
     }

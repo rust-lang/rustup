@@ -478,9 +478,9 @@ impl FromStr for Profile {
 
     fn from_str(name: &str) -> Result<Self> {
         match name {
-            "minimal" | "m" => Ok(Profile::Minimal),
-            "default" | "d" | "" => Ok(Profile::Default),
-            "complete" | "c" => Ok(Profile::Complete),
+            "minimal" | "m" => Ok(Self::Minimal),
+            "default" | "d" | "" => Ok(Self::Default),
+            "complete" | "c" => Ok(Self::Complete),
             _ => Err(ErrorKind::InvalidProfile(name.to_owned()).into()),
         }
     }
@@ -498,7 +498,7 @@ impl Profile {
 
 impl Default for Profile {
     fn default() -> Self {
-        Profile::Default
+        Self::Default
     }
 }
 
@@ -545,9 +545,9 @@ impl fmt::Display for ToolchainDesc {
 impl fmt::Display for Profile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            Profile::Minimal => write!(f, "minimal"),
-            Profile::Default => write!(f, "default"),
-            Profile::Complete => write!(f, "complete"),
+            Self::Minimal => write!(f, "minimal"),
+            Self::Default => write!(f, "default"),
+            Self::Complete => write!(f, "complete"),
         }
     }
 }
