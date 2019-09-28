@@ -56,7 +56,7 @@ pub struct PackageBins {
     pub xz_hash: Option<String>,
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialOrd, Hash)]
 pub struct Component {
     pkg: String,
     pub target: Option<TargetTriple>,

@@ -738,33 +738,29 @@ fn try_update_from_dist_<'a>(
                 None => Vec::new(),
             };
 
-            let mut changes = Changes {
-                explicit_add_components: profile_components,
-                remove_components: Vec::new(),
-            };
+            use crate::dist::manifest::Component;
+            use std::collections::HashSet;
+
+            let mut all_components: HashSet<Component> = profile_components.into_iter().collect();
 
             for component in components {
-                let mut component = crate::dist::manifest::Component::new(
-                    component.to_string(),
-                    Some(toolchain.target.clone()),
-                    false,
-                );
+                let mut component =
+                    Component::new(component.to_string(), Some(toolchain.target.clone()), false);
                 if let Some(renamed) = m.rename_component(&component) {
                     component = renamed;
                 }
-                changes.explicit_add_components.push(component);
+                all_components.insert(component);
             }
 
             for target in targets {
                 let triple = TargetTriple::new(target);
-                changes
-                    .explicit_add_components
-                    .push(crate::dist::manifest::Component::new(
-                        "rust-std".to_string(),
-                        Some(triple),
-                        false,
-                    ));
+                all_components.insert(Component::new("rust-std".to_string(), Some(triple), false));
             }
+
+            let changes = Changes {
+                explicit_add_components: all_components.into_iter().collect(),
+                remove_components: Vec::new(),
+            };
 
             *fetched = m.date.clone();
 
