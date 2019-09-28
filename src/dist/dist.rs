@@ -614,6 +614,19 @@ fn update_from_dist_<'a>(
     let mut fetched = String::new();
     let mut first_err = None;
     let backtrack = toolchain.channel == "nightly" && toolchain.date.is_none();
+    // We want to limit backtracking if we do not already have a toolchain
+    let mut backtrack_limit: Option<i32> = if toolchain.date.is_some() {
+        None
+    } else {
+        // We limit the backtracking to 21 days by default (half a release cycle).
+        // The limit of 21 days is an arbitrary selection, so we let the user override it.
+        const BACKTRACK_LIMIT_DEFAULT: i32 = 21;
+        let provided = env::var("RUSTUP_BACKTRACK_LIMIT")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(BACKTRACK_LIMIT_DEFAULT);
+        Some(if provided < 1 { 1 } else { provided })
+    };
 
     // We never want to backtrack further back than the nightly that's already installed.
     //
@@ -657,6 +670,10 @@ fn update_from_dist_<'a>(
                     if first_err.is_none() {
                         first_err = Some(e);
                     }
+                    // We decrement the backtrack count only on unavailable component errors
+                    // so that the limit only applies to nightlies that were indeed available,
+                    // and ignores missing ones.
+                    backtrack_limit = backtrack_limit.map(|n| n - 1);
                 } else if let ErrorKind::MissingReleaseForToolchain(..) = e.kind() {
                     // no need to even print anything for missing nightlies,
                     // since we don't really "skip" them
@@ -666,6 +683,14 @@ fn update_from_dist_<'a>(
                     break Err(e);
                 } else {
                     break Err(e);
+                }
+
+                if let Some(backtrack_limit) = backtrack_limit {
+                    if backtrack_limit < 1 {
+                        // This unwrap is safe because we can only hit this if we've
+                        // had a chance to set first_err
+                        break Err(first_err.unwrap());
+                    }
                 }
 
                 // The user asked to update their nightly, but the latest nightly does not have all
@@ -720,6 +745,9 @@ fn try_update_from_dist_<'a>(
     (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
     match dl_v2_manifest(
         download,
+        // Even if manifest has not changed, we must continue to install requested components.
+        // So if components or targets is not empty, we skip passing `update_hash` so that
+        // we essentially degenerate to `rustup component add` / `rustup target add`
         if components.is_empty() && targets.is_empty() {
             update_hash
         } else {
