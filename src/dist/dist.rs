@@ -785,8 +785,11 @@ fn try_update_from_dist_<'a>(
                 all_components.insert(Component::new("rust-std".to_string(), Some(triple), false));
             }
 
+            let mut explicit_add_components: Vec<_> = all_components.into_iter().collect();
+            explicit_add_components.sort();
+
             let changes = Changes {
-                explicit_add_components: all_components.into_iter().collect(),
+                explicit_add_components,
                 remove_components: Vec::new(),
             };
 
