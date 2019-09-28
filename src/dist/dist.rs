@@ -703,10 +703,12 @@ fn update_from_dist_<'a>(
                             toolchain.date.as_ref().unwrap_or(&fetched),
                             "%Y-%m-%d",
                         )
-                        .expect(&format!(
-                            "Malformed manifest date: {:?}",
-                            toolchain.date.as_ref().unwrap_or(&fetched)
-                        )),
+                        .unwrap_or_else(|_| {
+                            panic!(
+                                "Malformed manifest date: {:?}",
+                                toolchain.date.as_ref().unwrap_or(&fetched)
+                            )
+                        }),
                     )
                     .pred();
 
