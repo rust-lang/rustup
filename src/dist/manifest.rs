@@ -15,6 +15,7 @@ use crate::utils::toml_utils::*;
 
 use crate::dist::dist::{Profile, TargetTriple};
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 pub const SUPPORTED_MANIFEST_VERSIONS: [&str; 1] = ["2"];
@@ -56,7 +57,7 @@ pub struct PackageBins {
     pub xz_hash: Option<String>,
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug, Eq, Ord, PartialOrd)]
 pub struct Component {
     pkg: String,
     pub target: Option<TargetTriple>,
@@ -68,6 +69,16 @@ pub struct Component {
 impl PartialEq for Component {
     fn eq(&self, other: &Self) -> bool {
         self.pkg == other.pkg && self.target == other.target
+    }
+}
+
+impl Hash for Component {
+    fn hash<H>(&self, hasher: &mut H)
+    where
+        H: Hasher,
+    {
+        self.pkg.hash(hasher);
+        self.target.hash(hasher);
     }
 }
 
