@@ -565,6 +565,8 @@ pub fn update_from_dist<'a>(
     prefix: &InstallPrefix,
     force_update: bool,
     old_date: Option<&str>,
+    components: &[&str],
+    targets: &[&str],
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
     let hash_exists = update_hash.map(Path::exists).unwrap_or(false);
@@ -584,6 +586,8 @@ pub fn update_from_dist<'a>(
         prefix,
         force_update,
         old_date,
+        components,
+        targets,
     );
 
     // Don't leave behind an empty / broken installation directory
@@ -603,11 +607,26 @@ fn update_from_dist_<'a>(
     prefix: &InstallPrefix,
     force_update: bool,
     old_date: Option<&str>,
+    components: &[&str],
+    targets: &[&str],
 ) -> Result<Option<String>> {
     let mut toolchain = toolchain.clone();
     let mut fetched = String::new();
     let mut first_err = None;
     let backtrack = toolchain.channel == "nightly" && toolchain.date.is_none();
+    // We want to limit backtracking if we do not already have a toolchain
+    let mut backtrack_limit: Option<i32> = if toolchain.date.is_some() {
+        None
+    } else {
+        // We limit the backtracking to 21 days by default (half a release cycle).
+        // The limit of 21 days is an arbitrary selection, so we let the user override it.
+        const BACKTRACK_LIMIT_DEFAULT: i32 = 21;
+        let provided = env::var("RUSTUP_BACKTRACK_LIMIT")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(BACKTRACK_LIMIT_DEFAULT);
+        Some(if provided < 1 { 1 } else { provided })
+    };
 
     // We never want to backtrack further back than the nightly that's already installed.
     //
@@ -633,6 +652,8 @@ fn update_from_dist_<'a>(
             profile,
             prefix,
             force_update,
+            components,
+            targets,
             &mut fetched,
         ) {
             Ok(v) => break Ok(v),
@@ -649,6 +670,10 @@ fn update_from_dist_<'a>(
                     if first_err.is_none() {
                         first_err = Some(e);
                     }
+                    // We decrement the backtrack count only on unavailable component errors
+                    // so that the limit only applies to nightlies that were indeed available,
+                    // and ignores missing ones.
+                    backtrack_limit = backtrack_limit.map(|n| n - 1);
                 } else if let ErrorKind::MissingReleaseForToolchain(..) = e.kind() {
                     // no need to even print anything for missing nightlies,
                     // since we don't really "skip" them
@@ -658,6 +683,14 @@ fn update_from_dist_<'a>(
                     break Err(e);
                 } else {
                     break Err(e);
+                }
+
+                if let Some(backtrack_limit) = backtrack_limit {
+                    if backtrack_limit < 1 {
+                        // This unwrap is safe because we can only hit this if we've
+                        // had a chance to set first_err
+                        break Err(first_err.unwrap());
+                    }
                 }
 
                 // The user asked to update their nightly, but the latest nightly does not have all
@@ -670,7 +703,12 @@ fn update_from_dist_<'a>(
                             toolchain.date.as_ref().unwrap_or(&fetched),
                             "%Y-%m-%d",
                         )
-                        .expect("Malformed manifest date"),
+                        .unwrap_or_else(|_| {
+                            panic!(
+                                "Malformed manifest date: {:?}",
+                                toolchain.date.as_ref().unwrap_or(&fetched)
+                            )
+                        }),
                     )
                     .pred();
 
@@ -698,6 +736,8 @@ fn try_update_from_dist_<'a>(
     profile: Option<Profile>,
     prefix: &InstallPrefix,
     force_update: bool,
+    components: &[&str],
+    targets: &[&str],
     fetched: &mut String,
 ) -> Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
@@ -705,7 +745,18 @@ fn try_update_from_dist_<'a>(
 
     // TODO: Add a notification about which manifest version is going to be used
     (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
-    match dl_v2_manifest(download, update_hash, toolchain) {
+    match dl_v2_manifest(
+        download,
+        // Even if manifest has not changed, we must continue to install requested components.
+        // So if components or targets is not empty, we skip passing `update_hash` so that
+        // we essentially degenerate to `rustup component add` / `rustup target add`
+        if components.is_empty() && targets.is_empty() {
+            update_hash
+        } else {
+            None
+        },
+        toolchain,
+    ) {
         Ok(Some((m, hash))) => {
             (download.notify_handler)(Notification::DownloadedManifest(
                 &m.date,
@@ -717,8 +768,30 @@ fn try_update_from_dist_<'a>(
                 None => Vec::new(),
             };
 
+            use crate::dist::manifest::Component;
+            use std::collections::HashSet;
+
+            let mut all_components: HashSet<Component> = profile_components.into_iter().collect();
+
+            for component in components {
+                let mut component =
+                    Component::new(component.to_string(), Some(toolchain.target.clone()), false);
+                if let Some(renamed) = m.rename_component(&component) {
+                    component = renamed;
+                }
+                all_components.insert(component);
+            }
+
+            for target in targets {
+                let triple = TargetTriple::new(target);
+                all_components.insert(Component::new("rust-std".to_string(), Some(triple), false));
+            }
+
+            let mut explicit_add_components: Vec<_> = all_components.into_iter().collect();
+            explicit_add_components.sort();
+
             let changes = Changes {
-                explicit_add_components: profile_components,
+                explicit_add_components,
                 remove_components: Vec::new(),
             };
 

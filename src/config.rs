@@ -304,7 +304,7 @@ impl Cfg {
                             ErrorKind::OverrideToolchainNotInstalled(name.to_string())
                         })
                     } else {
-                        toolchain.install_from_dist(false)?;
+                        toolchain.install_from_dist(false, &[], &[])?;
                         Ok(Some((toolchain, reason)))
                     }
                 }
@@ -413,7 +413,7 @@ impl Cfg {
         // Update toolchains and collect the results
         let channels = channels.map(|(n, t)| {
             let t = t.and_then(|t| {
-                let t = t.install_from_dist(force_update);
+                let t = t.install_from_dist(force_update, &[], &[]);
                 if let Err(ref e) = t {
                     (self.notify_handler)(Notification::NonFatalError(e));
                 }
@@ -465,7 +465,7 @@ impl Cfg {
     ) -> Result<Command> {
         let toolchain = self.get_toolchain(toolchain, false)?;
         if install_if_missing && !toolchain.exists() {
-            toolchain.install_from_dist(false)?;
+            toolchain.install_from_dist(false, &[], &[])?;
         }
 
         if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {

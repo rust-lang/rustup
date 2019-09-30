@@ -31,6 +31,8 @@ OPTIONS:
         --default-toolchain <default-toolchain>    Choose a default toolchain to install
         --default-toolchain none                   Do not install any toolchains
         --profile [minimal|default|complete]       Choose a profile
+    -c, --component <components>...                Component name to also install
+    -t, --target <targets>...                      Target name to also install
 EOF
 }
 

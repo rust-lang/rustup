@@ -62,6 +62,22 @@ pub fn main() -> Result<()> {
                 .default_value(Profile::default_name()),
         )
         .arg(
+            Arg::with_name("components")
+                .help("Component name to also install")
+                .long("component")
+                .short("c")
+                .takes_value(true)
+                .multiple(true),
+        )
+        .arg(
+            Arg::with_name("targets")
+                .help("Target name to also install")
+                .long("target")
+                .short("target")
+                .takes_value(true)
+                .multiple(true),
+        )
+        .arg(
             Arg::with_name("no-modify-path")
                 .long("no-modify-path")
                 .help("Don't configure the PATH environment variable"),
@@ -81,11 +97,23 @@ pub fn main() -> Result<()> {
         .expect("Unreachable: Clap should supply a default");
     let no_modify_path = matches.is_present("no-modify-path");
 
+    let components: Vec<_> = matches
+        .values_of("components")
+        .map(|v| v.collect())
+        .unwrap_or_else(Vec::new);
+
+    let targets: Vec<_> = matches
+        .values_of("targets")
+        .map(|v| v.collect())
+        .unwrap_or_else(Vec::new);
+
     let opts = InstallOpts {
         default_host_triple: default_host,
         default_toolchain: default_toolchain.to_owned(),
         profile: profile.to_owned(),
         no_modify_path,
+        components: &components,
+        targets: &targets,
     };
 
     self_update::install(no_prompt, verbose, quiet, opts)?;

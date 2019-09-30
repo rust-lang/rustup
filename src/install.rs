@@ -28,6 +28,10 @@ pub enum InstallMethod<'a> {
         bool,
         // currently installed date
         Option<&'a str>,
+        // Extra components to install from dist
+        &'a [&'a str],
+        // Extra targets to install from dist
+        &'a [&'a str],
     ),
 }
 
@@ -64,6 +68,8 @@ impl<'a> InstallMethod<'a> {
                 force_update,
                 exists,
                 old_date,
+                components,
+                targets,
             ) => {
                 let prefix = &InstallPrefix::from(path.to_owned());
                 let maybe_new_hash = dist::update_from_dist(
@@ -74,6 +80,8 @@ impl<'a> InstallMethod<'a> {
                     prefix,
                     force_update,
                     old_date,
+                    components,
+                    targets,
                 )?;
 
                 if let Some(hash) = maybe_new_hash {

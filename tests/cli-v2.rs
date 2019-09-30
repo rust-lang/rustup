@@ -1109,3 +1109,34 @@ fn target_list_ignores_unavailable_targets() {
         expect_not_stdout_ok(config, target_list, clitools::CROSS_ARCH1);
     })
 }
+
+#[test]
+fn install_with_component_and_target() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "-c",
+                "rls",
+                "-t",
+                clitools::CROSS_ARCH1,
+                "--no-self-update",
+            ],
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            &format!("rls-{} (installed)", this_host_triple()),
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "target", "list"],
+            &format!("{} (installed)", clitools::CROSS_ARCH1),
+        );
+    })
+}

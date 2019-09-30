@@ -33,14 +33,14 @@ fn update() {
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-info: downloading component 'rustc'
 info: downloading component 'cargo'
-info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: installing component 'rustc'
+info: downloading component 'rust-std'
+info: downloading component 'rustc'
 info: installing component 'cargo'
-info: installing component 'rust-std'
 info: installing component 'rust-docs'
+info: installing component 'rust-std'
+info: installing component 'rustc'
 info: default toolchain set to 'nightly-{0}'
 "
             ),
@@ -167,14 +167,14 @@ fn default() {
             for_host!(
                 r"info: syncing channel updates for 'nightly-{0}'
 info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-info: downloading component 'rustc'
 info: downloading component 'cargo'
-info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: installing component 'rustc'
+info: downloading component 'rust-std'
+info: downloading component 'rustc'
 info: installing component 'cargo'
-info: installing component 'rust-std'
 info: installing component 'rust-docs'
+info: installing component 'rust-std'
+info: installing component 'rustc'
 info: default toolchain set to 'nightly-{0}'
 "
             ),

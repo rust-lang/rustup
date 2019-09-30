@@ -870,14 +870,14 @@ fn first_install_exact() {
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
-info: downloading component 'rustc'
 info: downloading component 'cargo'
-info: downloading component 'rust-std'
 info: downloading component 'rust-docs'
-info: installing component 'rustc'
+info: downloading component 'rust-std'
+info: downloading component 'rustc'
 info: installing component 'cargo'
-info: installing component 'rust-std'
 info: installing component 'rust-docs'
+info: installing component 'rust-std'
+info: installing component 'rustc'
 info: default toolchain set to 'stable'
 "
             ),
@@ -1257,4 +1257,33 @@ fn update_installs_clippy_cargo_and() {
             .join(format!("bin/cargo-clippy{}", EXE_SUFFIX));
         assert!(cargo_clippy_path.exists());
     });
+}
+
+#[test]
+fn install_with_components_and_targets() {
+    setup(&|config| {
+        expect_ok(
+            config,
+            &[
+                "rustup-init",
+                "--default-toolchain",
+                "nightly",
+                "-y",
+                "-c",
+                "rls",
+                "-t",
+                clitools::CROSS_ARCH1,
+            ],
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "target", "list"],
+            &format!("{} (installed)", clitools::CROSS_ARCH1),
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            &format!("rls-{} (installed)", this_host_triple()),
+        );
+    })
 }
