@@ -862,3 +862,46 @@ fn add_remove_component() {
         expect_component_executable(config, "rustc");
     });
 }
+
+#[test]
+fn which() {
+    setup(&|config| {
+        let path_1 = config.customdir.join("custom-1");
+        let path_1 = path_1.to_string_lossy();
+        expect_ok(
+            config,
+            &["rustup", "toolchain", "link", "custom-1", &path_1],
+        );
+        expect_ok(config, &["rustup", "default", "custom-1"]);
+        #[cfg(windows)]
+        expect_stdout_ok(
+            config,
+            &["rustup", "which", "rustc"],
+            "\\toolchains\\custom-1\\bin\\rustc",
+        );
+        #[cfg(not(windows))]
+        expect_stdout_ok(
+            config,
+            &["rustup", "which", "rustc"],
+            "/toolchains/custom-1/bin/rustc",
+        );
+        let path_2 = config.customdir.join("custom-2");
+        let path_2 = path_2.to_string_lossy();
+        expect_ok(
+            config,
+            &["rustup", "toolchain", "link", "custom-2", &path_2],
+        );
+        #[cfg(windows)]
+        expect_stdout_ok(
+            config,
+            &["rustup", "which", "--toolchain=custom-2", "rustc"],
+            "\\toolchains\\custom-2\\bin\\rustc",
+        );
+        #[cfg(not(windows))]
+        expect_stdout_ok(
+            config,
+            &["rustup", "which", "--toolchain=custom-2", "rustc"],
+            "/toolchains/custom-2/bin/rustc",
+        );
+    });
+}
