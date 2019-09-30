@@ -905,3 +905,79 @@ fn which() {
         );
     });
 }
+
+#[test]
+fn override_by_toolchain_on_the_command_line() {
+    setup(&|config| {
+        #[cfg(windows)]
+        expect_stdout_ok(
+            config,
+            &["rustup", "+stable", "which", "rustc"],
+            "\\toolchains\\stable-x86_64-",
+        );
+        #[cfg(windows)]
+        expect_stdout_ok(
+            config,
+            &["rustup", "+stable", "which", "rustc"],
+            "\\bin\\rustc",
+        );
+        #[cfg(not(windows))]
+        expect_stdout_ok(
+            config,
+            &["rustup", "+stable", "which", "rustc"],
+            "/toolchains/stable-x86_64-",
+        );
+        #[cfg(not(windows))]
+        expect_stdout_ok(
+            config,
+            &["rustup", "+stable", "which", "rustc"],
+            "/bin/rustc",
+        );
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        #[cfg(windows)]
+        expect_stdout_ok(
+            config,
+            &["rustup", "+nightly", "which", "rustc"],
+            "\\toolchains\\nightly-x86_64-",
+        );
+        #[cfg(windows)]
+        expect_stdout_ok(
+            config,
+            &["rustup", "+nightly", "which", "rustc"],
+            "\\bin\\rustc",
+        );
+        #[cfg(not(windows))]
+        expect_stdout_ok(
+            config,
+            &["rustup", "+nightly", "which", "rustc"],
+            "/toolchains/nightly-x86_64-",
+        );
+        #[cfg(not(windows))]
+        expect_stdout_ok(
+            config,
+            &["rustup", "+nightly", "which", "rustc"],
+            "/bin/rustc",
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "+nightly", "show"],
+            "(overridden by +toolchain on the command line)",
+        );
+        expect_err(
+            config,
+            &["rustup", "+foo", "which", "rustc"],
+            "toolchain 'foo' is not installed",
+        );
+        expect_err(
+            config,
+            &["rustup", "@stable", "which", "rustc"],
+            "Invalid value for '<+toolchain>': Toolchain overrides must begin with '+'",
+        );
+        expect_stderr_ok(
+            config,
+            &["rustup", "+stable", "set", "profile", "minimal"],
+            "profile set to 'minimal'",
+        );
+        expect_stdout_ok(config, &["rustup", "default"], "nightly-x86_64-");
+    });
+}

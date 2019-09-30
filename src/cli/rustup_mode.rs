@@ -35,6 +35,10 @@ pub fn main() -> Result<()> {
     let quiet = matches.is_present("quiet");
     let cfg = &mut common::set_globals(verbose, quiet)?;
 
+    if let Some(t) = matches.value_of("+toolchain") {
+        cfg.set_toolchain_override(&t[1..]);
+    }
+
     if maybe_upgrade_data(cfg, &matches)? {
         return Ok(());
     }
@@ -131,10 +135,15 @@ pub fn cli() -> App<'static, 'static> {
                 .long("quiet"),
         )
         .arg(
-            Arg::with_name("toolchain")
-                .help(TOOLCHAIN_ARG_HELP)
-                .long("toolchain")
-                .takes_value(true),
+            Arg::with_name("+toolchain")
+                .help("release channel (e.g. +stable) or custom toolchain to set override")
+                .validator(|s| {
+                    if s.starts_with('+') {
+                        Ok(())
+                    } else {
+                        Err("Toolchain overrides must begin with '+'".into())
+                    }
+                }),
         )
         .subcommand(
             SubCommand::with_name("dump-testament")
@@ -852,8 +861,7 @@ fn run(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let binary = m.value_of("command").expect("");
-    let toolchain_provided = m.is_present("toolchain");
-    let binary_path = if toolchain_provided {
+    let binary_path = if m.is_present("toolchain") {
         let toolchain = m.value_of("toolchain").expect("");
         cfg.which_binary_by_toolchain(toolchain, binary)?
             .expect("binary not found")

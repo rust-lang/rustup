@@ -17,6 +17,7 @@ use crate::utils::utils;
 #[derive(Debug)]
 pub enum OverrideReason {
     Environment,
+    CommandLine,
     OverrideDB(PathBuf),
     ToolchainFile(PathBuf),
 }
@@ -25,6 +26,7 @@ impl Display for OverrideReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         match self {
             Self::Environment => write!(f, "environment override by RUSTUP_TOOLCHAIN"),
+            Self::CommandLine => write!(f, "overridden by +toolchain on the command line"),
             Self::OverrideDB(path) => write!(f, "directory override for '{}'", path.display()),
             Self::ToolchainFile(path) => write!(f, "overridden by '{}'", path.display()),
         }
@@ -40,6 +42,7 @@ pub struct Cfg {
     pub download_dir: PathBuf,
     pub temp_cfg: temp::Cfg,
     pub gpg_key: Cow<'static, str>,
+    pub toolchain_override: Option<String>,
     pub env_override: Option<String>,
     pub dist_root_url: String,
     pub dist_root_server: String,
@@ -104,6 +107,7 @@ impl Cfg {
             temp_cfg,
             gpg_key,
             notify_handler,
+            toolchain_override: None,
             env_override,
             dist_root_url: dist_root,
             dist_root_server,
@@ -142,6 +146,10 @@ impl Cfg {
         })?;
         (self.notify_handler)(Notification::SetProfile(profile));
         Ok(())
+    }
+
+    pub fn set_toolchain_override(&mut self, toolchain_override: &str) {
+        self.toolchain_override = Some(toolchain_override.to_owned());
     }
 
     // Returns a profile, if one exists in the settings file.
@@ -281,7 +289,12 @@ impl Cfg {
     pub fn find_override(&self, path: &Path) -> Result<Option<(Toolchain<'_>, OverrideReason)>> {
         let mut override_ = None;
 
-        // First check RUSTUP_TOOLCHAIN
+        // First check toolchain override from command
+        if let Some(ref name) = self.toolchain_override {
+            override_ = Some((name.to_string(), OverrideReason::CommandLine));
+        }
+
+        // Check RUSTUP_TOOLCHAIN
         if let Some(ref name) = self.env_override {
             override_ = Some((name.to_string(), OverrideReason::Environment));
         }
@@ -304,6 +317,10 @@ impl Cfg {
             let reason_err = match reason {
                 OverrideReason::Environment => {
                     "the RUSTUP_TOOLCHAIN environment variable specifies an uninstalled toolchain"
+                        .to_string()
+                }
+                OverrideReason::CommandLine => {
+                    "the +toolchain on the command line specifies an uninstalled toolchain"
                         .to_string()
                 }
                 OverrideReason::OverrideDB(ref path) => format!(
