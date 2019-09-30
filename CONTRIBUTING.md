@@ -20,7 +20,7 @@ affecting any existing installation. Remember to keep those two environment vari
 set when running your compiled `rustup-init` or the toolchains it installs, but _unset_
 when rebuilding `rustup` itself.
 
-We use `rustfmt` to keep our codebase consistently formatted.  Please ensure that
+We use `rustfmt` to keep our codebase consistently formatted. Please ensure that
 you have correctly formatted your code (most editors will do this automatically
 when saving) or it may not pass the CI tests.
 
@@ -46,11 +46,11 @@ The first part is always the binary name as per `clap`'s normal operation. The
 version number is a combination of the most recent tag in the git repo, and the
 number of commits since that tag. The parenthesised information is, naturally,
 the SHA of the most recent commit and the date of that commit. If the indication
-of a dirty tree is present, the number of changes is indicated.  This combines
+of a dirty tree is present, the number of changes is indicated. This combines
 adds, deletes, modifies, and unknown entries.
 
 You can request further information of a `rustup` binary with the
-`rustup dump-testament` hidden command.  It produces output of the form:
+`rustup dump-testament` hidden command. It produces output of the form:
 
 ```shell
 $ rustup dump-testament
@@ -64,25 +64,25 @@ Modified: CONTRIBUTING.md
 This can be handy when you are testing development versions on your PC
 and cannot remember exactly which version you had installed, or if you have given
 a development copy (or instruction to build such) to a user, and wish to have them
-confirm *exactly* what they are using.
+confirm _exactly_ what they are using.
 
 Finally, we tell `git-testament` that we trust the `stable` branch to carry
-releases.  If the build is being performed when not on the `stable` branch, and
+releases. If the build is being performed when not on the `stable` branch, and
 the tag and `CARGO_PKG_VERSION` differ, then the short version string will include
 both, in the form `rustup-init 1.18.3 :: 1.18.2+99 (a54051502 2019-05-26)` which
 indicates the crate version before the rest of the commit.
 On the other hand, if the build was on the `stable` branch then regardless
 of the tag information, providing the commit was clean, the version is
-always replaced by the crate version.  The `dump-testament` hidden command can
+always replaced by the crate version. The `dump-testament` hidden command can
 reveal the truth however.
 
 ## Making a release
 
 Before making a release, ensure that `rustup-init.sh` is behaving correctly,
 and that you're satisfied that nothing in the ecosystem is breaking because
-of the update.  A useful set of things to check includes verifying that
+of the update. A useful set of things to check includes verifying that
 real-world toolchains install okay, and that `rls-vscode` isn't broken by
-the release.  While it's not our responsibility if they depend on non-stable
+the release. While it's not our responsibility if they depend on non-stable
 APIs, we should behave well if we can.
 
 Producing the final release artifacts is a bit involved because of the way
@@ -107,10 +107,10 @@ Rustup is distributed. The steps for a release are:
    anything egregious in which case abort the change and roll back.
 8. Once the official release has happened, prepare and push a tag
    of that commit, and also push the content to master
-   * `git tag -as $VER_NUM -m $VER_NUM`  (optionally without -s if not GPG
+   - `git tag -as $VER_NUM -m $VER_NUM` (optionally without -s if not GPG
      signing the tag)
-   * `git push origin HEAD:master`
-   * `git push origin $VER_NUM`
+   - `git push origin HEAD:master`
+   - `git push origin $VER_NUM`
 
 ## Developer tips and tricks
 
@@ -124,6 +124,17 @@ run.
 ```
 $ RUSTUP_FORCE_ARG0=rustup cargo run -- uninstall nightly
 ```
+
+### `RUSTUP_BACKTRACK_LIMIT`
+
+If it's necessary to alter the backtracking limit from the default of half
+a release cycle for some reason, you can set the `RUSTUP_BACKTRACK_LIMIT`
+environment variable. If this is unparseable as an `i32` or if it's absent
+then the default of 21 days (half a cycle) is used. If it parses and is less
+than 1, it is clamped to 1 at minimum.
+
+This is not meant for use by users, but can be suggested in diagnosing an issue
+should one arise with the backtrack limits.
 
 ### `RUSTUP_BACKTRACE`
 
