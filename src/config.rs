@@ -183,6 +183,19 @@ impl Cfg {
         Ok(self.update_hash_dir.join(toolchain))
     }
 
+    pub fn which_binary_by_toolchain(
+        &self,
+        toolchain: &str,
+        binary: &str,
+    ) -> Result<Option<PathBuf>> {
+        let toolchain = self.get_toolchain(toolchain, false)?;
+        if toolchain.exists() {
+            Ok(Some(toolchain.binary_file(binary)))
+        } else {
+            Ok(None)
+        }
+    }
+
     pub fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {
         if let Some((toolchain, _)) = self.find_override_toolchain_or_default(path)? {
             Ok(Some(toolchain.binary_file(binary)))

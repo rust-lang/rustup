@@ -129,6 +129,12 @@ pub fn cli() -> App<'static, 'static> {
                 .short("q")
                 .long("quiet"),
         )
+        .arg(
+            Arg::with_name("toolchain")
+                .help(TOOLCHAIN_ARG_HELP)
+                .long("toolchain")
+                .takes_value(true),
+        )
         .subcommand(
             SubCommand::with_name("dump-testament")
                 .about("Dump information about the build")
@@ -451,7 +457,13 @@ pub fn cli() -> App<'static, 'static> {
         .subcommand(
             SubCommand::with_name("which")
                 .about("Display which binary will be run for a given command")
-                .arg(Arg::with_name("command").required(true)),
+                .arg(Arg::with_name("command").required(true))
+                .arg(
+                    Arg::with_name("toolchain")
+                        .help(TOOLCHAIN_ARG_HELP)
+                        .long("toolchain")
+                        .takes_value(true),
+                ),
         )
         .subcommand(
             SubCommand::with_name("doc")
@@ -783,10 +795,15 @@ fn run(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let binary = m.value_of("command").expect("");
-
-    let binary_path = cfg
-        .which_binary(&utils::current_dir()?, binary)?
-        .expect("binary not found");
+    let toolchain_provided = m.is_present("toolchain");
+    let binary_path = if toolchain_provided {
+        let toolchain = m.value_of("toolchain").expect("");
+        cfg.which_binary_by_toolchain(toolchain, binary)?
+            .expect("binary not found")
+    } else {
+        cfg.which_binary(&utils::current_dir()?, binary)?
+            .expect("binary not found")
+    };
 
     utils::assert_is_file(&binary_path)?;
 
