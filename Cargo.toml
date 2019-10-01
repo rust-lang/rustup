@@ -11,8 +11,7 @@ repository = "https://github.com/rust-lang/rustup"
 build = "build.rs"
 
 [features]
-curl-backend = ["dep:curl"]
-default = ["curl-backend", "reqwest-native-tls", "reqwest-rustls-tls"]
+default = ["reqwest-native-tls", "reqwest-rustls-tls"]
 
 vendored-openssl = ['openssl/vendored']
 
@@ -51,7 +50,6 @@ clap = { version = "4", features = ["derive", "wrap_help", "string"] }
 clap-cargo = "0.18.3"
 clap_complete = "4"
 console = "0.16"
-curl = { version = "0.4.44", optional = true }
 effective-limits = "0.5.5"
 enum-map = "2.5.0"
 env_proxy = { version = "0.4.1", optional = true }
@@ -65,8 +63,9 @@ indicatif = "0.18"
 itertools = "0.14"
 libc = "0.2"
 opener = "0.8.0"
-# `openssl` is used by `curl` or `reqwest` backend although it isn't imported by rustup: this
-# allows controlling the vendoring status without exposing the presence of the download crate.
+# `openssl` is used by the `reqwest` backend although it isn't imported by
+# rustup: this allows controlling the vendoring status without exposing the
+# presence of the download crate.
 openssl = { version = "0.10", optional = true }
 # HACK: Temporarily pinned due to ppc64 ELFv1/v2 ABI issue in 300.5.5, to be
 # removed when <https://github.com/openssl/openssl/issues/29815> lands.
