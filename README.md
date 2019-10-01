@@ -559,25 +559,6 @@ On Windows, the command would be:
 set https_proxy=socks5://proxy.example.com:1080
 ```
 
-If you need a more complex setup, rustup supports the convention used by
-the __curl__ program, documented in the ENVIRONMENT section of
-[its manual page][curlman].
-
-The use of `curl` is presently **deprecated**, however it can still be used by
-providing the `RUSTUP_USE_CURL` environment variable, for example:
-
-```bash
-RUSTUP_USE_CURL=1 rustup update
-```
-
-Note that some versions of `libcurl` apparently require you to drop the
-`http://` or `https://` prefix in environment variables. For example,
-`export http_proxy=proxy.example.com:1080` (and likewise for HTTPS).
-If you are getting an SSL `unknown protocol` error from `rustup` via `libcurl`
-but the command-line `curl` command works fine, this may be the problem.
-
-[curlman]: https://curl.haxx.se/docs/manpage.html
-
 
 ## Examples
 

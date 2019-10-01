@@ -186,8 +186,8 @@ fn download_file_(
     resume_from_partial: bool,
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
-    use download::download_to_path_with_backend;
-    use download::{Backend, Event};
+    use download::download_to_path;
+    use download::Event;
     use sha2::Digest;
     use std::cell::RefCell;
 
@@ -220,16 +220,7 @@ fn download_file_(
     };
 
     // Download the file
-
-    // Keep the hyper env var around for a bit
-    let use_curl_backend = env::var_os("RUSTUP_USE_CURL").is_some();
-    let (backend, notification) = if use_curl_backend {
-        (Backend::Curl, Notification::UsingCurl)
-    } else {
-        (Backend::Reqwest, Notification::UsingReqwest)
-    };
-    notify_handler(notification);
-    download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback))?;
+    download_to_path(url, path, resume_from_partial, Some(callback))?;
 
     notify_handler(Notification::DownloadFinished);
 

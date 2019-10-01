@@ -13,9 +13,6 @@ repository = "https://github.com/rust-lang/rustup.rs"
 description = "Manage multiple rust installations with ease"
 
 [features]
-default = ["curl-backend", "reqwest-backend"]
-curl-backend = ["download/curl-backend"]
-reqwest-backend = ["download/reqwest-backend"]
 vendored-openssl = ['openssl/vendored']
 # Include in the default set to disable self-update and uninstall.
 no-self-update = []
@@ -32,8 +29,7 @@ home = "0.5"
 lazy_static = "1"
 libc = "0.2"
 opener = "0.4.0"
-# Used by `curl` or `reqwest` backend although it isn't imported
-# by our rustup.
+# Used by `reqwest` although it isn't imported by our rustup.
 openssl = { version = "0.10", optional = true }
 pulldown-cmark = { version = "0.6", default-features = false }
 rand = "0.7"

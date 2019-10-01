@@ -1,5 +1,3 @@
-#![cfg(feature = "curl-backend")]
-
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
@@ -11,7 +9,7 @@ mod support;
 use crate::support::{serve_file, tmp_dir, write_file};
 
 #[test]
-fn partially_downloaded_file_gets_resumed_from_byte_offset() {
+fn resume_partial_from_file_url() {
     let tmpdir = tmp_dir();
     let from_path = tmpdir.path().join("download-source");
     write_file(&from_path, "xxx45");
@@ -20,8 +18,7 @@ fn partially_downloaded_file_gets_resumed_from_byte_offset() {
     write_file(&target_path, "123");
 
     let from_url = Url::from_file_path(&from_path).unwrap();
-    download_to_path_with_backend(Backend::Curl, &from_url, &target_path, true, None)
-        .expect("Test download failed");
+    download_to_path(&from_url, &target_path, true, None).expect("Test download failed");
 
     assert_eq!(std::fs::read_to_string(&target_path).unwrap(), "12345");
 }
@@ -40,8 +37,7 @@ fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
     let callback_len = Mutex::new(None);
     let received_in_callback = Mutex::new(Vec::new());
 
-    download_to_path_with_backend(
-        Backend::Curl,
+    download_to_path(
         &from_url,
         &target_path,
         true,

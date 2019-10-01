@@ -5,7 +5,7 @@ error_chain! {
 
     foreign_links {
         Io(std::io::Error);
-        Reqwest(::reqwest::Error) #[cfg(feature = "reqwest-backend")];
+        Reqwest(::reqwest::Error);
     }
 
     errors {
@@ -15,10 +15,6 @@ error_chain! {
         }
         FileNotFound {
             description("file not found")
-        }
-        BackendUnavailable(be: &'static str) {
-            description("download backend unavailable")
-            display("download backend '{}' unavailable", be)
         }
     }
 }
