@@ -12,10 +12,6 @@ pub enum DownloadError {
     Message(String),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
-    #[cfg(feature = "reqwest-backend")]
     #[error(transparent)]
     Reqwest(#[from] ::reqwest::Error),
-    #[cfg(feature = "curl-backend")]
-    #[error(transparent)]
-    CurlError(#[from] curl::Error),
 }

@@ -185,7 +185,7 @@ fn download_file_(
     resume_from_partial: bool,
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
-    use download::download_to_path_with_backend;
+    use download::download_to_path;
     use download::{Backend, Event, TlsBackend};
     use sha2::Digest;
     use std::cell::RefCell;
@@ -241,8 +241,7 @@ fn download_file_(
         (Backend::Reqwest(tls_backend), Notification::UsingReqwest)
     };
     notify_handler(notification);
-    let res =
-        download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback));
+    let res = download_to_path(url, path, resume_from_partial, Some(callback));
 
     notify_handler(Notification::DownloadFinished);
 
