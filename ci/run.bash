@@ -19,8 +19,7 @@ if [ -n "$INSTALL_BINDGEN" ]; then
   export PATH="$CARGO_HOME/bin/bindgen-cli:$PATH"
 fi
 
-
-FEATURES=('--no-default-features' '--features' 'curl-backend,reqwest-native-tls')
+FEATURES=('--no-default-features' '--features' 'reqwest-native-tls')
 case "$(uname -s)" in
   *NT* ) ;; # Windows NT
   * ) FEATURES+=('--features' 'vendored-openssl') ;;
@@ -60,7 +59,7 @@ build_test() {
   cmd="$1"
   shift
 
-  features=('--features' 'curl-backend,reqwest-native-tls')
+  features=('--features' 'reqwest-native-tls')
   case "$TARGET" in
     # these platforms aren't supported by aws-lc-rs:
     powerpc* ) ;;
