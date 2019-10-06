@@ -517,37 +517,35 @@ pub fn dump_testament() {
     }
 }
 
+fn show_backtrace() -> bool {
+    if let Ok(true) = env::var("RUSTUP_NO_BACKTRACE").map(|s| s == "1") {
+        return false;
+    }
+
+    if let Ok(true) = env::var("RUST_BACKTRACE").map(|s| s == "1") {
+        return true;
+    }
+
+    for arg in env::args() {
+        if arg == "-v" || arg == "--verbose" {
+            return true;
+        }
+    }
+
+    false
+}
+
 pub fn report_error(e: &Error) {
     err!("{}", e);
 
     for e in e.iter().skip(1) {
-        info!("caused by: {}", e);
+        err!("caused by: {}", e);
     }
 
     if show_backtrace() {
         if let Some(backtrace) = e.backtrace() {
-            info!("backtrace:");
-            println!();
-            println!("{:?}", backtrace);
+            err!("backtrace:");
+            err!("{:?}", backtrace);
         }
-    } else {
-    }
-
-    fn show_backtrace() -> bool {
-        if let Ok(true) = env::var("RUSTUP_NO_BACKTRACE").map(|s| s == "1") {
-            return false;
-        }
-
-        if let Ok(true) = env::var("RUST_BACKTRACE").map(|s| s == "1") {
-            return true;
-        }
-
-        for arg in env::args() {
-            if arg == "-v" || arg == "--verbose" {
-                return true;
-            }
-        }
-
-        false
     }
 }
