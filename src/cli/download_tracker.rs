@@ -1,6 +1,7 @@
 use crate::term2;
 use rustup::dist::Notification as In;
 use rustup::utils::tty;
+use rustup::utils::units::{Size, Unit, UnitMode};
 use rustup::utils::Notification as Un;
 use rustup::Notification;
 use std::collections::VecDeque;
@@ -43,7 +44,7 @@ pub struct DownloadTracker {
     /// rendered, so we can erase it cleanly.
     displayed_charcount: Option<usize>,
     /// What units to show progress in
-    units: Vec<String>,
+    units: Vec<Unit>,
     /// Whether we display progress
     display_progress: bool,
 }
@@ -60,7 +61,7 @@ impl DownloadTracker {
             last_sec: None,
             term: term2::stdout(),
             displayed_charcount: None,
-            units: vec!["B".into(); 1],
+            units: vec![Unit::B],
             display_progress: true,
         }
     }
@@ -87,12 +88,12 @@ impl DownloadTracker {
                 self.download_finished();
                 true
             }
-            Notification::Install(In::Utils(Un::DownloadPushUnits(units))) => {
-                self.push_units(units.into());
+            Notification::Install(In::Utils(Un::DownloadPushUnit(unit))) => {
+                self.push_unit(unit);
                 true
             }
-            Notification::Install(In::Utils(Un::DownloadPopUnits)) => {
-                self.pop_units();
+            Notification::Install(In::Utils(Un::DownloadPopUnit)) => {
+                self.pop_unit();
                 true
             }
 
@@ -162,12 +163,12 @@ impl DownloadTracker {
     /// Display the tracked download information to the terminal.
     fn display(&mut self) {
         // Panic if someone pops the default bytes unit...
-        let units = &self.units.last().unwrap();
-        let total_h = Size(self.total_downloaded, units);
+        let unit = *self.units.last().unwrap();
+        let total_h = Size::new(self.total_downloaded, unit, UnitMode::Norm);
         let sum: usize = self.downloaded_last_few_secs.iter().sum();
         let len = self.downloaded_last_few_secs.len();
         let speed = if len > 0 { sum / len } else { 0 };
-        let speed_h = Size(speed, units);
+        let speed_h = Size::new(speed, unit, UnitMode::Rate);
         let elapsed_h = Duration(precise_time_s() - self.start_sec);
 
         // First, move to the start of the current line and clear it.
@@ -187,18 +188,18 @@ impl DownloadTracker {
 
         let output = match self.content_len {
             Some(content_len) => {
-                let content_len_h = Size(content_len, units);
+                let content_len_h = Size::new(content_len, unit, UnitMode::Norm);
                 let content_len = content_len as f64;
                 let percent = (self.total_downloaded as f64 / content_len) * 100.;
                 let remaining = content_len - self.total_downloaded as f64;
                 let eta_h = Duration(remaining / speed as f64);
                 format!(
-                    "{} / {} ({:3.0} %) {}/s in {} ETA: {}",
+                    "{} / {} ({:3.0} %) {} in {} ETA: {}",
                     total_h, content_len_h, percent, speed_h, elapsed_h, eta_h
                 )
             }
             None => format!(
-                "Total: {} Speed: {}/s Elapsed: {}",
+                "Total: {} Speed: {} Elapsed: {}",
                 total_h, speed_h, elapsed_h
             ),
         };
@@ -209,11 +210,11 @@ impl DownloadTracker {
         self.displayed_charcount = Some(output.chars().count());
     }
 
-    pub fn push_units(&mut self, new_units: String) {
-        self.units.push(new_units);
+    pub fn push_unit(&mut self, new_unit: Unit) {
+        self.units.push(new_unit);
     }
 
-    pub fn pop_units(&mut self) {
+    pub fn pop_unit(&mut self) {
         self.units.pop();
     }
 }
@@ -236,25 +237,6 @@ impl fmt::Display for Duration {
                 (0, 0, m, s) if m > 0 => write!(f, "{:2.0}m {:2.0}s", m, s),
                 (_, _, _, s) => write!(f, "{:2.0}s", s),
             }
-        }
-    }
-}
-
-/// Human readable size (some units)
-struct Size<'a>(usize, &'a str);
-
-impl<'a> fmt::Display for Size<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        const KI: f64 = 1024.0;
-        const MI: f64 = KI * KI;
-        let size = self.0 as f64;
-
-        if size >= MI {
-            write!(f, "{:5.1} Mi{}", size / MI, self.1) // XYZ.P Mi
-        } else if size >= KI {
-            write!(f, "{:5.1} Ki{}", size / KI, self.1)
-        } else {
-            write!(f, "{:3.0} {}", size, self.1)
         }
     }
 }
