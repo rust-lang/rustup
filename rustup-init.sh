@@ -9,6 +9,8 @@ set -u
 # If RUSTUP_UPDATE_ROOT is unset or empty, default it.
 RUSTUP_UPDATE_ROOT="${RUSTUP_UPDATE_ROOT:-https://static.rust-lang.org/rustup}"
 
+ARCH=
+
 #XXX: If you change anything here, please make the same changes in setup_mode.rs
 usage() {
     cat 1>&2 <<EOF
@@ -46,17 +48,17 @@ main() {
     need_cmd rmdir
 
     get_architecture || return 1
-    local _arch="$RETVAL"
-    assert_nz "$_arch" "arch"
+    ARCH="$RETVAL"
+    assert_nz "$ARCH" "arch"
 
     local _ext=""
-    case "$_arch" in
+    case "$ARCH" in
         *windows*)
             _ext=".exe"
             ;;
     esac
 
-    local _url="${RUSTUP_UPDATE_ROOT}/dist/${_arch}/rustup-init${_ext}"
+    local _url="${RUSTUP_UPDATE_ROOT}/dist/${ARCH}/rustup-init${_ext}"
 
     local _dir
     _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
@@ -413,15 +415,21 @@ check_help_for() {
     _ok="y"
     shift
 
-    # If we're running on OS-X, older than 10.13, then we always
-    # fail to find these options to force fallback
-    if check_cmd sw_vers; then
-        if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
-            # Older than 10.13
-            echo "Warning: Detected OS X platform older than 10.13"
-            _ok="n"
+    case "$ARCH" in
+
+        # If we're running on OS-X, older than 10.13, then we always
+        # fail to find these options to force fallback
+        *darwin*)
+        if check_cmd sw_vers; then
+            if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
+                # Older than 10.13
+                echo "Warning: Detected OS X platform older than 10.13"
+                _ok="n"
+            fi
         fi
-    fi
+        ;;
+
+    esac
 
     for _arg in "$@"; do
         if ! "$_cmd" --help | grep -q -- "$_arg"; then
