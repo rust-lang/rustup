@@ -85,8 +85,8 @@ $ rustup completions powershell >> $PROFILE.CurrentUserCurrentHost
 $ rustup completions powershell | Out-String | Invoke-Expression
 ```
 
-*Note:* you may need to restart your shell in order for the changes to take
- effect.
+**Note**: you may need to restart your shell in order for the changes to take
+effect.
 
 For `zsh`, you must then add the following line in your `~/.zshrc` before
 `compinit`:
@@ -100,7 +100,7 @@ fpath+=~/.zfunc
 `rustup` allows you to customise your installation by setting the environment
 variables `CARGO_HOME` and `RUSTUP_HOME` before running the `rustup-init`
 executable. As mentioned in the [Environment Variables] section, `RUSTUP_HOME`
-sets the root rustup folder, which is used for storing installed
+sets the root `rustup` folder, which is used for storing installed
 toolchains and configuration options. `CARGO_HOME` contains cache files used
 by [cargo].
 
@@ -183,7 +183,7 @@ installation as well.  You can prevent this automatic behaviour by passing the
 
 ## Working with nightly Rust
 
-Rustup gives you easy access to the nightly compiler and its
+`rustup` gives you easy access to the nightly compiler and its
 [experimental features]. To add it just run `rustup toolchain install
 nightly`:
 
@@ -305,7 +305,7 @@ The `rustup` toolchain proxies can be instructed directly to use a
 specific toolchain, a convenience for developers who often test
 different toolchains. If the first argument to `cargo`, `rustc` or
 other tools in the toolchain begins with `+`, it will be interpreted
-as a rustup toolchain name, and that toolchain will be preferred,
+as a `rustup` toolchain name, and that toolchain will be preferred,
 as in
 
 ```console
@@ -348,7 +348,7 @@ a single `rustup` toolchain, and which is suitable to check in to
 source control.
 
 The toolchains named in this file have a more restricted form than
-rustup toolchains generally, and may only contain the names of the
+`rustup` toolchains generally, and may only contain the names of the
 three release channels, 'stable', 'beta', 'nightly', Rust version
 numbers, like '1.0.0', and optionally an archive date, like
 'nightly-2017-01-01'. They may not name custom toolchains, nor
@@ -365,14 +365,14 @@ execute:
 * The `rust-toolchain` file,
 * The default toolchain,
 
-and they are prefered by rustup in that order, with the explicit
+and they are preferred by `rustup` in that order, with the explicit
 toolchain having highest precedence, and the default toolchain having
 the lowest. There is one exception though: directory overrides and the
 `rust-toolchain` file are also preferred by their proximity to the
 current directory. That is, these two override methods are discovered
 by walking up the directory tree toward the filesystem root, and a
 `rust-toolchain` file that is closer to the current directory will be
-prefered over a directory override that is further away.
+preferred over a directory override that is further away.
 
 To verify which toolchain is active use `rustup show`.
 
@@ -438,10 +438,10 @@ of Visual Studio 2013 (or later) or the Visual C++ Build Tools
 check the "C++ tools" option. No additional software installation is
 necessary for basic use of the GNU build.
 
-By default rustup on Windows configures Rust to target the MSVC
+By default `rustup` on Windows configures Rust to target the MSVC
 ABI, that is a target triple of either `i686-pc-windows-msvc` or
 `x86_64-pc-windows-msvc` depending on the CPU architecture of the
-host Windows OS. The toolchains that rustup chooses to install, unless
+host Windows OS. The toolchains that `rustup` chooses to install, unless
 told otherwise through the [toolchain specification], will be compiled
 to run on that target triple host and will target that triple by default.
 
@@ -488,22 +488,22 @@ $ rustup target add i686-pc-windows-gnu
 
 Several Linux distributions package Rust, and you may wish to use the packaged
 toolchain, such as for distribution package development. You may also wish to
-use a rustup-managed toolchain such as nightly or beta. Normally, rustup will
-complain that you already have Rust installed in /usr and refuse to install.
-However, you can install Rust via Rustup and have it coexist with your
-distribution's packaged Rust.
+use a `rustup`-managed toolchain such as nightly or beta. Normally, `rustup`
+will complain that you already have Rust installed in /usr and refuse to
+install. However, you can install Rust via `rustup` and have it coexist with
+your distribution's packaged Rust.
 
-When you initially install Rust with rustup, pass the `-y` option to make it
-ignore the packaged Rust toolchain and install a rustup-managed toolchain into
-`~/.cargo/bin`. Add that directory to your `$PATH` (or let rustup do it for you
-by not passing `--no-modify-path`). Then, to tell rustup about your system
+When you initially install Rust with `rustup`, pass the `-y` option to make it
+ignore the packaged Rust toolchain and install a `rustup`-managed toolchain into
+`~/.cargo/bin`. Add that directory to your `$PATH` (or let `rustup` do it for
+you by not passing `--no-modify-path`). Then, to tell `rustup` about your system
 toolchain, run:
 
 ```console
 rustup toolchain link system /usr
 ```
 
-You can then use +system as a rustup toolchain, just like +nightly; for
+You can then use +system as a `rustup` toolchain, just like +nightly; for
 instance, you can run cargo +system build to build with the system toolchain,
 or cargo +nightly build to build with nightly.
 
@@ -545,7 +545,7 @@ preferring 'nightly', then 'beta' or 'stable'.
 
 Enterprise networks often don't have direct outside HTTP access, but enforce
 the use of proxies. If you're on such a network, you can request that
-rustup uses a proxy by setting its URL in the environment. In most cases,
+`rustup` uses a proxy by setting its URL in the environment. In most cases,
 setting `https_proxy` should be sufficient. On a Unix-like system with a
 shell like __bash__ or __zsh__, you could use:
 
@@ -559,7 +559,7 @@ On Windows, the command would be:
 set https_proxy=socks5://proxy.example.com:1080
 ```
 
-If you need a more complex setup, rustup supports the convention used by
+If you need a more complex setup, `rustup` supports the convention used by
 the __curl__ program, documented in the ENVIRONMENT section of
 [its manual page][curlman].
 
@@ -603,7 +603,7 @@ Command                                                     | Description
 
 
 - `RUSTUP_HOME` (default: `~/.rustup` or `%USERPROFILE%/.rustup`)
-  Sets the root rustup folder, used for storing installed
+  Sets the root `rustup` folder, used for storing installed
   toolchains and configuration options.
 
 - `RUSTUP_TOOLCHAIN` (default: none)
@@ -635,7 +635,7 @@ Command                                                     | Description
   [tv]: (https://github.com/catapult-project/catapult/blob/master/tracing/README.md)
 
 - `RUSTUP_UNPACK_RAM` *unstable* (default 400M, min 100M)
-  Caps the amount of RAM rustup will use for IO tasks while unpacking.
+  Caps the amount of RAM `rustup` will use for IO tasks while unpacking.
 
 - `RUSTUP_NO_BACKTRACE`
   Disables backtraces on non-panic errors even when `RUST_BACKTRACE` is set.
@@ -645,13 +645,13 @@ Command                                                     | Description
 The primary installation method, as described at https://rustup.rs, differs by platform:
 
 * On Windows, download and run the [rustup-init.exe built for
-  `i686-pc-windows-gnu` target][setup]. In general, this is the build of rustup
-  one should install on Windows. Despite being built against the GNU toolchain,
-  _the Windows build of rustup will install Rust for the MSVC toolchain if it
-  detects that MSVC is installed_. If you prefer to install GNU toolchains or
-  x86_64 toolchains by default this can be modified at install time, either
-  interactively or with the `--default-host` flag, or after installation via
-  `rustup set default-host`.
+  `i686-pc-windows-gnu` target][setup]. In general, this is the build of
+  `rustup` one should install on Windows. Despite being built against the GNU
+  toolchain, _the Windows build of `rustup` will install Rust for the MSVC
+  toolchain if it detects that MSVC is installed_. If you prefer to install GNU
+  toolchains or x86_64 toolchains by default this can be modified at install
+  time, either interactively or with the `--default-host` flag, or after
+  installation via `rustup set default-host`.
 * On Unix, run `curl https://sh.rustup.rs -sSf | sh` in your
   shell. This downloads and runs [`rustup-init.sh`], which in turn
   downloads and runs the correct version of the `rustup-init`
@@ -714,8 +714,8 @@ the GNU build.
 You can fetch an older version from `https://static.rust-lang.org/rustup/archive/{rustup-version}/{target-triple}/rustup-init[.exe]`
 
 To install from source just run `cargo run --release`. Note that
-currently rustup only builds on nightly Rust, and that after
-installation the rustup toolchains will supersede any pre-existing
+currently `rustup` only builds on nightly Rust, and that after
+installation the `rustup` toolchains will supersede any pre-existing
 toolchains by prepending `~/.cargo/bin` to the `PATH` environment
 variable.
 
@@ -751,7 +751,7 @@ directory of the current toolchain.
 
 ### rustup fails with Windows error 32
 
-If rustup fails with Windows error 32, it may be due to antivirus
+If `rustup` fails with Windows error 32, it may be due to antivirus
 scanning in the background. Disable antivirus scanner and try again.
 
 [multirust]: https://github.com/brson/multirust
@@ -759,8 +759,9 @@ scanning in the background. Disable antivirus scanner and try again.
 
 ### I get "error: could not remove 'rustup-bin' file: 'C:\Users\USER\\.cargo\bin\rustup.exe'"
 
-If rustup fails to self-update in this way it's usually because RLS is running (your editor is open and running RLS).
-The solution is to stop RLS (by closing your editor) and try again.
+If `rustup` fails to self-update in this way it's usually because RLS is
+running (your editor is open and running RLS). The solution is to stop RLS (by
+closing your editor) and try again.
 
 ## License
 
