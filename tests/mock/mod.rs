@@ -2,6 +2,7 @@
 
 pub mod clitools;
 pub mod dist;
+pub mod topical_doc_data;
 
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;

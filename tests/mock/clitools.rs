@@ -5,6 +5,7 @@ use crate::mock::dist::{
     change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer, MockPackage,
     MockTargetedPackage,
 };
+use crate::mock::topical_doc_data;
 use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 use lazy_static::lazy_static;
 use std::cell::RefCell;
@@ -960,10 +961,14 @@ fn build_mock_rls_installer(
 }
 
 fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
+    let mut files: Vec<MockFile> = topical_doc_data::paths()
+        .map(|x| MockFile::new(x, b""))
+        .collect();
+    files.insert(0, MockFile::new("share/doc/rust/html/index.html", b""));
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
             name: "rust-docs".to_string(),
-            files: vec![MockFile::new("share/doc/rust/html/index.html", b"")],
+            files: files,
         }],
     }
 }
