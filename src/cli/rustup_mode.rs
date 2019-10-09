@@ -812,6 +812,9 @@ fn update(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         }
     } else {
         common::update_all_channels(cfg, self_update, m.is_present("force"))?;
+        info!("cleaning up downloads & tmp directories");
+        utils::delete_dir_contents(&cfg.download_dir);
+        cfg.temp_cfg.clean();
     }
 
     Ok(())
