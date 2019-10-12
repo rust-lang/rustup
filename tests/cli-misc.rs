@@ -703,7 +703,7 @@ fn toolchain_broken_symlink() {
     }
 
     setup(&|config| {
-        // We artifically create a broken symlink toolchain -- but this can also happen "legitimately"
+        // We artificially create a broken symlink toolchain -- but this can also happen "legitimately"
         // by having a proper toolchain there, using "toolchain link", and later removing the directory.
         fs::create_dir(config.rustupdir.join("toolchains")).unwrap();
         create_symlink_dir(
