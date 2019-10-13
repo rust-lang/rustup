@@ -1,5 +1,46 @@
 # Changelog
 
+## [1.20.0] - UNRELEASED
+
+### Changed
+
+- [Toolchain listing now supports a verbose mode][pr#1988]
+- [Improve zsh completions for cargo][pr#1995]
+- [Updates/Installations of nightly now backtrack][pr#2002]
+- [Improve handling of Ctrl+C on Windows][pr#2014]
+- [`rustup which` now supports `--toolchain`][pr#2030]
+
+### Added
+
+- [Added installation profiles][pr#1673]
+- [Added `rustup check`][pr#1980]
+- [Support for `--quiet` in most places][pr#1945]
+- [Support for adding components and targets during toolchain install][pr#2026]
+
+### Thanks
+
+- Nick Cameron
+- Andy McCaffrey
+- Pietro Albini
+- Benjamin Chen
+- Artem Borisovskiy
+- Jon Gjengset
+- Lzu Tao
+- Daniel Silverstone
+- PicoJr
+- Mitchell Hynes
+- Matt Kantor
+
+[pr#1673]: https://github.com/rust-lang/rustup.rs/pull/1673
+[pr#1980]: https://github.com/rust-lang/rustup.rs/pull/1980
+[pr#1988]: https://github.com/rust-lang/rustup.rs/pull/1988
+[pr#1995]: https://github.com/rust-lang/rustup.rs/pull/1995
+[pr#2002]: https://github.com/rust-lang/rustup.rs/pull/2002
+[pr#2014]: https://github.com/rust-lang/rustup.rs/pull/2014
+[pr#1945]: https://github.com/rust-lang/rustup.rs/pull/1945
+[pr#2026]: https://github.com/rust-lang/rustup.rs/pull/2026
+[pr#2030]: https://github.com/rust-lang/rustup.rs/pull/2030
+
 ## [1.19.0] - 2019-09-09
 
 ### Changed
