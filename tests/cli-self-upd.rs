@@ -1229,7 +1229,7 @@ fn update_does_not_overwrite_rustfmt() {
         assert!(rustfmt_path.exists());
         assert_eq!(utils::file_size(&rustfmt_path).unwrap(), 0);
 
-        // Now simluate us removing the rustfmt executable and rerunning a self
+        // Now simulate us removing the rustfmt executable and rerunning a self
         // update, this should install the rustup shim. Note that we don't run
         // `rustup` here but rather the rustup we've actually installed, this'll
         // help reproduce bugs related to having that file being opened by the

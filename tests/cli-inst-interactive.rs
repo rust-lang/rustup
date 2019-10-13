@@ -68,7 +68,7 @@ fn update() {
 }
 
 // Testing that the right number of blank lines are printed after the
-// 'pre-install' message and before the 'post-install' messag.
+// 'pre-install' message and before the 'post-install' message.
 #[test]
 fn blank_lines_around_stderr_log_output_install() {
     setup(&|config| {

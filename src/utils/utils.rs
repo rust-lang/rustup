@@ -658,7 +658,7 @@ mod tests {
     }
 
     #[test]
-    fn test_toochain_sort() {
+    fn test_toolchain_sort() {
         let expected = vec![
             "stable-x86_64-unknown-linux-gnu",
             "beta-x86_64-unknown-linux-gnu",
