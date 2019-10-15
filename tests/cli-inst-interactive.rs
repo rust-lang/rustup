@@ -2,15 +2,22 @@
 
 pub mod mock;
 
-use crate::mock::clitools::{self, expect_stdout_ok, Config, SanitizedOutput, Scenario};
+use crate::mock::clitools::{
+    self, expect_stdout_ok, set_current_dist_date, Config, SanitizedOutput, Scenario,
+};
 use crate::mock::{get_path, restore_path};
 use lazy_static::lazy_static;
 use std::io::Write;
 use std::process::Stdio;
 use std::sync::Mutex;
 
-pub fn setup(f: &dyn Fn(&Config)) {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+pub fn setup_(complex: bool, f: &dyn Fn(&Config)) {
+    let scenario = if complex {
+        Scenario::UnavailableRls
+    } else {
+        Scenario::SimpleV2
+    };
+    clitools::setup(scenario, &|config| {
         // Lock protects environment variables
         lazy_static! {
             static ref LOCK: Mutex<()> = Mutex::new(());
@@ -24,6 +31,10 @@ pub fn setup(f: &dyn Fn(&Config)) {
 
         f(config);
     });
+}
+
+pub fn setup(f: &dyn Fn(&Config)) {
+    setup_(false, f)
 }
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> SanitizedOutput {
@@ -218,5 +229,28 @@ fn user_says_nope_after_advanced_install() {
         let out = run_input(config, &["rustup-init"], "2\n\n\n\n\nn\n\n\n");
         assert!(out.ok);
         assert!(!config.cargodir.join("bin").exists());
+    });
+}
+
+#[test]
+fn install_forces_and_skips_rls() {
+    setup_(true, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+
+        let out = run_input(
+            config,
+            &[
+                "rustup-init",
+                "--profile",
+                "complete",
+                "--default-toolchain",
+                "nightly",
+            ],
+            "\n\n",
+        );
+        assert!(out.ok);
+        assert!(out
+            .stderr
+            .contains("warning: Force-skipping unavailable component"));
     });
 }
