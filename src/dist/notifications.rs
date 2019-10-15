@@ -31,6 +31,7 @@ pub enum Notification<'a> {
     DownloadedManifest(&'a str, Option<&'a str>),
     DownloadingLegacyManifest,
     SkippingNightlyMissingComponent(&'a [Component]),
+    ForcingUnavailableComponent(&'a str),
     ManifestChecksumFailedHack,
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
     StrayHash(&'a Path),
@@ -75,6 +76,7 @@ impl<'a> Notification<'a> {
             | MissingInstalledComponent(_)
             | CachedFileChecksumFailed
             | ComponentUnavailable(_, _)
+            | ForcingUnavailableComponent(_)
             | StrayHash(_) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
         }
@@ -166,6 +168,9 @@ impl<'a> Display for Notification<'a> {
                 "skipping nightly which is missing installed component '{}'",
                 components[0].short_name_in_manifest()
             ),
+            ForcingUnavailableComponent(component) => {
+                write!(f, "Force-skipping unavailable component '{}'", component)
+            }
         }
     }
 }
