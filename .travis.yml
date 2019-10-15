@@ -77,10 +77,8 @@ matrix:
     - name: rustfmt/clippy/rustup-init.sh/shellcheck
       language: minimal
       install:
-        - |
-          sh ./rustup-init.sh --default-toolchain=beta -y;
-          . "$HOME"/.cargo/env;
-          rustup component add rustfmt clippy;
+        - sh ./rustup-init.sh --default-toolchain=beta --profile=minimal -y -c rustfmt -c clippy
+        - export PATH="$HOME/.cargo/bin:$PATH"
       script:
         - |
           docker run \
@@ -106,13 +104,8 @@ matrix:
       if: branch == disabled-for-now
 
 install:
-  - sh rustup-init.sh --default-toolchain=stable -y
-  - |
-    if [ -r "$HOME/.cargo/env" ]; then
-      . "$HOME"/.cargo/env;
-    else
-      export PATH="$HOME/.cargo/bin:$PATH";
-    fi
+  - sh ./rustup-init.sh --default-toolchain=stable --profile=minimal -y
+  - export PATH="$HOME/.cargo/bin:$PATH"
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
 
 script:
