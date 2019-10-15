@@ -250,7 +250,7 @@ fn trigger_children(
             })
             .or_insert_with(|| unreachable!());
         result += pending.len();
-        for pending_item in pending.into_iter() {
+        for pending_item in pending {
             for mut item in Vec::from_iter(io_executor.execute(pending_item)) {
                 // TODO capture metrics
                 budget.reclaim(&item);

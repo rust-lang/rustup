@@ -6,7 +6,7 @@
 //! operations. If the Transaction is dropped without committing then
 //! it will *attempt* to roll back the transaction.
 //!
-//! FIXME: This uses ensure_dir_exists in some places but rollback
+//! FIXME: This uses `ensure_dir_exists` in some places but rollback
 //! does not remove any dirs created by it.
 
 use crate::dist::notifications::*;
@@ -286,7 +286,7 @@ impl<'a> ChangedItem<'a> {
         if !utils::path_exists(&abs_path) {
             Err(ErrorKind::ComponentMissingFile {
                 name: component.to_owned(),
-                path: relpath.clone(),
+                path: relpath,
             }
             .into())
         } else {
@@ -306,7 +306,7 @@ impl<'a> ChangedItem<'a> {
         if !utils::path_exists(&abs_path) {
             Err(ErrorKind::ComponentMissingDir {
                 name: component.to_owned(),
-                path: relpath.clone(),
+                path: relpath,
             }
             .into())
         } else {

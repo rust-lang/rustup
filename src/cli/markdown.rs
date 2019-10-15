@@ -120,9 +120,9 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
                 self.wrapper.write_line();
             }
             Tag::Table(_alignments) => {}
-            Tag::TableHead => {}
-            Tag::TableRow => {}
-            Tag::TableCell => {}
+            Tag::TableHead |
+            Tag::TableRow |
+            Tag::TableCell |
             Tag::BlockQuote => {}
             Tag::CodeBlock(_lang) => {
                 self.wrapper.write_line();
@@ -139,9 +139,9 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
             Tag::Emphasis => {
                 self.push_attr(Attr::ForegroundColor(color::BRIGHT_RED));
             }
-            Tag::Strong => {}
+            Tag::Strong |
             Tag::Strikethrough => {}
-            Tag::Link(_link_type, _dest, _title) => {}
+            Tag::Link(_link_type, _dest, _title) |
             Tag::Image(_link_type, _dest, _title) => {}
             Tag::FootnoteDefinition(_name) => {}
         }
@@ -156,10 +156,10 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
                 self.wrapper.write_line();
                 self.pop_attr();
             }
-            Tag::Table(_) => {}
-            Tag::TableHead => {}
-            Tag::TableRow => {}
-            Tag::TableCell => {}
+            Tag::Table(_) |
+            Tag::TableHead |
+            Tag::TableRow |
+            Tag::TableCell |
             Tag::BlockQuote => {}
             Tag::CodeBlock(_) => {
                 self.is_code_block = false;
@@ -173,10 +173,10 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
             Tag::Emphasis => {
                 self.pop_attr();
             }
-            Tag::Strong => {}
-            Tag::Strikethrough => {}
-            Tag::Link(_, _, _) => {}
-            Tag::Image(_, _, _) => {} // shouldn't happen, handled in start
+            Tag::Strong |
+            Tag::Strikethrough |
+            Tag::Link(_, _, _) |
+            Tag::Image(_, _, _) | // shouldn't happen, handled in start
             Tag::FootnoteDefinition(_) => {}
         }
     }
@@ -199,16 +199,10 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
                 self.pop_attr();
             }
             Html(_html) => {}
-            SoftBreak => {
+            SoftBreak | HardBreak => {
                 self.wrapper.write_line();
             }
-            HardBreak => {
-                self.wrapper.write_line();
-            }
-            Rule => {}
-            FootnoteReference(_name) => {}
-            TaskListMarker(true) => {}
-            TaskListMarker(false) => {}
+            Rule | FootnoteReference(_) | TaskListMarker(_) => {}
         }
     }
 }

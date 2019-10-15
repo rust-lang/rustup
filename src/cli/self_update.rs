@@ -8,7 +8,7 @@
 //!
 //! During install (as `rustup-init`):
 //!
-//! * copy the self exe to $CARGO_HOME/bin
+//! * copy the self exe to `$CARGO_HOME/bin`
 //! * hardlink rustc, etc to *that*
 //! * update the PATH in a system-specific way
 //! * run the equivalent of `rustup default stable`
@@ -475,7 +475,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
         if let Ok(true) = env::var("RUSTUP_INIT_SKIP_SUDO_CHECK").map(|s| s == "yes") {
             return (false, OsString::new(), String::new());
         }
-        let mut buf = [0u8; 1024];
+        let mut buf = [0_u8; 1024];
         let mut pwd = MaybeUninit::<libc::passwd>::uninit();
         let mut pwdp: *mut libc::passwd = ptr::null_mut();
         let rv = unsafe {
@@ -553,7 +553,13 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
     let cargo_home_bin = cargo_home.join("bin");
     let rustup_home = utils::rustup_home()?;
 
-    if !no_modify_path {
+    if no_modify_path {
+        Ok(format!(
+            pre_install_msg_no_modify_path!(),
+            cargo_home_bin = cargo_home_bin.display(),
+            rustup_home = rustup_home.display(),
+        ))
+    } else {
         if cfg!(unix) {
             let add_path_methods = get_add_path_methods();
             let rcfiles = add_path_methods
@@ -586,12 +592,6 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
                 rustup_home = rustup_home.display(),
             ))
         }
-    } else {
-        Ok(format!(
-            pre_install_msg_no_modify_path!(),
-            cargo_home_bin = cargo_home_bin.display(),
-            rustup_home = rustup_home.display(),
-        ))
     }
 }
 
@@ -607,7 +607,7 @@ fn current_install_opts(opts: &InstallOpts) -> String {
         opts.default_host_triple,
         opts.default_toolchain,
         opts.profile,
-        if !opts.no_modify_path { "yes" } else { "no" }
+        if opts.no_modify_path { "no" } else { "yes" }
     )
 }
 
@@ -785,7 +785,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         .join(&format!("bin/rustup{}", EXE_SUFFIX))
         .exists()
     {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
+        return Err(ErrorKind::NotSelfInstalled(cargo_home).into());
     }
 
     if !no_prompt {
@@ -1465,7 +1465,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
     if !rustup_path.exists() {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
+        return Err(ErrorKind::NotSelfInstalled(cargo_home).into());
     }
 
     if setup_path.exists() {

@@ -80,7 +80,7 @@ impl<'a> Display for Notification<'a> {
             DownloadingFile(url, _) => write!(f, "downloading file from: '{}'", url),
             DownloadContentLengthReceived(len) => write!(f, "download size is: '{}'", len),
             DownloadDataReceived(data) => write!(f, "received some data of size {}", data.len()),
-            DownloadPushUnits(_) => Ok(()),
+            DownloadPushUnits(_) |
             DownloadPopUnits => Ok(()),
             DownloadFinished => write!(f, "download finished"),
             NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),

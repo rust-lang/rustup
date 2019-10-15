@@ -49,7 +49,7 @@ pub fn main() -> Result<()> {
             ("profile", Some(_)) => handle_epipe(show_profile(cfg))?,
             (_, _) => handle_epipe(show(cfg))?,
         },
-        ("install", Some(m)) => update(cfg, m)?,
+        ("install", Some(m)) |
         ("update", Some(m)) => update(cfg, m)?,
         ("check", Some(_)) => check_updates(cfg)?,
         ("uninstall", Some(m)) => toolchain_remove(cfg, m)?,
@@ -693,10 +693,10 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
         let status = if !toolchain.is_custom() {
             Some(toolchain.install_from_dist_if_not_installed()?)
-        } else if !toolchain.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
-        } else {
+        } else if toolchain.exists() {
             None
+        } else {
+            return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
         };
 
         toolchain.make_default()?;
@@ -776,17 +776,15 @@ fn update(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             let status = if !toolchain.is_custom() {
                 let components: Vec<_> = m
                     .values_of("components")
-                    .map(|v| v.collect())
-                    .unwrap_or_else(Vec::new);
+                    .map_or_else(Vec::new, Iterator::collect);
                 let targets: Vec<_> = m
                     .values_of("targets")
-                    .map(|v| v.collect())
-                    .unwrap_or_else(Vec::new);
+                    .map_or_else(Vec::new, Iterator::collect);
                 Some(toolchain.install_from_dist(m.is_present("force"), &components, &targets)?)
-            } else if !toolchain.exists() {
-                return Err(ErrorKind::InvalidToolchainName(toolchain.name().to_string()).into());
-            } else {
+            } else if toolchain.exists() {
                 None
+            } else {
+                return Err(ErrorKind::InvalidToolchainName(toolchain.name().to_string()).into());
             };
 
             if let Some(status) = status {
@@ -1159,10 +1157,10 @@ fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
     let status = if !toolchain.is_custom() {
         Some(toolchain.install_from_dist_if_not_installed()?)
-    } else if !toolchain.exists() {
-        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
-    } else {
+    } else if toolchain.exists() {
         None
+    } else {
+        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
     };
 
     let path = if let Some(path) = m.value_of("path") {

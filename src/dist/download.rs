@@ -59,8 +59,7 @@ impl<'a> DownloadCfg<'a> {
         let partial_file_path = target_file.with_file_name(
             target_file
                 .file_name()
-                .map(|s| s.to_str().unwrap_or("_"))
-                .unwrap_or("_")
+                .map_or("_", |s| s.to_str().unwrap_or("_"))
                 .to_owned()
                 + ".partial",
         );

@@ -232,7 +232,7 @@ impl Manifest {
             .get_target(Some(target))?
             .components
             .iter()
-            .filter(|c| !c.is_extension && c.target.as_ref().map(|t| t == target).unwrap_or(true))
+            .filter(|c| !c.is_extension && c.target.as_ref().map_or(true, |t| t == target))
             .cloned()
             .collect();
 
@@ -260,7 +260,7 @@ impl Manifest {
                 rust_pkg
                     .components
                     .iter()
-                    .any(|c| &c.pkg == *s && c.target.as_ref().map(|t| t == target).unwrap_or(true))
+                    .any(|c| &c.pkg == *s && c.target.as_ref().map_or(true, |t| t == target))
             })
             .map(|s| Component::new(s.to_owned(), Some(target.clone()), false))
             .collect();
@@ -522,9 +522,7 @@ impl Component {
         result.insert(
             "target".to_owned(),
             toml::Value::String(
-                self.target
-                    .map(|t| t.to_string())
-                    .unwrap_or_else(|| "*".to_owned()),
+                self.target.map_or_else(|| "*".to_owned(), |t| t.to_string())
             ),
         );
         result.insert("pkg".to_owned(), toml::Value::String(self.pkg));

@@ -270,7 +270,7 @@ pub mod reqwest_be {
         }
 
         let buffer_size = 0x10000;
-        let mut buffer = vec![0u8; buffer_size];
+        let mut buffer = vec![0_u8; buffer_size];
 
         if let Some(len) = res.headers().get(header::CONTENT_LENGTH) {
             // TODO possible issues during unwrap?
@@ -281,12 +281,10 @@ pub mod reqwest_be {
         loop {
             let bytes_read =
                 io::Read::read(&mut res, &mut buffer).chain_err(|| "error reading from socket")?;
-
-            if bytes_read != 0 {
-                callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
-            } else {
+            if bytes_read == 0 {
                 return Ok(());
             }
+            callback(Event::DownloadDataReceived(&buffer[0..bytes_read]))?;
         }
     }
 

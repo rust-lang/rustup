@@ -37,7 +37,7 @@ impl SettingsFile {
                     Settings::parse(&content)?
                 } else {
                     needs_save = true;
-                    Default::default()
+                    Settings::default()
                 });
             }
         }

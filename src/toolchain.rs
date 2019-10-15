@@ -52,7 +52,7 @@ impl<'a> Toolchain<'a> {
         Ok(Toolchain {
             cfg,
             name: resolved_name,
-            path: path.clone(),
+            path,
             dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
         })
     }
@@ -112,17 +112,16 @@ impl<'a> Toolchain<'a> {
         (self.cfg.notify_handler)(Notification::ToolchainDirectory(&self.path, &self.name));
         let updated = install_method.run(&self.path, &|n| (self.cfg.notify_handler)(n.into()))?;
 
-        if !updated {
-            (self.cfg.notify_handler)(Notification::UpdateHashMatches);
-        } else {
+        if updated {
             (self.cfg.notify_handler)(Notification::InstalledToolchain(&self.name));
+        } else {
+            (self.cfg.notify_handler)(Notification::UpdateHashMatches);
         }
 
         let status = match (updated, exists) {
             (true, false) => UpdateStatus::Installed,
             (true, true) => UpdateStatus::Updated,
-            (false, true) => UpdateStatus::Unchanged,
-            (false, false) => UpdateStatus::Unchanged,
+            (false, _) => UpdateStatus::Unchanged,
         };
 
         Ok(status)
@@ -130,11 +129,11 @@ impl<'a> Toolchain<'a> {
     fn install_if_not_installed(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
         (self.cfg.notify_handler)(Notification::LookingForToolchain(&self.name));
-        if !self.exists() {
-            Ok(self.install(install_method)?)
-        } else {
+        if self.exists() {
             (self.cfg.notify_handler)(Notification::UsingExistingToolchain(&self.name));
             Ok(UpdateStatus::Unchanged)
+        } else {
+            Ok(self.install(install_method)?)
         }
     }
     fn is_valid_install_method(&self, install_method: InstallMethod<'_>) -> bool {
@@ -208,11 +207,10 @@ impl<'a> Toolchain<'a> {
     }
 
     fn ensure_custom(&self) -> Result<()> {
-        if !self.is_custom() {
-            Err(crate::ErrorKind::InvalidCustomToolchainName(self.name.to_string()).into())
-        } else {
-            Ok(())
+        if self.is_custom() {
+            return Ok(());
         }
+        Err(crate::ErrorKind::InvalidCustomToolchainName(self.name.to_string()).into())
     }
 
     pub fn install_from_installers(&self, installers: &[&OsStr]) -> Result<()> {
@@ -444,7 +442,7 @@ impl<'a> Toolchain<'a> {
         // be on the PATH.
         let mut path_entries = vec![];
         if let Ok(cargo_home) = utils::cargo_home() {
-            path_entries.push(cargo_home.join("bin").to_path_buf());
+            path_entries.push(cargo_home.join("bin"));
         }
 
         if cfg!(target_os = "windows") {
@@ -491,7 +489,7 @@ impl<'a> Toolchain<'a> {
         let toolchain = ToolchainDesc::from_str(toolchain)?;
 
         let prefix = InstallPrefix::from(self.path.to_owned());
-        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
+        let manifestation = Manifestation::open(prefix, toolchain.target)?;
 
         manifestation.load_manifest()
     }
@@ -650,7 +648,7 @@ impl<'a> Toolchain<'a> {
                 if closest_distance.1.component.short_name(manifest)
                     == component.short_name(manifest)
                 {
-                    closest_match = short_name_distance.1.component.target().to_string();
+                    closest_match = short_name_distance.1.component.target();
                 }
             }
 
@@ -658,7 +656,7 @@ impl<'a> Toolchain<'a> {
             if closest_distance.0 > MAX_DISTANCE {
                 None
             } else {
-                Some(closest_match.to_string())
+                Some(closest_match)
             }
         } else {
             None

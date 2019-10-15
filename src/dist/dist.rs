@@ -188,7 +188,7 @@ impl TargetTriple {
                 (b"Linux", b"mips") => Some(TRIPLE_MIPS_UNKNOWN_LINUX_GNU),
                 (b"Linux", b"mips64") => Some(TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64),
                 (b"Linux", b"arm") => Some("arm-unknown-linux-gnueabi"),
-                (b"Linux", b"armv7l") => Some("armv7-unknown-linux-gnueabihf"),
+                (b"Linux", b"armv7l") |
                 (b"Linux", b"armv8l") => Some("armv7-unknown-linux-gnueabihf"),
                 (b"Linux", b"aarch64") => Some("aarch64-unknown-linux-gnu"),
                 (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
@@ -286,7 +286,7 @@ impl FromStr for PartialToolchainDesc {
                 }
             }
 
-            let trip = c.get(3).map(|c| c.as_str()).unwrap_or("");
+            let trip = c.get(3).map_or("", |c| c.as_str());
             let trip = PartialTargetTriple::new(&trip);
             trip.map(|t| Self {
                 channel: c.get(1).unwrap().as_str().to_owned(),
@@ -569,7 +569,7 @@ pub fn update_from_dist<'a>(
     targets: &[&str],
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
-    let hash_exists = update_hash.map(Path::exists).unwrap_or(false);
+    let hash_exists = update_hash.map_or(false, Path::exists);
 
     // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
     if fresh_install && hash_exists {

@@ -13,12 +13,11 @@ pub fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
     path: P,
     callback: F,
 ) -> io::Result<bool> {
-    if !is_directory(path.as_ref()) {
-        callback(path.as_ref());
-        fs::create_dir_all(path.as_ref()).map(|()| true)
-    } else {
-        Ok(false)
+    if is_directory(path.as_ref()) {
+        return Ok(false);
     }
+    callback(path.as_ref());
+    fs::create_dir_all(path.as_ref()).map(|()| true)
 }
 
 pub fn is_directory<P: AsRef<Path>>(path: P) -> bool {
@@ -123,16 +122,14 @@ pub fn tee_file<W: io::Write>(path: &Path, w: &mut W) -> io::Result<()> {
     let mut file = fs::OpenOptions::new().read(true).open(path)?;
 
     let buffer_size = 0x10000;
-    let mut buffer = vec![0u8; buffer_size];
+    let mut buffer = vec![0_u8; buffer_size];
 
     loop {
         let bytes_read = io::Read::read(&mut file, &mut buffer)?;
-
-        if bytes_read != 0 {
-            io::Write::write_all(w, &buffer[0..bytes_read])?;
-        } else {
+        if bytes_read == 0 {
             return Ok(());
         }
+        io::Write::write_all(w, &buffer[0..bytes_read])?;
     }
 }
 

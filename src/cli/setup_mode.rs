@@ -89,8 +89,7 @@ pub fn main() -> Result<()> {
     let quiet = matches.is_present("quiet");
     let default_host = matches
         .value_of("default-host")
-        .map(std::borrow::ToOwned::to_owned)
-        .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string());
+        .map_or_else(|| TargetTriple::from_host_or_build().to_string(), std::borrow::ToOwned::to_owned);
     let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
     let profile = matches
         .value_of("profile")
@@ -99,13 +98,11 @@ pub fn main() -> Result<()> {
 
     let components: Vec<_> = matches
         .values_of("components")
-        .map(|v| v.collect())
-        .unwrap_or_else(Vec::new);
+        .map_or_else(Vec::new, Iterator::collect);
 
     let targets: Vec<_> = matches
         .values_of("targets")
-        .map(|v| v.collect())
-        .unwrap_or_else(Vec::new);
+        .map_or_else(Vec::new, Iterator::collect);
 
     let opts = InstallOpts {
         default_host_triple: default_host,

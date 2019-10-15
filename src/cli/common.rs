@@ -345,12 +345,7 @@ pub fn rustc_version(toolchain: &Toolchain<'_>) -> String {
                     Ok(Some(_)) | Err(_) => {}
                 }
             }
-
-            if let Some(line1) = line1 {
-                line1.to_owned()
-            } else {
-                String::from("(error reading rustc version)")
-            }
+            line1.unwrap_or_else(|| String::from("(error reading rustc version)"))
         } else {
             String::from("(rustc does not exist)")
         }

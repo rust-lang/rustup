@@ -49,7 +49,7 @@ pub struct DownloadTracker {
 }
 
 impl DownloadTracker {
-    /// Creates a new DownloadTracker.
+    /// Creates a new `DownloadTracker`.
     pub fn new() -> Self {
         Self {
             content_len: None,

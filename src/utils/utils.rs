@@ -158,7 +158,7 @@ pub fn download_file_with_resume(
         Ok(_) => Ok(()),
         Err(e) => {
             let is_client_error = match e.kind() {
-                ErrorKind::Download(DEK::HttpStatus(400..=499)) => true,
+                ErrorKind::Download(DEK::HttpStatus(400..=499)) |
                 ErrorKind::Download(DEK::FileNotFound) => true,
                 _ => false,
             };
@@ -247,13 +247,13 @@ pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
 }
 
 pub fn assert_is_file(path: &Path) -> Result<()> {
-    if !is_file(path) {
+    if is_file(path) {
+        Ok(())
+    } else {
         Err(ErrorKind::NotAFile {
             path: PathBuf::from(path),
         }
         .into())
-    } else {
-        Ok(())
     }
 }
 
