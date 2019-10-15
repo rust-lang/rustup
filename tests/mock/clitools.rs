@@ -669,6 +669,14 @@ fn build_mock_channel(
     } else if rls == RlsStatus::Available {
         let rls = build_mock_rls_installer(version, version_hash, false);
         all.push(("rls", vec![(rls, host_triple.clone())]));
+    } else {
+        all.push((
+            "rls",
+            vec![(
+                MockInstallerBuilder { components: vec![] },
+                host_triple.clone(),
+            )],
+        ))
     }
 
     let more = vec![
@@ -726,7 +734,7 @@ fn build_mock_channel(
             .into_iter()
             .map(|(installer, triple)| MockTargetedPackage {
                 target: triple,
-                available: true,
+                available: !installer.components.is_empty(),
                 components: vec![],
                 installer,
             });
@@ -776,6 +784,12 @@ fn build_mock_channel(
                     target: target.to_string(),
                     is_extension: true,
                 });
+            } else {
+                target_pkg.components.push(MockComponent {
+                    name: "rls".to_string(),
+                    target: target.to_string(),
+                    is_extension: true,
+                })
             }
             target_pkg.components.push(MockComponent {
                 name: "rust-std".to_string(),

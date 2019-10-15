@@ -140,18 +140,18 @@ impl Cfg {
     // Returns a profile, if one exists in the settings file.
     //
     // Returns `Err` if the settings file could not be read or the profile is
-    // invalid. Returns `Ok(Some(...))` if there is a valid profile, and `Ok(None)`
+    // invalid. Returns `Ok(...)` if there is a valid profile, and `Ok(Profile::default())`
     // if there is no profile in the settings file. The last variant happens when
     // a user upgrades from a version of Rustup without profiles to a version of
     // Rustup with profiles.
-    pub fn get_profile(&self) -> Result<Option<dist::Profile>> {
+    pub fn get_profile(&self) -> Result<dist::Profile> {
         self.settings_file.with(|s| {
             let p = match &s.profile {
                 Some(p) => p,
-                None => return Ok(None),
+                None => dist::Profile::default_name(),
             };
             let p = dist::Profile::from_str(p)?;
-            Ok(Some(p))
+            Ok(p)
         })
     }
 

@@ -391,7 +391,10 @@ impl MockDistServer {
         let profiles = &[
             ("minimal", vec!["rustc"]),
             ("default", vec!["rustc", "cargo", "rust-std", "rust-docs"]),
-            ("complete", vec!["rustc", "cargo", "rust-std"]),
+            (
+                "complete",
+                vec!["rustc", "cargo", "rust-std", "rust-docs", "rls"],
+            ),
         ];
         for (profile, values) in profiles {
             let array = values

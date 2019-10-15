@@ -760,7 +760,7 @@ fn maybe_install_rust(
         // Set host triple first as it will affect resolution of toolchain_str
         cfg.set_default_host_triple(default_host_triple)?;
         let toolchain = cfg.get_toolchain(toolchain_str, false)?;
-        let status = toolchain.install_from_dist(false, components, targets)?;
+        let status = toolchain.install_from_dist(true, components, targets)?;
         cfg.set_default(toolchain_str)?;
         println!();
         common::show_channel_update(&cfg, toolchain_str, Ok(status))?;
@@ -1582,23 +1582,6 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
     process::exit(0);
 }
 
-/// Ensure that the configuration is good after a self-update
-///
-/// Currently the only thing we do is ensure that a profile is set
-/// since that could mess things up otherwise, and we don't really
-/// want to do a full metadata update for that.  There are potentially
-/// legitimate reasons for a user to unset profile though so we only
-/// set it on updates rather than simply ensuring we always have a
-/// profile set in `Cfg::get_profile()`
-fn ensure_config_good() -> Result<()> {
-    let cfg = common::set_globals(false, true)?;
-    if cfg.get_profile()?.is_none() {
-        cfg.set_profile(Profile::default_name())?;
-    }
-
-    Ok(())
-}
-
 /// This function is as the final step of a self-upgrade. It replaces
 /// `CARGO_HOME`/bin/rustup with the running exe, and updates the the
 /// links to it. On windows this will run *after* the original
@@ -1606,7 +1589,6 @@ fn ensure_config_good() -> Result<()> {
 #[cfg(unix)]
 pub fn self_replace() -> Result<()> {
     install_bins()?;
-    ensure_config_good()?;
 
     Ok(())
 }
@@ -1615,7 +1597,6 @@ pub fn self_replace() -> Result<()> {
 pub fn self_replace() -> Result<()> {
     wait_for_parent()?;
     install_bins()?;
-    ensure_config_good()?;
 
     Ok(())
 }
