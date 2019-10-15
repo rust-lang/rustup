@@ -19,7 +19,7 @@ pub enum InstallMethod<'a> {
     // bool is whether to force an update
     Dist(
         &'a dist::ToolchainDesc,
-        Option<dist::Profile>,
+        dist::Profile,
         Option<&'a Path>,
         DownloadCfg<'a>,
         // --force
@@ -76,7 +76,7 @@ impl<'a> InstallMethod<'a> {
                     dl_cfg,
                     update_hash,
                     toolchain,
-                    if exists { None } else { profile },
+                    if exists { None } else { Some(profile) },
                     prefix,
                     force_update,
                     old_date,

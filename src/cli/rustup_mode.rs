@@ -1304,10 +1304,7 @@ fn set_profile(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
 }
 
 fn show_profile(cfg: &Cfg) -> Result<()> {
-    match cfg.get_profile()? {
-        Some(p) => println!("{}", p),
-        None => println!("No profile set"),
-    }
+    println!("{}", cfg.get_profile()?);
     Ok(())
 }
 
