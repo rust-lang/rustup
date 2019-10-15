@@ -127,8 +127,22 @@ impl Manifestation {
         // Validate that the requested components are available
         match update.unavailable_components(new_manifest, toolchain_str) {
             Ok(_) => {}
-            _ if force_update => {}
-            Err(e) => return Err(e),
+            Err(e) => {
+                if force_update {
+                    match e.kind() {
+                        ErrorKind::RequestedComponentsUnavailable(components, _, _) => {
+                            for component in components {
+                                notify_handler(Notification::ForcingUnavailableComponent(
+                                    component.name(new_manifest).as_str(),
+                                ));
+                            }
+                        }
+                        _ => {}
+                    }
+                } else {
+                    return Err(e);
+                }
+            }
         }
 
         let altered = temp_cfg.dist_server != DEFAULT_DIST_SERVER;
