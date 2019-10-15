@@ -279,6 +279,12 @@ pub fn cli() -> App<'static, 'static> {
                                 .short("t")
                                 .takes_value(true)
                                 .multiple(true)
+                        )
+                        .arg(
+                            Arg::with_name("force")
+                                .help("Force an update, even if some components are missing")
+                                .long("force")
+                                .takes_value(false),
                         ),
                 )
                 .subcommand(
