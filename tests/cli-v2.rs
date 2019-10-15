@@ -22,6 +22,10 @@ pub fn setup(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);
 }
 
+pub fn setup_complex(f: &dyn Fn(&mut Config)) {
+    clitools::setup(Scenario::UnavailableRls, f);
+}
+
 #[test]
 fn rustc_no_default_toolchain() {
     setup(&|config| {
@@ -1137,6 +1141,40 @@ fn install_with_component_and_target() {
             config,
             &["rustup", "target", "list"],
             &format!("{} (installed)", clitools::CROSS_ARCH1),
+        );
+    })
+}
+
+#[test]
+fn test_complete_profile_skips_missing_when_forced() {
+    setup_complex(&|config| {
+        set_current_dist_date(config, "2015-01-01");
+
+        expect_ok(config, &["rustup", "set", "profile", "complete"]);
+        // First try and install without force
+        expect_err(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+            for_host!("error: component 'rls' for target '{}' is unavailable for download for channel nightly")
+        );
+        // Now try and force
+        expect_stderr_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "--force",
+                "nightly",
+                "--no-self-update",
+            ],
+            for_host!("warning: Force-skipping unavailable component 'rls-{}'"),
         );
     })
 }
