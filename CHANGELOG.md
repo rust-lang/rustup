@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.20.1] - 2019-10-16
+
+This release was made to solve two problems spotted in `1.20.0`
+
+- Force installation of toolchain during `rustup-init` to improve handling
+  on non-tier-one platforms
+- Assume the `default` profile if a profile is missing from configuration
+  which will solve a problem where distro-provided `rustup` binaries did not
+  upgrade the configuration properly
+
 ## [1.20.0] - 2019-10-15
 
 ### Changed
