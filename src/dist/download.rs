@@ -57,11 +57,7 @@ impl<'a> DownloadCfg<'a> {
         }
 
         let partial_file_path = target_file.with_file_name(
-            target_file
-                .file_name()
-                .and_then(|s| s.to_str())
-                .to_owned()
-                + ".partial",
+            target_file.file_name().and_then(|s| s.to_str()).to_owned() + ".partial",
         );
 
         let mut hasher = Sha256::new();

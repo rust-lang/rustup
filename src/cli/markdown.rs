@@ -120,10 +120,7 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
                 self.wrapper.write_line();
             }
             Tag::Table(_alignments) => {}
-            Tag::TableHead |
-            Tag::TableRow |
-            Tag::TableCell |
-            Tag::BlockQuote => {}
+            Tag::TableHead | Tag::TableRow | Tag::TableCell | Tag::BlockQuote => {}
             Tag::CodeBlock(_lang) => {
                 self.wrapper.write_line();
                 self.wrapper.indent += 2;
@@ -139,10 +136,8 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
             Tag::Emphasis => {
                 self.push_attr(Attr::ForegroundColor(color::BRIGHT_RED));
             }
-            Tag::Strong |
-            Tag::Strikethrough => {}
-            Tag::Link(_link_type, _dest, _title) |
-            Tag::Image(_link_type, _dest, _title) => {}
+            Tag::Strong | Tag::Strikethrough => {}
+            Tag::Link(_link_type, _dest, _title) | Tag::Image(_link_type, _dest, _title) => {}
             Tag::FootnoteDefinition(_name) => {}
         }
     }

@@ -49,8 +49,7 @@ pub fn main() -> Result<()> {
             ("profile", Some(_)) => handle_epipe(show_profile(cfg))?,
             (_, _) => handle_epipe(show(cfg))?,
         },
-        ("install", Some(m)) |
-        ("update", Some(m)) => update(cfg, m)?,
+        ("install", Some(m)) | ("update", Some(m)) => update(cfg, m)?,
         ("check", Some(_)) => check_updates(cfg)?,
         ("uninstall", Some(m)) => toolchain_remove(cfg, m)?,
         ("default", Some(m)) => default_(cfg, m)?,

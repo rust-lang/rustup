@@ -44,8 +44,7 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
         "rust-lldb" => Some("lldb-preview"),
         "rust-gdb" => Some("gdb-preview"),
         "rls" => Some("rls"),
-        "cargo-clippy" |
-        "clippy-driver" => Some("clippy"),
+        "cargo-clippy" | "clippy-driver" => Some("clippy"),
         "cargo-miri" => Some("miri"),
         "rustfmt" | "cargo-fmt" => Some("rustfmt"),
         _ => None,

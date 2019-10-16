@@ -522,7 +522,8 @@ impl Component {
         result.insert(
             "target".to_owned(),
             toml::Value::String(
-                self.target.map_or_else(|| "*".to_owned(), |t| t.to_string())
+                self.target
+                    .map_or_else(|| "*".to_owned(), |t| t.to_string()),
             ),
         );
         result.insert("pkg".to_owned(), toml::Value::String(self.pkg));

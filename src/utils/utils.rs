@@ -158,8 +158,8 @@ pub fn download_file_with_resume(
         Ok(_) => Ok(()),
         Err(e) => {
             let is_client_error = match e.kind() {
-                ErrorKind::Download(DEK::HttpStatus(400..=499)) |
-                ErrorKind::Download(DEK::FileNotFound) => true,
+                ErrorKind::Download(DEK::HttpStatus(400..=499))
+                | ErrorKind::Download(DEK::FileNotFound) => true,
                 _ => false,
             };
             Err(e).chain_err(|| {
