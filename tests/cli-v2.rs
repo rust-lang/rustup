@@ -1176,5 +1176,12 @@ fn test_complete_profile_skips_missing_when_forced() {
             ],
             for_host!("warning: Force-skipping unavailable component 'rls-{}'"),
         );
+
+        // Ensure that the skipped component (rls) is not installed
+        expect_not_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            for_host!("rls-{} (installed)"),
+        );
     })
 }
