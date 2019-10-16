@@ -118,7 +118,8 @@ impl Manifestation {
 
         // Create the lists of components needed for installation
         let config = self.read_config()?;
-        let update = Update::build_update(self, new_manifest, &changes, &config, notify_handler)?;
+        let mut update =
+            Update::build_update(self, new_manifest, &changes, &config, notify_handler)?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
@@ -136,6 +137,7 @@ impl Manifestation {
                                     component.name(new_manifest).as_str(),
                                 ));
                             }
+                            update.drop_components_to_install(&components);
                         }
                         _ => {}
                     }
@@ -621,6 +623,21 @@ impl Update {
         }
 
         Ok(())
+    }
+
+    fn drop_components_to_install(&mut self, to_drop: &[Component]) {
+        let components: Vec<_> = self
+            .components_to_install
+            .drain(..)
+            .filter(|c| !to_drop.contains(&c))
+            .collect();
+        self.components_to_install.extend(components);
+        let final_components: Vec<_> = self
+            .final_component_list
+            .drain(..)
+            .filter(|c| !to_drop.contains(&c))
+            .collect();
+        self.final_component_list = final_components;
     }
 
     /// Map components to urls and hashes
