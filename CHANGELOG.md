@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.2] - 2019-10-16
+
+One final tweak was needed to the force-installation of toolchains because
+otherwise components would be marked as installed when they were not.
+
+Our apologies to anyone adversely affected by the 1.20.0/1 releases.
+
 ## [1.20.1] - 2019-10-16
 
 This release was made to solve two problems spotted in `1.20.0`
