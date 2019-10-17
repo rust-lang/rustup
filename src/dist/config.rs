@@ -71,7 +71,7 @@ impl Config {
     }
 
     pub fn new() -> Self {
-        Config::default()
+        Self::default()
     }
 }
 
