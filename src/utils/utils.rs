@@ -587,6 +587,22 @@ where
     })
 }
 
+pub fn delete_dir_contents(dir_path: &Path) {
+    let dir_contents = fs::read_dir(dir_path);
+    if let Ok(contents) = dir_contents {
+        for entry in contents {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.is_dir() {
+                    remove_dir_all::remove_dir_all(path).expect("Failed to remove a dir");
+                } else {
+                    fs::remove_file(path).expect("Failed to remove a file");
+                }
+            };
+        }
+    };
+}
+
 pub struct FileReaderWithProgress<'a> {
     fh: std::io::BufReader<std::fs::File>,
     notify_handler: &'a dyn Fn(Notification<'_>),

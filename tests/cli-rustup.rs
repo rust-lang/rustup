@@ -59,6 +59,7 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
+info: cleaning up downloads & tmp directories
 "
             ),
         );
@@ -98,6 +99,7 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
+info: cleaning up downloads & tmp directories
 "
             ),
         );
@@ -120,6 +122,7 @@ fn rustup_stable_no_change() {
             ),
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
+info: cleaning up downloads & tmp directories
 "
             ),
         );
@@ -188,6 +191,7 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
+info: cleaning up downloads & tmp directories
 "
             ),
         );
@@ -244,6 +248,7 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
+info: cleaning up downloads & tmp directories
 "
             ),
         );
@@ -260,6 +265,7 @@ fn rustup_no_channels() {
             &["rustup", "update", "--no-self-update"],
             r"",
             r"info: no updatable toolchains installed
+info: cleaning up downloads & tmp directories
 ",
         );
     })

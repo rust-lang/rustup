@@ -1,4 +1,5 @@
 use crate::utils::raw;
+use crate::utils::utils;
 use std::error;
 use std::fmt::{self, Display};
 use std::fs;
@@ -195,6 +196,10 @@ impl Cfg {
                 });
             }
         }
+    }
+
+    pub fn clean(&self) {
+        utils::delete_dir_contents(&self.root_directory);
     }
 }
 
