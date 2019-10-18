@@ -7,44 +7,46 @@
 // TODO: Determine whether we want external keyring support
 // TODO: Determine how to integrate nicely into the test suite
 
-use pgp::composed::{Deserializable, Message, SignedPublicKey};
+use pgp::{Deserializable, Signature, SignedPublicKey};
 
 use crate::errors::*;
 
 const SIGNING_KEY_BYTES: &[u8] = include_bytes!("rust-signing-key.asc");
 
 lazy_static::lazy_static! {
-    static ref SIGNING_KEYS: Vec<SignedPublicKey> = load_keys().expect("invalid");
+    static ref SIGNING_KEY: SignedPublicKey = load_key().expect("invalid");
 }
 
 fn squish_internal_err<E: std::fmt::Display>(err: E) -> Error {
     ErrorKind::SignatureVerificationInternalError(format!("{}", err)).into()
 }
 
-fn load_keys() -> Result<Vec<SignedPublicKey>> {
-    let signing_key = SignedPublicKey::from_armor_many(std::io::Cursor::new(SIGNING_KEY_BYTES))
-        .map_err(squish_internal_err)?
-        .0
-        .collect::<std::result::Result<Vec<_>, _>>()
-        .map_err(squish_internal_err)?;
+fn load_key() -> Result<SignedPublicKey> {
+    let (signing_key, _) =
+        SignedPublicKey::from_armor_single(std::io::Cursor::new(SIGNING_KEY_BYTES))
+            .map_err(squish_internal_err)?;
 
     Ok(signing_key)
 }
 
 pub fn verify_signature(content: &str, signature: &str) -> Result<bool> {
-    // TODO: implement actual signature + content verification
+    let (signatures, _) = Signature::from_string_many(signature).map_err(squish_internal_err)?;
 
-    let (messages, _) = Message::from_string_many(content).map_err(squish_internal_err)?;
+    for signature in signatures {
+        let signature = signature.map_err(squish_internal_err)?;
+        println!("{:#?}", &signature);
 
-    let mut good = 0;
-    for message in messages {
-        let message = message.map_err(squish_internal_err)?;
-        if message.verify(&SIGNING_KEYS[0]).is_ok() {
-            good += 1;
+        if signature.verify(&*SIGNING_KEY, content.as_bytes()).is_ok() {
+            return Ok(true);
+        }
+        for sub_key in &SIGNING_KEY.public_subkeys {
+            if signature.verify(sub_key, content.as_bytes()).is_ok() {
+                return Ok(true);
+            }
         }
     }
 
-    Ok(good > 0)
+    Ok(false)
 }
 
 #[cfg(test)]
@@ -52,7 +54,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_load_keys() {
-        assert_eq!(SIGNING_KEYS.len(), 1, "failed to load keys");
+    fn test_verify_signature() {
+        let content = include_str!("../../tests/data/channel-rust-stable.toml");
+        let signature = include_str!("../../tests/data/channel-rust-stable.toml.asc");
+
+        assert!(
+            verify_signature(content, signature).unwrap(),
+            "invalid signature"
+        );
     }
 }

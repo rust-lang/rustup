@@ -55,7 +55,7 @@ toml = "0.5"
 url = "1"
 wait-timeout = "0.2"
 xz2 = "0.1.3"
-pgp = { version = "0.2.4", optional = true }
+pgp = { version = "0.2.5", optional = true }
 
 [dependencies.retry]
 version = "0.5"
