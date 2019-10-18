@@ -14,6 +14,9 @@ And it runs on all platforms Rust supports, including Windows.
 [rustlang]: https://www.rust-lang.org
 
 * [Installation](#installation)
+  * [Profiles](#profiles)
+  * [Shell autocompletion](#enable-tab-completion-for-bash-fish-zsh-or-powershell)
+  * [Where to install?](#choosing-where-to-install)
 * [How rustup works](#how-rustup-works)
 * [Keeping Rust up to date](#keeping-rust-up-to-date)
 * [Working with nightly Rust](#working-with-nightly-rust)
@@ -58,6 +61,36 @@ If you see something like `rustc 1.19.0 (0ade33941 2017-07-17)` then
 you are ready to Rust. If you decide Rust isn't your thing, you can
 completely remove it from your system by running `rustup self
 uninstall`.
+
+### Profiles
+
+`rustup` has the concept of "profiles". They are groups of components you can
+choose to download while installing a new Rust toolchain. The profiles
+available at this time are `minimal`, `default`, and `complete`:
+
+* The **minimal** profile includes as few components as possible to get a
+working compiler (`rustc`, `rust-std`, and `cargo`). It's recommended to use
+this component on Windows systems if you don't use local documentation, and in
+CI.
+* The **default** profile includes all the components previously installed by
+default (`rustc`, `rust-std`, `cargo`, and `rust-docs`) plus `rustfmt` and
+`clippy`. This profile will be used by `rustup` by default, and it's the one
+recommended for general use.
+* The **complete** profile includes all the components available through
+`rustup`, including `miri` and IDE integration tools (`rls` and `rust-analysis`).
+
+To change the `rustup` profile you can use the `rustup set profile` command. For
+example, to select the minimal profile you can use:
+
+```
+rustup set profile minimal
+```
+
+It's also possible to choose the profile when installing `rustup` for the first
+time, either interactively by choosing the "Customize installation" option or
+programmaticaly by passing the `--profile=<name>` flag. Profiles will only
+affect newly installed toolchains: as usual it will be possible to install
+individual components later with: `rustup component add`.
 
 #### Enable tab completion for Bash, Fish, Zsh, or PowerShell
 
@@ -585,6 +618,7 @@ but the command-line `curl` command works fine, this may be the problem.
 Command                                                     | Description
 ----------------------------------------------------------- | ------------------------------------------------------------
 `rustup default nightly`                                    | Set the default toolchain to the latest nightly
+`rustup set profile minimal`                                | Set the default "profile" (see [profiles](#profiles))
 `rustup target list`                                        | List all available targets for the active toolchain
 `rustup target add arm-linux-androideabi`                   | Install the Android target
 `rustup target remove arm-linux-androideabi`                | Remove the Android target
@@ -668,6 +702,7 @@ $ curl https://sh.rustup.rs -sSf | sh -s -- --help
 $ curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
 $ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
 $ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none
+$ curl https://sh.rustup.rs -sSf | sh -s -- --profile minimal --default-toolchain nightly
 ```
 
 If you prefer you can directly download `rustup-init` for the
