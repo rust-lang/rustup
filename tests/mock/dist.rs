@@ -293,8 +293,7 @@ impl MockDistServer {
 
         #[cfg(feature = "signature-check")]
         {
-            let key = load_key().unwrap();
-            let signature = create_signature(buf.as_bytes(), &key).unwrap();
+            let signature = create_signature(buf.as_bytes()).unwrap();
             let sig_path = self.path.join(format!("{}.asc", manifest_name));
             write_file(&sig_path, &signature);
 
@@ -445,8 +444,7 @@ impl MockDistServer {
 
         #[cfg(feature = "signature-check")]
         {
-            let key = load_key().unwrap();
-            let signature = create_signature(manifest_content.as_bytes(), &key).unwrap();
+            let signature = create_signature(manifest_content.as_bytes()).unwrap();
             let sig_path = self.path.join(format!("{}.toml.asc", manifest_name));
             write_file(&sig_path, &signature);
 
@@ -514,7 +512,7 @@ pub fn create_hash(src: &Path, dst: &Path) -> String {
     hex
 }
 
-fn write_file(dst: &Path, contents: &str) {
+pub fn write_file(dst: &Path, contents: &str) {
     drop(fs::remove_file(dst));
     File::create(dst)
         .and_then(|mut f| f.write_all(contents.as_bytes()))
@@ -533,15 +531,14 @@ fn load_key() -> std::result::Result<pgp::SignedSecretKey, pgp::errors::Error> {
 }
 
 #[cfg(feature = "signature-check")]
-fn create_signature(
-    data: &[u8],
-    key: &pgp::SignedSecretKey,
-) -> std::result::Result<String, pgp::errors::Error> {
+pub fn create_signature(data: &[u8]) -> std::result::Result<String, pgp::errors::Error> {
+    let key = load_key()?;
+
     let msg = pgp::Message::new_literal_bytes("message", data);
-    let signed_message = msg.sign(key, || "".into(), pgp::crypto::HashAlgorithm::SHA2_256)?;
+    let signed_message = msg.sign(&key, || "".into(), pgp::crypto::HashAlgorithm::SHA2_256)?;
     let sig = signed_message.into_signature();
 
-    sig.verify(key, data).expect("invalid sig created");
+    sig.verify(&key, data).expect("invalid sig created");
 
     sig.to_armored_string(None)
 }
