@@ -133,7 +133,12 @@ impl<'a> DownloadCfg<'a> {
 
     #[cfg(feature = "signature-check")]
     fn check_signature(&self, url: &str, file: &temp::File<'_>) -> Result<()> {
-        let signature = self.download_signature(url)?;
+        let signature = self.download_signature(url).map_err(|e| {
+            e.chain_err(|| ErrorKind::SignatureVerificationFailed {
+                url: url.to_owned(),
+            })
+        })?;
+
         let content = utils::read_file("channel data", file).map(|s| s.to_owned())?;
         if !crate::dist::signatures::verify_signature(&content, &signature)? {
             Err(ErrorKind::SignatureVerificationFailed {
