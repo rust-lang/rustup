@@ -199,7 +199,12 @@ impl<'a> DownloadCfg<'a> {
         }
 
         #[cfg(feature = "signature-check")]
-        self.check_signature(&url_str, &file)?;
+        {
+            // No signatures for tarballs for now.
+            if !url_str.ends_with(".tar.gz") && !url_str.ends_with(".tar.xz") {
+                self.check_signature(&url_str, &file)?;
+            }
+        }
 
         Ok(Some((file, partial_hash)))
     }
