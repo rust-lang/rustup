@@ -36,18 +36,32 @@ pub fn verify_signature(content: &str, signature: &str) -> Result<bool> {
         let signature = signature.map_err(squish_internal_err)?;
 
         for key in &*SIGNING_KEYS {
-            if signature.verify(key, content.as_bytes()).is_ok() {
-                return Ok(true);
+            if is_signing_key(key) {
+                if signature.verify(key, content.as_bytes()).is_ok() {
+                    return Ok(true);
+                }
             }
             for sub_key in &key.public_subkeys {
-                if signature.verify(sub_key, content.as_bytes()).is_ok() {
-                    return Ok(true);
+                if is_signing_key(sub_key) {
+                    if signature.verify(sub_key, content.as_bytes()).is_ok() {
+                        return Ok(true);
+                    }
                 }
             }
         }
     }
 
     Ok(false)
+}
+
+// TODO: this should be moved into rpgp
+fn is_signing_key<T: pgp::types::KeyTrait>(key: &T) -> bool {
+    use pgp::crypto::PublicKeyAlgorithm::*;
+
+    match key.algorithm() {
+        RSA | RSASign | ElgamalSign | DSA | EdDSA => true,
+        _ => false,
+    }
 }
 
 #[cfg(test)]
