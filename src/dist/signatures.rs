@@ -14,19 +14,19 @@ use crate::errors::*;
 const SIGNING_KEY_BYTES: &[u8] = include_bytes!("rust-signing-key.asc");
 
 lazy_static::lazy_static! {
-    static ref SIGNING_KEY: SignedPublicKey = load_key().expect("invalid");
+    static ref SIGNING_KEYS: Vec<SignedPublicKey> = load_keys().expect("invalid keys");
 }
 
 fn squish_internal_err<E: std::fmt::Display>(err: E) -> Error {
     ErrorKind::SignatureVerificationInternalError(format!("{}", err)).into()
 }
 
-fn load_key() -> Result<SignedPublicKey> {
-    let (signing_key, _) =
-        SignedPublicKey::from_armor_single(std::io::Cursor::new(SIGNING_KEY_BYTES))
-            .map_err(squish_internal_err)?;
-
-    Ok(signing_key)
+fn load_keys() -> Result<Vec<SignedPublicKey>> {
+    SignedPublicKey::from_armor_many(std::io::Cursor::new(SIGNING_KEY_BYTES))
+        .map_err(squish_internal_err)?
+        .0
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(squish_internal_err)
 }
 
 pub fn verify_signature(content: &str, signature: &str) -> Result<bool> {
@@ -34,14 +34,15 @@ pub fn verify_signature(content: &str, signature: &str) -> Result<bool> {
 
     for signature in signatures {
         let signature = signature.map_err(squish_internal_err)?;
-        println!("{:#?}", &signature);
 
-        if signature.verify(&*SIGNING_KEY, content.as_bytes()).is_ok() {
-            return Ok(true);
-        }
-        for sub_key in &SIGNING_KEY.public_subkeys {
-            if signature.verify(sub_key, content.as_bytes()).is_ok() {
+        for key in &*SIGNING_KEYS {
+            if signature.verify(key, content.as_bytes()).is_ok() {
                 return Ok(true);
+            }
+            for sub_key in &key.public_subkeys {
+                if signature.verify(sub_key, content.as_bytes()).is_ok() {
+                    return Ok(true);
+                }
             }
         }
     }
