@@ -41,13 +41,19 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
     let manifest_name = format!("dist/channel-rust-{}", channel);
     let manifest_path = path.join(&manifest_name);
     let hash_path = path.join(format!("{}.sha256", manifest_name));
+    #[cfg(feature = "signature-check")]
+    let sig_path = path.join(format!("{}.asc", manifest_name));
 
     let archive_manifest_name = format!("dist/{}/channel-rust-{}", date, channel);
     let archive_manifest_path = path.join(&archive_manifest_name);
     let archive_hash_path = path.join(format!("{}.sha256", archive_manifest_name));
+    #[cfg(feature = "signature-check")]
+    let archive_sig_path = path.join(format!("{}.asc", archive_manifest_name));
 
     let _ = hard_link(archive_manifest_path, manifest_path);
     let _ = hard_link(archive_hash_path, hash_path);
+    #[cfg(feature = "signature-check")]
+    let _ = hard_link(archive_sig_path, sig_path);
 
     // Copy all files that look like rust-* for the v1 installers
     let archive_path = path.join(format!("dist/{}", date));
@@ -284,6 +290,17 @@ impl MockDistServer {
 
         let archive_hash_path = self.path.join(format!("{}.sha256", archive_manifest_name));
         hard_link(&hash_path, archive_hash_path).unwrap();
+
+        #[cfg(feature = "signature-check")]
+        {
+            let key = load_key().unwrap();
+            let signature = create_signature(buf.as_bytes(), &key).unwrap();
+            let sig_path = self.path.join(format!("{}.asc", manifest_name));
+            write_file(&sig_path, &signature);
+
+            let archive_sig_path = self.path.join(format!("{}.asc", archive_manifest_name));
+            hard_link(sig_path, archive_sig_path).unwrap();
+        }
     }
 
     fn write_manifest_v2(
