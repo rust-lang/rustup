@@ -317,7 +317,7 @@ impl Cfg {
                             ErrorKind::OverrideToolchainNotInstalled(name.to_string())
                         })
                     } else {
-                        toolchain.install_from_dist(false, &[], &[])?;
+                        toolchain.install_from_dist(true, &[], &[])?;
                         Ok(Some((toolchain, reason)))
                     }
                 }
@@ -478,7 +478,7 @@ impl Cfg {
     ) -> Result<Command> {
         let toolchain = self.get_toolchain(toolchain, false)?;
         if install_if_missing && !toolchain.exists() {
-            toolchain.install_from_dist(false, &[], &[])?;
+            toolchain.install_from_dist(true, &[], &[])?;
         }
 
         if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {
