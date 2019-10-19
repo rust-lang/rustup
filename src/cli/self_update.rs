@@ -746,7 +746,7 @@ fn maybe_install_rust(
     verbose: bool,
     quiet: bool,
 ) -> Result<()> {
-    let cfg = common::set_globals(verbose, quiet)?;
+    let mut cfg = common::set_globals(verbose, quiet)?;
     cfg.set_profile(profile_str)?;
 
     // If there is already an install, then `toolchain_str` may not be

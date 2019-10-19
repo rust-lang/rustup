@@ -4,8 +4,9 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_err, expect_not_stderr_ok, expect_not_stdout_ok, expect_ok, expect_ok_ex,
-    expect_stderr_ok, expect_stdout_ok, set_current_dist_date, this_host_triple, Config, Scenario,
+    self, expect_component_executable, expect_component_not_executable, expect_err,
+    expect_not_stderr_ok, expect_not_stdout_ok, expect_ok, expect_ok_ex, expect_stderr_ok,
+    expect_stdout_ok, set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use std::fs;
 use std::io::Write;
@@ -70,6 +71,42 @@ fn install_toolchain_from_version() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "1.1.0"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+    });
+}
+
+#[test]
+fn install_with_profile() {
+    setup_complex(&|config| {
+        // Start with a config that uses the "complete" profile
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "set", "profile", "complete"]);
+
+        // Installing with minimal profile should only install rustc
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "--profile",
+                "minimal",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        expect_component_executable(config, "rustup");
+        expect_component_executable(config, "rustc");
+        expect_component_not_executable(config, "cargo");
+
+        // After an update, we should _still_ only have the profile-dictated components
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+
+        expect_component_executable(config, "rustup");
+        expect_component_executable(config, "rustc");
+        expect_component_not_executable(config, "cargo");
     });
 }
 
