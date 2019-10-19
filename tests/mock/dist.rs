@@ -404,8 +404,16 @@ impl MockDistServer {
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
         let manifest_path = self.path.join(format!("{}.toml", manifest_name));
-        write_file(&manifest_path, &toml::to_string(&toml_manifest).unwrap());
+        let manifest_content = toml::to_string(&toml_manifest).unwrap();
+        write_file(&manifest_path, &manifest_content);
 
+        #[cfg(feature = "signature-check")]
+        {
+            let key = load_key().unwrap();
+            let signature = create_signature(manifest_content.as_bytes(), &key).unwrap();
+            let signature_path = self.path.join(format!("{}.toml.asc", manifest_name));
+            write_file(&signature_path, &signature);
+        }
         let hash_path = self.path.join(format!("{}.toml.sha256", manifest_name));
         create_hash(&manifest_path, &hash_path);
 
@@ -482,4 +490,29 @@ fn write_file(dst: &Path, contents: &str) {
     File::create(dst)
         .and_then(|mut f| f.write_all(contents.as_bytes()))
         .unwrap();
+}
+
+#[cfg(feature = "signature-check")]
+const SIGNING_KEY_BYTES: &[u8] = include_bytes!("signing-key.asc");
+
+#[cfg(feature = "signature-check")]
+fn load_key() -> std::result::Result<pgp::SignedSecretKey, pgp::errors::Error> {
+    use pgp::Deserializable;
+    let (key, _) =
+        pgp::SignedSecretKey::from_armor_single(std::io::Cursor::new(SIGNING_KEY_BYTES))?;
+    Ok(key)
+}
+
+#[cfg(feature = "signature-check")]
+fn create_signature(
+    data: &[u8],
+    key: &pgp::SignedSecretKey,
+) -> std::result::Result<String, pgp::errors::Error> {
+    let msg = pgp::Message::new_literal_bytes("message", data);
+    let signed_message = msg.sign(key, || "".into(), pgp::crypto::HashAlgorithm::SHA2_256)?;
+    let sig = signed_message.into_signature();
+
+    sig.verify(key, data).expect("invalid sig created");
+
+    sig.to_armored_string(None)
 }
