@@ -23,13 +23,19 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
     let manifest_name = format!("dist/channel-rust-{}", channel);
     let manifest_path = path.join(format!("{}.toml", manifest_name));
     let hash_path = path.join(format!("{}.toml.sha256", manifest_name));
+    #[cfg(feature = "signature-check")]
+    let sig_path = path.join(format!("{}.toml.asc", manifest_name));
 
     let archive_manifest_name = format!("dist/{}/channel-rust-{}", date, channel);
     let archive_manifest_path = path.join(format!("{}.toml", archive_manifest_name));
     let archive_hash_path = path.join(format!("{}.toml.sha256", archive_manifest_name));
+    #[cfg(feature = "signature-check")]
+    let archive_sig_path = path.join(format!("{}.toml.asc", archive_manifest_name));
 
     let _ = hard_link(archive_manifest_path, manifest_path);
     let _ = hard_link(archive_hash_path, hash_path);
+    #[cfg(feature = "signature-check")]
+    let _ = hard_link(archive_sig_path, sig_path);
 
     // V1
     let manifest_name = format!("dist/channel-rust-{}", channel);
@@ -407,13 +413,6 @@ impl MockDistServer {
         let manifest_content = toml::to_string(&toml_manifest).unwrap();
         write_file(&manifest_path, &manifest_content);
 
-        #[cfg(feature = "signature-check")]
-        {
-            let key = load_key().unwrap();
-            let signature = create_signature(manifest_content.as_bytes(), &key).unwrap();
-            let signature_path = self.path.join(format!("{}.toml.asc", manifest_name));
-            write_file(&signature_path, &signature);
-        }
         let hash_path = self.path.join(format!("{}.toml.sha256", manifest_name));
         create_hash(&manifest_path, &hash_path);
 
@@ -426,6 +425,19 @@ impl MockDistServer {
             .path
             .join(format!("{}.toml.sha256", archive_manifest_name));
         hard_link(hash_path, archive_hash_path).unwrap();
+
+        #[cfg(feature = "signature-check")]
+        {
+            let key = load_key().unwrap();
+            let signature = create_signature(manifest_content.as_bytes(), &key).unwrap();
+            let sig_path = self.path.join(format!("{}.toml.asc", manifest_name));
+            write_file(&sig_path, &signature);
+
+            let archive_sig_path = self
+                .path
+                .join(format!("{}.toml.asc", archive_manifest_name));
+            hard_link(sig_path, archive_sig_path).unwrap();
+        }
     }
 }
 

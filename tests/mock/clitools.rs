@@ -522,6 +522,16 @@ impl Release {
             )),
             path.join(format!("dist/channel-rust-{}.toml", self.version)),
         );
+        #[cfg(feature = "signature-check")]
+        {
+            let _ = hard_link(
+                path.join(format!(
+                    "dist/{}/channel-rust-{}.toml.asc",
+                    self.date, self.channel
+                )),
+                path.join(format!("dist/channel-rust-{}.toml.asc", self.version)),
+            );
+        }
         let _ = hard_link(
             path.join(format!(
                 "dist/{}/channel-rust-{}.toml.sha256",
