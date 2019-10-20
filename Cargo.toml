@@ -55,7 +55,7 @@ toml = "0.5"
 url = "1"
 wait-timeout = "0.2"
 xz2 = "0.1.3"
-pgp = { git = "https://github.com/rpgp/rpgp", branch = "fix/cfgs", optional = true }
+pgp = { git = "https://github.com/rpgp/rpgp", branch = "fix/cfgs", optional = true, default-features = false}
 
 [dependencies.retry]
 version = "0.5"
