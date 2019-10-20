@@ -4,8 +4,8 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_err, expect_not_stderr_ok, expect_not_stdout_ok, expect_ok, expect_stderr_ok,
-    expect_stdout_ok, set_current_dist_date, this_host_triple, Config, Scenario,
+    self, expect_err, expect_not_stderr_ok, expect_not_stdout_ok, expect_ok, expect_ok_ex,
+    expect_stderr_ok, expect_stdout_ok, set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use std::fs;
 use std::io::Write;
@@ -1184,4 +1184,37 @@ fn test_complete_profile_skips_missing_when_forced() {
             for_host!("rls-{} (installed)"),
         );
     })
+}
+
+#[test]
+fn run_with_install_flag_against_unavailable_component() {
+    setup(&|config| {
+        let trip = TargetTriple::from_build();
+        make_component_unavailable(config, "rust-std", &trip);
+        expect_ok_ex(
+            config,
+            &[
+                "rustup",
+                "run",
+                "--install",
+                "nightly",
+                "rustc",
+                "--version",
+            ],
+            "1.3.0 (hash-nightly-2)
+",
+            for_host!(
+                r"info: syncing channel updates for 'nightly-{0}'
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+warning: Force-skipping unavailable component 'rust-std-{0}'
+info: downloading component 'cargo'
+info: downloading component 'rust-docs'
+info: downloading component 'rustc'
+info: installing component 'cargo'
+info: installing component 'rust-docs'
+info: installing component 'rustc'
+"
+            ),
+        );
+    });
 }
