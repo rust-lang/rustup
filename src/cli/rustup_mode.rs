@@ -33,7 +33,7 @@ pub fn main() -> Result<()> {
     let matches = cli().get_matches();
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");
-    let cfg = &common::set_globals(verbose, quiet)?;
+    let cfg = &mut common::set_globals(verbose, quiet)?;
 
     if maybe_upgrade_data(cfg, &matches)? {
         return Ok(());
@@ -89,8 +89,8 @@ pub fn main() -> Result<()> {
             (_, _) => unreachable!(),
         },
         ("set", Some(c)) => match c.subcommand() {
-            ("default-host", Some(m)) => set_default_host_triple(&cfg, m)?,
-            ("profile", Some(m)) => set_profile(&cfg, m)?,
+            ("default-host", Some(m)) => set_default_host_triple(cfg, m)?,
+            ("profile", Some(m)) => set_profile(cfg, m)?,
             (_, _) => unreachable!(),
         },
         ("completions", Some(c)) => {
@@ -168,6 +168,13 @@ pub fn cli() -> App<'static, 'static> {
                         .help(TOOLCHAIN_ARG_HELP)
                         .required(true)
                         .multiple(true),
+                )
+                .arg(
+                    Arg::with_name("profile")
+                        .long("profile")
+                        .takes_value(true)
+                        .possible_values(Profile::names())
+                        .required(false)
                 )
                 .arg(
                     Arg::with_name("no-self-update")
@@ -257,6 +264,13 @@ pub fn cli() -> App<'static, 'static> {
                                 .help(TOOLCHAIN_ARG_HELP)
                                 .required(true)
                                 .multiple(true),
+                        )
+                        .arg(
+                            Arg::with_name("profile")
+                                .long("profile")
+                                .takes_value(true)
+                                .possible_values(Profile::names())
+                                .required(false)
                         )
                         .arg(
                             Arg::with_name("no-self-update")
@@ -772,8 +786,13 @@ fn check_updates(cfg: &Cfg) -> Result<()> {
     Ok(())
 }
 
-fn update(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let self_update = !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE;
+    if let Some(p) = m.value_of("profile") {
+        let p = Profile::from_str(p)?;
+        cfg.set_profile_override(p);
+    }
+    let cfg = &cfg;
     if let Some(names) = m.values_of("toolchain") {
         for name in names {
             update_bare_triple_check(cfg, name)?;
@@ -1307,7 +1326,7 @@ fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     Ok(())
 }
 
-fn set_profile(cfg: &Cfg, m: &ArgMatches) -> Result<()> {
+fn set_profile(cfg: &mut Cfg, m: &ArgMatches) -> Result<()> {
     cfg.set_profile(&m.value_of("profile-name").unwrap())?;
     Ok(())
 }

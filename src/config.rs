@@ -32,6 +32,7 @@ impl Display for OverrideReason {
 }
 
 pub struct Cfg {
+    pub profile_override: Option<dist::Profile>,
     pub rustup_dir: PathBuf,
     pub settings_file: SettingsFile,
     pub toolchains_dir: PathBuf,
@@ -94,6 +95,7 @@ impl Cfg {
         let dist_root = dist_root_server.clone() + "/dist";
 
         let cfg = Self {
+            profile_override: None,
             rustup_dir,
             settings_file,
             toolchains_dir,
@@ -116,6 +118,10 @@ impl Cfg {
         Ok(cfg)
     }
 
+    pub fn set_profile_override(&mut self, profile: dist::Profile) {
+        self.profile_override = Some(profile);
+    }
+
     pub fn set_default(&self, toolchain: &str) -> Result<()> {
         self.settings_file.with_mut(|s| {
             s.default_toolchain = Some(toolchain.to_owned());
@@ -125,10 +131,11 @@ impl Cfg {
         Ok(())
     }
 
-    pub fn set_profile(&self, profile: &str) -> Result<()> {
+    pub fn set_profile(&mut self, profile: &str) -> Result<()> {
         if !dist::Profile::names().contains(&profile) {
             return Err(ErrorKind::UnknownProfile(profile.to_owned()).into());
         }
+        self.profile_override = None;
         self.settings_file.with_mut(|s| {
             s.profile = Some(profile.to_owned());
             Ok(())
@@ -145,6 +152,9 @@ impl Cfg {
     // a user upgrades from a version of Rustup without profiles to a version of
     // Rustup with profiles.
     pub fn get_profile(&self) -> Result<dist::Profile> {
+        if let Some(p) = self.profile_override {
+            return Ok(p);
+        }
         self.settings_file.with(|s| {
             let p = match &s.profile {
                 Some(p) => p,
