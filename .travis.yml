@@ -21,8 +21,6 @@ before_cache:
       --no-default-features \
       --features ci-autoclean \
       cargo-cache
-  - cargo cache -h
-  - cargo cache -a
   - cargo cache
 
 matrix:
