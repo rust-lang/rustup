@@ -11,7 +11,7 @@ cache:
   directories:
     - "$HOME/.cargo"
     - "$HOME/.cache/sccache"
-    - "$TRAVIS_BUILD_DIR/target"
+    - "target"
 before_cache:
   - export CARGO_TARGET_DIR="$TRAVIS_BUILD_DIR/target"
   - |
