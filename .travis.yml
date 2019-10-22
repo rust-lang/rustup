@@ -1,7 +1,7 @@
 dist: xenial
 services:
   - docker
-language: minimal
+language: shell
 
 git:
   depth: false
