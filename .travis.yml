@@ -23,7 +23,8 @@ before_cache:
       --bin cargo-cache \
       -- \
       cargo-cache
-  - cargo sweep -f
+  - cargo install --force --debug cargo-sweep
+  - cargo sweep -i
   - cargo cache
 
 matrix:
@@ -122,8 +123,6 @@ before_install:
 
 install:
   - export CARGO_TARGET_DIR="$TRAVIS_BUILD_DIR/target"
-  - cargo install --force --debug cargo-sweep
-  - cargo sweep -s
 
 script:
   - mkdir -p target/"$TARGET";
