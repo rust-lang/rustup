@@ -84,7 +84,7 @@ matrix:
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
 
     - name: rustfmt/clippy/rustup-init.sh/shellcheck
-      language: minimal
+      language: shell
       install:
         - sh ./rustup-init.sh --default-toolchain=beta --profile=minimal -y -c rustfmt -c clippy
         - export PATH="$HOME/.cargo/bin:$PATH"
