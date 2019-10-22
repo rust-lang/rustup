@@ -23,11 +23,6 @@ before_cache:
   - cargo sweep -f
   - cargo cache
 
-before_install:
-  - export CARGO_TARGET_DIR="$TRAVIS_BUILD_DIR/target"
-  - cargo install --force --debug cargo-sweep
-  - cargo sweep -s
-
 matrix:
   fast_finish: true
   include:
@@ -121,6 +116,9 @@ install:
   - sh ./rustup-init.sh --default-toolchain=stable --profile=minimal -y
   - export PATH="$HOME/.cargo/bin:$PATH"
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
+  - export CARGO_TARGET_DIR="$TRAVIS_BUILD_DIR/target"
+  - cargo install --force --debug cargo-sweep
+  - cargo sweep -s
 
 script:
   - mkdir -p target/"$TARGET";
