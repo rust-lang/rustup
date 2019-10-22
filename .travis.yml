@@ -13,7 +13,6 @@ cache:
     - "$HOME/.cache/sccache"
     - "target"
 before_cache:
-  - export CARGO_TARGET_DIR="$TRAVIS_BUILD_DIR/target"
   - |
     cargo install \
       --force \
@@ -21,7 +20,13 @@ before_cache:
       --no-default-features \
       --features ci-autoclean \
       cargo-cache
+  - cargo sweep -f
   - cargo cache
+
+before_install:
+  - export CARGO_TARGET_DIR="$TRAVIS_BUILD_DIR/target"
+  - cargo install --force --debug cargo-sweep
+  - cargo sweep -s
 
 matrix:
   fast_finish: true
