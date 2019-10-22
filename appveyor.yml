@@ -14,6 +14,7 @@ after_test:
   - set CARGO_TARGET_DIR=%APPVEYOR_BUILD_FOLDER%\target
   - |
     cargo install ^
+      --debug ^
       --force ^
       --git https://github.com/matthiaskrgr/cargo-cache ^
       --no-default-features ^

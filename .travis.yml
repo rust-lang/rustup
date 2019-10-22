@@ -15,6 +15,7 @@ cache:
 before_cache:
   - |
     cargo install \
+      --debug \
       --force \
       --git https://github.com/matthiaskrgr/cargo-cache \
       --no-default-features \
