@@ -21,7 +21,7 @@ before_cache:
       --branch mini \
       --no-default-features \
       --features ci-autoclean \
-      cargo-cache
+      --bin cargo-cache
   - cargo cache
 
 matrix:
