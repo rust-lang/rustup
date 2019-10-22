@@ -16,6 +16,7 @@ before_cache:
   - export CARGO_TARGET_DIR="$TRAVIS_BUILD_DIR/target"
   - |
     cargo install \
+      --force \
       --git https://github.com/matthiaskrgr/cargo-cache \
       --branch mini \
       --no-default-features \
