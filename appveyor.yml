@@ -17,6 +17,7 @@ branches:
     - master
     - stable
     - auto
+    - kinnison/test-for-dg
 
 install:
   # If this is a PR and we're not allowed to test PRs, skip the whole build.
