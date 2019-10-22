@@ -9,17 +9,20 @@ git:
 
 cache:
   directories:
-    - "$HOME/.cargo/bin"            # installed bins
-    - "$HOME/.cargo/git/db"         # bare git repos
-    - "$HOME/.cargo/registry/index" # registry index
-    - "$HOME/.cargo/registry/cache" # crate tarballs
+    - "$HOME/.cargo"
     - "$HOME/.cache/sccache"
-    - "$HOME/.rustup"
     - "$TRAVIS_BUILD_DIR/target"
 before_cache:
-  - cargo clean -p rustup -p download
-  - rm -rf "$HOME"/.rustup/toolchains/*/share
-  - rm -rf "$HOME"/.rustup/toolchains/*/etc
+  - |
+    cargo install \
+      --git https://github.com/matthiaskrgr/cargo-cache \
+      --branch mini \
+      --no-default-features \
+      --features mini \
+      cargo-cache
+  - cargo cache -h
+  - cargo cache -a
+  - cargo cache
 
 matrix:
   fast_finish: true
