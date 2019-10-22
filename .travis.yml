@@ -17,8 +17,7 @@ before_cache:
   - |
     cargo install \
       --force \
-      --git https://github.com/matthiaskrgr/cargo-cache \
-      --branch mini \
+      --git github.com/matthiaskrgr/cargo-cache \
       --no-default-features \
       --features ci-autoclean \
       --bin cargo-cache
