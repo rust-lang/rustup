@@ -15,7 +15,7 @@ after_test:
   - |
     cargo install \
       --force \
-      --git github.com/matthiaskrgr/cargo-cache \
+      --git https://github.com/matthiaskrgr/cargo-cache \
       --no-default-features \
       --features ci-autoclean \
       cargo-cache
