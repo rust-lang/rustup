@@ -18,7 +18,7 @@ before_cache:
       --git https://github.com/matthiaskrgr/cargo-cache \
       --branch mini \
       --no-default-features \
-      --features mini \
+      --features ci-autoclean \
       cargo-cache
   - cargo cache -h
   - cargo cache -a
