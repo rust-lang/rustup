@@ -12,15 +12,14 @@ cache:
 # before cache
 after_test:
   - set CARGO_TARGET_DIR=%APPVEYOR_BUILD_FOLDER%\target
-  - |
-    cargo install ^
-      --debug ^
-      --force ^
-      --git https://github.com/matthiaskrgr/cargo-cache ^
-      --no-default-features ^
-      --features ci-autoclean ^
-      --bin cargo-cache ^
-      -- ^
+  - cargo install
+      --debug
+      --force
+      --git https://github.com/matthiaskrgr/cargo-cache
+      --no-default-features
+      --features ci-autoclean
+      --bin cargo-cache
+      --
       cargo-cache
   - cargo cache
 
