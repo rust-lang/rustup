@@ -18,10 +18,10 @@ if [ "$TARGET" = arm-linux-androideabi ]; then
   export CFLAGS='-march=armv7'
 fi
 
-cargo build --locked -v --release --target "$TARGET" "${FEATURES[@]}"
+cargo build --locked --release --target "$TARGET" "${FEATURES[@]}"
 
 runtest () {
-  cargo test --release --target "$TARGET" "${FEATURES[@]}" "$@"
+  cargo test --locked --release --target "$TARGET" "${FEATURES[@]}" "$@"
 }
 
 if [ -z "$SKIP_TESTS" ]; then
