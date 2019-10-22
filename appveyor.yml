@@ -18,7 +18,7 @@ after_test:
       --git github.com/matthiaskrgr/cargo-cache \
       --no-default-features \
       --features ci-autoclean \
-      --bin cargo-cache
+      cargo-cache
   - cargo cache
 
 environment:
