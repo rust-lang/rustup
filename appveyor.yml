@@ -9,6 +9,19 @@ branches:
 cache:
   - '%USERPROFILE%\.cargo\'
   - target
+# before cache
+after_test:
+  - set CARGO_TARGET_DIR=%APPVEYOR_BUILD_FOLDER%\target
+  - cargo install
+      --debug
+      --force
+      --git https://github.com/matthiaskrgr/cargo-cache
+      --no-default-features
+      --features ci-autoclean
+      --bin cargo-cache
+      --
+      cargo-cache
+  - cargo cache
 
 environment:
   global:
@@ -103,7 +116,7 @@ test_script:
   - cargo test --release --target %TARGET% --test dist -- --test-threads 1
   - cargo test --release --target %TARGET% --test dist_transactions
 
-after_test:
+before_deploy:
   - powershell -File ci/prepare-deploy-appveyor.ps1
 
 artifacts:
