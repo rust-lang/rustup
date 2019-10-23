@@ -1,7 +1,7 @@
 dist: xenial
 services:
   - docker
-language: minimal
+language: shell
 
 git:
   depth: false
@@ -12,7 +12,17 @@ cache:
     - "$HOME/.cargo"
     - "$HOME/.cache/sccache"
 before_cache:
-  - rm -rf "$HOME/.cargo/registry"
+  - |
+    cargo install \
+      --debug \
+      --force \
+      --git https://github.com/matthiaskrgr/cargo-cache \
+      --no-default-features \
+      --features ci-autoclean \
+      --bin cargo-cache \
+      -- \
+      cargo-cache
+  - cargo cache
 
 matrix:
   fast_finish: true
@@ -75,8 +85,8 @@ matrix:
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
 
     - name: rustfmt/clippy/rustup-init.sh/shellcheck
-      language: minimal
-      install:
+      language: shell
+      before_install:
         - sh ./rustup-init.sh --default-toolchain=beta --profile=minimal -y -c rustfmt -c clippy
         - export PATH="$HOME/.cargo/bin:$PATH"
       script:
@@ -103,10 +113,13 @@ matrix:
       language: bash
       if: branch == disabled-for-now
 
-install:
+before_install:
   - sh ./rustup-init.sh --default-toolchain=stable --profile=minimal -y
   - export PATH="$HOME/.cargo/bin:$PATH"
   - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
+
+install:
+  - export CARGO_TARGET_DIR="$TRAVIS_BUILD_DIR/target"
 
 script:
   - mkdir -p target/"$TARGET";
