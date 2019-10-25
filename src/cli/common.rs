@@ -8,6 +8,7 @@ use lazy_static::lazy_static;
 use rustup::utils::notify::NotificationLevel;
 use rustup::utils::utils;
 use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
+use std::fs;
 use std::io::{BufRead, BufReader, ErrorKind, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -424,14 +425,28 @@ pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<()> {
     Ok(())
 }
 
-pub fn list_toolchains(cfg: &Cfg, is_verbose: bool) -> Result<()> {
-    let toolchains = cfg.list_toolchains()?;
-    let toolchain_info = if is_verbose {
-        format!("\t{}", &cfg.rustup_dir.display())
-    } else {
-        String::from("")
+fn print_toolchain_path(cfg: &Cfg, toolchain: &str, if_default: &str, verbose: bool) -> Result<()> {
+    let toolchain_path = {
+        let mut t_path = cfg.toolchains_dir.clone();
+        t_path.push(&toolchain);
+        t_path
     };
+    let toolchain_meta = fs::symlink_metadata(&toolchain_path)?;
+    let toolchain_path = if verbose {
+        if toolchain_meta.is_dir() {
+            format!("\t{}", toolchain_path.display())
+        } else {
+            format!("\t{}", fs::read_link(toolchain_path)?.display())
+        }
+    } else {
+        String::new()
+    };
+    println!("{}{}{}", &toolchain, if_default, toolchain_path);
+    Ok(())
+}
 
+pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<()> {
+    let toolchains = cfg.list_toolchains()?;
     if toolchains.is_empty() {
         println!("no installed toolchains");
     } else if let Ok(Some(def_toolchain)) = cfg.find_default() {
@@ -441,11 +456,13 @@ pub fn list_toolchains(cfg: &Cfg, is_verbose: bool) -> Result<()> {
             } else {
                 ""
             };
-            println!("{}{}{}", &toolchain, if_default, toolchain_info);
+            print_toolchain_path(cfg, &toolchain, if_default, verbose)
+                .expect("Failed to list toolchains' directories");
         }
     } else {
         for toolchain in toolchains {
-            println!("{}{}", &toolchain, toolchain_info);
+            print_toolchain_path(cfg, &toolchain, "", verbose)
+                .expect("Failed to list toolchains' directories");
         }
     }
     Ok(())
