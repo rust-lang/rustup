@@ -23,7 +23,7 @@ macro_rules! debug {
 
 pub fn warn_fmt(args: fmt::Arguments<'_>) {
     let mut t = term2::stderr();
-    let _ = t.fg(term2::color::BRIGHT_YELLOW);
+    let _ = t.fg(term2::color::YELLOW);
     let _ = t.attr(term2::Attr::Bold);
     let _ = write!(t, "warning: ");
     let _ = t.reset();
@@ -33,7 +33,7 @@ pub fn warn_fmt(args: fmt::Arguments<'_>) {
 
 pub fn err_fmt(args: fmt::Arguments<'_>) {
     let mut t = term2::stderr();
-    let _ = t.fg(term2::color::BRIGHT_RED);
+    let _ = t.fg(term2::color::RED);
     let _ = t.attr(term2::Attr::Bold);
     let _ = write!(t, "error: ");
     let _ = t.reset();
@@ -52,7 +52,7 @@ pub fn info_fmt(args: fmt::Arguments<'_>) {
 
 pub fn verbose_fmt(args: fmt::Arguments<'_>) {
     let mut t = term2::stderr();
-    let _ = t.fg(term2::color::BRIGHT_MAGENTA);
+    let _ = t.fg(term2::color::MAGENTA);
     let _ = t.attr(term2::Attr::Bold);
     let _ = write!(t, "verbose: ");
     let _ = t.reset();
@@ -63,7 +63,7 @@ pub fn verbose_fmt(args: fmt::Arguments<'_>) {
 pub fn debug_fmt(args: fmt::Arguments<'_>) {
     if std::env::var("RUSTUP_DEBUG").is_ok() {
         let mut t = term2::stderr();
-        let _ = t.fg(term2::color::BRIGHT_BLUE);
+        let _ = t.fg(term2::color::BLUE);
         let _ = t.attr(term2::Attr::Bold);
         let _ = write!(t, "verbose: ");
         let _ = t.reset();

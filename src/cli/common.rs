@@ -155,11 +155,11 @@ fn show_channel_updates(
         match result {
             Ok(UpdateStatus::Installed) => {
                 banner = "installed";
-                color = Some(term2::color::BRIGHT_GREEN);
+                color = Some(term2::color::GREEN);
             }
             Ok(UpdateStatus::Updated) => {
                 banner = "updated";
-                color = Some(term2::color::BRIGHT_GREEN);
+                color = Some(term2::color::GREEN);
             }
             Ok(UpdateStatus::Unchanged) => {
                 banner = "unchanged";
@@ -167,7 +167,7 @@ fn show_channel_updates(
             }
             Err(_) => {
                 banner = "update failed";
-                color = Some(term2::color::BRIGHT_RED);
+                color = Some(term2::color::RED);
             }
         }
 

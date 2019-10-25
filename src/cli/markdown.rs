@@ -137,7 +137,7 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
                 self.wrapper.write_line();
             }
             Tag::Emphasis => {
-                self.push_attr(Attr::ForegroundColor(color::BRIGHT_RED));
+                self.push_attr(Attr::ForegroundColor(color::RED));
             }
             Tag::Strong => {}
             Tag::Strikethrough => {}
