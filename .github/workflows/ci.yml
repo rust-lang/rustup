@@ -72,7 +72,7 @@ jobs:
     - name: fmt
       run: cargo fmt --all -- --check
 
-   check_clippy:
+  check_clippy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
