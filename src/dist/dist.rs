@@ -218,6 +218,22 @@ impl TargetTriple {
     }
 }
 
+impl std::convert::TryFrom<PartialTargetTriple> for TargetTriple {
+    type Error = &'static str;
+    fn try_from(value: PartialTargetTriple) -> std::result::Result<Self, Self::Error> {
+        if value.arch.is_some() && value.os.is_some() && value.env.is_some() {
+            Ok(Self(format!(
+                "{}-{}-{}",
+                value.arch.unwrap(),
+                value.os.unwrap(),
+                value.env.unwrap()
+            )))
+        } else {
+            Err("Incomplete / bad target triple")
+        }
+    }
+}
+
 impl PartialTargetTriple {
     pub fn new(name: &str) -> Option<Self> {
         if name.is_empty() {
