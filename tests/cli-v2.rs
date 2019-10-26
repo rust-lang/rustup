@@ -1277,7 +1277,10 @@ fn make_signature_invalid(config: &Config) {
 fn warn_on_invalid_signature() {
     setup(&|config| {
         make_signature_invalid(config);
-        let manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");
+        let manifest_path = config
+            .distdir
+            .join("dist")
+            .join("channel-rust-nightly.toml");
 
         expect_stderr_ok(
             config,
