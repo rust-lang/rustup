@@ -22,6 +22,8 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: ${{ matrix.rust }}
+        target: ${{ matrix.target }}
+        profile: minimal
         override: true
 
     - name: build
@@ -57,8 +59,6 @@ jobs:
   check_fmt_and_docs:
     name: Checking fmt and docs
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: -Dwarnings
     steps:
     - uses: actions/checkout@master
 
@@ -83,8 +83,6 @@ jobs:
   clippy_check:
     name: Clippy check
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: -Dwarnings
     steps:
       - uses: actions/checkout@v1
       - id: component
