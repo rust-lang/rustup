@@ -69,6 +69,7 @@ pub struct Settings {
     pub default_toolchain: Option<String>,
     pub profile: Option<String>,
     pub overrides: BTreeMap<String, String>,
+    pub pgp_keys: Option<String>,
 }
 
 impl Default for Settings {
@@ -79,6 +80,7 @@ impl Default for Settings {
             default_toolchain: None,
             profile: Some("default".to_owned()),
             overrides: BTreeMap::new(),
+            pgp_keys: None,
         }
     }
 }
@@ -142,6 +144,7 @@ impl Settings {
             default_toolchain: get_opt_string(&mut table, "default_toolchain", path)?,
             profile: get_opt_string(&mut table, "profile", path)?,
             overrides: Self::table_to_overrides(&mut table, path)?,
+            pgp_keys: get_opt_string(&mut table, "pgp_keys", path)?,
         })
     }
     pub fn into_toml(self) -> toml::value::Table {
@@ -159,6 +162,10 @@ impl Settings {
 
         if let Some(v) = self.profile {
             result.insert("profile".to_owned(), toml::Value::String(v));
+        }
+
+        if let Some(v) = self.pgp_keys {
+            result.insert("pgp_keys".to_owned(), toml::Value::String(v));
         }
 
         let overrides = Self::overrides_to_table(self.overrides);
