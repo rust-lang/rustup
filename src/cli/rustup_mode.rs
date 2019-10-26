@@ -766,23 +766,23 @@ fn check_updates(cfg: &Cfg) -> Result<()> {
                 write!(t, "{} - ", name)?;
                 match (current_version, dist_version) {
                     (None, None) => {
-                        let _ = t.fg(term2::color::BRIGHT_RED);
+                        let _ = t.fg(term2::color::RED);
                         writeln!(t, "Cannot identify installed or update versions")?;
                     }
                     (Some(cv), None) => {
-                        let _ = t.fg(term2::color::BRIGHT_GREEN);
+                        let _ = t.fg(term2::color::GREEN);
                         write!(t, "Up to date")?;
                         let _ = t.reset();
                         writeln!(t, " : {}", cv)?;
                     }
                     (Some(cv), Some(dv)) => {
-                        let _ = t.fg(term2::color::BRIGHT_YELLOW);
+                        let _ = t.fg(term2::color::YELLOW);
                         write!(t, "Update available")?;
                         let _ = t.reset();
                         writeln!(t, " : {} -> {}", cv, dv)?;
                     }
                     (None, Some(dv)) => {
-                        let _ = t.fg(term2::color::BRIGHT_YELLOW);
+                        let _ = t.fg(term2::color::YELLOW);
                         write!(t, "Update available")?;
                         let _ = t.reset();
                         writeln!(t, " : (Unknown version) -> {}", dv)?;

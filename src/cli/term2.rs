@@ -162,16 +162,7 @@ where
         if !T::isatty() {
             return Ok(());
         }
-
-        if let Err(e) = self.0.attr(attr) {
-            // If `attr` is not supported, try to emulate it
-            match attr {
-                Attr::Bold => swallow_unsupported!(self.0.fg(color::BRIGHT_WHITE)),
-                _ => swallow_unsupported!(Err(e)),
-            }
-        } else {
-            Ok(())
-        }
+        swallow_unsupported!(self.0.attr(attr))
     }
 
     fn supports_attr(&self, attr: Attr) -> bool {
@@ -198,7 +189,6 @@ where
         if !T::isatty() {
             return Ok(());
         }
-
         swallow_unsupported!(self.0.cursor_up())
     }
 
