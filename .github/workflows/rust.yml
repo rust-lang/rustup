@@ -1,0 +1,17 @@
+name: Rust
+
+on: 
+  pull_request:
+    branches: 
+      - master
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build
+      run: cargo build --verbose --features vendored-openssl
+    - name: Run tests
+      run: cargo test --verbose --features vendored-openssl
