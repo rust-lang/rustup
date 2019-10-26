@@ -56,44 +56,29 @@ jobs:
         command: test
         args: --all --release --target ${{ matrix.target }} --lib --all
 
-  check_fmt_and_docs:
+  check_fmt:
     name: Checking fmt and docs
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
 
-    - id: component
-      uses: actions-rs/components-nightly@v1
-      with:
-        component: rustfmt
-
     - uses: actions-rs/toolchain@v1
       with:
-          toolchain: ${{ steps.component.outputs.toolchain }}
+          toolchain: beta
+          components: rustfmt
           override: true
-
-    - name: setup
-      run: |
-        rustup component add rustfmt
-        rustc --version
+          profile: minimal
 
     - name: fmt
       run: cargo fmt --all -- --check
 
-  clippy_check:
-    name: Clippy check
+   check_clippy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - id: component
-        uses: actions-rs/components-nightly@v1
-        with:
-          component: clippy
-      - uses: actions-rs/toolchain@v1
-        with:
-            toolchain: ${{ steps.component.outputs.toolchain }}
-            override: true
       - run: rustup component add clippy
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all --all-targets
+          toolchain: beta
