@@ -1277,17 +1277,13 @@ fn make_signature_invalid(config: &Config) {
 fn warn_on_invalid_signature() {
     setup(&|config| {
         make_signature_invalid(config);
-        let manifest_path = config
-            .distdir
-            .join("dist")
-            .join("channel-rust-nightly.toml");
 
         expect_stderr_ok(
             config,
             &["rustup", "update", "nightly", "--no-self-update"],
             &format!(
-                "warning: Signature verification failed for 'file://{}'",
-                manifest_path.display()
+                "warning: Signature verification failed for 'file://{}/dist/channel-rust-nightly.toml'",
+                config.distdir.display(),
             ),
         );
     });
