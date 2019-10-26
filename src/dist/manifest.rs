@@ -256,13 +256,16 @@ impl Manifest {
         let rust_pkg = self.get_package("rust")?.get_target(Some(target))?;
         let result = profile
             .iter()
-            .filter(|s| {
-                rust_pkg
-                    .components
-                    .iter()
-                    .any(|c| &c.pkg == *s && c.target.as_ref().map(|t| t == target).unwrap_or(true))
+            .map(|s| {
+                (
+                    s,
+                    rust_pkg.components.iter().find(|c| {
+                        &c.pkg == s && c.target.as_ref().map(|t| t == target).unwrap_or(true)
+                    }),
+                )
             })
-            .map(|s| Component::new(s.to_owned(), Some(target.clone()), false))
+            .filter(|(_, c)| c.is_some())
+            .map(|(s, c)| Component::new(s.to_owned(), c.and_then(|c| c.target.clone()), false))
             .collect();
         Ok(result)
     }
