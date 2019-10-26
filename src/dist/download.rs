@@ -130,7 +130,7 @@ impl<'a> DownloadCfg<'a> {
             (self.notify_handler)(n.into())
         })?;
 
-        Ok(utils::read_file("signature", &sig_file).map(|s| s.to_owned())?)
+        Ok(utils::read_file("signature", &sig_file)?)
     }
 
     fn check_signature(&self, url: &str, file: &temp::File<'_>) -> Result<()> {

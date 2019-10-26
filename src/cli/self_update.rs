@@ -807,7 +807,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         .join(&format!("bin/rustup{}", EXE_SUFFIX))
         .exists()
     {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
+        return Err(ErrorKind::NotSelfInstalled(cargo_home).into());
     }
 
     if !no_prompt {
@@ -1487,7 +1487,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
     if !rustup_path.exists() {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
+        return Err(ErrorKind::NotSelfInstalled(cargo_home).into());
     }
 
     if setup_path.exists() {

@@ -119,7 +119,7 @@ fn basic_install() {
     let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
-    let components = Components::open(prefix.clone()).unwrap();
+    let components = Components::open(prefix).unwrap();
 
     let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
 
@@ -165,7 +165,7 @@ fn multiple_component_install() {
     let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
-    let components = Components::open(prefix.clone()).unwrap();
+    let components = Components::open(prefix).unwrap();
 
     let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
 
@@ -225,7 +225,7 @@ fn uninstall() {
 
     // Now uninstall
     let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
     for component in components.list().unwrap() {
         tx = component.uninstall(tx).unwrap();
     }
@@ -283,7 +283,7 @@ fn component_bad_version() {
     utils::write_file("", &prefix.manifest_file("rust-installer-version"), "100\n").unwrap();
 
     // Can't open components now
-    let e = Components::open(prefix.clone()).unwrap_err();
+    let e = Components::open(prefix).unwrap_err();
     if let ErrorKind::BadInstalledMetadataVersion(_) = *e.kind() {
     } else {
         panic!()
@@ -318,7 +318,7 @@ fn install_to_prefix_that_does_not_exist() {
     let notify = |_: Notification<'_>| ();
     let tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
-    let components = Components::open(prefix.clone()).unwrap();
+    let components = Components::open(prefix).unwrap();
 
     let pkg = DirectoryPackage::new(pkgdir.path().to_owned(), true).unwrap();
 

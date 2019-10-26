@@ -698,7 +698,7 @@ fn build_mock_channel(
         ("rust-docs", vec![(rust_docs, host_triple.clone())]),
         ("rust-src", vec![(rust_src, "*".to_string())]),
         ("rust-analysis", vec![(rust_analysis, "*".to_string())]),
-        ("rust", vec![(rust, host_triple.clone())]),
+        ("rust", vec![(rust, host_triple)]),
     ];
     all.extend(more);
 
@@ -738,7 +738,7 @@ fn build_mock_channel(
         let more = vec![
             ("rust-docs", vec![(rust_docs, triple.clone())]),
             ("rust-src", vec![(rust_src, "*".to_string())]),
-            ("rust", vec![(rust, triple.clone())]),
+            ("rust", vec![(rust, triple)]),
         ];
 
         all.extend(more);

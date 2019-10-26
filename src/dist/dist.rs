@@ -773,7 +773,7 @@ fn try_update_from_dist_<'a>(
 
             let mut all_components: HashSet<Component> = profile_components.into_iter().collect();
 
-            for component in components {
+            for component in components.iter().copied() {
                 let mut component =
                     Component::new(component.to_string(), Some(toolchain.target.clone()), false);
                 if let Some(renamed) = m.rename_component(&component) {

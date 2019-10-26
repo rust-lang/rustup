@@ -185,7 +185,7 @@ pub fn create_mock_channel(
 
     // An extra package that can be used as a component of the other packages
     // for various tests
-    packages.push(bonus_component("bonus", contents.clone()));
+    packages.push(bonus_component("bonus", contents));
 
     let mut channel = MockChannel {
         name: channel.to_string(),

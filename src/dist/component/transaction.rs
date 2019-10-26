@@ -286,7 +286,7 @@ impl<'a> ChangedItem<'a> {
         if !utils::path_exists(&abs_path) {
             Err(ErrorKind::ComponentMissingFile {
                 name: component.to_owned(),
-                path: relpath.clone(),
+                path: relpath,
             }
             .into())
         } else {
@@ -306,7 +306,7 @@ impl<'a> ChangedItem<'a> {
         if !utils::path_exists(&abs_path) {
             Err(ErrorKind::ComponentMissingDir {
                 name: component.to_owned(),
-                path: relpath.clone(),
+                path: relpath,
             }
             .into())
         } else {

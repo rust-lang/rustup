@@ -74,7 +74,7 @@ fn add_file_that_exists() {
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
 
     fs::create_dir_all(&prefixdir.path().join("foo")).unwrap();
     utils::write_file("", &prefixdir.path().join("foo/bar"), "").unwrap();
@@ -159,7 +159,7 @@ fn copy_file_that_exists() {
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
 
     let srcpath = srcdir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
@@ -294,7 +294,7 @@ fn remove_file() {
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
 
     let filepath = prefixdir.path().join("foo");
     utils::write_file("", &filepath, "").unwrap();
@@ -319,7 +319,7 @@ fn remove_file_then_rollback() {
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
 
     let filepath = prefixdir.path().join("foo");
     utils::write_file("", &filepath, "").unwrap();
@@ -344,7 +344,7 @@ fn remove_file_that_not_exists() {
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
 
     let err = tx.remove_file("c", PathBuf::from("foo")).unwrap_err();
 
@@ -371,7 +371,7 @@ fn remove_dir() {
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
 
     let filepath = prefixdir.path().join("foo/bar");
     fs::create_dir_all(filepath.parent().unwrap()).unwrap();
@@ -397,7 +397,7 @@ fn remove_dir_then_rollback() {
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
 
     let filepath = prefixdir.path().join("foo/bar");
     fs::create_dir_all(filepath.parent().unwrap()).unwrap();
@@ -423,7 +423,7 @@ fn remove_dir_that_not_exists() {
     let prefix = InstallPrefix::from(prefixdir.path().to_owned());
 
     let notify = |_: Notification<'_>| ();
-    let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
+    let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
 
     let err = tx.remove_dir("c", PathBuf::from("foo")).unwrap_err();
 
@@ -480,7 +480,7 @@ fn write_file_then_rollback() {
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let content = "hi".to_string();
-    tx.write_file("c", PathBuf::from("foo/bar"), content.clone())
+    tx.write_file("c", PathBuf::from("foo/bar"), content)
         .unwrap();
     drop(tx);
 
@@ -505,9 +505,7 @@ fn write_file_that_exists() {
 
     let content = "hi".to_string();
     utils_raw::write_file(&prefix.path().join("a"), &content).unwrap();
-    let err = tx
-        .write_file("c", PathBuf::from("a"), content.clone())
-        .unwrap_err();
+    let err = tx.write_file("c", PathBuf::from("a"), content).unwrap_err();
 
     match err.0 {
         ErrorKind::ComponentConflict { name, path } => {

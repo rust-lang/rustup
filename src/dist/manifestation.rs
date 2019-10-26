@@ -245,7 +245,7 @@ impl Manifestation {
 
         // Install new distribution manifest
         let new_manifest_str = new_manifest.clone().stringify();
-        tx.modify_file(rel_installed_manifest_path.to_owned())?;
+        tx.modify_file(rel_installed_manifest_path)?;
         utils::write_file("manifest", &installed_manifest_path, &new_manifest_str)?;
 
         // Write configuration.
@@ -259,7 +259,7 @@ impl Manifestation {
         let config_str = new_config.stringify();
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
         let config_path = prefix.path().join(&rel_config_path);
-        tx.modify_file(rel_config_path.to_owned())?;
+        tx.modify_file(rel_config_path)?;
         utils::write_file("dist config", &config_path, &config_str)?;
 
         // End transaction
@@ -408,7 +408,7 @@ impl Manifestation {
         ));
 
         // Begin transaction
-        let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
+        let mut tx = Transaction::new(prefix, temp_cfg, notify_handler);
 
         // Uninstall components
         let components = self.installation.list()?;
@@ -543,7 +543,7 @@ impl Update {
                 }
             }
         } else {
-            result.components_to_uninstall = starting_list.clone();
+            result.components_to_uninstall = starting_list;
             result.components_to_install = result.final_component_list.clone();
         }
 

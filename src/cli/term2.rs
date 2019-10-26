@@ -42,7 +42,7 @@ mod termhack {
         T: 'static + io::Write + Send + Instantiable,
     {
         let result = terminfo
-            .map(move |ti| TerminfoTerminal::new_with_terminfo(T::instance(), ti.clone()))
+            .map(move |ti| TerminfoTerminal::new_with_terminfo(T::instance(), ti))
             .map(|t| Box::new(t) as Box<dyn Terminal<Output = T> + Send>);
         #[cfg(windows)]
         {
