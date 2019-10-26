@@ -34,7 +34,7 @@ use crate::common::{self, Confirm};
 use crate::errors::*;
 use crate::markdown::md;
 use crate::term2;
-use rustup::dist::dist::{self, Profile};
+use rustup::dist::dist::{self, Profile, TargetTriple};
 use rustup::utils::utils;
 use rustup::utils::Notification;
 use rustup::{DUP_TOOLS, TOOLS};
@@ -46,7 +46,7 @@ use std::path::{Component, Path, PathBuf};
 use std::process::{self, Command};
 
 pub struct InstallOpts<'a> {
-    pub default_host_triple: String,
+    pub default_host_triple: Option<String>,
     pub default_toolchain: String,
     pub profile: String,
     pub no_modify_path: bool,
@@ -284,7 +284,7 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
         maybe_install_rust(
             &opts.default_toolchain,
             &opts.profile,
-            &opts.default_host_triple,
+            opts.default_host_triple.as_ref(),
             opts.components,
             opts.targets,
             verbose,
@@ -432,7 +432,11 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
     use std::str::FromStr;
     // Verify that the installation options are vaguely sane
     (|| {
-        let host_triple = dist::TargetTriple::new(&opts.default_host_triple);
+        let host_triple = opts
+            .default_host_triple
+            .as_ref()
+            .map(|s| dist::TargetTriple::new(s))
+            .unwrap_or_else(|| TargetTriple::from_host_or_build());
         let toolchain_to_use = if opts.default_toolchain == "none" {
             "stable"
         } else {
@@ -534,8 +538,13 @@ fn do_msvc_check(opts: &InstallOpts) -> Result<bool> {
     }
 
     use cc::windows_registry;
-    let installing_msvc = opts.default_host_triple.contains("msvc");
-    let have_msvc = windows_registry::find_tool(&opts.default_host_triple, "cl.exe").is_some();
+    let host_triple = if let Some(trip) = opts.default_host_triple.as_ref() {
+        trip.to_owned()
+    } else {
+        TargetTriple::from_host_or_build().to_string()
+    };
+    let installing_msvc = host_triple.contains("msvc");
+    let have_msvc = windows_registry::find_tool(&host_triple, "cl.exe").is_some();
     if installing_msvc && !have_msvc {
         return Ok(false);
     }
@@ -604,7 +613,10 @@ fn current_install_opts(opts: &InstallOpts) -> String {
 - `             `profile: `{}`
 - modify PATH variable: `{}`
 ",
-        opts.default_host_triple,
+        opts.default_host_triple
+            .as_ref()
+            .map(|s| TargetTriple::new(s))
+            .unwrap_or_else(|| TargetTriple::from_host_or_build()),
         opts.default_toolchain,
         opts.profile,
         if !opts.no_modify_path { "yes" } else { "no" }
@@ -620,8 +632,12 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
 
     println!();
 
-    opts.default_host_triple =
-        common::question_str("Default host triple?", &opts.default_host_triple)?;
+    opts.default_host_triple = Some(common::question_str(
+        "Default host triple?",
+        &opts
+            .default_host_triple
+            .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string()),
+    )?);
 
     opts.default_toolchain = common::question_str(
         "Default toolchain? (stable/beta/nightly/none)",
@@ -740,7 +756,7 @@ pub fn install_proxies() -> Result<()> {
 fn maybe_install_rust(
     toolchain_str: &str,
     profile_str: &str,
-    default_host_triple: &str,
+    default_host_triple: Option<&String>,
     components: &[&str],
     targets: &[&str],
     verbose: bool,
@@ -748,6 +764,14 @@ fn maybe_install_rust(
 ) -> Result<()> {
     let mut cfg = common::set_globals(verbose, quiet)?;
     cfg.set_profile(profile_str)?;
+
+    if let Some(default_host_triple) = default_host_triple {
+        // Set host triple now as it will affect resolution of toolchain_str
+        info!("setting default host triple to {}", default_host_triple);
+        cfg.set_default_host_triple(default_host_triple)?;
+    } else {
+        info!("default host triple is {}", cfg.get_default_host_triple()?);
+    }
 
     // If there is already an install, then `toolchain_str` may not be
     // a toolchain the user actually wants. Don't do anything.  FIXME:
@@ -757,8 +781,6 @@ fn maybe_install_rust(
         info!("skipping toolchain installation");
         println!();
     } else if cfg.find_default()?.is_none() {
-        // Set host triple first as it will affect resolution of toolchain_str
-        cfg.set_default_host_triple(default_host_triple)?;
         let toolchain = cfg.get_toolchain(toolchain_str, false)?;
         let status = toolchain.install_from_dist(true, components, targets)?;
         cfg.set_default(toolchain_str)?;
