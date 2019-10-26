@@ -41,6 +41,7 @@ lazy_static::lazy_static! {
     ).unwrap().0;
 }
 
+#[allow(clippy::large_enum_variant)] // Builtin is tiny, the rest are sane
 #[derive(Debug)]
 pub enum PgpPublicKey {
     Builtin,
