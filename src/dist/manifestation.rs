@@ -1,6 +1,7 @@
 //! Maintains a Rust installation by installing individual Rust
 //! platform components from a distribution server.
 
+use crate::config::PgpPublicKey;
 use crate::dist::component::{Components, Package, TarGzPackage, TarXzPackage, Transaction};
 use crate::dist::config::Config;
 use crate::dist::dist::{Profile, TargetTriple, DEFAULT_DIST_SERVER};
@@ -351,6 +352,7 @@ impl Manifestation {
         update_hash: Option<&Path>,
         temp_cfg: &temp::Cfg,
         notify_handler: &dyn Fn(Notification<'_>),
+        pgp_keys: &[PgpPublicKey],
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if self.read_config()?.is_some() {
@@ -388,6 +390,7 @@ impl Manifestation {
             download_dir: &dld_dir,
             temp_cfg,
             notify_handler,
+            pgp_keys,
         };
 
         let dl = dlcfg.download_and_check(&url, update_hash, ".tar.gz")?;

@@ -1,7 +1,9 @@
+use crate::config::PgpPublicKey;
 use crate::dist::notifications::*;
 use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::utils;
+
 use sha2::{Digest, Sha256};
 use url::Url;
 
@@ -17,6 +19,7 @@ pub struct DownloadCfg<'a> {
     pub temp_cfg: &'a temp::Cfg,
     pub download_dir: &'a PathBuf,
     pub notify_handler: &'a dyn Fn(Notification<'_>),
+    pub pgp_keys: &'a [PgpPublicKey],
 }
 
 pub struct File {
@@ -119,9 +122,50 @@ impl<'a> DownloadCfg<'a> {
         Ok(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())?)
     }
 
+    fn download_signature(&self, url: &str) -> Result<String> {
+        let sig_url = utils::parse_url(&(url.to_owned() + ".asc"))?;
+        let sig_file = self.temp_cfg.new_file()?;
+
+        utils::download_file(&sig_url, &sig_file, None, &|n| {
+            (self.notify_handler)(n.into())
+        })?;
+
+        Ok(utils::read_file("signature", &sig_file).map(|s| s.to_owned())?)
+    }
+
+    fn check_signature(&self, url: &str, file: &temp::File<'_>) -> Result<()> {
+        assert!(
+            !self.pgp_keys.is_empty(),
+            "At least the builtin key must be present"
+        );
+
+        let signature = self.download_signature(url).map_err(|e| {
+            e.chain_err(|| ErrorKind::SignatureVerificationFailed {
+                url: url.to_owned(),
+            })
+        })?;
+
+        let file_path: &Path = &file;
+        let content = std::fs::File::open(file_path).chain_err(|| ErrorKind::ReadingFile {
+            name: "channel data",
+            path: PathBuf::from(file_path),
+        })?;
+
+        if !crate::dist::signatures::verify_signature(content, &signature, &self.pgp_keys)? {
+            Err(ErrorKind::SignatureVerificationFailed {
+                url: url.to_owned(),
+            }
+            .into())
+        } else {
+            Ok(())
+        }
+    }
+
     /// Downloads a file, sourcing its hash from the same url with a `.sha256` suffix.
     /// If `update_hash` is present, then that will be compared to the downloaded hash,
     /// and if they match, the download is skipped.
+    /// Verifies the signature found at the same url with a `.asc` suffix, and prints a
+    /// warning when the signature does not verify, or is not found.
     pub fn download_and_check(
         &self,
         url_str: &str,
@@ -167,7 +211,13 @@ impl<'a> DownloadCfg<'a> {
             (self.notify_handler)(Notification::ChecksumValid(url_str));
         }
 
-        // TODO: Check the signature of the file
+        // No signatures for tarballs for now.
+        if !url_str.ends_with(".tar.gz")
+            && !url_str.ends_with(".tar.xz")
+            && self.check_signature(&url_str, &file).is_err()
+        {
+            (self.notify_handler)(Notification::SignatureInvalid(url_str));
+        }
 
         Ok(Some((file, partial_hash)))
     }

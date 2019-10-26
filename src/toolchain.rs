@@ -159,6 +159,7 @@ impl<'a> Toolchain<'a> {
             temp_cfg: &self.cfg.temp_cfg,
             download_dir: &self.cfg.download_dir,
             notify_handler: &*self.dist_handler,
+            pgp_keys: self.cfg.get_pgp_keys(),
         }
     }
 

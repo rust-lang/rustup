@@ -37,6 +37,13 @@ where
     })
 }
 
+pub fn open_file(name: &'static str, path: &Path) -> Result<fs::File> {
+    fs::File::open(path).chain_err(|| ErrorKind::ReadingFile {
+        name,
+        path: PathBuf::from(path),
+    })
+}
+
 pub fn read_file_bytes(name: &'static str, path: &Path) -> Result<Vec<u8>> {
     fs::read(path).chain_err(|| ErrorKind::ReadingFile {
         name,
