@@ -33,6 +33,41 @@ impl Display for OverrideReason {
     }
 }
 
+#[derive(Debug)]
+pub enum PgpPublicKey {
+    Builtin(&'static [u8]),
+    FromEnvironment(PathBuf, Vec<u8>),
+    FromConfiguration(PathBuf, Vec<u8>),
+}
+
+impl PgpPublicKey {
+    /// Retrieve the key data for this key
+    ///
+    /// This key might be ASCII Armored or may not, we make no
+    /// guarantees.
+    pub fn key_data(&self) -> &[u8] {
+        match self {
+            Self::Builtin(k) => k,
+            Self::FromEnvironment(_, k) => &k,
+            Self::FromConfiguration(_, k) => &k,
+        }
+    }
+}
+
+impl Display for PgpPublicKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Builtin(_) => write!(f, "builtin Rust release key"),
+            Self::FromEnvironment(p, _) => {
+                write!(f, "key specified in RUST_PGP_KEY ({})", p.display())
+            }
+            Self::FromConfiguration(p, _) => {
+                write!(f, "key specified in configuration file ({})", p.display())
+            }
+        }
+    }
+}
+
 pub struct Cfg {
     pub profile_override: Option<dist::Profile>,
     pub rustup_dir: PathBuf,
@@ -41,7 +76,7 @@ pub struct Cfg {
     pub update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
     pub temp_cfg: temp::Cfg,
-    pub gpg_key: Cow<'static, str>,
+    pgp_keys: Vec<PgpPublicKey>,
     pub toolchain_override: Option<String>,
     pub env_override: Option<String>,
     pub dist_root_url: String,
@@ -62,13 +97,22 @@ impl Cfg {
         let update_hash_dir = rustup_dir.join("update-hashes");
         let download_dir = rustup_dir.join("downloads");
 
-        // GPG key
-        let gpg_key =
-            if let Some(path) = env::var_os("RUSTUP_GPG_KEY").and_then(utils::if_not_empty) {
-                Cow::Owned(utils::read_file("public key", Path::new(&path))?)
-            } else {
-                Cow::Borrowed(include_str!("rust-key.gpg.ascii"))
-            };
+        // PGP keys
+        let mut pgp_keys: Vec<PgpPublicKey> =
+            vec![PgpPublicKey::Builtin(include_bytes!("rust-key.pgp.ascii"))];
+        if let Some(s_path) = env::var_os("RUSTUP_PGP_KEY") {
+            let path = PathBuf::from(s_path);
+            let content = utils::read_file_bytes("RUSTUP_PGP_KEY", &path)?;
+            pgp_keys.push(PgpPublicKey::FromEnvironment(path, content));
+        }
+        settings_file.with(|s| {
+            if let Some(s) = &s.pgp_keys {
+                let path = PathBuf::from(s);
+                let content = utils::read_file_bytes("PGP Key from config", &path)?;
+                pgp_keys.push(PgpPublicKey::FromConfiguration(path, content));
+            }
+            Ok(())
+        })?;
 
         // Environment override
         let env_override = env::var("RUSTUP_TOOLCHAIN")
@@ -105,7 +149,7 @@ impl Cfg {
             update_hash_dir,
             download_dir,
             temp_cfg,
-            gpg_key,
+            pgp_keys,
             notify_handler,
             toolchain_override: None,
             env_override,
@@ -120,6 +164,10 @@ impl Cfg {
             .map_err(|e| format!("Unable parse configuration: {}", e))?;
 
         Ok(cfg)
+    }
+
+    pub fn get_pgp_keys(&self) -> &[PgpPublicKey] {
+        &self.pgp_keys
     }
 
     pub fn set_profile_override(&mut self, profile: dist::Profile) {
