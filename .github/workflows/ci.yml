@@ -42,22 +42,94 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --all --release --target ${{ matrix.target }} -p download
+        args: --release --target ${{ matrix.target }} -p download
 
     - name: tests - rustup-init
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --all --release --target ${{ matrix.target }} --bin rustup-init
+        args: --release --target ${{ matrix.target }} --bin rustup-init
 
-    - name: tests - lib all
+    - name: tests - lib
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --all --release --target ${{ matrix.target }} --lib --all
+        args: --release --target ${{ matrix.target }} --lib --all
+
+    - name: tests - doc
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --doc --all
+
+    - name: tests - cli-exact
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --test cli-exact
+
+    - name: tests - cli-inst-interactive
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --test cli-inst-interactive
+
+    - name: tests - cli-misc
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --test cli-misc
+
+    - name: tests - cli-rustup
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --test cli-rustup
+
+    - name: tests - cli-self-upd
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --test cli-self-upd
+
+    - name: tests - cli-v1
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --test cli-v1
+
+    - name: tests - cli-v2
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --test cli-v2
+
+    - name: tests - dist_install
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --test dist_install
+
+    - name: tests - dist_manifest
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --test dist_manifest
+
+    - name: tests - dist
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --test dist -- --test-threads 1
+
+    - name: tests - dist_transactions
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --release --target ${{ matrix.target }} --test dist_transactions
 
   check_fmt:
-    name: Checking fmt and docs
+    name: Checking rustfmt
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
@@ -73,6 +145,7 @@ jobs:
       run: cargo fmt --all -- --check
 
   check_clippy:
+    name: Checking clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -81,4 +154,3 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all --all-targets
-          toolchain: beta
