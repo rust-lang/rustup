@@ -114,7 +114,7 @@ impl<'a> InstallMethod<'a> {
         let package: &dyn Package =
             &TarGzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
 
-        let mut tx = Transaction::new(prefix.clone(), temp_cfg, notify_handler);
+        let mut tx = Transaction::new(prefix, temp_cfg, notify_handler);
 
         for component in package.components() {
             tx = package.install(&installation, &component, None, tx)?;

@@ -436,7 +436,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
             .default_host_triple
             .as_ref()
             .map(|s| dist::TargetTriple::new(s))
-            .unwrap_or_else(|| TargetTriple::from_host_or_build());
+            .unwrap_or_else(TargetTriple::from_host_or_build);
         let toolchain_to_use = if opts.default_toolchain == "none" {
             "stable"
         } else {
@@ -616,7 +616,7 @@ fn current_install_opts(opts: &InstallOpts) -> String {
         opts.default_host_triple
             .as_ref()
             .map(|s| TargetTriple::new(s))
-            .unwrap_or_else(|| TargetTriple::from_host_or_build()),
+            .unwrap_or_else(TargetTriple::from_host_or_build),
         opts.default_toolchain,
         opts.profile,
         if !opts.no_modify_path { "yes" } else { "no" }
@@ -807,7 +807,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         .join(&format!("bin/rustup{}", EXE_SUFFIX))
         .exists()
     {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
+        return Err(ErrorKind::NotSelfInstalled(cargo_home).into());
     }
 
     if !no_prompt {
@@ -1487,7 +1487,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
     if !rustup_path.exists() {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home.clone()).into());
+        return Err(ErrorKind::NotSelfInstalled(cargo_home).into());
     }
 
     if setup_path.exists() {

@@ -414,7 +414,7 @@ impl MockDistServer {
                 .iter()
                 .map(|v| toml::Value::String((**v).to_owned()))
                 .collect();
-            toml_profiles.insert(profile.to_string(), toml::Value::Array(array));
+            toml_profiles.insert((*profile).to_string(), toml::Value::Array(array));
         }
         toml_manifest.insert(String::from("profiles"), toml::Value::Table(toml_profiles));
 

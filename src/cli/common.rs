@@ -347,7 +347,7 @@ pub fn rustc_version(toolchain: &Toolchain<'_>) -> String {
             }
 
             if let Some(line1) = line1 {
-                line1.to_owned()
+                line1
             } else {
                 String::from("(error reading rustc version)")
             }

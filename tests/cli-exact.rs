@@ -342,7 +342,7 @@ fn remove_override_nonexistent() {
 fn list_overrides() {
     setup(&|config| {
         let cwd = std::fs::canonicalize(config.current_dir()).unwrap();
-        let mut cwd_formatted = format!("{}", cwd.display()).to_string();
+        let mut cwd_formatted = format!("{}", cwd.display());
 
         if cfg!(windows) {
             cwd_formatted = cwd_formatted[4..].to_owned();
@@ -381,7 +381,7 @@ fn list_overrides_with_nonexistent() {
         // FIXME TempDir seems to succumb to difficulties removing dirs on windows
         let _ = rustup::utils::raw::remove_dir(&nonexistent_path);
         assert!(!nonexistent_path.exists());
-        let mut path_formatted = format!("{}", nonexistent_path.display()).to_string();
+        let mut path_formatted = format!("{}", nonexistent_path.display());
 
         if cfg!(windows) {
             path_formatted = path_formatted[4..].to_owned();

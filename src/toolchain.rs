@@ -52,7 +52,7 @@ impl<'a> Toolchain<'a> {
         Ok(Toolchain {
             cfg,
             name: resolved_name,
-            path: path.clone(),
+            path,
             dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
         })
     }
@@ -445,7 +445,7 @@ impl<'a> Toolchain<'a> {
         // be on the PATH.
         let mut path_entries = vec![];
         if let Ok(cargo_home) = utils::cargo_home() {
-            path_entries.push(cargo_home.join("bin").to_path_buf());
+            path_entries.push(cargo_home.join("bin"));
         }
 
         if cfg!(target_os = "windows") {
@@ -492,7 +492,7 @@ impl<'a> Toolchain<'a> {
         let toolchain = ToolchainDesc::from_str(toolchain)?;
 
         let prefix = InstallPrefix::from(self.path.to_owned());
-        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
+        let manifestation = Manifestation::open(prefix, toolchain.target)?;
 
         manifestation.load_manifest()
     }
@@ -651,7 +651,7 @@ impl<'a> Toolchain<'a> {
                 if closest_distance.1.component.short_name(manifest)
                     == component.short_name(manifest)
                 {
-                    closest_match = short_name_distance.1.component.target().to_string();
+                    closest_match = short_name_distance.1.component.target();
                 }
             }
 
@@ -659,7 +659,7 @@ impl<'a> Toolchain<'a> {
             if closest_distance.0 > MAX_DISTANCE {
                 None
             } else {
-                Some(closest_match.to_string())
+                Some(closest_match)
             }
         } else {
             None
