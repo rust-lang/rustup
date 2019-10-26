@@ -131,16 +131,13 @@ impl Manifestation {
             Ok(_) => {}
             Err(e) => {
                 if force_update {
-                    match e.kind() {
-                        ErrorKind::RequestedComponentsUnavailable(components, _, _) => {
-                            for component in components {
-                                notify_handler(Notification::ForcingUnavailableComponent(
-                                    component.name(new_manifest).as_str(),
-                                ));
-                            }
-                            update.drop_components_to_install(&components);
+                    if let ErrorKind::RequestedComponentsUnavailable(components, _, _) = e.kind() {
+                        for component in components {
+                            notify_handler(Notification::ForcingUnavailableComponent(
+                                component.name(new_manifest).as_str(),
+                            ));
                         }
-                        _ => {}
+                        update.drop_components_to_install(&components);
                     }
                 } else {
                     return Err(e);
