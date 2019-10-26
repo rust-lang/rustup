@@ -389,6 +389,14 @@ pub fn env(config: &Config, cmd: &mut Command) {
     // The test environment may interfere with checking the PATH for the existence of rustc or
     // cargo, so we disable that check globally
     cmd.env("RUSTUP_INIT_SKIP_PATH_CHECK", "yes");
+
+    // Setup pgp test key
+    cmd.env(
+        "RUSTUP_PGP_KEY",
+        std::env::current_dir()
+            .unwrap()
+            .join("tests/mock/signing-key.pub.asc"),
+    );
 }
 
 use std::sync::RwLock;
@@ -522,6 +530,13 @@ impl Release {
                 self.date, self.channel
             )),
             path.join(format!("dist/channel-rust-{}.toml", self.version)),
+        );
+        let _ = hard_link(
+            path.join(format!(
+                "dist/{}/channel-rust-{}.toml.asc",
+                self.date, self.channel
+            )),
+            path.join(format!("dist/channel-rust-{}.toml.asc", self.version)),
         );
         let _ = hard_link(
             path.join(format!(

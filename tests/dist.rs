@@ -16,6 +16,7 @@ use rustup::errors::Result;
 use rustup::utils::raw as utils_raw;
 use rustup::utils::utils;
 use rustup::ErrorKind;
+use rustup::PgpPublicKey;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs;
@@ -523,6 +524,10 @@ fn setup_from_dist_server(
         temp_cfg: &temp_cfg,
         download_dir: &prefix.path().to_owned().join("downloads"),
         notify_handler: &|_| {},
+        pgp_keys: &[PgpPublicKey::FromEnvironment(
+            "test-key".into(),
+            get_public_key(),
+        )],
     };
 
     f(url, &toolchain, &prefix, &download_cfg, &temp_cfg);
@@ -1887,6 +1892,10 @@ fn reuse_downloaded_file() {
                     reuse_notification_fired.set(true);
                 }
             },
+            pgp_keys: &[PgpPublicKey::FromEnvironment(
+                "test-key".into(),
+                get_public_key(),
+            )],
         };
 
         update_from_dist(
@@ -1954,6 +1963,10 @@ fn checks_files_hashes_before_reuse() {
                     noticed_bad_checksum.set(true);
                 }
             },
+            pgp_keys: &[PgpPublicKey::FromEnvironment(
+                "test-key".into(),
+                get_public_key(),
+            )],
         };
 
         update_from_dist(

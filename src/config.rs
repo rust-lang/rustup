@@ -7,6 +7,8 @@ use std::process::Command;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use pgp::{Deserializable, SignedPublicKey};
+
 use crate::dist::{dist, temp};
 use crate::errors::*;
 use crate::notifications::*;
@@ -33,21 +35,24 @@ impl Display for OverrideReason {
     }
 }
 
+lazy_static::lazy_static! {
+    static ref BUILTIN_PGP_KEY: SignedPublicKey = pgp::SignedPublicKey::from_armor_single(
+        io::Cursor::new(&include_bytes!("rust-key.pgp.ascii")[..])
+    ).unwrap().0;
+}
+
 #[derive(Debug)]
 pub enum PgpPublicKey {
-    Builtin(&'static [u8]),
-    FromEnvironment(PathBuf, Vec<u8>),
-    FromConfiguration(PathBuf, Vec<u8>),
+    Builtin,
+    FromEnvironment(PathBuf, SignedPublicKey),
+    FromConfiguration(PathBuf, SignedPublicKey),
 }
 
 impl PgpPublicKey {
-    /// Retrieve the key data for this key
-    ///
-    /// This key might be ASCII Armored or may not, we make no
-    /// guarantees.
-    pub fn key_data(&self) -> &[u8] {
+    /// Retrieve the key.
+    pub fn key(&self) -> &SignedPublicKey {
         match self {
-            Self::Builtin(k) => k,
+            Self::Builtin => &*BUILTIN_PGP_KEY,
             Self::FromEnvironment(_, k) => &k,
             Self::FromConfiguration(_, k) => &k,
         }
@@ -57,7 +62,7 @@ impl PgpPublicKey {
 impl Display for PgpPublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Builtin(_) => write!(f, "builtin Rust release key"),
+            Self::Builtin => write!(f, "builtin Rust release key"),
             Self::FromEnvironment(p, _) => {
                 write!(f, "key specified in RUST_PGP_KEY ({})", p.display())
             }
@@ -98,18 +103,24 @@ impl Cfg {
         let download_dir = rustup_dir.join("downloads");
 
         // PGP keys
-        let mut pgp_keys: Vec<PgpPublicKey> =
-            vec![PgpPublicKey::Builtin(include_bytes!("rust-key.pgp.ascii"))];
-        if let Some(s_path) = env::var_os("RUSTUP_PGP_KEY") {
+        let mut pgp_keys: Vec<PgpPublicKey> = vec![PgpPublicKey::Builtin];
+
+        if let Some(ref s_path) = env::var_os("RUSTUP_PGP_KEY") {
             let path = PathBuf::from(s_path);
-            let content = utils::read_file_bytes("RUSTUP_PGP_KEY", &path)?;
-            pgp_keys.push(PgpPublicKey::FromEnvironment(path, content));
+            let file = utils::open_file("RUSTUP_PGP_KEY", &path)?;
+            let (key, _) = SignedPublicKey::from_armor_single(file)
+                .map_err(|error| ErrorKind::InvalidPgpKey(PathBuf::from(s_path), error))?;
+
+            pgp_keys.push(PgpPublicKey::FromEnvironment(path, key));
         }
         settings_file.with(|s| {
             if let Some(s) = &s.pgp_keys {
                 let path = PathBuf::from(s);
-                let content = utils::read_file_bytes("PGP Key from config", &path)?;
-                pgp_keys.push(PgpPublicKey::FromConfiguration(path, content));
+                let file = utils::open_file("PGP Key from config", &path)?;
+                let (key, _) = SignedPublicKey::from_armor_single(file)
+                    .map_err(|error| ErrorKind::InvalidPgpKey(PathBuf::from(s), error))?;
+
+                pgp_keys.push(PgpPublicKey::FromConfiguration(path, key));
             }
             Ok(())
         })?;

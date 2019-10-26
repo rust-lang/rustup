@@ -23,25 +23,31 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
     let manifest_name = format!("dist/channel-rust-{}", channel);
     let manifest_path = path.join(format!("{}.toml", manifest_name));
     let hash_path = path.join(format!("{}.toml.sha256", manifest_name));
+    let sig_path = path.join(format!("{}.toml.asc", manifest_name));
 
     let archive_manifest_name = format!("dist/{}/channel-rust-{}", date, channel);
     let archive_manifest_path = path.join(format!("{}.toml", archive_manifest_name));
     let archive_hash_path = path.join(format!("{}.toml.sha256", archive_manifest_name));
+    let archive_sig_path = path.join(format!("{}.toml.asc", archive_manifest_name));
 
     let _ = hard_link(archive_manifest_path, manifest_path);
     let _ = hard_link(archive_hash_path, hash_path);
+    let _ = hard_link(archive_sig_path, sig_path);
 
     // V1
     let manifest_name = format!("dist/channel-rust-{}", channel);
     let manifest_path = path.join(&manifest_name);
     let hash_path = path.join(format!("{}.sha256", manifest_name));
+    let sig_path = path.join(format!("{}.asc", manifest_name));
 
     let archive_manifest_name = format!("dist/{}/channel-rust-{}", date, channel);
     let archive_manifest_path = path.join(&archive_manifest_name);
     let archive_hash_path = path.join(format!("{}.sha256", archive_manifest_name));
+    let archive_sig_path = path.join(format!("{}.asc", archive_manifest_name));
 
     let _ = hard_link(archive_manifest_path, manifest_path);
     let _ = hard_link(archive_hash_path, hash_path);
+    let _ = hard_link(archive_sig_path, sig_path);
 
     // Copy all files that look like rust-* for the v1 installers
     let archive_path = path.join(format!("dist/{}", date));
@@ -278,6 +284,13 @@ impl MockDistServer {
 
         let archive_hash_path = self.path.join(format!("{}.sha256", archive_manifest_name));
         hard_link(&hash_path, archive_hash_path).unwrap();
+
+        let signature = create_signature(buf.as_bytes()).unwrap();
+        let sig_path = self.path.join(format!("{}.asc", manifest_name));
+        write_file(&sig_path, &signature);
+
+        let archive_sig_path = self.path.join(format!("{}.asc", archive_manifest_name));
+        hard_link(sig_path, archive_sig_path).unwrap();
     }
 
     fn write_manifest_v2(
@@ -407,7 +420,8 @@ impl MockDistServer {
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
         let manifest_path = self.path.join(format!("{}.toml", manifest_name));
-        write_file(&manifest_path, &toml::to_string(&toml_manifest).unwrap());
+        let manifest_content = toml::to_string(&toml_manifest).unwrap();
+        write_file(&manifest_path, &manifest_content);
 
         let hash_path = self.path.join(format!("{}.toml.sha256", manifest_name));
         create_hash(&manifest_path, &hash_path);
@@ -421,6 +435,15 @@ impl MockDistServer {
             .path
             .join(format!("{}.toml.sha256", archive_manifest_name));
         hard_link(hash_path, archive_hash_path).unwrap();
+
+        let signature = create_signature(manifest_content.as_bytes()).unwrap();
+        let sig_path = self.path.join(format!("{}.toml.asc", manifest_name));
+        write_file(&sig_path, &signature);
+
+        let archive_sig_path = self
+            .path
+            .join(format!("{}.toml.asc", archive_manifest_name));
+        hard_link(sig_path, archive_sig_path).unwrap();
     }
 }
 
@@ -480,9 +503,39 @@ pub fn create_hash(src: &Path, dst: &Path) -> String {
     hex
 }
 
-fn write_file(dst: &Path, contents: &str) {
+pub fn write_file(dst: &Path, contents: &str) {
     drop(fs::remove_file(dst));
     File::create(dst)
         .and_then(|mut f| f.write_all(contents.as_bytes()))
         .unwrap();
+}
+
+const SIGNING_KEY_BYTES: &[u8] = include_bytes!("signing-key.asc");
+const PUB_SIGNING_KEY_BYTES: &[u8] = include_bytes!("signing-key.pub.asc");
+
+fn get_secret_key() -> pgp::SignedSecretKey {
+    use pgp::Deserializable;
+    let (key, _) =
+        pgp::SignedSecretKey::from_armor_single(std::io::Cursor::new(SIGNING_KEY_BYTES)).unwrap();
+    key
+}
+
+pub fn get_public_key() -> pgp::SignedPublicKey {
+    use pgp::Deserializable;
+    let (key, _) =
+        pgp::SignedPublicKey::from_armor_single(std::io::Cursor::new(PUB_SIGNING_KEY_BYTES))
+            .unwrap();
+    key
+}
+
+pub fn create_signature(data: &[u8]) -> std::result::Result<String, pgp::errors::Error> {
+    let key = get_secret_key();
+
+    let msg = pgp::Message::new_literal_bytes("message", data);
+    let signed_message = msg.sign(&key, || "".into(), pgp::crypto::HashAlgorithm::SHA2_256)?;
+    let sig = signed_message.into_signature();
+
+    sig.verify(&key, data).expect("invalid sig created");
+
+    sig.to_armored_string(None)
 }

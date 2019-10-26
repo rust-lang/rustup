@@ -35,6 +35,7 @@ pub enum Notification<'a> {
     ManifestChecksumFailedHack,
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
     StrayHash(&'a Path),
+    SignatureInvalid(&'a str),
 }
 
 impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
@@ -79,6 +80,7 @@ impl<'a> Notification<'a> {
             | ForcingUnavailableComponent(_)
             | StrayHash(_) => NotificationLevel::Warn,
             NonFatalError(_) => NotificationLevel::Error,
+            SignatureInvalid(_) => NotificationLevel::Warn,
         }
     }
 }
@@ -171,6 +173,7 @@ impl<'a> Display for Notification<'a> {
             ForcingUnavailableComponent(component) => {
                 write!(f, "Force-skipping unavailable component '{}'", component)
             }
+            SignatureInvalid(url) => write!(f, "Signature verification failed for '{}'", url),
         }
     }
 }

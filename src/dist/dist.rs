@@ -844,6 +844,7 @@ fn try_update_from_dist_<'a>(
         update_hash,
         &download.temp_cfg,
         &download.notify_handler,
+        &download.pgp_keys,
     ) {
         Ok(None) => Ok(None),
         Ok(Some(hash)) => Ok(Some(hash)),

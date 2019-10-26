@@ -13,3 +13,4 @@ pub mod manifest;
 pub mod manifestation;
 pub mod notifications;
 pub mod prefix;
+pub mod signatures;

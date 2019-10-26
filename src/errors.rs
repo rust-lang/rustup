@@ -208,6 +208,16 @@ error_chain! {
                     expected,
                     calculated)
         }
+        SignatureVerificationInternalError(msg: String) {
+            description("internal error verifying signature")
+            display("internal error verifying signature: {}", msg)
+        }
+        SignatureVerificationFailed {
+            url: String,
+        } {
+            description("signature verification failed")
+            display("signature verification failed for {}", url)
+        }
         ComponentConflict {
             name: String,
             path: PathBuf,
@@ -347,6 +357,10 @@ error_chain! {
         BadPath(v: PathBuf) {
             description("bad path in tar")
             display("tar path '{}' is not supported", v.display())
+        }
+        InvalidPgpKey(v: PathBuf, error: pgp::errors::Error) {
+            description("invalid PGP key"),
+            display("unable to read the PGP key '{}'", v.display())
         }
     }
 }

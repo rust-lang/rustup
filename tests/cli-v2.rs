@@ -979,6 +979,12 @@ fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple
     let hash_path = manifest_path.with_extension("toml.sha256");
     println!("{}", hash_path.display());
     create_hash(&manifest_path, &hash_path);
+
+    // update that signature
+    use crate::mock::dist::{create_signature, write_file};
+    let signature = create_signature(manifest_str.as_bytes()).unwrap();
+    let sig_path = manifest_path.with_extension("toml.asc");
+    write_file(&sig_path, &signature);
 }
 
 #[test]
@@ -1251,6 +1257,34 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: installing component 'rustc'
 "
+            ),
+        );
+    });
+}
+
+/// Invalidates the signature on the manifest of the nigthly channel.
+fn make_signature_invalid(config: &Config) {
+    let manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");
+
+    // Set signature to sth bogus.
+    use crate::mock::dist::{create_signature, write_file};
+    let signature = create_signature(b"hello invalid").unwrap();
+    let sig_path = manifest_path.with_extension("toml.asc");
+    write_file(&sig_path, &signature);
+}
+
+#[test]
+fn warn_on_invalid_signature() {
+    setup(&|config| {
+        make_signature_invalid(config);
+        let manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");
+
+        expect_stderr_ok(
+            config,
+            &["rustup", "update", "nightly", "--no-self-update"],
+            &format!(
+                "warning: Signature verification failed for 'file://{}'",
+                manifest_path.display()
             ),
         );
     });
