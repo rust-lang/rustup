@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  build_and_test_windows:
+    name: Build and test
+    runs-on: ${{ matrix.os }}
+    env:
+      RUSTFLAGS: -Ctarget-feature=+crt-static
+      RUST_BACKTRACE: 1
+    strategy:
+      matrix:
+        os: [windows-latest]
+        rust: [stable]
+        target: [x86_64-pc-windows-msvc, i686-pc-windows-msvc, i686-pc-windows-gnu]
+
+    steps:
+    - uses: actions/checkout@master
+
+    - name: Install ${{ matrix.rust }}
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        override: true
+
+    - name: build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release --target ${{ matrix.target }}
+
+    - name: run
+      uses: actions-rs/cargo@v1
+      with:
+        command: run
+        args: --release --target ${{ matrix.target }} -- --dump-testament
+
+    - name: tests - download
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --all --release --target ${{ matrix.target }} -p download
+
+    - name: tests - rustup-init
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --all --release --target ${{ matrix.target }} --bin rustup-init
+
+    - name: tests - lib all
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --all --release --target ${{ matrix.target }} --lib --all
+
+  check_fmt_and_docs:
+    name: Checking fmt and docs
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Dwarnings
+    steps:
+    - uses: actions/checkout@master
+
+    - id: component
+      uses: actions-rs/components-nightly@v1
+      with:
+        component: rustfmt
+
+    - uses: actions-rs/toolchain@v1
+      with:
+          toolchain: ${{ steps.component.outputs.toolchain }}
+          override: true
+
+    - name: setup
+      run: |
+        rustup component add rustfmt
+        rustc --version
+
+    - name: fmt
+      run: cargo fmt --all -- --check
+
+  clippy_check:
+    name: Clippy check
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Dwarnings
+    steps:
+      - uses: actions/checkout@v1
+      - id: component
+        uses: actions-rs/components-nightly@v1
+        with:
+          component: clippy
+      - uses: actions-rs/toolchain@v1
+        with:
+            toolchain: ${{ steps.component.outputs.toolchain }}
+            override: true
+      - run: rustup component add clippy
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
