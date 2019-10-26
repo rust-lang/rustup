@@ -2,7 +2,7 @@ use crate::common;
 use crate::errors::*;
 use crate::self_update::{self, InstallOpts};
 use clap::{App, AppSettings, Arg};
-use rustup::dist::dist::{Profile, TargetTriple};
+use rustup::dist::dist::Profile;
 use std::env;
 
 pub fn main() -> Result<()> {
@@ -89,8 +89,7 @@ pub fn main() -> Result<()> {
     let quiet = matches.is_present("quiet");
     let default_host = matches
         .value_of("default-host")
-        .map(std::borrow::ToOwned::to_owned)
-        .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string());
+        .map(std::borrow::ToOwned::to_owned);
     let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
     let profile = matches
         .value_of("profile")
