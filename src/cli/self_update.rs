@@ -749,6 +749,10 @@ fn maybe_install_rust(
     let mut cfg = common::set_globals(verbose, quiet)?;
     cfg.set_profile(profile_str)?;
 
+    // Set host triple now as it will affect resolution of toolchain_str
+    info!("setting default host triple to {}", default_host_triple);
+    cfg.set_default_host_triple(default_host_triple)?;
+
     // If there is already an install, then `toolchain_str` may not be
     // a toolchain the user actually wants. Don't do anything.  FIXME:
     // This logic should be part of InstallOpts so that it isn't
@@ -757,8 +761,6 @@ fn maybe_install_rust(
         info!("skipping toolchain installation");
         println!();
     } else if cfg.find_default()?.is_none() {
-        // Set host triple first as it will affect resolution of toolchain_str
-        cfg.set_default_host_triple(default_host_triple)?;
         let toolchain = cfg.get_toolchain(toolchain_str, false)?;
         let status = toolchain.install_from_dist(true, components, targets)?;
         cfg.set_default(toolchain_str)?;
