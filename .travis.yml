@@ -32,7 +32,7 @@ matrix:
     # These builds always run.  PRs, master, staging, stable, etc.
     - &linuxalways
       os: linux
-      env: TARGET=x86_64-unknown-linux-gnu NO_ADD=1
+      env: TARGET=x86_64-unknown-linux-gnu
     # Most builds consuming this only run on the stable and staging branches
     - &linuxstable
       os: linux
@@ -79,7 +79,7 @@ matrix:
       os: osx
       osx_image: xcode9.2
       if: type != pull_request
-      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin NO_ADD=1
+      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin
     - <<: *mac
       if: branch != master
       env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=i686-apple-darwin
@@ -108,7 +108,7 @@ matrix:
 
     - &windows
       os: windows
-      env: TARGET=x86_64-pc-windows-msvc NO_ADD=1 EXE_EXT=.exe
+      env: TARGET=x86_64-pc-windows-msvc EXE_EXT=.exe
       services: nil
       language: bash
       if: branch == disabled-for-now
@@ -116,7 +116,7 @@ matrix:
 before_install:
   - sh ./rustup-init.sh --default-toolchain=stable --profile=minimal -y
   - export PATH="$HOME/.cargo/bin:$PATH"
-  - if [ -z "$NO_ADD" ]; then rustup target add "$TARGET"; fi
+  - rustup target add "$TARGET"
 
 install:
   - export CARGO_TARGET_DIR="$TRAVIS_BUILD_DIR/target"

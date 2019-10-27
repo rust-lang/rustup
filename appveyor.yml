@@ -29,7 +29,6 @@ environment:
     RUST_BACKTRACE: 1
   matrix:
     - TARGET: x86_64-pc-windows-msvc
-      NO_ADD: 1
       ALLOW_PR: 1
     - TARGET: i686-pc-windows-msvc
     - TARGET: x86_64-pc-windows-gnu
@@ -78,7 +77,7 @@ install:
   - del rustup-init.exe
 
   # Install the target we're compiling for
-  - if NOT "%TARGET%" == "x86_64-pc-windows-msvc" rustup target add %TARGET%
+  - rustup target add %TARGET%
 
   # add mingw to PATH if necessary
   - if defined MINGW_DIR set PATH=C:\msys64\%MINGW_DIR%\bin;C:\msys64\usr\bin;%PATH%
