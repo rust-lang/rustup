@@ -486,7 +486,7 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
             libc::getpwuid_r(
                 libc::geteuid(),
                 pwd.as_mut_ptr(),
-                buf.as_mut_ptr() as *mut libc::c_char,
+                buf.as_mut_ptr().cast::<libc::c_char>(),
                 buf.len(),
                 (&mut pwdp) as *mut *mut libc::passwd,
             )

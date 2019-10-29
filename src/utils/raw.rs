@@ -206,7 +206,7 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
         );
 
         let mut data = [0u8; MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
-        let db = data.as_mut_ptr() as *mut REPARSE_MOUNTPOINT_DATA_BUFFER;
+        let db = data.as_mut_ptr().cast::<REPARSE_MOUNTPOINT_DATA_BUFFER>();
         let buf = &mut (*db).ReparseTarget as *mut WCHAR;
         let mut i = 0;
         // FIXME: this conversion is very hacky
@@ -225,9 +225,9 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
 
         let mut ret = 0;
         let res = DeviceIoControl(
-            h as *mut _,
+            h.cast(),
             FSCTL_SET_REPARSE_POINT,
-            data.as_ptr() as *mut _,
+            data.as_mut_ptr().cast(),
             (*db).ReparseDataLength + 8,
             ptr::null_mut(),
             0,
