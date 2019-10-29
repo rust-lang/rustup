@@ -193,10 +193,15 @@ pub fn restore_path(p: Option<String>) {
     }
 
     fn string_to_winreg_bytes(s: &str) -> Vec<u8> {
-        use std::ffi::OsString;
+        use std::ffi::OsStr;
         use std::os::windows::ffi::OsStrExt;
-        let v: Vec<_> = OsString::from(format!("{}\x00", s)).encode_wide().collect();
-        unsafe { std::slice::from_raw_parts(v.as_ptr() as *const u8, v.len() * 2).to_vec() }
+        let v: Vec<u16> = OsStr::new(s)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect();
+        let ptr = v.as_ptr().cast::<u8>();
+        let len = v.len() * 2;
+        unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec()
     }
 }
 

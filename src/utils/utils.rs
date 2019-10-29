@@ -504,7 +504,7 @@ pub fn format_path_for_display(path: &str) -> String {
 pub fn string_to_winreg_bytes(s: &str) -> Vec<u8> {
     use std::os::windows::ffi::OsStrExt;
     let v: Vec<_> = OsString::from(format!("{}\x00", s)).encode_wide().collect();
-    unsafe { std::slice::from_raw_parts(v.as_ptr() as *const u8, v.len() * 2).to_vec() }
+    unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 2).to_vec() }
 }
 
 // This is used to decode the value of HKCU\Environment\PATH. If that
@@ -521,7 +521,7 @@ pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<String> {
             // Copied from winreg
             let words = unsafe {
                 #[allow(clippy::cast_ptr_alignment)]
-                slice::from_raw_parts(val.bytes.as_ptr() as *const u16, val.bytes.len() / 2)
+                slice::from_raw_parts(val.bytes.as_ptr().cast::<u16>(), val.bytes.len() / 2)
             };
             String::from_utf16(words).ok().and_then(|mut s| {
                 while s.ends_with('\u{0}') {
