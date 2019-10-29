@@ -37,7 +37,9 @@ pub static UPDATE_HELP: &str = r"DISCUSSION:
 pub static INSTALL_HELP: &str = r"DISCUSSION:
     Installs a specific rust toolchain.
 
-    The 'install' command is an alias for 'rustup update <toolchain>'.";
+    The 'install' command is an alias for:
+        rustup toolchain install <toolchain>
+    ";
 
 pub static DEFAULT_HELP: &str = r"DISCUSSION:
     Sets the default toolchain to the one specified. If the toolchain

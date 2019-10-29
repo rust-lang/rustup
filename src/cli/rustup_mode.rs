@@ -114,6 +114,52 @@ pub fn main() -> Result<()> {
 }
 
 pub fn cli() -> App<'static, 'static> {
+    let toolchain_install = SubCommand::with_name("install")
+        .about("Install or update a given toolchain")
+        .arg(
+            Arg::with_name("toolchain")
+                .help(TOOLCHAIN_ARG_HELP)
+                .required(true)
+                .multiple(true),
+        )
+        .arg(
+            Arg::with_name("profile")
+                .long("profile")
+                .takes_value(true)
+                .possible_values(Profile::names())
+                .required(false),
+        )
+        .arg(
+            Arg::with_name("no-self-update")
+                .help(
+                    "Don't perform self update when running the `rustup toolchain install` command",
+                )
+                .long("no-self-update")
+                .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("components")
+                .help("Add specific components on installation")
+                .long("component")
+                .short("c")
+                .takes_value(true)
+                .multiple(true),
+        )
+        .arg(
+            Arg::with_name("targets")
+                .help("Add specific targets on installation")
+                .long("target")
+                .short("t")
+                .takes_value(true)
+                .multiple(true),
+        )
+        .arg(
+            Arg::with_name("force")
+                .help("Force an update, even if some components are missing")
+                .long("force")
+                .takes_value(false),
+        );
+
     let mut app = App::new("rustup")
         .version(common::version())
         .about("The Rust toolchain installer")
@@ -168,35 +214,10 @@ pub fn cli() -> App<'static, 'static> {
                 .subcommand(SubCommand::with_name("profile").about("Show the current profile")),
         )
         .subcommand(
-            SubCommand::with_name("install")
-                .about("Update Rust toolchains")
+            toolchain_install
+                .clone()
                 .after_help(INSTALL_HELP)
                 .setting(AppSettings::Hidden) // synonym for 'toolchain install'
-                .arg(
-                    Arg::with_name("toolchain")
-                        .help(TOOLCHAIN_ARG_HELP)
-                        .required(true)
-                        .multiple(true),
-                )
-                .arg(
-                    Arg::with_name("profile")
-                        .long("profile")
-                        .takes_value(true)
-                        .possible_values(Profile::names())
-                        .required(false)
-                )
-                .arg(
-                    Arg::with_name("no-self-update")
-                        .help("Don't perform self-update when running the `rustup install` command")
-                        .long("no-self-update")
-                        .takes_value(false)
-                )
-                .arg(
-                    Arg::with_name("force")
-                        .help("Force an update, even if some components are missing")
-                        .long("force")
-                        .takes_value(false),
-                ),
         )
         .subcommand(
             SubCommand::with_name("uninstall")
@@ -265,50 +286,8 @@ pub fn cli() -> App<'static, 'static> {
                         )
                 )
                 .subcommand(
-                    SubCommand::with_name("install")
-                        .about("Install or update a given toolchain")
+                    toolchain_install
                         .aliases(&["update", "add"])
-                        .arg(
-                            Arg::with_name("toolchain")
-                                .help(TOOLCHAIN_ARG_HELP)
-                                .required(true)
-                                .multiple(true),
-                        )
-                        .arg(
-                            Arg::with_name("profile")
-                                .long("profile")
-                                .takes_value(true)
-                                .possible_values(Profile::names())
-                                .required(false)
-                        )
-                        .arg(
-                            Arg::with_name("no-self-update")
-                                .help("Don't perform self update when running the `rustup toolchain install` command")
-                                .long("no-self-update")
-                                .takes_value(false)
-                        )
-                        .arg(
-                            Arg::with_name("components")
-                                .help("Add specific components on installation")
-                                .long("component")
-                                .short("c")
-                                .takes_value(true)
-                                .multiple(true)
-                        )
-                        .arg(
-                            Arg::with_name("targets")
-                                .help("Add specific targets on installation")
-                                .long("target")
-                                .short("t")
-                                .takes_value(true)
-                                .multiple(true)
-                        )
-                        .arg(
-                            Arg::with_name("force")
-                                .help("Force an update, even if some components are missing")
-                                .long("force")
-                                .takes_value(false),
-                        ),
                 )
                 .subcommand(
                     SubCommand::with_name("uninstall")
