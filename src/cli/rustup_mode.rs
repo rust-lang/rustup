@@ -148,7 +148,7 @@ pub fn cli() -> App<'static, 'static> {
         .subcommand(
             SubCommand::with_name("dump-testament")
                 .about("Dump information about the build")
-                .setting(AppSettings::Hidden) // Not for users, only CI
+                .setting(AppSettings::Hidden), // Not for users, only CI
         )
         .subcommand(
             SubCommand::with_name("show")
@@ -183,13 +183,13 @@ pub fn cli() -> App<'static, 'static> {
                         .long("profile")
                         .takes_value(true)
                         .possible_values(Profile::names())
-                        .required(false)
+                        .required(false),
                 )
                 .arg(
                     Arg::with_name("no-self-update")
                         .help("Don't perform self-update when running the `rustup install` command")
                         .long("no-self-update")
-                        .takes_value(false)
+                        .takes_value(false),
                 )
                 .arg(
                     Arg::with_name("force")
@@ -223,7 +223,7 @@ pub fn cli() -> App<'static, 'static> {
                     Arg::with_name("no-self-update")
                         .help("Don't perform self update when running the `rustup update` command")
                         .long("no-self-update")
-                        .takes_value(false)
+                        .takes_value(false),
                 )
                 .arg(
                     Arg::with_name("force")
@@ -232,10 +232,7 @@ pub fn cli() -> App<'static, 'static> {
                         .takes_value(false),
                 ),
         )
-        .subcommand(
-            SubCommand::with_name("check")
-                .about("Check for updates to Rust toolchains")
-        )
+        .subcommand(SubCommand::with_name("check").about("Check for updates to Rust toolchains"))
         .subcommand(
             SubCommand::with_name("default")
                 .about("Set the default toolchain")
@@ -245,8 +242,11 @@ pub fn cli() -> App<'static, 'static> {
                         .help(TOOLCHAIN_ARG_HELP)
                         .required(false),
                 ),
-        )
-        .subcommand(
+        );
+
+    // We break the app creation here so that rustfmt can cope
+    // If rustfmt ceases to format this block, break it up further
+    app = app.subcommand(
             SubCommand::with_name("toolchain")
                 .about("Modify or query the installed toolchains")
                 .after_help(TOOLCHAIN_HELP)
