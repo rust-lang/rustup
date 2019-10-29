@@ -13,7 +13,7 @@
 use crate::errors::*;
 use crate::utils::toml_utils::*;
 
-use crate::dist::dist::{Profile, TargetTriple};
+use crate::dist::dist::{PartialTargetTriple, Profile, TargetTriple};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
@@ -496,6 +496,25 @@ impl Component {
             is_extension,
         }
     }
+
+    pub fn new_with_target(pkg_with_target: &str, is_extension: bool) -> Option<Self> {
+        use std::convert::TryFrom;
+        for (pos, _) in pkg_with_target.match_indices('-') {
+            let pkg = &pkg_with_target[0..pos];
+            let target = &pkg_with_target[pos + 1..];
+            if let Some(partial) = PartialTargetTriple::new(target) {
+                if let Ok(triple) = TargetTriple::try_from(partial) {
+                    return Some(Self {
+                        pkg: pkg.to_string(),
+                        target: Some(triple),
+                        is_extension,
+                    });
+                }
+            }
+        }
+        None
+    }
+
     pub fn wildcard(&self) -> Self {
         Self {
             pkg: self.pkg.clone(),

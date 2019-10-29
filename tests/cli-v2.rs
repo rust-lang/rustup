@@ -679,6 +679,59 @@ fn add_all_targets_fail() {
 }
 
 #[test]
+fn add_target_by_component_add() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_not_stdout_ok(
+            config,
+            &["rustup", "target", "list"],
+            &format!("{} (installed)", clitools::CROSS_ARCH1),
+        );
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "component",
+                "add",
+                &format!("rust-std-{}", clitools::CROSS_ARCH1),
+            ],
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "target", "list"],
+            &format!("{} (installed)", clitools::CROSS_ARCH1),
+        );
+    })
+}
+
+#[test]
+fn remove_target_by_component_remove() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        expect_stdout_ok(
+            config,
+            &["rustup", "target", "list"],
+            &format!("{} (installed)", clitools::CROSS_ARCH1),
+        );
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "component",
+                "remove",
+                &format!("rust-std-{}", clitools::CROSS_ARCH1),
+            ],
+        );
+        expect_not_stdout_ok(
+            config,
+            &["rustup", "target", "list"],
+            &format!("{} (installed)", clitools::CROSS_ARCH1),
+        );
+    })
+}
+
+#[test]
 fn add_target_no_toolchain() {
     setup(&|config| {
         expect_err(

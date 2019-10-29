@@ -1119,7 +1119,8 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     });
 
     for component in m.values_of("component").expect("") {
-        let new_component = Component::new(component.to_string(), target.clone(), true);
+        let new_component = Component::new_with_target(component, false)
+            .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
 
         toolchain.add_component(new_component)?;
     }
@@ -1138,7 +1139,8 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     });
 
     for component in m.values_of("component").expect("") {
-        let new_component = Component::new(component.to_string(), target.clone(), true);
+        let new_component = Component::new_with_target(component, false)
+            .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
 
         toolchain.remove_component(new_component)?;
     }
