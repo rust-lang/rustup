@@ -242,11 +242,8 @@ pub fn cli() -> App<'static, 'static> {
                         .help(TOOLCHAIN_ARG_HELP)
                         .required(false),
                 ),
-        );
-
-    // We break the app creation here so that rustfmt can cope
-    // If rustfmt ceases to format this block, break it up further
-    app = app.subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("toolchain")
                 .about("Modify or query the installed toolchains")
                 .after_help(TOOLCHAIN_HELP)
@@ -262,7 +259,7 @@ pub fn cli() -> App<'static, 'static> {
                                 .takes_value(false)
                                 .short("v")
                                 .long("verbose"),
-                        )
+                        ),
                 )
                 .subcommand(
                     SubCommand::with_name("install")
@@ -279,13 +276,16 @@ pub fn cli() -> App<'static, 'static> {
                                 .long("profile")
                                 .takes_value(true)
                                 .possible_values(Profile::names())
-                                .required(false)
+                                .required(false),
                         )
                         .arg(
                             Arg::with_name("no-self-update")
-                                .help("Don't perform self update when running the `rustup toolchain install` command")
+                                .help(
+                                    "Don't perform self update when running the\
+                                     `rustup toolchain install` command",
+                                )
                                 .long("no-self-update")
-                                .takes_value(false)
+                                .takes_value(false),
                         )
                         .arg(
                             Arg::with_name("components")
@@ -293,7 +293,7 @@ pub fn cli() -> App<'static, 'static> {
                                 .long("component")
                                 .short("c")
                                 .takes_value(true)
-                                .multiple(true)
+                                .multiple(true),
                         )
                         .arg(
                             Arg::with_name("targets")
@@ -301,7 +301,7 @@ pub fn cli() -> App<'static, 'static> {
                                 .long("target")
                                 .short("t")
                                 .takes_value(true)
-                                .multiple(true)
+                                .multiple(true),
                         )
                         .arg(
                             Arg::with_name("force")
@@ -358,15 +358,10 @@ pub fn cli() -> App<'static, 'static> {
                     SubCommand::with_name("add")
                         .about("Add a target to a Rust toolchain")
                         .alias("install")
-                        .arg(
-                            Arg::with_name("target")
-                                .required(true)
-                                .multiple(true)
-                                .help(
-                                    "List of targets to install; \
-                                     \"all\" installs all available targets"
-                                )
-                        )
+                        .arg(Arg::with_name("target").required(true).multiple(true).help(
+                            "List of targets to install; \
+                             \"all\" installs all available targets",
+                        ))
                         .arg(
                             Arg::with_name("toolchain")
                                 .help(TOOLCHAIN_ARG_HELP)
@@ -541,10 +536,7 @@ pub fn cli() -> App<'static, 'static> {
                             .collect::<Vec<_>>(),
                     ),
                 )
-                .arg(
-                    Arg::with_name("topic")
-                         .help("Topic such as 'core', 'fn', 'usize', 'eprintln!', 'core::arch', 'alloc::format!', 'std::fs', 'std::fs::read_dir', 'std::io::Bytes', 'std::iter::Sum', 'std::io::error::Result' etc..."),
-                    ),
+                .arg(Arg::with_name("topic").help(TOPIC_ARG_HELP)),
         );
 
     if cfg!(not(target_os = "windows")) {

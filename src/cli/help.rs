@@ -277,3 +277,8 @@ r"DISCUSSION:
 pub static TOOLCHAIN_ARG_HELP: &str = "Toolchain name, such as 'stable', 'nightly', \
                                        or '1.8.0'. For more information see `rustup \
                                        help toolchain`";
+
+pub static TOPIC_ARG_HELP: &str = "Topic such as 'core', 'fn', 'usize', 'eprintln!', \
+                                   'core::arch', 'alloc::format!', 'std::fs', \
+                                   'std::fs::read_dir', 'std::io::Bytes', \
+                                   'std::iter::Sum', 'std::io::error::Result' etc...";
