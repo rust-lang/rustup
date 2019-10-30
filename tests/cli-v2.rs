@@ -148,14 +148,31 @@ fn list_toolchains() {
             &["rustup", "toolchain", "list", "-v"],
             "(default)\t",
         );
+        #[cfg(windows)]
         expect_stdout_ok(
             config,
-            &["rustup", "toolchain", "list", "--verbose"],
-            "(default)\t",
+            &["rustup", "toolchain", "list", "-v"],
+            "\\toolchains\\nightly-x86",
+        );
+        #[cfg(not(windows))]
+        expect_stdout_ok(
+            config,
+            &["rustup", "toolchain", "list", "-v"],
+            "/toolchains/nightly-x86",
         );
         expect_stdout_ok(config, &["rustup", "toolchain", "list"], "beta-2015-01-01");
-        expect_stdout_ok(config, &["rustup", "toolchain", "list", "-v"], "\t");
-        expect_stdout_ok(config, &["rustup", "toolchain", "list", "--verbose"], "\t");
+        #[cfg(windows)]
+        expect_stdout_ok(
+            config,
+            &["rustup", "toolchain", "list", "-v"],
+            "\\toolchains\\beta-2015-01-01",
+        );
+        #[cfg(not(windows))]
+        expect_stdout_ok(
+            config,
+            &["rustup", "toolchain", "list", "-v"],
+            "/toolchains/beta-2015-01-01",
+        );
     });
 }
 
