@@ -5,8 +5,8 @@ pub mod mock;
 
 use crate::mock::clitools::{
     self, expect_component_executable, expect_component_not_executable, expect_err, expect_ok,
-    expect_ok_eq, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date,
-    this_host_triple, Config, Scenario,
+    expect_ok_contains, expect_ok_eq, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
+    set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use rustup::utils::{raw, utils};
 
@@ -996,4 +996,22 @@ fn toolchain_link_then_list_verbose() {
         #[cfg(not(windows))]
         expect_stdout_ok(config, &["rustup", "toolchain", "list", "-v"], "/custom-1");
     });
+}
+
+#[test]
+fn deprecated_interfaces() {
+    setup(&|config| {
+        expect_ok_contains(
+            config,
+            &["rustup", "install", "nightly", "--no-self-update"],
+            "",
+            "Please use `rustup toolchain install` instead",
+        );
+        expect_ok_contains(
+            config,
+            &["rustup", "uninstall", "nightly"],
+            "",
+            "Please use `rustup toolchain uninstall` instead",
+        );
+    })
 }

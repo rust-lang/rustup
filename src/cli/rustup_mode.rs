@@ -27,6 +27,15 @@ fn handle_epipe(res: Result<()>) -> Result<()> {
     }
 }
 
+fn deprecated<F, A, B>(instead: &str, cfg: A, matches: B, callee: F) -> Result<()>
+where
+    F: FnOnce(A, B) -> Result<()>,
+{
+    warn!("Use of deprecated command line interface.");
+    warn!("  Please use `rustup {}` instead", instead);
+    callee(cfg, matches)
+}
+
 pub fn main() -> Result<()> {
     crate::self_update::cleanup_self_updater()?;
 
@@ -53,10 +62,10 @@ pub fn main() -> Result<()> {
             ("profile", Some(_)) => handle_epipe(show_profile(cfg))?,
             (_, _) => handle_epipe(show(cfg))?,
         },
-        ("install", Some(m)) => update(cfg, m)?,
+        ("install", Some(m)) => deprecated("toolchain install", cfg, m, update)?,
         ("update", Some(m)) => update(cfg, m)?,
         ("check", Some(_)) => check_updates(cfg)?,
-        ("uninstall", Some(m)) => toolchain_remove(cfg, m)?,
+        ("uninstall", Some(m)) => deprecated("toolchain uninstall", &*cfg, m, toolchain_remove)?,
         ("default", Some(m)) => default_(cfg, m)?,
         ("toolchain", Some(c)) => match c.subcommand() {
             ("install", Some(m)) => update(cfg, m)?,
