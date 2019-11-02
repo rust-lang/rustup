@@ -110,5 +110,4 @@ name = "rustup-init"
 path = "src/cli/main.rs"
 
 [profile.release]
-lto = true
-codegen-units = 1
+lto = true # no need for `codegen-units=1` if it is set
