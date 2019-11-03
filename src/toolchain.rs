@@ -378,7 +378,7 @@ impl<'a> Toolchain<'a> {
             src_file
         };
         let mut cmd = Command::new(exe_path);
-        self.set_env(&mut cmd);
+        primary_toolchain.set_env(&mut cmd); // set up the environment to match rustc, not cargo
         cmd.env("RUSTUP_TOOLCHAIN", &primary_toolchain.name);
         Ok(cmd)
     }
