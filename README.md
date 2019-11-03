@@ -468,8 +468,8 @@ toolchain] use the GNU build.
 When targeting the MSVC ABI, Rust additionally requires an [installation
 of Visual Studio 2013 (or later) or the Visual C++ Build Tools
 2019][vs] so rustc can use its linker. For Visual Studio, make sure to
-check the "C++ tools" option. No additional software installation is
-necessary for basic use of the GNU build.
+check the "C++ tools" and "Windows 10 SDK" option. No additional software
+installation is necessary for basic use of the GNU build.
 
 By default `rustup` on Windows configures Rust to target the MSVC
 ABI, that is a target triple of either `i686-pc-windows-msvc` or
@@ -740,9 +740,9 @@ platform of your choice:
 <a name="vs2019">†</a>
 MSVC builds of `rustup` additionally require an [installation of
 Visual Studio 2019 or the Visual C++ Build Tools 2019][vs]. For
-Visual Studio, make sure to check the "C++ tools" option. No
-additional software installation is necessary for basic use of
-the GNU build.
+Visual Studio, make sure to check the "C++ tools" and "Windows
+10 SDK" option. No additional software installation is necessary
+for basic use of the GNU build.
 
 [vs]: https://visualstudio.microsoft.com/downloads/
 
