@@ -1,3 +1,4 @@
+use crate::config::PgpPublicKey;
 use crate::dist::dist::TargetTriple;
 use crate::dist::manifest::Component;
 use crate::dist::temp;
@@ -16,7 +17,7 @@ pub enum Notification<'a> {
     CantReadUpdateHash(&'a Path),
     NoUpdateHash(&'a Path),
     ChecksumValid(&'a str),
-    SignatureValid(&'a str),
+    SignatureValid(&'a str, &'a PgpPublicKey),
     FileAlreadyDownloaded,
     CachedFileChecksumFailed,
     RollingBack,
@@ -57,11 +58,11 @@ impl<'a> Notification<'a> {
             Temp(n) => n.level(),
             Utils(n) => n.level(),
             ChecksumValid(_)
+            | SignatureValid(_, _)
             | NoUpdateHash(_)
             | FileAlreadyDownloaded
             | DownloadingLegacyManifest => NotificationLevel::Verbose,
             Extracting(_, _)
-            | SignatureValid(_)
             | DownloadingComponent(_, _, _)
             | InstallingComponent(_, _, _)
             | RemovingComponent(_, _, _)
@@ -100,7 +101,13 @@ impl<'a> Display for Notification<'a> {
             ),
             NoUpdateHash(path) => write!(f, "no update hash at: '{}'", path.display()),
             ChecksumValid(_) => write!(f, "checksum passed"),
-            SignatureValid(_) => write!(f, "signature valid"),
+            SignatureValid(url, key) => (|| {
+                writeln!(f, "Good signature from on {} from:", url)?;
+                for l in key.show_key().map_err(|_| std::fmt::Error)?.iter() {
+                    writeln!(f, "{}", l)?;
+                }
+                Ok(())
+            })(),
             FileAlreadyDownloaded => write!(f, "reusing previously downloaded file"),
             CachedFileChecksumFailed => write!(f, "bad checksum for cached download"),
             RollingBack => write!(f, "rolling back changes"),
