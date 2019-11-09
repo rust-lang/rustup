@@ -115,21 +115,23 @@ pub fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
         if download_tracker.borrow_mut().handle_notification(&n) {
             return;
         }
-
-        match n.level() {
-            NotificationLevel::Verbose => {
-                if verbose {
-                    verbose!("{}", n);
+        let level = n.level();
+        for n in format!("{}", n).lines() {
+            match level {
+                NotificationLevel::Verbose => {
+                    if verbose {
+                        verbose!("{}", n);
+                    }
                 }
-            }
-            NotificationLevel::Info => {
-                info!("{}", n);
-            }
-            NotificationLevel::Warn => {
-                warn!("{}", n);
-            }
-            NotificationLevel::Error => {
-                err!("{}", n);
+                NotificationLevel::Info => {
+                    info!("{}", n);
+                }
+                NotificationLevel::Warn => {
+                    warn!("{}", n);
+                }
+                NotificationLevel::Error => {
+                    err!("{}", n);
+                }
             }
         }
     }))?)
