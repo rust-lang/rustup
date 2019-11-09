@@ -65,7 +65,7 @@ impl Display for PgpPublicKey {
         match self {
             Self::Builtin => write!(f, "builtin Rust release key"),
             Self::FromEnvironment(p, _) => {
-                write!(f, "key specified in RUST_PGP_KEY ({})", p.display())
+                write!(f, "key specified in RUSTUP_PGP_KEY ({})", p.display())
             }
             Self::FromConfiguration(p, _) => {
                 write!(f, "key specified in configuration file ({})", p.display())
