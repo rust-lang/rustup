@@ -593,4 +593,26 @@ impl Component {
             String::new()
         }
     }
+
+    pub fn contained_within(&self, components: &[Component]) -> bool {
+        if components.contains(self) {
+            // Yes, we're within the component set, move on
+            true
+        } else if self.target.is_none() {
+            // We weren't in the given component set, but we're a package
+            // which targets "*" and as such older rustups might have
+            // accidentally made us target specific due to a bug in profiles.
+            components
+                .iter()
+                // As such, if our target is None, it's sufficient to check pkg
+                .any(|other| other.pkg == self.pkg)
+        } else {
+            // As a last ditch effort, we're contained within the component
+            // set if the name matches and the other component's target
+            // is None
+            components
+                .iter()
+                .any(|other| other.pkg == self.pkg && other.target.is_none())
+        }
+    }
 }

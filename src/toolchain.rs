@@ -548,7 +548,7 @@ impl<'a> Toolchain<'a> {
             for component in &targ_pkg.components {
                 let installed = config
                     .as_ref()
-                    .map(|c| c.components.contains(component))
+                    .map(|c| component.contained_within(&c.components))
                     .unwrap_or(false);
 
                 let component_target = TargetTriple::new(&component.target());
