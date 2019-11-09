@@ -153,8 +153,7 @@ pub static DOC_HELP: &str = r"DISCUSSION:
     By default, it opens the documentation index. Use the various
     flags to open specific pieces of documentation.";
 
-pub static COMPLETIONS_HELP: &str =
-r"DISCUSSION:
+pub static COMPLETIONS_HELP: &str = r"DISCUSSION:
     Enable tab completion for Bash, Fish, Zsh, or PowerShell
     The script is output on `stdout`, allowing one to re-direct the
     output to the file of their choosing. Where you place the file
