@@ -51,6 +51,7 @@ pub fn main() -> Result<()> {
             ("active-toolchain", Some(_)) => handle_epipe(show_active_toolchain(cfg))?,
             ("home", Some(_)) => handle_epipe(show_rustup_home(cfg))?,
             ("profile", Some(_)) => handle_epipe(show_profile(cfg))?,
+            ("keys", Some(_)) => handle_epipe(show_keys(cfg))?,
             (_, _) => handle_epipe(show(cfg))?,
         },
         ("install", Some(m)) => update(cfg, m)?,
@@ -165,7 +166,8 @@ pub fn cli() -> App<'static, 'static> {
                     SubCommand::with_name("home")
                         .about("Display the computed value of RUSTUP_HOME"),
                 )
-                .subcommand(SubCommand::with_name("profile").about("Show the current profile")),
+                .subcommand(SubCommand::with_name("profile").about("Show the current profile"))
+                .subcommand(SubCommand::with_name("keys").about("Display the known PGP keys")),
         )
         .subcommand(
             SubCommand::with_name("install")
@@ -1335,6 +1337,15 @@ fn set_profile(cfg: &mut Cfg, m: &ArgMatches) -> Result<()> {
 
 fn show_profile(cfg: &Cfg) -> Result<()> {
     println!("{}", cfg.get_profile()?);
+    Ok(())
+}
+
+fn show_keys(cfg: &Cfg) -> Result<()> {
+    for key in cfg.get_pgp_keys() {
+        for l in key.show_key()? {
+            info!("{}", l);
+        }
+    }
     Ok(())
 }
 

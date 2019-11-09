@@ -1358,3 +1358,19 @@ fn warn_on_invalid_signature() {
         );
     });
 }
+
+#[test]
+fn check_pgp_keys() {
+    setup(&|config| {
+        expect_stderr_ok(
+            config,
+            &["rustup", "show", "keys"],
+            "Fingerprint: 108F 6620 5EAE B0AA A8DD 5E1C 85AB 96E6 FA1B E5FE",
+        );
+        expect_stderr_ok(
+            config,
+            &["rustup", "show", "keys"],
+            "Fingerprint: B695 EF92 BE5C D24E D391 24DD 1F62 3994 2A48 2D51",
+        );
+    })
+}
