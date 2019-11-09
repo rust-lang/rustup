@@ -58,6 +58,40 @@ impl PgpPublicKey {
             Self::FromConfiguration(_, k) => &k,
         }
     }
+
+    /// Display the key in detail for the user
+    pub fn show_key(&self) -> Result<Vec<String>> {
+        fn format_hex(bytes: &[u8], separator: &str, every: usize) -> Result<String> {
+            use std::fmt::Write;
+            let mut ret = String::new();
+            let mut wait = every;
+            for b in bytes.iter() {
+                if wait == 0 {
+                    ret.push_str(separator);
+                    wait = every;
+                }
+                wait -= 1;
+                write!(ret, "{:02X}", b).map_err(|e| format!("{:?}", e))?;
+            }
+            Ok(ret)
+        }
+        use pgp::types::KeyTrait;
+        let mut ret = Vec::new();
+        ret.push(format!("from {}", self));
+        let key = self.key();
+        let keyid = format_hex(&key.key_id().to_vec(), "-", 4)?;
+        let algo = key.algorithm();
+        let fpr = format_hex(&key.fingerprint(), " ", 2)?;
+        let uid0 = key
+            .details
+            .users
+            .get(0)
+            .map(|u| u.id.id())
+            .unwrap_or("<No User ID>");
+        ret.push(format!("  {:?}/{} - {}", algo, keyid, uid0));
+        ret.push(format!("  Fingerprint: {}", fpr));
+        Ok(ret)
+    }
 }
 
 impl Display for PgpPublicKey {
@@ -65,7 +99,7 @@ impl Display for PgpPublicKey {
         match self {
             Self::Builtin => write!(f, "builtin Rust release key"),
             Self::FromEnvironment(p, _) => {
-                write!(f, "key specified in RUST_PGP_KEY ({})", p.display())
+                write!(f, "key specified in RUSTUP_PGP_KEY ({})", p.display())
             }
             Self::FromConfiguration(p, _) => {
                 write!(f, "key specified in configuration file ({})", p.display())

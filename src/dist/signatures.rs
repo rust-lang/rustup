@@ -18,7 +18,7 @@ pub fn verify_signature<T: Read>(
     mut content: T,
     signature: &str,
     keys: &[PgpPublicKey],
-) -> Result<bool> {
+) -> Result<Option<usize>> {
     let mut content_buf = Vec::new();
     content.read_to_end(&mut content_buf)?;
     let (signatures, _) =
@@ -27,19 +27,19 @@ pub fn verify_signature<T: Read>(
     for signature in signatures {
         let signature = signature.map_err(squish_internal_err)?;
 
-        for key in keys {
+        for (idx, key) in keys.iter().enumerate() {
             let actual_key = key.key();
             if actual_key.is_signing_key() && signature.verify(actual_key, &content_buf).is_ok() {
-                return Ok(true);
+                return Ok(Some(idx));
             }
 
             for sub_key in &actual_key.public_subkeys {
                 if sub_key.is_signing_key() && signature.verify(sub_key, &content_buf).is_ok() {
-                    return Ok(true);
+                    return Ok(Some(idx));
                 }
             }
         }
     }
 
-    Ok(false)
+    Ok(None)
 }

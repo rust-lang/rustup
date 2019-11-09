@@ -65,7 +65,7 @@ pub fn debug_fmt(args: fmt::Arguments<'_>) {
         let mut t = term2::stderr();
         let _ = t.fg(term2::color::BLUE);
         let _ = t.attr(term2::Attr::Bold);
-        let _ = write!(t, "verbose: ");
+        let _ = write!(t, "debug: ");
         let _ = t.reset();
         let _ = t.write_fmt(args);
         let _ = writeln!(t);
