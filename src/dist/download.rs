@@ -146,7 +146,7 @@ impl<'a> DownloadCfg<'a> {
         Ok(utils::read_file("signature", &sig_file)?)
     }
 
-    fn check_signature(&self, url: &str, file: &temp::File<'_>) -> Result<()> {
+    fn check_signature(&self, url: &str, file: &temp::File<'_>) -> Result<&PgpPublicKey> {
         assert!(
             !self.pgp_keys.is_empty(),
             "At least the builtin key must be present"
@@ -164,13 +164,16 @@ impl<'a> DownloadCfg<'a> {
             path: PathBuf::from(file_path),
         })?;
 
-        if !crate::dist::signatures::verify_signature(content, &signature, &self.pgp_keys)? {
+        let sig_result =
+            crate::dist::signatures::verify_signature(content, &signature, &self.pgp_keys)?;
+        if let Some(keyidx) = sig_result {
+            let key = &self.pgp_keys[keyidx];
+            Ok(key)
+        } else {
             Err(ErrorKind::SignatureVerificationFailed {
                 url: url.to_owned(),
             }
             .into())
-        } else {
-            Ok(())
         }
     }
 
@@ -225,11 +228,11 @@ impl<'a> DownloadCfg<'a> {
         }
 
         // No signatures for tarballs for now.
-        if !url_str.ends_with(".tar.gz")
-            && !url_str.ends_with(".tar.xz")
-            && self.check_signature(&url_str, &file).is_err()
-        {
-            (self.notify_handler)(Notification::SignatureInvalid(url_str));
+        if !url_str.ends_with(".tar.gz") && !url_str.ends_with(".tar.xz") {
+            match self.check_signature(&url_str, &file) {
+                Ok(key) => (self.notify_handler)(Notification::SignatureValid(url_str, key)),
+                Err(_) => (self.notify_handler)(Notification::SignatureInvalid(url_str)),
+            }
         }
 
         Ok(Some((file, partial_hash)))
