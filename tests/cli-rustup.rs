@@ -1616,6 +1616,19 @@ fn docs_topical_with_path() {
     });
 }
 
+#[test]
+fn docs_missing() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "set", "profile", "minimal"]);
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_err(
+            config,
+            &["rustup", "doc"],
+            "error: unable to view documentation which is not installed",
+        );
+    });
+}
+
 #[cfg(unix)]
 #[test]
 fn non_utf8_arg() {
