@@ -20,6 +20,10 @@ affecting any existing installation. Remember to keep those two environment vari
 set when running your compiled `rustup-init` or the toolchains it installs, but _unset_
 when rebuilding `rustup` itself.
 
+If you wish to install your new build to try out longer term in your home directory
+then you can run `cargo dev-install` which is an alias in `.cargo/config` which
+runs `cargo run -- --no-modify-path -y` to install your build into your homedir.
+
 We use `rustfmt` to keep our codebase consistently formatted. Please ensure that
 you have correctly formatted your code (most editors will do this automatically
 when saving) or it may not pass the CI tests.
