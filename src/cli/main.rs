@@ -31,6 +31,7 @@ mod topical_doc;
 
 use crate::errors::*;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
+use rustup::utils::utils;
 
 use std::env;
 use std::path::PathBuf;
@@ -59,6 +60,11 @@ fn run_rustup_inner() -> Result<()> {
     // Guard against infinite proxy recursion. This mostly happens due to
     // bugs in rustup.
     do_recursion_guard()?;
+
+    // Before we do anything else, ensure we know where we are and who we
+    // are because otherwise we cannot proceed usefully.
+    utils::current_dir()?;
+    utils::current_exe()?;
 
     // The name of arg0 determines how the program is going to behave
     let arg0 = match env::var("RUSTUP_FORCE_ARG0") {
