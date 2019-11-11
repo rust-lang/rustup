@@ -145,6 +145,7 @@ if command == "dev-to-local":
 if command == "local-to-prod":
     run_s3cmd("aws s3 cp ./local-rustup/rustup-init.sh s3://{}/rustup/rustup-init.sh"
               .format(s3_bucket))
+    run_s3cmd("aws s3 cp ./local-rustup/rustup-init.sh s3://{}/rustup.sh")
     run_s3cmd("aws s3 cp --recursive ./local-rustup/www/ s3://{}/rustup/www/"
               .format(s3_bucket))
     if live_run:
