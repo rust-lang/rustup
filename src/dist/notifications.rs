@@ -37,6 +37,7 @@ pub enum Notification<'a> {
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
     StrayHash(&'a Path),
     SignatureInvalid(&'a str),
+    RetryingDownload(&'a str),
 }
 
 impl<'a> From<crate::utils::Notification<'a>> for Notification<'a> {
@@ -72,6 +73,7 @@ impl<'a> Notification<'a> {
             | RollingBack
             | DownloadingManifest(_)
             | SkippingNightlyMissingComponent(_)
+            | RetryingDownload(_)
             | DownloadedManifest(_, _) => NotificationLevel::Info,
             CantReadUpdateHash(_)
             | ExtensionNotInstalled(_)
@@ -181,6 +183,7 @@ impl<'a> Display for Notification<'a> {
                 write!(f, "Force-skipping unavailable component '{}'", component)
             }
             SignatureInvalid(url) => write!(f, "Signature verification failed for '{}'", url),
+            RetryingDownload(url) => write!(f, "Retrying download for '{}'", url),
         }
     }
 }
