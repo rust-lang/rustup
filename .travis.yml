@@ -102,6 +102,8 @@ matrix:
         - git ls-files -- '*.sh' | xargs shellcheck -s dash -e SC1090;
         - git ls-files -- '*.bash' | xargs shellcheck -s bash -e SC1090;
         - cargo fmt --all -- --check;
+        - cargo check --all --all-targets
+        - git ls-files -- '*.rs' | xargs touch
         - cargo clippy --all --all-targets
       before_deploy:
       deploy:
