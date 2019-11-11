@@ -309,6 +309,14 @@ get_architecture() {
             powerpc64)
                 _cputype=powerpc
                 ;;
+            aarch64)
+                _cputype=armv7
+                if [ "$_ostype" = "linux-android" ]; then
+                    _ostype=linux-androideabi
+                else
+                    _ostype="${_ostype}eabihf"
+                fi
+                ;;
         esac
     fi
 
