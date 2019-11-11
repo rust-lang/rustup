@@ -990,7 +990,7 @@ fn build_mock_rls_installer(
 }
 
 fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
-    let mut files: Vec<MockFile> = topical_doc_data::paths()
+    let mut files: Vec<MockFile> = topical_doc_data::unique_paths()
         .map(|x| MockFile::new(x, b""))
         .collect();
     files.insert(0, MockFile::new("share/doc/rust/html/index.html", b""));
