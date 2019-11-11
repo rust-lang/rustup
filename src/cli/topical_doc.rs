@@ -48,15 +48,28 @@ fn search_path(doc: &DocData, wpath: &Path, keywords: &[&str]) -> Result<PathBuf
 }
 
 pub fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
-    let keywords_top = ["macro", "keyword", "primitive"];
+    // The ORDER of keywords_top is used for the default search and should not
+    // be changed.
+    // https://github.com/rust-lang/rustup.rs/issues/2076#issuecomment-546613036
+    let keywords_top = vec!["keyword", "primitive", "macro"];
     let keywords_mod = ["fn", "struct", "trait", "enum", "type", "constant"];
 
     let topic_vec: Vec<&str> = topic.split("::").collect();
     let work_path = topic_vec.iter().fold(PathBuf::new(), |acc, e| acc.join(e));
+    let mut subtopic = topic_vec[topic_vec.len() - 1];
+    let mut forced_keyword = None;
+
+    if topic_vec.len() == 1 {
+        let split: Vec<&str> = topic.splitn(2, ':').collect();
+        if split.len() == 2 {
+            forced_keyword = Some(vec![split[0]]);
+            subtopic = split[1];
+        }
+    }
 
     let doc = DocData {
         topic: &topic,
-        subtopic: topic_vec[topic_vec.len() - 1],
+        subtopic,
         root,
     };
 
@@ -116,7 +129,11 @@ pub fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
             },
             _ => {
                 let std = PathBuf::from("std");
-                search_path(&doc, &std, &keywords_top)?
+                let search_keywords = match forced_keyword {
+                    Some(k) => k,
+                    None => keywords_top,
+                };
+                search_path(&doc, &std, &search_keywords)?
             }
         },
         2 => match index_html(&doc, &work_path) {

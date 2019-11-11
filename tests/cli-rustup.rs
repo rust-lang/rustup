@@ -1607,7 +1607,7 @@ fn docs_topical_with_path() {
             let out_str = String::from_utf8(out.stdout).unwrap();
             assert!(
                 out_str.contains(&path),
-                "comparing path\ntopic: '{}'\npath: '{}'\noutput: {}\n\n\n",
+                "comparing path\ntopic: '{}'\nexpected path: '{}'\noutput: {}\n\n\n",
                 topic,
                 path,
                 out_str,
