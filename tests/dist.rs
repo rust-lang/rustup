@@ -2018,30 +2018,13 @@ fn handle_corrupt_partial_downloads() {
         )
         .unwrap();
 
-        let err = update_from_dist(
-            url,
-            toolchain,
-            prefix,
-            &[],
-            &[],
-            download_cfg,
-            temp_cfg,
-            false,
-        )
-        .unwrap_err();
-
-        match err.kind() {
-            ErrorKind::ComponentDownloadFailed(_) => (),
-            e => panic!("Unexpected error: {:?}", e),
-        }
-
         update_from_dist(
             url,
             toolchain,
             prefix,
             &[],
             &[],
-            &download_cfg,
+            download_cfg,
             temp_cfg,
             false,
         )

@@ -140,6 +140,13 @@ than 1, it is clamped to 1 at minimum.
 This is not meant for use by users, but can be suggested in diagnosing an issue
 should one arise with the backtrack limits.
 
+### `RUSTUP_MAX_RETRIES`
+
+When downloading a file, rustup will retry the download a number of times. The
+default is 3 times, but if this variable is set to a valid usize then it is the
+max retry count. A value of `0` means no retries, thus the default of `3` will
+mean a download is tried a total of four times before failing out.
+
 ### `RUSTUP_BACKTRACE`
 
 By default while running tests, we unset some environment variables that will
