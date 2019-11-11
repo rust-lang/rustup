@@ -584,7 +584,19 @@ impl Update {
                         if component_is_present {
                             self.final_component_list.push(existing_component.clone());
                         } else {
-                            self.missing_components.push(existing_component.clone());
+                            // Component not available, check if this is a case of
+                            // where rustup brokenly installed `rust-src` during
+                            // the 1.20.x series
+                            if existing_component.contained_within(&rust_target_package.components)
+                            {
+                                // It is the case, so we need to create a fresh wildcard
+                                // component using the package name and add it to the final
+                                // component list
+                                self.final_component_list
+                                    .push(existing_component.wildcard());
+                            } else {
+                                self.missing_components.push(existing_component.clone());
+                            }
                         }
                     }
                 }
