@@ -32,7 +32,7 @@ error_chain! {
 
     errors {
         LocatingWorkingDir {
-            description("could not locate working directory")
+            description("Unable to proceed. Could not locate working directory.")
         }
         ReadingFile {
             name: &'static str,
@@ -176,9 +176,6 @@ error_chain! {
         } {
             description("failed to set permissions")
             display("failed to set permissions for '{}'", path.display())
-        }
-        GettingCwd {
-            description("couldn't get current working directory")
         }
         CargoHome {
             description("couldn't find value of CARGO_HOME")
