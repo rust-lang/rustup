@@ -12,6 +12,8 @@ use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::utils;
+use retry::delay::NoDelay;
+use retry::{retry, OperationResult};
 use std::path::Path;
 
 pub const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
@@ -151,6 +153,13 @@ impl Manifestation {
         let mut things_to_install: Vec<(Component, Format, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
         let components = update.components_urls_and_hashes(new_manifest)?;
+
+        const DEFAULT_MAX_RETRIES: usize = 3;
+        let max_retries: usize = std::env::var("RUSTUP_MAX_RETRIES")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(DEFAULT_MAX_RETRIES);
+
         for (component, format, url, hash) in components {
             notify_handler(Notification::DownloadingComponent(
                 &component.short_name(new_manifest),
@@ -165,9 +174,21 @@ impl Manifestation {
 
             let url_url = utils::parse_url(&url)?;
 
-            let downloaded_file = download_cfg
-                .download(&url_url, &hash)
-                .chain_err(|| ErrorKind::ComponentDownloadFailed(component.name(new_manifest)))?;
+            let downloaded_file = retry(NoDelay.take(max_retries), || {
+                match download_cfg.download(&url_url, &hash) {
+                    Ok(f) => OperationResult::Ok(f),
+                    Err(e) => match e.kind() {
+                        // If there was a broken partial file, try again
+                        ErrorKind::DownloadingFile { .. } | ErrorKind::BrokenPartialFile => {
+                            notify_handler(Notification::RetryingDownload(&url));
+                            OperationResult::Retry(e)
+                        }
+
+                        _ => OperationResult::Err(e),
+                    },
+                }
+            })
+            .chain_err(|| ErrorKind::ComponentDownloadFailed(component.name(new_manifest)))?;
 
             things_downloaded.push(hash);
 
