@@ -243,11 +243,12 @@ fn download_file_(
         (Backend::Reqwest, Notification::UsingReqwest)
     };
     notify_handler(notification);
-    download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback))?;
+    let res =
+        download_to_path_with_backend(backend, url, path, resume_from_partial, Some(callback));
 
     notify_handler(Notification::DownloadFinished);
 
-    Ok(())
+    res.map_err(|e| e.into())
 }
 
 pub fn parse_url(url: &str) -> Result<Url> {
