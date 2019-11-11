@@ -32,7 +32,7 @@ error_chain! {
 
     errors {
         LocatingWorkingDir {
-            description("could not locate working directory")
+            description("Unable to proceed. Could not locate working directory.")
         }
         ReadingFile {
             name: &'static str,
