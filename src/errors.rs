@@ -381,9 +381,14 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
     if cs.len() == 1 {
         let _ = write!(
             buf,
-            "component {} is unavailable for download for channel {}",
+            "component {} is unavailable for download for channel {}{}",
             &cs[0].description(manifest),
-            toolchain
+            toolchain,
+            if toolchain.starts_with("nightly") {
+                "\nSometimes not all components are available in any given nightly."
+            } else {
+                ""
+            }
         );
     } else {
         let same_target = cs
