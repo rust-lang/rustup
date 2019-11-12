@@ -1392,3 +1392,60 @@ fn check_pgp_keys() {
         );
     })
 }
+
+#[test]
+fn install_allow_downgrade() {
+    clitools::setup(Scenario::MissingComponent, &|config| {
+        let trip = TargetTriple::from_build();
+
+        // this dist has no rls and there is no newer one
+        set_current_dist_date(config, "2019-09-14");
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-3");
+        expect_component_not_executable(config, "rls");
+
+        expect_err(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+                "-c",
+                "rls",
+            ],
+            &format!(
+                "component 'rls' for target '{}' is unavailable for download for channel nightly",
+                trip,
+            ),
+        );
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-3");
+        expect_component_not_executable(config, "rls");
+
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+                "-c",
+                "rls",
+                "--allow-downgrade",
+            ],
+        );
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+        expect_component_executable(config, "rls");
+    });
+}

@@ -166,6 +166,7 @@ impl<'a> Toolchain<'a> {
     pub fn install_from_dist(
         &self,
         force_update: bool,
+        allow_downgrade: bool,
         components: &[&str],
         targets: &[&str],
     ) -> Result<UpdateStatus> {
@@ -177,6 +178,7 @@ impl<'a> Toolchain<'a> {
             update_hash.as_ref().map(|p| &**p),
             self.download_cfg(),
             force_update,
+            allow_downgrade,
             self.exists(),
             old_date.as_ref().map(|s| &**s),
             components,
@@ -191,6 +193,7 @@ impl<'a> Toolchain<'a> {
             self.cfg.get_profile()?,
             update_hash.as_ref().map(|p| &**p),
             self.download_cfg(),
+            false,
             false,
             false,
             None,

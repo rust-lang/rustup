@@ -319,6 +319,12 @@ pub fn cli() -> App<'static, 'static> {
                                 .help("Force an update, even if some components are missing")
                                 .long("force")
                                 .takes_value(false),
+                        )
+                        .arg(
+                            Arg::with_name("allow-downgrade")
+                                .help("Allow rustup to downgrade the toolchain to satisfy your component choice")
+                                .long("allow-downgrade")
+                                .takes_value(false),
                         ),
                 )
                 .subcommand(
@@ -822,7 +828,12 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
                     .values_of("targets")
                     .map(|v| v.collect())
                     .unwrap_or_else(Vec::new);
-                Some(toolchain.install_from_dist(m.is_present("force"), &components, &targets)?)
+                Some(toolchain.install_from_dist(
+                    m.is_present("force"),
+                    m.is_present("allow-downgrade"),
+                    &components,
+                    &targets,
+                )?)
             } else if !toolchain.exists() {
                 return Err(ErrorKind::InvalidToolchainName(toolchain.name().to_string()).into());
             } else {

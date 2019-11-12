@@ -782,7 +782,7 @@ fn maybe_install_rust(
         println!();
     } else if cfg.find_default()?.is_none() {
         let toolchain = cfg.get_toolchain(toolchain_str, false)?;
-        let status = toolchain.install_from_dist(true, components, targets)?;
+        let status = toolchain.install_from_dist(true, false, components, targets)?;
         cfg.set_default(toolchain_str)?;
         println!();
         common::show_channel_update(&cfg, toolchain_str, Ok(status))?;
