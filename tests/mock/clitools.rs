@@ -602,6 +602,8 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
                     },
                 ),
                 Release::beta("1.1.0", "2015-01-01"),
+                // Pre-release "stable" ?
+                Release::stable("0.100.99", "2014-12-31"),
                 Release::stable("1.0.0", "2015-01-01"),
                 Release::new("nightly", "1.3.0", "2015-01-02", "2").with_rls(RlsStatus::Renamed),
                 Release::beta("1.2.0", "2015-01-02"),
