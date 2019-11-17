@@ -21,6 +21,25 @@ pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 // Deprecated
 pub static DEFAULT_DIST_ROOT: &str = "https://static.rust-lang.org/dist";
 
+// The channel patterns we support
+static TOOLCHAIN_CHANNELS: &[&str] = &[
+    "nightly",
+    "beta",
+    "stable",
+    // Allow from 1.0.0 through to 9.999.99
+    r"\d{1}\.\d{1,3}\.\d{1,2}",
+];
+
+lazy_static! {
+    static ref TOOLCHAIN_CHANNEL_PATTERN: String = format!(
+        r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
+        TOOLCHAIN_CHANNELS.join("|")
+    );
+    // Note this regex gives you a guaranteed match of the channel (1)
+    // and an optional match of the date (2) and target (3)
+    static ref TOOLCHAIN_CHANNEL_RE: Regex = Regex::new(&TOOLCHAIN_CHANNEL_PATTERN).unwrap();
+}
+
 // A toolchain descriptor from rustup's perspective. These contain
 // 'partial target triples', which allow toolchain names like
 // 'stable-msvc' to work. Partial target triples though are parsed
@@ -278,22 +297,7 @@ impl PartialTargetTriple {
 impl FromStr for PartialToolchainDesc {
     type Err = Error;
     fn from_str(name: &str) -> Result<Self> {
-        static CHANNELS: &[&str] = &[
-            "nightly",
-            "beta",
-            "stable",
-            r"\d{1}\.\d{1}\.\d{1}",
-            r"\d{1}\.\d{2}\.\d{1}",
-        ];
-
-        lazy_static! {
-            static ref PATTERN: String = format!(
-                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
-                CHANNELS.join("|")
-            );
-            static ref RE: Regex = Regex::new(&PATTERN).unwrap();
-        }
-        let d = RE.captures(name).map(|c| {
+        let d = TOOLCHAIN_CHANNEL_RE.captures(name).map(|c| {
             fn fn_map(s: &str) -> Option<String> {
                 if s == "" {
                     None
@@ -372,23 +376,11 @@ impl PartialToolchainDesc {
 impl FromStr for ToolchainDesc {
     type Err = Error;
     fn from_str(name: &str) -> Result<Self> {
-        static CHANNELS: &[&str] = &[
-            "nightly",
-            "beta",
-            "stable",
-            r"\d{1}\.\d{1}\.\d{1}",
-            r"\d{1}\.\d{2}\.\d{1}",
-        ];
-
-        lazy_static! {
-            static ref PATTERN: String = format!(
-                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?-(.*)?$",
-                CHANNELS.join("|"),
-            );
-            static ref RE: Regex = Regex::new(&PATTERN).unwrap();
-        }
-
-        RE.captures(name)
+        TOOLCHAIN_CHANNEL_RE
+            .captures(name)
+            // Filter out cases where the target wasn't specified, so we report
+            // an invalid toolchain name for that.
+            .filter(|c| c.get(3).is_some())
             .map(|c| {
                 fn fn_map(s: &str) -> Option<String> {
                     if s == "" {
