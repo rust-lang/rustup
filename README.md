@@ -811,7 +811,7 @@ Licensed under either of
 at your option.
 
 <!-- Badges -->
-[travis-url]: https://travis-ci.com/rust-lang/rustup.rs
-[travis-badge]: https://travis-ci.com/rust-lang/rustup.rs.svg
-[appveyor-url]: https://ci.appveyor.com/project/rust-lang-libs/rustup-rs
-[appveyor-badge]: https://ci.appveyor.com/api/projects/status/github/rust-lang/rustup.rs?svg=true
+[travis-url]: https://travis-ci.com/rust-lang/rustup
+[travis-badge]: https://travis-ci.com/rust-lang/rustup.svg
+[appveyor-url]: https://ci.appveyor.com/project/rust-lang-libs/rustup
+[appveyor-badge]: https://ci.appveyor.com/api/projects/status/github/rust-lang/rustup?svg=true
