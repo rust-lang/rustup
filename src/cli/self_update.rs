@@ -915,13 +915,13 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
 //   last it will be deleted when the handle closes.
 //
 // This is the DELETE_ON_CLOSE method from
-// http://www.catch22.net/tuts/self-deleting-executables
+// https://www.catch22.net/tuts/win32/self-deleting-executables
 //
 // ... which doesn't actually work because Windows won't really
 // delete a FILE_FLAG_DELETE_ON_CLOSE process when it exits.
 //
 // .. augmented with this SO answer
-// http://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
+// https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 #[cfg(windows)]
 fn delete_rustup_and_cargo_home() -> Result<()> {
     use std::thread;
