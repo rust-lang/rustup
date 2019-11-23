@@ -805,6 +805,9 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
         cfg.set_profile_override(p);
     }
     let cfg = &cfg;
+    if cfg.get_profile()? == Profile::Complete {
+        warn!("{}", common::WARN_COMPLETE_PROFILE);
+    }
     if let Some(names) = m.values_of("toolchain") {
         for name in names {
             update_bare_triple_check(cfg, name)?;

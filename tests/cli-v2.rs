@@ -1259,6 +1259,24 @@ fn install_with_component_and_target() {
 }
 
 #[test]
+fn test_warn_if_complete_profile_is_used() {
+    setup(&|config| {
+        expect_err(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "--profile",
+                "complete",
+                "stable",
+            ],
+            "warning: downloading with complete profile",
+        );
+    });
+}
+
+#[test]
 fn test_complete_profile_skips_missing_when_forced() {
     setup_complex(&|config| {
         set_current_dist_date(config, "2015-01-01");
