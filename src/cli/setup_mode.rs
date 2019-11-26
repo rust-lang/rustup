@@ -115,6 +115,10 @@ pub fn main() -> Result<()> {
         targets: &targets,
     };
 
+    if profile == "complete" {
+        warn!("{}", common::WARN_COMPLETE_PROFILE);
+    }
+
     self_update::install(no_prompt, verbose, quiet, opts)?;
 
     Ok(())

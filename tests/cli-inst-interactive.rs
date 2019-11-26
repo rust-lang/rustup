@@ -3,7 +3,8 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_stdout_ok, set_current_dist_date, Config, SanitizedOutput, Scenario,
+    self, expect_stderr_ok, expect_stdout_ok, set_current_dist_date, Config, SanitizedOutput,
+    Scenario,
 };
 use crate::mock::{get_path, restore_path};
 use lazy_static::lazy_static;
@@ -252,5 +253,16 @@ fn install_forces_and_skips_rls() {
         assert!(out
             .stderr
             .contains("warning: Force-skipping unavailable component"));
+    });
+}
+
+#[test]
+fn test_warn_if_complete_profile_is_used() {
+    setup(&|config| {
+        expect_stderr_ok(
+            config,
+            &["rustup-init", "-y", "--profile", "complete"],
+            "warning: downloading with complete profile",
+        );
     });
 }
