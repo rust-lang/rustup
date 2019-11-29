@@ -24,6 +24,8 @@ pub enum InstallMethod<'a> {
         DownloadCfg<'a>,
         // --force
         bool,
+        // --allow-downgrade
+        bool,
         // toolchain already exists
         bool,
         // currently installed date
@@ -66,6 +68,7 @@ impl<'a> InstallMethod<'a> {
                 update_hash,
                 dl_cfg,
                 force_update,
+                allow_downgrade,
                 exists,
                 old_date,
                 components,
@@ -79,6 +82,7 @@ impl<'a> InstallMethod<'a> {
                     if exists { None } else { Some(profile) },
                     prefix,
                     force_update,
+                    allow_downgrade,
                     old_date,
                     components,
                     targets,

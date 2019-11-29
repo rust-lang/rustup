@@ -580,6 +580,7 @@ pub fn update_from_dist<'a>(
     profile: Option<Profile>,
     prefix: &InstallPrefix,
     force_update: bool,
+    allow_downgrade: bool,
     old_date: Option<&str>,
     components: &[&str],
     targets: &[&str],
@@ -601,6 +602,7 @@ pub fn update_from_dist<'a>(
         profile,
         prefix,
         force_update,
+        allow_downgrade,
         old_date,
         components,
         targets,
@@ -622,6 +624,7 @@ fn update_from_dist_<'a>(
     profile: Option<Profile>,
     prefix: &InstallPrefix,
     force_update: bool,
+    allow_downgrade: bool,
     old_date: Option<&str>,
     components: &[&str],
     targets: &[&str],
@@ -644,7 +647,8 @@ fn update_from_dist_<'a>(
         Some(if provided < 1 { 1 } else { provided })
     };
 
-    // We never want to backtrack further back than the nightly that's already installed.
+    // In case there is no allow-downgrade option set
+    // we never want to backtrack further back than the nightly that's already installed.
     //
     // If no nightly is installed, it makes no sense to backtrack beyond the first ever manifest,
     // which is 2014-12-20 according to
@@ -652,13 +656,15 @@ fn update_from_dist_<'a>(
     //
     // We could arguably use the date of the first rustup release here, but that would break a
     // bunch of the tests, which (inexplicably) use 2015-01-01 as their manifest dates.
-    let first_manifest = old_date
-        .map(|date| {
-            Utc.from_utc_date(
-                &NaiveDate::parse_from_str(date, "%Y-%m-%d").expect("Malformed manifest date"),
-            )
-        })
-        .unwrap_or_else(|| Utc.from_utc_date(&NaiveDate::from_ymd(2014, 12, 20)));
+    let first_manifest = Utc.from_utc_date(&NaiveDate::from_ymd(2014, 12, 20));
+    let old_manifest = old_date
+        .and_then(|date| utc_from_manifest_date(date))
+        .unwrap_or(first_manifest);
+    let last_manifest = if allow_downgrade {
+        first_manifest
+    } else {
+        old_manifest
+    };
 
     loop {
         match try_update_from_dist_(
@@ -713,22 +719,12 @@ fn update_from_dist_<'a>(
                 // the components that the user currently has installed. Let's try the previous
                 // nightlies in reverse chronological order until we find a nightly that does,
                 // starting at one date earlier than the current manifest's date.
-                let try_next = Utc
-                    .from_utc_date(
-                        &NaiveDate::parse_from_str(
-                            toolchain.date.as_ref().unwrap_or(&fetched),
-                            "%Y-%m-%d",
-                        )
-                        .unwrap_or_else(|_| {
-                            panic!(
-                                "Malformed manifest date: {:?}",
-                                toolchain.date.as_ref().unwrap_or(&fetched)
-                            )
-                        }),
-                    )
+                let toolchain_date = toolchain.date.as_ref().unwrap_or(&fetched);
+                let try_next = utc_from_manifest_date(toolchain_date)
+                    .unwrap_or_else(|| panic!("Malformed manifest date: {:?}", toolchain_date))
                     .pred();
 
-                if try_next < first_manifest {
+                if try_next < last_manifest {
                     // Wouldn't be an update if we go further back than the user's current nightly.
                     if let Some(e) = first_err {
                         break Err(e);
@@ -925,4 +921,10 @@ fn dl_v1_manifest<'a>(download: DownloadCfg<'a>, toolchain: &ToolchainDesc) -> R
         .collect();
 
     Ok(urls)
+}
+
+fn utc_from_manifest_date(date_str: &str) -> Option<Date<Utc>> {
+    NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+        .ok()
+        .map(|date| Utc.from_utc_date(&date))
 }
