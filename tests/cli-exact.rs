@@ -523,3 +523,10 @@ fn undefined_linked_toolchain() {
         );
     });
 }
+
+#[test]
+fn install_by_version_number() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "0.100.99"]);
+    })
+}
