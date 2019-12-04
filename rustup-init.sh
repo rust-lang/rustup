@@ -9,8 +9,6 @@ set -u
 # If RUSTUP_UPDATE_ROOT is unset or empty, default it.
 RUSTUP_UPDATE_ROOT="${RUSTUP_UPDATE_ROOT:-https://static.rust-lang.org/rustup}"
 
-ARCH=
-
 #XXX: If you change anything here, please make the same changes in setup_mode.rs
 usage() {
     cat 1>&2 <<EOF
@@ -48,17 +46,17 @@ main() {
     need_cmd rmdir
 
     get_architecture || return 1
-    ARCH="$RETVAL"
-    assert_nz "$ARCH" "arch"
+    local _arch="$RETVAL"
+    assert_nz "$_arch" "arch"
 
     local _ext=""
-    case "$ARCH" in
+    case "$_arch" in
         *windows*)
             _ext=".exe"
             ;;
     esac
 
-    local _url="${RUSTUP_UPDATE_ROOT}/dist/${ARCH}/rustup-init${_ext}"
+    local _url="${RUSTUP_UPDATE_ROOT}/dist/${_arch}/rustup-init${_ext}"
 
     local _dir
     _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
@@ -99,7 +97,7 @@ main() {
     fi
 
     ensure mkdir -p "$_dir"
-    ensure downloader "$_url" "$_file"
+    ensure downloader "$_url" "$_file" "$_arch"
     ensure chmod u+x "$_file"
     if [ ! -x "$_file" ]; then
         printf '%s\n' "Cannot execute $_file (likely because of mounting /tmp as noexec)." 1>&2
@@ -389,14 +387,14 @@ downloader() {
     if [ "$1" = --check ]; then
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
-        if ! check_help_for curl --proto --tlsv1.2; then
+        if ! check_help_for "$3" curl --proto --tlsv1.2; then
             echo "Warning: Not forcing TLS v1.2, this is potentially less secure"
             curl --silent --show-error --fail --location "$1" --output "$2"
         else
             curl --proto '=https' --tlsv1.2 --silent --show-error --fail --location "$1" --output "$2"
         fi
     elif [ "$_dld" = wget ]; then
-        if ! check_help_for wget --https-only --secure-protocol; then
+        if ! check_help_for "$3" wget --https-only --secure-protocol; then
             echo "Warning: Not forcing TLS v1.2, this is potentially less secure"
             wget "$1" -O "$2"
         else
@@ -408,14 +406,17 @@ downloader() {
 }
 
 check_help_for() {
+    local _arch
     local _cmd
     local _arg
     local _ok
+    _arch="$1"
+    shift
     _cmd="$1"
     _ok="y"
     shift
 
-    case "$ARCH" in
+    case "$_arch" in
 
         # If we're running on OS-X, older than 10.13, then we always
         # fail to find these options to force fallback
