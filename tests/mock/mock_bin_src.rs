@@ -1,7 +1,7 @@
-use std::env::consts::EXE_SUFFIX;
 use std::env;
+use std::env::consts::EXE_SUFFIX;
 use std::io::{self, Write};
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() {
@@ -30,7 +30,9 @@ fn main() {
                 let mut part = PathBuf::from("bin");
                 part.push(me.file_name().unwrap());
 
-                let path = alt.read_dir().unwrap()
+                let path = alt
+                    .read_dir()
+                    .unwrap()
                     .map(|e| e.unwrap().path().join(&part))
                     .filter(|p| p.exists())
                     .find(|p| equivalent(&p, &me))
@@ -48,7 +50,7 @@ fn main() {
         }
         Some("--huge-output") => {
             let mut out = io::stderr();
-            for _ in 0 .. 10000 {
+            for _ in 0..10000 {
                 out.write_all(b"error: a value named `fail` has already been defined in this module [E0428]\n").unwrap();
             }
         }
@@ -70,19 +72,22 @@ fn main() {
 }
 
 #[cfg(unix)]
-fn equivalent(_: &Path, _: &Path) -> bool { false }
+fn equivalent(_: &Path, _: &Path) -> bool {
+    false
+}
 
 #[cfg(windows)]
-#[allow(warnings)]
+#[allow(non_snake_case)]
 fn equivalent(a: &Path, b: &Path) -> bool {
-    use std::mem;
-    use std::os::windows::prelude::*;
-    use std::os::windows::raw::HANDLE;
     use std::fs::File;
+    use std::mem::MaybeUninit;
+    use std::os::windows::io::AsRawHandle;
+    use std::os::windows::raw::HANDLE;
 
-    extern "system" {
-        fn GetFileInformationByHandle(a: HANDLE, b: *mut BY_HANDLE_FILE_INFORMATION)
-            -> i32;
+    #[repr(C)]
+    struct FILETIME {
+        dwLowDateTime: u32,
+        dwHighDateTime: u32,
     }
 
     #[repr(C)]
@@ -99,23 +104,25 @@ fn equivalent(a: &Path, b: &Path) -> bool {
         nFileIndexLow: u32,
     }
 
-    #[repr(C)]
-    struct FILETIME {
-        dwLowDateTime: u32,
-        dwHighDateTime: u32,
+    extern "system" {
+        fn GetFileInformationByHandle(a: HANDLE, b: *mut BY_HANDLE_FILE_INFORMATION) -> i32;
     }
 
     let a = File::open(a).unwrap();
     let b = File::open(b).unwrap();
+    let (ainfo, binfo) = unsafe {
+        let mut ainfo = MaybeUninit::uninit();
+        let mut binfo = MaybeUninit::uninit();
+        if GetFileInformationByHandle(a.as_raw_handle(), ainfo.as_mut_ptr()) == 0 {
+            return false;
+        }
+        if GetFileInformationByHandle(b.as_raw_handle(), binfo.as_mut_ptr()) == 0 {
+            return false;
+        }
+        (ainfo.assume_init(), binfo.assume_init())
+    };
 
-    unsafe {
-        let mut ainfo = mem::zeroed();
-        let mut binfo = mem::zeroed();
-        GetFileInformationByHandle(a.as_raw_handle(), &mut ainfo);
-        GetFileInformationByHandle(b.as_raw_handle(), &mut binfo);
-
-        ainfo.dwVolumeSerialNumber == binfo.dwVolumeSerialNumber &&
-            ainfo.nFileIndexHigh == binfo.nFileIndexHigh &&
-            ainfo.nFileIndexLow == binfo.nFileIndexLow
-    }
+    ainfo.dwVolumeSerialNumber == binfo.dwVolumeSerialNumber
+        && ainfo.nFileIndexHigh == binfo.nFileIndexHigh
+        && ainfo.nFileIndexLow == binfo.nFileIndexLow
 }
