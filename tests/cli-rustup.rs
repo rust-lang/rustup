@@ -40,7 +40,7 @@ fn rustup_stable() {
             &["rustup", "update", "--no-self-update"],
             for_host!(
                 r"
-  stable-{0} updated - 1.1.0 (hash-stable-1.1.0)
+  stable-{0} updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
 
 "
             ),
@@ -80,7 +80,7 @@ fn rustup_stable_quiet() {
             &["rustup", "--quiet", "update", "--no-self-update"],
             for_host!(
                 r"
-  stable-{0} updated - 1.1.0 (hash-stable-1.1.0)
+  stable-{0} updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
 
 "
             ),
@@ -142,9 +142,9 @@ fn rustup_all_channels() {
             &["rustup", "update", "--no-self-update"],
             for_host!(
                 r"
-   stable-{0} updated - 1.1.0 (hash-stable-1.1.0)
-     beta-{0} updated - 1.2.0 (hash-beta-1.2.0)
-  nightly-{0} updated - 1.3.0 (hash-nightly-2)
+   stable-{0} updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
+     beta-{0} updated - 1.2.0 (hash-beta-1.2.0) (from 1.1.0 (hash-beta-1.1.0))
+  nightly-{0} updated - 1.3.0 (hash-nightly-2) (from 1.2.0 (hash-nightly-1))
 
 "
             ),
@@ -212,9 +212,9 @@ fn rustup_some_channels_up_to_date() {
             &["rustup", "update", "--no-self-update"],
             for_host!(
                 r"
-   stable-{0} updated - 1.1.0 (hash-stable-1.1.0)
+   stable-{0} updated - 1.1.0 (hash-stable-1.1.0) (from 1.0.0 (hash-stable-1.0.0))
    beta-{0} unchanged - 1.2.0 (hash-beta-1.2.0)
-  nightly-{0} updated - 1.3.0 (hash-nightly-2)
+  nightly-{0} updated - 1.3.0 (hash-nightly-2) (from 1.2.0 (hash-nightly-1))
 
 "
             ),

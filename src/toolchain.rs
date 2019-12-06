@@ -16,11 +16,14 @@ use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::ffi::OsStr;
 use std::ffi::OsString;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::str::FromStr;
+use std::time::Duration;
 
 use url::Url;
+use wait_timeout::ChildExt;
 
 /// A fully resolved reference to a toolchain which may or may not exist
 pub struct Toolchain<'a> {
@@ -38,10 +41,10 @@ pub struct ComponentStatus {
     pub available: bool,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum UpdateStatus {
     Installed,
-    Updated,
+    Updated(String), // Stores the version of rustc *before* the update
     Unchanged,
 }
 
@@ -103,8 +106,12 @@ impl<'a> Toolchain<'a> {
     }
     fn install(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
-        let exists = self.exists();
-        if exists {
+        let previous_version = if self.exists() {
+            Some(self.rustc_version())
+        } else {
+            None
+        };
+        if previous_version.is_some() {
             (self.cfg.notify_handler)(Notification::UpdatingToolchain(&self.name));
         } else {
             (self.cfg.notify_handler)(Notification::InstallingToolchain(&self.name));
@@ -118,11 +125,10 @@ impl<'a> Toolchain<'a> {
             (self.cfg.notify_handler)(Notification::InstalledToolchain(&self.name));
         }
 
-        let status = match (updated, exists) {
-            (true, false) => UpdateStatus::Installed,
-            (true, true) => UpdateStatus::Updated,
-            (false, true) => UpdateStatus::Unchanged,
-            (false, false) => UpdateStatus::Unchanged,
+        let status = match (updated, previous_version) {
+            (true, None) => UpdateStatus::Installed,
+            (true, Some(v)) => UpdateStatus::Updated(v),
+            (false, _) => UpdateStatus::Unchanged,
         };
 
         Ok(status)
@@ -791,5 +797,56 @@ impl<'a> Toolchain<'a> {
         path.push("bin");
         path.push(name.to_owned() + env::consts::EXE_SUFFIX);
         path
+    }
+
+    pub fn rustc_version(&self) -> String {
+        if self.exists() {
+            let rustc_path = self.binary_file("rustc");
+            if utils::is_file(&rustc_path) {
+                let mut cmd = Command::new(&rustc_path);
+                cmd.arg("--version");
+                cmd.stdin(Stdio::null());
+                cmd.stdout(Stdio::piped());
+                cmd.stderr(Stdio::piped());
+                self.set_ldpath(&mut cmd);
+
+                // some toolchains are faulty with some combinations of platforms and
+                // may fail to launch but also to timely terminate.
+                // (known cases include Rust 1.3.0 through 1.10.0 in recent macOS Sierra.)
+                // we guard against such cases by enforcing a reasonable timeout to read.
+                let mut line1 = None;
+                if let Ok(mut child) = cmd.spawn() {
+                    let timeout = Duration::new(10, 0);
+                    match child.wait_timeout(timeout) {
+                        Ok(Some(status)) if status.success() => {
+                            let out = child
+                                .stdout
+                                .expect("Child::stdout requested but not present");
+                            let mut line = String::new();
+                            if BufReader::new(out).read_line(&mut line).is_ok() {
+                                let lineend = line.trim_end_matches(&['\r', '\n'][..]).len();
+                                line.truncate(lineend);
+                                line1 = Some(line);
+                            }
+                        }
+                        Ok(None) => {
+                            let _ = child.kill();
+                            return String::from("(timeout reading rustc version)");
+                        }
+                        Ok(Some(_)) | Err(_) => {}
+                    }
+                }
+
+                if let Some(line1) = line1 {
+                    line1
+                } else {
+                    String::from("(error reading rustc version)")
+                }
+            } else {
+                String::from("(rustc does not exist)")
+            }
+        } else {
+            String::from("(toolchain not installed)")
+        }
     }
 }

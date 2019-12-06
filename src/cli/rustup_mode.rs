@@ -840,7 +840,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
                 None
             };
 
-            if let Some(status) = status {
+            if let Some(status) = status.clone() {
                 println!();
                 common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
             }
@@ -1002,11 +1002,11 @@ fn show(cfg: &Cfg) -> Result<()> {
             Ok(atc) => match atc {
                 Some((ref toolchain, Some(ref reason))) => {
                     writeln!(t, "{} ({})", toolchain.name(), reason)?;
-                    writeln!(t, "{}", common::rustc_version(toolchain))?;
+                    writeln!(t, "{}", toolchain.rustc_version())?;
                 }
                 Some((ref toolchain, None)) => {
                     writeln!(t, "{} (default)", toolchain.name())?;
-                    writeln!(t, "{}", common::rustc_version(toolchain))?;
+                    writeln!(t, "{}", toolchain.rustc_version())?;
                 }
                 None => {
                     writeln!(t, "no active toolchain")?;

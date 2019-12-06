@@ -9,14 +9,11 @@ use rustup::utils::notify::NotificationLevel;
 use rustup::utils::utils;
 use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
 use std::fs;
-use std::io::{BufRead, BufReader, ErrorKind, Write};
+use std::io::{BufRead, ErrorKind, Write};
 use std::path::Path;
-use std::process::{Command, Stdio};
 use std::sync::Arc;
-use std::time::Duration;
 use std::{cmp, env, iter};
 use term2::Terminal;
-use wait_timeout::ChildExt;
 
 pub const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
 
@@ -153,16 +150,18 @@ fn show_channel_updates(
 ) -> Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
         let toolchain = cfg.get_toolchain(&name, false).expect("");
-        let version = rustc_version(&toolchain);
+        let version = toolchain.rustc_version();
 
         let banner;
         let color;
+        let mut previous_version: Option<String> = None;
         match result {
             Ok(UpdateStatus::Installed) => {
                 banner = "installed";
                 color = Some(term2::color::GREEN);
             }
-            Ok(UpdateStatus::Updated) => {
+            Ok(UpdateStatus::Updated(v)) => {
+                previous_version = Some(v);
                 banner = "updated";
                 color = Some(term2::color::GREEN);
             }
@@ -178,7 +177,7 @@ fn show_channel_updates(
 
         let width = name.len() + 1 + banner.len();
 
-        (name, banner, width, color, version)
+        (name, banner, width, color, version, previous_version)
     });
 
     let mut t = term2::stdout();
@@ -186,9 +185,9 @@ fn show_channel_updates(
     let data: Vec<_> = data.collect();
     let max_width = data
         .iter()
-        .fold(0, |a, &(_, _, width, _, _)| cmp::max(a, width));
+        .fold(0, |a, &(_, _, width, _, _, _)| cmp::max(a, width));
 
-    for (name, banner, width, color, version) in data {
+    for (name, banner, width, color, version, previous_version) in data {
         let padding = max_width - width;
         let padding: String = iter::repeat(' ').take(padding).collect();
         let _ = write!(t, "  {}", padding);
@@ -199,7 +198,11 @@ fn show_channel_updates(
         let _ = write!(t, "{} ", name);
         let _ = write!(t, "{}", banner);
         let _ = t.reset();
-        let _ = writeln!(t, " - {}", version);
+        let _ = write!(t, " - {}", version);
+        if let Some(previous_version) = previous_version {
+            let _ = write!(t, " (from {})", previous_version);
+        }
+        let _ = writeln!(t);
     }
     let _ = writeln!(t);
 
@@ -311,57 +314,6 @@ where
     }
 
     Ok(())
-}
-
-pub fn rustc_version(toolchain: &Toolchain<'_>) -> String {
-    if toolchain.exists() {
-        let rustc_path = toolchain.binary_file("rustc");
-        if utils::is_file(&rustc_path) {
-            let mut cmd = Command::new(&rustc_path);
-            cmd.arg("--version");
-            cmd.stdin(Stdio::null());
-            cmd.stdout(Stdio::piped());
-            cmd.stderr(Stdio::piped());
-            toolchain.set_ldpath(&mut cmd);
-
-            // some toolchains are faulty with some combinations of platforms and
-            // may fail to launch but also to timely terminate.
-            // (known cases include Rust 1.3.0 through 1.10.0 in recent macOS Sierra.)
-            // we guard against such cases by enforcing a reasonable timeout to read.
-            let mut line1 = None;
-            if let Ok(mut child) = cmd.spawn() {
-                let timeout = Duration::new(10, 0);
-                match child.wait_timeout(timeout) {
-                    Ok(Some(status)) if status.success() => {
-                        let out = child
-                            .stdout
-                            .expect("Child::stdout requested but not present");
-                        let mut line = String::new();
-                        if BufReader::new(out).read_line(&mut line).is_ok() {
-                            let lineend = line.trim_end_matches(&['\r', '\n'][..]).len();
-                            line.truncate(lineend);
-                            line1 = Some(line);
-                        }
-                    }
-                    Ok(None) => {
-                        let _ = child.kill();
-                        return String::from("(timeout reading rustc version)");
-                    }
-                    Ok(Some(_)) | Err(_) => {}
-                }
-            }
-
-            if let Some(line1) = line1 {
-                line1
-            } else {
-                String::from("(error reading rustc version)")
-            }
-        } else {
-            String::from("(rustc does not exist)")
-        }
-    } else {
-        String::from("(toolchain not installed)")
-    }
 }
 
 pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<()> {
