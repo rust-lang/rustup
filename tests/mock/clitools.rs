@@ -60,10 +60,10 @@ pub static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
 pub static CROSS_ARCH2: &str = "arm-linux-androideabi";
 
 // Architecture for testing 'multi-host' installation.
-// FIXME: Unfortunately the list of supported hosts is hard-coded,
-// so we have to use the triple of a host we actually test on. That means
-// that when we're testing on that host we can't test 'multi-host'.
+#[cfg(target_pointer_width = "64")]
 pub static MULTI_ARCH1: &str = "i686-unknown-linux-gnu";
+#[cfg(not(target_pointer_width = "64"))]
+pub static MULTI_ARCH1: &str = "x86_64-unknown-linux-gnu";
 
 /// Run this to create the test environment containing rustup, and
 /// a mock dist server.

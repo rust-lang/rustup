@@ -186,13 +186,10 @@ fn subcommand_required_for_self() {
 
 #[test]
 fn multi_host_smoke_test() {
-    // FIXME: Unfortunately the list of supported hosts is hard-coded,
-    // so we have to use the triple of a host we actually test on. That means
-    // that when we're testing on that host we can't test 'multi-host'.
-    let trip = this_host_triple();
-    if trip == clitools::MULTI_ARCH1 {
-        return;
-    }
+    // We cannot run this test if the current host triple is equal to the
+    // multi-arch triple, but this should never be the case.  Check that just
+    // to be sure.
+    assert_ne!(this_host_triple(), clitools::MULTI_ARCH1);
 
     clitools::setup(Scenario::MultiHost, &|config| {
         let toolchain = format!("nightly-{}", clitools::MULTI_ARCH1);
