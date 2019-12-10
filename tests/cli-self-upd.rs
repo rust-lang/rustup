@@ -574,7 +574,15 @@ info: rustup updated successfully to {}\n",
 
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_ok_ex(config, &["rustup", "self", "update"], r"", &expected_output)
+        expect_ok_ex(
+            config,
+            &["rustup", "self", "update"],
+            &format!(
+                "  rustup updated - (toolchain not installed) (from {})\n\n",
+                version,
+            ),
+            &expected_output,
+        )
     });
 }
 
@@ -698,6 +706,7 @@ fn update_no_change() {
             &["rustup", "self", "update"],
             r"",
             r"info: checking for self-updates
+info: already up-to-date
 ",
         );
     });
