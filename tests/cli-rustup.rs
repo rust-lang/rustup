@@ -1703,3 +1703,17 @@ fn non_utf8_toolchain() {
         assert!(out.stderr.contains("toolchain '��' is not installed"));
     });
 }
+
+#[test]
+fn check_host_goes_away() {
+    clitools::setup(Scenario::HostGoesMissing, &|config| {
+        set_current_dist_date(config, "2019-12-09");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        set_current_dist_date(config, "2019-12-10");
+        expect_err(
+            config,
+            &["rustup", "update", "nightly", "--no-self-update"],
+            for_host!("target '{}' not found in channel"),
+        );
+    })
+}
