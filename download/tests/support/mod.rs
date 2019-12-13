@@ -1,9 +1,14 @@
+use std::convert::Infallible;
 use std::fs;
 use std::io;
 use std::net::SocketAddr;
 use std::path::Path;
+use std::sync::mpsc::{channel, Sender};
+use std::thread;
 
-use futures::sync::oneshot;
+use hyper::server::conn::AddrStream;
+use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Request};
 use tempfile::TempDir;
 
 pub fn tmp_dir() -> TempDir {
@@ -26,28 +31,41 @@ pub fn write_file(path: &Path, contents: &str) {
     file.sync_data().expect("writing test data");
 }
 
-pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
-    use futures::Future;
-    use std::thread;
+async fn run_server(addr_tx: Sender<SocketAddr>, addr: SocketAddr, contents: Vec<u8>) {
+    let make_svc = make_service_fn(|_: &AddrStream| {
+        let contents = contents.clone();
+        async move {
+            Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
+                let contents = contents.clone();
+                async move {
+                    let res = serve_contents(req, contents);
+                    Ok::<_, Infallible>(res)
+                }
+            }))
+        }
+    });
 
+    let server = hyper::server::Server::bind(&addr).serve(make_svc);
+    let addr = server.local_addr();
+    addr_tx.send(addr).unwrap();
+
+    if let Err(e) = server.await {
+        eprintln!("server error: {}", e);
+    }
+}
+
+pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
     let addr = ([127, 0, 0, 1], 0).into();
-    let (addr_tx, addr_rx) = oneshot::channel();
+    let (addr_tx, addr_rx) = channel();
 
     thread::spawn(move || {
-        // XXX: multiple clone below
-        fn serve(
-            contents: Vec<u8>,
-        ) -> impl Fn(hyper::Request<hyper::Body>) -> hyper::Response<hyper::Body> {
-            move |req| serve_contents(req, contents.clone())
-        }
-
-        let server = hyper::server::Server::bind(&addr)
-            .serve(move || hyper::service::service_fn_ok(serve(contents.clone())));
-        let addr = server.local_addr();
-        addr_tx.send(addr).unwrap();
-        hyper::rt::run(server.map_err(|e| panic!(e)));
+        let server = run_server(addr_tx, addr, contents);
+        let mut rt = tokio::runtime::Runtime::new().expect("could not creating Runtime");
+        rt.block_on(server);
     });
-    addr_rx.wait().unwrap()
+
+    let addr = addr_rx.recv();
+    addr.unwrap()
 }
 
 fn serve_contents(
