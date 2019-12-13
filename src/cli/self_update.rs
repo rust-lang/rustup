@@ -385,8 +385,10 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool) -> Result<()> {
     if let Err(path) = rustc_or_cargo_exists_in_path() {
         err!("it looks like you have an existing installation of Rust at:");
         err!("{}", path);
-        err!("rustup cannot be installed alongside Rust. Please uninstall first");
-        err!("if this is what you want, restart the installation with `-y'");
+        err!("rustup should not be installed alongside Rust. Please uninstall your existing Rust first.");
+        err!("Otherwise you may have confusion unless you are careful with your PATH");
+        err!("If you are sure that you want both rustup and your already installed Rust");
+        err!("then please restart the installation and pass `-y' to bypass this check.");
         Err("cannot install while Rust is installed".into())
     } else {
         Ok(())
