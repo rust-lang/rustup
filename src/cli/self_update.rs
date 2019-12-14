@@ -417,7 +417,7 @@ fn do_pre_install_sanity_checks() -> Result<()> {
         warn!("rustup cannot be installed while rustup.sh metadata exists");
         warn!(
             "delete `{}` to remove rustup.sh",
-            rustup_sh_path.expect("").display()
+            rustup_sh_path.unwrap().display()
         );
         warn!("or, if you already have rustup installed, you can run");
         warn!("`rustup self update` and `rustup toolchain list` to upgrade");

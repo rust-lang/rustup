@@ -419,7 +419,7 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
         }
     }
 
-    String::from_utf8(buf).expect("")
+    String::from_utf8(buf).unwrap()
 }
 
 fn install_msg(bin: &str, toolchain: &str, is_default: bool) -> String {
