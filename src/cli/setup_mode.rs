@@ -87,9 +87,7 @@ pub fn main() -> Result<()> {
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");
-    let default_host = matches
-        .value_of("default-host")
-        .map(std::borrow::ToOwned::to_owned);
+    let default_host = matches.value_of("default-host").map(ToOwned::to_owned);
     let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
     let profile = matches
         .value_of("profile")

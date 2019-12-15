@@ -37,8 +37,8 @@ where
     })
 }
 
-pub fn open_file(name: &'static str, path: &Path) -> Result<fs::File> {
-    fs::File::open(path).chain_err(|| ErrorKind::ReadingFile {
+pub fn open_file(name: &'static str, path: &Path) -> Result<File> {
+    File::open(path).chain_err(|| ErrorKind::ReadingFile {
         name,
         path: PathBuf::from(path),
     })
@@ -622,7 +622,7 @@ pub fn delete_dir_contents(dir_path: &Path) {
 }
 
 pub struct FileReaderWithProgress<'a> {
-    fh: std::io::BufReader<std::fs::File>,
+    fh: io::BufReader<File>,
     notify_handler: &'a dyn Fn(Notification<'_>),
     nbytes: u64,
     flen: u64,
@@ -630,7 +630,7 @@ pub struct FileReaderWithProgress<'a> {
 
 impl<'a> FileReaderWithProgress<'a> {
     pub fn new_file(path: &Path, notify_handler: &'a dyn Fn(Notification<'_>)) -> Result<Self> {
-        let fh = match std::fs::File::open(path) {
+        let fh = match File::open(path) {
             Ok(fh) => fh,
             Err(_) => {
                 return Err(ErrorKind::ReadingFile {
@@ -656,8 +656,8 @@ impl<'a> FileReaderWithProgress<'a> {
     }
 }
 
-impl<'a> std::io::Read for FileReaderWithProgress<'a> {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+impl<'a> io::Read for FileReaderWithProgress<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.fh.read(buf) {
             Ok(nbytes) => {
                 self.nbytes += nbytes as u64;
