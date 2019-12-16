@@ -619,7 +619,7 @@ fn install_stops_if_rustc_exists() {
             .contains("it looks like you have an existing installation of Rust at:"));
         assert!(out
             .stderr
-            .contains("if this is what you want, restart the installation with `-y'"));
+            .contains("restart the installation and pass `-y'"));
     });
 }
 
@@ -651,7 +651,7 @@ fn install_stops_if_cargo_exists() {
             .contains("it looks like you have an existing installation of Rust at:"));
         assert!(out
             .stderr
-            .contains("if this is what you want, restart the installation with `-y'"));
+            .contains("restart the installation and pass `-y'"));
     });
 }
 
