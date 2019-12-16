@@ -230,6 +230,16 @@ pub fn expect_not_stdout_ok(config: &Config, args: &[&str], expected: &str) {
 
 pub fn expect_not_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
+    if !out.ok || out.stderr.contains(expected) {
+        print_command(args, &out);
+        println!("expected.ok: false");
+        print_indented("expected.stderr.does_not_contain", expected);
+        panic!();
+    }
+}
+
+pub fn expect_not_stderr_err(config: &Config, args: &[&str], expected: &str) {
+    let out = run(config, args[0], &args[1..], &[]);
     if out.ok || out.stderr.contains(expected) {
         print_command(args, &out);
         println!("expected.ok: false");
