@@ -472,14 +472,18 @@ impl Cfg {
             if let Ok(s) = utils::read_file("toolchain file", &toolchain_file) {
                 if let Some(s) = s.lines().next() {
                     let toolchain_name = s.trim();
-                    dist::validate_channel_name(&toolchain_name).chain_err(|| {
-                        format!(
-                            "invalid channel name '{}' in '{}'",
-                            toolchain_name,
-                            toolchain_file.display()
-                        )
-                    })?;
-
+                    let all_toolchains = self.list_toolchains()?;
+                    if !all_toolchains.iter().any(|s| s == toolchain_name) {
+                        // The given name is not resolvable as a toolchain, so
+                        // instead check it's plausible for installation later
+                        dist::validate_channel_name(&toolchain_name).chain_err(|| {
+                            format!(
+                                "invalid channel name '{}' in '{}'",
+                                toolchain_name,
+                                toolchain_file.display()
+                            )
+                        })?;
+                    }
                     let reason = OverrideReason::ToolchainFile(toolchain_file);
                     return Ok(Some((toolchain_name.to_string(), reason)));
                 }

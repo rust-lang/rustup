@@ -1530,6 +1530,36 @@ fn bad_file_override() {
 }
 
 #[test]
+fn valid_override_settings() {
+    setup(&|config| {
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+        expect_ok(config, &["rustc", "--version"]);
+        raw::write_file(&toolchain_file, for_host!("nightly-{}")).unwrap();
+        expect_ok(config, &["rustc", "--version"]);
+        let fullpath = config
+            .rustupdir
+            .clone()
+            .join("toolchains")
+            .join(for_host!("nightly-{}"));
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "link",
+                "system",
+                &format!("{}", fullpath.display()),
+            ],
+        );
+        raw::write_file(&toolchain_file, "system").unwrap();
+        expect_ok(config, &["rustc", "--version"]);
+    })
+}
+
+#[test]
 fn file_override_with_target_info() {
     setup(&|config| {
         let cwd = config.current_dir();
