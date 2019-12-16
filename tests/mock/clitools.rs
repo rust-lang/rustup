@@ -437,10 +437,27 @@ where
     }
 
     println!("running {:?}", cmd);
-    let lock = cmd_lock().read().unwrap();
-    let out = cmd.output();
-    drop(lock);
-    let out = out.expect("failed to run test command");
+    let mut retries = 8;
+    let out = loop {
+        let lock = cmd_lock().read().unwrap();
+        let out = cmd.output();
+        drop(lock);
+        match out {
+            Ok(out) => break out,
+            Err(e) => {
+                retries -= 1;
+                if retries > 0
+                    && e.kind() == std::io::ErrorKind::Other
+                    && format!("{}", e).contains("os error 26")
+                {
+                    // This is a ETXTBSY situation
+                    std::thread::sleep(std::time::Duration::from_millis(250));
+                } else {
+                    panic!("Unable to run test command: {:?}", e);
+                }
+            }
+        }
+    };
 
     let output = SanitizedOutput {
         ok: out.status.success(),
