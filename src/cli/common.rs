@@ -149,7 +149,7 @@ fn show_channel_updates(
     toolchains: Vec<(String, rustup::Result<UpdateStatus>)>,
 ) -> Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
-        let toolchain = cfg.get_toolchain(&name, false).expect("");
+        let toolchain = cfg.get_toolchain(&name, false).unwrap();
         let version = toolchain.rustc_version();
 
         let banner;

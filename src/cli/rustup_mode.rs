@@ -725,7 +725,7 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
 
 fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     if m.is_present("toolchain") {
-        let toolchain = m.value_of("toolchain").expect("");
+        let toolchain = m.value_of("toolchain").unwrap();
         default_bare_triple_check(cfg, toolchain)?;
         let toolchain = cfg.get_toolchain(toolchain, false)?;
 
@@ -866,7 +866,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
 }
 
 fn run(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    let toolchain = m.value_of("toolchain").expect("");
+    let toolchain = m.value_of("toolchain").unwrap();
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
     let cmd = cfg.create_command_for_toolchain(toolchain, m.is_present("install"), args[0])?;
@@ -877,9 +877,9 @@ fn run(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 }
 
 fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    let binary = m.value_of("command").expect("");
+    let binary = m.value_of("command").unwrap();
     let binary_path = if m.is_present("toolchain") {
-        let toolchain = m.value_of("toolchain").expect("");
+        let toolchain = m.value_of("toolchain").unwrap();
         cfg.which_binary_by_toolchain(toolchain, binary)?
             .expect("binary not found")
     } else {
@@ -1070,7 +1070,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
     let mut targets: Vec<String> = m
         .values_of("target")
-        .expect("")
+        .unwrap()
         .map(ToString::to_string)
         .collect();
 
@@ -1110,7 +1110,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
-    for target in m.values_of("target").expect("") {
+    for target in m.values_of("target").unwrap() {
         let new_component = Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new(target)),
@@ -1143,7 +1143,7 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             .map(|desc| desc.target.clone())
     });
 
-    for component in m.values_of("component").expect("") {
+    for component in m.values_of("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
 
@@ -1163,7 +1163,7 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             .map(|desc| desc.target.clone())
     });
 
-    for component in m.values_of("component").expect("") {
+    for component in m.values_of("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
 
@@ -1191,8 +1191,8 @@ fn toolchain_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 }
 
 fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    let toolchain = m.value_of("toolchain").expect("");
-    let path = m.value_of("path").expect("");
+    let toolchain = m.value_of("toolchain").unwrap();
+    let path = m.value_of("path").unwrap();
     let toolchain = cfg.get_toolchain(toolchain, true)?;
 
     toolchain
@@ -1201,7 +1201,7 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 }
 
 fn toolchain_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    for toolchain in m.values_of("toolchain").expect("") {
+    for toolchain in m.values_of("toolchain").unwrap() {
         let toolchain = cfg.get_toolchain(toolchain, false)?;
         toolchain.remove()?;
     }
@@ -1209,7 +1209,7 @@ fn toolchain_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 }
 
 fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    let toolchain = m.value_of("toolchain").expect("");
+    let toolchain = m.value_of("toolchain").unwrap();
     let toolchain = cfg.get_toolchain(toolchain, false)?;
 
     let status = if !toolchain.is_custom() {
@@ -1362,7 +1362,7 @@ fn self_uninstall(m: &ArgMatches<'_>) -> Result<()> {
 }
 
 fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    cfg.set_default_host_triple(m.value_of("host_triple").expect(""))?;
+    cfg.set_default_host_triple(m.value_of("host_triple").unwrap())?;
     Ok(())
 }
 
