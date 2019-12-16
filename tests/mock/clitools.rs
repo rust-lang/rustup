@@ -54,16 +54,17 @@ pub enum Scenario {
     UnavailableRls,   // Two dates, v2 manifests, RLS unavailable in first date, restored on second.
     MissingComponent, // Three dates, v2 manifests, RLS available in first and last, not middle
     MissingNightly,   // Three dates, v2 manifests, RLS available in first, middle missing nightly
+    HostGoesMissing,  // Two dates, v2 manifests, host and MULTI_ARCH1 in first, host not in second
 }
 
 pub static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
 pub static CROSS_ARCH2: &str = "arm-linux-androideabi";
 
 // Architecture for testing 'multi-host' installation.
-// FIXME: Unfortunately the list of supported hosts is hard-coded,
-// so we have to use the triple of a host we actually test on. That means
-// that when we're testing on that host we can't test 'multi-host'.
+#[cfg(target_pointer_width = "64")]
 pub static MULTI_ARCH1: &str = "i686-unknown-linux-gnu";
+#[cfg(not(target_pointer_width = "64"))]
+pub static MULTI_ARCH1: &str = "x86_64-unknown-linux-gnu";
 
 /// Run this to create the test environment containing rustup, and
 /// a mock dist server.
@@ -486,6 +487,12 @@ impl Release {
         self
     }
 
+    fn only_multi_arch(mut self) -> Self {
+        self.multi_arch = true;
+        self.available = false;
+        self
+    }
+
     fn new(channel: &str, version: &str, date: &str, suffix: &str) -> Self {
         Release {
             channel: channel.to_string(),
@@ -507,18 +514,24 @@ impl Release {
                 &self.hash,
                 self.rls,
                 self.multi_arch,
+                false,
             )
         } else {
             if self.multi_arch {
-                unimplemented!("no support for multi-arch unavailable channels");
+                // unavailable but multiarch means to build only with host==MULTI_ARCH1
+                // instead of true multiarch
+                build_mock_channel(
+                    &self.channel,
+                    &self.date,
+                    &self.version,
+                    &self.hash,
+                    self.rls,
+                    false,
+                    true,
+                )
+            } else {
+                build_mock_unavailable_channel(&self.channel, &self.date, &self.version, &self.hash)
             }
-            if self.rls != RlsStatus::Available {
-                unimplemented!(
-                    "no support for rls availability customization on unavailable channels"
-                );
-            }
-
-            build_mock_unavailable_channel(&self.channel, &self.date, &self.version, &self.hash)
         }
     }
 
@@ -620,6 +633,10 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
             Release::beta("1.2.0", "2015-01-02").multi_arch(),
             Release::stable("1.1.0", "2015-01-02").multi_arch(),
         ],
+        Scenario::HostGoesMissing => vec![
+            Release::new("nightly", "1.3.0", "2019-12-09", "1"),
+            Release::new("nightly", "1.3.0", "2019-12-10", "2").only_multi_arch(),
+        ],
     };
 
     let vs = match s {
@@ -631,6 +648,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         | Scenario::Unavailable
         | Scenario::UnavailableRls
         | Scenario::MissingNightly
+        | Scenario::HostGoesMissing
         | Scenario::MissingComponent => vec![ManifestVersion::V2],
     };
 
@@ -652,9 +670,14 @@ fn build_mock_channel(
     version_hash: &str,
     rls: RlsStatus,
     multi_arch: bool,
+    swap_triples: bool,
 ) -> MockChannel {
     // Build the mock installers
-    let host_triple = this_host_triple();
+    let host_triple = if swap_triples {
+        MULTI_ARCH1.to_owned()
+    } else {
+        this_host_triple()
+    };
     let std = build_mock_std_installer(&host_triple);
     let rustc = build_mock_rustc_installer(&host_triple, version, version_hash);
     let cargo = build_mock_cargo_installer(version, version_hash);

@@ -650,11 +650,6 @@ nightly-{0} (default)
 
 #[test]
 fn show_multiple_targets() {
-    // Using the MULTI_ARCH1 target doesn't work on i686 linux
-    if cfg!(target_os = "linux") && cfg!(target_arch = "x86") {
-        return;
-    }
-
     clitools::setup(Scenario::MultiHost, &|config| {
         expect_ok(
             config,
@@ -1707,4 +1702,18 @@ fn non_utf8_toolchain() {
         );
         assert!(out.stderr.contains("toolchain '��' is not installed"));
     });
+}
+
+#[test]
+fn check_host_goes_away() {
+    clitools::setup(Scenario::HostGoesMissing, &|config| {
+        set_current_dist_date(config, "2019-12-09");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        set_current_dist_date(config, "2019-12-10");
+        expect_err(
+            config,
+            &["rustup", "update", "nightly", "--no-self-update"],
+            for_host!("target '{}' not found in channel"),
+        );
+    })
 }
