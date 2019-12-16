@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use url::Url;
@@ -232,7 +232,8 @@ impl MockDistServer {
                 &PathBuf::from(&installer_name),
                 &installer_dir,
                 &installer_tarball,
-            );
+            )
+            .unwrap();
             let mut contents = Vec::new();
             File::open(&installer_tarball)
                 .unwrap()
@@ -447,9 +448,13 @@ impl MockDistServer {
     }
 }
 
-fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
-    drop(fs::remove_file(dst));
-    let outfile = File::create(dst).unwrap();
+fn create_tarball(relpath: &Path, src: &Path, dst: &Path) -> io::Result<()> {
+    match fs::remove_file(dst) {
+        Ok(_) => {}
+        Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+        Err(e) => return Err(e),
+    }
+    let outfile = File::create(dst)?;
     let mut gzwriter;
     let mut xzwriter;
     let writer: &mut dyn Write = match &dst.to_string_lossy() {
@@ -465,26 +470,20 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) {
     };
     let mut tar = tar::Builder::new(writer);
     for entry in walkdir::WalkDir::new(src) {
-        let entry = entry.unwrap();
-        let parts: Vec<_> = entry
-            .path()
-            .iter()
-            .map(std::borrow::ToOwned::to_owned)
-            .collect();
+        let entry = entry?;
+        let parts: Vec<_> = entry.path().iter().map(ToOwned::to_owned).collect();
         let parts_len = parts.len();
         let parts = parts.into_iter().skip(parts_len - entry.depth());
         let mut relpath = relpath.to_owned();
-        for part in parts {
-            relpath = relpath.join(part);
-        }
+        relpath.extend(parts);
         if entry.file_type().is_file() {
-            let mut srcfile = File::open(entry.path()).unwrap();
-            tar.append_file(relpath, &mut srcfile).unwrap();
+            let mut srcfile = File::open(entry.path())?;
+            tar.append_file(relpath, &mut srcfile)?;
         } else if entry.file_type().is_dir() {
-            tar.append_dir(relpath, entry.path()).unwrap();
+            tar.append_dir(relpath, entry.path())?;
         }
     }
-    tar.finish().unwrap();
+    tar.finish()
 }
 
 pub fn calc_hash(src: &Path) -> String {
