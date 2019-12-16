@@ -5,7 +5,7 @@ pub mod mock;
 
 use crate::mock::clitools::{
     self, expect_component_executable, expect_component_not_executable, expect_err,
-    expect_not_stderr_ok, expect_not_stdout_ok, expect_ok, expect_ok_ex, expect_stderr_ok,
+    expect_not_stderr_err, expect_not_stdout_ok, expect_ok, expect_ok_ex, expect_stderr_ok,
     expect_stdout_ok, set_current_dist_date, this_host_triple, Config, Scenario,
 };
 use std::fs;
@@ -1124,7 +1124,7 @@ fn add_component_suggest_best_match() {
             &["rustup", "component", "add", "rustd"],
             "did you mean 'rustc'?",
         );
-        expect_not_stderr_ok(
+        expect_not_stderr_err(
             config,
             &["rustup", "component", "add", "potato"],
             "did you mean",
@@ -1136,7 +1136,7 @@ fn add_component_suggest_best_match() {
 fn remove_component_suggest_best_match() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_not_stderr_ok(
+        expect_not_stderr_err(
             config,
             &["rustup", "component", "remove", "rsl"],
             "did you mean 'rls'?",
@@ -1175,7 +1175,7 @@ fn add_target_suggest_best_match() {
             ],
             &format!("did you mean '{}'", clitools::CROSS_ARCH1),
         );
-        expect_not_stderr_ok(
+        expect_not_stderr_err(
             config,
             &["rustup", "target", "add", "potato"],
             "did you mean",
@@ -1187,7 +1187,7 @@ fn add_target_suggest_best_match() {
 fn remove_target_suggest_best_match() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_not_stderr_ok(
+        expect_not_stderr_err(
             config,
             &[
                 "rustup",
