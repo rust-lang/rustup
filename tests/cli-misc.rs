@@ -4,9 +4,10 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_component_executable, expect_component_not_executable, expect_err, expect_ok,
-    expect_ok_contains, expect_ok_eq, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
-    set_current_dist_date, this_host_triple, Config, Scenario,
+    self, expect_component_executable, expect_component_not_executable, expect_err,
+    expect_not_stderr_ok, expect_ok, expect_ok_contains, expect_ok_eq, expect_ok_ex,
+    expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date, this_host_triple, Config,
+    Scenario,
 };
 use rustup::utils::{raw, utils};
 
@@ -998,16 +999,34 @@ fn toolchain_link_then_list_verbose() {
 #[test]
 fn deprecated_interfaces() {
     setup(&|config| {
+        // In verbose mode we want the deprecated interfaces to complain
         expect_ok_contains(
             config,
-            &["rustup", "install", "nightly", "--no-self-update"],
+            &[
+                "rustup",
+                "--verbose",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
             "",
             "Please use `rustup toolchain install` instead",
         );
         expect_ok_contains(
             config,
-            &["rustup", "uninstall", "nightly"],
+            &["rustup", "--verbose", "uninstall", "nightly"],
             "",
+            "Please use `rustup toolchain uninstall` instead",
+        );
+        // But if not verbose then they should *NOT* complain
+        expect_not_stderr_ok(
+            config,
+            &["rustup", "install", "nightly", "--no-self-update"],
+            "Please use `rustup toolchain install` instead",
+        );
+        expect_not_stderr_ok(
+            config,
+            &["rustup", "uninstall", "nightly"],
             "Please use `rustup toolchain uninstall` instead",
         );
     })

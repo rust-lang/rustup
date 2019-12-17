@@ -9,6 +9,7 @@ use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use rustup::dist::manifest::Component;
 use rustup::utils::utils::{self, ExitCode};
+use rustup::Notification;
 use rustup::{command, Cfg, Toolchain};
 use std::error::Error;
 use std::fmt;
@@ -27,12 +28,23 @@ fn handle_epipe(res: Result<()>) -> Result<()> {
     }
 }
 
-fn deprecated<F, A, B>(instead: &str, cfg: A, matches: B, callee: F) -> Result<()>
+fn deprecated<F, B>(instead: &str, cfg: &mut Cfg, matches: B, callee: F) -> Result<()>
 where
-    F: FnOnce(A, B) -> Result<()>,
+    F: FnOnce(&mut Cfg, B) -> Result<()>,
 {
-    warn!("Use of deprecated command line interface.");
-    warn!("  Please use `rustup {}` instead", instead);
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(
+        "Use of (currently) unmaintained command line interface.",
+    ));
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(
+        "The exact API of this command may change without warning",
+    ));
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(
+        "Eventually this command will be a true alias.  Until then:",
+    ));
+    (cfg.notify_handler)(Notification::PlainVerboseMessage(&format!(
+        "  Please use `rustup {}` instead",
+        instead
+    )));
     callee(cfg, matches)
 }
 
@@ -66,7 +78,7 @@ pub fn main() -> Result<()> {
         ("install", Some(m)) => deprecated("toolchain install", cfg, m, update)?,
         ("update", Some(m)) => update(cfg, m)?,
         ("check", Some(_)) => check_updates(cfg)?,
-        ("uninstall", Some(m)) => deprecated("toolchain uninstall", &*cfg, m, toolchain_remove)?,
+        ("uninstall", Some(m)) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
         ("default", Some(m)) => default_(cfg, m)?,
         ("toolchain", Some(c)) => match c.subcommand() {
             ("install", Some(m)) => update(cfg, m)?,
@@ -1200,7 +1212,7 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         .map_err(Into::into)
 }
 
-fn toolchain_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
     for toolchain in m.values_of("toolchain").unwrap() {
         let toolchain = cfg.get_toolchain(toolchain, false)?;
         toolchain.remove()?;

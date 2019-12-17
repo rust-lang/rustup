@@ -230,6 +230,16 @@ pub fn expect_not_stdout_ok(config: &Config, args: &[&str], expected: &str) {
 
 pub fn expect_not_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
+    if !out.ok || out.stderr.contains(expected) {
+        print_command(args, &out);
+        println!("expected.ok: false");
+        print_indented("expected.stderr.does_not_contain", expected);
+        panic!();
+    }
+}
+
+pub fn expect_not_stderr_err(config: &Config, args: &[&str], expected: &str) {
+    let out = run(config, args[0], &args[1..], &[]);
     if out.ok || out.stderr.contains(expected) {
         print_command(args, &out);
         println!("expected.ok: false");
@@ -427,10 +437,27 @@ where
     }
 
     println!("running {:?}", cmd);
-    let lock = cmd_lock().read().unwrap();
-    let out = cmd.output();
-    drop(lock);
-    let out = out.expect("failed to run test command");
+    let mut retries = 8;
+    let out = loop {
+        let lock = cmd_lock().read().unwrap();
+        let out = cmd.output();
+        drop(lock);
+        match out {
+            Ok(out) => break out,
+            Err(e) => {
+                retries -= 1;
+                if retries > 0
+                    && e.kind() == std::io::ErrorKind::Other
+                    && format!("{}", e).contains("os error 26")
+                {
+                    // This is a ETXTBSY situation
+                    std::thread::sleep(std::time::Duration::from_millis(250));
+                } else {
+                    panic!("Unable to run test command: {:?}", e);
+                }
+            }
+        }
+    };
 
     let output = SanitizedOutput {
         ok: out.status.success(),

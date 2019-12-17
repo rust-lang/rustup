@@ -32,6 +32,7 @@ pub enum Notification<'a> {
     NonFatalError(&'a Error),
     UpgradeRemovesToolchains,
     MissingFileDuringSelfUninstall(PathBuf),
+    PlainVerboseMessage(&'a str),
 }
 
 impl<'a> From<crate::dist::Notification<'a>> for Notification<'a> {
@@ -64,6 +65,7 @@ impl<'a> Notification<'a> {
             | UpdatingToolchain(_)
             | ReadMetadataVersion(_)
             | InstalledToolchain(_)
+            | PlainVerboseMessage(_)
             | UpdateHashMatches => NotificationLevel::Verbose,
             SetDefaultToolchain(_)
             | SetOverrideToolchain(_, _)
@@ -127,6 +129,7 @@ impl<'a> Display for Notification<'a> {
                 "expected file does not exist to uninstall: {}",
                 p.display()
             ),
+            PlainVerboseMessage(r) => write!(f, "{}", r),
         }
     }
 }
