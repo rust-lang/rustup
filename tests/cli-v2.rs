@@ -152,13 +152,13 @@ fn list_toolchains() {
         expect_stdout_ok(
             config,
             &["rustup", "toolchain", "list", "-v"],
-            "\\toolchains\\nightly-x86",
+            for_host!("\\toolchains\\nightly-{}"),
         );
         #[cfg(not(windows))]
         expect_stdout_ok(
             config,
             &["rustup", "toolchain", "list", "-v"],
-            "/toolchains/nightly-x86",
+            for_host!("/toolchains/nightly-{}"),
         );
         expect_stdout_ok(config, &["rustup", "toolchain", "list"], "beta-2015-01-01");
         #[cfg(windows)]

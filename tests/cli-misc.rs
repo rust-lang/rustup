@@ -911,7 +911,7 @@ fn override_by_toolchain_on_the_command_line() {
         expect_stdout_ok(
             config,
             &["rustup", "+stable", "which", "rustc"],
-            "\\toolchains\\stable-x86_64-",
+            for_host!("\\toolchains\\stable-{}"),
         );
         #[cfg(windows)]
         expect_stdout_ok(
@@ -923,7 +923,7 @@ fn override_by_toolchain_on_the_command_line() {
         expect_stdout_ok(
             config,
             &["rustup", "+stable", "which", "rustc"],
-            "/toolchains/stable-x86_64-",
+            for_host!("/toolchains/stable-{}"),
         );
         #[cfg(not(windows))]
         expect_stdout_ok(
@@ -936,7 +936,7 @@ fn override_by_toolchain_on_the_command_line() {
         expect_stdout_ok(
             config,
             &["rustup", "+nightly", "which", "rustc"],
-            "\\toolchains\\nightly-x86_64-",
+            for_host!("\\toolchains\\nightly-{}"),
         );
         #[cfg(windows)]
         expect_stdout_ok(
@@ -948,7 +948,7 @@ fn override_by_toolchain_on_the_command_line() {
         expect_stdout_ok(
             config,
             &["rustup", "+nightly", "which", "rustc"],
-            "/toolchains/nightly-x86_64-",
+            for_host!("/toolchains/nightly-{}"),
         );
         #[cfg(not(windows))]
         expect_stdout_ok(
@@ -976,7 +976,7 @@ fn override_by_toolchain_on_the_command_line() {
             &["rustup", "+stable", "set", "profile", "minimal"],
             "profile set to 'minimal'",
         );
-        expect_stdout_ok(config, &["rustup", "default"], "nightly-x86_64-");
+        expect_stdout_ok(config, &["rustup", "default"], for_host!("nightly-{}"));
     });
 }
 
