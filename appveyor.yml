@@ -56,12 +56,12 @@ install:
           # Download and install MINGW (32-bit)
           Write-Host "Installing MinGW (32-bit)..." -ForegroundColor Cyan
           Write-Host "Downloading installation package..."
-          appveyor-retry appveyor DownloadFile https://rust-lang-ci.s3.amazonaws.com/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z -FileName mingw.7z
+          appveyor-retry appveyor DownloadFile https://ci-mirrors.rust-lang.org/rustc/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z -FileName mingw.7z
         } elseif($env:MINGW_DIR -eq "mingw64") {
           # Download and install MINGW (64-bit)
           Write-Host "Installing MinGW (64-bit)..." -ForegroundColor Cyan
           Write-Host "Downloading installation package..."
-          appveyor-retry appveyor DownloadFile https://rust-lang-ci.s3.amazonaws.com/x86_64-4.9.2-release-win32-seh-rt_v4-rev4.7z -FileName mingw.7z
+          appveyor-retry appveyor DownloadFile https://ci-mirrors.rust-lang.org/rustc/x86_64-4.9.2-release-win32-seh-rt_v4-rev4.7z -FileName mingw.7z
         }
         Write-Host "Extracting installation package..."
         7z x -y mingw.7z -oC:\msys64 | Out-Null
