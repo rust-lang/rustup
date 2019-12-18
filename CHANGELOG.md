@@ -1,5 +1,92 @@
 # Changelog
 
+## [1.21.0] - UNRELEASED
+
+In release 1.20.x profiles could incorrectly ascribe host-independent components
+to the host architecture, resulting in surprising behaviour with `rust-src`.
+We have [corrected this][pr#2087] and [added mitigations][pr#2115] which should
+mean that as of this release, such incorrect ascriptions are supported and also
+automatically corrected on toolchain update.
+
+Due to the large number of confusions around the `complete` profile, we have
+[introduced a warning][pr#2138] if you use it. It's really only meant for
+developers _of_ Rust, or those exploring particular issues in `nightly`.
+
+There are also a large number of other changes, the highlights of which are below.
+Thanks to everyone who helped work on this release. Even if your changes are not
+listed below, they are still greatly appreciated.
+
+### Changed
+
+- [Download directory is cleaned up after successful full update.][pr#2046]
+- [Bad `.partial` downloads will be cleaned up for you][pr#1889]
+- [Force installation of toolchain if install is automatic][pr#2074]
+- [Switch to darker colours to improve terminal readability][pr#2083]
+- [Attempt to be less surprising wrt. default-host during installation][pr#2086]
+- [`rustup toolchain list --verbose` now correctly shows the paths][pr#2084]
+- [Fallback environment for non-cargo toolchains updated to match `rustc`][pr#2108]
+- [Made human-readable units slightly more comprehensible][pr#2043]
+- [Improved detection of armhf userland on aarch64 kernels][pr#2133]
+- [Improved error message when rustc is detected on installation][pr#2155]
+
+### Added
+
+- [Added `--profile` support to `rustup toolchain install`][pr#2075]
+- [Added `+toolchain` support to `rustup` itself to match proxy functionality][pr#2031]
+- [Added ability to `rustup component add component-architecture`][pr#2088]
+- [Added clear report when `rustup doc` is run without `rust-docs` available][pr#2116]
+- [Added `keyword:`, `primitive:`, and `macro:` prefix support to `rustup doc FOO`][pr#2119]
+- [Added retry logic so that `rustup` will try and repeat interrupted downloads][pr#2121]
+- [Added `--allow-downgrade` support to `rustup toolchain install`][pr#2126]
+- [Added display of previous version when upgrading channels][pr#2143]
+- [Added support for local non-channel toolchains in rust-toolchain file][pr#2141]
+
+### Thanks
+
+- Roman Frołow
+- Jean Simard
+- Lzu Tao
+- Benjamin Chen
+- Daniel Silverstone
+- Jon Hoo
+- Carlo Abelli
+- Filip Demski
+- Chris Tomlinson
+- Kane Green
+- Ralf Jung
+- Yves Dorfsman
+- Rudolf B
+- Pietro Albini
+- Takayuki Nakata
+- Justus K
+- Gilbert Röhrbein
+- Friedel Ziegelmayer
+- Robbie Clarken
+- Tetsuharu OHZEKI
+
+[pr#1889]: https://github.com/rust-lang/rustup/pull/1889
+[pr#2031]: https://github.com/rust-lang/rustup/pull/2031
+[pr#2043]: https://github.com/rust-lang/rustup/pull/2043
+[pr#2046]: https://github.com/rust-lang/rustup/pull/2046
+[pr#2074]: https://github.com/rust-lang/rustup/pull/2074
+[pr#2075]: https://github.com/rust-lang/rustup/pull/2075
+[pr#2083]: https://github.com/rust-lang/rustup/pull/2083
+[pr#2084]: https://github.com/rust-lang/rustup/pull/2084
+[pr#2086]: https://github.com/rust-lang/rustup/pull/2086
+[pr#2087]: https://github.com/rust-lang/rustup/pull/2087
+[pr#2108]: https://github.com/rust-lang/rustup/pull/2108
+[pr#2088]: https://github.com/rust-lang/rustup/pull/2088
+[pr#2115]: https://github.com/rust-lang/rustup/pull/2115
+[pr#2116]: https://github.com/rust-lang/rustup/pull/2116
+[pr#2119]: https://github.com/rust-lang/rustup/pull/2119
+[pr#2121]: https://github.com/rust-lang/rustup/pull/2121
+[pr#2126]: https://github.com/rust-lang/rustup/pull/2126
+[pr#2133]: https://github.com/rust-lang/rustup/pull/2133
+[pr#2138]: https://github.com/rust-lang/rustup/pull/2138
+[pr#2141]: https://github.com/rust-lang/rustup/pull/2141
+[pr#2143]: https://github.com/rust-lang/rustup/pull/2143
+[pr#2155]: https://github.com/rust-lang/rustup/pull/2155
+
 ## [1.20.2] - 2019-10-16
 
 One final tweak was needed to the force-installation of toolchains because
