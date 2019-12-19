@@ -1,7 +1,7 @@
 #!/bin/bash
 set -xe
 
-VERSION=0.2.11
+VERSION=0.2.12
 TARGET=x86_64-unknown-linux-musl
 BIN_DIR=/usr/local/bin
 TEMP_DIR=$(mktemp -d)
