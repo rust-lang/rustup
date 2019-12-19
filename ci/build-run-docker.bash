@@ -47,7 +47,6 @@ docker run \
   --env LIBZ_SYS_STATIC=1 \
   --volume "${HOME}"/.cache/sccache:/sccache \
   --env SCCACHE_DIR=/sccache \
-  --env RUSTC_WRAPPER=sccache \
   --tty \
   --init \
   --rm \
