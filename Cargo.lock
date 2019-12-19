@@ -1642,7 +1642,7 @@ dependencies = [
 
 [[package]]
 name = "rustup"
-version = "1.21.0"
+version = "1.21.1"
 dependencies = [
  "cc 1.0.46 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
