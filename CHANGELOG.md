@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.21.1] - 2019-12-19
+
+A panic occurred if a `rustup update` was run with nothing to update and the
+download directory was missing. This was harmless but could have confused some
+automation jobs.
+
 ## [1.21.0] - 2019-12-19
 
 In release 1.20.x profiles could incorrectly ascribe host-independent components
