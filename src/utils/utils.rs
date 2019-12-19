@@ -606,7 +606,15 @@ where
 }
 
 pub fn delete_dir_contents(dir_path: &Path) {
-    remove_dir_all::remove_dir_all(dir_path).expect("Failed to remove a dir");
+    match remove_dir_all::remove_dir_all(dir_path) {
+        Ok(_) => {}
+        Err(e) => match e.kind() {
+            io::ErrorKind::NotFound => {
+                // Nothing to do here
+            }
+            _ => panic!("Unable to clean up {}: {:?}", dir_path.display(), e),
+        },
+    }
 }
 
 pub struct FileReaderWithProgress<'a> {
