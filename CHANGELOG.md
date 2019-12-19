@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.21.0] - UNRELEASED
+## [1.21.0] - 2019-12-19
 
 In release 1.20.x profiles could incorrectly ascribe host-independent components
 to the host architecture, resulting in surprising behaviour with `rust-src`.
