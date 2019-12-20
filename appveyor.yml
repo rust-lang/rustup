@@ -11,6 +11,7 @@ cache:
   - target
 # before cache
 after_test:
+  - powershell -File ci/prepare-deploy-appveyor.ps1
   - set CARGO_TARGET_DIR=%APPVEYOR_BUILD_FOLDER%\target
   - cargo install
       --debug
@@ -115,8 +116,6 @@ test_script:
   - cargo test --release --target %TARGET% --test dist -- --test-threads 1
   - cargo test --release --target %TARGET% --test dist_transactions
 
-after_test:
-  - powershell -File ci/prepare-deploy-appveyor.ps1
 
 artifacts:
   - path: dist\$(TARGET)\rustup-init.exe
