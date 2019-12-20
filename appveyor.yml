@@ -115,7 +115,7 @@ test_script:
   - cargo test --release --target %TARGET% --test dist -- --test-threads 1
   - cargo test --release --target %TARGET% --test dist_transactions
 
-before_deploy:
+after_test:
   - powershell -File ci/prepare-deploy-appveyor.ps1
 
 artifacts:
