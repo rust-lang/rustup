@@ -581,7 +581,7 @@ fn rename<'a, N>(
 where
     N: From<Notification<'a>>,
 {
-    // https://github.com/rust-lang/rustup.rs/issues/1870
+    // https://github.com/rust-lang/rustup/issues/1870
     // 21 fib steps from 1 sums to ~28 seconds, hopefully more than enough
     // for our previous poor performance that avoided the race condition with
     // McAfee and Norton.

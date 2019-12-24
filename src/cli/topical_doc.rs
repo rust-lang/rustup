@@ -50,7 +50,7 @@ fn search_path(doc: &DocData, wpath: &Path, keywords: &[&str]) -> Result<PathBuf
 pub fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
     // The ORDER of keywords_top is used for the default search and should not
     // be changed.
-    // https://github.com/rust-lang/rustup.rs/issues/2076#issuecomment-546613036
+    // https://github.com/rust-lang/rustup/issues/2076#issuecomment-546613036
     let keywords_top = vec!["keyword", "primitive", "macro"];
     let keywords_mod = ["fn", "struct", "trait", "enum", "type", "constant"];
 

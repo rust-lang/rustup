@@ -333,7 +333,7 @@ fn unpack_without_first_dir<'a, R: Read>(
         // - it is most likely an attack, as rusts cross-platform nature precludes
         // such artifacts
         let kind = entry.header().entry_type();
-        // https://github.com/rust-lang/rustup.rs/issues/1140 and before that
+        // https://github.com/rust-lang/rustup/issues/1140 and before that
         // https://github.com/rust-lang/rust/issues/25479
         // tl;dr: code got convoluted and we *may* have damaged tarballs out
         // there.
