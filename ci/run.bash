@@ -13,7 +13,7 @@ case "$(uname -s)" in
   * ) FEATURES=('--features' 'vendored-openssl') ;;
 esac
 
-# rustc only supports armv7: https://forge.rust-lang.org/platform-support.html
+# rustc only supports armv7: https://forge.rust-lang.org/release/platform-support.html
 if [ "$TARGET" = arm-linux-androideabi ]; then
   export CFLAGS='-march=armv7'
 fi
