@@ -22,7 +22,7 @@ when rebuilding `rustup` itself.
 
 If you wish to install your new build to try out longer term in your home directory
 then you can run `cargo dev-install` which is an alias in `.cargo/config` which
-runs `cargo run -- --no-modify-path -y` to install your build into your homedir.
+runs `cargo run -- --no-modify-path -y` to install your build into your home dir.
 
 We use `rustfmt` to keep our codebase consistently formatted. Please ensure that
 you have correctly formatted your code (most editors will do this automatically
@@ -118,15 +118,15 @@ Rustup is distributed. The steps for a release are:
 
 ## Developer tips and tricks
 
-### `RUSTUP_FORCE_ARG0`
+### `RUSTUP_NAME`
 
-The environment variable `RUSTUP_FORCE_ARG0` can be used to get rustup to think
+The environment variable `RUSTUP_NAME` can be used to get rustup to think
 its a particular binary, rather than e.g. copying it, symlinking it or other
 tricks with exec. This is handy when testing particular code paths from cargo
 run.
 
 ```
-$ RUSTUP_FORCE_ARG0=rustup cargo run -- uninstall nightly
+$ RUSTUP_NAME=rustup cargo run -- uninstall nightly
 ```
 
 ### `RUSTUP_BACKTRACK_LIMIT`
@@ -157,7 +157,7 @@ is used like `RUST_BACKTRACE` to enable backtraces of failed tests.
 **NOTE**: This is a backtrace for the test, not for any rustup process running
 in the test
 
-```bash
+```console
 $ RUSTUP_BACKTRACE=1 cargo test --release --test cli-v1 -- remove_toolchain_then_add_again
     Finished release [optimized] target(s) in 0.38s
      Running target\release\deps\cli_v1-1f29f824792f6dc1.exe

@@ -67,7 +67,7 @@ fn run_rustup_inner() -> Result<()> {
     utils::current_exe()?;
 
     // The name of arg0 determines how the program is going to behave
-    let arg0 = match env::var("RUSTUP_FORCE_ARG0") {
+    let arg0 = match env::var("RUSTUP_NAME") {
         Ok(v) => Some(v),
         Err(_) => env::args().next(),
     }
