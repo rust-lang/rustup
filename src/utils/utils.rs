@@ -607,13 +607,10 @@ where
 
 pub fn delete_dir_contents(dir_path: &Path) {
     match remove_dir_all::remove_dir_all(dir_path) {
-        Ok(_) => {}
-        Err(e) => match e.kind() {
-            io::ErrorKind::NotFound => {
-                // Nothing to do here
-            }
-            _ => panic!("Unable to clean up {}: {:?}", dir_path.display(), e),
-        },
+        Err(e) if e.kind() != io::ErrorKind::NotFound => {
+            panic!("Unable to clean up {}: {:?}", dir_path.display(), e);
+        }
+        _ => {}
     }
 }
 
