@@ -1449,3 +1449,48 @@ fn install_allow_downgrade() {
         expect_component_executable(config, "rls");
     });
 }
+
+#[test]
+fn component_add_allow_downgrade() {
+    clitools::setup(Scenario::MissingComponent, &|config| {
+        let trip = TargetTriple::from_build();
+        // 2019-09-14 dist has no rls
+        set_current_dist_date(config, "2019-09-14");
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-3");
+        expect_component_not_executable(config, "rls");
+
+        expect_err(
+            config,
+            &["rustup", "component", "add", "rls"],
+            &format!(
+                "component 'rls' for target '{}' is unavailable for download for channel nightly",
+                trip,
+            ),
+        );
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-3");
+        expect_component_not_executable(config, "rls");
+
+        expect_ok(
+            config,
+            &["rustup", "component", "add", "rls", "--allow-downgrade"],
+        );
+        // rls was added to downgraded nightly-2019-09-13
+        // switch to the version and assert rls as executable
+        expect_stdout_ok(
+            config,
+            &["rustup", "default", "nightly-2019-09-13"],
+            "hash-nightly-2",
+        );
+        expect_component_executable(config, "rls");
+    });
+}

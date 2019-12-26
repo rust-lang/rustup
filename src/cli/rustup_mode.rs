@@ -5,6 +5,7 @@ use crate::self_update;
 use crate::term2;
 use crate::term2::Terminal;
 use crate::topical_doc;
+use chrono::prelude::*;
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use rustup::dist::manifest::Component;
@@ -442,7 +443,13 @@ pub fn cli() -> App<'static, 'static> {
                                 .long("toolchain")
                                 .takes_value(true),
                         )
-                        .arg(Arg::with_name("target").long("target").takes_value(true)),
+                        .arg(Arg::with_name("target").long("target").takes_value(true))
+                        .arg(
+                            Arg::with_name("allow-downgrade")
+                                .help("Allow to downgrade the toolchain to satisfy your component choice")
+                                .long("allow-downgrade")
+                                .takes_value(false),
+                        ),
                 )
                 .subcommand(
                     SubCommand::with_name("remove")
@@ -1159,9 +1166,71 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
 
-        toolchain.add_component(new_component)?;
-    }
+        if m.is_present("allow-downgrade") {
+            let toolchain_date = toolchain
+                .get_manifest()
+                .ok()
+                .and_then(|m| m.map(|m| m.date))
+                .unwrap();
+            let downgrade_date = utc_from_manifest_date(&toolchain_date)
+                .unwrap_or_else(|| panic!("Malformed manifest date: {}", toolchain_date))
+                .pred();
 
+            let release_channel = match toolchain.name() {
+                s if s.starts_with("nightly") => "nightly",
+                s if s.starts_with("stable") => "stable",
+                s if s.starts_with("beta") => "beta",
+                _ => "nightly",
+            };
+            let nightly_date = format!(
+                "{}-{}",
+                &release_channel,
+                &downgrade_date.to_string()[0..10]
+            );
+            let temp_toolchain = cfg.get_toolchain(&nightly_date, false)?;
+
+            let status = if !temp_toolchain.is_custom() {
+                let components: Vec<_> = m
+                    .values_of("components")
+                    .map(|v| v.collect())
+                    .unwrap_or_else(Vec::new);
+                let targets: Vec<_> = m
+                    .values_of("targets")
+                    .map(|v| v.collect())
+                    .unwrap_or_else(Vec::new);
+                Some(temp_toolchain.install_from_dist(
+                    false,
+                    m.is_present("allow-downgrade"),
+                    &components,
+                    &targets,
+                )?)
+            } else if !temp_toolchain.exists() {
+                return Err(
+                    ErrorKind::InvalidToolchainName(temp_toolchain.name().to_string()).into(),
+                );
+            } else {
+                None
+            };
+
+            if let Some(status) = status.clone() {
+                println!();
+                common::show_channel_update(cfg, temp_toolchain.name(), Ok(status))?;
+            }
+
+            use rustup::UpdateStatus;
+            if let Some(UpdateStatus::Installed) = status {
+                temp_toolchain.make_default()?;
+                temp_toolchain.add_component(new_component)?;
+                toolchain.make_default()?;
+            } else if let Some(UpdateStatus::Unchanged) = status {
+                temp_toolchain.make_default()?;
+                temp_toolchain.add_component(new_component)?;
+                toolchain.make_default()?;
+            }
+        } else {
+            toolchain.add_component(new_component)?;
+        }
+    }
     Ok(())
 }
 
@@ -1471,4 +1540,10 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
     }
 
     Ok(())
+}
+
+fn utc_from_manifest_date(date_str: &str) -> Option<Date<Utc>> {
+    NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+        .ok()
+        .map(|date| Utc.from_utc_date(&date))
 }
