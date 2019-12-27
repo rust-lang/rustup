@@ -636,7 +636,7 @@ Command                                                     | Description
 ## Environment variables
 
 
-- `RUSTUP_HOME` (default: `~/.rustup` or `%USERPROFILE%/.rustup`)
+- `RUSTUP_HOME` (default: `~/.rustup` or `%USERPROFILE%\.rustup`)
   Sets the root `rustup` folder, used for storing installed
   toolchains and configuration options.
 
