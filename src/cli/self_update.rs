@@ -224,6 +224,8 @@ fn canonical_cargo_home() -> Result<String> {
         if cfg!(unix) {
             path_str = String::from("$HOME/.cargo");
         } else {
+            // Since this string serves as documentation, backslashes must be
+            // escaped in order to be displayed correctly on Windows.
             path_str = String::from(r"%USERPROFILE%\\.cargo");
         }
     }
