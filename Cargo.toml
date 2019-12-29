@@ -3,7 +3,6 @@ name = "rustup"
 version = "1.21.1"
 authors = [ "Daniel Silverstone <dsilvers@digital-scurf.org>", "Diggory Blake <diggsey@googlemail.com>" ]
 build = "build.rs"
-documentation = "https://rust-lang.github.io/rustup.rs/rustup/index.html"
 edition = "2018"
 homepage = "https://github.com/rust-lang/rustup"
 keywords = ["rustup", "multirust", "install", "proxy"]
