@@ -416,7 +416,7 @@ platforms The Rust Project publishes binary releases of the standard
 library, and for some the full compiler. `rustup` gives easy access
 to all of them.
 
-[p]: https://forge.rust-lang.org/platform-support.html
+[p]: https://forge.rust-lang.org/release/platform-support.html
 
 When you first install a toolchain, `rustup` installs only the
 standard library for your *host* platform - that is, the architecture
@@ -760,7 +760,7 @@ variable.
 work][s]. `rustup` performs all downloads over HTTPS, but does not
 yet validate signatures of downloads.
 
-[s]: https://github.com/rust-lang/rustup.rs/issues?q=is%3Aopen+is%3Aissue+label%3Asecurity
+[s]: https://github.com/rust-lang/rustup/issues?q=is%3Aopen+is%3Aissue+label%3Asecurity
 
 File modes on installation honor umask as of 1.18.4, use umask if
 very tight controls are desired.
