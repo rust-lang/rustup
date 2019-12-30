@@ -251,7 +251,8 @@ pub mod reqwest_be {
     use super::Event;
     use crate::errors::*;
     use lazy_static::lazy_static;
-    use reqwest::{header, Client, Proxy, Response};
+    use reqwest::blocking::{Client, Response};
+    use reqwest::{header, Proxy};
     use std::io;
     use std::time::Duration;
     use url::Url;
