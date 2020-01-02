@@ -1154,8 +1154,14 @@ where
     A: AsRef<Path>,
     B: AsRef<Path>,
 {
-    drop(fs::remove_file(b.as_ref()));
-    fs::hard_link(a, b).map(|_| ())
+    fn inner(a: &Path, b: &Path) -> io::Result<()> {
+        match fs::remove_file(b) {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
+            _ => {}
+        }
+        fs::hard_link(a, b).map(drop)
+    }
+    inner(a.as_ref(), b.as_ref())
 }
 
 pub fn copy_binary<A, B>(a: A, b: B) -> io::Result<()>
@@ -1163,12 +1169,13 @@ where
     A: AsRef<Path>,
     B: AsRef<Path>,
 {
-    eprintln!(
-        "Copying from {} to {}",
-        a.as_ref().display(),
-        b.as_ref().display()
-    );
+    fn inner(a: &Path, b: &Path) -> io::Result<()> {
+        match fs::remove_file(b) {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
+            _ => {}
+        }
+        fs::copy(a, b).map(drop)
+    }
     let _lock = cmd_lock().write().unwrap();
-    drop(fs::remove_file(b.as_ref()));
-    fs::copy(a, b).map(|_| ())
+    inner(a.as_ref(), b.as_ref())
 }
