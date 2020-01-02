@@ -1,5 +1,6 @@
 #![allow(clippy::large_enum_variant)]
 #![allow(dead_code)]
+#![allow(deprecated)] // because of `Error::description` deprecation in `error_chain`
 
 use crate::rustup_mode::CompletionCommand;
 

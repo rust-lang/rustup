@@ -1,4 +1,5 @@
 #![allow(clippy::large_enum_variant)]
+#![allow(deprecated)] // because of `Error::description` deprecation in `error_chain`
 
 use crate::component_for_bin;
 use crate::dist::dist::Profile;
