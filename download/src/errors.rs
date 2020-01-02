@@ -1,3 +1,4 @@
+#![allow(deprecated)] // because of `Error::description` deprecation in `error_chain`
 use error_chain::error_chain;
 
 error_chain! {
