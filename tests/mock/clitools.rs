@@ -13,8 +13,8 @@ use std::collections::HashMap;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::ffi::OsStr;
-use std::fs::{self, File};
-use std::io::{self, Read, Write};
+use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
@@ -1100,8 +1100,8 @@ fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
             let dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
 
             // Write the source
-            let source = include_str!("mock_bin_src.rs");
-            File::create(&source_path).and_then(|mut f| f.write_all(source.as_bytes())).unwrap();
+            let source = include_bytes!("mock_bin_src.rs");
+            fs::write(&source_path, &source[..]).unwrap();
 
             // Create the executable
             let status = Command::new("rustc")
@@ -1121,10 +1121,7 @@ fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
             }
 
             // Now load it into memory
-            let mut f = File::open(dest_path).unwrap();
-            let mut buf = Vec::new();
-            f.read_to_end(&mut buf).unwrap();
-
+            let buf = fs::read(dest_path).unwrap();
             Arc::new(buf)
         };
     }
