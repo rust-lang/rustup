@@ -448,7 +448,7 @@ where
                 retries -= 1;
                 if retries > 0
                     && e.kind() == std::io::ErrorKind::Other
-                    && format!("{}", e).contains("os error 26")
+                    && e.raw_os_error() == Some(26)
                 {
                     // This is a ETXTBSY situation
                     std::thread::sleep(std::time::Duration::from_millis(250));
