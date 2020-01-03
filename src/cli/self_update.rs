@@ -470,61 +470,31 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
 // sudo is configured not to change $HOME. Don't let that bogosity happen.
 #[cfg(unix)]
 fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
-    use std::ffi::OsString;
-
-    #[cfg(unix)]
-    pub fn home_mismatch() -> (bool, OsString, String) {
-        use std::ffi::CStr;
-        use std::mem::MaybeUninit;
-        use std::ptr;
-
+    pub fn home_mismatch() -> (bool, PathBuf, PathBuf) {
+        let fallback = || (false, PathBuf::new(), PathBuf::new());
         // test runner should set this, nothing else
-        if let Ok(true) = env::var("RUSTUP_INIT_SKIP_SUDO_CHECK").map(|s| s == "yes") {
-            return (false, OsString::new(), String::new());
+        if env::var_os("RUSTUP_INIT_SKIP_SUDO_CHECK").map_or(false, |s| s == "yes") {
+            return fallback();
         }
-        let mut buf = [0u8; 1024];
-        let mut pwd = MaybeUninit::<libc::passwd>::uninit();
-        let mut pwdp: *mut libc::passwd = ptr::null_mut();
-        let rv = unsafe {
-            libc::getpwuid_r(
-                libc::geteuid(),
-                pwd.as_mut_ptr(),
-                buf.as_mut_ptr().cast::<libc::c_char>(),
-                buf.len(),
-                (&mut pwdp) as *mut *mut libc::passwd,
-            )
-        };
-        if rv != 0 || pwdp.is_null() {
-            warn!("getpwuid_r: couldn't get user data");
-            return (false, OsString::new(), String::new());
+
+        match (utils::home_dir_from_passwd(), env::var_os("HOME")) {
+            (Some(pw), Some(eh)) if eh != pw => return (true, PathBuf::from(eh), pw),
+            (None, _) => warn!("getpwuid_r: couldn't get user data"),
+            _ => {}
         }
-        let pwd = unsafe { pwd.assume_init() };
-        let pw_dir = unsafe { CStr::from_ptr(pwd.pw_dir) }.to_str().ok();
-        let env_home = env::var_os("HOME");
-        match (env_home, pw_dir) {
-            (None, _) | (_, None) => (false, OsString::new(), String::new()),
-            (Some(eh), Some(pd)) => (eh != pd, eh, String::from(pd)),
-        }
+        fallback()
     }
 
-    #[cfg(not(unix))]
-    pub fn home_mismatch() -> (bool, OsString, String) {
-        (false, OsString::new(), String::new())
-    }
-
-    match (home_mismatch(), no_prompt) {
-        ((false, _, _), _) => (),
-        ((true, env_home, euid_home), false) => {
+    match home_mismatch() {
+        (false, _, _) => {}
+        (true, env_home, euid_home) => {
             err!("$HOME differs from euid-obtained home directory: you may be using sudo");
-            err!("$HOME directory: {:?}", env_home);
-            err!("euid-obtained home directory: {}", euid_home);
-            err!("if this is what you want, restart the installation with `-y'");
-            process::exit(1);
-        }
-        ((true, env_home, euid_home), true) => {
-            warn!("$HOME differs from euid-obtained home directory: you may be using sudo");
-            warn!("$HOME directory: {:?}", env_home);
-            warn!("euid-obtained home directory: {}", euid_home);
+            err!("$HOME directory: {}", env_home.display());
+            err!("euid-obtained home directory: {}", euid_home.display());
+            if !no_prompt {
+                err!("if this is what you want, restart the installation with `-y'");
+                process::exit(1);
+            }
         }
     }
 
