@@ -238,6 +238,7 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
     do_pre_install_sanity_checks()?;
     do_pre_install_options_sanity_checks(&opts)?;
     check_existence_of_rustc_or_cargo_in_path(no_prompt)?;
+    #[cfg(unix)]
     do_anti_sudo_check(no_prompt)?;
 
     let mut term = term2::stdout();
@@ -467,7 +468,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because
 // sudo is configured not to change $HOME. Don't let that bogosity happen.
-#[allow(dead_code)]
+#[cfg(unix)]
 fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
     use std::ffi::OsString;
 
