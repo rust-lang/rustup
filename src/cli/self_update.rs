@@ -1025,7 +1025,7 @@ fn wait_for_parent() -> Result<()> {
             return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
         }
 
-        let _g = scopeguard::guard(snapshot, |h| {
+        let snapshot = scopeguard::guard(snapshot, |h| {
             let _ = CloseHandle(h);
         });
 
@@ -1033,7 +1033,7 @@ fn wait_for_parent() -> Result<()> {
         entry.dwSize = mem::size_of::<PROCESSENTRY32>() as DWORD;
 
         // Iterate over system processes looking for ours
-        let success = Process32First(snapshot, &mut entry);
+        let success = Process32First(*snapshot, &mut entry);
         if success == 0 {
             let err = io::Error::last_os_error();
             return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
@@ -1041,7 +1041,7 @@ fn wait_for_parent() -> Result<()> {
 
         let this_pid = GetCurrentProcessId();
         while entry.th32ProcessID != this_pid {
-            let success = Process32Next(snapshot, &mut entry);
+            let success = Process32Next(*snapshot, &mut entry);
             if success == 0 {
                 let err = io::Error::last_os_error();
                 return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
@@ -1060,12 +1060,12 @@ fn wait_for_parent() -> Result<()> {
             return Ok(());
         }
 
-        let _g = scopeguard::guard(parent, |h| {
+        let parent = scopeguard::guard(parent, |h| {
             let _ = CloseHandle(h);
         });
 
         // Wait for our parent to exit
-        let res = WaitForSingleObject(parent, INFINITE);
+        let res = WaitForSingleObject(*parent, INFINITE);
 
         if res != WAIT_OBJECT_0 {
             let err = io::Error::last_os_error();
