@@ -897,8 +897,18 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 #[cfg(windows)]
 fn delete_rustup_and_cargo_home() -> Result<()> {
+    use std::io;
+    use std::mem;
+    use std::os::windows::ffi::OsStrExt;
+    use std::ptr;
     use std::thread;
     use std::time::Duration;
+    use winapi::shared::minwindef::DWORD;
+    use winapi::um::fileapi::{CreateFileW, OPEN_EXISTING};
+    use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
+    use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
+    use winapi::um::winbase::FILE_FLAG_DELETE_ON_CLOSE;
+    use winapi::um::winnt::{FILE_SHARE_DELETE, FILE_SHARE_READ, GENERIC_READ};
 
     // CARGO_HOME, hopefully empty except for bin/rustup.exe
     let cargo_home = utils::cargo_home()?;
@@ -914,17 +924,6 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
     // of CARGO_HOME.
     let numbah: u32 = rand::random();
     let gc_exe = work_path.join(&format!("rustup-gc-{:x}.exe", numbah));
-
-    use std::io;
-    use std::mem;
-    use std::os::windows::ffi::OsStrExt;
-    use std::ptr;
-    use winapi::shared::minwindef::DWORD;
-    use winapi::um::fileapi::{CreateFileW, OPEN_EXISTING};
-    use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
-    use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
-    use winapi::um::winbase::FILE_FLAG_DELETE_ON_CLOSE;
-    use winapi::um::winnt::{FILE_SHARE_DELETE, FILE_SHARE_READ, GENERIC_READ};
 
     unsafe {
         // Copy rustup (probably this process's exe) to the gc exe
