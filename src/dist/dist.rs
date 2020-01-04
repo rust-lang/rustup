@@ -7,7 +7,7 @@ use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::utils;
 
-use chrono::prelude::*;
+use chrono::{Date, NaiveDate, TimeZone, Utc};
 use lazy_static::lazy_static;
 use regex::Regex;
 
