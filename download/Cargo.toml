@@ -16,13 +16,13 @@ reqwest-backend = ["reqwest", "env_proxy", "lazy_static"]
 
 [dependencies]
 error-chain = "0.12"
-url = "1.7"
+url = "2.1"
 curl = { version = "0.4.11", optional = true }
-env_proxy = { version = "0.3.1", optional = true }
+env_proxy = { version = "0.4", optional = true }
 lazy_static = { version = "1.0", optional = true }
-reqwest = { version = "0.9.21", features = ["socks"], optional = true }
+reqwest = { version = "0.10", features = ["blocking", "gzip"], optional = true }
 
 [dev-dependencies]
-hyper = "0.13"
+hyper = { version = "0.13", default-features = false, features = ["tcp"] }
 tempfile = "3"
-tokio = { version = "0.2" }
+tokio = { version = "0.2.2", default-features = false, features = ["tcp", "sync"] }
