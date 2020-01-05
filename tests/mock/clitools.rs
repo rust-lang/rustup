@@ -1114,8 +1114,8 @@ fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
             assert!(status.success());
             assert!(dest_path.exists());
 
-            // If we're on unix this will remove debuginfo, otherwise we just ignore
-            // the return result here
+            // Remove debug info from std/core which included in every programs,
+            // otherwise we just ignore the return result here
             if cfg!(unix) {
                 drop(Command::new("strip").arg(&dest_path).status());
             }
