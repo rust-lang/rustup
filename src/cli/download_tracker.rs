@@ -7,8 +7,8 @@ use rustup::Notification;
 use std::collections::VecDeque;
 use std::fmt;
 use std::io::Write;
+use std::time::{Duration, Instant};
 use term::Terminal;
-use time::precise_time_s;
 
 /// Keep track of this many past download amounts
 const DOWNLOAD_TRACK_COUNT: usize = 5;
@@ -26,9 +26,9 @@ pub struct DownloadTracker {
     /// represent adjacent seconds; thus it may not show the average at all.
     downloaded_last_few_secs: VecDeque<usize>,
     /// Time stamp of the last second
-    last_sec: Option<f64>,
+    last_sec: Option<Instant>,
     /// Time stamp of the start of the download
-    start_sec: f64,
+    start_sec: Option<Instant>,
     /// The terminal we write the information to.
     /// XXX: Could be a term trait, but with #1818 on the horizon that
     ///      is a pointless change to make - better to let that transition
@@ -57,7 +57,7 @@ impl DownloadTracker {
             total_downloaded: 0,
             downloaded_this_sec: 0,
             downloaded_last_few_secs: VecDeque::with_capacity(DOWNLOAD_TRACK_COUNT),
-            start_sec: precise_time_s(),
+            start_sec: None,
             last_sec: None,
             term: term2::stdout(),
             displayed_charcount: None,
@@ -111,13 +111,13 @@ impl DownloadTracker {
         self.total_downloaded += len;
         self.downloaded_this_sec += len;
 
-        let current_time = precise_time_s();
+        let current_time = Instant::now();
 
         match self.last_sec {
             None => self.last_sec = Some(current_time),
             Some(prev) => {
                 let elapsed = current_time - prev;
-                if elapsed >= 1.0 {
+                if elapsed >= Duration::from_secs(1) {
                     if self.display_progress {
                         self.display();
                     }
@@ -141,73 +141,80 @@ impl DownloadTracker {
         }
         self.prepare_for_new_download();
     }
-    // we're doing modular arithmetic, treat as integer
-    pub fn from_seconds(sec: u32) -> (u32, u32, u32, u32) {
-        let d = sec / (24 * 3600);
-        let h = sec % (24 * 3600) / 3600;
-        let min = sec % 3600 / 60;
-        let sec = sec % 60;
-
-        (d, h, min, sec)
-    }
     /// Resets the state to be ready for a new download.
     fn prepare_for_new_download(&mut self) {
         self.content_len = None;
         self.total_downloaded = 0;
         self.downloaded_this_sec = 0;
         self.downloaded_last_few_secs.clear();
-        self.start_sec = precise_time_s();
+        self.start_sec = Some(Instant::now());
         self.last_sec = None;
         self.displayed_charcount = None;
     }
     /// Display the tracked download information to the terminal.
     fn display(&mut self) {
-        // Panic if someone pops the default bytes unit...
-        let unit = *self.units.last().unwrap();
-        let total_h = Size::new(self.total_downloaded, unit, UnitMode::Norm);
-        let sum: usize = self.downloaded_last_few_secs.iter().sum();
-        let len = self.downloaded_last_few_secs.len();
-        let speed = if len > 0 { sum / len } else { 0 };
-        let speed_h = Size::new(speed, unit, UnitMode::Rate);
-        let elapsed_h = Duration(precise_time_s() - self.start_sec);
+        match self.start_sec {
+            // Maybe forgot to call `prepare_for_new_download` first
+            None => return,
+            Some(start_sec) => {
+                // Panic if someone pops the default bytes unit...
+                let unit = *self.units.last().unwrap();
+                let total_h = Size::new(self.total_downloaded, unit, UnitMode::Norm);
+                let sum: usize = self.downloaded_last_few_secs.iter().sum();
+                let len = self.downloaded_last_few_secs.len();
+                let speed = if len > 0 { sum / len } else { 0 };
+                let speed_h = Size::new(speed, unit, UnitMode::Rate);
+                let elapsed_h = start_sec.elapsed();
 
-        // First, move to the start of the current line and clear it.
-        let _ = self.term.carriage_return();
-        // We'd prefer to use delete_line() but on Windows it seems to
-        // sometimes do unusual things
-        // let _ = self.term.as_mut().unwrap().delete_line();
-        // So instead we do:
-        if let Some(n) = self.displayed_charcount {
-            // This is not ideal as very narrow terminals might mess up,
-            // but it is more likely to succeed until term's windows console
-            // fixes whatever's up with delete_line().
-            let _ = write!(self.term, "{}", " ".repeat(n));
-            let _ = self.term.flush();
-            let _ = self.term.carriage_return();
-        }
+                // First, move to the start of the current line and clear it.
+                let _ = self.term.carriage_return();
+                // We'd prefer to use delete_line() but on Windows it seems to
+                // sometimes do unusual things
+                // let _ = self.term.as_mut().unwrap().delete_line();
+                // So instead we do:
+                if let Some(n) = self.displayed_charcount {
+                    // This is not ideal as very narrow terminals might mess up,
+                    // but it is more likely to succeed until term's windows console
+                    // fixes whatever's up with delete_line().
+                    let _ = write!(self.term, "{}", " ".repeat(n));
+                    let _ = self.term.flush();
+                    let _ = self.term.carriage_return();
+                }
 
-        let output = match self.content_len {
-            Some(content_len) => {
-                let content_len_h = Size::new(content_len, unit, UnitMode::Norm);
-                let content_len = content_len as f64;
-                let percent = (self.total_downloaded as f64 / content_len) * 100.;
-                let remaining = content_len - self.total_downloaded as f64;
-                let eta_h = Duration(remaining / speed as f64);
-                format!(
-                    "{} / {} ({:3.0} %) {} in {} ETA: {}",
-                    total_h, content_len_h, percent, speed_h, elapsed_h, eta_h
-                )
+                let output = match self.content_len {
+                    Some(content_len) => {
+                        let content_len_h = Size::new(content_len, unit, UnitMode::Norm);
+                        let percent = (self.total_downloaded as f64 / content_len as f64) * 100.;
+                        let remaining = content_len - self.total_downloaded;
+                        let eta_h = Duration::from_secs(if speed == 0 {
+                            std::u64::MAX
+                        } else {
+                            (remaining / speed) as u64
+                        });
+                        format!(
+                            "{} / {} ({:3.0} %) {} in {} ETA: {}",
+                            total_h,
+                            content_len_h,
+                            percent,
+                            speed_h,
+                            elapsed_h.display(),
+                            eta_h.display(),
+                        )
+                    }
+                    None => format!(
+                        "Total: {} Speed: {} Elapsed: {}",
+                        total_h,
+                        speed_h,
+                        elapsed_h.display()
+                    ),
+                };
+
+                let _ = write!(self.term, "{}", output);
+                // Since stdout is typically line-buffered and we don't print a newline, we manually flush.
+                let _ = self.term.flush();
+                self.displayed_charcount = Some(output.chars().count());
             }
-            None => format!(
-                "Total: {} Speed: {} Elapsed: {}",
-                total_h, speed_h, elapsed_h
-            ),
-        };
-
-        let _ = write!(self.term, "{}", output);
-        // Since stdout is typically line-buffered and we don't print a newline, we manually flush.
-        let _ = self.term.flush();
-        self.displayed_charcount = Some(output.chars().count());
+        }
     }
 
     pub fn push_unit(&mut self, new_unit: Unit) {
@@ -219,43 +226,59 @@ impl DownloadTracker {
     }
 }
 
-/// Human readable representation of duration(seconds).
-struct Duration(f64);
+trait DurationDisplay {
+    fn display(self) -> Display;
+}
 
-impl fmt::Display for Duration {
+impl DurationDisplay for Duration {
+    fn display(self) -> Display {
+        Display(self)
+    }
+}
+
+/// Human readable representation of a `Duration`.
+struct Display(Duration);
+
+impl fmt::Display for Display {
     #[allow(clippy::many_single_char_names)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // repurposing the alternate mode for ETA
-        let sec = self.0;
-
-        if sec.is_infinite() {
-            write!(f, "Unknown")
-        } else {
-            match DownloadTracker::from_seconds(sec as u32) {
-                (d, h, m, s) if d > 0 => write!(f, "{:3.0}d {:2.0}h {:2.0}m {:2.0}s", d, h, m, s),
-                (0, h, m, s) if h > 0 => write!(f, "{:2.0}h {:2.0}m {:2.0}s", h, m, s),
-                (0, 0, m, s) if m > 0 => write!(f, "{:2.0}m {:2.0}s", m, s),
-                (_, _, _, s) => write!(f, "{:2.0}s", s),
-            }
+        const SECS_PER_YEAR: u64 = 60 * 60 * 24 * 365;
+        let secs = self.0.as_secs();
+        if secs > SECS_PER_YEAR {
+            return f.write_str("Unknown");
+        }
+        match format_dhms(secs) {
+            (0, 0, 0, s) => write!(f, "{:2.0}s", s),
+            (0, 0, m, s) => write!(f, "{:2.0}m {:2.0}s", m, s),
+            (0, h, m, s) => write!(f, "{:2.0}h {:2.0}m {:2.0}s", h, m, s),
+            (d, h, m, s) => write!(f, "{:3.0}d {:2.0}h {:2.0}m {:2.0}s", d, h, m, s),
         }
     }
 }
 
+// we're doing modular arithmetic, treat as integer
+fn format_dhms(sec: u64) -> (u64, u8, u8, u8) {
+    let (mins, sec) = (sec / 60, (sec % 60) as u8);
+    let (hours, mins) = (mins / 60, (mins % 60) as u8);
+    let (days, hours) = (hours / 24, (hours % 24) as u8);
+    (days, hours, mins, sec)
+}
+
 #[cfg(test)]
 mod tests {
+    use super::format_dhms;
     #[test]
-    fn download_tracker_from_seconds_test() {
-        use crate::download_tracker::DownloadTracker;
-        assert_eq!(DownloadTracker::from_seconds(2), (0, 0, 0, 2));
+    fn download_tracker_format_dhms_test() {
+        assert_eq!(format_dhms(2), (0, 0, 0, 2));
 
-        assert_eq!(DownloadTracker::from_seconds(60), (0, 0, 1, 0));
+        assert_eq!(format_dhms(60), (0, 0, 1, 0));
 
-        assert_eq!(DownloadTracker::from_seconds(3_600), (0, 1, 0, 0));
+        assert_eq!(format_dhms(3_600), (0, 1, 0, 0));
 
-        assert_eq!(DownloadTracker::from_seconds(3_600 * 24), (1, 0, 0, 0));
+        assert_eq!(format_dhms(3_600 * 24), (1, 0, 0, 0));
 
-        assert_eq!(DownloadTracker::from_seconds(52_292), (0, 14, 31, 32));
+        assert_eq!(format_dhms(52_292), (0, 14, 31, 32));
 
-        assert_eq!(DownloadTracker::from_seconds(222_292), (2, 13, 44, 52));
+        assert_eq!(format_dhms(222_292), (2, 13, 44, 52));
     }
 }
