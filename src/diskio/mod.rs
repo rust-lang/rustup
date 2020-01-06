@@ -5,7 +5,7 @@
 //
 // When performing IO we have a choice:
 // - perform some IO in this thread
-// - dispatch some or all IO to another thead
+// - dispatch some or all IO to another thread
 // known tradeoffs:
 // NFS: network latency incurred on create, chmod, close calls
 // WSLv1: Defender latency incurred on close calls; mutex shared with create calls
@@ -61,7 +61,7 @@ use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use time::precise_time_s;
+use std::time::{Duration, Instant};
 
 #[derive(Debug)]
 pub enum Kind {
@@ -76,9 +76,9 @@ pub struct Item {
     /// The operation to perform
     pub kind: Kind,
     /// When the operation started
-    pub start: f64,
-    /// When the operation ended
-    pub finish: f64,
+    pub start: Option<Instant>,
+    /// Amount of time the operation took to finish
+    pub finish: Option<Duration>,
     /// The length of the file, for files (for stats)
     pub size: Option<usize>,
     /// The result of the operation
@@ -92,8 +92,8 @@ impl Item {
         Self {
             full_path,
             kind: Kind::Directory,
-            start: 0.0,
-            finish: 0.0,
+            start: None,
+            finish: None,
             size: None,
             result: Ok(()),
             mode,
@@ -105,8 +105,8 @@ impl Item {
         Self {
             full_path,
             kind: Kind::File(content),
-            start: 0.0,
-            finish: 0.0,
+            start: None,
+            finish: None,
             size: Some(len),
             result: Ok(()),
             mode,
@@ -123,7 +123,7 @@ pub trait Executor {
     /// need to be completed before the item is accepted:
     /// consume the returned iterator.
     fn execute(&mut self, mut item: Item) -> Box<dyn Iterator<Item = Item> + '_> {
-        item.start = precise_time_s();
+        item.start = Some(Instant::now());
         self.dispatch(item)
     }
 
@@ -151,7 +151,7 @@ pub fn perform(item: &mut Item) {
         Kind::Directory => create_dir(&item.full_path),
         Kind::File(ref contents) => write_file(&item.full_path, &contents, item.mode),
     };
-    item.finish = precise_time_s();
+    item.finish = item.start.map(|s| s.elapsed());
 }
 
 #[allow(unused_variables)]

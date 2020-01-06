@@ -48,7 +48,6 @@ tempfile = "3.1"
 # FIXME(issue #1788)
 term = "=0.5.1"
 threadpool = "1"
-time = "0.1.34"
 toml = "0.5"
 url = "2.1"
 wait-timeout = "0.2"
