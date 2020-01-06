@@ -13,8 +13,8 @@ use std::collections::HashMap;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::ffi::OsStr;
-use std::fs::{self, File};
-use std::io::{self, Read, Write};
+use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
@@ -448,7 +448,7 @@ where
                 retries -= 1;
                 if retries > 0
                     && e.kind() == std::io::ErrorKind::Other
-                    && format!("{}", e).contains("os error 26")
+                    && e.raw_os_error() == Some(26)
                 {
                     // This is a ETXTBSY situation
                     std::thread::sleep(std::time::Duration::from_millis(250));
@@ -1100,8 +1100,8 @@ fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
             let dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
 
             // Write the source
-            let source = include_str!("mock_bin_src.rs");
-            File::create(&source_path).and_then(|mut f| f.write_all(source.as_bytes())).unwrap();
+            let source = include_bytes!("mock_bin_src.rs");
+            fs::write(&source_path, &source[..]).unwrap();
 
             // Create the executable
             let status = Command::new("rustc")
@@ -1114,17 +1114,14 @@ fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
             assert!(status.success());
             assert!(dest_path.exists());
 
-            // If we're on unix this will remove debuginfo, otherwise we just ignore
-            // the return result here
+            // Remove debug info from std/core which included in every programs,
+            // otherwise we just ignore the return result here
             if cfg!(unix) {
                 drop(Command::new("strip").arg(&dest_path).status());
             }
 
             // Now load it into memory
-            let mut f = File::open(dest_path).unwrap();
-            let mut buf = Vec::new();
-            f.read_to_end(&mut buf).unwrap();
-
+            let buf = fs::read(dest_path).unwrap();
             Arc::new(buf)
         };
     }
@@ -1157,8 +1154,14 @@ where
     A: AsRef<Path>,
     B: AsRef<Path>,
 {
-    drop(fs::remove_file(b.as_ref()));
-    fs::hard_link(a, b).map(|_| ())
+    fn inner(a: &Path, b: &Path) -> io::Result<()> {
+        match fs::remove_file(b) {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
+            _ => {}
+        }
+        fs::hard_link(a, b).map(drop)
+    }
+    inner(a.as_ref(), b.as_ref())
 }
 
 pub fn copy_binary<A, B>(a: A, b: B) -> io::Result<()>
@@ -1166,12 +1169,13 @@ where
     A: AsRef<Path>,
     B: AsRef<Path>,
 {
-    eprintln!(
-        "Copying from {} to {}",
-        a.as_ref().display(),
-        b.as_ref().display()
-    );
+    fn inner(a: &Path, b: &Path) -> io::Result<()> {
+        match fs::remove_file(b) {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
+            _ => {}
+        }
+        fs::copy(a, b).map(drop)
+    }
     let _lock = cmd_lock().write().unwrap();
-    drop(fs::remove_file(b.as_ref()));
-    fs::copy(a, b).map(|_| ())
+    inner(a.as_ref(), b.as_ref())
 }
