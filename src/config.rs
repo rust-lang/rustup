@@ -666,7 +666,7 @@ impl Cfg {
                     .as_ref()
                     .map(|s| dist::TargetTriple::new(&s)))
             })?
-            .unwrap_or_else(dist::TargetTriple::from_build))
+            .unwrap_or_else(dist::TargetTriple::from_host_or_build))
     }
 
     pub fn resolve_toolchain(&self, name: &str) -> Result<String> {
