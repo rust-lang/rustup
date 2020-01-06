@@ -897,8 +897,18 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 #[cfg(windows)]
 fn delete_rustup_and_cargo_home() -> Result<()> {
+    use std::io;
+    use std::mem;
+    use std::os::windows::ffi::OsStrExt;
+    use std::ptr;
     use std::thread;
     use std::time::Duration;
+    use winapi::shared::minwindef::DWORD;
+    use winapi::um::fileapi::{CreateFileW, OPEN_EXISTING};
+    use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
+    use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
+    use winapi::um::winbase::FILE_FLAG_DELETE_ON_CLOSE;
+    use winapi::um::winnt::{FILE_SHARE_DELETE, FILE_SHARE_READ, GENERIC_READ};
 
     // CARGO_HOME, hopefully empty except for bin/rustup.exe
     let cargo_home = utils::cargo_home()?;
@@ -914,32 +924,20 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
     // of CARGO_HOME.
     let numbah: u32 = rand::random();
     let gc_exe = work_path.join(&format!("rustup-gc-{:x}.exe", numbah));
+    // Copy rustup (probably this process's exe) to the gc exe
+    utils::copy_file(&rustup_path, &gc_exe)?;
+    let gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().chain(Some(0)).collect();
 
-    use std::io;
-    use std::mem;
-    use std::os::windows::ffi::OsStrExt;
-    use std::ptr;
-    use winapi::shared::minwindef::DWORD;
-    use winapi::um::fileapi::{CreateFileW, OPEN_EXISTING};
-    use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
-    use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
-    use winapi::um::winbase::FILE_FLAG_DELETE_ON_CLOSE;
-    use winapi::um::winnt::{FILE_SHARE_DELETE, FILE_SHARE_READ, GENERIC_READ};
+    // Make the sub-process opened by gc exe inherit its attribute.
+    let mut sa = SECURITY_ATTRIBUTES {
+        nLength: mem::size_of::<SECURITY_ATTRIBUTES> as DWORD,
+        lpSecurityDescriptor: ptr::null_mut(),
+        bInheritHandle: 1,
+    };
 
-    unsafe {
-        // Copy rustup (probably this process's exe) to the gc exe
-        utils::copy_file(&rustup_path, &gc_exe)?;
-
-        let mut gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().collect();
-        gc_exe_win.push(0);
-
+    let _g = unsafe {
         // Open an inheritable handle to the gc exe marked
-        // FILE_FLAG_DELETE_ON_CLOSE. This will be inherited
-        // by subsequent processes.
-        let mut sa = mem::zeroed::<SECURITY_ATTRIBUTES>();
-        sa.nLength = mem::size_of::<SECURITY_ATTRIBUTES>() as DWORD;
-        sa.bInheritHandle = 1;
-
+        // FILE_FLAG_DELETE_ON_CLOSE.
         let gc_handle = CreateFileW(
             gc_exe_win.as_ptr(),
             GENERIC_READ,
@@ -955,23 +953,23 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
             return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
         }
 
-        let _g = scopeguard::guard(gc_handle, |h| {
+        scopeguard::guard(gc_handle, |h| {
             let _ = CloseHandle(h);
-        });
+        })
+    };
 
-        Command::new(gc_exe)
-            .spawn()
-            .chain_err(|| ErrorKind::WindowsUninstallMadness)?;
+    Command::new(gc_exe)
+        .spawn()
+        .chain_err(|| ErrorKind::WindowsUninstallMadness)?;
 
-        // The catch 22 article says we must sleep here to give
-        // Windows a chance to bump the processes file reference
-        // count. acrichto though is in disbelief and *demanded* that
-        // we not insert a sleep. If Windows failed to uninstall
-        // correctly it is because of him.
+    // The catch 22 article says we must sleep here to give
+    // Windows a chance to bump the processes file reference
+    // count. acrichto though is in disbelief and *demanded* that
+    // we not insert a sleep. If Windows failed to uninstall
+    // correctly it is because of him.
 
-        // (.. and months later acrichto owes me a beer).
-        thread::sleep(Duration::from_millis(100));
-    }
+    // (.. and months later acrichto owes me a beer).
+    thread::sleep(Duration::from_millis(100));
 
     Ok(())
 }
@@ -1027,7 +1025,7 @@ fn wait_for_parent() -> Result<()> {
             return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
         }
 
-        let _g = scopeguard::guard(snapshot, |h| {
+        let snapshot = scopeguard::guard(snapshot, |h| {
             let _ = CloseHandle(h);
         });
 
@@ -1035,7 +1033,7 @@ fn wait_for_parent() -> Result<()> {
         entry.dwSize = mem::size_of::<PROCESSENTRY32>() as DWORD;
 
         // Iterate over system processes looking for ours
-        let success = Process32First(snapshot, &mut entry);
+        let success = Process32First(*snapshot, &mut entry);
         if success == 0 {
             let err = io::Error::last_os_error();
             return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
@@ -1043,7 +1041,7 @@ fn wait_for_parent() -> Result<()> {
 
         let this_pid = GetCurrentProcessId();
         while entry.th32ProcessID != this_pid {
-            let success = Process32Next(snapshot, &mut entry);
+            let success = Process32Next(*snapshot, &mut entry);
             if success == 0 {
                 let err = io::Error::last_os_error();
                 return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
@@ -1062,12 +1060,12 @@ fn wait_for_parent() -> Result<()> {
             return Ok(());
         }
 
-        let _g = scopeguard::guard(parent, |h| {
+        let parent = scopeguard::guard(parent, |h| {
             let _ = CloseHandle(h);
         });
 
         // Wait for our parent to exit
-        let res = WaitForSingleObject(parent, INFINITE);
+        let res = WaitForSingleObject(*parent, INFINITE);
 
         if res != WAIT_OBJECT_0 {
             let err = io::Error::last_os_error();
