@@ -65,7 +65,7 @@ pub const NEVER_SELF_UPDATE: bool = false;
 // argument of format! needs to be a literal.
 
 macro_rules! pre_install_msg_template {
-    ($platform_msg: expr) => {
+    ($platform_msg:literal) => {
         concat!(
             r"
 # Welcome to Rust!
