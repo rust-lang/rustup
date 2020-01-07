@@ -169,12 +169,11 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
       - name: Prepare the dist
         run: |
-          .\ci\prepare-deploy-appveyor.ps1
+          .\ci\prepare-deploy.ps1
         shell: powershell
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
       - name: Deploy build to dev-static dist tree for release team
         run: |
-          # TODO: Endpoint etc?
           aws s3 cp --recursive dist s3://dev-static-rust-lang-org/rustup/dist
         shell: powershell
         env:
