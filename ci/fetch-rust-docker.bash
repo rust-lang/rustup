@@ -49,7 +49,7 @@ if [ -z "$(docker images -q "${LOCAL_DOCKER_TAG}")" ]; then
   echo "Attempting to download $url"
   rm -f "$cache"
   set +e
-  travis_retry curl -y 30 -Y 10 --connect-timeout 30 -f -L -C - -o "$cache" "$url"
+  command_retry curl -y 30 -Y 10 --connect-timeout 30 -f -L -C - -o "$cache" "$url"
   set -e
   docker load --quiet -i "$cache"
   docker tag "$digest" "${LOCAL_DOCKER_TAG}"

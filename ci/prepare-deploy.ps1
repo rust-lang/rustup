@@ -1,10 +1,3 @@
-if ($env:APPVEYOR_PULL_REQUEST_NUMBER) {
-    exit 0
-}
-
-if ($env:APPVEYOR_REPO_BRANCH -eq "auto") {
-    exit 0
-}
 
 # Copy rustup-init to rustup-setup for backwards compatibility
 cp target\${env:TARGET}\release\rustup-init.exe target\${env:TARGET}\release\rustup-setup.exe
