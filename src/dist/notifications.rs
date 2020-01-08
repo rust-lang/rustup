@@ -1,5 +1,5 @@
 use crate::config::PgpPublicKey;
-use crate::dist::dist::TargetTriple;
+use crate::dist::dist::{TargetTriple, ToolchainDesc};
 use crate::dist::manifest::Component;
 use crate::dist::temp;
 use crate::errors::*;
@@ -31,7 +31,7 @@ pub enum Notification<'a> {
     DownloadingManifest(&'a str),
     DownloadedManifest(&'a str, Option<&'a str>),
     DownloadingLegacyManifest,
-    SkippingNightlyMissingComponent(&'a [Component]),
+    SkippingNightlyMissingComponent(&'a ToolchainDesc, &'a [Component]),
     ForcingUnavailableComponent(&'a str),
     ManifestChecksumFailedHack,
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
@@ -72,7 +72,7 @@ impl<'a> Notification<'a> {
             | ManifestChecksumFailedHack
             | RollingBack
             | DownloadingManifest(_)
-            | SkippingNightlyMissingComponent(_)
+            | SkippingNightlyMissingComponent(_, _)
             | RetryingDownload(_)
             | DownloadedManifest(_, _) => NotificationLevel::Info,
             CantReadUpdateHash(_)
@@ -174,13 +174,19 @@ impl<'a> Display for Notification<'a> {
                 "removing stray hash found at '{}' in order to continue",
                 path.display()
             ),
-            SkippingNightlyMissingComponent(components) => write!(
+            SkippingNightlyMissingComponent(toolchain, components) => write!(
                 f,
                 "skipping nightly which is missing installed component{} '{}'",
                 if components.len() > 1 { "s" } else { "" },
                 components
                     .iter()
-                    .map(|component| component.short_name_in_manifest().to_owned())
+                    .map(|component| {
+                        if component.target.as_ref() != Some(&toolchain.target) {
+                            component.name_in_manifest().to_owned()
+                        } else {
+                            component.short_name_in_manifest().to_owned()
+                        }
+                    })
                     .collect::<Vec<_>>()
                     .join("', '")
             ),

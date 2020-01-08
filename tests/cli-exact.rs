@@ -533,3 +533,62 @@ fn install_by_version_number() {
         expect_ok(config, &["rustup", "default", "0.100.99"]);
     })
 }
+
+// issue #2191
+#[test]
+fn install_unreleased_component() {
+    clitools::setup(Scenario::MissingComponentMulti, &|config| {
+        // Initial channel content is host + rls + multiarch-std
+        set_current_dist_date(config, "2019-09-12");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+        expect_ok(config, &["rustup", "target", "add", clitools::MULTI_ARCH1]);
+
+        // Next channel variant should have host + rls but not multiarch-std
+        set_current_dist_date(config, "2019-09-13");
+        expect_ok_ex(
+            config,
+            &["rustup", "update", "nightly", "--no-self-update"],
+            &for_host!(
+                r"
+  nightly-{} unchanged - 1.37.0 (hash-nightly-1)
+
+"
+            ),
+            &format!(
+                r"info: syncing channel updates for 'nightly-{0}'
+info: latest update on 2019-09-13, rust version 1.37.0 (hash-nightly-2)
+info: skipping nightly which is missing installed component 'rust-std-{1}'
+info: syncing channel updates for 'nightly-2019-09-12-{0}'
+",
+                clitools::this_host_triple(),
+                clitools::MULTI_ARCH1
+            ),
+        );
+
+        // Next channel variant should have host + multiarch-std but have rls missing
+        set_current_dist_date(config, "2019-09-14");
+        expect_ok_ex(
+            config,
+            &["rustup", "update", "nightly", "--no-self-update"],
+            &for_host!(
+                r"
+  nightly-{} unchanged - 1.37.0 (hash-nightly-1)
+
+"
+            ),
+            &format!(
+                r"info: syncing channel updates for 'nightly-{0}'
+info: latest update on 2019-09-14, rust version 1.37.0 (hash-nightly-3)
+info: skipping nightly which is missing installed component 'rls'
+info: syncing channel updates for 'nightly-2019-09-13-{0}'
+info: latest update on 2019-09-13, rust version 1.37.0 (hash-nightly-2)
+info: skipping nightly which is missing installed component 'rust-std-{1}'
+info: syncing channel updates for 'nightly-2019-09-12-{0}'
+",
+                clitools::this_host_triple(),
+                clitools::MULTI_ARCH1,
+            ),
+        );
+    })
+}

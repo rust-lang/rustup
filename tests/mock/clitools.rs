@@ -66,6 +66,9 @@ pub enum Scenario {
     MissingNightly,
     /// Two dates, v2 manifests, host and MULTI_ARCH1 in first, host not in second
     HostGoesMissing,
+    /// Three dates, v2 manifests, host and MULTI_ARCH1 in first, host only in second,
+    /// host and MULTI_ARCH1 but no RLS in last
+    MissingComponentMulti,
 }
 
 pub static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
@@ -684,6 +687,13 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
             Release::new("nightly", "1.3.0", "2019-12-09", "1"),
             Release::new("nightly", "1.3.0", "2019-12-10", "2").only_multi_arch(),
         ],
+        Scenario::MissingComponentMulti => vec![
+            Release::new("nightly", "1.37.0", "2019-09-12", "1").multi_arch(),
+            Release::new("nightly", "1.37.0", "2019-09-13", "2"),
+            Release::new("nightly", "1.37.0", "2019-09-14", "3")
+                .multi_arch()
+                .with_rls(RlsStatus::Unavailable),
+        ],
     };
 
     let vs = match s {
@@ -696,7 +706,8 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         | Scenario::UnavailableRls
         | Scenario::MissingNightly
         | Scenario::HostGoesMissing
-        | Scenario::MissingComponent => vec![ManifestVersion::V2],
+        | Scenario::MissingComponent
+        | Scenario::MissingComponentMulti => vec![ManifestVersion::V2],
     };
 
     MockDistServer {
