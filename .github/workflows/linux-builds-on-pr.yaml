@@ -49,17 +49,17 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-      - name: Cache cargo index
+          key: ${{ runner.os }}-cargo-registry-trimmed-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache cargo git trees
         uses: actions/cache@v1
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-gits-trimmed-${{ hashFiles('**/Cargo.lock') }}
       - name: Cache cargo build
         uses: actions/cache@v1
         with:
           path: target
-          key: ${{ runner.os }}-cargo-build-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-build-trimmed-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
@@ -125,3 +125,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+      - name: Clear the cargo caches
+        run: |
+          cargo install cargo-cache --no-default-features --features ci-autoclean
+          cargo-cache
