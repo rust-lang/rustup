@@ -215,7 +215,7 @@ static UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 /// substituted for the directory prefix
 fn canonical_cargo_home() -> Result<String> {
     let path = utils::cargo_home()?;
-    let mut path_str = path.to_string_lossy().to_string();
+    let mut path_str = path.to_string_lossy().into_owned();
 
     let default_cargo_home = utils::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
@@ -1168,7 +1168,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     let mut new_path = utils::cargo_home()?
         .join("bin")
         .to_string_lossy()
-        .to_string();
+        .into_owned();
     if old_path.contains(&new_path) {
         return Ok(());
     }
@@ -1283,7 +1283,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     let path_str = utils::cargo_home()?
         .join("bin")
         .to_string_lossy()
-        .to_string();
+        .into_owned();
     let idx = if let Some(i) = old_path.find(&path_str) {
         i
     } else {
