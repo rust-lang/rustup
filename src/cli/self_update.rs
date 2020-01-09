@@ -215,7 +215,7 @@ static UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 /// substituted for the directory prefix
 fn canonical_cargo_home() -> Result<String> {
     let path = utils::cargo_home()?;
-    let mut path_str = path.to_string_lossy().to_string();
+    let mut path_str = path.to_string_lossy().into_owned();
 
     let default_cargo_home = utils::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
@@ -399,11 +399,11 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool) -> Result<()> {
 fn do_pre_install_sanity_checks() -> Result<()> {
     let rustc_manifest_path = PathBuf::from("/usr/local/lib/rustlib/manifest-rustc");
     let uninstaller_path = PathBuf::from("/usr/local/lib/rustlib/uninstall.sh");
-    let rustup_sh_path = utils::home_dir().map(|d| d.join(".rustup"));
-    let rustup_sh_version_path = rustup_sh_path.as_ref().map(|p| p.join("rustup-version"));
+    let rustup_sh_path = utils::home_dir().unwrap().join(".rustup");
+    let rustup_sh_version_path = rustup_sh_path.join("rustup-version");
 
     let rustc_exists = rustc_manifest_path.exists() && uninstaller_path.exists();
-    let rustup_sh_exists = rustup_sh_version_path.map(|p| p.exists()) == Some(true);
+    let rustup_sh_exists = rustup_sh_version_path.exists();
 
     if rustc_exists {
         warn!("it looks like you have an existing installation of Rust");
@@ -418,10 +418,7 @@ fn do_pre_install_sanity_checks() -> Result<()> {
     if rustup_sh_exists {
         warn!("it looks like you have existing rustup.sh metadata");
         warn!("rustup cannot be installed while rustup.sh metadata exists");
-        warn!(
-            "delete `{}` to remove rustup.sh",
-            rustup_sh_path.unwrap().display()
-        );
+        warn!("delete `{}` to remove rustup.sh", rustup_sh_path.display());
         warn!("or, if you already have rustup installed, you can run");
         warn!("`rustup self update` and `rustup toolchain list` to upgrade");
         warn!("your directory structure");
@@ -711,7 +708,7 @@ pub fn install_proxies() -> Result<()> {
             if tool_handles.iter().all(|h| *h != handle) {
                 warn!("tool `{}` is already installed, remove it from `{}`, then run `rustup update` \
                        to have rustup manage this tool.",
-                      tool, bin_path.to_string_lossy());
+                      tool, bin_path.display());
                 continue;
             }
         }
@@ -1094,30 +1091,27 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
         return vec![PathUpdateMethod::Windows];
     }
 
-    let profile = utils::home_dir().map(|p| p.join(".profile"));
+    let home_dir = utils::home_dir().unwrap();
+    let profile = home_dir.join(".profile");
     let mut profiles = vec![profile];
 
     if let Ok(shell) = env::var("SHELL") {
         if shell.contains("zsh") {
-            let zdotdir = env::var("ZDOTDIR")
-                .ok()
-                .map(PathBuf::from)
-                .or_else(utils::home_dir);
-            let zprofile = zdotdir.map(|p| p.join(".zprofile"));
+            let var = env::var_os("ZDOTDIR");
+            let zdotdir = var.as_deref().map_or_else(|| home_dir.as_path(), Path::new);
+            let zprofile = zdotdir.join(".zprofile");
             profiles.push(zprofile);
         }
     }
 
-    if let Some(bash_profile) = utils::home_dir().map(|p| p.join(".bash_profile")) {
-        // Only update .bash_profile if it exists because creating .bash_profile
-        // will cause .profile to not be read
-        if bash_profile.exists() {
-            profiles.push(Some(bash_profile));
-        }
+    let bash_profile = home_dir.join(".bash_profile");
+    // Only update .bash_profile if it exists because creating .bash_profile
+    // will cause .profile to not be read
+    if bash_profile.exists() {
+        profiles.push(bash_profile);
     }
 
-    let rcfiles = profiles.into_iter().filter_map(|f| f);
-    rcfiles.map(PathUpdateMethod::RcFile).collect()
+    profiles.into_iter().map(PathUpdateMethod::RcFile).collect()
 }
 
 fn shell_export_string() -> Result<String> {
@@ -1174,7 +1168,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     let mut new_path = utils::cargo_home()?
         .join("bin")
         .to_string_lossy()
-        .to_string();
+        .into_owned();
     if old_path.contains(&new_path) {
         return Ok(());
     }
@@ -1289,7 +1283,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     let path_str = utils::cargo_home()?
         .join("bin")
         .to_string_lossy()
-        .to_string();
+        .into_owned();
     let idx = if let Some(i) = old_path.find(&path_str) {
         i
     } else {
