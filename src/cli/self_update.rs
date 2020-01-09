@@ -47,7 +47,7 @@ use std::process::{self, Command};
 
 pub struct InstallOpts<'a> {
     pub default_host_triple: Option<String>,
-    pub default_toolchain: String,
+    pub default_toolchain: Option<String>,
     pub profile: String,
     pub no_modify_path: bool,
     pub components: &'a [&'a str],
@@ -283,9 +283,9 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
         }
         utils::create_rustup_home()?;
         maybe_install_rust(
-            &opts.default_toolchain,
+            opts.default_toolchain.as_deref(),
             &opts.profile,
-            opts.default_host_triple.as_ref(),
+            opts.default_host_triple.as_deref(),
             opts.components,
             opts.targets,
             verbose,
@@ -440,10 +440,10 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
             .as_ref()
             .map(|s| dist::TargetTriple::new(s))
             .unwrap_or_else(TargetTriple::from_host_or_build);
-        let toolchain_to_use = if opts.default_toolchain == "none" {
-            "stable"
-        } else {
-            &opts.default_toolchain
+        let toolchain_to_use = match &opts.default_toolchain {
+            None => "stable",
+            Some(s) if s == "none" => "stable",
+            Some(s) => &s,
         };
         let partial_channel = dist::PartialToolchainDesc::from_str(toolchain_to_use)?;
         let resolved = partial_channel.resolve(&host_triple)?.to_string();
@@ -590,7 +590,9 @@ fn current_install_opts(opts: &InstallOpts) -> String {
             .as_ref()
             .map(|s| TargetTriple::new(s))
             .unwrap_or_else(TargetTriple::from_host_or_build),
-        opts.default_toolchain,
+        opts.default_toolchain
+            .as_deref()
+            .unwrap_or("stable (default)"),
         opts.profile,
         if !opts.no_modify_path { "yes" } else { "no" }
     )
@@ -612,10 +614,10 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
             .unwrap_or_else(|| TargetTriple::from_host_or_build().to_string()),
     )?);
 
-    opts.default_toolchain = common::question_str(
+    opts.default_toolchain = Some(common::question_str(
         "Default toolchain? (stable/beta/nightly/none)",
-        &opts.default_toolchain,
-    )?;
+        opts.default_toolchain.as_deref().unwrap_or("stable"),
+    )?);
 
     opts.profile = common::question_str(
         &format!(
@@ -727,9 +729,9 @@ pub fn install_proxies() -> Result<()> {
 }
 
 fn maybe_install_rust(
-    toolchain_str: &str,
+    toolchain: Option<&str>,
     profile_str: &str,
-    default_host_triple: Option<&String>,
+    default_host_triple: Option<&str>,
     components: &[&str],
     targets: &[&str],
     verbose: bool,
@@ -746,21 +748,29 @@ fn maybe_install_rust(
         info!("default host triple is {}", cfg.get_default_host_triple()?);
     }
 
-    // If there is already an install, then `toolchain_str` may not be
-    // a toolchain the user actually wants. Don't do anything.  FIXME:
-    // This logic should be part of InstallOpts so that it isn't
-    // possible to select a toolchain then have it not be installed.
-    if toolchain_str == "none" {
+    let user_specified_something =
+        toolchain.is_some() || !targets.is_empty() || !components.is_empty();
+
+    // If the user specified they want no toolchain, we skip this, otherwise
+    // if they specify something directly, or we have no default, then we install
+    // a toolchain (updating if it's already present) and then if neither of
+    // those are true, we have a user who doesn't mind, and already has an
+    // install, so we leave their setup alone.
+    if toolchain == Some("none") {
         info!("skipping toolchain installation");
         println!();
-    } else if cfg.find_default()?.is_none() {
+    } else if user_specified_something || cfg.find_default()?.is_none() {
+        let toolchain_str = toolchain.unwrap_or("stable");
         let toolchain = cfg.get_toolchain(toolchain_str, false)?;
+        if toolchain.exists() {
+            warn!("Updating existing toolchain, profile choice will be ignored");
+        }
         let status = toolchain.install_from_dist(true, false, components, targets)?;
         cfg.set_default(toolchain_str)?;
         println!();
         common::show_channel_update(&cfg, toolchain_str, Ok(status))?;
     } else {
-        info!("updating existing rustup installation");
+        info!("updating existing rustup installation - leaving toolchains alone");
         println!();
     }
 
