@@ -84,8 +84,12 @@ jobs:
           del rustup-init.exe
         shell: powershell
       - name: Ensure stable toolchain is up to date
+        # Remove `rust-docs` component since `rustup update` will remove and reinstall it
+        # which is slower than just remove it first anyway.
         run: |
+          rustup component remove rust-docs || echo "already removed"
           rustup update stable
+        shell: bash
       - name: Install the target
         run: |
           rustup target install ${{ matrix.target }}
