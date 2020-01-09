@@ -446,7 +446,7 @@ pub fn cli() -> App<'static, 'static> {
                         .arg(Arg::with_name("target").long("target").takes_value(true))
                         .arg(
                             Arg::with_name("allow-downgrade")
-                                .help("Allow to downgrade the toolchain to satisfy your component choice")
+                                .help("Allow rustup to downgrade the toolchain to satisfy your component choice")
                                 .long("allow-downgrade")
                                 .takes_value(false),
                         ),
