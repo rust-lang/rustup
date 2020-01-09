@@ -1,9 +1,10 @@
 # rustup: the Rust toolchain installer
 
-| CI           | Build Status                                             |
+| Master CI    | Build Status                                             |
 |--------------|----------------------------------------------------------|
-| Travis       | [![Travis Build Status][travis-badge]][travis-url]       |
-| AppVeyor     | [![AppVeyor Build Status][appveyor-badge]][appveyor-url] |
+| Windows      | ![Windows builds][actions-windows-master]                |
+| Mac OS       | ![Mac OS builds][actions-macos-master]                   |
+| Linux Etc    | ![Linux (etc) builds][actions-linux-master]              |
 
 *rustup* installs [The Rust Programming Language][rustlang] from the official
 release channels, enabling you to easily switch between stable, beta,
@@ -811,7 +812,6 @@ Licensed under either of
 at your option.
 
 <!-- Badges -->
-[travis-url]: https://travis-ci.com/rust-lang/rustup
-[travis-badge]: https://travis-ci.com/rust-lang/rustup.svg
-[appveyor-url]: https://ci.appveyor.com/project/rust-lang-libs/rustup
-[appveyor-badge]: https://ci.appveyor.com/api/projects/status/github/rust-lang/rustup?svg=true
+[actions-windows-master]: https://github.com/rust-lang/rustup/workflows/Windows%20(master)/badge.svg
+[actions-macos-master]: https://github.com/rust-lang/rustup/workflows/Mac%20OS/badge.svg?branch=master
+[actions-linux-master]: https://github.com/rust-lang/rustup/workflows/Linux%20(master)/badge.svg
