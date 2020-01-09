@@ -506,8 +506,9 @@ pub fn format_path_for_display(path: &str) -> String {
 /// Encodes a utf-8 string as a null-terminated UCS-2 string in bytes
 #[cfg(windows)]
 pub fn string_to_winreg_bytes(s: &str) -> Vec<u8> {
+    use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
-    let v: Vec<_> = OsString::from(format!("{}\x00", s)).encode_wide().collect();
+    let v: Vec<u16> = OsStr::new(s).encode_wide().chain(Some(0)).collect();
     unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 2).to_vec() }
 }
 
