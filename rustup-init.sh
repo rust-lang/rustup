@@ -97,7 +97,7 @@ main() {
     fi
 
     ensure mkdir -p "$_dir"
-    ensure downloader "$_url" "$_file"
+    ensure downloader "$_url" "$_file" "$_arch"
     ensure chmod u+x "$_file"
     if [ ! -x "$_file" ]; then
         printf '%s\n' "Cannot execute $_file (likely because of mounting /tmp as noexec)." 1>&2
@@ -387,14 +387,14 @@ downloader() {
     if [ "$1" = --check ]; then
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
-        if ! check_help_for curl --proto --tlsv1.2; then
+        if ! check_help_for "$3" curl --proto --tlsv1.2; then
             echo "Warning: Not forcing TLS v1.2, this is potentially less secure"
             curl --silent --show-error --fail --location "$1" --output "$2"
         else
             curl --proto '=https' --tlsv1.2 --silent --show-error --fail --location "$1" --output "$2"
         fi
     elif [ "$_dld" = wget ]; then
-        if ! check_help_for wget --https-only --secure-protocol; then
+        if ! check_help_for "$3" wget --https-only --secure-protocol; then
             echo "Warning: Not forcing TLS v1.2, this is potentially less secure"
             wget "$1" -O "$2"
         else
@@ -406,22 +406,31 @@ downloader() {
 }
 
 check_help_for() {
+    local _arch
     local _cmd
     local _arg
     local _ok
+    _arch="$1"
+    shift
     _cmd="$1"
     _ok="y"
     shift
 
-    # If we're running on OS-X, older than 10.13, then we always
-    # fail to find these options to force fallback
-    if check_cmd sw_vers; then
-        if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
-            # Older than 10.13
-            echo "Warning: Detected OS X platform older than 10.13"
-            _ok="n"
+    case "$_arch" in
+
+        # If we're running on OS-X, older than 10.13, then we always
+        # fail to find these options to force fallback
+        *darwin*)
+        if check_cmd sw_vers; then
+            if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
+                # Older than 10.13
+                echo "Warning: Detected OS X platform older than 10.13"
+                _ok="n"
+            fi
         fi
-    fi
+        ;;
+
+    esac
 
     for _arg in "$@"; do
         if ! "$_cmd" --help | grep -q -- "$_arg"; then
