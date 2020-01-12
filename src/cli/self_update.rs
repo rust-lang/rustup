@@ -758,6 +758,20 @@ fn maybe_install_rust(
     // install, so we leave their setup alone.
     if toolchain == Some("none") {
         info!("skipping toolchain installation");
+        if !components.is_empty() {
+            warn!(
+                "ignoring requested component{}: {}",
+                if components.len() == 1 { "" } else { "s" },
+                components.join(", ")
+            );
+        }
+        if !targets.is_empty() {
+            warn!(
+                "ignoring requested target{}: {}",
+                if targets.len() == 1 { "" } else { "s" },
+                targets.join(", ")
+            );
+        }
         println!();
     } else if user_specified_something || cfg.find_default()?.is_none() {
         let toolchain_str = toolchain.unwrap_or("stable");
