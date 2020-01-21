@@ -63,11 +63,11 @@ body#idx > * {
     margin-left: auto;
     margin-right: auto;
     text-align: center;
-    width: 25em;
+    width: 35em;
 }
 
 body#idx > #pitch {
-    width: 30rem;
+    width: 35rem;
 }
 
 #pitch em {
@@ -88,7 +88,6 @@ body#idx p.other-platforms-help {
     background-color: rgb(250, 250, 250);
     margin-left: auto;
     margin-right: auto;
-    width: 30rem;
     text-align: center;
     border-radius: 3px;
     border: 1px solid rgb(204, 204, 204);
@@ -96,7 +95,7 @@ body#idx p.other-platforms-help {
 }
 
 .instructions > * {
-    width: 34rem;
+    width: 40rem;
     margin-left: auto;
     margin-right: auto;
 }
@@ -116,11 +115,12 @@ hr {
     margin-left: auto;
     margin-right: auto;
     padding: 1rem;
-    width: 32rem;
+    width: 45rem;
     text-align: center;
     border-radius: 3px;
     box-shadow: inset 0px 0px 20px 0px #333333;
     overflow-x: scroll;
+    font-size: 0.6em;
 }
 
 #platform-instructions-win32 a.windows-download,
