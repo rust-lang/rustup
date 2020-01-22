@@ -372,20 +372,24 @@ ignore() {
     "$@"
 }
 
-# This wraps curl or wget. Try curl first, if not installed,
-# use wget instead.
+# This wraps aria2c, curl or wget. Try aria2c first, if not installed,
+# use curl instead. If curl isn't installed try wget.
 downloader() {
     local _dld
-    if check_cmd curl; then
+    if check_cmd aria2c; then
+        _dld=aria2c
+    elif check_cmd curl; then
         _dld=curl
     elif check_cmd wget; then
         _dld=wget
     else
-        _dld='curl or wget' # to be used in error message of need_cmd
+        _dld='aria2c, curl or wget' # to be used in error message of need_cmd
     fi
 
     if [ "$1" = --check ]; then
         need_cmd "$_dld"
+    elif [ "$_dld" = aria2c ]; then
+        aria2c --allow-overwrite=true --dir / --no-conf=true -o "${2#?}" "$1"
     elif [ "$_dld" = curl ]; then
         if ! check_help_for "$3" curl --proto --tlsv1.2; then
             echo "Warning: Not forcing TLS v1.2, this is potentially less secure"
