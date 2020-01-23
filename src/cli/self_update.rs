@@ -412,7 +412,7 @@ fn do_pre_install_sanity_checks() -> Result<()> {
             "run `{}` as root to uninstall Rust",
             uninstaller_path.display()
         );
-        return Err("cannot install while Rust is installed".into());
+        // return Err("cannot install while Rust is installed".into());
     }
 
     if rustup_sh_exists {
