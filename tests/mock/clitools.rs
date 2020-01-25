@@ -79,7 +79,7 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
         _ => env::remove_var("RUST_BACKTRACE"),
     }
 
-    let current_exe_path = env::current_exe().map(PathBuf::from).unwrap();
+    let current_exe_path = env::current_exe().unwrap();
     let mut exe_dir = current_exe_path.parent().unwrap();
     if exe_dir.ends_with("deps") {
         exe_dir = exe_dir.parent().unwrap();
