@@ -110,7 +110,7 @@ pub fn main() -> Result<()> {
         ("doc", Some(m)) => doc(cfg, m)?,
         ("man", Some(m)) => man(cfg, m)?,
         ("self", Some(c)) => match c.subcommand() {
-            ("update", Some(_)) => self_update::update()?,
+            ("update", Some(_)) => self_update::update(cfg)?,
             ("uninstall", Some(m)) => self_uninstall(m)?,
             (_, _) => unreachable!(),
         },

@@ -568,13 +568,20 @@ fn update_exact() {
     let expected_output = format!(
         "info: checking for self-updates
 info: downloading self-update
-info: rustup updated successfully to {}\n",
-        version
+"
     );
 
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y"]);
-        expect_ok_ex(config, &["rustup", "self", "update"], r"", &expected_output)
+        expect_ok_ex(
+            config,
+            &["rustup", "self", "update"],
+            &format!(
+                "  rustup updated - (toolchain not installed) (from {})\n\n",
+                version,
+            ),
+            &expected_output,
+        )
     });
 }
 
@@ -696,7 +703,9 @@ fn update_no_change() {
         expect_ok_ex(
             config,
             &["rustup", "self", "update"],
-            r"",
+            r"  rustup unchanged - (toolchain not installed)
+
+",
             r"info: checking for self-updates
 ",
         );

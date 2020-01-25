@@ -37,6 +37,7 @@ use crate::term2;
 use rustup::dist::dist::{self, Profile, TargetTriple};
 use rustup::utils::utils;
 use rustup::utils::Notification;
+use rustup::{Cfg, UpdateStatus};
 use rustup::{DUP_TOOLS, TOOLS};
 use same_file::Handle;
 use std::env;
@@ -1379,7 +1380,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 /// (and on windows this process will not be running to do it),
 /// rustup-init is stored in `CARGO_HOME`/bin, and then deleted next
 /// time rustup runs.
-pub fn update() -> Result<()> {
+pub fn update(cfg: &Cfg) -> Result<()> {
     use common::SelfUpdatePermission::*;
     let update_permitted = if NEVER_SELF_UPDATE {
         HardFail
@@ -1400,21 +1401,24 @@ pub fn update() -> Result<()> {
         Permit => {}
     }
 
-    let setup_path = prepare_update()?;
-    if let Some(ref p) = setup_path {
-        let version = match get_new_rustup_version(p) {
-            Some(new_version) => parse_new_rustup_version(new_version),
-            None => {
-                err!("failed to get rustup version");
-                process::exit(1);
-            }
-        };
+    match prepare_update()? {
+        Some(setup_path) => {
+            let version = match get_new_rustup_version(&setup_path) {
+                Some(new_version) => parse_new_rustup_version(new_version),
+                None => {
+                    err!("failed to get rustup version");
+                    process::exit(1);
+                }
+            };
 
-        info!("rustup updated successfully to {}", version);
-        run_update(p)?;
-    } else {
-        // Try again in case we emitted "tool `{}` is already installed" last time.
-        install_proxies()?
+            let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Updated(version)));
+            run_update(&setup_path)?;
+        }
+        None => {
+            let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Unchanged));
+            // Try again in case we emitted "tool `{}` is already installed" last time.
+            install_proxies()?
+        }
     }
 
     Ok(())
