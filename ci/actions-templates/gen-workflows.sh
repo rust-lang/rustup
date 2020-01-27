@@ -9,7 +9,7 @@ gen_workflow () {
 
 mkdir -p "$OUTPATH"
 
-# Mac OS only has a single target so single flow
+# macOS only has a single target so single flow
 gen_workflow macos-builds all
 
 gen_workflow windows-builds pr

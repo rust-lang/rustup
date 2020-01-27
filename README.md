@@ -3,7 +3,7 @@
 | Master CI    | Build Status                                             |
 |--------------|----------------------------------------------------------|
 | Windows      | ![Windows builds][actions-windows-master]                |
-| Mac OS       | ![Mac OS builds][actions-macos-master]                   |
+| macOS        | ![maOS builds][actions-macos-master]                     |
 | Linux Etc    | ![Linux (etc) builds][actions-linux-master]              |
 
 *rustup* installs [The Rust Programming Language][rustlang] from the official
@@ -813,5 +813,5 @@ at your option.
 
 <!-- Badges -->
 [actions-windows-master]: https://github.com/rust-lang/rustup/workflows/Windows%20(master)/badge.svg
-[actions-macos-master]: https://github.com/rust-lang/rustup/workflows/Mac%20OS/badge.svg?branch=master
+[actions-macos-master]: https://github.com/rust-lang/rustup/workflows/macOS/badge.svg?branch=master
 [actions-linux-master]: https://github.com/rust-lang/rustup/workflows/Linux%20(master)/badge.svg
