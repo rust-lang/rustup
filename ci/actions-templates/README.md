@@ -1,6 +1,6 @@
-# Rustup Github Actions Workflows
+# Rustup GitHub Actions Workflows
 
-This directory contains all the workflows we use in Rustup for Github Actions.
+This directory contains all the workflows we use in Rustup for GitHub Actions.
 
 ## Triggers for CI builds
 
