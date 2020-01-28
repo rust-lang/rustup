@@ -88,7 +88,7 @@ pub fn main() -> Result<()> {
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");
     let default_host = matches.value_of("default-host").map(ToOwned::to_owned);
-    let default_toolchain = matches.value_of("default-toolchain").unwrap_or("stable");
+    let default_toolchain = matches.value_of("default-toolchain").map(ToOwned::to_owned);
     let profile = matches
         .value_of("profile")
         .expect("Unreachable: Clap should supply a default");

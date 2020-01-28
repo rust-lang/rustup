@@ -900,8 +900,43 @@ fn reinstall_exact() {
         expect_stderr_ok(
             config,
             &["rustup-init", "-y"],
-            r"info: updating existing rustup installation
-",
+            r"info: updating existing rustup installation - leaving toolchains alone",
+        );
+    });
+}
+
+#[test]
+fn reinstall_specifying_toolchain() {
+    setup(&|config| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        expect_stdout_ok(
+            config,
+            &["rustup-init", "-y", "--default-toolchain=stable"],
+            r"stable unchanged - 1.1.0",
+        );
+    });
+}
+
+#[test]
+fn reinstall_specifying_component() {
+    setup(&|config| {
+        expect_ok(config, &["rustup-init", "-y", "--component=rls"]);
+        expect_stdout_ok(
+            config,
+            &["rustup-init", "-y", "--default-toolchain=stable"],
+            r"stable unchanged - 1.1.0",
+        );
+    });
+}
+
+#[test]
+fn reinstall_specifying_different_toolchain() {
+    setup(&|config| {
+        expect_ok(config, &["rustup-init", "-y"]);
+        expect_stderr_ok(
+            config,
+            &["rustup-init", "-y", "--default-toolchain=nightly"],
+            r"info: default toolchain set to 'nightly'",
         );
     });
 }
