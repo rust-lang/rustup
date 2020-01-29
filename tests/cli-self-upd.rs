@@ -1166,7 +1166,7 @@ fn install_but_rustup_sh_is_installed() {
         fs::create_dir_all(&rustup_dir).unwrap();
         let version_file = rustup_dir.join("rustup-version");
         raw::write_file(&version_file, "").unwrap();
-        expect_err(
+        expect_stderr_ok(
             config,
             &["rustup-init", "-y"],
             "cannot install while rustup.sh is installed",
