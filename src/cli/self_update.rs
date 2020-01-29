@@ -235,9 +235,16 @@ fn canonical_cargo_home() -> Result<String> {
 /// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
 /// and adding `CARGO_HOME`/bin to PATH.
 pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpts) -> Result<()> {
-    do_pre_install_sanity_checks(no_prompt)?;
+    if !env::var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS").map_or(false, |s| s == "yes") {
+        do_pre_install_sanity_checks(no_prompt)?;
+    }
+
     do_pre_install_options_sanity_checks(&opts)?;
-    check_existence_of_rustc_or_cargo_in_path(no_prompt)?;
+
+    if !env::var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS").map_or(false, |s| s == "yes") {
+        check_existence_of_rustc_or_cargo_in_path(no_prompt)?;
+    }
+
     #[cfg(unix)]
     do_anti_sudo_check(no_prompt)?;
 
