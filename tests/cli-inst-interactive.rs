@@ -358,3 +358,27 @@ fn test_warn_succeed_if_rustup_sh_already_installed_y_flag() {
         assert!(!out.stdout.contains("Continue? (y/N)"));
     })
 }
+
+#[test]
+fn test_succeed_if_rustup_sh_already_installed_env_var_set() {
+    setup(&|config| {
+        create_rustup_sh_metadata(&config);
+        let out = run_input_with_env(
+            config,
+            &["rustup-init", "-y"],
+            "",
+            &[("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS", "yes")],
+        );
+        assert!(out.ok);
+        assert!(!out
+            .stderr
+            .contains("warning: it looks like you have existing rustup.sh metadata"));
+        assert!(!out
+            .stderr
+            .contains("error: cannot install while rustup.sh is installed"));
+        assert!(!out.stderr.contains(
+            "warning: continuing (because the -y flag is set and the error is ignorable)"
+        ));
+        assert!(!out.stdout.contains("Continue? (y/N)"));
+    })
+}
