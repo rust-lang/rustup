@@ -58,7 +58,15 @@ jobs:
           key: ${{ runner.os }}-cargo-build-trimmed-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
-          sh ./rustup-init.sh --default-toolchain=stable --profile=minimal -y
+          sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
+      - name: Ensure Stable is up to date
+        run: |
+          if rustc +stable -vV >/dev/null 2>/dev/null; then
+            rustup toolchain uninstall stable
+          fi
+          rustup toolchain install --profile=minimal stable
+      - name: Ensure we have our goal target installed
+        run: |
           rustup target install "$TARGET"
       - name: Run a full build and test
         run: bash ci/run.bash
