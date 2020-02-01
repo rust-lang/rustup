@@ -110,3 +110,7 @@ path = "src/cli/main.rs"
 [profile.release]
 lto = true
 codegen-units = 1
+
+# Reduce build time by setting proc-macro crates non optimized.
+[profile.release.build-override]
+opt-level = 0
