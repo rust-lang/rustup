@@ -41,8 +41,21 @@ pub fn setup(f: &dyn Fn(&Config)) {
 }
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> SanitizedOutput {
+    run_input_with_env(config, args, input, &[])
+}
+
+fn run_input_with_env(
+    config: &Config,
+    args: &[&str],
+    input: &str,
+    env: &[(&str, &str)],
+) -> SanitizedOutput {
     let mut cmd = clitools::cmd(config, args[0], &args[1..]);
     clitools::env(config, &mut cmd);
+
+    for (key, value) in env.iter() {
+        cmd.env(key, value);
+    }
 
     cmd.stdin(Stdio::piped());
     cmd.stdout(Stdio::piped());
@@ -345,7 +358,3 @@ fn test_warn_succeed_if_rustup_sh_already_installed_y_flag() {
         assert!(!out.stdout.contains("Continue? (y/N)"));
     })
 }
-
-#[ignore] // Can't test environment variable.
-#[test]
-fn test_succeed_if_rustup_sh_already_installed_env_var_set() {}
