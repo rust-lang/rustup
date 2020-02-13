@@ -30,14 +30,11 @@ static TOOLCHAIN_CHANNELS: &[&str] = &[
     r"\d{1}\.\d{1,3}\.\d{1,2}",
 ];
 
-lazy_static! {
-    static ref TOOLCHAIN_CHANNEL_PATTERN: String = format!(
-        r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
-        TOOLCHAIN_CHANNELS.join("|")
-    );
-    // Note this regex gives you a guaranteed match of the channel (1)
-    // and an optional match of the date (2) and target (3)
-    static ref TOOLCHAIN_CHANNEL_RE: Regex = Regex::new(&TOOLCHAIN_CHANNEL_PATTERN).unwrap();
+#[derive(Debug)]
+struct ParsedToolchainDesc {
+    channel: String,
+    date: Option<String>,
+    target: Option<String>,
 }
 
 // A toolchain descriptor from rustup's perspective. These contain
@@ -136,6 +133,43 @@ static TRIPLE_MIPS_UNKNOWN_LINUX_GNU: &str = "mipsel-unknown-linux-gnu";
 static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi64";
 #[cfg(all(not(windows), target_endian = "little"))]
 static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
+
+impl FromStr for ParsedToolchainDesc {
+    type Err = Error;
+    fn from_str(desc: &str) -> Result<Self> {
+        lazy_static! {
+            static ref TOOLCHAIN_CHANNEL_PATTERN: String = format!(
+                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
+                TOOLCHAIN_CHANNELS.join("|")
+            );
+            // Note this regex gives you a guaranteed match of the channel (1)
+            // and an optional match of the date (2) and target (3)
+            static ref TOOLCHAIN_CHANNEL_RE: Regex = Regex::new(&TOOLCHAIN_CHANNEL_PATTERN).unwrap();
+        }
+
+        let d = TOOLCHAIN_CHANNEL_RE.captures(desc).map(|c| {
+            fn fn_map(s: &str) -> Option<String> {
+                if s == "" {
+                    None
+                } else {
+                    Some(s.to_owned())
+                }
+            }
+
+            Self {
+                channel: c.get(1).unwrap().as_str().to_owned(),
+                date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
+                target: c.get(3).map(|s| s.as_str()).and_then(fn_map),
+            }
+        });
+
+        if let Some(d) = d {
+            Ok(d)
+        } else {
+            Err(ErrorKind::InvalidToolchainName(desc.to_string()).into())
+        }
+    }
+}
 
 impl TargetTriple {
     pub fn new(name: &str) -> Self {
@@ -297,29 +331,17 @@ impl PartialTargetTriple {
 impl FromStr for PartialToolchainDesc {
     type Err = Error;
     fn from_str(name: &str) -> Result<Self> {
-        let d = TOOLCHAIN_CHANNEL_RE.captures(name).map(|c| {
-            fn fn_map(s: &str) -> Option<String> {
-                if s == "" {
-                    None
-                } else {
-                    Some(s.to_owned())
-                }
-            }
+        let parsed: ParsedToolchainDesc = name.parse()?;
+        let target =
+            PartialTargetTriple::new(parsed.target.as_ref().map(|c| c.as_str()).unwrap_or(""));
 
-            let trip = c.get(3).map(|c| c.as_str()).unwrap_or("");
-            let trip = PartialTargetTriple::new(&trip);
-            trip.map(|t| Self {
-                channel: c.get(1).unwrap().as_str().to_owned(),
-                date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
-                target: t,
+        target
+            .map(|target| Self {
+                channel: parsed.channel,
+                date: parsed.date,
+                target,
             })
-        });
-
-        if let Some(Some(d)) = d {
-            Ok(d)
-        } else {
-            Err(ErrorKind::InvalidToolchainName(name.to_string()).into())
-        }
+            .ok_or_else(|| ErrorKind::InvalidToolchainName(name.to_string()).into())
     }
 }
 
@@ -376,27 +398,17 @@ impl PartialToolchainDesc {
 impl FromStr for ToolchainDesc {
     type Err = Error;
     fn from_str(name: &str) -> Result<Self> {
-        TOOLCHAIN_CHANNEL_RE
-            .captures(name)
-            // Filter out cases where the target wasn't specified, so we report
-            // an invalid toolchain name for that.
-            .filter(|c| c.get(3).is_some())
-            .map(|c| {
-                fn fn_map(s: &str) -> Option<String> {
-                    if s == "" {
-                        None
-                    } else {
-                        Some(s.to_owned())
-                    }
-                }
+        let parsed: ParsedToolchainDesc = name.parse()?;
 
-                Self {
-                    channel: c.get(1).unwrap().as_str().to_owned(),
-                    date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
-                    target: TargetTriple(c.get(3).unwrap().as_str().to_owned()),
-                }
-            })
-            .ok_or_else(|| ErrorKind::InvalidToolchainName(name.to_string()).into())
+        if parsed.target.is_none() {
+            return Err(ErrorKind::InvalidToolchainName(name.to_string()).into());
+        }
+
+        Ok(Self {
+            channel: parsed.channel,
+            date: parsed.date,
+            target: TargetTriple(parsed.target.unwrap()),
+        })
     }
 }
 
