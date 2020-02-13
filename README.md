@@ -78,7 +78,12 @@ default (`rustc`, `rust-std`, `cargo`, and `rust-docs`) plus `rustfmt` and
 `clippy`. This profile will be used by `rustup` by default, and it's the one
 recommended for general use.
 * The **complete** profile includes all the components available through
-`rustup`, including `miri` and IDE integration tools (`rls` and `rust-analysis`).
+`rustup`. This should never be used, as it includes *every* component ever included
+in the metadata and thus will almost always fail. If you are looking for a way
+to install devtools such as `miri` or IDE integration tools (`rls`, `rust-analysis`),
+you should use the `default` profile and install the needed additional components
+manually, either by using `rustup component add` or by using `-c` when installing
+the toolchain.
 
 To change the `rustup` profile you can use the `rustup set profile` command. For
 example, to select the minimal profile you can use:
