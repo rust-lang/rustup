@@ -1312,17 +1312,19 @@ const DOCS_DATA: &[(&str, &str, &str,)] = &[
 
 fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    for cstatus in &toolchain.list_components()? {
-        if cstatus.component.short_name_in_manifest() == "rust-docs" && !cstatus.installed {
-            info!(
-                "`rust-docs` not installed in toolchain `{}`",
-                toolchain.name()
-            );
-            info!(
-                "To install, try `rustup component add --toolchain {} rust-docs`",
-                toolchain.name()
-            );
-            return Err("unable to view documentation which is not installed".into());
+    if !toolchain.is_custom() {
+        for cstatus in &toolchain.list_components()? {
+            if cstatus.component.short_name_in_manifest() == "rust-docs" && !cstatus.installed {
+                info!(
+                    "`rust-docs` not installed in toolchain `{}`",
+                    toolchain.name()
+                );
+                info!(
+                    "To install, try `rustup component add --toolchain {} rust-docs`",
+                    toolchain.name()
+                );
+                return Err("unable to view documentation which is not installed".into());
+            }
         }
     }
     let topical_path: PathBuf;
