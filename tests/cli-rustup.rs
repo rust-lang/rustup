@@ -1654,6 +1654,17 @@ fn docs_missing() {
     });
 }
 
+#[test]
+fn docs_custom() {
+    setup(&|config| {
+        let path = config.customdir.join("custom-1");
+        let path = path.to_string_lossy();
+        expect_ok(config, &["rustup", "toolchain", "link", "custom", &path]);
+        expect_ok(config, &["rustup", "default", "custom"]);
+        expect_stdout_ok(config, &["rustup", "doc", "--path"], "custom");
+    });
+}
+
 #[cfg(unix)]
 #[test]
 fn non_utf8_arg() {
