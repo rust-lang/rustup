@@ -1342,6 +1342,7 @@ info: downloading component 'cargo'
 info: downloading component 'rust-docs'
 info: downloading component 'rustc'
 info: installing component 'cargo'
+info: Defaulting to 500.0 MiB unpack ram
 info: installing component 'rust-docs'
 info: installing component 'rustc'
 "

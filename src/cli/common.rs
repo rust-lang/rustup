@@ -5,6 +5,8 @@ use crate::self_update;
 use crate::term2;
 use git_testament::{git_testament, render_testament};
 use lazy_static::lazy_static;
+use rustup::dist::notifications as dist_notifications;
+use rustup::utils::notifications as util_notifications;
 use rustup::utils::notify::NotificationLevel;
 use rustup::utils::utils;
 use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
@@ -104,21 +106,29 @@ pub fn read_line() -> Result<String> {
         .ok_or_else(|| "unable to read from stdin for confirmation".into())
 }
 
-pub fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
-    use crate::download_tracker::DownloadTracker;
-    use std::cell::RefCell;
+#[derive(Default)]
+struct NotifyOnConsole {
+    ram_notice_shown: bool,
+    verbose: bool,
+}
 
-    let download_tracker = RefCell::new(DownloadTracker::new().with_display_progress(!quiet));
-
-    Ok(Cfg::from_env(Arc::new(move |n: Notification<'_>| {
-        if download_tracker.borrow_mut().handle_notification(&n) {
-            return;
-        }
+impl NotifyOnConsole {
+    fn handle(&mut self, n: Notification<'_>) {
+        if let Notification::Install(dist_notifications::Notification::Utils(
+            util_notifications::Notification::SetDefaultBufferSize(_),
+        )) = &n
+        {
+            if self.ram_notice_shown {
+                return;
+            } else {
+                self.ram_notice_shown = true;
+            }
+        };
         let level = n.level();
         for n in format!("{}", n).lines() {
             match level {
                 NotificationLevel::Verbose => {
-                    if verbose {
+                    if self.verbose {
                         verbose!("{}", n);
                     }
                 }
@@ -133,6 +143,24 @@ pub fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
                 }
             }
         }
+    }
+}
+
+pub fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
+    use crate::download_tracker::DownloadTracker;
+    use std::cell::RefCell;
+
+    let download_tracker = RefCell::new(DownloadTracker::new().with_display_progress(!quiet));
+    let console_notifier = RefCell::new(NotifyOnConsole {
+        verbose,
+        ..Default::default()
+    });
+
+    Ok(Cfg::from_env(Arc::new(move |n: Notification<'_>| {
+        if download_tracker.borrow_mut().handle_notification(&n) {
+            return;
+        }
+        console_notifier.borrow_mut().handle(n);
     }))?)
 }
 

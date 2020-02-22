@@ -4,7 +4,7 @@ use std::path::Path;
 use url::Url;
 
 use crate::utils::notify::NotificationLevel;
-use crate::utils::units::Unit;
+use crate::utils::units::{self, Unit};
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -27,6 +27,10 @@ pub enum Notification<'a> {
     DownloadPopUnit,
     NoCanonicalPath(&'a Path),
     ResumingPartialDownload,
+    /// This would make more sense as a crate::notifications::Notification
+    /// member, but the notification callback is already narrowed to
+    /// utils::notifications by the time tar unpacking is called.
+    SetDefaultBufferSize(usize),
     UsingCurl,
     UsingReqwest,
     /// Renaming encountered a file in use error and is retrying.
@@ -54,7 +58,7 @@ impl<'a> Notification<'a> {
             | ResumingPartialDownload
             | UsingCurl
             | UsingReqwest => NotificationLevel::Verbose,
-            RenameInUse(_, _) => NotificationLevel::Info,
+            RenameInUse(_, _) | SetDefaultBufferSize(_) => NotificationLevel::Info,
             NoCanonicalPath(_) => NotificationLevel::Warn,
         }
     }
@@ -77,6 +81,11 @@ impl<'a> Display for Notification<'a> {
                 "retrying renaming '{}' to '{}'",
                 src.display(),
                 dest.display()
+            ),
+            SetDefaultBufferSize(size) => write!(
+                f,
+                "Defaulting to {} unpack ram",
+                units::Size::new(*size, units::Unit::B, units::UnitMode::Norm)
             ),
             DownloadingFile(url, _) => write!(f, "downloading file from: '{}'", url),
             DownloadContentLengthReceived(len) => write!(f, "download size is: '{}'", len),

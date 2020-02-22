@@ -22,6 +22,7 @@ pub const TOOLSTATE_MSG: &str =
 error_chain! {
     links {
         Download(download::Error, download::ErrorKind);
+        Limits(effective_limits::Error, effective_limits::ErrorKind);
     }
 
     foreign_links {
