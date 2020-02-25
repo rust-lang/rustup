@@ -67,7 +67,8 @@ pub fn main() -> Result<()> {
                 .long("component")
                 .short("c")
                 .takes_value(true)
-                .multiple(true),
+                .multiple(true)
+                .use_delimiter(true),
         )
         .arg(
             Arg::with_name("targets")
@@ -75,7 +76,8 @@ pub fn main() -> Result<()> {
                 .long("target")
                 .short("target")
                 .takes_value(true)
-                .multiple(true),
+                .multiple(true)
+                .use_delimiter(true),
         )
         .arg(
             Arg::with_name("no-modify-path")

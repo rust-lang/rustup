@@ -318,7 +318,8 @@ pub fn cli() -> App<'static, 'static> {
                                 .long("component")
                                 .short("c")
                                 .takes_value(true)
-                                .multiple(true),
+                                .multiple(true)
+                                .use_delimiter(true),
                         )
                         .arg(
                             Arg::with_name("targets")
@@ -326,7 +327,8 @@ pub fn cli() -> App<'static, 'static> {
                                 .long("target")
                                 .short("t")
                                 .takes_value(true)
-                                .multiple(true),
+                                .multiple(true)
+                                .use_delimiter(true),
                         )
                         .arg(
                             Arg::with_name("force")
