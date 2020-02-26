@@ -106,7 +106,7 @@ pub fn main() -> Result<()> {
 
     let opts = InstallOpts {
         default_host_triple: default_host,
-        default_toolchain: default_toolchain.to_owned(),
+        default_toolchain,
         profile: profile.to_owned(),
         no_modify_path,
         components: &components,
