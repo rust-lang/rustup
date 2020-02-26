@@ -155,7 +155,7 @@ impl DownloadTracker {
     fn display(&mut self) {
         match self.start_sec {
             // Maybe forgot to call `prepare_for_new_download` first
-            None => return,
+            None => {}
             Some(start_sec) => {
                 // Panic if someone pops the default bytes unit...
                 let unit = *self.units.last().unwrap();

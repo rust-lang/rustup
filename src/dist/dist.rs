@@ -332,8 +332,7 @@ impl FromStr for PartialToolchainDesc {
     type Err = Error;
     fn from_str(name: &str) -> Result<Self> {
         let parsed: ParsedToolchainDesc = name.parse()?;
-        let target =
-            PartialTargetTriple::new(parsed.target.as_ref().map(|c| c.as_str()).unwrap_or(""));
+        let target = PartialTargetTriple::new(parsed.target.as_deref().unwrap_or(""));
 
         target
             .map(|target| Self {
