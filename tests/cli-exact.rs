@@ -38,6 +38,7 @@ info: downloading component 'rust-docs'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: installing component 'cargo'
+info: Defaulting to 500.0 MiB unpack ram
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
@@ -172,6 +173,7 @@ info: downloading component 'rust-docs'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: installing component 'cargo'
+info: Defaulting to 500.0 MiB unpack ram
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
@@ -504,6 +506,7 @@ fn cross_install_indicates_target() {
             &format!(
                 r"info: downloading component 'rust-std' for '{0}'
 info: installing component 'rust-std' for '{0}'
+info: Defaulting to 500.0 MiB unpack ram
 ",
                 clitools::CROSS_ARCH1
             ),

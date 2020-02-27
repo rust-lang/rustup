@@ -165,17 +165,30 @@ struct MemoryBudget {
 
 // Probably this should live in diskio but ¯\_(ツ)_/¯
 impl MemoryBudget {
-    fn new(max_file_size: usize) -> Self {
-        const DEFAULT_UNPACK_RAM: usize = 400 * 1024 * 1024;
-        let unpack_ram = if let Ok(budget_str) = env::var("RUSTUP_UNPACK_RAM") {
-            if let Ok(budget) = budget_str.parse::<usize>() {
-                budget
-            } else {
-                DEFAULT_UNPACK_RAM
+    fn new(
+        max_file_size: usize,
+        effective_max_ram: usize,
+        notify_handler: Option<&dyn Fn(Notification<'_>)>,
+    ) -> Self {
+        const DEFAULT_UNPACK_RAM_MAX: usize = 500 * 1024 * 1024;
+        const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 100 * 1024 * 1024;
+        let ram_for_unpacking = effective_max_ram - RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS;
+        let default_max_unpack_ram = std::cmp::min(DEFAULT_UNPACK_RAM_MAX, ram_for_unpacking);
+        let unpack_ram = match env::var("RUSTUP_UNPACK_RAM")
+            .ok()
+            .and_then(|budget_str| budget_str.parse::<usize>().ok())
+        {
+            // Note: In future we may want to add a warning or even an override if a user
+            // supplied budget is larger than effective_max_ram.
+            Some(budget) => budget,
+            None => {
+                if let Some(h) = notify_handler {
+                    h(Notification::SetDefaultBufferSize(default_max_unpack_ram))
+                }
+                default_max_unpack_ram
             }
-        } else {
-            DEFAULT_UNPACK_RAM
         };
+
         if max_file_size > unpack_ram {
             panic!("RUSTUP_UNPACK_RAM must be larger than {}", max_file_size);
         }
@@ -278,7 +291,12 @@ fn unpack_without_first_dir<'a, R: Read>(
         .entries()
         .chain_err(|| ErrorKind::ExtractingPackage)?;
     const MAX_FILE_SIZE: u64 = 200_000_000;
-    let mut budget = MemoryBudget::new(MAX_FILE_SIZE as usize);
+    let effective_max_ram = effective_limits::memory_limit()?;
+    let mut budget = MemoryBudget::new(
+        MAX_FILE_SIZE as usize,
+        effective_max_ram as usize,
+        notify_handler,
+    );
 
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
