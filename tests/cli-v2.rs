@@ -1236,6 +1236,71 @@ fn target_list_ignores_unavailable_targets() {
 }
 
 #[test]
+fn install_with_components() {
+    fn go(comp_args: &[&str]) {
+        let mut args = vec![
+            "rustup",
+            "toolchain",
+            "install",
+            "nightly",
+            "--no-self-update",
+        ];
+        args.extend_from_slice(comp_args);
+
+        setup(&|config| {
+            expect_ok(config, &args);
+            expect_stdout_ok(
+                config,
+                &["rustup", "component", "list"],
+                "rust-src (installed)",
+            );
+            expect_stdout_ok(
+                config,
+                &["rustup", "component", "list"],
+                &format!("rust-analysis-{} (installed)", this_host_triple()),
+            );
+        })
+    }
+
+    go(&["-c", "rust-src", "-c", "rust-analysis"]);
+    go(&["-c", "rust-src,rust-analysis"]);
+}
+
+#[test]
+fn install_with_targets() {
+    fn go(comp_args: &[&str]) {
+        let mut args = vec![
+            "rustup",
+            "toolchain",
+            "install",
+            "nightly",
+            "--no-self-update",
+        ];
+        args.extend_from_slice(comp_args);
+
+        setup(&|config| {
+            expect_ok(config, &args);
+            expect_stdout_ok(
+                config,
+                &["rustup", "target", "list"],
+                &format!("{} (installed)", clitools::CROSS_ARCH1),
+            );
+            expect_stdout_ok(
+                config,
+                &["rustup", "target", "list"],
+                &format!("{} (installed)", clitools::CROSS_ARCH2),
+            );
+        })
+    }
+
+    go(&["-t", clitools::CROSS_ARCH1, "-t", clitools::CROSS_ARCH2]);
+    go(&[
+        "-t",
+        &format!("{},{}", clitools::CROSS_ARCH1, clitools::CROSS_ARCH2),
+    ]);
+}
+
+#[test]
 fn install_with_component_and_target() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
