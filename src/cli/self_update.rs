@@ -30,7 +30,7 @@
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
-use crate::common::{self, Confirm};
+use crate::common::{self, ignorable_error, Confirm};
 use crate::errors::*;
 use crate::markdown::md;
 use crate::term2;
@@ -236,9 +236,16 @@ fn canonical_cargo_home() -> Result<String> {
 /// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
 /// and adding `CARGO_HOME`/bin to PATH.
 pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpts) -> Result<()> {
-    do_pre_install_sanity_checks()?;
+    if !env::var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS").map_or(false, |s| s == "yes") {
+        do_pre_install_sanity_checks(no_prompt)?;
+    }
+
     do_pre_install_options_sanity_checks(&opts)?;
-    check_existence_of_rustc_or_cargo_in_path(no_prompt)?;
+
+    if !env::var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS").map_or(false, |s| s == "yes") {
+        check_existence_of_rustc_or_cargo_in_path(no_prompt)?;
+    }
+
     #[cfg(unix)]
     do_anti_sudo_check(no_prompt)?;
 
@@ -379,25 +386,25 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool) -> Result<()> {
     // Only the test runner should set this
     let skip_check = env::var_os("RUSTUP_INIT_SKIP_PATH_CHECK");
 
-    // Ignore this check if called with no prompt (-y) or if the environment variable is set
-    if no_prompt || skip_check == Some("yes".into()) {
+    // Skip this if the environment variable is set
+    if skip_check == Some("yes".into()) {
         return Ok(());
     }
 
     if let Err(path) = rustc_or_cargo_exists_in_path() {
-        err!("it looks like you have an existing installation of Rust at:");
-        err!("{}", path);
-        err!("rustup should not be installed alongside Rust. Please uninstall your existing Rust first.");
-        err!("Otherwise you may have confusion unless you are careful with your PATH");
-        err!("If you are sure that you want both rustup and your already installed Rust");
-        err!("then please restart the installation and pass `-y' to bypass this check.");
-        Err("cannot install while Rust is installed".into())
-    } else {
-        Ok(())
+        warn!("it looks like you have an existing installation of Rust at:");
+        warn!("{}", path);
+        warn!("rustup should not be installed alongside Rust. Please uninstall your existing Rust first.");
+        warn!("Otherwise you may have confusion unless you are careful with your PATH");
+        warn!("If you are sure that you want both rustup and your already installed Rust");
+        warn!("then please reply `y' or `yes' or set RUSTUP_INIT_SKIP_PATH_CHECK to yes");
+        warn!("or pass `-y' to ignore all ignorable checks.");
+        ignorable_error("cannot install while Rust is installed".into(), no_prompt)?;
     }
+    Ok(())
 }
 
-fn do_pre_install_sanity_checks() -> Result<()> {
+fn do_pre_install_sanity_checks(no_prompt: bool) -> Result<()> {
     let rustc_manifest_path = PathBuf::from("/usr/local/lib/rustlib/manifest-rustc");
     let uninstaller_path = PathBuf::from("/usr/local/lib/rustlib/uninstall.sh");
     let rustup_sh_path = utils::home_dir().unwrap().join(".rustup");
@@ -413,7 +420,7 @@ fn do_pre_install_sanity_checks() -> Result<()> {
             "run `{}` as root to uninstall Rust",
             uninstaller_path.display()
         );
-        return Err("cannot install while Rust is installed".into());
+        ignorable_error("cannot install while Rust is installed".into(), no_prompt)?;
     }
 
     if rustup_sh_exists {
@@ -423,7 +430,10 @@ fn do_pre_install_sanity_checks() -> Result<()> {
         warn!("or, if you already have rustup installed, you can run");
         warn!("`rustup self update` and `rustup toolchain list` to upgrade");
         warn!("your directory structure");
-        return Err("cannot install while rustup.sh is installed".into());
+        ignorable_error(
+            "cannot install while rustup.sh is installed".into(),
+            no_prompt,
+        )?;
     }
 
     Ok(())

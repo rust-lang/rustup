@@ -620,7 +620,7 @@ fn install_stops_if_rustc_exists() {
             .contains("it looks like you have an existing installation of Rust at:"));
         assert!(out
             .stderr
-            .contains("restart the installation and pass `-y'"));
+            .contains("If you are sure that you want both rustup and your already installed Rust"));
     });
 }
 
@@ -652,7 +652,7 @@ fn install_stops_if_cargo_exists() {
             .contains("it looks like you have an existing installation of Rust at:"));
         assert!(out
             .stderr
-            .contains("restart the installation and pass `-y'"));
+            .contains("If you are sure that you want both rustup and your already installed Rust"));
     });
 }
 
