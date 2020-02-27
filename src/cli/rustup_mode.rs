@@ -10,7 +10,7 @@ use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, Tar
 use rustup::dist::manifest::Component;
 use rustup::utils::utils::{self, ExitCode};
 use rustup::Notification;
-use rustup::{command, Cfg, Toolchain};
+use rustup::{command, Cfg, ComponentStatus, Toolchain};
 use std::error::Error;
 use std::fmt;
 use std::io::Write;
@@ -934,7 +934,8 @@ fn show(cfg: &Cfg) -> Result<()> {
     let active_targets = if let Ok(ref at) = active_toolchain {
         if let Some((ref t, _)) = *at {
             match t.list_components() {
-                Ok(cs_vec) => cs_vec
+                Ok(None) => vec![],
+                Ok(Some(cs_vec)) => cs_vec
                     .into_iter()
                     .filter(|c| c.component.short_name_in_manifest() == "rust-std")
                     .filter(|c| c.installed)
@@ -1079,6 +1080,18 @@ fn target_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
+    // XXX: long term move this error to cli ? the normal .into doesn't work
+    // because Result here is the wrong sort and expression type ascription
+    // isn't a feature yet.
+    // list_components *and* add_component would both be inappropriate for
+    // custom toolchains.
+    if toolchain.is_custom() {
+        return Err(rustup::Error(
+            rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()),
+            error_chain::State::default(),
+        )
+        .into());
+    }
 
     let mut targets: Vec<String> = m
         .values_of("target")
@@ -1092,7 +1105,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         }
 
         targets.clear();
-        for component in toolchain.list_components()? {
+        for component in toolchain.list_components()?.unwrap() {
             if component.component.short_name_in_manifest() == "rust-std"
                 && component.available
                 && !component.installed
@@ -1312,9 +1325,18 @@ const DOCS_DATA: &[(&str, &str, &str,)] = &[
 
 fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    if !toolchain.is_custom() {
-        for cstatus in &toolchain.list_components()? {
-            if cstatus.component.short_name_in_manifest() == "rust-docs" && !cstatus.installed {
+    match toolchain.list_components()? {
+        None => { /* custom - no validation */ }
+        Some(components) => {
+            if let [_] = components
+                .into_iter()
+                .filter(|cstatus| {
+                    cstatus.component.short_name_in_manifest() == "rust-docs" && !cstatus.installed
+                })
+                .take(1)
+                .collect::<Vec<ComponentStatus>>()
+                .as_slice()
+            {
                 info!(
                     "`rust-docs` not installed in toolchain `{}`",
                     toolchain.name()

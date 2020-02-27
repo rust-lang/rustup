@@ -526,14 +526,16 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
+    pub fn list_components(&self) -> Result<Option<Vec<ComponentStatus>>> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
         }
 
         let toolchain = &self.name;
-        let toolchain = ToolchainDesc::from_str(toolchain)
-            .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))?;
+        let toolchain = match ToolchainDesc::from_str(toolchain).ok() {
+            None => return Ok(None),
+            Some(toolchain) => toolchain,
+        };
 
         let prefix = InstallPrefix::from(self.path.to_owned());
         let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
@@ -586,7 +588,7 @@ impl<'a> Toolchain<'a> {
 
             res.sort_by(|a, b| a.component.cmp(&b.component));
 
-            Ok(res)
+            Ok(Some(res))
         } else {
             Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
@@ -605,7 +607,7 @@ impl<'a> Toolchain<'a> {
         const MAX_DISTANCE: usize = 3;
 
         let components = self.list_components();
-        if let Ok(components) = components {
+        if let Ok(Some(components)) = components {
             let short_name_distance = components
                 .iter()
                 .filter(|c| !only_installed || c.installed)

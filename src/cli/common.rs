@@ -318,7 +318,17 @@ where
 
 pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<()> {
     let mut t = term2::stdout();
-    for component in toolchain.list_components()? {
+    let components = match toolchain.list_components()? {
+        // XXX: long term move this error to cli ? the normal .into doesn't work
+        // because Result here is the wrong sort and expression type ascription
+        // isn't a feature yet.
+        None => Err(rustup::Error(
+            rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()),
+            error_chain::State::default(),
+        )),
+        Some(components) => Ok(components),
+    }?;
+    for component in components {
         if component.component.short_name_in_manifest() == "rust-std" {
             let target = component
                 .component
@@ -340,7 +350,17 @@ pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<()> {
 
 pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<()> {
     let mut t = term2::stdout();
-    for component in toolchain.list_components()? {
+    let components = match toolchain.list_components()? {
+        // XXX: long term move this error to cli ? the normal .into doesn't work
+        // because Result here is the wrong sort and expression type ascription
+        // isn't a feature yet.
+        None => Err(rustup::Error(
+            rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()),
+            error_chain::State::default(),
+        )),
+        Some(components) => Ok(components),
+    }?;
+    for component in components {
         if component.component.short_name_in_manifest() == "rust-std" {
             let target = component
                 .component
@@ -357,7 +377,17 @@ pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<()> {
 
 pub fn list_components(toolchain: &Toolchain<'_>) -> Result<()> {
     let mut t = term2::stdout();
-    for component in toolchain.list_components()? {
+    let components = match toolchain.list_components()? {
+        // XXX: long term move this error to cli ? the normal .into doesn't work
+        // because Result here is the wrong sort and expression type ascription
+        // isn't a feature yet.
+        None => Err(rustup::Error(
+            rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()),
+            error_chain::State::default(),
+        )),
+        Some(components) => Ok(components),
+    }?;
+    for component in components {
         let name = component.name;
         if component.installed {
             t.attr(term2::Attr::Bold)?;
@@ -373,7 +403,17 @@ pub fn list_components(toolchain: &Toolchain<'_>) -> Result<()> {
 
 pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<()> {
     let mut t = term2::stdout();
-    for component in toolchain.list_components()? {
+    let components = match toolchain.list_components()? {
+        // XXX: long term move this error to cli ? the normal .into doesn't work
+        // because Result here is the wrong sort and expression type ascription
+        // isn't a feature yet.
+        None => Err(rustup::Error(
+            rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()),
+            error_chain::State::default(),
+        )),
+        Some(components) => Ok(components),
+    }?;
+    for component in components {
         if component.installed {
             writeln!(t, "{}", component.name)?;
         }
