@@ -495,90 +495,6 @@ impl<'a> Toolchain<'a> {
             Ok(())
         })
     }
-    // Distributable only. Installed only.
-    fn get_component_suggestion(
-        &self,
-        component: &Component,
-        manifest: &Manifest,
-        only_installed: bool,
-    ) -> Option<String> {
-        use strsim::damerau_levenshtein;
-
-        // Suggest only for very small differences
-        // High number can result in inaccurate suggestions for short queries e.g. `rls`
-        const MAX_DISTANCE: usize = 3;
-
-        let distributable = DistributableToolchain::new(&self);
-        let components = distributable.ok().map(|d| d.list_components());
-        if let Some(Ok(components)) = components {
-            let short_name_distance = components
-                .iter()
-                .filter(|c| !only_installed || c.installed)
-                .map(|c| {
-                    (
-                        damerau_levenshtein(
-                            &c.component.name(manifest)[..],
-                            &component.name(manifest)[..],
-                        ),
-                        c,
-                    )
-                })
-                .min_by_key(|t| t.0)
-                .expect("There should be always at least one component");
-
-            let long_name_distance = components
-                .iter()
-                .filter(|c| !only_installed || c.installed)
-                .map(|c| {
-                    (
-                        damerau_levenshtein(
-                            &c.component.name_in_manifest()[..],
-                            &component.name(manifest)[..],
-                        ),
-                        c,
-                    )
-                })
-                .min_by_key(|t| t.0)
-                .expect("There should be always at least one component");
-
-            let mut closest_distance = short_name_distance;
-            let mut closest_match = short_name_distance.1.component.short_name(manifest);
-
-            // Find closer suggestion
-            if short_name_distance.0 > long_name_distance.0 {
-                closest_distance = long_name_distance;
-
-                // Check if only targets differ
-                if closest_distance.1.component.short_name_in_manifest()
-                    == component.short_name_in_manifest()
-                {
-                    closest_match = long_name_distance.1.component.target();
-                } else {
-                    closest_match = long_name_distance
-                        .1
-                        .component
-                        .short_name_in_manifest()
-                        .to_string();
-                }
-            } else {
-                // Check if only targets differ
-                if closest_distance.1.component.short_name(manifest)
-                    == component.short_name(manifest)
-                {
-                    closest_match = short_name_distance.1.component.target();
-                }
-            }
-
-            // If suggestion is too different don't suggest anything
-            if closest_distance.0 > MAX_DISTANCE {
-                None
-            } else {
-                Some(closest_match)
-            }
-        } else {
-            None
-        }
-    }
     // Distributable and Custom. Installed only.
     pub fn binary_file(&self, name: &str) -> PathBuf {
         let mut path = self.path.clone();
@@ -691,8 +607,7 @@ impl<'a> DistributableToolchain<'a> {
                     return Err(ErrorKind::UnknownComponent(
                         self.0.name.to_string(),
                         component.description(&manifest),
-                        self.0
-                            .get_component_suggestion(&component, &manifest, false),
+                        self.get_component_suggestion(&component, &manifest, false),
                     )
                     .into());
                 }
@@ -716,6 +631,90 @@ impl<'a> DistributableToolchain<'a> {
             Ok(())
         } else {
             Err(ErrorKind::ComponentsUnsupported(self.0.name.to_string()).into())
+        }
+    }
+
+    // Installed only?
+    fn get_component_suggestion(
+        &self,
+        component: &Component,
+        manifest: &Manifest,
+        only_installed: bool,
+    ) -> Option<String> {
+        use strsim::damerau_levenshtein;
+
+        // Suggest only for very small differences
+        // High number can result in inaccurate suggestions for short queries e.g. `rls`
+        const MAX_DISTANCE: usize = 3;
+
+        let components = self.list_components();
+        if let Ok(components) = components {
+            let short_name_distance = components
+                .iter()
+                .filter(|c| !only_installed || c.installed)
+                .map(|c| {
+                    (
+                        damerau_levenshtein(
+                            &c.component.name(manifest)[..],
+                            &component.name(manifest)[..],
+                        ),
+                        c,
+                    )
+                })
+                .min_by_key(|t| t.0)
+                .expect("There should be always at least one component");
+
+            let long_name_distance = components
+                .iter()
+                .filter(|c| !only_installed || c.installed)
+                .map(|c| {
+                    (
+                        damerau_levenshtein(
+                            &c.component.name_in_manifest()[..],
+                            &component.name(manifest)[..],
+                        ),
+                        c,
+                    )
+                })
+                .min_by_key(|t| t.0)
+                .expect("There should be always at least one component");
+
+            let mut closest_distance = short_name_distance;
+            let mut closest_match = short_name_distance.1.component.short_name(manifest);
+
+            // Find closer suggestion
+            if short_name_distance.0 > long_name_distance.0 {
+                closest_distance = long_name_distance;
+
+                // Check if only targets differ
+                if closest_distance.1.component.short_name_in_manifest()
+                    == component.short_name_in_manifest()
+                {
+                    closest_match = long_name_distance.1.component.target();
+                } else {
+                    closest_match = long_name_distance
+                        .1
+                        .component
+                        .short_name_in_manifest()
+                        .to_string();
+                }
+            } else {
+                // Check if only targets differ
+                if closest_distance.1.component.short_name(manifest)
+                    == component.short_name(manifest)
+                {
+                    closest_match = short_name_distance.1.component.target();
+                }
+            }
+
+            // If suggestion is too different don't suggest anything
+            if closest_distance.0 > MAX_DISTANCE {
+                None
+            } else {
+                Some(closest_match)
+            }
+        } else {
+            None
         }
     }
 
@@ -854,7 +853,7 @@ impl<'a> DistributableToolchain<'a> {
                     return Err(ErrorKind::UnknownComponent(
                         self.0.name.to_string(),
                         component.description(&manifest),
-                        self.0.get_component_suggestion(&component, &manifest, true),
+                        self.get_component_suggestion(&component, &manifest, true),
                     )
                     .into());
                 }
