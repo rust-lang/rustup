@@ -496,14 +496,6 @@ impl<'a> Toolchain<'a> {
         })
     }
     // Distributable only. Installed only.
-    pub fn show_version(&self) -> Result<Option<String>> {
-        let distributable = DistributableToolchain::new(&self)?;
-        match distributable.get_manifest()? {
-            Some(manifest) => Ok(Some(manifest.get_rust_version()?.to_string())),
-            None => Ok(None),
-        }
-    }
-    // Distributable only. Installed only.
     pub fn show_dist_version(&self) -> Result<Option<String>> {
         let update_hash = self.update_hash()?;
 
@@ -860,7 +852,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    pub fn get_manifest(&self) -> Result<Option<Manifest>> {
+    fn get_manifest(&self) -> Result<Option<Manifest>> {
         if !self.0.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.0.name().to_owned()).into());
         }
@@ -896,5 +888,13 @@ impl<'a> DistributableToolchain<'a> {
             components,
             targets,
         ))
+    }
+
+    // Installed only.
+    pub fn show_version(&self) -> Result<Option<String>> {
+        match self.get_manifest()? {
+            Some(manifest) => Ok(Some(manifest.get_rust_version()?.to_string())),
+            None => Ok(None),
+        }
     }
 }
