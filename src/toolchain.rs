@@ -193,7 +193,11 @@ impl<'a> Toolchain<'a> {
         targets: &[&str],
     ) -> Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
-        let old_date = self.get_manifest().ok().and_then(|m| m.map(|m| m.date));
+        let distributable = DistributableToolchain::new(&self)?;
+        let old_date = distributable
+            .get_manifest()
+            .ok()
+            .and_then(|m| m.map(|m| m.date));
         self.install(InstallMethod::Dist(
             &self.desc()?,
             self.cfg.get_profile()?,
@@ -519,22 +523,9 @@ impl<'a> Toolchain<'a> {
         })
     }
     // Distributable only. Installed only.
-    pub fn get_manifest(&self) -> Result<Option<Manifest>> {
-        if !self.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
-        }
-
-        let toolchain = &self.name;
-        let toolchain = ToolchainDesc::from_str(toolchain)?;
-
-        let prefix = InstallPrefix::from(self.path.to_owned());
-        let manifestation = Manifestation::open(prefix, toolchain.target)?;
-
-        manifestation.load_manifest()
-    }
-    // Distributable only. Installed only.
     pub fn show_version(&self) -> Result<Option<String>> {
-        match self.get_manifest()? {
+        let distributable = DistributableToolchain::new(&self)?;
+        match distributable.get_manifest()? {
             Some(manifest) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
         }
@@ -877,5 +868,36 @@ impl<'a> Toolchain<'a> {
         } else {
             String::from("(toolchain not installed)")
         }
+    }
+}
+
+/// Newtype to facilitate splitting out custom-toolchain specific code.
+pub struct CustomToolchain<'a>(&'a Toolchain<'a>);
+
+/// Newtype to facilitate splitting out distributable-toolchain specific code.
+pub struct DistributableToolchain<'a>(&'a Toolchain<'a>);
+
+impl<'a> DistributableToolchain<'a> {
+    pub fn new(toolchain: &'a Toolchain<'a>) -> Result<DistributableToolchain<'a>> {
+        if toolchain.is_custom() {
+            Err(format!("{} is a custom toolchain", toolchain.name()).into())
+        } else {
+            Ok(DistributableToolchain(&toolchain))
+        }
+    }
+
+    // Installed only.
+    pub fn get_manifest(&self) -> Result<Option<Manifest>> {
+        if !self.0.exists() {
+            return Err(ErrorKind::ToolchainNotInstalled(self.0.name().to_owned()).into());
+        }
+
+        let toolchain = &self.0.name();
+        let toolchain = ToolchainDesc::from_str(toolchain)?;
+
+        let prefix = InstallPrefix::from(self.0.path().to_owned());
+        let manifestation = Manifestation::open(prefix, toolchain.target)?;
+
+        manifestation.load_manifest()
     }
 }
