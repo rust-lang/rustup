@@ -496,74 +496,6 @@ impl<'a> Toolchain<'a> {
         })
     }
     // Distributable only. Installed only.
-    pub fn list_components(&self) -> Result<Option<Vec<ComponentStatus>>> {
-        if !self.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
-        }
-
-        let toolchain = &self.name;
-        let toolchain = match ToolchainDesc::from_str(toolchain).ok() {
-            None => return Ok(None),
-            Some(toolchain) => toolchain,
-        };
-
-        let prefix = InstallPrefix::from(self.path.to_owned());
-        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
-
-        if let Some(manifest) = manifestation.load_manifest()? {
-            let config = manifestation.read_config()?;
-
-            // Return all optional components of the "rust" package for the
-            // toolchain's target triple.
-            let mut res = Vec::new();
-
-            let rust_pkg = manifest
-                .packages
-                .get("rust")
-                .expect("manifest should contain a rust package");
-            let targ_pkg = rust_pkg
-                .targets
-                .get(&toolchain.target)
-                .expect("installed manifest should have a known target");
-
-            for component in &targ_pkg.components {
-                let installed = config
-                    .as_ref()
-                    .map(|c| component.contained_within(&c.components))
-                    .unwrap_or(false);
-
-                let component_target = TargetTriple::new(&component.target());
-
-                // Get the component so we can check if it is available
-                let component_pkg = manifest
-                    .get_package(&component.short_name_in_manifest())
-                    .unwrap_or_else(|_| {
-                        panic!(
-                            "manifest should contain component {}",
-                            &component.short_name(&manifest)
-                        )
-                    });
-                let component_target_pkg = component_pkg
-                    .targets
-                    .get(&component_target)
-                    .expect("component should have target toolchain");
-
-                res.push(ComponentStatus {
-                    component: component.clone(),
-                    name: component.name(&manifest),
-                    installed,
-                    available: component_target_pkg.available(),
-                });
-            }
-
-            res.sort_by(|a, b| a.component.cmp(&b.component));
-
-            Ok(Some(res))
-        } else {
-            Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
-        }
-    }
-    // Distributable only. Installed only.
     fn get_component_suggestion(
         &self,
         component: &Component,
@@ -576,8 +508,9 @@ impl<'a> Toolchain<'a> {
         // High number can result in inaccurate suggestions for short queries e.g. `rls`
         const MAX_DISTANCE: usize = 3;
 
-        let components = self.list_components();
-        if let Ok(Some(components)) = components {
+        let distributable = DistributableToolchain::new(&self);
+        let components = distributable.ok().map(|d| d.list_components());
+        if let Some(Ok(components)) = components {
             let short_name_distance = components
                 .iter()
                 .filter(|c| !only_installed || c.installed)
@@ -823,6 +756,73 @@ impl<'a> DistributableToolchain<'a> {
             components,
             targets,
         ))
+    }
+
+    // Installed only.
+    pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
+        if !self.0.exists() {
+            return Err(ErrorKind::ToolchainNotInstalled(self.0.name.to_owned()).into());
+        }
+
+        let toolchain = &self.0.name;
+        let toolchain = ToolchainDesc::from_str(toolchain)
+            .chain_err(|| ErrorKind::ComponentsUnsupported(self.0.name.to_string()))?;
+
+        let prefix = InstallPrefix::from(self.0.path.to_owned());
+        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
+
+        if let Some(manifest) = manifestation.load_manifest()? {
+            let config = manifestation.read_config()?;
+
+            // Return all optional components of the "rust" package for the
+            // toolchain's target triple.
+            let mut res = Vec::new();
+
+            let rust_pkg = manifest
+                .packages
+                .get("rust")
+                .expect("manifest should contain a rust package");
+            let targ_pkg = rust_pkg
+                .targets
+                .get(&toolchain.target)
+                .expect("installed manifest should have a known target");
+
+            for component in &targ_pkg.components {
+                let installed = config
+                    .as_ref()
+                    .map(|c| component.contained_within(&c.components))
+                    .unwrap_or(false);
+
+                let component_target = TargetTriple::new(&component.target());
+
+                // Get the component so we can check if it is available
+                let component_pkg = manifest
+                    .get_package(&component.short_name_in_manifest())
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "manifest should contain component {}",
+                            &component.short_name(&manifest)
+                        )
+                    });
+                let component_target_pkg = component_pkg
+                    .targets
+                    .get(&component_target)
+                    .expect("component should have target toolchain");
+
+                res.push(ComponentStatus {
+                    component: component.clone(),
+                    name: component.name(&manifest),
+                    installed,
+                    available: component_target_pkg.available(),
+                });
+            }
+
+            res.sort_by(|a, b| a.component.cmp(&b.component));
+
+            Ok(res)
+        } else {
+            Err(ErrorKind::ComponentsUnsupported(self.0.name.to_string()).into())
+        }
     }
 
     // Installed only.

@@ -936,14 +936,18 @@ fn show(cfg: &Cfg) -> Result<()> {
 
     // active_toolchain will carry the reason we don't have one in its detail.
     let active_targets = if let Ok(ref at) = active_toolchain {
-        match at.0.list_components() {
-            Ok(None) => vec![],
-            Ok(Some(cs_vec)) => cs_vec
-                .into_iter()
-                .filter(|c| c.component.short_name_in_manifest() == "rust-std")
-                .filter(|c| c.installed)
-                .collect(),
-            Err(_) => vec![],
+        if let Ok(distributable) = DistributableToolchain::new(&at.0) {
+            match distributable.list_components() {
+                Ok(cs_vec) => cs_vec
+                    .into_iter()
+                    .filter(|c| c.component.short_name_in_manifest() == "rust-std")
+                    .filter(|c| c.installed)
+                    .collect(),
+                Err(_) => vec![],
+            }
+        } else {
+            // These three vec![] could perhaps be reduced with and_then on active_toolchain.
+            vec![]
         }
     } else {
         vec![]
@@ -1109,7 +1113,8 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         }
 
         targets.clear();
-        for component in toolchain.list_components()?.unwrap() {
+        let distributable = DistributableToolchain::new(&toolchain)?;
+        for component in distributable.list_components()? {
             if component.component.short_name_in_manifest() == "rust-std"
                 && component.available
                 && !component.installed
@@ -1333,28 +1338,26 @@ const DOCS_DATA: &[(&str, &str, &str,)] = &[
 
 fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    match toolchain.list_components()? {
-        None => { /* custom - no validation */ }
-        Some(components) => {
-            if let [_] = components
-                .into_iter()
-                .filter(|cstatus| {
-                    cstatus.component.short_name_in_manifest() == "rust-docs" && !cstatus.installed
-                })
-                .take(1)
-                .collect::<Vec<ComponentStatus>>()
-                .as_slice()
-            {
-                info!(
-                    "`rust-docs` not installed in toolchain `{}`",
-                    toolchain.name()
-                );
-                info!(
-                    "To install, try `rustup component add --toolchain {} rust-docs`",
-                    toolchain.name()
-                );
-                return Err("unable to view documentation which is not installed".into());
-            }
+    if let Ok(distributable) = DistributableToolchain::new(&toolchain) {
+        let components = distributable.list_components()?;
+        if let [_] = components
+            .into_iter()
+            .filter(|cstatus| {
+                cstatus.component.short_name_in_manifest() == "rust-docs" && !cstatus.installed
+            })
+            .take(1)
+            .collect::<Vec<ComponentStatus>>()
+            .as_slice()
+        {
+            info!(
+                "`rust-docs` not installed in toolchain `{}`",
+                toolchain.name()
+            );
+            info!(
+                "To install, try `rustup component add --toolchain {} rust-docs`",
+                toolchain.name()
+            );
+            return Err("unable to view documentation which is not installed".into());
         }
     }
     let topical_path: PathBuf;
