@@ -1130,7 +1130,8 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             Some(TargetTriple::new(target)),
             false,
         );
-        toolchain.add_component(new_component)?;
+        let distributable = DistributableToolchain::new(&toolchain)?;
+        distributable.add_component(new_component)?;
     }
 
     Ok(())
@@ -1176,8 +1177,8 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     for component in m.values_of("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
-
-        toolchain.add_component(new_component)?;
+        let distributable = DistributableToolchain::new(&toolchain)?;
+        distributable.add_component(new_component)?;
     }
 
     Ok(())
