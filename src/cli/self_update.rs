@@ -35,6 +35,7 @@ use crate::errors::*;
 use crate::markdown::md;
 use crate::term2;
 use rustup::dist::dist::{self, Profile, TargetTriple};
+use rustup::toolchain::DistributableToolchain;
 use rustup::utils::utils;
 use rustup::utils::Notification;
 use rustup::{Cfg, UpdateStatus};
@@ -787,7 +788,8 @@ fn maybe_install_rust(
         if toolchain.exists() {
             warn!("Updating existing toolchain, profile choice will be ignored");
         }
-        let status = toolchain.install_from_dist(true, false, components, targets)?;
+        let distributable = DistributableToolchain::new(&toolchain)?;
+        let status = distributable.install_from_dist(true, false, components, targets)?;
         cfg.set_default(toolchain_str)?;
         println!();
         common::show_channel_update(&cfg, toolchain_str, Ok(status))?;

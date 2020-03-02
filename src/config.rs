@@ -14,7 +14,7 @@ use crate::errors::*;
 use crate::fallback_settings::FallbackSettings;
 use crate::notifications::*;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
-use crate::toolchain::{Toolchain, UpdateStatus};
+use crate::toolchain::{DistributableToolchain, Toolchain, UpdateStatus};
 use crate::utils::utils;
 
 #[derive(Debug)]
@@ -510,7 +510,8 @@ impl Cfg {
                         ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into(),
                     );
                 }
-                toolchain.install_from_dist(true, false, &[], &[])?;
+                let distributable = DistributableToolchain::new(&toolchain)?;
+                distributable.install_from_dist(true, false, &[], &[])?;
             }
             Ok((toolchain, reason))
         } else {
@@ -568,15 +569,16 @@ impl Cfg {
 
         // Update toolchains and collect the results
         let channels = channels.map(|(n, t)| {
-            let t = t.and_then(|t| {
-                let t = t.install_from_dist(force_update, false, &[], &[]);
-                if let Err(ref e) = t {
+            let st = t.and_then(|t| {
+                let distributable = DistributableToolchain::new(&t)?;
+                let st = distributable.install_from_dist(force_update, false, &[], &[]);
+                if let Err(ref e) = st {
                     (self.notify_handler)(Notification::NonFatalError(e));
                 }
-                t
+                st
             });
 
-            (n, t)
+            (n, st)
         });
 
         Ok(channels.collect())
@@ -620,7 +622,8 @@ impl Cfg {
     ) -> Result<Command> {
         let toolchain = self.get_toolchain(toolchain, false)?;
         if install_if_missing && !toolchain.exists() {
-            toolchain.install_from_dist(true, false, &[], &[])?;
+            let distributable = DistributableToolchain::new(&toolchain)?;
+            distributable.install_from_dist(true, false, &[], &[])?;
         }
 
         if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {

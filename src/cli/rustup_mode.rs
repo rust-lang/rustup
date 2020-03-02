@@ -8,6 +8,7 @@ use crate::topical_doc;
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use rustup::dist::manifest::Component;
+use rustup::toolchain::DistributableToolchain;
 use rustup::utils::utils::{self, ExitCode};
 use rustup::Notification;
 use rustup::{command, Cfg, ComponentStatus, Toolchain};
@@ -840,7 +841,8 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
                     .values_of("targets")
                     .map(|v| v.collect())
                     .unwrap_or_else(Vec::new);
-                Some(toolchain.install_from_dist(
+                let distributable = DistributableToolchain::new(&toolchain)?;
+                Some(distributable.install_from_dist(
                     m.is_present("force"),
                     m.is_present("allow-downgrade"),
                     &components,

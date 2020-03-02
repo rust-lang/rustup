@@ -184,33 +184,6 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    // Distributable only. Not installed only?
-    pub fn install_from_dist(
-        &self,
-        force_update: bool,
-        allow_downgrade: bool,
-        components: &[&str],
-        targets: &[&str],
-    ) -> Result<UpdateStatus> {
-        let update_hash = self.update_hash()?;
-        let distributable = DistributableToolchain::new(&self)?;
-        let old_date = distributable
-            .get_manifest()
-            .ok()
-            .and_then(|m| m.map(|m| m.date));
-        self.install(InstallMethod::Dist(
-            &self.desc()?,
-            self.cfg.get_profile()?,
-            update_hash.as_ref().map(|p| &**p),
-            self.download_cfg(),
-            force_update,
-            allow_downgrade,
-            self.exists(),
-            old_date.as_ref().map(|s| &**s),
-            components,
-            targets,
-        ))
-    }
     // Distributable only. Installed or not installed.
     pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
@@ -899,5 +872,29 @@ impl<'a> DistributableToolchain<'a> {
         let manifestation = Manifestation::open(prefix, toolchain.target)?;
 
         manifestation.load_manifest()
+    }
+
+    // Not installed only?
+    pub fn install_from_dist(
+        &self,
+        force_update: bool,
+        allow_downgrade: bool,
+        components: &[&str],
+        targets: &[&str],
+    ) -> Result<UpdateStatus> {
+        let update_hash = self.0.update_hash()?;
+        let old_date = self.get_manifest().ok().and_then(|m| m.map(|m| m.date));
+        self.0.install(InstallMethod::Dist(
+            &self.0.desc()?,
+            self.0.cfg.get_profile()?,
+            update_hash.as_ref().map(|p| &**p),
+            self.0.download_cfg(),
+            force_update,
+            allow_downgrade,
+            self.0.exists(),
+            old_date.as_ref().map(|s| &**s),
+            components,
+            targets,
+        ))
     }
 }
