@@ -722,60 +722,6 @@ impl<'a> Toolchain<'a> {
             Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
     }
-    // Distributable only. Installed only.
-    pub fn remove_component(&self, mut component: Component) -> Result<()> {
-        if !self.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
-        }
-
-        let toolchain = &self.name;
-        let toolchain = ToolchainDesc::from_str(toolchain)
-            .chain_err(|| ErrorKind::ComponentsUnsupported(self.name.to_string()))?;
-
-        let prefix = InstallPrefix::from(self.path.to_owned());
-        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
-
-        if let Some(manifest) = manifestation.load_manifest()? {
-            // Rename the component if necessary.
-            if let Some(c) = manifest.rename_component(&component) {
-                component = c;
-            }
-
-            let dist_config = manifestation.read_config()?.unwrap();
-            if !dist_config.components.contains(&component) {
-                let wildcard_component = component.wildcard();
-                if dist_config.components.contains(&wildcard_component) {
-                    component = wildcard_component;
-                } else {
-                    return Err(ErrorKind::UnknownComponent(
-                        self.name.to_string(),
-                        component.description(&manifest),
-                        self.get_component_suggestion(&component, &manifest, true),
-                    )
-                    .into());
-                }
-            }
-
-            let changes = Changes {
-                explicit_add_components: vec![],
-                remove_components: vec![component],
-            };
-
-            manifestation.update(
-                &manifest,
-                changes,
-                false,
-                &self.download_cfg(),
-                &self.download_cfg().notify_handler,
-                &toolchain.manifest_name(),
-                false,
-            )?;
-
-            Ok(())
-        } else {
-            Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
-        }
-    }
     // Distributable and Custom. Installed only.
     pub fn binary_file(&self, name: &str) -> PathBuf {
         let mut path = self.path.clone();
@@ -888,6 +834,62 @@ impl<'a> DistributableToolchain<'a> {
             components,
             targets,
         ))
+    }
+
+    // Installed only.
+    pub fn remove_component(&self, mut component: Component) -> Result<()> {
+        // Overlapping code with get_manifest :/.
+        if !self.0.exists() {
+            return Err(ErrorKind::ToolchainNotInstalled(self.0.name.to_owned()).into());
+        }
+
+        let toolchain = &self.0.name;
+        let toolchain = ToolchainDesc::from_str(toolchain)
+            .chain_err(|| ErrorKind::ComponentsUnsupported(self.0.name.to_string()))?;
+
+        let prefix = InstallPrefix::from(self.0.path.to_owned());
+        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
+
+        if let Some(manifest) = manifestation.load_manifest()? {
+            // Rename the component if necessary.
+            if let Some(c) = manifest.rename_component(&component) {
+                component = c;
+            }
+
+            let dist_config = manifestation.read_config()?.unwrap();
+            if !dist_config.components.contains(&component) {
+                let wildcard_component = component.wildcard();
+                if dist_config.components.contains(&wildcard_component) {
+                    component = wildcard_component;
+                } else {
+                    return Err(ErrorKind::UnknownComponent(
+                        self.0.name.to_string(),
+                        component.description(&manifest),
+                        self.0.get_component_suggestion(&component, &manifest, true),
+                    )
+                    .into());
+                }
+            }
+
+            let changes = Changes {
+                explicit_add_components: vec![],
+                remove_components: vec![component],
+            };
+
+            manifestation.update(
+                &manifest,
+                changes,
+                false,
+                &self.0.download_cfg(),
+                &self.0.download_cfg().notify_handler,
+                &toolchain.manifest_name(),
+                false,
+            )?;
+
+            Ok(())
+        } else {
+            Err(ErrorKind::ComponentsUnsupported(self.0.name.to_string()).into())
+        }
     }
 
     // Installed only.

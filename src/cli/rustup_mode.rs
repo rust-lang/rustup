@@ -1145,8 +1145,9 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             Some(TargetTriple::new(target)),
             false,
         );
-
-        toolchain.remove_component(new_component)?;
+        let distributable = DistributableToolchain::new(&toolchain)
+            .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+        distributable.remove_component(new_component)?;
     }
 
     Ok(())
@@ -1196,7 +1197,9 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
 
-        toolchain.remove_component(new_component)?;
+        let distributable = DistributableToolchain::new(&toolchain)
+            .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+        distributable.remove_component(new_component)?;
     }
 
     Ok(())
