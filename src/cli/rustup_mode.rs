@@ -784,7 +784,7 @@ fn check_updates(cfg: &Cfg) -> Result<()> {
             (ref name, Ok(ref toolchain)) => {
                 let distributable = DistributableToolchain::new(&toolchain)?;
                 let current_version = distributable.show_version()?;
-                let dist_version = toolchain.show_dist_version()?;
+                let dist_version = distributable.show_dist_version()?;
                 let _ = t.attr(term2::Attr::Bold);
                 write!(t, "{} - ", name)?;
                 match (current_version, dist_version) {

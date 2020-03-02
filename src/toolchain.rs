@@ -496,19 +496,6 @@ impl<'a> Toolchain<'a> {
         })
     }
     // Distributable only. Installed only.
-    pub fn show_dist_version(&self) -> Result<Option<String>> {
-        let update_hash = self.update_hash()?;
-
-        match crate::dist::dist::dl_v2_manifest(
-            self.download_cfg(),
-            update_hash.as_ref().map(|p| &**p),
-            &self.desc()?,
-        )? {
-            Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
-            None => Ok(None),
-        }
-    }
-    // Distributable only. Installed only.
     pub fn list_components(&self) -> Result<Option<Vec<ComponentStatus>>> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
@@ -891,6 +878,20 @@ impl<'a> DistributableToolchain<'a> {
             Ok(())
         } else {
             Err(ErrorKind::ComponentsUnsupported(self.0.name.to_string()).into())
+        }
+    }
+
+    // Installed only.
+    pub fn show_dist_version(&self) -> Result<Option<String>> {
+        let update_hash = self.0.update_hash()?;
+
+        match crate::dist::dist::dl_v2_manifest(
+            self.0.download_cfg(),
+            update_hash.as_ref().map(|p| &**p),
+            &self.0.desc()?,
+        )? {
+            Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
+            None => Ok(None),
         }
     }
 
