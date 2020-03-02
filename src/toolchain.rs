@@ -62,6 +62,7 @@ impl<'a> Toolchain<'a> {
     pub fn name(&self) -> &str {
         &self.name
     }
+    // Distributable only
     pub fn desc(&self) -> Result<ToolchainDesc> {
         Ok(ToolchainDesc::from_str(&self.name)?)
     }
@@ -74,6 +75,9 @@ impl<'a> Toolchain<'a> {
             .map(|m| m.file_type().is_symlink())
             .unwrap_or(false)
     }
+    /// Is there a filesystem component with the name of the toolchain in the toolchains dir - valid install or not.
+    /// Used to determine whether this toolchain should be uninstallable.
+    /// Custom and Distributable. Installed and uninstalled. (perhaps onstalled only?)
     pub fn exists(&self) -> bool {
         // HACK: linked toolchains are symlinks, and, contrary to what std docs
         // lead me to believe `fs::metadata`, used by `is_directory` does not
@@ -85,9 +89,13 @@ impl<'a> Toolchain<'a> {
         };
         utils::is_directory(&self.path) || is_symlink
     }
+    /// Is there a valid usable toolchain with this name, either in the toolchains dir, or symlinked from it.
+    // Could in future check for rustc perhaps.
+    // Custom and Distributable. Installed only?
     pub fn verify(&self) -> Result<()> {
         utils::assert_is_directory(&self.path)
     }
+    // Custom and Distributable. Installed only.
     pub fn remove(&self) -> Result<()> {
         if self.exists() || self.is_symlink() {
             (self.cfg.notify_handler)(Notification::UninstallingToolchain(&self.name));
@@ -104,6 +112,7 @@ impl<'a> Toolchain<'a> {
         }
         result
     }
+    // Custom and Distributable. Installed and not installed.
     fn install(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
         let previous_version = if self.exists() {
@@ -133,6 +142,8 @@ impl<'a> Toolchain<'a> {
 
         Ok(status)
     }
+    // Custom and Distributable, Installed and not installed.
+    // Perhaps make into a helper?
     fn install_if_not_installed(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
         (self.cfg.notify_handler)(Notification::LookingForToolchain(&self.name));
@@ -143,6 +154,8 @@ impl<'a> Toolchain<'a> {
             Ok(UpdateStatus::Unchanged)
         }
     }
+    // Custom and Distributable. Installed and not installed (because of install_from_dist_if_not_installed) Goes away?
+    // Or perhaps a trait.
     fn is_valid_install_method(&self, install_method: InstallMethod<'_>) -> bool {
         match install_method {
             InstallMethod::Copy(_) | InstallMethod::Link(_) | InstallMethod::Installer(..) => {
@@ -151,6 +164,7 @@ impl<'a> Toolchain<'a> {
             InstallMethod::Dist(..) => !self.is_custom(),
         }
     }
+    // Distributable only probably (once update_hash is only called appropriately). Installed only.
     fn update_hash(&self) -> Result<Option<PathBuf>> {
         if self.is_custom() {
             Ok(None)
@@ -159,6 +173,7 @@ impl<'a> Toolchain<'a> {
         }
     }
 
+    // XXX: Move to Config with a notify handler parameter
     fn download_cfg(&self) -> DownloadCfg<'_> {
         DownloadCfg {
             dist_root: &self.cfg.dist_root_url,
@@ -169,6 +184,7 @@ impl<'a> Toolchain<'a> {
         }
     }
 
+    // Distributable only. Not installed only?
     pub fn install_from_dist(
         &self,
         force_update: bool,
@@ -191,7 +207,7 @@ impl<'a> Toolchain<'a> {
             targets,
         ))
     }
-
+    // Distributable only. Installed or not installed.
     pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
         self.install_if_not_installed(InstallMethod::Dist(
@@ -207,9 +223,11 @@ impl<'a> Toolchain<'a> {
             &[],
         ))
     }
+    // Custom only
     pub fn is_custom(&self) -> bool {
         ToolchainDesc::from_str(&self.name).is_err()
     }
+    // Distributable only
     pub fn is_tracking(&self) -> bool {
         ToolchainDesc::from_str(&self.name)
             .ok()
@@ -217,6 +235,7 @@ impl<'a> Toolchain<'a> {
             == Some(true)
     }
 
+    // TO be a downcast or something.
     fn ensure_custom(&self) -> Result<()> {
         if !self.is_custom() {
             Err(crate::ErrorKind::InvalidCustomToolchainName(self.name.to_string()).into())
@@ -225,6 +244,7 @@ impl<'a> Toolchain<'a> {
         }
     }
 
+    // Custom only. Installed or not installed.
     pub fn install_from_installers(&self, installers: &[&OsStr]) -> Result<()> {
         self.ensure_custom()?;
 
@@ -277,6 +297,7 @@ impl<'a> Toolchain<'a> {
         Ok(())
     }
 
+    // Custom only. Not installed only.
     pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
         self.ensure_custom()?;
 
@@ -299,6 +320,7 @@ impl<'a> Toolchain<'a> {
         Ok(())
     }
 
+    // Both Distributable and Custom; Installed only.
     pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
@@ -342,6 +364,7 @@ impl<'a> Toolchain<'a> {
 
     // Create a command as a fallback for another toolchain. This is used
     // to give custom toolchains access to cargo
+    // Custom only. Installed only.
     pub fn create_fallback_command<T: AsRef<OsStr>>(
         &self,
         binary: T,
@@ -392,6 +415,7 @@ impl<'a> Toolchain<'a> {
         Ok(cmd)
     }
 
+    // Custom and Distributable. Installed only.
     fn set_env(&self, cmd: &mut Command) {
         self.set_ldpath(cmd);
 
@@ -409,6 +433,7 @@ impl<'a> Toolchain<'a> {
         cmd.env("RUSTUP_HOME", &self.cfg.rustup_dir);
     }
 
+    // Custom and Distributable. Installed only.
     pub fn set_ldpath(&self, cmd: &mut Command) {
         let mut new_path = vec![self.path.join("lib")];
 
@@ -463,7 +488,7 @@ impl<'a> Toolchain<'a> {
 
         env_var::prepend_path("PATH", path_entries, cmd);
     }
-
+    // Custom and Distributable. Installed only.
     pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {
         self.verify()?;
 
@@ -476,22 +501,24 @@ impl<'a> Toolchain<'a> {
 
         Ok(doc_dir)
     }
+    // Custom and Distributable. Installed only.
     pub fn open_docs(&self, relative: &str) -> Result<()> {
         self.verify()?;
 
         utils::open_browser(&self.doc_path(relative)?)
     }
-
+    // Custom and Distributable. Installed only.
     pub fn make_default(&self) -> Result<()> {
         self.cfg.set_default(&self.name)
     }
+    // Custom and Distributable. Installed only.
     pub fn make_override(&self, path: &Path) -> Result<()> {
         self.cfg.settings_file.with_mut(|s| {
             s.add_override(path, self.name.clone(), self.cfg.notify_handler.as_ref());
             Ok(())
         })
     }
-
+    // Distributable only. Installed only.
     pub fn get_manifest(&self) -> Result<Option<Manifest>> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
@@ -505,14 +532,14 @@ impl<'a> Toolchain<'a> {
 
         manifestation.load_manifest()
     }
-
+    // Distributable only. Installed only.
     pub fn show_version(&self) -> Result<Option<String>> {
         match self.get_manifest()? {
             Some(manifest) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
         }
     }
-
+    // Distributable only. Installed only.
     pub fn show_dist_version(&self) -> Result<Option<String>> {
         let update_hash = self.update_hash()?;
 
@@ -525,7 +552,7 @@ impl<'a> Toolchain<'a> {
             None => Ok(None),
         }
     }
-
+    // Distributable only. Installed only.
     pub fn list_components(&self) -> Result<Option<Vec<ComponentStatus>>> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
@@ -593,7 +620,7 @@ impl<'a> Toolchain<'a> {
             Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
     }
-
+    // Distributable only. Installed only.
     fn get_component_suggestion(
         &self,
         component: &Component,
@@ -676,7 +703,7 @@ impl<'a> Toolchain<'a> {
             None
         }
     }
-
+    // Distributable only. Installed only.
     pub fn add_component(&self, mut component: Component) -> Result<()> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
@@ -739,7 +766,7 @@ impl<'a> Toolchain<'a> {
             Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
     }
-
+    // Distributable only. Installed only.
     pub fn remove_component(&self, mut component: Component) -> Result<()> {
         if !self.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
@@ -793,14 +820,14 @@ impl<'a> Toolchain<'a> {
             Err(ErrorKind::ComponentsUnsupported(self.name.to_string()).into())
         }
     }
-
+    // Distributable and Custom. Installed only.
     pub fn binary_file(&self, name: &str) -> PathBuf {
         let mut path = self.path.clone();
         path.push("bin");
         path.push(name.to_owned() + env::consts::EXE_SUFFIX);
         path
     }
-
+    // Distributable and Custom. Installed only.
     pub fn rustc_version(&self) -> String {
         if self.exists() {
             let rustc_path = self.binary_file("rustc");
