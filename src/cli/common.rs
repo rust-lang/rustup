@@ -596,11 +596,9 @@ pub fn ignorable_error(error: crate::errors::Error, no_prompt: bool) -> Result<(
     if no_prompt {
         warn!("continuing (because the -y flag is set and the error is ignorable)");
         Ok(())
+    } else if confirm("\nContinue? (y/N)", false).unwrap_or(false) {
+        Ok(())
     } else {
-        if confirm("\nContinue? (y/N)", false).unwrap_or(false) {
-            Ok(())
-        } else {
-            Err(error)
-        }
+        Err(error)
     }
 }
