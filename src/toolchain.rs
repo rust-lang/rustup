@@ -25,6 +25,18 @@ use std::time::Duration;
 use url::Url;
 use wait_timeout::ChildExt;
 
+/// An installed toolchain
+trait InstalledToolchain<'a> {
+    /// What (root) paths are associated with this installed toolchain.
+    fn installed_paths(&self) -> Result<Vec<InstalledPath<'a>>>;
+}
+
+/// Installed paths
+enum InstalledPath<'a> {
+    File { name: &'static str, path: PathBuf },
+    Dir { path: &'a Path },
+}
+
 /// A fully resolved reference to a toolchain which may or may not exist
 pub struct Toolchain<'a> {
     cfg: &'a Cfg,
@@ -59,6 +71,17 @@ impl<'a> Toolchain<'a> {
             dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
         })
     }
+
+    fn as_installed(&'a self) -> Result<Box<dyn InstalledToolchain<'a> + 'a>> {
+        if self.is_custom() {
+            let toolchain = CustomToolchain::new(self)?;
+            Ok(Box::new(toolchain) as Box<dyn InstalledToolchain<'a>>)
+        } else {
+            let toolchain = DistributableToolchain::new(self)?;
+            Ok(Box::new(toolchain) as Box<dyn InstalledToolchain<'a>>)
+        }
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -99,14 +122,19 @@ impl<'a> Toolchain<'a> {
             (self.cfg.notify_handler)(Notification::ToolchainNotInstalled(&self.name));
             return Ok(());
         }
-        if let Some(update_hash) = self.update_hash()? {
-            utils::ensure_file_removed("update hash", &update_hash)?;
+        let installed = self.as_installed()?;
+        for path in installed.installed_paths()? {
+            match path {
+                InstalledPath::File { name, path } => utils::ensure_file_removed(&name, &path)?,
+                InstalledPath::Dir { path } => {
+                    install::uninstall(path, &|n| (self.cfg.notify_handler)(n.into()))?
+                }
+            }
         }
-        let result = install::uninstall(&self.path, &|n| (self.cfg.notify_handler)(n.into()));
         if !self.exists() {
             (self.cfg.notify_handler)(Notification::UninstalledToolchain(&self.name));
         }
-        result
+        Ok(())
     }
     // Custom and Distributable. Installed and not installed.
     fn install(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
@@ -158,14 +186,6 @@ impl<'a> Toolchain<'a> {
                 self.is_custom()
             }
             InstallMethod::Dist(..) => !self.is_custom(),
-        }
-    }
-    // Distributable only probably (once update_hash is only called appropriately). Installed only.
-    fn update_hash(&self) -> Result<Option<PathBuf>> {
-        if self.is_custom() {
-            Ok(None)
-        } else {
-            Ok(Some(self.cfg.get_hash_file(&self.name, true)?))
         }
     }
 
@@ -538,6 +558,23 @@ impl<'a> Toolchain<'a> {
 /// Newtype to facilitate splitting out custom-toolchain specific code.
 pub struct CustomToolchain<'a>(&'a Toolchain<'a>);
 
+impl<'a> CustomToolchain<'a> {
+    pub fn new(toolchain: &'a Toolchain<'a>) -> Result<CustomToolchain<'a>> {
+        if toolchain.is_custom() {
+            Ok(CustomToolchain(&toolchain))
+        } else {
+            Err(format!("{} is not a custom toolchain", toolchain.name()).into())
+        }
+    }
+}
+
+impl<'a> InstalledToolchain<'a> for CustomToolchain<'a> {
+    fn installed_paths(&self) -> Result<Vec<InstalledPath<'a>>> {
+        let path = &self.0.path;
+        Ok(vec![InstalledPath::Dir { path }])
+    }
+}
+
 /// Newtype to facilitate splitting out distributable-toolchain specific code.
 pub struct DistributableToolchain<'a>(&'a Toolchain<'a>);
 
@@ -726,12 +763,12 @@ impl<'a> DistributableToolchain<'a> {
         components: &[&str],
         targets: &[&str],
     ) -> Result<UpdateStatus> {
-        let update_hash = self.0.update_hash()?;
+        let update_hash = self.update_hash()?;
         let old_date = self.get_manifest().ok().and_then(|m| m.map(|m| m.date));
         self.0.install(InstallMethod::Dist(
             &self.desc()?,
             self.0.cfg.get_profile()?,
-            update_hash.as_ref().map(|p| &**p),
+            Some(&update_hash),
             self.0.download_cfg(),
             force_update,
             allow_downgrade,
@@ -744,11 +781,11 @@ impl<'a> DistributableToolchain<'a> {
 
     // Installed or not installed.
     pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
-        let update_hash = self.0.update_hash()?;
+        let update_hash = self.update_hash()?;
         self.0.install_if_not_installed(InstallMethod::Dist(
             &self.desc()?,
             self.0.cfg.get_profile()?,
-            update_hash.as_ref().map(|p| &**p),
+            Some(&update_hash),
             self.0.download_cfg(),
             false,
             false,
@@ -884,11 +921,11 @@ impl<'a> DistributableToolchain<'a> {
 
     // Installed only.
     pub fn show_dist_version(&self) -> Result<Option<String>> {
-        let update_hash = self.0.update_hash()?;
+        let update_hash = self.update_hash()?;
 
         match crate::dist::dist::dl_v2_manifest(
             self.0.download_cfg(),
-            update_hash.as_ref().map(|p| &**p),
+            Some(&update_hash),
             &self.desc()?,
         )? {
             Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
@@ -902,5 +939,23 @@ impl<'a> DistributableToolchain<'a> {
             Some(manifest) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
         }
+    }
+
+    // Installed only.
+    fn update_hash(&self) -> Result<PathBuf> {
+        Ok(self.0.cfg.get_hash_file(&self.0.name, true)?)
+    }
+}
+
+impl<'a> InstalledToolchain<'a> for DistributableToolchain<'a> {
+    fn installed_paths(&self) -> Result<Vec<InstalledPath<'a>>> {
+        let path = &self.0.path;
+        Ok(vec![
+            InstalledPath::File {
+                name: "update hash",
+                path: self.update_hash()?,
+            },
+            InstalledPath::Dir { path },
+        ])
     }
 }
