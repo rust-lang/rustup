@@ -743,7 +743,8 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         let toolchain = cfg.get_toolchain(toolchain, false)?;
 
         let status = if !toolchain.is_custom() {
-            Some(toolchain.install_from_dist_if_not_installed()?)
+            let distributable = DistributableToolchain::new(&toolchain)?;
+            Some(distributable.install_from_dist_if_not_installed()?)
         } else if !toolchain.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
         } else {
@@ -1251,7 +1252,8 @@ fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = cfg.get_toolchain(toolchain, false)?;
 
     let status = if !toolchain.is_custom() {
-        Some(toolchain.install_from_dist_if_not_installed()?)
+        let distributable = DistributableToolchain::new(&toolchain)?;
+        Some(distributable.install_from_dist_if_not_installed()?)
     } else if !toolchain.exists() {
         return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
     } else {

@@ -184,22 +184,6 @@ impl<'a> Toolchain<'a> {
         }
     }
 
-    // Distributable only. Installed or not installed.
-    pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
-        let update_hash = self.update_hash()?;
-        self.install_if_not_installed(InstallMethod::Dist(
-            &self.desc()?,
-            self.cfg.get_profile()?,
-            update_hash.as_ref().map(|p| &**p),
-            self.download_cfg(),
-            false,
-            false,
-            false,
-            None,
-            &[],
-            &[],
-        ))
-    }
     // Custom only
     pub fn is_custom(&self) -> bool {
         ToolchainDesc::from_str(&self.name).is_err()
@@ -754,6 +738,23 @@ impl<'a> DistributableToolchain<'a> {
             old_date.as_ref().map(|s| &**s),
             components,
             targets,
+        ))
+    }
+
+    // Installed or not installed.
+    pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
+        let update_hash = self.0.update_hash()?;
+        self.0.install_if_not_installed(InstallMethod::Dist(
+            &self.0.desc()?,
+            self.0.cfg.get_profile()?,
+            update_hash.as_ref().map(|p| &**p),
+            self.0.download_cfg(),
+            false,
+            false,
+            false,
+            None,
+            &[],
+            &[],
         ))
     }
 
