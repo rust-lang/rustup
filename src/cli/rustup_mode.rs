@@ -1172,8 +1172,9 @@ fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
+    let distributable = DistributableToolchain::new(&toolchain)?;
     let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
-        toolchain
+        distributable
             .desc()
             .as_ref()
             .ok()
@@ -1183,7 +1184,6 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     for component in m.values_of("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
-        let distributable = DistributableToolchain::new(&toolchain)?;
         distributable.add_component(new_component)?;
     }
 
@@ -1192,8 +1192,10 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
+    let distributable = DistributableToolchain::new(&toolchain)
+        .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
     let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
-        toolchain
+        distributable
             .desc()
             .as_ref()
             .ok()
@@ -1203,9 +1205,6 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     for component in m.values_of("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
-
-        let distributable = DistributableToolchain::new(&toolchain)
-            .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
         distributable.remove_component(new_component)?;
     }
 

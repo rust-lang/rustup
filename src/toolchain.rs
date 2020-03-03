@@ -62,10 +62,6 @@ impl<'a> Toolchain<'a> {
     pub fn name(&self) -> &str {
         &self.name
     }
-    // Distributable only
-    pub fn desc(&self) -> Result<ToolchainDesc> {
-        Ok(ToolchainDesc::from_str(&self.name)?)
-    }
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -618,6 +614,11 @@ impl<'a> DistributableToolchain<'a> {
         }
     }
 
+    // Installed and not-installed?
+    pub fn desc(&self) -> Result<ToolchainDesc> {
+        Ok(ToolchainDesc::from_str(&self.0.name)?)
+    }
+
     // Installed only?
     fn get_component_suggestion(
         &self,
@@ -728,7 +729,7 @@ impl<'a> DistributableToolchain<'a> {
         let update_hash = self.0.update_hash()?;
         let old_date = self.get_manifest().ok().and_then(|m| m.map(|m| m.date));
         self.0.install(InstallMethod::Dist(
-            &self.0.desc()?,
+            &self.desc()?,
             self.0.cfg.get_profile()?,
             update_hash.as_ref().map(|p| &**p),
             self.0.download_cfg(),
@@ -745,7 +746,7 @@ impl<'a> DistributableToolchain<'a> {
     pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
         let update_hash = self.0.update_hash()?;
         self.0.install_if_not_installed(InstallMethod::Dist(
-            &self.0.desc()?,
+            &self.desc()?,
             self.0.cfg.get_profile()?,
             update_hash.as_ref().map(|p| &**p),
             self.0.download_cfg(),
@@ -888,7 +889,7 @@ impl<'a> DistributableToolchain<'a> {
         match crate::dist::dist::dl_v2_manifest(
             self.0.download_cfg(),
             update_hash.as_ref().map(|p| &**p),
-            &self.0.desc()?,
+            &self.desc()?,
         )? {
             Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
