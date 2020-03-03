@@ -81,7 +81,9 @@ impl<'a> Toolchain<'a> {
             Ok(Box::new(toolchain) as Box<dyn InstalledToolchain<'a>>)
         }
     }
-
+    pub fn cfg(&self) -> &Cfg {
+        &self.cfg
+    }
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -136,43 +138,14 @@ impl<'a> Toolchain<'a> {
         }
         Ok(())
     }
-    // Custom and Distributable. Installed and not installed.
-    fn install(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
-        assert!(self.is_valid_install_method(install_method));
-        let previous_version = if self.exists() {
-            Some(self.rustc_version())
-        } else {
-            None
-        };
-        if previous_version.is_some() {
-            (self.cfg.notify_handler)(Notification::UpdatingToolchain(&self.name));
-        } else {
-            (self.cfg.notify_handler)(Notification::InstallingToolchain(&self.name));
-        }
-        (self.cfg.notify_handler)(Notification::ToolchainDirectory(&self.path, &self.name));
-        let updated = install_method.run(&self.path, &|n| (self.cfg.notify_handler)(n.into()))?;
 
-        if !updated {
-            (self.cfg.notify_handler)(Notification::UpdateHashMatches);
-        } else {
-            (self.cfg.notify_handler)(Notification::InstalledToolchain(&self.name));
-        }
-
-        let status = match (updated, previous_version) {
-            (true, None) => UpdateStatus::Installed,
-            (true, Some(v)) => UpdateStatus::Updated(v),
-            (false, _) => UpdateStatus::Unchanged,
-        };
-
-        Ok(status)
-    }
     // Custom and Distributable, Installed and not installed.
     // Perhaps make into a helper?
     fn install_if_not_installed(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
         assert!(self.is_valid_install_method(install_method));
         (self.cfg.notify_handler)(Notification::LookingForToolchain(&self.name));
         if !self.exists() {
-            Ok(self.install(install_method)?)
+            Ok(install_method.install(&self)?)
         } else {
             (self.cfg.notify_handler)(Notification::UsingExistingToolchain(&self.name));
             Ok(UpdateStatus::Unchanged)
@@ -180,7 +153,7 @@ impl<'a> Toolchain<'a> {
     }
     // Custom and Distributable. Installed and not installed (because of install_from_dist_if_not_installed) Goes away?
     // Or perhaps a trait.
-    fn is_valid_install_method(&self, install_method: InstallMethod<'_>) -> bool {
+    pub fn is_valid_install_method(&self, install_method: InstallMethod<'_>) -> bool {
         match install_method {
             InstallMethod::Copy(_) | InstallMethod::Link(_) | InstallMethod::Installer(..) => {
                 self.is_custom()
@@ -253,10 +226,7 @@ impl<'a> Toolchain<'a> {
                 utils::download_file(&url, &local_installer, None, &|n| {
                     (self.cfg.notify_handler)(n.into())
                 })?;
-                self.install(InstallMethod::Installer(
-                    &local_installer,
-                    &self.cfg.temp_cfg,
-                ))?;
+                InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg).install(&self)?;
             } else {
                 // If installer is a filename
 
@@ -264,10 +234,7 @@ impl<'a> Toolchain<'a> {
                 let local_installer = Path::new(installer);
 
                 // Install from file
-                self.install(InstallMethod::Installer(
-                    &local_installer,
-                    &self.cfg.temp_cfg,
-                ))?;
+                InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg).install(&self)?;
             }
         }
 
@@ -289,9 +256,9 @@ impl<'a> Toolchain<'a> {
         utils::assert_is_file(&pathbuf)?;
 
         if link {
-            self.install(InstallMethod::Link(&utils::to_absolute(src)?))?;
+            InstallMethod::Link(&utils::to_absolute(src)?).install(&self)?;
         } else {
-            self.install(InstallMethod::Copy(src))?;
+            InstallMethod::Copy(src).install(&self)?;
         }
 
         Ok(())
@@ -765,7 +732,7 @@ impl<'a> DistributableToolchain<'a> {
     ) -> Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
         let old_date = self.get_manifest().ok().and_then(|m| m.map(|m| m.date));
-        self.0.install(InstallMethod::Dist(
+        InstallMethod::Dist(
             &self.desc()?,
             self.0.cfg.get_profile()?,
             Some(&update_hash),
@@ -776,7 +743,8 @@ impl<'a> DistributableToolchain<'a> {
             old_date.as_ref().map(|s| &**s),
             components,
             targets,
-        ))
+        )
+        .install(&self.0)
     }
 
     // Installed or not installed.

@@ -8,6 +8,8 @@ use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::dist::Notification;
 use crate::errors::Result;
+use crate::notifications::Notification as RootNotification;
+use crate::toolchain::{Toolchain, UpdateStatus};
 use crate::utils::utils;
 use std::path::Path;
 
@@ -38,6 +40,48 @@ pub enum InstallMethod<'a> {
 }
 
 impl<'a> InstallMethod<'a> {
+    // Install a toolchain
+    pub fn install(&self, toolchain: &Toolchain<'a>) -> Result<UpdateStatus> {
+        assert!(toolchain.is_valid_install_method(*self));
+        let previous_version = if toolchain.exists() {
+            Some(toolchain.rustc_version())
+        } else {
+            None
+        };
+        if previous_version.is_some() {
+            (toolchain.cfg().notify_handler)(RootNotification::UpdatingToolchain(
+                &toolchain.name(),
+            ));
+        } else {
+            (toolchain.cfg().notify_handler)(RootNotification::InstallingToolchain(
+                &toolchain.name(),
+            ));
+        }
+        (toolchain.cfg().notify_handler)(RootNotification::ToolchainDirectory(
+            &toolchain.path(),
+            &toolchain.name(),
+        ));
+        let updated = self.run(&toolchain.path(), &|n| {
+            (toolchain.cfg().notify_handler)(n.into())
+        })?;
+
+        if !updated {
+            (toolchain.cfg().notify_handler)(RootNotification::UpdateHashMatches);
+        } else {
+            (toolchain.cfg().notify_handler)(RootNotification::InstalledToolchain(
+                &toolchain.name(),
+            ));
+        }
+
+        let status = match (updated, previous_version) {
+            (true, None) => UpdateStatus::Installed,
+            (true, Some(v)) => UpdateStatus::Updated(v),
+            (false, _) => UpdateStatus::Unchanged,
+        };
+
+        Ok(status)
+    }
+
     pub fn run(self, path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
