@@ -139,17 +139,6 @@ impl<'a> Toolchain<'a> {
         Ok(())
     }
 
-    // Custom and Distributable. Installed and not installed (because of install_from_dist_if_not_installed) Goes away?
-    // Or perhaps a trait.
-    pub fn is_valid_install_method(&self, install_method: InstallMethod<'_>) -> bool {
-        match install_method {
-            InstallMethod::Copy(_) | InstallMethod::Link(_) | InstallMethod::Installer(..) => {
-                self.is_custom()
-            }
-            InstallMethod::Dist(..) => !self.is_custom(),
-        }
-    }
-
     // XXX: Move to Config with a notify handler parameter
     fn download_cfg(&self) -> DownloadCfg<'_> {
         DownloadCfg {
@@ -186,6 +175,7 @@ impl<'a> Toolchain<'a> {
     pub fn install_from_installers(&self, installers: &[&OsStr]) -> Result<()> {
         self.ensure_custom()?;
 
+        let custom = CustomToolchain::new(&self)?;
         self.remove()?;
 
         // FIXME: This should do all downloads first, then do
@@ -214,7 +204,8 @@ impl<'a> Toolchain<'a> {
                 utils::download_file(&url, &local_installer, None, &|n| {
                     (self.cfg.notify_handler)(n.into())
                 })?;
-                InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg).install(&self)?;
+                InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg, &custom)
+                    .install(&self)?;
             } else {
                 // If installer is a filename
 
@@ -222,7 +213,8 @@ impl<'a> Toolchain<'a> {
                 let local_installer = Path::new(installer);
 
                 // Install from file
-                InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg).install(&self)?;
+                InstallMethod::Installer(&local_installer, &self.cfg.temp_cfg, &custom)
+                    .install(&self)?;
             }
         }
 
@@ -232,6 +224,7 @@ impl<'a> Toolchain<'a> {
     // Custom only. Not installed only.
     pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
         self.ensure_custom()?;
+        let custom = CustomToolchain::new(&self)?;
 
         let mut pathbuf = PathBuf::from(src);
 
@@ -244,9 +237,9 @@ impl<'a> Toolchain<'a> {
         utils::assert_is_file(&pathbuf)?;
 
         if link {
-            InstallMethod::Link(&utils::to_absolute(src)?).install(&self)?;
+            InstallMethod::Link(&utils::to_absolute(src)?, &custom).install(&self)?;
         } else {
-            InstallMethod::Copy(src).install(&self)?;
+            InstallMethod::Copy(src, &custom).install(&self)?;
         }
 
         Ok(())
@@ -731,6 +724,7 @@ impl<'a> DistributableToolchain<'a> {
             old_date.as_ref().map(|s| &**s),
             components,
             targets,
+            &self,
         )
         .install(&self.0)
     }
@@ -751,6 +745,7 @@ impl<'a> DistributableToolchain<'a> {
                 None,
                 &[],
                 &[],
+                &self,
             )
             .install(&self.0)?)
         } else {

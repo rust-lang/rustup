@@ -9,15 +9,15 @@ use crate::dist::temp;
 use crate::dist::Notification;
 use crate::errors::Result;
 use crate::notifications::Notification as RootNotification;
-use crate::toolchain::{Toolchain, UpdateStatus};
+use crate::toolchain::{CustomToolchain, DistributableToolchain, Toolchain, UpdateStatus};
 use crate::utils::utils;
 use std::path::Path;
 
 #[derive(Copy, Clone)]
 pub enum InstallMethod<'a> {
-    Copy(&'a Path),
-    Link(&'a Path),
-    Installer(&'a Path, &'a temp::Cfg),
+    Copy(&'a Path, &'a CustomToolchain<'a>),
+    Link(&'a Path, &'a CustomToolchain<'a>),
+    Installer(&'a Path, &'a temp::Cfg, &'a CustomToolchain<'a>),
     // bool is whether to force an update
     Dist(
         &'a dist::ToolchainDesc,
@@ -36,13 +36,13 @@ pub enum InstallMethod<'a> {
         &'a [&'a str],
         // Extra targets to install from dist
         &'a [&'a str],
+        &'a DistributableToolchain<'a>,
     ),
 }
 
 impl<'a> InstallMethod<'a> {
     // Install a toolchain
     pub fn install(&self, toolchain: &Toolchain<'a>) -> Result<UpdateStatus> {
-        assert!(toolchain.is_valid_install_method(*self));
         let previous_version = if toolchain.exists() {
             Some(toolchain.rustc_version())
         } else {
@@ -94,15 +94,15 @@ impl<'a> InstallMethod<'a> {
         }
 
         match self {
-            InstallMethod::Copy(src) => {
+            InstallMethod::Copy(src, ..) => {
                 utils::copy_dir(src, path, notify_handler)?;
                 Ok(true)
             }
-            InstallMethod::Link(src) => {
+            InstallMethod::Link(src, ..) => {
                 utils::symlink_dir(src, &path, notify_handler)?;
                 Ok(true)
             }
-            InstallMethod::Installer(src, temp_cfg) => {
+            InstallMethod::Installer(src, temp_cfg, ..) => {
                 InstallMethod::tar_gz(src, path, &temp_cfg, notify_handler)?;
                 Ok(true)
             }
@@ -117,6 +117,7 @@ impl<'a> InstallMethod<'a> {
                 old_date,
                 components,
                 targets,
+                ..,
             ) => {
                 let prefix = &InstallPrefix::from(path.to_owned());
                 let maybe_new_hash = dist::update_from_dist(
