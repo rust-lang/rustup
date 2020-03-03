@@ -139,18 +139,6 @@ impl<'a> Toolchain<'a> {
         Ok(())
     }
 
-    // Custom and Distributable, Installed and not installed.
-    // Perhaps make into a helper?
-    fn install_if_not_installed(&self, install_method: InstallMethod<'_>) -> Result<UpdateStatus> {
-        assert!(self.is_valid_install_method(install_method));
-        (self.cfg.notify_handler)(Notification::LookingForToolchain(&self.name));
-        if !self.exists() {
-            Ok(install_method.install(&self)?)
-        } else {
-            (self.cfg.notify_handler)(Notification::UsingExistingToolchain(&self.name));
-            Ok(UpdateStatus::Unchanged)
-        }
-    }
     // Custom and Distributable. Installed and not installed (because of install_from_dist_if_not_installed) Goes away?
     // Or perhaps a trait.
     pub fn is_valid_install_method(&self, install_method: InstallMethod<'_>) -> bool {
@@ -750,18 +738,25 @@ impl<'a> DistributableToolchain<'a> {
     // Installed or not installed.
     pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
-        self.0.install_if_not_installed(InstallMethod::Dist(
-            &self.desc()?,
-            self.0.cfg.get_profile()?,
-            Some(&update_hash),
-            self.0.download_cfg(),
-            false,
-            false,
-            false,
-            None,
-            &[],
-            &[],
-        ))
+        (self.0.cfg.notify_handler)(Notification::LookingForToolchain(&self.0.name));
+        if !self.0.exists() {
+            Ok(InstallMethod::Dist(
+                &self.desc()?,
+                self.0.cfg.get_profile()?,
+                Some(&update_hash),
+                self.0.download_cfg(),
+                false,
+                false,
+                false,
+                None,
+                &[],
+                &[],
+            )
+            .install(&self.0)?)
+        } else {
+            (self.0.cfg.notify_handler)(Notification::UsingExistingToolchain(&self.0.name));
+            Ok(UpdateStatus::Unchanged)
+        }
     }
 
     // Installed only.
