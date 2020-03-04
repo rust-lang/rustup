@@ -309,11 +309,8 @@ impl Cfg {
     }
 
     pub fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {
-        if let Some((toolchain, _)) = self.find_override_toolchain_or_default(path)? {
-            Ok(Some(toolchain.binary_file(binary)))
-        } else {
-            Ok(None)
-        }
+        let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
+        Ok(Some(toolchain.binary_file(binary)))
     }
 
     pub fn upgrade_data(&self) -> Result<()> {
@@ -370,10 +367,7 @@ impl Cfg {
             .with(|s| Ok(s.default_toolchain.clone()))?;
 
         if let Some(name) = opt_name {
-            let toolchain = self
-                .verify_toolchain(&name)
-                .chain_err(|| ErrorKind::ToolchainNotInstalled(name.to_string()))?;
-
+            let toolchain = Toolchain::from(self, &name)?;
             Ok(Some(toolchain))
         } else {
             Ok(None)
@@ -427,24 +421,18 @@ impl Cfg {
                 ),
             };
 
-            match self.get_toolchain(&name, false) {
-                Ok(toolchain) => {
-                    if toolchain.exists() {
-                        Ok(Some((toolchain, reason)))
-                    } else if toolchain.is_custom() {
-                        // Strip the confusing NotADirectory error and only mention that the
-                        // override toolchain is not installed.
-                        Err(Error::from(reason_err)).chain_err(|| {
-                            ErrorKind::OverrideToolchainNotInstalled(name.to_string())
-                        })
-                    } else {
-                        toolchain.install_from_dist(true, false, &[], &[])?;
-                        Ok(Some((toolchain, reason)))
-                    }
-                }
-                Err(e) => Err(e)
-                    .chain_err(|| Error::from(reason_err))
-                    .chain_err(|| ErrorKind::OverrideToolchainNotInstalled(name.to_string())),
+            let toolchain = Toolchain::from(self, &name)?;
+            // Overridden toolchains can be literally any string, but only
+            // distributable toolchains will be auto-installed by the wrapping
+            // code; provide a nice error for this common case. (default could
+            // be set badly too, but that is much less common).
+            if !toolchain.exists() && toolchain.is_custom() {
+                // Strip the confusing NotADirectory error and only mention that the
+                // override toolchain is not installed.
+                Err(Error::from(reason_err))
+                    .chain_err(|| ErrorKind::OverrideToolchainNotInstalled(name.to_string()))
+            } else {
+                Ok(Some((toolchain, reason)))
             }
         } else {
             Ok(None)
@@ -495,17 +483,30 @@ impl Cfg {
         Ok(None)
     }
 
-    pub fn find_override_toolchain_or_default(
+    pub fn find_or_install_override_toolchain_or_default(
         &self,
         path: &Path,
-    ) -> Result<Option<(Toolchain<'_>, Option<OverrideReason>)>> {
-        Ok(
+    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
+        if let Some((toolchain, reason)) =
             if let Some((toolchain, reason)) = self.find_override(path)? {
                 Some((toolchain, Some(reason)))
             } else {
                 self.find_default()?.map(|toolchain| (toolchain, None))
-            },
-        )
+            }
+        {
+            if !toolchain.exists() {
+                if toolchain.is_custom() {
+                    return Err(
+                        ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into(),
+                    );
+                }
+                toolchain.install_from_dist(true, false, &[], &[])?;
+            }
+            Ok((toolchain, reason))
+        } else {
+            // No override and no default set
+            Err(ErrorKind::ToolchainNotSelected.into())
+        }
     }
 
     pub fn get_default(&self) -> Result<Option<String>> {
@@ -581,8 +582,7 @@ impl Cfg {
         &self,
         path: &Path,
     ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
-        self.find_override_toolchain_or_default(path)
-            .and_then(|r| r.ok_or_else(|| "no default toolchain configured".into()))
+        self.find_or_install_override_toolchain_or_default(path)
     }
 
     pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {

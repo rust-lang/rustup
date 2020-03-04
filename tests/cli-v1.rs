@@ -22,7 +22,11 @@ pub fn setup(f: &dyn Fn(&mut Config)) {
 #[test]
 fn rustc_no_default_toolchain() {
     setup(&|config| {
-        expect_err(config, &["rustc"], "no default toolchain configured");
+        expect_err(
+            config,
+            &["rustc"],
+            "no override and no default toolchain set",
+        );
     });
 }
 
@@ -158,14 +162,14 @@ fn remove_toolchain() {
 }
 
 #[test]
-fn remove_default_toolchain_err_handling() {
+fn remove_default_toolchain_autoinstalls() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
-        expect_err(
+        expect_stderr_ok(
             config,
-            &["rustc"],
-            for_host!("toolchain 'nightly-{0}' is not installed"),
+            &["rustc", "--version"],
+            "info: installing component",
         );
     });
 }
@@ -304,7 +308,11 @@ fn remove_override_no_default() {
         config.change_dir(tempdir.path(), &|| {
             expect_ok(config, &["rustup", "override", "add", "nightly"]);
             expect_ok(config, &["rustup", "override", "remove"]);
-            expect_err(config, &["rustc"], "no default toolchain configured");
+            expect_err(
+                config,
+                &["rustc"],
+                "no override and no default toolchain set",
+            );
         });
     });
 }
