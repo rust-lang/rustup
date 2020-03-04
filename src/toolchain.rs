@@ -713,19 +713,19 @@ impl<'a> DistributableToolchain<'a> {
     ) -> Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
         let old_date = self.get_manifest().ok().and_then(|m| m.map(|m| m.date));
-        InstallMethod::Dist(
-            &self.desc()?,
-            self.0.cfg.get_profile()?,
-            Some(&update_hash),
-            self.0.download_cfg(),
+        InstallMethod::Dist {
+            desc: &self.desc()?,
+            profile: self.0.cfg.get_profile()?,
+            update_hash: Some(&update_hash),
+            dl_cfg: self.0.download_cfg(),
             force_update,
             allow_downgrade,
-            self.0.exists(),
-            old_date.as_ref().map(|s| &**s),
+            exists: self.0.exists(),
+            old_date: old_date.as_ref().map(|s| &**s),
             components,
             targets,
-            &self,
-        )
+            distributable: &self,
+        }
         .install(&self.0)
     }
 
@@ -734,19 +734,19 @@ impl<'a> DistributableToolchain<'a> {
         let update_hash = self.update_hash()?;
         (self.0.cfg.notify_handler)(Notification::LookingForToolchain(&self.0.name));
         if !self.0.exists() {
-            Ok(InstallMethod::Dist(
-                &self.desc()?,
-                self.0.cfg.get_profile()?,
-                Some(&update_hash),
-                self.0.download_cfg(),
-                false,
-                false,
-                false,
-                None,
-                &[],
-                &[],
-                &self,
-            )
+            Ok(InstallMethod::Dist {
+                desc: &self.desc()?,
+                profile: self.0.cfg.get_profile()?,
+                update_hash: Some(&update_hash),
+                dl_cfg: self.0.download_cfg(),
+                force_update: false,
+                allow_downgrade: false,
+                exists: false,
+                old_date: None,
+                components: &[],
+                targets: &[],
+                distributable: &self,
+            }
             .install(&self.0)?)
         } else {
             (self.0.cfg.notify_handler)(Notification::UsingExistingToolchain(&self.0.name));

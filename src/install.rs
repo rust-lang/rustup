@@ -19,25 +19,25 @@ pub enum InstallMethod<'a> {
     Link(&'a Path, &'a CustomToolchain<'a>),
     Installer(&'a Path, &'a temp::Cfg, &'a CustomToolchain<'a>),
     // bool is whether to force an update
-    Dist(
-        &'a dist::ToolchainDesc,
-        dist::Profile,
-        Option<&'a Path>,
-        DownloadCfg<'a>,
+    Dist {
+        desc: &'a dist::ToolchainDesc,
+        profile: dist::Profile,
+        update_hash: Option<&'a Path>,
+        dl_cfg: DownloadCfg<'a>,
         // --force
-        bool,
+        force_update: bool,
         // --allow-downgrade
-        bool,
+        allow_downgrade: bool,
         // toolchain already exists
-        bool,
+        exists: bool,
         // currently installed date
-        Option<&'a str>,
+        old_date: Option<&'a str>,
         // Extra components to install from dist
-        &'a [&'a str],
+        components: &'a [&'a str],
         // Extra targets to install from dist
-        &'a [&'a str],
-        &'a DistributableToolchain<'a>,
-    ),
+        targets: &'a [&'a str],
+        distributable: &'a DistributableToolchain<'a>,
+    },
 }
 
 impl<'a> InstallMethod<'a> {
@@ -86,7 +86,7 @@ impl<'a> InstallMethod<'a> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
-                InstallMethod::Dist(..) | InstallMethod::Installer(..) => {}
+                InstallMethod::Dist { .. } | InstallMethod::Installer(..) => {}
                 _ => {
                     uninstall(path, notify_handler)?;
                 }
@@ -106,8 +106,8 @@ impl<'a> InstallMethod<'a> {
                 InstallMethod::tar_gz(src, path, &temp_cfg, notify_handler)?;
                 Ok(true)
             }
-            InstallMethod::Dist(
-                toolchain,
+            InstallMethod::Dist {
+                desc,
                 profile,
                 update_hash,
                 dl_cfg,
@@ -117,13 +117,13 @@ impl<'a> InstallMethod<'a> {
                 old_date,
                 components,
                 targets,
-                ..,
-            ) => {
+                ..
+            } => {
                 let prefix = &InstallPrefix::from(path.to_owned());
                 let maybe_new_hash = dist::update_from_dist(
                     dl_cfg,
                     update_hash,
-                    toolchain,
+                    desc,
                     if exists { None } else { Some(profile) },
                     prefix,
                     force_update,
