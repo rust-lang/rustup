@@ -300,6 +300,10 @@ error_chain! {
             description("toolchain is not installed")
             display("toolchain '{}' is not installed", t)
         }
+        ToolchainNotSelected {
+            description("toolchain is not selected")
+            display("no override and no default toolchain set")
+        }
         OverrideToolchainNotInstalled(t: String) {
             description("override toolchain is not installed")
             display("override toolchain '{}' is not installed", t)

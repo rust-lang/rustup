@@ -928,22 +928,19 @@ fn show(cfg: &Cfg) -> Result<()> {
 
     let cwd = utils::current_dir()?;
     let installed_toolchains = cfg.list_toolchains()?;
-    let active_toolchain = cfg.find_override_toolchain_or_default(&cwd);
+    // XXX: we may want a find_without_install capability for show.
+    let active_toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd);
 
     // active_toolchain will carry the reason we don't have one in its detail.
     let active_targets = if let Ok(ref at) = active_toolchain {
-        if let Some((ref t, _)) = *at {
-            match t.list_components() {
-                Ok(None) => vec![],
-                Ok(Some(cs_vec)) => cs_vec
-                    .into_iter()
-                    .filter(|c| c.component.short_name_in_manifest() == "rust-std")
-                    .filter(|c| c.installed)
-                    .collect(),
-                Err(_) => vec![],
-            }
-        } else {
-            vec![]
+        match at.0.list_components() {
+            Ok(None) => vec![],
+            Ok(Some(cs_vec)) => cs_vec
+                .into_iter()
+                .filter(|c| c.component.short_name_in_manifest() == "rust-std")
+                .filter(|c| c.installed)
+                .collect(),
+            Err(_) => vec![],
         }
     } else {
         vec![]
@@ -1013,18 +1010,18 @@ fn show(cfg: &Cfg) -> Result<()> {
 
         match active_toolchain {
             Ok(atc) => match atc {
-                Some((ref toolchain, Some(ref reason))) => {
+                (ref toolchain, Some(ref reason)) => {
                     writeln!(t, "{} ({})", toolchain.name(), reason)?;
                     writeln!(t, "{}", toolchain.rustc_version())?;
                 }
-                Some((ref toolchain, None)) => {
+                (ref toolchain, None) => {
                     writeln!(t, "{} (default)", toolchain.name())?;
                     writeln!(t, "{}", toolchain.rustc_version())?;
                 }
-                None => {
-                    writeln!(t, "no active toolchain")?;
-                }
             },
+            Err(rustup::Error(rustup::ErrorKind::ToolchainNotSelected, _)) => {
+                writeln!(t, "no active toolchain")?;
+            }
             Err(err) => {
                 if let Some(cause) = err.source() {
                     writeln!(t, "(error: {}, {})", err, cause)?;
@@ -1053,11 +1050,15 @@ fn show(cfg: &Cfg) -> Result<()> {
 
 fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
     let cwd = utils::current_dir()?;
-    if let Some((toolchain, reason)) = cfg.find_override_toolchain_or_default(&cwd)? {
-        if let Some(reason) = reason {
-            println!("{} ({})", toolchain.name(), reason);
-        } else {
-            println!("{} (default)", toolchain.name());
+    match cfg.find_or_install_override_toolchain_or_default(&cwd) {
+        Err(rustup::Error(rustup::ErrorKind::ToolchainNotSelected, _)) => {}
+        Err(e) => return Err(e.into()),
+        Ok((toolchain, reason)) => {
+            if let Some(reason) = reason {
+                println!("{} ({})", toolchain.name(), reason);
+            } else {
+                println!("{} (default)", toolchain.name());
+            }
         }
     }
     Ok(())
