@@ -58,6 +58,7 @@ pub mod diskio;
 pub mod dist;
 pub mod env_var;
 pub mod errors;
+pub mod fallback_settings;
 mod install;
 mod notifications;
 pub mod settings;

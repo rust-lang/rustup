@@ -347,6 +347,9 @@ error_chain! {
             display("component {} was automatically added because it is required for toolchain '{}'",
                     c, t)
         }
+        ParsingFallbackSettings(e: toml::de::Error) {
+            description("error parsing settings")
+        }
         ParsingSettings(e: toml::de::Error) {
             description("error parsing settings")
         }

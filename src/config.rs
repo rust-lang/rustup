@@ -11,6 +11,7 @@ use pgp::{Deserializable, SignedPublicKey};
 
 use crate::dist::{dist, temp};
 use crate::errors::*;
+use crate::fallback_settings::FallbackSettings;
 use crate::notifications::*;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
 use crate::toolchain::{Toolchain, UpdateStatus};
@@ -108,10 +109,13 @@ impl Display for PgpPublicKey {
     }
 }
 
+pub const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
+
 pub struct Cfg {
     pub profile_override: Option<dist::Profile>,
     pub rustup_dir: PathBuf,
     pub settings_file: SettingsFile,
+    pub fallback_settings: Option<FallbackSettings>,
     pub toolchains_dir: PathBuf,
     pub update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
@@ -132,6 +136,13 @@ impl Cfg {
         utils::ensure_dir_exists("home", &rustup_dir, notify_handler.as_ref())?;
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
+
+        // Centralised file for multi-user systems to provide admin/distributor set initial values.
+        let fallback_settings = if cfg!(not(windows)) {
+            FallbackSettings::new(PathBuf::from(UNIX_FALLBACK_SETTINGS))?
+        } else {
+            None
+        };
 
         let toolchains_dir = rustup_dir.join("toolchains");
         let update_hash_dir = rustup_dir.join("update-hashes");
@@ -191,6 +202,7 @@ impl Cfg {
             profile_override: None,
             rustup_dir,
             settings_file,
+            fallback_settings,
             toolchains_dir,
             update_hash_dir,
             download_dir,
@@ -362,9 +374,7 @@ impl Cfg {
     }
 
     pub fn find_default(&self) -> Result<Option<Toolchain<'_>>> {
-        let opt_name = self
-            .settings_file
-            .with(|s| Ok(s.default_toolchain.clone()))?;
+        let opt_name = self.get_default()?;
 
         if let Some(name) = opt_name {
             let toolchain = Toolchain::from(self, &name)?;
@@ -510,7 +520,14 @@ impl Cfg {
     }
 
     pub fn get_default(&self) -> Result<Option<String>> {
-        self.settings_file.with(|s| Ok(s.default_toolchain.clone()))
+        let user_opt = self.settings_file.with(|s| Ok(s.default_toolchain.clone()));
+        if let Some(fallback_settings) = &self.fallback_settings {
+            match user_opt {
+                Err(_) | Ok(None) => return Ok(fallback_settings.default_toolchain.clone()),
+                _ => {}
+            };
+        };
+        user_opt
     }
 
     pub fn list_toolchains(&self) -> Result<Vec<String>> {

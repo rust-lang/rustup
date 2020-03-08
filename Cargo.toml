@@ -42,6 +42,7 @@ remove_dir_all = "0.5.1"
 same-file = "1"
 scopeguard = "1"
 semver = "0.9"
+serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.8"
 strsim = "0.9.1"
 tar = "0.4.26"
