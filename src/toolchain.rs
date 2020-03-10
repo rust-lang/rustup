@@ -71,6 +71,14 @@ impl<'a> Toolchain<'a> {
         })
     }
 
+    pub fn as_installed_common(&'a self) -> Result<InstalledCommonToolchain<'a>> {
+        if !self.exists() {
+            // Should be verify perhaps?
+            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
+        }
+        Ok(InstalledCommonToolchain(self))
+    }
+
     fn as_installed(&'a self) -> Result<Box<dyn InstalledToolchain<'a> + 'a>> {
         if self.is_custom() {
             let toolchain = CustomToolchain::new(self)?;
@@ -148,48 +156,6 @@ impl<'a> Toolchain<'a> {
             .ok()
             .map(|d| d.is_tracking())
             == Some(true)
-    }
-
-    // Both Distributable and Custom; Installed only.
-    pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
-        if !self.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
-        }
-
-        // Create the path to this binary within the current toolchain sysroot
-        let binary = if let Some(binary_str) = binary.as_ref().to_str() {
-            if binary_str.to_lowercase().ends_with(EXE_SUFFIX) {
-                binary.as_ref().to_owned()
-            } else {
-                OsString::from(format!("{}{}", binary_str, EXE_SUFFIX))
-            }
-        } else {
-            // Very weird case. Non-unicode command.
-            binary.as_ref().to_owned()
-        };
-
-        let bin_path = self.path.join("bin").join(&binary);
-        let path = if utils::is_file(&bin_path) {
-            &bin_path
-        } else {
-            let recursion_count = env::var("RUST_RECURSION_COUNT")
-                .ok()
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(0);
-            if recursion_count > env_var::RUST_RECURSION_COUNT_MAX - 1 {
-                let defaults = self.cfg.get_default()?;
-                return Err(ErrorKind::BinaryNotFound(
-                    binary.to_string_lossy().into(),
-                    self.name.clone(),
-                    Some(&self.name) == defaults.as_ref(),
-                )
-                .into());
-            }
-            Path::new(&binary)
-        };
-        let mut cmd = Command::new(&path);
-        self.set_env(&mut cmd);
-        Ok(cmd)
     }
 
     // Custom and Distributable. Installed only.
@@ -352,6 +318,48 @@ impl<'a> Toolchain<'a> {
         } else {
             String::from("(toolchain not installed)")
         }
+    }
+}
+
+/// Newtype hosting functions that apply to both custom and distributable toolchains that are installed.
+pub struct InstalledCommonToolchain<'a>(&'a Toolchain<'a>);
+
+impl<'a> InstalledCommonToolchain<'a> {
+    pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
+        // Create the path to this binary within the current toolchain sysroot
+        let binary = if let Some(binary_str) = binary.as_ref().to_str() {
+            if binary_str.to_lowercase().ends_with(EXE_SUFFIX) {
+                binary.as_ref().to_owned()
+            } else {
+                OsString::from(format!("{}{}", binary_str, EXE_SUFFIX))
+            }
+        } else {
+            // Very weird case. Non-unicode command.
+            binary.as_ref().to_owned()
+        };
+
+        let bin_path = self.0.path.join("bin").join(&binary);
+        let path = if utils::is_file(&bin_path) {
+            &bin_path
+        } else {
+            let recursion_count = env::var("RUST_RECURSION_COUNT")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0);
+            if recursion_count > env_var::RUST_RECURSION_COUNT_MAX - 1 {
+                let defaults = self.0.cfg.get_default()?;
+                return Err(ErrorKind::BinaryNotFound(
+                    binary.to_string_lossy().into(),
+                    self.0.name.clone(),
+                    Some(&self.0.name) == defaults.as_ref(),
+                )
+                .into());
+            }
+            Path::new(&binary)
+        };
+        let mut cmd = Command::new(&path);
+        self.0.set_env(&mut cmd);
+        Ok(cmd)
     }
 }
 

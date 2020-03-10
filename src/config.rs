@@ -625,7 +625,10 @@ impl Cfg {
         if let Some(cmd) = self.maybe_do_cargo_fallback(toolchain, binary)? {
             Ok(cmd)
         } else {
-            toolchain.create_command(binary)
+            // NB this can only fail in race conditions since we used toolchain
+            // for dir.
+            let installed = toolchain.as_installed_common()?;
+            installed.create_command(binary)
         }
     }
 
@@ -644,7 +647,9 @@ impl Cfg {
         if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {
             Ok(cmd)
         } else {
-            toolchain.create_command(binary)
+            // NB note this really can't fail due to to having installed the toolchain if needed
+            let installed = toolchain.as_installed_common()?;
+            installed.create_command(binary)
         }
     }
 
