@@ -5,10 +5,11 @@ use crate::self_update;
 use crate::term2;
 use crate::term2::Terminal;
 use crate::topical_doc;
+
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use rustup::dist::manifest::Component;
-use rustup::toolchain::DistributableToolchain;
+use rustup::toolchain::{CustomToolchain, DistributableToolchain};
 use rustup::utils::utils::{self, ExitCode};
 use rustup::Notification;
 use rustup::{command, Cfg, ComponentStatus, Toolchain};
@@ -1233,9 +1234,13 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let path = m.value_of("path").unwrap();
     let toolchain = cfg.get_toolchain(toolchain, true)?;
 
-    toolchain
-        .install_from_dir(Path::new(path), true)
-        .map_err(Into::into)
+    if let Ok(custom) = CustomToolchain::new(&toolchain) {
+        custom
+            .install_from_dir(Path::new(path), true)
+            .map_err(Into::into)
+    } else {
+        Err(ErrorKind::InvalidCustomToolchainName(toolchain.name().to_string()).into())
+    }
 }
 
 fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {

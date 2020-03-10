@@ -221,30 +221,6 @@ impl<'a> Toolchain<'a> {
         Ok(())
     }
 
-    // Custom only. Not installed only.
-    pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
-        self.ensure_custom()?;
-        let custom = CustomToolchain::new(&self)?;
-
-        let mut pathbuf = PathBuf::from(src);
-
-        pathbuf.push("lib");
-        utils::assert_is_directory(&pathbuf)?;
-        pathbuf.pop();
-        pathbuf.push("bin");
-        utils::assert_is_directory(&pathbuf)?;
-        pathbuf.push(format!("rustc{}", EXE_SUFFIX));
-        utils::assert_is_file(&pathbuf)?;
-
-        if link {
-            InstallMethod::Link(&utils::to_absolute(src)?, &custom).install(&self)?;
-        } else {
-            InstallMethod::Copy(src, &custom).install(&self)?;
-        }
-
-        Ok(())
-    }
-
     // Both Distributable and Custom; Installed only.
     pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
         if !self.exists() {
@@ -513,6 +489,27 @@ impl<'a> CustomToolchain<'a> {
         } else {
             Err(format!("{} is not a custom toolchain", toolchain.name()).into())
         }
+    }
+
+    // Not installed only.
+    pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
+        let mut pathbuf = PathBuf::from(src);
+
+        pathbuf.push("lib");
+        utils::assert_is_directory(&pathbuf)?;
+        pathbuf.pop();
+        pathbuf.push("bin");
+        utils::assert_is_directory(&pathbuf)?;
+        pathbuf.push(format!("rustc{}", EXE_SUFFIX));
+        utils::assert_is_file(&pathbuf)?;
+
+        if link {
+            InstallMethod::Link(&utils::to_absolute(src)?, self).install(&self.0)?;
+        } else {
+            InstallMethod::Copy(src, self).install(&self.0)?;
+        }
+
+        Ok(())
     }
 }
 

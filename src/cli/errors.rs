@@ -26,6 +26,9 @@ error_chain! {
     }
 
     errors {
+        InvalidCustomToolchainName(t: String) {
+            display("invalid custom toolchain name: '{}'", t)
+        }
         PermissionDenied {
             description("permission denied")
         }
