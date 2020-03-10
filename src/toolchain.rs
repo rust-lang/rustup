@@ -263,59 +263,6 @@ impl<'a> Toolchain<'a> {
         Ok(cmd)
     }
 
-    // Create a command as a fallback for another toolchain. This is used
-    // to give custom toolchains access to cargo
-    // Custom only. Installed only.
-    pub fn create_fallback_command<T: AsRef<OsStr>>(
-        &self,
-        binary: T,
-        primary_toolchain: &Toolchain<'_>,
-    ) -> Result<Command> {
-        // With the hacks below this only works for cargo atm
-        assert!(binary.as_ref() == "cargo" || binary.as_ref() == "cargo.exe");
-
-        if !self.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
-        }
-        if !primary_toolchain.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(primary_toolchain.name.to_owned()).into());
-        }
-
-        let src_file = self.path.join("bin").join(format!("cargo{}", EXE_SUFFIX));
-
-        // MAJOR HACKS: Copy cargo.exe to its own directory on windows before
-        // running it. This is so that the fallback cargo, when it in turn runs
-        // rustc.exe, will run the rustc.exe out of the PATH environment
-        // variable, _not_ the rustc.exe sitting in the same directory as the
-        // fallback. See the `fallback_cargo_calls_correct_rustc` test case and
-        // PR 812.
-        //
-        // On Windows, spawning a process will search the running application's
-        // directory for the exe to spawn before searching PATH, and we don't want
-        // it to do that, because cargo's directory contains the _wrong_ rustc. See
-        // the documentation for the lpCommandLine argument of CreateProcess.
-        let exe_path = if cfg!(windows) {
-            use std::fs;
-            let fallback_dir = self.cfg.rustup_dir.join("fallback");
-            fs::create_dir_all(&fallback_dir)
-                .chain_err(|| "unable to create dir to hold fallback exe")?;
-            let fallback_file = fallback_dir.join("cargo.exe");
-            if fallback_file.exists() {
-                fs::remove_file(&fallback_file)
-                    .chain_err(|| "unable to unlink old fallback exe")?;
-            }
-            fs::hard_link(&src_file, &fallback_file)
-                .chain_err(|| "unable to hard link fallback exe")?;
-            fallback_file
-        } else {
-            src_file
-        };
-        let mut cmd = Command::new(exe_path);
-        primary_toolchain.set_env(&mut cmd); // set up the environment to match rustc, not cargo
-        cmd.env("RUSTUP_TOOLCHAIN", &primary_toolchain.name);
-        Ok(cmd)
-    }
-
     // Custom and Distributable. Installed only.
     fn set_env(&self, cmd: &mut Command) {
         self.set_ldpath(cmd);
@@ -594,6 +541,59 @@ impl<'a> DistributableToolchain<'a> {
         } else {
             Err(ErrorKind::ComponentsUnsupported(self.0.name.to_string()).into())
         }
+    }
+
+    // Create a command as a fallback for another toolchain. This is used
+    // to give custom toolchains access to cargo
+    // Installed only.
+    pub fn create_fallback_command<T: AsRef<OsStr>>(
+        &self,
+        binary: T,
+        primary_toolchain: &Toolchain<'_>,
+    ) -> Result<Command> {
+        // With the hacks below this only works for cargo atm
+        assert!(binary.as_ref() == "cargo" || binary.as_ref() == "cargo.exe");
+
+        if !self.0.exists() {
+            return Err(ErrorKind::ToolchainNotInstalled(self.0.name.to_owned()).into());
+        }
+        if !primary_toolchain.exists() {
+            return Err(ErrorKind::ToolchainNotInstalled(primary_toolchain.name.to_owned()).into());
+        }
+
+        let src_file = self.0.path.join("bin").join(format!("cargo{}", EXE_SUFFIX));
+
+        // MAJOR HACKS: Copy cargo.exe to its own directory on windows before
+        // running it. This is so that the fallback cargo, when it in turn runs
+        // rustc.exe, will run the rustc.exe out of the PATH environment
+        // variable, _not_ the rustc.exe sitting in the same directory as the
+        // fallback. See the `fallback_cargo_calls_correct_rustc` test case and
+        // PR 812.
+        //
+        // On Windows, spawning a process will search the running application's
+        // directory for the exe to spawn before searching PATH, and we don't want
+        // it to do that, because cargo's directory contains the _wrong_ rustc. See
+        // the documentation for the lpCommandLine argument of CreateProcess.
+        let exe_path = if cfg!(windows) {
+            use std::fs;
+            let fallback_dir = self.0.cfg.rustup_dir.join("fallback");
+            fs::create_dir_all(&fallback_dir)
+                .chain_err(|| "unable to create dir to hold fallback exe")?;
+            let fallback_file = fallback_dir.join("cargo.exe");
+            if fallback_file.exists() {
+                fs::remove_file(&fallback_file)
+                    .chain_err(|| "unable to unlink old fallback exe")?;
+            }
+            fs::hard_link(&src_file, &fallback_file)
+                .chain_err(|| "unable to hard link fallback exe")?;
+            fallback_file
+        } else {
+            src_file
+        };
+        let mut cmd = Command::new(exe_path);
+        primary_toolchain.set_env(&mut cmd); // set up the environment to match rustc, not cargo
+        cmd.env("RUSTUP_TOOLCHAIN", &primary_toolchain.name);
+        Ok(cmd)
     }
 
     // Installed and not-installed?

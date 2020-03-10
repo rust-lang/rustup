@@ -658,7 +658,8 @@ impl Cfg {
         for fallback in &["nightly", "beta", "stable"] {
             let fallback = self.get_toolchain(fallback, false)?;
             if fallback.exists() {
-                let cmd = fallback.create_fallback_command("cargo", toolchain)?;
+                let distributable = DistributableToolchain::new(&fallback)?;
+                let cmd = distributable.create_fallback_command("cargo", toolchain)?;
                 return Ok(Some(cmd));
             }
         }
