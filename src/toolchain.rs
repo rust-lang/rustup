@@ -159,24 +159,6 @@ impl<'a> Toolchain<'a> {
     }
 
     // Custom and Distributable. Installed only.
-    fn set_env(&self, cmd: &mut Command) {
-        self.set_ldpath(cmd);
-
-        // Because rustup and cargo use slightly different
-        // definitions of cargo home (rustup doesn't read HOME on
-        // windows), we must set it here to ensure cargo and
-        // rustup agree.
-        if let Ok(cargo_home) = utils::cargo_home() {
-            cmd.env("CARGO_HOME", &cargo_home);
-        }
-
-        env_var::inc("RUST_RECURSION_COUNT", cmd);
-
-        cmd.env("RUSTUP_TOOLCHAIN", &self.name);
-        cmd.env("RUSTUP_HOME", &self.cfg.rustup_dir);
-    }
-
-    // Custom and Distributable. Installed only.
     pub fn set_ldpath(&self, cmd: &mut Command) {
         let mut new_path = vec![self.path.join("lib")];
 
@@ -358,8 +340,25 @@ impl<'a> InstalledCommonToolchain<'a> {
             Path::new(&binary)
         };
         let mut cmd = Command::new(&path);
-        self.0.set_env(&mut cmd);
+        self.set_env(&mut cmd);
         Ok(cmd)
+    }
+
+    fn set_env(&self, cmd: &mut Command) {
+        self.0.set_ldpath(cmd);
+
+        // Because rustup and cargo use slightly different
+        // definitions of cargo home (rustup doesn't read HOME on
+        // windows), we must set it here to ensure cargo and
+        // rustup agree.
+        if let Ok(cargo_home) = utils::cargo_home() {
+            cmd.env("CARGO_HOME", &cargo_home);
+        }
+
+        env_var::inc("RUST_RECURSION_COUNT", cmd);
+
+        cmd.env("RUSTUP_TOOLCHAIN", &self.0.name);
+        cmd.env("RUSTUP_HOME", &self.0.cfg.rustup_dir);
     }
 }
 
@@ -494,9 +493,7 @@ impl<'a> DistributableToolchain<'a> {
         if !self.0.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.0.name.to_owned()).into());
         }
-        if !primary_toolchain.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(primary_toolchain.name.to_owned()).into());
-        }
+        let installed_primary = primary_toolchain.as_installed_common()?;
 
         let src_file = self.0.path.join("bin").join(format!("cargo{}", EXE_SUFFIX));
 
@@ -528,7 +525,7 @@ impl<'a> DistributableToolchain<'a> {
             src_file
         };
         let mut cmd = Command::new(exe_path);
-        primary_toolchain.set_env(&mut cmd); // set up the environment to match rustc, not cargo
+        installed_primary.set_env(&mut cmd); // set up the environment to match rustc, not cargo
         cmd.env("RUSTUP_TOOLCHAIN", &primary_toolchain.name);
         Ok(cmd)
     }
