@@ -1,11 +1,9 @@
 //! Installation and upgrade of both distribution-managed and local
 //! toolchains
 
-use crate::dist::component::{Components, Package, TarGzPackage, Transaction};
 use crate::dist::dist;
 use crate::dist::download::DownloadCfg;
 use crate::dist::prefix::InstallPrefix;
-use crate::dist::temp;
 use crate::dist::Notification;
 use crate::errors::Result;
 use crate::notifications::Notification as RootNotification;
@@ -17,7 +15,6 @@ use std::path::Path;
 pub enum InstallMethod<'a> {
     Copy(&'a Path, &'a CustomToolchain<'a>),
     Link(&'a Path, &'a CustomToolchain<'a>),
-    Installer(&'a Path, &'a temp::Cfg, &'a CustomToolchain<'a>),
     // bool is whether to force an update
     Dist {
         desc: &'a dist::ToolchainDesc,
@@ -86,7 +83,7 @@ impl<'a> InstallMethod<'a> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
-                InstallMethod::Dist { .. } | InstallMethod::Installer(..) => {}
+                InstallMethod::Dist { .. } => {}
                 _ => {
                     uninstall(path, notify_handler)?;
                 }
@@ -100,10 +97,6 @@ impl<'a> InstallMethod<'a> {
             }
             InstallMethod::Link(src, ..) => {
                 utils::symlink_dir(src, &path, notify_handler)?;
-                Ok(true)
-            }
-            InstallMethod::Installer(src, temp_cfg, ..) => {
-                InstallMethod::tar_gz(src, path, &temp_cfg, notify_handler)?;
                 Ok(true)
             }
             InstallMethod::Dist {
@@ -144,34 +137,6 @@ impl<'a> InstallMethod<'a> {
                 }
             }
         }
-    }
-
-    fn tar_gz(
-        src: &Path,
-        path: &Path,
-        temp_cfg: &temp::Cfg,
-        notify_handler: &dyn Fn(Notification<'_>),
-    ) -> Result<()> {
-        notify_handler(Notification::Extracting(src, path));
-
-        let prefix = InstallPrefix::from(path.to_owned());
-        let installation = Components::open(prefix.clone())?;
-        let notification_converter = |notification: crate::utils::Notification<'_>| {
-            notify_handler(notification.into());
-        };
-        let reader = utils::FileReaderWithProgress::new_file(&src, &notification_converter)?;
-        let package: &dyn Package =
-            &TarGzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
-
-        let mut tx = Transaction::new(prefix, temp_cfg, notify_handler);
-
-        for component in package.components() {
-            tx = package.install(&installation, &component, None, tx)?;
-        }
-
-        tx.commit();
-
-        Ok(())
     }
 }
 
