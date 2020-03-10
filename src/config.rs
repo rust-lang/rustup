@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 use pgp::{Deserializable, SignedPublicKey};
 
+use crate::dist::download::DownloadCfg;
 use crate::dist::{dist, temp};
 use crate::errors::*;
 use crate::fallback_settings::FallbackSettings;
@@ -222,6 +223,20 @@ impl Cfg {
             .map_err(|e| format!("Unable parse configuration: {}", e))?;
 
         Ok(cfg)
+    }
+
+    /// construct a download configuration
+    pub fn download_cfg<'a>(
+        &'a self,
+        notify_handler: &'a dyn Fn(crate::dist::Notification<'_>),
+    ) -> DownloadCfg<'a> {
+        DownloadCfg {
+            dist_root: &self.dist_root_url,
+            temp_cfg: &self.temp_cfg,
+            download_dir: &self.download_dir,
+            notify_handler: notify_handler,
+            pgp_keys: self.get_pgp_keys(),
+        }
     }
 
     pub fn get_pgp_keys(&self) -> &[PgpPublicKey] {
@@ -655,6 +670,7 @@ impl Cfg {
             return Ok(None);
         }
 
+        // XXX: This could actually consider all distributable toolchains in principle.
         for fallback in &["nightly", "beta", "stable"] {
             let fallback = self.get_toolchain(fallback, false)?;
             if fallback.exists() {

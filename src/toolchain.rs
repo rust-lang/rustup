@@ -139,17 +139,6 @@ impl<'a> Toolchain<'a> {
         Ok(())
     }
 
-    // XXX: Move to Config with a notify handler parameter
-    fn download_cfg(&self) -> DownloadCfg<'_> {
-        DownloadCfg {
-            dist_root: &self.cfg.dist_root_url,
-            temp_cfg: &self.cfg.temp_cfg,
-            download_dir: &self.cfg.download_dir,
-            notify_handler: &*self.dist_handler,
-            pgp_keys: self.cfg.get_pgp_keys(),
-        }
-    }
-
     // Custom only
     pub fn is_custom(&self) -> bool {
         ToolchainDesc::from_str(&self.name).is_err()
@@ -531,8 +520,8 @@ impl<'a> DistributableToolchain<'a> {
                 &manifest,
                 changes,
                 false,
-                &self.0.download_cfg(),
-                &self.0.download_cfg().notify_handler,
+                &self.download_cfg(),
+                &self.download_cfg().notify_handler,
                 &toolchain.manifest_name(),
                 false,
             )?;
@@ -599,6 +588,10 @@ impl<'a> DistributableToolchain<'a> {
     // Installed and not-installed?
     pub fn desc(&self) -> Result<ToolchainDesc> {
         Ok(ToolchainDesc::from_str(&self.0.name)?)
+    }
+
+    fn download_cfg(&self) -> DownloadCfg<'_> {
+        self.0.cfg.download_cfg(&*self.0.dist_handler)
     }
 
     // Installed only?
@@ -714,7 +707,7 @@ impl<'a> DistributableToolchain<'a> {
             desc: &self.desc()?,
             profile: self.0.cfg.get_profile()?,
             update_hash: Some(&update_hash),
-            dl_cfg: self.0.download_cfg(),
+            dl_cfg: self.download_cfg(),
             force_update,
             allow_downgrade,
             exists: self.0.exists(),
@@ -735,7 +728,7 @@ impl<'a> DistributableToolchain<'a> {
                 desc: &self.desc()?,
                 profile: self.0.cfg.get_profile()?,
                 update_hash: Some(&update_hash),
-                dl_cfg: self.0.download_cfg(),
+                dl_cfg: self.download_cfg(),
                 force_update: false,
                 allow_downgrade: false,
                 exists: false,
@@ -862,8 +855,8 @@ impl<'a> DistributableToolchain<'a> {
                 &manifest,
                 changes,
                 false,
-                &self.0.download_cfg(),
-                &self.0.download_cfg().notify_handler,
+                &self.download_cfg(),
+                &self.download_cfg().notify_handler,
                 &toolchain.manifest_name(),
                 false,
             )?;
@@ -879,7 +872,7 @@ impl<'a> DistributableToolchain<'a> {
         let update_hash = self.update_hash()?;
 
         match crate::dist::dist::dl_v2_manifest(
-            self.0.download_cfg(),
+            self.download_cfg(),
             Some(&update_hash),
             &self.desc()?,
         )? {
