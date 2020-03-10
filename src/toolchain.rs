@@ -159,61 +159,6 @@ impl<'a> Toolchain<'a> {
     }
 
     // Custom and Distributable. Installed only.
-    pub fn set_ldpath(&self, cmd: &mut Command) {
-        let mut new_path = vec![self.path.join("lib")];
-
-        #[cfg(not(target_os = "macos"))]
-        mod sysenv {
-            pub const LOADER_PATH: &str = "LD_LIBRARY_PATH";
-        }
-        #[cfg(target_os = "macos")]
-        mod sysenv {
-            // When loading and linking a dynamic library or bundle, dlopen
-            // searches in LD_LIBRARY_PATH, DYLD_LIBRARY_PATH, PWD, and
-            // DYLD_FALLBACK_LIBRARY_PATH.
-            // In the Mach-O format, a dynamic library has an "install path."
-            // Clients linking against the library record this path, and the
-            // dynamic linker, dyld, uses it to locate the library.
-            // dyld searches DYLD_LIBRARY_PATH *before* the install path.
-            // dyld searches DYLD_FALLBACK_LIBRARY_PATH only if it cannot
-            // find the library in the install path.
-            // Setting DYLD_LIBRARY_PATH can easily have unintended
-            // consequences.
-            pub const LOADER_PATH: &str = "DYLD_FALLBACK_LIBRARY_PATH";
-        }
-        if cfg!(target_os = "macos")
-            && env::var_os(sysenv::LOADER_PATH)
-                .filter(|x| x.len() > 0)
-                .is_none()
-        {
-            // These are the defaults when DYLD_FALLBACK_LIBRARY_PATH isn't
-            // set or set to an empty string. Since we are explicitly setting
-            // the value, make sure the defaults still work.
-            if let Some(home) = env::var_os("HOME") {
-                new_path.push(PathBuf::from(home).join("lib"));
-            }
-            new_path.push(PathBuf::from("/usr/local/lib"));
-            new_path.push(PathBuf::from("/usr/lib"));
-        }
-
-        env_var::prepend_path(sysenv::LOADER_PATH, new_path, cmd);
-
-        // Prepend CARGO_HOME/bin to the PATH variable so that we're sure to run
-        // cargo/rustc via the proxy bins. There is no fallback case for if the
-        // proxy bins don't exist. We'll just be running whatever happens to
-        // be on the PATH.
-        let mut path_entries = vec![];
-        if let Ok(cargo_home) = utils::cargo_home() {
-            path_entries.push(cargo_home.join("bin"));
-        }
-
-        if cfg!(target_os = "windows") {
-            path_entries.push(self.path.join("bin"));
-        }
-
-        env_var::prepend_path("PATH", path_entries, cmd);
-    }
-    // Custom and Distributable. Installed only.
     pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {
         self.verify()?;
 
@@ -252,7 +197,7 @@ impl<'a> Toolchain<'a> {
     }
     // Distributable and Custom. Installed only.
     pub fn rustc_version(&self) -> String {
-        if self.exists() {
+        if let Ok(installed) = self.as_installed_common() {
             let rustc_path = self.binary_file("rustc");
             if utils::is_file(&rustc_path) {
                 let mut cmd = Command::new(&rustc_path);
@@ -260,7 +205,7 @@ impl<'a> Toolchain<'a> {
                 cmd.stdin(Stdio::null());
                 cmd.stdout(Stdio::piped());
                 cmd.stderr(Stdio::piped());
-                self.set_ldpath(&mut cmd);
+                installed.set_ldpath(&mut cmd);
 
                 // some toolchains are faulty with some combinations of platforms and
                 // may fail to launch but also to timely terminate.
@@ -345,7 +290,7 @@ impl<'a> InstalledCommonToolchain<'a> {
     }
 
     fn set_env(&self, cmd: &mut Command) {
-        self.0.set_ldpath(cmd);
+        self.set_ldpath(cmd);
 
         // Because rustup and cargo use slightly different
         // definitions of cargo home (rustup doesn't read HOME on
@@ -359,6 +304,61 @@ impl<'a> InstalledCommonToolchain<'a> {
 
         cmd.env("RUSTUP_TOOLCHAIN", &self.0.name);
         cmd.env("RUSTUP_HOME", &self.0.cfg.rustup_dir);
+    }
+
+    fn set_ldpath(&self, cmd: &mut Command) {
+        let mut new_path = vec![self.0.path.join("lib")];
+
+        #[cfg(not(target_os = "macos"))]
+        mod sysenv {
+            pub const LOADER_PATH: &str = "LD_LIBRARY_PATH";
+        }
+        #[cfg(target_os = "macos")]
+        mod sysenv {
+            // When loading and linking a dynamic library or bundle, dlopen
+            // searches in LD_LIBRARY_PATH, DYLD_LIBRARY_PATH, PWD, and
+            // DYLD_FALLBACK_LIBRARY_PATH.
+            // In the Mach-O format, a dynamic library has an "install path."
+            // Clients linking against the library record this path, and the
+            // dynamic linker, dyld, uses it to locate the library.
+            // dyld searches DYLD_LIBRARY_PATH *before* the install path.
+            // dyld searches DYLD_FALLBACK_LIBRARY_PATH only if it cannot
+            // find the library in the install path.
+            // Setting DYLD_LIBRARY_PATH can easily have unintended
+            // consequences.
+            pub const LOADER_PATH: &str = "DYLD_FALLBACK_LIBRARY_PATH";
+        }
+        if cfg!(target_os = "macos")
+            && env::var_os(sysenv::LOADER_PATH)
+                .filter(|x| x.len() > 0)
+                .is_none()
+        {
+            // These are the defaults when DYLD_FALLBACK_LIBRARY_PATH isn't
+            // set or set to an empty string. Since we are explicitly setting
+            // the value, make sure the defaults still work.
+            if let Some(home) = env::var_os("HOME") {
+                new_path.push(PathBuf::from(home).join("lib"));
+            }
+            new_path.push(PathBuf::from("/usr/local/lib"));
+            new_path.push(PathBuf::from("/usr/lib"));
+        }
+
+        env_var::prepend_path(sysenv::LOADER_PATH, new_path, cmd);
+
+        // Prepend CARGO_HOME/bin to the PATH variable so that we're sure to run
+        // cargo/rustc via the proxy bins. There is no fallback case for if the
+        // proxy bins don't exist. We'll just be running whatever happens to
+        // be on the PATH.
+        let mut path_entries = vec![];
+        if let Ok(cargo_home) = utils::cargo_home() {
+            path_entries.push(cargo_home.join("bin"));
+        }
+
+        if cfg!(target_os = "windows") {
+            path_entries.push(self.0.path.join("bin"));
+        }
+
+        env_var::prepend_path("PATH", path_entries, cmd);
     }
 }
 
