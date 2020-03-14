@@ -1,3 +1,4 @@
+use crate::component_for_bin;
 use crate::config::Cfg;
 use crate::dist::dist::TargetTriple;
 use crate::dist::dist::ToolchainDesc;
@@ -274,6 +275,30 @@ impl<'a> InstalledCommonToolchain<'a> {
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
             if recursion_count > env_var::RUST_RECURSION_COUNT_MAX - 1 {
+                let binary_lossy: String = binary.to_string_lossy().into();
+                if let Ok(distributable) = DistributableToolchain::new(self.0) {
+                    if let (Some(component_name), Ok(component_statuses), Ok(Some(manifest))) = (
+                        component_for_bin(&binary_lossy),
+                        distributable.list_components(),
+                        distributable.get_manifest(),
+                    ) {
+                        let component_status = component_statuses
+                            .iter()
+                            .find(|cs| cs.component.short_name(&manifest) == component_name)
+                            .expect(&format!(
+                                "component {} should be in the manifest",
+                                component_name
+                            ));
+                        if !component_status.available {
+                            return Err(ErrorKind::BinaryProvidedByUnavailableComponent(
+                                component_status.component.short_name(&manifest),
+                                binary_lossy,
+                                self.0.name.clone(),
+                            )
+                            .into());
+                        }
+                    }
+                }
                 let defaults = self.0.cfg.get_default()?;
                 return Err(ErrorKind::BinaryNotFound(
                     binary.to_string_lossy().into(),
