@@ -21,6 +21,7 @@ no-self-update = []
 
 # Sorted by alphabetic order
 [dependencies]
+anyhow = "1.0.27"
 chrono = "0.4"
 clap = "2"
 download = { path = "download" }
@@ -35,6 +36,7 @@ opener = "0.4.0"
 # Used by `curl` or `reqwest` backend although it isn't imported
 # by our rustup.
 openssl = { version = "0.10", optional = true }
+pgp = { version = "0.4", default-features = false}
 pulldown-cmark = { version = "0.6", default-features = false }
 rand = "0.7"
 regex = "1"
@@ -54,7 +56,7 @@ toml = "0.5"
 url = "2.1"
 wait-timeout = "0.2"
 xz2 = "0.1.3"
-pgp = { version = "0.4", default-features = false}
+thiserror = "1.0.11"
 
 [dependencies.retry]
 version = "1"
