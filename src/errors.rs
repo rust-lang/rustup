@@ -189,10 +189,6 @@ error_chain! {
             description("invalid toolchain name")
             display("invalid toolchain name: '{}'", t)
         }
-        InvalidCustomToolchainName(t: String) {
-            description("invalid custom toolchain name")
-            display("invalid custom toolchain name: '{}'", t)
-        }
         InvalidProfile(t: String) {
             description("invalid profile name")
             display("invalid profile name: '{}'; valid names are: {}", t, valid_profile_names())

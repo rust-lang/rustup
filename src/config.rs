@@ -9,12 +9,13 @@ use std::sync::Arc;
 
 use pgp::{Deserializable, SignedPublicKey};
 
+use crate::dist::download::DownloadCfg;
 use crate::dist::{dist, temp};
 use crate::errors::*;
 use crate::fallback_settings::FallbackSettings;
 use crate::notifications::*;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
-use crate::toolchain::{Toolchain, UpdateStatus};
+use crate::toolchain::{DistributableToolchain, Toolchain, UpdateStatus};
 use crate::utils::utils;
 
 #[derive(Debug)]
@@ -222,6 +223,20 @@ impl Cfg {
             .map_err(|e| format!("Unable parse configuration: {}", e))?;
 
         Ok(cfg)
+    }
+
+    /// construct a download configuration
+    pub fn download_cfg<'a>(
+        &'a self,
+        notify_handler: &'a dyn Fn(crate::dist::Notification<'_>),
+    ) -> DownloadCfg<'a> {
+        DownloadCfg {
+            dist_root: &self.dist_root_url,
+            temp_cfg: &self.temp_cfg,
+            download_dir: &self.download_dir,
+            notify_handler: notify_handler,
+            pgp_keys: self.get_pgp_keys(),
+        }
     }
 
     pub fn get_pgp_keys(&self) -> &[PgpPublicKey] {
@@ -510,7 +525,8 @@ impl Cfg {
                         ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into(),
                     );
                 }
-                toolchain.install_from_dist(true, false, &[], &[])?;
+                let distributable = DistributableToolchain::new(&toolchain)?;
+                distributable.install_from_dist(true, false, &[], &[])?;
             }
             Ok((toolchain, reason))
         } else {
@@ -568,15 +584,16 @@ impl Cfg {
 
         // Update toolchains and collect the results
         let channels = channels.map(|(n, t)| {
-            let t = t.and_then(|t| {
-                let t = t.install_from_dist(force_update, false, &[], &[]);
-                if let Err(ref e) = t {
+            let st = t.and_then(|t| {
+                let distributable = DistributableToolchain::new(&t)?;
+                let st = distributable.install_from_dist(force_update, false, &[], &[]);
+                if let Err(ref e) = st {
                     (self.notify_handler)(Notification::NonFatalError(e));
                 }
-                t
+                st
             });
 
-            (n, t)
+            (n, st)
         });
 
         Ok(channels.collect())
@@ -608,7 +625,10 @@ impl Cfg {
         if let Some(cmd) = self.maybe_do_cargo_fallback(toolchain, binary)? {
             Ok(cmd)
         } else {
-            toolchain.create_command(binary)
+            // NB this can only fail in race conditions since we used toolchain
+            // for dir.
+            let installed = toolchain.as_installed_common()?;
+            installed.create_command(binary)
         }
     }
 
@@ -620,13 +640,16 @@ impl Cfg {
     ) -> Result<Command> {
         let toolchain = self.get_toolchain(toolchain, false)?;
         if install_if_missing && !toolchain.exists() {
-            toolchain.install_from_dist(true, false, &[], &[])?;
+            let distributable = DistributableToolchain::new(&toolchain)?;
+            distributable.install_from_dist(true, false, &[], &[])?;
         }
 
         if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {
             Ok(cmd)
         } else {
-            toolchain.create_command(binary)
+            // NB note this really can't fail due to to having installed the toolchain if needed
+            let installed = toolchain.as_installed_common()?;
+            installed.create_command(binary)
         }
     }
 
@@ -652,10 +675,12 @@ impl Cfg {
             return Ok(None);
         }
 
+        // XXX: This could actually consider all distributable toolchains in principle.
         for fallback in &["nightly", "beta", "stable"] {
             let fallback = self.get_toolchain(fallback, false)?;
             if fallback.exists() {
-                let cmd = fallback.create_fallback_command("cargo", toolchain)?;
+                let distributable = DistributableToolchain::new(&fallback)?;
+                let cmd = distributable.create_fallback_command("cargo", toolchain)?;
                 return Ok(Some(cmd));
             }
         }

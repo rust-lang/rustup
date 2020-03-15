@@ -5,9 +5,11 @@ use crate::self_update;
 use crate::term2;
 use crate::term2::Terminal;
 use crate::topical_doc;
+
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use rustup::dist::manifest::Component;
+use rustup::toolchain::{CustomToolchain, DistributableToolchain};
 use rustup::utils::utils::{self, ExitCode};
 use rustup::Notification;
 use rustup::{command, Cfg, ComponentStatus, Toolchain};
@@ -742,7 +744,8 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         let toolchain = cfg.get_toolchain(toolchain, false)?;
 
         let status = if !toolchain.is_custom() {
-            Some(toolchain.install_from_dist_if_not_installed()?)
+            let distributable = DistributableToolchain::new(&toolchain)?;
+            Some(distributable.install_from_dist_if_not_installed()?)
         } else if !toolchain.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
         } else {
@@ -781,8 +784,9 @@ fn check_updates(cfg: &Cfg) -> Result<()> {
     for channel in channels {
         match channel {
             (ref name, Ok(ref toolchain)) => {
-                let current_version = toolchain.show_version()?;
-                let dist_version = toolchain.show_dist_version()?;
+                let distributable = DistributableToolchain::new(&toolchain)?;
+                let current_version = distributable.show_version()?;
+                let dist_version = distributable.show_dist_version()?;
                 let _ = t.attr(term2::Attr::Bold);
                 write!(t, "{} - ", name)?;
                 match (current_version, dist_version) {
@@ -840,7 +844,8 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
                     .values_of("targets")
                     .map(|v| v.collect())
                     .unwrap_or_else(Vec::new);
-                Some(toolchain.install_from_dist(
+                let distributable = DistributableToolchain::new(&toolchain)?;
+                Some(distributable.install_from_dist(
                     m.is_present("force"),
                     m.is_present("allow-downgrade"),
                     &components,
@@ -933,14 +938,18 @@ fn show(cfg: &Cfg) -> Result<()> {
 
     // active_toolchain will carry the reason we don't have one in its detail.
     let active_targets = if let Ok(ref at) = active_toolchain {
-        match at.0.list_components() {
-            Ok(None) => vec![],
-            Ok(Some(cs_vec)) => cs_vec
-                .into_iter()
-                .filter(|c| c.component.short_name_in_manifest() == "rust-std")
-                .filter(|c| c.installed)
-                .collect(),
-            Err(_) => vec![],
+        if let Ok(distributable) = DistributableToolchain::new(&at.0) {
+            match distributable.list_components() {
+                Ok(cs_vec) => cs_vec
+                    .into_iter()
+                    .filter(|c| c.component.short_name_in_manifest() == "rust-std")
+                    .filter(|c| c.installed)
+                    .collect(),
+                Err(_) => vec![],
+            }
+        } else {
+            // These three vec![] could perhaps be reduced with and_then on active_toolchain.
+            vec![]
         }
     } else {
         vec![]
@@ -1106,7 +1115,8 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         }
 
         targets.clear();
-        for component in toolchain.list_components()?.unwrap() {
+        let distributable = DistributableToolchain::new(&toolchain)?;
+        for component in distributable.list_components()? {
             if component.component.short_name_in_manifest() == "rust-std"
                 && component.available
                 && !component.installed
@@ -1127,7 +1137,8 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             Some(TargetTriple::new(target)),
             false,
         );
-        toolchain.add_component(new_component)?;
+        let distributable = DistributableToolchain::new(&toolchain)?;
+        distributable.add_component(new_component)?;
     }
 
     Ok(())
@@ -1142,8 +1153,9 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             Some(TargetTriple::new(target)),
             false,
         );
-
-        toolchain.remove_component(new_component)?;
+        let distributable = DistributableToolchain::new(&toolchain)
+            .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+        distributable.remove_component(new_component)?;
     }
 
     Ok(())
@@ -1161,8 +1173,9 @@ fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
+    let distributable = DistributableToolchain::new(&toolchain)?;
     let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
-        toolchain
+        distributable
             .desc()
             .as_ref()
             .ok()
@@ -1172,8 +1185,7 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     for component in m.values_of("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
-
-        toolchain.add_component(new_component)?;
+        distributable.add_component(new_component)?;
     }
 
     Ok(())
@@ -1181,8 +1193,10 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
+    let distributable = DistributableToolchain::new(&toolchain)
+        .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
     let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
-        toolchain
+        distributable
             .desc()
             .as_ref()
             .ok()
@@ -1192,8 +1206,7 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     for component in m.values_of("component").unwrap() {
         let new_component = Component::new_with_target(component, false)
             .unwrap_or_else(|| Component::new(component.to_string(), target.clone(), true));
-
-        toolchain.remove_component(new_component)?;
+        distributable.remove_component(new_component)?;
     }
 
     Ok(())
@@ -1221,9 +1234,13 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let path = m.value_of("path").unwrap();
     let toolchain = cfg.get_toolchain(toolchain, true)?;
 
-    toolchain
-        .install_from_dir(Path::new(path), true)
-        .map_err(Into::into)
+    if let Ok(custom) = CustomToolchain::new(&toolchain) {
+        custom
+            .install_from_dir(Path::new(path), true)
+            .map_err(Into::into)
+    } else {
+        Err(ErrorKind::InvalidCustomToolchainName(toolchain.name().to_string()).into())
+    }
 }
 
 fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
@@ -1239,7 +1256,8 @@ fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = cfg.get_toolchain(toolchain, false)?;
 
     let status = if !toolchain.is_custom() {
-        Some(toolchain.install_from_dist_if_not_installed()?)
+        let distributable = DistributableToolchain::new(&toolchain)?;
+        Some(distributable.install_from_dist_if_not_installed()?)
     } else if !toolchain.exists() {
         return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
     } else {
@@ -1326,28 +1344,26 @@ const DOCS_DATA: &[(&str, &str, &str,)] = &[
 
 fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    match toolchain.list_components()? {
-        None => { /* custom - no validation */ }
-        Some(components) => {
-            if let [_] = components
-                .into_iter()
-                .filter(|cstatus| {
-                    cstatus.component.short_name_in_manifest() == "rust-docs" && !cstatus.installed
-                })
-                .take(1)
-                .collect::<Vec<ComponentStatus>>()
-                .as_slice()
-            {
-                info!(
-                    "`rust-docs` not installed in toolchain `{}`",
-                    toolchain.name()
-                );
-                info!(
-                    "To install, try `rustup component add --toolchain {} rust-docs`",
-                    toolchain.name()
-                );
-                return Err("unable to view documentation which is not installed".into());
-            }
+    if let Ok(distributable) = DistributableToolchain::new(&toolchain) {
+        let components = distributable.list_components()?;
+        if let [_] = components
+            .into_iter()
+            .filter(|cstatus| {
+                cstatus.component.short_name_in_manifest() == "rust-docs" && !cstatus.installed
+            })
+            .take(1)
+            .collect::<Vec<ComponentStatus>>()
+            .as_slice()
+        {
+            info!(
+                "`rust-docs` not installed in toolchain `{}`",
+                toolchain.name()
+            );
+            info!(
+                "To install, try `rustup component add --toolchain {} rust-docs`",
+                toolchain.name()
+            );
+            return Err("unable to view documentation which is not installed".into());
         }
     }
     let topical_path: PathBuf;
