@@ -445,7 +445,30 @@ fn rls_exists_in_toolchain() {
 }
 
 #[test]
-fn rls_does_not_exist_in_toolchain() {
+fn run_rls_when_not_available_in_toolchain() {
+    clitools::setup(Scenario::UnavailableRls, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_err(
+            config,
+            &["rls", "--version"],
+            &format!(
+                "the 'rls' component which provides the command 'rls{}' is not available for the 'nightly-{}' toolchain",
+                EXE_SUFFIX,
+                this_host_triple(),
+            ),
+        );
+
+        set_current_dist_date(config, "2015-01-02");
+        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "component", "add", "rls"]);
+
+        expect_ok(config, &["rls", "--version"]);
+    });
+}
+
+#[test]
+fn run_rls_when_not_installed() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_err(
