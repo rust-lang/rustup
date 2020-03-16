@@ -54,19 +54,18 @@ fn run_rustup() -> Result<()> {
     if env::var("RUSTUP_TRACE_DIR").is_ok() {
         close_trace_file!();
     }
-    SyncError::maybe(result)?;
-    Ok(())
+    result
 }
 
-fn run_rustup_inner() -> crate::errors::Result<()> {
+fn run_rustup_inner() -> Result<()> {
     // Guard against infinite proxy recursion. This mostly happens due to
     // bugs in rustup.
-    do_recursion_guard()?;
+    SyncError::maybe(do_recursion_guard())?;
 
     // Before we do anything else, ensure we know where we are and who we
     // are because otherwise we cannot proceed usefully.
-    utils::current_dir()?;
-    utils::current_exe()?;
+    SyncError::maybe(utils::current_dir())?;
+    SyncError::maybe(utils::current_exe())?;
 
     // The name of arg0 determines how the program is going to behave
     let arg0 = match env::var("RUSTUP_FORCE_ARG0") {
@@ -79,7 +78,7 @@ fn run_rustup_inner() -> crate::errors::Result<()> {
         .and_then(|a| a.file_stem())
         .and_then(std::ffi::OsStr::to_str);
 
-    match name {
+    Ok(SyncError::maybe(match name {
         Some("rustup") => rustup_mode::main(),
         Some(n) if n.starts_with("rustup-setup") || n.starts_with("rustup-init") => {
             // NB: The above check is only for the prefix of the file
@@ -98,7 +97,7 @@ fn run_rustup_inner() -> crate::errors::Result<()> {
             // Weird case. No arg0, or it's unparsable.
             Err(crate::errors::ErrorKind::NoExeName.into())
         }
-    }
+    })?)
 }
 
 fn do_recursion_guard() -> crate::errors::Result<()> {
