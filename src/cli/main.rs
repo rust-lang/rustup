@@ -29,7 +29,6 @@ mod setup_mode;
 mod term2;
 mod topical_doc;
 
-use crate::errors::*;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 use rustup::errors::SyncError;
 use rustup::utils::utils;
@@ -37,12 +36,12 @@ use rustup::utils::utils;
 use std::env;
 use std::path::PathBuf;
 
-use anyhow;
+use anyhow::Result;
 use rs_tracing::*;
 
 fn main() {
     if let Err(e) = run_rustup() {
-        common::report_error(&anyhow::Error::from(SyncError::new(e)));
+        common::report_error(&e);
         std::process::exit(1);
     }
 }
@@ -55,10 +54,11 @@ fn run_rustup() -> Result<()> {
     if env::var("RUSTUP_TRACE_DIR").is_ok() {
         close_trace_file!();
     }
-    result
+    SyncError::maybe(result)?;
+    Ok(())
 }
 
-fn run_rustup_inner() -> Result<()> {
+fn run_rustup_inner() -> crate::errors::Result<()> {
     // Guard against infinite proxy recursion. This mostly happens due to
     // bugs in rustup.
     do_recursion_guard()?;
@@ -96,18 +96,18 @@ fn run_rustup_inner() -> Result<()> {
         Some(_) => proxy_mode::main(),
         None => {
             // Weird case. No arg0, or it's unparsable.
-            Err(ErrorKind::NoExeName.into())
+            Err(crate::errors::ErrorKind::NoExeName.into())
         }
     }
 }
 
-fn do_recursion_guard() -> Result<()> {
+fn do_recursion_guard() -> crate::errors::Result<()> {
     let recursion_count = env::var("RUST_RECURSION_COUNT")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
     if recursion_count > RUST_RECURSION_COUNT_MAX {
-        return Err(ErrorKind::InfiniteRecursion.into());
+        return Err(crate::errors::ErrorKind::InfiniteRecursion.into());
     }
 
     Ok(())
