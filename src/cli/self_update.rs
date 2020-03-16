@@ -35,6 +35,7 @@ use crate::errors::*;
 use crate::markdown::md;
 use crate::term2;
 use rustup::dist::dist::{self, Profile, TargetTriple};
+use rustup::errors::SyncError;
 use rustup::toolchain::DistributableToolchain;
 use rustup::utils::utils;
 use rustup::utils::Notification;
@@ -310,8 +311,8 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
         Ok(())
     })();
 
-    if let Err(ref e) = install_res {
-        common::report_error(e);
+    if let Err(e) = install_res {
+        common::report_error(&SyncError::new(e).into());
 
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, give

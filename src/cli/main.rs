@@ -31,16 +31,18 @@ mod topical_doc;
 
 use crate::errors::*;
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
+use rustup::errors::SyncError;
 use rustup::utils::utils;
 
 use std::env;
 use std::path::PathBuf;
 
+use anyhow;
 use rs_tracing::*;
 
 fn main() {
-    if let Err(ref e) = run_rustup() {
-        common::report_error(e);
+    if let Err(e) = run_rustup() {
+        common::report_error(&anyhow::Error::from(SyncError::new(e)));
         std::process::exit(1);
     }
 }

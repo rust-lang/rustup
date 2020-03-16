@@ -6,6 +6,7 @@ use crate::term2;
 use git_testament::{git_testament, render_testament};
 use lazy_static::lazy_static;
 use rustup::dist::notifications as dist_notifications;
+use rustup::errors::SyncError;
 use rustup::toolchain::DistributableToolchain;
 use rustup::utils::notifications as util_notifications;
 use rustup::utils::notify::NotificationLevel;
@@ -549,22 +550,28 @@ fn show_backtrace() -> bool {
     false
 }
 
-pub fn report_error(e: &Error) {
-    err!("{}", e);
-
-    for e in e.iter().skip(1) {
-        err!("caused by: {}", e);
-    }
-
+pub fn report_error(e: &anyhow::Error) {
+    // NB: This shows one error: but we get to skip all the backtrace config
+    // logic etc, rather than per line of the backtrace. This seems like a
+    // reasonable tradeoff, but if we want to do differently, this is the code
+    // hunk to revisit, that and a similar build.rs auto-detect glue as anyhow
+    // has to detect when backtrace is available.
     if show_backtrace() {
-        if let Some(backtrace) = e.backtrace() {
-            err!("backtrace:");
-            err!("{:?}", backtrace);
+        err!("{:?}", e);
+    } else {
+        err!("{}", e);
+        let causes = e.chain().skip(1).collect::<Vec<_>>();
+        if causes.len() > 0 {
+            err!("Caused by:");
+        }
+        for cause in causes.into_iter() {
+            err!("{}", cause);
         }
     }
 }
 
 pub fn ignorable_error(error: crate::errors::Error, no_prompt: bool) -> Result<()> {
+    let error = anyhow::Error::from(SyncError::new(error));
     report_error(&error);
     if no_prompt {
         warn!("continuing (because the -y flag is set and the error is ignorable)");
@@ -572,6 +579,9 @@ pub fn ignorable_error(error: crate::errors::Error, no_prompt: bool) -> Result<(
     } else if confirm("\nContinue? (y/N)", false).unwrap_or(false) {
         Ok(())
     } else {
-        Err(error)
+        Err(error
+            .downcast::<SyncError<crate::errors::Error>>()
+            .unwrap()
+            .unwrap())
     }
 }
