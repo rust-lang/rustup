@@ -1,21 +1,25 @@
+use std::collections::HashSet;
 use std::env;
 use std::fmt;
+use std::io::Write;
 use std::ops::Deref;
 use std::path::Path;
 use std::str::FromStr;
 
+use anyhow::{anyhow, bail, Context, Result};
 use chrono::{Date, NaiveDate, TimeZone, Utc};
 use lazy_static::lazy_static;
 use regex::Regex;
+use thiserror::Error as ThisError;
 
 use crate::dist::download::DownloadCfg;
-use crate::dist::manifest::Manifest as ManifestV2;
+use crate::dist::manifest::{Component, Manifest as ManifestV2};
 use crate::dist::manifestation::{Changes, Manifestation, UpdateStatus};
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 pub use crate::dist::triple::*;
-use crate::errors::*;
+use crate::errors::RustupError;
 use crate::process;
 use crate::utils::utils;
 
@@ -32,6 +36,62 @@ static TOOLCHAIN_CHANNELS: &[&str] = &[
     // Allow from 1.0.0 through to 9.999.99 with optional patch version
     r"\d{1}\.\d{1,3}(?:\.\d{1,2})?",
 ];
+
+fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &str) -> String {
+    assert!(!cs.is_empty());
+    let mut buf = vec![];
+    let suggestion = format!("    rustup toolchain add {} --profile minimal", toolchain);
+    let nightly_tips = "Sometimes not all components are available in any given nightly. ";
+
+    if cs.len() == 1 {
+        let _ = writeln!(
+            buf,
+            "component {} is unavailable for download for channel '{}'",
+            &cs[0].description(manifest),
+            toolchain,
+        );
+
+        if toolchain.starts_with("nightly") {
+            let _ = write!(buf, "{}", nightly_tips.to_string());
+        }
+
+        let _ = write!(
+            buf,
+            "If you don't need the component, you could try a minimal installation with:\n\n{}",
+            suggestion
+        );
+    } else {
+        let cs_str = cs
+            .iter()
+            .map(|c| c.description(manifest))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = write!(
+            buf,
+            "some components unavailable for download for channel '{}': {}",
+            toolchain, cs_str
+        );
+
+        if toolchain.starts_with("nightly") {
+            let _ = write!(buf, "{}", nightly_tips.to_string());
+        }
+        let _ = write!(
+            buf,
+            "If you don't need the components, you could try a minimal installation with:\n\n{}",
+            suggestion
+        );
+    }
+
+    String::from_utf8(buf).unwrap()
+}
+
+#[derive(Debug, ThisError)]
+enum DistError {
+    #[error("{}", components_missing_msg(&.0, &.1, &.2))]
+    ToolchainComponentsMissing(Vec<Component>, ManifestV2, String),
+    #[error("no release found for '{0}'")]
+    MissingReleaseForToolchain(String),
+}
 
 #[derive(Debug, PartialEq)]
 struct ParsedToolchainDesc {
@@ -93,7 +153,7 @@ static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64-unknown-linux-gnuabi
 static TRIPLE_MIPS64_UNKNOWN_LINUX_GNUABI64: &str = "mips64el-unknown-linux-gnuabi64";
 
 impl FromStr for ParsedToolchainDesc {
-    type Err = Error;
+    type Err = anyhow::Error;
     fn from_str(desc: &str) -> Result<Self> {
         lazy_static! {
             static ref TOOLCHAIN_CHANNEL_PATTERN: String = format!(
@@ -124,7 +184,7 @@ impl FromStr for ParsedToolchainDesc {
         if let Some(d) = d {
             Ok(d)
         } else {
-            Err(ErrorKind::InvalidToolchainName(desc.to_string()).into())
+            Err(RustupError::InvalidToolchainName(desc.to_string()).into())
         }
     }
 }
@@ -254,7 +314,7 @@ impl std::convert::TryFrom<PartialTargetTriple> for TargetTriple {
 }
 
 impl FromStr for PartialToolchainDesc {
-    type Err = Error;
+    type Err = anyhow::Error;
     fn from_str(name: &str) -> Result<Self> {
         let parsed: ParsedToolchainDesc = name.parse()?;
         let target = PartialTargetTriple::new(parsed.target.as_deref().unwrap_or(""));
@@ -265,29 +325,29 @@ impl FromStr for PartialToolchainDesc {
                 date: parsed.date,
                 target,
             })
-            .ok_or_else(|| ErrorKind::InvalidToolchainName(name.to_string()).into())
+            .ok_or_else(|| anyhow!(RustupError::InvalidToolchainName(name.to_string())))
     }
 }
 
 impl PartialToolchainDesc {
     pub fn resolve(self, input_host: &TargetTriple) -> Result<ToolchainDesc> {
         let host = PartialTargetTriple::new(&input_host.0).ok_or_else(|| {
-            format!(
+            anyhow!(format!(
                 "Provided host '{}' couldn't be converted to partial triple",
                 input_host.0
-            )
+            ))
         })?;
         let host_arch = host.arch.ok_or_else(|| {
-            format!(
+            anyhow!(format!(
                 "Provided host '{}' did not specify a CPU architecture",
                 input_host.0
-            )
+            ))
         })?;
         let host_os = host.os.ok_or_else(|| {
-            format!(
+            anyhow!(format!(
                 "Provided host '{}' did not specify an operating system",
                 input_host.0
-            )
+            ))
         })?;
         let host_env = host.env;
 
@@ -320,12 +380,12 @@ impl PartialToolchainDesc {
 }
 
 impl FromStr for ToolchainDesc {
-    type Err = Error;
+    type Err = anyhow::Error;
     fn from_str(name: &str) -> Result<Self> {
         let parsed: ParsedToolchainDesc = name.parse()?;
 
         if parsed.target.is_none() {
-            return Err(ErrorKind::InvalidToolchainName(name.to_string()).into());
+            return Err(anyhow!(RustupError::InvalidToolchainName(name.to_string())));
         }
 
         Ok(Self {
@@ -390,7 +450,7 @@ impl ToolchainDesc {
 pub fn validate_channel_name(name: &str) -> Result<()> {
     let toolchain = PartialToolchainDesc::from_str(&name)?;
     if toolchain.has_triple() {
-        Err(format!("target triple in channel name '{}'", name).into())
+        Err(anyhow!(format!("target triple in channel name '{}'", name)))
     } else {
         Ok(())
     }
@@ -398,24 +458,6 @@ pub fn validate_channel_name(name: &str) -> Result<()> {
 
 #[derive(Debug)]
 pub struct Manifest<'a>(temp::File<'a>, String);
-
-impl<'a> Manifest<'a> {
-    pub fn package_url(
-        &self,
-        package: &str,
-        target_triple: &str,
-        ext: &str,
-    ) -> Result<Option<String>> {
-        let suffix = target_triple.to_owned() + ext;
-        utils::match_file("manifest", &self.0, |line| {
-            if line.starts_with(package) && line.ends_with(&suffix) {
-                Some(format!("{}/{}", &self.1, line))
-            } else {
-                None
-            }
-        })
-    }
-}
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum Profile {
@@ -425,14 +467,18 @@ pub enum Profile {
 }
 
 impl FromStr for Profile {
-    type Err = Error;
+    type Err = anyhow::Error;
 
     fn from_str(name: &str) -> Result<Self> {
         match name {
             "minimal" | "m" => Ok(Self::Minimal),
             "default" | "d" | "" => Ok(Self::Default),
             "complete" | "c" => Ok(Self::Complete),
-            _ => Err(ErrorKind::InvalidProfile(name.to_owned()).into()),
+            _ => Err(anyhow!(format!(
+                "invalid profile name: '{}'; valid names are: {}",
+                name,
+                valid_profile_names()
+            ))),
         }
     }
 }
@@ -501,6 +547,14 @@ impl fmt::Display for Profile {
             Self::Complete => write!(f, "complete"),
         }
     }
+}
+
+pub fn valid_profile_names() -> String {
+    Profile::names()
+        .iter()
+        .map(|s| format!("'{}'", s))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 // Installs or updates a toolchain from a dist server. If an initial
@@ -625,30 +679,33 @@ fn update_from_dist_<'a>(
                     break Err(e);
                 }
 
-                if let ErrorKind::ToolchainComponentsMissing(components, manifest, ..) = e.kind() {
-                    (download.notify_handler)(Notification::SkippingNightlyMissingComponent(
-                        &toolchain,
-                        current_manifest.as_ref().unwrap_or(manifest),
-                        components,
-                    ));
+                let cause = e.downcast_ref::<DistError>();
+                match cause {
+                    Some(DistError::ToolchainComponentsMissing(components, manifest, ..)) => {
+                        (download.notify_handler)(Notification::SkippingNightlyMissingComponent(
+                            &toolchain,
+                            current_manifest.as_ref().unwrap_or(manifest),
+                            components,
+                        ));
 
-                    if first_err.is_none() {
-                        first_err = Some(e);
+                        if first_err.is_none() {
+                            first_err = Some(e);
+                        }
+                        // We decrement the backtrack count only on unavailable component errors
+                        // so that the limit only applies to nightlies that were indeed available,
+                        // and ignores missing ones.
+                        backtrack_limit = backtrack_limit.map(|n| n - 1);
                     }
-                    // We decrement the backtrack count only on unavailable component errors
-                    // so that the limit only applies to nightlies that were indeed available,
-                    // and ignores missing ones.
-                    backtrack_limit = backtrack_limit.map(|n| n - 1);
-                } else if let ErrorKind::MissingReleaseForToolchain(..) = e.kind() {
-                    // no need to even print anything for missing nightlies,
-                    // since we don't really "skip" them
-                } else if let Some(e) = first_err {
-                    // if we fail to find a suitable nightly, we abort the search and give the
-                    // original "components unavailable for download" error.
-                    break Err(e);
-                } else {
-                    break Err(e);
-                }
+
+                    Some(DistError::MissingReleaseForToolchain(..)) => {
+                        // no need to even print anything for missing nightlies,
+                        // since we don't really "skip" them
+                    }
+                    None => {
+                        // All other errors break the loop
+                        break Err(e);
+                    }
+                };
 
                 if let Some(backtrack_limit) = backtrack_limit {
                     if backtrack_limit < 1 {
@@ -723,9 +780,6 @@ fn try_update_from_dist_<'a>(
                 None => Vec::new(),
             };
 
-            use crate::dist::manifest::Component;
-            use std::collections::HashSet;
-
             let mut all_components: HashSet<Component> = profile_components.into_iter().collect();
 
             let rust_package = m.get_package("rust")?;
@@ -780,70 +834,100 @@ fn try_update_from_dist_<'a>(
                     UpdateStatus::Unchanged => Ok(None),
                     UpdateStatus::Changed => Ok(Some(hash)),
                 },
-                Err(err) => {
-                    return if let ErrorKind::RequestedComponentsUnavailable(
-                        cs,
+                Err(err) => match err.downcast_ref::<RustupError>() {
+                    Some(RustupError::RequestedComponentsUnavailable {
+                        components,
                         manifest,
-                        toolchain_str,
-                    ) = err.kind()
-                    {
-                        Err(ErrorKind::ToolchainComponentsMissing(
-                            cs.to_owned(),
-                            manifest.to_owned(),
-                            toolchain_str.to_owned(),
-                        )
-                        .into())
-                    } else {
-                        Err(err)
-                    }
-                }
+                        toolchain,
+                    }) => Err(anyhow!(DistError::ToolchainComponentsMissing(
+                        components.to_owned(),
+                        manifest.to_owned(),
+                        toolchain.to_owned(),
+                    ))),
+                    Some(_) | None => Err(err),
+                },
             };
         }
         Ok(None) => return Ok(None),
-        Err(Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => {
-            // Proceed to try v1 as a fallback
-            (download.notify_handler)(Notification::DownloadingLegacyManifest);
+        Err(any) => {
+            enum Cases {
+                DNE,
+                CF,
+                Other,
+            }
+            let case = match any.downcast_ref::<RustupError>() {
+                Some(RustupError::ChecksumFailed { .. }) => Cases::CF,
+                Some(RustupError::DownloadNotExists { .. }) => Cases::DNE,
+                _ => Cases::Other,
+            };
+            match case {
+                Cases::CF => return Ok(None),
+                Cases::DNE => {
+                    // Proceed to try v1 as a fallback
+                    (download.notify_handler)(Notification::DownloadingLegacyManifest);
+                }
+                Cases::Other => return Err(any),
+            }
         }
-        Err(Error(ErrorKind::ChecksumFailed { .. }, _)) => return Ok(None),
-        Err(e) => return Err(e),
     }
 
     // If the v2 manifest is not found then try v1
     let manifest = match dl_v1_manifest(download, toolchain) {
         Ok(m) => m,
-        Err(Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => {
-            return Err(Error::from(ErrorKind::MissingReleaseForToolchain(
-                toolchain.manifest_name(),
-            )));
-        }
-        Err(e @ Error(ErrorKind::ChecksumFailed { .. }, _)) => {
-            return Err(e);
-        }
-        Err(e) => {
-            return Err(e).chain_err(|| {
-                format!(
-                    "failed to download manifest for '{}'",
-                    toolchain.manifest_name()
-                )
-            });
+        Err(any) => {
+            enum Cases {
+                DNE,
+                CF,
+                Other,
+            }
+            let case = match any.downcast_ref::<RustupError>() {
+                Some(RustupError::ChecksumFailed { .. }) => Cases::CF,
+                Some(RustupError::DownloadNotExists { .. }) => Cases::DNE,
+                _ => Cases::Other,
+            };
+            match case {
+                Cases::DNE => {
+                    bail!(DistError::MissingReleaseForToolchain(
+                        toolchain.manifest_name()
+                    ));
+                }
+                Cases::CF => return Err(any),
+                Cases::Other => {
+                    return Err(any).with_context(|| {
+                        format!(
+                            "failed to download manifest for '{}'",
+                            toolchain.manifest_name()
+                        )
+                    });
+                }
+            }
         }
     };
-    match manifestation.update_v1(
+    let result = manifestation.update_v1(
         &manifest,
         update_hash,
         &download.temp_cfg,
         &download.notify_handler,
         &download.pgp_keys,
-    ) {
-        Ok(None) => Ok(None),
-        Ok(Some(hash)) => Ok(Some(hash)),
-        e @ Err(Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => e.chain_err(|| {
+    );
+    // inspect, determine what context to add, then process afterwards.
+    let mut download_not_exists = false;
+    match &result {
+        Ok(_) => (),
+        Err(e) => match e.downcast_ref::<RustupError>() {
+            Some(RustupError::DownloadNotExists { .. }) => download_not_exists = true,
+            _ => (),
+        },
+    }
+    if download_not_exists {
+        result.with_context(|| {
             format!(
                 "could not download nonexistent rust version `{}`",
                 toolchain_str
             )
-        }),
-        Err(e) => Err(e),
+        })
+    } else {
+        result
     }
 }
 
@@ -853,25 +937,31 @@ pub fn dl_v2_manifest<'a>(
     toolchain: &ToolchainDesc,
 ) -> Result<Option<(ManifestV2, String)>> {
     let manifest_url = toolchain.manifest_v2_url(download.dist_root);
-    let manifest_dl_res = download.download_and_check(&manifest_url, update_hash, ".toml");
+    match download.download_and_check(&manifest_url, update_hash, ".toml") {
+        Ok(manifest_dl) => {
+            // Downloaded ok!
+            let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl {
+                m
+            } else {
+                return Ok(None);
+            };
+            let manifest_str = utils::read_file("manifest", &manifest_file)?;
+            let manifest = ManifestV2::parse(&manifest_str)?;
 
-    if let Ok(manifest_dl) = manifest_dl_res {
-        // Downloaded ok!
-        let (manifest_file, manifest_hash) = if let Some(m) = manifest_dl {
-            m
-        } else {
-            return Ok(None);
-        };
-        let manifest_str = utils::read_file("manifest", &manifest_file)?;
-        let manifest = ManifestV2::parse(&manifest_str)?;
-
-        Ok(Some((manifest, manifest_hash)))
-    } else {
-        // Checksum failed - issue warning to try again later
-        if let ErrorKind::ChecksumFailed { .. } = manifest_dl_res.as_ref().unwrap_err().kind() {
-            (download.notify_handler)(Notification::ManifestChecksumFailedHack)
+            Ok(Some((manifest, manifest_hash)))
         }
-        Err(manifest_dl_res.unwrap_err())
+        Err(any) => {
+            match any.downcast_ref::<RustupError>() {
+                Some(e) => {
+                    // Checksum failed - issue warning to try again later
+                    if let RustupError::ChecksumFailed { .. } = e {
+                        (download.notify_handler)(Notification::ManifestChecksumFailedHack);
+                    }
+                }
+                None => (),
+            }
+            Err(any)
+        }
     }
 }
 

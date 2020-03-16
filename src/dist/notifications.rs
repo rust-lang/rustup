@@ -2,7 +2,6 @@ use crate::config::PgpPublicKey;
 use crate::dist::dist::{TargetTriple, ToolchainDesc};
 use crate::dist::manifest::Component;
 use crate::dist::temp;
-use crate::errors::*;
 use crate::utils::notify::NotificationLevel;
 use std::fmt::{self, Display};
 use std::path::Path;
@@ -24,7 +23,7 @@ pub enum Notification<'a> {
     CachedFileChecksumFailed,
     RollingBack,
     ExtensionNotInstalled(&'a str),
-    NonFatalError(&'a Error),
+    NonFatalError(&'a anyhow::Error),
     MissingInstalledComponent(&'a str),
     DownloadingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),
     InstallingComponent(&'a str, &'a TargetTriple, Option<&'a TargetTriple>),

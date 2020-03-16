@@ -1,6 +1,6 @@
 use rustup::dist::dist::TargetTriple;
 use rustup::dist::manifest::Manifest;
-use rustup::ErrorKind;
+use rustup::RustupError;
 
 // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
 static EXAMPLE: &str = include_str!("channel-rust-nightly-example.toml");
@@ -94,8 +94,8 @@ date = "2015-10-10"
 
     let err = Manifest::parse(manifest).unwrap_err();
 
-    match *err.kind() {
-        ErrorKind::MissingPackageForComponent(_) => {}
+    match err.downcast::<RustupError>().unwrap() {
+        RustupError::MissingPackageForComponent(_) => {}
         _ => panic!(),
     }
 }

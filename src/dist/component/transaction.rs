@@ -9,14 +9,16 @@
 //! FIXME: This uses ensure_dir_exists in some places but rollback
 //! does not remove any dirs created by it.
 
+use std::fs::File;
+use std::path::{Path, PathBuf};
+
+use anyhow::{anyhow, Context, Result};
+
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::utils;
-
-use std::fs::File;
-use std::path::{Path, PathBuf};
 
 /// A Transaction tracks changes to the file system, allowing them to
 /// be rolled back in case of an error. Instead of deleting or
@@ -232,11 +234,10 @@ impl<'a> ChangedItem<'a> {
     fn dest_abs_path(prefix: &InstallPrefix, component: &str, relpath: &Path) -> Result<PathBuf> {
         let abs_path = prefix.abs_path(relpath);
         if utils::path_exists(&abs_path) {
-            Err(ErrorKind::ComponentConflict {
+            Err(anyhow!(RustupError::ComponentConflict {
                 name: component.to_owned(),
                 path: relpath.to_path_buf(),
-            }
-            .into())
+            }))
         } else {
             if let Some(p) = abs_path.parent() {
                 utils::ensure_dir_exists("component", p, &|_: Notification<'_>| ())?;
@@ -247,7 +248,7 @@ impl<'a> ChangedItem<'a> {
     fn add_file(prefix: &InstallPrefix, component: &str, relpath: PathBuf) -> Result<(Self, File)> {
         let abs_path = ChangedItem::dest_abs_path(prefix, component, &relpath)?;
         let file = File::create(&abs_path)
-            .chain_err(|| format!("error creating file '{}'", abs_path.display()))?;
+            .with_context(|| format!("error creating file '{}'", abs_path.display()))?;
         Ok((ChangedItem::AddedFile(relpath), file))
     }
     fn copy_file(
@@ -280,7 +281,7 @@ impl<'a> ChangedItem<'a> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = temp_cfg.new_file()?;
         if !utils::path_exists(&abs_path) {
-            Err(ErrorKind::ComponentMissingFile {
+            Err(RustupError::ComponentMissingFile {
                 name: component.to_owned(),
                 path: relpath,
             }
@@ -300,7 +301,7 @@ impl<'a> ChangedItem<'a> {
         let abs_path = prefix.abs_path(&relpath);
         let backup = temp_cfg.new_directory()?;
         if !utils::path_exists(&abs_path) {
-            Err(ErrorKind::ComponentMissingDir {
+            Err(RustupError::ComponentMissingDir {
                 name: component.to_owned(),
                 path: relpath,
             }

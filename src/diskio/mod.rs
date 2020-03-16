@@ -62,7 +62,8 @@ use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
 use std::{fmt::Debug, fs::OpenOptions};
 
-use crate::errors::{Result, ResultExt};
+use anyhow::{Context, Result};
+
 use crate::process;
 use crate::utils::notifications::Notification;
 
@@ -371,7 +372,7 @@ pub fn get_executor<'a>(
         Err(_) => num_cpus::get(),
         Ok(n) => n
             .parse::<usize>()
-            .chain_err(|| "invalid value in RUSTUP_IO_THREADS. Must be a natural number")?,
+            .context("invalid value in RUSTUP_IO_THREADS. Must be a natural number")?,
     };
     Ok(match thread_count {
         0 | 1 => Box::new(immediate::ImmediateUnpacker::new()),

@@ -5,6 +5,7 @@ use std::io::{self, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use anyhow::{anyhow, bail, Context, Result};
 use retry::delay::{jitter, Fibonacci};
 use retry::{retry, OperationResult};
 use sha2::Sha256;
@@ -33,56 +34,49 @@ where
     raw::ensure_dir_exists(path, |_| {
         notify_handler(Notification::CreatingDirectory(name, path).into())
     })
-    .chain_err(|| ErrorKind::CreatingDirectory {
+    .with_context(|| RustupError::CreatingDirectory {
         name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn open_file(name: &'static str, path: &Path) -> Result<File> {
-    File::open(path).chain_err(|| ErrorKind::ReadingFile {
-        name,
-        path: PathBuf::from(path),
-    })
-}
-
-pub fn read_file_bytes(name: &'static str, path: &Path) -> Result<Vec<u8>> {
-    fs::read(path).chain_err(|| ErrorKind::ReadingFile {
+    File::open(path).with_context(|| RustupError::ReadingFile {
         name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
-    fs::read_to_string(path).chain_err(|| ErrorKind::ReadingFile {
+    fs::read_to_string(path).with_context(|| RustupError::ReadingFile {
         name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn write_file(name: &'static str, path: &Path, contents: &str) -> Result<()> {
-    raw::write_file(path, contents).chain_err(|| ErrorKind::WritingFile {
+    raw::write_file(path, contents).with_context(|| RustupError::WritingFile {
         name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn append_file(name: &'static str, path: &Path, line: &str) -> Result<()> {
-    raw::append_file(path, line).chain_err(|| ErrorKind::WritingFile {
+    raw::append_file(path, line).with_context(|| RustupError::WritingFile {
         name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn write_line(name: &'static str, file: &mut File, path: &Path, line: &str) -> Result<()> {
-    writeln!(file, "{}", line).chain_err(|| ErrorKind::WritingFile {
+    writeln!(file, "{}", line).with_context(|| RustupError::WritingFile {
         name,
         path: path.to_path_buf(),
     })
 }
 
 pub fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> Result<()> {
-    write!(file, "{}", s).chain_err(|| ErrorKind::WritingFile {
+    write!(file, "{}", s).with_context(|| RustupError::WritingFile {
         name,
         path: path.to_path_buf(),
     })
@@ -118,22 +112,16 @@ pub fn filter_file<F: FnMut(&str) -> bool>(
     dest: &Path,
     filter: F,
 ) -> Result<usize> {
-    raw::filter_file(src, dest, filter).chain_err(|| ErrorKind::FilteringFile {
-        name,
-        src: PathBuf::from(src),
-        dest: PathBuf::from(dest),
-    })
-}
-
-pub fn match_file<T, F: FnMut(&str) -> Option<T>>(
-    name: &'static str,
-    src: &Path,
-    f: F,
-) -> Result<Option<T>> {
-    raw::match_file(src, f).chain_err(|| ErrorKind::ReadingFile {
-        name,
-        path: PathBuf::from(src),
-    })
+    raw::filter_file(src, dest, filter)
+        .with_context(|| {
+            format!(
+                "could not copy {} file from '{}' to '{}'",
+                name,
+                src.display(),
+                dest.display()
+            )
+        })
+        .into()
 }
 
 pub fn canonicalize_path<'a, N>(path: &'a Path, notify_handler: &dyn Fn(N)) -> PathBuf
@@ -143,13 +131,6 @@ where
     fs::canonicalize(path).unwrap_or_else(|_| {
         notify_handler(Notification::NoCanonicalPath(path).into());
         PathBuf::from(path)
-    })
-}
-
-pub fn tee_file<W: io::Write>(name: &'static str, path: &Path, w: &mut W) -> Result<()> {
-    raw::tee_file(path, w).chain_err(|| ErrorKind::ReadingFile {
-        name,
-        path: PathBuf::from(path),
     })
 }
 
@@ -169,26 +150,25 @@ pub fn download_file_with_resume(
     resume_from_partial: bool,
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
-    use download::ErrorKind as DEK;
+    use download::DownloadError as DEK;
     match download_file_(url, path, hasher, resume_from_partial, notify_handler) {
         Ok(_) => Ok(()),
         Err(e) => {
-            let is_client_error = match e.kind() {
+            let is_client_error = match e.downcast_ref::<DEK>() {
                 // Specifically treat the bad partial range error as not our
                 // fault in case it was something odd which happened.
-                ErrorKind::Download(DEK::HttpStatus(416)) => false,
-                ErrorKind::Download(DEK::HttpStatus(400..=499)) => true,
-                ErrorKind::Download(DEK::FileNotFound) => true,
+                Some(DEK::HttpStatus(416)) => false,
+                Some(DEK::HttpStatus(400..=499)) | Some(DEK::FileNotFound) => true,
                 _ => false,
             };
-            Err(e).chain_err(|| {
+            Err(e).with_context(|| {
                 if is_client_error {
-                    ErrorKind::DownloadNotExists {
+                    RustupError::DownloadNotExists {
                         url: url.clone(),
                         path: path.to_path_buf(),
                     }
                 } else {
-                    ErrorKind::DownloadingFile {
+                    RustupError::DownloadingFile {
                         url: url.clone(),
                         path: path.to_path_buf(),
                     }
@@ -266,27 +246,24 @@ fn download_file_(
 
     notify_handler(Notification::DownloadFinished);
 
-    res.map_err(|e| e.into())
+    res
 }
 
 pub fn parse_url(url: &str) -> Result<Url> {
-    Url::parse(url).chain_err(|| format!("failed to parse url: {}", url))
+    Url::parse(url).with_context(|| format!("failed to parse url: {}", url))
 }
 
 pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
     use std::ffi::OsString;
 
-    raw::cmd_status(cmd).chain_err(|| ErrorKind::RunningCommand {
+    raw::cmd_status(cmd).with_context(|| RustupError::RunningCommand {
         name: OsString::from(name),
     })
 }
 
 pub fn assert_is_file(path: &Path) -> Result<()> {
     if !is_file(path) {
-        Err(ErrorKind::NotAFile {
-            path: PathBuf::from(path),
-        }
-        .into())
+        Err(anyhow!(format!("not a file: '{}'", path.display())))
     } else {
         Ok(())
     }
@@ -294,10 +271,7 @@ pub fn assert_is_file(path: &Path) -> Result<()> {
 
 pub fn assert_is_directory(path: &Path) -> Result<()> {
     if !is_directory(path) {
-        Err(ErrorKind::NotADirectory {
-            path: PathBuf::from(path),
-        }
-        .into())
+        Err(anyhow!(format!("not a directory: '{}'", path.display())))
     } else {
         Ok(())
     }
@@ -308,9 +282,12 @@ where
     N: From<Notification<'a>>,
 {
     notify_handler(Notification::LinkingDirectory(src, dest).into());
-    raw::symlink_dir(src, dest).chain_err(|| ErrorKind::LinkingDirectory {
-        src: PathBuf::from(src),
-        dest: PathBuf::from(dest),
+    raw::symlink_dir(src, dest).with_context(|| {
+        format!(
+            "could not create link from '{}' to '{}'",
+            src.display(),
+            dest.display()
+        )
     })
 }
 
@@ -322,7 +299,7 @@ pub fn hard_or_symlink_file(src: &Path, dest: &Path) -> Result<()> {
 }
 
 pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
-    raw::hardlink(src, dest).chain_err(|| ErrorKind::LinkingFile {
+    raw::hardlink(src, dest).with_context(|| RustupError::LinkingFile {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
     })
@@ -330,7 +307,7 @@ pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
 
 #[cfg(unix)]
 pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
-    std::os::unix::fs::symlink(src, dest).chain_err(|| ErrorKind::LinkingFile {
+    std::os::unix::fs::symlink(src, dest).with_context(|| RustupError::LinkingFile {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
     })
@@ -339,11 +316,10 @@ pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
 #[cfg(windows)]
 pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     // we are supposed to not use symlink on windows
-    Err(ErrorKind::LinkingFile {
+    Err(anyhow!(RustupError::LinkingFile {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
-    }
-    .into())
+    }))
 }
 
 pub fn copy_dir<'a, N>(src: &'a Path, dest: &'a Path, notify_handler: &dyn Fn(N)) -> Result<()>
@@ -351,14 +327,17 @@ where
     N: From<Notification<'a>>,
 {
     notify_handler(Notification::CopyingDirectory(src, dest).into());
-    raw::copy_dir(src, dest).chain_err(|| ErrorKind::CopyingDirectory {
-        src: PathBuf::from(src),
-        dest: PathBuf::from(dest),
+    raw::copy_dir(src, dest).with_context(|| {
+        format!(
+            "could not copy directory from '{}' to '{}'",
+            src.display(),
+            dest.display()
+        )
     })
 }
 
 pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
-    let metadata = fs::symlink_metadata(src).chain_err(|| ErrorKind::ReadingFile {
+    let metadata = fs::symlink_metadata(src).with_context(|| RustupError::ReadingFile {
         name: "metadata for",
         path: PathBuf::from(src),
     })?;
@@ -366,9 +345,12 @@ pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
         symlink_file(&src, dest).map(|_| ())
     } else {
         fs::copy(src, dest)
-            .chain_err(|| ErrorKind::CopyingFile {
-                src: PathBuf::from(src),
-                dest: PathBuf::from(dest),
+            .with_context(|| {
+                format!(
+                    "could not copy file from '{}' to '{}'",
+                    src.display(),
+                    dest.display()
+                )
             })
             .map(|_| ())
     }
@@ -383,8 +365,8 @@ where
     N: From<Notification<'a>>,
 {
     notify_handler(Notification::RemovingDirectory(name, path).into());
-    raw::remove_dir(path).chain_err(|| ErrorKind::RemovingDirectory {
-        name,
+    raw::remove_dir(path).with_context(|| RustupError::RemovingDirectory {
+        name: name,
         path: PathBuf::from(path),
     })
 }
@@ -405,7 +387,7 @@ pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
             },
         },
     )
-    .chain_err(|| ErrorKind::RemovingFile {
+    .with_context(|| RustupError::RemovingFile {
         name,
         path: PathBuf::from(path),
     })
@@ -418,35 +400,40 @@ pub fn ensure_file_removed(name: &'static str, path: &Path) -> Result<()> {
             return Ok(());
         }
     }
-    result.chain_err(|| ErrorKind::RemovingFile {
+    result.with_context(|| RustupError::RemovingFile {
         name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
-    fs::read_dir(path).chain_err(|| ErrorKind::ReadingDirectory {
+    fs::read_dir(path).with_context(|| RustupError::ReadingDirectory {
         name,
         path: PathBuf::from(path),
     })
 }
 
 pub fn open_browser(path: &Path) -> Result<()> {
-    opener::open(path).chain_err(|| "couldn't open browser")
+    opener::open(path).context("couldn't open browser")
 }
 
 pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
-    fs::set_permissions(path, perms).chain_err(|| ErrorKind::SettingPermissions {
-        path: PathBuf::from(path),
+    fs::set_permissions(path, perms).map_err(|e| {
+        RustupError::SettingPermissions {
+            p: PathBuf::from(path),
+            source: e,
+        }
+        .into()
     })
 }
 
 pub fn file_size(path: &Path) -> Result<u64> {
-    let metadata = fs::metadata(path).chain_err(|| ErrorKind::ReadingFile {
-        name: "metadata for",
-        path: PathBuf::from(path),
-    })?;
-    Ok(metadata.len())
+    Ok(fs::metadata(path)
+        .with_context(|| RustupError::ReadingFile {
+            name: "metadata for",
+            path: PathBuf::from(path),
+        })?
+        .len())
 }
 
 pub fn make_executable(path: &Path) -> Result<()> {
@@ -459,8 +446,9 @@ pub fn make_executable(path: &Path) -> Result<()> {
     fn inner(path: &Path) -> Result<()> {
         use std::os::unix::fs::PermissionsExt;
 
-        let metadata = fs::metadata(path).chain_err(|| ErrorKind::SettingPermissions {
-            path: PathBuf::from(path),
+        let metadata = fs::metadata(path).map_err(|e| RustupError::SettingPermissions {
+            p: PathBuf::from(path),
+            source: e,
         })?;
         let mut perms = metadata.permissions();
         let mode = perms.mode();
@@ -481,11 +469,11 @@ pub fn make_executable(path: &Path) -> Result<()> {
 pub fn current_dir() -> Result<PathBuf> {
     process()
         .current_dir()
-        .chain_err(|| ErrorKind::LocatingWorkingDir)
+        .context(RustupError::LocatingWorkingDir)
 }
 
 pub fn current_exe() -> Result<PathBuf> {
-    env::current_exe().chain_err(|| ErrorKind::LocatingWorkingDir)
+    env::current_exe().context(RustupError::LocatingWorkingDir)
 }
 
 pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
@@ -500,7 +488,7 @@ pub fn home_dir() -> Option<PathBuf> {
 }
 
 pub fn cargo_home() -> Result<PathBuf> {
-    home::cargo_home_from(&home_process()).map_err(|e| Error::from_kind(ErrorKind::Io(e)))
+    home::cargo_home_from(&home_process()).context("failed to determine cargo home")
 }
 
 // Creates a ~/.rustup folder
@@ -512,7 +500,7 @@ pub fn create_rustup_home() -> Result<()> {
     }
 
     let home = rustup_home_in_user_dir()?;
-    fs::create_dir_all(&home).chain_err(|| "unable to create ~/.rustup")?;
+    fs::create_dir_all(&home).context("unable to create ~/.rustup")?;
 
     Ok(())
 }
@@ -522,11 +510,12 @@ fn dot_dir(name: &str) -> Option<PathBuf> {
 }
 
 pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
-    dot_dir(".rustup").ok_or_else(|| ErrorKind::RustupHome.into())
+    // XXX: This error message seems wrong/bogus.
+    dot_dir(".rustup").ok_or_else(|| anyhow::anyhow!("couldn't find value of RUSTUP_HOME"))
 }
 
 pub fn rustup_home() -> Result<PathBuf> {
-    home::rustup_home_from(&home_process()).map_err(|e| Error::from_kind(ErrorKind::Io(e)))
+    home::rustup_home_from(&home_process()).context("failed to determine rustup home dir")
 }
 
 pub fn format_path_for_display(path: &str) -> String {
@@ -586,8 +575,8 @@ where
     // This uses std::fs::copy() instead of the faster std::fs::rename() to
     // avoid cross-device link errors.
     if src.is_dir() {
-        copy_dir(src, dest, notify_handler).and(remove_dir_all::remove_dir_all(src).chain_err(
-            || ErrorKind::RemovingDirectory {
+        copy_dir(src, dest, notify_handler).and(remove_dir_all::remove_dir_all(src).with_context(
+            || RustupError::RemovingDirectory {
                 name,
                 path: PathBuf::from(src),
             },
@@ -635,10 +624,13 @@ where
             },
         },
     )
-    .chain_err(|| ErrorKind::RenamingFile {
-        name,
-        src: PathBuf::from(src),
-        dest: PathBuf::from(dest),
+    .with_context(|| {
+        format!(
+            "could not rename {} file from '{}' to '{}'",
+            name,
+            src.display(),
+            dest.display()
+        )
     })
 }
 
@@ -663,11 +655,10 @@ impl<'a> FileReaderWithProgress<'a> {
         let fh = match File::open(path) {
             Ok(fh) => fh,
             Err(_) => {
-                return Err(ErrorKind::ReadingFile {
+                bail!(RustupError::ReadingFile {
                     name: "downloaded",
                     path: path.to_path_buf(),
-                }
-                .into())
+                })
             }
         };
 

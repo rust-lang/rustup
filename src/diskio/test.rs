@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::errors::Result;
+use anyhow::Result;
+
 use crate::test::test_dir;
 
 use super::{get_executor, Executor, Item};

@@ -2,16 +2,12 @@ use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::errors::*;
+use anyhow::{anyhow, bail, Context, Result};
 
 struct DocData<'a> {
     topic: &'a str,
     subtopic: &'a str,
     root: &'a Path,
-}
-
-fn no_document(topic: &str) -> Result<PathBuf> {
-    Err(format!("No document for '{}'", topic).into())
 }
 
 fn index_html(doc: &DocData<'_>, wpath: &Path) -> Option<PathBuf> {
@@ -23,7 +19,7 @@ fn index_html(doc: &DocData<'_>, wpath: &Path) -> Option<PathBuf> {
 }
 
 fn dir_into_vec(dir: &Path) -> Result<Vec<OsString>> {
-    let entries = fs::read_dir(dir).chain_err(|| format!("Opening directory {:?}", dir))?;
+    let entries = fs::read_dir(dir).with_context(|| format!("Failed to read_dir {:?}", dir))?;
     let mut v = Vec::new();
     for entry in entries {
         let entry = entry?;
@@ -43,7 +39,7 @@ fn search_path(doc: &DocData<'_>, wpath: &Path, keywords: &[&str]) -> Result<Pat
             }
         }
     }
-    no_document(doc.topic)
+    Err(anyhow!(format!("No document for '{}'", doc.topic)))
 }
 
 pub fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
@@ -124,7 +120,7 @@ pub fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
         1 => match topic {
             "std" | "core" | "alloc" => match index_html(&doc, &work_path) {
                 Some(f) => f,
-                None => no_document(doc.topic)?,
+                None => bail!(format!("No document for '{}'", doc.topic)),
             },
             _ => {
                 let std = PathBuf::from("std");

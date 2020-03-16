@@ -9,7 +9,6 @@ use rustup::dist::prefix::InstallPrefix;
 use rustup::dist::temp;
 use rustup::dist::Notification;
 use rustup::utils::utils;
-use rustup::ErrorKind;
 use std::fs::File;
 use std::io::Write;
 
@@ -284,10 +283,10 @@ fn component_bad_version() {
 
     // Can't open components now
     let e = Components::open(prefix).unwrap_err();
-    if let ErrorKind::BadInstalledMetadataVersion(_) = *e.kind() {
-    } else {
-        panic!()
-    }
+    assert_eq!(
+        "unsupported metadata version in existing installation: 100",
+        format!("{}", e)
+    );
 }
 
 // Installing to a prefix that doesn't exist creates it automatically

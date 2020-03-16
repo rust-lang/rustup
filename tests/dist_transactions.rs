@@ -5,7 +5,7 @@ use rustup::dist::temp;
 use rustup::dist::Notification;
 use rustup::utils::raw as utils_raw;
 use rustup::utils::utils;
-use rustup::ErrorKind;
+use rustup::RustupError;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
@@ -81,10 +81,10 @@ fn add_file_that_exists() {
 
     let err = tx.add_file("c", PathBuf::from("foo/bar")).unwrap_err();
 
-    match err.0 {
-        ErrorKind::ComponentConflict { name, path } => {
+    match err.downcast_ref::<RustupError>() {
+        Some(RustupError::ComponentConflict { name, path }) => {
             assert_eq!(name, "c");
-            assert_eq!(path, PathBuf::from("foo/bar"));
+            assert_eq!(path.clone(), PathBuf::from("foo/bar"));
         }
         _ => panic!(),
     }
@@ -171,10 +171,10 @@ fn copy_file_that_exists() {
         .copy_file("c", PathBuf::from("foo/bar"), &srcpath)
         .unwrap_err();
 
-    match err.0 {
-        ErrorKind::ComponentConflict { name, path } => {
+    match err.downcast_ref::<RustupError>() {
+        Some(RustupError::ComponentConflict { name, path }) => {
             assert_eq!(name, "c");
-            assert_eq!(path, PathBuf::from("foo/bar"));
+            assert_eq!(path.clone(), PathBuf::from("foo/bar"));
         }
         _ => panic!(),
     }
@@ -271,10 +271,10 @@ fn copy_dir_that_exists() {
         .copy_dir("c", PathBuf::from("a"), srcdir.path())
         .unwrap_err();
 
-    match err.0 {
-        ErrorKind::ComponentConflict { name, path } => {
+    match err.downcast_ref::<RustupError>() {
+        Some(RustupError::ComponentConflict { name, path }) => {
             assert_eq!(name, "c");
-            assert_eq!(path, PathBuf::from("a"));
+            assert_eq!(path.clone(), PathBuf::from("a"));
         }
         _ => panic!(),
     }
@@ -348,10 +348,10 @@ fn remove_file_that_not_exists() {
 
     let err = tx.remove_file("c", PathBuf::from("foo")).unwrap_err();
 
-    match err.0 {
-        ErrorKind::ComponentMissingFile { name, path } => {
+    match err.downcast_ref::<RustupError>() {
+        Some(RustupError::ComponentMissingFile { name, path }) => {
             assert_eq!(name, "c");
-            assert_eq!(path, PathBuf::from("foo"));
+            assert_eq!(path.clone(), PathBuf::from("foo"));
         }
         _ => panic!(),
     }
@@ -427,10 +427,10 @@ fn remove_dir_that_not_exists() {
 
     let err = tx.remove_dir("c", PathBuf::from("foo")).unwrap_err();
 
-    match err.0 {
-        ErrorKind::ComponentMissingDir { name, path } => {
+    match err.downcast_ref::<RustupError>() {
+        Some(RustupError::ComponentMissingDir { name, path }) => {
             assert_eq!(name, "c");
-            assert_eq!(path, PathBuf::from("foo"));
+            assert_eq!(path.clone(), PathBuf::from("foo"));
         }
         _ => panic!(),
     }
@@ -507,10 +507,10 @@ fn write_file_that_exists() {
     utils_raw::write_file(&prefix.path().join("a"), &content).unwrap();
     let err = tx.write_file("c", PathBuf::from("a"), content).unwrap_err();
 
-    match err.0 {
-        ErrorKind::ComponentConflict { name, path } => {
+    match err.downcast_ref::<RustupError>() {
+        Some(RustupError::ComponentConflict { name, path }) => {
             assert_eq!(name, "c");
-            assert_eq!(path, PathBuf::from("a"));
+            assert_eq!(path.clone(), PathBuf::from("a"));
         }
         _ => panic!(),
     }

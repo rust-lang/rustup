@@ -1,15 +1,16 @@
-use crate::dist::prefix::InstallPrefix;
-use crate::errors::*;
-/// The representation of the installed toolchain and its components.
-/// `Components` and `DirectoryPackage` are the two sides of the
-/// installation / uninstallation process.
-use crate::utils::utils;
+//! The representation of the installed toolchain and its components.
+//! `Components` and `DirectoryPackage` are the two sides of the
+//! installation / uninstallation process.
+
+use std::path::{Path, PathBuf};
+
+use anyhow::{bail, Result};
 
 use crate::dist::component::package::{INSTALLER_VERSION, VERSION_FILE};
 use crate::dist::component::transaction::Transaction;
-
-use std::fs::File;
-use std::path::{Path, PathBuf};
+use crate::dist::prefix::InstallPrefix;
+use crate::errors::RustupError;
+use crate::utils::utils;
 
 const COMPONENTS_FILE: &str = "components";
 
@@ -25,7 +26,10 @@ impl Components {
         // Validate that the metadata uses a format we know
         if let Some(v) = c.read_version()? {
             if v != INSTALLER_VERSION {
-                return Err(ErrorKind::BadInstalledMetadataVersion(v).into());
+                bail!(
+                    "unsupported metadata version in existing installation: {}",
+                    v
+                );
             }
         }
 
@@ -94,11 +98,6 @@ pub struct ComponentBuilder<'a> {
 }
 
 impl<'a> ComponentBuilder<'a> {
-    pub fn add_file(&mut self, path: PathBuf) -> Result<File> {
-        self.parts
-            .push(ComponentPart("file".to_owned(), path.clone()));
-        self.tx.add_file(&self.name, path)
-    }
     pub fn copy_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
         self.parts
             .push(ComponentPart("file".to_owned(), path.clone()));
@@ -182,7 +181,7 @@ impl Component {
         for line in utils::read_file("component", &self.manifest_file())?.lines() {
             result.push(
                 ComponentPart::decode(line)
-                    .ok_or_else(|| ErrorKind::CorruptComponent(self.name.clone()))?,
+                    .ok_or_else(|| RustupError::CorruptComponent(self.name.clone()))?,
             );
         }
         Ok(result)
@@ -192,7 +191,7 @@ impl Component {
         let path = self.components.rel_components_file();
         let abs_path = self.components.prefix.abs_path(&path);
         let temp = tx.temp().new_file()?;
-        utils::filter_file("components", &abs_path, &temp, |l| (l != self.name))?;
+        utils::filter_file("components", &abs_path, &temp, |l| l != self.name)?;
         tx.modify_file(path)?;
         utils::rename_file("components", &temp, &abs_path, tx.notify_handler())?;
 
@@ -303,7 +302,7 @@ impl Component {
             match &*part.0 {
                 "file" => tx.remove_file(&self.name, part.1.clone())?,
                 "dir" => tx.remove_dir(&self.name, part.1.clone())?,
-                _ => return Err(ErrorKind::CorruptComponent(self.name.clone()).into()),
+                _ => return Err(RustupError::CorruptComponent(self.name.clone()).into()),
             }
             pset.seen(part.1);
         }

@@ -8,6 +8,8 @@ use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::time::Duration;
 
+use anyhow::{anyhow, bail, Context, Result};
+use thiserror::Error as ThisError;
 use wait_timeout::ChildExt;
 
 use crate::component_for_bin;
@@ -85,17 +87,21 @@ impl<'a> Toolchain<'a> {
             path.as_ref().to_path_buf()
         };
 
+        #[derive(Debug, ThisError)]
+        #[error("invalid toolchain path: '{}'", .0.to_string_lossy())]
+        struct InvalidToolchainPath(PathBuf);
+
         // Perform minimal validation; there should at least be a `bin/` that might
         // contain things for us to run.
         if !path.join("bin").is_dir() {
-            return Err(ErrorKind::InvalidToolchainPath(path).into());
+            bail!(InvalidToolchainPath(path));
         }
 
         Ok(Toolchain {
             cfg,
             name: utils::canonicalize_path(&path, cfg.notify_handler.as_ref())
                 .to_str()
-                .ok_or_else(|| ErrorKind::InvalidToolchainPath(path.clone()))?
+                .ok_or_else(|| anyhow!(InvalidToolchainPath(path.clone())))?
                 .to_owned(),
             path,
             dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
@@ -105,7 +111,7 @@ impl<'a> Toolchain<'a> {
     pub fn as_installed_common(&'a self) -> Result<InstalledCommonToolchain<'a>> {
         if !self.exists() {
             // Should be verify perhaps?
-            return Err(ErrorKind::ToolchainNotInstalled(self.name.to_owned()).into());
+            return Err(RustupError::ToolchainNotInstalled(self.name.to_owned()).into());
         }
         Ok(InstalledCommonToolchain(self))
     }
@@ -293,6 +299,22 @@ impl<'a> std::fmt::Debug for Toolchain<'a> {
     }
 }
 
+fn install_msg(bin: &str, toolchain: &str, is_default: bool) -> String {
+    if Toolchain::is_custom_name(toolchain) {
+        return "\nnote: this is a custom toolchain, which cannot use `rustup component add`\n\
+        help: if you built this toolchain from source, and used `rustup toolchain link`, then you may be able to build the component with `x.py`".to_string();
+    }
+    match component_for_bin(bin) {
+        Some(c) => format!("\nTo install, run `rustup component add {}{}`", c, {
+            if is_default {
+                String::new()
+            } else {
+                format!(" --toolchain {}", toolchain)
+            }
+        }),
+        None => String::new(),
+    }
+}
 /// Newtype hosting functions that apply to both custom and distributable toolchains that are installed.
 pub struct InstalledCommonToolchain<'a>(&'a Toolchain<'a>);
 
@@ -334,30 +356,26 @@ impl<'a> InstalledCommonToolchain<'a> {
                                 panic!("component {} should be in the manifest", component_name)
                             });
                         if !component_status.available {
-                            return Err(ErrorKind::BinaryProvidedByUnavailableComponent(
-                                component_status.component.short_name(&manifest),
-                                binary_lossy,
-                                self.0.name.clone(),
-                            )
-                            .into());
+                            return Err(anyhow!(format!(
+                                "the '{}' component which provides the command '{}' is not available for the '{}' toolchain", component_status.component.short_name(&manifest), binary_lossy, self.0.name)));
                         }
                         if component_status.installed {
-                            return Err(ErrorKind::BinaryNotProvidedByComponent(
-                                component_status.component.short_name(&manifest),
-                                binary_lossy,
-                                self.0.name.clone(),
-                            )
-                            .into());
+                            return Err(anyhow!(format!(
+                                "the '{}' binary, normally provided by the '{}' component, is not applicable to the '{}' toolchain", binary_lossy, component_status.component.short_name(&manifest), self.0.name)));
                         }
                     }
                 }
                 let defaults = self.0.cfg.get_default()?;
-                return Err(ErrorKind::BinaryNotFound(
-                    binary.to_string_lossy().into(),
-                    self.0.name.clone(),
-                    Some(&self.0.name) == defaults.as_ref(),
-                )
-                .into());
+                return Err(anyhow!(format!(
+                    "'{}' is not installed for the toolchain '{}'{}",
+                    binary.to_string_lossy(),
+                    self.0.name,
+                    install_msg(
+                        &binary.to_string_lossy(),
+                        &self.0.name,
+                        Some(&self.0.name) == defaults.as_ref()
+                    )
+                )));
             }
             Path::new(&binary)
         };
@@ -448,7 +466,10 @@ impl<'a> CustomToolchain<'a> {
         if toolchain.is_custom() {
             Ok(CustomToolchain(&toolchain))
         } else {
-            Err(format!("{} is not a custom toolchain", toolchain.name()).into())
+            Err(anyhow!(format!(
+                "{} is not a custom toolchain",
+                toolchain.name()
+            )))
         }
     }
 
@@ -487,21 +508,31 @@ pub struct DistributableToolchain<'a>(&'a Toolchain<'a>);
 impl<'a> DistributableToolchain<'a> {
     pub fn new(toolchain: &'a Toolchain<'a>) -> Result<DistributableToolchain<'a>> {
         if toolchain.is_custom() {
-            Err(format!("{} is a custom toolchain", toolchain.name()).into())
+            Err(anyhow!(format!(
+                "{} is a custom toolchain",
+                toolchain.name()
+            )))
         } else {
             Ok(DistributableToolchain(&toolchain))
         }
     }
 
+    /// Temporary helper until we further split this into a newtype for
+    /// InstalledDistributableToolchain - one where the type can protect component operations.
+    pub fn new_for_components(toolchain: &'a Toolchain<'a>) -> Result<DistributableToolchain<'a>> {
+        DistributableToolchain::new(toolchain).context(RustupError::ComponentsUnsupported(
+            toolchain.name().to_string(),
+        ))
+    }
+
     // Installed only.
     pub fn add_component(&self, mut component: Component) -> Result<()> {
         if !self.0.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.0.name.to_owned()).into());
+            return Err(RustupError::ToolchainNotInstalled(self.0.name.to_owned()).into());
         }
 
         let toolchain = &self.0.name;
-        let toolchain = ToolchainDesc::from_str(toolchain)
-            .chain_err(|| ErrorKind::ComponentsUnsupported(self.0.name.to_string()))?;
+        let toolchain = ToolchainDesc::from_str(toolchain).expect("must be valid");
 
         let prefix = InstallPrefix::from(self.0.path.to_owned());
         let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
@@ -527,11 +558,11 @@ impl<'a> DistributableToolchain<'a> {
                 if targ_pkg.components.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
-                    return Err(ErrorKind::UnknownComponent(
-                        self.0.name.to_string(),
-                        component.description(&manifest),
-                        self.get_component_suggestion(&component, &manifest, false),
-                    )
+                    return Err(RustupError::UnknownComponent {
+                        name: self.0.name.to_string(),
+                        component: component.description(&manifest),
+                        suggestion: self.get_component_suggestion(&component, &manifest, false),
+                    }
                     .into());
                 }
             }
@@ -553,7 +584,10 @@ impl<'a> DistributableToolchain<'a> {
 
             Ok(())
         } else {
-            Err(ErrorKind::ComponentsUnsupported(self.0.name.to_string()).into())
+            Err(RustupError::MissingManifest {
+                name: self.0.name.to_string(),
+            }
+            .into())
         }
     }
 
@@ -569,7 +603,7 @@ impl<'a> DistributableToolchain<'a> {
         assert!(binary.as_ref() == "cargo" || binary.as_ref() == "cargo.exe");
 
         if !self.0.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.0.name.to_owned()).into());
+            return Err(RustupError::ToolchainNotInstalled(self.0.name.to_owned()).into());
         }
         let installed_primary = primary_toolchain.as_installed_common()?;
 
@@ -590,14 +624,12 @@ impl<'a> DistributableToolchain<'a> {
             use std::fs;
             let fallback_dir = self.0.cfg.rustup_dir.join("fallback");
             fs::create_dir_all(&fallback_dir)
-                .chain_err(|| "unable to create dir to hold fallback exe")?;
+                .context("unable to create dir to hold fallback exe")?;
             let fallback_file = fallback_dir.join("cargo.exe");
             if fallback_file.exists() {
-                fs::remove_file(&fallback_file)
-                    .chain_err(|| "unable to unlink old fallback exe")?;
+                fs::remove_file(&fallback_file).context("unable to unlink old fallback exe")?;
             }
-            fs::hard_link(&src_file, &fallback_file)
-                .chain_err(|| "unable to hard link fallback exe")?;
+            fs::hard_link(&src_file, &fallback_file).context("unable to hard link fallback exe")?;
             fallback_file
         } else {
             src_file
@@ -704,7 +736,7 @@ impl<'a> DistributableToolchain<'a> {
     // Installed only.
     pub fn get_manifest(&self) -> Result<Option<Manifest>> {
         if !self.0.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.0.name().to_owned()).into());
+            bail!(RustupError::ToolchainNotInstalled(self.0.name().to_owned()));
         }
 
         let toolchain = &self.0.name();
@@ -773,12 +805,12 @@ impl<'a> DistributableToolchain<'a> {
     // Installed only.
     pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
         if !self.0.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.0.name.to_owned()).into());
+            bail!(RustupError::ToolchainNotInstalled(self.0.name.to_owned()));
         }
 
         let toolchain = &self.0.name;
         let toolchain = ToolchainDesc::from_str(toolchain)
-            .chain_err(|| ErrorKind::ComponentsUnsupported(self.0.name.to_string()))?;
+            .context(RustupError::ComponentsUnsupported(self.0.name.to_string()))?;
 
         let prefix = InstallPrefix::from(self.0.path.to_owned());
         let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
@@ -833,7 +865,7 @@ impl<'a> DistributableToolchain<'a> {
 
             Ok(res)
         } else {
-            Err(ErrorKind::ComponentsUnsupported(self.0.name.to_string()).into())
+            Err(RustupError::ComponentsUnsupported(self.0.name.to_string()).into())
         }
     }
 
@@ -841,12 +873,11 @@ impl<'a> DistributableToolchain<'a> {
     pub fn remove_component(&self, mut component: Component) -> Result<()> {
         // Overlapping code with get_manifest :/.
         if !self.0.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.0.name.to_owned()).into());
+            return Err(RustupError::ToolchainNotInstalled(self.0.name.to_owned()).into());
         }
 
         let toolchain = &self.0.name;
-        let toolchain = ToolchainDesc::from_str(toolchain)
-            .chain_err(|| ErrorKind::ComponentsUnsupported(self.0.name.to_string()))?;
+        let toolchain = ToolchainDesc::from_str(toolchain).expect("must be valid");
 
         let prefix = InstallPrefix::from(self.0.path.to_owned());
         let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
@@ -863,11 +894,11 @@ impl<'a> DistributableToolchain<'a> {
                 if dist_config.components.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
-                    return Err(ErrorKind::UnknownComponent(
-                        self.0.name.to_string(),
-                        component.description(&manifest),
-                        self.get_component_suggestion(&component, &manifest, true),
-                    )
+                    return Err(RustupError::UnknownComponent {
+                        name: self.0.name.to_string(),
+                        component: component.description(&manifest),
+                        suggestion: self.get_component_suggestion(&component, &manifest, true),
+                    }
                     .into());
                 }
             }
@@ -889,7 +920,10 @@ impl<'a> DistributableToolchain<'a> {
 
             Ok(())
         } else {
-            Err(ErrorKind::ComponentsUnsupported(self.0.name.to_string()).into())
+            Err(RustupError::MissingManifest {
+                name: self.0.name.to_string(),
+            }
+            .into())
         }
     }
 

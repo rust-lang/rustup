@@ -6,18 +6,33 @@ use std::process::Command;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use anyhow::{anyhow, bail, Context, Result};
 use pgp::{Deserializable, SignedPublicKey};
 use serde::Deserialize;
+use thiserror::Error as ThisError;
 
 use crate::dist::download::DownloadCfg;
-use crate::dist::{dist, temp};
-use crate::errors::*;
+use crate::dist::{
+    dist::{self, valid_profile_names},
+    temp,
+};
+use crate::errors::RustupError;
 use crate::fallback_settings::FallbackSettings;
 use crate::notifications::*;
 use crate::process;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
 use crate::toolchain::{DistributableToolchain, Toolchain, UpdateStatus};
 use crate::utils::utils;
+
+#[derive(Debug, ThisError)]
+enum ConfigError {
+    #[error("empty toolchain override file detected. Please remove it, or else specify the desired toolchain properties in the file")]
+    EmptyOverrideFile,
+    #[error("missing toolchain properties in toolchain override file")]
+    InvalidOverrideFile,
+    #[error("error parsing override file")]
+    ParsingOverrideFile,
+}
 
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 struct OverrideFile {
@@ -110,12 +125,19 @@ impl<'a> OverrideCfg<'a> {
                         || file.toolchain.components.is_some()
                         || file.toolchain.profile.is_some()
                     {
-                        return Err(ErrorKind::CannotSpecifyPathAndOptions(path).into());
+                        bail!(
+                            "toolchain options are ignored for path toolchain ({})",
+                            path.display()
+                        )
                     }
                     Some(Toolchain::from_path(cfg, cfg_path, &path)?)
                 }
                 (Some(channel), Some(path)) => {
-                    return Err(ErrorKind::CannotSpecifyChannelAndPath(channel, path).into())
+                    bail!(
+                        "cannot specify both channel ({}) and path ({}) simultaneously",
+                        channel,
+                        path.display()
+                    )
                 }
                 (None, None) => None,
             },
@@ -167,7 +189,7 @@ impl PgpPublicKey {
                     wait = every;
                 }
                 wait -= 1;
-                write!(ret, "{:02X}", b).map_err(|e| format!("{:?}", e))?;
+                write!(ret, "{:02X}", b)?;
             }
             Ok(ret)
         }
@@ -255,8 +277,12 @@ impl Cfg {
         if let Some(ref s_path) = process().var_os("RUSTUP_PGP_KEY") {
             let path = PathBuf::from(s_path);
             let file = utils::open_file("RUSTUP_PGP_KEY", &path)?;
-            let (key, _) = SignedPublicKey::from_armor_single(file)
-                .map_err(|error| ErrorKind::InvalidPgpKey(PathBuf::from(s_path), error))?;
+            let (key, _) = SignedPublicKey::from_armor_single(file).map_err(|error| {
+                RustupError::InvalidPgpKey {
+                    path: s_path.into(),
+                    source: error,
+                }
+            })?;
 
             pgp_keys.push(PgpPublicKey::FromEnvironment(path, key));
         }
@@ -264,8 +290,12 @@ impl Cfg {
             if let Some(s) = &s.pgp_keys {
                 let path = PathBuf::from(s);
                 let file = utils::open_file("PGP Key from config", &path)?;
-                let (key, _) = SignedPublicKey::from_armor_single(file)
-                    .map_err(|error| ErrorKind::InvalidPgpKey(PathBuf::from(s), error))?;
+                let (key, _) = SignedPublicKey::from_armor_single(file).map_err(|error| {
+                    anyhow!(RustupError::InvalidPgpKey {
+                        path: s.into(),
+                        source: error,
+                    })
+                })?;
 
                 pgp_keys.push(PgpPublicKey::FromConfiguration(path, key));
             }
@@ -322,7 +352,7 @@ impl Cfg {
         // For now, that means simply checking that 'stable' can resolve
         // for the current configuration.
         cfg.resolve_toolchain("stable")
-            .map_err(|e| format!("Unable parse configuration: {}", e))?;
+            .context("Unable parse configuration")?;
 
         Ok(cfg)
     }
@@ -360,7 +390,11 @@ impl Cfg {
 
     pub fn set_profile(&mut self, profile: &str) -> Result<()> {
         if !dist::Profile::names().contains(&profile) {
-            return Err(ErrorKind::UnknownProfile(profile.to_owned()).into());
+            return Err(anyhow!(
+                "unknown profile name: '{}'; valid profile names are {}",
+                profile.to_owned(),
+                valid_profile_names(),
+            ));
         }
         self.profile_override = None;
         self.settings_file.with_mut(|s| {
@@ -404,12 +438,6 @@ impl Cfg {
         }
 
         Toolchain::from(self, name)
-    }
-
-    pub fn verify_toolchain(&self, name: &str) -> Result<Toolchain<'_>> {
-        let toolchain = self.get_toolchain(name, false)?;
-        toolchain.verify()?;
-        Ok(toolchain)
     }
 
     pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> Result<PathBuf> {
@@ -462,14 +490,14 @@ impl Cfg {
 
                 let dirs = utils::read_dir("toolchains", &self.toolchains_dir)?;
                 for dir in dirs {
-                    let dir = dir.chain_err(|| ErrorKind::UpgradeIoError)?;
+                    let dir = dir.context("IO Error reading toolchains")?;
                     utils::remove_dir("toolchain", &dir.path(), self.notify_handler.as_ref())?;
                 }
 
                 // Also delete the update hashes
                 let files = utils::read_dir("update hashes", &self.update_hash_dir)?;
                 for file in files {
-                    let file = file.chain_err(|| ErrorKind::UpgradeIoError)?;
+                    let file = file.context("IO Error reading update hashes")?;
                     utils::remove_file("update hash", &file.path())?;
                 }
 
@@ -478,15 +506,7 @@ impl Cfg {
                     Ok(())
                 })
             }
-            _ => Err(ErrorKind::UnknownMetadataVersion(current_version).into()),
-        }
-    }
-
-    pub fn delete_data(&self) -> Result<()> {
-        if utils::path_exists(&self.rustup_dir) {
-            utils::remove_dir("home", &self.rustup_dir, self.notify_handler.as_ref())
-        } else {
-            Ok(())
+            _ => Err(RustupError::UnknownMetadataVersion(current_version).into()),
         }
     }
 
@@ -574,8 +594,8 @@ impl Cfg {
                 if !toolchain.exists() && toolchain.is_custom() {
                     // Strip the confusing NotADirectory error and only mention that the
                     // override toolchain is not installed.
-                    return Err(Error::from(reason_err)).chain_err(|| {
-                        ErrorKind::OverrideToolchainNotInstalled(toolchain.name().into())
+                    return Err(anyhow!(reason_err)).with_context(|| {
+                        format!("override toolchain '{}' is not installed", toolchain.name())
                     });
                 }
             }
@@ -657,22 +677,22 @@ impl Cfg {
         let contents = contents.as_ref();
 
         match (contents.lines().count(), parse_mode) {
-            (0, _) => Err(ErrorKind::EmptyOverrideFile.into()),
+            (0, _) => Err(anyhow!(ConfigError::EmptyOverrideFile)),
             (1, ParseMode::Both) => {
                 let channel = contents.trim();
 
                 if channel.is_empty() {
-                    Err(ErrorKind::EmptyOverrideFile.into())
+                    Err(anyhow!(ConfigError::EmptyOverrideFile))
                 } else {
                     Ok(channel.into())
                 }
             }
             _ => {
                 let override_file = toml::from_str::<OverrideFile>(contents)
-                    .map_err(ErrorKind::ParsingOverrideFile)?;
+                    .context(ConfigError::ParsingOverrideFile)?;
 
                 if override_file.is_empty() {
-                    Err(ErrorKind::InvalidOverrideFile.into())
+                    Err(anyhow!(ConfigError::InvalidOverrideFile))
                 } else {
                     Ok(override_file)
                 }
@@ -754,7 +774,7 @@ impl Cfg {
             if toolchain.is_custom() {
                 if !toolchain.exists() {
                     return Err(
-                        ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into(),
+                        RustupError::ToolchainNotInstalled(toolchain.name().to_string()).into(),
                     );
                 }
             } else {
@@ -771,7 +791,7 @@ impl Cfg {
             Ok((toolchain, reason))
         } else {
             // No override and no default set
-            Err(ErrorKind::ToolchainNotSelected.into())
+            Err(RustupError::ToolchainNotSelected.into())
         }
     }
 
@@ -847,7 +867,9 @@ impl Cfg {
             if s.version == DEFAULT_METADATA_VERSION {
                 Ok(())
             } else {
-                Err(ErrorKind::NeedMetadataUpgrade.into())
+                Err(anyhow!(
+                    "rustup's metadata is out of date. run `rustup self upgrade-data`"
+                ))
             }
         })
     }
@@ -1140,8 +1162,8 @@ components = [ "rustfmt" ]
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
-            result.unwrap_err().kind(),
-            ErrorKind::InvalidOverrideFile
+            result.unwrap_err().downcast::<ConfigError>(),
+            Ok(ConfigError::InvalidOverrideFile)
         ));
     }
 
@@ -1151,8 +1173,8 @@ components = [ "rustfmt" ]
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
-            result.unwrap_err().kind(),
-            ErrorKind::EmptyOverrideFile
+            result.unwrap_err().downcast::<ConfigError>(),
+            Ok(ConfigError::EmptyOverrideFile)
         ));
     }
 
@@ -1162,8 +1184,8 @@ components = [ "rustfmt" ]
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
-            result.unwrap_err().kind(),
-            ErrorKind::EmptyOverrideFile
+            result.unwrap_err().downcast::<ConfigError>(),
+            Ok(ConfigError::EmptyOverrideFile)
         ));
     }
 
@@ -1175,8 +1197,8 @@ channel = nightly
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
-            result.unwrap_err().kind(),
-            ErrorKind::ParsingOverrideFile(..)
+            result.unwrap_err().downcast::<ConfigError>(),
+            Ok(ConfigError::ParsingOverrideFile)
         ));
     }
 }

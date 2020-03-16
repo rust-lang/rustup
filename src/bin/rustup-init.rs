@@ -15,11 +15,11 @@
 
 use std::path::PathBuf;
 
+use anyhow::{anyhow, Result};
 use cfg_if::cfg_if;
 use rs_tracing::*;
 
 use rustup::cli::common;
-use rustup::cli::errors::*;
 use rustup::cli::proxy_mode;
 use rustup::cli::rustup_mode;
 #[cfg(windows)]
@@ -33,8 +33,8 @@ use rustup::{DUP_TOOLS, TOOLS};
 fn main() {
     let process = OSProcess::default();
     with(Box::new(process), || match run_rustup() {
-        Err(ref e) => {
-            common::report_error(e);
+        Err(e) => {
+            common::report_error(&e);
             std::process::exit(1);
         }
         Ok(utils::ExitCode(c)) => std::process::exit(c),
@@ -102,12 +102,21 @@ fn run_rustup_inner() -> Result<utils::ExitCode> {
             {
                 proxy_mode::main()
             } else {
-                Err(ErrorKind::UnknownProxyName(n.to_string()).into())
+                Err(anyhow!(format!(
+                    "unknown proxy name: '{}'; valid proxy names are {}",
+                    n,
+                    TOOLS
+                        .iter()
+                        .chain(DUP_TOOLS.iter())
+                        .map(|s| format!("'{}'", s))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )))
             }
         }
         None => {
             // Weird case. No arg0, or it's unparsable.
-            Err(ErrorKind::NoExeName.into())
+            Err(rustup::cli::errors::CLIError::NoExeName.into())
         }
     }
 }
@@ -119,7 +128,7 @@ fn do_recursion_guard() -> Result<()> {
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
     if recursion_count > RUST_RECURSION_COUNT_MAX {
-        return Err(ErrorKind::InfiniteRecursion.into());
+        return Err(anyhow!("infinite recursion detected"));
     }
 
     Ok(())
