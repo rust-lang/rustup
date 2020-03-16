@@ -7,8 +7,10 @@ use crate::dist::manifest::{Component, Manifest};
 use crate::dist::temp;
 use error_chain::error_chain;
 use std::ffi::OsString;
+use std::fmt::{self, Debug, Display};
 use std::io::{self, Write};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex, Weak};
 use url::Url;
 
 pub const TOOLSTATE_MSG: &str =
@@ -367,6 +369,133 @@ error_chain! {
         BrokenPartialFile {
             description("partially downloaded file may have been damaged and was removed, please try again")
         }
+    }
+}
+
+/// Inspired by failure::SyncFailure, but not identical.
+///
+/// SyncError does not grant full safety: it will panic when errors are used
+/// across threads (e.g. by threaded error logging libraries). This could be
+/// fixed, but as we don't do that within rustup, it is not needed. If using
+/// this code elsewhere, just hunt down and remove the unchecked unwraps.
+pub struct SyncError<T: 'static> {
+    inner: Arc<Mutex<T>>,
+    proxy: Option<CauseProxy<T>>,
+}
+
+impl<T: std::error::Error + 'static> SyncError<T> {
+    pub fn new(err: T) -> Self {
+        let arc = Arc::new(Mutex::new(err));
+        let proxy = match arc.lock().unwrap().source() {
+            None => None,
+            Some(source) => Some(CauseProxy::new(source, Arc::downgrade(&arc), 0)),
+        };
+
+        SyncError { inner: arc, proxy }
+    }
+
+    pub fn maybe<R>(r: std::result::Result<R, T>) -> std::result::Result<R, Self> {
+        match r {
+            Ok(v) => Ok(v),
+            Err(e) => Err(SyncError::new(e)),
+        }
+    }
+
+    pub fn unwrap(self) -> T {
+        Arc::try_unwrap(self.inner).unwrap().into_inner().unwrap()
+    }
+}
+
+impl<T: std::error::Error + 'static> std::error::Error for SyncError<T> {
+    #[cfg(backtrace)]
+    fn backtrace(&self) -> Option<&Backtrace> {}
+
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.proxy.as_ref().map(|x| x as _)
+    }
+}
+
+impl<T> Display for SyncError<T>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.inner.lock().unwrap().fmt(f)
+    }
+}
+
+impl<T> Debug for SyncError<T>
+where
+    T: Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.inner.lock().unwrap().fmt(f)
+    }
+}
+
+struct CauseProxy<T: 'static> {
+    inner: Weak<Mutex<T>>,
+    next: Option<Box<CauseProxy<T>>>,
+    depth: u32,
+}
+
+impl<T: std::error::Error> CauseProxy<T> {
+    fn new(err: &dyn std::error::Error, weak: Weak<Mutex<T>>, depth: u32) -> Self {
+        // Can't allocate an object, or mutate the proxy safely during source(),
+        // so we just take the hit at construction, recursively. We can't hold
+        // references outside the mutex at all, so instead we remember how many
+        // steps to get to this proxy. And if some error chain plays tricks, the
+        // user gets both pieces.
+        CauseProxy {
+            inner: weak.clone(),
+            depth,
+            next: match err.source() {
+                None => None,
+                Some(source) => Some(Box::new(CauseProxy::new(source, weak, depth + 1))),
+            },
+        }
+    }
+
+    fn with_instance<R, F>(&self, f: F) -> R
+    where
+        F: FnOnce(&(dyn std::error::Error + 'static)) -> R,
+    {
+        let arc = self.inner.upgrade().unwrap();
+        {
+            let e = arc.lock().unwrap();
+            let mut source = e.source().unwrap();
+            for _ in 0..self.depth {
+                source = source.source().unwrap();
+            }
+            f(source)
+        }
+    }
+}
+
+impl<T: std::error::Error + 'static> std::error::Error for CauseProxy<T> {
+    #[cfg(backtrace)]
+    fn backtrace(&self) -> Option<&Backtrace> {}
+
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.next.as_ref().map(|x| x as _)
+    }
+}
+
+impl<T> Display for CauseProxy<T>
+where
+    T: Display + std::error::Error,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.with_instance(|i| std::fmt::Display::fmt(&i, f))
+    }
+}
+
+impl<T> Debug for CauseProxy<T>
+where
+    T: Debug + std::error::Error,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.with_instance(|i| std::fmt::Debug::fmt(&i, f))
     }
 }
 
