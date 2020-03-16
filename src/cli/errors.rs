@@ -13,6 +13,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use rustup::dist::temp;
 use strsim::damerau_levenshtein;
+use thiserror::Error as ThisError;
 
 error_chain! {
     links {
@@ -68,6 +69,12 @@ error_chain! {
             display("could not amend shell profile: '{}'", path.display())
         }
     }
+}
+
+#[derive(ThisError, Debug)]
+pub enum CLIError {
+    #[error("couldn't determine self executable name")]
+    NoExeName,
 }
 
 fn maybe_suggest_toolchain(bad_name: &str) -> String {

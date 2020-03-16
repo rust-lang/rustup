@@ -351,9 +351,6 @@ error_chain! {
         ParsingSettings(e: toml::de::Error) {
             description("error parsing settings")
         }
-        NoExeName {
-            description("couldn't determine self executable name")
-        }
         UnsupportedKind(v: String) {
             description("unsupported tar entry")
             display("tar entry kind '{}' is not supported", v)

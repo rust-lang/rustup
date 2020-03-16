@@ -78,26 +78,27 @@ fn run_rustup_inner() -> Result<()> {
         .and_then(|a| a.file_stem())
         .and_then(std::ffi::OsStr::to_str);
 
-    Ok(SyncError::maybe(match name {
-        Some("rustup") => rustup_mode::main(),
+    match name {
+        Some("rustup") => SyncError::maybe(rustup_mode::main())?,
         Some(n) if n.starts_with("rustup-setup") || n.starts_with("rustup-init") => {
             // NB: The above check is only for the prefix of the file
             // name. Browsers rename duplicates to
             // e.g. rustup-setup(2), and this allows all variations
             // to work.
-            setup_mode::main()
+            SyncError::maybe(setup_mode::main())?
         }
         Some(n) if n.starts_with("rustup-gc-") => {
             // This is the final uninstallation stage on windows where
             // rustup deletes its own exe
-            self_update::complete_windows_uninstall()
+            SyncError::maybe(self_update::complete_windows_uninstall())?
         }
-        Some(_) => proxy_mode::main(),
+        Some(_) => SyncError::maybe(proxy_mode::main())?,
         None => {
             // Weird case. No arg0, or it's unparsable.
-            Err(crate::errors::ErrorKind::NoExeName.into())
+            return Err(errors::CLIError::NoExeName.into());
         }
-    })?)
+    }
+    Ok(())
 }
 
 fn do_recursion_guard() -> Result<()> {
