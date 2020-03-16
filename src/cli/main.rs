@@ -36,7 +36,7 @@ use rustup::utils::utils;
 use std::env;
 use std::path::PathBuf;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use rs_tracing::*;
 
 fn main() {
@@ -60,7 +60,7 @@ fn run_rustup() -> Result<()> {
 fn run_rustup_inner() -> Result<()> {
     // Guard against infinite proxy recursion. This mostly happens due to
     // bugs in rustup.
-    SyncError::maybe(do_recursion_guard())?;
+    do_recursion_guard()?;
 
     // Before we do anything else, ensure we know where we are and who we
     // are because otherwise we cannot proceed usefully.
@@ -100,13 +100,13 @@ fn run_rustup_inner() -> Result<()> {
     })?)
 }
 
-fn do_recursion_guard() -> crate::errors::Result<()> {
+fn do_recursion_guard() -> Result<()> {
     let recursion_count = env::var("RUST_RECURSION_COUNT")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
     if recursion_count > RUST_RECURSION_COUNT_MAX {
-        return Err(crate::errors::ErrorKind::InfiniteRecursion.into());
+        return Err(anyhow!("infinite recursion detected"));
     }
 
     Ok(())

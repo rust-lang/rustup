@@ -40,9 +40,6 @@ error_chain! {
             description("invalid toolchain name")
             display("invalid toolchain name: '{}'{}", t, maybe_suggest_toolchain(t))
         }
-        InfiniteRecursion {
-            description("infinite recursion detected")
-        }
         NoExeName {
             description("couldn't determine self executable name")
         }
