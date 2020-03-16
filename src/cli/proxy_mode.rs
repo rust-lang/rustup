@@ -1,7 +1,8 @@
 use crate::common::set_globals;
-use crate::errors::*;
 use crate::job;
+use anyhow::Result;
 use rustup::command::run_command_for_dir;
+use rustup::errors::SyncError;
 use rustup::utils::utils::{self, ExitCode};
 use rustup::Cfg;
 use std::env;
@@ -10,7 +11,7 @@ use std::path::PathBuf;
 use std::process;
 
 pub fn main() -> Result<()> {
-    crate::self_update::cleanup_self_updater()?;
+    SyncError::maybe(crate::self_update::cleanup_self_updater())?;
 
     let ExitCode(c) = {
         let _setup = job::setup();
@@ -22,7 +23,7 @@ pub fn main() -> Result<()> {
             .as_ref()
             .and_then(|a| a.file_name())
             .and_then(std::ffi::OsStr::to_str);
-        let arg0 = arg0.ok_or(ErrorKind::NoExeName)?;
+        let arg0 = arg0.ok_or(crate::errors::CLIError::NoExeName)?;
 
         // Check for a toolchain specifier.
         let arg1 = args.next();
@@ -39,8 +40,8 @@ pub fn main() -> Result<()> {
             env::args_os().skip(2).collect()
         };
 
-        let cfg = set_globals(false, true)?;
-        cfg.check_metadata_version()?;
+        let cfg = SyncError::maybe(set_globals(false, true))?;
+        SyncError::maybe(cfg.check_metadata_version())?;
         direct_proxy(&cfg, &arg0, toolchain, &cmd_args)?
     };
 
@@ -54,8 +55,10 @@ fn direct_proxy(
     args: &[OsString],
 ) -> Result<ExitCode> {
     let cmd = match toolchain {
-        None => cfg.create_command_for_dir(&utils::current_dir()?, arg0)?,
-        Some(tc) => cfg.create_command_for_toolchain(tc, false, arg0)?,
+        None => SyncError::maybe(
+            cfg.create_command_for_dir(&SyncError::maybe(utils::current_dir())?, arg0),
+        )?,
+        Some(tc) => SyncError::maybe(cfg.create_command_for_toolchain(tc, false, arg0))?,
     };
-    Ok(run_command_for_dir(cmd, arg0, args)?)
+    Ok(SyncError::maybe(run_command_for_dir(cmd, arg0, args))?)
 }

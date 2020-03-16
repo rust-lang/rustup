@@ -41,9 +41,6 @@ error_chain! {
             description("invalid toolchain name")
             display("invalid toolchain name: '{}'{}", t, maybe_suggest_toolchain(t))
         }
-        NoExeName {
-            description("couldn't determine self executable name")
-        }
         NotSelfInstalled(p: PathBuf) {
             description("rustup is not installed")
             display("rustup is not installed at '{}'", p.display())

@@ -92,7 +92,7 @@ fn run_rustup_inner() -> Result<()> {
             // rustup deletes its own exe
             SyncError::maybe(self_update::complete_windows_uninstall())?
         }
-        Some(_) => SyncError::maybe(proxy_mode::main())?,
+        Some(_) => proxy_mode::main()?,
         None => {
             // Weird case. No arg0, or it's unparsable.
             return Err(errors::CLIError::NoExeName.into());
