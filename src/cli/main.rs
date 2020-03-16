@@ -85,7 +85,7 @@ fn run_rustup_inner() -> Result<()> {
             // name. Browsers rename duplicates to
             // e.g. rustup-setup(2), and this allows all variations
             // to work.
-            SyncError::maybe(setup_mode::main())?
+            setup_mode::main()?
         }
         Some(n) if n.starts_with("rustup-gc-") => {
             // This is the final uninstallation stage on windows where
