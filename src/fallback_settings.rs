@@ -29,7 +29,7 @@ impl FallbackSettings {
                 let io_err = e.source().unwrap().downcast_ref::<io::Error>().unwrap();
                 match io_err.kind() {
                     io::ErrorKind::NotFound | io::ErrorKind::PermissionDenied => Ok(None),
-                    _ => Err(e.into()),
+                    _ => Err(e),
                 }
             }
             Err(e) => Err(e),
