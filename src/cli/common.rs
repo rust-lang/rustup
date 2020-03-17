@@ -3,6 +3,7 @@
 use crate::errors::*;
 use crate::self_update;
 use crate::term2;
+use anyhow;
 use git_testament::{git_testament, render_testament};
 use lazy_static::lazy_static;
 use rustup::dist::notifications as dist_notifications;
@@ -44,7 +45,7 @@ pub enum Confirm {
     Advanced,
 }
 
-pub fn confirm_advanced() -> Result<Confirm> {
+pub fn confirm_advanced() -> anyhow::Result<Confirm> {
     println!();
     println!("1) Proceed with installation (default)");
     println!("2) Customize installation");
@@ -52,7 +53,7 @@ pub fn confirm_advanced() -> Result<Confirm> {
     print!(">");
 
     let _ = std::io::stdout().flush();
-    let input = read_line()?;
+    let input = SyncError::maybe(read_line())?;
 
     let r = match &*input {
         "1" | "" => Confirm::Yes,
@@ -65,10 +66,10 @@ pub fn confirm_advanced() -> Result<Confirm> {
     Ok(r)
 }
 
-pub fn question_str(question: &str, default: &str) -> Result<String> {
+pub fn question_str(question: &str, default: &str) -> anyhow::Result<String> {
     println!("{}", question);
     let _ = std::io::stdout().flush();
-    let input = read_line()?;
+    let input = SyncError::maybe(read_line())?;
 
     println!();
 
@@ -79,11 +80,11 @@ pub fn question_str(question: &str, default: &str) -> Result<String> {
     }
 }
 
-pub fn question_bool(question: &str, default: bool) -> Result<bool> {
+pub fn question_bool(question: &str, default: bool) -> anyhow::Result<bool> {
     println!("{}", question);
 
     let _ = std::io::stdout().flush();
-    let input = read_line()?;
+    let input = SyncError::maybe(read_line())?;
 
     println!();
 
@@ -239,8 +240,12 @@ fn show_channel_updates(
     Ok(())
 }
 
-pub fn update_all_channels(cfg: &Cfg, do_self_update: bool, force_update: bool) -> Result<()> {
-    let toolchains = cfg.update_all_channels(force_update)?;
+pub fn update_all_channels(
+    cfg: &Cfg,
+    do_self_update: bool,
+    force_update: bool,
+) -> anyhow::Result<()> {
+    let toolchains = SyncError::maybe(cfg.update_all_channels(force_update))?;
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");
@@ -250,7 +255,7 @@ pub fn update_all_channels(cfg: &Cfg, do_self_update: bool, force_update: bool) 
         if !toolchains.is_empty() {
             println!();
 
-            show_channel_updates(cfg, toolchains)?;
+            SyncError::maybe(show_channel_updates(cfg, toolchains))?;
         }
         Ok(())
     };
@@ -317,11 +322,11 @@ pub fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
     }
 }
 
-pub fn self_update<F>(before_restart: F) -> Result<()>
+pub fn self_update<F>(before_restart: F) -> anyhow::Result<()>
 where
-    F: FnOnce() -> Result<()>,
+    F: FnOnce() -> anyhow::Result<()>,
 {
-    match self_update_permitted(false)? {
+    match SyncError::maybe(self_update_permitted(false))? {
         SelfUpdatePermission::HardFail => {
             err!("Unable to self-update.  STOP");
             std::process::exit(1);
@@ -335,7 +340,7 @@ where
     before_restart()?;
 
     if let Some(ref setup_path) = setup_path {
-        self_update::run_update(setup_path)?;
+        SyncError::maybe(self_update::run_update(setup_path))?;
 
         unreachable!(); // update exits on success
     } else {
@@ -570,8 +575,8 @@ pub fn report_error(e: &anyhow::Error) {
     }
 }
 
-pub fn ignorable_error(error: crate::errors::Error, no_prompt: bool) -> Result<()> {
-    let error = anyhow::Error::from(SyncError::new(error));
+pub fn ignorable_error(error: &'static str, no_prompt: bool) -> anyhow::Result<()> {
+    let error = anyhow::anyhow!(error);
     report_error(&error);
     if no_prompt {
         warn!("continuing (because the -y flag is set and the error is ignorable)");
@@ -579,9 +584,6 @@ pub fn ignorable_error(error: crate::errors::Error, no_prompt: bool) -> Result<(
     } else if confirm("\nContinue? (y/N)", false).unwrap_or(false) {
         Ok(())
     } else {
-        Err(error
-            .downcast::<SyncError<crate::errors::Error>>()
-            .unwrap()
-            .unwrap())
+        Err(error)
     }
 }

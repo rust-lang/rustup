@@ -31,9 +31,10 @@
 //! and racy on Windows.
 
 use crate::common::{self, ignorable_error, Confirm};
-use crate::errors::*;
+use crate::errors::{CLIError, ResultExt};
 use crate::markdown::md;
 use crate::term2;
+use anyhow::{anyhow, Context, Result};
 use rustup::dist::dist::{self, Profile, TargetTriple};
 use rustup::errors::SyncError;
 use rustup::toolchain::DistributableToolchain;
@@ -216,7 +217,7 @@ static UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 
 /// `CARGO_HOME` suitable for display, possibly with $HOME
 /// substituted for the directory prefix
-fn canonical_cargo_home() -> Result<String> {
+fn canonical_cargo_home() -> crate::errors::Result<String> {
     let path = utils::cargo_home()?;
     let mut path_str = path.to_string_lossy().into_owned();
 
@@ -252,12 +253,12 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
     do_anti_sudo_check(no_prompt)?;
 
     let mut term = term2::stdout();
-    if !do_msvc_check(&opts)? {
+    if !do_msvc_check(&opts) {
         if no_prompt {
             warn!("installing msvc toolchain without its prerequisites");
         } else {
             md(&mut term, MSVC_MESSAGE);
-            if !common::confirm("\nContinue? (Y/n)", true)? {
+            if !SyncError::maybe(common::confirm("\nContinue? (Y/n)", true))? {
                 info!("aborting installation");
                 return Ok(());
             }
@@ -289,10 +290,10 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
     let install_res: Result<()> = (|| {
         install_bins()?;
         if !opts.no_modify_path {
-            do_add_to_path(&get_add_path_methods())?;
+            SyncError::maybe(do_add_to_path(&get_add_path_methods()))?;
         }
-        utils::create_rustup_home()?;
-        maybe_install_rust(
+        SyncError::maybe(utils::create_rustup_home())?;
+        SyncError::maybe(maybe_install_rust(
             opts.default_toolchain.as_deref(),
             &opts.profile,
             opts.default_host_triple.as_deref(),
@@ -300,19 +301,19 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
             opts.targets,
             verbose,
             quiet,
-        )?;
+        ))?;
 
         if cfg!(unix) {
-            let env_file = utils::cargo_home()?.join("env");
-            let env_str = format!("{}\n", shell_export_string()?);
-            utils::write_file("env", &env_file, &env_str)?;
+            let env_file = SyncError::maybe(utils::cargo_home())?.join("env");
+            let env_str = format!("{}\n", SyncError::maybe(shell_export_string())?);
+            SyncError::maybe(utils::write_file("env", &env_file, &env_str))?;
         }
 
         Ok(())
     })();
 
     if let Err(e) = install_res {
-        common::report_error(&SyncError::new(e).into());
+        common::report_error(&e);
 
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, give
@@ -321,13 +322,13 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
         if cfg!(windows) && !no_prompt {
             println!();
             println!("Press the Enter key to continue.");
-            common::read_line()?;
+            SyncError::maybe(common::read_line())?;
         }
 
         process::exit(1);
     }
 
-    let cargo_home = canonical_cargo_home()?;
+    let cargo_home = SyncError::maybe(canonical_cargo_home())?;
     let msg = if !opts.no_modify_path {
         if cfg!(unix) {
             format!(post_install_msg_unix!(), cargo_home = cargo_home)
@@ -354,14 +355,14 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
         if cfg!(windows) {
             println!();
             println!("Press the Enter key to continue.");
-            common::read_line()?;
+            SyncError::maybe(common::read_line())?;
         }
     }
 
     Ok(())
 }
 
-fn rustc_or_cargo_exists_in_path() -> Result<()> {
+fn rustc_or_cargo_exists_in_path() -> crate::errors::Result<()> {
     // Ignore rustc and cargo if present in $HOME/.cargo/bin or a few other directories
     fn ignore_paths(path: &PathBuf) -> bool {
         !path
@@ -401,7 +402,7 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool) -> Result<()> {
         warn!("If you are sure that you want both rustup and your already installed Rust");
         warn!("then please reply `y' or `yes' or set RUSTUP_INIT_SKIP_PATH_CHECK to yes");
         warn!("or pass `-y' to ignore all ignorable checks.");
-        ignorable_error("cannot install while Rust is installed".into(), no_prompt)?;
+        ignorable_error("cannot install while Rust is installed", no_prompt)?;
     }
     Ok(())
 }
@@ -422,7 +423,7 @@ fn do_pre_install_sanity_checks(no_prompt: bool) -> Result<()> {
             "run `{}` as root to uninstall Rust",
             uninstaller_path.display()
         );
-        ignorable_error("cannot install while Rust is installed".into(), no_prompt)?;
+        ignorable_error("cannot install while Rust is installed", no_prompt)?;
     }
 
     if rustup_sh_exists {
@@ -432,10 +433,7 @@ fn do_pre_install_sanity_checks(no_prompt: bool) -> Result<()> {
         warn!("or, if you already have rustup installed, you can run");
         warn!("`rustup self update` and `rustup toolchain list` to upgrade");
         warn!("your directory structure");
-        ignorable_error(
-            "cannot install while rustup.sh is installed".into(),
-            no_prompt,
-        )?;
+        ignorable_error("cannot install while rustup.sh is installed", no_prompt)?;
     }
 
     Ok(())
@@ -464,7 +462,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
         Ok(())
     })()
     .map_err(|e: Box<dyn std::error::Error>| {
-        format!(
+        anyhow!(
             "Pre-checks for host and toolchain failed: {}\n\
              If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
              Valid host triples look something like: {}",
@@ -514,10 +512,10 @@ fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
 // Provide guidance about setting up MSVC if it doesn't appear to be
 // installed
 #[cfg(windows)]
-fn do_msvc_check(opts: &InstallOpts) -> Result<bool> {
+fn do_msvc_check(opts: &InstallOpts) -> bool {
     // Test suite skips this since it's env dependent
     if env::var("RUSTUP_INIT_SKIP_MSVC_CHECK").is_ok() {
-        return Ok(true);
+        return true;
     }
 
     use cc::windows_registry;
@@ -528,22 +526,18 @@ fn do_msvc_check(opts: &InstallOpts) -> Result<bool> {
     };
     let installing_msvc = host_triple.contains("msvc");
     let have_msvc = windows_registry::find_tool(&host_triple, "cl.exe").is_some();
-    if installing_msvc && !have_msvc {
-        return Ok(false);
-    }
-
-    Ok(true)
+    have_msvc || !installing_msvc
 }
 
 #[cfg(not(windows))]
-fn do_msvc_check(_opts: &InstallOpts) -> Result<bool> {
-    Ok(true)
+fn do_msvc_check(_opts: &InstallOpts) -> bool {
+    true
 }
 
 fn pre_install_msg(no_modify_path: bool) -> Result<String> {
-    let cargo_home = utils::cargo_home()?;
+    let cargo_home = SyncError::maybe(utils::cargo_home())?;
     let cargo_home_bin = cargo_home.join("bin");
-    let rustup_home = utils::rustup_home()?;
+    let rustup_home = SyncError::maybe(utils::rustup_home())?;
 
     if !no_modify_path {
         if cfg!(unix) {
@@ -644,23 +638,27 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
 }
 
 fn install_bins() -> Result<()> {
-    let bin_path = utils::cargo_home()?.join("bin");
-    let this_exe_path = utils::current_exe()?;
+    let bin_path = SyncError::maybe(utils::cargo_home())?.join("bin");
+    let this_exe_path = SyncError::maybe(utils::current_exe())?;
     let rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
 
-    utils::ensure_dir_exists("bin", &bin_path, &|_: Notification<'_>| {})?;
+    SyncError::maybe(utils::ensure_dir_exists(
+        "bin",
+        &bin_path,
+        &|_: Notification<'_>| {},
+    ))?;
     // NB: Even on Linux we can't just copy the new binary over the (running)
     // old binary; we must unlink it first.
     if rustup_path.exists() {
-        utils::remove_file("rustup-bin", &rustup_path)?;
+        SyncError::maybe(utils::remove_file("rustup-bin", &rustup_path))?;
     }
-    utils::copy_file(&this_exe_path, &rustup_path)?;
-    utils::make_executable(&rustup_path)?;
+    SyncError::maybe(utils::copy_file(&this_exe_path, &rustup_path))?;
+    SyncError::maybe(utils::make_executable(&rustup_path))?;
     install_proxies()
 }
 
 pub fn install_proxies() -> Result<()> {
-    let bin_path = utils::cargo_home()?.join("bin");
+    let bin_path = SyncError::maybe(utils::cargo_home())?.join("bin");
     let rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
 
     let rustup = Handle::from_path(&rustup_path)?;
@@ -727,12 +725,12 @@ pub fn install_proxies() -> Result<()> {
                 continue;
             }
         }
-        utils::hard_or_symlink_file(&rustup_path, &tool_path)?;
+        SyncError::maybe(utils::hard_or_symlink_file(&rustup_path, &tool_path))?;
     }
 
     drop(tool_handles);
     for path in link_afterwards {
-        utils::hard_or_symlink_file(&rustup_path, &path)?;
+        SyncError::maybe(utils::hard_or_symlink_file(&rustup_path, &path))?;
     }
 
     Ok(())
@@ -746,7 +744,7 @@ fn maybe_install_rust(
     targets: &[&str],
     verbose: bool,
     quiet: bool,
-) -> Result<()> {
+) -> crate::errors::Result<()> {
     let mut cfg = common::set_globals(verbose, quiet)?;
     cfg.set_profile(profile_str)?;
 
@@ -802,7 +800,7 @@ fn maybe_install_rust(
     Ok(())
 }
 
-pub fn uninstall(no_prompt: bool) -> Result<()> {
+pub fn uninstall(no_prompt: bool) -> crate::errors::Result<()> {
     if NEVER_SELF_UPDATE {
         err!("self-uninstall is disabled for this build of rustup");
         err!("you should probably use your system package manager to uninstall rustup");
@@ -815,7 +813,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         .join(&format!("bin/rustup{}", EXE_SUFFIX))
         .exists()
     {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home).into());
+        return Err(crate::errors::ErrorKind::NotSelfInstalled(cargo_home).into());
     }
 
     if !no_prompt {
@@ -893,7 +891,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 }
 
 #[cfg(unix)]
-fn delete_rustup_and_cargo_home() -> Result<()> {
+fn delete_rustup_and_cargo_home() -> crate::errors::Result<()> {
     let cargo_home = utils::cargo_home()?;
     utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())?;
 
@@ -931,7 +929,7 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 #[cfg(windows)]
-fn delete_rustup_and_cargo_home() -> Result<()> {
+fn delete_rustup_and_cargo_home() -> crate::errors::Result<()> {
     use std::io;
     use std::mem;
     use std::os::windows::ffi::OsStrExt;
@@ -985,7 +983,7 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
 
         if gc_handle == INVALID_HANDLE_VALUE {
             let err = io::Error::last_os_error();
-            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
+            return Err(err).chain_err(|| crate::errors::ErrorKind::WindowsUninstallMadness);
         }
 
         scopeguard::guard(gc_handle, |h| {
@@ -995,7 +993,7 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
 
     Command::new(gc_exe)
         .spawn()
-        .chain_err(|| ErrorKind::WindowsUninstallMadness)?;
+        .chain_err(|| crate::errors::ErrorKind::WindowsUninstallMadness)?;
 
     // The catch 22 article says we must sleep here to give
     // Windows a chance to bump the processes file reference
@@ -1018,8 +1016,12 @@ pub fn complete_windows_uninstall() -> Result<()> {
     wait_for_parent()?;
 
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME
-    let cargo_home = utils::cargo_home()?;
-    utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())?;
+    let cargo_home = SyncError::maybe(utils::cargo_home())?;
+    SyncError::maybe(utils::remove_dir(
+        "cargo_home",
+        &cargo_home,
+        &|_: Notification<'_>| (),
+    ))?;
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc
@@ -1031,7 +1033,7 @@ pub fn complete_windows_uninstall() -> Result<()> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .chain_err(|| ErrorKind::WindowsUninstallMadness)?;
+        .map_err(|e| CLIError::WindowsUninstallMadness { source: e })?;
 
     process::exit(0);
 }
@@ -1056,7 +1058,7 @@ fn wait_for_parent() -> Result<()> {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if snapshot == INVALID_HANDLE_VALUE {
             let err = io::Error::last_os_error();
-            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
+            return Err(CLIError::WindowsUninstallMadness { source: err }.into());
         }
 
         let snapshot = scopeguard::guard(snapshot, |h| {
@@ -1070,7 +1072,7 @@ fn wait_for_parent() -> Result<()> {
         let success = Process32First(*snapshot, &mut entry);
         if success == 0 {
             let err = io::Error::last_os_error();
-            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
+            return Err(CLIError::WindowsUninstallMadness { source: err }.into());
         }
 
         let this_pid = GetCurrentProcessId();
@@ -1078,7 +1080,7 @@ fn wait_for_parent() -> Result<()> {
             let success = Process32Next(*snapshot, &mut entry);
             if success == 0 {
                 let err = io::Error::last_os_error();
-                return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
+                return Err(CLIError::WindowsUninstallMadness { source: err }.into());
             }
         }
 
@@ -1103,7 +1105,7 @@ fn wait_for_parent() -> Result<()> {
 
         if res != WAIT_OBJECT_0 {
             let err = io::Error::last_os_error();
-            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
+            return Err(CLIError::WindowsUninstallMadness { source: err }.into());
         }
     }
 
@@ -1151,7 +1153,7 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
     profiles.into_iter().map(PathUpdateMethod::RcFile).collect()
 }
 
-fn shell_export_string() -> Result<String> {
+fn shell_export_string() -> crate::errors::Result<String> {
     let path = format!("{}/bin", canonical_cargo_home()?);
     // The path is *prepended* in case there are system-installed
     // rustc's that need to be overridden.
@@ -1159,7 +1161,7 @@ fn shell_export_string() -> Result<String> {
 }
 
 #[cfg(unix)]
-fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
+fn do_add_to_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()> {
     for method in methods {
         if let PathUpdateMethod::RcFile(ref rcpath) = *method {
             let file = if rcpath.exists() {
@@ -1170,7 +1172,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
             let addition = format!("\n{}", shell_export_string()?);
             if !file.contains(&addition) {
                 utils::append_file("rcfile", rcpath, &addition).chain_err(|| {
-                    ErrorKind::WritingShellProfile {
+                    crate::errors::ErrorKind::WritingShellProfile {
                         path: rcpath.to_path_buf(),
                     }
                 })?;
@@ -1184,7 +1186,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 }
 
 #[cfg(windows)]
-fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
+fn do_add_to_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
     use std::ptr;
@@ -1218,7 +1220,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .chain_err(|| ErrorKind::PermissionDenied)?;
+        .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
 
     let reg_value = RegValue {
         bytes: utils::string_to_winreg_bytes(&new_path),
@@ -1227,7 +1229,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 
     environment
         .set_raw_value("PATH", &reg_value)
-        .chain_err(|| ErrorKind::PermissionDenied)?;
+        .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
 
     // Tell other processes to update their environment
     unsafe {
@@ -1249,7 +1251,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 // this returns None then the PATH variable is not unicode and we
 // should not mess with it.
 #[cfg(windows)]
-fn get_windows_path_var() -> Result<Option<String>> {
+fn get_windows_path_var() -> crate::errors::Result<Option<String>> {
     use std::io;
     use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::RegKey;
@@ -1257,7 +1259,7 @@ fn get_windows_path_var() -> Result<Option<String>> {
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .chain_err(|| ErrorKind::PermissionDenied)?;
+        .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
 
     let reg_value = environment.get_raw_value("PATH");
     match reg_value {
@@ -1267,17 +1269,17 @@ fn get_windows_path_var() -> Result<Option<String>> {
             } else {
                 warn!("the registry key HKEY_CURRENT_USER\\Environment\\PATH does not contain valid Unicode. \
                        Not modifying the PATH variable");
-                return Ok(None);
+                Ok(None)
             }
         }
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Some(String::new())),
-        Err(e) => Err(e).chain_err(|| ErrorKind::WindowsUninstallMadness),
+        Err(e) => Err(e).chain_err(|| crate::errors::ErrorKind::WindowsUninstallMadness),
     }
 }
 
 /// Decide which rcfiles we're going to update, so we
 /// can tell the user before they confirm.
-fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
+fn get_remove_path_methods() -> crate::errors::Result<Vec<PathUpdateMethod>> {
     if cfg!(windows) {
         return Ok(vec![PathUpdateMethod::Windows]);
     }
@@ -1299,7 +1301,7 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
 }
 
 #[cfg(windows)]
-fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
+fn do_remove_from_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
     use std::ptr;
@@ -1340,12 +1342,12 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .chain_err(|| ErrorKind::PermissionDenied)?;
+        .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
 
     if new_path.is_empty() {
         environment
             .delete_value("PATH")
-            .chain_err(|| ErrorKind::PermissionDenied)?;
+            .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
     } else {
         let reg_value = RegValue {
             bytes: utils::string_to_winreg_bytes(&new_path),
@@ -1353,7 +1355,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
         };
         environment
             .set_raw_value("PATH", &reg_value)
-            .chain_err(|| ErrorKind::PermissionDenied)?;
+            .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
     }
 
     // Tell other processes to update their environment
@@ -1373,7 +1375,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
 }
 
 #[cfg(unix)]
-fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
+fn do_remove_from_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()> {
     for method in methods {
         if let PathUpdateMethod::RcFile(ref rcpath) = *method {
             let file = utils::read_file("rcfile", rcpath)?;
@@ -1421,7 +1423,7 @@ pub fn update(cfg: &Cfg) -> Result<()> {
     let update_permitted = if NEVER_SELF_UPDATE {
         HardFail
     } else {
-        common::self_update_permitted(true)?
+        SyncError::maybe(common::self_update_permitted(true))?
     };
     match update_permitted {
         HardFail => {
@@ -1448,7 +1450,7 @@ pub fn update(cfg: &Cfg) -> Result<()> {
             };
 
             let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Updated(version)));
-            run_update(&setup_path)?;
+            SyncError::maybe(run_update(&setup_path))?;
         }
         None => {
             let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Unchanged));
@@ -1487,16 +1489,16 @@ fn parse_new_rustup_version(version: String) -> String {
 }
 
 pub fn prepare_update() -> Result<Option<PathBuf>> {
-    let cargo_home = utils::cargo_home()?;
+    let cargo_home = SyncError::maybe(utils::cargo_home())?;
     let rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
     let setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
     if !rustup_path.exists() {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home).into());
+        return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
     }
 
     if setup_path.exists() {
-        utils::remove_file("setup", &setup_path)?;
+        SyncError::maybe(utils::remove_file("setup", &setup_path))?;
     }
 
     // Get build triple
@@ -1519,7 +1521,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-update")
         .tempdir()
-        .chain_err(|| "error creating temp directory")?;
+        .context("error creating temp directory")?;
 
     // Get current version
     let current_version = env!("CARGO_PKG_VERSION");
@@ -1527,30 +1529,35 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     // Download available version
     info!("checking for self-updates");
     let release_file_url = format!("{}/release-stable.toml", update_root);
-    let release_file_url = utils::parse_url(&release_file_url)?;
+    let release_file_url = SyncError::maybe(utils::parse_url(&release_file_url))?;
     let release_file = tempdir.path().join("release-stable.toml");
-    utils::download_file(&release_file_url, &release_file, None, &|_| ())?;
-    let release_toml_str = utils::read_file("rustup release", &release_file)?;
-    let release_toml: toml::Value = toml::from_str(&release_toml_str)
-        .map_err(|_| Error::from("unable to parse rustup release file"))?;
+    SyncError::maybe(utils::download_file(
+        &release_file_url,
+        &release_file,
+        None,
+        &|_| (),
+    ))?;
+    let release_toml_str = SyncError::maybe(utils::read_file("rustup release", &release_file))?;
+    let release_toml: toml::Value =
+        toml::from_str(&release_toml_str).context("unable to parse rustup release file")?;
 
     let schema = release_toml
         .get("schema-version")
-        .ok_or_else(|| Error::from("no schema key in rustup release file"))?
+        .ok_or_else(|| anyhow::anyhow!("no schema key in rustup release file"))?
         .as_str()
-        .ok_or_else(|| Error::from("invalid schema key in rustup release file"))?;
+        .ok_or_else(|| anyhow::anyhow!("invalid schema key in rustup release file"))?;
 
     let available_version = release_toml
         .get("version")
-        .ok_or_else(|| Error::from("no version key in rustup release file"))?
+        .ok_or_else(|| anyhow::anyhow!("no version key in rustup release file"))?
         .as_str()
-        .ok_or_else(|| Error::from("invalid version key in rustup release file"))?;
+        .ok_or_else(|| anyhow::anyhow!("invalid version key in rustup release file"))?;
 
     if schema != "1" {
-        return Err(Error::from(&*format!(
+        return Err(anyhow::anyhow!(
             "unknown schema version '{}' in rustup release file",
             schema
-        )));
+        ));
     }
 
     // If up-to-date
@@ -1565,14 +1572,19 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     );
 
     // Get download path
-    let download_url = utils::parse_url(&url)?;
+    let download_url = SyncError::maybe(utils::parse_url(&url))?;
 
     // Download new version
     info!("downloading self-update");
-    utils::download_file(&download_url, &setup_path, None, &|_| ())?;
+    SyncError::maybe(utils::download_file(
+        &download_url,
+        &setup_path,
+        None,
+        &|_| (),
+    ))?;
 
     // Mark as executable
-    utils::make_executable(&setup_path)?;
+    SyncError::maybe(utils::make_executable(&setup_path))?;
 
     Ok(Some(setup_path))
 }
@@ -1586,7 +1598,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 /// really hard to succeed, because at this point the upgrade is
 /// considered successful.
 #[cfg(unix)]
-pub fn run_update(setup_path: &Path) -> Result<()> {
+pub fn run_update(setup_path: &Path) -> crate::errors::Result<()> {
     let status = Command::new(setup_path)
         .arg("--self-replace")
         .status()
@@ -1600,7 +1612,7 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
 }
 
 #[cfg(windows)]
-pub fn run_update(setup_path: &Path) -> Result<()> {
+pub fn run_update(setup_path: &Path) -> crate::errors::Result<()> {
     Command::new(setup_path)
         .arg("--self-replace")
         .spawn()
@@ -1628,7 +1640,7 @@ pub fn self_replace() -> Result<()> {
     Ok(())
 }
 
-pub fn cleanup_self_updater() -> Result<()> {
+pub fn cleanup_self_updater() -> crate::errors::Result<()> {
     let cargo_home = utils::cargo_home()?;
     let setup = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 

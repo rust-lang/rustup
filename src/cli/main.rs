@@ -79,7 +79,7 @@ fn run_rustup_inner() -> Result<()> {
         .and_then(std::ffi::OsStr::to_str);
 
     match name {
-        Some("rustup") => SyncError::maybe(rustup_mode::main())?,
+        Some("rustup") => rustup_mode::main()?,
         Some(n) if n.starts_with("rustup-setup") || n.starts_with("rustup-init") => {
             // NB: The above check is only for the prefix of the file
             // name. Browsers rename duplicates to
@@ -90,7 +90,7 @@ fn run_rustup_inner() -> Result<()> {
         Some(n) if n.starts_with("rustup-gc-") => {
             // This is the final uninstallation stage on windows where
             // rustup deletes its own exe
-            SyncError::maybe(self_update::complete_windows_uninstall())?
+            self_update::complete_windows_uninstall()?
         }
         Some(_) => proxy_mode::main()?,
         None => {

@@ -6,9 +6,11 @@ use crate::term2;
 use crate::term2::Terminal;
 use crate::topical_doc;
 
+use anyhow;
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use rustup::dist::manifest::Component;
+use rustup::errors::{RustupError, SyncError};
 use rustup::toolchain::{CustomToolchain, DistributableToolchain};
 use rustup::utils::utils::{self, ExitCode};
 use rustup::Notification;
@@ -30,9 +32,9 @@ fn handle_epipe(res: Result<()>) -> Result<()> {
     }
 }
 
-fn deprecated<F, B>(instead: &str, cfg: &mut Cfg, matches: B, callee: F) -> Result<()>
+fn deprecated<F, B, R>(instead: &str, cfg: &mut Cfg, matches: B, callee: F) -> R
 where
-    F: FnOnce(&mut Cfg, B) -> Result<()>,
+    F: FnOnce(&mut Cfg, B) -> R,
 {
     (cfg.notify_handler)(Notification::PlainVerboseMessage(
         "Use of (currently) unmaintained command line interface.",
@@ -50,85 +52,89 @@ where
     callee(cfg, matches)
 }
 
-pub fn main() -> Result<()> {
-    crate::self_update::cleanup_self_updater()?;
+pub fn main() -> anyhow::Result<()> {
+    SyncError::maybe(crate::self_update::cleanup_self_updater())?;
 
     let matches = cli().get_matches();
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");
-    let cfg = &mut common::set_globals(verbose, quiet)?;
+    let cfg = &mut SyncError::maybe(common::set_globals(verbose, quiet))?;
 
     if let Some(t) = matches.value_of("+toolchain") {
         cfg.set_toolchain_override(&t[1..]);
     }
 
-    if maybe_upgrade_data(cfg, &matches)? {
+    if SyncError::maybe(maybe_upgrade_data(cfg, &matches))? {
         return Ok(());
     }
 
-    cfg.check_metadata_version()?;
+    SyncError::maybe(cfg.check_metadata_version())?;
 
     match matches.subcommand() {
         ("dump-testament", _) => common::dump_testament(),
         ("show", Some(c)) => match c.subcommand() {
-            ("active-toolchain", Some(_)) => handle_epipe(show_active_toolchain(cfg))?,
-            ("home", Some(_)) => handle_epipe(show_rustup_home(cfg))?,
-            ("profile", Some(_)) => handle_epipe(show_profile(cfg))?,
-            ("keys", Some(_)) => handle_epipe(show_keys(cfg))?,
-            (_, _) => handle_epipe(show(cfg))?,
+            ("active-toolchain", Some(_)) => {
+                SyncError::maybe(handle_epipe(show_active_toolchain(cfg)))?
+            }
+            ("home", Some(_)) => SyncError::maybe(handle_epipe(show_rustup_home(cfg)))?,
+            ("profile", Some(_)) => SyncError::maybe(handle_epipe(show_profile(cfg)))?,
+            ("keys", Some(_)) => SyncError::maybe(handle_epipe(show_keys(cfg)))?,
+            (_, _) => SyncError::maybe(handle_epipe(show(cfg)))?,
         },
         ("install", Some(m)) => deprecated("toolchain install", cfg, m, update)?,
         ("update", Some(m)) => update(cfg, m)?,
-        ("check", Some(_)) => check_updates(cfg)?,
-        ("uninstall", Some(m)) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
-        ("default", Some(m)) => default_(cfg, m)?,
+        ("check", Some(_)) => SyncError::maybe(check_updates(cfg))?,
+        ("uninstall", Some(m)) => {
+            SyncError::maybe(deprecated("toolchain uninstall", cfg, m, toolchain_remove))?
+        }
+        ("default", Some(m)) => SyncError::maybe(default_(cfg, m))?,
         ("toolchain", Some(c)) => match c.subcommand() {
             ("install", Some(m)) => update(cfg, m)?,
-            ("list", Some(m)) => handle_epipe(toolchain_list(cfg, m))?,
-            ("link", Some(m)) => toolchain_link(cfg, m)?,
-            ("uninstall", Some(m)) => toolchain_remove(cfg, m)?,
+            ("list", Some(m)) => SyncError::maybe(handle_epipe(toolchain_list(cfg, m)))?,
+            ("link", Some(m)) => SyncError::maybe(toolchain_link(cfg, m))?,
+            ("uninstall", Some(m)) => SyncError::maybe(toolchain_remove(cfg, m))?,
             (_, _) => unreachable!(),
         },
         ("target", Some(c)) => match c.subcommand() {
-            ("list", Some(m)) => handle_epipe(target_list(cfg, m))?,
-            ("add", Some(m)) => target_add(cfg, m)?,
-            ("remove", Some(m)) => target_remove(cfg, m)?,
+            ("list", Some(m)) => SyncError::maybe(handle_epipe(target_list(cfg, m)))?,
+            ("add", Some(m)) => SyncError::maybe(target_add(cfg, m))?,
+            ("remove", Some(m)) => SyncError::maybe(target_remove(cfg, m))?,
             (_, _) => unreachable!(),
         },
         ("component", Some(c)) => match c.subcommand() {
-            ("list", Some(m)) => handle_epipe(component_list(cfg, m))?,
-            ("add", Some(m)) => component_add(cfg, m)?,
-            ("remove", Some(m)) => component_remove(cfg, m)?,
+            ("list", Some(m)) => SyncError::maybe(handle_epipe(component_list(cfg, m)))?,
+            ("add", Some(m)) => SyncError::maybe(component_add(cfg, m))?,
+            ("remove", Some(m)) => SyncError::maybe(component_remove(cfg, m))?,
             (_, _) => unreachable!(),
         },
         ("override", Some(c)) => match c.subcommand() {
-            ("list", Some(_)) => handle_epipe(common::list_overrides(cfg))?,
-            ("set", Some(m)) => override_add(cfg, m)?,
-            ("unset", Some(m)) => override_remove(cfg, m)?,
+            ("list", Some(_)) => SyncError::maybe(handle_epipe(common::list_overrides(cfg)))?,
+            ("set", Some(m)) => SyncError::maybe(override_add(cfg, m))?,
+            ("unset", Some(m)) => SyncError::maybe(override_remove(cfg, m))?,
             (_, _) => unreachable!(),
         },
-        ("run", Some(m)) => run(cfg, m)?,
-        ("which", Some(m)) => which(cfg, m)?,
-        ("doc", Some(m)) => doc(cfg, m)?,
-        ("man", Some(m)) => man(cfg, m)?,
+        ("run", Some(m)) => SyncError::maybe(run(cfg, m))?,
+        ("which", Some(m)) => SyncError::maybe(which(cfg, m))?,
+        ("doc", Some(m)) => SyncError::maybe(doc(cfg, m))?,
+        ("man", Some(m)) => SyncError::maybe(man(cfg, m))?,
         ("self", Some(c)) => match c.subcommand() {
             ("update", Some(_)) => self_update::update(cfg)?,
-            ("uninstall", Some(m)) => self_uninstall(m)?,
+            ("uninstall", Some(m)) => SyncError::maybe(self_uninstall(m))?,
             (_, _) => unreachable!(),
         },
         ("set", Some(c)) => match c.subcommand() {
-            ("default-host", Some(m)) => set_default_host_triple(cfg, m)?,
-            ("profile", Some(m)) => set_profile(cfg, m)?,
+            ("default-host", Some(m)) => SyncError::maybe(set_default_host_triple(cfg, m))?,
+            ("profile", Some(m)) => SyncError::maybe(set_profile(cfg, m))?,
             (_, _) => unreachable!(),
         },
         ("completions", Some(c)) => {
             if let Some(shell) = c.value_of("shell") {
-                output_completion_script(
+                SyncError::maybe(output_completion_script(
                     shell.parse::<Shell>().unwrap(),
                     c.value_of("command")
                         .and_then(|cmd| cmd.parse::<CompletionCommand>().ok())
                         .unwrap_or(CompletionCommand::Rustup),
-                )?;
+                ))?;
             }
         }
         (_, _) => unreachable!(),
@@ -822,20 +828,20 @@ fn check_updates(cfg: &Cfg) -> Result<()> {
     Ok(())
 }
 
-fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> anyhow::Result<()> {
     let self_update = !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE;
     if let Some(p) = m.value_of("profile") {
-        let p = Profile::from_str(p)?;
+        let p = SyncError::maybe(Profile::from_str(p))?;
         cfg.set_profile_override(p);
     }
     let cfg = &cfg;
-    if cfg.get_profile()? == Profile::Complete {
+    if SyncError::maybe(cfg.get_profile())? == Profile::Complete {
         warn!("{}", common::WARN_COMPLETE_PROFILE);
     }
     if let Some(names) = m.values_of("toolchain") {
         for name in names {
-            update_bare_triple_check(cfg, name)?;
-            let toolchain = cfg.get_toolchain(name, false)?;
+            SyncError::maybe(update_bare_triple_check(cfg, name))?;
+            let toolchain = SyncError::maybe(cfg.get_toolchain(name, false))?;
 
             let status = if !toolchain.is_custom() {
                 let components: Vec<_> = m
@@ -846,28 +852,32 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
                     .values_of("targets")
                     .map(|v| v.collect())
                     .unwrap_or_else(Vec::new);
-                let distributable = DistributableToolchain::new(&toolchain)?;
-                Some(distributable.install_from_dist(
+                let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
+                Some(SyncError::maybe(distributable.install_from_dist(
                     m.is_present("force"),
                     m.is_present("allow-downgrade"),
                     &components,
                     &targets,
-                )?)
+                ))?)
             } else if !toolchain.exists() {
-                return Err(ErrorKind::InvalidToolchainName(toolchain.name().to_string()).into());
+                return Err(RustupError::InvalidToolchainName(toolchain.name().to_string()).into());
             } else {
                 None
             };
 
             if let Some(status) = status.clone() {
                 println!();
-                common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
+                SyncError::maybe(common::show_channel_update(
+                    cfg,
+                    toolchain.name(),
+                    Ok(status),
+                ))?;
             }
 
-            if cfg.get_default()?.is_none() {
+            if SyncError::maybe(cfg.get_default())?.is_none() {
                 use rustup::UpdateStatus;
                 if let Some(UpdateStatus::Installed) = status {
-                    toolchain.make_default()?;
+                    SyncError::maybe(toolchain.make_default())?;
                 }
             }
         }

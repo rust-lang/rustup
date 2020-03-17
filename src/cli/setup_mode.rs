@@ -3,7 +3,6 @@ use crate::self_update::{self, InstallOpts};
 use anyhow::Result;
 use clap::{App, AppSettings, Arg};
 use rustup::dist::dist::Profile;
-use rustup::errors::SyncError;
 use std::env;
 
 pub fn main() -> Result<()> {
@@ -12,7 +11,7 @@ pub fn main() -> Result<()> {
 
     // Secret command used during self-update. Not for users.
     if arg1 == Some("--self-replace") {
-        return Ok(SyncError::maybe(self_update::self_replace())?);
+        return Ok(self_update::self_replace()?);
     }
 
     // Internal testament dump used during CI.  Not for users.
@@ -120,7 +119,7 @@ pub fn main() -> Result<()> {
         warn!("{}", common::WARN_COMPLETE_PROFILE);
     }
 
-    SyncError::maybe(self_update::install(no_prompt, verbose, quiet, opts))?;
+    self_update::install(no_prompt, verbose, quiet, opts)?;
 
     Ok(())
 }

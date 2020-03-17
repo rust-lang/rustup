@@ -72,6 +72,13 @@ error_chain! {
 pub enum CLIError {
     #[error("couldn't determine self executable name")]
     NoExeName,
+    #[error("rustup is not installed at '{}'", .p.display())]
+    NotSelfInstalled { p: PathBuf },
+    #[error("failure during windows uninstall")]
+    WindowsUninstallMadness {
+        #[from]
+        source: io::Error,
+    },
 }
 
 fn maybe_suggest_toolchain(bad_name: &str) -> String {

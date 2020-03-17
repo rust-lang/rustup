@@ -11,6 +11,7 @@ use std::fmt::{self, Debug, Display};
 use std::io::{self, Write};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, Weak};
+use thiserror::Error as ThisError;
 use url::Url;
 
 pub const TOOLSTATE_MSG: &str =
@@ -367,6 +368,12 @@ error_chain! {
             description("partially downloaded file may have been damaged and was removed, please try again")
         }
     }
+}
+
+#[derive(ThisError, Debug)]
+pub enum RustupError {
+    #[error("invalid toolchain name: '{0}'")]
+    InvalidToolchainName(String),
 }
 
 /// Inspired by failure::SyncFailure, but not identical.
