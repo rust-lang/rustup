@@ -234,7 +234,7 @@ impl Cfg {
             dist_root: &self.dist_root_url,
             temp_cfg: &self.temp_cfg,
             download_dir: &self.download_dir,
-            notify_handler: notify_handler,
+            notify_handler,
             pgp_keys: self.get_pgp_keys(),
         }
     }
