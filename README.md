@@ -774,7 +774,7 @@ variable.
 
 ## Security
 
-`rustup` is secure enough for the non-paranoid, but it [still needs
+`rustup` is secure enough for most people, but it [still needs
 work][s]. `rustup` performs all downloads over HTTPS, but does not
 yet validate signatures of downloads.
 
