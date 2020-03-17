@@ -3,8 +3,8 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_stderr_ok, expect_stdout_ok, set_current_dist_date, Config, SanitizedOutput,
-    Scenario,
+    self, expect_ok, expect_stderr_ok, expect_stdout_ok, set_current_dist_date, this_host_triple,
+    Config, SanitizedOutput, Scenario,
 };
 use crate::mock::{get_path, restore_path};
 use lazy_static::lazy_static;
@@ -246,6 +246,31 @@ fn user_says_nope_after_advanced_install() {
         assert!(out.ok);
         assert!(!config.cargodir.join("bin").exists());
     });
+}
+
+#[test]
+fn install_with_components() {
+    fn go(comp_args: &[&str]) {
+        let mut args = vec!["rustup-init", "-y"];
+        args.extend_from_slice(comp_args);
+
+        setup(&|config| {
+            expect_ok(config, &args);
+            expect_stdout_ok(
+                config,
+                &["rustup", "component", "list"],
+                "rust-src (installed)",
+            );
+            expect_stdout_ok(
+                config,
+                &["rustup", "component", "list"],
+                &format!("rust-analysis-{} (installed)", this_host_triple()),
+            );
+        })
+    }
+
+    go(&["-c", "rust-src", "-c", "rust-analysis"]);
+    go(&["-c", "rust-src,rust-analysis"]);
 }
 
 #[test]
