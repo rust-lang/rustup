@@ -639,7 +639,7 @@ fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
 
 fn install_bins() -> Result<()> {
     let bin_path = SyncError::maybe(utils::cargo_home())?.join("bin");
-    let this_exe_path = SyncError::maybe(utils::current_exe())?;
+    let this_exe_path = utils::current_exe()?;
     let rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
 
     SyncError::maybe(utils::ensure_dir_exists(

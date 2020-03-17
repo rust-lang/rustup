@@ -65,7 +65,7 @@ fn run_rustup_inner() -> Result<()> {
     // Before we do anything else, ensure we know where we are and who we
     // are because otherwise we cannot proceed usefully.
     SyncError::maybe(utils::current_dir())?;
-    SyncError::maybe(utils::current_exe())?;
+    utils::current_exe()?;
 
     // The name of arg0 determines how the program is going to behave
     let arg0 = match env::var("RUSTUP_FORCE_ARG0") {

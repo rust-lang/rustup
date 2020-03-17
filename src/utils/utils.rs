@@ -455,8 +455,8 @@ pub fn current_dir() -> Result<PathBuf> {
     env::current_dir().chain_err(|| ErrorKind::LocatingWorkingDir)
 }
 
-pub fn current_exe() -> Result<PathBuf> {
-    env::current_exe().chain_err(|| ErrorKind::LocatingWorkingDir)
+pub fn current_exe() -> anyhow::Result<PathBuf> {
+    env::current_exe().map_err(|e| RustupError::LocatingWorkingDir { source: e }.into())
 }
 
 pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {

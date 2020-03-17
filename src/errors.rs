@@ -368,6 +368,11 @@ error_chain! {
 pub enum RustupError {
     #[error("invalid toolchain name: '{0}'")]
     InvalidToolchainName(String),
+    #[error("Unable to proceed. Could not locate working directory.")]
+    LocatingWorkingDir {
+        #[from]
+        source: io::Error,
+    },
     #[error("failed to set permissions for '{}'", .p.display())]
     SettingPermissions { p: PathBuf, source: io::Error },
 }
