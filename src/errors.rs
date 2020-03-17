@@ -176,12 +176,6 @@ error_chain! {
             description("could not remove directory")
             display("could not remove '{}' directory: '{}'", name, path.display())
         }
-        SettingPermissions {
-            path: PathBuf,
-        } {
-            description("failed to set permissions")
-            display("failed to set permissions for '{}'", path.display())
-        }
         CargoHome {
             description("couldn't find value of CARGO_HOME")
         }
@@ -374,6 +368,8 @@ error_chain! {
 pub enum RustupError {
     #[error("invalid toolchain name: '{0}'")]
     InvalidToolchainName(String),
+    #[error("failed to set permissions for '{}'", .p.display())]
+    SettingPermissions { p: PathBuf, source: io::Error },
 }
 
 /// Inspired by failure::SyncFailure, but not identical.

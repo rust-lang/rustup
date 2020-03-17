@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use url::Url;
 
+use anyhow;
 use retry::delay::{jitter, Fibonacci};
 use retry::{retry, OperationResult};
 
@@ -403,9 +404,13 @@ pub fn open_browser(path: &Path) -> Result<()> {
     opener::open(path).chain_err(|| "couldn't open browser")
 }
 
-pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
-    fs::set_permissions(path, perms).chain_err(|| ErrorKind::SettingPermissions {
-        path: PathBuf::from(path),
+pub fn set_permissions(path: &Path, perms: fs::Permissions) -> anyhow::Result<()> {
+    fs::set_permissions(path, perms).map_err(|e| {
+        RustupError::SettingPermissions {
+            p: PathBuf::from(path),
+            source: e,
+        }
+        .into()
     })
 }
 
@@ -417,17 +422,18 @@ pub fn file_size(path: &Path) -> Result<u64> {
     Ok(metadata.len())
 }
 
-pub fn make_executable(path: &Path) -> Result<()> {
+pub fn make_executable(path: &Path) -> anyhow::Result<()> {
     #[cfg(windows)]
-    fn inner(_: &Path) -> Result<()> {
+    fn inner(_: &Path) -> anyhow::Result<()> {
         Ok(())
     }
     #[cfg(not(windows))]
-    fn inner(path: &Path) -> Result<()> {
+    fn inner(path: &Path) -> anyhow::Result<()> {
         use std::os::unix::fs::PermissionsExt;
 
-        let metadata = fs::metadata(path).chain_err(|| ErrorKind::SettingPermissions {
-            path: PathBuf::from(path),
+        let metadata = fs::metadata(path).map_err(|e| RustupError::SettingPermissions {
+            p: PathBuf::from(path),
+            source: e,
         })?;
         let mut perms = metadata.permissions();
         let mode = perms.mode();

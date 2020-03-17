@@ -653,7 +653,7 @@ fn install_bins() -> Result<()> {
         SyncError::maybe(utils::remove_file("rustup-bin", &rustup_path))?;
     }
     SyncError::maybe(utils::copy_file(&this_exe_path, &rustup_path))?;
-    SyncError::maybe(utils::make_executable(&rustup_path))?;
+    utils::make_executable(&rustup_path)?;
     install_proxies()
 }
 
@@ -1584,7 +1584,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     ))?;
 
     // Mark as executable
-    SyncError::maybe(utils::make_executable(&setup_path))?;
+    utils::make_executable(&setup_path)?;
 
     Ok(Some(setup_path))
 }
