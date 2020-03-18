@@ -119,7 +119,7 @@ pub fn main() -> anyhow::Result<()> {
         ("man", Some(m)) => SyncError::maybe(man(cfg, m))?,
         ("self", Some(c)) => match c.subcommand() {
             ("update", Some(_)) => self_update::update(cfg)?,
-            ("uninstall", Some(m)) => SyncError::maybe(self_uninstall(m))?,
+            ("uninstall", Some(m)) => self_uninstall(m)?,
             (_, _) => unreachable!(),
         },
         ("set", Some(c)) => match c.subcommand() {
@@ -1420,7 +1420,7 @@ fn man(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     Ok(())
 }
 
-fn self_uninstall(m: &ArgMatches<'_>) -> Result<()> {
+fn self_uninstall(m: &ArgMatches<'_>) -> anyhow::Result<()> {
     let no_prompt = m.is_present("no-prompt");
 
     self_update::uninstall(no_prompt)

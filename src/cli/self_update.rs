@@ -258,7 +258,7 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
             warn!("installing msvc toolchain without its prerequisites");
         } else {
             md(&mut term, MSVC_MESSAGE);
-            if !SyncError::maybe(common::confirm("\nContinue? (Y/n)", true))? {
+            if !common::confirm("\nContinue? (Y/n)", true)? {
                 info!("aborting installation");
                 return Ok(());
             }
@@ -537,7 +537,7 @@ fn do_msvc_check(_opts: &InstallOpts) -> bool {
 fn pre_install_msg(no_modify_path: bool) -> Result<String> {
     let cargo_home = SyncError::maybe(utils::cargo_home())?;
     let cargo_home_bin = cargo_home.join("bin");
-    let rustup_home = SyncError::maybe(utils::rustup_home())?;
+    let rustup_home = home::rustup_home()?;
 
     if !no_modify_path {
         if cfg!(unix) {
@@ -800,25 +800,28 @@ fn maybe_install_rust(
     Ok(())
 }
 
-pub fn uninstall(no_prompt: bool) -> crate::errors::Result<()> {
+pub fn uninstall(no_prompt: bool) -> Result<()> {
     if NEVER_SELF_UPDATE {
         err!("self-uninstall is disabled for this build of rustup");
         err!("you should probably use your system package manager to uninstall rustup");
         process::exit(1);
     }
 
-    let cargo_home = utils::cargo_home()?;
+    let cargo_home = SyncError::maybe(utils::cargo_home())?;
 
     if !cargo_home
         .join(&format!("bin/rustup{}", EXE_SUFFIX))
         .exists()
     {
-        return Err(crate::errors::ErrorKind::NotSelfInstalled(cargo_home).into());
+        return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
     }
 
     if !no_prompt {
         println!();
-        let msg = format!(pre_uninstall_msg!(), cargo_home = canonical_cargo_home()?);
+        let msg = format!(
+            pre_uninstall_msg!(),
+            cargo_home = SyncError::maybe(canonical_cargo_home())?
+        );
         md(&mut term2::stdout(), msg);
         if !common::confirm("\nContinue? (y/N)", false)? {
             info!("aborting uninstallation");
@@ -829,12 +832,14 @@ pub fn uninstall(no_prompt: bool) -> crate::errors::Result<()> {
     info!("removing rustup home");
 
     // Delete RUSTUP_HOME
-    let rustup_dir = utils::rustup_home()?;
+    let rustup_dir = home::rustup_home()?;
     if rustup_dir.exists() {
-        utils::remove_dir("rustup_home", &rustup_dir, &|_: Notification<'_>| {})?;
+        SyncError::maybe(utils::remove_dir(
+            "rustup_home",
+            &rustup_dir,
+            &|_: Notification<'_>| {},
+        ))?;
     }
-
-    let read_dir_err = "failure reading directory";
 
     info!("removing cargo home");
 
@@ -845,14 +850,24 @@ pub fn uninstall(no_prompt: bool) -> crate::errors::Result<()> {
     // Delete everything in CARGO_HOME *except* the rustup bin
 
     // First everything except the bin directory
-    let diriter = fs::read_dir(&cargo_home).chain_err(|| read_dir_err)?;
+    let diriter = fs::read_dir(&cargo_home).map_err(|e| CLIError::ReadDirError {
+        p: cargo_home.clone(),
+        source: e,
+    })?;
     for dirent in diriter {
-        let dirent = dirent.chain_err(|| read_dir_err)?;
+        let dirent = dirent.map_err(|e| CLIError::ReadDirError {
+            p: cargo_home.clone(),
+            source: e,
+        })?;
         if dirent.file_name().to_str() != Some("bin") {
             if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path(), &|_: Notification<'_>| {})?;
+                SyncError::maybe(utils::remove_dir(
+                    "cargo_home",
+                    &dirent.path(),
+                    &|_: Notification<'_>| {},
+                ))?;
             } else {
-                utils::remove_file("cargo_home", &dirent.path())?;
+                SyncError::maybe(utils::remove_file("cargo_home", &dirent.path()))?;
             }
         }
     }
@@ -864,16 +879,27 @@ pub fn uninstall(no_prompt: bool) -> crate::errors::Result<()> {
         .chain(DUP_TOOLS.iter())
         .map(|t| format!("{}{}", t, EXE_SUFFIX));
     let tools: Vec<_> = tools.chain(vec![format!("rustup{}", EXE_SUFFIX)]).collect();
-    let diriter = fs::read_dir(&cargo_home.join("bin")).chain_err(|| read_dir_err)?;
+    let bin_dir = cargo_home.join("bin");
+    let diriter = fs::read_dir(&bin_dir).map_err(|e| CLIError::ReadDirError {
+        p: bin_dir.clone(),
+        source: e,
+    })?;
     for dirent in diriter {
-        let dirent = dirent.chain_err(|| read_dir_err)?;
+        let dirent = dirent.map_err(|e| CLIError::ReadDirError {
+            p: bin_dir.clone(),
+            source: e,
+        })?;
         let name = dirent.file_name();
         let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));
         if file_is_tool == Some(false) {
             if dirent.path().is_dir() {
-                utils::remove_dir("cargo_home", &dirent.path(), &|_: Notification<'_>| {})?;
+                SyncError::maybe(utils::remove_dir(
+                    "cargo_home",
+                    &dirent.path(),
+                    &|_: Notification<'_>| {},
+                ))?;
             } else {
-                utils::remove_file("cargo_home", &dirent.path())?;
+                SyncError::maybe(utils::remove_file("cargo_home", &dirent.path()))?;
             }
         }
     }
@@ -883,7 +909,7 @@ pub fn uninstall(no_prompt: bool) -> crate::errors::Result<()> {
     // Delete rustup. This is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
-    delete_rustup_and_cargo_home()?;
+    SyncError::maybe(delete_rustup_and_cargo_home())?;
 
     info!("rustup is uninstalled");
 
@@ -1279,7 +1305,7 @@ fn get_windows_path_var() -> crate::errors::Result<Option<String>> {
 
 /// Decide which rcfiles we're going to update, so we
 /// can tell the user before they confirm.
-fn get_remove_path_methods() -> crate::errors::Result<Vec<PathUpdateMethod>> {
+fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
     if cfg!(windows) {
         return Ok(vec![PathUpdateMethod::Windows]);
     }
@@ -1290,7 +1316,7 @@ fn get_remove_path_methods() -> crate::errors::Result<Vec<PathUpdateMethod>> {
     let rcfiles = vec![profile, bash_profile];
     let existing_rcfiles = rcfiles.into_iter().filter_map(|f| f).filter(|f| f.exists());
 
-    let export_str = shell_export_string()?;
+    let export_str = SyncError::maybe(shell_export_string())?;
     let matching_rcfiles = existing_rcfiles.filter(|f| {
         let file = utils::read_file("rcfile", f).unwrap_or_default();
         let addition = format!("\n{}", export_str);
@@ -1301,7 +1327,7 @@ fn get_remove_path_methods() -> crate::errors::Result<Vec<PathUpdateMethod>> {
 }
 
 #[cfg(windows)]
-fn do_remove_from_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()> {
+fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
     use std::ptr;
@@ -1312,14 +1338,14 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
 
-    let old_path = if let Some(s) = get_windows_path_var()? {
+    let old_path = if let Some(s) = SyncError::maybe(get_windows_path_var())? {
         s
     } else {
         // Non-unicode path
         return Ok(());
     };
 
-    let path_str = utils::cargo_home()?
+    let path_str = SyncError::maybe(utils::cargo_home())?
         .join("bin")
         .to_string_lossy()
         .into_owned();
@@ -1340,22 +1366,16 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()
     new_path.push_str(&old_path[idx + len..]);
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
+    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)?;
 
     if new_path.is_empty() {
-        environment
-            .delete_value("PATH")
-            .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
+        environment.delete_value("PATH")?;
     } else {
         let reg_value = RegValue {
             bytes: utils::string_to_winreg_bytes(&new_path),
             vtype: RegType::REG_EXPAND_SZ,
         };
-        environment
-            .set_raw_value("PATH", &reg_value)
-            .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
+        environment.set_raw_value("PATH", &reg_value)?;
     }
 
     // Tell other processes to update their environment
@@ -1375,11 +1395,11 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()
 }
 
 #[cfg(unix)]
-fn do_remove_from_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()> {
+fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     for method in methods {
         if let PathUpdateMethod::RcFile(ref rcpath) = *method {
-            let file = utils::read_file("rcfile", rcpath)?;
-            let addition = format!("\n{}\n", shell_export_string()?);
+            let file = SyncError::maybe(utils::read_file("rcfile", rcpath))?;
+            let addition = format!("\n{}\n", SyncError::maybe(shell_export_string())?);
 
             let file_bytes = file.into_bytes();
             let addition_bytes = addition.into_bytes();
@@ -1391,7 +1411,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()
                 let mut new_file_bytes = file_bytes[..i].to_vec();
                 new_file_bytes.extend(&file_bytes[i + addition_bytes.len()..]);
                 let new_file = String::from_utf8(new_file_bytes).unwrap();
-                utils::write_file("rcfile", rcpath, &new_file)?;
+                SyncError::maybe(utils::write_file("rcfile", rcpath, &new_file))?;
             } else {
                 // Weird case. rcfile no longer needs to be modified?
             }

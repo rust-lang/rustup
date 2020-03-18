@@ -22,10 +22,10 @@ use term2::Terminal;
 
 pub const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
 
-pub fn confirm(question: &str, default: bool) -> Result<bool> {
+pub fn confirm(question: &str, default: bool) -> anyhow::Result<bool> {
     print!("{} ", question);
     let _ = std::io::stdout().flush();
-    let input = read_line()?;
+    let input = SyncError::maybe(read_line())?;
 
     let r = match &*input.to_lowercase() {
         "y" | "yes" => true,

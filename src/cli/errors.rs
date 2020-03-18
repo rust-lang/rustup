@@ -41,10 +41,6 @@ error_chain! {
             description("invalid toolchain name")
             display("invalid toolchain name: '{}'{}", t, maybe_suggest_toolchain(t))
         }
-        NotSelfInstalled(p: PathBuf) {
-            description("rustup is not installed")
-            display("rustup is not installed at '{}'", p.display())
-        }
         WindowsUninstallMadness {
             description("failure during windows uninstall")
         }
@@ -74,6 +70,8 @@ pub enum CLIError {
     NoExeName,
     #[error("rustup is not installed at '{}'", .p.display())]
     NotSelfInstalled { p: PathBuf },
+    #[error("failure reading directory {}", .p.display())]
+    ReadDirError { p: PathBuf, source: io::Error },
     #[error("failure during windows uninstall")]
     WindowsUninstallMadness {
         #[from]
