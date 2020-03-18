@@ -245,7 +245,7 @@ pub fn update_all_channels(
     do_self_update: bool,
     force_update: bool,
 ) -> anyhow::Result<()> {
-    let toolchains = SyncError::maybe(cfg.update_all_channels(force_update))?;
+    let toolchains = cfg.update_all_channels(force_update)?;
 
     if toolchains.is_empty() {
         info!("no updatable toolchains installed");

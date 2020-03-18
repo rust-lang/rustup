@@ -584,8 +584,8 @@ impl Cfg {
     pub fn update_all_channels(
         &self,
         force_update: bool,
-    ) -> errors::Result<Vec<(String, errors::Result<UpdateStatus>)>> {
-        let channels = self.list_channels()?;
+    ) -> Result<Vec<(String, errors::Result<UpdateStatus>)>> {
+        let channels = SyncError::maybe(self.list_channels())?;
         let channels = channels.into_iter();
 
         // Update toolchains and collect the results
