@@ -451,8 +451,8 @@ pub fn make_executable(path: &Path) -> anyhow::Result<()> {
     inner(path)
 }
 
-pub fn current_dir() -> Result<PathBuf> {
-    env::current_dir().chain_err(|| ErrorKind::LocatingWorkingDir)
+pub fn current_dir() -> anyhow::Result<PathBuf> {
+    env::current_dir().into() //.chain_err(|| ErrorKind::LocatingWorkingDir)
 }
 
 pub fn current_exe() -> anyhow::Result<PathBuf> {

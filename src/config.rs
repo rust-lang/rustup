@@ -7,11 +7,12 @@ use std::process::Command;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use anyhow::{anyhow, Context, Result};
 use pgp::{Deserializable, SignedPublicKey};
 
 use crate::dist::download::DownloadCfg;
 use crate::dist::{dist, temp};
-use crate::errors::*;
+use crate::errors::{self, ResultExt, SyncError};
 use crate::fallback_settings::FallbackSettings;
 use crate::notifications::*;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
@@ -62,8 +63,8 @@ impl PgpPublicKey {
     }
 
     /// Display the key in detail for the user
-    pub fn show_key(&self) -> Result<Vec<String>> {
-        fn format_hex(bytes: &[u8], separator: &str, every: usize) -> Result<String> {
+    pub fn show_key(&self) -> errors::Result<Vec<String>> {
+        fn format_hex(bytes: &[u8], separator: &str, every: usize) -> errors::Result<String> {
             use std::fmt::Write;
             let mut ret = String::new();
             let mut wait = every;
@@ -130,7 +131,7 @@ pub struct Cfg {
 }
 
 impl Cfg {
-    pub fn from_env(notify_handler: Arc<dyn Fn(Notification<'_>)>) -> Result<Self> {
+    pub fn from_env(notify_handler: Arc<dyn Fn(Notification<'_>)>) -> errors::Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = utils::rustup_home()?;
 
@@ -156,7 +157,7 @@ impl Cfg {
             let path = PathBuf::from(s_path);
             let file = utils::open_file("RUSTUP_PGP_KEY", &path)?;
             let (key, _) = SignedPublicKey::from_armor_single(file)
-                .map_err(|error| ErrorKind::InvalidPgpKey(PathBuf::from(s_path), error))?;
+                .map_err(|error| errors::ErrorKind::InvalidPgpKey(PathBuf::from(s_path), error))?;
 
             pgp_keys.push(PgpPublicKey::FromEnvironment(path, key));
         }
@@ -165,7 +166,7 @@ impl Cfg {
                 let path = PathBuf::from(s);
                 let file = utils::open_file("PGP Key from config", &path)?;
                 let (key, _) = SignedPublicKey::from_armor_single(file)
-                    .map_err(|error| ErrorKind::InvalidPgpKey(PathBuf::from(s), error))?;
+                    .map_err(|error| errors::ErrorKind::InvalidPgpKey(PathBuf::from(s), error))?;
 
                 pgp_keys.push(PgpPublicKey::FromConfiguration(path, key));
             }
@@ -247,7 +248,7 @@ impl Cfg {
         self.profile_override = Some(profile);
     }
 
-    pub fn set_default(&self, toolchain: &str) -> Result<()> {
+    pub fn set_default(&self, toolchain: &str) -> errors::Result<()> {
         self.settings_file.with_mut(|s| {
             s.default_toolchain = Some(toolchain.to_owned());
             Ok(())
@@ -256,9 +257,9 @@ impl Cfg {
         Ok(())
     }
 
-    pub fn set_profile(&mut self, profile: &str) -> Result<()> {
+    pub fn set_profile(&mut self, profile: &str) -> errors::Result<()> {
         if !dist::Profile::names().contains(&profile) {
-            return Err(ErrorKind::UnknownProfile(profile.to_owned()).into());
+            return Err(errors::ErrorKind::UnknownProfile(profile.to_owned()).into());
         }
         self.profile_override = None;
         self.settings_file.with_mut(|s| {
@@ -280,7 +281,7 @@ impl Cfg {
     // if there is no profile in the settings file. The last variant happens when
     // a user upgrades from a version of Rustup without profiles to a version of
     // Rustup with profiles.
-    pub fn get_profile(&self) -> Result<dist::Profile> {
+    pub fn get_profile(&self) -> errors::Result<dist::Profile> {
         if let Some(p) = self.profile_override {
             return Ok(p);
         }
@@ -294,7 +295,7 @@ impl Cfg {
         })
     }
 
-    pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain<'_>> {
+    pub fn get_toolchain(&self, name: &str, create_parent: bool) -> errors::Result<Toolchain<'_>> {
         if create_parent {
             utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {
                 (self.notify_handler)(n)
@@ -304,13 +305,13 @@ impl Cfg {
         Toolchain::from(self, name)
     }
 
-    pub fn verify_toolchain(&self, name: &str) -> Result<Toolchain<'_>> {
+    pub fn verify_toolchain(&self, name: &str) -> errors::Result<Toolchain<'_>> {
         let toolchain = self.get_toolchain(name, false)?;
         toolchain.verify()?;
         Ok(toolchain)
     }
 
-    pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> Result<PathBuf> {
+    pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> errors::Result<PathBuf> {
         if create_parent {
             utils::ensure_dir_exists(
                 "update-hash",
@@ -326,7 +327,7 @@ impl Cfg {
         &self,
         toolchain: &str,
         binary: &str,
-    ) -> Result<Option<PathBuf>> {
+    ) -> errors::Result<Option<PathBuf>> {
         let toolchain = self.get_toolchain(toolchain, false)?;
         if toolchain.exists() {
             Ok(Some(toolchain.binary_file(binary)))
@@ -335,12 +336,12 @@ impl Cfg {
         }
     }
 
-    pub fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {
+    pub fn which_binary(&self, path: &Path, binary: &str) -> errors::Result<Option<PathBuf>> {
         let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
         Ok(Some(toolchain.binary_file(binary)))
     }
 
-    pub fn upgrade_data(&self) -> Result<()> {
+    pub fn upgrade_data(&self) -> errors::Result<()> {
         let current_version = self.settings_file.with(|s| Ok(s.version.clone()))?;
 
         if current_version == DEFAULT_METADATA_VERSION {
@@ -360,14 +361,14 @@ impl Cfg {
 
                 let dirs = utils::read_dir("toolchains", &self.toolchains_dir)?;
                 for dir in dirs {
-                    let dir = dir.chain_err(|| ErrorKind::UpgradeIoError)?;
+                    let dir = dir.chain_err(|| errors::ErrorKind::UpgradeIoError)?;
                     utils::remove_dir("toolchain", &dir.path(), self.notify_handler.as_ref())?;
                 }
 
                 // Also delete the update hashes
                 let files = utils::read_dir("update hashes", &self.update_hash_dir)?;
                 for file in files {
-                    let file = file.chain_err(|| ErrorKind::UpgradeIoError)?;
+                    let file = file.chain_err(|| errors::ErrorKind::UpgradeIoError)?;
                     utils::remove_file("update hash", &file.path())?;
                 }
 
@@ -376,11 +377,11 @@ impl Cfg {
                     Ok(())
                 })
             }
-            _ => Err(ErrorKind::UnknownMetadataVersion(current_version).into()),
+            _ => Err(errors::ErrorKind::UnknownMetadataVersion(current_version).into()),
         }
     }
 
-    pub fn delete_data(&self) -> Result<()> {
+    pub fn delete_data(&self) -> errors::Result<()> {
         if utils::path_exists(&self.rustup_dir) {
             utils::remove_dir("home", &self.rustup_dir, self.notify_handler.as_ref())
         } else {
@@ -388,7 +389,7 @@ impl Cfg {
         }
     }
 
-    pub fn find_default(&self) -> Result<Option<Toolchain<'_>>> {
+    pub fn find_default(&self) -> errors::Result<Option<Toolchain<'_>>> {
         let opt_name = self.get_default()?;
 
         if let Some(name) = opt_name {
@@ -399,7 +400,10 @@ impl Cfg {
         }
     }
 
-    pub fn find_override(&self, path: &Path) -> Result<Option<(Toolchain<'_>, OverrideReason)>> {
+    pub fn find_override(
+        &self,
+        path: &Path,
+    ) -> errors::Result<Option<(Toolchain<'_>, OverrideReason)>> {
         let mut override_ = None;
 
         // First check toolchain override from command
@@ -454,8 +458,9 @@ impl Cfg {
             if !toolchain.exists() && toolchain.is_custom() {
                 // Strip the confusing NotADirectory error and only mention that the
                 // override toolchain is not installed.
-                Err(Error::from(reason_err))
-                    .chain_err(|| ErrorKind::OverrideToolchainNotInstalled(name.to_string()))
+                Err(errors::Error::from(reason_err)).chain_err(|| {
+                    errors::ErrorKind::OverrideToolchainNotInstalled(name.to_string())
+                })
             } else {
                 Ok(Some((toolchain, reason)))
             }
@@ -468,7 +473,7 @@ impl Cfg {
         &self,
         dir: &Path,
         settings: &Settings,
-    ) -> Result<Option<(String, OverrideReason)>> {
+    ) -> errors::Result<Option<(String, OverrideReason)>> {
         let notify = self.notify_handler.as_ref();
         let dir = utils::canonicalize_path(dir, notify);
         let mut dir = Some(&*dir);
@@ -511,7 +516,7 @@ impl Cfg {
     pub fn find_or_install_override_toolchain_or_default(
         &self,
         path: &Path,
-    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
+    ) -> errors::Result<(Toolchain<'_>, Option<OverrideReason>)> {
         if let Some((toolchain, reason)) =
             if let Some((toolchain, reason)) = self.find_override(path)? {
                 Some((toolchain, Some(reason)))
@@ -521,9 +526,10 @@ impl Cfg {
         {
             if !toolchain.exists() {
                 if toolchain.is_custom() {
-                    return Err(
-                        ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into(),
-                    );
+                    return Err(errors::ErrorKind::ToolchainNotInstalled(
+                        toolchain.name().to_string(),
+                    )
+                    .into());
                 }
                 let distributable = DistributableToolchain::new(&toolchain)?;
                 distributable.install_from_dist(true, false, &[], &[])?;
@@ -531,11 +537,11 @@ impl Cfg {
             Ok((toolchain, reason))
         } else {
             // No override and no default set
-            Err(ErrorKind::ToolchainNotSelected.into())
+            Err(errors::ErrorKind::ToolchainNotSelected.into())
         }
     }
 
-    pub fn get_default(&self) -> Result<Option<String>> {
+    pub fn get_default(&self) -> errors::Result<Option<String>> {
         let user_opt = self.settings_file.with(|s| Ok(s.default_toolchain.clone()));
         if let Some(fallback_settings) = &self.fallback_settings {
             match user_opt {
@@ -546,7 +552,7 @@ impl Cfg {
         user_opt
     }
 
-    pub fn list_toolchains(&self) -> Result<Vec<String>> {
+    pub fn list_toolchains(&self) -> errors::Result<Vec<String>> {
         if utils::is_directory(&self.toolchains_dir) {
             let mut toolchains: Vec<_> = utils::read_dir("toolchains", &self.toolchains_dir)?
                 .filter_map(io::Result::ok)
@@ -562,7 +568,7 @@ impl Cfg {
         }
     }
 
-    pub fn list_channels(&self) -> Result<Vec<(String, Result<Toolchain<'_>>)>> {
+    pub fn list_channels(&self) -> errors::Result<Vec<(String, errors::Result<Toolchain<'_>>)>> {
         let toolchains = self.list_toolchains()?;
 
         // Convert the toolchain strings to Toolchain values
@@ -578,7 +584,7 @@ impl Cfg {
     pub fn update_all_channels(
         &self,
         force_update: bool,
-    ) -> Result<Vec<(String, Result<UpdateStatus>)>> {
+    ) -> errors::Result<Vec<(String, errors::Result<UpdateStatus>)>> {
         let channels = self.list_channels()?;
         let channels = channels.into_iter();
 
@@ -599,7 +605,7 @@ impl Cfg {
         Ok(channels.collect())
     }
 
-    pub fn check_metadata_version(&self) -> Result<()> {
+    pub fn check_metadata_version(&self) -> errors::Result<()> {
         utils::assert_is_directory(&self.rustup_dir)?;
 
         self.settings_file.with(|s| {
@@ -607,7 +613,7 @@ impl Cfg {
             if s.version == DEFAULT_METADATA_VERSION {
                 Ok(())
             } else {
-                Err(ErrorKind::NeedMetadataUpgrade.into())
+                Err(errors::ErrorKind::NeedMetadataUpgrade.into())
             }
         })
     }
@@ -615,11 +621,11 @@ impl Cfg {
     pub fn toolchain_for_dir(
         &self,
         path: &Path,
-    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
+    ) -> errors::Result<(Toolchain<'_>, Option<OverrideReason>)> {
         self.find_or_install_override_toolchain_or_default(path)
     }
 
-    pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
+    pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> errors::Result<Command> {
         let (ref toolchain, _) = self.toolchain_for_dir(path)?;
 
         if let Some(cmd) = self.maybe_do_cargo_fallback(toolchain, binary)? {
@@ -637,7 +643,7 @@ impl Cfg {
         toolchain: &str,
         install_if_missing: bool,
         binary: &str,
-    ) -> Result<Command> {
+    ) -> errors::Result<Command> {
         let toolchain = self.get_toolchain(toolchain, false)?;
         if install_if_missing && !toolchain.exists() {
             let distributable = DistributableToolchain::new(&toolchain)?;
@@ -659,7 +665,7 @@ impl Cfg {
         &self,
         toolchain: &Toolchain<'_>,
         binary: &str,
-    ) -> Result<Option<Command>> {
+    ) -> errors::Result<Option<Command>> {
         if !toolchain.is_custom() {
             return Ok(None);
         }
@@ -688,7 +694,7 @@ impl Cfg {
         Ok(None)
     }
 
-    pub fn set_default_host_triple(&self, host_triple: &str) -> Result<()> {
+    pub fn set_default_host_triple(&self, host_triple: &str) -> errors::Result<()> {
         // Ensure that the provided host_triple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied triple is insufficient / bad.
@@ -700,7 +706,7 @@ impl Cfg {
         })
     }
 
-    pub fn get_default_host_triple(&self) -> Result<dist::TargetTriple> {
+    pub fn get_default_host_triple(&self) -> errors::Result<dist::TargetTriple> {
         Ok(self
             .settings_file
             .with(|s| {
@@ -711,7 +717,7 @@ impl Cfg {
             .unwrap_or_else(dist::TargetTriple::from_host_or_build))
     }
 
-    pub fn resolve_toolchain(&self, name: &str) -> Result<String> {
+    pub fn resolve_toolchain(&self, name: &str) -> errors::Result<String> {
         if let Ok(desc) = dist::PartialToolchainDesc::from_str(name) {
             let host = self.get_default_host_triple()?;
             Ok(desc.resolve(&host)?.to_string())
