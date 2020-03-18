@@ -322,7 +322,7 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
         if cfg!(windows) && !no_prompt {
             println!();
             println!("Press the Enter key to continue.");
-            SyncError::maybe(common::read_line())?;
+            common::read_line()?;
         }
 
         process::exit(1);
@@ -355,7 +355,7 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
         if cfg!(windows) {
             println!();
             println!("Press the Enter key to continue.");
-            SyncError::maybe(common::read_line())?;
+            common::read_line()?;
         }
     }
 

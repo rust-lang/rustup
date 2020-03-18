@@ -233,6 +233,8 @@ fn set_nightly_toolchain_and_unset() {
             &["rustup-init"],
             "2\n\nnightly\n\n\n2\n\nbeta\n\n\n\n\n",
         );
+        println!("{:?}", out.stderr);
+        println!("{:?}", out.stdout);
         assert!(out.ok);
 
         expect_stdout_ok(config, &["rustup", "show"], "beta");

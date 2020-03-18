@@ -4,6 +4,7 @@ use crate::errors::*;
 use crate::self_update;
 use crate::term2;
 use anyhow;
+use anyhow::Context;
 use git_testament::{git_testament, render_testament};
 use lazy_static::lazy_static;
 use rustup::dist::notifications as dist_notifications;
@@ -14,7 +15,7 @@ use rustup::utils::notify::NotificationLevel;
 use rustup::utils::utils;
 use rustup::{Cfg, Notification, Toolchain, UpdateStatus};
 use std::fs;
-use std::io::{BufRead, ErrorKind, Write};
+use std::io::{stdin, ErrorKind, Write};
 use std::path::Path;
 use std::sync::Arc;
 use std::{cmp, env, iter};
@@ -25,7 +26,7 @@ pub const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't
 pub fn confirm(question: &str, default: bool) -> anyhow::Result<bool> {
     print!("{} ", question);
     let _ = std::io::stdout().flush();
-    let input = SyncError::maybe(read_line())?;
+    let input = read_line()?;
 
     let r = match &*input.to_lowercase() {
         "y" | "yes" => true,
@@ -53,7 +54,7 @@ pub fn confirm_advanced() -> anyhow::Result<Confirm> {
     print!(">");
 
     let _ = std::io::stdout().flush();
-    let input = SyncError::maybe(read_line())?;
+    let input = read_line()?;
 
     let r = match &*input {
         "1" | "" => Confirm::Yes,
@@ -69,7 +70,7 @@ pub fn confirm_advanced() -> anyhow::Result<Confirm> {
 pub fn question_str(question: &str, default: &str) -> anyhow::Result<String> {
     println!("{}", question);
     let _ = std::io::stdout().flush();
-    let input = SyncError::maybe(read_line())?;
+    let input = read_line()?;
 
     println!();
 
@@ -84,7 +85,7 @@ pub fn question_bool(question: &str, default: bool) -> anyhow::Result<bool> {
     println!("{}", question);
 
     let _ = std::io::stdout().flush();
-    let input = SyncError::maybe(read_line())?;
+    let input = read_line()?;
 
     println!();
 
@@ -99,14 +100,13 @@ pub fn question_bool(question: &str, default: bool) -> anyhow::Result<bool> {
     }
 }
 
-pub fn read_line() -> Result<String> {
-    let stdin = std::io::stdin();
-    let stdin = stdin.lock();
-    let mut lines = stdin.lines();
-    lines
-        .next()
-        .and_then(std::result::Result::ok)
-        .ok_or_else(|| "unable to read from stdin for confirmation".into())
+pub fn read_line() -> anyhow::Result<String> {
+    let mut line = String::new();
+    match stdin().read_line(&mut line) {
+        Ok(0) => Err(anyhow::anyhow!("End of file on stdin")),
+        Ok(_) => Ok(line.trim().to_owned()),
+        Err(error) => Err(error).context("unable to read from stdin for confirmation"),
+    }
 }
 
 #[derive(Default)]

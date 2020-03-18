@@ -1001,11 +1001,7 @@ fn install_sets_up_stable_unless_there_is_already_a_default() {
 #[test]
 fn readline_no_stdin() {
     setup(&|config| {
-        expect_err(
-            config,
-            &["rustup-init"],
-            "unable to read from stdin for confirmation",
-        );
+        expect_err(config, &["rustup-init"], "End of file on stdin");
     });
 }
 
