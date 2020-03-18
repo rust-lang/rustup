@@ -964,7 +964,7 @@ fn delete_rustup_and_cargo_home() -> Result<()> {
 
     // Make the sub-process opened by gc exe inherit its attribute.
     let mut sa = SECURITY_ATTRIBUTES {
-        nLength: mem::size_of::<SECURITY_ATTRIBUTES> as DWORD,
+        nLength: mem::size_of::<SECURITY_ATTRIBUTES>() as DWORD,
         lpSecurityDescriptor: ptr::null_mut(),
         bInheritHandle: 1,
     };
@@ -1039,7 +1039,6 @@ pub fn complete_windows_uninstall() -> Result<()> {
 fn wait_for_parent() -> Result<()> {
     use std::io;
     use std::mem;
-    use std::ptr;
     use winapi::shared::minwindef::DWORD;
     use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
     use winapi::um::processthreadsapi::{GetCurrentProcessId, OpenProcess};
@@ -1089,7 +1088,7 @@ fn wait_for_parent() -> Result<()> {
 
         // Get a handle to the parent process
         let parent = OpenProcess(SYNCHRONIZE, 0, parent_id);
-        if parent == ptr::null_mut() {
+        if parent.is_null() {
             // This just means the parent has already exited.
             return Ok(());
         }
