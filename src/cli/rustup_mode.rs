@@ -66,7 +66,7 @@ pub fn main() -> Result<()> {
         cfg.set_toolchain_override(&t[1..]);
     }
 
-    if SyncError::maybe(maybe_upgrade_data(cfg, &matches))? {
+    if maybe_upgrade_data(cfg, &matches)? {
         return Ok(());
     }
 
@@ -659,11 +659,11 @@ pub fn cli() -> App<'static, 'static> {
     )
 }
 
-fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<bool> {
+fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<bool> {
     match m.subcommand() {
         ("self", Some(c)) => match c.subcommand() {
             ("upgrade-data", Some(_)) => {
-                cfg.upgrade_data()?;
+                SyncError::maybe(cfg.upgrade_data())?;
                 Ok(true)
             }
             _ => Ok(false),
