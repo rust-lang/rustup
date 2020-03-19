@@ -375,6 +375,11 @@ pub enum RustupError {
     },
     #[error("failed to set permissions for '{}'", .p.display())]
     SettingPermissions { p: PathBuf, source: io::Error },
+    #[error("toolchain '{name}' does not support components")]
+    ComponentsUnsupported {
+        name: String,
+        source: SyncError<Error>,
+    },
 }
 
 /// Inspired by failure::SyncFailure, but not identical.

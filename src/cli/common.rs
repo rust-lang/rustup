@@ -351,11 +351,10 @@ where
     Ok(())
 }
 
-pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<()> {
+pub fn list_targets(toolchain: &Toolchain<'_>) -> anyhow::Result<()> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new(&toolchain)
-        .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
-    let components = distributable.list_components()?;
+    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
+    let components = SyncError::maybe(distributable.list_components())?;
     for component in components {
         if component.component.short_name_in_manifest() == "rust-std" {
             let target = component
@@ -376,11 +375,10 @@ pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<()> {
     Ok(())
 }
 
-pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<()> {
+pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> anyhow::Result<()> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new(&toolchain)
-        .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
-    let components = distributable.list_components()?;
+    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
+    let components = SyncError::maybe(distributable.list_components())?;
     for component in components {
         if component.component.short_name_in_manifest() == "rust-std" {
             let target = component
@@ -415,11 +413,10 @@ pub fn list_components(toolchain: &Toolchain<'_>) -> Result<()> {
     Ok(())
 }
 
-pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<()> {
+pub fn list_installed_components(toolchain: &Toolchain<'_>) -> anyhow::Result<()> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new(&toolchain)
-        .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
-    let components = distributable.list_components()?;
+    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
+    let components = SyncError::maybe(distributable.list_components())?;
     for component in components {
         if component.installed {
             writeln!(t, "{}", component.name)?;
@@ -448,8 +445,8 @@ fn print_toolchain_path(cfg: &Cfg, toolchain: &str, if_default: &str, verbose: b
     Ok(())
 }
 
-pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<()> {
-    let toolchains = cfg.list_toolchains()?;
+pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> anyhow::Result<()> {
+    let toolchains = SyncError::maybe(cfg.list_toolchains())?;
     if toolchains.is_empty() {
         println!("no installed toolchains");
     } else if let Ok(Some(def_toolchain)) = cfg.find_default() {
@@ -471,8 +468,8 @@ pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<()> {
     Ok(())
 }
 
-pub fn list_overrides(cfg: &Cfg) -> Result<()> {
-    let overrides = cfg.settings_file.with(|s| Ok(s.overrides.clone()))?;
+pub fn list_overrides(cfg: &Cfg) -> anyhow::Result<()> {
+    let overrides = SyncError::maybe(cfg.settings_file.with(|s| Ok(s.overrides.clone())))?;
 
     if overrides.is_empty() {
         println!("no overrides");

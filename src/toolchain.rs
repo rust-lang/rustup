@@ -415,6 +415,20 @@ impl<'a> DistributableToolchain<'a> {
         }
     }
 
+    /// Temporary helper until we further split this into a newtype for
+    /// InstalledDistributableToolchain - one where the type can protect component operations.
+    pub fn new_for_components(
+        toolchain: &'a Toolchain<'a>,
+    ) -> anyhow::Result<DistributableToolchain<'a>> {
+        DistributableToolchain::new(toolchain).map_err(|e| {
+            RustupError::ComponentsUnsupported {
+                name: toolchain.name().to_string(),
+                source: SyncError::new(e),
+            }
+            .into()
+        })
+    }
+
     // Installed only.
     pub fn add_component(&self, mut component: Component) -> Result<()> {
         if !self.0.exists() {

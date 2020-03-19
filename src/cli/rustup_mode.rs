@@ -6,7 +6,7 @@ use crate::term2;
 use crate::term2::Terminal;
 use crate::topical_doc;
 
-use anyhow::{self, Result};
+use anyhow::{self, Error, Result};
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use rustup::dist::manifest::Component;
@@ -15,7 +15,6 @@ use rustup::toolchain::{CustomToolchain, DistributableToolchain};
 use rustup::utils::utils::{self, ExitCode};
 use rustup::Notification;
 use rustup::{command, Cfg, ComponentStatus, Toolchain};
-use std::error::Error;
 use std::fmt;
 use std::io::Write;
 use std::iter;
@@ -23,12 +22,16 @@ use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::str::FromStr;
 
-fn handle_epipe(res: errors::Result<()>) -> errors::Result<()> {
+fn handle_epipe(res: Result<()>) -> Result<()> {
     match res {
-        Err(errors::Error(errors::ErrorKind::Io(ref err), _))
-            if err.kind() == std::io::ErrorKind::BrokenPipe =>
-        {
-            Ok(())
+        Err(e) => {
+            let root = e.root_cause();
+            if let Some(io_err) = root.downcast_ref::<std::io::Error>() {
+                if io_err.kind() == std::io::ErrorKind::BrokenPipe {
+                    return Ok(());
+                }
+            }
+            Err(e)
         }
         res => res,
     }
@@ -75,13 +78,11 @@ pub fn main() -> Result<()> {
     match matches.subcommand() {
         ("dump-testament", _) => common::dump_testament(),
         ("show", Some(c)) => match c.subcommand() {
-            ("active-toolchain", Some(_)) => {
-                SyncError::maybe(handle_epipe(show_active_toolchain(cfg)))?
-            }
-            ("home", Some(_)) => SyncError::maybe(handle_epipe(show_rustup_home(cfg)))?,
-            ("profile", Some(_)) => SyncError::maybe(handle_epipe(show_profile(cfg)))?,
-            ("keys", Some(_)) => SyncError::maybe(handle_epipe(show_keys(cfg)))?,
-            (_, _) => SyncError::maybe(handle_epipe(show(cfg)))?,
+            ("active-toolchain", Some(_)) => handle_epipe(show_active_toolchain(cfg))?,
+            ("home", Some(_)) => handle_epipe(show_rustup_home(cfg))?,
+            ("profile", Some(_)) => handle_epipe(show_profile(cfg))?,
+            ("keys", Some(_)) => handle_epipe(show_keys(cfg))?,
+            (_, _) => handle_epipe(show(cfg))?,
         },
         ("install", Some(m)) => deprecated("toolchain install", cfg, m, update)?,
         ("update", Some(m)) => update(cfg, m)?,
@@ -92,25 +93,25 @@ pub fn main() -> Result<()> {
         ("default", Some(m)) => SyncError::maybe(default_(cfg, m))?,
         ("toolchain", Some(c)) => match c.subcommand() {
             ("install", Some(m)) => update(cfg, m)?,
-            ("list", Some(m)) => SyncError::maybe(handle_epipe(toolchain_list(cfg, m)))?,
+            ("list", Some(m)) => handle_epipe(toolchain_list(cfg, m))?,
             ("link", Some(m)) => SyncError::maybe(toolchain_link(cfg, m))?,
             ("uninstall", Some(m)) => SyncError::maybe(toolchain_remove(cfg, m))?,
             (_, _) => unreachable!(),
         },
         ("target", Some(c)) => match c.subcommand() {
-            ("list", Some(m)) => SyncError::maybe(handle_epipe(target_list(cfg, m)))?,
+            ("list", Some(m)) => handle_epipe(target_list(cfg, m))?,
             ("add", Some(m)) => SyncError::maybe(target_add(cfg, m))?,
             ("remove", Some(m)) => SyncError::maybe(target_remove(cfg, m))?,
             (_, _) => unreachable!(),
         },
         ("component", Some(c)) => match c.subcommand() {
-            ("list", Some(m)) => SyncError::maybe(handle_epipe(component_list(cfg, m)))?,
+            ("list", Some(m)) => handle_epipe(component_list(cfg, m))?,
             ("add", Some(m)) => SyncError::maybe(component_add(cfg, m))?,
             ("remove", Some(m)) => SyncError::maybe(component_remove(cfg, m))?,
             (_, _) => unreachable!(),
         },
         ("override", Some(c)) => match c.subcommand() {
-            ("list", Some(_)) => SyncError::maybe(handle_epipe(common::list_overrides(cfg)))?,
+            ("list", Some(_)) => handle_epipe(common::list_overrides(cfg))?,
             ("set", Some(m)) => SyncError::maybe(override_add(cfg, m))?,
             ("unset", Some(m)) => SyncError::maybe(override_remove(cfg, m))?,
             (_, _) => unreachable!(),
@@ -927,14 +928,14 @@ fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
     Ok(())
 }
 
-fn show(cfg: &Cfg) -> errors::Result<()> {
+fn show(cfg: &Cfg) -> Result<()> {
     // Print host triple
     {
         let mut t = term2::stdout();
         t.attr(term2::Attr::Bold)?;
         write!(t, "Default host: ")?;
         t.reset()?;
-        writeln!(t, "{}", cfg.get_default_host_triple()?)?;
+        writeln!(t, "{}", SyncError::maybe(cfg.get_default_host_triple())?)?;
     }
 
     // Print rustup home directory
@@ -947,8 +948,8 @@ fn show(cfg: &Cfg) -> errors::Result<()> {
         writeln!(t)?;
     }
 
-    let cwd = utils::current_dir()?;
-    let installed_toolchains = cfg.list_toolchains()?;
+    let cwd = SyncError::maybe(utils::current_dir())?;
+    let installed_toolchains = SyncError::maybe(cfg.list_toolchains())?;
     // XXX: we may want a find_without_install capability for show.
     let active_toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd);
 
@@ -989,12 +990,11 @@ fn show(cfg: &Cfg) -> errors::Result<()> {
     if show_installed_toolchains {
         let mut t = term2::stdout();
         if show_headers {
-            print_header(&mut t, "installed toolchains")?;
+            print_header::<Error>(&mut t, "installed toolchains")?;
         }
-        let default_name: errors::Result<String> = cfg
-            .get_default()?
+        let default_name: errors::Result<String> = SyncError::maybe(cfg.get_default())?
             .ok_or_else(|| "no default toolchain configured".into());
-        let default_name = default_name?;
+        let default_name = SyncError::maybe(default_name)?;
         for it in installed_toolchains {
             if default_name == it {
                 writeln!(t, "{} (default)", it)?;
@@ -1010,7 +1010,7 @@ fn show(cfg: &Cfg) -> errors::Result<()> {
     if show_active_targets {
         let mut t = term2::stdout();
         if show_headers {
-            print_header(&mut t, "installed targets for active toolchain")?;
+            print_header::<Error>(&mut t, "installed targets for active toolchain")?;
         }
         for at in active_targets {
             writeln!(
@@ -1030,7 +1030,7 @@ fn show(cfg: &Cfg) -> errors::Result<()> {
     if show_active_toolchain {
         let mut t = term2::stdout();
         if show_headers {
-            print_header(&mut t, "active toolchain")?;
+            print_header::<Error>(&mut t, "active toolchain")?;
         }
 
         match active_toolchain {
@@ -1048,6 +1048,8 @@ fn show(cfg: &Cfg) -> errors::Result<()> {
                 writeln!(t, "no active toolchain")?;
             }
             Err(err) => {
+                use std::error::Error;
+                // XXX: port to anyhow
                 if let Some(cause) = err.source() {
                     writeln!(t, "(error: {}, {})", err, cause)?;
                 } else {
@@ -1061,7 +1063,10 @@ fn show(cfg: &Cfg) -> errors::Result<()> {
         }
     }
 
-    fn print_header(t: &mut term::StdoutTerminal, s: &str) -> errors::Result<()> {
+    fn print_header<E>(t: &mut term::StdoutTerminal, s: &str) -> std::result::Result<(), E>
+    where
+        E: From<term::Error> + From<std::io::Error>,
+    {
         t.attr(term2::Attr::Bold)?;
         writeln!(t, "{}", s)?;
         writeln!(t, "{}", iter::repeat("-").take(s.len()).collect::<String>())?;
@@ -1073,11 +1078,11 @@ fn show(cfg: &Cfg) -> errors::Result<()> {
     Ok(())
 }
 
-fn show_active_toolchain(cfg: &Cfg) -> errors::Result<()> {
-    let cwd = utils::current_dir()?;
+fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
+    let cwd = SyncError::maybe(utils::current_dir())?;
     match cfg.find_or_install_override_toolchain_or_default(&cwd) {
         Err(rustup::Error(rustup::ErrorKind::ToolchainNotSelected, _)) => {}
-        Err(e) => return Err(e.into()),
+        Err(e) => return Err(SyncError::new(e).into()),
         Ok((toolchain, reason)) => {
             if let Some(reason) = reason {
                 println!("{} ({})", toolchain.name(), reason);
@@ -1089,13 +1094,13 @@ fn show_active_toolchain(cfg: &Cfg) -> errors::Result<()> {
     Ok(())
 }
 
-fn show_rustup_home(cfg: &Cfg) -> errors::Result<()> {
+fn show_rustup_home(cfg: &Cfg) -> Result<()> {
     println!("{}", cfg.rustup_dir.display());
     Ok(())
 }
 
-fn target_list(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
-    let toolchain = explicit_or_dir_toolchain(cfg, m)?;
+fn target_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+    let toolchain = SyncError::maybe(explicit_or_dir_toolchain(cfg, m))?;
 
     if m.is_present("installed") {
         common::list_installed_targets(&toolchain)
@@ -1177,13 +1182,14 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
     Ok(())
 }
 
-fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
-    let toolchain = explicit_or_dir_toolchain(cfg, m)?;
+fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+    let toolchain = SyncError::maybe(explicit_or_dir_toolchain(cfg, m))?;
 
     if m.is_present("installed") {
         common::list_installed_components(&toolchain)
     } else {
-        common::list_components(&toolchain)
+        SyncError::maybe(common::list_components(&toolchain))?;
+        Ok(())
     }
 }
 
@@ -1244,7 +1250,7 @@ fn explicit_or_dir_toolchain<'a>(
     Ok(toolchain)
 }
 
-fn toolchain_list(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn toolchain_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     common::list_toolchains(cfg, m.is_present("verbose"))
 }
 
@@ -1443,14 +1449,14 @@ fn set_profile(cfg: &mut Cfg, m: &ArgMatches) -> errors::Result<()> {
     Ok(())
 }
 
-fn show_profile(cfg: &Cfg) -> errors::Result<()> {
-    println!("{}", cfg.get_profile()?);
+fn show_profile(cfg: &Cfg) -> Result<()> {
+    println!("{}", SyncError::maybe(cfg.get_profile())?);
     Ok(())
 }
 
-fn show_keys(cfg: &Cfg) -> errors::Result<()> {
+fn show_keys(cfg: &Cfg) -> Result<()> {
     for key in cfg.get_pgp_keys() {
-        for l in key.show_key()? {
+        for l in SyncError::maybe(key.show_key())? {
             info!("{}", l);
         }
     }
