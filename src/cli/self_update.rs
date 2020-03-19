@@ -1660,12 +1660,12 @@ pub fn self_replace() -> Result<()> {
     Ok(())
 }
 
-pub fn cleanup_self_updater() -> crate::errors::Result<()> {
-    let cargo_home = utils::cargo_home()?;
+pub fn cleanup_self_updater() -> Result<()> {
+    let cargo_home = SyncError::maybe(utils::cargo_home())?;
     let setup = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
     if setup.exists() {
-        utils::remove_file("setup", &setup)?;
+        SyncError::maybe(utils::remove_file("setup", &setup))?;
     }
 
     Ok(())

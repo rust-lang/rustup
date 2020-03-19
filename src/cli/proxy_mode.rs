@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::process;
 
 pub fn main() -> Result<()> {
-    SyncError::maybe(crate::self_update::cleanup_self_updater())?;
+    crate::self_update::cleanup_self_updater()?;
 
     let ExitCode(c) = {
         let _setup = job::setup();

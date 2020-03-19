@@ -55,7 +55,7 @@ where
 }
 
 pub fn main() -> Result<()> {
-    SyncError::maybe(crate::self_update::cleanup_self_updater())?;
+    crate::self_update::cleanup_self_updater()?;
 
     let matches = cli().get_matches();
     let verbose = matches.is_present("verbose");
