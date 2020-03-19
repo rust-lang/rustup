@@ -41,7 +41,7 @@ pub fn main() -> Result<()> {
         };
 
         let cfg = SyncError::maybe(set_globals(false, true))?;
-        SyncError::maybe(cfg.check_metadata_version())?;
+        cfg.check_metadata_version()?;
         direct_proxy(&cfg, &arg0, toolchain, &cmd_args)?
     };
 

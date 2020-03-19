@@ -70,7 +70,7 @@ pub fn main() -> Result<()> {
         return Ok(());
     }
 
-    SyncError::maybe(cfg.check_metadata_version())?;
+    cfg.check_metadata_version()?;
 
     match matches.subcommand() {
         ("dump-testament", _) => common::dump_testament(),

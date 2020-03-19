@@ -605,17 +605,18 @@ impl Cfg {
         Ok(channels.collect())
     }
 
-    pub fn check_metadata_version(&self) -> errors::Result<()> {
-        utils::assert_is_directory(&self.rustup_dir)?;
+    pub fn check_metadata_version(&self) -> Result<()> {
+        SyncError::maybe(utils::assert_is_directory(&self.rustup_dir))?;
 
-        self.settings_file.with(|s| {
+        SyncError::maybe(self.settings_file.with(|s| {
             (self.notify_handler)(Notification::ReadMetadataVersion(&s.version));
             if s.version == DEFAULT_METADATA_VERSION {
                 Ok(())
             } else {
                 Err(errors::ErrorKind::NeedMetadataUpgrade.into())
             }
-        })
+        }))?;
+        Ok(())
     }
 
     pub fn toolchain_for_dir(
