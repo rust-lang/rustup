@@ -290,7 +290,7 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
     let install_res: Result<()> = (|| {
         install_bins()?;
         if !opts.no_modify_path {
-            SyncError::maybe(do_add_to_path(&get_add_path_methods()))?;
+            do_add_to_path(&get_add_path_methods())?;
         }
         SyncError::maybe(utils::create_rustup_home())?;
         SyncError::maybe(maybe_install_rust(
@@ -305,7 +305,7 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
 
         if cfg!(unix) {
             let env_file = SyncError::maybe(utils::cargo_home())?.join("env");
-            let env_str = format!("{}\n", SyncError::maybe(shell_export_string())?);
+            let env_str = format!("{}\n", shell_export_string()?);
             SyncError::maybe(utils::write_file("env", &env_file, &env_str))?;
         }
 
@@ -1179,29 +1179,29 @@ fn get_add_path_methods() -> Vec<PathUpdateMethod> {
     profiles.into_iter().map(PathUpdateMethod::RcFile).collect()
 }
 
-fn shell_export_string() -> crate::errors::Result<String> {
-    let path = format!("{}/bin", canonical_cargo_home()?);
+fn shell_export_string() -> Result<String> {
+    let path = format!("{}/bin", SyncError::maybe(canonical_cargo_home())?);
     // The path is *prepended* in case there are system-installed
     // rustc's that need to be overridden.
     Ok(format!(r#"export PATH="{}:$PATH""#, path))
 }
 
 #[cfg(unix)]
-fn do_add_to_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()> {
+fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     for method in methods {
         if let PathUpdateMethod::RcFile(ref rcpath) = *method {
             let file = if rcpath.exists() {
-                utils::read_file("rcfile", rcpath)?
+                SyncError::maybe(utils::read_file("rcfile", rcpath))?
             } else {
                 String::new()
             };
             let addition = format!("\n{}", shell_export_string()?);
             if !file.contains(&addition) {
-                utils::append_file("rcfile", rcpath, &addition).chain_err(|| {
-                    crate::errors::ErrorKind::WritingShellProfile {
-                        path: rcpath.to_path_buf(),
-                    }
-                })?;
+                utils::append_file("rcfile", rcpath, &addition)
+                    .map_err(SyncError::new)
+                    .with_context(|| {
+                        format!("could not amend shell profile: '{}'", rcpath.display())
+                    })?;
             }
         } else {
             unreachable!()
@@ -1212,7 +1212,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()> {
 }
 
 #[cfg(windows)]
-fn do_add_to_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()> {
+fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
     use std::ptr;
@@ -1223,14 +1223,14 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()> {
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
 
-    let old_path = if let Some(s) = get_windows_path_var()? {
+    let old_path = if let Some(s) = SyncError::maybe(get_windows_path_var())? {
         s
     } else {
         // Non-unicode path
         return Ok(());
     };
 
-    let mut new_path = utils::cargo_home()?
+    let mut new_path = SyncError::maybe(utils::cargo_home())?
         .join("bin")
         .to_string_lossy()
         .into_owned();
@@ -1244,18 +1244,14 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> crate::errors::Result<()> {
     }
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
+    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)?;
 
     let reg_value = RegValue {
         bytes: utils::string_to_winreg_bytes(&new_path),
         vtype: RegType::REG_EXPAND_SZ,
     };
 
-    environment
-        .set_raw_value("PATH", &reg_value)
-        .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
+    environment.set_raw_value("PATH", &reg_value)?;
 
     // Tell other processes to update their environment
     unsafe {
@@ -1316,7 +1312,7 @@ fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
     let rcfiles = vec![profile, bash_profile];
     let existing_rcfiles = rcfiles.into_iter().filter_map(|f| f).filter(|f| f.exists());
 
-    let export_str = SyncError::maybe(shell_export_string())?;
+    let export_str = shell_export_string()?;
     let matching_rcfiles = existing_rcfiles.filter(|f| {
         let file = utils::read_file("rcfile", f).unwrap_or_default();
         let addition = format!("\n{}", export_str);
@@ -1399,7 +1395,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     for method in methods {
         if let PathUpdateMethod::RcFile(ref rcpath) = *method {
             let file = SyncError::maybe(utils::read_file("rcfile", rcpath))?;
-            let addition = format!("\n{}\n", SyncError::maybe(shell_export_string())?);
+            let addition = format!("\n{}\n", shell_export_string()?);
 
             let file_bytes = file.into_bytes();
             let addition_bytes = addition.into_bytes();

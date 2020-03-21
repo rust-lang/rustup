@@ -38,12 +38,6 @@ error_chain! {
         WindowsUninstallMadness {
             description("failure during windows uninstall")
         }
-        WritingShellProfile {
-            path: PathBuf,
-        } {
-            description("could not amend shell profile")
-            display("could not amend shell profile: '{}'", path.display())
-        }
     }
 }
 
