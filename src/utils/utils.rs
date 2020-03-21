@@ -451,15 +451,15 @@ pub fn make_executable(path: &Path) -> anyhow::Result<()> {
     inner(path)
 }
 
-pub fn current_dir() -> Result<PathBuf> {
-    env::current_dir().chain_err(|| ErrorKind::LocatingWorkingDir)
+pub fn current_dir() -> anyhow::Result<PathBuf> {
+    env::current_dir().map_err(|e| RustupError::LocatingWorkingDir { source: e }.into())
 }
 
 pub fn current_exe() -> anyhow::Result<PathBuf> {
     env::current_exe().map_err(|e| RustupError::LocatingWorkingDir { source: e }.into())
 }
 
-pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
+pub fn to_absolute<P: AsRef<Path>>(path: P) -> anyhow::Result<PathBuf> {
     current_dir().map(|mut v| {
         v.push(path);
         v

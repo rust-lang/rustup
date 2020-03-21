@@ -30,7 +30,6 @@ mod term2;
 mod topical_doc;
 
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
-use rustup::errors::SyncError;
 use rustup::utils::utils;
 
 use std::env;
@@ -64,7 +63,7 @@ fn run_rustup_inner() -> Result<()> {
 
     // Before we do anything else, ensure we know where we are and who we
     // are because otherwise we cannot proceed usefully.
-    SyncError::maybe(utils::current_dir())?;
+    utils::current_dir()?;
     utils::current_exe()?;
 
     // The name of arg0 determines how the program is going to behave

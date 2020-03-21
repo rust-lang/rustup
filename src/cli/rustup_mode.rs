@@ -772,7 +772,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             ))?;
         }
 
-        let cwd = SyncError::maybe(utils::current_dir())?;
+        let cwd = utils::current_dir()?;
         if let Some((toolchain, reason)) = SyncError::maybe(cfg.find_override(&cwd))? {
             info!(
                 "note that the toolchain '{}' is currently in use ({})",
@@ -916,7 +916,7 @@ fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         SyncError::maybe(cfg.which_binary_by_toolchain(toolchain, binary))?
             .expect("binary not found")
     } else {
-        SyncError::maybe(cfg.which_binary(&SyncError::maybe(utils::current_dir())?, binary))?
+        SyncError::maybe(cfg.which_binary(&utils::current_dir()?, binary))?
             .expect("binary not found")
     };
 
@@ -947,7 +947,7 @@ fn show(cfg: &Cfg) -> Result<()> {
         writeln!(t)?;
     }
 
-    let cwd = SyncError::maybe(utils::current_dir())?;
+    let cwd = utils::current_dir()?;
     let installed_toolchains = SyncError::maybe(cfg.list_toolchains())?;
     // XXX: we may want a find_without_install capability for show.
     let active_toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd);
@@ -1078,7 +1078,7 @@ fn show(cfg: &Cfg) -> Result<()> {
 }
 
 fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
-    let cwd = SyncError::maybe(utils::current_dir())?;
+    let cwd = utils::current_dir()?;
     match cfg.find_or_install_override_toolchain_or_default(&cwd) {
         Err(rustup::Error(rustup::ErrorKind::ToolchainNotSelected, _)) => {}
         Err(e) => return Err(SyncError::new(e).into()),
@@ -1228,7 +1228,7 @@ fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Too
         return Ok(toolchain);
     }
 
-    let cwd = SyncError::maybe(utils::current_dir())?;
+    let cwd = utils::current_dir()?;
     let (toolchain, _) = SyncError::maybe(cfg.toolchain_for_dir(&cwd))?;
 
     Ok(toolchain)
@@ -1244,7 +1244,7 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, true))?;
 
     if let Ok(custom) = CustomToolchain::new(&toolchain) {
-        SyncError::maybe(custom.install_from_dir(Path::new(path), true)).map_err(Into::into)
+        custom.install_from_dir(Path::new(path), true)
     } else {
         Err(anyhow!(
             "invalid custom toolchain name: '{}'",
@@ -1277,7 +1277,7 @@ fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let path = if let Some(path) = m.value_of("path") {
         PathBuf::from(path)
     } else {
-        SyncError::maybe(utils::current_dir())?
+        utils::current_dir()?
     };
     toolchain.make_override(&path)?;
 
@@ -1314,10 +1314,7 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     } else if m.is_present("path") {
         vec![m.value_of("path").unwrap().to_string()]
     } else {
-        vec![SyncError::maybe(utils::current_dir())?
-            .to_str()
-            .unwrap()
-            .to_string()]
+        vec![utils::current_dir()?.to_str().unwrap().to_string()]
     };
 
     for path in paths {

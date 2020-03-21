@@ -379,21 +379,23 @@ impl<'a> CustomToolchain<'a> {
     }
 
     // Not installed only.
-    pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
+    pub fn install_from_dir(&self, src: &Path, link: bool) -> anyhow::Result<()> {
         let mut pathbuf = PathBuf::from(src);
 
         pathbuf.push("lib");
-        utils::assert_is_directory(&pathbuf)?;
+        SyncError::maybe(utils::assert_is_directory(&pathbuf))?;
         pathbuf.pop();
         pathbuf.push("bin");
-        utils::assert_is_directory(&pathbuf)?;
+        SyncError::maybe(utils::assert_is_directory(&pathbuf))?;
         pathbuf.push(format!("rustc{}", EXE_SUFFIX));
-        utils::assert_is_file(&pathbuf)?;
+        SyncError::maybe(utils::assert_is_file(&pathbuf))?;
 
         if link {
-            InstallMethod::Link(&utils::to_absolute(src)?, self).install(&self.0)?;
+            SyncError::maybe(
+                InstallMethod::Link(&utils::to_absolute(src)?, self).install(&self.0),
+            )?;
         } else {
-            InstallMethod::Copy(src, self).install(&self.0)?;
+            SyncError::maybe(InstallMethod::Copy(src, self).install(&self.0))?;
         }
 
         Ok(())
