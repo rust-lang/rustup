@@ -745,8 +745,8 @@ fn maybe_install_rust(
     verbose: bool,
     quiet: bool,
 ) -> Result<()> {
-    let mut cfg = SyncError::maybe(common::set_globals(verbose, quiet))?;
-    SyncError::maybe(cfg.set_profile(profile_str))?;
+    let mut cfg = common::set_globals(verbose, quiet)?;
+    cfg.set_profile(profile_str)?;
 
     if let Some(default_host_triple) = default_host_triple {
         // Set host triple now as it will affect resolution of toolchain_str

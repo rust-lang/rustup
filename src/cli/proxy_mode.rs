@@ -40,7 +40,7 @@ pub fn main() -> Result<()> {
             env::args_os().skip(2).collect()
         };
 
-        let cfg = SyncError::maybe(set_globals(false, true))?;
+        let cfg = set_globals(false, true)?;
         cfg.check_metadata_version()?;
         direct_proxy(&cfg, &arg0, toolchain, &cmd_args)?
     };

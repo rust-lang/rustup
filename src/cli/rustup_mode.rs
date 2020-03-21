@@ -63,7 +63,7 @@ pub fn main() -> Result<()> {
     let matches = cli().get_matches();
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");
-    let cfg = &mut SyncError::maybe(common::set_globals(verbose, quiet))?;
+    let cfg = &mut common::set_globals(verbose, quiet)?;
 
     if let Some(t) = matches.value_of("+toolchain") {
         cfg.set_toolchain_override(&t[1..]);
@@ -1440,7 +1440,7 @@ fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 }
 
 fn set_profile(cfg: &mut Cfg, m: &ArgMatches) -> Result<()> {
-    SyncError::maybe(cfg.set_profile(&m.value_of("profile-name").unwrap()))?;
+    cfg.set_profile(&m.value_of("profile-name").unwrap())?;
     Ok(())
 }
 

@@ -12,7 +12,7 @@ use pgp::{Deserializable, SignedPublicKey};
 
 use crate::dist::download::DownloadCfg;
 use crate::dist::{dist, temp};
-use crate::errors::{self, ResultExt, SyncError};
+use crate::errors::{self, valid_profile_names, ResultExt, SyncError};
 use crate::fallback_settings::FallbackSettings;
 use crate::notifications::*;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
@@ -257,15 +257,19 @@ impl Cfg {
         Ok(())
     }
 
-    pub fn set_profile(&mut self, profile: &str) -> errors::Result<()> {
+    pub fn set_profile(&mut self, profile: &str) -> Result<()> {
         if !dist::Profile::names().contains(&profile) {
-            return Err(errors::ErrorKind::UnknownProfile(profile.to_owned()).into());
+            return Err(anyhow!(
+                "unknown profile name: '{}'; valid profile names are {}",
+                profile.to_owned(),
+                valid_profile_names(),
+            ));
         }
         self.profile_override = None;
-        self.settings_file.with_mut(|s| {
+        SyncError::maybe(self.settings_file.with_mut(|s| {
             s.profile = Some(profile.to_owned());
             Ok(())
-        })?;
+        }))?;
         (self.notify_handler)(Notification::SetProfile(profile));
         Ok(())
     }

@@ -316,14 +316,6 @@ error_chain! {
             description("toolchain does not support components")
             display("toolchain '{}' does not support components", t)
         }
-        UnknownProfile(p: String) {
-            description("unknown profile name")
-            display(
-                "unknown profile name: '{}'; valid profile names are {}",
-                p,
-                valid_profile_names(),
-            )
-        }
         AddingRequiredComponent(t: String, c: String) {
             description("required component cannot be added")
             display("component {} was automatically added because it is required for toolchain '{}'",
@@ -512,7 +504,7 @@ where
     }
 }
 
-fn valid_profile_names() -> String {
+pub fn valid_profile_names() -> String {
     Profile::names()
         .iter()
         .map(|s| format!("'{}'", s))

@@ -149,7 +149,7 @@ impl NotifyOnConsole {
     }
 }
 
-pub fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
+pub fn set_globals(verbose: bool, quiet: bool) -> anyhow::Result<Cfg> {
     use crate::download_tracker::DownloadTracker;
     use std::cell::RefCell;
 
@@ -159,12 +159,14 @@ pub fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
         ..Default::default()
     });
 
-    Ok(Cfg::from_env(Arc::new(move |n: Notification<'_>| {
-        if download_tracker.borrow_mut().handle_notification(&n) {
-            return;
-        }
-        console_notifier.borrow_mut().handle(n);
-    }))?)
+    Ok(SyncError::maybe(Cfg::from_env(Arc::new(
+        move |n: Notification<'_>| {
+            if download_tracker.borrow_mut().handle_notification(&n) {
+                return;
+            }
+            console_notifier.borrow_mut().handle(n);
+        },
+    )))?)
 }
 
 pub fn show_channel_update(
