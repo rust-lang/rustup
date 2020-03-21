@@ -172,21 +172,25 @@ impl<'a> Toolchain<'a> {
         Ok(doc_dir)
     }
     // Custom and Distributable. Installed only.
-    pub fn open_docs(&self, relative: &str) -> Result<()> {
-        self.verify()?;
+    pub fn open_docs(&self, relative: &str) -> anyhow::Result<()> {
+        SyncError::maybe(self.verify())?;
 
-        utils::open_browser(&self.doc_path(relative)?)
+        utils::open_browser(&SyncError::maybe(self.doc_path(relative))?)
+            .map_err(|e| SyncError::new(e).into())
     }
     // Custom and Distributable. Installed only.
     pub fn make_default(&self) -> Result<()> {
         self.cfg.set_default(&self.name)
     }
     // Custom and Distributable. Installed only.
-    pub fn make_override(&self, path: &Path) -> Result<()> {
-        self.cfg.settings_file.with_mut(|s| {
-            s.add_override(path, self.name.clone(), self.cfg.notify_handler.as_ref());
-            Ok(())
-        })
+    pub fn make_override(&self, path: &Path) -> anyhow::Result<()> {
+        self.cfg
+            .settings_file
+            .with_mut(|s| {
+                s.add_override(path, self.name.clone(), self.cfg.notify_handler.as_ref());
+                Ok(())
+            })
+            .map_err(|e| SyncError::new(e).into())
     }
     // Distributable and Custom. Installed only.
     pub fn binary_file(&self, name: &str) -> PathBuf {
@@ -430,19 +434,19 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    pub fn add_component(&self, mut component: Component) -> Result<()> {
+    pub fn add_component(&self, mut component: Component) -> anyhow::Result<()> {
         if !self.0.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.0.name.to_owned()).into());
+            return Err(RustupError::ToolchainNotInstalled(self.0.name.to_owned()).into());
         }
 
         let toolchain = &self.0.name;
-        let toolchain = ToolchainDesc::from_str(toolchain)
-            .chain_err(|| ErrorKind::ComponentsUnsupported(self.0.name.to_string()))?;
+        let toolchain = ToolchainDesc::from_str(toolchain).expect("must be valid");
 
         let prefix = InstallPrefix::from(self.0.path.to_owned());
-        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
+        let manifestation =
+            SyncError::maybe(Manifestation::open(prefix, toolchain.target.clone()))?;
 
-        if let Some(manifest) = manifestation.load_manifest()? {
+        if let Some(manifest) = SyncError::maybe(manifestation.load_manifest())? {
             // Rename the component if necessary.
             if let Some(c) = manifest.rename_component(&component) {
                 component = c;
@@ -463,11 +467,11 @@ impl<'a> DistributableToolchain<'a> {
                 if targ_pkg.components.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
-                    return Err(ErrorKind::UnknownComponent(
-                        self.0.name.to_string(),
-                        component.description(&manifest),
-                        self.get_component_suggestion(&component, &manifest, false),
-                    )
+                    return Err(RustupError::UnknownComponent {
+                        name: self.0.name.to_string(),
+                        component: component.description(&manifest),
+                        suggestion: self.get_component_suggestion(&component, &manifest, false),
+                    }
                     .into());
                 }
             }
@@ -477,7 +481,7 @@ impl<'a> DistributableToolchain<'a> {
                 remove_components: vec![],
             };
 
-            manifestation.update(
+            SyncError::maybe(manifestation.update(
                 &manifest,
                 changes,
                 false,
@@ -485,11 +489,14 @@ impl<'a> DistributableToolchain<'a> {
                 &self.download_cfg().notify_handler,
                 &toolchain.manifest_name(),
                 false,
-            )?;
+            ))?;
 
             Ok(())
         } else {
-            Err(ErrorKind::ComponentsUnsupported(self.0.name.to_string()).into())
+            Err(RustupError::MissingManifest {
+                name: self.0.name.to_string(),
+            }
+            .into())
         }
     }
 
@@ -679,24 +686,26 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed or not installed.
-    pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
-        let update_hash = self.update_hash()?;
+    pub fn install_from_dist_if_not_installed(&self) -> anyhow::Result<UpdateStatus> {
+        let update_hash = SyncError::maybe(self.update_hash())?;
         (self.0.cfg.notify_handler)(Notification::LookingForToolchain(&self.0.name));
         if !self.0.exists() {
-            Ok(InstallMethod::Dist {
-                desc: &self.desc()?,
-                profile: self.0.cfg.get_profile()?,
-                update_hash: Some(&update_hash),
-                dl_cfg: self.download_cfg(),
-                force_update: false,
-                allow_downgrade: false,
-                exists: false,
-                old_date: None,
-                components: &[],
-                targets: &[],
-                distributable: &self,
-            }
-            .install(&self.0)?)
+            Ok(SyncError::maybe(
+                InstallMethod::Dist {
+                    desc: &SyncError::maybe(self.desc())?,
+                    profile: SyncError::maybe(self.0.cfg.get_profile())?,
+                    update_hash: Some(&update_hash),
+                    dl_cfg: self.download_cfg(),
+                    force_update: false,
+                    allow_downgrade: false,
+                    exists: false,
+                    old_date: None,
+                    components: &[],
+                    targets: &[],
+                    distributable: &self,
+                }
+                .install(&self.0),
+            )?)
         } else {
             (self.0.cfg.notify_handler)(Notification::UsingExistingToolchain(&self.0.name));
             Ok(UpdateStatus::Unchanged)
@@ -771,36 +780,36 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    pub fn remove_component(&self, mut component: Component) -> Result<()> {
+    pub fn remove_component(&self, mut component: Component) -> anyhow::Result<()> {
         // Overlapping code with get_manifest :/.
         if !self.0.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(self.0.name.to_owned()).into());
+            return Err(RustupError::ToolchainNotInstalled(self.0.name.to_owned()).into());
         }
 
         let toolchain = &self.0.name;
-        let toolchain = ToolchainDesc::from_str(toolchain)
-            .chain_err(|| ErrorKind::ComponentsUnsupported(self.0.name.to_string()))?;
+        let toolchain = ToolchainDesc::from_str(toolchain).expect("must be valid");
 
         let prefix = InstallPrefix::from(self.0.path.to_owned());
-        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
+        let manifestation =
+            SyncError::maybe(Manifestation::open(prefix, toolchain.target.clone()))?;
 
-        if let Some(manifest) = manifestation.load_manifest()? {
+        if let Some(manifest) = SyncError::maybe(manifestation.load_manifest())? {
             // Rename the component if necessary.
             if let Some(c) = manifest.rename_component(&component) {
                 component = c;
             }
 
-            let dist_config = manifestation.read_config()?.unwrap();
+            let dist_config = SyncError::maybe(manifestation.read_config())?.unwrap();
             if !dist_config.components.contains(&component) {
                 let wildcard_component = component.wildcard();
                 if dist_config.components.contains(&wildcard_component) {
                     component = wildcard_component;
                 } else {
-                    return Err(ErrorKind::UnknownComponent(
-                        self.0.name.to_string(),
-                        component.description(&manifest),
-                        self.get_component_suggestion(&component, &manifest, true),
-                    )
+                    return Err(RustupError::UnknownComponent {
+                        name: self.0.name.to_string(),
+                        component: component.description(&manifest),
+                        suggestion: self.get_component_suggestion(&component, &manifest, true),
+                    }
                     .into());
                 }
             }
@@ -810,7 +819,7 @@ impl<'a> DistributableToolchain<'a> {
                 remove_components: vec![component],
             };
 
-            manifestation.update(
+            SyncError::maybe(manifestation.update(
                 &manifest,
                 changes,
                 false,
@@ -818,11 +827,14 @@ impl<'a> DistributableToolchain<'a> {
                 &self.download_cfg().notify_handler,
                 &toolchain.manifest_name(),
                 false,
-            )?;
+            ))?;
 
             Ok(())
         } else {
-            Err(ErrorKind::ComponentsUnsupported(self.0.name.to_string()).into())
+            Err(RustupError::MissingManifest {
+                name: self.0.name.to_string(),
+            }
+            .into())
         }
     }
 

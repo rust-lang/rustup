@@ -58,7 +58,7 @@ fn direct_proxy(
         None => SyncError::maybe(
             cfg.create_command_for_dir(&SyncError::maybe(utils::current_dir())?, arg0),
         )?,
-        Some(tc) => SyncError::maybe(cfg.create_command_for_toolchain(tc, false, arg0))?,
+        Some(tc) => cfg.create_command_for_toolchain(tc, false, arg0)?,
     };
     Ok(SyncError::maybe(run_command_for_dir(cmd, arg0, args))?)
 }

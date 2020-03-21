@@ -1,12 +1,12 @@
 use crate::common;
-use crate::errors::{self, ResultExt};
+use crate::errors;
 use crate::help::*;
 use crate::self_update;
 use crate::term2;
 use crate::term2::Terminal;
 use crate::topical_doc;
 
-use anyhow::{self, Error, Result};
+use anyhow::{anyhow, Error, Result};
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use rustup::dist::manifest::Component;
@@ -86,53 +86,51 @@ pub fn main() -> Result<()> {
         },
         ("install", Some(m)) => deprecated("toolchain install", cfg, m, update)?,
         ("update", Some(m)) => update(cfg, m)?,
-        ("check", Some(_)) => SyncError::maybe(check_updates(cfg))?,
-        ("uninstall", Some(m)) => {
-            SyncError::maybe(deprecated("toolchain uninstall", cfg, m, toolchain_remove))?
-        }
-        ("default", Some(m)) => SyncError::maybe(default_(cfg, m))?,
+        ("check", Some(_)) => check_updates(cfg)?,
+        ("uninstall", Some(m)) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
+        ("default", Some(m)) => default_(cfg, m)?,
         ("toolchain", Some(c)) => match c.subcommand() {
             ("install", Some(m)) => update(cfg, m)?,
             ("list", Some(m)) => handle_epipe(toolchain_list(cfg, m))?,
-            ("link", Some(m)) => SyncError::maybe(toolchain_link(cfg, m))?,
-            ("uninstall", Some(m)) => SyncError::maybe(toolchain_remove(cfg, m))?,
+            ("link", Some(m)) => toolchain_link(cfg, m)?,
+            ("uninstall", Some(m)) => toolchain_remove(cfg, m)?,
             (_, _) => unreachable!(),
         },
         ("target", Some(c)) => match c.subcommand() {
             ("list", Some(m)) => handle_epipe(target_list(cfg, m))?,
-            ("add", Some(m)) => SyncError::maybe(target_add(cfg, m))?,
-            ("remove", Some(m)) => SyncError::maybe(target_remove(cfg, m))?,
+            ("add", Some(m)) => target_add(cfg, m)?,
+            ("remove", Some(m)) => target_remove(cfg, m)?,
             (_, _) => unreachable!(),
         },
         ("component", Some(c)) => match c.subcommand() {
             ("list", Some(m)) => handle_epipe(component_list(cfg, m))?,
-            ("add", Some(m)) => SyncError::maybe(component_add(cfg, m))?,
-            ("remove", Some(m)) => SyncError::maybe(component_remove(cfg, m))?,
+            ("add", Some(m)) => component_add(cfg, m)?,
+            ("remove", Some(m)) => component_remove(cfg, m)?,
             (_, _) => unreachable!(),
         },
         ("override", Some(c)) => match c.subcommand() {
             ("list", Some(_)) => handle_epipe(common::list_overrides(cfg))?,
-            ("set", Some(m)) => SyncError::maybe(override_add(cfg, m))?,
-            ("unset", Some(m)) => SyncError::maybe(override_remove(cfg, m))?,
+            ("set", Some(m)) => override_add(cfg, m)?,
+            ("unset", Some(m)) => override_remove(cfg, m)?,
             (_, _) => unreachable!(),
         },
-        ("run", Some(m)) => SyncError::maybe(run(cfg, m))?,
-        ("which", Some(m)) => SyncError::maybe(which(cfg, m))?,
-        ("doc", Some(m)) => SyncError::maybe(doc(cfg, m))?,
-        ("man", Some(m)) => SyncError::maybe(man(cfg, m))?,
+        ("run", Some(m)) => run(cfg, m)?,
+        ("which", Some(m)) => which(cfg, m)?,
+        ("doc", Some(m)) => doc(cfg, m)?,
+        ("man", Some(m)) => man(cfg, m)?,
         ("self", Some(c)) => match c.subcommand() {
             ("update", Some(_)) => self_update::update(cfg)?,
             ("uninstall", Some(m)) => self_uninstall(m)?,
             (_, _) => unreachable!(),
         },
         ("set", Some(c)) => match c.subcommand() {
-            ("default-host", Some(m)) => SyncError::maybe(set_default_host_triple(cfg, m))?,
-            ("profile", Some(m)) => SyncError::maybe(set_profile(cfg, m))?,
+            ("default-host", Some(m)) => set_default_host_triple(cfg, m)?,
+            ("profile", Some(m)) => set_profile(cfg, m)?,
             (_, _) => unreachable!(),
         },
         ("completions", Some(c)) => {
             if let Some(shell) = c.value_of("shell") {
-                SyncError::maybe(output_completion_script(
+                (output_completion_script(
                     shell.parse::<Shell>().unwrap(),
                     c.value_of("command")
                         .and_then(|cmd| cmd.parse::<CompletionCommand>().ok())
@@ -748,32 +746,34 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> errors::Result<()> {
     Ok(())
 }
 
-fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     if m.is_present("toolchain") {
         let toolchain = m.value_of("toolchain").unwrap();
-        default_bare_triple_check(cfg, toolchain)?;
-        let toolchain = cfg.get_toolchain(toolchain, false)?;
+        SyncError::maybe(default_bare_triple_check(cfg, toolchain))?;
+        let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, false))?;
 
         let status = if !toolchain.is_custom() {
-            let distributable = DistributableToolchain::new(&toolchain)?;
+            let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
             Some(distributable.install_from_dist_if_not_installed()?)
         } else if !toolchain.exists() {
-            return Err(
-                errors::ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into(),
-            );
+            return Err(RustupError::ToolchainNotInstalled(toolchain.name().to_string()).into());
         } else {
             None
         };
 
-        toolchain.make_default()?;
+        SyncError::maybe(toolchain.make_default())?;
 
         if let Some(status) = status {
             println!();
-            common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
+            SyncError::maybe(common::show_channel_update(
+                cfg,
+                toolchain.name(),
+                Ok(status),
+            ))?;
         }
 
-        let cwd = utils::current_dir()?;
-        if let Some((toolchain, reason)) = cfg.find_override(&cwd)? {
+        let cwd = SyncError::maybe(utils::current_dir())?;
+        if let Some((toolchain, reason)) = SyncError::maybe(cfg.find_override(&cwd))? {
             info!(
                 "note that the toolchain '{}' is currently in use ({})",
                 toolchain.name(),
@@ -781,25 +781,24 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
             );
         }
     } else {
-        let default_toolchain: errors::Result<String> = cfg
-            .get_default()?
+        let default_toolchain: errors::Result<String> = SyncError::maybe(cfg.get_default())?
             .ok_or_else(|| "no default toolchain configured".into());
-        println!("{} (default)", default_toolchain?);
+        println!("{} (default)", SyncError::maybe(default_toolchain)?);
     }
 
     Ok(())
 }
 
-fn check_updates(cfg: &Cfg) -> errors::Result<()> {
+fn check_updates(cfg: &Cfg) -> Result<()> {
     let mut t = term2::stdout();
-    let channels = cfg.list_channels()?;
+    let channels = SyncError::maybe(cfg.list_channels())?;
 
     for channel in channels {
         match channel {
             (ref name, Ok(ref toolchain)) => {
-                let distributable = DistributableToolchain::new(&toolchain)?;
-                let current_version = distributable.show_version()?;
-                let dist_version = distributable.show_dist_version()?;
+                let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
+                let current_version = SyncError::maybe(distributable.show_version())?;
+                let dist_version = SyncError::maybe(distributable.show_dist_version())?;
                 let _ = t.attr(term2::Attr::Bold);
                 write!(t, "{} - ", name)?;
                 match (current_version, dist_version) {
@@ -827,7 +826,7 @@ fn check_updates(cfg: &Cfg) -> errors::Result<()> {
                     }
                 }
             }
-            (_, Err(err)) => return Err(err.into()),
+            (_, Err(err)) => return Err(SyncError::new(err).into()),
         }
     }
     Ok(())
@@ -899,29 +898,29 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
     Ok(())
 }
 
-fn run(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn run(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = m.value_of("toolchain").unwrap();
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
     let cmd = cfg.create_command_for_toolchain(toolchain, m.is_present("install"), args[0])?;
 
-    let ExitCode(c) = command::run_command_for_dir(cmd, args[0], &args[1..])?;
+    let ExitCode(c) = SyncError::maybe(command::run_command_for_dir(cmd, args[0], &args[1..]))?;
 
     process::exit(c)
 }
 
-fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let binary = m.value_of("command").unwrap();
     let binary_path = if m.is_present("toolchain") {
         let toolchain = m.value_of("toolchain").unwrap();
-        cfg.which_binary_by_toolchain(toolchain, binary)?
+        SyncError::maybe(cfg.which_binary_by_toolchain(toolchain, binary))?
             .expect("binary not found")
     } else {
-        cfg.which_binary(&utils::current_dir()?, binary)?
+        SyncError::maybe(cfg.which_binary(&SyncError::maybe(utils::current_dir())?, binary))?
             .expect("binary not found")
     };
 
-    utils::assert_is_file(&binary_path)?;
+    SyncError::maybe(utils::assert_is_file(&binary_path))?;
 
     println!("{}", binary_path.display());
 
@@ -1100,7 +1099,7 @@ fn show_rustup_home(cfg: &Cfg) -> Result<()> {
 }
 
 fn target_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    let toolchain = SyncError::maybe(explicit_or_dir_toolchain(cfg, m))?;
+    let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     if m.is_present("installed") {
         common::list_installed_targets(&toolchain)
@@ -1109,20 +1108,9 @@ fn target_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     }
 }
 
-fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    // XXX: long term move this error to cli ? the normal .into doesn't work
-    // because Result here is the wrong sort and expression type ascription
-    // isn't a feature yet.
-    // list_components *and* add_component would both be inappropriate for
-    // custom toolchains.
-    if toolchain.is_custom() {
-        return Err(rustup::Error(
-            rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()),
-            error_chain::State::default(),
-        )
-        .into());
-    }
+    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
 
     let mut targets: Vec<String> = m
         .values_of("target")
@@ -1132,12 +1120,14 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
 
     if targets.contains(&"all".to_string()) {
         if targets.len() != 1 {
-            return Err(errors::ErrorKind::TargetAllSpecifiedWithTargets(targets).into());
+            return Err(anyhow!(
+                "`rustup target add {}` includes `all`",
+                targets.join(" ")
+            ));
         }
 
         targets.clear();
-        let distributable = DistributableToolchain::new(&toolchain)?;
-        for component in distributable.list_components()? {
+        for component in SyncError::maybe(distributable.list_components())? {
             if component.component.short_name_in_manifest() == "rust-std"
                 && component.available
                 && !component.installed
@@ -1158,14 +1148,13 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
             Some(TargetTriple::new(target)),
             false,
         );
-        let distributable = DistributableToolchain::new(&toolchain)?;
         distributable.add_component(new_component)?;
     }
 
     Ok(())
 }
 
-fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").unwrap() {
@@ -1174,8 +1163,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
             Some(TargetTriple::new(target)),
             false,
         );
-        let distributable = DistributableToolchain::new(&toolchain)
-            .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+        let distributable = DistributableToolchain::new_for_components(&toolchain)?;
         distributable.remove_component(new_component)?;
     }
 
@@ -1183,7 +1171,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
 }
 
 fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    let toolchain = SyncError::maybe(explicit_or_dir_toolchain(cfg, m))?;
+    let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     if m.is_present("installed") {
         common::list_installed_components(&toolchain)
@@ -1193,9 +1181,9 @@ fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     }
 }
 
-fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    let distributable = DistributableToolchain::new(&toolchain)?;
+    let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
     let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
         distributable
             .desc()
@@ -1213,10 +1201,9 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
     Ok(())
 }
 
-fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    let distributable = DistributableToolchain::new(&toolchain)
-        .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
     let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
         distributable
             .desc()
@@ -1234,18 +1221,15 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
     Ok(())
 }
 
-fn explicit_or_dir_toolchain<'a>(
-    cfg: &'a Cfg,
-    m: &ArgMatches<'_>,
-) -> errors::Result<Toolchain<'a>> {
+fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Toolchain<'a>> {
     let toolchain = m.value_of("toolchain");
     if let Some(toolchain) = toolchain {
-        let toolchain = cfg.get_toolchain(toolchain, false)?;
+        let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, false))?;
         return Ok(toolchain);
     }
 
-    let cwd = utils::current_dir()?;
-    let (toolchain, _) = cfg.toolchain_for_dir(&cwd)?;
+    let cwd = SyncError::maybe(utils::current_dir())?;
+    let (toolchain, _) = SyncError::maybe(cfg.toolchain_for_dir(&cwd))?;
 
     Ok(toolchain)
 }
@@ -1254,37 +1238,38 @@ fn toolchain_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     common::list_toolchains(cfg, m.is_present("verbose"))
 }
 
-fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = m.value_of("toolchain").unwrap();
     let path = m.value_of("path").unwrap();
-    let toolchain = cfg.get_toolchain(toolchain, true)?;
+    let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, true))?;
 
     if let Ok(custom) = CustomToolchain::new(&toolchain) {
-        custom
-            .install_from_dir(Path::new(path), true)
-            .map_err(Into::into)
+        SyncError::maybe(custom.install_from_dir(Path::new(path), true)).map_err(Into::into)
     } else {
-        Err(errors::ErrorKind::InvalidCustomToolchainName(toolchain.name().to_string()).into())
+        Err(anyhow!(
+            "invalid custom toolchain name: '{}'",
+            toolchain.name().to_string()
+        ))
     }
 }
 
-fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
     for toolchain in m.values_of("toolchain").unwrap() {
-        let toolchain = cfg.get_toolchain(toolchain, false)?;
-        toolchain.remove()?;
+        let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, false))?;
+        SyncError::maybe(toolchain.remove())?;
     }
     Ok(())
 }
 
-fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = m.value_of("toolchain").unwrap();
-    let toolchain = cfg.get_toolchain(toolchain, false)?;
+    let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, false))?;
 
     let status = if !toolchain.is_custom() {
-        let distributable = DistributableToolchain::new(&toolchain)?;
+        let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
         Some(distributable.install_from_dist_if_not_installed()?)
     } else if !toolchain.exists() {
-        return Err(errors::ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
+        return Err(RustupError::ToolchainNotInstalled(toolchain.name().to_string()).into());
     } else {
         None
     };
@@ -1292,21 +1277,25 @@ fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
     let path = if let Some(path) = m.value_of("path") {
         PathBuf::from(path)
     } else {
-        utils::current_dir()?
+        SyncError::maybe(utils::current_dir())?
     };
     toolchain.make_override(&path)?;
 
     if let Some(status) = status {
         println!();
-        common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
+        SyncError::maybe(common::show_channel_update(
+            cfg,
+            toolchain.name(),
+            Ok(status),
+        ))?;
     }
 
     Ok(())
 }
 
-fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let paths = if m.is_present("nonexistent") {
-        let list: Vec<_> = cfg.settings_file.with(|s| {
+        let list: Vec<_> = SyncError::maybe(cfg.settings_file.with(|s| {
             Ok(s.overrides
                 .iter()
                 .filter_map(|(k, _)| {
@@ -1317,7 +1306,7 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
                     }
                 })
                 .collect())
-        })?;
+        }))?;
         if list.is_empty() {
             info!("no nonexistent paths detected");
         }
@@ -1325,14 +1314,18 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
     } else if m.is_present("path") {
         vec![m.value_of("path").unwrap().to_string()]
     } else {
-        vec![utils::current_dir()?.to_str().unwrap().to_string()]
+        vec![SyncError::maybe(utils::current_dir())?
+            .to_str()
+            .unwrap()
+            .to_string()]
     };
 
     for path in paths {
-        if cfg
-            .settings_file
-            .with_mut(|s| Ok(s.remove_override(&Path::new(&path), cfg.notify_handler.as_ref())))?
-        {
+        if SyncError::maybe(
+            cfg.settings_file.with_mut(|s| {
+                Ok(s.remove_override(&Path::new(&path), cfg.notify_handler.as_ref()))
+            }),
+        )? {
             info!("override toolchain for '{}' removed", path);
         } else {
             info!("no override toolchain for '{}'", path);
@@ -1367,10 +1360,10 @@ const DOCS_DATA: &[(&str, &str, &str,)] = &[
     ("embedded-book", "The Embedded Rust Book", "embedded-book/index.html"),
 ];
 
-fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
     if let Ok(distributable) = DistributableToolchain::new(&toolchain) {
-        let components = distributable.list_components()?;
+        let components = SyncError::maybe(distributable.list_components())?;
         if let [_] = components
             .into_iter()
             .filter(|cstatus| {
@@ -1388,13 +1381,18 @@ fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
                 "To install, try `rustup component add --toolchain {} rust-docs`",
                 toolchain.name()
             );
-            return Err("unable to view documentation which is not installed".into());
+            return Err(anyhow!(
+                "unable to view documentation which is not installed"
+            ));
         }
     }
     let topical_path: PathBuf;
 
     let doc_url = if let Some(topic) = m.value_of("topic") {
-        topical_path = topical_doc::local_path(&toolchain.doc_path("").unwrap(), topic)?;
+        topical_path = SyncError::maybe(topical_doc::local_path(
+            &toolchain.doc_path("").unwrap(),
+            topic,
+        ))?;
         topical_path.to_str().unwrap()
     } else if let Some((_, _, path)) = DOCS_DATA.iter().find(|(name, _, _)| m.is_present(name)) {
         path
@@ -1403,22 +1401,22 @@ fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
     };
 
     if m.is_present("path") {
-        let doc_path = toolchain.doc_path(doc_url)?;
+        let doc_path = SyncError::maybe(toolchain.doc_path(doc_url))?;
         println!("{}", doc_path.display());
         Ok(())
     } else {
-        toolchain.open_docs(doc_url).map_err(Into::into)
+        toolchain.open_docs(doc_url)
     }
 }
 
-fn man(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
+fn man(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let command = m.value_of("command").unwrap();
 
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
     let mut toolchain = toolchain.path().to_path_buf();
     toolchain.push("share");
     toolchain.push("man");
-    utils::assert_is_directory(&toolchain)?;
+    SyncError::maybe(utils::assert_is_directory(&toolchain))?;
 
     let mut manpaths = std::ffi::OsString::from(toolchain);
     manpaths.push(":"); // prepend to the default MANPATH list
@@ -1439,13 +1437,13 @@ fn self_uninstall(m: &ArgMatches<'_>) -> Result<()> {
     self_update::uninstall(no_prompt)
 }
 
-fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> errors::Result<()> {
-    cfg.set_default_host_triple(m.value_of("host_triple").unwrap())?;
+fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+    SyncError::maybe(cfg.set_default_host_triple(m.value_of("host_triple").unwrap()))?;
     Ok(())
 }
 
-fn set_profile(cfg: &mut Cfg, m: &ArgMatches) -> errors::Result<()> {
-    cfg.set_profile(&m.value_of("profile-name").unwrap())?;
+fn set_profile(cfg: &mut Cfg, m: &ArgMatches) -> Result<()> {
+    SyncError::maybe(cfg.set_profile(&m.value_of("profile-name").unwrap()))?;
     Ok(())
 }
 
@@ -1512,7 +1510,7 @@ impl fmt::Display for CompletionCommand {
     }
 }
 
-fn output_completion_script(shell: Shell, command: CompletionCommand) -> errors::Result<()> {
+fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<()> {
     match command {
         CompletionCommand::Rustup => {
             cli().gen_completions_to("rustup", shell, &mut term2::stdout());
@@ -1526,9 +1524,11 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> errors:
                 Shell::Bash => "/etc/bash_completion.d/cargo",
                 Shell::Zsh => "/share/zsh/site-functions/_cargo",
                 _ => {
-                    return Err(
-                        errors::ErrorKind::UnsupportedCompletionShell(shell, command).into(),
-                    )
+                    return Err(anyhow!(
+                        "{} does not currently support completions for {}",
+                        command,
+                        shell
+                    ))
                 }
             };
 

@@ -2,12 +2,9 @@
 #![allow(dead_code)]
 #![allow(deprecated)] // because of `Error::description` deprecation in `error_chain`
 
-use crate::rustup_mode::CompletionCommand;
-
 use std::io;
 use std::path::PathBuf;
 
-use clap::Shell;
 use error_chain::error_chain;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -27,9 +24,6 @@ error_chain! {
     }
 
     errors {
-        InvalidCustomToolchainName(t: String) {
-            display("invalid custom toolchain name: '{}'", t)
-        }
         PermissionDenied {
             description("permission denied")
         }
@@ -43,17 +37,6 @@ error_chain! {
         }
         WindowsUninstallMadness {
             description("failure during windows uninstall")
-        }
-        UnsupportedCompletionShell(shell: Shell, cmd: CompletionCommand) {
-            description("completion script for shell not yet supported for tool")
-            display("{} does not currently support completions for {}", cmd, shell)
-        }
-        TargetAllSpecifiedWithTargets(t: Vec<String>) {
-            description(
-                "the `all` target, which installs all available targets, \
-                 cannot be combined with other targets"
-            )
-            display("`rustup target add {}` includes `all`", t.join(" "))
         }
         WritingShellProfile {
             path: PathBuf,

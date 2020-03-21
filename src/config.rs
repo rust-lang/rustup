@@ -644,19 +644,21 @@ impl Cfg {
         toolchain: &str,
         install_if_missing: bool,
         binary: &str,
-    ) -> errors::Result<Command> {
-        let toolchain = self.get_toolchain(toolchain, false)?;
+    ) -> Result<Command> {
+        let toolchain = SyncError::maybe(self.get_toolchain(toolchain, false))?;
         if install_if_missing && !toolchain.exists() {
-            let distributable = DistributableToolchain::new(&toolchain)?;
-            distributable.install_from_dist(true, false, &[], &[])?;
+            let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
+            SyncError::maybe(distributable.install_from_dist(true, false, &[], &[]))?;
         }
 
-        if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {
+        if let Some(cmd) = SyncError::maybe(self.maybe_do_cargo_fallback(&toolchain, binary))? {
             Ok(cmd)
         } else {
             // NB note this really can't fail due to to having installed the toolchain if needed
-            let installed = toolchain.as_installed_common()?;
-            installed.create_command(binary)
+            let installed = SyncError::maybe(toolchain.as_installed_common())?;
+            installed
+                .create_command(binary)
+                .map_err(|e| SyncError::new(e).into())
         }
     }
 

@@ -319,14 +319,6 @@ error_chain! {
             description("toolchain does not support components")
             display("toolchain '{}' does not support components", t)
         }
-        UnknownComponent(t: String, c: String, s: Option<String>) {
-            description("toolchain does not contain component")
-            display("toolchain '{}' does not contain component {}{}", t, c, if let Some(suggestion) = s {
-                format!("; did you mean '{}'?", suggestion)
-            } else {
-                "".to_string()
-            })
-        }
         UnknownProfile(p: String) {
             description("unknown profile name")
             display(
@@ -379,6 +371,20 @@ pub enum RustupError {
     ComponentsUnsupported {
         name: String,
         source: SyncError<Error>,
+    },
+    #[error("Missing manifest in toolchain '{}'", .name)]
+    MissingManifest { name: String },
+    #[error("toolchain '{0}' is not installed")]
+    ToolchainNotInstalled(String),
+    #[error("toolchain '{}' does not contain component {}{}", .name, .component, if let Some(suggestion) = .suggestion {
+        format!("; did you mean '{}'?", suggestion)
+    } else {
+        "".to_string()
+    })]
+    UnknownComponent {
+        name: String,
+        component: String,
+        suggestion: Option<String>,
     },
 }
 
