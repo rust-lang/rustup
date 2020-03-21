@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use url::Url;
 
-use anyhow;
+use anyhow::{self, Context};
 use retry::delay::{jitter, Fibonacci};
 use retry::{retry, OperationResult};
 
@@ -475,7 +475,7 @@ pub fn cargo_home() -> Result<PathBuf> {
 }
 
 // Creates a ~/.rustup folder
-pub fn create_rustup_home() -> Result<()> {
+pub fn create_rustup_home() -> anyhow::Result<()> {
     // If RUSTUP_HOME is set then don't make any assumptions about where it's
     // ok to put ~/.rustup
     if env::var_os("RUSTUP_HOME").is_some() {
@@ -483,7 +483,7 @@ pub fn create_rustup_home() -> Result<()> {
     }
 
     let home = rustup_home_in_user_dir()?;
-    fs::create_dir_all(&home).chain_err(|| "unable to create ~/.rustup")?;
+    fs::create_dir_all(&home).context("unable to create ~/.rustup")?;
 
     Ok(())
 }
@@ -492,8 +492,9 @@ fn dot_dir(name: &str) -> Option<PathBuf> {
     home_dir().map(|p| p.join(name))
 }
 
-pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
-    dot_dir(".rustup").ok_or_else(|| ErrorKind::RustupHome.into())
+pub fn rustup_home_in_user_dir() -> anyhow::Result<PathBuf> {
+    // XXX: This error message seems wrong/bogus.
+    dot_dir(".rustup").ok_or_else(|| anyhow::anyhow!("couldn't find value of RUSTUP_HOME"))
 }
 
 pub fn rustup_home() -> Result<PathBuf> {

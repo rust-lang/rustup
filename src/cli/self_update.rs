@@ -31,7 +31,7 @@
 //! and racy on Windows.
 
 use crate::common::{self, ignorable_error, Confirm};
-use crate::errors::{CLIError, ResultExt};
+use crate::errors::CLIError;
 use crate::markdown::md;
 use crate::term2;
 use anyhow::{anyhow, Context, Result};
@@ -292,8 +292,8 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
         if !opts.no_modify_path {
             do_add_to_path(&get_add_path_methods())?;
         }
-        SyncError::maybe(utils::create_rustup_home())?;
-        SyncError::maybe(maybe_install_rust(
+        utils::create_rustup_home()?;
+        maybe_install_rust(
             opts.default_toolchain.as_deref(),
             &opts.profile,
             opts.default_host_triple.as_deref(),
@@ -301,7 +301,7 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
             opts.targets,
             verbose,
             quiet,
-        ))?;
+        )?;
 
         if cfg!(unix) {
             let env_file = SyncError::maybe(utils::cargo_home())?.join("env");
@@ -744,16 +744,19 @@ fn maybe_install_rust(
     targets: &[&str],
     verbose: bool,
     quiet: bool,
-) -> crate::errors::Result<()> {
-    let mut cfg = common::set_globals(verbose, quiet)?;
-    cfg.set_profile(profile_str)?;
+) -> Result<()> {
+    let mut cfg = SyncError::maybe(common::set_globals(verbose, quiet))?;
+    SyncError::maybe(cfg.set_profile(profile_str))?;
 
     if let Some(default_host_triple) = default_host_triple {
         // Set host triple now as it will affect resolution of toolchain_str
         info!("setting default host triple to {}", default_host_triple);
-        cfg.set_default_host_triple(default_host_triple)?;
+        SyncError::maybe(cfg.set_default_host_triple(default_host_triple))?;
     } else {
-        info!("default host triple is {}", cfg.get_default_host_triple()?);
+        info!(
+            "default host triple is {}",
+            SyncError::maybe(cfg.get_default_host_triple())?
+        );
     }
 
     let user_specified_something =
@@ -781,17 +784,18 @@ fn maybe_install_rust(
             );
         }
         println!();
-    } else if user_specified_something || cfg.find_default()?.is_none() {
+    } else if user_specified_something || SyncError::maybe(cfg.find_default())?.is_none() {
         let toolchain_str = toolchain.unwrap_or("stable");
-        let toolchain = cfg.get_toolchain(toolchain_str, false)?;
+        let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain_str, false))?;
         if toolchain.exists() {
             warn!("Updating existing toolchain, profile choice will be ignored");
         }
-        let distributable = DistributableToolchain::new(&toolchain)?;
-        let status = distributable.install_from_dist(true, false, components, targets)?;
-        cfg.set_default(toolchain_str)?;
+        let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
+        let status =
+            SyncError::maybe(distributable.install_from_dist(true, false, components, targets))?;
+        SyncError::maybe(cfg.set_default(toolchain_str))?;
         println!();
-        common::show_channel_update(&cfg, toolchain_str, Ok(status))?;
+        SyncError::maybe(common::show_channel_update(&cfg, toolchain_str, Ok(status)))?;
     } else {
         info!("updating existing rustup installation - leaving toolchains alone");
         println!();
@@ -1466,7 +1470,7 @@ pub fn update(cfg: &Cfg) -> Result<()> {
             };
 
             let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Updated(version)));
-            SyncError::maybe(run_update(&setup_path))?;
+            run_update(&setup_path)?;
         }
         None => {
             let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Unchanged));
@@ -1614,25 +1618,23 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 /// really hard to succeed, because at this point the upgrade is
 /// considered successful.
 #[cfg(unix)]
-pub fn run_update(setup_path: &Path) -> crate::errors::Result<()> {
-    let status = Command::new(setup_path)
-        .arg("--self-replace")
-        .status()
-        .chain_err(|| "unable to run updater")?;
+pub fn run_update(setup_path: &Path) -> Result<()> {
+    let status = SyncError::maybe(Command::new(setup_path).arg("--self-replace").status())
+        .context("unable to run updater")?;
 
     if !status.success() {
-        return Err("self-updated failed to replace rustup executable".into());
+        return Err(anyhow!("self-updated failed to replace rustup executable"));
     }
 
     process::exit(0);
 }
 
 #[cfg(windows)]
-pub fn run_update(setup_path: &Path) -> crate::errors::Result<()> {
+pub fn run_update(setup_path: &Path) -> Result<()> {
     Command::new(setup_path)
         .arg("--self-replace")
         .spawn()
-        .chain_err(|| "unable to run updater")?;
+        .context("unable to run updater")?;
 
     process::exit(0);
 }

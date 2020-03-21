@@ -340,7 +340,7 @@ where
     before_restart()?;
 
     if let Some(ref setup_path) = setup_path {
-        SyncError::maybe(self_update::run_update(setup_path))?;
+        self_update::run_update(setup_path)?;
 
         unreachable!(); // update exits on success
     } else {

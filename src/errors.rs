@@ -179,9 +179,6 @@ error_chain! {
         CargoHome {
             description("couldn't find value of CARGO_HOME")
         }
-        RustupHome {
-            description("couldn't find value of RUSTUP_HOME")
-        }
         InvalidToolchainName(t: String) {
             description("invalid toolchain name")
             display("invalid toolchain name: '{}'", t)
