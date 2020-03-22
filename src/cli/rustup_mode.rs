@@ -720,15 +720,15 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> errors::Result<()> {
     Ok(())
 }
 
-fn default_bare_triple_check(cfg: &Cfg, name: &str) -> errors::Result<()> {
+fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
     if let Some(triple) = PartialTargetTriple::new(name) {
         warn!("(partial) target triple specified instead of toolchain name");
-        let default = cfg.find_default()?;
+        let default = SyncError::maybe(cfg.find_default())?;
         let default_name = default.map(|t| t.name().to_string()).unwrap_or_default();
         if let Ok(mut desc) = PartialToolchainDesc::from_str(&default_name) {
             desc.target = triple;
             let maybe_toolchain = format!("{}", desc);
-            let toolchain = cfg.get_toolchain(maybe_toolchain.as_ref(), false)?;
+            let toolchain = SyncError::maybe(cfg.get_toolchain(maybe_toolchain.as_ref(), false))?;
             if toolchain.name() == default_name {
                 warn!(
                     "(partial) triple '{}' resolves to a toolchain that is already default",
@@ -740,7 +740,7 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> errors::Result<()> {
                     toolchain.name()
                 );
             }
-            return Err(errors::ErrorKind::ToolchainNotInstalled(name.to_string()).into());
+            return Err(RustupError::ToolchainNotInstalled(name.to_string()).into());
         }
     }
     Ok(())
@@ -749,7 +749,7 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> errors::Result<()> {
 fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     if m.is_present("toolchain") {
         let toolchain = m.value_of("toolchain").unwrap();
-        SyncError::maybe(default_bare_triple_check(cfg, toolchain))?;
+        default_bare_triple_check(cfg, toolchain)?;
         let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, false))?;
 
         let status = if !toolchain.is_custom() {
