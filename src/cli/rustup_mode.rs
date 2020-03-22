@@ -765,11 +765,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
         if let Some(status) = status {
             println!();
-            SyncError::maybe(common::show_channel_update(
-                cfg,
-                toolchain.name(),
-                Ok(status),
-            ))?;
+            common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
         }
 
         let cwd = utils::current_dir()?;
@@ -791,7 +787,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn check_updates(cfg: &Cfg) -> Result<()> {
     let mut t = term2::stdout();
-    let channels = SyncError::maybe(cfg.list_channels())?;
+    let channels = cfg.list_channels()?;
 
     for channel in channels {
         match channel {
@@ -826,7 +822,7 @@ fn check_updates(cfg: &Cfg) -> Result<()> {
                     }
                 }
             }
-            (_, Err(err)) => return Err(SyncError::new(err).into()),
+            (_, Err(err)) => return Err(err),
         }
     }
     Ok(())
@@ -871,11 +867,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
             if let Some(status) = status.clone() {
                 println!();
-                SyncError::maybe(common::show_channel_update(
-                    cfg,
-                    toolchain.name(),
-                    Ok(status),
-                ))?;
+                common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
             }
 
             if SyncError::maybe(cfg.get_default())?.is_none() {
@@ -1283,11 +1275,7 @@ fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
     if let Some(status) = status {
         println!();
-        SyncError::maybe(common::show_channel_update(
-            cfg,
-            toolchain.name(),
-            Ok(status),
-        ))?;
+        common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
     }
 
     Ok(())

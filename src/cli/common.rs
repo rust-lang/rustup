@@ -172,15 +172,15 @@ pub fn set_globals(verbose: bool, quiet: bool) -> anyhow::Result<Cfg> {
 pub fn show_channel_update(
     cfg: &Cfg,
     name: &str,
-    updated: rustup::Result<UpdateStatus>,
-) -> Result<()> {
+    updated: anyhow::Result<UpdateStatus>,
+) -> anyhow::Result<()> {
     show_channel_updates(cfg, vec![(name.to_string(), updated)])
 }
 
 fn show_channel_updates(
     cfg: &Cfg,
-    toolchains: Vec<(String, rustup::Result<UpdateStatus>)>,
-) -> Result<()> {
+    toolchains: Vec<(String, anyhow::Result<UpdateStatus>)>,
+) -> anyhow::Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
         let toolchain = cfg.get_toolchain(&name, false).unwrap();
         let version = toolchain.rustc_version();
@@ -257,7 +257,7 @@ pub fn update_all_channels(
         if !toolchains.is_empty() {
             println!();
 
-            SyncError::maybe(show_channel_updates(cfg, toolchains))?;
+            show_channel_updates(cfg, toolchains)?;
         }
         Ok(())
     };

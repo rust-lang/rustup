@@ -572,12 +572,19 @@ impl Cfg {
         }
     }
 
-    pub fn list_channels(&self) -> errors::Result<Vec<(String, errors::Result<Toolchain<'_>>)>> {
-        let toolchains = self.list_toolchains()?;
+    pub fn list_channels(&self) -> Result<Vec<(String, Result<Toolchain<'_>>)>> {
+        let toolchains = SyncError::maybe(self.list_toolchains())?;
 
         // Convert the toolchain strings to Toolchain values
         let toolchains = toolchains.into_iter();
-        let toolchains = toolchains.map(|n| (n.clone(), self.get_toolchain(&n, true)));
+        let toolchains = toolchains.map(|n| {
+            (
+                n.clone(),
+                self.get_toolchain(&n, true)
+                    .map_err(SyncError::new)
+                    .map_err(Into::into),
+            )
+        });
 
         // Filter out toolchains that don't track a release channel
         Ok(toolchains
@@ -588,19 +595,19 @@ impl Cfg {
     pub fn update_all_channels(
         &self,
         force_update: bool,
-    ) -> Result<Vec<(String, errors::Result<UpdateStatus>)>> {
-        let channels = SyncError::maybe(self.list_channels())?;
+    ) -> Result<Vec<(String, Result<UpdateStatus>)>> {
+        let channels = self.list_channels()?;
         let channels = channels.into_iter();
 
         // Update toolchains and collect the results
         let channels = channels.map(|(n, t)| {
             let st = t.and_then(|t| {
-                let distributable = DistributableToolchain::new(&t)?;
+                let distributable = SyncError::maybe(DistributableToolchain::new(&t))?;
                 let st = distributable.install_from_dist(force_update, false, &[], &[]);
                 if let Err(ref e) = st {
                     (self.notify_handler)(Notification::NonFatalError(e));
                 }
-                st
+                st.map_err(SyncError::new).map_err(Into::into)
             });
 
             (n, st)

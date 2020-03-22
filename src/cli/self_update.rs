@@ -795,7 +795,7 @@ fn maybe_install_rust(
             SyncError::maybe(distributable.install_from_dist(true, false, components, targets))?;
         SyncError::maybe(cfg.set_default(toolchain_str))?;
         println!();
-        SyncError::maybe(common::show_channel_update(&cfg, toolchain_str, Ok(status)))?;
+        common::show_channel_update(&cfg, toolchain_str, Ok(status))?;
     } else {
         info!("updating existing rustup installation - leaving toolchains alone");
         println!();
