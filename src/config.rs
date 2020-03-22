@@ -12,7 +12,7 @@ use pgp::{Deserializable, SignedPublicKey};
 
 use crate::dist::download::DownloadCfg;
 use crate::dist::{dist, temp};
-use crate::errors::{self, valid_profile_names, ResultExt, SyncError};
+use crate::errors::{self, valid_profile_names, ResultExt, RustupError, SyncError};
 use crate::fallback_settings::FallbackSettings;
 use crate::notifications::*;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
@@ -331,8 +331,8 @@ impl Cfg {
         &self,
         toolchain: &str,
         binary: &str,
-    ) -> errors::Result<Option<PathBuf>> {
-        let toolchain = self.get_toolchain(toolchain, false)?;
+    ) -> Result<Option<PathBuf>> {
+        let toolchain = SyncError::maybe(self.get_toolchain(toolchain, false))?;
         if toolchain.exists() {
             Ok(Some(toolchain.binary_file(binary)))
         } else {
@@ -340,7 +340,7 @@ impl Cfg {
         }
     }
 
-    pub fn which_binary(&self, path: &Path, binary: &str) -> errors::Result<Option<PathBuf>> {
+    pub fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {
         let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
         Ok(Some(toolchain.binary_file(binary)))
     }
@@ -520,28 +520,27 @@ impl Cfg {
     pub fn find_or_install_override_toolchain_or_default(
         &self,
         path: &Path,
-    ) -> errors::Result<(Toolchain<'_>, Option<OverrideReason>)> {
+    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
         if let Some((toolchain, reason)) =
-            if let Some((toolchain, reason)) = self.find_override(path)? {
+            if let Some((toolchain, reason)) = SyncError::maybe(self.find_override(path))? {
                 Some((toolchain, Some(reason)))
             } else {
-                self.find_default()?.map(|toolchain| (toolchain, None))
+                SyncError::maybe(self.find_default())?.map(|toolchain| (toolchain, None))
             }
         {
             if !toolchain.exists() {
                 if toolchain.is_custom() {
-                    return Err(errors::ErrorKind::ToolchainNotInstalled(
-                        toolchain.name().to_string(),
-                    )
-                    .into());
+                    return Err(
+                        RustupError::ToolchainNotInstalled(toolchain.name().to_string()).into(),
+                    );
                 }
-                let distributable = DistributableToolchain::new(&toolchain)?;
-                distributable.install_from_dist(true, false, &[], &[])?;
+                let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
+                SyncError::maybe(distributable.install_from_dist(true, false, &[], &[]))?;
             }
             Ok((toolchain, reason))
         } else {
             // No override and no default set
-            Err(errors::ErrorKind::ToolchainNotSelected.into())
+            Err(RustupError::ToolchainNotSelected.into())
         }
     }
 
@@ -633,20 +632,23 @@ impl Cfg {
     pub fn toolchain_for_dir(
         &self,
         path: &Path,
-    ) -> errors::Result<(Toolchain<'_>, Option<OverrideReason>)> {
+    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
         self.find_or_install_override_toolchain_or_default(path)
     }
 
-    pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> errors::Result<Command> {
+    pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
         let (ref toolchain, _) = self.toolchain_for_dir(path)?;
 
-        if let Some(cmd) = self.maybe_do_cargo_fallback(toolchain, binary)? {
+        if let Some(cmd) = SyncError::maybe(self.maybe_do_cargo_fallback(toolchain, binary))? {
             Ok(cmd)
         } else {
             // NB this can only fail in race conditions since we used toolchain
             // for dir.
-            let installed = toolchain.as_installed_common()?;
-            installed.create_command(binary)
+            let installed = SyncError::maybe(toolchain.as_installed_common())?;
+            installed
+                .create_command(binary)
+                .map_err(SyncError::new)
+                .map_err(Into::into)
         }
     }
 

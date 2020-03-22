@@ -290,10 +290,6 @@ error_chain! {
             description("toolchain is not installed")
             display("toolchain '{}' is not installed", t)
         }
-        ToolchainNotSelected {
-            description("toolchain is not selected")
-            display("no override and no default toolchain set")
-        }
         OverrideToolchainNotInstalled(t: String) {
             description("override toolchain is not installed")
             display("override toolchain '{}' is not installed", t)
@@ -365,6 +361,8 @@ pub enum RustupError {
     MissingManifest { name: String },
     #[error("toolchain '{0}' is not installed")]
     ToolchainNotInstalled(String),
+    #[error("no override and no default toolchain set")]
+    ToolchainNotSelected,
     #[error("toolchain '{}' does not contain component {}{}", .name, .component, if let Some(suggestion) = .suggestion {
         format!("; did you mean '{}'?", suggestion)
     } else {

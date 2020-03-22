@@ -55,7 +55,7 @@ fn direct_proxy(
     args: &[OsString],
 ) -> Result<ExitCode> {
     let cmd = match toolchain {
-        None => SyncError::maybe(cfg.create_command_for_dir(&utils::current_dir()?, arg0))?,
+        None => cfg.create_command_for_dir(&utils::current_dir()?, arg0)?,
         Some(tc) => cfg.create_command_for_toolchain(tc, false, arg0)?,
     };
     Ok(SyncError::maybe(run_command_for_dir(cmd, arg0, args))?)

@@ -905,12 +905,11 @@ fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let binary = m.value_of("command").unwrap();
     let binary_path = if m.is_present("toolchain") {
         let toolchain = m.value_of("toolchain").unwrap();
-        SyncError::maybe(cfg.which_binary_by_toolchain(toolchain, binary))?
-            .expect("binary not found")
+        cfg.which_binary_by_toolchain(toolchain, binary)?
     } else {
-        SyncError::maybe(cfg.which_binary(&utils::current_dir()?, binary))?
-            .expect("binary not found")
-    };
+        cfg.which_binary(&utils::current_dir()?, binary)?
+    }
+    .expect("binary not found");
 
     SyncError::maybe(utils::assert_is_file(&binary_path))?;
 
@@ -1035,13 +1034,13 @@ fn show(cfg: &Cfg) -> Result<()> {
                     writeln!(t, "{}", toolchain.rustc_version())?;
                 }
             },
-            Err(rustup::Error(rustup::ErrorKind::ToolchainNotSelected, _)) => {
-                writeln!(t, "no active toolchain")?;
-            }
             Err(err) => {
-                use std::error::Error;
-                // XXX: port to anyhow
-                if let Some(cause) = err.source() {
+                let root_cause = err.root_cause();
+                if let Some(RustupError::ToolchainNotSelected) =
+                    root_cause.downcast_ref::<RustupError>()
+                {
+                    writeln!(t, "no active toolchain")?;
+                } else if let Some(cause) = err.source() {
                     writeln!(t, "(error: {}, {})", err, cause)?;
                 } else {
                     writeln!(t, "(error: {})", err)?;
@@ -1072,8 +1071,15 @@ fn show(cfg: &Cfg) -> Result<()> {
 fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
     let cwd = utils::current_dir()?;
     match cfg.find_or_install_override_toolchain_or_default(&cwd) {
-        Err(rustup::Error(rustup::ErrorKind::ToolchainNotSelected, _)) => {}
-        Err(e) => return Err(SyncError::new(e).into()),
+        Err(e) => {
+            let root_cause = e.root_cause();
+            if let Some(RustupError::ToolchainNotSelected) =
+                root_cause.downcast_ref::<RustupError>()
+            {
+            } else {
+                return Err(e);
+            }
+        }
         Ok((toolchain, reason)) => {
             if let Some(reason) = reason {
                 println!("{} ({})", toolchain.name(), reason);
@@ -1221,7 +1227,7 @@ fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Too
     }
 
     let cwd = utils::current_dir()?;
-    let (toolchain, _) = SyncError::maybe(cfg.toolchain_for_dir(&cwd))?;
+    let (toolchain, _) = cfg.toolchain_for_dir(&cwd)?;
 
     Ok(toolchain)
 }
