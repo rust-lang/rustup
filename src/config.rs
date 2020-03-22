@@ -309,12 +309,6 @@ impl Cfg {
         Toolchain::from(self, name)
     }
 
-    pub fn verify_toolchain(&self, name: &str) -> errors::Result<Toolchain<'_>> {
-        let toolchain = self.get_toolchain(name, false)?;
-        toolchain.verify()?;
-        Ok(toolchain)
-    }
-
     pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> errors::Result<PathBuf> {
         if create_parent {
             utils::ensure_dir_exists(
