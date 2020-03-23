@@ -912,7 +912,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     // Delete rustup. This is tricky because this is *probably*
     // the running executable and on Windows can't be unlinked until
     // the process exits.
-    SyncError::maybe(delete_rustup_and_cargo_home())?;
+    delete_rustup_and_cargo_home()?;
 
     info!("rustup is uninstalled");
 
@@ -920,9 +920,13 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 }
 
 #[cfg(unix)]
-fn delete_rustup_and_cargo_home() -> crate::errors::Result<()> {
-    let cargo_home = utils::cargo_home()?;
-    utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())?;
+fn delete_rustup_and_cargo_home() -> Result<()> {
+    let cargo_home = SyncError::maybe(utils::cargo_home())?;
+    SyncError::maybe(utils::remove_dir(
+        "cargo_home",
+        &cargo_home,
+        &|_: Notification<'_>| (),
+    ))?;
 
     Ok(())
 }
@@ -958,7 +962,7 @@ fn delete_rustup_and_cargo_home() -> crate::errors::Result<()> {
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
 #[cfg(windows)]
-fn delete_rustup_and_cargo_home() -> crate::errors::Result<()> {
+fn delete_rustup_and_cargo_home() -> Result<()> {
     use std::io;
     use std::mem;
     use std::os::windows::ffi::OsStrExt;
@@ -973,7 +977,7 @@ fn delete_rustup_and_cargo_home() -> crate::errors::Result<()> {
     use winapi::um::winnt::{FILE_SHARE_DELETE, FILE_SHARE_READ, GENERIC_READ};
 
     // CARGO_HOME, hopefully empty except for bin/rustup.exe
-    let cargo_home = utils::cargo_home()?;
+    let cargo_home = SyncError::maybe(utils::cargo_home())?;
     // The rustup.exe bin
     let rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
 
@@ -987,7 +991,7 @@ fn delete_rustup_and_cargo_home() -> crate::errors::Result<()> {
     let numbah: u32 = rand::random();
     let gc_exe = work_path.join(&format!("rustup-gc-{:x}.exe", numbah));
     // Copy rustup (probably this process's exe) to the gc exe
-    utils::copy_file(&rustup_path, &gc_exe)?;
+    SyncError::maybe(utils::copy_file(&rustup_path, &gc_exe))?;
     let gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().chain(Some(0)).collect();
 
     // Make the sub-process opened by gc exe inherit its attribute.
@@ -1012,7 +1016,7 @@ fn delete_rustup_and_cargo_home() -> crate::errors::Result<()> {
 
         if gc_handle == INVALID_HANDLE_VALUE {
             let err = io::Error::last_os_error();
-            return Err(err).chain_err(|| crate::errors::ErrorKind::WindowsUninstallMadness);
+            return Err(CLIError::WindowsUninstallMadness { source: err }.into());
         }
 
         scopeguard::guard(gc_handle, |h| {
@@ -1022,7 +1026,7 @@ fn delete_rustup_and_cargo_home() -> crate::errors::Result<()> {
 
     Command::new(gc_exe)
         .spawn()
-        .chain_err(|| crate::errors::ErrorKind::WindowsUninstallMadness)?;
+        .map_err(|e| CLIError::WindowsUninstallMadness { source: e })?;
 
     // The catch 22 article says we must sleep here to give
     // Windows a chance to bump the processes file reference
@@ -1226,7 +1230,7 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
 
-    let old_path = if let Some(s) = SyncError::maybe(get_windows_path_var())? {
+    let old_path = if let Some(s) = get_windows_path_var()? {
         s
     } else {
         // Non-unicode path
@@ -1276,15 +1280,13 @@ fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 // this returns None then the PATH variable is not unicode and we
 // should not mess with it.
 #[cfg(windows)]
-fn get_windows_path_var() -> crate::errors::Result<Option<String>> {
+fn get_windows_path_var() -> Result<Option<String>> {
     use std::io;
     use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::RegKey;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .chain_err(|| crate::errors::ErrorKind::PermissionDenied)?;
+    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)?;
 
     let reg_value = environment.get_raw_value("PATH");
     match reg_value {
@@ -1298,7 +1300,7 @@ fn get_windows_path_var() -> crate::errors::Result<Option<String>> {
             }
         }
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Some(String::new())),
-        Err(e) => Err(e).chain_err(|| crate::errors::ErrorKind::WindowsUninstallMadness),
+        Err(e) => Err(e).map_err(|e| CLIError::WindowsUninstallMadness { source: e }.into()),
     }
 }
 
@@ -1337,7 +1339,7 @@ fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
 
-    let old_path = if let Some(s) = SyncError::maybe(get_windows_path_var())? {
+    let old_path = if let Some(s) = get_windows_path_var()? {
         s
     } else {
         // Non-unicode path
