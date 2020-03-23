@@ -346,6 +346,8 @@ pub enum RustupError {
         name: String,
         source: SyncError<Error>,
     },
+    #[error("unable to read the PGP key '{}'", .path.display())]
+    InvalidPgpKey { path: PathBuf, source: PGPError },
     #[error("Missing manifest in toolchain '{}'", .name)]
     MissingManifest { name: String },
     #[error("could not remove '{}' directory: '{}'", .name, .path.display())]
@@ -370,6 +372,22 @@ pub enum RustupError {
     },
     #[error("unknown metadata version: '{0}'")]
     UnknownMetadataVersion(String),
+}
+
+pub struct PGPError(pub pgp::errors::Error);
+
+impl std::error::Error for PGPError {}
+
+impl Display for PGPError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl Debug for PGPError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.0, f)
+    }
 }
 
 /// Inspired by failure::SyncFailure, but not identical.

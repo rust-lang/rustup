@@ -159,14 +159,12 @@ pub fn set_globals(verbose: bool, quiet: bool) -> anyhow::Result<Cfg> {
         ..Default::default()
     });
 
-    Ok(SyncError::maybe(Cfg::from_env(Arc::new(
-        move |n: Notification<'_>| {
-            if download_tracker.borrow_mut().handle_notification(&n) {
-                return;
-            }
-            console_notifier.borrow_mut().handle(n);
-        },
-    )))?)
+    Ok(Cfg::from_env(Arc::new(move |n: Notification<'_>| {
+        if download_tracker.borrow_mut().handle_notification(&n) {
+            return;
+        }
+        console_notifier.borrow_mut().handle(n);
+    }))?)
 }
 
 pub fn show_channel_update(

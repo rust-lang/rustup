@@ -12,7 +12,7 @@ use pgp::{Deserializable, SignedPublicKey};
 
 use crate::dist::download::DownloadCfg;
 use crate::dist::{dist, temp};
-use crate::errors::{self, valid_profile_names, ResultExt, RustupError, SyncError};
+use crate::errors::{self, valid_profile_names, PGPError, ResultExt, RustupError, SyncError};
 use crate::fallback_settings::FallbackSettings;
 use crate::notifications::*;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
@@ -131,17 +131,21 @@ pub struct Cfg {
 }
 
 impl Cfg {
-    pub fn from_env(notify_handler: Arc<dyn Fn(Notification<'_>)>) -> errors::Result<Self> {
+    pub fn from_env(notify_handler: Arc<dyn Fn(Notification<'_>)>) -> Result<Self> {
         // Set up the rustup home directory
-        let rustup_dir = utils::rustup_home()?;
+        let rustup_dir = SyncError::maybe(utils::rustup_home())?;
 
-        utils::ensure_dir_exists("home", &rustup_dir, notify_handler.as_ref())?;
+        SyncError::maybe(utils::ensure_dir_exists(
+            "home",
+            &rustup_dir,
+            notify_handler.as_ref(),
+        ))?;
 
         let settings_file = SettingsFile::new(rustup_dir.join("settings.toml"));
 
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         let fallback_settings = if cfg!(not(windows)) {
-            FallbackSettings::new(PathBuf::from(UNIX_FALLBACK_SETTINGS))?
+            SyncError::maybe(FallbackSettings::new(PathBuf::from(UNIX_FALLBACK_SETTINGS)))?
         } else {
             None
         };
@@ -155,13 +159,17 @@ impl Cfg {
 
         if let Some(ref s_path) = env::var_os("RUSTUP_PGP_KEY") {
             let path = PathBuf::from(s_path);
-            let file = utils::open_file("RUSTUP_PGP_KEY", &path)?;
-            let (key, _) = SignedPublicKey::from_armor_single(file)
-                .map_err(|error| errors::ErrorKind::InvalidPgpKey(PathBuf::from(s_path), error))?;
+            let file = SyncError::maybe(utils::open_file("RUSTUP_PGP_KEY", &path))?;
+            let (key, _) = SignedPublicKey::from_armor_single(file).map_err(|error| {
+                RustupError::InvalidPgpKey {
+                    path: PathBuf::from(s_path),
+                    source: PGPError(error),
+                }
+            })?;
 
             pgp_keys.push(PgpPublicKey::FromEnvironment(path, key));
         }
-        settings_file.with(|s| {
+        SyncError::maybe(settings_file.with(|s| {
             if let Some(s) = &s.pgp_keys {
                 let path = PathBuf::from(s);
                 let file = utils::open_file("PGP Key from config", &path)?;
@@ -171,7 +179,7 @@ impl Cfg {
                 pgp_keys.push(PgpPublicKey::FromConfiguration(path, key));
             }
             Ok(())
-        })?;
+        }))?;
 
         // Environment override
         let env_override = env::var("RUSTUP_TOOLCHAIN")
@@ -221,7 +229,9 @@ impl Cfg {
         // For now, that means simply checking that 'stable' can resolve
         // for the current configuration.
         cfg.resolve_toolchain("stable")
-            .map_err(|e| format!("Unable parse configuration: {}", e))?;
+            .map_err(SyncError::new)
+            .map_err::<anyhow::Error, _>(Into::into)
+            .context("Unable parse configuration")?;
 
         Ok(cfg)
     }
