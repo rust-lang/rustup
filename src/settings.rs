@@ -52,12 +52,15 @@ impl SettingsFile {
         // Settings can no longer be None so it's OK to unwrap
         f(self.cache.borrow().as_ref().unwrap())
     }
-    pub fn with_mut<T, F: FnOnce(&mut Settings) -> Result<T>>(&self, f: F) -> Result<T> {
-        self.read_settings()?;
+    pub fn with_mut<T, F: FnOnce(&mut Settings) -> anyhow::Result<T>>(
+        &self,
+        f: F,
+    ) -> anyhow::Result<T> {
+        SyncError::maybe(self.read_settings())?;
 
         // Settings can no longer be None so it's OK to unwrap
         let result = { f(self.cache.borrow_mut().as_mut().unwrap())? };
-        self.write_settings()?;
+        SyncError::maybe(self.write_settings())?;
         Ok(result)
     }
 }

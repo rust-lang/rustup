@@ -249,10 +249,10 @@ impl Cfg {
     }
 
     pub fn set_default(&self, toolchain: &str) -> Result<()> {
-        SyncError::maybe(self.settings_file.with_mut(|s| {
+        self.settings_file.with_mut(|s| {
             s.default_toolchain = Some(toolchain.to_owned());
             Ok(())
-        }))?;
+        })?;
         (self.notify_handler)(Notification::SetDefaultToolchain(toolchain));
         Ok(())
     }
@@ -266,10 +266,10 @@ impl Cfg {
             ));
         }
         self.profile_override = None;
-        SyncError::maybe(self.settings_file.with_mut(|s| {
+        self.settings_file.with_mut(|s| {
             s.profile = Some(profile.to_owned());
             Ok(())
-        }))?;
+        })?;
         (self.notify_handler)(Notification::SetProfile(profile));
         Ok(())
     }
@@ -375,13 +375,10 @@ impl Cfg {
                     SyncError::maybe(utils::remove_file("update hash", &file.path()))?;
                 }
 
-                self.settings_file
-                    .with_mut(|s| {
-                        s.version = DEFAULT_METADATA_VERSION.to_owned();
-                        Ok(())
-                    })
-                    .map_err(SyncError::new)
-                    .map_err(Into::into)
+                self.settings_file.with_mut(|s| {
+                    s.version = DEFAULT_METADATA_VERSION.to_owned();
+                    Ok(())
+                })
             }
             _ => Err(RustupError::UnknownMetadataVersion(current_version).into()),
         }
@@ -706,13 +703,10 @@ impl Cfg {
             SyncError::maybe(dist::PartialToolchainDesc::from_str("stable"))?
                 .resolve(&dist::TargetTriple::new(host_triple)),
         )?;
-        self.settings_file
-            .with_mut(|s| {
-                s.default_host_triple = Some(host_triple.to_owned());
-                Ok(())
-            })
-            .map_err(SyncError::new)
-            .map_err(Into::into)
+        self.settings_file.with_mut(|s| {
+            s.default_host_triple = Some(host_triple.to_owned());
+            Ok(())
+        })
     }
 
     pub fn get_default_host_triple(&self) -> errors::Result<dist::TargetTriple> {

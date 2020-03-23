@@ -186,13 +186,10 @@ impl<'a> Toolchain<'a> {
     }
     // Custom and Distributable. Installed only.
     pub fn make_override(&self, path: &Path) -> anyhow::Result<()> {
-        self.cfg
-            .settings_file
-            .with_mut(|s| {
-                s.add_override(path, self.name.clone(), self.cfg.notify_handler.as_ref());
-                Ok(())
-            })
-            .map_err(|e| SyncError::new(e).into())
+        self.cfg.settings_file.with_mut(|s| {
+            s.add_override(path, self.name.clone(), self.cfg.notify_handler.as_ref());
+            Ok(())
+        })
     }
     // Distributable and Custom. Installed only.
     pub fn binary_file(&self, name: &str) -> PathBuf {
