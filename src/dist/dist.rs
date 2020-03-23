@@ -587,7 +587,7 @@ pub fn update_from_dist<'a>(
     old_date: Option<&str>,
     components: &[&str],
     targets: &[&str],
-) -> Result<Option<String>> {
+) -> anyhow::Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
     let hash_exists = update_hash.map(Path::exists).unwrap_or(false);
 
@@ -614,10 +614,14 @@ pub fn update_from_dist<'a>(
     // Don't leave behind an empty / broken installation directory
     if res.is_err() && fresh_install {
         // FIXME Ignoring cascading errors
-        let _ = utils::remove_dir("toolchain", prefix.path(), download.notify_handler);
+        let _ = SyncError::maybe(utils::remove_dir(
+            "toolchain",
+            prefix.path(),
+            download.notify_handler,
+        ));
     }
 
-    res
+    res.map_err(SyncError::new).map_err(Into::into)
 }
 
 fn update_from_dist_<'a>(
