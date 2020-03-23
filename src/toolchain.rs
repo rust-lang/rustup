@@ -181,7 +181,7 @@ impl<'a> Toolchain<'a> {
             .map_err(|e| SyncError::new(e).into())
     }
     // Custom and Distributable. Installed only.
-    pub fn make_default(&self) -> Result<()> {
+    pub fn make_default(&self) -> anyhow::Result<()> {
         self.cfg.set_default(&self.name)
     }
     // Custom and Distributable. Installed only.

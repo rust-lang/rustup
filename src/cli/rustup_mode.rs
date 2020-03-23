@@ -761,7 +761,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             None
         };
 
-        SyncError::maybe(toolchain.make_default())?;
+        toolchain.make_default()?;
 
         if let Some(status) = status {
             println!();
@@ -873,7 +873,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
             if SyncError::maybe(cfg.get_default())?.is_none() {
                 use rustup::UpdateStatus;
                 if let Some(UpdateStatus::Installed) = status {
-                    SyncError::maybe(toolchain.make_default())?;
+                    toolchain.make_default()?;
                 }
             }
         }

@@ -248,11 +248,11 @@ impl Cfg {
         self.profile_override = Some(profile);
     }
 
-    pub fn set_default(&self, toolchain: &str) -> errors::Result<()> {
-        self.settings_file.with_mut(|s| {
+    pub fn set_default(&self, toolchain: &str) -> Result<()> {
+        SyncError::maybe(self.settings_file.with_mut(|s| {
             s.default_toolchain = Some(toolchain.to_owned());
             Ok(())
-        })?;
+        }))?;
         (self.notify_handler)(Notification::SetDefaultToolchain(toolchain));
         Ok(())
     }

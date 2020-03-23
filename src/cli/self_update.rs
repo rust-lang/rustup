@@ -792,7 +792,7 @@ fn maybe_install_rust(
         }
         let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
         let status = distributable.install_from_dist(true, false, components, targets)?;
-        SyncError::maybe(cfg.set_default(toolchain_str))?;
+        cfg.set_default(toolchain_str)?;
         println!();
         common::show_channel_update(&cfg, toolchain_str, Ok(status))?;
     } else {
