@@ -323,13 +323,13 @@ impl Cfg {
             .map_err(Into::into)
     }
 
-    pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> errors::Result<PathBuf> {
+    pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> Result<PathBuf> {
         if create_parent {
-            utils::ensure_dir_exists(
+            SyncError::maybe(utils::ensure_dir_exists(
                 "update-hash",
                 &self.update_hash_dir,
                 self.notify_handler.as_ref(),
-            )?;
+            ))?;
         }
 
         Ok(self.update_hash_dir.join(toolchain))

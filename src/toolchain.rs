@@ -861,11 +861,7 @@ impl<'a> DistributableToolchain<'a> {
 
     // Installed only.
     fn update_hash(&self) -> anyhow::Result<PathBuf> {
-        self.0
-            .cfg
-            .get_hash_file(&self.0.name, true)
-            .map_err(SyncError::new)
-            .map_err(Into::into)
+        self.0.cfg.get_hash_file(&self.0.name, true)
     }
 }
 
