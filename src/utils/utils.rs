@@ -501,10 +501,6 @@ pub fn rustup_home_in_user_dir() -> anyhow::Result<PathBuf> {
     dot_dir(".rustup").ok_or_else(|| anyhow::anyhow!("couldn't find value of RUSTUP_HOME"))
 }
 
-pub fn rustup_home() -> Result<PathBuf> {
-    home::rustup_home().map_err(|e| Error::from_kind(ErrorKind::Io(e)))
-}
-
 pub fn format_path_for_display(path: &str) -> String {
     let unc_present = path.find(r"\\?\");
 

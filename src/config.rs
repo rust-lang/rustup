@@ -133,7 +133,7 @@ pub struct Cfg {
 impl Cfg {
     pub fn from_env(notify_handler: Arc<dyn Fn(Notification<'_>)>) -> Result<Self> {
         // Set up the rustup home directory
-        let rustup_dir = SyncError::maybe(utils::rustup_home())?;
+        let rustup_dir = home::rustup_home()?;
 
         SyncError::maybe(utils::ensure_dir_exists(
             "home",
