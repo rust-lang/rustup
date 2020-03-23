@@ -1429,7 +1429,7 @@ fn self_uninstall(m: &ArgMatches<'_>) -> Result<()> {
 }
 
 fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
-    SyncError::maybe(cfg.set_default_host_triple(m.value_of("host_triple").unwrap()))?;
+    cfg.set_default_host_triple(m.value_of("host_triple").unwrap())?;
     Ok(())
 }
 

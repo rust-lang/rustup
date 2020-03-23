@@ -751,7 +751,7 @@ fn maybe_install_rust(
     if let Some(default_host_triple) = default_host_triple {
         // Set host triple now as it will affect resolution of toolchain_str
         info!("setting default host triple to {}", default_host_triple);
-        SyncError::maybe(cfg.set_default_host_triple(default_host_triple))?;
+        cfg.set_default_host_triple(default_host_triple)?;
     } else {
         info!(
             "default host triple is {}",

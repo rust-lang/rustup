@@ -698,16 +698,21 @@ impl Cfg {
         Ok(None)
     }
 
-    pub fn set_default_host_triple(&self, host_triple: &str) -> errors::Result<()> {
+    pub fn set_default_host_triple(&self, host_triple: &str) -> Result<()> {
         // Ensure that the provided host_triple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied triple is insufficient / bad.
-        dist::PartialToolchainDesc::from_str("stable")?
-            .resolve(&dist::TargetTriple::new(host_triple))?;
-        self.settings_file.with_mut(|s| {
-            s.default_host_triple = Some(host_triple.to_owned());
-            Ok(())
-        })
+        SyncError::maybe(
+            SyncError::maybe(dist::PartialToolchainDesc::from_str("stable"))?
+                .resolve(&dist::TargetTriple::new(host_triple)),
+        )?;
+        self.settings_file
+            .with_mut(|s| {
+                s.default_host_triple = Some(host_triple.to_owned());
+                Ok(())
+            })
+            .map_err(SyncError::new)
+            .map_err(Into::into)
     }
 
     pub fn get_default_host_triple(&self) -> errors::Result<dist::TargetTriple> {
