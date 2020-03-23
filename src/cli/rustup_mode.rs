@@ -728,7 +728,7 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
         if let Ok(mut desc) = PartialToolchainDesc::from_str(&default_name) {
             desc.target = triple;
             let maybe_toolchain = format!("{}", desc);
-            let toolchain = SyncError::maybe(cfg.get_toolchain(maybe_toolchain.as_ref(), false))?;
+            let toolchain = cfg.get_toolchain(maybe_toolchain.as_ref(), false)?;
             if toolchain.name() == default_name {
                 warn!(
                     "(partial) triple '{}' resolves to a toolchain that is already default",
@@ -750,7 +750,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     if m.is_present("toolchain") {
         let toolchain = m.value_of("toolchain").unwrap();
         default_bare_triple_check(cfg, toolchain)?;
-        let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, false))?;
+        let toolchain = cfg.get_toolchain(toolchain, false)?;
 
         let status = if !toolchain.is_custom() {
             let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
@@ -841,7 +841,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
     if let Some(names) = m.values_of("toolchain") {
         for name in names {
             SyncError::maybe(update_bare_triple_check(cfg, name))?;
-            let toolchain = SyncError::maybe(cfg.get_toolchain(name, false))?;
+            let toolchain = cfg.get_toolchain(name, false)?;
 
             let status = if !toolchain.is_custom() {
                 let components: Vec<_> = m
@@ -1222,7 +1222,7 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Toolchain<'a>> {
     let toolchain = m.value_of("toolchain");
     if let Some(toolchain) = toolchain {
-        let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, false))?;
+        let toolchain = cfg.get_toolchain(toolchain, false)?;
         return Ok(toolchain);
     }
 
@@ -1239,7 +1239,7 @@ fn toolchain_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = m.value_of("toolchain").unwrap();
     let path = m.value_of("path").unwrap();
-    let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, true))?;
+    let toolchain = cfg.get_toolchain(toolchain, true)?;
 
     if let Ok(custom) = CustomToolchain::new(&toolchain) {
         custom.install_from_dir(Path::new(path), true)
@@ -1253,7 +1253,7 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
     for toolchain in m.values_of("toolchain").unwrap() {
-        let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, false))?;
+        let toolchain = cfg.get_toolchain(toolchain, false)?;
         SyncError::maybe(toolchain.remove())?;
     }
     Ok(())
@@ -1261,7 +1261,7 @@ fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
 fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = m.value_of("toolchain").unwrap();
-    let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain, false))?;
+    let toolchain = cfg.get_toolchain(toolchain, false)?;
 
     let status = if !toolchain.is_custom() {
         let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;

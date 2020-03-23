@@ -786,7 +786,7 @@ fn maybe_install_rust(
         println!();
     } else if user_specified_something || SyncError::maybe(cfg.find_default())?.is_none() {
         let toolchain_str = toolchain.unwrap_or("stable");
-        let toolchain = SyncError::maybe(cfg.get_toolchain(toolchain_str, false))?;
+        let toolchain = cfg.get_toolchain(toolchain_str, false)?;
         if toolchain.exists() {
             warn!("Updating existing toolchain, profile choice will be ignored");
         }

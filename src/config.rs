@@ -299,14 +299,18 @@ impl Cfg {
         })
     }
 
-    pub fn get_toolchain(&self, name: &str, create_parent: bool) -> errors::Result<Toolchain<'_>> {
+    pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain<'_>> {
         if create_parent {
-            utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {
-                (self.notify_handler)(n)
-            })?;
+            SyncError::maybe(utils::ensure_dir_exists(
+                "toolchains",
+                &self.toolchains_dir,
+                &|n| (self.notify_handler)(n),
+            ))?;
         }
 
         Toolchain::from(self, name)
+            .map_err(SyncError::new)
+            .map_err(Into::into)
     }
 
     pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> errors::Result<PathBuf> {
@@ -326,7 +330,7 @@ impl Cfg {
         toolchain: &str,
         binary: &str,
     ) -> Result<Option<PathBuf>> {
-        let toolchain = SyncError::maybe(self.get_toolchain(toolchain, false))?;
+        let toolchain = self.get_toolchain(toolchain, false)?;
         if toolchain.exists() {
             Ok(Some(toolchain.binary_file(binary)))
         } else {
@@ -570,14 +574,7 @@ impl Cfg {
 
         // Convert the toolchain strings to Toolchain values
         let toolchains = toolchains.into_iter();
-        let toolchains = toolchains.map(|n| {
-            (
-                n.clone(),
-                self.get_toolchain(&n, true)
-                    .map_err(SyncError::new)
-                    .map_err(Into::into),
-            )
-        });
+        let toolchains = toolchains.map(|n| (n.clone(), self.get_toolchain(&n, true)));
 
         // Filter out toolchains that don't track a release channel
         Ok(toolchains
@@ -633,7 +630,7 @@ impl Cfg {
     pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
         let (ref toolchain, _) = self.toolchain_for_dir(path)?;
 
-        if let Some(cmd) = SyncError::maybe(self.maybe_do_cargo_fallback(toolchain, binary))? {
+        if let Some(cmd) = self.maybe_do_cargo_fallback(toolchain, binary)? {
             Ok(cmd)
         } else {
             // NB this can only fail in race conditions since we used toolchain
@@ -652,13 +649,13 @@ impl Cfg {
         install_if_missing: bool,
         binary: &str,
     ) -> Result<Command> {
-        let toolchain = SyncError::maybe(self.get_toolchain(toolchain, false))?;
+        let toolchain = self.get_toolchain(toolchain, false)?;
         if install_if_missing && !toolchain.exists() {
             let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
             SyncError::maybe(distributable.install_from_dist(true, false, &[], &[]))?;
         }
 
-        if let Some(cmd) = SyncError::maybe(self.maybe_do_cargo_fallback(&toolchain, binary))? {
+        if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {
             Ok(cmd)
         } else {
             // NB note this really can't fail due to to having installed the toolchain if needed
@@ -675,7 +672,7 @@ impl Cfg {
         &self,
         toolchain: &Toolchain<'_>,
         binary: &str,
-    ) -> errors::Result<Option<Command>> {
+    ) -> Result<Option<Command>> {
         if !toolchain.is_custom() {
             return Ok(None);
         }
@@ -695,8 +692,9 @@ impl Cfg {
         for fallback in &["nightly", "beta", "stable"] {
             let fallback = self.get_toolchain(fallback, false)?;
             if fallback.exists() {
-                let distributable = DistributableToolchain::new(&fallback)?;
-                let cmd = distributable.create_fallback_command("cargo", toolchain)?;
+                let distributable = SyncError::maybe(DistributableToolchain::new(&fallback))?;
+                let cmd =
+                    SyncError::maybe(distributable.create_fallback_command("cargo", toolchain))?;
                 return Ok(Some(cmd));
             }
         }
