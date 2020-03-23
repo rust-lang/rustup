@@ -391,14 +391,6 @@ impl Cfg {
         }
     }
 
-    pub fn delete_data(&self) -> errors::Result<()> {
-        if utils::path_exists(&self.rustup_dir) {
-            utils::remove_dir("home", &self.rustup_dir, self.notify_handler.as_ref())
-        } else {
-            Ok(())
-        }
-    }
-
     pub fn find_default(&self) -> errors::Result<Option<Toolchain<'_>>> {
         let opt_name = self.get_default()?;
 
