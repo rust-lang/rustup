@@ -209,21 +209,30 @@ impl<'a> ChangedItem<'a> {
         &self,
         prefix: &InstallPrefix,
         notify: &'a dyn Fn(Notification<'_>),
-    ) -> Result<()> {
+    ) -> anyhow::Result<()> {
         use self::ChangedItem::*;
         match self {
-            AddedFile(path) => utils::remove_file("component", &prefix.abs_path(path))?,
-            AddedDir(path) => utils::remove_dir("component", &prefix.abs_path(path), notify)?,
-            RemovedFile(path, tmp) | ModifiedFile(path, Some(tmp)) => {
-                utils::rename_file("component", &tmp, &prefix.abs_path(path), notify)?
+            AddedFile(path) => {
+                SyncError::maybe(utils::remove_file("component", &prefix.abs_path(path)))?
             }
-            RemovedDir(path, tmp) => {
-                utils::rename_dir("component", &tmp.join("bk"), &prefix.abs_path(path), notify)?
-            }
+            AddedDir(path) => SyncError::maybe(utils::remove_dir(
+                "component",
+                &prefix.abs_path(path),
+                notify,
+            ))?,
+            RemovedFile(path, tmp) | ModifiedFile(path, Some(tmp)) => SyncError::maybe(
+                utils::rename_file("component", &tmp, &prefix.abs_path(path), notify),
+            )?,
+            RemovedDir(path, tmp) => SyncError::maybe(utils::rename_dir(
+                "component",
+                &tmp.join("bk"),
+                &prefix.abs_path(path),
+                notify,
+            ))?,
             ModifiedFile(path, None) => {
                 let abs_path = prefix.abs_path(path);
                 if utils::is_file(&abs_path) {
-                    utils::remove_file("component", &abs_path)?;
+                    SyncError::maybe(utils::remove_file("component", &abs_path))?;
                 }
             }
         }
