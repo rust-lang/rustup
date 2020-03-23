@@ -297,10 +297,6 @@ error_chain! {
         UpgradeIoError {
             description("I/O error during upgrade")
         }
-        BadInstallerType(s: String) {
-            description("invalid extension for installer")
-            display("invalid extension for installer: '{}'", s)
-        }
         ComponentsUnsupported(t: String) {
             description("toolchain does not support components")
             display("toolchain '{}' does not support components", t)
