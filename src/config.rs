@@ -343,8 +343,8 @@ impl Cfg {
         Ok(Some(toolchain.binary_file(binary)))
     }
 
-    pub fn upgrade_data(&self) -> errors::Result<()> {
-        let current_version = self.settings_file.with(|s| Ok(s.version.clone()))?;
+    pub fn upgrade_data(&self) -> Result<()> {
+        let current_version = SyncError::maybe(self.settings_file.with(|s| Ok(s.version.clone())))?;
 
         if current_version == DEFAULT_METADATA_VERSION {
             (self.notify_handler)(Notification::MetadataUpgradeNotNeeded(&current_version));
@@ -361,25 +361,33 @@ impl Cfg {
                 // The toolchain installation format changed. Just delete them all.
                 (self.notify_handler)(Notification::UpgradeRemovesToolchains);
 
-                let dirs = utils::read_dir("toolchains", &self.toolchains_dir)?;
+                let dirs = SyncError::maybe(utils::read_dir("toolchains", &self.toolchains_dir))?;
                 for dir in dirs {
-                    let dir = dir.chain_err(|| errors::ErrorKind::UpgradeIoError)?;
-                    utils::remove_dir("toolchain", &dir.path(), self.notify_handler.as_ref())?;
+                    let dir = dir.context("IO Error reading toolchains")?;
+                    SyncError::maybe(utils::remove_dir(
+                        "toolchain",
+                        &dir.path(),
+                        self.notify_handler.as_ref(),
+                    ))?;
                 }
 
                 // Also delete the update hashes
-                let files = utils::read_dir("update hashes", &self.update_hash_dir)?;
+                let files =
+                    SyncError::maybe(utils::read_dir("update hashes", &self.update_hash_dir))?;
                 for file in files {
-                    let file = file.chain_err(|| errors::ErrorKind::UpgradeIoError)?;
-                    utils::remove_file("update hash", &file.path())?;
+                    let file = file.context("IO Error reading update hashes")?;
+                    SyncError::maybe(utils::remove_file("update hash", &file.path()))?;
                 }
 
-                self.settings_file.with_mut(|s| {
-                    s.version = DEFAULT_METADATA_VERSION.to_owned();
-                    Ok(())
-                })
+                self.settings_file
+                    .with_mut(|s| {
+                        s.version = DEFAULT_METADATA_VERSION.to_owned();
+                        Ok(())
+                    })
+                    .map_err(SyncError::new)
+                    .map_err(Into::into)
             }
-            _ => Err(errors::ErrorKind::UnknownMetadataVersion(current_version).into()),
+            _ => Err(RustupError::UnknownMetadataVersion(current_version).into()),
         }
     }
 

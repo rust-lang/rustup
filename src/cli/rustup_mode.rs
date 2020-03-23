@@ -662,7 +662,7 @@ fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<bool> {
     match m.subcommand() {
         ("self", Some(c)) => match c.subcommand() {
             ("upgrade-data", Some(_)) => {
-                SyncError::maybe(cfg.upgrade_data())?;
+                cfg.upgrade_data()?;
                 Ok(true)
             }
             _ => Ok(false),

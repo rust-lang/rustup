@@ -373,6 +373,8 @@ pub enum RustupError {
         component: String,
         suggestion: Option<String>,
     },
+    #[error("unknown metadata version: '{0}'")]
+    UnknownMetadataVersion(String),
 }
 
 /// Inspired by failure::SyncFailure, but not identical.
