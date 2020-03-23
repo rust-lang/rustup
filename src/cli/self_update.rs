@@ -837,11 +837,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     // Delete RUSTUP_HOME
     let rustup_dir = home::rustup_home()?;
     if rustup_dir.exists() {
-        SyncError::maybe(utils::remove_dir(
-            "rustup_home",
-            &rustup_dir,
-            &|_: Notification<'_>| {},
-        ))?;
+        utils::remove_dir("rustup_home", &rustup_dir, &|_: Notification<'_>| {})?;
     }
 
     info!("removing cargo home");
@@ -864,11 +860,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         })?;
         if dirent.file_name().to_str() != Some("bin") {
             if dirent.path().is_dir() {
-                SyncError::maybe(utils::remove_dir(
-                    "cargo_home",
-                    &dirent.path(),
-                    &|_: Notification<'_>| {},
-                ))?;
+                utils::remove_dir("cargo_home", &dirent.path(), &|_: Notification<'_>| {})?;
             } else {
                 SyncError::maybe(utils::remove_file("cargo_home", &dirent.path()))?;
             }
@@ -896,11 +888,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
         let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));
         if file_is_tool == Some(false) {
             if dirent.path().is_dir() {
-                SyncError::maybe(utils::remove_dir(
-                    "cargo_home",
-                    &dirent.path(),
-                    &|_: Notification<'_>| {},
-                ))?;
+                utils::remove_dir("cargo_home", &dirent.path(), &|_: Notification<'_>| {})?;
             } else {
                 SyncError::maybe(utils::remove_file("cargo_home", &dirent.path()))?;
             }
@@ -922,11 +910,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 #[cfg(unix)]
 fn delete_rustup_and_cargo_home() -> Result<()> {
     let cargo_home = SyncError::maybe(utils::cargo_home())?;
-    SyncError::maybe(utils::remove_dir(
-        "cargo_home",
-        &cargo_home,
-        &|_: Notification<'_>| (),
-    ))?;
+    utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())?;
 
     Ok(())
 }
@@ -1050,11 +1034,7 @@ pub fn complete_windows_uninstall() -> Result<()> {
 
     // Now that the parent has exited there are hopefully no more files open in CARGO_HOME
     let cargo_home = SyncError::maybe(utils::cargo_home())?;
-    SyncError::maybe(utils::remove_dir(
-        "cargo_home",
-        &cargo_home,
-        &|_: Notification<'_>| (),
-    ))?;
+    utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())?;
 
     // Now, run a *system* binary to inherit the DELETE_ON_CLOSE
     // handle to *this* process, then exit. The OS will delete the gc

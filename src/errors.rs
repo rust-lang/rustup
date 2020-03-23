@@ -169,13 +169,6 @@ error_chain! {
             description("could not remove file")
             display("could not remove '{}' file: '{}'", name, path.display())
         }
-        RemovingDirectory {
-            name: &'static str,
-            path: PathBuf,
-        } {
-            description("could not remove directory")
-            display("could not remove '{}' directory: '{}'", name, path.display())
-        }
         CargoHome {
             description("couldn't find value of CARGO_HOME")
         }
@@ -359,6 +352,12 @@ pub enum RustupError {
     },
     #[error("Missing manifest in toolchain '{}'", .name)]
     MissingManifest { name: String },
+    #[error("could not remove '{}' directory: '{}'", .name, .path.display())]
+    RemovingDirectory {
+        name: String,
+        path: PathBuf,
+        source: io::Error,
+    },
     #[error("toolchain '{0}' is not installed")]
     ToolchainNotInstalled(String),
     #[error("no override and no default toolchain set")]

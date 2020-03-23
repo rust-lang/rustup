@@ -614,11 +614,7 @@ pub fn update_from_dist<'a>(
     // Don't leave behind an empty / broken installation directory
     if res.is_err() && fresh_install {
         // FIXME Ignoring cascading errors
-        let _ = SyncError::maybe(utils::remove_dir(
-            "toolchain",
-            prefix.path(),
-            download.notify_handler,
-        ));
+        let _ = utils::remove_dir("toolchain", prefix.path(), download.notify_handler);
     }
 
     res.map_err(SyncError::new).map_err(Into::into)

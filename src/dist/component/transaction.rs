@@ -215,11 +215,7 @@ impl<'a> ChangedItem<'a> {
             AddedFile(path) => {
                 SyncError::maybe(utils::remove_file("component", &prefix.abs_path(path)))?
             }
-            AddedDir(path) => SyncError::maybe(utils::remove_dir(
-                "component",
-                &prefix.abs_path(path),
-                notify,
-            ))?,
+            AddedDir(path) => utils::remove_dir("component", &prefix.abs_path(path), notify)?,
             RemovedFile(path, tmp) | ModifiedFile(path, Some(tmp)) => SyncError::maybe(
                 utils::rename_file("component", &tmp, &prefix.abs_path(path), notify),
             )?,

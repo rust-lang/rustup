@@ -362,14 +362,18 @@ pub fn remove_dir<'a, N>(
     name: &'static str,
     path: &'a Path,
     notify_handler: &dyn Fn(N),
-) -> Result<()>
+) -> anyhow::Result<()>
 where
     N: From<Notification<'a>>,
 {
     notify_handler(Notification::RemovingDirectory(name, path).into());
-    raw::remove_dir(path).chain_err(|| ErrorKind::RemovingDirectory {
-        name,
-        path: PathBuf::from(path),
+    raw::remove_dir(path).map_err(|e| {
+        RustupError::RemovingDirectory {
+            name: name.to_string(),
+            path: PathBuf::from(path),
+            source: e,
+        }
+        .into()
     })
 }
 

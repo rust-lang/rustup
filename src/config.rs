@@ -364,11 +364,7 @@ impl Cfg {
                 let dirs = SyncError::maybe(utils::read_dir("toolchains", &self.toolchains_dir))?;
                 for dir in dirs {
                     let dir = dir.context("IO Error reading toolchains")?;
-                    SyncError::maybe(utils::remove_dir(
-                        "toolchain",
-                        &dir.path(),
-                        self.notify_handler.as_ref(),
-                    ))?;
+                    utils::remove_dir("toolchain", &dir.path(), self.notify_handler.as_ref())?;
                 }
 
                 // Also delete the update hashes

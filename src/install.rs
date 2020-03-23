@@ -143,6 +143,4 @@ impl<'a> InstallMethod<'a> {
 
 pub fn uninstall(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<()> {
     utils::remove_dir("install", path, notify_handler)
-        .map_err(SyncError::new)
-        .map_err(Into::into)
 }
