@@ -5,10 +5,11 @@ use crate::dist::dist;
 use crate::dist::download::DownloadCfg;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::Notification;
-use crate::errors::Result;
+use crate::errors::SyncError;
 use crate::notifications::Notification as RootNotification;
 use crate::toolchain::{CustomToolchain, DistributableToolchain, Toolchain, UpdateStatus};
 use crate::utils::utils;
+use anyhow::Result;
 use std::path::Path;
 
 #[derive(Copy, Clone)]
@@ -92,11 +93,11 @@ impl<'a> InstallMethod<'a> {
 
         match self {
             InstallMethod::Copy(src, ..) => {
-                utils::copy_dir(src, path, notify_handler)?;
+                SyncError::maybe(utils::copy_dir(src, path, notify_handler))?;
                 Ok(true)
             }
             InstallMethod::Link(src, ..) => {
-                utils::symlink_dir(src, &path, notify_handler)?;
+                SyncError::maybe(utils::symlink_dir(src, &path, notify_handler))?;
                 Ok(true)
             }
             InstallMethod::Dist {
@@ -113,7 +114,7 @@ impl<'a> InstallMethod<'a> {
                 ..
             } => {
                 let prefix = &InstallPrefix::from(path.to_owned());
-                let maybe_new_hash = dist::update_from_dist(
+                let maybe_new_hash = SyncError::maybe(dist::update_from_dist(
                     dl_cfg,
                     update_hash,
                     desc,
@@ -124,11 +125,11 @@ impl<'a> InstallMethod<'a> {
                     old_date,
                     components,
                     targets,
-                )?;
+                ))?;
 
                 if let Some(hash) = maybe_new_hash {
                     if let Some(hash_file) = update_hash {
-                        utils::write_file("update hash", hash_file, &hash)?;
+                        SyncError::maybe(utils::write_file("update hash", hash_file, &hash))?;
                     }
 
                     Ok(true)
@@ -142,4 +143,6 @@ impl<'a> InstallMethod<'a> {
 
 pub fn uninstall(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<()> {
     utils::remove_dir("install", path, notify_handler)
+        .map_err(SyncError::new)
+        .map_err(Into::into)
 }

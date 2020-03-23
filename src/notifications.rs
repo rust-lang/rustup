@@ -1,8 +1,6 @@
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
-use crate::errors::*;
-
 use crate::dist::temp;
 use crate::utils::notify::NotificationLevel;
 
@@ -29,7 +27,7 @@ pub enum Notification<'a> {
     MetadataUpgradeNotNeeded(&'a str),
     WritingMetadataVersion(&'a str),
     ReadMetadataVersion(&'a str),
-    NonFatalError(&'a Error),
+    NonFatalError(&'a anyhow::Error),
     UpgradeRemovesToolchains,
     MissingFileDuringSelfUninstall(PathBuf),
     PlainVerboseMessage(&'a str),

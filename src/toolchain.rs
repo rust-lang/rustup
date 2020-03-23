@@ -27,7 +27,7 @@ use wait_timeout::ChildExt;
 /// An installed toolchain
 trait InstalledToolchain<'a> {
     /// What (root) paths are associated with this installed toolchain.
-    fn installed_paths(&self) -> Result<Vec<InstalledPath<'a>>>;
+    fn installed_paths(&self) -> anyhow::Result<Vec<InstalledPath<'a>>>;
 }
 
 /// Installed paths
@@ -124,17 +124,19 @@ impl<'a> Toolchain<'a> {
         utils::assert_is_directory(&self.path)
     }
     // Custom and Distributable. Installed only.
-    pub fn remove(&self) -> Result<()> {
+    pub fn remove(&self) -> anyhow::Result<()> {
         if self.exists() || self.is_symlink() {
             (self.cfg.notify_handler)(Notification::UninstallingToolchain(&self.name));
         } else {
             (self.cfg.notify_handler)(Notification::ToolchainNotInstalled(&self.name));
             return Ok(());
         }
-        let installed = self.as_installed()?;
+        let installed = SyncError::maybe(self.as_installed())?;
         for path in installed.installed_paths()? {
             match path {
-                InstalledPath::File { name, path } => utils::ensure_file_removed(&name, &path)?,
+                InstalledPath::File { name, path } => {
+                    SyncError::maybe(utils::ensure_file_removed(&name, &path))?
+                }
                 InstalledPath::Dir { path } => {
                     install::uninstall(path, &|n| (self.cfg.notify_handler)(n.into()))?
                 }
@@ -391,11 +393,9 @@ impl<'a> CustomToolchain<'a> {
         SyncError::maybe(utils::assert_is_file(&pathbuf))?;
 
         if link {
-            SyncError::maybe(
-                InstallMethod::Link(&utils::to_absolute(src)?, self).install(&self.0),
-            )?;
+            InstallMethod::Link(&utils::to_absolute(src)?, self).install(&self.0)?;
         } else {
-            SyncError::maybe(InstallMethod::Copy(src, self).install(&self.0))?;
+            InstallMethod::Copy(src, self).install(&self.0)?;
         }
 
         Ok(())
@@ -403,7 +403,7 @@ impl<'a> CustomToolchain<'a> {
 }
 
 impl<'a> InstalledToolchain<'a> for CustomToolchain<'a> {
-    fn installed_paths(&self) -> Result<Vec<InstalledPath<'a>>> {
+    fn installed_paths(&self) -> anyhow::Result<Vec<InstalledPath<'a>>> {
         let path = &self.0.path;
         Ok(vec![InstalledPath::Dir { path }])
     }
@@ -668,12 +668,12 @@ impl<'a> DistributableToolchain<'a> {
         allow_downgrade: bool,
         components: &[&str],
         targets: &[&str],
-    ) -> Result<UpdateStatus> {
+    ) -> anyhow::Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
         let old_date = self.get_manifest().ok().and_then(|m| m.map(|m| m.date));
         InstallMethod::Dist {
-            desc: &self.desc()?,
-            profile: self.0.cfg.get_profile()?,
+            desc: &SyncError::maybe(self.desc())?,
+            profile: SyncError::maybe(self.0.cfg.get_profile())?,
             update_hash: Some(&update_hash),
             dl_cfg: self.download_cfg(),
             force_update,
@@ -689,25 +689,23 @@ impl<'a> DistributableToolchain<'a> {
 
     // Installed or not installed.
     pub fn install_from_dist_if_not_installed(&self) -> anyhow::Result<UpdateStatus> {
-        let update_hash = SyncError::maybe(self.update_hash())?;
+        let update_hash = self.update_hash()?;
         (self.0.cfg.notify_handler)(Notification::LookingForToolchain(&self.0.name));
         if !self.0.exists() {
-            Ok(SyncError::maybe(
-                InstallMethod::Dist {
-                    desc: &SyncError::maybe(self.desc())?,
-                    profile: SyncError::maybe(self.0.cfg.get_profile())?,
-                    update_hash: Some(&update_hash),
-                    dl_cfg: self.download_cfg(),
-                    force_update: false,
-                    allow_downgrade: false,
-                    exists: false,
-                    old_date: None,
-                    components: &[],
-                    targets: &[],
-                    distributable: &self,
-                }
-                .install(&self.0),
-            )?)
+            Ok(InstallMethod::Dist {
+                desc: &SyncError::maybe(self.desc())?,
+                profile: SyncError::maybe(self.0.cfg.get_profile())?,
+                update_hash: Some(&update_hash),
+                dl_cfg: self.download_cfg(),
+                force_update: false,
+                allow_downgrade: false,
+                exists: false,
+                old_date: None,
+                components: &[],
+                targets: &[],
+                distributable: &self,
+            }
+            .install(&self.0)?)
         } else {
             (self.0.cfg.notify_handler)(Notification::UsingExistingToolchain(&self.0.name));
             Ok(UpdateStatus::Unchanged)
@@ -841,15 +839,17 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    pub fn show_dist_version(&self) -> Result<Option<String>> {
+    pub fn show_dist_version(&self) -> anyhow::Result<Option<String>> {
         let update_hash = self.update_hash()?;
 
-        match crate::dist::dist::dl_v2_manifest(
+        match SyncError::maybe(crate::dist::dist::dl_v2_manifest(
             self.download_cfg(),
             Some(&update_hash),
-            &self.desc()?,
-        )? {
-            Some((manifest, _)) => Ok(Some(manifest.get_rust_version()?.to_string())),
+            &SyncError::maybe(self.desc())?,
+        ))? {
+            Some((manifest, _)) => Ok(Some(
+                SyncError::maybe(manifest.get_rust_version())?.to_string(),
+            )),
             None => Ok(None),
         }
     }
@@ -863,13 +863,17 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    fn update_hash(&self) -> Result<PathBuf> {
-        Ok(self.0.cfg.get_hash_file(&self.0.name, true)?)
+    fn update_hash(&self) -> anyhow::Result<PathBuf> {
+        self.0
+            .cfg
+            .get_hash_file(&self.0.name, true)
+            .map_err(SyncError::new)
+            .map_err(Into::into)
     }
 }
 
 impl<'a> InstalledToolchain<'a> for DistributableToolchain<'a> {
-    fn installed_paths(&self) -> Result<Vec<InstalledPath<'a>>> {
+    fn installed_paths(&self) -> anyhow::Result<Vec<InstalledPath<'a>>> {
         let path = &self.0.path;
         Ok(vec![
             InstalledPath::File {

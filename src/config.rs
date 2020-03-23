@@ -533,7 +533,7 @@ impl Cfg {
                     );
                 }
                 let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
-                SyncError::maybe(distributable.install_from_dist(true, false, &[], &[]))?;
+                distributable.install_from_dist(true, false, &[], &[])?;
             }
             Ok((toolchain, reason))
         } else {
@@ -597,7 +597,7 @@ impl Cfg {
                 if let Err(ref e) = st {
                     (self.notify_handler)(Notification::NonFatalError(e));
                 }
-                st.map_err(SyncError::new).map_err(Into::into)
+                st
             });
 
             (n, st)
@@ -652,7 +652,7 @@ impl Cfg {
         let toolchain = self.get_toolchain(toolchain, false)?;
         if install_if_missing && !toolchain.exists() {
             let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
-            SyncError::maybe(distributable.install_from_dist(true, false, &[], &[]))?;
+            distributable.install_from_dist(true, false, &[], &[])?;
         }
 
         if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {

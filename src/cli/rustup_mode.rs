@@ -794,7 +794,7 @@ fn check_updates(cfg: &Cfg) -> Result<()> {
             (ref name, Ok(ref toolchain)) => {
                 let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
                 let current_version = SyncError::maybe(distributable.show_version())?;
-                let dist_version = SyncError::maybe(distributable.show_dist_version())?;
+                let dist_version = distributable.show_dist_version()?;
                 let _ = t.attr(term2::Attr::Bold);
                 write!(t, "{} - ", name)?;
                 match (current_version, dist_version) {
@@ -853,12 +853,12 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
                     .map(|v| v.collect())
                     .unwrap_or_else(Vec::new);
                 let distributable = SyncError::maybe(DistributableToolchain::new(&toolchain))?;
-                Some(SyncError::maybe(distributable.install_from_dist(
+                Some(distributable.install_from_dist(
                     m.is_present("force"),
                     m.is_present("allow-downgrade"),
                     &components,
                     &targets,
-                ))?)
+                )?)
             } else if !toolchain.exists() {
                 return Err(RustupError::InvalidToolchainName(toolchain.name().to_string()).into());
             } else {
@@ -1254,7 +1254,7 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
     for toolchain in m.values_of("toolchain").unwrap() {
         let toolchain = cfg.get_toolchain(toolchain, false)?;
-        SyncError::maybe(toolchain.remove())?;
+        toolchain.remove()?;
     }
     Ok(())
 }
