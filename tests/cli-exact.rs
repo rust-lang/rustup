@@ -403,22 +403,6 @@ fn list_overrides_with_nonexistent() {
     });
 }
 
-#[test]
-fn update_no_manifest() {
-    setup(&|config| {
-        expect_err_ex(
-            config,
-            &["rustup", "update", "nightly-2016-01-01"],
-            r"",
-            for_host!(
-                r"info: syncing channel updates for 'nightly-2016-01-01-{0}'
-error: no release found for 'nightly-2016-01-01'
-"
-            ),
-        );
-    });
-}
-
 // Issue #111
 #[test]
 fn update_invalid_toolchain() {

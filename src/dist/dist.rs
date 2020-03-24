@@ -7,6 +7,7 @@ use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::utils;
 
+use anyhow::Context;
 use chrono::{Date, NaiveDate, TimeZone, Utc};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -617,7 +618,7 @@ pub fn update_from_dist<'a>(
         let _ = utils::remove_dir("toolchain", prefix.path(), download.notify_handler);
     }
 
-    res.map_err(SyncError::new).map_err(Into::into)
+    res
 }
 
 fn update_from_dist_<'a>(
@@ -631,7 +632,7 @@ fn update_from_dist_<'a>(
     old_date: Option<&str>,
     components: &[&str],
     targets: &[&str],
-) -> Result<Option<String>> {
+) -> anyhow::Result<Option<String>> {
     let mut toolchain = toolchain.clone();
     let mut fetched = String::new();
     let mut first_err = None;
@@ -687,11 +688,12 @@ fn update_from_dist_<'a>(
                     break Err(e);
                 }
 
-                if let ErrorKind::RequestedComponentsUnavailable(components, ..) = e.kind() {
+                if let Some(RustupError::RequestedComponentsUnavailable { components, .. }) =
+                    e.downcast_ref::<RustupError>()
+                {
                     (download.notify_handler)(Notification::SkippingNightlyMissingComponent(
                         components,
                     ));
-
                     if first_err.is_none() {
                         first_err = Some(e);
                     }
@@ -699,7 +701,9 @@ fn update_from_dist_<'a>(
                     // so that the limit only applies to nightlies that were indeed available,
                     // and ignores missing ones.
                     backtrack_limit = backtrack_limit.map(|n| n - 1);
-                } else if let ErrorKind::MissingReleaseForToolchain(..) = e.kind() {
+                } else if let Some(RustupError::MissingReleaseForToolchain { .. }) =
+                    e.downcast_ref::<RustupError>()
+                {
                     // no need to even print anything for missing nightlies,
                     // since we don't really "skip" them
                 } else if let Some(e) = first_err {
@@ -754,9 +758,12 @@ fn try_update_from_dist_<'a>(
     components: &[&str],
     targets: &[&str],
     fetched: &mut String,
-) -> Result<Option<String>> {
+) -> anyhow::Result<Option<String>> {
     let toolchain_str = toolchain.to_string();
-    let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
+    let manifestation = SyncError::maybe(Manifestation::open(
+        prefix.clone(),
+        toolchain.target.clone(),
+    ))?;
 
     // TODO: Add a notification about which manifest version is going to be used
     (download.notify_handler)(Notification::DownloadingManifest(&toolchain_str));
@@ -779,7 +786,9 @@ fn try_update_from_dist_<'a>(
             ));
 
             let profile_components = match profile {
-                Some(profile) => m.get_profile_components(profile, &toolchain.target)?,
+                Some(profile) => {
+                    SyncError::maybe(m.get_profile_components(profile, &toolchain.target))?
+                }
                 None => Vec::new(),
             };
 
@@ -831,27 +840,32 @@ fn try_update_from_dist_<'a>(
             (download.notify_handler)(Notification::DownloadingLegacyManifest);
         }
         Err(Error(ErrorKind::ChecksumFailed { .. }, _)) => return Ok(None),
-        Err(e) => return Err(e),
+        Err(e) => return Err(SyncError::new(e).into()),
     }
 
     // If the v2 manifest is not found then try v1
     let manifest = match dl_v1_manifest(download, toolchain) {
         Ok(m) => m,
-        Err(Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => {
-            return Err(Error::from(ErrorKind::MissingReleaseForToolchain(
-                toolchain.manifest_name(),
-            )));
+        Err(e @ Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => {
+            return Err(RustupError::MissingReleaseForToolchain {
+                name: toolchain.manifest_name(),
+                source: SyncError::new(e),
+            }
+            .into());
         }
         Err(e @ Error(ErrorKind::ChecksumFailed { .. }, _)) => {
-            return Err(e);
+            return Err(e).map_err(SyncError::new).map_err(Into::into);
         }
         Err(e) => {
-            return Err(e).chain_err(|| {
-                format!(
-                    "failed to download manifest for '{}'",
-                    toolchain.manifest_name()
-                )
-            });
+            return Err(e)
+                .map_err(SyncError::new)
+                .map_err::<anyhow::Error, _>(Into::into)
+                .with_context(|| {
+                    format!(
+                        "failed to download manifest for '{}'",
+                        toolchain.manifest_name()
+                    )
+                });
         }
     };
     match manifestation.update_v1(
@@ -863,13 +877,16 @@ fn try_update_from_dist_<'a>(
     ) {
         Ok(None) => Ok(None),
         Ok(Some(hash)) => Ok(Some(hash)),
-        e @ Err(Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => e.chain_err(|| {
-            format!(
-                "could not download nonexistent rust version `{}`",
-                toolchain_str
-            )
-        }),
-        Err(e) => Err(e),
+        Err(e @ Error(crate::ErrorKind::DownloadNotExists { .. }, _)) => Err(e)
+            .map_err(SyncError::new)
+            .map_err::<anyhow::Error, _>(Into::into)
+            .with_context(|| {
+                format!(
+                    "could not download nonexistent rust version `{}`",
+                    toolchain_str
+                )
+            }),
+        Err(e) => Err(SyncError::new(e).into()),
     }
 }
 

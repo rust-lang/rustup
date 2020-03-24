@@ -480,7 +480,7 @@ impl<'a> DistributableToolchain<'a> {
                 remove_components: vec![],
             };
 
-            SyncError::maybe(manifestation.update(
+            manifestation.update(
                 &manifest,
                 changes,
                 false,
@@ -488,7 +488,7 @@ impl<'a> DistributableToolchain<'a> {
                 &self.download_cfg().notify_handler,
                 &toolchain.manifest_name(),
                 false,
-            ))?;
+            )?;
 
             Ok(())
         } else {
@@ -816,7 +816,7 @@ impl<'a> DistributableToolchain<'a> {
                 remove_components: vec![component],
             };
 
-            SyncError::maybe(manifestation.update(
+            manifestation.update(
                 &manifest,
                 changes,
                 false,
@@ -824,7 +824,7 @@ impl<'a> DistributableToolchain<'a> {
                 &self.download_cfg().notify_handler,
                 &toolchain.manifest_name(),
                 false,
-            ))?;
+            )?;
 
             Ok(())
         } else {

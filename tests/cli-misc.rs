@@ -729,6 +729,22 @@ info: toolchain 'test' uninstalled
     });
 }
 
+#[test]
+fn update_no_manifest() {
+    setup(&|config| {
+        expect_err(
+            config,
+            &["rustup", "update", "nightly-2016-01-01"],
+            for_host!(
+                r"info: syncing channel updates for 'nightly-2016-01-01-{0}'
+error: no release found for 'nightly-2016-01-01'
+error: Caused by:
+error: could not download file"
+            ),
+        );
+    });
+}
+
 // issue #1297
 #[test]
 fn update_unavailable_rustc() {

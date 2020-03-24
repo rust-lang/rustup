@@ -12,10 +12,9 @@ use rustup::dist::manifestation::{Changes, Manifestation, UpdateStatus};
 use rustup::dist::prefix::InstallPrefix;
 use rustup::dist::temp;
 use rustup::dist::Notification;
-use rustup::errors::Result;
+use rustup::errors::{Result, RustupError, SyncError};
 use rustup::utils::raw as utils_raw;
 use rustup::utils::utils;
-use rustup::ErrorKind;
 use rustup::PgpPublicKey;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -434,20 +433,26 @@ fn update_from_dist(
     download_cfg: &DownloadCfg<'_>,
     temp_cfg: &temp::Cfg,
     force: bool,
-) -> Result<UpdateStatus> {
+) -> anyhow::Result<UpdateStatus> {
     // Download the dist manifest and place it into the installation prefix
-    let manifest_url = make_manifest_url(dist_server, toolchain)?;
-    let manifest_file = temp_cfg.new_file()?;
-    utils::download_file(&manifest_url, &manifest_file, None, &|_| {})?;
-    let manifest_str = utils::read_file("manifest", &manifest_file)?;
-    let manifest = Manifest::parse(&manifest_str)?;
+    let manifest_url = SyncError::maybe(make_manifest_url(dist_server, toolchain))?;
+    let manifest_file = SyncError::maybe(temp_cfg.new_file())?;
+    SyncError::maybe(utils::download_file(
+        &manifest_url,
+        &manifest_file,
+        None,
+        &|_| {},
+    ))?;
+    let manifest_str = SyncError::maybe(utils::read_file("manifest", &manifest_file))?;
+    let manifest = SyncError::maybe(Manifest::parse(&manifest_str))?;
 
     // Read the manifest to update the components
     let trip = toolchain.target.clone();
-    let manifestation = Manifestation::open(prefix.clone(), trip.clone())?;
+    let manifestation = SyncError::maybe(Manifestation::open(prefix.clone(), trip.clone()))?;
 
     // TODO on install, need to add profile components (but I guess we shouldn't test that logic here)
-    let mut profile_components = manifest.get_profile_components(Profile::Default, &trip)?;
+    let mut profile_components =
+        SyncError::maybe(manifest.get_profile_components(Profile::Default, &trip))?;
     let mut add_components = add.to_owned();
     add_components.append(&mut profile_components);
 
@@ -748,8 +753,8 @@ fn unavailable_component() {
                 false,
             )
             .unwrap_err();
-            match *err.kind() {
-                ErrorKind::RequestedComponentsUnavailable(..) => {}
+            match err.downcast_ref::<RustupError>() {
+                Some(RustupError::RequestedComponentsUnavailable { .. }) => {}
                 _ => panic!(),
             }
         },
@@ -807,8 +812,8 @@ fn unavailable_component_from_profile() {
                 false,
             )
             .unwrap_err();
-            match *err.kind() {
-                ErrorKind::RequestedComponentsUnavailable(..) => {}
+            match err.downcast_ref::<RustupError>() {
+                Some(RustupError::RequestedComponentsUnavailable { .. }) => {}
                 _ => panic!(),
             }
 
@@ -1821,8 +1826,8 @@ fn bad_component_hash() {
         )
         .unwrap_err();
 
-        match *err.kind() {
-            ErrorKind::ComponentDownloadFailed(_) => (),
+        match err.downcast_ref::<RustupError>() {
+            Some(RustupError::ComponentDownloadFailed { .. }) => {}
             _ => panic!(),
         }
     });
@@ -1851,8 +1856,8 @@ fn unable_to_download_component() {
         )
         .unwrap_err();
 
-        match *err.kind() {
-            ErrorKind::ComponentDownloadFailed(..) => (),
+        match err.downcast_ref::<RustupError>() {
+            Some(RustupError::ComponentDownloadFailed { .. }) => {}
             _ => panic!(),
         }
     });

@@ -112,7 +112,7 @@ impl Manifestation {
         notify_handler: &dyn Fn(Notification<'_>),
         toolchain_str: &str,
         implicit_modify: bool,
-    ) -> Result<UpdateStatus> {
+    ) -> anyhow::Result<UpdateStatus> {
         // Some vars we're going to need a few times
         let temp_cfg = download_cfg.temp_cfg;
         let prefix = self.installation.prefix();
@@ -120,9 +120,14 @@ impl Manifestation {
         let installed_manifest_path = prefix.path().join(&rel_installed_manifest_path);
 
         // Create the lists of components needed for installation
-        let config = self.read_config()?;
-        let mut update =
-            Update::build_update(self, new_manifest, &changes, &config, notify_handler)?;
+        let config = SyncError::maybe(self.read_config())?;
+        let mut update = SyncError::maybe(Update::build_update(
+            self,
+            new_manifest,
+            &changes,
+            &config,
+            notify_handler,
+        ))?;
 
         if update.nothing_changes() {
             return Ok(UpdateStatus::Unchanged);
@@ -133,7 +138,10 @@ impl Manifestation {
             Ok(_) => {}
             Err(e) => {
                 if force_update {
-                    if let ErrorKind::RequestedComponentsUnavailable(components, _, _) = e.kind() {
+                    if let Some(RustupError::RequestedComponentsUnavailable {
+                        components, ..
+                    }) = e.downcast_ref::<RustupError>()
+                    {
                         for component in components {
                             notify_handler(Notification::ForcingUnavailableComponent(
                                 component.name(new_manifest).as_str(),
@@ -152,7 +160,7 @@ impl Manifestation {
         // Download component packages and validate hashes
         let mut things_to_install: Vec<(Component, Format, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
-        let components = update.components_urls_and_hashes(new_manifest)?;
+        let components = SyncError::maybe(update.components_urls_and_hashes(new_manifest))?;
 
         const DEFAULT_MAX_RETRIES: usize = 3;
         let max_retries: usize = std::env::var("RUSTUP_MAX_RETRIES")
@@ -172,7 +180,7 @@ impl Manifestation {
                 url
             };
 
-            let url_url = utils::parse_url(&url)?;
+            let url_url = SyncError::maybe(utils::parse_url(&url))?;
 
             let downloaded_file = retry(NoDelay.take(max_retries), || {
                 match download_cfg.download(&url_url, &hash) {
@@ -188,7 +196,10 @@ impl Manifestation {
                     },
                 }
             })
-            .chain_err(|| ErrorKind::ComponentDownloadFailed(component.name(new_manifest)))?;
+            .map_err(|e| RustupError::ComponentDownloadFailed {
+                component: component.name(new_manifest),
+                source: SyncError::new(e),
+            })?;
 
             things_downloaded.push(hash);
 
@@ -200,7 +211,7 @@ impl Manifestation {
 
         // If the previous installation was from a v1 manifest we need
         // to uninstall it first.
-        tx = self.maybe_handle_v2_upgrade(&config, tx)?;
+        tx = SyncError::maybe(self.maybe_handle_v2_upgrade(&config, tx))?;
 
         // Uninstall components
         for component in &update.components_to_uninstall {
@@ -215,7 +226,12 @@ impl Manifestation {
                 component.target.as_ref(),
             ));
 
-            tx = self.uninstall_component(&component, new_manifest, tx, &notify_handler)?;
+            tx = SyncError::maybe(self.uninstall_component(
+                &component,
+                new_manifest,
+                tx,
+                &notify_handler,
+            ))?;
         }
 
         // Install components
@@ -239,15 +255,25 @@ impl Manifestation {
             };
             let gz;
             let xz;
-            let reader =
-                utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
+            let reader = SyncError::maybe(utils::FileReaderWithProgress::new_file(
+                &installer_file,
+                &notification_converter,
+            ))?;
             let package: &dyn Package = match format {
                 Format::Gz => {
-                    gz = TarGzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
+                    gz = SyncError::maybe(TarGzPackage::new(
+                        reader,
+                        temp_cfg,
+                        Some(&notification_converter),
+                    ))?;
                     &gz
                 }
                 Format::Xz => {
-                    xz = TarXzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
+                    xz = SyncError::maybe(TarXzPackage::new(
+                        reader,
+                        temp_cfg,
+                        Some(&notification_converter),
+                    ))?;
                     &xz
                 }
             };
@@ -255,16 +281,25 @@ impl Manifestation {
             // If the package doesn't contain the component that the
             // manifest says it does then somebody must be playing a joke on us.
             if !package.contains(&pkg_name, Some(&short_pkg_name)) {
-                return Err(ErrorKind::CorruptComponent(short_name).into());
+                return Err(RustupError::CorruptComponent(short_name).into());
             }
 
-            tx = package.install(&self.installation, &pkg_name, Some(&short_pkg_name), tx)?;
+            tx = SyncError::maybe(package.install(
+                &self.installation,
+                &pkg_name,
+                Some(&short_pkg_name),
+                tx,
+            ))?;
         }
 
         // Install new distribution manifest
         let new_manifest_str = new_manifest.clone().stringify();
-        tx.modify_file(rel_installed_manifest_path)?;
-        utils::write_file("manifest", &installed_manifest_path, &new_manifest_str)?;
+        SyncError::maybe(tx.modify_file(rel_installed_manifest_path))?;
+        SyncError::maybe(utils::write_file(
+            "manifest",
+            &installed_manifest_path,
+            &new_manifest_str,
+        ))?;
 
         // Write configuration.
         //
@@ -277,13 +312,13 @@ impl Manifestation {
         let config_str = new_config.stringify();
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
         let config_path = prefix.path().join(&rel_config_path);
-        tx.modify_file(rel_config_path)?;
-        utils::write_file("dist config", &config_path, &config_str)?;
+        SyncError::maybe(tx.modify_file(rel_config_path))?;
+        SyncError::maybe(utils::write_file("dist config", &config_path, &config_str))?;
 
         // End transaction
         tx.commit();
 
-        download_cfg.clean(&things_downloaded)?;
+        SyncError::maybe(download_cfg.clean(&things_downloaded))?;
 
         Ok(UpdateStatus::Changed)
     }
@@ -629,7 +664,11 @@ impl Update {
         self.components_to_uninstall.is_empty() && self.components_to_install.is_empty()
     }
 
-    fn unavailable_components(&self, new_manifest: &Manifest, toolchain_str: &str) -> Result<()> {
+    fn unavailable_components(
+        &self,
+        new_manifest: &Manifest,
+        toolchain_str: &str,
+    ) -> anyhow::Result<()> {
         let mut unavailable_components: Vec<Component> = self
             .components_to_install
             .iter()
@@ -647,11 +686,11 @@ impl Update {
         unavailable_components.extend_from_slice(&self.missing_components);
 
         if !unavailable_components.is_empty() {
-            return Err(ErrorKind::RequestedComponentsUnavailable(
-                unavailable_components,
-                new_manifest.clone(),
-                toolchain_str.to_owned(),
-            )
+            return Err(RustupError::RequestedComponentsUnavailable {
+                components: unavailable_components,
+                manifest: new_manifest.clone(),
+                toolchain: toolchain_str.to_owned(),
+            }
             .into());
         }
 

@@ -248,10 +248,6 @@ error_chain! {
         ComponentFilePermissionsFailed {
             description("error setting file permissions during install")
         }
-        ComponentDownloadFailed(c: String) {
-            description("component download failed")
-            display("component download failed for {}", c)
-        }
         Parsing(e: toml::de::Error) {
             description("error parsing manifest")
         }
@@ -266,14 +262,6 @@ error_chain! {
         MissingPackageForRename(name: String) {
             description("missing package for the target of a rename")
             display("server sent a broken manifest: missing package for the target of a rename {}", name)
-        }
-        MissingReleaseForToolchain(name: String) {
-            description("missing release for a toolchain")
-            display("no release found for '{}'", name)
-        }
-        RequestedComponentsUnavailable(c: Vec<Component>, manifest: Manifest, toolchain: String) {
-            description("some requested components are unavailable to download")
-            display("{}", component_unavailable_msg(&c, &manifest, &toolchain))
         }
         UnknownMetadataVersion(v: String) {
             description("unknown metadata version")
@@ -332,6 +320,13 @@ error_chain! {
 
 #[derive(ThisError, Debug)]
 pub enum RustupError {
+    #[error("component download failed for {}", .component)]
+    ComponentDownloadFailed {
+        component: String,
+        source: SyncError<retry::Error<Error>>,
+    },
+    #[error("component manifest for '{0}' is corrupt")]
+    CorruptComponent(String),
     #[error("invalid toolchain name: '{0}'")]
     InvalidToolchainName(String),
     #[error("Unable to proceed. Could not locate working directory.")]
@@ -350,11 +345,22 @@ pub enum RustupError {
     InvalidPgpKey { path: PathBuf, source: PGPError },
     #[error("Missing manifest in toolchain '{}'", .name)]
     MissingManifest { name: String },
+    #[error("no release found for '{}'", .name)]
+    MissingReleaseForToolchain {
+        name: String,
+        source: SyncError<Error>,
+    },
     #[error("could not remove '{}' directory: '{}'", .name, .path.display())]
     RemovingDirectory {
         name: String,
         path: PathBuf,
         source: io::Error,
+    },
+    #[error("{}", component_unavailable_msg(&.components, &.manifest, &.toolchain))]
+    RequestedComponentsUnavailable {
+        components: Vec<Component>,
+        manifest: Manifest,
+        toolchain: String,
     },
     #[error("toolchain '{0}' is not installed")]
     ToolchainNotInstalled(String),
