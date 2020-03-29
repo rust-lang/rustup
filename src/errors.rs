@@ -312,18 +312,23 @@ error_chain! {
             description("invalid PGP key"),
             display("unable to read the PGP key '{}'", v.display())
         }
-        BrokenPartialFile {
-            description("partially downloaded file may have been damaged and was removed, please try again")
-        }
     }
 }
 
 #[derive(ThisError, Debug)]
 pub enum RustupError {
+    #[error("partially downloaded file may have been damaged and was removed, please try again")]
+    BrokenPartialFile { source: SyncError<Error> },
+    #[error("checksum failed, expected: '{}', calculated: '{}' for '{}'", .expected, .calculated, .url)]
+    ChecksumFailed {
+        url: String,
+        expected: String,
+        calculated: String,
+    },
     #[error("component download failed for {}", .component)]
     ComponentDownloadFailed {
         component: String,
-        source: SyncError<retry::Error<Error>>,
+        source: RetryError<anyhow::Error>,
     },
     #[error("component manifest for '{0}' is corrupt")]
     CorruptComponent(String),
@@ -391,6 +396,30 @@ impl Display for PGPError {
 }
 
 impl Debug for PGPError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.0, f)
+    }
+}
+
+/// TODO: submit a patch to retry
+pub struct RetryError<T>(pub retry::Error<T>)
+where
+    T: std::error::Error + Display + Debug + 'static;
+impl<T: std::error::Error + 'static> std::error::Error for RetryError<T> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self.0 {
+            retry::Error::Operation { ref error, .. } => Some(error),
+            retry::Error::Internal(_) => None,
+        }
+    }
+}
+impl<T: Display + std::error::Error> Display for RetryError<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl<T: Debug> Debug for RetryError<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.0, f)
     }

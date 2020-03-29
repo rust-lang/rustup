@@ -4,6 +4,7 @@ use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::utils;
 
+use anyhow::Context;
 use sha2::{Digest, Sha256};
 use url::Url;
 
@@ -39,23 +40,23 @@ impl<'a> DownloadCfg<'a> {
     /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
     /// target file already exists, then the hash is checked and it is returned
     /// immediately without re-downloading.
-    pub fn download(&self, url: &Url, hash: &str) -> Result<File> {
-        utils::ensure_dir_exists(
+    pub fn download(&self, url: &Url, hash: &str) -> anyhow::Result<File> {
+        SyncError::maybe(utils::ensure_dir_exists(
             "Download Directory",
             &self.download_dir,
             &self.notify_handler,
-        )?;
+        ))?;
         let target_file = self.download_dir.join(Path::new(hash));
 
         if target_file.exists() {
-            let cached_result = file_hash(&target_file, self.notify_handler)?;
+            let cached_result = SyncError::maybe(file_hash(&target_file, self.notify_handler))?;
             if hash == cached_result {
                 (self.notify_handler)(Notification::FileAlreadyDownloaded);
                 (self.notify_handler)(Notification::ChecksumValid(&url.to_string()));
                 return Ok(File { path: target_file });
             } else {
                 (self.notify_handler)(Notification::CachedFileChecksumFailed);
-                fs::remove_file(&target_file).chain_err(|| "cleaning up previous download")?;
+                fs::remove_file(&target_file).context("cleaning up previous download")?;
             }
         }
 
@@ -80,9 +81,13 @@ impl<'a> DownloadCfg<'a> {
             &|n| (self.notify_handler)(n.into()),
         ) {
             if partial_file_existed {
-                return Err(e).chain_err(|| ErrorKind::BrokenPartialFile);
+                return Err(e)
+                    .map_err(|e| RustupError::BrokenPartialFile {
+                        source: SyncError::new(e),
+                    })
+                    .map_err(Into::into);
             } else {
-                return Err(e);
+                return Err(e).map_err(SyncError::new).map_err(Into::into);
             }
         };
 
@@ -91,10 +96,10 @@ impl<'a> DownloadCfg<'a> {
         if hash != actual_hash {
             // Incorrect hash
             if partial_file_existed {
-                self.clean(&[hash.to_string() + &".partial".to_string()])?;
+                SyncError::maybe(self.clean(&[hash.to_string() + &".partial".to_string()]))?;
                 Err(ErrorKind::BrokenPartialFile.into())
             } else {
-                Err(ErrorKind::ChecksumFailed {
+                Err(RustupError::ChecksumFailed {
                     url: url.to_string(),
                     expected: hash.to_string(),
                     calculated: actual_hash,
@@ -104,12 +109,12 @@ impl<'a> DownloadCfg<'a> {
         } else {
             (self.notify_handler)(Notification::ChecksumValid(&url.to_string()));
 
-            utils::rename_file(
+            SyncError::maybe(utils::rename_file(
                 "downloaded",
                 &partial_file_path,
                 &target_file,
                 self.notify_handler,
-            )?;
+            ))?;
             Ok(File { path: target_file })
         }
     }
