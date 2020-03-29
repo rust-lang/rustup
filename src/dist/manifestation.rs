@@ -185,20 +185,27 @@ impl Manifestation {
             let downloaded_file = retry(NoDelay.take(max_retries), || {
                 match download_cfg.download(&url_url, &hash) {
                     Ok(f) => OperationResult::Ok(f),
-                    Err(e) => match e.kind() {
-                        // If there was a broken partial file, try again
-                        ErrorKind::DownloadingFile { .. } | ErrorKind::BrokenPartialFile => {
-                            notify_handler(Notification::RetryingDownload(&url));
-                            OperationResult::Retry(e)
-                        }
+                    Err(e) => {
+                        let e: anyhow::Result<RustupError, _> = e.downcast();
+                        match e {
+                            Err(e) => OperationResult::Err(e),
+                            Ok(e) => match e {
+                                // If there was a broken partial file, try again
+                                RustupError::DownloadingFile { .. }
+                                | RustupError::BrokenPartialFile { .. } => {
+                                    notify_handler(Notification::RetryingDownload(&url));
+                                    OperationResult::Retry(e.into())
+                                }
 
-                        _ => OperationResult::Err(e),
-                    },
+                                _ => OperationResult::Err(e.into()),
+                            },
+                        }
+                    }
                 }
             })
             .map_err(|e| RustupError::ComponentDownloadFailed {
                 component: component.name(new_manifest),
-                source: SyncError::new(e),
+                source: SyncError::new(e.into()).into(),
             })?;
 
             things_downloaded.push(hash);

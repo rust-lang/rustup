@@ -328,7 +328,7 @@ pub enum RustupError {
     #[error("component download failed for {}", .component)]
     ComponentDownloadFailed {
         component: String,
-        source: RetryError<anyhow::Error>,
+        source: Box<dyn std::error::Error + Send + Sync + 'static>,
     },
     #[error("component manifest for '{0}' is corrupt")]
     CorruptComponent(String),
@@ -405,6 +405,7 @@ impl Debug for PGPError {
 pub struct RetryError<T>(pub retry::Error<T>)
 where
     T: std::error::Error + Display + Debug + 'static;
+
 impl<T: std::error::Error + 'static> std::error::Error for RetryError<T> {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self.0 {
@@ -413,13 +414,14 @@ impl<T: std::error::Error + 'static> std::error::Error for RetryError<T> {
         }
     }
 }
+
 impl<T: Display + std::error::Error> Display for RetryError<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, f)
     }
 }
 
-impl<T: Debug> Debug for RetryError<T> {
+impl<T: Debug + std::error::Error> Debug for RetryError<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.0, f)
     }
