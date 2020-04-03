@@ -360,10 +360,14 @@ pub fn cli() -> App<'static, 'static> {
                         .after_help(TOOLCHAIN_LINK_HELP)
                         .arg(
                             Arg::with_name("toolchain")
-                                .help(TOOLCHAIN_ARG_HELP)
+                                .help("Custom toolchain name")
                                 .required(true),
                         )
-                        .arg(Arg::with_name("path").required(true)),
+                        .arg(
+                            Arg::with_name("path")
+                                .help("Path to the directory")
+                                .required(true),
+                        ),
                 ),
         )
         .subcommand(
