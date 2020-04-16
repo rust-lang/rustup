@@ -41,6 +41,7 @@ use rustup::utils::Notification;
 use rustup::{Cfg, UpdateStatus};
 use rustup::{DUP_TOOLS, TOOLS};
 use same_file::Handle;
+use std::borrow::Cow;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
@@ -65,7 +66,7 @@ pub const NEVER_SELF_UPDATE: bool = false;
 // argument of format! needs to be a literal.
 
 macro_rules! pre_install_msg_template {
-    ($platform_msg: expr) => {
+    ($platform_msg:literal) => {
         concat!(
             r"
 # Welcome to Rust!
@@ -215,22 +216,21 @@ static UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
 
 /// `CARGO_HOME` suitable for display, possibly with $HOME
 /// substituted for the directory prefix
-fn canonical_cargo_home() -> Result<String> {
+fn canonical_cargo_home() -> Result<Cow<'static, str>> {
     let path = utils::cargo_home()?;
-    let mut path_str = path.to_string_lossy().into_owned();
 
     let default_cargo_home = utils::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".cargo");
-    if default_cargo_home == path {
+    Ok(if default_cargo_home == path {
         if cfg!(unix) {
-            path_str = String::from("$HOME/.cargo");
+            "$HOME/.cargo".into()
         } else {
-            path_str = String::from(r"%USERPROFILE%\.cargo");
+            r"%USERPROFILE%\.cargo".into()
         }
-    }
-
-    Ok(path_str)
+    } else {
+        path.to_string_lossy().into_owned().into()
+    })
 }
 
 /// Installing is a simple matter of copying the running binary to
@@ -327,22 +327,19 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
     }
 
     let cargo_home = canonical_cargo_home()?;
-    let msg = if !opts.no_modify_path {
-        if cfg!(unix) {
-            format!(post_install_msg_unix!(), cargo_home = cargo_home)
-        } else {
-            format!(post_install_msg_win!(), cargo_home = cargo_home)
-        }
-    } else if cfg!(unix) {
-        format!(
+    #[cfg(windows)]
+    let cargo_home = cargo_home.replace('\\', r"\\");
+    let msg = match (opts.no_modify_path, cfg!(unix)) {
+        (false, true) => format!(post_install_msg_unix!(), cargo_home = cargo_home),
+        (false, false) => format!(post_install_msg_win!(), cargo_home = cargo_home),
+        (true, true) => format!(
             post_install_msg_unix_no_modify_path!(),
             cargo_home = cargo_home
-        )
-    } else {
-        format!(
+        ),
+        (true, false) => format!(
             post_install_msg_win_no_modify_path!(),
             cargo_home = cargo_home
-        )
+        ),
     };
     md(&mut term, msg);
 
