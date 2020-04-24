@@ -980,6 +980,8 @@ pub fn this_host_triple() -> String {
             "i686"
         } else if cfg!(target_arch = "x86_64") {
             "x86_64"
+        } else if cfg!(target_arch = "riscv64") {
+            "riscv64gc"
         } else {
             unimplemented!()
         };

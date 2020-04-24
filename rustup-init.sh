@@ -295,7 +295,9 @@ get_architecture() {
         s390x)
             _cputype=s390x
             ;;
-
+        riscv64)
+            _cputype=riscv64gc
+            ;;
         *)
             err "unknown CPU type: $_cputype"
 
@@ -320,6 +322,9 @@ get_architecture() {
                 else
                     _ostype="${_ostype}eabihf"
                 fi
+                ;;
+            riscv64gc)
+                err "riscv64 with 32-bit userland unsupported"
                 ;;
         esac
     fi

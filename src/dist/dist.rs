@@ -90,6 +90,7 @@ static LIST_ARCHS: &[&str] = &[
     "powerpc",
     "powerpc64",
     "powerpc64le",
+    "riscv64gc",
     "s390x",
 ];
 static LIST_OSES: &[&str] = &[
