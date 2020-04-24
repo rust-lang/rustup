@@ -22,7 +22,6 @@ pub const TOOLSTATE_MSG: &str =
 error_chain! {
     links {
         Download(download::Error, download::ErrorKind);
-        Limits(effective_limits::Error, effective_limits::ErrorKind);
     }
 
     foreign_links {
@@ -30,6 +29,7 @@ error_chain! {
         Io(io::Error);
         Open(opener::OpenError);
         Thread(std::sync::mpsc::RecvError);
+        Limits(effective_limits::Error);
     }
 
     errors {
