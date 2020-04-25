@@ -107,15 +107,14 @@ jobs:
           fi
       - name: Run the build within the docker image
         run: |
-          HERE=$(pwd)
-          mkdir -p "${HERE}/target"
-          chown -R "$(id -u)":"$(id -g)" "${HERE}/target"
+          mkdir -p "${PWD}/target"
+          chown -R "$(id -u)":"$(id -g)" "${PWD}/target"
           docker run \
             --entrypoint sh \
             --user "$(id -u)":"$(id -g)" \
             --volume "$(rustc --print sysroot)":/rustc-sysroot:ro \
-            --volume "${HERE}":/checkout:ro \
-            --volume "${HERE}"/target:/checkout/target \
+            --volume "${PWD}":/checkout:ro \
+            --volume "${PWD}"/target:/checkout/target \
             --workdir /checkout \
             --env TARGET="${TARGET}" \
             --env SKIP_TESTS="${SKIP_TESTS}" \
