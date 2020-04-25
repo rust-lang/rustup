@@ -96,6 +96,17 @@ jobs:
       - name: Install the target
         run: |
           rustup target install ${{ matrix.target }}
+      # Why?
+      # On my local machine:
+      #   - a LTO build (roughly) takes 3m42s.
+      #   - a non-LTO build takes 1m10s.
+      # FIXME: Use stabilized cargo named-profiles on futures
+      # https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#custom-named-profiles
+      - name: Disable LTO for non-stable build
+        run: |
+          sed -i 's@^lto@#lto@; s@^codegen@#codegen@;' Cargo.toml
+        shell: bash
+        if: github.ref != 'refs/heads/stable'
       - name: Run a full build
         run: |
           cargo build --release --target ${{ matrix.target }} --locked
