@@ -74,19 +74,23 @@ macro_rules! pre_install_msg_template {
 This will download and install the official compiler for the Rust
 programming language, and its package manager, Cargo.
 
-It will add the `cargo`, `rustc`, `rustup` and other commands to
-Cargo's bin directory, located at:
-
-    {cargo_home_bin}
-
-This can be modified with the CARGO_HOME environment variable.
-
 Rustup metadata and toolchains will be installed into the Rustup
 home directory, located at:
 
     {rustup_home}
 
 This can be modified with the RUSTUP_HOME environment variable.
+
+The Cargo home directory located at:
+
+    {cargo_home}
+
+This can be modified with the CARGO_HOME environment variable.
+
+The `cargo`, `rustc`, `rustup` and other commands will be added to
+Cargo's bin directory, located at:
+
+    {cargo_home_bin}
 
 ",
             $platform_msg,
@@ -562,6 +566,7 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
             let rcfiles = rcfiles.join("\n");
             Ok(format!(
                 pre_install_msg_unix!(),
+                cargo_home = cargo_home.display(),
                 cargo_home_bin = cargo_home_bin.display(),
                 plural = plural,
                 rcfiles = rcfiles,
@@ -570,6 +575,7 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
         } else {
             Ok(format!(
                 pre_install_msg_win!(),
+                cargo_home = cargo_home.display(),
                 cargo_home_bin = cargo_home_bin.display(),
                 rustup_home = rustup_home.display(),
             ))
@@ -577,6 +583,7 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
     } else {
         Ok(format!(
             pre_install_msg_no_modify_path!(),
+            cargo_home = cargo_home.display(),
             cargo_home_bin = cargo_home_bin.display(),
             rustup_home = rustup_home.display(),
         ))
