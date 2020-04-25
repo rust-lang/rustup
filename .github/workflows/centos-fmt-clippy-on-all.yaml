@@ -58,11 +58,8 @@ jobs:
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
       - name: Ensure Beta is up to date
         run: |
-          if rustc +beta -vV >/dev/null 2>/dev/null; then
-            rustup toolchain uninstall beta
-          fi
-          rustup toolchain install --profile=minimal beta
           rustup default beta
+          rustup update beta
       - name: Ensure we have the components we need
         run: |
           rustup component add rustfmt
