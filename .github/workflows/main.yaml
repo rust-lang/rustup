@@ -1,0 +1,260 @@
+on:
+  push:
+    branches:
+      - master
+      - stable
+  pull_request:
+    branches:
+      - "*"
+  schedule: # Always run on default branch (should be master)
+    - cron: "30 0 * * 1" # At 00:30 on Monday
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    env:
+      RUSTFLAGS: -Ctarget-feature=+crt-static
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            run_tests: true
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+          - os: ubuntu-latest
+            target: aarch64-linux-android
+
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            if: github.event_name != 'pull_request'
+          - os: ubuntu-latest
+            target: powerpc64-unknown-linux-gnu
+            if: github.event_name != 'pull_request'
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            if: github.event_name != 'pull_request'
+
+          - os: ubuntu-latest
+            target: i686-unknown-linux-gnu
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: arm-unknown-linux-gnueabi
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: arm-unknown-linux-gnueabihf
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: x86_64-unknown-freebsd
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: x86_64-unknown-netbsd
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: powerpc-unknown-linux-gnu
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: powerpc64le-unknown-linux-gnu
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: mips-unknown-linux-gnu
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: mips64-unknown-linux-gnuabi64
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: mipsel-unknown-linux-gnu
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: mips64el-unknown-linux-gnuabi64
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: s390x-unknown-linux-gnu
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: arm-linux-androideabi
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: armv7-linux-androideabi
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: i686-linux-android
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+          - os: ubuntu-latest
+            target: x86_64-linux-android
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            MACOSX_DEPLOYMENT_TARGET: 10.7
+            run_tests: true
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            run_tests: true
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+            run_tests: true
+          - os: windows-latest
+            target: x86_64-pc-windows-gnu
+            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-4.9.2-release-win32-seh-rt_v4-rev4.7z
+            mingwdir: mingw64
+            if: github.event_name != 'pull_request'
+            run_tests: true
+          - os: windows-latest
+            run_tests: true
+            target: i686-pc-windows-gnu
+            mingwdir: mingw32
+            mingw: https://ci-mirrors.rust-lang.org/rustc/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z
+            if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # v2 defaults to a shallow checkout, but we need at least to the previous tag
+          fetch-depth: 0
+      - name: Acquire tags for the repo
+        run: |
+          git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
+      - name: Display the current git status
+        run: |
+          git status
+          git describe
+
+      # Caching stuff
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache cargo index
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      - name: Get rustc commit hash
+        id: cargo-target-cache
+        run: |
+          echo "::set-output name=rust_hash::$(rustc -Vv | grep commit-hash | awk '{print $2}')"
+        shell: bash
+      - name: Cache build dir
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Set environment variables appropriately for the build
+        run: |
+          echo "::set-env name=TARGET::${{ matrix.target }}"
+          if [ ${{ matrix.run_tests }} != true]; then
+            echo "::set-env name=SKIP_TESTS::YES"
+          fi
+        shell: bash
+
+      # We retrieve mingw from the Rust CI buckets
+      - name: Install mingw
+        # Disable the download progress bar which can cause perf issues
+        run: |
+          $ProgressPreference = "SilentlyContinue"
+          Invoke-WebRequest ${{ matrix.mingw }} -OutFile mingw.7z
+          7z x -y mingw.7z -oC:\msys64 | Out-Null
+          del mingw.7z
+          echo ::add-path::C:\msys64\usr\bin
+          echo ::add-path::C:\msys64\${{ matrix.mingwdir }}\bin
+        shell: powershell
+        if: matrix.mingw
+
+      - name: Install Rustup using win.rustup.rs
+        run: |
+          # Disable the download progress bar which can cause perf issues
+          $ProgressPreference = "SilentlyContinue"
+          Invoke-WebRequest https://win.rustup.rs/ -OutFile rustup-init.exe
+          .\rustup-init.exe -y --default-host=x86_64-pc-windows-msvc --profile=minimal
+          del rustup-init.exe
+        shell: powershell
+        if: startsWith(runner.os, 'Windows')
+      - name: Install Rustup using ./rustup-init.sh
+        run: |
+          sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
+        if: !startsWith(runner.os, 'Windows')
+
+      - name: Ensure Rust toolchain is up to date
+        run: rustup update stable
+      - name: Install the target
+        run: rustup target install ${{ matrix.target }}
+
+      # Run the full build
+      - run: |
+          DOCKER=
+          case "$TARGET" in
+            *-linux-android*) DOCKER=android    ;; # Android uses a local docker image
+            *-apple-*)                          ;;
+            *-windows-*)                        ;;
+            *)                DOCKER="$TARGET"  ;;
+          esac
+          echo "::set-env name=DOCKER::$DOCKER"
+        shell: bash
+      - run: |
+          [[ -n "$DOCKER" ]] && bash ci/fetch-rust-docker.bash "${TARGET}"
+        shell: bash
+      - run: |
+          [[ -n "$DOCKER" ]] && docker build -t "$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
+        shell: bash
+      - run: |
+          if [[ -n "$DOCKER" ]]; then
+            mkdir -p "${PWD}/target"
+            chown -R "$(id -u)":"$(id -g)" "${PWD}/target"
+            docker run \
+              --entrypoint sh \
+              --user "$(id -u)":"$(id -g)" \
+              --volume "$(rustc --print sysroot)":/rustc-sysroot:ro \
+              --volume "${PWD}":/checkout:ro \
+              --volume "${PWD}"/target:/checkout/target \
+              --workdir /checkout \
+              --env TARGET="${TARGET}" \
+              --env SKIP_TESTS="${SKIP_TESTS}" \
+              --volume "${HOME}/.cargo:/cargo" \
+              --env CARGO_HOME=/cargo \
+              --env CARGO_TARGET_DIR=/checkout/target \
+              --env LIBZ_SYS_STATIC=1 \
+              --tty \
+              --init \
+              --rm \
+              "${DOCKER}" \
+              -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
+          fi
+        shell: bash
+      - run: |
+          [[ -z "$DOCKER" ]] && bash ci/run.bash
+        shell: bash
+
+      # Deploy steps
+      - name: Acquire the AWS tooling
+        run: |
+          pip3 install -U setuptools
+          pip3 install awscli
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+      - name: Prepare the dist and deploy (Windows)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && startsWith(runner.os, 'Windows')
+        run: |
+          powershell -File .\ci\prepare-deploy.ps1
+          aws s3 cp --recursive dist s3://dev-static-rust-lang-org/rustup/dist
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Prepare the dist and deploy (*nix)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && !startsWith(runner.os, 'Windows')
+        run: |
+          bash ci/prepare-deploy.bash
+          aws s3 cp --recursive deploy/ s3://dev-static-rust-lang-org/rustup/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Clear the cargo caches
+        run: |
+          cargo install cargo-cache --no-default-features --features ci-autoclean
+          cargo-cache
