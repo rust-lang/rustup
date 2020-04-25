@@ -1176,9 +1176,9 @@ checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 
 [[package]]
 name = "pgp"
-version = "0.4.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43b7d0c384368631ebc10d9484a71cdc728966dfb25fd82cb1d51b19dda3ec2e"
+checksum = "8172973101790c866e66966002bf1028d0df27bf6b3b29be86a6fd440d8a4285"
 dependencies = [
  "aes",
  "base64",
