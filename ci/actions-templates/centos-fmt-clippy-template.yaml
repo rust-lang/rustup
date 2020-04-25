@@ -69,9 +69,8 @@ jobs:
           rustup component add clippy
       - name: Run the centos check within the docker image
         run: |
-          HERE=$(pwd)
           docker run \
-            --volume "$HERE":/checkout:ro \
+            --volume "$PWD":/checkout:ro \
             --workdir /checkout \
             --tty \
             --init \
