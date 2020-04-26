@@ -24,11 +24,11 @@ jobs:
           - x86_64-pc-windows-gnu # skip-pr
         include:
           - target: x86_64-pc-windows-gnu
-            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-4.9.2-release-win32-seh-rt_v4-rev4.7z
+            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z
             mingwdir: mingw64
           - target: i686-pc-windows-gnu
             mingwdir: mingw32
-            mingw: https://ci-mirrors.rust-lang.org/rustc/i686-4.9.2-release-win32-dwarf-rt_v4-rev4.7z
+            mingw: https://ci-mirrors.rust-lang.org/rustc/i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z
     steps:
       - uses: actions/checkout@v2
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
