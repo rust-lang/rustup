@@ -9,10 +9,10 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process;
 
-pub fn main() -> Result<()> {
+pub fn main(name: &str) -> Result<()> {
     crate::self_update::cleanup_self_updater()?;
 
-    let ExitCode(c) = {
+    let (help, ExitCode(c)) = {
         let _setup = job::setup();
 
         let mut args = env::args_os();
@@ -38,12 +38,22 @@ pub fn main() -> Result<()> {
         } else {
             env::args_os().skip(2).collect()
         };
+        let help = cmd_args.is_empty()
+            || cmd_args == &["help"]
+            || cmd_args == &["--help"]
+            || cmd_args == &["-h"];
 
         let cfg = set_globals(false, true)?;
         cfg.check_metadata_version()?;
-        direct_proxy(&cfg, &arg0, toolchain, &cmd_args)?
+        (help, direct_proxy(&cfg, &arg0, toolchain, &cmd_args)?)
     };
 
+    if help {
+        println!(
+            "\nThis proxy of {} supports an additional +toolchain option, see `rustup help`.",
+            name
+        );
+    }
     process::exit(c)
 }
 
