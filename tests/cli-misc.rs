@@ -5,9 +5,9 @@ pub mod mock;
 
 use crate::mock::clitools::{
     self, expect_component_executable, expect_component_not_executable, expect_err,
-    expect_not_stderr_ok, expect_ok, expect_ok_contains, expect_ok_eq, expect_ok_ex,
-    expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date, this_host_triple, Config,
-    Scenario,
+    expect_not_stderr_ok, expect_not_stdout_err, expect_ok, expect_ok_contains, expect_ok_eq,
+    expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date, this_host_triple,
+    Config, Scenario,
 };
 use rustup::utils::{raw, utils};
 
@@ -264,6 +264,27 @@ fn custom_toolchain_cargo_fallback_run() {
             &["rustup", "run", "mytoolchain", "cargo", "--version"],
             "hash-nightly-2",
         );
+    });
+}
+
+#[test]
+fn help_on_normal_proxy() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_stdout_ok(
+            config,
+            &["cargo", "--help"],
+            "Normal help output\n\nThis proxy of cargo ",
+        );
+    });
+}
+
+#[test]
+fn help_on_missing_proxy() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(config, &["rustup", "component", "remove", "cargo"]);
+        expect_not_stdout_err(config, &["cargo", "--help"], "This proxy");
     });
 }
 

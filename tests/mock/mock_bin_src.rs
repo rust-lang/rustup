@@ -67,6 +67,9 @@ fn main() {
                 writeln!(out, "{}", arg.to_string_lossy()).unwrap();
             }
         }
+        Some("--help") => {
+            writeln!(io::stdout(), "Normal help output").unwrap();
+        }
         _ => panic!("bad mock proxy commandline"),
     }
 }

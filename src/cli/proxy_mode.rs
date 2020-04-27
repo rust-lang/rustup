@@ -38,19 +38,16 @@ pub fn main(name: &str) -> Result<()> {
         } else {
             env::args_os().skip(2).collect()
         };
-        let help = cmd_args.is_empty()
-            || cmd_args == &["help"]
-            || cmd_args == &["--help"]
-            || cmd_args == &["-h"];
+        let help = cmd_args.is_empty() || cmd_args[0] == "--help" || cmd_args[0] == "-h";
 
         let cfg = set_globals(false, true)?;
         cfg.check_metadata_version()?;
         (help, direct_proxy(&cfg, &arg0, toolchain, &cmd_args)?)
     };
 
-    if help {
+    if help && c == 0 {
         println!(
-            "\nThis proxy of {} supports an additional +toolchain option, see `rustup help`.",
+            "\nThis proxy of {} also supports a +toolchain shorthand, see `rustup help run`.",
             name
         );
     }
