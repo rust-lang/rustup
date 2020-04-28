@@ -773,6 +773,39 @@ fn list_default_toolchain() {
 }
 
 #[test]
+fn list_override_toolchain() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "override", "set", "nightly"]);
+        expect_ok_ex(
+            config,
+            &["rustup", "toolchain", "list"],
+            for_host!(
+                r"nightly-{0} (override)
+"
+            ),
+            r"",
+        );
+    });
+}
+
+#[test]
+fn list_default_and_override_toolchain() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "override", "set", "nightly"]);
+        expect_ok_ex(
+            config,
+            &["rustup", "toolchain", "list"],
+            for_host!(
+                r"nightly-{0} (default) (override)
+"
+            ),
+            r"",
+        );
+    });
+}
+
+#[test]
 #[ignore = "FIXME: Windows shows UNC paths"]
 fn show_toolchain_override() {
     setup(&|config| {
