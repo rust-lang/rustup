@@ -1,8 +1,12 @@
-#!/bin/bash
+#!/bin/sh
+# shellcheck shell=dash
 
 # This is just a little script that can be downloaded from the internet to
 # install rustup. It just does platform detection, downloads the installer
 # and runs it.
+
+# It runs on Unix shells like {a,ba,da,k,z}sh. It uses the common `local`
+# extension. Note: Most shells limit `local` to 1 var per line, contra bash.
 
 set -u
 
