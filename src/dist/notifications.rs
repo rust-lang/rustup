@@ -176,8 +176,13 @@ impl<'a> Display for Notification<'a> {
             ),
             SkippingNightlyMissingComponent(components) => write!(
                 f,
-                "skipping nightly which is missing installed component '{}'",
-                components[0].short_name_in_manifest()
+                "skipping nightly which is missing installed component{} '{}'",
+                if components.len() > 1 { "s" } else { "" },
+                components
+                    .iter()
+                    .map(|component| component.short_name_in_manifest().to_owned())
+                    .collect::<Vec<_>>()
+                    .join("', '")
             ),
             ForcingUnavailableComponent(component) => {
                 write!(f, "Force-skipping unavailable component '{}'", component)
