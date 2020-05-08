@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # This is just a little script that can be downloaded from the internet to
 # install rustup. It just does platform detection, downloads the installer
