@@ -41,6 +41,17 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             run_tests: YES
+            snap_arch: amd64
+          - target: i686-unknown-linux-gnu # skip-pr skip-master
+            snap_arch: i386  # skip-pr skip-master
+          - target: aarch64-unknown-linux-gnu # skip-pr
+            snap_arch: arm64 # skip-pr
+          - target: armv7-unknown-linux-gnueabihf
+            snap_arch: armhf
+          - target: powerpc64le-unknown-linux-gnu # skip-pr skip-master
+            snap_arch: ppc64el # skip-pr skip-master
+          - target: s390x-unknown-linux-gnu # skip-pr skip-master
+            snap_arch: s390x # skip-pr skip-master
     steps:
       - uses: actions/checkout@v2
         with:
@@ -148,6 +159,24 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
+      - name: Build a snapcraft configuration file
+        run: |
+          bash ci/snapcraft.bash
+        if: matrix.snap_arch != ''
+        env:
+          DO_SNAP: 1
+          SNAP_ARCH: ${{ matrix.snap_arch }}
+      - uses: snapcore/action-build@v1
+        id: snapcraftbuild
+        with:
+          path: snapcraft
+        if: matrix.snap_arch != ''
+      - uses: snapcore/action-publish@v1
+        with:
+          store_login: ${{ secrets.SNAPCRAFT_TOKEN }}
+          snap: ${{ steps.snapcraftbuild.outputs.snap }}
+          release: beta # skip-pr skip-master
+        if: matrix.snap_arch != '' # skip-pr
       - name: Clear the cargo caches
         run: |
           cargo install cargo-cache --no-default-features --features ci-autoclean
