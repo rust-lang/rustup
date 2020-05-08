@@ -44,17 +44,28 @@ pub struct Config {
 // Building the mock server is slow, so use simple scenario when possible.
 #[derive(PartialEq, Copy, Clone)]
 pub enum Scenario {
-    Full,             // Two dates, two manifests
-    ArchivesV2,       // Two dates, v2 manifests
-    ArchivesV1,       // Two dates, v1 manifests
-    SimpleV2,         // One date, v2 manifests
-    SimpleV1,         // One date, v1 manifests
-    MultiHost,        // One date, v2 manifests, MULTI_ARCH1 host
-    Unavailable,      // Two dates, v2 manifests, everything unavailable in second date.
-    UnavailableRls,   // Two dates, v2 manifests, RLS unavailable in first date, restored on second.
-    MissingComponent, // Three dates, v2 manifests, RLS available in first and last, not middle
-    MissingNightly,   // Three dates, v2 manifests, RLS available in first, middle missing nightly
-    HostGoesMissing,  // Two dates, v2 manifests, host and MULTI_ARCH1 in first, host not in second
+    /// Two dates, two manifests
+    Full,
+    /// Two dates, v2 manifests
+    ArchivesV2,
+    /// Two dates, v1 manifests
+    ArchivesV1,
+    /// One date, v2 manifests
+    SimpleV2,
+    /// One date, v1 manifests
+    SimpleV1,
+    /// One date, v2 manifests, MULTI_ARCH1 host
+    MultiHost,
+    /// Two dates, v2 manifests, everything unavailable in second date.
+    Unavailable,
+    /// Two dates, v2 manifests, RLS unavailable in first date, restored on second.
+    UnavailableRls,
+    /// Three dates, v2 manifests, RLS available in first and last, not middle
+    MissingComponent,
+    /// Three dates, v2 manifests, RLS available in first, middle missing nightly
+    MissingNightly,
+    /// Two dates, v2 manifests, host and MULTI_ARCH1 in first, host not in second
+    HostGoesMissing,
 }
 
 pub static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
