@@ -12,24 +12,24 @@ use std::path::Path;
 use std::sync::Arc;
 
 // Mock of the on-disk structure of rust-installer installers
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct MockInstallerBuilder {
     pub components: Vec<MockComponentBuilder>,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct MockComponentBuilder {
     pub name: String,
     pub files: Vec<MockFile>,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct MockFile {
     path: String,
     contents: Contents,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 enum Contents {
     File(MockContents),
     Dir(Vec<(&'static str, MockContents)>),
@@ -39,6 +39,15 @@ enum Contents {
 struct MockContents {
     contents: Arc<Vec<u8>>,
     executable: bool,
+}
+
+impl std::fmt::Debug for MockContents {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("MockContents")
+            .field("content_len", &self.contents.len())
+            .field("executable", &self.executable)
+            .finish()
+    }
 }
 
 impl MockInstallerBuilder {
