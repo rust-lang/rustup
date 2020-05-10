@@ -133,12 +133,14 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     let rustc_path = config.exedir.join(format!("rustc{}", EXE_SUFFIX));
     let cargo_path = config.exedir.join(format!("cargo{}", EXE_SUFFIX));
     let rls_path = config.exedir.join(format!("rls{}", EXE_SUFFIX));
+    let rust_lldb_path = config.exedir.join(format!("rust-lldb{}", EXE_SUFFIX));
 
     copy_binary(&build_path, &rustup_path).unwrap();
     hard_link(&rustup_path, setup_path).unwrap();
     hard_link(&rustup_path, rustc_path).unwrap();
     hard_link(&rustup_path, cargo_path).unwrap();
     hard_link(&rustup_path, rls_path).unwrap();
+    hard_link(&rustup_path, rust_lldb_path).unwrap();
 
     // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
