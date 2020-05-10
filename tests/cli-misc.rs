@@ -484,6 +484,23 @@ fn run_rls_when_not_installed() {
 }
 
 #[test]
+fn run_rust_lldb_when_not_in_toolchain() {
+    clitools::setup(Scenario::UnavailableRls, &|config| {
+        set_current_dist_date(config, "2015-01-01");
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_err(
+            config,
+            &["rust-lldb", "--version"],
+            &format!(
+                "the 'rust-lldb{}' binary, normally provided by the 'rustc' component, is not applicable to the 'nightly-{}' toolchain",
+                EXE_SUFFIX,
+                this_host_triple(),
+            ),
+        );
+    });
+}
+
+#[test]
 fn rename_rls_before() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");

@@ -297,6 +297,14 @@ impl<'a> InstalledCommonToolchain<'a> {
                             )
                             .into());
                         }
+                        if component_status.installed {
+                            return Err(ErrorKind::BinaryNotProvidedByComponent(
+                                component_status.component.short_name(&manifest),
+                                binary_lossy,
+                                self.0.name.clone(),
+                            )
+                            .into());
+                        }
                     }
                 }
                 let defaults = self.0.cfg.get_default()?;
