@@ -10,7 +10,7 @@ set -e
 TARGET="$1"
 
 RUST_REPO="https://github.com/rust-lang/rust"
-S3_BASE_URL="https://rust-lang-ci2.s3.amazonaws.com/rustc-builds"
+ARTIFACTS_BASE_URL="https://ci-artifacts.rust-lang.org/rustc-builds"
 LOCAL_DOCKER_TAG="rust-$TARGET"
 
 # Use images from rustc master
@@ -36,7 +36,7 @@ case "$TARGET" in
 esac
 
 master=$(git ls-remote "$RUST_REPO" refs/heads/master | cut -f1)
-image_url="$S3_BASE_URL/$master/image-$image.txt"
+image_url="$ARTIFACTS_BASE_URL/$master/image-$image.txt"
 info="/tmp/image-$image.txt"
 
 rm -f "$info"
