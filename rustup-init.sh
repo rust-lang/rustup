@@ -428,11 +428,9 @@ check_help_for() {
     local _arch
     local _cmd
     local _arg
-    local _ok
     _arch="$1"
     shift
     _cmd="$1"
-    _ok="y"
     shift
 
     case "$_arch" in
@@ -444,7 +442,7 @@ check_help_for() {
             if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
                 # Older than 10.13
                 echo "Warning: Detected OS X platform older than 10.13"
-                _ok="n"
+                return 1
             fi
         fi
         ;;
@@ -453,11 +451,11 @@ check_help_for() {
 
     for _arg in "$@"; do
         if ! "$_cmd" --help | grep -q -- "$_arg"; then
-            _ok="n"
+            return 1
         fi
     done
 
-    test "$_ok" = "y"
+    true # not strictly needed
 }
 
 # Return cipher suite string specified by user, otherwise return strong TLS 1.2-1.3 cipher suites
