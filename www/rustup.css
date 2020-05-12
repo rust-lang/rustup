@@ -105,11 +105,11 @@ hr {
     margin-bottom: 2em;
 }
 
-#platform-instructions-unix > pre,
-#platform-instructions-win32 > pre,
-#platform-instructions-win64 > pre,
-#platform-instructions-default > div > pre,
-#platform-instructions-unknown > div > pre {
+#platform-instructions-unix > div > pre,
+#platform-instructions-win32 > div > pre,
+#platform-instructions-win64 > div > pre,
+#platform-instructions-default > div > div > pre,
+#platform-instructions-unknown > div > div > pre {
     background-color: #515151;
     color: white;
     margin-left: auto;
@@ -121,6 +121,46 @@ hr {
     box-shadow: inset 0px 0px 20px 0px #333333;
     overflow-x: scroll;
     font-size: 0.6em;
+    height: 27px;
+}
+
+#platform-instructions-unix div.copy-container,
+#platform-instructions-win32 div.copy-container,
+#platform-instructions-win64 div.copy-container,
+#platform-instructions-default div.copy-container,
+#platform-instructions-unknown div.copy-container {
+    display: flex;
+    align-items: center;
+}
+
+#platform-instructions-unix button.copy-button,
+#platform-instructions-win32 button.copy-button,
+#platform-instructions-win64 button.copy-button,
+#platform-instructions-default button.copy-button,
+#platform-instructions-unknown button.copy-button {
+    height: 60px;
+    margin: 1px;
+    padding-right: 5px;
+    border-radius: 3px;
+}
+
+#platform-instructions-unix div.copy-icon,
+#platform-instructions-win32 div.copy-icon,
+#platform-instructions-win64 div.copy-icon,
+#platform-instructions-default div.copy-icon,
+#platform-instructions-unknown div.copy-icon {
+    margin-top: 12px;
+}
+
+#platform-instructions-unix div.copy-button-text,
+#platform-instructions-win32 div.copy-button-text,
+#platform-instructions-win64 div.copy-button-text,
+#platform-instructions-default div.copy-button-text,
+#platform-instructions-unknown div.copy-button-text {
+    font-size: 10px;
+    color: green;
+    width: 41px;
+    height: 15px;
 }
 
 #platform-instructions-win32 a.windows-download,

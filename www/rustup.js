@@ -2,6 +2,7 @@
 
 var platforms = ["default", "unknown", "win32", "win64", "unix"];
 var platform_override = null;
+var rustup_install_command = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh";
 
 function detect_platform() {
     "use strict";
@@ -162,6 +163,21 @@ function fill_in_bug_report_values() {
     var nav_app = document.getElementById("nav-app");
     nav_plat.textContent = navigator.platform;
     nav_app.textContent = navigator.appVersion;
+}
+
+function clear_copy_status_message() {
+    document.getElementById('copy-status-message').innerText = '';
+}
+
+function handle_copy_button_click() {
+    try {
+        navigator.clipboard.writeText(rustup_install_command).then(function() {
+            document.getElementById('copy-status-message').innerText = 'Copied!'
+        });
+        setTimeout(clear_copy_status_message, 5000);
+    } catch (e) {
+        console.log('Hit a snag when copying to clipboard:', e);
+    }
 }
 
 (function () {
