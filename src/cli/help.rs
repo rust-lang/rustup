@@ -60,7 +60,7 @@ pub static TOOLCHAIN_HELP: &str = r"DISCUSSION:
         <host>          = <target-triple>
 
     'channel' is either a named release channel or an explicit version
-    number, such as '1.8.0'. Channel names can be optionally appended
+    number, such as '1.42.0'. Channel names can be optionally appended
     with an archive date, as in 'nightly-2017-05-09', in which case
     the toolchain is downloaded from the archive for that date.
 

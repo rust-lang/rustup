@@ -274,7 +274,7 @@ Standard release channel toolchain names have the following form:
 ```
 
 'channel' is either a named release channel or an explicit version
-number, such as '1.8.0'. Channel names can be optionally appended with
+number, such as '1.42.0'. Channel names can be optionally appended with
 an archive date, as in 'nightly-2014-12-18', in which case the
 toolchain is downloaded from the archive for that date.
 
