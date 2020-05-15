@@ -689,7 +689,7 @@ fn update_from_dist_<'a>(
 
                 if let ErrorKind::RequestedComponentsUnavailable(components, ..) = e.kind() {
                     (download.notify_handler)(Notification::SkippingNightlyMissingComponent(
-                        components,
+                        &toolchain, components,
                     ));
 
                     if first_err.is_none() {

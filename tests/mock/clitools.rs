@@ -44,17 +44,31 @@ pub struct Config {
 // Building the mock server is slow, so use simple scenario when possible.
 #[derive(PartialEq, Copy, Clone)]
 pub enum Scenario {
-    Full,             // Two dates, two manifests
-    ArchivesV2,       // Two dates, v2 manifests
-    ArchivesV1,       // Two dates, v1 manifests
-    SimpleV2,         // One date, v2 manifests
-    SimpleV1,         // One date, v1 manifests
-    MultiHost,        // One date, v2 manifests, MULTI_ARCH1 host
-    Unavailable,      // Two dates, v2 manifests, everything unavailable in second date.
-    UnavailableRls,   // Two dates, v2 manifests, RLS unavailable in first date, restored on second.
-    MissingComponent, // Three dates, v2 manifests, RLS available in first and last, not middle
-    MissingNightly,   // Three dates, v2 manifests, RLS available in first, middle missing nightly
-    HostGoesMissing,  // Two dates, v2 manifests, host and MULTI_ARCH1 in first, host not in second
+    /// Two dates, two manifests
+    Full,
+    /// Two dates, v2 manifests
+    ArchivesV2,
+    /// Two dates, v1 manifests
+    ArchivesV1,
+    /// One date, v2 manifests
+    SimpleV2,
+    /// One date, v1 manifests
+    SimpleV1,
+    /// One date, v2 manifests, MULTI_ARCH1 host
+    MultiHost,
+    /// Two dates, v2 manifests, everything unavailable in second date.
+    Unavailable,
+    /// Two dates, v2 manifests, RLS unavailable in first date, restored on second.
+    UnavailableRls,
+    /// Three dates, v2 manifests, RLS available in first and last, not middle
+    MissingComponent,
+    /// Three dates, v2 manifests, RLS available in first, middle missing nightly
+    MissingNightly,
+    /// Two dates, v2 manifests, host and MULTI_ARCH1 in first, host not in second
+    HostGoesMissing,
+    /// Three dates, v2 manifests, host and MULTI_ARCH1 in first, host only in second,
+    /// host and MULTI_ARCH1 but no RLS in last
+    MissingComponentMulti,
 }
 
 pub static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
@@ -479,6 +493,15 @@ enum RlsStatus {
     Unavailable,
 }
 
+impl RlsStatus {
+    fn pkg_name(self) -> &'static str {
+        match self {
+            Self::Renamed => "rls-preview",
+            _ => "rls",
+        }
+    }
+}
+
 struct Release {
     // Either "nightly", "stable", "beta", or an explicit version number
     channel: String,
@@ -664,6 +687,13 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
             Release::new("nightly", "1.3.0", "2019-12-09", "1"),
             Release::new("nightly", "1.3.0", "2019-12-10", "2").only_multi_arch(),
         ],
+        Scenario::MissingComponentMulti => vec![
+            Release::new("nightly", "1.37.0", "2019-09-12", "1").multi_arch(),
+            Release::new("nightly", "1.37.0", "2019-09-13", "2"),
+            Release::new("nightly", "1.37.0", "2019-09-14", "3")
+                .multi_arch()
+                .with_rls(RlsStatus::Unavailable),
+        ],
     };
 
     let vs = match s {
@@ -676,7 +706,8 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         | Scenario::UnavailableRls
         | Scenario::MissingNightly
         | Scenario::HostGoesMissing
-        | Scenario::MissingComponent => vec![ManifestVersion::V2],
+        | Scenario::MissingComponent
+        | Scenario::MissingComponentMulti => vec![ManifestVersion::V2],
     };
 
     MockDistServer {
@@ -687,6 +718,36 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
 
     for chan in &chans {
         chan.link(path)
+    }
+}
+
+#[derive(Default)]
+struct MockChannelContent {
+    std: Vec<(MockInstallerBuilder, String)>,
+    rustc: Vec<(MockInstallerBuilder, String)>,
+    cargo: Vec<(MockInstallerBuilder, String)>,
+    rls: Vec<(MockInstallerBuilder, String)>,
+    docs: Vec<(MockInstallerBuilder, String)>,
+    src: Vec<(MockInstallerBuilder, String)>,
+    analysis: Vec<(MockInstallerBuilder, String)>,
+    combined: Vec<(MockInstallerBuilder, String)>,
+}
+
+impl MockChannelContent {
+    fn into_packages(
+        self,
+        rls_name: &'static str,
+    ) -> Vec<(&'static str, Vec<(MockInstallerBuilder, String)>)> {
+        vec![
+            ("rust-std", self.std),
+            ("rustc", self.rustc),
+            ("cargo", self.cargo),
+            (rls_name, self.rls),
+            ("rust-docs", self.docs),
+            ("rust-src", self.src),
+            ("rust-analysis", self.analysis),
+            ("rust", self.combined),
+        ]
     }
 }
 
@@ -717,42 +778,32 @@ fn build_mock_channel(
 
     // Convert the mock installers to mock package definitions for the
     // mock dist server
-    let mut all = vec![
-        (
-            "rust-std",
-            vec![
-                (std, host_triple.clone()),
-                (cross_std1, CROSS_ARCH1.to_string()),
-                (cross_std2, CROSS_ARCH2.to_string()),
-            ],
-        ),
-        ("rustc", vec![(rustc, host_triple.clone())]),
-        ("cargo", vec![(cargo, host_triple.clone())]),
-    ];
+    let mut all = MockChannelContent::default();
+    all.std.extend(
+        vec![
+            (std, host_triple.clone()),
+            (cross_std1, CROSS_ARCH1.to_string()),
+            (cross_std2, CROSS_ARCH2.to_string()),
+        ]
+        .into_iter(),
+    );
+    all.rustc.push((rustc, host_triple.clone()));
+    all.cargo.push((cargo, host_triple.clone()));
 
-    if rls == RlsStatus::Renamed {
-        let rls = build_mock_rls_installer(version, version_hash, true);
-        all.push(("rls-preview", vec![(rls, host_triple.clone())]));
-    } else if rls == RlsStatus::Available {
-        let rls = build_mock_rls_installer(version, version_hash, false);
-        all.push(("rls", vec![(rls, host_triple.clone())]));
+    if rls != RlsStatus::Unavailable {
+        let rls = build_mock_rls_installer(version, version_hash, rls.pkg_name());
+        all.rls.push((rls, host_triple.clone()));
     } else {
-        all.push((
-            "rls",
-            vec![(
-                MockInstallerBuilder { components: vec![] },
-                host_triple.clone(),
-            )],
-        ))
+        all.rls.push((
+            MockInstallerBuilder { components: vec![] },
+            host_triple.clone(),
+        ));
     }
 
-    let more = vec![
-        ("rust-docs", vec![(rust_docs, host_triple.clone())]),
-        ("rust-src", vec![(rust_src, "*".to_string())]),
-        ("rust-analysis", vec![(rust_analysis, "*".to_string())]),
-        ("rust", vec![(rust, host_triple)]),
-    ];
-    all.extend(more);
+    all.docs.push((rust_docs, host_triple.clone()));
+    all.src.push((rust_src, "*".to_string()));
+    all.analysis.push((rust_analysis, "*".to_string()));
+    all.combined.push((rust, host_triple));
 
     if multi_arch {
         let std = build_mock_std_installer(MULTI_ARCH1);
@@ -760,41 +811,27 @@ fn build_mock_channel(
         let cargo = build_mock_cargo_installer(version, version_hash);
         let rust_docs = build_mock_rust_doc_installer();
         let rust = build_combined_installer(&[&std, &rustc, &cargo, &rust_docs]);
-        let cross_std1 = build_mock_cross_std_installer(CROSS_ARCH1, date);
-        let cross_std2 = build_mock_cross_std_installer(CROSS_ARCH2, date);
-        let rust_src = build_mock_rust_src_installer();
 
         let triple = MULTI_ARCH1.to_string();
-        let more = vec![
-            (
-                "rust-std",
-                vec![
-                    (std, triple.clone()),
-                    (cross_std1, CROSS_ARCH1.to_string()),
-                    (cross_std2, CROSS_ARCH2.to_string()),
-                ],
-            ),
-            ("rustc", vec![(rustc, triple.clone())]),
-            ("cargo", vec![(cargo, triple.clone())]),
-        ];
-        all.extend(more);
+        all.std.push((std, triple.clone()));
+        all.rustc.push((rustc, triple.clone()));
+        all.cargo.push((cargo, triple.clone()));
 
-        if rls == RlsStatus::Renamed {
-            let rls = build_mock_rls_installer(version, version_hash, true);
-            all.push(("rls-preview", vec![(rls, triple.clone())]));
-        } else if rls == RlsStatus::Available {
-            let rls = build_mock_rls_installer(version, version_hash, false);
-            all.push(("rls", vec![(rls, triple.clone())]));
+        if rls != RlsStatus::Unavailable {
+            let rls = build_mock_rls_installer(version, version_hash, rls.pkg_name());
+            all.rls.push((rls, triple.clone()));
+        } else {
+            all.rls
+                .push((MockInstallerBuilder { components: vec![] }, triple.clone()));
         }
 
-        let more = vec![
-            ("rust-docs", vec![(rust_docs, triple.clone())]),
-            ("rust-src", vec![(rust_src, "*".to_string())]),
-            ("rust", vec![(rust, triple)]),
-        ];
-
-        all.extend(more);
+        all.docs.push((rust_docs, triple.to_string()));
+        all.combined.push((rust, triple));
     }
+
+    let all_std_archs: Vec<String> = all.std.iter().map(|(_, arch)| arch).cloned().collect();
+
+    let all = all.into_packages(rls.pkg_name());
 
     let packages = all.into_iter().map(|(name, target_pkgs)| {
         let target_pkgs = target_pkgs
@@ -858,16 +895,16 @@ fn build_mock_channel(
                     is_extension: true,
                 })
             }
-            target_pkg.components.push(MockComponent {
-                name: "rust-std".to_string(),
-                target: CROSS_ARCH1.to_string(),
-                is_extension: false,
-            });
-            target_pkg.components.push(MockComponent {
-                name: "rust-std".to_string(),
-                target: CROSS_ARCH2.to_string(),
-                is_extension: false,
-            });
+            for other_target in &all_std_archs {
+                if other_target != target {
+                    target_pkg.components.push(MockComponent {
+                        name: "rust-std".to_string(),
+                        target: other_target.to_string(),
+                        is_extension: false,
+                    });
+                }
+            }
+
             target_pkg.components.push(MockComponent {
                 name: "rust-src".to_string(),
                 target: "*".to_string(),
@@ -1027,15 +1064,11 @@ fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstalle
 fn build_mock_rls_installer(
     version: &str,
     version_hash: &str,
-    preview: bool,
+    pkg_name: &str,
 ) -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
-            name: if preview {
-                "rls-preview".to_string()
-            } else {
-                "rls".to_string()
-            },
+            name: pkg_name.to_string(),
             files: mock_bin("rls", version, version_hash),
         }],
     }

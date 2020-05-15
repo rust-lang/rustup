@@ -82,7 +82,7 @@ pub struct MockChannel {
 }
 
 // A single rust-installer package
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Debug, Hash, Eq, PartialEq)]
 pub struct MockPackage {
     // rust, rustc, rust-std-$triple, rust-doc, etc.
     pub name: &'static str,
@@ -90,7 +90,7 @@ pub struct MockPackage {
     pub targets: Vec<MockTargetedPackage>,
 }
 
-#[derive(Hash, Eq, PartialEq, Clone)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub struct MockTargetedPackage {
     // Target triple
     pub target: String,
@@ -101,7 +101,7 @@ pub struct MockTargetedPackage {
     pub installer: MockInstallerBuilder,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct MockComponent {
     pub name: String,
     pub target: String,
