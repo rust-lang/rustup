@@ -72,6 +72,13 @@ impl<'a, T: Terminal + 'a> LineWrapper<'a, T> {
             self.write_word(word);
         }
     }
+    // Writes code block where each line is indented
+    fn write_code_block(&mut self, text: &str) {
+        for line in text.lines() {
+            self.write_word(line); // Will call write_indent()
+            self.write_line();
+        }
+    }
     // Constructor
     fn new(w: &'a mut T, indent: u32, margin: u32) -> Self {
         LineWrapper {
@@ -188,7 +195,7 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
             End(tag) => self.end_tag(tag),
             Text(text) => {
                 if self.is_code_block {
-                    self.wrapper.write_word(&text);
+                    self.wrapper.write_code_block(&text);
                 } else {
                     self.wrapper.write_span(&text);
                 }
