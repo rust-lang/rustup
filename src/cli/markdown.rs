@@ -130,7 +130,6 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
                 self.is_code_block = true;
             }
             Tag::List(_) => {
-                self.wrapper.write_line();
                 self.wrapper.indent += 2;
             }
             Tag::Item => {
