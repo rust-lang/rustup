@@ -198,7 +198,7 @@ The easiest way to acquire the build tools is by installing Microsoft
 Visual C++ Build Tools 2019 which provides just the Visual C++ build
 tools:
 
-    https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019
+    https://visualstudio.microsoft.com/visual-cpp-build-tools/
 
 Please ensure the Windows 10 SDK and the English language pack components
 are included when installing the Visual C++ Build Tools.
