@@ -540,7 +540,7 @@ $ rustup target add i686-pc-windows-gnu
 ```
 
 [ABIs]: https://en.wikipedia.org/wiki/Application_binary_interface
-[Visual Studio]: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019
+[Visual Studio]: https://visualstudio.microsoft.com/visual-cpp-build-tools/
 [GCC toolchain]: https://gcc.gnu.org/
 [MinGW/MSYS2 toolchain]: https://msys2.github.io/
 
