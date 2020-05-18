@@ -47,6 +47,8 @@ use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::process::{self, Command};
+mod types;
+use types::PathUpdateMethod;
 
 pub struct InstallOpts<'a> {
     pub default_host_triple: Option<String>,
@@ -1116,12 +1118,6 @@ fn wait_for_parent() -> Result<()> {
 #[cfg(unix)]
 pub fn complete_windows_uninstall() -> Result<()> {
     panic!("stop doing that")
-}
-
-#[derive(PartialEq)]
-enum PathUpdateMethod {
-    RcFile(PathBuf),
-    Windows,
 }
 
 /// Decide which rcfiles we're going to update, so we
