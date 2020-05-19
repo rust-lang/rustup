@@ -308,6 +308,14 @@ error_chain! {
             description("toolchain does not contain binary")
             display("'{}' is not installed for the toolchain '{}'{}", bin, t, install_msg(bin, t, *is_default))
         }
+        BinaryProvidedByUnavailableComponent(component: String, bin: String, toolchain: String) {
+            description("binary is provided by a component which is not available in current toolchain")
+            display("the '{}' component which provides the command '{}' is not available for the '{}' toolchain", component, bin, toolchain)
+        }
+        BinaryNotProvidedByComponent(component: String, bin: String, toolchain: String) {
+            description("binary should be provided by component but isn't in current toolchain")
+            display("the '{}' binary, normally provided by the '{}' component, is not applicable to the '{}' toolchain", bin, component, toolchain)
+        }
         NeedMetadataUpgrade {
             description("rustup's metadata is out of date. run `rustup self upgrade-data`")
         }

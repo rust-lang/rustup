@@ -41,8 +41,7 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
     match binary_prefix {
         "rustc" | "rustdoc" => Some("rustc"),
         "cargo" => Some("cargo"),
-        "rust-lldb" => Some("lldb-preview"),
-        "rust-gdb" => Some("gdb-preview"),
+        "rust-lldb" | "rust-gdb" => Some("rustc"), // These are not always available
         "rls" => Some("rls"),
         "cargo-clippy" => Some("clippy"),
         "clippy-driver" => Some("clippy"),
