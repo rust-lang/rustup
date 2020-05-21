@@ -61,10 +61,8 @@ mod os {
     pub use crate::self_update::windows::*;
 }
 
-pub use os::{
-    complete_windows_uninstall, delete_rustup_and_cargo_home, run_update, self_replace,
-};
 use os::*;
+pub use os::{complete_windows_uninstall, delete_rustup_and_cargo_home, run_update, self_replace};
 
 pub struct InstallOpts<'a> {
     pub default_host_triple: Option<String>,
@@ -323,11 +321,8 @@ pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpt
             quiet,
         )?;
 
-        if cfg!(unix) {
-            let env_file = utils::cargo_home()?.join("env");
-            let env_str = format!("{}\n", shell_export_string()?);
-            utils::write_file("env", &env_file, &env_str)?;
-        }
+        #[cfg(unix)]
+        write_env()?;
 
         Ok(())
     })();
@@ -853,69 +848,6 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     process::exit(0);
 }
 
-/// Decide which rcfiles we're going to update, so we
-/// can tell the user before they confirm.
-fn get_add_path_methods() -> Vec<PathUpdateMethod> {
-    if cfg!(windows) {
-        return vec![PathUpdateMethod::Windows];
-    }
-
-    let home_dir = utils::home_dir().unwrap();
-    let profile = home_dir.join(".profile");
-    let mut profiles = vec![profile];
-
-    if let Ok(shell) = env::var("SHELL") {
-        if shell.contains("zsh") {
-            let var = env::var_os("ZDOTDIR");
-            let zdotdir = var.as_deref().map_or_else(|| home_dir.as_path(), Path::new);
-            let zprofile = zdotdir.join(".zprofile");
-            profiles.push(zprofile);
-        }
-    }
-
-    let bash_profile = home_dir.join(".bash_profile");
-    // Only update .bash_profile if it exists because creating .bash_profile
-    // will cause .profile to not be read
-    if bash_profile.exists() {
-        profiles.push(bash_profile);
-    }
-
-    profiles.into_iter().map(PathUpdateMethod::RcFile).collect()
-}
-
-fn shell_export_string() -> Result<String> {
-    let path = format!("{}/bin", canonical_cargo_home()?);
-    // The path is *prepended* in case there are system-installed
-    // rustc's that need to be overridden.
-    Ok(format!(r#"export PATH="{}:$PATH""#, path))
-}
-
-
-
-/// Decide which rcfiles we're going to update, so we
-/// can tell the user before they confirm.
-fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
-    if cfg!(windows) {
-        return Ok(vec![PathUpdateMethod::Windows]);
-    }
-
-    let profile = utils::home_dir().map(|p| p.join(".profile"));
-    let bash_profile = utils::home_dir().map(|p| p.join(".bash_profile"));
-
-    let rcfiles = vec![profile, bash_profile];
-    let existing_rcfiles = rcfiles.into_iter().filter_map(|f| f).filter(|f| f.exists());
-
-    let export_str = shell_export_string()?;
-    let matching_rcfiles = existing_rcfiles.filter(|f| {
-        let file = utils::read_file("rcfile", f).unwrap_or_default();
-        let addition = format!("\n{}", export_str);
-        file.contains(&addition)
-    });
-
-    Ok(matching_rcfiles.map(PathUpdateMethod::RcFile).collect())
-}
-
-
 /// Self update downloads rustup-init to `CARGO_HOME`/bin/rustup-init
 /// and runs it.
 ///
@@ -1091,7 +1023,6 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
 
     Ok(Some(setup_path))
 }
-
 
 pub fn cleanup_self_updater() -> Result<()> {
     let cargo_home = utils::cargo_home()?;

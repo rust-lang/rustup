@@ -4,6 +4,7 @@ use rustup::utils::Notification;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
+use types::PathUpdateMethod;
 
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because
@@ -79,6 +80,13 @@ pub fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     Ok(())
 }
 
+pub fn write_env() -> Result<()> {
+    let env_file = utils::cargo_home()?.join("env");
+    let env_str = format!("{}\n", shell_export_string()?);
+    utils::write_file("env", &env_file, &env_str)?;
+    Ok(())
+}
+
 pub fn shell_export_string() -> Result<String> {
     let path = format!("{}/bin", canonical_cargo_home()?);
     // The path is *prepended* in case there are system-installed
@@ -139,4 +147,49 @@ pub fn self_replace() -> Result<()> {
     install_bins()?;
 
     Ok(())
+}
+
+/// Decide which rcfiles we're going to update, so we
+/// can tell the user before they confirm.
+pub fn get_add_path_methods() -> Vec<PathUpdateMethod> {
+    let home_dir = utils::home_dir().unwrap();
+    let profile = home_dir.join(".profile");
+    let mut profiles = vec![profile];
+
+    if let Ok(shell) = env::var("SHELL") {
+        if shell.contains("zsh") {
+            let var = env::var_os("ZDOTDIR");
+            let zdotdir = var.as_deref().map_or_else(|| home_dir.as_path(), Path::new);
+            let zprofile = zdotdir.join(".zprofile");
+            profiles.push(zprofile);
+        }
+    }
+
+    let bash_profile = home_dir.join(".bash_profile");
+    // Only update .bash_profile if it exists because creating .bash_profile
+    // will cause .profile to not be read
+    if bash_profile.exists() {
+        profiles.push(bash_profile);
+    }
+
+    profiles.into_iter().map(PathUpdateMethod::RcFile).collect()
+}
+
+/// Decide which rcfiles we're going to update, so we
+/// can tell the user before they confirm.
+pub fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
+    let profile = utils::home_dir().map(|p| p.join(".profile"));
+    let bash_profile = utils::home_dir().map(|p| p.join(".bash_profile"));
+
+    let rcfiles = vec![profile, bash_profile];
+    let existing_rcfiles = rcfiles.into_iter().filter_map(|f| f).filter(|f| f.exists());
+
+    let export_str = shell_export_string()?;
+    let matching_rcfiles = existing_rcfiles.filter(|f| {
+        let file = utils::read_file("rcfile", f).unwrap_or_default();
+        let addition = format!("\n{}", export_str);
+        file.contains(&addition)
+    });
+
+    Ok(matching_rcfiles.map(PathUpdateMethod::RcFile).collect())
 }

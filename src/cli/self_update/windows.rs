@@ -1,11 +1,12 @@
 use super::*;
-use rustup::dist::dist::{TargetTriple};
+use rustup::dist::dist::TargetTriple;
 use rustup::utils::utils;
 use rustup::utils::Notification;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
-use std::path::{Path};
+use std::path::Path;
 use std::process::{self, Command};
+use types::PathUpdateMethod;
 
 // Provide guidance about setting up MSVC if it doesn't appear to be
 // installed
@@ -414,4 +415,16 @@ pub fn delete_rustup_and_cargo_home() -> Result<()> {
     thread::sleep(Duration::from_millis(100));
 
     Ok(())
+}
+
+/// Decide which rcfiles we're going to update, so we
+/// can tell the user before they confirm.
+pub fn get_add_path_methods() -> Vec<PathUpdateMethod> {
+    vec![PathUpdateMethod::Windows]
+}
+
+/// Decide which rcfiles we're going to update, so we
+/// can tell the user before they confirm.
+pub fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
+    Ok(vec![PathUpdateMethod::Windows])
 }
