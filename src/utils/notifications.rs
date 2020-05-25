@@ -31,6 +31,7 @@ pub enum Notification<'a> {
     /// member, but the notification callback is already narrowed to
     /// utils::notifications by the time tar unpacking is called.
     SetDefaultBufferSize(usize),
+    Error(String),
     UsingCurl,
     UsingReqwest,
     /// Renaming encountered a file in use error and is retrying.
@@ -60,6 +61,7 @@ impl<'a> Notification<'a> {
             | UsingReqwest => NotificationLevel::Verbose,
             RenameInUse(_, _) | SetDefaultBufferSize(_) => NotificationLevel::Info,
             NoCanonicalPath(_) => NotificationLevel::Warn,
+            Error(_) => NotificationLevel::Error,
         }
     }
 }
@@ -71,6 +73,7 @@ impl<'a> Display for Notification<'a> {
             CreatingDirectory(name, path) => {
                 write!(f, "creating {} directory: '{}'", name, path.display())
             }
+            Error(e) => write!(f, "error: '{}'", e),
             LinkingDirectory(_, dest) => write!(f, "linking directory from: '{}'", dest.display()),
             CopyingDirectory(src, _) => write!(f, "copying directory from: '{}'", src.display()),
             RemovingDirectory(name, path) => {

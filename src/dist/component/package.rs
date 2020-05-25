@@ -167,13 +167,19 @@ struct MemoryBudget {
 impl MemoryBudget {
     fn new(
         max_file_size: usize,
-        effective_max_ram: usize,
+        effective_max_ram: Option<usize>,
         notify_handler: Option<&dyn Fn(Notification<'_>)>,
     ) -> Self {
         const DEFAULT_UNPACK_RAM_MAX: usize = 500 * 1024 * 1024;
         const RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS: usize = 100 * 1024 * 1024;
-        let ram_for_unpacking = effective_max_ram - RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS;
-        let default_max_unpack_ram = std::cmp::min(DEFAULT_UNPACK_RAM_MAX, ram_for_unpacking);
+        let default_max_unpack_ram = if let Some(effective_max_ram) = effective_max_ram {
+            let ram_for_unpacking = effective_max_ram - RAM_ALLOWANCE_FOR_RUSTUP_AND_BUFFERS;
+            std::cmp::min(DEFAULT_UNPACK_RAM_MAX, ram_for_unpacking)
+        } else {
+            // Rustup does not know how much RAM the machine has: use the
+            // minimum known to work reliably.
+            DEFAULT_UNPACK_RAM_MAX
+        };
         let unpack_ram = match env::var("RUSTUP_UNPACK_RAM")
             .ok()
             .and_then(|budget_str| budget_str.parse::<usize>().ok())
@@ -291,12 +297,16 @@ fn unpack_without_first_dir<'a, R: Read>(
         .entries()
         .chain_err(|| ErrorKind::ExtractingPackage)?;
     const MAX_FILE_SIZE: u64 = 200_000_000;
-    let effective_max_ram = effective_limits::memory_limit()?;
-    let mut budget = MemoryBudget::new(
-        MAX_FILE_SIZE as usize,
-        effective_max_ram as usize,
-        notify_handler,
-    );
+    let effective_max_ram = match effective_limits::memory_limit() {
+        Ok(ram) => Some(ram as usize),
+        Err(e) => {
+            if let Some(h) = notify_handler {
+                h(Notification::Error(e.to_string()))
+            }
+            None
+        }
+    };
+    let mut budget = MemoryBudget::new(MAX_FILE_SIZE as usize, effective_max_ram, notify_handler);
 
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
