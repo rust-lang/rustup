@@ -25,7 +25,7 @@ chrono = "0.4"
 clap = "2"
 download = { path = "download" }
 error-chain = "0.12"
-effective-limits = "0.4"
+effective-limits = "0.5"
 flate2 = "1"
 git-testament = "0.1.4"
 home = "0.5"
