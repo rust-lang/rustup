@@ -47,8 +47,8 @@ use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::process::{self, Command};
-mod types;
-use types::PathUpdateMethod;
+mod path_update;
+use path_update::PathUpdateMethod;
 #[cfg(unix)]
 mod unix;
 #[cfg(windows)]

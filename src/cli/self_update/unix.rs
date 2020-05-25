@@ -1,10 +1,10 @@
 use super::*;
+use path_update::PathUpdateMethod;
 use rustup::utils::utils;
 use rustup::utils::Notification;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
-use types::PathUpdateMethod;
 
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because

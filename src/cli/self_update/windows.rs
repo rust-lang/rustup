@@ -1,4 +1,5 @@
 use super::*;
+use path_update::PathUpdateMethod;
 use rustup::dist::dist::TargetTriple;
 use rustup::utils::utils;
 use rustup::utils::Notification;
@@ -6,7 +7,6 @@ use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::path::Path;
 use std::process::{self, Command};
-use types::PathUpdateMethod;
 
 // Provide guidance about setting up MSVC if it doesn't appear to be
 // installed
