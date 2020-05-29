@@ -162,7 +162,7 @@ installation of `rustup` and then install `nightly` along with `clippy` or
 
 Firstly install `rustup` by means of:
 
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -- --default-toolchain none -y
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
 
 Next you can install `nightly` allowing `rustup` to downgrade until it finds
 the components you need:
