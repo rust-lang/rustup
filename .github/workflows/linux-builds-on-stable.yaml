@@ -76,12 +76,12 @@ jobs:
           echo "::set-env name=SKIP_TESTS::yes"
         if: matrix.run_tests == ''
       - name: Cache cargo registry
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-trimmed-${{ hashFiles('**/Cargo.lock') }}
       - name: Cache cargo git trees
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-gits-trimmed-${{ hashFiles('**/Cargo.lock') }}
@@ -91,7 +91,7 @@ jobs:
           echo "::set-output name=rust_hash::$(rustc -Vv | grep commit-hash | awk '{print $2}')"
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: target
           key: ${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
