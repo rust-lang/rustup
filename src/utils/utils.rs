@@ -587,7 +587,7 @@ where
     // for our previous poor performance that avoided the race condition with
     // McAfee and Norton.
     retry(
-        Fibonacci::from_millis(1).map(jitter).take(21),
+        Fibonacci::from_millis(1).map(jitter).take(26),
         || match fs::rename(src, dest) {
             Ok(()) => OperationResult::Ok(()),
             Err(e) => match e.kind() {
