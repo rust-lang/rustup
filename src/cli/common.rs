@@ -422,7 +422,13 @@ pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<()> {
     Ok(())
 }
 
-fn print_toolchain_path(cfg: &Cfg, toolchain: &str, if_default: &str, verbose: bool) -> Result<()> {
+fn print_toolchain_path(
+    cfg: &Cfg,
+    toolchain: &str,
+    if_default: &str,
+    if_override: &str,
+    verbose: bool,
+) -> Result<()> {
     let toolchain_path = {
         let mut t_path = cfg.toolchains_dir.clone();
         t_path.push(&toolchain);
@@ -438,7 +444,10 @@ fn print_toolchain_path(cfg: &Cfg, toolchain: &str, if_default: &str, verbose: b
     } else {
         String::new()
     };
-    println!("{}{}{}", &toolchain, if_default, toolchain_path);
+    println!(
+        "{}{}{}{}",
+        &toolchain, if_default, if_override, toolchain_path
+    );
     Ok(())
 }
 
@@ -446,19 +455,32 @@ pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<()> {
     let toolchains = cfg.list_toolchains()?;
     if toolchains.is_empty() {
         println!("no installed toolchains");
-    } else if let Ok(Some(def_toolchain)) = cfg.find_default() {
+    } else {
+        let def_toolchain_name = if let Ok(Some(def_toolchain)) = cfg.find_default() {
+            def_toolchain.name().to_string()
+        } else {
+            String::new()
+        };
+        let cwd = utils::current_dir()?;
+        let ovr_toolchain_name = if let Ok(Some((ovr_toolchain, _reason))) = cfg.find_override(&cwd)
+        {
+            ovr_toolchain.name().to_string()
+        } else {
+            String::new()
+        };
         for toolchain in toolchains {
-            let if_default = if def_toolchain.name() == &*toolchain {
+            let if_default = if def_toolchain_name == &*toolchain {
                 " (default)"
             } else {
                 ""
             };
-            print_toolchain_path(cfg, &toolchain, if_default, verbose)
-                .expect("Failed to list toolchains' directories");
-        }
-    } else {
-        for toolchain in toolchains {
-            print_toolchain_path(cfg, &toolchain, "", verbose)
+            let if_override = if ovr_toolchain_name == &*toolchain {
+                " (override)"
+            } else {
+                ""
+            };
+
+            print_toolchain_path(cfg, &toolchain, if_default, if_override, verbose)
                 .expect("Failed to list toolchains' directories");
         }
     }
