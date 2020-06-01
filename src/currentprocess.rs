@@ -194,6 +194,22 @@ impl TestProcess {
         let high_bits = rng.gen_range(0, u32::MAX) as u64;
         high_bits << 32 | low_bits
     }
+
+    /// Extracts the stdout from the process
+    pub fn get_stdout(&self) -> Vec<u8> {
+        self.stdout
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+
+    /// Extracts the stderr from the process
+    pub fn get_stderr(&self) -> Vec<u8> {
+        self.stderr
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
 }
 
 impl ProcessSource for TestProcess {

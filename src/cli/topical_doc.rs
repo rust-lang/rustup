@@ -1,7 +1,8 @@
-use crate::errors::*;
 use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+use super::errors::*;
 
 struct DocData<'a> {
     topic: &'a str,
