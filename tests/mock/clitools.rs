@@ -1,13 +1,5 @@
 //! A mock distribution server used by tests/cli-v1.rs and
 //! tests/cli-v2.rs
-
-use crate::mock::dist::{
-    change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer, MockPackage,
-    MockTargetedPackage,
-};
-use crate::mock::topical_doc_data;
-use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
-use lazy_static::lazy_static;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::env;
@@ -18,7 +10,20 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
+
+use lazy_static::lazy_static;
 use url::Url;
+
+use rustup::cli::rustup_mode;
+use rustup::currentprocess;
+use rustup::utils::utils;
+
+use crate::mock::dist::{
+    change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer, MockPackage,
+    MockTargetedPackage,
+};
+use crate::mock::topical_doc_data;
+use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 /// The configuration used by the tests in this module
 pub struct Config {
@@ -363,6 +368,12 @@ fn print_indented(heading: &str, text: &str) {
     );
 }
 
+pub struct Output {
+    pub status: Option<i32>,
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+}
+
 #[derive(Debug)]
 pub struct SanitizedOutput {
     pub ok: bool,
@@ -383,7 +394,36 @@ where
     cmd
 }
 
-pub fn env(config: &Config, cmd: &mut Command) {
+pub trait Env {
+    fn env<K, V>(&mut self, key: K, val: V)
+    where
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>;
+}
+
+impl Env for Command {
+    fn env<K, V>(&mut self, key: K, val: V)
+    where
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        self.env(key, val);
+    }
+}
+
+impl Env for HashMap<String, String> {
+    fn env<K, V>(&mut self, key: K, val: V)
+    where
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        let key = key.as_ref().to_os_string().into_string().unwrap();
+        let val = val.as_ref().to_os_string().into_string().unwrap();
+        self.insert(key, val);
+    }
+}
+
+pub fn env<E: Env>(config: &Config, cmd: &mut E) {
     // Ensure PATH is prefixed with the rustup-exe directory
     let prev_path = env::var_os("PATH");
     let mut new_path = config.exedir.clone().into_os_string();
@@ -442,7 +482,111 @@ pub fn cmd_lock() -> &'static RwLock<()> {
     &LOCK
 }
 
+fn allow_inprocess<I, A>(name: &str, args: I) -> bool
+where
+    I: IntoIterator<Item = A>,
+    A: AsRef<OsStr>,
+{
+    // Only the rustup alias is currently ready for in-process testing:
+    // - -init performs self-updates which monkey with global external state.
+    // - proxies themselves behave appropriately the proxied output needs to be
+    //   collected for assertions to be made on it as our tests traverse layers.
+    // - self update executions cannot run in-process because on windows the
+    //    process replacement dance would replace the test process.
+    if name != "rustup" {
+        return false;
+    }
+    let mut is_update = false;
+    let mut no_self_update = false;
+    let mut self_cmd = false;
+    let mut run = false;
+    for arg in args {
+        if arg.as_ref() == "update" {
+            is_update = true;
+        } else if arg.as_ref() == "--no-self-update" {
+            no_self_update = true;
+        } else if arg.as_ref() == "self" {
+            self_cmd = true;
+        } else if arg.as_ref() == "run" {
+            run = true;
+        }
+    }
+    !(run || self_cmd || (is_update && !no_self_update))
+}
+
 pub fn run<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
+where
+    I: IntoIterator<Item = A> + Clone,
+    A: AsRef<OsStr>,
+{
+    let inprocess = allow_inprocess(name, args.clone());
+    let out = if inprocess {
+        run_inprocess(config, name, args, env)
+    } else {
+        run_subprocess(config, name, args, env)
+    };
+    let output = SanitizedOutput {
+        ok: if let Some(0) = out.status {
+            true
+        } else {
+            false
+        },
+        stdout: String::from_utf8(out.stdout).unwrap(),
+        stderr: String::from_utf8(out.stderr).unwrap(),
+    };
+
+    println!("inprocess: {}", inprocess);
+    println!("status: {:?}", out.status);
+    println!("----- stdout\n{}", output.stdout);
+    println!("----- stderr\n{}", output.stderr);
+
+    output
+}
+
+pub fn run_inprocess<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> Output
+where
+    I: IntoIterator<Item = A>,
+    A: AsRef<OsStr>,
+{
+    // should we use vars_os, or skip over non-stringable vars? This is test
+    // code after all...
+    let mut vars: HashMap<String, String> = HashMap::default();
+    self::env(config, &mut vars);
+    vars.extend(env.iter().map(|(k, v)| (k.to_string(), v.to_string())));
+    let mut arg_strings: Vec<Box<str>> = Vec::new();
+    arg_strings.push(name.to_owned().into_boxed_str());
+    for arg in args {
+        arg_strings.push(
+            arg.as_ref()
+                .to_os_string()
+                .into_string()
+                .unwrap()
+                .into_boxed_str(),
+        );
+    }
+    let tp = Box::new(currentprocess::TestProcess::new(
+        &*config.workdir.borrow(),
+        &arg_strings,
+        vars,
+        "",
+    ));
+    let process_res = currentprocess::with(tp.clone(), || rustup_mode::main());
+    // convert Err's into an ec
+    let ec = match process_res {
+        Ok(process_res) => process_res,
+        Err(e) => {
+            currentprocess::with(tp.clone(), || rustup::cli::common::report_error(&e));
+            utils::ExitCode(1)
+        }
+    };
+    Output {
+        status: Some(ec.0),
+        stderr: (*tp).get_stderr(),
+        stdout: (*tp).get_stdout(),
+    }
+}
+
+pub fn run_subprocess<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> Output
 where
     I: IntoIterator<Item = A>,
     A: AsRef<OsStr>,
@@ -452,7 +596,6 @@ where
         cmd.env(env.0, env.1);
     }
 
-    println!("running {:?}", cmd);
     let mut retries = 8;
     let out = loop {
         let lock = cmd_lock().read().unwrap();
@@ -474,18 +617,11 @@ where
             }
         }
     };
-
-    let output = SanitizedOutput {
-        ok: out.status.success(),
-        stdout: String::from_utf8(out.stdout).unwrap(),
-        stderr: String::from_utf8(out.stderr).unwrap(),
-    };
-
-    println!("status: {}", out.status);
-    println!("----- stdout\n{}", output.stdout);
-    println!("----- stderr\n{}", output.stderr);
-
-    output
+    Output {
+        status: out.status.code(),
+        stdout: out.stdout,
+        stderr: out.stderr,
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
