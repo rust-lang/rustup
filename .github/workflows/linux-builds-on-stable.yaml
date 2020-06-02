@@ -38,6 +38,7 @@ jobs:
           - armv7-linux-androideabi       # skip-pr skip-master
           - i686-linux-android            # skip-pr skip-master
           - x86_64-linux-android          # skip-pr skip-master
+          - riscv64gc-unknown-linux-gnu   # skip-pr skip-master
         include:
           - target: x86_64-unknown-linux-gnu
             run_tests: YES
