@@ -54,14 +54,13 @@
 pub mod immediate;
 pub mod threaded;
 
-use crate::utils::notifications::Notification;
-
-use std::env;
 use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-
 use std::time::{Duration, Instant};
+
+use crate::process;
+use crate::utils::notifications::Notification;
 
 #[derive(Debug)]
 pub enum Kind {
@@ -197,7 +196,7 @@ pub fn get_executor<'a>(
     notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
 ) -> Box<dyn Executor + 'a> {
     // If this gets lots of use, consider exposing via the config file.
-    if let Ok(thread_str) = env::var("RUSTUP_IO_THREADS") {
+    if let Ok(thread_str) = process().var("RUSTUP_IO_THREADS") {
         if thread_str == "disabled" {
             Box::new(immediate::ImmediateUnpacker::new())
         } else if let Ok(thread_count) = thread_str.parse::<usize>() {

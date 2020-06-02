@@ -9,6 +9,8 @@ use std::path::Path;
 use std::process::{Command, ExitStatus};
 use std::str;
 
+use crate::process;
+
 pub fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
     path: P,
     callback: F,
@@ -333,7 +335,7 @@ pub fn prefix_arg<S: AsRef<OsStr>>(name: &str, s: S) -> OsString {
 
 pub fn has_cmd(cmd: &str) -> bool {
     let cmd = format!("{}{}", cmd, env::consts::EXE_SUFFIX);
-    let path = env::var_os("PATH").unwrap_or_default();
+    let path = process().var_os("PATH").unwrap_or_default();
     env::split_paths(&path)
         .map(|p| p.join(&cmd))
         .any(|p| p.exists())

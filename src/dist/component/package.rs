@@ -2,16 +2,7 @@
 //! for installing from a directory or tarball to an installation
 //! prefix, represented by a `Components` instance.
 
-use crate::diskio::{get_executor, Executor, Item, Kind};
-use crate::dist::component::components::*;
-use crate::dist::component::transaction::*;
-use crate::dist::temp;
-use crate::errors::*;
-use crate::utils::notifications::Notification;
-use crate::utils::utils;
-
 use std::collections::{HashMap, HashSet};
-use std::env;
 use std::fmt;
 use std::io::{self, ErrorKind as IOErrorKind, Read};
 use std::iter::FromIterator;
@@ -19,6 +10,15 @@ use std::mem;
 use std::path::{Path, PathBuf};
 
 use tar::EntryType;
+
+use crate::diskio::{get_executor, Executor, Item, Kind};
+use crate::dist::component::components::*;
+use crate::dist::component::transaction::*;
+use crate::dist::temp;
+use crate::errors::*;
+use crate::process;
+use crate::utils::notifications::Notification;
+use crate::utils::utils;
 
 /// The current metadata revision used by rust-installer
 pub const INSTALLER_VERSION: &str = "3";
@@ -180,7 +180,8 @@ impl MemoryBudget {
             // minimum known to work reliably.
             DEFAULT_UNPACK_RAM_MAX
         };
-        let unpack_ram = match env::var("RUSTUP_UNPACK_RAM")
+        let unpack_ram = match process()
+            .var("RUSTUP_UNPACK_RAM")
             .ok()
             .and_then(|budget_str| budget_str.parse::<usize>().ok())
         {
@@ -406,11 +407,12 @@ fn unpack_without_first_dir<'a, R: Read>(
                     None => {
                         // Tar has item before containing directory
                         // Complain about this so we can see if these exist.
-                        eprintln!(
+                        writeln!(
+                            process().stderr(),
                             "Unexpected: missing parent '{}' for '{}'",
                             parent.display(),
                             entry.path()?.display()
-                        );
+                        )?;
                         directories.insert(parent.to_owned(), DirStatus::Pending(vec![item]));
                         item = Item::make_dir(parent.to_owned(), 0o755);
                         // Check the parent's parent

@@ -3,6 +3,7 @@
 //! if TERM isn't defined.
 
 use std::io;
+use std::ops::Deref;
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
@@ -10,45 +11,35 @@ pub use term::color;
 pub use term::Attr;
 pub use term::Terminal;
 
-use crate::utils::tty;
+use crate::currentprocess::filesource::{Isatty, Writer};
+use crate::process;
 
 mod termhack {
     // Things we should submit to term as improvements: here temporarily.
     use std::collections::HashMap;
     use std::io;
+
     use term::terminfo::TermInfo;
     use term::{StderrTerminal, StdoutTerminal, Terminal, TerminfoTerminal};
 
-    // Works around stdio instances being unclonable.
-    pub trait Instantiable {
-        fn instance() -> Self;
-    }
-
-    impl Instantiable for io::Stdout {
-        fn instance() -> Self {
-            io::stdout()
-        }
-    }
-
-    impl Instantiable for io::Stderr {
-        fn instance() -> Self {
-            io::stderr()
-        }
-    }
-
     /// Return a Terminal object for T on this platform.
     /// If there is no terminfo and the platform requires terminfo, then None is returned.
-    fn make_terminal<T>(terminfo: Option<TermInfo>) -> Option<Box<dyn Terminal<Output = T> + Send>>
+    fn make_terminal<T, F>(
+        terminfo: Option<TermInfo>,
+        source: F,
+    ) -> Option<Box<dyn Terminal<Output = T> + Send>>
     where
-        T: 'static + io::Write + Send + Instantiable,
+        T: 'static + io::Write + Send,
+        // Works around stdio instances being unclonable.
+        F: Fn() -> T + Copy,
     {
         let result = terminfo
-            .map(move |ti| TerminfoTerminal::new_with_terminfo(T::instance(), ti))
+            .map(move |ti| TerminfoTerminal::new_with_terminfo(source(), ti))
             .map(|t| Box::new(t) as Box<dyn Terminal<Output = T> + Send>);
         #[cfg(windows)]
         {
             result.or_else(|| {
-                term::WinConsole::new(T::instance())
+                term::WinConsole::new(source())
                     .ok()
                     .map(|t| Box::new(t) as Box<dyn Terminal<Output = T> + Send>)
             })
@@ -59,13 +50,16 @@ mod termhack {
         }
     }
 
-    fn make_terminal_with_fallback<T>(
+    pub fn make_terminal_with_fallback<T, F>(
         terminfo: Option<TermInfo>,
+        source: F,
     ) -> Box<dyn Terminal<Output = T> + Send>
     where
-        T: 'static + io::Write + Send + Instantiable,
+        T: 'static + io::Write + Send,
+        // Works around stdio instances being unclonable.
+        F: Fn() -> T + Copy,
     {
-        make_terminal(terminfo)
+        make_terminal(terminfo, source)
             .or_else(|| {
                 let ti = TermInfo {
                     names: vec![],
@@ -73,7 +67,7 @@ mod termhack {
                     numbers: HashMap::new(),
                     strings: HashMap::new(),
                 };
-                let t = TerminfoTerminal::new_with_terminfo(T::instance(), ti);
+                let t = TerminfoTerminal::new_with_terminfo(source(), ti);
                 Some(Box::new(t) as Box<dyn Terminal<Output = T> + Send>)
             })
             .unwrap()
@@ -82,40 +76,26 @@ mod termhack {
     /// opened.
     #[allow(unused)]
     pub fn stdout(terminfo: Option<TermInfo>) -> Option<Box<StdoutTerminal>> {
-        make_terminal(terminfo)
+        make_terminal(terminfo, || io::stdout())
     }
 
     /// Return a Terminal wrapping stderr, or None if a terminal couldn't be
     /// opened.
     #[allow(unused)]
     pub fn stderr(terminfo: Option<TermInfo>) -> Option<Box<StderrTerminal>> {
-        make_terminal(terminfo)
+        make_terminal(terminfo, || io::stderr())
     }
 
     /// Return a Terminal wrapping stdout.
+    #[allow(unused)]
     pub fn stdout_with_fallback(terminfo: Option<TermInfo>) -> Box<StdoutTerminal> {
-        make_terminal_with_fallback(terminfo)
+        make_terminal_with_fallback(terminfo, || io::stdout())
     }
 
     /// Return a Terminal wrapping stderr.
+    #[allow(unused)]
     pub fn stderr_with_fallback(terminfo: Option<TermInfo>) -> Box<StderrTerminal> {
-        make_terminal_with_fallback(terminfo)
-    }
-}
-
-pub trait Isatty {
-    fn isatty() -> bool;
-}
-
-impl Isatty for io::Stdout {
-    fn isatty() -> bool {
-        tty::stdout_isatty()
-    }
-}
-
-impl Isatty for io::Stderr {
-    fn isatty() -> bool {
-        tty::stderr_isatty()
+        make_terminal_with_fallback(terminfo, || io::stderr())
     }
 }
 
@@ -126,8 +106,8 @@ impl Isatty for io::Stderr {
 pub struct AutomationFriendlyTerminal<T>(Box<dyn term::Terminal<Output = T> + Send>)
 where
     T: Isatty + io::Write;
-pub type StdoutTerminal = AutomationFriendlyTerminal<io::Stdout>;
-pub type StderrTerminal = AutomationFriendlyTerminal<io::Stderr>;
+pub type StdoutTerminal = AutomationFriendlyTerminal<Box<dyn Writer>>;
+pub type StderrTerminal = AutomationFriendlyTerminal<Box<dyn Writer>>;
 
 macro_rules! swallow_unsupported {
     ( $call:expr ) => {{
@@ -139,6 +119,12 @@ macro_rules! swallow_unsupported {
     }};
 }
 
+impl Isatty for Box<dyn Writer> {
+    fn isatty(&self) -> bool {
+        self.deref().isatty()
+    }
+}
+
 impl<T> term::Terminal for AutomationFriendlyTerminal<T>
 where
     T: io::Write + Isatty,
@@ -146,21 +132,21 @@ where
     type Output = T;
 
     fn fg(&mut self, color: color::Color) -> term::Result<()> {
-        if !T::isatty() {
+        if !self.get_ref().isatty() {
             return Ok(());
         }
         swallow_unsupported!(self.0.fg(color))
     }
 
     fn bg(&mut self, color: color::Color) -> term::Result<()> {
-        if !T::isatty() {
+        if !self.get_ref().isatty() {
             return Ok(());
         }
         swallow_unsupported!(self.0.bg(color))
     }
 
     fn attr(&mut self, attr: Attr) -> term::Result<()> {
-        if !T::isatty() {
+        if !self.get_ref().isatty() {
             return Ok(());
         }
         swallow_unsupported!(self.0.attr(attr))
@@ -171,7 +157,7 @@ where
     }
 
     fn reset(&mut self) -> term::Result<()> {
-        if !T::isatty() {
+        if !self.get_ref().isatty() {
             return Ok(());
         }
         swallow_unsupported!(self.0.reset())
@@ -187,7 +173,7 @@ where
     }
 
     fn cursor_up(&mut self) -> term::Result<()> {
-        if !T::isatty() {
+        if !self.get_ref().isatty() {
             return Ok(());
         }
         swallow_unsupported!(self.0.cursor_up())
@@ -241,10 +227,14 @@ lazy_static! {
 
 pub fn stdout() -> StdoutTerminal {
     let info_result = TERMINFO.lock().unwrap().clone();
-    AutomationFriendlyTerminal(termhack::stdout_with_fallback(info_result))
+    AutomationFriendlyTerminal(termhack::make_terminal_with_fallback(info_result, || {
+        process().stdout()
+    }))
 }
 
 pub fn stderr() -> StderrTerminal {
     let info_result = TERMINFO.lock().unwrap().clone();
-    AutomationFriendlyTerminal(termhack::stderr_with_fallback(info_result))
+    AutomationFriendlyTerminal(termhack::make_terminal_with_fallback(info_result, || {
+        process().stderr()
+    }))
 }

@@ -1,25 +1,28 @@
-use std::env;
 use std::path::{Path, PathBuf};
-use std::process::{self, Command};
+use std::process::Command;
 
 use super::super::errors::*;
 use super::path_update::PathUpdateMethod;
 use super::{canonical_cargo_home, install_bins};
+use crate::process;
 use crate::utils::utils;
 use crate::utils::Notification;
 
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because
 // sudo is configured not to change $HOME. Don't let that bogosity happen.
-pub fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
+pub fn do_anti_sudo_check(no_prompt: bool) -> Result<utils::ExitCode> {
     pub fn home_mismatch() -> (bool, PathBuf, PathBuf) {
         let fallback = || (false, PathBuf::new(), PathBuf::new());
         // test runner should set this, nothing else
-        if env::var_os("RUSTUP_INIT_SKIP_SUDO_CHECK").map_or(false, |s| s == "yes") {
+        if process()
+            .var_os("RUSTUP_INIT_SKIP_SUDO_CHECK")
+            .map_or(false, |s| s == "yes")
+        {
             return fallback();
         }
 
-        match (utils::home_dir_from_passwd(), env::var_os("HOME")) {
+        match (utils::home_dir_from_passwd(), process().var_os("HOME")) {
             (Some(pw), Some(eh)) if eh != pw => return (true, PathBuf::from(eh), pw),
             (None, _) => warn!("getpwuid_r: couldn't get user data"),
             _ => {}
@@ -35,12 +38,12 @@ pub fn do_anti_sudo_check(no_prompt: bool) -> Result<()> {
             err!("euid-obtained home directory: {}", euid_home.display());
             if !no_prompt {
                 err!("if this is what you want, restart the installation with `-y'");
-                process::exit(1);
+                return Ok(utils::ExitCode(1));
             }
         }
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
 pub fn delete_rustup_and_cargo_home() -> Result<()> {
@@ -50,7 +53,7 @@ pub fn delete_rustup_and_cargo_home() -> Result<()> {
     Ok(())
 }
 
-pub fn complete_windows_uninstall() -> Result<()> {
+pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
     panic!("stop doing that")
 }
 
@@ -128,7 +131,7 @@ pub fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
 /// successfully, so it should not do much, and it should try
 /// really hard to succeed, because at this point the upgrade is
 /// considered successful.
-pub fn run_update(setup_path: &Path) -> Result<()> {
+pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
     let status = Command::new(setup_path)
         .arg("--self-replace")
         .status()
@@ -138,17 +141,17 @@ pub fn run_update(setup_path: &Path) -> Result<()> {
         return Err("self-updated failed to replace rustup executable".into());
     }
 
-    process::exit(0);
+    Ok(utils::ExitCode(0))
 }
 
 /// This function is as the final step of a self-upgrade. It replaces
 /// `CARGO_HOME`/bin/rustup with the running exe, and updates the the
 /// links to it. On windows this will run *after* the original
 /// rustup process exits.
-pub fn self_replace() -> Result<()> {
+pub fn self_replace() -> Result<utils::ExitCode> {
     install_bins()?;
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
 /// Decide which rcfiles we're going to update, so we
@@ -158,9 +161,9 @@ pub fn get_add_path_methods() -> Vec<PathUpdateMethod> {
     let profile = home_dir.join(".profile");
     let mut profiles = vec![profile];
 
-    if let Ok(shell) = env::var("SHELL") {
+    if let Ok(shell) = process().var("SHELL") {
         if shell.contains("zsh") {
-            let var = env::var_os("ZDOTDIR");
+            let var = process().var_os("ZDOTDIR");
             let zdotdir = var.as_deref().map_or_else(|| home_dir.as_path(), Path::new);
             let zprofile = zdotdir.join(".zprofile");
             profiles.push(zprofile);

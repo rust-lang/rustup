@@ -3,6 +3,7 @@ use std::io::Write;
 use term2::Terminal;
 
 use super::term2;
+use crate::process;
 
 macro_rules! warn {
     ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
@@ -62,7 +63,7 @@ pub fn verbose_fmt(args: fmt::Arguments<'_>) {
 }
 
 pub fn debug_fmt(args: fmt::Arguments<'_>) {
-    if std::env::var("RUSTUP_DEBUG").is_ok() {
+    if process().var("RUSTUP_DEBUG").is_ok() {
         let mut t = term2::stderr();
         let _ = t.fg(term2::color::BLUE);
         let _ = t.attr(term2::Attr::Bold);

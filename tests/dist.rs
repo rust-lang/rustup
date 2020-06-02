@@ -3,8 +3,17 @@
 
 pub mod mock;
 
-use crate::mock::dist::*;
-use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
+use std::cell::Cell;
+use std::collections::HashMap;
+use std::env;
+use std::fs;
+use std::path::Path;
+use std::str::FromStr;
+use std::sync::Arc;
+
+use url::Url;
+
+use rustup::currentprocess;
 use rustup::dist::dist::{Profile, TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER};
 use rustup::dist::download::DownloadCfg;
 use rustup::dist::manifest::{Component, Manifest};
@@ -17,13 +26,9 @@ use rustup::utils::raw as utils_raw;
 use rustup::utils::utils;
 use rustup::ErrorKind;
 use rustup::PgpPublicKey;
-use std::cell::Cell;
-use std::collections::HashMap;
-use std::fs;
-use std::path::Path;
-use std::str::FromStr;
-use std::sync::Arc;
-use url::Url;
+
+use crate::mock::dist::*;
+use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 const SHA256_HASH_LEN: usize = 64;
 
@@ -525,14 +530,24 @@ fn setup_from_dist_server(
         dist_root: "phony",
         temp_cfg: &temp_cfg,
         download_dir: &prefix.path().to_owned().join("downloads"),
-        notify_handler: &|_| {},
+        notify_handler: &|event| {
+            println!("{}", event);
+        },
         pgp_keys: &[PgpPublicKey::FromEnvironment(
             "test-key".into(),
             get_public_key(),
         )],
     };
 
-    f(url, &toolchain, &prefix, &download_cfg, &temp_cfg);
+    currentprocess::with(
+        Box::new(currentprocess::TestProcess::new(
+            &env::current_dir().unwrap(),
+            &["rustup"],
+            HashMap::default(),
+            "",
+        )),
+        || f(url, &toolchain, &prefix, &download_cfg, &temp_cfg),
+    );
 }
 
 #[test]
@@ -1753,7 +1768,6 @@ fn add_and_remove() {
 }
 
 #[test]
-#[should_panic]
 fn add_and_remove_same_component() {
     setup(None, false, &|url,
                          toolchain,
@@ -1780,7 +1794,7 @@ fn add_and_remove_same_component() {
 
         let removes = vec![Component::new(
             "rust-std".to_string(),
-            Some(TargetTriple::new("i686-apple_darwin")),
+            Some(TargetTriple::new("i686-apple-darwin")),
             false,
         )];
 
@@ -1794,7 +1808,7 @@ fn add_and_remove_same_component() {
             temp_cfg,
             false,
         )
-        .unwrap();
+        .expect_err("can't both add and remove components");
     });
 }
 

@@ -1,4 +1,3 @@
-use std::env;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process;
@@ -11,13 +10,13 @@ use crate::command::run_command_for_dir;
 use crate::utils::utils::{self, ExitCode};
 use crate::Cfg;
 
-pub fn main() -> Result<()> {
+pub fn main() -> Result<ExitCode> {
     self_update::cleanup_self_updater()?;
 
     let ExitCode(c) = {
         let _setup = job::setup();
 
-        let mut args = env::args_os();
+        let mut args = crate::process().args_os();
 
         let arg0 = args.next().map(PathBuf::from);
         let arg0 = arg0
@@ -36,9 +35,9 @@ pub fn main() -> Result<()> {
 
         // Build command args now while we know whether or not to skip arg 1.
         let cmd_args: Vec<_> = if toolchain.is_none() {
-            env::args_os().skip(1).collect()
+            crate::process().args_os().skip(1).collect()
         } else {
-            env::args_os().skip(2).collect()
+            crate::process().args_os().skip(2).collect()
         };
 
         let cfg = set_globals(false, true)?;

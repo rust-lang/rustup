@@ -3,7 +3,7 @@ use std::fmt;
 use std::io::Write;
 use std::iter;
 use std::path::{Path, PathBuf};
-use std::process::{self, Command};
+use std::process::Command;
 use std::str::FromStr;
 
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
@@ -17,23 +17,24 @@ use super::term2::Terminal;
 use super::topical_doc;
 use crate::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use crate::dist::manifest::Component;
+use crate::process;
 use crate::toolchain::{CustomToolchain, DistributableToolchain};
-use crate::utils::utils::{self, ExitCode};
+use crate::utils::utils;
 use crate::Notification;
 use crate::{command, Cfg, ComponentStatus, Toolchain};
 
-fn handle_epipe(res: Result<()>) -> Result<()> {
+fn handle_epipe(res: Result<utils::ExitCode>) -> Result<utils::ExitCode> {
     match res {
         Err(Error(ErrorKind::Io(ref err), _)) if err.kind() == std::io::ErrorKind::BrokenPipe => {
-            Ok(())
+            Ok(utils::ExitCode(0))
         }
         res => res,
     }
 }
 
-fn deprecated<F, B>(instead: &str, cfg: &mut Cfg, matches: B, callee: F) -> Result<()>
+fn deprecated<F, B>(instead: &str, cfg: &mut Cfg, matches: B, callee: F) -> Result<utils::ExitCode>
 where
-    F: FnOnce(&mut Cfg, B) -> Result<()>,
+    F: FnOnce(&mut Cfg, B) -> Result<utils::ExitCode>,
 {
     (cfg.notify_handler)(Notification::PlainVerboseMessage(
         "Use of (currently) unmaintained command line interface.",
@@ -51,10 +52,10 @@ where
     callee(cfg, matches)
 }
 
-pub fn main() -> Result<()> {
+pub fn main() -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
-    let matches = cli().get_matches();
+    let matches = cli().get_matches_from(process().args_os());
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");
     let cfg = &mut common::set_globals(verbose, quiet)?;
@@ -64,13 +65,13 @@ pub fn main() -> Result<()> {
     }
 
     if maybe_upgrade_data(cfg, &matches)? {
-        return Ok(());
+        return Ok(utils::ExitCode(0));
     }
 
     cfg.check_metadata_version()?;
 
-    match matches.subcommand() {
-        ("dump-testament", _) => common::dump_testament(),
+    Ok(match matches.subcommand() {
+        ("dump-testament", _) => common::dump_testament()?,
         ("show", Some(c)) => match c.subcommand() {
             ("active-toolchain", Some(_)) => handle_epipe(show_active_toolchain(cfg))?,
             ("home", Some(_)) => handle_epipe(show_rustup_home(cfg))?,
@@ -129,13 +130,13 @@ pub fn main() -> Result<()> {
                     c.value_of("command")
                         .and_then(|cmd| cmd.parse::<CompletionCommand>().ok())
                         .unwrap_or(CompletionCommand::Rustup),
-                )?;
+                )?
+            } else {
+                unreachable!()
             }
         }
         (_, _) => unreachable!(),
-    }
-
-    Ok(())
+    })
 }
 
 pub fn cli() -> App<'static, 'static> {
@@ -704,13 +705,20 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
         }
         match candidates.len() {
             0 => err!("no candidate toolchains found"),
-            1 => println!("\nyou may use the following toolchain: {}\n", candidates[0]),
+            1 => writeln!(
+                process().stdout(),
+                "\nyou may use the following toolchain: {}\n",
+                candidates[0]
+            )?,
             _ => {
-                println!("\nyou may use one of the following toolchains:");
+                writeln!(
+                    process().stdout(),
+                    "\nyou may use one of the following toolchains:"
+                )?;
                 for n in &candidates {
-                    println!("{}", n);
+                    writeln!(process().stdout(), "{}", n)?;
                 }
-                println!();
+                writeln!(process().stdout(),)?;
             }
         }
         return Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into());
@@ -733,10 +741,11 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
                     name
                 );
             } else {
-                println!(
+                writeln!(
+                    process().stdout(),
                     "\nyou may use the following toolchain: {}\n",
                     toolchain.name()
-                );
+                )?;
             }
             return Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into());
         }
@@ -744,7 +753,7 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
     Ok(())
 }
 
-fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     if m.is_present("toolchain") {
         let toolchain = m.value_of("toolchain").unwrap();
         default_bare_triple_check(cfg, toolchain)?;
@@ -762,7 +771,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         toolchain.make_default()?;
 
         if let Some(status) = status {
-            println!();
+            writeln!(process().stdout())?;
             common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
         }
 
@@ -778,13 +787,13 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         let default_toolchain: Result<String> = cfg
             .get_default()?
             .ok_or_else(|| "no default toolchain configured".into());
-        println!("{} (default)", default_toolchain?);
+        writeln!(process().stdout(), "{} (default)", default_toolchain?)?;
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn check_updates(cfg: &Cfg) -> Result<()> {
+fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
     let channels = cfg.list_channels()?;
 
@@ -824,10 +833,10 @@ fn check_updates(cfg: &Cfg) -> Result<()> {
             (_, Err(err)) => return Err(err.into()),
         }
     }
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let self_update = !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE;
     if let Some(p) = m.value_of("profile") {
         let p = Profile::from_str(p)?;
@@ -865,7 +874,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
             };
 
             if let Some(status) = status.clone() {
-                println!();
+                writeln!(process().stdout())?;
                 common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
             }
 
@@ -877,7 +886,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
             }
         }
         if self_update {
-            common::self_update(|| Ok(()))?;
+            common::self_update(|| Ok(utils::ExitCode(0)))?;
         }
     } else {
         common::update_all_channels(cfg, self_update, m.is_present("force"))?;
@@ -886,21 +895,20 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
         cfg.temp_cfg.clean();
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn run(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn run(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let toolchain = m.value_of("toolchain").unwrap();
     let args = m.values_of("command").unwrap();
     let args: Vec<_> = args.collect();
     let cmd = cfg.create_command_for_toolchain(toolchain, m.is_present("install"), args[0])?;
 
-    let ExitCode(c) = command::run_command_for_dir(cmd, args[0], &args[1..])?;
-
-    process::exit(c)
+    let code = command::run_command_for_dir(cmd, args[0], &args[1..])?;
+    Ok(code)
 }
 
-fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let binary = m.value_of("command").unwrap();
     let binary_path = if m.is_present("toolchain") {
         let toolchain = m.value_of("toolchain").unwrap();
@@ -913,12 +921,11 @@ fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
     utils::assert_is_file(&binary_path)?;
 
-    println!("{}", binary_path.display());
-
-    Ok(())
+    writeln!(process().stdout(), "{}", binary_path.display())?;
+    Ok(utils::ExitCode(0))
 }
 
-fn show(cfg: &Cfg) -> Result<()> {
+fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
     // Print host triple
     {
         let mut t = term2::stdout();
@@ -1052,7 +1059,7 @@ fn show(cfg: &Cfg) -> Result<()> {
         }
     }
 
-    fn print_header(t: &mut term::StdoutTerminal, s: &str) -> Result<()> {
+    fn print_header(t: &mut term2::StdoutTerminal, s: &str) -> Result<()> {
         t.attr(term2::Attr::Bold)?;
         writeln!(t, "{}", s)?;
         writeln!(t, "{}", iter::repeat("-").take(s.len()).collect::<String>())?;
@@ -1061,31 +1068,31 @@ fn show(cfg: &Cfg) -> Result<()> {
         Ok(())
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
+fn show_active_toolchain(cfg: &Cfg) -> Result<utils::ExitCode> {
     let cwd = utils::current_dir()?;
     match cfg.find_or_install_override_toolchain_or_default(&cwd) {
         Err(crate::Error(crate::ErrorKind::ToolchainNotSelected, _)) => {}
         Err(e) => return Err(e.into()),
         Ok((toolchain, reason)) => {
             if let Some(reason) = reason {
-                println!("{} ({})", toolchain.name(), reason);
+                writeln!(process().stdout(), "{} ({})", toolchain.name(), reason)?;
             } else {
-                println!("{} (default)", toolchain.name());
+                writeln!(process().stdout(), "{} (default)", toolchain.name())?;
             }
         }
     }
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn show_rustup_home(cfg: &Cfg) -> Result<()> {
-    println!("{}", cfg.rustup_dir.display());
-    Ok(())
+fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
+    writeln!(process().stdout(), "{}", cfg.rustup_dir.display())?;
+    Ok(utils::ExitCode(0))
 }
 
-fn target_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn target_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     if m.is_present("installed") {
@@ -1095,7 +1102,7 @@ fn target_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     }
 }
 
-fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
     // XXX: long term move this error to cli ? the normal .into doesn't work
     // because Result here is the wrong sort and expression type ascription
@@ -1148,10 +1155,10 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         distributable.add_component(new_component)?;
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     for target in m.values_of("target").unwrap() {
@@ -1165,10 +1172,10 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         distributable.remove_component(new_component)?;
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     if m.is_present("installed") {
@@ -1178,7 +1185,7 @@ fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     }
 }
 
-fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
     let distributable = DistributableToolchain::new(&toolchain)?;
     let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
@@ -1195,10 +1202,10 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         distributable.add_component(new_component)?;
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
     let distributable = DistributableToolchain::new(&toolchain)
         .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
@@ -1216,7 +1223,7 @@ fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         distributable.remove_component(new_component)?;
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
 fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Toolchain<'a>> {
@@ -1232,33 +1239,32 @@ fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Too
     Ok(toolchain)
 }
 
-fn toolchain_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn toolchain_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     common::list_toolchains(cfg, m.is_present("verbose"))
 }
 
-fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let toolchain = m.value_of("toolchain").unwrap();
     let path = m.value_of("path").unwrap();
     let toolchain = cfg.get_toolchain(toolchain, true)?;
 
     if let Ok(custom) = CustomToolchain::new(&toolchain) {
-        custom
-            .install_from_dir(Path::new(path), true)
-            .map_err(Into::into)
+        custom.install_from_dir(Path::new(path), true)?;
+        Ok(utils::ExitCode(0))
     } else {
         Err(ErrorKind::InvalidCustomToolchainName(toolchain.name().to_string()).into())
     }
 }
 
-fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     for toolchain in m.values_of("toolchain").unwrap() {
         let toolchain = cfg.get_toolchain(toolchain, false)?;
         toolchain.remove()?;
     }
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let toolchain = m.value_of("toolchain").unwrap();
     let toolchain = cfg.get_toolchain(toolchain, false)?;
 
@@ -1279,14 +1285,14 @@ fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     toolchain.make_override(&path)?;
 
     if let Some(status) = status {
-        println!();
+        writeln!(process().stdout(),)?;
         common::show_channel_update(cfg, toolchain.name(), Ok(status))?;
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let paths = if m.is_present("nonexistent") {
         let list: Vec<_> = cfg.settings_file.with(|s| {
             Ok(s.overrides
@@ -1326,7 +1332,7 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             }
         }
     }
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
 const DOCS_DATA: &[(&str, &str, &str,)] = &[
@@ -1349,7 +1355,7 @@ const DOCS_DATA: &[(&str, &str, &str,)] = &[
     ("embedded-book", "The Embedded Rust Book", "embedded-book/index.html"),
 ];
 
-fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
     if let Ok(distributable) = DistributableToolchain::new(&toolchain) {
         let components = distributable.list_components()?;
@@ -1386,14 +1392,15 @@ fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
     if m.is_present("path") {
         let doc_path = toolchain.doc_path(doc_url)?;
-        println!("{}", doc_path.display());
-        Ok(())
+        writeln!(process().stdout(), "{}", doc_path.display())?;
+        Ok(utils::ExitCode(0))
     } else {
-        toolchain.open_docs(doc_url).map_err(Into::into)
+        toolchain.open_docs(doc_url)?;
+        Ok(utils::ExitCode(0))
     }
 }
 
-fn man(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn man(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let command = m.value_of("command").unwrap();
 
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
@@ -1404,7 +1411,7 @@ fn man(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 
     let mut manpaths = std::ffi::OsString::from(toolchain);
     manpaths.push(":"); // prepend to the default MANPATH list
-    if let Some(path) = std::env::var_os("MANPATH") {
+    if let Some(path) = process().var_os("MANPATH") {
         manpaths.push(path);
     }
     Command::new("man")
@@ -1412,37 +1419,37 @@ fn man(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
         .arg(command)
         .status()
         .expect("failed to open man page");
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn self_uninstall(m: &ArgMatches<'_>) -> Result<()> {
+fn self_uninstall(m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let no_prompt = m.is_present("no-prompt");
 
     self_update::uninstall(no_prompt)
 }
 
-fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     cfg.set_default_host_triple(m.value_of("host_triple").unwrap())?;
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn set_profile(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
+fn set_profile(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     cfg.set_profile(&m.value_of("profile-name").unwrap())?;
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-fn show_profile(cfg: &Cfg) -> Result<()> {
-    println!("{}", cfg.get_profile()?);
-    Ok(())
+fn show_profile(cfg: &Cfg) -> Result<utils::ExitCode> {
+    writeln!(process().stdout(), "{}", cfg.get_profile()?)?;
+    Ok(utils::ExitCode(0))
 }
 
-fn show_keys(cfg: &Cfg) -> Result<()> {
+fn show_keys(cfg: &Cfg) -> Result<utils::ExitCode> {
     for key in cfg.get_pgp_keys() {
         for l in key.show_key()? {
             info!("{}", l);
         }
     }
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -1494,7 +1501,7 @@ impl fmt::Display for CompletionCommand {
     }
 }
 
-fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<()> {
+fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<utils::ExitCode> {
     match command {
         CompletionCommand::Rustup => {
             cli().gen_completions_to("rustup", shell, &mut term2::stdout());
@@ -1518,5 +1525,5 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
         }
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
