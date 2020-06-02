@@ -10,9 +10,9 @@ For developing on `rustup` itself, you may want to install into a temporary
 directory, with a series of commands similar to this:
 
 ```bash
-$ cargo build
-$ mkdir home
-$ RUSTUP_HOME=home CARGO_HOME=home target/debug/rustup-init --no-modify-path -y
+cargo build
+mkdir home
+RUSTUP_HOME=home CARGO_HOME=home target/debug/rustup-init --no-modify-path -y
 ```
 
 You can then try out `rustup` with your changes by running `home/bin/rustup`, without
@@ -125,8 +125,8 @@ its a particular binary, rather than e.g. copying it, symlinking it or other
 tricks with exec. This is handy when testing particular code paths from cargo
 run.
 
-```
-$ RUSTUP_FORCE_ARG0=rustup cargo run -- uninstall nightly
+```shell
+RUSTUP_FORCE_ARG0=rustup cargo run -- uninstall nightly
 ```
 
 ### `RUSTUP_BACKTRACK_LIMIT`
