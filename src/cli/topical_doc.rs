@@ -13,7 +13,7 @@ fn no_document(topic: &str) -> Result<PathBuf> {
     Err(format!("No document for '{}'", topic).into())
 }
 
-fn index_html(doc: &DocData, wpath: &Path) -> Option<PathBuf> {
+fn index_html(doc: &DocData<'_>, wpath: &Path) -> Option<PathBuf> {
     let indexhtml = wpath.join("index.html");
     match &doc.root.join(&indexhtml).exists() {
         true => Some(indexhtml),
@@ -31,7 +31,7 @@ fn dir_into_vec(dir: &PathBuf) -> Result<Vec<OsString>> {
     Ok(v)
 }
 
-fn search_path(doc: &DocData, wpath: &Path, keywords: &[&str]) -> Result<PathBuf> {
+fn search_path(doc: &DocData<'_>, wpath: &Path, keywords: &[&str]) -> Result<PathBuf> {
     let dir = &doc.root.join(&wpath);
     if dir.is_dir() {
         let entries = dir_into_vec(dir)?;

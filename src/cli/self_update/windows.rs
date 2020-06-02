@@ -1,16 +1,18 @@
-use super::*;
-use path_update::PathUpdateMethod;
-use rustup::dist::dist::TargetTriple;
-use rustup::utils::utils;
-use rustup::utils::Notification;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::path::Path;
 use std::process::{self, Command};
 
+use super::super::errors::*;
+use super::path_update::PathUpdateMethod;
+use super::{install_bins, InstallOpts};
+use crate::dist::dist::TargetTriple;
+use crate::utils::utils;
+use crate::utils::Notification;
+
 // Provide guidance about setting up MSVC if it doesn't appear to be
 // installed
-pub fn do_msvc_check(opts: &InstallOpts) -> Result<bool> {
+pub fn do_msvc_check(opts: &InstallOpts<'_>) -> Result<bool> {
     // Test suite skips this since it's env dependent
     if env::var("RUSTUP_INIT_SKIP_MSVC_CHECK").is_ok() {
         return Ok(true);

@@ -2,14 +2,15 @@
 //! that does not fail if `StdoutTerminal` etc can't be constructed, which happens
 //! if TERM isn't defined.
 
-use lazy_static::lazy_static;
-use rustup::utils::tty;
 use std::io;
 use std::sync::Mutex;
 
+use lazy_static::lazy_static;
 pub use term::color;
 pub use term::Attr;
 pub use term::Terminal;
+
+use crate::utils::tty;
 
 mod termhack {
     // Things we should submit to term as improvements: here temporarily.

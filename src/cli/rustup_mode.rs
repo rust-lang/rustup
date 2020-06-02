@@ -1,18 +1,3 @@
-use crate::common;
-use crate::errors::*;
-use crate::help::*;
-use crate::self_update;
-use crate::term2;
-use crate::term2::Terminal;
-use crate::topical_doc;
-
-use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
-use rustup::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
-use rustup::dist::manifest::Component;
-use rustup::toolchain::{CustomToolchain, DistributableToolchain};
-use rustup::utils::utils::{self, ExitCode};
-use rustup::Notification;
-use rustup::{command, Cfg, ComponentStatus, Toolchain};
 use std::error::Error;
 use std::fmt;
 use std::io::Write;
@@ -20,6 +5,22 @@ use std::iter;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::str::FromStr;
+
+use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
+
+use super::common;
+use super::errors::*;
+use super::help::*;
+use super::self_update;
+use super::term2;
+use super::term2::Terminal;
+use super::topical_doc;
+use crate::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
+use crate::dist::manifest::Component;
+use crate::toolchain::{CustomToolchain, DistributableToolchain};
+use crate::utils::utils::{self, ExitCode};
+use crate::Notification;
+use crate::{command, Cfg, ComponentStatus, Toolchain};
 
 fn handle_epipe(res: Result<()>) -> Result<()> {
     match res {
@@ -51,7 +52,7 @@ where
 }
 
 pub fn main() -> Result<()> {
-    crate::self_update::cleanup_self_updater()?;
+    self_update::cleanup_self_updater()?;
 
     let matches = cli().get_matches();
     let verbose = matches.is_present("verbose");
@@ -869,7 +870,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
             }
 
             if cfg.get_default()?.is_none() {
-                use rustup::UpdateStatus;
+                use crate::UpdateStatus;
                 if let Some(UpdateStatus::Installed) = status {
                     toolchain.make_default()?;
                 }
@@ -1034,7 +1035,7 @@ fn show(cfg: &Cfg) -> Result<()> {
                     writeln!(t, "{}", toolchain.rustc_version())?;
                 }
             },
-            Err(rustup::Error(rustup::ErrorKind::ToolchainNotSelected, _)) => {
+            Err(crate::Error(crate::ErrorKind::ToolchainNotSelected, _)) => {
                 writeln!(t, "no active toolchain")?;
             }
             Err(err) => {
@@ -1066,7 +1067,7 @@ fn show(cfg: &Cfg) -> Result<()> {
 fn show_active_toolchain(cfg: &Cfg) -> Result<()> {
     let cwd = utils::current_dir()?;
     match cfg.find_or_install_override_toolchain_or_default(&cwd) {
-        Err(rustup::Error(rustup::ErrorKind::ToolchainNotSelected, _)) => {}
+        Err(crate::Error(crate::ErrorKind::ToolchainNotSelected, _)) => {}
         Err(e) => return Err(e.into()),
         Ok((toolchain, reason)) => {
             if let Some(reason) = reason {
@@ -1102,8 +1103,8 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     // list_components *and* add_component would both be inappropriate for
     // custom toolchains.
     if toolchain.is_custom() {
-        return Err(rustup::Error(
-            rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()),
+        return Err(crate::Error(
+            crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()),
             error_chain::State::default(),
         )
         .into());
@@ -1160,7 +1161,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
             false,
         );
         let distributable = DistributableToolchain::new(&toolchain)
-            .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+            .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
         distributable.remove_component(new_component)?;
     }
 
@@ -1200,7 +1201,7 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
 fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
     let distributable = DistributableToolchain::new(&toolchain)
-        .chain_err(|| rustup::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+        .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
     let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
         distributable
             .desc()
@@ -1425,7 +1426,7 @@ fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<()> {
     Ok(())
 }
 
-fn set_profile(cfg: &mut Cfg, m: &ArgMatches) -> Result<()> {
+fn set_profile(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<()> {
     cfg.set_profile(&m.value_of("profile-name").unwrap())?;
     Ok(())
 }

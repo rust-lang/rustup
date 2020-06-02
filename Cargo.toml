@@ -105,10 +105,6 @@ name = "rustup"
 path = "src/lib.rs"
 test = false # no unit tests
 
-[[bin]]
-name = "rustup-init"
-path = "src/cli/main.rs"
-
 [profile.release]
 lto = true
 codegen-units = 1

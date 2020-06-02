@@ -2,8 +2,6 @@
 #![allow(dead_code)]
 #![allow(deprecated)] // because of `Error::description` deprecation in `error_chain`
 
-use crate::rustup_mode::CompletionCommand;
-
 use std::io;
 use std::path::PathBuf;
 
@@ -11,12 +9,14 @@ use clap::Shell;
 use error_chain::error_chain;
 use lazy_static::lazy_static;
 use regex::Regex;
-use rustup::dist::temp;
 use strsim::damerau_levenshtein;
+
+use super::rustup_mode::CompletionCommand;
+use crate::dist::temp;
 
 error_chain! {
     links {
-        Rustup(rustup::Error, rustup::ErrorKind);
+        Rustup(crate::Error, crate::ErrorKind);
     }
 
     foreign_links {

@@ -51,6 +51,7 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
     }
 }
 
+pub mod cli;
 pub mod command;
 mod config;
 pub mod diskio;

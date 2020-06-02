@@ -1,9 +1,10 @@
 // Write Markdown to the terminal
 
-use crate::term2::{color, Attr, Terminal};
 use std::io;
 
 use pulldown_cmark::{Event, Tag};
+
+use super::term2::{color, Attr, Terminal};
 
 // Handles the wrapping of text written to the console
 struct LineWrapper<'a, T: Terminal> {
