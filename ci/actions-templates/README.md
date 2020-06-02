@@ -56,6 +56,7 @@ system.
 | armv7-linux-androideabi       | Yes        | Two   | No     | No         |
 | i686-linux-android            | Yes        | Two   | No     | No         |
 | x86_64-linux-android          | Yes        | Two   | No     | No         |
+| riscv64gc-unknown-linux-gnu   | Yes        | ---   | No     | No         |
 | ----------------------------- | ---------- | ----- | ------ | ---------- |
 | x86_64-apple-darwin           | No         | One   | Yes    | Yes        |
 | ----------------------------- | ---------- | ----- | ------ | ---------- |
