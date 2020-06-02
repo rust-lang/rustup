@@ -33,6 +33,26 @@ submitted for inclusion in the work by you, as defined in the
 Apache-2.0 license, shall be dual licensed as in the README, without any
 additional terms or conditions.
 
+## Non-machine-enforced coding standards
+
+These are requirements we have that we have not yet lifted to the level of
+automatic enforcement.
+
+### Import grouping
+
+In each file the imports should be grouped into at most 4 groups in the
+following order:
+
+1. stdlib
+2. non-repository local crates
+3. repository local other crates
+4. this crate
+
+Separate each group with a blank line, and rustfmt will sort into a canonical
+order. Any file that is not grouped like this can be rearranged whenever the
+file is touched - we're not precious about having it done in a separate commit,
+though that is helpful.
+
 ## Version numbers
 
 If you ever see a released version of rustup which has `::` in its version string
