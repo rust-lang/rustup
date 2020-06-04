@@ -296,7 +296,7 @@ fn unpack_without_first_dir<'a, R: Read>(
     let entries = archive
         .entries()
         .chain_err(|| ErrorKind::ExtractingPackage)?;
-    const MAX_FILE_SIZE: u64 = 200_000_000;
+    const MAX_FILE_SIZE: u64 = 220_000_000;
     let effective_max_ram = match effective_limits::memory_limit() {
         Ok(ram) => Some(ram as usize),
         Err(e) => {
