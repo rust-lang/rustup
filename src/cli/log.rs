@@ -1,24 +1,25 @@
-use crate::term2;
 use std::fmt;
 use std::io::Write;
 use term2::Terminal;
 
+use super::term2;
+
 macro_rules! warn {
-    ( $ ( $ arg : tt ) * ) => ( $crate::log::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::warn_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 macro_rules! err {
-    ( $ ( $ arg : tt ) * ) => ( $crate::log::err_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::err_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 macro_rules! info {
-    ( $ ( $ arg : tt ) * ) => ( $crate::log::info_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::info_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 
 macro_rules! verbose {
-    ( $ ( $ arg : tt ) * ) => ( $crate::log::verbose_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::verbose_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 
 macro_rules! debug {
-    ( $ ( $ arg : tt ) * ) => ( $crate::log::debug_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
+    ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::debug_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 
 pub fn warn_fmt(args: fmt::Arguments<'_>) {

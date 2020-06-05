@@ -30,17 +30,6 @@
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
-use crate::common::{self, ignorable_error, Confirm};
-use crate::errors::*;
-use crate::markdown::md;
-use crate::term2;
-use rustup::dist::dist::{self, Profile, TargetTriple};
-use rustup::toolchain::DistributableToolchain;
-use rustup::utils::utils;
-use rustup::utils::Notification;
-use rustup::{Cfg, UpdateStatus};
-use rustup::{DUP_TOOLS, TOOLS};
-use same_file::Handle;
 use std::borrow::Cow;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
@@ -56,13 +45,26 @@ mod windows;
 
 mod os {
     #[cfg(unix)]
-    pub use crate::self_update::unix::*;
+    pub use super::unix::*;
     #[cfg(windows)]
-    pub use crate::self_update::windows::*;
+    pub use super::windows::*;
 }
 
 use os::*;
 pub use os::{complete_windows_uninstall, delete_rustup_and_cargo_home, run_update, self_replace};
+
+use same_file::Handle;
+
+use super::common::{self, ignorable_error, Confirm};
+use super::errors::*;
+use super::markdown::md;
+use super::term2;
+use crate::dist::dist::{self, Profile, TargetTriple};
+use crate::toolchain::DistributableToolchain;
+use crate::utils::utils;
+use crate::utils::Notification;
+use crate::{Cfg, UpdateStatus};
+use crate::{DUP_TOOLS, TOOLS};
 
 pub struct InstallOpts<'a> {
     pub default_host_triple: Option<String>,
@@ -256,7 +258,12 @@ fn canonical_cargo_home() -> Result<Cow<'static, str>> {
 /// Installing is a simple matter of copying the running binary to
 /// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
 /// and adding `CARGO_HOME`/bin to PATH.
-pub fn install(no_prompt: bool, verbose: bool, quiet: bool, mut opts: InstallOpts) -> Result<()> {
+pub fn install(
+    no_prompt: bool,
+    verbose: bool,
+    quiet: bool,
+    mut opts: InstallOpts<'_>,
+) -> Result<()> {
     if !env::var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS").map_or(false, |s| s == "yes") {
         do_pre_install_sanity_checks(no_prompt)?;
     }
@@ -454,7 +461,7 @@ fn do_pre_install_sanity_checks(no_prompt: bool) -> Result<()> {
     Ok(())
 }
 
-fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
+fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
     use std::str::FromStr;
     // Verify that the installation options are vaguely sane
     (|| {
@@ -489,7 +496,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts) -> Result<()> {
 }
 
 #[cfg(not(windows))]
-fn do_msvc_check(_opts: &InstallOpts) -> Result<bool> {
+fn do_msvc_check(_opts: &InstallOpts<'_>) -> Result<bool> {
     Ok(true)
 }
 
@@ -543,7 +550,7 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
     }
 }
 
-fn current_install_opts(opts: &InstallOpts) -> String {
+fn current_install_opts(opts: &InstallOpts<'_>) -> String {
     format!(
         r"Current installation options:
 
@@ -565,7 +572,7 @@ fn current_install_opts(opts: &InstallOpts) -> String {
 }
 
 // Interactive editing of the install options
-fn customize_install(mut opts: InstallOpts) -> Result<InstallOpts> {
+fn customize_install(mut opts: InstallOpts<'_>) -> Result<InstallOpts<'_>> {
     println!(
         "I'm going to ask you the value of each of these installation options.\n\
          You may simply press the Enter key to leave unchanged."

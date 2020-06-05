@@ -1,14 +1,16 @@
-use crate::term2;
-use rustup::dist::Notification as In;
-use rustup::utils::tty;
-use rustup::utils::units::{Size, Unit, UnitMode};
-use rustup::utils::Notification as Un;
-use rustup::Notification;
 use std::collections::VecDeque;
 use std::fmt;
 use std::io::Write;
 use std::time::{Duration, Instant};
+
 use term::Terminal;
+
+use super::term2;
+use crate::dist::Notification as In;
+use crate::utils::tty;
+use crate::utils::units::{Size, Unit, UnitMode};
+use crate::utils::Notification as Un;
+use crate::Notification;
 
 /// Keep track of this many past download amounts
 const DOWNLOAD_TRACK_COUNT: usize = 5;

@@ -14,29 +14,19 @@
 
 #![recursion_limit = "1024"]
 
-#[macro_use]
-mod log;
-mod common;
-mod download_tracker;
-mod errors;
-mod help;
-mod job;
-mod markdown;
-mod proxy_mode;
-mod rustup_mode;
-mod self_update;
-mod setup_mode;
-mod term2;
-mod topical_doc;
-
-use crate::errors::*;
-use rustup::env_var::RUST_RECURSION_COUNT_MAX;
-use rustup::utils::utils;
-
 use std::env;
 use std::path::PathBuf;
 
 use rs_tracing::*;
+
+use rustup::cli::common;
+use rustup::cli::errors::*;
+use rustup::cli::proxy_mode;
+use rustup::cli::rustup_mode;
+use rustup::cli::self_update;
+use rustup::cli::setup_mode;
+use rustup::env_var::RUST_RECURSION_COUNT_MAX;
+use rustup::utils::utils;
 
 fn main() {
     if let Err(ref e) = run_rustup() {

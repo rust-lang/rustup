@@ -1,16 +1,18 @@
-use crate::common::set_globals;
-use crate::errors::*;
-use crate::job;
-use rustup::command::run_command_for_dir;
-use rustup::utils::utils::{self, ExitCode};
-use rustup::Cfg;
 use std::env;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process;
 
+use super::common::set_globals;
+use super::errors::*;
+use super::job;
+use super::self_update;
+use crate::command::run_command_for_dir;
+use crate::utils::utils::{self, ExitCode};
+use crate::Cfg;
+
 pub fn main() -> Result<()> {
-    crate::self_update::cleanup_self_updater()?;
+    self_update::cleanup_self_updater()?;
 
     let ExitCode(c) = {
         let _setup = job::setup();
