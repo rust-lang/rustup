@@ -14,6 +14,7 @@ use super::errors::*;
 use super::self_update;
 use super::term2;
 use crate::dist::notifications as dist_notifications;
+use crate::process;
 use crate::toolchain::DistributableToolchain;
 use crate::utils::notifications as util_notifications;
 use crate::utils::notify::NotificationLevel;
@@ -23,7 +24,7 @@ use crate::{Cfg, Notification, Toolchain, UpdateStatus};
 pub const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
 
 pub fn confirm(question: &str, default: bool) -> Result<bool> {
-    print!("{} ", question);
+    write!(process().stdout(), "{} ", question)?;
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
@@ -34,7 +35,7 @@ pub fn confirm(question: &str, default: bool) -> Result<bool> {
         _ => false,
     };
 
-    println!();
+    writeln!(process().stdout())?;
 
     Ok(r)
 }
@@ -46,11 +47,11 @@ pub enum Confirm {
 }
 
 pub fn confirm_advanced() -> Result<Confirm> {
-    println!();
-    println!("1) Proceed with installation (default)");
-    println!("2) Customize installation");
-    println!("3) Cancel installation");
-    print!(">");
+    writeln!(process().stdout())?;
+    writeln!(process().stdout(), "1) Proceed with installation (default)")?;
+    writeln!(process().stdout(), "2) Customize installation")?;
+    writeln!(process().stdout(), "3) Cancel installation")?;
+    write!(process().stdout(), ">")?;
 
     let _ = std::io::stdout().flush();
     let input = read_line()?;
@@ -61,17 +62,17 @@ pub fn confirm_advanced() -> Result<Confirm> {
         _ => Confirm::No,
     };
 
-    println!();
+    writeln!(process().stdout())?;
 
     Ok(r)
 }
 
 pub fn question_str(question: &str, default: &str) -> Result<String> {
-    println!("{}", question);
+    writeln!(process().stdout(), "{}", question)?;
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
-    println!();
+    writeln!(process().stdout())?;
 
     if input.is_empty() {
         Ok(default.to_string())
@@ -81,12 +82,12 @@ pub fn question_str(question: &str, default: &str) -> Result<String> {
 }
 
 pub fn question_bool(question: &str, default: bool) -> Result<bool> {
-    println!("{}", question);
+    writeln!(process().stdout(), "{}", question)?;
 
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
-    println!();
+    writeln!(process().stdout())?;
 
     if input.is_empty() {
         Ok(default)
@@ -100,7 +101,7 @@ pub fn question_bool(question: &str, default: bool) -> Result<bool> {
 }
 
 pub fn read_line() -> Result<String> {
-    let stdin = std::io::stdin();
+    let stdin = process().stdin();
     let stdin = stdin.lock();
     let mut lines = stdin.lines();
     lines
@@ -241,7 +242,11 @@ fn show_channel_updates(
     Ok(())
 }
 
-pub fn update_all_channels(cfg: &Cfg, do_self_update: bool, force_update: bool) -> Result<()> {
+pub fn update_all_channels(
+    cfg: &Cfg,
+    do_self_update: bool,
+    force_update: bool,
+) -> Result<utils::ExitCode> {
     let toolchains = cfg.update_all_channels(force_update)?;
 
     if toolchains.is_empty() {
@@ -250,11 +255,11 @@ pub fn update_all_channels(cfg: &Cfg, do_self_update: bool, force_update: bool) 
 
     let show_channel_updates = || {
         if !toolchains.is_empty() {
-            println!();
+            writeln!(process().stdout())?;
 
             show_channel_updates(cfg, toolchains)?;
         }
-        Ok(())
+        Ok(utils::ExitCode(0))
     };
 
     if do_self_update {
@@ -276,7 +281,7 @@ pub fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
         Ok(SelfUpdatePermission::Permit)
     } else {
         // Detect if rustup is not meant to self-update
-        match env::var("SNAP") {
+        match process().var("SNAP") {
             Ok(_) => {
                 // We're running under snappy so don't even bother
                 // trying to self-update
@@ -319,16 +324,16 @@ pub fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
     }
 }
 
-pub fn self_update<F>(before_restart: F) -> Result<()>
+pub fn self_update<F>(before_restart: F) -> Result<utils::ExitCode>
 where
-    F: FnOnce() -> Result<()>,
+    F: FnOnce() -> Result<utils::ExitCode>,
 {
     match self_update_permitted(false)? {
         SelfUpdatePermission::HardFail => {
             err!("Unable to self-update.  STOP");
-            std::process::exit(1);
+            return Ok(utils::ExitCode(1));
         }
-        SelfUpdatePermission::Skip => return Ok(()),
+        SelfUpdatePermission::Skip => return Ok(utils::ExitCode(0)),
         SelfUpdatePermission::Permit => {}
     }
 
@@ -337,18 +342,16 @@ where
     before_restart()?;
 
     if let Some(ref setup_path) = setup_path {
-        self_update::run_update(setup_path)?;
-
-        unreachable!(); // update exits on success
+        return self_update::run_update(setup_path);
     } else {
         // Try again in case we emitted "tool `{}` is already installed" last time.
         self_update::install_proxies()?;
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<()> {
+pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
     let distributable = DistributableToolchain::new(&toolchain)
         .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
@@ -370,10 +373,10 @@ pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<()> {
         }
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<()> {
+pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
     let distributable = DistributableToolchain::new(&toolchain)
         .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
@@ -390,10 +393,10 @@ pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<()> {
             }
         }
     }
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-pub fn list_components(toolchain: &Toolchain<'_>) -> Result<()> {
+pub fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
     let distributable = DistributableToolchain::new(&toolchain)
         .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
@@ -409,10 +412,10 @@ pub fn list_components(toolchain: &Toolchain<'_>) -> Result<()> {
         }
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<()> {
+pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
     let distributable = DistributableToolchain::new(&toolchain)
         .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
@@ -422,7 +425,7 @@ pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<()> {
             writeln!(t, "{}", component.name)?;
         }
     }
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
 fn print_toolchain_path(
@@ -447,17 +450,21 @@ fn print_toolchain_path(
     } else {
         String::new()
     };
-    println!(
+    writeln!(
+        process().stdout(),
         "{}{}{}{}",
-        &toolchain, if_default, if_override, toolchain_path
-    );
+        &toolchain,
+        if_default,
+        if_override,
+        toolchain_path
+    )?;
     Ok(())
 }
 
-pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<()> {
+pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
     let toolchains = cfg.list_toolchains()?;
     if toolchains.is_empty() {
-        println!("no installed toolchains");
+        writeln!(process().stdout(), "no installed toolchains")?;
     } else {
         let def_toolchain_name = if let Ok(Some(def_toolchain)) = cfg.find_default() {
             def_toolchain.name().to_string()
@@ -487,14 +494,14 @@ pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<()> {
                 .expect("Failed to list toolchains' directories");
         }
     }
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
-pub fn list_overrides(cfg: &Cfg) -> Result<()> {
+pub fn list_overrides(cfg: &Cfg) -> Result<utils::ExitCode> {
     let overrides = cfg.settings_file.with(|s| Ok(s.overrides.clone()))?;
 
     if overrides.is_empty() {
-        println!("no overrides");
+        writeln!(process().stdout(), "no overrides")?;
     } else {
         let mut any_not_exist = false;
         for (k, v) in overrides {
@@ -502,22 +509,23 @@ pub fn list_overrides(cfg: &Cfg) -> Result<()> {
             if !dir_exists {
                 any_not_exist = true;
             }
-            println!(
+            writeln!(
+                process().stdout(),
                 "{:<40}\t{:<20}",
                 utils::format_path_for_display(&k)
                     + if dir_exists { "" } else { " (not a directory)" },
                 v
-            )
+            )?
         }
         if any_not_exist {
-            println!();
+            writeln!(process().stdout())?;
             info!(
                 "you may remove overrides for non-existent directories with
 `rustup override unset --nonexistent`"
             );
         }
     }
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
 git_testament!(TESTAMENT);
@@ -532,40 +540,65 @@ pub fn version() -> &'static str {
     &RENDERED
 }
 
-pub fn dump_testament() {
+pub fn dump_testament() -> Result<utils::ExitCode> {
     use git_testament::GitModification::*;
-    println!("Rustup version renders as: {}", version());
-    println!("Current crate version: {}", env!("CARGO_PKG_VERSION"));
+    writeln!(
+        process().stdout(),
+        "Rustup version renders as: {}",
+        version()
+    )?;
+    writeln!(
+        process().stdout(),
+        "Current crate version: {}",
+        env!("CARGO_PKG_VERSION")
+    )?;
     if TESTAMENT.branch_name.is_some() {
-        println!("Built from branch: {}", TESTAMENT.branch_name.unwrap());
+        writeln!(
+            process().stdout(),
+            "Built from branch: {}",
+            TESTAMENT.branch_name.unwrap()
+        )?;
     } else {
-        println!("Branch information missing");
+        writeln!(process().stdout(), "Branch information missing")?;
     }
-    println!("Commit info: {}", TESTAMENT.commit);
+    writeln!(process().stdout(), "Commit info: {}", TESTAMENT.commit)?;
     if TESTAMENT.modifications.is_empty() {
-        println!("Working tree is clean");
+        writeln!(process().stdout(), "Working tree is clean")?;
     } else {
         for fmod in TESTAMENT.modifications {
             match fmod {
-                Added(f) => println!("Added: {}", String::from_utf8_lossy(f)),
-                Removed(f) => println!("Removed: {}", String::from_utf8_lossy(f)),
-                Modified(f) => println!("Modified: {}", String::from_utf8_lossy(f)),
-                Untracked(f) => println!("Untracked: {}", String::from_utf8_lossy(f)),
+                Added(f) => writeln!(process().stdout(), "Added: {}", String::from_utf8_lossy(f))?,
+                Removed(f) => writeln!(
+                    process().stdout(),
+                    "Removed: {}",
+                    String::from_utf8_lossy(f)
+                )?,
+                Modified(f) => writeln!(
+                    process().stdout(),
+                    "Modified: {}",
+                    String::from_utf8_lossy(f)
+                )?,
+                Untracked(f) => writeln!(
+                    process().stdout(),
+                    "Untracked: {}",
+                    String::from_utf8_lossy(f)
+                )?,
             }
         }
     }
+    Ok(utils::ExitCode(0))
 }
 
 fn show_backtrace() -> bool {
-    if let Ok(true) = env::var("RUSTUP_NO_BACKTRACE").map(|s| s == "1") {
+    if let Ok(true) = process().var("RUSTUP_NO_BACKTRACE").map(|s| s == "1") {
         return false;
     }
 
-    if let Ok(true) = env::var("RUST_BACKTRACE").map(|s| s == "1") {
+    if let Ok(true) = process().var("RUST_BACKTRACE").map(|s| s == "1") {
         return true;
     }
 
-    for arg in env::args() {
+    for arg in process().args() {
         if arg == "-v" || arg == "--verbose" {
             return true;
         }

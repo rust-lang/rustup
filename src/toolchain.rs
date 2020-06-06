@@ -1,3 +1,15 @@
+use std::env;
+use std::env::consts::EXE_SUFFIX;
+use std::ffi::OsStr;
+use std::ffi::OsString;
+use std::io::{BufRead, BufReader};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::str::FromStr;
+use std::time::Duration;
+
+use wait_timeout::ChildExt;
+
 use crate::component_for_bin;
 use crate::config::Cfg;
 use crate::dist::dist::TargetTriple;
@@ -11,19 +23,8 @@ use crate::env_var;
 use crate::errors::*;
 use crate::install::{self, InstallMethod};
 use crate::notifications::*;
+use crate::process;
 use crate::utils::utils;
-
-use std::env;
-use std::env::consts::EXE_SUFFIX;
-use std::ffi::OsStr;
-use std::ffi::OsString;
-use std::io::{BufRead, BufReader};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::str::FromStr;
-use std::time::Duration;
-
-use wait_timeout::ChildExt;
 
 /// An installed toolchain
 trait InstalledToolchain<'a> {
@@ -270,7 +271,8 @@ impl<'a> InstalledCommonToolchain<'a> {
         let path = if utils::is_file(&bin_path) {
             &bin_path
         } else {
-            let recursion_count = env::var("RUST_RECURSION_COUNT")
+            let recursion_count = process()
+                .var("RUST_RECURSION_COUNT")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
@@ -362,14 +364,15 @@ impl<'a> InstalledCommonToolchain<'a> {
             pub const LOADER_PATH: &str = "DYLD_FALLBACK_LIBRARY_PATH";
         }
         if cfg!(target_os = "macos")
-            && env::var_os(sysenv::LOADER_PATH)
+            && process()
+                .var_os(sysenv::LOADER_PATH)
                 .filter(|x| x.len() > 0)
                 .is_none()
         {
             // These are the defaults when DYLD_FALLBACK_LIBRARY_PATH isn't
             // set or set to an empty string. Since we are explicitly setting
             // the value, make sure the defaults still work.
-            if let Some(home) = env::var_os("HOME") {
+            if let Some(home) = process().var_os("HOME") {
                 new_path.push(PathBuf::from(home).join("lib"));
             }
             new_path.push(PathBuf::from("/usr/local/lib"));

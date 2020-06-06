@@ -14,7 +14,6 @@
 
 #![recursion_limit = "1024"]
 
-use std::env;
 use std::path::PathBuf;
 
 use rs_tracing::*;
@@ -25,41 +24,46 @@ use rustup::cli::proxy_mode;
 use rustup::cli::rustup_mode;
 use rustup::cli::self_update;
 use rustup::cli::setup_mode;
+use rustup::currentprocess::{process, with, OSProcess};
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
 use rustup::utils::utils;
 
 fn main() {
-    if let Err(ref e) = run_rustup() {
-        common::report_error(e);
-        std::process::exit(1);
-    }
+    let process = OSProcess::default();
+    with(Box::new(process), || match run_rustup() {
+        Err(ref e) => {
+            common::report_error(e);
+            std::process::exit(1);
+        }
+        Ok(utils::ExitCode(c)) => std::process::exit(c),
+    });
 }
 
-fn run_rustup() -> Result<()> {
-    if let Ok(dir) = env::var("RUSTUP_TRACE_DIR") {
+fn run_rustup() -> Result<utils::ExitCode> {
+    if let Ok(dir) = process().var("RUSTUP_TRACE_DIR") {
         open_trace_file!(dir)?;
     }
     let result = run_rustup_inner();
-    if env::var("RUSTUP_TRACE_DIR").is_ok() {
+    if process().var("RUSTUP_TRACE_DIR").is_ok() {
         close_trace_file!();
     }
     result
 }
 
-fn run_rustup_inner() -> Result<()> {
+fn run_rustup_inner() -> Result<utils::ExitCode> {
     // Guard against infinite proxy recursion. This mostly happens due to
     // bugs in rustup.
     do_recursion_guard()?;
 
     // Before we do anything else, ensure we know where we are and who we
     // are because otherwise we cannot proceed usefully.
-    utils::current_dir()?;
+    process().current_dir()?;
     utils::current_exe()?;
 
     // The name of arg0 determines how the program is going to behave
-    let arg0 = match env::var("RUSTUP_FORCE_ARG0") {
+    let arg0 = match process().var("RUSTUP_FORCE_ARG0") {
         Ok(v) => Some(v),
-        Err(_) => env::args().next(),
+        Err(_) => process().args().next(),
     }
     .map(PathBuf::from);
     let name = arg0
@@ -90,7 +94,8 @@ fn run_rustup_inner() -> Result<()> {
 }
 
 fn do_recursion_guard() -> Result<()> {
-    let recursion_count = env::var("RUST_RECURSION_COUNT")
+    let recursion_count = process()
+        .var("RUST_RECURSION_COUNT")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);

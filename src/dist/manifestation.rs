@@ -1,6 +1,11 @@
 //! Maintains a Rust installation by installing individual Rust
 //! platform components from a distribution server.
 
+use std::path::Path;
+
+use retry::delay::NoDelay;
+use retry::{retry, OperationResult};
+
 use crate::config::PgpPublicKey;
 use crate::dist::component::{Components, Package, TarGzPackage, TarXzPackage, Transaction};
 use crate::dist::config::Config;
@@ -11,10 +16,8 @@ use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::*;
+use crate::process;
 use crate::utils::utils;
-use retry::delay::NoDelay;
-use retry::{retry, OperationResult};
-use std::path::Path;
 
 pub const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
 pub const CONFIG_FILE: &str = "multirust-config.toml";
@@ -48,12 +51,11 @@ impl Changes {
         self.explicit_add_components.iter()
     }
 
-    fn check_invariants(&self, config: &Option<Config>) {
+    fn check_invariants(&self, config: &Option<Config>) -> Result<()> {
         for component_to_add in self.iter_add_components() {
-            assert!(
-                !self.remove_components.contains(component_to_add),
-                "can't both add and remove components"
-            );
+            if self.remove_components.contains(component_to_add) {
+                return Err("can't both add and remove components".into());
+            }
         }
         for component_to_remove in &self.remove_components {
             let config = config
@@ -64,6 +66,7 @@ impl Changes {
                 "removing package that isn't installed"
             );
         }
+        Ok(())
     }
 }
 
@@ -155,7 +158,8 @@ impl Manifestation {
         let components = update.components_urls_and_hashes(new_manifest)?;
 
         const DEFAULT_MAX_RETRIES: usize = 3;
-        let max_retries: usize = std::env::var("RUSTUP_MAX_RETRIES")
+        let max_retries: usize = process()
+            .var("RUSTUP_MAX_RETRIES")
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(DEFAULT_MAX_RETRIES);
@@ -499,7 +503,7 @@ impl Update {
         let rust_package = new_manifest.get_package("rust")?;
         let rust_target_package = rust_package.get_target(Some(&manifestation.target_triple))?;
 
-        changes.check_invariants(&config);
+        changes.check_invariants(&config)?;
 
         // The list of components already installed, empty if a new install
         let mut starting_list = config

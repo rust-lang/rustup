@@ -778,6 +778,7 @@ fn rustup_self_update_exact() {
                 r"info: syncing channel updates for 'stable-{0}'
 info: checking for self-updates
 info: downloading self-update
+info: cleaning up downloads & tmp directories
 "
             ),
         );

@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::env;
 use std::fmt::{self, Display};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -14,6 +13,7 @@ use crate::dist::{dist, temp};
 use crate::errors::*;
 use crate::fallback_settings::FallbackSettings;
 use crate::notifications::*;
+use crate::process;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
 use crate::toolchain::{DistributableToolchain, Toolchain, UpdateStatus};
 use crate::utils::utils;
@@ -152,7 +152,7 @@ impl Cfg {
         // PGP keys
         let mut pgp_keys: Vec<PgpPublicKey> = vec![PgpPublicKey::Builtin];
 
-        if let Some(ref s_path) = env::var_os("RUSTUP_PGP_KEY") {
+        if let Some(ref s_path) = process().var_os("RUSTUP_PGP_KEY") {
             let path = PathBuf::from(s_path);
             let file = utils::open_file("RUSTUP_PGP_KEY", &path)?;
             let (key, _) = SignedPublicKey::from_armor_single(file)
@@ -173,15 +173,17 @@ impl Cfg {
         })?;
 
         // Environment override
-        let env_override = env::var("RUSTUP_TOOLCHAIN")
+        let env_override = process()
+            .var("RUSTUP_TOOLCHAIN")
             .ok()
             .and_then(utils::if_not_empty);
 
-        let dist_root_server = match env::var("RUSTUP_DIST_SERVER") {
+        let dist_root_server = match process().var("RUSTUP_DIST_SERVER") {
             Ok(ref s) if !s.is_empty() => s.clone(),
             _ => {
                 // For backward compatibility
-                env::var("RUSTUP_DIST_ROOT")
+                process()
+                    .var("RUSTUP_DIST_ROOT")
                     .ok()
                     .and_then(utils::if_not_empty)
                     .map_or(Cow::Borrowed(dist::DEFAULT_DIST_ROOT), Cow::Owned)

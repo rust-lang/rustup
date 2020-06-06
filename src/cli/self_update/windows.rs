@@ -1,12 +1,12 @@
-use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::path::Path;
-use std::process::{self, Command};
+use std::process::Command;
 
 use super::super::errors::*;
 use super::path_update::PathUpdateMethod;
 use super::{install_bins, InstallOpts};
 use crate::dist::dist::TargetTriple;
+use crate::process;
 use crate::utils::utils;
 use crate::utils::Notification;
 
@@ -14,7 +14,7 @@ use crate::utils::Notification;
 // installed
 pub fn do_msvc_check(opts: &InstallOpts<'_>) -> Result<bool> {
     // Test suite skips this since it's env dependent
-    if env::var("RUSTUP_INIT_SKIP_MSVC_CHECK").is_ok() {
+    if process().var("RUSTUP_INIT_SKIP_MSVC_CHECK").is_ok() {
         return Ok(true);
     }
 
@@ -34,7 +34,7 @@ pub fn do_msvc_check(opts: &InstallOpts<'_>) -> Result<bool> {
 }
 
 /// Run by rustup-gc-$num.exe to delete CARGO_HOME
-pub fn complete_windows_uninstall() -> Result<()> {
+pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
     use std::ffi::OsStr;
     use std::process::Stdio;
 
@@ -56,7 +56,7 @@ pub fn complete_windows_uninstall() -> Result<()> {
         .spawn()
         .chain_err(|| ErrorKind::WindowsUninstallMadness)?;
 
-    process::exit(0);
+    Ok(utils::ExitCode(0))
 }
 
 pub fn wait_for_parent() -> Result<()> {
@@ -295,20 +295,20 @@ pub fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     Ok(())
 }
 
-pub fn run_update(setup_path: &Path) -> Result<()> {
+pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
     Command::new(setup_path)
         .arg("--self-replace")
         .spawn()
         .chain_err(|| "unable to run updater")?;
 
-    process::exit(0);
+    Ok(utils::ExitCode(0))
 }
 
-pub fn self_replace() -> Result<()> {
+pub fn self_replace() -> Result<utils::ExitCode> {
     wait_for_parent()?;
     install_bins()?;
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
 // The last step of uninstallation is to delete *this binary*,

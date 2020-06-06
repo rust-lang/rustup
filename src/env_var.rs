@@ -2,11 +2,13 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
+use crate::process;
+
 pub const RUST_RECURSION_COUNT_MAX: u32 = 5;
 
 #[allow(unused)]
 pub fn append_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
-    let old_value = env::var_os(name);
+    let old_value = process().var_os(name);
     let mut parts: Vec<PathBuf>;
     if let Some(ref v) = old_value {
         parts = env::split_paths(v).collect();
@@ -20,7 +22,7 @@ pub fn append_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
 }
 
 pub fn prepend_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
-    let old_value = env::var_os(name);
+    let old_value = process().var_os(name);
     let mut parts: Vec<PathBuf>;
     if let Some(ref v) = old_value {
         parts = value;
@@ -35,7 +37,8 @@ pub fn prepend_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
 }
 
 pub fn inc(name: &str, cmd: &mut Command) {
-    let old_value = env::var(name)
+    let old_value = process()
+        .var(name)
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(0);

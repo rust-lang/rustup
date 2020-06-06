@@ -3,6 +3,8 @@
 #![recursion_limit = "1024"]
 
 pub use crate::config::*;
+pub use crate::currentprocess::varsource::*;
+pub use crate::currentprocess::*;
 pub use crate::errors::*;
 pub use crate::notifications::*;
 pub use crate::toolchain::*;
@@ -54,6 +56,7 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
 pub mod cli;
 pub mod command;
 mod config;
+pub mod currentprocess;
 pub mod diskio;
 pub mod dist;
 pub mod env_var;

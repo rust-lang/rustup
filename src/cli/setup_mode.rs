@@ -1,14 +1,14 @@
-use std::env;
-
 use clap::{App, AppSettings, Arg};
 
 use super::common;
 use super::errors::*;
 use super::self_update::{self, InstallOpts};
 use crate::dist::dist::Profile;
+use crate::process;
+use crate::utils::utils;
 
-pub fn main() -> Result<()> {
-    let args: Vec<_> = env::args().collect();
+pub fn main() -> Result<utils::ExitCode> {
+    let args: Vec<_> = process().args().collect();
     let arg1 = args.get(1).map(|a| &**a);
 
     // Secret command used during self-update. Not for users.
@@ -18,8 +18,8 @@ pub fn main() -> Result<()> {
 
     // Internal testament dump used during CI.  Not for users.
     if arg1 == Some("--dump-testament") {
-        common::dump_testament();
-        return Ok(());
+        common::dump_testament()?;
+        return Ok(utils::ExitCode(0));
     }
 
     // XXX: If you change anything here, please make the same changes in rustup-init.sh
@@ -87,7 +87,7 @@ pub fn main() -> Result<()> {
                 .help("Don't configure the PATH environment variable"),
         );
 
-    let matches = cli.get_matches();
+    let matches = cli.get_matches_from(process().args_os());
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");
@@ -121,7 +121,5 @@ pub fn main() -> Result<()> {
         warn!("{}", common::WARN_COMPLETE_PROFILE);
     }
 
-    self_update::install(no_prompt, verbose, quiet, opts)?;
-
-    Ok(())
+    self_update::install(no_prompt, verbose, quiet, opts)
 }

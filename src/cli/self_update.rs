@@ -35,23 +35,7 @@ use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
-use std::process::{self, Command};
-mod path_update;
-use path_update::PathUpdateMethod;
-#[cfg(unix)]
-mod unix;
-#[cfg(windows)]
-mod windows;
-
-mod os {
-    #[cfg(unix)]
-    pub use super::unix::*;
-    #[cfg(windows)]
-    pub use super::windows::*;
-}
-
-use os::*;
-pub use os::{complete_windows_uninstall, delete_rustup_and_cargo_home, run_update, self_replace};
+use std::process::Command;
 
 use same_file::Handle;
 
@@ -60,11 +44,27 @@ use super::errors::*;
 use super::markdown::md;
 use super::term2;
 use crate::dist::dist::{self, Profile, TargetTriple};
+use crate::process;
 use crate::toolchain::DistributableToolchain;
 use crate::utils::utils;
 use crate::utils::Notification;
 use crate::{Cfg, UpdateStatus};
 use crate::{DUP_TOOLS, TOOLS};
+
+mod path_update;
+use path_update::PathUpdateMethod;
+#[cfg(unix)]
+mod unix;
+#[cfg(windows)]
+mod windows;
+mod os {
+    #[cfg(unix)]
+    pub use super::unix::*;
+    #[cfg(windows)]
+    pub use super::windows::*;
+}
+use os::*;
+pub use os::{complete_windows_uninstall, delete_rustup_and_cargo_home, run_update, self_replace};
 
 pub struct InstallOpts<'a> {
     pub default_host_triple: Option<String>,
@@ -263,14 +263,20 @@ pub fn install(
     verbose: bool,
     quiet: bool,
     mut opts: InstallOpts<'_>,
-) -> Result<()> {
-    if !env::var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS").map_or(false, |s| s == "yes") {
+) -> Result<utils::ExitCode> {
+    if !process()
+        .var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS")
+        .map_or(false, |s| s == "yes")
+    {
         do_pre_install_sanity_checks(no_prompt)?;
     }
 
     do_pre_install_options_sanity_checks(&opts)?;
 
-    if !env::var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS").map_or(false, |s| s == "yes") {
+    if !process()
+        .var_os("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS")
+        .map_or(false, |s| s == "yes")
+    {
         check_existence_of_rustc_or_cargo_in_path(no_prompt)?;
     }
 
@@ -285,7 +291,7 @@ pub fn install(
             md(&mut term, MSVC_MESSAGE);
             if !common::confirm("\nContinue? (Y/n)", true)? {
                 info!("aborting installation");
-                return Ok(());
+                return Ok(utils::ExitCode(0));
             }
         }
     }
@@ -300,7 +306,7 @@ pub fn install(
             match common::confirm_advanced()? {
                 Confirm::No => {
                     info!("aborting installation");
-                    return Ok(());
+                    return Ok(utils::ExitCode(0));
                 }
                 Confirm::Yes => {
                     break;
@@ -312,7 +318,7 @@ pub fn install(
         }
     }
 
-    let install_res: Result<()> = (|| {
+    let install_res: Result<utils::ExitCode> = (|| {
         install_bins()?;
         if !opts.no_modify_path {
             do_add_to_path(&get_add_path_methods())?;
@@ -331,7 +337,7 @@ pub fn install(
         #[cfg(unix)]
         write_env()?;
 
-        Ok(())
+        Ok(utils::ExitCode(0))
     })();
 
     if let Err(ref e) = install_res {
@@ -342,12 +348,12 @@ pub fn install(
         // the user an opportunity to see the error before the
         // window closes.
         if cfg!(windows) && !no_prompt {
-            println!();
-            println!("Press the Enter key to continue.");
+            writeln!(process().stdout(),)?;
+            writeln!(process().stdout(), "Press the Enter key to continue.")?;
             common::read_line()?;
         }
 
-        process::exit(1);
+        return Ok(utils::ExitCode(1));
     }
 
     let cargo_home = canonical_cargo_home()?;
@@ -372,13 +378,13 @@ pub fn install(
         // that may have opened just for this purpose, require
         // the user to press a key to continue.
         if cfg!(windows) {
-            println!();
-            println!("Press the Enter key to continue.");
+            writeln!(process().stdout())?;
+            writeln!(process().stdout(), "Press the Enter key to continue.")?;
             common::read_line()?;
         }
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
 fn rustc_or_cargo_exists_in_path() -> Result<()> {
@@ -389,7 +395,7 @@ fn rustc_or_cargo_exists_in_path() -> Result<()> {
             .any(|c| c == Component::Normal(".cargo".as_ref()))
     }
 
-    if let Some(paths) = env::var_os("PATH") {
+    if let Some(paths) = process().var_os("PATH") {
         let paths = env::split_paths(&paths).filter(ignore_paths);
 
         for path in paths {
@@ -406,7 +412,7 @@ fn rustc_or_cargo_exists_in_path() -> Result<()> {
 
 fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool) -> Result<()> {
     // Only the test runner should set this
-    let skip_check = env::var_os("RUSTUP_INIT_SKIP_PATH_CHECK");
+    let skip_check = process().var_os("RUSTUP_INIT_SKIP_PATH_CHECK");
 
     // Skip this if the environment variable is set
     if skip_check == Some("yes".into()) {
@@ -573,12 +579,13 @@ fn current_install_opts(opts: &InstallOpts<'_>) -> String {
 
 // Interactive editing of the install options
 fn customize_install(mut opts: InstallOpts<'_>) -> Result<InstallOpts<'_>> {
-    println!(
+    writeln!(
+        process().stdout(),
         "I'm going to ask you the value of each of these installation options.\n\
          You may simply press the Enter key to leave unchanged."
-    );
+    )?;
 
-    println!();
+    writeln!(process().stdout())?;
 
     opts.default_host_triple = Some(common::question_str(
         "Default host triple?",
@@ -745,7 +752,7 @@ fn maybe_install_rust(
                 targets.join(", ")
             );
         }
-        println!();
+        writeln!(process().stdout())?;
     } else if user_specified_something || cfg.find_default()?.is_none() {
         let toolchain_str = toolchain.unwrap_or("stable");
         let toolchain = cfg.get_toolchain(toolchain_str, false)?;
@@ -755,21 +762,21 @@ fn maybe_install_rust(
         let distributable = DistributableToolchain::new(&toolchain)?;
         let status = distributable.install_from_dist(true, false, components, targets)?;
         cfg.set_default(toolchain_str)?;
-        println!();
+        writeln!(process().stdout())?;
         common::show_channel_update(&cfg, toolchain_str, Ok(status))?;
     } else {
         info!("updating existing rustup installation - leaving toolchains alone");
-        println!();
+        writeln!(process().stdout())?;
     }
 
     Ok(())
 }
 
-pub fn uninstall(no_prompt: bool) -> Result<()> {
+pub fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
     if NEVER_SELF_UPDATE {
         err!("self-uninstall is disabled for this build of rustup");
         err!("you should probably use your system package manager to uninstall rustup");
-        process::exit(1);
+        return Ok(utils::ExitCode(1));
     }
 
     let cargo_home = utils::cargo_home()?;
@@ -782,12 +789,12 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
     }
 
     if !no_prompt {
-        println!();
+        writeln!(process().stdout())?;
         let msg = format!(pre_uninstall_msg!(), cargo_home = canonical_cargo_home()?);
         md(&mut term2::stdout(), msg);
         if !common::confirm("\nContinue? (y/N)", false)? {
             info!("aborting uninstallation");
-            return Ok(());
+            return Ok(utils::ExitCode(0));
         }
     }
 
@@ -852,7 +859,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 
     info!("rustup is uninstalled");
 
-    process::exit(0);
+    Ok(utils::ExitCode(0))
 }
 
 /// Self update downloads rustup-init to `CARGO_HOME`/bin/rustup-init
@@ -870,7 +877,7 @@ pub fn uninstall(no_prompt: bool) -> Result<()> {
 /// (and on windows this process will not be running to do it),
 /// rustup-init is stored in `CARGO_HOME`/bin, and then deleted next
 /// time rustup runs.
-pub fn update(cfg: &Cfg) -> Result<()> {
+pub fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
     use common::SelfUpdatePermission::*;
     let update_permitted = if NEVER_SELF_UPDATE {
         HardFail
@@ -882,11 +889,11 @@ pub fn update(cfg: &Cfg) -> Result<()> {
             // TODO: Detect which package manager and be more useful.
             err!("self-update is disabled for this build of rustup");
             err!("you should probably use your system package manager to update rustup");
-            process::exit(1);
+            return Ok(utils::ExitCode(1));
         }
         Skip => {
             info!("Skipping self-update at this time");
-            return Ok(());
+            return Ok(utils::ExitCode(0));
         }
         Permit => {}
     }
@@ -897,12 +904,12 @@ pub fn update(cfg: &Cfg) -> Result<()> {
                 Some(new_version) => parse_new_rustup_version(new_version),
                 None => {
                     err!("failed to get rustup version");
-                    process::exit(1);
+                    return Ok(utils::ExitCode(1));
                 }
             };
 
             let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Updated(version)));
-            run_update(&setup_path)?;
+            return run_update(&setup_path);
         }
         None => {
             let _ = common::show_channel_update(cfg, "rustup", Ok(UpdateStatus::Unchanged));
@@ -911,7 +918,7 @@ pub fn update(cfg: &Cfg) -> Result<()> {
         }
     }
 
-    Ok(())
+    Ok(utils::ExitCode(0))
 }
 
 fn get_new_rustup_version(path: &Path) -> Option<String> {
@@ -968,7 +975,9 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
         build_triple
     };
 
-    let update_root = env::var("RUSTUP_UPDATE_ROOT").unwrap_or_else(|_| String::from(UPDATE_ROOT));
+    let update_root = process()
+        .var("RUSTUP_UPDATE_ROOT")
+        .unwrap_or_else(|_| String::from(UPDATE_ROOT));
 
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-update")

@@ -1,3 +1,12 @@
+use std::env;
+use std::fmt;
+use std::path::Path;
+use std::str::FromStr;
+
+use chrono::{Date, NaiveDate, TimeZone, Utc};
+use lazy_static::lazy_static;
+use regex::Regex;
+
 use crate::dist::download::DownloadCfg;
 use crate::dist::manifest::Manifest as ManifestV2;
 use crate::dist::manifestation::{Changes, Manifestation, UpdateStatus};
@@ -5,16 +14,8 @@ use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
 use crate::errors::*;
+use crate::process;
 use crate::utils::utils;
-
-use chrono::{Date, NaiveDate, TimeZone, Utc};
-use lazy_static::lazy_static;
-use regex::Regex;
-
-use std::env;
-use std::fmt;
-use std::path::Path;
-use std::str::FromStr;
 
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
@@ -260,7 +261,7 @@ impl TargetTriple {
             host_triple.map(TargetTriple::new)
         }
 
-        if let Ok(triple) = env::var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
+        if let Ok(triple) = process().var("RUSTUP_OVERRIDE_HOST_TRIPLE") {
             Some(Self(triple))
         } else {
             inner()
@@ -414,7 +415,7 @@ impl FromStr for ToolchainDesc {
 
 impl ToolchainDesc {
     pub fn manifest_v1_url(&self, dist_root: &str) -> String {
-        let do_manifest_staging = env::var("RUSTUP_STAGED_MANIFEST").is_ok();
+        let do_manifest_staging = process().var("RUSTUP_STAGED_MANIFEST").is_ok();
         match (self.date.as_ref(), do_manifest_staging) {
             (None, false) => format!("{}/channel-rust-{}", dist_root, self.channel),
             (Some(date), false) => format!("{}/{}/channel-rust-{}", dist_root, date, self.channel),
@@ -644,7 +645,8 @@ fn update_from_dist_<'a>(
         // We limit the backtracking to 21 days by default (half a release cycle).
         // The limit of 21 days is an arbitrary selection, so we let the user override it.
         const BACKTRACK_LIMIT_DEFAULT: i32 = 21;
-        let provided = env::var("RUSTUP_BACKTRACK_LIMIT")
+        let provided = process()
+            .var("RUSTUP_BACKTRACK_LIMIT")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(BACKTRACK_LIMIT_DEFAULT);

@@ -1,7 +1,3 @@
-use crate::errors::*;
-use crate::utils::notifications::Notification;
-use crate::utils::raw;
-use sha2::Sha256;
 use std::cmp::Ord;
 use std::env;
 use std::ffi::OsString;
@@ -9,10 +5,17 @@ use std::fs::{self, File};
 use std::io::{self, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use url::Url;
 
 use retry::delay::{jitter, Fibonacci};
 use retry::{retry, OperationResult};
+use sha2::Sha256;
+use url::Url;
+
+// use crate::currentprocess::cwdsource::CurrentDirSource;
+use crate::errors::*;
+use crate::process;
+use crate::utils::notifications::Notification;
+use crate::utils::raw;
 
 pub use crate::utils::utils::raw::{
     find_cmd, has_cmd, if_not_empty, is_directory, is_file, path_exists, prefix_arg, random_string,
@@ -239,7 +242,7 @@ fn download_file_(
     // Download the file
 
     // Keep the hyper env var around for a bit
-    let use_curl_backend = env::var_os("RUSTUP_USE_CURL").is_some();
+    let use_curl_backend = process().var_os("RUSTUP_USE_CURL").is_some();
     let (backend, notification) = if use_curl_backend {
         (Backend::Curl, Notification::UsingCurl)
     } else {
@@ -446,7 +449,9 @@ pub fn make_executable(path: &Path) -> Result<()> {
 }
 
 pub fn current_dir() -> Result<PathBuf> {
-    env::current_dir().chain_err(|| ErrorKind::LocatingWorkingDir)
+    process()
+        .current_dir()
+        .chain_err(|| ErrorKind::LocatingWorkingDir)
 }
 
 pub fn current_exe() -> Result<PathBuf> {
@@ -472,7 +477,7 @@ pub fn cargo_home() -> Result<PathBuf> {
 pub fn create_rustup_home() -> Result<()> {
     // If RUSTUP_HOME is set then don't make any assumptions about where it's
     // ok to put ~/.rustup
-    if env::var_os("RUSTUP_HOME").is_some() {
+    if process().var_os("RUSTUP_HOME").is_some() {
         return Ok(());
     }
 
@@ -704,19 +709,6 @@ pub fn home_dir_from_passwd() -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_cargo_home() {
-        // CARGO_HOME unset, we'll get the default ending in /.cargo
-        env::remove_var("CARGO_HOME");
-        let cargo_home1 = cargo_home();
-        let ch = format!("{}", cargo_home1.unwrap().display());
-        assert!(ch.contains("/.cargo") || ch.contains("\\.cargo"));
-
-        env::set_var("CARGO_HOME", "/test");
-        let cargo_home2 = cargo_home();
-        assert!(format!("{}", cargo_home2.unwrap().display()).contains("/test"));
-    }
 
     #[test]
     fn test_toolchain_sort() {
