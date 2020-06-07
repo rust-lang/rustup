@@ -466,11 +466,11 @@ pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
 }
 
 pub fn home_dir() -> Option<PathBuf> {
-    home::home_dir()
+    home::home_dir_from(&process())
 }
 
 pub fn cargo_home() -> Result<PathBuf> {
-    home::cargo_home().map_err(|e| Error::from_kind(ErrorKind::Io(e)))
+    home::cargo_home_from(&process()).map_err(|e| Error::from_kind(ErrorKind::Io(e)))
 }
 
 // Creates a ~/.rustup folder
@@ -496,7 +496,7 @@ pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
 }
 
 pub fn rustup_home() -> Result<PathBuf> {
-    home::rustup_home().map_err(|e| Error::from_kind(ErrorKind::Io(e)))
+    home::rustup_home_from(&process()).map_err(|e| Error::from_kind(ErrorKind::Io(e)))
 }
 
 pub fn format_path_for_display(path: &str) -> String {
