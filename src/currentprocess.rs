@@ -14,6 +14,7 @@ use rand::{thread_rng, Rng};
 pub mod argsource;
 pub mod cwdsource;
 pub mod filesource;
+mod homethunk;
 pub mod varsource;
 
 use argsource::*;
