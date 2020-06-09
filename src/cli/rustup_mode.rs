@@ -55,7 +55,16 @@ where
 pub fn main() -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
-    let matches = cli().get_matches_from(process().args_os());
+    let matches = match cli().get_matches_from_safe(process().args_os()) {
+        Ok(matches) => Ok(matches),
+        Err(e)
+            if e.kind == clap::ErrorKind::HelpDisplayed
+                || e.kind == clap::ErrorKind::VersionDisplayed =>
+        {
+            return Ok(utils::ExitCode(0))
+        }
+        Err(e) => Err(e),
+    }?;
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");
     let cfg = &mut common::set_globals(verbose, quiet)?;
