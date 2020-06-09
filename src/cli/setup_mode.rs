@@ -87,7 +87,16 @@ pub fn main() -> Result<utils::ExitCode> {
                 .help("Don't configure the PATH environment variable"),
         );
 
-    let matches = cli.get_matches_from(process().args_os());
+    let matches = match cli.get_matches_from_safe(process().args_os()) {
+        Ok(matches) => matches,
+        Err(e)
+            if e.kind == clap::ErrorKind::HelpDisplayed
+                || e.kind == clap::ErrorKind::VersionDisplayed =>
+        {
+            return Ok(utils::ExitCode(0))
+        }
+        Err(e) => Err(e)?,
+    };
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");

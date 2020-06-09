@@ -20,6 +20,7 @@ error_chain! {
     }
 
     foreign_links {
+        Clap(clap::Error);
         Temp(temp::Error);
         Io(io::Error);
         Term(term::Error);

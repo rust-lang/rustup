@@ -493,6 +493,8 @@ where
     //   collected for assertions to be made on it as our tests traverse layers.
     // - self update executions cannot run in-process because on windows the
     //    process replacement dance would replace the test process.
+    // - any command with --version in it is testing to see something was
+    //   installed properly, so we have to shell out to it to be sure
     if name != "rustup" {
         return false;
     }
@@ -500,6 +502,7 @@ where
     let mut no_self_update = false;
     let mut self_cmd = false;
     let mut run = false;
+    let mut version = false;
     for arg in args {
         if arg.as_ref() == "update" {
             is_update = true;
@@ -509,9 +512,11 @@ where
             self_cmd = true;
         } else if arg.as_ref() == "run" {
             run = true;
+        } else if arg.as_ref() == "--version" {
+            version = true;
         }
     }
-    !(run || self_cmd || (is_update && !no_self_update))
+    !(run || self_cmd || version || (is_update && !no_self_update))
 }
 
 pub fn run<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
