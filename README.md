@@ -406,7 +406,8 @@ software that pins to a revision from the release archives.
 In these cases the toolchain can be named in the project's directory
 in a file called `rust-toolchain`, the content of which is the name of
 a single `rustup` toolchain, and which is suitable to check in to
-source control.
+source control. This file has to be encoded in US-ASCII (if you are on
+Windows, check the encoding and that it does not starts with a BOM).
 
 The toolchains named in this file have a more restricted form than
 `rustup` toolchains generally, and may only contain the names of the
