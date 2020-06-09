@@ -838,6 +838,12 @@ If `rustup` fails to self-update in this way it's usually because RLS is
 running (your editor is open and running RLS). The solution is to stop RLS (by
 closing your editor) and try again.
 
+### rustup exited sucessfully but I can't run `rustc --version`
+
+To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
+environment variable. This should be done by rustup. Next time you log in this should have been done
+automatically.
+
 ## License
 
 Copyright Diggory Blake, the Mozilla Corporation, and rustup
