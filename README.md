@@ -840,7 +840,7 @@ closing your editor) and try again.
 ### rustup exited sucessfully but I can't run `rustc --version`
 
 To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
-environment variable. This should be done by rustup. Next time you log in this will be done
+environment variable. This should be done by rustup. Next time you log in this should have been done
 automatically.
 
 ## License
