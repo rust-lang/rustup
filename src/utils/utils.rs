@@ -376,7 +376,22 @@ where
 }
 
 pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
-    fs::remove_file(path).chain_err(|| ErrorKind::RemovingFile {
+    // Most files we go to remove won't ever be in use. Some, like proxies, may
+    // be for indefinite periods, and this will mean we are slower to error and
+    // have the user fix the issue. Others, like the setup binary, are
+    // transiently in use, and this wait loop will fix the issue transparently
+    // for a rare performance hit.
+    retry(
+        Fibonacci::from_millis(1).map(jitter).take(10),
+        || match fs::remove_file(path) {
+            Ok(()) => OperationResult::Ok(()),
+            Err(e) => match e.kind() {
+                io::ErrorKind::PermissionDenied => OperationResult::Retry(e),
+                _ => OperationResult::Err(e),
+            },
+        },
+    )
+    .chain_err(|| ErrorKind::RemovingFile {
         name,
         path: PathBuf::from(path),
     })
