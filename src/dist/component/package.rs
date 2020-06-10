@@ -293,7 +293,7 @@ fn unpack_without_first_dir<'a, R: Read>(
     path: &Path,
     notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
 ) -> Result<()> {
-    let mut io_executor: Box<dyn Executor> = get_executor(notify_handler);
+    let mut io_executor: Box<dyn Executor> = get_executor(notify_handler)?;
     let entries = archive
         .entries()
         .chain_err(|| ErrorKind::ExtractingPackage)?;

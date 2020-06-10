@@ -59,6 +59,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+use crate::errors::{Result, ResultExt};
 use crate::process;
 use crate::utils::notifications::Notification;
 
@@ -194,20 +195,16 @@ pub fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
 /// Get the executor for disk IO.
 pub fn get_executor<'a>(
     notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
-) -> Box<dyn Executor + 'a> {
+) -> Result<Box<dyn Executor + 'a>> {
     // If this gets lots of use, consider exposing via the config file.
-    if let Ok(thread_str) = process().var("RUSTUP_IO_THREADS") {
-        if thread_str == "disabled" {
-            Box::new(immediate::ImmediateUnpacker::new())
-        } else if let Ok(thread_count) = thread_str.parse::<usize>() {
-            Box::new(threaded::Threaded::new_with_threads(
-                notify_handler,
-                thread_count,
-            ))
-        } else {
-            Box::new(threaded::Threaded::new(notify_handler))
-        }
-    } else {
-        Box::new(threaded::Threaded::new(notify_handler))
-    }
+    let thread_count = match process().var("RUSTUP_IO_THREADS") {
+        Err(_) => num_cpus::get(),
+        Ok(n) => n
+            .parse::<usize>()
+            .chain_err(|| "invalid value in RUSTUP_IO_THREADS. Must be a natural number")?,
+    };
+    Ok(match thread_count {
+        0 | 1 => Box::new(immediate::ImmediateUnpacker::new()),
+        n => Box::new(threaded::Threaded::new(notify_handler, n)),
+    })
 }

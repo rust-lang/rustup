@@ -34,29 +34,7 @@ pub struct Threaded<'a> {
 }
 
 impl<'a> Threaded<'a> {
-    pub fn new(notify_handler: Option<&'a dyn Fn(Notification<'_>)>) -> Self {
-        // Defaults to hardware thread count threads; this is suitable for
-        // our needs as IO bound operations tend to show up as write latencies
-        // rather than close latencies, so we don't need to look at
-        // more threads to get more IO dispatched at this stage in the process.
-        let pool = threadpool::Builder::new()
-            .thread_name("CloseHandle".into())
-            .thread_stack_size(1_048_576)
-            .build();
-        let (tx, rx) = channel();
-        Self {
-            n_files: Arc::new(AtomicUsize::new(0)),
-            pool,
-            notify_handler,
-            rx,
-            tx,
-        }
-    }
-
-    pub fn new_with_threads(
-        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
-        thread_count: usize,
-    ) -> Self {
+    pub fn new(notify_handler: Option<&'a dyn Fn(Notification<'_>)>, thread_count: usize) -> Self {
         // Defaults to hardware thread count threads; this is suitable for
         // our needs as IO bound operations tend to show up as write latencies
         // rather than close latencies, so we don't need to look at

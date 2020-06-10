@@ -31,6 +31,7 @@ git-testament = "0.1.4"
 home = "0.5"
 lazy_static = "1"
 libc = "0.2"
+num_cpus = "1.13"
 opener = "0.4.0"
 # Used by `curl` or `reqwest` backend although it isn't imported
 # by our rustup.
