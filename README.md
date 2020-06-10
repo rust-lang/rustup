@@ -697,7 +697,7 @@ currently can define only `default_toolchain`.
   Sets the root URL for downloading self-updates.
 
 - `RUSTUP_IO_THREADS` *unstable* (defaults to reported cpu count). Sets the
-  number of threads to perform close IO in. Set to `disabled` to force
+  number of threads to perform close IO in. Set to `1` to force
   single-threaded IO for troubleshooting, or an arbitrary number to
   override automatic detection.
 

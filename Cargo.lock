@@ -1475,6 +1475,7 @@ dependencies = [
  "home",
  "lazy_static",
  "libc",
+ "num_cpus",
  "opener",
  "openssl",
  "pgp",
