@@ -28,7 +28,7 @@ error-chain = "0.12"
 effective-limits = "0.5"
 flate2 = "1"
 git-testament = "0.1.4"
-home = "0.5"
+home = { git = "https://github.com/rbtcollins/home", rev="81c8dfcd815765daf384319a04e237feb9d5e72d"  }
 lazy_static = "1"
 libc = "0.2"
 num_cpus = "1.13"
@@ -113,6 +113,3 @@ codegen-units = 1
 # Reduce build time by setting proc-macro crates non optimized.
 [profile.release.build-override]
 opt-level = 0
-
-[patch.crates-io]
-home = { path = "../rustup-home" }
