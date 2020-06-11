@@ -92,6 +92,10 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     env::remove_var("RUSTUP_TOOLCHAIN");
     env::remove_var("SHELL");
     env::remove_var("ZDOTDIR");
+    // clap does it's own terminal colour probing, and that isn't
+    // trait-controllable, but it does honour the terminal. To avoid testing
+    // claps code, lie about whatever terminal this process was started under.
+    env::set_var("TERM", "dumb");
 
     match env::var("RUSTUP_BACKTRACE") {
         Ok(val) => env::set_var("RUST_BACKTRACE", val),
