@@ -27,6 +27,7 @@ FLAGS:
     -q, --quiet             Disable progress output
     -y                      Disable confirmation prompt.
         --no-modify-path    Don't configure the PATH environment variable
+        --print-file        Prints detected arch and file extension
     -h, --help              Prints help information
     -V, --version           Prints version information
 
@@ -83,6 +84,10 @@ main() {
         case "$arg" in
             -h|--help)
                 usage
+                exit 0
+                ;;
+            --print-file)
+                printf '%s\n' "${_arch}/rustup-init${_ext}" 1>&2
                 exit 0
                 ;;
             -y)
