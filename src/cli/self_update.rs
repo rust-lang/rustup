@@ -71,6 +71,7 @@ pub struct InstallOpts<'a> {
     pub default_toolchain: Option<String>,
     pub profile: String,
     pub no_modify_path: bool,
+    pub no_update_toolchain: bool,
     pub components: &'a [&'a str],
     pub targets: &'a [&'a str],
 }
@@ -328,6 +329,7 @@ pub fn install(
             opts.default_toolchain.as_deref(),
             &opts.profile,
             opts.default_host_triple.as_deref(),
+            !opts.no_update_toolchain,
             opts.components,
             opts.targets,
             verbose,
@@ -712,6 +714,7 @@ fn maybe_install_rust(
     toolchain: Option<&str>,
     profile_str: &str,
     default_host_triple: Option<&str>,
+    update_existing_toolchain: bool,
     components: &[&str],
     targets: &[&str],
     verbose: bool,
@@ -728,8 +731,10 @@ fn maybe_install_rust(
         info!("default host triple is {}", cfg.get_default_host_triple()?);
     }
 
-    let user_specified_something =
-        toolchain.is_some() || !targets.is_empty() || !components.is_empty();
+    let user_specified_something = toolchain.is_some()
+        || !targets.is_empty()
+        || !components.is_empty()
+        || update_existing_toolchain;
 
     // If the user specified they want no toolchain, we skip this, otherwise
     // if they specify something directly, or we have no default, then we install
@@ -754,16 +759,21 @@ fn maybe_install_rust(
         }
         writeln!(process().stdout())?;
     } else if user_specified_something || cfg.find_default()?.is_none() {
-        let toolchain_str = toolchain.unwrap_or("stable");
-        let toolchain = cfg.get_toolchain(toolchain_str, false)?;
+        let (toolchain_str, toolchain) = match toolchain {
+            Some(s) => (s.to_owned(), cfg.get_toolchain(s, false)?),
+            None => match cfg.find_default()? {
+                Some(t) => (t.name().to_owned(), t),
+                None => ("stable".to_owned(), cfg.get_toolchain("stable", false)?),
+            },
+        };
         if toolchain.exists() {
             warn!("Updating existing toolchain, profile choice will be ignored");
         }
         let distributable = DistributableToolchain::new(&toolchain)?;
         let status = distributable.install_from_dist(true, false, components, targets)?;
-        cfg.set_default(toolchain_str)?;
+        cfg.set_default(&toolchain_str)?;
         writeln!(process().stdout())?;
-        common::show_channel_update(&cfg, toolchain_str, Ok(status))?;
+        common::show_channel_update(&cfg, &toolchain_str, Ok(status))?;
     } else {
         info!("updating existing rustup installation - leaving toolchains alone");
         writeln!(process().stdout())?;
