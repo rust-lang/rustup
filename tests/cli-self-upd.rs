@@ -901,7 +901,7 @@ fn reinstall_exact() {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_stderr_ok(
             config,
-            &["rustup-init", "-y"],
+            &["rustup-init", "-y", "--no-update-default-toolchain"],
             r"info: updating existing rustup installation - leaving toolchains alone",
         );
     });

@@ -124,7 +124,11 @@ Rust is installed now. Great!
 fn blank_lines_around_stderr_log_output_update() {
     setup(&|config| {
         run_input(config, &["rustup-init"], "\n\n");
-        let out = run_input(config, &["rustup-init"], "\n\n");
+        let out = run_input(
+            config,
+            &["rustup-init", "--no-update-default-toolchain"],
+            "\n\n",
+        );
         println!("-- stdout --\n {}", out.stdout);
         println!("-- stderr --\n {}", out.stderr);
 
