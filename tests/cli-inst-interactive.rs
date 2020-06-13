@@ -14,6 +14,12 @@ use std::io::Write;
 use std::process::Stdio;
 use std::sync::Mutex;
 
+macro_rules! for_host {
+    ($s: expr) => {
+        &format!($s, this_host_triple())
+    };
+}
+
 pub fn setup_(complex: bool, f: &dyn Fn(&Config)) {
     let scenario = if complex {
         Scenario::UnavailableRls
@@ -409,5 +415,17 @@ fn test_succeed_if_rustup_sh_already_installed_env_var_set() {
             "warning: continuing (because the -y flag is set and the error is ignorable)"
         ));
         assert!(!out.stdout.contains("Continue? (y/N)"));
+    })
+}
+
+#[test]
+fn installing_when_already_installed_updates_toolchain() {
+    setup(&|config| {
+        run_input(config, &["rustup-init"], "\n\n");
+        let out = run_input(config, &["rustup-init"], "\n\n");
+        println!("stdout:\n{}\n...\n", out.stdout);
+        assert!(out
+            .stdout
+            .contains(for_host!("stable-{} unchanged - 1.1.0 (hash-stable-1.1.0)")));
     })
 }
