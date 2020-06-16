@@ -82,7 +82,7 @@ recommended for general use.
 * The **complete** profile includes all the components available through
 `rustup`. This should never be used, as it includes *every* component ever included
 in the metadata and thus will almost always fail. If you are looking for a way
-to install devtools such as `miri` or IDE integration tools (`rls`, `rust-analysis`),
+to install devtools such as `miri` or IDE integration tools (`rls`, `rust-analyzer`),
 you should use the `default` profile and install the needed additional components
 manually, either by using `rustup component add` or by using `-c` when installing
 the toolchain.
