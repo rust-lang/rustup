@@ -52,7 +52,7 @@ use crate::{Cfg, UpdateStatus};
 use crate::{DUP_TOOLS, TOOLS};
 
 mod path_update;
-use path_update::PathUpdateMethod;
+mod shell;
 #[cfg(unix)]
 mod unix;
 #[cfg(windows)]
@@ -515,22 +515,11 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
 
     if !no_modify_path {
         if cfg!(unix) {
-            let add_path_methods = get_add_path_methods();
-            let rcfiles = add_path_methods
-                .into_iter()
-                .filter_map(|m| {
-                    if let PathUpdateMethod::RcFile(path) = m {
-                        Some(format!("{}", path.display()))
-                    } else {
-                        None
-                    }
-                })
+            let shells = shell::get_available_shells();
+            let rcfiles = shells
+                .filter_map(|sh| sh.rcfile().map(|rc| format!("    {}", rc.display())))
                 .collect::<Vec<_>>();
             let plural = if rcfiles.len() > 1 { "s" } else { "" };
-            let rcfiles = rcfiles
-                .into_iter()
-                .map(|f| format!("    {}", f))
-                .collect::<Vec<_>>();
             let rcfiles = rcfiles.join("\n");
             Ok(format!(
                 pre_install_msg_unix!(),
@@ -846,8 +835,7 @@ pub fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
     info!("removing cargo home");
 
     // Remove CARGO_HOME/bin from PATH
-    let remove_path_methods = get_remove_path_methods()?;
-    do_remove_from_path(&remove_path_methods)?;
+    do_remove_from_path()?;
 
     // Delete everything in CARGO_HOME *except* the rustup bin
 

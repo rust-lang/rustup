@@ -61,7 +61,8 @@ impl UnixShell for Posix {
 struct Bash;
 impl UnixShell for Bash {
     fn does_exist(&self) -> bool {
-        self.rcfile().map_or(false, |rc| rc.is_file()) || matches!(utils::find_cmd(&["bash"]), Some(_))
+        self.rcfile().map_or(false, |rc| rc.is_file())
+            || matches!(utils::find_cmd(&["bash"]), Some(_))
     }
 
     fn rcfile(&self) -> Option<PathBuf> {
@@ -73,7 +74,8 @@ impl UnixShell for Bash {
 struct Zsh;
 impl UnixShell for Zsh {
     fn does_exist(&self) -> bool {
-        self.rcfile().map_or(false, |rc| rc.is_file()) || matches!(utils::find_cmd(&["zsh"]), Some(_))
+        self.rcfile().map_or(false, |rc| rc.is_file())
+            || matches!(utils::find_cmd(&["zsh"]), Some(_))
     }
 
     fn rcfile(&self) -> Option<PathBuf> {

@@ -8,6 +8,9 @@ use crate::process;
 use crate::utils::utils;
 use crate::utils::Notification;
 
+use super::shell;
+use super::shell::Shell;
+
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because
 // sudo is configured not to change $HOME. Don't let that bogosity happen.
@@ -57,28 +60,24 @@ pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
     panic!("stop doing that")
 }
 
-pub fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
-    for method in methods {
-        if let PathUpdateMethod::RcFile(ref rcpath) = *method {
-            let file = utils::read_file("rcfile", rcpath)?;
-            let addition = format!("\n{}\n", shell_export_string()?);
+pub fn do_remove_from_path() -> Result<()> {
+    for rcpath in get_remove_path_methods().filter_map(|sh| sh.rcfile()) {
+        let file = utils::read_file("rcfile", &rcpath)?;
+        let addition = format!("\n{}\n", shell_export_string()?);
 
-            let file_bytes = file.into_bytes();
-            let addition_bytes = addition.into_bytes();
+        let file_bytes = file.into_bytes();
+        let addition_bytes = addition.into_bytes();
 
-            let idx = file_bytes
-                .windows(addition_bytes.len())
-                .position(|w| w == &*addition_bytes);
-            if let Some(i) = idx {
-                let mut new_file_bytes = file_bytes[..i].to_vec();
-                new_file_bytes.extend(&file_bytes[i + addition_bytes.len()..]);
-                let new_file = String::from_utf8(new_file_bytes).unwrap();
-                utils::write_file("rcfile", rcpath, &new_file)?;
-            } else {
-                // Weird case. rcfile no longer needs to be modified?
-            }
+        let idx = file_bytes
+            .windows(addition_bytes.len())
+            .position(|w| w == &*addition_bytes);
+        if let Some(i) = idx {
+            let mut new_file_bytes = file_bytes[..i].to_vec();
+            new_file_bytes.extend(&file_bytes[i + addition_bytes.len()..]);
+            let new_file = String::from_utf8(new_file_bytes).unwrap();
+            utils::write_file("rcfile", &rcpath, &new_file)?;
         } else {
-            unreachable!()
+            // Weird case. rcfile no longer needs to be modified?
         }
     }
 
@@ -157,44 +156,23 @@ pub fn self_replace() -> Result<utils::ExitCode> {
 /// Decide which rcfiles we're going to update, so we
 /// can tell the user before they confirm.
 pub fn get_add_path_methods() -> Vec<PathUpdateMethod> {
-    let home_dir = utils::home_dir().unwrap();
-    let profile = home_dir.join(".profile");
-    let mut profiles = vec![profile];
-
-    if let Ok(shell) = process().var("SHELL") {
-        if shell.contains("zsh") {
-            let var = process().var_os("ZDOTDIR");
-            let zdotdir = var.as_deref().map_or_else(|| home_dir.as_path(), Path::new);
-            let zprofile = zdotdir.join(".zprofile");
-            profiles.push(zprofile);
-        }
-    }
-
-    let bash_profile = home_dir.join(".bash_profile");
-    // Only update .bash_profile if it exists because creating .bash_profile
-    // will cause .profile to not be read
-    if bash_profile.exists() {
-        profiles.push(bash_profile);
-    }
-
-    profiles.into_iter().map(PathUpdateMethod::RcFile).collect()
+    shell::get_available_shells()
+        .filter_map(|sh| sh.rcfile())
+        .map(PathUpdateMethod::RcFile)
+        .collect()
 }
 
 /// Decide which rcfiles we're going to update, so we
 /// can tell the user before they confirm.
-pub fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
-    let profile = utils::home_dir().map(|p| p.join(".profile"));
-    let bash_profile = utils::home_dir().map(|p| p.join(".bash_profile"));
-
-    let rcfiles = vec![profile, bash_profile];
-    let existing_rcfiles = rcfiles.into_iter().filter_map(|f| f).filter(|f| f.exists());
-
-    let export_str = shell_export_string()?;
-    let matching_rcfiles = existing_rcfiles.filter(|f| {
-        let file = utils::read_file("rcfile", f).unwrap_or_default();
-        let addition = format!("\n{}", export_str);
-        file.contains(&addition)
-    });
-
-    Ok(matching_rcfiles.map(PathUpdateMethod::RcFile).collect())
+fn get_remove_path_methods() -> impl Iterator<Item = Shell> {
+    shell::get_available_shells().filter(|sh| {
+        if let (Some(rc), Ok(export)) = (sh.rcfile(), sh.export_string()) {
+            rc.is_file()
+                && utils::read_file("rcfile", &rc)
+                    .unwrap_or_default()
+                    .contains(&export)
+        } else {
+            false
+        }
+    })
 }
