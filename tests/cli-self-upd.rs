@@ -1093,42 +1093,6 @@ fn windows_handle_empty_path_registry_key() {
 
 #[test]
 #[cfg(windows)]
-fn windows_uninstall_removes_semicolon_from_path() {
-    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::RegKey;
-
-    setup(&|config| {
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-
-        // This time set the value of PATH and make sure it's restored exactly after uninstall,
-        // not leaving behind any semi-colons
-        environment.set_value("PATH", &"foo").unwrap();
-
-        expect_ok(config, &["rustup-init", "-y"]);
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let path = environment.get_raw_value("PATH").unwrap();
-        assert!(path.vtype == RegType::REG_EXPAND_SZ);
-
-        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let path: String = environment.get_value("PATH").unwrap();
-        assert!(path == "foo");
-    });
-}
-
-#[test]
-#[cfg(windows)]
 fn install_doesnt_mess_with_a_non_unicode_path() {
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
