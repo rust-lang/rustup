@@ -499,7 +499,10 @@ fn install_adds_path() {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let path = config.cargodir.join("bin").to_string_lossy().to_string();
-        assert!(get_path().unwrap().contains(&path));
+        assert!(
+            get_path().unwrap().contains(&path),
+            format!("`{}` not in `{}`", get_path().unwrap(), &path)
+        );
     });
 }
 
@@ -558,7 +561,7 @@ fn install_doesnt_modify_path_if_passed_no_modify_path() {
             .unwrap();
         let new_path = environment.get_raw_value("PATH").unwrap();
 
-        assert!(old_path == new_path);
+        assert_eq!(old_path, new_path);
     });
 }
 
@@ -1155,7 +1158,7 @@ fn install_doesnt_mess_with_a_non_unicode_path() {
             .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
             .unwrap();
         let path = environment.get_raw_value("PATH").unwrap();
-        assert!(path.bytes == reg_value.bytes);
+        assert_eq!(path.bytes, reg_value.bytes);
     });
 }
 
