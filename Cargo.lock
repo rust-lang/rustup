@@ -480,9 +480,9 @@ dependencies = [
 
 [[package]]
 name = "effective-limits"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f258132c8895a07c560487bb888f363ea72f4a916f15a9b7ff113b4161da41e"
+checksum = "4e48bba0c80c7a3c647cba83dc8eb6562e28265cffbc3d9e28d261ab6e6c51b2"
 dependencies = [
  "libc",
  "sys-info",

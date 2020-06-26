@@ -25,7 +25,7 @@ chrono = "0.4"
 clap = "2"
 download = { path = "download" }
 error-chain = "0.12"
-effective-limits = "0.5"
+effective-limits = "0.5.1"
 flate2 = "1"
 git-testament = "0.1.4"
 home = { git = "https://github.com/rbtcollins/home", rev="81c8dfcd815765daf384319a04e237feb9d5e72d"  }
