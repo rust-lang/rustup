@@ -222,6 +222,44 @@ fn get_windows_path_var() -> Result<Option<String>> {
     }
 }
 
+// Returns None if the existing old_path does not need changing
+fn _remove_from_path(old_path: &str, path_str: &str) -> Option<String> {
+    let idx = old_path.find(&path_str)?;
+    // If there's a trailing semicolon (likely, since we probably added one
+    // during install), include that in the substring to remove. We don't search
+    // for that to find the string, because if its the last string in the path,
+    // there may not be.
+    let mut len = path_str.len();
+    if old_path.as_bytes().get(idx + path_str.len()) == Some(&b';') {
+        len += 1;
+    }
+
+    let mut new_path = old_path[..idx].to_string();
+    new_path.push_str(&old_path[idx + len..]);
+    // Don't leave a trailing ; though, we don't want an empty string in the
+    // path.
+    if new_path.ends_with(';') {
+        new_path.pop();
+    }
+    Some(new_path)
+}
+
+fn _path_without_cargo_home_bin() -> Result<Option<String>> {
+    let old_path = if let Some(s) = get_windows_path_var()? {
+        s
+    } else {
+        // Non-unicode path
+        return Ok(None);
+    };
+
+    let path_str = utils::cargo_home()?
+        .join("bin")
+        .to_string_lossy()
+        .into_owned();
+
+    Ok(_remove_from_path(&old_path, &path_str))
+}
+
 pub fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
 
@@ -233,32 +271,10 @@ pub fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
 
-    let old_path = if let Some(s) = get_windows_path_var()? {
-        s
-    } else {
-        // Non-unicode path
-        return Ok(());
+    let new_path = match _path_without_cargo_home_bin()? {
+        Some(new_path) => new_path,
+        None => return Ok(()), // No need to set the path
     };
-
-    let path_str = utils::cargo_home()?
-        .join("bin")
-        .to_string_lossy()
-        .into_owned();
-    let idx = if let Some(i) = old_path.find(&path_str) {
-        i
-    } else {
-        return Ok(());
-    };
-
-    // If there's a trailing semicolon (likely, since we added one during install),
-    // include that in the substring to remove.
-    let mut len = path_str.len();
-    if old_path.as_bytes().get(idx + path_str.len()) == Some(&b';') {
-        len += 1;
-    }
-
-    let mut new_path = old_path[..idx].to_string();
-    new_path.push_str(&old_path[idx + len..]);
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
@@ -429,4 +445,31 @@ pub fn get_add_path_methods() -> Vec<PathUpdateMethod> {
 /// can tell the user before they confirm.
 pub fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
     Ok(vec![PathUpdateMethod::Windows])
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn windows_uninstall_removes_semicolon_from_path_prefix() {
+        assert_eq!(
+            "foo",
+            super::_remove_from_path(
+                r"c:\users\example\.cargo\bin;foo",
+                r"c:\users\example\.cargo\bin"
+            )
+            .unwrap()
+        )
+    }
+
+    #[test]
+    fn windows_uninstall_removes_semicolon_from_path_suffix() {
+        assert_eq!(
+            "foo",
+            super::_remove_from_path(
+                r"foo;c:\users\example\.cargo\bin",
+                r"c:\users\example\.cargo\bin"
+            )
+            .unwrap()
+        )
+    }
 }
