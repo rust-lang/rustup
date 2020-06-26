@@ -9,7 +9,7 @@
 // Cross-platform non-POSIX shells were not assessed for integration yet.
 
 use super::*;
-use std::env;
+use crate::process;
 use std::path::PathBuf;
 
 pub type Shell = Box<dyn UnixShell>;
@@ -79,7 +79,7 @@ impl UnixShell for Zsh {
     }
 
     fn rcfile(&self) -> Option<PathBuf> {
-        let zdotdir = match env::var("ZDOTDIR") {
+        let zdotdir = match process().var("ZDOTDIR") {
             Ok(dir) => Some(PathBuf::from(dir)),
             _ => utils::home_dir(),
         };
