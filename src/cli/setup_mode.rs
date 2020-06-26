@@ -82,6 +82,11 @@ pub fn main() -> Result<utils::ExitCode> {
                 .use_delimiter(true),
         )
         .arg(
+            Arg::with_name("no-update-default-toolchain")
+                .long("no-update-default-toolchain")
+                .help("Don't update any existing default toolchain after install"),
+        )
+        .arg(
             Arg::with_name("no-modify-path")
                 .long("no-modify-path")
                 .help("Don't configure the PATH environment variable"),
@@ -106,6 +111,7 @@ pub fn main() -> Result<utils::ExitCode> {
         .value_of("profile")
         .expect("Unreachable: Clap should supply a default");
     let no_modify_path = matches.is_present("no-modify-path");
+    let no_update_toolchain = matches.is_present("no-update-default-toolchain");
 
     let components: Vec<_> = matches
         .values_of("components")
@@ -122,6 +128,7 @@ pub fn main() -> Result<utils::ExitCode> {
         default_toolchain,
         profile: profile.to_owned(),
         no_modify_path,
+        no_update_toolchain,
         components: &components,
         targets: &targets,
     };
