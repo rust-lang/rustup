@@ -2,14 +2,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use super::super::errors::*;
-use super::path_update::PathUpdateMethod;
-use super::{canonical_cargo_home, install_bins};
+use super::install_bins;
+use super::shell;
 use crate::process;
 use crate::utils::utils;
 use crate::utils::Notification;
-
-use super::shell;
-use super::shell::Shell;
 
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because
@@ -61,61 +58,49 @@ pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
 }
 
 pub fn do_remove_from_path() -> Result<()> {
-    for rcpath in get_remove_path_methods().filter_map(|sh| sh.rcfile()) {
-        let file = utils::read_file("rcfile", &rcpath)?;
-        let addition = format!("\n{}\n", shell_export_string()?);
+    for sh in shell::get_available_shells() {
+        let source_cmd = format!("\n{}\n", sh.source_string()?);
+        let source_bytes = source_cmd.into_bytes();
 
-        let file_bytes = file.into_bytes();
-        let addition_bytes = addition.into_bytes();
-
-        let idx = file_bytes
-            .windows(addition_bytes.len())
-            .position(|w| w == &*addition_bytes);
-        if let Some(i) = idx {
-            let mut new_file_bytes = file_bytes[..i].to_vec();
-            new_file_bytes.extend(&file_bytes[i + addition_bytes.len()..]);
-            let new_file = String::from_utf8(new_file_bytes).unwrap();
-            utils::write_file("rcfile", &rcpath, &new_file)?;
-        } else {
-            // Weird case. rcfile no longer needs to be modified?
+        // Check more files for cleanup than normally are updated.
+        for rc in sh.rcfiles().iter().filter(|rc| rc.is_file()) {
+            let file = utils::read_file("rcfile", &rc)?;
+            let file_bytes = file.into_bytes();
+            if let Some(idx) = file_bytes
+                .windows(source_bytes.len())
+                .position(|w| w == source_bytes.as_slice())
+            {
+                // Here we rewrite the file without the offending line.
+                let mut new_bytes = file_bytes[..idx].to_vec();
+                new_bytes.extend(&file_bytes[idx + source_bytes.len()..]);
+                let new_file = String::from_utf8(new_bytes).unwrap();
+                utils::write_file("rcfile", &rc, &new_file)?;
+            }
         }
     }
 
     Ok(())
 }
 
-pub fn write_env() -> Result<()> {
-    let env_file = utils::cargo_home()?.join("env");
-    let env_str = format!("{}\n", shell_export_string()?);
-    utils::write_file("env", &env_file, &env_str)?;
-    Ok(())
-}
+pub fn do_add_to_path() -> Result<()> {
+    let mut scripts = vec![];
 
-pub fn shell_export_string() -> Result<String> {
-    let path = format!("{}/bin", canonical_cargo_home()?);
-    // The path is *prepended* in case there are system-installed
-    // rustc's that need to be overridden.
-    Ok(format!(r#"export PATH="{}:$PATH""#, path))
-}
-
-pub fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
-    for method in methods {
-        if let PathUpdateMethod::RcFile(ref rcpath) = *method {
-            let file = if rcpath.exists() {
-                utils::read_file("rcfile", rcpath)?
-            } else {
-                String::new()
-            };
-            let addition = format!("\n{}", shell_export_string()?);
-            if !file.contains(&addition) {
-                utils::append_file("rcfile", rcpath, &addition).chain_err(|| {
+    for sh in shell::get_available_shells() {
+        let source_cmd = format!("\n{}", sh.source_string()?);
+        for rc in sh.update_rcs() {
+            if !rc.is_file() || !utils::read_file("rcfile", &rc)?.contains(&source_cmd) {
+                utils::append_file("rcfile", &rc, &source_cmd).chain_err(|| {
                     ErrorKind::WritingShellProfile {
-                        path: rcpath.to_path_buf(),
+                        path: rc.to_path_buf(),
                     }
                 })?;
+                let script = sh.env_script();
+                // Only write scripts once.
+                if !scripts.contains(&script) {
+                    script.write()?;
+                    scripts.push(script);
+                }
             }
-        } else {
-            unreachable!()
         }
     }
 
@@ -151,28 +136,4 @@ pub fn self_replace() -> Result<utils::ExitCode> {
     install_bins()?;
 
     Ok(utils::ExitCode(0))
-}
-
-/// Decide which rcfiles we're going to update, so we
-/// can tell the user before they confirm.
-pub fn get_add_path_methods() -> Vec<PathUpdateMethod> {
-    shell::get_available_shells()
-        .filter_map(|sh| sh.rcfile())
-        .map(PathUpdateMethod::RcFile)
-        .collect()
-}
-
-/// Decide which rcfiles we're going to update, so we
-/// can tell the user before they confirm.
-fn get_remove_path_methods() -> impl Iterator<Item = Shell> {
-    shell::get_available_shells().filter(|sh| {
-        if let (Some(rc), Ok(export)) = (sh.rcfile(), sh.export_string()) {
-            rc.is_file()
-                && utils::read_file("rcfile", &rc)
-                    .unwrap_or_default()
-                    .contains(&export)
-        } else {
-            false
-        }
-    })
 }

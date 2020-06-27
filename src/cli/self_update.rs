@@ -322,7 +322,7 @@ pub fn install(
     let install_res: Result<utils::ExitCode> = (|| {
         install_bins()?;
         if !opts.no_modify_path {
-            do_add_to_path(&get_add_path_methods())?;
+            do_add_to_path()?;
         }
         utils::create_rustup_home()?;
         maybe_install_rust(
@@ -335,9 +335,6 @@ pub fn install(
             verbose,
             quiet,
         )?;
-
-        #[cfg(unix)]
-        write_env()?;
 
         Ok(utils::ExitCode(0))
     })();
@@ -515,9 +512,10 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
 
     if !no_modify_path {
         if cfg!(unix) {
-            let shells = shell::get_available_shells();
-            let rcfiles = shells
-                .filter_map(|sh| sh.rcfile().map(|rc| format!("    {}", rc.display())))
+            // Brittle code warning: some duplication in unix::do_add_to_path
+            let rcfiles = shell::get_available_shells()
+                .flat_map(|sh| sh.update_rcs().into_iter())
+                .map(|rc| format!("    {}", rc.display()))
                 .collect::<Vec<_>>();
             let plural = if rcfiles.len() > 1 { "s" } else { "" };
             let rcfiles = rcfiles.join("\n");

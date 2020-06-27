@@ -311,7 +311,7 @@ fn install_adds_path_to_rc(rcfile: &str) {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let new_rc = fs::read_to_string(&rc).unwrap();
-        let addition = format!(r#"export PATH="{}/bin:$PATH""#, config.cargodir.display());
+        let addition = format!("source \"{}/env\"", config.cargodir.display());
         let expected = format!("{}\n{}\n", my_rc, addition);
         assert_eq!(new_rc, expected);
     });
@@ -327,6 +327,24 @@ fn install_adds_path_to_profile() {
 #[cfg(unix)]
 fn install_adds_path_to_bashrc() {
     install_adds_path_to_rc(".bashrc");
+}
+
+#[test]
+#[cfg(unix)]
+fn install_adds_path_to_bash_profile() {
+    install_adds_path_to_rc(".bash_profile");
+}
+
+#[test]
+#[cfg(unix)]
+fn install_adds_path_to_zshenv() {
+    install_adds_path_to_rc(".zshenv");
+}
+
+#[test]
+#[cfg(unix)]
+fn install_adds_path_to_zshrc() {
+    install_adds_path_to_rc(".zshrc");
 }
 
 #[test]
@@ -367,7 +385,7 @@ fn install_with_zsh_adds_path_to_zshrc() {
         assert!(cmd.output().unwrap().status.success());
 
         let new_rc = fs::read_to_string(&rc).unwrap();
-        let addition = format!(r#"export PATH="{}/bin:$PATH""#, config.cargodir.display());
+        let addition = format!(r#"source "{}/env""#, config.cargodir.display());
         let expected = format!("{}\n{}\n", my_rc, addition);
         assert_eq!(new_rc, expected);
     });
@@ -391,7 +409,7 @@ fn install_with_zsh_adds_path_to_zdotdir_zshrc() {
         assert!(cmd.output().unwrap().status.success());
 
         let new_rc = fs::read_to_string(&rc).unwrap();
-        let addition = format!(r#"export PATH="{}/bin:$PATH""#, config.cargodir.display());
+        let addition = format!(r#"source "{}/env""#, config.cargodir.display());
         let expected = format!("{}\n{}\n", my_rc, addition);
         assert_eq!(new_rc, expected);
     });
@@ -408,7 +426,7 @@ fn install_adds_path_to_rcfile_just_once() {
         expect_ok(config, &["rustup-init", "-y"]);
 
         let new_profile = fs::read_to_string(&profile).unwrap();
-        let addition = format!(r#"export PATH="{}/bin:$PATH""#, config.cargodir.display());
+        let addition = format!(r#"source "{}/env""#, config.cargodir.display());
         let expected = format!("{}\n{}\n", my_profile, addition);
         assert_eq!(new_profile, expected);
     });
@@ -438,6 +456,24 @@ fn uninstall_removes_path_from_profile() {
 #[cfg(unix)]
 fn uninstall_removes_path_from_bashrc() {
     uninstall_removes_path_from_rc(".bashrc");
+}
+
+#[test]
+#[cfg(unix)]
+fn uninstall_removes_path_from_bash_profile() {
+    uninstall_removes_path_from_rc(".bash_profile");
+}
+
+#[test]
+#[cfg(unix)]
+fn uninstall_removes_path_from_zshenv() {
+    uninstall_removes_path_from_rc(".zshenv");
+}
+
+#[test]
+#[cfg(unix)]
+fn uninstall_removes_path_from_zshrc() {
+    uninstall_removes_path_from_rc(".zshrc");
 }
 
 #[test]
@@ -475,7 +511,7 @@ fn when_cargo_home_is_the_default_write_path_specially() {
         assert!(cmd.output().unwrap().status.success());
 
         let new_profile = fs::read_to_string(&profile).unwrap();
-        let expected = format!("{}\nexport PATH=\"$HOME/.cargo/bin:$PATH\"\n", my_profile);
+        let expected = format!("{}\nsource \"$HOME/.cargo/env\"\n", my_profile);
         assert_eq!(new_profile, expected);
 
         let mut cmd = clitools::cmd(config, "rustup", &["self", "uninstall", "-y"]);
@@ -912,7 +948,12 @@ fn produces_env_file_on_unix() {
         assert!(cmd.output().unwrap().status.success());
         let envfile = config.homedir.join(".cargo/env");
         let envfile = fs::read_to_string(&envfile).unwrap();
-        assert!(envfile.contains(r#"export PATH="$HOME/.cargo/bin:$PATH""#));
+        let path_string = "export PATH=\"$HOME/.cargo/bin:${PATH}\"";
+        let (_, envfile_export) = envfile.split_at(match envfile.find("export PATH") {
+            Some(idx) => idx,
+            None => 0,
+        });
+        assert_eq!(&envfile_export[..path_string.len()], path_string);
     });
 }
 
