@@ -132,8 +132,7 @@ pub fn wait_for_parent() -> Result<()> {
     Ok(())
 }
 
-pub fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
-    assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
+pub fn do_add_to_path() -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_add_to_path)?;
     _apply_new_path(new_path)
 }
@@ -265,8 +264,7 @@ where
     Ok(windows_path.and_then(|old_path| f(&old_path, path_str)))
 }
 
-pub fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
-    assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
+pub fn do_remove_from_path() -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_remove_from_path)?;
     _apply_new_path(new_path)
 }
