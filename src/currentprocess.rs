@@ -160,7 +160,7 @@ impl ProcessSource for OSProcess {
 
 // ------------ test process ----------------
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TestProcess {
     cwd: PathBuf,
     args: Vec<String>,

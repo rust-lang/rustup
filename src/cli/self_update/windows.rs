@@ -449,6 +449,89 @@ pub fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Mutex;
+
+    use lazy_static::lazy_static;
+    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+    use winreg::{RegKey, RegValue};
+
+    use crate::currentprocess;
+    use crate::utils::utils;
+
+    pub fn get_path() -> Option<String> {
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
+        // XXX: copied from the mock support crate, but I am suspicous of this
+        // code: This uses ok to allow signalling None for 'delete', but this
+        // can fail e.g. with !(winerror::ERROR_BAD_FILE_TYPE) or other
+        // failures; which will lead to attempting to delete the users path
+        // rather than aborting the test suite.
+        environment.get_value("PATH").ok()
+    }
+
+    pub fn restore_path(p: Option<String>) {
+        let root = RegKey::predef(HKEY_CURRENT_USER);
+        let environment = root
+            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+            .unwrap();
+        if let Some(p) = p.as_ref() {
+            let reg_value = RegValue {
+                bytes: utils::string_to_winreg_bytes(&p),
+                vtype: RegType::REG_EXPAND_SZ,
+            };
+            environment.set_raw_value("PATH", &reg_value).unwrap();
+        } else {
+            let _ = environment.delete_value("PATH");
+        }
+    }
+
+    fn with_registry_edits(f: &dyn Fn()) {
+        // Lock protects concurrent mutation of registry
+        lazy_static! {
+            static ref LOCK: Mutex<()> = Mutex::new(());
+        }
+        let _g = LOCK.lock();
+
+        // On windows these tests mess with the user's PATH. Save
+        // and restore them here to keep from trashing things.
+        let saved_path = get_path();
+        let _g = scopeguard::guard(saved_path, restore_path);
+
+        f();
+    }
+
+    #[test]
+    fn windows_uninstall_doesnt_mess_with_a_non_unicode_path() {
+        // This writes an error, so we want a sink for it.
+        let tp = Box::new(currentprocess::TestProcess::default());
+        with_registry_edits(&|| {
+            currentprocess::with(tp.clone(), || {
+                let root = RegKey::predef(HKEY_CURRENT_USER);
+                let environment = root
+                    .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+                    .unwrap();
+                let reg_value = RegValue {
+                    bytes: vec![
+                        0x00, 0xD8, // leading surrogate
+                        0x01, 0x01, // bogus trailing surrogate
+                        0x00, 0x00,
+                    ], // null
+                    vtype: RegType::REG_EXPAND_SZ,
+                };
+                environment.set_raw_value("PATH", &reg_value).unwrap();
+                // Ok(None) signals no change to the PATH setting layer
+                assert_eq!(None, super::_path_without_cargo_home_bin().unwrap());
+            })
+        });
+        assert_eq!(
+            r"warning: the registry key HKEY_CURRENT_USER\Environment\PATH does not contain valid Unicode. Not modifying the PATH variable
+",
+            String::from_utf8(tp.get_stderr()).unwrap()
+        );
+    }
+
     #[test]
     fn windows_uninstall_removes_semicolon_from_path_prefix() {
         assert_eq!(
