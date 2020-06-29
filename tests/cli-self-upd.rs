@@ -1127,43 +1127,6 @@ fn install_doesnt_mess_with_a_non_unicode_path() {
 }
 
 #[test]
-#[cfg(windows)]
-fn uninstall_doesnt_mess_with_a_non_unicode_path() {
-    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::{RegKey, RegValue};
-
-    setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-
-        let reg_value = RegValue {
-            bytes: vec![
-                0x00, 0xD8, // leading surrogate
-                0x01, 0x01, // bogus trailing surrogate
-                0x00, 0x00,
-            ], // null
-            vtype: RegType::REG_EXPAND_SZ,
-        };
-        environment.set_raw_value("PATH", &reg_value).unwrap();
-
-        expect_stderr_ok(config, &["rustup", "self", "uninstall", "-y"],
-                         "the registry key HKEY_CURRENT_USER\\Environment\\PATH does not contain valid Unicode. \
-                          Not modifying the PATH variable");
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let path = environment.get_raw_value("PATH").unwrap();
-        assert!(path.bytes == reg_value.bytes);
-    });
-}
-
-#[test]
 #[ignore] // untestable
 fn install_but_rustup_is_installed() {}
 

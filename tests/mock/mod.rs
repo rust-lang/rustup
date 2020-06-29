@@ -180,6 +180,10 @@ pub fn get_path() -> Option<String> {
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .unwrap();
 
+    // XXX: Suspect code: This uses ok to allow signalling None for 'delete', but this
+    // can fail e.g. with !(winerror::ERROR_BAD_FILE_TYPE) or other
+    // failures; which would lead to attempting to delete the users path
+    // rather than aborting the test suite.
     environment.get_value("PATH").ok()
 }
 
