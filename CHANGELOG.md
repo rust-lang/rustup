@@ -1,5 +1,127 @@
 # Changelog
 
+## [1.22.0] - 2020-06-30
+
+Alongside a significant amount of internal refactoring and code updates,
+the highlights of this release include:
+
+- We have switched to Github Actions to make our CI and release process
+  more consistent.
+- We've invested time in the flow when you reinstall `rustup` atop an existing
+  installation.
+- We've doubled down on discouraging the use of the internal-development-focussed
+  `complete` profile.  Please use `default` or `minimal` unless you're trying to
+  test/develop the Rust tooling itself.
+- We've made a number of subtle quality-of-life improvements around the CLI.
+- Added a (provisionally unofficial) snap of `rustup`
+- We've worked hard to improve a lot of the messages (error and informational)
+  in the tool.
+- We've increased internal timeouts and retries in an attempt to improve the
+  situation for McAfee users.
+- While it's not a change, we've documented that `rust-toolchain` **must** be
+  UTF8 encoded.
+
+While the changes spanned around 90 individual pull requests, here are the
+main changes and additions…
+
+### Changed
+
+- Fixed various links to our repo and to the forge - [#2173][pr#2173]
+- Improved OS detection (particularly darwin) in `rustup-init.sh` - [#2042][pr#2042]
+- Fixed bug where i686 installer on x86_64 windows would intend to install 64-bit but
+  would actually install 32-bit toolchains by default. - [#2186][pr#2186]
+- Increased width of copy box on rustup website - [#2208][pr#2208]
+- When updating a toolchain, indicate the version you updated _from_ as well. - [#2152][pr#2152]
+- When installing atop an existing `rustup` installation, we will now update
+  the installed default toolchain, particularly we'll also try and install any
+  additional targets or components specified - [#2201][pr#2201] and [#2339][pr#2339]
+- Fixed issue where `rustup doc` wouldn't work with custom toolchains - [#2235][pr#2235]
+- In low-memory situations, attempt to unpack more conservatively - [#2236][pr#2236]
+- Improved consistency in where `rustup` will auto-install a toolchain on use. - [#2252][pr#2252]
+- Try to force strong cipher suites in `rustup-init.sh` - [#2287][pr#2287]
+- When skipping a `nightly` indicate **all** the missing components - [#2316][pr#2316]
+- Increase timeout for rename retries - [#2348][pr#2348]
+- Increased 'sanity limit' to account for MIPS binary size increases - [#2363][pr#2363]
+- Fallback to non-threaded installation pathway on 1-CPU systems to improve chance
+  that installation will succeed on Raspberry Pi - [#2372][pr#2372]
+
+### Added
+
+- It is now possible to install `rustup` even when there's an existing `rustup.sh`
+  installation, and we can install alongside `rustc` or `cargo` without necessarily
+  forcing via `-y` by means of the `RUSTUP_INIT_SKIP_EXISTENCE_CHECKS` environment
+  variable. - [#2214][pr#2214]
+- Added the concept of a _fallback_ settings file which will allow snaps, distro
+  packages, etc. to provide a default toolchain for users who have not passed
+  through the `rustup-init` managed one-time question set. - [#2244][pr#2244]
+- You can now specify multiple components in a single argument in the form
+  `--component rls,rust-analysis,rust-src` when installing toolchains - [#2239][pr#2239]
+- It is now possible to `snap install --classic rustup` in theory (channel
+  details may take some time to settle) - [#1898][pr#1898]
+- Added indication of why overrides are happening when running `rustup show` - [#2312][pr#2312]
+- Added `riscv64gc-unknown-linux-gnu` support (note: There is still work to be
+  done on the compiler etc before this will necessarily work) - [#2313][pr#2313]
+
+### Thanks
+
+- Alejandro Martinez Ruiz
+- Alexander D'hoore
+- Ben Chen
+- Chris Denton
+- Daniel Silverstone
+- Evan Weiler
+- Guillaume Gomez
+- Harry Sarson
+- Jacob Lifshay
+- James Yang
+- Joel Parker Henderson
+- John Titor
+- Jonas Platte
+- Josh Stone
+- Jubilee
+- Kellda
+- LeSeulArtichaut
+- Linus Färnstrand
+- LitoMore
+- LIU An (劉安)
+- Luciano Bestia
+- Lzu Tao
+- Manish Goregaokar
+- Mingye Wang
+- Montgomery Edwards
+- Per Lundberg
+- Pietro Albini
+- Robert Collins
+- Rudolf B.
+- Solomon Ucko
+- Stein Somers
+- Tetsuharu Ohzeki
+- Tom Eccles
+- Trevor Arjeski
+- Tshepang Lekhonkhobe
+
+[pr#2173]: https://github.com/rust-lang/rustup/pull/2173
+[pr#2042]: https://github.com/rust-lang/rustup/pull/2042
+[pr#2186]: https://github.com/rust-lang/rustup/pull/2186
+[pr#2208]: https://github.com/rust-lang/rustup/pull/2208
+[pr#2152]: https://github.com/rust-lang/rustup/pull/2152
+[pr#2201]: https://github.com/rust-lang/rustup/pull/2201
+[pr#2235]: https://github.com/rust-lang/rustup/pull/2235
+[pr#2214]: https://github.com/rust-lang/rustup/pull/2214
+[pr#2236]: https://github.com/rust-lang/rustup/pull/2236
+[pr#2252]: https://github.com/rust-lang/rustup/pull/2252
+[pr#2244]: https://github.com/rust-lang/rustup/pull/2244
+[pr#2239]: https://github.com/rust-lang/rustup/pull/2239
+[pr#2287]: https://github.com/rust-lang/rustup/pull/2287
+[pr#2316]: https://github.com/rust-lang/rustup/pull/2316
+[pr#1898]: https://github.com/rust-lang/rustup/pull/1898
+[pr#2348]: https://github.com/rust-lang/rustup/pull/2348
+[pr#2312]: https://github.com/rust-lang/rustup/pull/2312
+[pr#2313]: https://github.com/rust-lang/rustup/pull/2313
+[pr#2363]: https://github.com/rust-lang/rustup/pull/2363
+[pr#2372]: https://github.com/rust-lang/rustup/pull/2372
+[pr#2339]: https://github.com/rust-lang/rustup/pull/2339
+
 ## [1.21.1] - 2019-12-19
 
 A panic occurred if a `rustup update` was run with nothing to update and the
