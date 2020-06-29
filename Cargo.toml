@@ -1,6 +1,6 @@
 [package]
 name = "rustup"
-version = "1.21.1"
+version = "1.22.0"
 authors = [ "Daniel Silverstone <dsilvers@digital-scurf.org>", "Diggory Blake <diggsey@googlemail.com>" ]
 build = "build.rs"
 edition = "2018"
