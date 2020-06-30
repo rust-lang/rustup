@@ -579,10 +579,7 @@ info: downloading self-update
         expect_ok_ex(
             config,
             &["rustup", "self", "update"],
-            &format!(
-                "  rustup updated - (toolchain not installed) (from {})\n\n",
-                version,
-            ),
+            &format!("  rustup updated - {} (from {})\n\n", version, version,),
             &expected_output,
         )
     });
@@ -706,9 +703,12 @@ fn update_no_change() {
         expect_ok_ex(
             config,
             &["rustup", "self", "update"],
-            r"  rustup unchanged - (toolchain not installed)
+            &format!(
+                r"  rustup unchanged - {}
 
 ",
+                version
+            ),
             r"info: checking for self-updates
 ",
         );

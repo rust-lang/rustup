@@ -183,7 +183,7 @@ fn show_channel_updates(
 ) -> Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
         let toolchain = cfg.get_toolchain(&name, false).unwrap();
-        let version = toolchain.rustc_version();
+        let mut version: String = toolchain.rustc_version().into();
 
         let banner;
         let color;
@@ -194,11 +194,19 @@ fn show_channel_updates(
                 color = Some(term2::color::GREEN);
             }
             Ok(UpdateStatus::Updated(v)) => {
-                previous_version = Some(v);
+                if name == "rustup" {
+                    previous_version = Some(env!("CARGO_PKG_VERSION").into());
+                    version = v;
+                } else {
+                    previous_version = Some(v);
+                }
                 banner = "updated";
                 color = Some(term2::color::GREEN);
             }
             Ok(UpdateStatus::Unchanged) => {
+                if name == "rustup" {
+                    version = env!("CARGO_PKG_VERSION").into();
+                }
                 banner = "unchanged";
                 color = None;
             }
