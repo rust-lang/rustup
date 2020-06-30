@@ -21,11 +21,11 @@ no-self-update = []
 
 # Sorted by alphabetic order
 [dependencies]
+cfg-if = "0.1"
 chrono = "0.4"
 clap = "2"
 download = { path = "download" }
 error-chain = "0.12"
-effective-limits = "0.5.1"
 flate2 = "1"
 git-testament = "0.1.4"
 home = { git = "https://github.com/rbtcollins/home", rev="a243ee2fbee6022c57d56f5aa79aefe194eabe53"  }
@@ -64,6 +64,9 @@ default-features = false
 [dependencies.rs_tracing]
 version = "1.0.1"
 features = ["rs_tracing"]
+
+[target.'cfg(not(any(target_os="freebsd", target_os="netbsd")))'.dependencies]
+effective-limits = "0.5.1"
 
 [target."cfg(windows)".dependencies]
 cc = "1"
