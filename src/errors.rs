@@ -29,7 +29,6 @@ error_chain! {
         Io(io::Error);
         Open(opener::OpenError);
         Thread(std::sync::mpsc::RecvError);
-        Limits(effective_limits::Error);
     }
 
     errors {
