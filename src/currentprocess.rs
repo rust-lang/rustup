@@ -52,6 +52,30 @@ use varsource::*;
 /// needing to thread trait parameters across the entire code base: none of the
 /// methods are in performance critical loops (except perhaps progress bars -
 /// and even there we should be doing debouncing and managing update rates).
+/// The real trait is CurrentProcess; HomeProcess is a single trait because
+/// Box<T> only allows autotraits to be added to it; so we use a subtrait to add
+/// home::Env in.
+pub trait HomeProcess: CurrentProcess + home::Env {
+    fn clone_boxed(&self) -> Box<dyn HomeProcess>;
+}
+
+// Machinery for Cloning boxes
+
+impl<T> HomeProcess for T
+where
+    T: 'static + CurrentProcess + home::Env + Clone,
+{
+    fn clone_boxed(&self) -> Box<dyn HomeProcess + 'static> {
+        Box::new(T::clone(self))
+    }
+}
+
+impl Clone for Box<dyn HomeProcess + 'static> {
+    fn clone(&self) -> Self {
+        HomeProcess::clone_boxed(self.as_ref())
+    }
+}
+
 pub trait CurrentProcess:
     ArgSource
     + CurrentDirSource
@@ -93,6 +117,11 @@ impl Clone for Box<dyn CurrentProcess + 'static> {
 
 /// Obtain the current instance of CurrentProcess
 pub fn process() -> Box<dyn CurrentProcess> {
+    CurrentProcess::clone_boxed(&*home_process())
+}
+
+/// Obtain the current instance of HomeProcess
+pub fn home_process() -> Box<dyn HomeProcess> {
     match PROCESS.with(|p| p.borrow().clone()) {
         None => panic!("No process instance"),
         Some(p) => p,
@@ -105,7 +134,7 @@ static HOOK_INSTALLED: Once = Once::new();
 ///
 /// If the function panics, the process definition *in that thread* is cleared
 /// by an implicitly installed global panic hook.
-pub fn with<F, R>(process: Box<dyn CurrentProcess>, f: F) -> R
+pub fn with<F, R>(process: Box<dyn HomeProcess>, f: F) -> R
 where
     F: FnOnce() -> R,
 {
@@ -134,7 +163,7 @@ fn clear_process() {
 }
 
 thread_local! {
-    pub static PROCESS:RefCell<Option<Box<dyn CurrentProcess>>> = RefCell::new(None);
+    pub static PROCESS:RefCell<Option<Box<dyn HomeProcess>>> = RefCell::new(None);
 }
 
 // PID related things

@@ -13,9 +13,9 @@ use url::Url;
 
 // use crate::currentprocess::cwdsource::CurrentDirSource;
 use crate::errors::*;
-use crate::process;
 use crate::utils::notifications::Notification;
 use crate::utils::raw;
+use crate::{home_process, process};
 
 pub use crate::utils::utils::raw::{
     find_cmd, has_cmd, if_not_empty, is_directory, is_file, path_exists, prefix_arg, random_string,
@@ -481,11 +481,11 @@ pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
 }
 
 pub fn home_dir() -> Option<PathBuf> {
-    home::home_dir_from(&process())
+    home::home_dir_from(&home_process())
 }
 
 pub fn cargo_home() -> Result<PathBuf> {
-    home::cargo_home_from(&process()).map_err(|e| Error::from_kind(ErrorKind::Io(e)))
+    home::cargo_home_from(&home_process()).map_err(|e| Error::from_kind(ErrorKind::Io(e)))
 }
 
 // Creates a ~/.rustup folder
@@ -511,7 +511,7 @@ pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
 }
 
 pub fn rustup_home() -> Result<PathBuf> {
-    home::rustup_home_from(&process()).map_err(|e| Error::from_kind(ErrorKind::Io(e)))
+    home::rustup_home_from(&home_process()).map_err(|e| Error::from_kind(ErrorKind::Io(e)))
 }
 
 pub fn format_path_for_display(path: &str) -> String {
