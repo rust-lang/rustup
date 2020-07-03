@@ -3,7 +3,6 @@ use std::path::Path;
 use std::process::Command;
 
 use super::super::errors::*;
-use super::path_update::PathUpdateMethod;
 use super::{install_bins, InstallOpts};
 use crate::dist::dist::TargetTriple;
 use crate::process;
@@ -391,18 +390,6 @@ pub fn delete_rustup_and_cargo_home() -> Result<()> {
     thread::sleep(Duration::from_millis(100));
 
     Ok(())
-}
-
-/// Decide which rcfiles we're going to update, so we
-/// can tell the user before they confirm.
-pub fn get_add_path_methods() -> Vec<PathUpdateMethod> {
-    vec![PathUpdateMethod::Windows]
-}
-
-/// Decide which rcfiles we're going to update, so we
-/// can tell the user before they confirm.
-pub fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
-    Ok(vec![PathUpdateMethod::Windows])
 }
 
 #[cfg(test)]

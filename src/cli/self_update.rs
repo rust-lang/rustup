@@ -51,7 +51,6 @@ use crate::utils::Notification;
 use crate::{Cfg, UpdateStatus};
 use crate::{DUP_TOOLS, TOOLS};
 
-mod path_update;
 mod shell;
 #[cfg(unix)]
 mod unix;
