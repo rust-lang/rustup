@@ -133,6 +133,7 @@ impl Bash {
         utils::home_dir().map(|dir| dir.join(".bashrc"))
     }
 }
+
 impl UnixShell for Bash {
     fn does_exist(&self) -> bool {
         matches!(process().var("SHELL"), Ok(sh) if sh.contains("bash"))
@@ -141,7 +142,6 @@ impl UnixShell for Bash {
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
-        // .bashrc first so it gets skipped in update_rcs
         let mut profiles = Bash::profiles();
         if let Some(rc) = Bash::rc() {
             profiles.push(rc);
@@ -155,7 +155,7 @@ impl UnixShell for Bash {
             .filter(|rc| rc.is_file())
             // bash only reads one "login profile" so pick the one that exists
             .take(1)
-            // Always pick .bashrc as well for GUI terminals
+            // Pick .bashrc if it exists for GUI terminals
             .chain(Bash::rc().filter(|rc| rc.is_file()))
             .collect()
     }
@@ -178,22 +178,15 @@ impl UnixShell for Zsh {
             _ => utils::home_dir(),
         };
 
-        // Don't bother with .zprofile/.zlogin because .zshrc will always be
-        // modified and always be sourced.
-        [".zshenv", ".zshrc"]
-            .iter()
-            .filter_map(|rc| zdotdir.as_ref().map(|dir| dir.join(rc)))
-            .collect()
+        // .zshenv is always sourced
+        match zdotdir.map(|dir| dir.join(".zshenv")) {
+            Some(zshenv) => vec![zshenv],
+            _ => vec![],
+        }
     }
 
     fn update_rcs(&self) -> Vec<PathBuf> {
-        // .zshenv is preferred for path mods but not all zshers prefer it,
-        // zsh always loads .zshrc on interactive, unlike bash's xor-logic.
-        // So picking one will always work for this.
+        // .zshenv is preferred for path mods, always write it.
         self.rcfiles()
-            .into_iter()
-            .filter(|rc| rc.is_file())
-            .take(1)
-            .collect()
     }
 }

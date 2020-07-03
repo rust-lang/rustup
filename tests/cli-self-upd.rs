@@ -343,12 +343,6 @@ fn install_adds_path_to_zshenv() {
 
 #[test]
 #[cfg(unix)]
-fn install_adds_path_to_zshrc() {
-    install_adds_path_to_rc(".zshrc");
-}
-
-#[test]
-#[cfg(unix)]
 fn install_does_not_add_path_to_bash_profile_that_doesnt_exist() {
     setup(&|config| {
         let rc = config.homedir.join(".bash_profile");
@@ -374,10 +368,10 @@ fn install_errors_when_rc_file_cannot_be_updated() {
 
 #[test]
 #[cfg(unix)]
-fn install_with_zsh_adds_path_to_zshrc() {
+fn install_with_zsh_adds_path_to_zshenv() {
     setup(&|config| {
         let my_rc = "foo\nbar\nbaz";
-        let rc = config.homedir.join(".zshrc");
+        let rc = config.homedir.join(".zshenv");
         raw::write_file(&rc, my_rc).unwrap();
 
         let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
@@ -393,14 +387,14 @@ fn install_with_zsh_adds_path_to_zshrc() {
 
 #[test]
 #[cfg(unix)]
-fn install_with_zsh_adds_path_to_zdotdir_zshrc() {
+fn install_with_zsh_adds_path_to_zdotdir_zshenv() {
     setup(&|config| {
         let zdotdir = tempfile::Builder::new()
             .prefix("zdotdir")
             .tempdir()
             .unwrap();
         let my_rc = "foo\nbar\nbaz";
-        let rc = zdotdir.path().join(".zshrc");
+        let rc = zdotdir.path().join(".zshenv");
         raw::write_file(&rc, my_rc).unwrap();
 
         let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
@@ -468,12 +462,6 @@ fn uninstall_removes_path_from_bash_profile() {
 #[cfg(unix)]
 fn uninstall_removes_path_from_zshenv() {
     uninstall_removes_path_from_rc(".zshenv");
-}
-
-#[test]
-#[cfg(unix)]
-fn uninstall_removes_path_from_zshrc() {
-    uninstall_removes_path_from_rc(".zshrc");
 }
 
 #[test]
