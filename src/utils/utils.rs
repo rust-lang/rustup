@@ -593,6 +593,30 @@ pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
     });
 }
 
+fn copy_and_delete<'a, N>(
+    name: &'static str,
+    src: &'a Path,
+    dest: &'a Path,
+    notify_handler: &'a dyn Fn(N),
+) -> Result<()>
+where
+    N: From<Notification<'a>>,
+{
+    // https://github.com/rust-lang/rustup/issues/1239
+    // This uses std::fs::copy() instead of the faster std::fs::rename() to
+    // avoid cross-device link errors.
+    if src.is_dir() {
+        copy_dir(src, dest, notify_handler).and(remove_dir_all::remove_dir_all(src).chain_err(
+            || ErrorKind::RemovingDirectory {
+                name,
+                path: PathBuf::from(src),
+            },
+        ))
+    } else {
+        copy_file(src, dest).and(remove_file(name, src))
+    }
+}
+
 fn rename<'a, N>(
     name: &'static str,
     src: &'a Path,
@@ -606,6 +630,8 @@ where
     // 21 fib steps from 1 sums to ~28 seconds, hopefully more than enough
     // for our previous poor performance that avoided the race condition with
     // McAfee and Norton.
+    #[cfg(target_os = "linux")]
+    use libc::EXDEV;
     retry(
         Fibonacci::from_millis(1).map(jitter).take(26),
         || match fs::rename(src, dest) {
@@ -614,6 +640,16 @@ where
                 io::ErrorKind::PermissionDenied => {
                     notify_handler(Notification::RenameInUse(&src, &dest).into());
                     OperationResult::Retry(e)
+                }
+                #[cfg(target_os = "linux")]
+                io::ErrorKind::Other
+                    if process().var_os("RUSTUP_PERMIT_COPY_RENAME").is_some()
+                        && Some(EXDEV) == e.raw_os_error() =>
+                {
+                    match copy_and_delete(name, src, dest, notify_handler) {
+                        Ok(()) => OperationResult::Ok(()),
+                        Err(_) => OperationResult::Err(e),
+                    }
                 }
                 _ => OperationResult::Err(e),
             },
