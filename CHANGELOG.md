@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.22.1] - 2020-07-08
+
+A regression in proxied behaviour slipped in due to a non-compatible change
+in `url` slipping in in 2.1 which [caused a misbehaviour][env_proxy#8] in `env_proxy`.
+which was [fixed][env_proxy@5591cc7] but not released to crates.io until after
+1.22.0 was built.
+
+Fortunately, _inejge_ noticed and provided a fix for us by publishing a new
+`env_proxy` and providing us with [this fix][pr#2399].
+
+We apologise for any inconvenience this caused.
+
+### Changed
+
+- Update to `env_proxy` 0.4.1 - [#2399][pr#2399]
+- Fixed website copy button and copy space overflow - [#2398][pr#2398]
+
+### Thanks
+
+- Ivan Nejgebauer
+- Ben Chen
+
+[env_proxy#8]: https://github.com/inejge/env_proxy/issues/8
+[env_proxy@5591cc7]: https://github.com/inejge/env_proxy/commit/5591cc7
+[pr#2399]: https://github.com/rust-lang/rustup/pull/2399
+[pr#2398]: https://github.com/rust-lang/rustup/pull/2398
+
 ## [1.22.0] - 2020-06-30
 
 Alongside a significant amount of internal refactoring and code updates,
@@ -10,7 +37,7 @@ the highlights of this release include:
 - We've invested time in the flow when you reinstall `rustup` atop an existing
   installation.
 - We've doubled down on discouraging the use of the internal-development-focussed
-  `complete` profile.  Please use `default` or `minimal` unless you're trying to
+  `complete` profile. Please use `default` or `minimal` unless you're trying to
   test/develop the Rust tooling itself.
 - We've made a number of subtle quality-of-life improvements around the CLI.
 - Added a (provisionally unofficial) snap of `rustup`
