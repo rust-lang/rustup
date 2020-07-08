@@ -165,24 +165,56 @@ function fill_in_bug_report_values() {
     nav_app.textContent = navigator.appVersion;
 }
 
-function clear_copy_status_message() {
-    document.getElementById('copy-status-message').innerText = '';
+function clear_copy_status_message(id) {
+    document.getElementById(id).innerText = '';
 }
 
-function handle_copy_button_click() {
+function process_copy_button_click(id) {
     try {
         navigator.clipboard.writeText(rustup_install_command).then(function() {
-            document.getElementById('copy-status-message').innerText = 'Copied!'
+            document.getElementById(id).innerText = 'Copied!';
         });
-        setTimeout(clear_copy_status_message, 5000);
+        setTimeout(function () {
+            clear_copy_status_message(id);
+        }, 5000);
     } catch (e) {
         console.log('Hit a snag when copying to clipboard:', e);
     }
+}
+
+function handle_copy_button_click(e) {
+    switch (e.id) {
+        case 'copy-button-unix':
+            process_copy_button_click('copy-status-message-unix');
+            break;
+        case 'copy-button-win32':
+            process_copy_button_click('copy-status-message-win32');
+            break;
+        case 'copy-button-win64':
+            process_copy_button_click('copy-status-message-win64');
+            break;
+        case 'copy-button-unknown':
+            process_copy_button_click('copy-status-message-unknown');
+            break;
+        case 'copy-button-default':
+            process_copy_button_click('copy-status-message-default');
+            break;
+    }
+}
+
+function set_up_copy_button_clicks() {
+    var buttons = document.querySelectorAll(".copy-button");
+    buttons.forEach(function (element) {
+        element.addEventListener('click', function() {
+            handle_copy_button_click(element);
+        });
+    })
 }
 
 (function () {
     adjust_for_platform();
     set_up_cycle_button();
     set_up_default_platform_buttons();
+    set_up_copy_button_clicks();
     fill_in_bug_report_values();
 }());
