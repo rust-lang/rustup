@@ -457,7 +457,7 @@ dependencies = [
 
 [[package]]
 name = "download"
-version = "0.6.6"
+version = "0.6.7"
 dependencies = [
  "curl",
  "env_proxy",
@@ -1526,7 +1526,7 @@ dependencies = [
 
 [[package]]
 name = "rustup"
-version = "1.22.0"
+version = "1.22.1"
 dependencies = [
  "cc",
  "cfg-if",
