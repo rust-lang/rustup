@@ -96,7 +96,7 @@ rustup set profile minimal
 
 It's also possible to choose the profile when installing `rustup` for the first
 time, either interactively by choosing the "Customize installation" option or
-programmaticaly by passing the `--profile=<name>` flag. Profiles will only
+programmatically by passing the `--profile=<name>` flag. Profiles will only
 affect newly installed toolchains: as usual it will be possible to install
 individual components later with: `rustup component add`.
 
@@ -170,7 +170,7 @@ the components you need:
     rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy
 
 This can be used to great effect in CI, to get you a toolchain rapidly which meets
-your criteria
+your criteria.
 
 ## How rustup works
 
@@ -838,7 +838,7 @@ If `rustup` fails to self-update in this way it's usually because RLS is
 running (your editor is open and running RLS). The solution is to stop RLS (by
 closing your editor) and try again.
 
-### rustup exited sucessfully but I can't run `rustc --version`
+### rustup exited successfully but I can't run `rustc --version`
 
 To get started you need Cargo's bin directory ({cargo_home}/bin) in your `PATH`
 environment variable. This should be done by rustup. Next time you log in this should have been done
