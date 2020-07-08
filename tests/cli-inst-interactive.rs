@@ -91,6 +91,42 @@ fn smoke_test() {
     });
 }
 
+// validate host triple against a whitelist to support rustup-init
+#[test]
+fn validate_host_triple() {
+    let host_triple = &this_host_triple();
+    let host_triple_whitelist = [
+        String::from("arm-linux-androideabi"),
+        String::from("armv7-linux-androideabi"),
+        String::from("aarch64-linux-android"),
+        String::from("i686-linux-android"),
+        String::from("x86_64-linux-android"),
+        String::from("x86_64-unknown-linux-gnu"),
+        String::from("x86_64-unknown-linux-musl"),
+        String::from("i686-unknown-linux-gnu"),
+        String::from("mips-unknown-linux-gnu"),
+        String::from("mipsel-unknown-linux-gnu"),
+        String::from("mips64-unknown-linux-gnuabi64"),
+        String::from("mips64el-unknown-linux-gnuabi64"),
+        String::from("arm-unknown-linux-gnueabi"),
+        String::from("armv7-unknown-linux-gnueabihf"),
+        String::from("aarch64-unknown-linux-gnu"),
+        String::from("x86_64-apple-darwin"),
+        String::from("i686-apple-darwin"),
+        String::from("x86_64-unknown-freebsd"),
+        String::from("i686-unknown-freebsd"),
+        String::from("x86_64-unknown-openbsd"),
+        String::from("i686-unknown-openbsd"),
+        String::from("x86_64-unknown-netbsd"),
+        String::from("i686-unknown-netbsd"),
+        String::from("x86_64-unknown-dragonfly"),
+        String::from("x86_64-pc-windows-msvc"),
+        String::from("x86_64-pc-windows-gnu"),
+        String::from("i686-pc-windows-gnu"),
+    ];
+    assert_eq!(true, host_triple_whitelist.contains(host_triple));
+}
+
 #[test]
 fn update() {
     setup(&|config| {
