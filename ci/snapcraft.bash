@@ -43,7 +43,7 @@ fi
 # as rustup.$PROXY.  If we have an alias which is not a supported proxy name
 # then rustup might get sad.
 
-PROXIES="cargo cargo-clippy cargo-fmt cargo-miri clippy-driver rls rustc rustdoc rustfmt"
+PROXIES="cargo cargo-clippy cargo-fmt cargo-miri clippy-driver rls rustc rustdoc rustfmt rust-analyzer"
 
 # From now on, things should be automagic
 
