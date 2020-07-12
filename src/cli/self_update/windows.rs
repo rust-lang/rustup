@@ -143,25 +143,10 @@ pub fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
 
-    let old_path = if let Some(s) = get_windows_path_var()? {
-        s
-    } else {
-        // Non-unicode path
-        return Ok(());
+    let new_path = match _with_path_cargo_home_bin(_add_to_path)? {
+        Some(new_path) => new_path,
+        None => return Ok(()), // No need to set the path
     };
-
-    let mut new_path = utils::cargo_home()?
-        .join("bin")
-        .to_string_lossy()
-        .into_owned();
-    if old_path.contains(&new_path) {
-        return Ok(());
-    }
-
-    if !old_path.is_empty() {
-        new_path.push_str(";");
-        new_path.push_str(&old_path);
-    }
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
@@ -222,8 +207,23 @@ fn get_windows_path_var() -> Result<Option<String>> {
     }
 }
 
+// Returns None if the existing old_path does not need changing, otherwise
+// prepends the path_str to old_path, handling empty old_path appropriately.
+fn _add_to_path(old_path: &str, path_str: String) -> Option<String> {
+    if old_path.is_empty() {
+        Some(path_str)
+    } else if old_path.contains(&path_str) {
+        None
+    } else {
+        let mut new_path = path_str.clone();
+        new_path.push_str(";");
+        new_path.push_str(&old_path);
+        Some(new_path)
+    }
+}
+
 // Returns None if the existing old_path does not need changing
-fn _remove_from_path(old_path: &str, path_str: &str) -> Option<String> {
+fn _remove_from_path(old_path: &str, path_str: String) -> Option<String> {
     let idx = old_path.find(&path_str)?;
     // If there's a trailing semicolon (likely, since we probably added one
     // during install), include that in the substring to remove. We don't search
@@ -244,20 +244,16 @@ fn _remove_from_path(old_path: &str, path_str: &str) -> Option<String> {
     Some(new_path)
 }
 
-fn _path_without_cargo_home_bin() -> Result<Option<String>> {
-    let old_path = if let Some(s) = get_windows_path_var()? {
-        s
-    } else {
-        // Non-unicode path
-        return Ok(None);
-    };
-
+fn _with_path_cargo_home_bin<F>(f: F) -> Result<Option<String>>
+where
+    F: FnOnce(&str, String) -> Option<String>,
+{
+    let windows_path = get_windows_path_var()?;
     let path_str = utils::cargo_home()?
         .join("bin")
         .to_string_lossy()
         .into_owned();
-
-    Ok(_remove_from_path(&old_path, &path_str))
+    Ok(windows_path.and_then(|old_path| f(&old_path, path_str)))
 }
 
 pub fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
@@ -271,7 +267,7 @@ pub fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
 
-    let new_path = match _path_without_cargo_home_bin()? {
+    let new_path = match _with_path_cargo_home_bin(_remove_from_path)? {
         Some(new_path) => new_path,
         None => return Ok(()), // No need to set the path
     };
@@ -503,9 +499,26 @@ mod tests {
     }
 
     #[test]
-    fn windows_uninstall_doesnt_mess_with_a_non_unicode_path() {
+    fn windows_install_does_not_add_path_twice() {
+        assert_eq!(
+            None,
+            super::_add_to_path(
+                r"c:\users\example\.cargo\bin;foo",
+                r"c:\users\example\.cargo\bin".into()
+            )
+        );
+    }
+
+    #[test]
+    fn windows_doesnt_mess_with_a_non_unicode_path() {
         // This writes an error, so we want a sink for it.
-        let tp = Box::new(currentprocess::TestProcess::default());
+        let tp = Box::new(currentprocess::TestProcess {
+            vars: [("HOME".to_string(), "/unused".to_string())]
+                .iter()
+                .cloned()
+                .collect(),
+            ..Default::default()
+        });
         with_registry_edits(&|| {
             currentprocess::with(tp.clone(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
@@ -522,7 +535,10 @@ mod tests {
                 };
                 environment.set_raw_value("PATH", &reg_value).unwrap();
                 // Ok(None) signals no change to the PATH setting layer
-                assert_eq!(None, super::_path_without_cargo_home_bin().unwrap());
+                fn panic(_: &str, _: String) -> Option<String> {
+                    panic!("called");
+                }
+                assert_eq!(None, super::_with_path_cargo_home_bin(panic).unwrap());
             })
         });
         assert_eq!(
@@ -538,7 +554,7 @@ mod tests {
             "foo",
             super::_remove_from_path(
                 r"c:\users\example\.cargo\bin;foo",
-                r"c:\users\example\.cargo\bin"
+                r"c:\users\example\.cargo\bin".into()
             )
             .unwrap()
         )
@@ -550,7 +566,7 @@ mod tests {
             "foo",
             super::_remove_from_path(
                 r"foo;c:\users\example\.cargo\bin",
-                r"c:\users\example\.cargo\bin"
+                r"c:\users\example\.cargo\bin".into()
             )
             .unwrap()
         )
