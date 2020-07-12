@@ -107,7 +107,6 @@ members = ["download"]
 [lib]
 name = "rustup"
 path = "src/lib.rs"
-test = false # no unit tests
 
 [profile.release]
 lto = true
