@@ -59,13 +59,13 @@ pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
 
 pub fn do_remove_from_path() -> Result<()> {
     for sh in shell::get_available_shells() {
-        let source_cmd = format!("\n{}\n", sh.source_string()?);
-        let source_bytes = source_cmd.into_bytes();
+        let source_bytes = format!("\n{}\n", sh.source_string()?).into_bytes();
 
         // Check more files for cleanup than normally are updated.
         for rc in sh.rcfiles().iter().filter(|rc| rc.is_file()) {
             let file = utils::read_file("rcfile", &rc)?;
             let file_bytes = file.into_bytes();
+            // FIXME: This is whitespace sensitive where it should not be.
             if let Some(idx) = file_bytes
                 .windows(source_bytes.len())
                 .position(|w| w == source_bytes.as_slice())

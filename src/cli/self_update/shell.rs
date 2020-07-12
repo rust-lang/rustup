@@ -116,8 +116,6 @@ impl UnixShell for Posix {
 
 struct Bash;
 
-// Bash is the source of many complications because it loads ONLY 1 rc,
-// either a login profile or .bashrc, not both.
 impl Bash {
     // Bash will load only one of these, the first one that exists, when
     // a login shell starts. BUT not all shells start inside a login shell!
@@ -136,6 +134,8 @@ impl Bash {
 
 impl UnixShell for Bash {
     fn does_exist(&self) -> bool {
+        // Checking to see if we can find any traces of Bash in $SHELL
+        // or a file or binary on disk.
         matches!(process().var("SHELL"), Ok(sh) if sh.contains("bash"))
             || self.rcfiles().iter().any(|rc| rc.is_file())
             || matches!(utils::find_cmd(&["bash"]), Some(_))
@@ -164,6 +164,8 @@ impl UnixShell for Bash {
 struct Zsh;
 impl UnixShell for Zsh {
     fn does_exist(&self) -> bool {
+        // Checking to see if we can find any traces of zsh, either in env vars,
+        // an rc of concern, or the binary.
         matches!(process().var("SHELL"), Ok(sh) if sh.contains("zsh"))
             || matches!(process().var("ZDOTDIR"), Ok(dir) if dir.len() > 0)
             || self.rcfiles().iter().any(|rc| rc.is_file())
