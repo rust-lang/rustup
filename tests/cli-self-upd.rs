@@ -1015,34 +1015,6 @@ fn rustup_init_works_with_weird_names() {
     });
 }
 
-// # 261
-#[test]
-#[cfg(windows)]
-fn doesnt_write_wrong_path_type_to_reg() {
-    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::RegKey;
-
-    setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let path = environment.get_raw_value("PATH").unwrap();
-        assert!(path.vtype == RegType::REG_EXPAND_SZ);
-
-        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let path = environment.get_raw_value("PATH").unwrap();
-        assert!(path.vtype == RegType::REG_EXPAND_SZ);
-    });
-}
-
 // HKCU\Environment\PATH may not exist during install, and it may need to be
 // deleted during uninstall if we remove the last path from it
 #[test]

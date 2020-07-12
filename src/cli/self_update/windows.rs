@@ -134,7 +134,11 @@ pub fn wait_for_parent() -> Result<()> {
 
 pub fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
+    let new_path = _with_path_cargo_home_bin(_add_to_path)?;
+    _apply_new_path(new_path)
+}
 
+fn _apply_new_path(new_path: Option<String>) -> Result<()> {
     use std::ptr;
     use winapi::shared::minwindef::*;
     use winapi::um::winuser::{
@@ -143,7 +147,7 @@ pub fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
 
-    let new_path = match _with_path_cargo_home_bin(_add_to_path)? {
+    let new_path = match new_path {
         Some(new_path) => new_path,
         None => return Ok(()), // No need to set the path
     };
@@ -153,14 +157,19 @@ pub fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .chain_err(|| ErrorKind::PermissionDenied)?;
 
-    let reg_value = RegValue {
-        bytes: utils::string_to_winreg_bytes(&new_path),
-        vtype: RegType::REG_EXPAND_SZ,
-    };
-
-    environment
-        .set_raw_value("PATH", &reg_value)
-        .chain_err(|| ErrorKind::PermissionDenied)?;
+    if new_path.is_empty() {
+        environment
+            .delete_value("PATH")
+            .chain_err(|| ErrorKind::PermissionDenied)?;
+    } else {
+        let reg_value = RegValue {
+            bytes: utils::string_to_winreg_bytes(&new_path),
+            vtype: RegType::REG_EXPAND_SZ,
+        };
+        environment
+            .set_raw_value("PATH", &reg_value)
+            .chain_err(|| ErrorKind::PermissionDenied)?;
+    }
 
     // Tell other processes to update their environment
     unsafe {
@@ -258,53 +267,8 @@ where
 
 pub fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
     assert!(methods.len() == 1 && methods[0] == PathUpdateMethod::Windows);
-
-    use std::ptr;
-    use winapi::shared::minwindef::*;
-    use winapi::um::winuser::{
-        SendMessageTimeoutA, HWND_BROADCAST, SMTO_ABORTIFHUNG, WM_SETTINGCHANGE,
-    };
-    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::{RegKey, RegValue};
-
-    let new_path = match _with_path_cargo_home_bin(_remove_from_path)? {
-        Some(new_path) => new_path,
-        None => return Ok(()), // No need to set the path
-    };
-
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .chain_err(|| ErrorKind::PermissionDenied)?;
-
-    if new_path.is_empty() {
-        environment
-            .delete_value("PATH")
-            .chain_err(|| ErrorKind::PermissionDenied)?;
-    } else {
-        let reg_value = RegValue {
-            bytes: utils::string_to_winreg_bytes(&new_path),
-            vtype: RegType::REG_EXPAND_SZ,
-        };
-        environment
-            .set_raw_value("PATH", &reg_value)
-            .chain_err(|| ErrorKind::PermissionDenied)?;
-    }
-
-    // Tell other processes to update their environment
-    unsafe {
-        SendMessageTimeoutA(
-            HWND_BROADCAST,
-            WM_SETTINGCHANGE,
-            0 as WPARAM,
-            "Environment\0".as_ptr() as LPARAM,
-            SMTO_ABORTIFHUNG,
-            5000,
-            ptr::null_mut(),
-        );
-    }
-
-    Ok(())
+    let new_path = _with_path_cargo_home_bin(_remove_from_path)?;
+    _apply_new_path(new_path)
 }
 
 pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
@@ -546,6 +510,31 @@ mod tests {
 ",
             String::from_utf8(tp.get_stderr()).unwrap()
         );
+    }
+
+    #[test]
+    fn windows_path_regkey_type() {
+        // per issue #261, setting PATH should use REG_EXPAND_SZ.
+        let tp = Box::new(currentprocess::TestProcess::default());
+        with_registry_edits(&|| {
+            currentprocess::with(tp.clone(), || {
+                let root = RegKey::predef(HKEY_CURRENT_USER);
+                let environment = root
+                    .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+                    .unwrap();
+                environment.delete_value("PATH").unwrap();
+
+                assert_eq!((), super::_apply_new_path(Some("foo".into())).unwrap());
+
+                let root = RegKey::predef(HKEY_CURRENT_USER);
+                let environment = root
+                    .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+                    .unwrap();
+                let path = environment.get_raw_value("PATH").unwrap();
+                assert_eq!(path.vtype, RegType::REG_EXPAND_SZ);
+                assert_eq!(utils::string_to_winreg_bytes("foo"), &path.bytes[..]);
+            })
+        });
     }
 
     #[test]
