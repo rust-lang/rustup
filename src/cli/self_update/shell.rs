@@ -122,18 +122,10 @@ impl UnixShell for Posix {
 struct Bash;
 
 impl Bash {
-    // Bash will load only one of these, the first one that exists, when
-    // a login shell starts. BUT not all shells start inside a login shell!
-    fn profiles() -> Vec<PathBuf> {
-        [".bash_profile", ".bash_login", ".profile"]
+    fn profiles() -> impl Iterator<Item = PathBuf> {
+        [".bash_profile", ".bash_login", ".profile", ".bashrc"]
             .iter()
             .filter_map(|rc| utils::home_dir().map(|dir| dir.join(rc)))
-            .collect()
-    }
-
-    // Bash will load only .bashrc on the start of most GUI terminals.
-    fn rc() -> Option<PathBuf> {
-        utils::home_dir().map(|dir| dir.join(".bashrc"))
     }
 }
 
@@ -147,22 +139,11 @@ impl UnixShell for Bash {
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
-        let mut profiles = Bash::profiles();
-        if let Some(rc) = Bash::rc() {
-            profiles.push(rc);
-        }
-        profiles
+        Bash::profiles().collect()
     }
 
     fn update_rcs(&self) -> Vec<PathBuf> {
-        Bash::profiles()
-            .into_iter()
-            .filter(|rc| rc.is_file())
-            // bash only reads one "login profile" so pick the one that exists
-            .take(1)
-            // Pick .bashrc if it exists for GUI terminals
-            .chain(Bash::rc().filter(|rc| rc.is_file()))
-            .collect()
+        Bash::profiles().filter(|rc| rc.is_file()).collect()
     }
 }
 
