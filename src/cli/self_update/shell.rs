@@ -26,6 +26,7 @@
 use super::canonical_cargo_home;
 use super::*;
 use crate::process;
+use error_chain::bail;
 use std::path::PathBuf;
 
 pub type Shell = Box<dyn UnixShell>;
@@ -38,8 +39,12 @@ pub struct ShellScript {
 
 impl ShellScript {
     pub fn write(&self) -> Result<()> {
-        let cargo_bin = format!("{}/bin", canonical_cargo_home()?);
-        let env_name = utils::cargo_home()?.join(self.name);
+        let home = utils::cargo_home()?;
+        let cargo_bin = match home.to_str() {
+            Some(s) => format!("{}/bin", s),
+            None => bail!("Non-Unicode path found."),
+        };
+        let env_name = home.join(self.name);
         let env_file = self.content.replace("{cargo_bin}", &cargo_bin);
         utils::write_file(self.name, &env_name, &env_file)?;
         Ok(())
