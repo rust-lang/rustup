@@ -927,21 +927,12 @@ fn reinstall_specifying_different_toolchain() {
 #[cfg(unix)]
 fn produces_env_file_on_unix() {
     setup(&|config| {
-        // Override the test harness so that cargo home looks like
-        // $HOME/.cargo by removing CARGO_HOME from the environment,
-        // otherwise the literal path will be written to the file.
-
         let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
         cmd.env_remove("CARGO_HOME");
         assert!(cmd.output().unwrap().status.success());
         let envfile = config.homedir.join(".cargo/env");
         let envfile = fs::read_to_string(&envfile).unwrap();
-        let path_string = "export PATH=\"$HOME/.cargo/bin:${PATH}\"";
-        let (_, envfile_export) = envfile.split_at(match envfile.find("export PATH") {
-            Some(idx) => idx,
-            None => 0,
-        });
-        assert_eq!(&envfile_export[..path_string.len()], path_string);
+        assert!(matches!(envfile.find("export PATH"), Some(_)));
     });
 }
 
