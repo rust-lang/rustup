@@ -148,33 +148,57 @@ impl UnixShell for Bash {
 }
 
 struct Zsh;
+
+impl Zsh {
+    fn zdotdir() -> Result<PathBuf> {
+        use std::ffi::OsStr;
+        use std::os::unix::ffi::OsStrExt;
+
+        if matches!(process().var("SHELL"), Ok(sh) if sh.contains("zsh")) {
+            match process().var("ZDOTDIR") {
+                Ok(dir) if dir.len() > 0 => Ok(PathBuf::from(dir)),
+                _ => bail!("Zsh setup failed."),
+            }
+        } else if utils::find_cmd(&["zsh"]) == Some("zsh") {
+            match std::process::Command::new("zsh")
+                .args(&["-c", "'echo $ZDOTDIR'"])
+                .output()
+            {
+                Ok(io) if io.stdout.len() > 0 => Ok(PathBuf::from(OsStr::from_bytes(&io.stdout))),
+                _ => bail!("Zsh setup failed."),
+            }
+        } else {
+            bail!("What? Unpossible.")
+        }
+    }
+}
+
 impl UnixShell for Zsh {
     fn does_exist(&self) -> bool {
-        // Checking to see if we can find any traces of zsh, either in env vars,
-        // an rc of concern, or the binary.
+        // zsh has to either be the shell or be callable for zsh setup.
         matches!(process().var("SHELL"), Ok(sh) if sh.contains("zsh"))
-            || matches!(process().var("ZDOTDIR"), Ok(dir) if dir.len() > 0)
-            || self.rcfiles().iter().any(|rc| rc.is_file())
-            || matches!(utils::find_cmd(&["zsh"]), Some(_))
+            || matches!(utils::find_cmd(&["zsh"]), Some(sh) if sh.contains("zsh"))
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
-        // FIXME: if zsh exists but is not in the process tree of the shell
-        // on install, $ZDOTDIR may not be loaded and give the wrong result.
-        let zdotdir = match process().var("ZDOTDIR") {
-            Ok(dir) => Some(PathBuf::from(dir)),
-            _ => utils::home_dir(),
-        };
-
-        // .zshenv is always sourced
-        match zdotdir.map(|dir| dir.join(".zshenv")) {
-            Some(zshenv) => vec![zshenv],
-            _ => vec![],
-        }
+        [Zsh::zdotdir().ok(), utils::home_dir()]
+            .iter()
+            .filter_map(|dir| dir.as_ref().map(|p| p.join(".zshenv")))
+            .collect()
     }
 
     fn update_rcs(&self) -> Vec<PathBuf> {
-        // .zshenv is preferred for path mods, always write it.
+        // zsh can change $ZDOTDIR both _before_ AND _during_ reading .zshenv,
+        // so we: write to $ZDOTDIR/.zshenv if-exists ($ZDOTDIR changes before)
+        // OR write to $HOME/.zshenv if it exists (change-during)
+        // if neither exist, we create it ourselves, but using the same logic,
+        // because we must still respond to whether $ZDOTDIR is set or unset.
+        // In any case we only write once.
         self.rcfiles()
+            .into_iter()
+            .filter(|env| env.is_file())
+            .chain(self.rcfiles().into_iter())
+            .take(1)
+            .collect()
     }
 }

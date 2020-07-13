@@ -337,12 +337,6 @@ fn install_adds_path_to_bash_profile() {
 
 #[test]
 #[cfg(unix)]
-fn install_adds_path_to_zshenv() {
-    install_adds_path_to_rc(".zshenv");
-}
-
-#[test]
-#[cfg(unix)]
 fn install_does_not_add_path_to_bash_profile_that_doesnt_exist() {
     setup(&|config| {
         let rc = config.homedir.join(".bash_profile");
