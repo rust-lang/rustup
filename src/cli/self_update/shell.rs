@@ -23,7 +23,6 @@
 //! 1) using a shell script that updates PATH if the path is not in PATH
 //! 2) sourcing this script in any known and appropriate rc file
 
-use super::canonical_cargo_home;
 use super::*;
 use crate::process;
 use error_chain::bail;
@@ -40,10 +39,7 @@ pub struct ShellScript {
 impl ShellScript {
     pub fn write(&self) -> Result<()> {
         let home = utils::cargo_home()?;
-        let cargo_bin = match home.to_str() {
-            Some(s) => format!("{}/bin", s),
-            None => bail!("Non-Unicode path found."),
-        };
+        let cargo_bin = format!("{}/bin", cargo_home_str()?);
         let env_name = home.join(self.name);
         let env_file = self.content.replace("{cargo_bin}", &cargo_bin);
         utils::write_file(self.name, &env_name, &env_file)?;
@@ -51,24 +47,28 @@ impl ShellScript {
     }
 }
 
-#[allow(dead_code)] // For some reason.
-const POSIX_ENV: &str = include_str!("env");
+// TODO: Update into a bytestring.
+fn cargo_home_str() -> Result<Cow<'static, str>> {
+    let path = utils::cargo_home()?;
 
-macro_rules! support_shells {
-    ( $($shell:ident,)* ) => {
-        fn enumerate_shells() -> Vec<Shell> {
-            vec![$( Box::new($shell), )*]
+    let default_cargo_home = utils::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".cargo");
+    Ok(if default_cargo_home == path {
+        "$HOME/.cargo".into()
+    } else {
+        match path.to_str() {
+            Some(p) => p.to_owned().into(),
+            None => bail!("Non-Unicode path!"),
         }
-    }
+    })
 }
 
 // TODO: Tcsh (BSD)
 // TODO?: Make a decision on Ion Shell, Power Shell, Nushell
 // Cross-platform non-POSIX shells have not been assessed for integration yet
-support_shells! {
-    Posix,
-    Bash,
-    Zsh,
+fn enumerate_shells() -> Vec<Shell> {
+    vec![Box::new(Posix), Box::new(Bash), Box::new(Zsh)]
 }
 
 pub fn get_available_shells() -> impl Iterator<Item = Shell> {
@@ -90,13 +90,13 @@ pub trait UnixShell {
     // Writes the relevant env file.
     fn env_script(&self) -> ShellScript {
         ShellScript {
-            name: "env",
-            content: POSIX_ENV,
+            name: "env.sh",
+            content: include_str!("env.sh"),
         }
     }
 
     fn source_string(&self) -> Result<String> {
-        Ok(format!(r#"source "{}/env""#, canonical_cargo_home()?))
+        Ok(format!(r#"source "{}/env.sh""#, cargo_home_str()?))
     }
 }
 
