@@ -34,7 +34,7 @@ use std::borrow::Cow;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Component, Path, PathBuf, MAIN_SEPARATOR};
 use std::process::Command;
 
 use same_file::Handle;
@@ -959,8 +959,8 @@ fn parse_new_rustup_version(version: String) -> String {
 
 pub fn prepare_update() -> Result<Option<PathBuf>> {
     let cargo_home = utils::cargo_home()?;
-    let rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
-    let setup_path = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
+    let rustup_path = cargo_home.join(&format!("bin{}rustup{}", MAIN_SEPARATOR, EXE_SUFFIX));
+    let setup_path = cargo_home.join(&format!("bin{}rustup-init{}", MAIN_SEPARATOR, EXE_SUFFIX));
 
     if !rustup_path.exists() {
         return Err(ErrorKind::NotSelfInstalled(cargo_home).into());
