@@ -79,6 +79,8 @@ pub fn do_remove_from_path() -> Result<()> {
         }
     }
 
+    remove_legacy_paths()?;
+
     Ok(())
 }
 
@@ -103,6 +105,8 @@ pub fn do_add_to_path() -> Result<()> {
             }
         }
     }
+
+    remove_legacy_paths()?;
 
     Ok(())
 }
@@ -136,4 +140,24 @@ pub fn self_replace() -> Result<utils::ExitCode> {
     install_bins()?;
 
     Ok(utils::ExitCode(0))
+}
+
+fn remove_legacy_paths() -> Result<()> {
+    let export = format!(r#"export PATH="{}:$PATH""#, shell::cargo_home_str()?).into_bytes();
+    for rc in shell::legacy_paths().filter(|rc| rc.is_file()) {
+        let file = utils::read_file("rcfile", &rc)?;
+        let file_bytes = file.into_bytes();
+        // FIXME: This is whitespace sensitive where it should not be.
+        if let Some(idx) = file_bytes
+            .windows(export.len())
+            .position(|w| w == export.as_slice())
+        {
+            // Here we rewrite the file without the offending line.
+            let mut new_bytes = file_bytes[..idx].to_vec();
+            new_bytes.extend(&file_bytes[idx + export.len()..]);
+            let new_file = String::from_utf8(new_bytes).unwrap();
+            utils::write_file("rcfile", &rc, &new_file)?;
+        }
+    }
+    Ok(())
 }

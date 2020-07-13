@@ -48,7 +48,7 @@ impl ShellScript {
 }
 
 // TODO: Update into a bytestring.
-fn cargo_home_str() -> Result<Cow<'static, str>> {
+pub fn cargo_home_str() -> Result<Cow<'static, str>> {
     let path = utils::cargo_home()?;
 
     let default_cargo_home = utils::home_dir()
@@ -201,4 +201,16 @@ impl UnixShell for Zsh {
             .take(1)
             .collect()
     }
+}
+
+pub fn legacy_paths() -> impl Iterator<Item = PathBuf> {
+    let zprofiles = Zsh::zdotdir()
+        .into_iter()
+        .chain(utils::home_dir())
+        .map(|d| d.join(".zprofile"));
+    let profiles = [".bash_profile", ".profile"]
+        .iter()
+        .filter_map(|rc| utils::home_dir().map(|d| d.join(rc)));
+
+    profiles.chain(zprofiles)
 }
