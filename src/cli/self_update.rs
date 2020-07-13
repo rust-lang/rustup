@@ -51,6 +51,7 @@ use crate::utils::Notification;
 use crate::{Cfg, UpdateStatus};
 use crate::{DUP_TOOLS, TOOLS};
 
+#[cfg(unix)]
 mod shell;
 #[cfg(unix)]
 mod unix;
@@ -510,8 +511,9 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
     let rustup_home = utils::rustup_home()?;
 
     if !no_modify_path {
-        if cfg!(unix) {
-            // Brittle code warning: some duplication in unix::do_add_to_path
+        // Brittle code warning: some duplication in unix::do_add_to_path
+        #[cfg(unix)]
+        {
             let rcfiles = shell::get_available_shells()
                 .flat_map(|sh| sh.update_rcs().into_iter())
                 .map(|rc| format!("    {}", rc.display()))
@@ -526,14 +528,14 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
                 rcfiles = rcfiles,
                 rustup_home = rustup_home.display(),
             ))
-        } else {
-            Ok(format!(
-                pre_install_msg_win!(),
-                cargo_home = cargo_home.display(),
-                cargo_home_bin = cargo_home_bin.display(),
-                rustup_home = rustup_home.display(),
-            ))
         }
+        #[cfg(windows)]
+        Ok(format!(
+            pre_install_msg_win!(),
+            cargo_home = cargo_home.display(),
+            cargo_home_bin = cargo_home_bin.display(),
+            rustup_home = rustup_home.display(),
+        ))
     } else {
         Ok(format!(
             pre_install_msg_no_modify_path!(),
