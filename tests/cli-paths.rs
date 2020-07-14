@@ -16,8 +16,9 @@ use rustup::utils::{raw, utils};
 use rustup::Notification;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
+use std::fmt::Display;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
 
@@ -50,70 +51,99 @@ pub fn setup(f: &dyn Fn(&Config)) {
 mod unix {
     use super::*;
 
+    // Let's write a fake .rc which looks vaguely like a real script.
+    const FAKE_RC: &str = r#"
+# Sources fruity punch.
+source ~/fruit/punch
+
+# Adds apples to PATH.
+export PATH="$HOME/apple/bin"
+"#;
+
+    const DEFAULT_EXPORT: &str = "export PATH=\"$HOME/.cargo/bin:${PATH}\"";
+    const POSIX_SH: &str = "env.sh";
+
+    // let my_rc = "foo\nbar\nbaz";
+    // let rc = config.homedir.join(".zshenv");
+    // raw::write_file(&rc, my_rc).unwrap();
+
+    fn source(dir: impl Display, sh: impl Display) -> String {
+        format!("source \"{dir}/{sh}\"", dir = dir, sh = sh)
+    }
+
+    fn cat(rc: impl Display, plus: impl Display) -> String {
+        format!("{}\n{}\n", rc, plus)
+    }
+
     #[test]
-    fn produces_env_file_on_unix() {
+    fn install_writes_env_and_profile() {
         setup(&|config| {
             // Override the test harness so that cargo home looks like
             // $HOME/.cargo by removing CARGO_HOME from the environment,
             // otherwise the literal path will be written to the file.
 
             let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+            let envfile = config.homedir.join(".cargo/env.sh");
+            let profile = config.homedir.join(".profile");
+            assert!(!envfile.exists());
+            assert!(!profile.exists());
             cmd.env_remove("CARGO_HOME");
             assert!(cmd.output().unwrap().status.success());
-            let envfile = config.homedir.join(".cargo/env.sh");
             let envfile = fs::read_to_string(&envfile).unwrap();
-            let path_string = "export PATH=\"$HOME/.cargo/bin:${PATH}\"";
             let (_, envfile_export) = envfile.split_at(match envfile.find("export PATH") {
                 Some(idx) => idx,
                 None => 0,
             });
-            assert_eq!(&envfile_export[..path_string.len()], path_string);
+            assert_eq!(&envfile_export[..DEFAULT_EXPORT.len()], DEFAULT_EXPORT);
+
+            let mut expected = format!("\n{}\n", source("$HOME/.cargo", POSIX_SH));
+            let new_profile = fs::read_to_string(&profile).unwrap();
+            assert_eq!(new_profile, expected);
         });
     }
 
-    fn install_adds_path_to_rc(rcfile: &str) {
+    #[test]
+    fn install_updates_bash_rcs() {
         setup(&|config| {
-            let my_rc = "foo\nbar\nbaz";
-            let rc = config.homedir.join(rcfile);
-            raw::write_file(&rc, my_rc).unwrap();
+            let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login", ".profile"]
+                .iter()
+                .map(|rc| config.homedir.join(rc))
+                .collect();
+            for rc in &rcs {
+                raw::write_file(&rc, FAKE_RC).unwrap();
+            }
+
             expect_ok(config, &["rustup-init", "-y"]);
 
-            let new_rc = fs::read_to_string(&rc).unwrap();
-            let addition = format!("source \"{}/env.sh\"", config.cargodir.display());
-            let expected = format!("{}\n{}\n", my_rc, addition);
-            assert_eq!(new_rc, expected);
-        });
+            let expected = cat(FAKE_RC, source(config.cargodir.display(), POSIX_SH));
+            for rc in &rcs {
+                let new_rc = fs::read_to_string(&rc).unwrap();
+                assert_eq!(new_rc, expected);
+            }
+        })
     }
 
     #[test]
-    fn install_adds_path_to_profile() {
-        install_adds_path_to_rc(".profile");
-    }
-
-    #[test]
-    fn install_adds_path_to_bashrc() {
-        install_adds_path_to_rc(".bashrc");
-    }
-
-    #[test]
-    fn install_adds_path_to_bash_profile() {
-        install_adds_path_to_rc(".bash_profile");
-    }
-
-    #[test]
-    fn install_does_not_add_path_to_bash_profile_that_doesnt_exist() {
+    fn install_does_not_create_bash_rcs() {
         setup(&|config| {
-            let rc = config.homedir.join(".bash_profile");
+            let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login"]
+                .iter()
+                .map(|rc| config.homedir.join(rc))
+                .collect();
+            let rcs_before = rcs.iter().map(|rc| rc.exists());
             expect_ok(config, &["rustup-init", "-y"]);
 
-            assert!(!rc.exists());
+            for (before, after) in rcs_before.zip(rcs.iter().map(|rc| rc.exists())) {
+                assert!(before == false);
+                assert_eq!(before, after);
+            }
         });
     }
 
     #[test]
-    fn install_errors_when_rc_file_cannot_be_updated() {
+    fn install_errors_when_rc_cannot_be_updated() {
         setup(&|config| {
-            let rc = config.homedir.join(".bashrc");
+            let rc = config.homedir.join(".profile");
             fs::File::create(&rc).unwrap();
             let mut perms = fs::metadata(&rc).unwrap().permissions();
             perms.set_readonly(true);
@@ -124,11 +154,10 @@ mod unix {
     }
 
     #[test]
-    fn install_with_zsh_adds_path_to_zshenv() {
+    fn install_with_zsh_creates_zshenv() {
         setup(&|config| {
-            let my_rc = "foo\nbar\nbaz";
             let rc = config.homedir.join(".zshenv");
-            raw::write_file(&rc, my_rc).unwrap();
+            raw::write_file(&rc, FAKE_RC).unwrap();
 
             let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
             cmd.env("SHELL", "zsh");
@@ -136,15 +165,13 @@ mod unix {
 
             let new_rc = fs::read_to_string(&rc).unwrap();
             let addition = format!(r#"source "{}/env.sh""#, config.cargodir.display());
-            let expected = format!("{}\n{}\n", my_rc, addition);
+            let expected = format!("{}\n{}\n", FAKE_RC, addition);
             assert_eq!(new_rc, expected);
         });
     }
 
     #[test]
     fn install_with_zdotdir() {
-        // New strategy: move all zdotdir tests into one pile
-        // Move all zsh-without-zdotdir tests into the pile with bash and posix profiles
         setup(&|config| {
             let zdotdir = tempfile::Builder::new()
                 .prefix("zdotdir")
@@ -152,7 +179,6 @@ mod unix {
                 .unwrap();
             let my_rc = "foo\nbar\nbaz";
             let rc = zdotdir.path().join(".zshenv");
-            let profile = zdotdir.path().join(".zprofile");
             raw::write_file(&rc, my_rc).unwrap();
 
             let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
@@ -168,7 +194,7 @@ mod unix {
     }
 
     #[test]
-    fn install_adds_path_to_rcfile_just_once() {
+    fn install_adds_path_to_rc_just_once() {
         setup(&|config| {
             let my_profile = "foo\nbar\nbaz";
             let profile = config.homedir.join(".profile");
@@ -181,6 +207,27 @@ mod unix {
             let expected = format!("{}\n{}\n", my_profile, addition);
             assert_eq!(new_profile, expected);
         });
+    }
+
+    #[test]
+    fn uninstall_removes_source_from_bash_rcs() {
+        setup(&|config| {
+            let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login", ".profile"]
+                .iter()
+                .map(|rc| config.homedir.join(rc))
+                .collect();
+            for rc in &rcs {
+                raw::write_file(&rc, FAKE_RC).unwrap();
+            }
+
+            expect_ok(config, &["rustup-init", "-y"]);
+            expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+
+            for rc in &rcs {
+                let new_rc = fs::read_to_string(&rc).unwrap();
+                assert_eq!(new_rc, FAKE_RC);
+            }
+        })
     }
 
     fn uninstall_removes_path_from_rc(rcfile: &str) {
@@ -197,25 +244,77 @@ mod unix {
     }
 
     #[test]
-    fn uninstall_removes_path_from_profile() {
-        uninstall_removes_path_from_rc(".profile");
-    }
-
-    #[test]
-    fn uninstall_removes_path_from_bashrc() {
-        uninstall_removes_path_from_rc(".bashrc");
-    }
-
-    #[test]
-    fn uninstall_removes_path_from_bash_profile() {
-        uninstall_removes_path_from_rc(".bash_profile");
-    }
-
-    #[test]
-    fn uninstall_removes_path_from_zshenv() {
+    fn uninstall_removes_source_from_zshenv() {
         uninstall_removes_path_from_rc(".zshenv");
     }
 
+    #[test]
+    fn install_cleans_up_legacy_paths() {
+        setup(&|config| {
+            let zdotdir = tempfile::Builder::new()
+                .prefix("zdotdir")
+                .tempdir()
+                .unwrap();
+            let mut rcs: Vec<PathBuf> = [".bash_profile", ".profile"]
+                .iter()
+                .map(|rc| config.homedir.join(rc))
+                .collect();
+            let mut zprofiles = vec![config.homedir.join(".zprofile")];
+            zprofiles.push(zdotdir.path().join(".zprofile"));
+            let old_rc = cat(FAKE_RC, DEFAULT_EXPORT);
+            for rc in rcs.iter().chain(zprofiles.iter()) {
+                raw::write_file(&rc, FAKE_RC).unwrap();
+            }
+
+            let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+            cmd.env("SHELL", "zsh");
+            cmd.env("ZDOTDIR", zdotdir.path());
+            assert!(cmd.output().unwrap().status.success());
+            let fixed_rc = cat(FAKE_RC, source(config.cargodir.display(), POSIX_SH));
+            for rc in &rcs {
+                let new_rc = fs::read_to_string(&rc).unwrap();
+                assert_eq!(new_rc, fixed_rc);
+            }
+            for rc in &zprofiles {
+                let new_rc = fs::read_to_string(&rc).unwrap();
+                assert_eq!(new_rc, FAKE_RC);
+            }
+        })
+    }
+
+    #[test]
+    fn uninstall_cleans_up_legacy_paths() {
+        setup(&|config| {
+            // Install first, then overwrite.
+            expect_ok(config, &["rustup-init", "-y"]);
+
+            let zdotdir = tempfile::Builder::new()
+                .prefix("zdotdir")
+                .tempdir()
+                .unwrap();
+            let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+            cmd.env("SHELL", "zsh");
+            cmd.env("ZDOTDIR", zdotdir.path());
+            assert!(cmd.output().unwrap().status.success());
+            let mut rcs: Vec<PathBuf> = [".bash_profile", ".profile", ".zprofile"]
+                .iter()
+                .map(|rc| config.homedir.join(rc))
+                .collect();
+            rcs.push(zdotdir.path().join(".zprofile"));
+            let old_rc = cat(FAKE_RC, DEFAULT_EXPORT);
+            for rc in &rcs {
+                raw::write_file(&rc, FAKE_RC).unwrap();
+            }
+
+            expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+            for rc in &rcs {
+                let new_rc = fs::read_to_string(&rc).unwrap();
+                assert_eq!(new_rc, FAKE_RC);
+            }
+        })
+    }
+
+    // This test seems confusing and might not do what it's supposed to?
     #[test]
     fn uninstall_doesnt_touch_rc_files_that_dont_contain_cargo_home() {
         setup(&|config| {
