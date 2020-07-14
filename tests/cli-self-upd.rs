@@ -494,62 +494,30 @@ fn when_cargo_home_is_the_default_write_path_specially() {
 
 #[test]
 #[cfg(windows)]
-fn install_adds_path() {
+/// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
+fn install_uninstall_affect_path() {
     setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
-
         let path = config.cargodir.join("bin").to_string_lossy().to_string();
+
+        expect_ok(config, &["rustup-init", "-y"]);
         assert!(
             get_path().unwrap().contains(&path),
             format!("`{}` not in `{}`", get_path().unwrap(), &path)
         );
-    });
-}
 
-#[test]
-#[cfg(windows)]
-fn uninstall_removes_path() {
-    setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-
-        let path = config.cargodir.join("bin").to_string_lossy().to_string();
         assert!(!get_path().unwrap().contains(&path));
     });
 }
 
 #[test]
 #[cfg(unix)]
+/// This covers both windows and unix no-path-modification cases due to the code structure.
 fn install_doesnt_modify_path_if_passed_no_modify_path() {
     setup(&|config| {
         let profile = config.homedir.join(".profile");
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
         assert!(!profile.exists());
-    });
-}
-
-#[test]
-#[cfg(windows)]
-fn install_doesnt_modify_path_if_passed_no_modify_path() {
-    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::RegKey;
-
-    setup(&|config| {
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let old_path = environment.get_raw_value("PATH").unwrap();
-
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let new_path = environment.get_raw_value("PATH").unwrap();
-
-        assert_eq!(old_path, new_path);
     });
 }
 
@@ -952,10 +920,6 @@ fn produces_env_file_on_unix() {
 }
 
 #[test]
-#[cfg(windows)]
-fn doesnt_produce_env_file_on_windows() {}
-
-#[test]
 fn install_sets_up_stable() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
@@ -1012,42 +976,6 @@ fn rustup_init_works_with_weird_names() {
         expect_ok(config, &["rustup-init(2)", "-y"]);
         let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         assert!(rustup.exists());
-    });
-}
-
-// HKCU\Environment\PATH may not exist during install, and it may need to be
-// deleted during uninstall if we remove the last path from it
-#[test]
-#[cfg(windows)]
-fn windows_handle_empty_path_registry_key() {
-    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::RegKey;
-
-    setup(&|config| {
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let _ = environment.delete_value("PATH");
-
-        expect_ok(config, &["rustup-init", "-y"]);
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let path = environment.get_raw_value("PATH").unwrap();
-        assert!(path.vtype == RegType::REG_EXPAND_SZ);
-
-        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let path = environment.get_raw_value("PATH");
-
-        assert!(path.is_err());
     });
 }
 

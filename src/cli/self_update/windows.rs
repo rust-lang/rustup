@@ -538,6 +538,57 @@ mod tests {
     }
 
     #[test]
+    fn windows_path_delete_key_when_empty() {
+        use std::io;
+        // during uninstall the PATH key may end up empty; if so we should
+        // delete it.
+        let tp = Box::new(currentprocess::TestProcess::default());
+        with_registry_edits(&|| {
+            currentprocess::with(tp.clone(), || {
+                let root = RegKey::predef(HKEY_CURRENT_USER);
+                let environment = root
+                    .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+                    .unwrap();
+                environment
+                    .set_raw_value(
+                        "PATH",
+                        &RegValue {
+                            bytes: utils::string_to_winreg_bytes("foo"),
+                            vtype: RegType::REG_EXPAND_SZ,
+                        },
+                    )
+                    .unwrap();
+
+                assert_eq!((), super::_apply_new_path(Some("".into())).unwrap());
+
+                let reg_value = environment.get_raw_value("PATH");
+                match reg_value {
+                    Ok(_) => panic!("key not deleted"),
+                    Err(ref e) if e.kind() == io::ErrorKind::NotFound => {}
+                    Err(ref e) => panic!("error {}", e),
+                }
+            })
+        });
+    }
+
+    #[test]
+    fn windows_treat_missing_path_as_empty() {
+        // during install the PATH key may be missing; treat it as empty
+        let tp = Box::new(currentprocess::TestProcess::default());
+        with_registry_edits(&|| {
+            currentprocess::with(tp.clone(), || {
+                let root = RegKey::predef(HKEY_CURRENT_USER);
+                let environment = root
+                    .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+                    .unwrap();
+                environment.delete_value("PATH").unwrap();
+
+                assert_eq!(Some("".into()), super::get_windows_path_var().unwrap());
+            })
+        });
+    }
+
+    #[test]
     fn windows_uninstall_removes_semicolon_from_path_prefix() {
         assert_eq!(
             "foo",
