@@ -303,10 +303,6 @@ fn uninstall_doesnt_leave_gc_file() {
     })
 }
 
-#[test]
-#[ignore]
-fn uninstall_stress_test() {}
-
 #[cfg(unix)]
 fn install_adds_path_to_rc(rcfile: &str) {
     setup(&|config| {
