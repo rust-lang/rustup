@@ -6,6 +6,6 @@ case ":${PATH}:" in
         ;;
     *)
         # Prepending path in case a system-installed rustc must be overwritten
-        export PATH="{cargo_bin}:${PATH}"
+        export PATH="{cargo_bin}:$PATH"
         ;;
 esac

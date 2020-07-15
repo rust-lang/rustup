@@ -1,34 +1,13 @@
 //! This file contains tests relevant to Rustup's handling of updating PATHs.
 //! It depends on self-update working, so if absolutely everything here breaks,
 //! check those tests as well.
-#![allow(unused)]
 pub mod mock;
 
-use crate::mock::clitools::{
-    self, expect_err, expect_err_ex, expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok,
-    expect_stdout_ok, this_host_triple, Config, Scenario,
-};
-use crate::mock::dist::calc_hash;
+use crate::mock::clitools::{self, expect_ok, Config, Scenario};
 use crate::mock::{get_path, restore_path};
 use lazy_static::lazy_static;
-use remove_dir_all::remove_dir_all;
-use rustup::utils::{raw, utils};
-use rustup::Notification;
-use std::env;
-use std::env::consts::EXE_SUFFIX;
-use std::fmt::Display;
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::PathBuf;
 use std::sync::Mutex;
-
-macro_rules! for_host {
-    ($s: expr) => {
-        &format!($s, this_host_triple())
-    };
-}
-
-const TEST_VERSION: &str = "1.1.1";
 
 pub fn setup(f: &dyn Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, &|config| {
@@ -50,6 +29,11 @@ pub fn setup(f: &dyn Fn(&Config)) {
 #[cfg(unix)]
 mod unix {
     use super::*;
+    use crate::mock::clitools::expect_err;
+    use rustup::utils::raw;
+
+    use std::fmt::Display;
+    use std::fs;
 
     // Let's write a fake .rc which looks vaguely like a real script.
     const FAKE_RC: &str = r#"
@@ -60,7 +44,7 @@ source ~/fruit/punch
 export PATH="$HOME/apple/bin"
 "#;
 
-    const DEFAULT_EXPORT: &str = "export PATH=\"$HOME/.cargo/bin:${PATH}\"";
+    const DEFAULT_EXPORT: &str = "export PATH=\"$HOME/.cargo/bin:$PATH\"";
     const POSIX_SH: &str = "env.sh";
 
     // let my_rc = "foo\nbar\nbaz";
@@ -96,7 +80,7 @@ export PATH="$HOME/apple/bin"
             });
             assert_eq!(&envfile_export[..DEFAULT_EXPORT.len()], DEFAULT_EXPORT);
 
-            let mut expected = format!("\n{}\n", source("$HOME/.cargo", POSIX_SH));
+            let expected = format!("\n{}\n", source("$HOME/.cargo", POSIX_SH));
             let new_profile = fs::read_to_string(&profile).unwrap();
             assert_eq!(new_profile, expected);
         });
@@ -255,22 +239,25 @@ export PATH="$HOME/apple/bin"
                 .prefix("zdotdir")
                 .tempdir()
                 .unwrap();
-            let mut rcs: Vec<PathBuf> = [".bash_profile", ".profile"]
+            let rcs: Vec<PathBuf> = [".bash_profile", ".profile"]
                 .iter()
                 .map(|rc| config.homedir.join(rc))
                 .collect();
-            let mut zprofiles = vec![config.homedir.join(".zprofile")];
-            zprofiles.push(zdotdir.path().join(".zprofile"));
+            let zprofiles = vec![
+                config.homedir.join(".zprofile"),
+                zdotdir.path().join(".zprofile"),
+            ];
             let old_rc = cat(FAKE_RC, DEFAULT_EXPORT);
             for rc in rcs.iter().chain(zprofiles.iter()) {
-                raw::write_file(&rc, FAKE_RC).unwrap();
+                raw::write_file(&rc, &old_rc).unwrap();
             }
 
             let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
             cmd.env("SHELL", "zsh");
             cmd.env("ZDOTDIR", zdotdir.path());
+            cmd.env_remove("CARGO_HOME");
             assert!(cmd.output().unwrap().status.success());
-            let fixed_rc = cat(FAKE_RC, source(config.cargodir.display(), POSIX_SH));
+            let fixed_rc = cat(FAKE_RC, source("$HOME/.cargo", POSIX_SH));
             for rc in &rcs {
                 let new_rc = fs::read_to_string(&rc).unwrap();
                 assert_eq!(new_rc, fixed_rc);
@@ -295,6 +282,7 @@ export PATH="$HOME/apple/bin"
             let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
             cmd.env("SHELL", "zsh");
             cmd.env("ZDOTDIR", zdotdir.path());
+            cmd.env_remove("CARGO_HOME");
             assert!(cmd.output().unwrap().status.success());
             let mut rcs: Vec<PathBuf> = [".bash_profile", ".profile", ".zprofile"]
                 .iter()
@@ -303,12 +291,18 @@ export PATH="$HOME/apple/bin"
             rcs.push(zdotdir.path().join(".zprofile"));
             let old_rc = cat(FAKE_RC, DEFAULT_EXPORT);
             for rc in &rcs {
-                raw::write_file(&rc, FAKE_RC).unwrap();
+                raw::write_file(&rc, &old_rc).unwrap();
             }
 
-            expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+            let mut cmd = clitools::cmd(config, "rustup", &["self", "uninstall", "-y"]);
+            cmd.env("SHELL", "zsh");
+            cmd.env("ZDOTDIR", zdotdir.path());
+            cmd.env_remove("CARGO_HOME");
+            assert!(cmd.output().unwrap().status.success());
+
             for rc in &rcs {
                 let new_rc = fs::read_to_string(&rc).unwrap();
+                // It's not ideal, but it's OK, if we leave whitespace.
                 assert_eq!(new_rc, FAKE_RC);
             }
         })
@@ -372,7 +366,6 @@ export PATH="$HOME/apple/bin"
 
 #[cfg(windows)]
 mod windows {
-
     use super::*;
 
     #[test]

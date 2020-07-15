@@ -143,7 +143,7 @@ pub fn self_replace() -> Result<utils::ExitCode> {
 }
 
 fn remove_legacy_paths() -> Result<()> {
-    let export = format!(r#"export PATH="{}:$PATH""#, shell::cargo_home_str()?).into_bytes();
+    let export = format!("\nexport PATH=\"{}/bin:$PATH\"\n", shell::cargo_home_str()?).into_bytes();
     for rc in shell::legacy_paths().filter(|rc| rc.is_file()) {
         let file = utils::read_file("rcfile", &rc)?;
         let file_bytes = file.into_bytes();

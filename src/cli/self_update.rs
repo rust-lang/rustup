@@ -122,6 +122,7 @@ these changes will be reverted.
     };
 }
 
+#[cfg(unix)]
 macro_rules! pre_install_msg_unix {
     () => {
         pre_install_msg_template!(
@@ -133,6 +134,7 @@ modifying the profile file{plural} located at:
     };
 }
 
+#[cfg(windows)]
 macro_rules! pre_install_msg_win {
     () => {
         pre_install_msg_template!(
