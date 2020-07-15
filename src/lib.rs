@@ -66,5 +66,6 @@ pub mod fallback_settings;
 mod install;
 mod notifications;
 pub mod settings;
+pub mod test;
 pub mod toolchain;
 pub mod utils;

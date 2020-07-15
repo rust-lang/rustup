@@ -45,7 +45,7 @@ use super::markdown::md;
 use super::term2;
 use crate::dist::dist::{self, Profile, TargetTriple};
 use crate::process;
-use crate::toolchain::DistributableToolchain;
+use crate::toolchain::{DistributableToolchain, Toolchain};
 use crate::utils::utils;
 use crate::utils::Notification;
 use crate::{Cfg, UpdateStatus};
@@ -721,6 +721,39 @@ fn maybe_install_rust(
     quiet: bool,
 ) -> Result<()> {
     let mut cfg = common::set_globals(verbose, quiet)?;
+
+    let toolchain = _install_selection(
+        &mut cfg,
+        toolchain,
+        profile_str,
+        default_host_triple,
+        update_existing_toolchain,
+        components,
+        targets,
+    )?;
+    if let Some(toolchain) = toolchain {
+        if toolchain.exists() {
+            warn!("Updating existing toolchain, profile choice will be ignored");
+        }
+        let distributable = DistributableToolchain::new(&toolchain)?;
+        let status = distributable.install_from_dist(true, false, components, targets)?;
+        let toolchain_str = toolchain.name().to_owned();
+        toolchain.cfg().set_default(&toolchain_str)?;
+        writeln!(process().stdout())?;
+        common::show_channel_update(&toolchain.cfg(), &toolchain_str, Ok(status))?;
+    }
+    Ok(())
+}
+
+fn _install_selection<'a>(
+    cfg: &'a mut Cfg,
+    toolchain_opt: Option<&str>,
+    profile_str: &str,
+    default_host_triple: Option<&str>,
+    update_existing_toolchain: bool,
+    components: &[&str],
+    targets: &[&str],
+) -> Result<Option<Toolchain<'a>>> {
     cfg.set_profile(profile_str)?;
 
     if let Some(default_host_triple) = default_host_triple {
@@ -731,7 +764,7 @@ fn maybe_install_rust(
         info!("default host triple is {}", cfg.get_default_host_triple()?);
     }
 
-    let user_specified_something = toolchain.is_some()
+    let user_specified_something = toolchain_opt.is_some()
         || !targets.is_empty()
         || !components.is_empty()
         || update_existing_toolchain;
@@ -741,7 +774,7 @@ fn maybe_install_rust(
     // a toolchain (updating if it's already present) and then if neither of
     // those are true, we have a user who doesn't mind, and already has an
     // install, so we leave their setup alone.
-    if toolchain == Some("none") {
+    Ok(if toolchain_opt == Some("none") {
         info!("skipping toolchain installation");
         if !components.is_empty() {
             warn!(
@@ -758,28 +791,20 @@ fn maybe_install_rust(
             );
         }
         writeln!(process().stdout())?;
+        None
     } else if user_specified_something || cfg.find_default()?.is_none() {
-        let (toolchain_str, toolchain) = match toolchain {
-            Some(s) => (s.to_owned(), cfg.get_toolchain(s, false)?),
+        Some(match toolchain_opt {
+            Some(s) => cfg.get_toolchain(s, false)?,
             None => match cfg.find_default()? {
-                Some(t) => (t.name().to_owned(), t),
-                None => ("stable".to_owned(), cfg.get_toolchain("stable", false)?),
+                Some(t) => t,
+                None => cfg.get_toolchain("stable", false)?,
             },
-        };
-        if toolchain.exists() {
-            warn!("Updating existing toolchain, profile choice will be ignored");
-        }
-        let distributable = DistributableToolchain::new(&toolchain)?;
-        let status = distributable.install_from_dist(true, false, components, targets)?;
-        cfg.set_default(&toolchain_str)?;
-        writeln!(process().stdout())?;
-        common::show_channel_update(&cfg, &toolchain_str, Ok(status))?;
+        })
     } else {
         info!("updating existing rustup installation - leaving toolchains alone");
         writeln!(process().stdout())?;
-    }
-
-    Ok(())
+        None
+    })
 }
 
 pub fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
@@ -1059,4 +1084,60 @@ pub fn cleanup_self_updater() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+
+    use crate::cli::common;
+    use crate::dist::dist::ToolchainDesc;
+    use crate::test::with_rustup_home;
+    use crate::{currentprocess, for_host};
+
+    #[test]
+    fn default_toolchain_is_stable() {
+        with_rustup_home(|home| {
+            let mut vars = HashMap::new();
+            home.apply(&mut vars);
+            let tp = Box::new(currentprocess::TestProcess {
+                vars,
+                ..Default::default()
+            });
+            currentprocess::with(tp.clone(), || -> anyhow::Result<()> {
+                // TODO: we could pass in a custom cfg to get notification
+                // callbacks rather than output to the tp sink.
+                let mut cfg = common::set_globals(false, false).unwrap();
+                assert_eq!(
+                    "stable",
+                    super::_install_selection(
+                        &mut cfg,
+                        None,      // No toolchain specified
+                        "default", // default profile
+                        None,
+                        false,
+                        &[],
+                        &[],
+                    )
+                    .unwrap() // result
+                    .unwrap() // option
+                    .name()
+                    .parse::<ToolchainDesc>()
+                    .unwrap()
+                    .channel
+                );
+                Ok(())
+            })?;
+            assert_eq!(
+                for_host!(
+                    r"info: profile set to 'default'
+info: default host triple is {0}
+"
+                ),
+                &String::from_utf8(tp.get_stderr()).unwrap()
+            );
+            Ok(())
+        })
+        .unwrap();
+    }
 }

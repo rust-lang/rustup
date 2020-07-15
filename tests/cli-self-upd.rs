@@ -2,16 +2,6 @@
 
 pub mod mock;
 
-use crate::mock::clitools::{
-    self, expect_err, expect_err_ex, expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok,
-    expect_stdout_ok, this_host_triple, Config, Scenario,
-};
-use crate::mock::dist::calc_hash;
-use crate::mock::{get_path, restore_path};
-use lazy_static::lazy_static;
-use remove_dir_all::remove_dir_all;
-use rustup::utils::{raw, utils};
-use rustup::Notification;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
@@ -19,11 +9,20 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Mutex;
 
-macro_rules! for_host {
-    ($s: expr) => {
-        &format!($s, this_host_triple())
-    };
-}
+use lazy_static::lazy_static;
+use remove_dir_all::remove_dir_all;
+
+use rustup::for_host;
+use rustup::test::this_host_triple;
+use rustup::utils::{raw, utils};
+use rustup::Notification;
+
+use crate::mock::clitools::{
+    self, expect_err, expect_err_ex, expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok,
+    expect_stdout_ok, Config, Scenario,
+};
+use crate::mock::dist::calc_hash;
+use crate::mock::{get_path, restore_path};
 
 const TEST_VERSION: &str = "1.1.1";
 
@@ -147,7 +146,7 @@ fn bins_are_executable() {
 fn install_creates_cargo_home() {
     setup(&|config| {
         remove_dir_all(&config.cargodir).unwrap();
-        remove_dir_all(&config.rustupdir).unwrap();
+        config.rustupdir.remove().unwrap();
         expect_ok(config, &["rustup-init", "-y"]);
         assert!(config.cargodir.exists());
     });
@@ -208,7 +207,7 @@ fn uninstall_deletes_rustup_home() {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-        assert!(!config.rustupdir.exists());
+        assert!(!config.rustupdir.has("."));
     });
 }
 
@@ -216,7 +215,7 @@ fn uninstall_deletes_rustup_home() {
 fn uninstall_works_if_rustup_home_doesnt_exist() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        raw::remove_dir(&config.rustupdir).unwrap();
+        config.rustupdir.remove().unwrap();
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
     });
 }
@@ -827,10 +826,12 @@ fn first_install_exact() {
         expect_ok_contains(
             config,
             &["rustup-init", "-y"],
-            r"
-  stable installed - 1.1.0 (hash-stable-1.1.0)
+            for_host!(
+                r"
+  stable-{0} installed - 1.1.0 (hash-stable-1.1.0)
 
-",
+"
+            ),
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
@@ -843,7 +844,7 @@ info: Defaulting to 500.0 MiB unpack ram
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
-info: default toolchain set to 'stable'
+info: default toolchain set to 'stable-{0}'
 "
             ),
         );
@@ -869,7 +870,7 @@ fn reinstall_specifying_toolchain() {
         expect_stdout_ok(
             config,
             &["rustup-init", "-y", "--default-toolchain=stable"],
-            r"stable unchanged - 1.1.0",
+            for_host!(r"stable-{0} unchanged - 1.1.0"),
         );
     });
 }
@@ -881,7 +882,7 @@ fn reinstall_specifying_component() {
         expect_stdout_ok(
             config,
             &["rustup-init", "-y", "--default-toolchain=stable"],
-            r"stable unchanged - 1.1.0",
+            for_host!(r"stable-{0} unchanged - 1.1.0"),
         );
     });
 }
@@ -893,7 +894,7 @@ fn reinstall_specifying_different_toolchain() {
         expect_stderr_ok(
             config,
             &["rustup-init", "-y", "--default-toolchain=nightly"],
-            r"info: default toolchain set to 'nightly'",
+            for_host!(r"info: default toolchain set to 'nightly-{0}'"),
         );
     });
 }
@@ -912,14 +913,6 @@ fn produces_env_file_on_unix() {
         let envfile = config.homedir.join(".cargo/env");
         let envfile = fs::read_to_string(&envfile).unwrap();
         assert!(envfile.contains(r#"export PATH="$HOME/.cargo/bin:$PATH""#));
-    });
-}
-
-#[test]
-fn install_sets_up_stable() {
-    setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
     });
 }
 

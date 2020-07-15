@@ -2,24 +2,22 @@
 
 pub mod mock;
 
-use crate::mock::clitools::{
-    self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
-    set_current_dist_date, this_host_triple, Config, Scenario,
-};
-use rustup::utils::raw;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
-use std::path::MAIN_SEPARATOR;
+use std::path::{PathBuf, MAIN_SEPARATOR};
 
-macro_rules! for_host {
-    ($s: expr) => {
-        &format!($s, this_host_triple())
-    };
-}
+use rustup::for_host;
+use rustup::test::this_host_triple;
+use rustup::utils::raw;
+
+use crate::mock::clitools::{
+    self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
+    set_current_dist_date, Config, Scenario,
+};
 
 macro_rules! for_host_and_home {
     ($config:ident, $s: expr) => {
-        &format!($s, this_host_triple(), $config.rustupdir.display())
+        &format!($s, this_host_triple(), $config.rustupdir)
     };
 }
 
@@ -352,7 +350,7 @@ fn add_target() {
         );
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        assert!(config.rustupdir.join(path).exists());
+        assert!(config.rustupdir.has(&path));
     });
 }
 
@@ -366,12 +364,12 @@ fn remove_target() {
         );
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        assert!(config.rustupdir.join(&path).exists());
+        assert!(config.rustupdir.has(&path));
         expect_ok(
             config,
             &["rustup", "target", "remove", clitools::CROSS_ARCH1],
         );
-        assert!(!config.rustupdir.join(&path).exists());
+        assert!(!config.rustupdir.has(&path));
     });
 }
 
@@ -394,13 +392,13 @@ fn add_remove_multiple_targets() {
             &this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(config.rustupdir.join(path).exists());
+        assert!(config.rustupdir.has(&path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             &this_host_triple(),
             clitools::CROSS_ARCH2
         );
-        assert!(config.rustupdir.join(path).exists());
+        assert!(config.rustupdir.has(&path));
 
         expect_ok(
             config,
@@ -417,13 +415,13 @@ fn add_remove_multiple_targets() {
             &this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(!config.rustupdir.join(path).exists());
+        assert!(!config.rustupdir.has(&path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             &this_host_triple(),
             clitools::CROSS_ARCH2
         );
-        assert!(!config.rustupdir.join(path).exists());
+        assert!(!config.rustupdir.has(&path));
     });
 }
 
@@ -465,7 +463,7 @@ fn add_target_explicit() {
                 clitools::CROSS_ARCH1,
             ],
         );
-        assert!(config.rustupdir.join(path).exists());
+        assert!(config.rustupdir.has(&path));
     });
 }
 
@@ -489,7 +487,7 @@ fn remove_target_explicit() {
                 clitools::CROSS_ARCH1,
             ],
         );
-        assert!(config.rustupdir.join(&path).exists());
+        assert!(config.rustupdir.has(&path));
         expect_ok(
             config,
             &[
@@ -501,7 +499,7 @@ fn remove_target_explicit() {
                 clitools::CROSS_ARCH1,
             ],
         );
-        assert!(!config.rustupdir.join(&path).exists());
+        assert!(!config.rustupdir.has(&path));
     });
 }
 
@@ -574,7 +572,7 @@ fn show_home() {
             &format!(
                 r"{}
 ",
-                config.rustupdir.display()
+                config.rustupdir
             ),
             r"",
         );
@@ -688,7 +686,7 @@ nightly-{0} (default)
                 clitools::MULTI_ARCH1,
                 clitools::CROSS_ARCH2,
                 this_host_triple(),
-                config.rustupdir.display()
+                config.rustupdir
             ),
             r"",
         );
@@ -749,7 +747,7 @@ nightly-{0} (default)
                 clitools::MULTI_ARCH1,
                 clitools::CROSS_ARCH2,
                 this_host_triple(),
-                config.rustupdir.display()
+                config.rustupdir
             ),
             r"",
         );
@@ -822,7 +820,7 @@ nightly-{0} (directory override for '{2}')
 1.3.0 (hash-nightly-2)
 ",
                 this_host_triple(),
-                config.rustupdir.display(),
+                config.rustupdir,
                 cwd.display(),
             ),
             r"",
@@ -863,7 +861,7 @@ nightly-{0} (overridden by '{2}')
 
 ",
                 this_host_triple(),
-                config.rustupdir.display(),
+                config.rustupdir,
                 toolchain_file.display()
             ),
             r"",
@@ -1274,8 +1272,7 @@ fn add_component() {
             "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
             this_host_triple()
         );
-        let path = config.rustupdir.join(path);
-        assert!(path.exists());
+        assert!(config.rustupdir.has(&path));
     });
 }
 
@@ -1284,14 +1281,13 @@ fn remove_component() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "component", "add", "rust-src"]);
-        let path = format!(
+        let path = PathBuf::from(format!(
             "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
             this_host_triple()
-        );
-        let path = config.rustupdir.join(path);
-        assert!(path.exists());
+        ));
+        assert!(config.rustupdir.has(&path));
         expect_ok(config, &["rustup", "component", "remove", "rust-src"]);
-        assert!(!path.parent().unwrap().exists());
+        assert!(!config.rustupdir.has(&path.parent().unwrap()));
     });
 }
 
@@ -1310,17 +1306,19 @@ fn add_remove_multiple_components() {
         );
         for file in &files {
             let path = format!("toolchains/nightly-{}/{}", this_host_triple(), file);
-            let path = config.rustupdir.join(path);
-            assert!(path.exists());
+            assert!(config.rustupdir.has(&path));
         }
         expect_ok(
             config,
             &["rustup", "component", "remove", "rust-src", "rust-analysis"],
         );
         for file in &files {
-            let path = format!("toolchains/nightly-{}/{}", this_host_triple(), file);
-            let path = config.rustupdir.join(path);
-            assert!(!path.parent().unwrap().exists());
+            let path = PathBuf::from(format!(
+                "toolchains/nightly-{}/{}",
+                this_host_triple(),
+                file
+            ));
+            assert!(!config.rustupdir.has(&path.parent().unwrap()));
         }
     });
 }

@@ -2,23 +2,22 @@
 
 pub mod mock;
 
-use crate::mock::clitools::{
-    self, expect_ok, expect_stderr_ok, expect_stdout_ok, set_current_dist_date, this_host_triple,
-    Config, SanitizedOutput, Scenario,
-};
-use crate::mock::{get_path, restore_path};
-use lazy_static::lazy_static;
-use rustup::utils::raw;
 use std::fs;
 use std::io::Write;
 use std::process::Stdio;
 use std::sync::Mutex;
 
-macro_rules! for_host {
-    ($s: expr) => {
-        &format!($s, this_host_triple())
-    };
-}
+use lazy_static::lazy_static;
+
+use rustup::for_host;
+use rustup::test::this_host_triple;
+use rustup::utils::raw;
+
+use crate::mock::clitools::{
+    self, expect_ok, expect_stderr_ok, expect_stdout_ok, set_current_dist_date, Config,
+    SanitizedOutput, Scenario,
+};
+use crate::mock::{get_path, restore_path};
 
 pub fn setup_(complex: bool, f: &dyn Fn(&Config)) {
     let scenario = if complex {
@@ -112,17 +111,20 @@ fn blank_lines_around_stderr_log_output_install() {
         // line that comes from the user pressing enter, then log
         // output on stderr, then an explicit blank line on stdout
         // before printing $toolchain installed
-        assert!(out.stdout.contains(
-            r"
+        assert!(
+            out.stdout.contains(for_host!(
+                r"
 3) Cancel installation
 >
 
-  stable installed - 1.1.0 (hash-stable-1.1.0)
+  stable-{0} installed - 1.1.0 (hash-stable-1.1.0)
 
 
 Rust is installed now. Great!
 "
-        ));
+            )),
+            format!("pattern not found in \"\"\"{}\"\"\"", out.stdout)
+        );
     });
 }
 
