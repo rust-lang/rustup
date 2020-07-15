@@ -47,10 +47,6 @@ export PATH="$HOME/apple/bin"
     const DEFAULT_EXPORT: &str = "export PATH=\"$HOME/.cargo/bin:$PATH\"";
     const POSIX_SH: &str = "env.sh";
 
-    // let my_rc = "foo\nbar\nbaz";
-    // let rc = config.homedir.join(".zshenv");
-    // raw::write_file(&rc, my_rc).unwrap();
-
     fn source(dir: impl Display, sh: impl Display) -> String {
         format!("source \"{dir}/{sh}\"", dir = dir, sh = sh)
     }
@@ -60,29 +56,37 @@ export PATH="$HOME/apple/bin"
     }
 
     #[test]
-    fn install_writes_env_and_profile() {
+    fn install_creates_necessary_scripts() {
         setup(&|config| {
             // Override the test harness so that cargo home looks like
             // $HOME/.cargo by removing CARGO_HOME from the environment,
             // otherwise the literal path will be written to the file.
 
             let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
-            let envfile = config.homedir.join(".cargo/env.sh");
-            let profile = config.homedir.join(".profile");
-            assert!(!envfile.exists());
-            assert!(!profile.exists());
+            let files: Vec<PathBuf> = [".cargo/env.sh", ".profile", ".zshenv"]
+                .iter()
+                .map(|file| config.homedir.join(file))
+                .collect();
+            for file in &files {
+                assert!(!file.exists());
+            }
             cmd.env_remove("CARGO_HOME");
+            cmd.env("SHELL", "zsh");
             assert!(cmd.output().unwrap().status.success());
-            let envfile = fs::read_to_string(&envfile).unwrap();
+            let mut rcs = files.iter();
+            let env = rcs.next().unwrap();
+            let envfile = fs::read_to_string(&env).unwrap();
             let (_, envfile_export) = envfile.split_at(match envfile.find("export PATH") {
                 Some(idx) => idx,
                 None => 0,
             });
             assert_eq!(&envfile_export[..DEFAULT_EXPORT.len()], DEFAULT_EXPORT);
 
-            let expected = format!("\n{}\n", source("$HOME/.cargo", POSIX_SH));
-            let new_profile = fs::read_to_string(&profile).unwrap();
-            assert_eq!(new_profile, expected);
+            for rc in rcs {
+                let expected = format!("\n{}\n", source("$HOME/.cargo", POSIX_SH));
+                let new_profile = fs::read_to_string(&rc).unwrap();
+                assert_eq!(new_profile, expected);
+            }
         });
     }
 
@@ -138,23 +142,6 @@ export PATH="$HOME/apple/bin"
     }
 
     #[test]
-    fn install_with_zsh_creates_zshenv() {
-        setup(&|config| {
-            let rc = config.homedir.join(".zshenv");
-            raw::write_file(&rc, FAKE_RC).unwrap();
-
-            let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
-            cmd.env("SHELL", "zsh");
-            assert!(cmd.output().unwrap().status.success());
-
-            let new_rc = fs::read_to_string(&rc).unwrap();
-            let addition = format!(r#"source "{}/env.sh""#, config.cargodir.display());
-            let expected = format!("{}\n{}\n", FAKE_RC, addition);
-            assert_eq!(new_rc, expected);
-        });
-    }
-
-    #[test]
     fn install_with_zdotdir() {
         setup(&|config| {
             let zdotdir = tempfile::Builder::new()
@@ -194,12 +181,18 @@ export PATH="$HOME/apple/bin"
     }
 
     #[test]
-    fn uninstall_removes_source_from_bash_rcs() {
+    fn uninstall_removes_source_from_rcs() {
         setup(&|config| {
-            let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login", ".profile"]
-                .iter()
-                .map(|rc| config.homedir.join(rc))
-                .collect();
+            let rcs: Vec<PathBuf> = [
+                ".bashrc",
+                ".bash_profile",
+                ".bash_login",
+                ".profile",
+                ".zshenv",
+            ]
+            .iter()
+            .map(|rc| config.homedir.join(rc))
+            .collect();
             for rc in &rcs {
                 raw::write_file(&rc, FAKE_RC).unwrap();
             }
@@ -214,26 +207,8 @@ export PATH="$HOME/apple/bin"
         })
     }
 
-    fn uninstall_removes_path_from_rc(rcfile: &str) {
-        setup(&|config| {
-            let my_rc = "foo\nbar\nbaz";
-            let rc = config.homedir.join(rcfile);
-            raw::write_file(&rc, my_rc).unwrap();
-            expect_ok(config, &["rustup-init", "-y"]);
-            expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-
-            let new_rc = fs::read_to_string(&rc).unwrap();
-            assert_eq!(new_rc, my_rc);
-        });
-    }
-
     #[test]
-    fn uninstall_removes_source_from_zshenv() {
-        uninstall_removes_path_from_rc(".zshenv");
-    }
-
-    #[test]
-    fn install_cleans_up_legacy_paths() {
+    fn install_adds_sources_while_removing_legacy_paths() {
         setup(&|config| {
             let zdotdir = tempfile::Builder::new()
                 .prefix("zdotdir")
@@ -306,23 +281,6 @@ export PATH="$HOME/apple/bin"
                 assert_eq!(new_rc, FAKE_RC);
             }
         })
-    }
-
-    // This test seems confusing and might not do what it's supposed to?
-    #[test]
-    fn uninstall_doesnt_touch_rc_files_that_dont_contain_cargo_home() {
-        setup(&|config| {
-            let my_rc = "foo\nbar\nbaz";
-            expect_ok(config, &["rustup-init", "-y"]);
-            expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-
-            let profile = config.homedir.join(".profile");
-            raw::write_file(&profile, my_rc).unwrap();
-
-            let profile = fs::read_to_string(&profile).unwrap();
-
-            assert_eq!(profile, my_rc);
-        });
     }
 
     // In the default case we want to write $HOME/.cargo/bin as the path,
