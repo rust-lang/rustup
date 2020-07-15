@@ -59,7 +59,7 @@ pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
 
 pub fn do_remove_from_path() -> Result<()> {
     for sh in shell::get_available_shells() {
-        let source_bytes = format!("\n{}\n", sh.source_string()?).into_bytes();
+        let source_bytes = format!("{}\n", sh.source_string()?).into_bytes();
 
         // Check more files for cleanup than normally are updated.
         for rc in sh.rcfiles().iter().filter(|rc| rc.is_file()) {
@@ -88,7 +88,7 @@ pub fn do_add_to_path() -> Result<()> {
     let mut scripts = vec![];
 
     for sh in shell::get_available_shells() {
-        let source_cmd = format!("\n{}", sh.source_string()?);
+        let source_cmd = sh.source_string()?;
         for rc in sh.update_rcs() {
             if !rc.is_file() || !utils::read_file("rcfile", &rc)?.contains(&source_cmd) {
                 utils::append_file("rcfile", &rc, &source_cmd).chain_err(|| {
@@ -143,7 +143,7 @@ pub fn self_replace() -> Result<utils::ExitCode> {
 }
 
 fn remove_legacy_paths() -> Result<()> {
-    let export = format!("\nexport PATH=\"{}/bin:$PATH\"\n", shell::cargo_home_str()?).into_bytes();
+    let export = format!("export PATH=\"{}/bin:$PATH\"\n", shell::cargo_home_str()?).into_bytes();
     for rc in shell::legacy_paths().filter(|rc| rc.is_file()) {
         let file = utils::read_file("rcfile", &rc)?;
         let file_bytes = file.into_bytes();

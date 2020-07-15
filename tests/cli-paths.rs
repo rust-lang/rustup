@@ -44,15 +44,11 @@ source ~/fruit/punch
 export PATH="$HOME/apple/bin"
 "#;
 
-    const DEFAULT_EXPORT: &str = "export PATH=\"$HOME/.cargo/bin:$PATH\"";
+    const DEFAULT_EXPORT: &str = "export PATH=\"$HOME/.cargo/bin:$PATH\"\n";
     const POSIX_SH: &str = "env.sh";
 
     fn source(dir: impl Display, sh: impl Display) -> String {
-        format!("source \"{dir}/{sh}\"", dir = dir, sh = sh)
-    }
-
-    fn cat(rc: impl Display, plus: impl Display) -> String {
-        format!("{}\n{}\n", rc, plus)
+        format!("source \"{dir}/{sh}\"\n", dir = dir, sh = sh)
     }
 
     #[test]
@@ -83,7 +79,7 @@ export PATH="$HOME/apple/bin"
             assert_eq!(&envfile_export[..DEFAULT_EXPORT.len()], DEFAULT_EXPORT);
 
             for rc in rcs {
-                let expected = format!("\n{}\n", source("$HOME/.cargo", POSIX_SH));
+                let expected = source("$HOME/.cargo", POSIX_SH);
                 let new_profile = fs::read_to_string(&rc).unwrap();
                 assert_eq!(new_profile, expected);
             }
@@ -103,7 +99,7 @@ export PATH="$HOME/apple/bin"
 
             expect_ok(config, &["rustup-init", "-y"]);
 
-            let expected = cat(FAKE_RC, source(config.cargodir.display(), POSIX_SH));
+            let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
             for rc in &rcs {
                 let new_rc = fs::read_to_string(&rc).unwrap();
                 assert_eq!(new_rc, expected);
@@ -148,9 +144,8 @@ export PATH="$HOME/apple/bin"
                 .prefix("zdotdir")
                 .tempdir()
                 .unwrap();
-            let my_rc = "foo\nbar\nbaz";
             let rc = zdotdir.path().join(".zshenv");
-            raw::write_file(&rc, my_rc).unwrap();
+            raw::write_file(&rc, FAKE_RC).unwrap();
 
             let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
             cmd.env("SHELL", "zsh");
@@ -158,8 +153,7 @@ export PATH="$HOME/apple/bin"
             assert!(cmd.output().unwrap().status.success());
 
             let new_rc = fs::read_to_string(&rc).unwrap();
-            let addition = format!(r#"source "{}/env.sh""#, config.cargodir.display());
-            let expected = format!("{}\n{}\n", my_rc, addition);
+            let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
             assert_eq!(new_rc, expected);
         });
     }
@@ -167,15 +161,13 @@ export PATH="$HOME/apple/bin"
     #[test]
     fn install_adds_path_to_rc_just_once() {
         setup(&|config| {
-            let my_profile = "foo\nbar\nbaz";
             let profile = config.homedir.join(".profile");
-            raw::write_file(&profile, my_profile).unwrap();
+            raw::write_file(&profile, FAKE_RC).unwrap();
             expect_ok(config, &["rustup-init", "-y"]);
             expect_ok(config, &["rustup-init", "-y"]);
 
             let new_profile = fs::read_to_string(&profile).unwrap();
-            let addition = format!(r#"source "{}/env.sh""#, config.cargodir.display());
-            let expected = format!("{}\n{}\n", my_profile, addition);
+            let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
             assert_eq!(new_profile, expected);
         });
     }
@@ -193,6 +185,7 @@ export PATH="$HOME/apple/bin"
             .iter()
             .map(|rc| config.homedir.join(rc))
             .collect();
+
             for rc in &rcs {
                 raw::write_file(&rc, FAKE_RC).unwrap();
             }
@@ -222,7 +215,7 @@ export PATH="$HOME/apple/bin"
                 config.homedir.join(".zprofile"),
                 zdotdir.path().join(".zprofile"),
             ];
-            let old_rc = cat(FAKE_RC, DEFAULT_EXPORT);
+            let old_rc = FAKE_RC.to_owned() + DEFAULT_EXPORT;
             for rc in rcs.iter().chain(zprofiles.iter()) {
                 raw::write_file(&rc, &old_rc).unwrap();
             }
@@ -232,7 +225,7 @@ export PATH="$HOME/apple/bin"
             cmd.env("ZDOTDIR", zdotdir.path());
             cmd.env_remove("CARGO_HOME");
             assert!(cmd.output().unwrap().status.success());
-            let fixed_rc = cat(FAKE_RC, source("$HOME/.cargo", POSIX_SH));
+            let fixed_rc = FAKE_RC.to_owned() + &source("$HOME/.cargo", POSIX_SH);
             for rc in &rcs {
                 let new_rc = fs::read_to_string(&rc).unwrap();
                 assert_eq!(new_rc, fixed_rc);
@@ -264,7 +257,7 @@ export PATH="$HOME/apple/bin"
                 .map(|rc| config.homedir.join(rc))
                 .collect();
             rcs.push(zdotdir.path().join(".zprofile"));
-            let old_rc = cat(FAKE_RC, DEFAULT_EXPORT);
+            let old_rc = FAKE_RC.to_owned() + DEFAULT_EXPORT;
             for rc in &rcs {
                 raw::write_file(&rc, &old_rc).unwrap();
             }
@@ -292,15 +285,14 @@ export PATH="$HOME/apple/bin"
             // $HOME/.cargo by removing CARGO_HOME from the environment,
             // otherwise the literal path will be written to the file.
 
-            let my_profile = "foo\nbar\nbaz";
             let profile = config.homedir.join(".profile");
-            raw::write_file(&profile, my_profile).unwrap();
+            raw::write_file(&profile, FAKE_RC).unwrap();
             let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
             cmd.env_remove("CARGO_HOME");
             assert!(cmd.output().unwrap().status.success());
 
             let new_profile = fs::read_to_string(&profile).unwrap();
-            let expected = format!("{}\nsource \"$HOME/.cargo/env.sh\"\n", my_profile);
+            let expected = format!("{}source \"$HOME/.cargo/env.sh\"\n", FAKE_RC);
             assert_eq!(new_profile, expected);
 
             let mut cmd = clitools::cmd(config, "rustup", &["self", "uninstall", "-y"]);
@@ -308,7 +300,7 @@ export PATH="$HOME/apple/bin"
             assert!(cmd.output().unwrap().status.success());
 
             let new_profile = fs::read_to_string(&profile).unwrap();
-            assert_eq!(new_profile, my_profile);
+            assert_eq!(new_profile, FAKE_RC);
         });
     }
 
