@@ -121,29 +121,23 @@ impl UnixShell for Posix {
 
 struct Bash;
 
-impl Bash {
-    fn profiles() -> impl Iterator<Item = PathBuf> {
-        [".bash_profile", ".bash_login", ".profile", ".bashrc"]
-            .iter()
-            .filter_map(|rc| utils::home_dir().map(|dir| dir.join(rc)))
-    }
-}
-
 impl UnixShell for Bash {
     fn does_exist(&self) -> bool {
-        // Checking to see if we can find any traces of Bash in $SHELL
-        // or a file or binary on disk.
-        matches!(process().var("SHELL"), Ok(sh) if sh.contains("bash"))
-            || self.rcfiles().iter().any(|rc| rc.is_file())
-            || matches!(utils::find_cmd(&["bash"]), Some(_))
+        self.update_rcs().len() > 0
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
-        Bash::profiles().collect()
+        [".bash_profile", ".bash_login", ".profile", ".bashrc"]
+            .iter()
+            .filter_map(|rc| utils::home_dir().map(|dir| dir.join(rc)))
+            .collect()
     }
 
     fn update_rcs(&self) -> Vec<PathBuf> {
-        Bash::profiles().filter(|rc| rc.is_file()).collect()
+        self.rcfiles()
+            .into_iter()
+            .filter(|rc| rc.is_file())
+            .collect()
     }
 }
 
