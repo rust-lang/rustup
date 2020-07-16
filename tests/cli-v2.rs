@@ -3,21 +3,18 @@
 
 pub mod mock;
 
-use crate::mock::clitools::{
-    self, expect_component_executable, expect_component_not_executable, expect_err,
-    expect_not_stderr_err, expect_not_stdout_ok, expect_ok, expect_ok_ex, expect_stderr_ok,
-    expect_stdout_ok, set_current_dist_date, this_host_triple, Config, Scenario,
-};
 use std::fs;
 use std::io::Write;
 
 use rustup::dist::dist::TargetTriple;
+use rustup::for_host;
+use rustup::test::this_host_triple;
 
-macro_rules! for_host {
-    ($s: expr) => {
-        &format!($s, this_host_triple())
-    };
-}
+use crate::mock::clitools::{
+    self, expect_component_executable, expect_component_not_executable, expect_err,
+    expect_not_stderr_err, expect_not_stdout_ok, expect_ok, expect_ok_ex, expect_stderr_ok,
+    expect_stdout_ok, set_current_dist_date, Config, Scenario,
+};
 
 pub fn setup(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);
@@ -642,7 +639,7 @@ fn add_target1() {
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(config.rustupdir.join(path).exists());
+        assert!(config.rustupdir.has(&path));
     });
 }
 
@@ -656,7 +653,7 @@ fn add_target2() {
             this_host_triple(),
             clitools::CROSS_ARCH2
         );
-        assert!(config.rustupdir.join(path).exists());
+        assert!(config.rustupdir.has(&path));
     });
 }
 
@@ -670,13 +667,13 @@ fn add_all_targets() {
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(config.rustupdir.join(path).exists());
+        assert!(config.rustupdir.has(&path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             this_host_triple(),
             clitools::CROSS_ARCH2
         );
-        assert!(config.rustupdir.join(path).exists());
+        assert!(config.rustupdir.has(&path));
     });
 }
 
@@ -838,16 +835,16 @@ fn add_target_again() {
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(config.rustupdir.join(path).exists());
+        assert!(config.rustupdir.has(&path));
     });
 }
 
 #[test]
 fn add_target_host() {
     setup(&|config| {
-        let trip = TargetTriple::from_build();
+        let trip = this_host_triple();
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", &trip.to_string()]);
+        expect_ok(config, &["rustup", "target", "add", &trip]);
     });
 }
 
@@ -865,19 +862,19 @@ fn remove_target() {
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(!config.rustupdir.join(path).exists());
+        assert!(!config.rustupdir.has(&path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib",
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(!config.rustupdir.join(path).exists());
+        assert!(!config.rustupdir.has(&path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}",
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(!config.rustupdir.join(path).exists());
+        assert!(!config.rustupdir.has(&path));
     });
 }
 
@@ -986,7 +983,7 @@ fn remove_target_again() {
 #[test]
 fn remove_target_host() {
     setup(&|config| {
-        let trip = TargetTriple::from_build();
+        let trip = this_host_triple();
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "target", "remove", &trip.to_string()]);
     });
@@ -1038,7 +1035,7 @@ fn warn_about_and_remove_stray_hash() {
     });
 }
 
-fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple) {
+fn make_component_unavailable(config: &Config, name: &str, target: &str) {
     use crate::mock::dist::create_hash;
     use rustup::dist::manifest::Manifest;
 
@@ -1047,7 +1044,8 @@ fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple
     let mut manifest = Manifest::parse(&manifest_str).unwrap();
     {
         let std_pkg = manifest.packages.get_mut(name).unwrap();
-        let target_pkg = std_pkg.targets.get_mut(target).unwrap();
+        let target = TargetTriple::new(target);
+        let target_pkg = std_pkg.targets.get_mut(&target).unwrap();
         target_pkg.bins = None;
     }
     let manifest_str = manifest.stringify();
@@ -1068,14 +1066,12 @@ fn make_component_unavailable(config: &Config, name: &str, target: &TargetTriple
 #[test]
 fn update_unavailable_std() {
     setup(&|config| {
-        let trip = TargetTriple::from_build();
-        make_component_unavailable(config, "rust-std", &trip);
+        make_component_unavailable(config, "rust-std", &this_host_triple());
         expect_err(
             config,
             &["rustup", "update", "nightly", "--no-self-update"],
-            &format!(
-                "component 'rust-std' for target '{}' is unavailable for download for channel nightly",
-                trip,
+            for_host!(
+                "component 'rust-std' for target '{0}' is unavailable for download for channel nightly"
             ),
         );
     });
@@ -1084,7 +1080,7 @@ fn update_unavailable_std() {
 #[test]
 fn update_unavailable_force() {
     setup(&|config| {
-        let trip = TargetTriple::from_build();
+        let trip = this_host_triple();
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
         expect_ok(
             config,
@@ -1101,9 +1097,8 @@ fn update_unavailable_force() {
         expect_err(
             config,
             &["rustup", "update", "nightly", "--no-self-update"],
-            &format!(
-                "component 'rls' for target '{}' is unavailable for download for channel nightly",
-                trip,
+            for_host!(
+                "component 'rls' for target '{0}' is unavailable for download for channel nightly"
             ),
         );
         expect_ok(
@@ -1225,8 +1220,7 @@ fn target_list_ignores_unavailable_targets() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         let target_list = &["rustup", "target", "list"];
         expect_stdout_ok(config, target_list, clitools::CROSS_ARCH1);
-        let trip = TargetTriple::new(clitools::CROSS_ARCH1);
-        make_component_unavailable(config, "rust-std", &trip);
+        make_component_unavailable(config, "rust-std", clitools::CROSS_ARCH1);
         expect_ok(
             config,
             &["rustup", "update", "nightly", "--force", "--no-self-update"],
@@ -1393,7 +1387,7 @@ fn test_complete_profile_skips_missing_when_forced() {
 #[test]
 fn run_with_install_flag_against_unavailable_component() {
     setup(&|config| {
-        let trip = TargetTriple::from_build();
+        let trip = this_host_triple();
         make_component_unavailable(config, "rust-std", &trip);
         expect_ok_ex(
             config,
@@ -1470,7 +1464,7 @@ fn check_pgp_keys() {
 #[test]
 fn install_allow_downgrade() {
     clitools::setup(Scenario::MissingComponent, &|config| {
-        let trip = TargetTriple::from_build();
+        let trip = this_host_triple();
 
         // this dist has no rls and there is no newer one
         set_current_dist_date(config, "2019-09-14");

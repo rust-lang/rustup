@@ -16,6 +16,8 @@ use url::Url;
 
 use rustup::cli::rustup_mode;
 use rustup::currentprocess;
+use rustup::test as rustup_test;
+use rustup::test::this_host_triple;
 use rustup::utils::utils;
 
 use crate::mock::dist::{
@@ -32,7 +34,7 @@ pub struct Config {
     /// The distribution server
     pub distdir: PathBuf,
     /// RUSTUP_HOME
-    pub rustupdir: PathBuf,
+    pub rustupdir: rustup_test::RustupHome,
     /// Custom toolchains
     pub customdir: PathBuf,
     /// CARGO_HOME
@@ -107,12 +109,7 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     if exe_dir.ends_with("deps") {
         exe_dir = exe_dir.parent().unwrap();
     }
-    let test_dir = exe_dir.parent().unwrap().join("tests");
-    fs::create_dir_all(&test_dir).unwrap();
-    let test_dir = tempfile::Builder::new()
-        .prefix("running-test-")
-        .tempdir_in(test_dir)
-        .unwrap();
+    let test_dir = rustup_test::test_dir().unwrap();
 
     fn tempdir_in_with_prefix<P: AsRef<Path>>(path: P, prefix: &str) -> PathBuf {
         tempfile::Builder::new()
@@ -124,7 +121,6 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
 
     let exedir = tempdir_in_with_prefix(&test_dir, "rustup-exe");
     let distdir = tempdir_in_with_prefix(&test_dir, "rustup-dist");
-    let rustupdir = tempdir_in_with_prefix(&test_dir, "rustup");
     let customdir = tempdir_in_with_prefix(&test_dir, "rustup-custom");
     let cargodir = tempdir_in_with_prefix(&test_dir, "rustup-cargo");
     let homedir = tempdir_in_with_prefix(&test_dir, "rustup-home");
@@ -139,7 +135,7 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     let mut config = Config {
         exedir,
         distdir,
-        rustupdir,
+        rustupdir: rustup_test::RustupHome::new_in(&test_dir).unwrap(),
         customdir,
         cargodir,
         homedir,
@@ -398,36 +394,7 @@ where
     cmd
 }
 
-pub trait Env {
-    fn env<K, V>(&mut self, key: K, val: V)
-    where
-        K: AsRef<OsStr>,
-        V: AsRef<OsStr>;
-}
-
-impl Env for Command {
-    fn env<K, V>(&mut self, key: K, val: V)
-    where
-        K: AsRef<OsStr>,
-        V: AsRef<OsStr>,
-    {
-        self.env(key, val);
-    }
-}
-
-impl Env for HashMap<String, String> {
-    fn env<K, V>(&mut self, key: K, val: V)
-    where
-        K: AsRef<OsStr>,
-        V: AsRef<OsStr>,
-    {
-        let key = key.as_ref().to_os_string().into_string().unwrap();
-        let val = val.as_ref().to_os_string().into_string().unwrap();
-        self.insert(key, val);
-    }
-}
-
-pub fn env<E: Env>(config: &Config, cmd: &mut E) {
+pub fn env<E: rustup_test::Env>(config: &Config, cmd: &mut E) {
     // Ensure PATH is prefixed with the rustup-exe directory
     let prev_path = env::var_os("PATH");
     let mut new_path = config.exedir.clone().into_os_string();
@@ -436,10 +403,7 @@ pub fn env<E: Env>(config: &Config, cmd: &mut E) {
         new_path.push(p);
     }
     cmd.env("PATH", new_path);
-    cmd.env(
-        "RUSTUP_HOME",
-        config.rustupdir.to_string_lossy().to_string(),
-    );
+    config.rustupdir.apply(cmd);
     cmd.env(
         "RUSTUP_DIST_SERVER",
         format!("file://{}", config.distdir.to_string_lossy()),
@@ -1114,44 +1078,6 @@ fn build_mock_unavailable_channel(
         date: date.to_string(),
         packages,
         renames: HashMap::new(),
-    }
-}
-
-pub fn this_host_triple() -> String {
-    if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
-        triple.to_owned()
-    } else {
-        let arch = if cfg!(target_arch = "x86") {
-            "i686"
-        } else if cfg!(target_arch = "x86_64") {
-            "x86_64"
-        } else if cfg!(target_arch = "riscv64") {
-            "riscv64gc"
-        } else {
-            unimplemented!()
-        };
-        let os = if cfg!(target_os = "linux") {
-            "unknown-linux"
-        } else if cfg!(target_os = "windows") {
-            "pc-windows"
-        } else if cfg!(target_os = "macos") {
-            "apple-darwin"
-        } else {
-            unimplemented!()
-        };
-        let env = if cfg!(target_env = "gnu") {
-            Some("gnu")
-        } else if cfg!(target_env = "msvc") {
-            Some("msvc")
-        } else {
-            None
-        };
-
-        if let Some(env) = env {
-            format!("{}-{}-{}", arch, os, env)
-        } else {
-            format!("{}-{}", arch, os)
-        }
     }
 }
 

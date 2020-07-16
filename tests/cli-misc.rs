@@ -3,21 +3,17 @@
 
 pub mod mock;
 
+use std::env::consts::EXE_SUFFIX;
+
+use rustup::for_host;
+use rustup::test::this_host_triple;
+use rustup::utils::{raw, utils};
+
 use crate::mock::clitools::{
     self, expect_component_executable, expect_component_not_executable, expect_err,
     expect_not_stderr_ok, expect_ok, expect_ok_contains, expect_ok_eq, expect_ok_ex,
-    expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date, this_host_triple, Config,
-    Scenario,
+    expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date, Config, Scenario,
 };
-use rustup::utils::{raw, utils};
-
-use std::env::consts::EXE_SUFFIX;
-
-macro_rules! for_host {
-    ($s: expr) => {
-        &format!($s, this_host_triple())
-    };
-}
 
 pub fn setup(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);

@@ -2,16 +2,6 @@
 
 pub mod mock;
 
-use crate::mock::clitools::{
-    self, expect_err, expect_err_ex, expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok,
-    expect_stdout_ok, this_host_triple, Config, Scenario,
-};
-use crate::mock::dist::calc_hash;
-use crate::mock::{get_path, restore_path};
-use lazy_static::lazy_static;
-use remove_dir_all::remove_dir_all;
-use rustup::utils::{raw, utils};
-use rustup::Notification;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
@@ -19,11 +9,20 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Mutex;
 
-macro_rules! for_host {
-    ($s: expr) => {
-        &format!($s, this_host_triple())
-    };
-}
+use lazy_static::lazy_static;
+use remove_dir_all::remove_dir_all;
+
+use rustup::for_host;
+use rustup::test::this_host_triple;
+use rustup::utils::{raw, utils};
+use rustup::Notification;
+
+use crate::mock::clitools::{
+    self, expect_err, expect_err_ex, expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok,
+    expect_stdout_ok, Config, Scenario,
+};
+use crate::mock::dist::calc_hash;
+use crate::mock::{get_path, restore_path};
 
 const TEST_VERSION: &str = "1.1.1";
 
@@ -147,7 +146,7 @@ fn bins_are_executable() {
 fn install_creates_cargo_home() {
     setup(&|config| {
         remove_dir_all(&config.cargodir).unwrap();
-        remove_dir_all(&config.rustupdir).unwrap();
+        config.rustupdir.remove().unwrap();
         expect_ok(config, &["rustup-init", "-y"]);
         assert!(config.cargodir.exists());
     });
@@ -208,7 +207,7 @@ fn uninstall_deletes_rustup_home() {
         expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-        assert!(!config.rustupdir.exists());
+        assert!(!config.rustupdir.has("."));
     });
 }
 
@@ -216,7 +215,7 @@ fn uninstall_deletes_rustup_home() {
 fn uninstall_works_if_rustup_home_doesnt_exist() {
     setup(&|config| {
         expect_ok(config, &["rustup-init", "-y"]);
-        raw::remove_dir(&config.rustupdir).unwrap();
+        config.rustupdir.remove().unwrap();
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
     });
 }
@@ -302,10 +301,6 @@ fn uninstall_doesnt_leave_gc_file() {
         }
     })
 }
-
-#[test]
-#[ignore]
-fn uninstall_stress_test() {}
 
 #[cfg(unix)]
 fn install_adds_path_to_rc(rcfile: &str) {
@@ -494,62 +489,30 @@ fn when_cargo_home_is_the_default_write_path_specially() {
 
 #[test]
 #[cfg(windows)]
-fn install_adds_path() {
+/// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
+fn install_uninstall_affect_path() {
     setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
-
         let path = config.cargodir.join("bin").to_string_lossy().to_string();
+
+        expect_ok(config, &["rustup-init", "-y"]);
         assert!(
             get_path().unwrap().contains(&path),
             format!("`{}` not in `{}`", get_path().unwrap(), &path)
         );
-    });
-}
 
-#[test]
-#[cfg(windows)]
-fn uninstall_removes_path() {
-    setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-
-        let path = config.cargodir.join("bin").to_string_lossy().to_string();
         assert!(!get_path().unwrap().contains(&path));
     });
 }
 
 #[test]
 #[cfg(unix)]
+/// This covers both windows and unix no-path-modification cases due to the code structure.
 fn install_doesnt_modify_path_if_passed_no_modify_path() {
     setup(&|config| {
         let profile = config.homedir.join(".profile");
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
         assert!(!profile.exists());
-    });
-}
-
-#[test]
-#[cfg(windows)]
-fn install_doesnt_modify_path_if_passed_no_modify_path() {
-    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::RegKey;
-
-    setup(&|config| {
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let old_path = environment.get_raw_value("PATH").unwrap();
-
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let new_path = environment.get_raw_value("PATH").unwrap();
-
-        assert_eq!(old_path, new_path);
     });
 }
 
@@ -863,10 +826,12 @@ fn first_install_exact() {
         expect_ok_contains(
             config,
             &["rustup-init", "-y"],
-            r"
-  stable installed - 1.1.0 (hash-stable-1.1.0)
+            for_host!(
+                r"
+  stable-{0} installed - 1.1.0 (hash-stable-1.1.0)
 
-",
+"
+            ),
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
@@ -879,7 +844,7 @@ info: Defaulting to 500.0 MiB unpack ram
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
-info: default toolchain set to 'stable'
+info: default toolchain set to 'stable-{0}'
 "
             ),
         );
@@ -905,7 +870,7 @@ fn reinstall_specifying_toolchain() {
         expect_stdout_ok(
             config,
             &["rustup-init", "-y", "--default-toolchain=stable"],
-            r"stable unchanged - 1.1.0",
+            for_host!(r"stable-{0} unchanged - 1.1.0"),
         );
     });
 }
@@ -917,7 +882,7 @@ fn reinstall_specifying_component() {
         expect_stdout_ok(
             config,
             &["rustup-init", "-y", "--default-toolchain=stable"],
-            r"stable unchanged - 1.1.0",
+            for_host!(r"stable-{0} unchanged - 1.1.0"),
         );
     });
 }
@@ -929,7 +894,7 @@ fn reinstall_specifying_different_toolchain() {
         expect_stderr_ok(
             config,
             &["rustup-init", "-y", "--default-toolchain=nightly"],
-            r"info: default toolchain set to 'nightly'",
+            for_host!(r"info: default toolchain set to 'nightly-{0}'"),
         );
     });
 }
@@ -948,18 +913,6 @@ fn produces_env_file_on_unix() {
         let envfile = config.homedir.join(".cargo/env");
         let envfile = fs::read_to_string(&envfile).unwrap();
         assert!(envfile.contains(r#"export PATH="$HOME/.cargo/bin:$PATH""#));
-    });
-}
-
-#[test]
-#[cfg(windows)]
-fn doesnt_produce_env_file_on_windows() {}
-
-#[test]
-fn install_sets_up_stable() {
-    setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
     });
 }
 
@@ -1012,42 +965,6 @@ fn rustup_init_works_with_weird_names() {
         expect_ok(config, &["rustup-init(2)", "-y"]);
         let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         assert!(rustup.exists());
-    });
-}
-
-// HKCU\Environment\PATH may not exist during install, and it may need to be
-// deleted during uninstall if we remove the last path from it
-#[test]
-#[cfg(windows)]
-fn windows_handle_empty_path_registry_key() {
-    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::RegKey;
-
-    setup(&|config| {
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let _ = environment.delete_value("PATH");
-
-        expect_ok(config, &["rustup-init", "-y"]);
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let path = environment.get_raw_value("PATH").unwrap();
-        assert!(path.vtype == RegType::REG_EXPAND_SZ);
-
-        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-
-        let root = RegKey::predef(HKEY_CURRENT_USER);
-        let environment = root
-            .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-            .unwrap();
-        let path = environment.get_raw_value("PATH");
-
-        assert!(path.is_err());
     });
 }
 

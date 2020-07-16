@@ -3,17 +3,14 @@
 
 pub mod mock;
 
-use crate::mock::clitools::{
-    self, expect_err, expect_ok, expect_stderr_ok, expect_stdout_ok, set_current_dist_date,
-    this_host_triple, Config, Scenario,
-};
 use std::fs;
 
-macro_rules! for_host {
-    ($s: expr) => {
-        &format!($s, this_host_triple())
-    };
-}
+use rustup::for_host;
+
+use crate::mock::clitools::{
+    self, expect_err, expect_ok, expect_stderr_ok, expect_stdout_ok, set_current_dist_date, Config,
+    Scenario,
+};
 
 pub fn setup(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV1, f);
