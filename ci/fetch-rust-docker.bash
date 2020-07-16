@@ -32,7 +32,7 @@ case "$TARGET" in
   x86_64-unknown-freebsd)          image=dist-x86_64-freebsd ;;
   x86_64-unknown-linux-gnu)        image=dist-x86_64-linux ;;
   x86_64-unknown-netbsd)           image=dist-x86_64-netbsd ;;
-  riscv64gc-unknown-linux-gnu)     image=dist-various-1 ;;
+  riscv64gc-unknown-linux-gnu)     image=dist-riscv64-linux ;;
   *) exit ;;
 esac
 
