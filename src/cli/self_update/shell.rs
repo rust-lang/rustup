@@ -127,7 +127,7 @@ impl UnixShell for Bash {
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
-        [".bash_profile", ".bash_login", ".profile", ".bashrc"]
+        [".bash_profile", ".bash_login", ".bashrc"]
             .iter()
             .filter_map(|rc| utils::home_dir().map(|dir| dir.join(rc)))
             .collect()
@@ -153,7 +153,7 @@ impl Zsh {
                 Ok(dir) if dir.len() > 0 => Ok(PathBuf::from(dir)),
                 _ => bail!("Zsh setup failed."),
             }
-        } else if utils::find_cmd(&["zsh"]) == Some("zsh") {
+        } else {
             match std::process::Command::new("zsh")
                 .args(&["-c", "'echo $ZDOTDIR'"])
                 .output()
@@ -161,8 +161,6 @@ impl Zsh {
                 Ok(io) if io.stdout.len() > 0 => Ok(PathBuf::from(OsStr::from_bytes(&io.stdout))),
                 _ => bail!("Zsh setup failed."),
             }
-        } else {
-            bail!("What? Unpossible.")
         }
     }
 }
