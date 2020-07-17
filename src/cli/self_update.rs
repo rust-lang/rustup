@@ -514,7 +514,7 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
 
     if !no_modify_path {
         // Brittle code warning: some duplication in unix::do_add_to_path
-        #[cfg(unix)]
+        #[cfg(not(windows))]
         {
             let rcfiles = shell::get_available_shells()
                 .flat_map(|sh| sh.update_rcs().into_iter())

@@ -85,7 +85,7 @@ pub fn do_remove_from_path() -> Result<()> {
 }
 
 pub fn do_add_to_path() -> Result<()> {
-    let mut scripts = vec![];
+    let mut written = vec![];
 
     for sh in shell::get_available_shells() {
         let source_cmd = sh.source_string()?;
@@ -98,9 +98,10 @@ pub fn do_add_to_path() -> Result<()> {
                 })?;
                 let script = sh.env_script();
                 // Only write scripts once.
-                if !scripts.contains(&script) {
+                // TODO 2021: remove this code if Rustup adds 0 shell scripts.
+                if !written.contains(&script) {
                     script.write()?;
-                    scripts.push(script);
+                    written.push(script);
                 }
             }
         }

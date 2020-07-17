@@ -23,10 +23,12 @@
 //! 1) using a shell script that updates PATH if the path is not in PATH
 //! 2) sourcing this script in any known and appropriate rc file
 
+use std::path::PathBuf;
+
+use error_chain::bail;
+
 use super::*;
 use crate::process;
-use error_chain::bail;
-use std::path::PathBuf;
 
 pub type Shell = Box<dyn UnixShell>;
 
@@ -114,7 +116,8 @@ impl UnixShell for Posix {
     }
 
     fn update_rcs(&self) -> Vec<PathBuf> {
-        // Write to .profile even if it doesn't exist.
+        // Write to .profile even if it doesn't exist. It's the only rc in the
+        // POSIX spec so it should always be set up.
         self.rcfiles()
     }
 }
@@ -127,6 +130,8 @@ impl UnixShell for Bash {
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
+        // Bash also may read .profile, however Rustup already includes handling
+        // .profile as part of POSIX and always does setup for POSIX shells.
         [".bash_profile", ".bash_login", ".bashrc"]
             .iter()
             .filter_map(|rc| utils::home_dir().map(|dir| dir.join(rc)))
@@ -169,7 +174,7 @@ impl UnixShell for Zsh {
     fn does_exist(&self) -> bool {
         // zsh has to either be the shell or be callable for zsh setup.
         matches!(process().var("SHELL"), Ok(sh) if sh.contains("zsh"))
-            || matches!(utils::find_cmd(&["zsh"]), Some(sh) if sh.contains("zsh"))
+            || matches!(utils::find_cmd(&["zsh"]), Some(_))
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
