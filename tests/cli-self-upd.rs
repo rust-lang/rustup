@@ -154,11 +154,23 @@ fn install_twice() {
 }
 
 #[test]
+/// Smoke test for the entire install process when dirs need to be made :
+/// depending just on unit tests here could miss subtle dependencies being added
+/// earlier in the code, so a black-box test is needed.
 fn install_creates_cargo_home() {
-    setup(&|config| {
+    clitools::setup(Scenario::Empty, &|config| {
         remove_dir_all(&config.cargodir).unwrap();
         config.rustupdir.remove().unwrap();
-        expect_ok(config, &["rustup-init", "-y"]);
+        expect_ok(
+            config,
+            &[
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+        );
         assert!(config.cargodir.exists());
     });
 }

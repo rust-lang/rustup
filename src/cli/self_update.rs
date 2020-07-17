@@ -1092,7 +1092,7 @@ mod test {
 
     use crate::cli::common;
     use crate::dist::dist::ToolchainDesc;
-    use crate::test::with_rustup_home;
+    use crate::test::{test_dir, with_rustup_home, Env};
     use crate::{currentprocess, for_host};
 
     #[test]
@@ -1139,5 +1139,23 @@ info: default host triple is {0}
             Ok(())
         })
         .unwrap();
+    }
+
+    #[test]
+    fn install_bins_creates_cargo_home() {
+        let root_dir = test_dir().unwrap();
+        let cargo_home = root_dir.path().join("cargo");
+        let mut vars = HashMap::new();
+        vars.env("CARGO_HOME", cargo_home.to_string_lossy().to_string());
+        let tp = Box::new(currentprocess::TestProcess {
+            vars,
+            ..Default::default()
+        });
+        currentprocess::with(tp.clone(), || -> anyhow::Result<()> {
+            super::install_bins().unwrap();
+            Ok(())
+        })
+        .unwrap();
+        assert!(cargo_home.exists());
     }
 }
