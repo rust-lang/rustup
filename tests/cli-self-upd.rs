@@ -690,14 +690,6 @@ fn reinstall_specifying_different_toolchain() {
 }
 
 #[test]
-fn install_sets_up_stable() {
-    setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
-    });
-}
-
-#[test]
 fn install_sets_up_stable_unless_a_different_default_is_requested() {
     setup(&|config| {
         expect_ok(
