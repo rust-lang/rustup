@@ -83,9 +83,36 @@ version = "{}"
 }
 
 #[test]
+/// This is the primary smoke test testing the full end to end behaviour of the
+/// installation code path: everything that is output, the proxy installation,
+/// status of the proxies.
 fn install_bins_to_cargo_home() {
     setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
+        expect_ok_contains(
+            config,
+            &["rustup-init", "-y"],
+            for_host!(
+                r"
+  stable-{0} installed - 1.1.0 (hash-stable-1.1.0)
+
+"
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'stable-{0}'
+info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
+info: downloading component 'cargo'
+info: downloading component 'rust-docs'
+info: downloading component 'rust-std'
+info: downloading component 'rustc'
+info: installing component 'cargo'
+info: Defaulting to 500.0 MiB unpack ram
+info: installing component 'rust-docs'
+info: installing component 'rust-std'
+info: installing component 'rustc'
+info: default toolchain set to 'stable-{0}'
+"
+            ),
+        );
         let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
         let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
@@ -94,12 +121,25 @@ fn install_bins_to_cargo_home() {
             .cargodir
             .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
-        assert!(rustup.exists());
-        assert!(rustc.exists());
-        assert!(rustdoc.exists());
-        assert!(cargo.exists());
-        assert!(rust_lldb.exists());
-        assert!(rust_gdb.exists());
+        #[cfg(windows)]
+        fn check(path: &Path) {
+            assert!(path.exists());
+        }
+        #[cfg(not(windows))]
+        fn check(path: &Path) {
+            fn is_exe(path: &Path) -> bool {
+                use std::os::unix::fs::MetadataExt;
+                let mode = path.metadata().unwrap().mode();
+                mode & 0o777 == 0o755
+            }
+            assert!(is_exe(path));
+        }
+        check(&rustup);
+        check(&rustc);
+        check(&rustdoc);
+        check(&cargo);
+        check(&rust_lldb);
+        check(&rust_gdb);
     });
 }
 
@@ -111,35 +151,6 @@ fn install_twice() {
         let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         assert!(rustup.exists());
     });
-}
-
-#[test]
-#[cfg(unix)]
-fn bins_are_executable() {
-    setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
-        let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
-        let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
-        let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
-        let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let rust_lldb = config
-            .cargodir
-            .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
-        let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
-        assert!(is_exe(&rustup));
-        assert!(is_exe(&rustc));
-        assert!(is_exe(&rustdoc));
-        assert!(is_exe(&cargo));
-        assert!(is_exe(&rust_lldb));
-        assert!(is_exe(&rust_gdb));
-    });
-
-    fn is_exe(path: &Path) -> bool {
-        use std::os::unix::fs::MetadataExt;
-        let mode = path.metadata().unwrap().mode();
-
-        mode & 0o777 == 0o755
-    }
 }
 
 #[test]
@@ -817,37 +828,6 @@ fn as_rustup_setup() {
         let setup = config.exedir.join(format!("rustup-setup{}", EXE_SUFFIX));
         fs::copy(&init, &setup).unwrap();
         expect_ok(config, &["rustup-setup", "-y"]);
-    });
-}
-
-#[test]
-fn first_install_exact() {
-    setup(&|config| {
-        expect_ok_contains(
-            config,
-            &["rustup-init", "-y"],
-            for_host!(
-                r"
-  stable-{0} installed - 1.1.0 (hash-stable-1.1.0)
-
-"
-            ),
-            for_host!(
-                r"info: syncing channel updates for 'stable-{0}'
-info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
-info: downloading component 'cargo'
-info: downloading component 'rust-docs'
-info: downloading component 'rust-std'
-info: downloading component 'rustc'
-info: installing component 'cargo'
-info: Defaulting to 500.0 MiB unpack ram
-info: installing component 'rust-docs'
-info: installing component 'rust-std'
-info: installing component 'rustc'
-info: default toolchain set to 'stable-{0}'
-"
-            ),
-        );
     });
 }
 
