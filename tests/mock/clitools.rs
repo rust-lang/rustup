@@ -51,6 +51,8 @@ pub struct Config {
 // Building the mock server is slow, so use simple scenario when possible.
 #[derive(PartialEq, Copy, Clone)]
 pub enum Scenario {
+    /// No dist server content
+    Empty,
     /// Two dates, two manifests
     Full,
     /// Two dates, v2 manifests
@@ -750,6 +752,7 @@ impl Release {
 // Creates a mock dist server populated with some test data
 fn create_mock_dist_server(path: &Path, s: Scenario) {
     let chans = match s {
+        Scenario::Empty => vec![],
         Scenario::MissingComponent => vec![
             Release::new("nightly", "1.37.0", "2019-09-12", "1"),
             Release::new("nightly", "1.37.0", "2019-09-13", "2"),
@@ -808,6 +811,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
     };
 
     let vs = match s {
+        Scenario::Empty => vec![],
         Scenario::Full => vec![ManifestVersion::V1, ManifestVersion::V2],
         Scenario::SimpleV1 | Scenario::ArchivesV1 => vec![ManifestVersion::V1],
         Scenario::SimpleV2
