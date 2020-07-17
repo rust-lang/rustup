@@ -64,6 +64,10 @@ pub fn main() -> Result<utils::ExitCode> {
             writeln!(process().stdout().lock(), "{}", e.message)?;
             return Ok(utils::ExitCode(0));
         }
+        Err(e) if e.kind == clap::ErrorKind::MissingArgumentOrSubcommand => {
+            writeln!(process().stdout().lock(), "{}", e.message)?;
+            return Ok(utils::ExitCode(1));
+        }
         Err(e) => Err(e),
     }?;
     let verbose = matches.is_present("verbose");
