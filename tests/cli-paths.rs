@@ -3,37 +3,22 @@
 //! check those tests as well.
 pub mod mock;
 
-use crate::mock::clitools::{self, expect_ok, Config, Scenario};
-use crate::mock::{get_path, restore_path};
-use lazy_static::lazy_static;
 use std::path::PathBuf;
-use std::sync::Mutex;
 
-pub fn setup(f: &dyn Fn(&Config)) {
-    clitools::setup(Scenario::SimpleV2, &|config| {
-        // Lock protects environment variables
-        lazy_static! {
-            static ref LOCK: Mutex<()> = Mutex::new(());
-        }
-        let _g = LOCK.lock();
+use crate::mock::clitools::{self, expect_ok, Config, Scenario};
 
-        // On windows these tests mess with the user's PATH. Save
-        // and restore them here to keep from trashing things.
-        let saved_path = get_path();
-        let _g = scopeguard::guard(saved_path, restore_path);
-
-        f(config);
-    });
-}
+// Prefer omitting actually unpacking content while just testing paths.
+const INIT_NONE: [&str; 4] = ["rustup-init", "-y", "--default-toolchain", "none"];
 
 #[cfg(unix)]
 mod unix {
-    use super::*;
-    use crate::mock::clitools::expect_err;
-    use rustup::utils::raw;
-
     use std::fmt::Display;
     use std::fs;
+
+    use rustup::utils::raw;
+
+    use super::*;
+    use crate::mock::clitools::expect_err;
 
     // Let's write a fake .rc which looks vaguely like a real script.
     const FAKE_RC: &str = r#"
@@ -43,12 +28,17 @@ source ~/fruit/punch
 # Adds apples to PATH.
 export PATH="$HOME/apple/bin"
 "#;
-
     const DEFAULT_EXPORT: &str = "export PATH=\"$HOME/.cargo/bin:$PATH\"\n";
     const POSIX_SH: &str = "env.sh";
 
     fn source(dir: impl Display, sh: impl Display) -> String {
         format!("source \"{dir}/{sh}\"\n", dir = dir, sh = sh)
+    }
+
+    fn setup(f: &dyn Fn(&Config)) {
+        clitools::setup(Scenario::Empty, &|config| {
+            f(config);
+        });
     }
 
     #[test]
@@ -58,7 +48,7 @@ export PATH="$HOME/apple/bin"
             // $HOME/.cargo by removing CARGO_HOME from the environment,
             // otherwise the literal path will be written to the file.
 
-            let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+            let mut cmd = clitools::cmd(config, "rustup-init", &INIT_NONE[1..]);
             let files: Vec<PathBuf> = [".cargo/env.sh", ".profile", ".zshenv"]
                 .iter()
                 .map(|file| config.homedir.join(file))
@@ -97,7 +87,7 @@ export PATH="$HOME/apple/bin"
                 raw::write_file(&rc, FAKE_RC).unwrap();
             }
 
-            expect_ok(config, &["rustup-init", "-y"]);
+            expect_ok(config, &INIT_NONE);
 
             let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
             for rc in &rcs {
@@ -115,7 +105,7 @@ export PATH="$HOME/apple/bin"
                 .map(|rc| config.homedir.join(rc))
                 .collect();
             let rcs_before = rcs.iter().map(|rc| rc.exists());
-            expect_ok(config, &["rustup-init", "-y"]);
+            expect_ok(config, &INIT_NONE);
 
             for (before, after) in rcs_before.zip(rcs.iter().map(|rc| rc.exists())) {
                 assert!(before == false);
@@ -133,7 +123,7 @@ export PATH="$HOME/apple/bin"
             perms.set_readonly(true);
             fs::set_permissions(&rc, perms).unwrap();
 
-            expect_err(config, &["rustup-init", "-y"], "amend shell");
+            expect_err(config, &INIT_NONE, "amend shell");
         });
     }
 
@@ -147,7 +137,7 @@ export PATH="$HOME/apple/bin"
             let rc = zdotdir.path().join(".zshenv");
             raw::write_file(&rc, FAKE_RC).unwrap();
 
-            let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+            let mut cmd = clitools::cmd(config, "rustup-init", &INIT_NONE[1..]);
             cmd.env("SHELL", "zsh");
             cmd.env("ZDOTDIR", zdotdir.path());
             assert!(cmd.output().unwrap().status.success());
@@ -163,8 +153,8 @@ export PATH="$HOME/apple/bin"
         setup(&|config| {
             let profile = config.homedir.join(".profile");
             raw::write_file(&profile, FAKE_RC).unwrap();
-            expect_ok(config, &["rustup-init", "-y"]);
-            expect_ok(config, &["rustup-init", "-y"]);
+            expect_ok(config, &INIT_NONE);
+            expect_ok(config, &INIT_NONE);
 
             let new_profile = fs::read_to_string(&profile).unwrap();
             let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
@@ -190,7 +180,7 @@ export PATH="$HOME/apple/bin"
                 raw::write_file(&rc, FAKE_RC).unwrap();
             }
 
-            expect_ok(config, &["rustup-init", "-y"]);
+            expect_ok(config, &INIT_NONE);
             expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
             for rc in &rcs {
@@ -220,7 +210,7 @@ export PATH="$HOME/apple/bin"
                 raw::write_file(&rc, &old_rc).unwrap();
             }
 
-            let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+            let mut cmd = clitools::cmd(config, "rustup-init", &INIT_NONE[1..]);
             cmd.env("SHELL", "zsh");
             cmd.env("ZDOTDIR", zdotdir.path());
             cmd.env_remove("CARGO_HOME");
@@ -241,13 +231,13 @@ export PATH="$HOME/apple/bin"
     fn uninstall_cleans_up_legacy_paths() {
         setup(&|config| {
             // Install first, then overwrite.
-            expect_ok(config, &["rustup-init", "-y"]);
+            expect_ok(config, &INIT_NONE);
 
             let zdotdir = tempfile::Builder::new()
                 .prefix("zdotdir")
                 .tempdir()
                 .unwrap();
-            let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+            let mut cmd = clitools::cmd(config, "rustup-init", &INIT_NONE[1..]);
             cmd.env("SHELL", "zsh");
             cmd.env("ZDOTDIR", zdotdir.path());
             cmd.env_remove("CARGO_HOME");
@@ -287,7 +277,7 @@ export PATH="$HOME/apple/bin"
 
             let profile = config.homedir.join(".profile");
             raw::write_file(&profile, FAKE_RC).unwrap();
-            let mut cmd = clitools::cmd(config, "rustup-init", &["-y"]);
+            let mut cmd = clitools::cmd(config, "rustup-init", &INIT_NONE[1..]);
             cmd.env_remove("CARGO_HOME");
             assert!(cmd.output().unwrap().status.success());
 
@@ -306,7 +296,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_doesnt_modify_path_if_passed_no_modify_path() {
-        setup(&|config| {
+        clitools::setup(Scenario::SimpleV2, &|config| {
             let profile = config.homedir.join(".profile");
             expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
             assert!(!profile.exists());
@@ -316,7 +306,29 @@ export PATH="$HOME/apple/bin"
 
 #[cfg(windows)]
 mod windows {
+    use std::sync::Mutex;
+
+    use lazy_static::lazy_static;
+
     use super::*;
+    use crate::mock::{get_path, restore_path};
+
+    fn setup(f: &dyn Fn(&Config)) {
+        clitools::setup(Scenario::Empty, &|config| {
+            // Lock protects environment variables
+            lazy_static! {
+                static ref LOCK: Mutex<()> = Mutex::new(());
+            }
+            let _g = LOCK.lock();
+
+            // On windows these tests mess with the user's PATH. Save
+            // and restore them here to keep from trashing things.
+            let saved_path = get_path();
+            let _g = scopeguard::guard(saved_path, restore_path);
+
+            f(config);
+        });
+    }
 
     #[test]
     #[cfg(windows)]
@@ -325,7 +337,7 @@ mod windows {
         setup(&|config| {
             let path = config.cargodir.join("bin").to_string_lossy().to_string();
 
-            expect_ok(config, &["rustup-init", "-y"]);
+            expect_ok(config, &INIT_NONE);
             assert!(
                 get_path().unwrap().contains(&path),
                 format!("`{}` not in `{}`", get_path().unwrap(), &path)
