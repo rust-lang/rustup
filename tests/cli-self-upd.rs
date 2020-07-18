@@ -176,9 +176,22 @@ fn install_creates_cargo_home() {
 }
 
 #[test]
+/// Functional test needed here - we need to do the full dance where we start
+/// with rustup.exe and end up deleting that exe itself.
 fn uninstall_deletes_bins() {
-    setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
+    clitools::setup(Scenario::Empty, &|config| {
+        expect_ok(
+            config,
+            &[
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ],
+        );
+        // no-modify-path isn't needed here, as the test-dir-path isn't present
+        // in the registry, so the no-change code path will be triggered.
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
         let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
