@@ -296,9 +296,18 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_doesnt_modify_path_if_passed_no_modify_path() {
-        clitools::setup(Scenario::SimpleV2, &|config| {
+        setup(&|config| {
             let profile = config.homedir.join(".profile");
-            expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+            expect_ok(
+                config,
+                &[
+                    "rustup-init",
+                    "-y",
+                    "--no-modify-path",
+                    "--default-toolchain",
+                    "none",
+                ],
+            );
             assert!(!profile.exists());
         });
     }
