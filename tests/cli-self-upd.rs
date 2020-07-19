@@ -303,10 +303,6 @@ fn uninstall_doesnt_leave_gc_file() {
 }
 
 #[test]
-#[ignore]
-fn uninstall_stress_test() {}
-
-#[test]
 fn update_exact() {
     let version = env!("CARGO_PKG_VERSION");
     let expected_output = format!(
