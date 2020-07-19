@@ -92,13 +92,13 @@ pub trait UnixShell {
     // Writes the relevant env file.
     fn env_script(&self) -> ShellScript {
         ShellScript {
-            name: "env.sh",
+            name: "env",
             content: include_str!("env.sh"),
         }
     }
 
     fn source_string(&self) -> Result<String> {
-        Ok(format!(r#"source "{}/env.sh""#, cargo_home_str()?))
+        Ok(format!(r#"source "{}/env""#, cargo_home_str()?))
     }
 }
 

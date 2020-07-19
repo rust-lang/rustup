@@ -29,7 +29,7 @@ source ~/fruit/punch
 export PATH="$HOME/apple/bin"
 "#;
     const DEFAULT_EXPORT: &str = "export PATH=\"$HOME/.cargo/bin:$PATH\"\n";
-    const POSIX_SH: &str = "env.sh";
+    const POSIX_SH: &str = "env";
 
     fn source(dir: impl Display, sh: impl Display) -> String {
         format!("source \"{dir}/{sh}\"\n", dir = dir, sh = sh)
@@ -49,7 +49,7 @@ export PATH="$HOME/apple/bin"
             // otherwise the literal path will be written to the file.
 
             let mut cmd = clitools::cmd(config, "rustup-init", &INIT_NONE[1..]);
-            let files: Vec<PathBuf> = [".cargo/env.sh", ".profile", ".zshenv"]
+            let files: Vec<PathBuf> = [".cargo/env", ".profile", ".zshenv"]
                 .iter()
                 .map(|file| config.homedir.join(file))
                 .collect();
@@ -282,7 +282,7 @@ export PATH="$HOME/apple/bin"
             assert!(cmd.output().unwrap().status.success());
 
             let new_profile = fs::read_to_string(&profile).unwrap();
-            let expected = format!("{}source \"$HOME/.cargo/env.sh\"\n", FAKE_RC);
+            let expected = format!("{}source \"$HOME/.cargo/env\"\n", FAKE_RC);
             assert_eq!(new_profile, expected);
 
             let mut cmd = clitools::cmd(config, "rustup", &["self", "uninstall", "-y"]);
