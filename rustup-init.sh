@@ -1,12 +1,8 @@
 #!/bin/sh
-# shellcheck shell=dash
 
 # This is just a little script that can be downloaded from the internet to
 # install rustup. It just does platform detection, downloads the installer
 # and runs it.
-
-# It runs on Unix shells like {a,ba,da,k,z}sh. It uses the common `local`
-# extension. Note: Most shells limit `local` to 1 var per line, contra bash.
 
 set -u
 
@@ -41,6 +37,7 @@ EOF
 }
 
 main() {
+(
     downloader --check
     need_cmd uname
     need_cmd mktemp
@@ -49,24 +46,22 @@ main() {
     need_cmd rm
     need_cmd rmdir
 
-    get_architecture || return 1
-    local _arch="$RETVAL"
+    _arch=$(get_architecture) || return 1
     assert_nz "$_arch" "arch"
 
-    local _ext=""
+    _ext=""
     case "$_arch" in
         *windows*)
             _ext=".exe"
             ;;
     esac
 
-    local _url="${RUSTUP_UPDATE_ROOT}/dist/${_arch}/rustup-init${_ext}"
+    _url="${RUSTUP_UPDATE_ROOT}/dist/${_arch}/rustup-init${_ext}"
 
-    local _dir
     _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
-    local _file="${_dir}/rustup-init${_ext}"
+    _file="${_dir}/rustup-init${_ext}"
 
-    local _ansi_escapes_are_valid=false
+    _ansi_escapes_are_valid=false
     if [ -t 2 ]; then
         if [ "${TERM+set}" = 'set' ]; then
             case "$TERM" in
@@ -78,7 +73,7 @@ main() {
     fi
 
     # check if we have to use /dev/tty to prompt the user
-    local need_tty=yes
+    need_tty=yes
     for arg in "$@"; do
         case "$arg" in
             -h|--help)
@@ -123,15 +118,16 @@ main() {
         ignore "$_file" "$@"
     fi
 
-    local _retval=$?
+    _retval=$?
 
     ignore rm "$_file"
     ignore rmdir "$_dir"
 
     return "$_retval"
-}
+)}
 
 get_bitness() {
+(
     need_cmd head
     # Architecture detection without dependencies beyond coreutils.
     # ELF files start out "\x7fELF", and the following byte is
@@ -139,7 +135,6 @@ get_bitness() {
     #   0x02 for 64-bit.
     # The printf builtin on some shells like dash only supports octal
     # escape sequences, so we use those.
-    local _current_exe_head
     _current_exe_head=$(head -c 5 /proc/self/exe )
     if [ "$_current_exe_head" = "$(printf '\177ELF\001')" ]; then
         echo 32
@@ -148,18 +143,18 @@ get_bitness() {
     else
         err "unknown platform bitness"
     fi
-}
+)}
 
 get_endianness() {
-    local cputype=$1
-    local suffix_eb=$2
-    local suffix_el=$3
+(
+    cputype=$1
+    suffix_eb=$2
+    suffix_el=$3
 
     # detect endianness without od/hexdump, like get_bitness() does.
     need_cmd head
     need_cmd tail
 
-    local _current_exe_endianness
     _current_exe_endianness="$(head -c 6 /proc/self/exe | tail -c 1)"
     if [ "$_current_exe_endianness" = "$(printf '\001')" ]; then
         echo "${cputype}${suffix_el}"
@@ -168,10 +163,10 @@ get_endianness() {
     else
         err "unknown platform endianness"
     fi
-}
+)}
 
 get_architecture() {
-    local _ostype _cputype _bitness _arch _clibtype
+(
     _ostype="$(uname -s)"
     _cputype="$(uname -m)"
     _clibtype="gnu"
@@ -341,8 +336,8 @@ get_architecture() {
 
     _arch="${_cputype}-${_ostype}"
 
-    RETVAL="$_arch"
-}
+    printf '%s' "$_arch"
+)}
 
 say() {
     printf 'rustup: %s\n' "$1"
@@ -384,8 +379,9 @@ ignore() {
 # This wraps curl or wget. Try curl first, if not installed,
 # use wget instead.
 downloader() {
-    local _dld
-    local _ciphersuites
+(
+    _dld=''
+    _ciphersuites=''
     if check_cmd curl; then
         _dld=curl
     elif check_cmd wget; then
@@ -397,8 +393,7 @@ downloader() {
     if [ "$1" = --check ]; then
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
-        get_ciphersuites_for_curl
-        _ciphersuites="$RETVAL"
+        _ciphersuites=$(get_ciphersuites_for_curl)
         if [ -n "$_ciphersuites" ]; then
             curl --proto '=https' --tlsv1.2 --ciphers "$_ciphersuites" --silent --show-error --fail --location "$1" --output "$2"
         else
@@ -427,12 +422,10 @@ downloader() {
     else
         err "Unknown downloader"   # should not reach here
     fi
-}
+)}
 
 check_help_for() {
-    local _arch
-    local _cmd
-    local _arg
+(
     _arch="$1"
     shift
     _cmd="$1"
@@ -461,21 +454,22 @@ check_help_for() {
     done
 
     true # not strictly needed
-}
+)}
 
 # Return cipher suite string specified by user, otherwise return strong TLS 1.2-1.3 cipher suites
 # if support by local tools is detected. Detection currently supports these curl backends: 
 # GnuTLS and OpenSSL (possibly also LibreSSL and BoringSSL). Return value can be empty.
 get_ciphersuites_for_curl() {
+(
     if [ -n "${RUSTUP_TLS_CIPHERSUITES-}" ]; then
         # user specified custom cipher suites, assume they know what they're doing
-        RETVAL="$RUSTUP_TLS_CIPHERSUITES"
+        printf '%s' "$RUSTUP_TLS_CIPHERSUITES"
         return
     fi
 
-    local _openssl_syntax="no"
-    local _gnutls_syntax="no"
-    local _backend_supported="yes"
+    _openssl_syntax="no"
+    _gnutls_syntax="no"
+    _backend_supported="yes"
     if curl -V | grep -q ' OpenSSL/'; then
         _openssl_syntax="yes"
     elif curl -V | grep -iq ' LibreSSL/'; then
@@ -488,7 +482,7 @@ get_ciphersuites_for_curl() {
         _backend_supported="no"
     fi
 
-    local _args_supported="no"
+    _args_supported="no"
     if [ "$_backend_supported" = "yes" ]; then
         # "unspecified" is for arch, allows for possibility old OS using macports, homebrew, etc.
         if check_help_for "notspecified" "curl" "--tlsv1.2" "--ciphers" "--proto"; then
@@ -496,7 +490,7 @@ get_ciphersuites_for_curl() {
         fi
     fi
 
-    local _cs=""
+    _cs=""
     if [ "$_args_supported" = "yes" ]; then
         if [ "$_openssl_syntax" = "yes" ]; then
             _cs=$(get_strong_ciphersuites_for "openssl")
@@ -505,20 +499,21 @@ get_ciphersuites_for_curl() {
         fi
     fi
 
-    RETVAL="$_cs"
-}
+    printf '%s' "$_cs"
+)}
 
 # Return cipher suite string specified by user, otherwise return strong TLS 1.2-1.3 cipher suites
 # if support by local tools is detected. Detection currently supports these wget backends: 
 # GnuTLS and OpenSSL (possibly also LibreSSL and BoringSSL). Return value can be empty.
 get_ciphersuites_for_wget() {
+(
     if [ -n "${RUSTUP_TLS_CIPHERSUITES-}" ]; then
         # user specified custom cipher suites, assume they know what they're doing
-        RETVAL="$RUSTUP_TLS_CIPHERSUITES"
+        printf '%s' "$RUSTUP_TLS_CIPHERSUITES"
         return
     fi
 
-    local _cs=""
+    _cs=""
     if wget -V | grep -q '\-DHAVE_LIBSSL'; then
         # "unspecified" is for arch, allows for possibility old OS using macports, homebrew, etc.
         if check_help_for "notspecified" "wget" "TLSv1_2" "--ciphers" "--https-only" "--secure-protocol"; then
@@ -531,8 +526,8 @@ get_ciphersuites_for_wget() {
         fi
     fi
 
-    RETVAL="$_cs"
-}
+    printf '%s' "$_cs"
+)}
 
 # Return strong TLS 1.2-1.3 cipher suites in OpenSSL or GnuTLS syntax. TLS 1.2 
 # excludes non-ECDHE and non-AEAD cipher suites. DHE is excluded due to bad 

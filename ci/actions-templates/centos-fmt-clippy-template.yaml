@@ -79,7 +79,7 @@ jobs:
             sh ./ci/raw_init.sh
       - name: Run shell checks
         run: |
-          shellcheck -s dash -- rustup-init.sh
+          shellcheck rustup-init.sh
           git ls-files -- '*.sh' | xargs shellcheck -s dash -e SC1090
           git ls-files -- '*.bash' | xargs shellcheck -s bash -e SC1090
       - name: Run formatting checks
