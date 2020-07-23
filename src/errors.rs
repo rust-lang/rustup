@@ -356,6 +356,9 @@ error_chain! {
         ParsingSettings(e: toml::de::Error) {
             description("error parsing settings")
         }
+        ParsingOverride(e: toml::de::Error) {
+            description("error parsing override file")
+        }
         NoExeName {
             description("couldn't determine self executable name")
         }

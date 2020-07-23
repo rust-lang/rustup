@@ -480,12 +480,12 @@ pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
             String::new()
         };
         let cwd = utils::current_dir()?;
-        let ovr_toolchain_name = if let Ok(Some((ovr_toolchain, _reason))) = cfg.find_override(&cwd)
-        {
-            ovr_toolchain.name().to_string()
-        } else {
-            String::new()
-        };
+        let ovr_toolchain_name =
+            if let Ok(Some((toolchain, _override_cfg, _reason))) = cfg.find_override(&cwd) {
+                toolchain.name().to_string()
+            } else {
+                String::new()
+            };
         for toolchain in toolchains {
             let if_default = if def_toolchain_name == &*toolchain {
                 " (default)"

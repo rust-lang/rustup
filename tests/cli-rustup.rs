@@ -1403,6 +1403,174 @@ fn file_override_with_archive() {
 }
 
 #[test]
+fn file_override_toml_format() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly-2015-01-01",
+                "--no-self-update",
+            ],
+        );
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+channel = "nightly-2015-01-01"
+"#,
+        )
+        .unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+    });
+}
+
+#[test]
+fn file_override_toml_format_add_components_toolchain_not_installed() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+channel = "nightly-2015-01-01"
+components = [ "rust-src" ]
+"#,
+        )
+        .unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+        expect_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            "rust-src (installed)",
+        );
+    });
+}
+
+#[test]
+fn file_override_toml_format_add_components_toolchain_misses_components() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly-2015-01-01",
+                "--no-self-update",
+            ],
+        );
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+channel = "nightly-2015-01-01"
+components = [ "rust-src" ]
+"#,
+        )
+        .unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+        expect_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            "rust-src (installed)",
+        );
+    });
+}
+
+#[test]
+fn file_override_toml_format_add_components_invalid_component() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly-2015-01-01",
+                "--no-self-update",
+            ],
+        );
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+channel = "nightly-2015-01-01"
+components = [ "rust-bongo" ]
+"#,
+        )
+        .unwrap();
+
+        // The toolchain should be installed and the invalid component skipped
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+    });
+}
+
+#[test]
+fn file_override_toml_format_add_components_toolchain_misses_target() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly-2015-01-01",
+                "--no-self-update",
+            ],
+        );
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+channel = "nightly-2015-01-01"
+targets = [ "arm-linux-androideabi" ]
+"#,
+        )
+        .unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+        expect_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            "arm-linux-androideabi (installed)",
+        );
+    });
+}
+
+#[test]
 fn directory_override_beats_file_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);

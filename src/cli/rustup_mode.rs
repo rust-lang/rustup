@@ -786,7 +786,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
         }
 
         let cwd = utils::current_dir()?;
-        if let Some((toolchain, reason)) = cfg.find_override(&cwd)? {
+        if let Some((toolchain, _override_cfg, reason)) = cfg.find_override(&cwd)? {
             info!(
                 "note that the toolchain '{}' is currently in use ({})",
                 toolchain.name(),
