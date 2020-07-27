@@ -16,7 +16,7 @@ pub fn main() -> Result<utils::ExitCode> {
         return self_update::self_replace();
     }
 
-    // Internal testament dump used during CI. Not for users.
+    // Internal testament dump used during CI.  Not for users.
     if arg1 == Some("--dump-testament") {
         common::dump_testament()?;
         return Ok(utils::ExitCode(0));
