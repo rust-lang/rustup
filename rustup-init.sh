@@ -441,7 +441,7 @@ downloader() {
         fi
         if [ -n "$_err" ]; then
             echo "$_err" >&2
-            if echo "$_err" | grep -q 'ERROR 404: Not Found\.$'; then
+            if echo "$_err" | grep -q ' 404: Not Found\.$'; then
                 err "installer for platform '$3' not found, this may be unsupported"
             fi
         fi
