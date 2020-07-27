@@ -418,7 +418,7 @@ downloader() {
         if [ -n "$_err" ]; then
             echo "$_err" >&2
             if echo "$_err" | grep -q 404$; then
-                err "unsupported platform $3"
+                err "installer for platform '$3' not found, this may be unsupported"
             fi
         fi
         return $_status
