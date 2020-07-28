@@ -43,9 +43,15 @@ impl ToolchainSection {
     }
 }
 
-enum OverrideKind {
-    Name(String),
-    File(OverrideFile),
+impl<T: Into<String>> From<T> for OverrideFile {
+    fn from(channel: T) -> Self {
+        Self {
+            toolchain: ToolchainSection {
+                channel: Some(channel.into()),
+                ..Default::default()
+            },
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -75,21 +81,15 @@ struct OverrideCfg<'a> {
 }
 
 impl<'a> OverrideCfg<'a> {
-    fn from_kind(cfg: &'a Cfg, kind: OverrideKind) -> Result<Self> {
-        match kind {
-            OverrideKind::Name(name) => Ok(Self {
-                toolchain: Some(Toolchain::from(cfg, &name)?),
-                ..Default::default()
-            }),
-            OverrideKind::File(file) => Ok(Self {
-                toolchain: match file.toolchain.channel {
-                    Some(name) => Some(Toolchain::from(cfg, &name)?),
-                    None => None,
-                },
-                components: file.toolchain.components.unwrap_or_default(),
-                targets: file.toolchain.targets.unwrap_or_default(),
-            }),
-        }
+    fn from_file(cfg: &'a Cfg, file: OverrideFile) -> Result<Self> {
+        Ok(Self {
+            toolchain: match file.toolchain.channel {
+                Some(name) => Some(Toolchain::from(cfg, &name)?),
+                None => None,
+            },
+            components: file.toolchain.components.unwrap_or_default(),
+            targets: file.toolchain.targets.unwrap_or_default(),
+        })
     }
 }
 
@@ -473,18 +473,12 @@ impl Cfg {
 
         // First check toolchain override from command
         if let Some(ref name) = self.toolchain_override {
-            override_ = Some((
-                OverrideKind::Name(name.to_string()),
-                OverrideReason::CommandLine,
-            ));
+            override_ = Some((name.into(), OverrideReason::CommandLine));
         }
 
         // Check RUSTUP_TOOLCHAIN
         if let Some(ref name) = self.env_override {
-            override_ = Some((
-                OverrideKind::Name(name.to_string()),
-                OverrideReason::Environment,
-            ));
+            override_ = Some((name.into(), OverrideReason::Environment));
         }
 
         // Then walk up the directory tree from 'path' looking for either the
@@ -497,7 +491,7 @@ impl Cfg {
             })?;
         }
 
-        if let Some((kind, reason)) = override_ {
+        if let Some((file, reason)) = override_ {
             // This is hackishly using the error chain to provide a bit of
             // extra context about what went wrong. The CLI will display it
             // on a line after the proximate error.
@@ -521,7 +515,7 @@ impl Cfg {
                 ),
             };
 
-            let override_cfg = OverrideCfg::from_kind(self, kind)?;
+            let override_cfg = OverrideCfg::from_file(self, file)?;
             if let Some(toolchain) = &override_cfg.toolchain {
                 // Overridden toolchains can be literally any string, but only
                 // distributable toolchains will be auto-installed by the wrapping
@@ -546,7 +540,7 @@ impl Cfg {
         &self,
         dir: &Path,
         settings: &Settings,
-    ) -> Result<Option<(OverrideKind, OverrideReason)>> {
+    ) -> Result<Option<(OverrideFile, OverrideReason)>> {
         let notify = self.notify_handler.as_ref();
         let dir = utils::canonicalize_path(dir, notify);
         let mut dir = Some(&*dir);
@@ -555,7 +549,7 @@ impl Cfg {
             // First check the override database
             if let Some(name) = settings.dir_override(d, notify) {
                 let reason = OverrideReason::OverrideDB(d.to_owned());
-                return Ok(Some((OverrideKind::Name(name), reason)));
+                return Ok(Some((name.into(), reason)));
             }
 
             // Then look for 'rust-toolchain'
@@ -578,7 +572,7 @@ impl Cfg {
                     }
 
                     let reason = OverrideReason::ToolchainFile(toolchain_file);
-                    return Ok(Some((OverrideKind::File(override_file), reason)));
+                    return Ok(Some((override_file, reason)));
                 }
             }
 
@@ -596,12 +590,7 @@ impl Cfg {
                 .map(|file| if file.is_empty() { None } else { Some(file) })
                 .map_err(|e| ErrorKind::ParsingOverride(e).into())
         } else {
-            Ok(contents.lines().next().map(|line| OverrideFile {
-                toolchain: ToolchainSection {
-                    channel: Some(line.trim().into()),
-                    ..Default::default()
-                },
-            }))
+            Ok(contents.lines().next().map(|line| line.trim().into()))
         }
     }
 
