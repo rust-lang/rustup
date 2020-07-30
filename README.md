@@ -414,8 +414,8 @@ components = [ "rustfmt", "rustc-dev" ]
 targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
 ```
 
-If the TOML format is used, the `[toolchain]` section and the `channel` entry
-are mandatory.
+If the TOML format is used, the `[toolchain]` section is mandatory,
+but all its entries are optional.
 
 The `rust-toolchain` file is suitable to check in to source control. 
 This file has to be encoded in US-ASCII (if you are on
