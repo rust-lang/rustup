@@ -1706,7 +1706,12 @@ fn bad_file_override() {
         expect_err(
             config,
             &["rustc", "--version"],
-            "invalid channel name 'gumbo' in",
+            "error parsing override file as legacy format: invalid channel name 'gumbo' in",
+        );
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "error parsing override file as TOML",
         );
     });
 }

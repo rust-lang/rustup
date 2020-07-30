@@ -555,19 +555,26 @@ impl Cfg {
             // Then look for 'rust-toolchain'
             let toolchain_file = d.join("rust-toolchain");
             if let Ok(contents) = utils::read_file("toolchain file", &toolchain_file) {
-                if let Some(override_file) = Cfg::parse_override_file(contents)? {
+                if let (Some(override_file), toml_err) = Cfg::parse_override_file(contents) {
                     if let Some(toolchain_name) = &override_file.toolchain.channel {
                         let all_toolchains = self.list_toolchains()?;
                         if !all_toolchains.iter().any(|s| s == toolchain_name) {
                             // The given name is not resolvable as a toolchain, so
                             // instead check it's plausible for installation later
-                            dist::validate_channel_name(&toolchain_name).chain_err(|| {
-                                format!(
-                                    "invalid channel name '{}' in '{}'",
-                                    toolchain_name,
-                                    toolchain_file.display()
-                                )
-                            })?;
+                            let mut validation = dist::validate_channel_name(&toolchain_name)
+                                .chain_err(|| {
+                                    format!(
+                                        "error parsing override file as legacy format: invalid channel name '{}' in '{}'",
+                                        toolchain_name,
+                                        toolchain_file.display()
+                                    )
+                                });
+                            // If there was an error parsing the toolchain file as TOML, report it now.
+                            // This can help if the toolchain file is actually TOML but there was a syntax error.
+                            if let Some(err) = toml_err {
+                                validation = validation.chain_err(|| err);
+                            }
+                            validation?;
                         }
                     }
 
@@ -582,15 +589,27 @@ impl Cfg {
         Ok(None)
     }
 
-    fn parse_override_file<S: AsRef<str>>(contents: S) -> Result<Option<OverrideFile>> {
+    fn parse_override_file<S: AsRef<str>>(
+        contents: S,
+    ) -> (Option<OverrideFile>, Option<ErrorKind>) {
         let contents = contents.as_ref();
 
-        if contents.lines().any(|line| line.starts_with("[toolchain]")) {
-            toml::from_str::<OverrideFile>(contents)
-                .map(|file| if file.is_empty() { None } else { Some(file) })
-                .map_err(|e| ErrorKind::ParsingOverride(e).into())
-        } else {
-            Ok(contents.lines().next().map(|line| line.trim().into()))
+        // Avoid TOML parsing error for backwards compatibility with the legacy format
+        if contents.is_empty() {
+            return (None, None);
+        }
+
+        // Try to parse as TOML ...
+        match toml::from_str::<OverrideFile>(contents)
+            .map(|file| if file.is_empty() { None } else { Some(file) })
+            .map_err(ErrorKind::ParsingOverride)
+        {
+            Ok(override_file) => (override_file, None),
+            // ... in case of error, try to parse as the legacy format
+            Err(toml_err) => (
+                contents.lines().next().map(|line| line.trim().into()),
+                Some(toml_err),
+            ),
         }
     }
 
@@ -862,9 +881,9 @@ mod tests {
     fn parse_legacy_toolchain_file() {
         let contents = "nightly-2020-07-10";
 
-        let result = Cfg::parse_override_file(contents);
+        let (override_file, toml_err) = Cfg::parse_override_file(contents);
         assert_eq!(
-            result.unwrap(),
+            override_file,
             Some(OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some(contents.into()),
@@ -872,6 +891,7 @@ mod tests {
                 }
             })
         );
+        assert!(toml_err.is_some());
     }
 
     #[test]
@@ -883,9 +903,9 @@ components = [ "rustfmt", "rustc-dev" ]
 targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let (override_file, toml_err) = Cfg::parse_override_file(contents);
         assert_eq!(
-            result.unwrap(),
+            override_file,
             Some(OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
@@ -897,6 +917,7 @@ targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
                 }
             })
         );
+        assert!(toml_err.is_none());
     }
 
     #[test]
@@ -906,9 +927,9 @@ targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
 channel = "nightly-2020-07-10"
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let (override_file, toml_err) = Cfg::parse_override_file(contents);
         assert_eq!(
-            result.unwrap(),
+            override_file,
             Some(OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
@@ -917,6 +938,7 @@ channel = "nightly-2020-07-10"
                 }
             })
         );
+        assert!(toml_err.is_none());
     }
 
     #[test]
@@ -927,9 +949,9 @@ channel = "nightly-2020-07-10"
 components = []
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let (override_file, toml_err) = Cfg::parse_override_file(contents);
         assert_eq!(
-            result.unwrap(),
+            override_file,
             Some(OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
@@ -938,6 +960,7 @@ components = []
                 }
             })
         );
+        assert!(toml_err.is_none());
     }
 
     #[test]
@@ -948,9 +971,9 @@ channel = "nightly-2020-07-10"
 targets = []
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let (override_file, toml_err) = Cfg::parse_override_file(contents);
         assert_eq!(
-            result.unwrap(),
+            override_file,
             Some(OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
@@ -959,6 +982,7 @@ targets = []
                 }
             })
         );
+        assert!(toml_err.is_none());
     }
 
     #[test]
@@ -968,9 +992,9 @@ targets = []
 components = [ "rustfmt" ]
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let (override_file, toml_err) = Cfg::parse_override_file(contents);
         assert_eq!(
-            result.unwrap(),
+            override_file,
             Some(OverrideFile {
                 toolchain: ToolchainSection {
                     channel: None,
@@ -979,6 +1003,7 @@ components = [ "rustfmt" ]
                 }
             })
         );
+        assert!(toml_err.is_none());
     }
 
     #[test]
@@ -987,15 +1012,36 @@ components = [ "rustfmt" ]
 [toolchain]
 "#;
 
-        let result = Cfg::parse_override_file(contents);
-        assert_eq!(result.unwrap(), None);
+        let (override_file, toml_err) = Cfg::parse_override_file(contents);
+        assert!(override_file.is_none());
+        assert!(toml_err.is_none());
     }
 
     #[test]
     fn parse_empty_toolchain_file() {
         let contents = "";
 
-        let result = Cfg::parse_override_file(contents);
-        assert_eq!(result.unwrap(), None);
+        let (override_file, toml_err) = Cfg::parse_override_file(contents);
+        assert!(override_file.is_none());
+        assert!(toml_err.is_none());
+    }
+
+    #[test]
+    fn parse_toml_syntax_error() {
+        let contents = r#"[toolchain]
+channel = nightly
+"#;
+
+        let (override_file, toml_err) = Cfg::parse_override_file(contents);
+        assert_eq!(
+            override_file,
+            Some(OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: Some("[toolchain]".into()),
+                    ..Default::default()
+                }
+            })
+        );
+        assert!(toml_err.is_some());
     }
 }
