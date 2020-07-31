@@ -415,7 +415,7 @@ targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
 ```
 
 If the TOML format is used, the `[toolchain]` section is mandatory,
-but all its entries are optional.
+and at least one property must be specified.
 
 The `rust-toolchain` file is suitable to check in to source control. 
 This file has to be encoded in US-ASCII (if you are on
