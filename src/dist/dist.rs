@@ -27,8 +27,8 @@ static TOOLCHAIN_CHANNELS: &[&str] = &[
     "nightly",
     "beta",
     "stable",
-    // Allow from 1.0.0 through to 9.999.99
-    r"\d{1}\.\d{1,3}\.\d{1,2}",
+    // Allow from 1.0.0 through to 9.999.99 with optional patch version
+    r"\d{1}\.\d{1,3}(?:\.\d{1,2})?",
 ];
 
 #[derive(Debug, PartialEq)]
@@ -951,6 +951,7 @@ mod tests {
             ("nightly", ("nightly", None, None)),
             ("beta", ("beta", None, None)),
             ("stable", ("stable", None, None)),
+            ("0.0", ("0.0", None, None)),
             ("0.0.0", ("0.0.0", None, None)),
             ("0.0.0--", ("0.0.0", None, Some("-"))), // possibly a bug?
             ("9.999.99", ("9.999.99", None, None)),
@@ -986,7 +987,7 @@ mod tests {
             assert_eq!(parsed.unwrap(), expected, "input: `{}`", input);
         }
 
-        let failure_cases = vec!["anything", "00.0000.000", "3", "3.4", "", "--", "0.0.0-"];
+        let failure_cases = vec!["anything", "00.0000.000", "3", "", "--", "0.0.0-"];
 
         for input in failure_cases {
             let parsed = input.parse::<ParsedToolchainDesc>();
