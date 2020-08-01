@@ -31,7 +31,7 @@ static TOOLCHAIN_CHANNELS: &[&str] = &[
     r"\d{1}\.\d{1,3}\.\d{1,2}",
 ];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct ParsedToolchainDesc {
     channel: String,
     date: Option<String>,
@@ -939,4 +939,72 @@ fn utc_from_manifest_date(date_str: &str) -> Option<Date<Utc>> {
     NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
         .ok()
         .map(|date| Utc.from_utc_date(&date))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parsed_toolchain_desc_parse() {
+        let success_cases = vec![
+            ("nightly", ("nightly", None, None)),
+            ("beta", ("beta", None, None)),
+            ("stable", ("stable", None, None)),
+            ("0.0.0", ("0.0.0", None, None)),
+            ("0.0.0-", ("0.0.0", None, None)), // possibly a bug?
+            ("0.0.0--", ("0.0.0", None, Some("-"))), // possibly a bug?
+            ("9.999.99", ("9.999.99", None, None)),
+            ("0.0.0-anything", ("0.0.0", None, Some("anything"))),
+            // possibly unexpected behavior, if someone typos a date?
+            (
+                "0.0.0-00000-000-000",
+                ("0.0.0", None, Some("00000-000-000")),
+            ),
+            ("0.0.0-0000-00-00", ("0.0.0", Some("0000-00-00"), None)),
+            ("0.0.0-0000-00-00-", ("0.0.0", Some("0000-00-00"), None)), // possibly a bug?
+            (
+                "0.0.0-0000-00-00-any-other-thing",
+                ("0.0.0", Some("0000-00-00"), Some("any-other-thing")),
+            ),
+        ];
+
+        for (input, (channel, date, target)) in success_cases {
+            let parsed = input.parse::<ParsedToolchainDesc>();
+            assert!(
+                parsed.is_ok(),
+                "expected parsing of `{}` to succeed: {:?}",
+                input,
+                parsed
+            );
+
+            let expected = ParsedToolchainDesc {
+                channel: channel.into(),
+                date: date.map(String::from),
+                target: target.map(String::from),
+            };
+            assert_eq!(parsed.unwrap(), expected, "input: `{}`", input);
+        }
+
+        let failure_cases = vec!["anything", "00.0000.000", "3", "3.4", "", "--"];
+
+        for input in failure_cases {
+            let parsed = input.parse::<ParsedToolchainDesc>();
+            assert!(
+                parsed.is_err(),
+                "expected parsing of `{}` to fail: {:?}",
+                input,
+                parsed
+            );
+
+            let error_message = format!("invalid toolchain name: '{}'", input);
+
+            assert_eq!(
+                parsed.unwrap_err().to_string(),
+                error_message,
+                "input: `{}`",
+                input
+            );
+        }
+    }
 }
