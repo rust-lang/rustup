@@ -146,7 +146,7 @@ impl FromStr for ParsedToolchainDesc {
     fn from_str(desc: &str) -> Result<Self> {
         lazy_static! {
             static ref TOOLCHAIN_CHANNEL_PATTERN: String = format!(
-                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
+                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.+))?$",
                 TOOLCHAIN_CHANNELS.join("|")
             );
             // Note this regex gives you a guaranteed match of the channel (1)
@@ -952,17 +952,17 @@ mod tests {
             ("beta", ("beta", None, None)),
             ("stable", ("stable", None, None)),
             ("0.0.0", ("0.0.0", None, None)),
-            ("0.0.0-", ("0.0.0", None, None)), // possibly a bug?
             ("0.0.0--", ("0.0.0", None, Some("-"))), // possibly a bug?
             ("9.999.99", ("9.999.99", None, None)),
             ("0.0.0-anything", ("0.0.0", None, Some("anything"))),
+            ("0.0.0-0000-00-00", ("0.0.0", Some("0000-00-00"), None)),
             // possibly unexpected behavior, if someone typos a date?
             (
                 "0.0.0-00000-000-000",
                 ("0.0.0", None, Some("00000-000-000")),
             ),
-            ("0.0.0-0000-00-00", ("0.0.0", Some("0000-00-00"), None)),
-            ("0.0.0-0000-00-00-", ("0.0.0", Some("0000-00-00"), None)), // possibly a bug?
+            // possibly unexpected behavior, if someone forgets to add target after the hyphen?
+            ("0.0.0-0000-00-00-", ("0.0.0", None, Some("0000-00-00-"))),
             (
                 "0.0.0-0000-00-00-any-other-thing",
                 ("0.0.0", Some("0000-00-00"), Some("any-other-thing")),
@@ -986,7 +986,7 @@ mod tests {
             assert_eq!(parsed.unwrap(), expected, "input: `{}`", input);
         }
 
-        let failure_cases = vec!["anything", "00.0000.000", "3", "3.4", "", "--"];
+        let failure_cases = vec!["anything", "00.0000.000", "3", "3.4", "", "--", "0.0.0-"];
 
         for input in failure_cases {
             let parsed = input.parse::<ParsedToolchainDesc>();
