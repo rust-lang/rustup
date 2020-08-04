@@ -51,7 +51,7 @@ pub struct PartialToolchainDesc {
     pub target: PartialTargetTriple,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PartialTargetTriple {
     pub arch: Option<String>,
     pub os: Option<String>,
@@ -1004,6 +1004,69 @@ mod tests {
                 error_message,
                 "input: `{}`",
                 input
+            );
+        }
+    }
+
+    #[test]
+    fn test_partial_target_triple_new() {
+        let success_cases = vec![
+            ("", (None, None, None)),
+            ("i386", (Some("i386"), None, None)),
+            ("pc-windows", (None, Some("pc-windows"), None)),
+            ("gnu", (None, None, Some("gnu"))),
+            ("i386-gnu", (Some("i386"), None, Some("gnu"))),
+            ("pc-windows-gnu", (None, Some("pc-windows"), Some("gnu"))),
+            ("i386-pc-windows", (Some("i386"), Some("pc-windows"), None)),
+            (
+                "i386-pc-windows-gnu",
+                (Some("i386"), Some("pc-windows"), Some("gnu")),
+            ),
+        ];
+
+        for (input, (arch, os, env)) in success_cases {
+            let partial_target_triple = PartialTargetTriple::new(input);
+            assert!(
+                partial_target_triple.is_some(),
+                "expected `{}` to create some partial target triple; got None",
+                input
+            );
+
+            let expected = PartialTargetTriple {
+                arch: arch.map(String::from),
+                os: os.map(String::from),
+                env: env.map(String::from),
+            };
+
+            assert_eq!(
+                partial_target_triple.unwrap(),
+                expected,
+                "input: `{}`",
+                input
+            );
+        }
+
+        let failure_cases = vec![
+            "anything",
+            "any-other-thing",
+            "-",
+            "--",
+            "i386-",
+            "i386-pc-",
+            "i386-pc-windows-",
+            "-pc-windows",
+            "i386-pc-windows-anything",
+            "0000-00-00-",
+            "00000-000-000",
+        ];
+
+        for input in failure_cases {
+            let partial_target_triple = PartialTargetTriple::new(input);
+            assert!(
+                partial_target_triple.is_none(),
+                "expected `{}` to be `None`, was: `{:?}`",
+                input,
+                partial_target_triple
             );
         }
     }
