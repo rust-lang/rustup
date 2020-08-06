@@ -1,7 +1,7 @@
 # Profiles
 
-`rustup` has the concept of "profiles". They are groups of components you can
-choose to download while installing a new Rust toolchain. The profiles
+`rustup` has the concept of "profiles". They are groups of [components] you
+can choose to download while installing a new Rust toolchain. The profiles
 available at this time are `minimal`, `default`, and `complete`:
 
 * The **minimal** profile includes as few components as possible to get a
@@ -32,3 +32,5 @@ first time, either interactively by choosing the "Customize installation"
 option or programmatically by passing the `--profile=<name>` flag. Profiles
 will only affect newly installed toolchains: as usual it will be possible to
 install individual components later with: `rustup component add`.
+
+[components]: components.md

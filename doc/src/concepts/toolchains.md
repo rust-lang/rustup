@@ -1,12 +1,14 @@
 # Toolchains
 
-## Toolchain specification
-
 Many `rustup` commands deal with *toolchains*, a single installation of the
 Rust compiler. `rustup` supports multiple types of toolchains. The most basic
-track the official release channels: *stable*, *beta* and *nightly*; but
+track the official release [channels]: *stable*, *beta* and *nightly*; but
 `rustup` can also install toolchains from the official archives, for alternate
 host platforms, and from local builds.
+
+[channels]: channels.md
+
+## Toolchain specification
 
 Standard release channel toolchain names have the following form:
 
@@ -19,8 +21,8 @@ Standard release channel toolchain names have the following form:
 ```
 
 'channel' is either a named release channel or an explicit version number,
-such as '1.42.0'. Channel names can be optionally appended with an archive
-date, as in 'nightly-2014-12-18', in which case the toolchain is downloaded
+such as `1.42.0`. Channel names can be optionally appended with an archive
+date, as in `nightly-2014-12-18`, in which case the toolchain is downloaded
 from the archive for that date.
 
 Finally, the host may be specified as a target triple. This is most useful for
