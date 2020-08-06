@@ -16,9 +16,15 @@ maintained by The Rust Project.
 
 ### Can rustup download the Rust source code?
 
-The Rust source can be obtained by running `rustup component add rust-src`. It
-will be downloaded to the `<toolchain root>/lib/rustlib/src/rust` directory of
-the current toolchain.
+The source for Rust's standard library can be obtained by running `rustup
+component add rust-src`. It will be downloaded to the `<toolchain
+root>/lib/rustlib/src/rust` directory of the current toolchain.
+
+The source for the compiler and tools must be obtained from the [Rust
+repository] or the standalone [source tarballs].
+
+[rust repository]: https://github.com/rust-lang/rust/
+[source tarballs]: https://forge.rust-lang.org/infra/other-installation-methods.html#source-code
 
 ### rustup fails with Windows error 32
 
@@ -33,6 +39,6 @@ closing your editor) and try again.
 
 ### rustup exited successfully but I can't run `rustc --version`
 
-To get started you need Cargo's bin directory ({cargo_home}/bin) in your
+To get started you need Cargo's bin directory (`$CARGO_HOME/bin`) in your
 `PATH` environment variable. This should be done by rustup. Next time you log
 in this should have been done automatically.
