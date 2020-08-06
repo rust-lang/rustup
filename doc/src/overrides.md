@@ -1,22 +1,31 @@
 # Overrides
 
-There are several ways to specify which toolchain `rustup` should execute:
+`rustup` automatically determines which [toolchain] to use when one of the
+installed commands like `rustc` is executed. There are several ways to control
+and override which toolchain is used:
 
-* An explicit toolchain, e.g. `cargo +beta`,
-* The `RUSTUP_TOOLCHAIN` environment variable,
-* A directory override, ala `rustup override set beta`,
-* The `rust-toolchain` file,
-* The default toolchain,
+1. A [toolchain override shorthand] used on the command-line, such as `cargo
+   +beta`.
+2. The `RUSTUP_TOOLCHAIN` environment variable.
+3. A [directory override], set with the `rustup override` command.
+4. The [`rustup-toolchain`] file.
+5. The [default toolchain].
 
-and they are preferred by `rustup` in that order, with the explicit toolchain
-having highest precedence, and the default toolchain having the lowest. There
-is one exception though: directory overrides and the `rust-toolchain` file are
-also preferred by their proximity to the current directory. That is, these two
-override methods are discovered by walking up the directory tree toward the
-filesystem root, and a `rust-toolchain` file that is closer to the current
-directory will be preferred over a directory override that is further away.
+The toolchain is chosen in the order listed above, using the first one that is
+specified. There is one exception though: directory overrides and the
+`rust-toolchain` file are also preferred by their proximity to the current
+directory. That is, these two override methods are discovered by walking up
+the directory tree toward the filesystem root, and a `rust-toolchain` file
+that is closer to the current directory will be preferred over a directory
+override that is further away.
 
 To verify which toolchain is active use `rustup show`.
+
+[toolchain]: concepts/toolchains.md
+[toolchain override shorthand]: #toolchain-override-shorthand
+[directory override]: #directory-overrides
+[`rustup-toolchain`]: #the-toolchain-file
+[default toolchain]: #default-toolchain
 
 ## Toolchain override shorthand
 
@@ -52,13 +61,17 @@ rustup override set 1.0.0
 To see the active toolchain use `rustup show`. To remove the override and use
 the default toolchain again, `rustup override unset`.
 
+The per-directory overrides are stored in [a configuration file] in `rustup`'s
+home directory.
+
+[a configuration file]: configuration.md
+
 ## The toolchain file
 
-`rustup` directory overrides are a local configuration, stored in
-`$RUSTUP_HOME`. Some projects though find themselves 'pinned' to a specific
-release of Rust and want this information reflected in their source
-repository. This is most often the case for nightly-only software that pins to
-a revision from the release archives.
+Some projects find themselves 'pinned' to a specific release of Rust and want
+this information reflected in their source repository. This is most often the
+case for nightly-only software that pins to a revision from the release
+archives.
 
 In these cases the toolchain can be named in the project's directory in a file
 called `rust-toolchain`, the content of which is either the name of a single
@@ -83,3 +96,17 @@ toolchains generally, and may only contain the names of the three release
 channels, 'stable', 'beta', 'nightly', Rust version numbers, like '1.0.0', and
 optionally an archive date, like 'nightly-2017-01-01'. They may not name
 custom toolchains, nor host-specific toolchains.
+
+## Default toolchain
+
+If no other overrides are set, the global default toolchain will be used. This
+default can be chosen when `rustup` is [installed]. The `rustup default`
+command can be used to set and query the current default. Run `rustup default`
+without any arguments to print the current default. Specify a toolchain as an
+argument to change the default:
+
+```console
+rustup default nightly-2020-07-27
+```
+
+[installed]: installation/index.md
