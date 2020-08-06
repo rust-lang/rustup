@@ -8,3 +8,8 @@ signatures of downloads.
 
 File modes on installation honor umask as of 1.18.4, use umask if very tight
 controls are desired.
+
+If you wish to report a security issue, please follow the [Rust security
+policy].
+
+[Rust security policy]: https://www.rust-lang.org/policies/security
