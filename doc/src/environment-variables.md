@@ -4,8 +4,8 @@
   root `rustup` folder, used for storing installed toolchains and
   configuration options.
 
-- `RUSTUP_TOOLCHAIN` (default: none) If set, will override the toolchain used
-  for all rust tool invocations. A toolchain with this name should be
+- `RUSTUP_TOOLCHAIN` (default: none) If set, will [override] the toolchain
+  used for all rust tool invocations. A toolchain with this name should be
   installed, or invocations will fail.
 
 - `RUSTUP_DIST_SERVER` (default: `https://static.rust-lang.org`) Sets the root
@@ -26,10 +26,7 @@
 
 - `RUSTUP_TRACE_DIR` *unstable* (default: no tracing) Enables tracing and
   determines the directory that traces will be written too. Traces are of the
-  form PID.trace. Traces can be read by the Catapult project [tracing
-  viewer][tv].
-
-  [tv]: (https://github.com/catapult-project/catapult/blob/master/tracing/README.md)
+  form PID.trace. Traces can be read by the Catapult project [tracing viewer].
 
 - `RUSTUP_UNPACK_RAM` *unstable* (default 400M, min 100M) Caps the amount of
   RAM `rustup` will use for IO tasks while unpacking.
@@ -43,4 +40,6 @@
   feature sacrifices some transactions protections and may be removed at any
   point. Linux only.
 
-  [dc]: (https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories)
+[dc]: https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories
+[override]: overrides.md
+[tracing viewer]: https://github.com/catapult-project/catapult/blob/master/tracing/README.md
