@@ -1,7 +1,7 @@
 # Other installation methods
 
-The primary installation method, as described at https://rustup.rs, differs by
-platform:
+The primary installation method, as described at <https://rustup.rs>, differs
+by platform:
 
 * On Windows, download and run the [rustup-init.exe built for
   `i686-pc-windows-gnu` target][setup]. In general, this is the build of
@@ -72,7 +72,8 @@ choice:
 You can fetch an older version from
 `https://static.rust-lang.org/rustup/archive/{rustup-version}/{target-triple}/rustup-init[.exe]`
 
-To install from source just run `cargo run --release`. Note that currently
-`rustup` only builds on nightly Rust, and that after installation the `rustup`
-toolchains will supersede any pre-existing toolchains by prepending
-`~/.cargo/bin` to the `PATH` environment variable.
+To install `rustup` from source, check out the git repository from
+<https://github.com/rust-lang/rustup> and run `cargo run --release`. Note that
+currently `rustup` only builds on nightly Rust, and that after installation
+the `rustup` toolchains will supersede any pre-existing toolchains by
+prepending `~/.cargo/bin` to the `PATH` environment variable.

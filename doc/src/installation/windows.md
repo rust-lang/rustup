@@ -10,10 +10,10 @@ Visual Studio use the MSVC build of Rust; for interop with GNU software built
 using the [MinGW/MSYS2 toolchain] use the GNU build.
 
 When targeting the MSVC ABI, Rust additionally requires an [installation of
-Visual Studio 2013 (or later) or the Visual C++ Build Tools 2019][vs] so rustc
-can use its linker. For Visual Studio, make sure to check the "C++ tools" and
-"Windows 10 SDK" option. No additional software installation is necessary for
-basic use of the GNU build.
+Visual Studio 2013 (or later) or the Visual C++ Build Tools 2019][vs] so
+`rustc` can use its linker. For Visual Studio, make sure to check the "C++
+tools" and "Windows 10 SDK" option. No additional software installation is
+necessary for basic use of the GNU build.
 
 By default `rustup` on Windows configures Rust to target the MSVC ABI, that is
 a target triple of either `i686-pc-windows-msvc` or `x86_64-pc-windows-msvc`
@@ -37,8 +37,6 @@ Or to choose the 64 bit GNU toolchain:
 $ rustup set default-host x86_64-pc-windows-gnu
 ```
 
-[toolchain specification]: #toolchain-specification
-
 Since the MSVC ABI provides the best interoperation with other Windows
 software it is recommended for most purposes. The GNU toolchain is always
 available, even if you don't use it by default. Just install it with `rustup
@@ -58,7 +56,11 @@ $ rustup target add i686-pc-windows-msvc
 $ rustup target add i686-pc-windows-gnu
 ```
 
+See the [Cross-compilation] chapter for more details on specifying different
+targets with the same compiler.
+
 [ABIs]: https://en.wikipedia.org/wiki/Application_binary_interface
+[cross-compilation]: ../cross-compilation.md
 [GCC toolchain]: https://gcc.gnu.org/
 [MinGW/MSYS2 toolchain]: https://msys2.github.io/
 [msvc-toolchain]: https://www.rust-lang.org/tools/install?platform_override=win

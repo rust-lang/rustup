@@ -35,17 +35,18 @@ and that `CARGO_HOME/bin` is in the `$PATH` environment variable when using
 the toolchain.
 
 [Environment Variables]: ../environment-variables.md
-[cargo]: https://github.com/rust-lang/cargo
+[cargo]: https://doc.rust-lang.org/cargo/
 
 ## Installing nightly
 
-When `rustup-init` installs the initial toolchain it _forces_ the installation
-and so will install the `nightly` channel regardless of whether it might be
-missing components that you want.  For example, if you want to make a fresh
+If you specify the [nightly channel] when installing `rustup`, the
+`rustup-init` script will do a "forced" installation by default. A "forced"
+installation means it will install the nightly channel regardless of whether
+it might be missing [components] that you want. If you want to install rustup
+with the nightly channel, and ensure it has the components that you want, you
+will need to do this in two phases. For example, if you want to make a fresh
 installation of `rustup` and then install `nightly` along with `clippy` or
-`miri` you will need to do this in two phases.
-
-Firstly install `rustup` by means of:
+`miri`, first install `rustup` without a toolchain:
 
 ```console
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
@@ -60,6 +61,9 @@ rustup toolchain install nightly --allow-downgrade --profile minimal --component
 
 This can be used to great effect in CI, to get you a toolchain rapidly which
 meets your criteria.
+
+[nightly channel]: ../concepts/channels.md
+[components]: ../concepts/components.md
 
 ## Enable tab completion for Bash, Fish, Zsh, or PowerShell
 
