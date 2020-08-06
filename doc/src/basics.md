@@ -1,12 +1,19 @@
 # Basic usage
 
+The `rustup` command-line has a built-in help system that provides more
+information about each command. Run `rustup help` for an overview. Detailed
+help for each subcommand is also available. For example, run `rustup toolchain
+install --help` for specifics on installing [toolchains].
+
+[toolchains]: concepts/toolchains.md
+
 ## Keeping Rust up to date
 
 Rust is distributed on three different [release channels]: stable, beta, and
 nightly. `rustup` is configured to use the stable channel by default, which
 represents the latest release of Rust, and is released every six weeks.
 
-[release channels]: https://github.com/rust-lang/rfcs/blob/master/text/0507-release-channels.md
+[release channels]: concepts/channels.md
 
 When a new version of Rust is released, you can type `rustup update` to update
 to it:
