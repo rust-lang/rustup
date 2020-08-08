@@ -51,8 +51,8 @@ use crate::utils::Notification;
 use crate::{Cfg, UpdateStatus};
 use crate::{DUP_TOOLS, TOOLS};
 
-mod path_update;
-use path_update::PathUpdateMethod;
+#[cfg(unix)]
+mod shell;
 #[cfg(unix)]
 mod unix;
 #[cfg(windows)]
@@ -122,6 +122,7 @@ these changes will be reverted.
     };
 }
 
+#[cfg(unix)]
 macro_rules! pre_install_msg_unix {
     () => {
         pre_install_msg_template!(
@@ -133,6 +134,7 @@ modifying the profile file{plural} located at:
     };
 }
 
+#[cfg(windows)]
 macro_rules! pre_install_msg_win {
     () => {
         pre_install_msg_template!(
@@ -322,7 +324,7 @@ pub fn install(
     let install_res: Result<utils::ExitCode> = (|| {
         install_bins()?;
         if !opts.no_modify_path {
-            do_add_to_path(&get_add_path_methods())?;
+            do_add_to_path()?;
         }
         utils::create_rustup_home()?;
         maybe_install_rust(
@@ -335,9 +337,6 @@ pub fn install(
             verbose,
             quiet,
         )?;
-
-        #[cfg(unix)]
-        write_env()?;
 
         Ok(utils::ExitCode(0))
     })();
@@ -514,23 +513,14 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
     let rustup_home = utils::rustup_home()?;
 
     if !no_modify_path {
-        if cfg!(unix) {
-            let add_path_methods = get_add_path_methods();
-            let rcfiles = add_path_methods
-                .into_iter()
-                .filter_map(|m| {
-                    if let PathUpdateMethod::RcFile(path) = m {
-                        Some(format!("{}", path.display()))
-                    } else {
-                        None
-                    }
-                })
+        // Brittle code warning: some duplication in unix::do_add_to_path
+        #[cfg(not(windows))]
+        {
+            let rcfiles = shell::get_available_shells()
+                .flat_map(|sh| sh.update_rcs().into_iter())
+                .map(|rc| format!("    {}", rc.display()))
                 .collect::<Vec<_>>();
             let plural = if rcfiles.len() > 1 { "s" } else { "" };
-            let rcfiles = rcfiles
-                .into_iter()
-                .map(|f| format!("    {}", f))
-                .collect::<Vec<_>>();
             let rcfiles = rcfiles.join("\n");
             Ok(format!(
                 pre_install_msg_unix!(),
@@ -540,14 +530,14 @@ fn pre_install_msg(no_modify_path: bool) -> Result<String> {
                 rcfiles = rcfiles,
                 rustup_home = rustup_home.display(),
             ))
-        } else {
-            Ok(format!(
-                pre_install_msg_win!(),
-                cargo_home = cargo_home.display(),
-                cargo_home_bin = cargo_home_bin.display(),
-                rustup_home = rustup_home.display(),
-            ))
         }
+        #[cfg(windows)]
+        Ok(format!(
+            pre_install_msg_win!(),
+            cargo_home = cargo_home.display(),
+            cargo_home_bin = cargo_home_bin.display(),
+            rustup_home = rustup_home.display(),
+        ))
     } else {
         Ok(format!(
             pre_install_msg_no_modify_path!(),
@@ -846,8 +836,7 @@ pub fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
     info!("removing cargo home");
 
     // Remove CARGO_HOME/bin from PATH
-    let remove_path_methods = get_remove_path_methods()?;
-    do_remove_from_path(&remove_path_methods)?;
+    do_remove_from_path()?;
 
     // Delete everything in CARGO_HOME *except* the rustup bin
 

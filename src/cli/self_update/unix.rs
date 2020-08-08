@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use super::super::errors::*;
-use super::path_update::PathUpdateMethod;
-use super::{canonical_cargo_home, install_bins};
+use super::install_bins;
+use super::shell;
 use crate::process;
 use crate::utils::utils;
 use crate::utils::Notification;
@@ -57,68 +57,57 @@ pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
     panic!("stop doing that")
 }
 
-pub fn do_remove_from_path(methods: &[PathUpdateMethod]) -> Result<()> {
-    for method in methods {
-        if let PathUpdateMethod::RcFile(ref rcpath) = *method {
-            let file = utils::read_file("rcfile", rcpath)?;
-            let addition = format!("\n{}\n", shell_export_string()?);
+pub fn do_remove_from_path() -> Result<()> {
+    for sh in shell::get_available_shells() {
+        let source_bytes = format!("{}\n", sh.source_string()?).into_bytes();
 
+        // Check more files for cleanup than normally are updated.
+        for rc in sh.rcfiles().iter().filter(|rc| rc.is_file()) {
+            let file = utils::read_file("rcfile", &rc)?;
             let file_bytes = file.into_bytes();
-            let addition_bytes = addition.into_bytes();
-
-            let idx = file_bytes
-                .windows(addition_bytes.len())
-                .position(|w| w == &*addition_bytes);
-            if let Some(i) = idx {
-                let mut new_file_bytes = file_bytes[..i].to_vec();
-                new_file_bytes.extend(&file_bytes[i + addition_bytes.len()..]);
-                let new_file = String::from_utf8(new_file_bytes).unwrap();
-                utils::write_file("rcfile", rcpath, &new_file)?;
-            } else {
-                // Weird case. rcfile no longer needs to be modified?
+            // FIXME: This is whitespace sensitive where it should not be.
+            if let Some(idx) = file_bytes
+                .windows(source_bytes.len())
+                .position(|w| w == source_bytes.as_slice())
+            {
+                // Here we rewrite the file without the offending line.
+                let mut new_bytes = file_bytes[..idx].to_vec();
+                new_bytes.extend(&file_bytes[idx + source_bytes.len()..]);
+                let new_file = String::from_utf8(new_bytes).unwrap();
+                utils::write_file("rcfile", &rc, &new_file)?;
             }
-        } else {
-            unreachable!()
         }
     }
 
+    remove_legacy_paths()?;
+
     Ok(())
 }
 
-pub fn write_env() -> Result<()> {
-    let env_file = utils::cargo_home()?.join("env");
-    let env_str = format!("{}\n", shell_export_string()?);
-    utils::write_file("env", &env_file, &env_str)?;
-    Ok(())
-}
+pub fn do_add_to_path() -> Result<()> {
+    let mut written = vec![];
 
-pub fn shell_export_string() -> Result<String> {
-    let path = format!("{}/bin", canonical_cargo_home()?);
-    // The path is *prepended* in case there are system-installed
-    // rustc's that need to be overridden.
-    Ok(format!(r#"export PATH="{}:$PATH""#, path))
-}
-
-pub fn do_add_to_path(methods: &[PathUpdateMethod]) -> Result<()> {
-    for method in methods {
-        if let PathUpdateMethod::RcFile(ref rcpath) = *method {
-            let file = if rcpath.exists() {
-                utils::read_file("rcfile", rcpath)?
-            } else {
-                String::new()
-            };
-            let addition = format!("\n{}", shell_export_string()?);
-            if !file.contains(&addition) {
-                utils::append_file("rcfile", rcpath, &addition).chain_err(|| {
+    for sh in shell::get_available_shells() {
+        let source_cmd = sh.source_string()?;
+        for rc in sh.update_rcs() {
+            if !rc.is_file() || !utils::read_file("rcfile", &rc)?.contains(&source_cmd) {
+                utils::append_file("rcfile", &rc, &source_cmd).chain_err(|| {
                     ErrorKind::WritingShellProfile {
-                        path: rcpath.to_path_buf(),
+                        path: rc.to_path_buf(),
                     }
                 })?;
+                let script = sh.env_script();
+                // Only write scripts once.
+                // TODO 2021: remove this code if Rustup adds 0 shell scripts.
+                if !written.contains(&script) {
+                    script.write()?;
+                    written.push(script);
+                }
             }
-        } else {
-            unreachable!()
         }
     }
+
+    remove_legacy_paths()?;
 
     Ok(())
 }
@@ -154,47 +143,22 @@ pub fn self_replace() -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-/// Decide which rcfiles we're going to update, so we
-/// can tell the user before they confirm.
-pub fn get_add_path_methods() -> Vec<PathUpdateMethod> {
-    let home_dir = utils::home_dir().unwrap();
-    let profile = home_dir.join(".profile");
-    let mut profiles = vec![profile];
-
-    if let Ok(shell) = process().var("SHELL") {
-        if shell.contains("zsh") {
-            let var = process().var_os("ZDOTDIR");
-            let zdotdir = var.as_deref().map_or_else(|| home_dir.as_path(), Path::new);
-            let zprofile = zdotdir.join(".zprofile");
-            profiles.push(zprofile);
+fn remove_legacy_paths() -> Result<()> {
+    let export = format!("export PATH=\"{}/bin:$PATH\"\n", shell::cargo_home_str()?).into_bytes();
+    for rc in shell::legacy_paths().filter(|rc| rc.is_file()) {
+        let file = utils::read_file("rcfile", &rc)?;
+        let file_bytes = file.into_bytes();
+        // FIXME: This is whitespace sensitive where it should not be.
+        if let Some(idx) = file_bytes
+            .windows(export.len())
+            .position(|w| w == export.as_slice())
+        {
+            // Here we rewrite the file without the offending line.
+            let mut new_bytes = file_bytes[..idx].to_vec();
+            new_bytes.extend(&file_bytes[idx + export.len()..]);
+            let new_file = String::from_utf8(new_bytes).unwrap();
+            utils::write_file("rcfile", &rc, &new_file)?;
         }
     }
-
-    let bash_profile = home_dir.join(".bash_profile");
-    // Only update .bash_profile if it exists because creating .bash_profile
-    // will cause .profile to not be read
-    if bash_profile.exists() {
-        profiles.push(bash_profile);
-    }
-
-    profiles.into_iter().map(PathUpdateMethod::RcFile).collect()
-}
-
-/// Decide which rcfiles we're going to update, so we
-/// can tell the user before they confirm.
-pub fn get_remove_path_methods() -> Result<Vec<PathUpdateMethod>> {
-    let profile = utils::home_dir().map(|p| p.join(".profile"));
-    let bash_profile = utils::home_dir().map(|p| p.join(".bash_profile"));
-
-    let rcfiles = vec![profile, bash_profile];
-    let existing_rcfiles = rcfiles.into_iter().filter_map(|f| f).filter(|f| f.exists());
-
-    let export_str = shell_export_string()?;
-    let matching_rcfiles = existing_rcfiles.filter(|f| {
-        let file = utils::read_file("rcfile", f).unwrap_or_default();
-        let addition = format!("\n{}", export_str);
-        file.contains(&addition)
-    });
-
-    Ok(matching_rcfiles.map(PathUpdateMethod::RcFile).collect())
+    Ok(())
 }
