@@ -11,8 +11,8 @@ use rustup::test::this_host_triple;
 use rustup::utils::raw;
 
 use crate::mock::clitools::{
-    self, expect_err, expect_ok, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run,
-    set_current_dist_date, Config, Scenario,
+    self, expect_err, expect_not_stdout_ok, expect_ok, expect_ok_ex, expect_stderr_ok,
+    expect_stdout_ok, run, set_current_dist_date, Config, Scenario,
 };
 
 macro_rules! for_host_and_home {
@@ -1399,6 +1399,152 @@ fn file_override_with_archive() {
         raw::write_file(&toolchain_file, "nightly-2015-01-01").unwrap();
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+    });
+}
+
+#[test]
+fn file_override_toml_format_select_installed_toolchain() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly-2015-01-01",
+                "--no-self-update",
+            ],
+        );
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+channel = "nightly-2015-01-01"
+"#,
+        )
+        .unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+    });
+}
+
+#[test]
+fn file_override_toml_format_install_both_toolchain_and_components() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+        expect_not_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            "rust-src (installed)",
+        );
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+channel = "nightly-2015-01-01"
+components = [ "rust-src" ]
+"#,
+        )
+        .unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+        expect_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            "rust-src (installed)",
+        );
+    });
+}
+
+#[test]
+fn file_override_toml_format_add_missing_components() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_not_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            "rust-src (installed)",
+        );
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+components = [ "rust-src" ]
+"#,
+        )
+        .unwrap();
+
+        expect_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            "rust-src (installed)",
+        );
+    });
+}
+
+#[test]
+fn file_override_toml_format_add_missing_targets() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_not_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            "arm-linux-androideabi (installed)",
+        );
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+targets = [ "arm-linux-androideabi" ]
+"#,
+        )
+        .unwrap();
+
+        expect_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            "arm-linux-androideabi (installed)",
+        );
+    });
+}
+
+#[test]
+fn file_override_toml_format_skip_invalid_component() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+components = [ "rust-bongo" ]
+"#,
+        )
+        .unwrap();
+
+        expect_stderr_ok(
+            config,
+            &["rustc", "--version"],
+            "warning: Force-skipping unavailable component 'rust-bongo",
+        );
     });
 }
 

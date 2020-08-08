@@ -374,6 +374,15 @@ error_chain! {
         BrokenPartialFile {
             description("partially downloaded file may have been damaged and was removed, please try again")
         }
+        EmptyOverrideFile {
+            description("empty toolchain override file detected. Please remove it, or else specify the desired toolchain properties in the file")
+        }
+        InvalidOverrideFile {
+            description("missing toolchain properties in toolchain override file")
+        }
+        ParsingOverrideFile(e: toml::de::Error) {
+            description("error parsing override file")
+        }
     }
 }
 

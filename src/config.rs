@@ -7,6 +7,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use pgp::{Deserializable, SignedPublicKey};
+use serde::Deserialize;
 
 use crate::dist::download::DownloadCfg;
 use crate::dist::{dist, temp};
@@ -17,6 +18,41 @@ use crate::process;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
 use crate::toolchain::{DistributableToolchain, Toolchain, UpdateStatus};
 use crate::utils::utils;
+
+#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+struct OverrideFile {
+    toolchain: ToolchainSection,
+}
+
+impl OverrideFile {
+    fn is_empty(&self) -> bool {
+        self.toolchain.is_empty()
+    }
+}
+
+#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+struct ToolchainSection {
+    channel: Option<String>,
+    components: Option<Vec<String>>,
+    targets: Option<Vec<String>>,
+}
+
+impl ToolchainSection {
+    fn is_empty(&self) -> bool {
+        self.channel.is_none() && self.components.is_none() && self.targets.is_none()
+    }
+}
+
+impl<T: Into<String>> From<T> for OverrideFile {
+    fn from(channel: T) -> Self {
+        Self {
+            toolchain: ToolchainSection {
+                channel: Some(channel.into()),
+                ..Default::default()
+            },
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum OverrideReason {
@@ -34,6 +70,26 @@ impl Display for OverrideReason {
             Self::OverrideDB(path) => write!(f, "directory override for '{}'", path.display()),
             Self::ToolchainFile(path) => write!(f, "overridden by '{}'", path.display()),
         }
+    }
+}
+
+#[derive(Default)]
+struct OverrideCfg<'a> {
+    toolchain: Option<Toolchain<'a>>,
+    components: Vec<String>,
+    targets: Vec<String>,
+}
+
+impl<'a> OverrideCfg<'a> {
+    fn from_file(cfg: &'a Cfg, file: OverrideFile) -> Result<Self> {
+        Ok(Self {
+            toolchain: match file.toolchain.channel {
+                Some(name) => Some(Toolchain::from(cfg, &name)?),
+                None => None,
+            },
+            components: file.toolchain.components.unwrap_or_default(),
+            targets: file.toolchain.targets.unwrap_or_default(),
+        })
     }
 }
 
@@ -402,16 +458,27 @@ impl Cfg {
     }
 
     pub fn find_override(&self, path: &Path) -> Result<Option<(Toolchain<'_>, OverrideReason)>> {
+        self.find_override_config(path).map(|opt| {
+            opt.and_then(|(override_cfg, reason)| {
+                override_cfg.toolchain.map(|toolchain| (toolchain, reason))
+            })
+        })
+    }
+
+    fn find_override_config(
+        &self,
+        path: &Path,
+    ) -> Result<Option<(OverrideCfg<'_>, OverrideReason)>> {
         let mut override_ = None;
 
         // First check toolchain override from command
         if let Some(ref name) = self.toolchain_override {
-            override_ = Some((name.to_string(), OverrideReason::CommandLine));
+            override_ = Some((name.into(), OverrideReason::CommandLine));
         }
 
         // Check RUSTUP_TOOLCHAIN
         if let Some(ref name) = self.env_override {
-            override_ = Some((name.to_string(), OverrideReason::Environment));
+            override_ = Some((name.into(), OverrideReason::Environment));
         }
 
         // Then walk up the directory tree from 'path' looking for either the
@@ -424,7 +491,7 @@ impl Cfg {
             })?;
         }
 
-        if let Some((name, reason)) = override_ {
+        if let Some((file, reason)) = override_ {
             // This is hackishly using the error chain to provide a bit of
             // extra context about what went wrong. The CLI will display it
             // on a line after the proximate error.
@@ -448,19 +515,22 @@ impl Cfg {
                 ),
             };
 
-            let toolchain = Toolchain::from(self, &name)?;
-            // Overridden toolchains can be literally any string, but only
-            // distributable toolchains will be auto-installed by the wrapping
-            // code; provide a nice error for this common case. (default could
-            // be set badly too, but that is much less common).
-            if !toolchain.exists() && toolchain.is_custom() {
-                // Strip the confusing NotADirectory error and only mention that the
-                // override toolchain is not installed.
-                Err(Error::from(reason_err))
-                    .chain_err(|| ErrorKind::OverrideToolchainNotInstalled(name.to_string()))
-            } else {
-                Ok(Some((toolchain, reason)))
+            let override_cfg = OverrideCfg::from_file(self, file)?;
+            if let Some(toolchain) = &override_cfg.toolchain {
+                // Overridden toolchains can be literally any string, but only
+                // distributable toolchains will be auto-installed by the wrapping
+                // code; provide a nice error for this common case. (default could
+                // be set badly too, but that is much less common).
+                if !toolchain.exists() && toolchain.is_custom() {
+                    // Strip the confusing NotADirectory error and only mention that the
+                    // override toolchain is not installed.
+                    return Err(Error::from(reason_err)).chain_err(|| {
+                        ErrorKind::OverrideToolchainNotInstalled(toolchain.name().into())
+                    });
+                }
             }
+
+            Ok(Some((override_cfg, reason)))
         } else {
             Ok(None)
         }
@@ -470,7 +540,7 @@ impl Cfg {
         &self,
         dir: &Path,
         settings: &Settings,
-    ) -> Result<Option<(String, OverrideReason)>> {
+    ) -> Result<Option<(OverrideFile, OverrideReason)>> {
         let notify = self.notify_handler.as_ref();
         let dir = utils::canonicalize_path(dir, notify);
         let mut dir = Some(&*dir);
@@ -479,14 +549,14 @@ impl Cfg {
             // First check the override database
             if let Some(name) = settings.dir_override(d, notify) {
                 let reason = OverrideReason::OverrideDB(d.to_owned());
-                return Ok(Some((name, reason)));
+                return Ok(Some((name.into(), reason)));
             }
 
             // Then look for 'rust-toolchain'
             let toolchain_file = d.join("rust-toolchain");
-            if let Ok(s) = utils::read_file("toolchain file", &toolchain_file) {
-                if let Some(s) = s.lines().next() {
-                    let toolchain_name = s.trim();
+            if let Ok(contents) = utils::read_file("toolchain file", &toolchain_file) {
+                let override_file = Cfg::parse_override_file(contents)?;
+                if let Some(toolchain_name) = &override_file.toolchain.channel {
                     let all_toolchains = self.list_toolchains()?;
                     if !all_toolchains.iter().any(|s| s == toolchain_name) {
                         // The given name is not resolvable as a toolchain, so
@@ -499,9 +569,10 @@ impl Cfg {
                             )
                         })?;
                     }
-                    let reason = OverrideReason::ToolchainFile(toolchain_file);
-                    return Ok(Some((toolchain_name.to_string(), reason)));
                 }
+
+                let reason = OverrideReason::ToolchainFile(toolchain_file);
+                return Ok(Some((override_file, reason)));
             }
 
             dir = d.parent();
@@ -510,26 +581,100 @@ impl Cfg {
         Ok(None)
     }
 
+    fn parse_override_file<S: AsRef<str>>(contents: S) -> Result<OverrideFile> {
+        let contents = contents.as_ref();
+
+        match contents.lines().count() {
+            0 => return Err(ErrorKind::EmptyOverrideFile.into()),
+            1 => {
+                let channel = contents.trim();
+
+                if channel.is_empty() {
+                    Err(ErrorKind::EmptyOverrideFile.into())
+                } else {
+                    Ok(channel.into())
+                }
+            }
+            _ => {
+                let override_file = toml::from_str::<OverrideFile>(contents)
+                    .map_err(ErrorKind::ParsingOverrideFile)?;
+
+                if override_file.is_empty() {
+                    Err(ErrorKind::InvalidOverrideFile.into())
+                } else {
+                    Ok(override_file)
+                }
+            }
+        }
+    }
+
     pub fn find_or_install_override_toolchain_or_default(
         &self,
         path: &Path,
     ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
-        if let Some((toolchain, reason)) =
-            if let Some((toolchain, reason)) = self.find_override(path)? {
-                Some((toolchain, Some(reason)))
-            } else {
-                self.find_default()?.map(|toolchain| (toolchain, None))
+        fn components_exist(
+            distributable: &DistributableToolchain<'_>,
+            components: &[&str],
+            targets: &[&str],
+        ) -> Result<bool> {
+            let components_requested = !components.is_empty() || !targets.is_empty();
+
+            match (distributable.list_components(), components_requested) {
+                // If the toolchain does not support components but there were components requested, bubble up the error
+                (Err(e), true) => Err(e),
+                (Ok(installed_components), _) => {
+                    Ok(components.iter().chain(targets.iter()).all(|name| {
+                        installed_components.iter().any(|status| {
+                            status.component.short_name_in_manifest() == name && status.installed
+                        })
+                    }))
+                }
+                _ => Ok(true),
+            }
+        }
+
+        if let Some((toolchain, components, targets, reason)) =
+            match self.find_override_config(path)? {
+                Some((
+                    OverrideCfg {
+                        toolchain,
+                        components,
+                        targets,
+                    },
+                    reason,
+                )) => {
+                    let default = if toolchain.is_none() {
+                        self.find_default()?
+                    } else {
+                        None
+                    };
+
+                    toolchain
+                        .or(default)
+                        .map(|toolchain| (toolchain, components, targets, Some(reason)))
+                }
+                None => self
+                    .find_default()?
+                    .map(|toolchain| (toolchain, vec![], vec![], None)),
             }
         {
-            if !toolchain.exists() {
-                if toolchain.is_custom() {
+            if toolchain.is_custom() {
+                if !toolchain.exists() {
                     return Err(
                         ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into(),
                     );
                 }
+            } else {
+                let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
+                let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
+
                 let distributable = DistributableToolchain::new(&toolchain)?;
-                distributable.install_from_dist(true, false, &[], &[])?;
+                if !toolchain.exists() || !components_exist(&distributable, &components, &targets)?
+                {
+                    distributable.install_from_dist(true, false, &components, &targets)?;
+                }
             }
+
             Ok((toolchain, reason))
         } else {
             // No override and no default set
@@ -720,5 +865,177 @@ impl Cfg {
         } else {
             Ok(name.to_owned())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_legacy_toolchain_file() {
+        let contents = "nightly-2020-07-10";
+
+        let result = Cfg::parse_override_file(contents);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: Some(contents.into()),
+                    components: None,
+                    targets: None,
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file() {
+        let contents = r#"[toolchain]
+channel = "nightly-2020-07-10"
+components = [ "rustfmt", "rustc-dev" ]
+targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
+"#;
+
+        let result = Cfg::parse_override_file(contents);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: Some("nightly-2020-07-10".into()),
+                    components: Some(vec!["rustfmt".into(), "rustc-dev".into()]),
+                    targets: Some(vec![
+                        "wasm32-unknown-unknown".into(),
+                        "thumbv2-none-eabi".into()
+                    ]),
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file_only_channel() {
+        let contents = r#"[toolchain]
+channel = "nightly-2020-07-10"
+"#;
+
+        let result = Cfg::parse_override_file(contents);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: Some("nightly-2020-07-10".into()),
+                    components: None,
+                    targets: None,
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file_empty_components() {
+        let contents = r#"[toolchain]
+channel = "nightly-2020-07-10"
+components = []
+"#;
+
+        let result = Cfg::parse_override_file(contents);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: Some("nightly-2020-07-10".into()),
+                    components: Some(vec![]),
+                    targets: None,
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file_empty_targets() {
+        let contents = r#"[toolchain]
+channel = "nightly-2020-07-10"
+targets = []
+"#;
+
+        let result = Cfg::parse_override_file(contents);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: Some("nightly-2020-07-10".into()),
+                    components: None,
+                    targets: Some(vec![]),
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file_no_channel() {
+        let contents = r#"[toolchain]
+components = [ "rustfmt" ]
+"#;
+
+        let result = Cfg::parse_override_file(contents);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: None,
+                    components: Some(vec!["rustfmt".into()]),
+                    targets: None,
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn parse_empty_toml_toolchain_file() {
+        let contents = r#"
+[toolchain]
+"#;
+
+        let result = Cfg::parse_override_file(contents);
+        assert!(matches!(
+            result.unwrap_err().kind(),
+            ErrorKind::InvalidOverrideFile
+        ));
+    }
+
+    #[test]
+    fn parse_empty_toolchain_file() {
+        let contents = "";
+
+        let result = Cfg::parse_override_file(contents);
+        assert!(matches!(
+            result.unwrap_err().kind(),
+            ErrorKind::EmptyOverrideFile
+        ));
+    }
+
+    #[test]
+    fn parse_whitespace_toolchain_file() {
+        let contents = "   ";
+
+        let result = Cfg::parse_override_file(contents);
+        assert!(matches!(
+            result.unwrap_err().kind(),
+            ErrorKind::EmptyOverrideFile
+        ));
+    }
+
+    #[test]
+    fn parse_toml_syntax_error() {
+        let contents = r#"[toolchain]
+channel = nightly
+"#;
+
+        let result = Cfg::parse_override_file(contents);
+        assert!(matches!(
+            result.unwrap_err().kind(),
+            ErrorKind::ParsingOverrideFile(..)
+        ));
     }
 }
