@@ -782,7 +782,9 @@ fn _install_selection<'a>(
         }
         writeln!(process().stdout())?;
         None
-    } else if user_specified_something || cfg.find_default()?.is_none() {
+    } else if user_specified_something
+        || (update_existing_toolchain && cfg.find_default()?.is_none())
+    {
         Some(match toolchain_opt {
             Some(s) => cfg.get_toolchain(s, false)?,
             None => match cfg.find_default()? {
@@ -1104,7 +1106,7 @@ mod test {
                         None,      // No toolchain specified
                         "default", // default profile
                         None,
-                        false,
+                        true,
                         &[],
                         &[],
                     )
