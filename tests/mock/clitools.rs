@@ -43,6 +43,8 @@ pub struct Config {
     pub homedir: PathBuf,
     /// An empty directory. Tests should not write to this.
     pub emptydir: PathBuf,
+    /// Root for updates to rustup itself aka RUSTUP_UPDATE_ROOT
+    pub rustup_update_root: Option<String>,
     /// This is cwd for the test
     pub workdir: RefCell<PathBuf>,
 }
@@ -93,6 +95,7 @@ pub static MULTI_ARCH1: &str = "x86_64-unknown-linux-gnu";
 /// a mock dist server.
 pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     // Unset env variables that will break our testing
+    env::remove_var("RUSTUP_UPDATE_ROOT");
     env::remove_var("RUSTUP_TOOLCHAIN");
     env::remove_var("SHELL");
     env::remove_var("ZDOTDIR");
@@ -142,6 +145,7 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
         cargodir,
         homedir,
         emptydir,
+        rustup_update_root: None,
         workdir: RefCell::new(workdir),
     };
 
@@ -434,6 +438,10 @@ pub fn env<E: rustup_test::Env>(config: &Config, cmd: &mut E) {
             .unwrap()
             .join("tests/mock/signing-key.pub.asc"),
     );
+
+    if let Some(root) = config.rustup_update_root.as_ref() {
+        cmd.env("RUSTUP_UPDATE_ROOT", root);
+    }
 }
 
 use std::sync::RwLock;
