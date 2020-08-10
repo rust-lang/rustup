@@ -352,10 +352,9 @@ pub fn install(
         // that may have opened just for this purpose, give
         // the user an opportunity to see the error before the
         // window closes.
-        if cfg!(windows) && !no_prompt {
-            writeln!(process().stdout(),)?;
-            writeln!(process().stdout(), "Press the Enter key to continue.")?;
-            common::read_line()?;
+        #[cfg(windows)]
+        if !no_prompt {
+            ensure_prompt()?;
         }
 
         return Ok(utils::ExitCode(1));
@@ -378,15 +377,12 @@ pub fn install(
     };
     md(&mut term, msg);
 
+    #[cfg(windows)]
     if !no_prompt {
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, require
         // the user to press a key to continue.
-        if cfg!(windows) {
-            writeln!(process().stdout())?;
-            writeln!(process().stdout(), "Press the Enter key to continue.")?;
-            common::read_line()?;
-        }
+        ensure_prompt()?;
     }
 
     Ok(utils::ExitCode(0))

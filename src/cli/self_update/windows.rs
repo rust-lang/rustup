@@ -3,11 +3,19 @@ use std::path::Path;
 use std::process::Command;
 
 use super::super::errors::*;
+use super::common;
 use super::{install_bins, InstallOpts};
 use crate::dist::dist::TargetTriple;
 use crate::process;
 use crate::utils::utils;
 use crate::utils::Notification;
+
+pub fn ensure_prompt() -> Result<()> {
+    writeln!(process().stdout(),)?;
+    writeln!(process().stdout(), "Press the Enter key to continue.")?;
+    common::read_line()?;
+    Ok(())
+}
 
 // Provide guidance about setting up MSVC if it doesn't appear to be
 // installed
