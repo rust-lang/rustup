@@ -211,6 +211,7 @@ This will uninstall all Rust toolchains and data, and remove
     };
 }
 
+#[cfg(windows)]
 static MSVC_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
 
 Rust requires the Microsoft C++ build tools for Visual Studio 2013 or
@@ -288,6 +289,8 @@ pub fn install(
     do_anti_sudo_check(no_prompt)?;
 
     let mut term = term2::stdout();
+
+    #[cfg(windows)]
     if !do_msvc_check(&opts)? {
         if no_prompt {
             warn!("installing msvc toolchain without its prerequisites");
@@ -501,11 +504,6 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
         )
     })?;
     Ok(())
-}
-
-#[cfg(not(windows))]
-fn do_msvc_check(_opts: &InstallOpts<'_>) -> Result<bool> {
-    Ok(true)
 }
 
 fn pre_install_msg(no_modify_path: bool) -> Result<String> {
