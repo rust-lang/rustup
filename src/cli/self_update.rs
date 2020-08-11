@@ -124,7 +124,7 @@ these changes will be reverted.
     };
 }
 
-#[cfg(unix)]
+#[cfg(not(windows))]
 macro_rules! pre_install_msg_unix {
     () => {
         pre_install_msg_template!(
@@ -155,6 +155,7 @@ but will not be added automatically."
     };
 }
 
+#[cfg(not(windows))]
 macro_rules! post_install_msg_unix {
     () => {
         r"# Rust is installed now. Great!
@@ -168,6 +169,7 @@ To configure your current shell run `source {cargo_home}/env`
     };
 }
 
+#[cfg(windows)]
 macro_rules! post_install_msg_win {
     () => {
         r"# Rust is installed now. Great!
@@ -179,6 +181,7 @@ correct environment, but you may need to restart your current shell.
     };
 }
 
+#[cfg(not(windows))]
 macro_rules! post_install_msg_unix_no_modify_path {
     () => {
         r"# Rust is installed now. Great!
@@ -191,6 +194,7 @@ To configure your current shell run `source {cargo_home}/env`
     };
 }
 
+#[cfg(windows)]
 macro_rules! post_install_msg_win_no_modify_path {
     () => {
         r"# Rust is installed now. Great!
@@ -366,17 +370,23 @@ pub fn install(
     let cargo_home = canonical_cargo_home()?;
     #[cfg(windows)]
     let cargo_home = cargo_home.replace('\\', r"\\");
-    let msg = match (opts.no_modify_path, cfg!(unix)) {
-        (false, true) => format!(post_install_msg_unix!(), cargo_home = cargo_home),
-        (false, false) => format!(post_install_msg_win!(), cargo_home = cargo_home),
-        (true, true) => format!(
-            post_install_msg_unix_no_modify_path!(),
-            cargo_home = cargo_home
-        ),
-        (true, false) => format!(
+    #[cfg(windows)]
+    let msg = if opts.no_modify_path {
+        format!(
             post_install_msg_win_no_modify_path!(),
             cargo_home = cargo_home
-        ),
+        )
+    } else {
+        format!(post_install_msg_win!(), cargo_home = cargo_home)
+    };
+    #[cfg(not(windows))]
+    let msg = if opts.no_modify_path {
+        format!(
+            post_install_msg_unix_no_modify_path!(),
+            cargo_home = cargo_home
+        )
+    } else {
+        format!(post_install_msg_unix!(), cargo_home = cargo_home)
     };
     md(&mut term, msg);
 
