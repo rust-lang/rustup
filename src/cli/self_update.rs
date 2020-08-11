@@ -51,6 +51,7 @@ use std::fs;
 use std::path::{Component, Path, PathBuf, MAIN_SEPARATOR};
 use std::process::Command;
 
+use cfg_if::cfg_if;
 use same_file::Handle;
 
 use super::common::{self, ignorable_error, Confirm};
@@ -250,10 +251,12 @@ fn canonical_cargo_home() -> Result<Cow<'static, str>> {
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".cargo");
     Ok(if default_cargo_home == path {
-        if cfg!(unix) {
-            "$HOME/.cargo".into()
-        } else {
-            r"%USERPROFILE%\.cargo".into()
+        cfg_if! {
+            if #[cfg(windows)] {
+                r"%USERPROFILE%\.cargo".into()
+            } else {
+                "$HOME/.cargo".into()
+            }
         }
     } else {
         path.to_string_lossy().into_owned().into()
