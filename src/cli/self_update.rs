@@ -66,7 +66,9 @@ use crate::utils::Notification;
 use crate::{Cfg, UpdateStatus};
 use crate::{DUP_TOOLS, TOOLS};
 use os::*;
-pub use os::{complete_windows_uninstall, delete_rustup_and_cargo_home, run_update, self_replace};
+pub use os::{delete_rustup_and_cargo_home, run_update, self_replace};
+#[cfg(windows)]
+pub use windows::complete_windows_uninstall;
 
 pub struct InstallOpts<'a> {
     pub default_host_triple: Option<String>,

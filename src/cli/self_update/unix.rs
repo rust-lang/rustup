@@ -53,10 +53,6 @@ pub fn delete_rustup_and_cargo_home() -> Result<()> {
     Ok(())
 }
 
-pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
-    panic!("stop doing that")
-}
-
 pub fn do_remove_from_path() -> Result<()> {
     for sh in shell::get_available_shells() {
         let source_bytes = format!("{}\n", sh.source_string()?).into_bytes();
