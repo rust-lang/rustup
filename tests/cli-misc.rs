@@ -4,6 +4,7 @@
 pub mod mock;
 
 use std::env::consts::EXE_SUFFIX;
+use std::str;
 
 use rustup::for_host;
 use rustup::test::this_host_triple;
@@ -129,8 +130,8 @@ fn show_works_with_dumb_term() {
     });
 }
 
-// Issue #140
-// Don't panic when `target`, `update` etc. are called without subcommands.
+// Issue #2425
+// Exit with error and help output when called without subcommand.
 #[test]
 fn subcommand_required_for_target() {
     setup(&|config| {
@@ -138,12 +139,13 @@ fn subcommand_required_for_target() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert_ne!(out.status.code().unwrap(), 101);
+        assert_eq!(out.status.code().unwrap(), 1);
+        assert!(str::from_utf8(&out.stdout).unwrap().contains(&"USAGE"));
     });
 }
 
-// Issue #140
-// Don't panic when `target`, `update` etc. are called without subcommands.
+// Issue #2425
+// Exit with error and help output when called without subcommand.
 #[test]
 fn subcommand_required_for_toolchain() {
     setup(&|config| {
@@ -151,12 +153,13 @@ fn subcommand_required_for_toolchain() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert_ne!(out.status.code().unwrap(), 101);
+        assert_eq!(out.status.code().unwrap(), 1);
+        assert!(str::from_utf8(&out.stdout).unwrap().contains(&"USAGE"));
     });
 }
 
-// Issue #140
-// Don't panic when `target`, `update` etc. are called without subcommands.
+// Issue #2425
+// Exit with error and help output when called without subcommand.
 #[test]
 fn subcommand_required_for_override() {
     setup(&|config| {
@@ -164,12 +167,13 @@ fn subcommand_required_for_override() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert_ne!(out.status.code().unwrap(), 101);
+        assert_eq!(out.status.code().unwrap(), 1);
+        assert!(str::from_utf8(&out.stdout).unwrap().contains(&"USAGE"));
     });
 }
 
-// Issue #140
-// Don't panic when `target`, `update` etc. are called without subcommands.
+// Issue #2425
+// Exit with error and help output when called without subcommand.
 #[test]
 fn subcommand_required_for_self() {
     setup(&|config| {
@@ -177,7 +181,8 @@ fn subcommand_required_for_self() {
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
-        assert_ne!(out.status.code().unwrap(), 101);
+        assert_eq!(out.status.code().unwrap(), 1);
+        assert!(str::from_utf8(&out.stdout).unwrap().contains(&"USAGE"));
     });
 }
 
