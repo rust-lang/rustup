@@ -1149,7 +1149,7 @@ info: default host triple is {0}
             vars,
             ..Default::default()
         });
-        currentprocess::with(tp.clone(), || -> anyhow::Result<()> {
+        currentprocess::with(tp, || -> anyhow::Result<()> {
             super::install_bins().unwrap();
             Ok(())
         })

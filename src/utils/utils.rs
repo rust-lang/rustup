@@ -548,11 +548,11 @@ pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<String> {
                 #[allow(clippy::cast_ptr_alignment)]
                 slice::from_raw_parts(val.bytes.as_ptr().cast::<u16>(), val.bytes.len() / 2)
             };
-            String::from_utf16(words).ok().and_then(|mut s| {
+            String::from_utf16(words).ok().map(|mut s| {
                 while s.ends_with('\u{0}') {
                     s.pop();
                 }
-                Some(s)
+                s
             })
         }
         _ => None,
@@ -593,6 +593,7 @@ pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
     });
 }
 
+#[cfg(target_os = "linux")]
 fn copy_and_delete<'a, N>(
     name: &'static str,
     src: &'a Path,

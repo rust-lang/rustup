@@ -333,11 +333,10 @@ fn uninstall_doesnt_leave_gc_file() {
 #[test]
 fn update_exact() {
     let version = env!("CARGO_PKG_VERSION");
-    let expected_output = format!(
-        "info: checking for self-updates
+    let expected_output = "info: checking for self-updates
 info: downloading self-update
 "
-    );
+    .to_string();
 
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);

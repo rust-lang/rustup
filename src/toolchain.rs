@@ -287,10 +287,9 @@ impl<'a> InstalledCommonToolchain<'a> {
                         let component_status = component_statuses
                             .iter()
                             .find(|cs| cs.component.short_name(&manifest) == component_name)
-                            .expect(&format!(
-                                "component {} should be in the manifest",
-                                component_name
-                            ));
+                            .unwrap_or_else(|| {
+                                panic!("component {} should be in the manifest", component_name)
+                            });
                         if !component_status.available {
                             return Err(ErrorKind::BinaryProvidedByUnavailableComponent(
                                 component_status.component.short_name(&manifest),
@@ -692,7 +691,7 @@ impl<'a> DistributableToolchain<'a> {
             force_update,
             allow_downgrade,
             exists: self.0.exists(),
-            old_date: old_date.as_ref().map(|s| &**s),
+            old_date: old_date.as_deref(),
             components,
             targets,
             distributable: &self,

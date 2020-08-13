@@ -985,7 +985,7 @@ fn remove_target_host() {
     setup(&|config| {
         let trip = this_host_triple();
         expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "remove", &trip.to_string()]);
+        expect_ok(config, &["rustup", "target", "remove", &trip]);
     });
 }
 

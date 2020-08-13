@@ -86,9 +86,7 @@ pub fn this_host_triple() -> String {
         // building with i686 toolchain, but on an x86_64 host, so run the
         // actual detection logic and trust it.
         let tp = Box::new(currentprocess::TestProcess::default());
-        return currentprocess::with(tp.clone(), || {
-            TargetTriple::from_host().unwrap().to_string()
-        });
+        return currentprocess::with(tp, || TargetTriple::from_host().unwrap().to_string());
     }
     let arch = if cfg!(target_arch = "x86") {
         "i686"
