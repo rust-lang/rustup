@@ -3,10 +3,6 @@
 //! check those tests as well.
 pub mod mock;
 
-use std::path::PathBuf;
-
-use crate::mock::clitools::{self, expect_ok, Config, Scenario};
-
 // Prefer omitting actually unpacking content while just testing paths.
 const INIT_NONE: [&str; 4] = ["rustup-init", "-y", "--default-toolchain", "none"];
 
@@ -14,11 +10,12 @@ const INIT_NONE: [&str; 4] = ["rustup-init", "-y", "--default-toolchain", "none"
 mod unix {
     use std::fmt::Display;
     use std::fs;
+    use std::path::PathBuf;
 
     use rustup::utils::raw;
 
-    use super::*;
-    use crate::mock::clitools::expect_err;
+    use super::INIT_NONE;
+    use crate::mock::clitools::{self, expect_err, expect_ok, Scenario};
 
     // Let's write a fake .rc which looks vaguely like a real script.
     const FAKE_RC: &str = r#"
@@ -35,15 +32,9 @@ export PATH="$HOME/apple/bin"
         format!("source \"{dir}/{sh}\"\n", dir = dir, sh = sh)
     }
 
-    fn setup(f: &dyn Fn(&Config)) {
-        clitools::setup(Scenario::Empty, &|config| {
-            f(config);
-        });
-    }
-
     #[test]
     fn install_creates_necessary_scripts() {
-        setup(&|config| {
+        clitools::setup(Scenario::Empty, &|config| {
             // Override the test harness so that cargo home looks like
             // $HOME/.cargo by removing CARGO_HOME from the environment,
             // otherwise the literal path will be written to the file.
@@ -78,7 +69,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_updates_bash_rcs() {
-        setup(&|config| {
+        clitools::setup(Scenario::Empty, &|config| {
             let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login", ".profile"]
                 .iter()
                 .map(|rc| config.homedir.join(rc))
@@ -99,7 +90,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_does_not_create_bash_rcs() {
-        setup(&|config| {
+        clitools::setup(Scenario::Empty, &|config| {
             let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login"]
                 .iter()
                 .map(|rc| config.homedir.join(rc))
@@ -116,7 +107,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_errors_when_rc_cannot_be_updated() {
-        setup(&|config| {
+        clitools::setup(Scenario::Empty, &|config| {
             let rc = config.homedir.join(".profile");
             fs::File::create(&rc).unwrap();
             let mut perms = fs::metadata(&rc).unwrap().permissions();
@@ -129,7 +120,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_with_zdotdir() {
-        setup(&|config| {
+        clitools::setup(Scenario::Empty, &|config| {
             let zdotdir = tempfile::Builder::new()
                 .prefix("zdotdir")
                 .tempdir()
@@ -150,7 +141,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_adds_path_to_rc_just_once() {
-        setup(&|config| {
+        clitools::setup(Scenario::Empty, &|config| {
             let profile = config.homedir.join(".profile");
             raw::write_file(&profile, FAKE_RC).unwrap();
             expect_ok(config, &INIT_NONE);
@@ -164,7 +155,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn uninstall_removes_source_from_rcs() {
-        setup(&|config| {
+        clitools::setup(Scenario::Empty, &|config| {
             let rcs: Vec<PathBuf> = [
                 ".bashrc",
                 ".bash_profile",
@@ -192,7 +183,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_adds_sources_while_removing_legacy_paths() {
-        setup(&|config| {
+        clitools::setup(Scenario::Empty, &|config| {
             let zdotdir = tempfile::Builder::new()
                 .prefix("zdotdir")
                 .tempdir()
@@ -229,7 +220,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn uninstall_cleans_up_legacy_paths() {
-        setup(&|config| {
+        clitools::setup(Scenario::Empty, &|config| {
             // Install first, then overwrite.
             expect_ok(config, &INIT_NONE);
 
@@ -270,7 +261,7 @@ export PATH="$HOME/apple/bin"
     // not the full path.
     #[test]
     fn when_cargo_home_is_the_default_write_path_specially() {
-        setup(&|config| {
+        clitools::setup(Scenario::Empty, &|config| {
             // Override the test harness so that cargo home looks like
             // $HOME/.cargo by removing CARGO_HOME from the environment,
             // otherwise the literal path will be written to the file.
@@ -296,7 +287,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_doesnt_modify_path_if_passed_no_modify_path() {
-        setup(&|config| {
+        clitools::setup(Scenario::Empty, &|config| {
             let profile = config.homedir.join(".profile");
             expect_ok(
                 config,
@@ -315,45 +306,28 @@ export PATH="$HOME/apple/bin"
 
 #[cfg(windows)]
 mod windows {
-    use std::sync::Mutex;
+    use rustup::test::{get_path, with_saved_path};
 
-    use lazy_static::lazy_static;
-
-    use super::*;
-    use crate::mock::{get_path, restore_path};
-
-    fn setup(f: &dyn Fn(&Config)) {
-        clitools::setup(Scenario::Empty, &|config| {
-            // Lock protects environment variables
-            lazy_static! {
-                static ref LOCK: Mutex<()> = Mutex::new(());
-            }
-            let _g = LOCK.lock();
-
-            // On windows these tests mess with the user's PATH. Save
-            // and restore them here to keep from trashing things.
-            let saved_path = get_path();
-            let _g = scopeguard::guard(saved_path, restore_path);
-
-            f(config);
-        });
-    }
+    use super::INIT_NONE;
+    use crate::mock::clitools::{self, expect_ok, Scenario};
 
     #[test]
     #[cfg(windows)]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
     fn install_uninstall_affect_path() {
-        setup(&|config| {
-            let path = config.cargodir.join("bin").to_string_lossy().to_string();
+        clitools::setup(Scenario::Empty, &|config| {
+            with_saved_path(&|| {
+                let path = config.cargodir.join("bin").to_string_lossy().to_string();
 
-            expect_ok(config, &INIT_NONE);
-            assert!(
-                get_path().unwrap().contains(&path),
-                format!("`{}` not in `{}`", get_path().unwrap(), &path)
-            );
+                expect_ok(config, &INIT_NONE);
+                assert!(
+                    get_path().unwrap().contains(&path),
+                    format!("`{}` not in `{}`", get_path().unwrap(), &path)
+                );
 
-            expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-            assert!(!get_path().unwrap().contains(&path));
+                expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+                assert!(!get_path().unwrap().contains(&path));
+            })
         });
     }
 }

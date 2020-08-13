@@ -18,7 +18,7 @@ use rustup::cli::rustup_mode;
 use rustup::currentprocess;
 use rustup::test as rustup_test;
 use rustup::test::this_host_triple;
-use rustup::utils::utils;
+use rustup::utils::{raw, utils};
 
 use crate::mock::dist::{
     change_channel_date, ManifestVersion, MockChannel, MockComponent, MockDistServer, MockPackage,
@@ -205,6 +205,13 @@ impl Config {
         let prev = self.workdir.replace(path.to_owned());
         f();
         *self.workdir.borrow_mut() = prev;
+    }
+
+    pub fn create_rustup_sh_metadata(&self) {
+        let rustup_dir = self.homedir.join(".rustup");
+        fs::create_dir_all(&rustup_dir).unwrap();
+        let version_file = rustup_dir.join("rustup-version");
+        raw::write_file(&version_file, "").unwrap();
     }
 }
 

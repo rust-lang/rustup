@@ -7,41 +7,22 @@ use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
-use std::sync::Mutex;
 
-use lazy_static::lazy_static;
 use remove_dir_all::remove_dir_all;
 
 use rustup::for_host;
-use rustup::test::this_host_triple;
+use rustup::test::{this_host_triple, with_saved_path};
 use rustup::utils::{raw, utils};
 use rustup::Notification;
 
 use crate::mock::clitools::{
-    self, expect_err, expect_err_ex, expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok,
-    expect_stdout_ok, Config, Scenario,
+    self, expect_component_executable, expect_component_not_executable, expect_err, expect_err_ex,
+    expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run, Config,
+    Scenario,
 };
 use crate::mock::dist::calc_hash;
-use crate::mock::{get_path, restore_path};
 
 const TEST_VERSION: &str = "1.1.1";
-
-pub fn setup(f: &dyn Fn(&Config)) {
-    clitools::setup(Scenario::SimpleV2, &|config| {
-        // Lock protects environment variables
-        lazy_static! {
-            static ref LOCK: Mutex<()> = Mutex::new(());
-        }
-        let _g = LOCK.lock();
-
-        // On windows these tests mess with the user's PATH. Save
-        // and restore them here to keep from trashing things.
-        let saved_path = get_path();
-        let _g = scopeguard::guard(saved_path, restore_path);
-
-        f(config);
-    });
-}
 
 pub fn update_setup(f: &dyn Fn(&Config, &Path)) {
     clitools::setup(Scenario::SimpleV2, &|config| {
@@ -112,18 +93,19 @@ version = "{}"
 /// installation code path: everything that is output, the proxy installation,
 /// status of the proxies.
 fn install_bins_to_cargo_home() {
-    setup(&|config| {
-        expect_ok_contains(
-            config,
-            &["rustup-init", "-y"],
-            for_host!(
-                r"
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        with_saved_path(&|| {
+            expect_ok_contains(
+                config,
+                &["rustup-init", "-y"],
+                for_host!(
+                    r"
   stable-{0} installed - 1.1.0 (hash-stable-1.1.0)
 
 "
-            ),
-            for_host!(
-                r"info: syncing channel updates for 'stable-{0}'
+                ),
+                for_host!(
+                    r"info: syncing channel updates for 'stable-{0}'
 info: latest update on 2015-01-02, rust version 1.1.0 (hash-stable-1.1.0)
 info: downloading component 'cargo'
 info: downloading component 'rust-docs'
@@ -136,45 +118,48 @@ info: installing component 'rust-std'
 info: installing component 'rustc'
 info: default toolchain set to 'stable-{0}'
 "
-            ),
-        );
-        let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
-        let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
-        let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
-        let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
-        let rust_lldb = config
-            .cargodir
-            .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
-        let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
-        #[cfg(windows)]
-        fn check(path: &Path) {
-            assert!(path.exists());
-        }
-        #[cfg(not(windows))]
-        fn check(path: &Path) {
-            fn is_exe(path: &Path) -> bool {
-                use std::os::unix::fs::MetadataExt;
-                let mode = path.metadata().unwrap().mode();
-                mode & 0o777 == 0o755
+                ),
+            );
+            let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
+            let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
+            let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
+            let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
+            let rust_lldb = config
+                .cargodir
+                .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
+            let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
+            #[cfg(windows)]
+            fn check(path: &Path) {
+                assert!(path.exists());
             }
-            assert!(is_exe(path));
-        }
-        check(&rustup);
-        check(&rustc);
-        check(&rustdoc);
-        check(&cargo);
-        check(&rust_lldb);
-        check(&rust_gdb);
+            #[cfg(not(windows))]
+            fn check(path: &Path) {
+                fn is_exe(path: &Path) -> bool {
+                    use std::os::unix::fs::MetadataExt;
+                    let mode = path.metadata().unwrap().mode();
+                    mode & 0o777 == 0o755
+                }
+                assert!(is_exe(path));
+            }
+            check(&rustup);
+            check(&rustc);
+            check(&rustdoc);
+            check(&cargo);
+            check(&rust_lldb);
+            check(&rust_gdb);
+        })
     });
 }
 
 #[test]
 fn install_twice() {
-    setup(&|config| {
-        expect_ok(config, &["rustup-init", "-y"]);
-        expect_ok(config, &["rustup-init", "-y"]);
-        let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
-        assert!(rustup.exists());
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        with_saved_path(&|| {
+            expect_ok(config, &["rustup-init", "-y"]);
+            expect_ok(config, &["rustup-init", "-y"]);
+            let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
+            assert!(rustup.exists());
+        })
     });
 }
 
@@ -761,7 +746,6 @@ fn readline_no_stdin() {
 #[test]
 fn rustup_init_works_with_weird_names() {
     // Browsers often rename bins to e.g. rustup-init(2).exe.
-
     clitools::setup(Scenario::SimpleV2, &|config| {
         let old = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
         let new = config.exedir.join(&format!("rustup-init(2){}", EXE_SUFFIX));
@@ -775,10 +759,7 @@ fn rustup_init_works_with_weird_names() {
 #[test]
 fn install_but_rustup_sh_is_installed() {
     clitools::setup(Scenario::Empty, &|config| {
-        let rustup_dir = config.homedir.join(".rustup");
-        fs::create_dir_all(&rustup_dir).unwrap();
-        let version_file = rustup_dir.join("rustup-version");
-        raw::write_file(&version_file, "").unwrap();
+        config.create_rustup_sh_metadata();
         expect_stderr_ok(
             config,
             &[
@@ -791,6 +772,49 @@ fn install_but_rustup_sh_is_installed() {
             "cannot install while rustup.sh is installed",
         );
     });
+}
+
+#[test]
+fn test_warn_succeed_if_rustup_sh_already_installed_y_flag() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        config.create_rustup_sh_metadata();
+        let out = run(config, "rustup-init", &["-y", "--no-modify-path"], &[]);
+        assert!(out.ok);
+        assert!(out
+            .stderr
+            .contains("warning: it looks like you have existing rustup.sh metadata"));
+        assert!(out
+            .stderr
+            .contains("error: cannot install while rustup.sh is installed"));
+        assert!(out.stderr.contains(
+            "warning: continuing (because the -y flag is set and the error is ignorable)"
+        ));
+        assert!(!out.stdout.contains("Continue? (y/N)"));
+    })
+}
+
+#[test]
+fn test_succeed_if_rustup_sh_already_installed_env_var_set() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        config.create_rustup_sh_metadata();
+        let out = run(
+            config,
+            "rustup-init",
+            &["-y", "--no-modify-path"],
+            &[("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS", "yes")],
+        );
+        assert!(out.ok);
+        assert!(!out
+            .stderr
+            .contains("warning: it looks like you have existing rustup.sh metadata"));
+        assert!(!out
+            .stderr
+            .contains("error: cannot install while rustup.sh is installed"));
+        assert!(!out.stderr.contains(
+            "warning: continuing (because the -y flag is set and the error is ignorable)"
+        ));
+        assert!(!out.stdout.contains("Continue? (y/N)"));
+    })
 }
 
 #[test]
@@ -905,4 +929,24 @@ fn install_with_components_and_targets() {
             &format!("rls-{} (installed)", this_host_triple()),
         );
     })
+}
+
+#[test]
+fn install_minimal_profile() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        expect_ok(
+            config,
+            &[
+                "rustup-init",
+                "-y",
+                "--profile",
+                "minimal",
+                "--no-modify-path",
+            ],
+        );
+
+        expect_component_executable(config, "rustup");
+        expect_component_executable(config, "rustc");
+        expect_component_not_executable(config, "cargo");
+    });
 }
