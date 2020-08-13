@@ -15,7 +15,7 @@ fn setup(f: &dyn Fn(&mut Config)) {
 }
 
 #[test]
-fn update() {
+fn update_once() {
     setup(&|config| {
         expect_ok_ex(
             config,

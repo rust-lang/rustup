@@ -4,8 +4,6 @@ pub mod clitools;
 pub mod dist;
 pub mod topical_doc_data;
 
-#[cfg(windows)]
-use rustup::utils::utils;
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
@@ -169,49 +167,3 @@ impl MockContents {
         }
     }
 }
-
-#[cfg(windows)]
-pub fn get_path() -> Option<String> {
-    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::RegKey;
-
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .unwrap();
-
-    // XXX: Suspect code: This uses ok to allow signalling None for 'delete', but this
-    // can fail e.g. with !(winerror::ERROR_BAD_FILE_TYPE) or other
-    // failures; which would lead to attempting to delete the users path
-    // rather than aborting the test suite.
-    environment.get_value("PATH").ok()
-}
-
-#[cfg(windows)]
-pub fn restore_path(p: Option<String>) {
-    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::{RegKey, RegValue};
-
-    let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .unwrap();
-
-    if let Some(p) = p.as_ref() {
-        let reg_value = RegValue {
-            bytes: utils::string_to_winreg_bytes(&p),
-            vtype: RegType::REG_EXPAND_SZ,
-        };
-        environment.set_raw_value("PATH", &reg_value).unwrap();
-    } else {
-        let _ = environment.delete_value("PATH");
-    }
-}
-
-#[cfg(unix)]
-pub fn get_path() -> Option<String> {
-    None
-}
-
-#[cfg(unix)]
-pub fn restore_path(_: Option<String>) {}

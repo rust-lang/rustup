@@ -8,6 +8,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+pub use crate::cli::self_update::test::{get_path, with_saved_path};
 use crate::currentprocess;
 use crate::dist::dist::TargetTriple;
 

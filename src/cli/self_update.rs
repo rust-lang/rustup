@@ -30,6 +30,20 @@
 //! Deleting the running binary during uninstall is tricky
 //! and racy on Windows.
 
+#[cfg(unix)]
+mod shell;
+pub mod test;
+#[cfg(unix)]
+mod unix;
+#[cfg(windows)]
+mod windows;
+mod os {
+    #[cfg(unix)]
+    pub use super::unix::*;
+    #[cfg(windows)]
+    pub use super::windows::*;
+}
+
 use std::borrow::Cow;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
@@ -50,19 +64,6 @@ use crate::utils::utils;
 use crate::utils::Notification;
 use crate::{Cfg, UpdateStatus};
 use crate::{DUP_TOOLS, TOOLS};
-
-#[cfg(unix)]
-mod shell;
-#[cfg(unix)]
-mod unix;
-#[cfg(windows)]
-mod windows;
-mod os {
-    #[cfg(unix)]
-    pub use super::unix::*;
-    #[cfg(windows)]
-    pub use super::windows::*;
-}
 use os::*;
 pub use os::{complete_windows_uninstall, delete_rustup_and_cargo_home, run_update, self_replace};
 
@@ -1078,7 +1079,7 @@ pub fn cleanup_self_updater() -> Result<()> {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::collections::HashMap;
 
     use crate::cli::common;
