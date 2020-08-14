@@ -214,7 +214,7 @@ fn get_windows_path_var() -> Result<Option<String>> {
             } else {
                 warn!("the registry key HKEY_CURRENT_USER\\Environment\\PATH does not contain valid Unicode. \
                        Not modifying the PATH variable");
-                return Ok(None);
+                Ok(None)
             }
         }
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Some(String::new())),
@@ -230,7 +230,7 @@ fn _add_to_path(old_path: &str, path_str: String) -> Option<String> {
     } else if old_path.contains(&path_str) {
         None
     } else {
-        let mut new_path = path_str.clone();
+        let mut new_path = path_str;
         new_path.push_str(";");
         new_path.push_str(&old_path);
         Some(new_path)
@@ -471,8 +471,11 @@ mod tests {
                     .unwrap();
                 environment.delete_value("PATH").unwrap();
 
-                assert_eq!((), super::_apply_new_path(Some("foo".into())).unwrap());
-
+                {
+                    // Can't compare the Results as Eq isn't derived; thanks error-chain.
+                    #![allow(clippy::unit_cmp)]
+                    assert_eq!((), super::_apply_new_path(Some("foo".into())).unwrap());
+                }
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root
                     .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
@@ -506,8 +509,11 @@ mod tests {
                     )
                     .unwrap();
 
-                assert_eq!((), super::_apply_new_path(Some("".into())).unwrap());
-
+                {
+                    // Can't compare the Results as Eq isn't derived; thanks error-chain.
+                    #![allow(clippy::unit_cmp)]
+                    assert_eq!((), super::_apply_new_path(Some("".into())).unwrap());
+                }
                 let reg_value = environment.get_raw_value("PATH");
                 match reg_value {
                     Ok(_) => panic!("key not deleted"),

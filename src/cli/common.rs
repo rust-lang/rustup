@@ -183,7 +183,7 @@ fn show_channel_updates(
 ) -> Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
         let toolchain = cfg.get_toolchain(&name, false).unwrap();
-        let mut version: String = toolchain.rustc_version().into();
+        let mut version: String = toolchain.rustc_version();
 
         let banner;
         let color;
@@ -486,12 +486,12 @@ pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
             String::new()
         };
         for toolchain in toolchains {
-            let if_default = if def_toolchain_name == &*toolchain {
+            let if_default = if def_toolchain_name == *toolchain {
                 " (default)"
             } else {
                 ""
             };
-            let if_override = if ovr_toolchain_name == &*toolchain {
+            let if_override = if ovr_toolchain_name == *toolchain {
                 " (override)"
             } else {
                 ""

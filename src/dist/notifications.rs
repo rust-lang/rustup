@@ -182,7 +182,7 @@ impl<'a> Display for Notification<'a> {
                     .iter()
                     .map(|component| {
                         if component.target.as_ref() != Some(&toolchain.target) {
-                            component.name_in_manifest().to_owned()
+                            component.name_in_manifest()
                         } else {
                             component.short_name_in_manifest().to_owned()
                         }

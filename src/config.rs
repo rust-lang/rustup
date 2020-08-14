@@ -585,7 +585,7 @@ impl Cfg {
         let contents = contents.as_ref();
 
         match contents.lines().count() {
-            0 => return Err(ErrorKind::EmptyOverrideFile.into()),
+            0 => Err(ErrorKind::EmptyOverrideFile.into()),
             1 => {
                 let channel = contents.trim();
 

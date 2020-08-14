@@ -440,7 +440,7 @@ impl TargetedPackage {
         if !extensions.is_empty() {
             result.insert("extensions".to_owned(), toml::Value::Array(extensions));
         }
-        if let Some(bins) = self.bins.clone() {
+        if let Some(bins) = self.bins {
             result.insert("hash".to_owned(), toml::Value::String(bins.hash));
             result.insert("url".to_owned(), toml::Value::String(bins.url));
             if let (Some(xz_hash), Some(xz_url)) = (bins.xz_hash, bins.xz_url) {

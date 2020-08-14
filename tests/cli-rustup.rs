@@ -1920,7 +1920,7 @@ fn non_utf8_toolchain() {
         let out = run(
             config,
             "rustc",
-            &[OsString::from_wide(&[u16::from('+' as u8), 0xd801, 0xd801])],
+            &[OsString::from_wide(&[u16::from(b'+'), 0xd801, 0xd801])],
             &[("RUST_BACKTRACE", "1")],
         );
         assert!(out.stderr.contains("toolchain '��' is not installed"));

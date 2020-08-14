@@ -516,11 +516,7 @@ where
         run_subprocess(config, name, args, env)
     };
     let output = SanitizedOutput {
-        ok: if let Some(0) = out.status {
-            true
-        } else {
-            false
-        },
+        ok: matches!(out.status, Some(0)),
         stdout: String::from_utf8(out.stdout).unwrap(),
         stderr: String::from_utf8(out.stderr).unwrap(),
     };
@@ -560,7 +556,7 @@ where
         vars,
         "",
     ));
-    let process_res = currentprocess::with(tp.clone(), || rustup_mode::main());
+    let process_res = currentprocess::with(tp.clone(), rustup_mode::main);
     // convert Err's into an ec
     let ec = match process_res {
         Ok(process_res) => process_res,
@@ -694,22 +690,20 @@ impl Release {
                 self.multi_arch,
                 false,
             )
+        } else if self.multi_arch {
+            // unavailable but multiarch means to build only with host==MULTI_ARCH1
+            // instead of true multiarch
+            build_mock_channel(
+                &self.channel,
+                &self.date,
+                &self.version,
+                &self.hash,
+                self.rls,
+                false,
+                true,
+            )
         } else {
-            if self.multi_arch {
-                // unavailable but multiarch means to build only with host==MULTI_ARCH1
-                // instead of true multiarch
-                build_mock_channel(
-                    &self.channel,
-                    &self.date,
-                    &self.version,
-                    &self.hash,
-                    self.rls,
-                    false,
-                    true,
-                )
-            } else {
-                build_mock_unavailable_channel(&self.channel, &self.date, &self.version, &self.hash)
-            }
+            build_mock_unavailable_channel(&self.channel, &self.date, &self.version, &self.hash)
         }
     }
 
@@ -1176,7 +1170,7 @@ fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
             name: "rust-docs".to_string(),
-            files: files,
+            files,
         }],
     }
 }

@@ -2,9 +2,11 @@
 
 1. Fork it!
 2. Create your feature branch: `git checkout -b my-new-feature`
-3. Commit your changes: `git commit -am 'Add some feature'`
-4. Push to the branch: `git push origin my-new-feature`
-5. Submit a pull request :D
+3. Test it: `cargo test`
+4. Lint it: `cargo +nightly clippy --all-targets -- -D warnings`
+5. Commit your changes: `git commit -am 'Add some feature'`
+6. Push to the branch: `git push origin my-new-feature`
+7. Submit a pull request :D
 
 For developing on `rustup` itself, you may want to install into a temporary
 directory, with a series of commands similar to this:
@@ -59,6 +61,34 @@ The `rustup::currentprocess` module abstracts the global state that is
 `std::env::args`, `std::env::vars`, `std::io::std*`, `std::process::id`,
 `std::env::current_dir` and `std::process::exit` permitting threaded tests of
 the CLI logic; use `process()` rather than those APIs directly.
+
+### Clippy lints
+
+We do not enforce lint status in the checks done by GitHub Actions, because
+clippy is a moving target that can make it hard to merge for little benefit.
+
+We do ask that contributors keep the clippy status clean themselves.
+
+Minimally, run `cargo +nightly clippy --all-targets -- -D warnings` before
+submitting code.
+
+Regular contributors or contributors to particularly OS-specific code should
+also make sure that their clippy checking is done on at least Linux and Windows,
+as OS-conditional code is a common source of unused imports and other small
+lints, which can build up over time.
+
+For developers using BSD/Linux/Mac OS, there are Windows VM's suitable for such
+development tasks for use with virtualbox and other hypervisors are downloadable
+from
+[Microsoft](https://developer.microsoft.com/en-us/windows/downloads/virtual-machines/).
+Similarly, there are many Linux and Unix operating systems images available for
+developers whose usual operating system is Windows. Currently Rustup has no Mac
+OS specific code, so there should be no need to worry about Mac VM images.
+
+Clippy is also run in GitHub Actions, in the 'General Checks / Checks` build
+task, but not currently run per-platform, which means there is no way to find
+out the status of clippy per platform without running it on that platform as a
+developer.
 
 ## Version numbers
 

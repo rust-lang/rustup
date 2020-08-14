@@ -76,26 +76,26 @@ mod termhack {
     /// opened.
     #[allow(unused)]
     pub fn stdout(terminfo: Option<TermInfo>) -> Option<Box<StdoutTerminal>> {
-        make_terminal(terminfo, || io::stdout())
+        make_terminal(terminfo, io::stdout)
     }
 
     /// Return a Terminal wrapping stderr, or None if a terminal couldn't be
     /// opened.
     #[allow(unused)]
     pub fn stderr(terminfo: Option<TermInfo>) -> Option<Box<StderrTerminal>> {
-        make_terminal(terminfo, || io::stderr())
+        make_terminal(terminfo, io::stderr)
     }
 
     /// Return a Terminal wrapping stdout.
     #[allow(unused)]
     pub fn stdout_with_fallback(terminfo: Option<TermInfo>) -> Box<StdoutTerminal> {
-        make_terminal_with_fallback(terminfo, || io::stdout())
+        make_terminal_with_fallback(terminfo, io::stdout)
     }
 
     /// Return a Terminal wrapping stderr.
     #[allow(unused)]
     pub fn stderr_with_fallback(terminfo: Option<TermInfo>) -> Box<StderrTerminal> {
-        make_terminal_with_fallback(terminfo, || io::stderr())
+        make_terminal_with_fallback(terminfo, io::stderr)
     }
 }
 

@@ -101,7 +101,7 @@ pub fn main() -> Result<utils::ExitCode> {
             writeln!(process().stdout().lock(), "{}", e.message)?;
             return Ok(utils::ExitCode(0));
         }
-        Err(e) => Err(e)?,
+        Err(e) => return Err(e.into()),
     };
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
