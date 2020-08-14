@@ -126,7 +126,7 @@ struct Bash;
 
 impl UnixShell for Bash {
     fn does_exist(&self) -> bool {
-        self.update_rcs().len() > 0
+        !self.update_rcs().is_empty()
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
@@ -155,7 +155,7 @@ impl Zsh {
 
         if matches!(process().var("SHELL"), Ok(sh) if sh.contains("zsh")) {
             match process().var("ZDOTDIR") {
-                Ok(dir) if dir.len() > 0 => Ok(PathBuf::from(dir)),
+                Ok(dir) if !dir.is_empty() => Ok(PathBuf::from(dir)),
                 _ => bail!("Zsh setup failed."),
             }
         } else {
@@ -163,7 +163,7 @@ impl Zsh {
                 .args(&["-c", "'echo $ZDOTDIR'"])
                 .output()
             {
-                Ok(io) if io.stdout.len() > 0 => Ok(PathBuf::from(OsStr::from_bytes(&io.stdout))),
+                Ok(io) if !io.stdout.is_empty() => Ok(PathBuf::from(OsStr::from_bytes(&io.stdout))),
                 _ => bail!("Zsh setup failed."),
             }
         }
