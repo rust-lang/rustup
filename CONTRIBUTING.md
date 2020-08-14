@@ -3,7 +3,7 @@
 1. Fork it!
 2. Create your feature branch: `git checkout -b my-new-feature`
 3. Test it: `cargo test`
-4. Lint it: `cargo +nightly clippy --all-targets -- -D warnings`
+4. Lint it: `cargo +nightly clippy --all --all-targets -- -D warnings`
 5. Commit your changes: `git commit -am 'Add some feature'`
 6. Push to the branch: `git push origin my-new-feature`
 7. Submit a pull request :D
@@ -69,8 +69,11 @@ clippy is a moving target that can make it hard to merge for little benefit.
 
 We do ask that contributors keep the clippy status clean themselves.
 
-Minimally, run `cargo +nightly clippy --all-targets -- -D warnings` before
+Minimally, run `cargo +nightly clippy --all --all-targets -- -D warnings` before
 submitting code.
+
+If possible, adding `--all-features` to the command is useful, but will require
+additional dependencies like `libcurl-dev`.
 
 Regular contributors or contributors to particularly OS-specific code should
 also make sure that their clippy checking is done on at least Linux and Windows,
