@@ -16,12 +16,14 @@
 
 use std::path::PathBuf;
 
+use cfg_if::cfg_if;
 use rs_tracing::*;
 
 use rustup::cli::common;
 use rustup::cli::errors::*;
 use rustup::cli::proxy_mode;
 use rustup::cli::rustup_mode;
+#[cfg(windows)]
 use rustup::cli::self_update;
 use rustup::cli::setup_mode;
 use rustup::currentprocess::{process, with, OSProcess};
@@ -83,7 +85,13 @@ fn run_rustup_inner() -> Result<utils::ExitCode> {
         Some(n) if n.starts_with("rustup-gc-") => {
             // This is the final uninstallation stage on windows where
             // rustup deletes its own exe
-            self_update::complete_windows_uninstall()
+            cfg_if! {
+                if #[cfg(windows)] {
+                    self_update::complete_windows_uninstall()
+                } else {
+                    unreachable!("Attempted to use Windows-specific code on a non-Windows platform. Aborting.")
+                }
+            }
         }
         Some(_) => proxy_mode::main(),
         None => {

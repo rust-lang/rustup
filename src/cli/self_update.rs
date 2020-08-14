@@ -51,6 +51,7 @@ use std::fs;
 use std::path::{Component, Path, PathBuf, MAIN_SEPARATOR};
 use std::process::Command;
 
+use cfg_if::cfg_if;
 use same_file::Handle;
 
 use super::common::{self, ignorable_error, Confirm};
@@ -65,7 +66,9 @@ use crate::utils::Notification;
 use crate::{Cfg, UpdateStatus};
 use crate::{DUP_TOOLS, TOOLS};
 use os::*;
-pub use os::{complete_windows_uninstall, delete_rustup_and_cargo_home, run_update, self_replace};
+pub use os::{delete_rustup_and_cargo_home, run_update, self_replace};
+#[cfg(windows)]
+pub use windows::complete_windows_uninstall;
 
 pub struct InstallOpts<'a> {
     pub default_host_triple: Option<String>,
@@ -123,7 +126,7 @@ these changes will be reverted.
     };
 }
 
-#[cfg(unix)]
+#[cfg(not(windows))]
 macro_rules! pre_install_msg_unix {
     () => {
         pre_install_msg_template!(
@@ -154,6 +157,7 @@ but will not be added automatically."
     };
 }
 
+#[cfg(not(windows))]
 macro_rules! post_install_msg_unix {
     () => {
         r"# Rust is installed now. Great!
@@ -167,6 +171,7 @@ To configure your current shell run `source {cargo_home}/env`
     };
 }
 
+#[cfg(windows)]
 macro_rules! post_install_msg_win {
     () => {
         r"# Rust is installed now. Great!
@@ -178,6 +183,7 @@ correct environment, but you may need to restart your current shell.
     };
 }
 
+#[cfg(not(windows))]
 macro_rules! post_install_msg_unix_no_modify_path {
     () => {
         r"# Rust is installed now. Great!
@@ -190,6 +196,7 @@ To configure your current shell run `source {cargo_home}/env`
     };
 }
 
+#[cfg(windows)]
 macro_rules! post_install_msg_win_no_modify_path {
     () => {
         r"# Rust is installed now. Great!
@@ -211,6 +218,7 @@ This will uninstall all Rust toolchains and data, and remove
     };
 }
 
+#[cfg(windows)]
 static MSVC_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
 
 Rust requires the Microsoft C++ build tools for Visual Studio 2013 or
@@ -249,10 +257,12 @@ fn canonical_cargo_home() -> Result<Cow<'static, str>> {
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".cargo");
     Ok(if default_cargo_home == path {
-        if cfg!(unix) {
-            "$HOME/.cargo".into()
-        } else {
-            r"%USERPROFILE%\.cargo".into()
+        cfg_if! {
+            if #[cfg(windows)] {
+                r"%USERPROFILE%\.cargo".into()
+            } else {
+                "$HOME/.cargo".into()
+            }
         }
     } else {
         path.to_string_lossy().into_owned().into()
@@ -288,6 +298,8 @@ pub fn install(
     do_anti_sudo_check(no_prompt)?;
 
     let mut term = term2::stdout();
+
+    #[cfg(windows)]
     if !do_msvc_check(&opts)? {
         if no_prompt {
             warn!("installing msvc toolchain without its prerequisites");
@@ -349,10 +361,9 @@ pub fn install(
         // that may have opened just for this purpose, give
         // the user an opportunity to see the error before the
         // window closes.
-        if cfg!(windows) && !no_prompt {
-            writeln!(process().stdout(),)?;
-            writeln!(process().stdout(), "Press the Enter key to continue.")?;
-            common::read_line()?;
+        #[cfg(windows)]
+        if !no_prompt {
+            ensure_prompt()?;
         }
 
         return Ok(utils::ExitCode(1));
@@ -361,29 +372,32 @@ pub fn install(
     let cargo_home = canonical_cargo_home()?;
     #[cfg(windows)]
     let cargo_home = cargo_home.replace('\\', r"\\");
-    let msg = match (opts.no_modify_path, cfg!(unix)) {
-        (false, true) => format!(post_install_msg_unix!(), cargo_home = cargo_home),
-        (false, false) => format!(post_install_msg_win!(), cargo_home = cargo_home),
-        (true, true) => format!(
-            post_install_msg_unix_no_modify_path!(),
-            cargo_home = cargo_home
-        ),
-        (true, false) => format!(
+    #[cfg(windows)]
+    let msg = if opts.no_modify_path {
+        format!(
             post_install_msg_win_no_modify_path!(),
             cargo_home = cargo_home
-        ),
+        )
+    } else {
+        format!(post_install_msg_win!(), cargo_home = cargo_home)
+    };
+    #[cfg(not(windows))]
+    let msg = if opts.no_modify_path {
+        format!(
+            post_install_msg_unix_no_modify_path!(),
+            cargo_home = cargo_home
+        )
+    } else {
+        format!(post_install_msg_unix!(), cargo_home = cargo_home)
     };
     md(&mut term, msg);
 
+    #[cfg(windows)]
     if !no_prompt {
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, require
         // the user to press a key to continue.
-        if cfg!(windows) {
-            writeln!(process().stdout())?;
-            writeln!(process().stdout(), "Press the Enter key to continue.")?;
-            common::read_line()?;
-        }
+        ensure_prompt()?;
     }
 
     Ok(utils::ExitCode(0))
@@ -501,11 +515,6 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
         )
     })?;
     Ok(())
-}
-
-#[cfg(not(windows))]
-fn do_msvc_check(_opts: &InstallOpts<'_>) -> Result<bool> {
-    Ok(true)
 }
 
 fn pre_install_msg(no_modify_path: bool) -> Result<String> {
@@ -988,19 +997,16 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     }
 
     // Get build triple
-    let build_triple = dist::TargetTriple::from_build();
-    let triple = if cfg!(windows) {
-        // For windows x86 builds seem slow when used with windows defender.
-        // The website defaulted to i686-windows-gnu builds for a long time.
-        // This ensures that we update to a version thats appropriate for users
-        // and also works around if the website messed up the detection.
-        // If someone really wants to use another version, he still can enforce
-        // that using the environment variable RUSTUP_OVERRIDE_HOST_TRIPLE.
+    let triple = dist::TargetTriple::from_build();
 
-        dist::TargetTriple::from_host().unwrap_or(build_triple)
-    } else {
-        build_triple
-    };
+    // For windows x86 builds seem slow when used with windows defender.
+    // The website defaulted to i686-windows-gnu builds for a long time.
+    // This ensures that we update to a version thats appropriate for users
+    // and also works around if the website messed up the detection.
+    // If someone really wants to use another version, they still can enforce
+    // that using the environment variable RUSTUP_OVERRIDE_HOST_TRIPLE.
+    #[cfg(windows)]
+    let triple = dist::TargetTriple::from_host().unwrap_or(triple);
 
     let update_root = process()
         .var("RUSTUP_UPDATE_ROOT")
