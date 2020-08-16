@@ -58,7 +58,7 @@ fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
                 }
                 Event::DownloadDataReceived(data) => {
                     for b in data.iter() {
-                        received_in_callback.lock().unwrap().push(b.clone());
+                        received_in_callback.lock().unwrap().push(*b);
                     }
                 }
             }

@@ -99,7 +99,7 @@ export PATH="$HOME/apple/bin"
             expect_ok(config, &INIT_NONE);
 
             for (before, after) in rcs_before.zip(rcs.iter().map(|rc| rc.exists())) {
-                assert!(before == false);
+                assert!(!before);
                 assert_eq!(before, after);
             }
         });
