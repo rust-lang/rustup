@@ -55,17 +55,46 @@ where
 pub fn main() -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
+    use clap::ErrorKind::*;
     let matches = match cli().get_matches_from_safe(process().args_os()) {
         Ok(matches) => Ok(matches),
-        Err(e)
-            if e.kind == clap::ErrorKind::HelpDisplayed
-                || e.kind == clap::ErrorKind::VersionDisplayed =>
-        {
-            writeln!(process().stdout().lock(), "{}", e.message)?;
+        Err(clap::Error {
+            kind: HelpDisplayed,
+            message,
+            ..
+        }) => {
+            writeln!(process().stdout().lock(), "{}", message)?;
             return Ok(utils::ExitCode(0));
         }
-        Err(e) if e.kind == clap::ErrorKind::MissingArgumentOrSubcommand => {
-            writeln!(process().stdout().lock(), "{}", e.message)?;
+        Err(clap::Error {
+            kind: VersionDisplayed,
+            message,
+            ..
+        }) => {
+            writeln!(process().stdout().lock(), "{}", message)?;
+            info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
+
+            fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
+                let cmd = Command::new("rustc").arg("--version").output()?;
+                if cmd.status.success() {
+                    Ok(String::from_utf8_lossy(&cmd.stdout).trim().into())
+                } else {
+                    Err(String::from_utf8_lossy(&cmd.stderr).into())
+                }
+            }
+
+            match rustc_version() {
+                Ok(version) => info!("The currently active `rustc` version is `{}`", version),
+                Err(err) => debug!("Wanted to tell you the current rustc version, too, but ran into this error: {}", err),
+            }
+            return Ok(utils::ExitCode(0));
+        }
+        Err(clap::Error {
+            kind: MissingArgumentOrSubcommand,
+            message,
+            ..
+        }) => {
+            writeln!(process().stdout().lock(), "{}", message)?;
             return Ok(utils::ExitCode(1));
         }
         Err(e) => Err(e),
