@@ -75,12 +75,10 @@ pub fn main() -> Result<utils::ExitCode> {
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
             fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
-                let cmd = Command::new("rustc").arg("--version").output()?;
-                if cmd.status.success() {
-                    Ok(String::from_utf8_lossy(&cmd.stdout).trim().into())
-                } else {
-                    Err(String::from_utf8_lossy(&cmd.stderr).into())
-                }
+                let cfg = &mut common::set_globals(false, true)?;
+                let cwd = std::env::current_dir()?;
+                let toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd)?.0;
+                Ok(toolchain.rustc_version())
             }
 
             match rustc_version() {
