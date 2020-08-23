@@ -77,7 +77,14 @@ pub fn main() -> Result<utils::ExitCode> {
             fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
                 let cfg = &mut common::set_globals(false, true)?;
                 let cwd = std::env::current_dir()?;
+
+                if let Some(t) = process().args().find(|x| x.starts_with('+')) {
+                    debug!("Fetching rustc version from toolchain `{}`", t);
+                    cfg.set_toolchain_override(&t[1..]);
+                }
+
                 let toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd)?.0;
+
                 Ok(toolchain.rustc_version())
             }
 
