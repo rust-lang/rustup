@@ -1,8 +1,14 @@
 #![cfg(feature = "reqwest-backend")]
 
 use std::env::{remove_var, set_var};
+use std::error::Error;
+use std::net::TcpListener;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::thread;
+use std::time::Duration;
 
 use env_proxy::for_url;
+use reqwest::{blocking::Client, Proxy};
 use url::Url;
 
 fn scrub_env() {
@@ -27,4 +33,39 @@ fn read_basic_proxy_params() {
         for_url(&u).host_port(),
         Some(("proxy.example.com".to_string(), 8080))
     );
+}
+
+// Tests to verify if socks feature is available and being used
+#[test]
+fn socks_proxy_request() {
+    static CALL_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+    scrub_env();
+    set_var("all_proxy", "socks5://127.0.0.1:1080");
+
+    thread::spawn(move || {
+        let listener = TcpListener::bind("127.0.0.1:1080").unwrap();
+        let incoming = listener.incoming();
+        for _ in incoming {
+            CALL_COUNT.fetch_add(1, Ordering::SeqCst);
+        }
+    });
+
+    let env_proxy = |url: &Url| for_url(&url).to_url();
+    let url = Url::parse("http://example.org").unwrap();
+
+    let client = Client::builder()
+        .proxy(Proxy::custom(env_proxy))
+        .timeout(Duration::from_secs(1))
+        .build()
+        .unwrap();
+    let res = client.get(url.as_str()).send();
+
+    if let Err(e) = res {
+        let s = e.source().unwrap();
+        assert_eq!(CALL_COUNT.load(Ordering::SeqCst), 1);
+        assert!(s.to_string().contains("socks connect error"));
+    } else {
+        panic!("Socks proxy was ignored")
+    }
 }
