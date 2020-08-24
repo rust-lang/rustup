@@ -28,6 +28,23 @@ fn smoke_test() {
 }
 
 #[test]
+fn version_mentions_rustc_version_confusion() {
+    setup(&|config| {
+        let out = run(config, "rustup", &vec!["--version"], &[]);
+        assert!(out.ok);
+        assert!(out
+            .stderr
+            .contains("This is the version for the rustup toolchain manager"));
+
+        let out = run(config, "rustup", &vec!["+nightly", "--version"], &[]);
+        assert!(out.ok);
+        assert!(out
+            .stderr
+            .contains("The currently active `rustc` version is `1.3.0"));
+    });
+}
+
+#[test]
 fn no_colors_in_piped_error_output() {
     setup(&|config| {
         let args: Vec<&str> = vec![];
