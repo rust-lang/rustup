@@ -45,7 +45,7 @@ same-file = "1"
 scopeguard = "1"
 semver = "0.10"
 serde = {version = "1.0", features = ["derive"]}
-sha2 = "0.8"
+sha2 = "0.9"
 strsim = "0.10"
 tar = "0.4.26"
 tempfile = "3.1"

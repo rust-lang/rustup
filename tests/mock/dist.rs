@@ -490,8 +490,8 @@ pub fn calc_hash(src: &Path) -> String {
     let mut buf = Vec::new();
     File::open(src).unwrap().read_to_end(&mut buf).unwrap();
     let mut hasher = Sha256::new();
-    hasher.input(buf);
-    format!("{:x}", hasher.result())
+    hasher.update(buf);
+    format!("{:x}", hasher.finalize())
 }
 
 pub fn create_hash(src: &Path, dst: &Path) -> String {
