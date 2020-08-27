@@ -71,7 +71,7 @@ effective-limits = "0.5.1"
 
 [target."cfg(windows)".dependencies]
 cc = "1"
-winreg = "0.6"
+winreg = "0.7"
 
 [target."cfg(windows)".dependencies.winapi]
 features = [
