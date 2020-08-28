@@ -43,14 +43,14 @@ regex = "1"
 remove_dir_all = "0.6.0"
 same-file = "1"
 scopeguard = "1"
-semver = "0.9"
+semver = "0.10"
 serde = {version = "1.0", features = ["derive"]}
-sha2 = "0.8"
+sha2 = "0.9"
 strsim = "0.10"
 tar = "0.4.26"
 tempfile = "3.1"
-# FIXME(issue #1788)
-pgp = {version = "0.5", default-features = false}
+pgp = {version = "0.7", default-features = false}
+# FIXME(issue #1818, #1826, and friends)
 term = "=0.5.1"
 threadpool = "1"
 toml = "0.5"
@@ -71,7 +71,7 @@ effective-limits = "0.5.1"
 
 [target."cfg(windows)".dependencies]
 cc = "1"
-winreg = "0.6"
+winreg = "0.7"
 
 [target."cfg(windows)".dependencies.winapi]
 features = [

@@ -220,7 +220,7 @@ fn download_file_(
     let callback: &dyn Fn(Event<'_>) -> download::Result<()> = &|msg| {
         if let Event::DownloadDataReceived(data) = msg {
             if let Some(h) = hasher.borrow_mut().as_mut() {
-                h.input(data);
+                h.update(data);
             }
         }
 

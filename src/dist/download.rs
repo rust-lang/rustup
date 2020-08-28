@@ -86,7 +86,7 @@ impl<'a> DownloadCfg<'a> {
             }
         };
 
-        let actual_hash = format!("{:x}", hasher.result());
+        let actual_hash = format!("{:x}", hasher.finalize());
 
         if hash != actual_hash {
             // Incorrect hash
@@ -213,7 +213,7 @@ impl<'a> DownloadCfg<'a> {
         utils::download_file(&url, &file, Some(&mut hasher), &|n| {
             (self.notify_handler)(n.into())
         })?;
-        let actual_hash = format!("{:x}", hasher.result());
+        let actual_hash = format!("{:x}", hasher.finalize());
 
         if hash != actual_hash {
             // Incorrect hash
@@ -251,8 +251,8 @@ fn file_hash(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<S
         if n == 0 {
             break;
         }
-        hasher.input(&buf[..n]);
+        hasher.update(&buf[..n]);
     }
 
-    Ok(format!("{:x}", hasher.result()))
+    Ok(format!("{:x}", hasher.finalize()))
 }
