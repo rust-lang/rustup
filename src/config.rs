@@ -33,6 +33,7 @@ impl OverrideFile {
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 struct ToolchainSection {
     channel: Option<String>,
+    path: Option<String>,
     components: Option<Vec<String>>,
     targets: Option<Vec<String>>,
 }
@@ -45,11 +46,21 @@ impl ToolchainSection {
 
 impl<T: Into<String>> From<T> for OverrideFile {
     fn from(channel: T) -> Self {
-        Self {
-            toolchain: ToolchainSection {
-                channel: Some(channel.into()),
-                ..Default::default()
-            },
+        let channel = channel.into();
+        if channel.contains('/') || channel.contains('\\') {
+            Self {
+                toolchain: ToolchainSection {
+                    path: Some(channel),
+                    ..Default::default()
+                },
+            }
+        } else {
+            Self {
+                toolchain: ToolchainSection {
+                    channel: Some(channel),
+                    ..Default::default()
+                },
+            }
         }
     }
 }
@@ -73,7 +84,7 @@ impl Display for OverrideReason {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct OverrideCfg<'a> {
     toolchain: Option<Toolchain<'a>>,
     components: Vec<String>,
@@ -83,9 +94,13 @@ struct OverrideCfg<'a> {
 impl<'a> OverrideCfg<'a> {
     fn from_file(cfg: &'a Cfg, file: OverrideFile) -> Result<Self> {
         Ok(Self {
-            toolchain: match file.toolchain.channel {
-                Some(name) => Some(Toolchain::from(cfg, &name)?),
-                None => None,
+            toolchain: match (file.toolchain.channel, file.toolchain.path) {
+                (Some(name), None) => Some(Toolchain::from(cfg, &name)?),
+                (None, Some(path)) => Some(Toolchain::from_path(cfg, &path)?),
+                (Some(channel), Some(path)) => {
+                    return Err(ErrorKind::CannotSpecifyChannelAndPath(channel, path.into()).into())
+                }
+                (None, None) => None,
             },
             components: file.toolchain.components.unwrap_or_default(),
             targets: file.toolchain.targets.unwrap_or_default(),
@@ -521,7 +536,6 @@ impl Cfg {
                     path.display()
                 ),
             };
-
             let override_cfg = OverrideCfg::from_file(self, file)?;
             if let Some(toolchain) = &override_cfg.toolchain {
                 // Overridden toolchains can be literally any string, but only
@@ -889,6 +903,7 @@ mod tests {
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some(contents.into()),
+                    path: None,
                     components: None,
                     targets: None,
                 }
@@ -910,6 +925,7 @@ targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
+                    path: None,
                     components: Some(vec!["rustfmt".into(), "rustc-dev".into()]),
                     targets: Some(vec![
                         "wasm32-unknown-unknown".into(),
@@ -932,6 +948,7 @@ channel = "nightly-2020-07-10"
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
+                    path: None,
                     components: None,
                     targets: None,
                 }
@@ -952,6 +969,7 @@ components = []
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
+                    path: None,
                     components: Some(vec![]),
                     targets: None,
                 }
@@ -972,6 +990,7 @@ targets = []
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
+                    path: None,
                     components: None,
                     targets: Some(vec![]),
                 }
@@ -991,6 +1010,7 @@ components = [ "rustfmt" ]
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: None,
+                    path: None,
                     components: Some(vec!["rustfmt".into()]),
                     targets: None,
                 }
