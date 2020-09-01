@@ -334,6 +334,13 @@ pub fn cli() -> App<'static, 'static> {
                                 .takes_value(false)
                                 .short("v")
                                 .long("verbose"),
+                        )
+                        .arg(
+                            Arg::with_name("unused")
+                                .help("Show only toolchains that are not part of an active override")
+                                .takes_value(false)
+                                .required(false)
+                                .long("unused")
                         ),
                 )
                 .subcommand(
@@ -1288,7 +1295,7 @@ fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Too
 }
 
 fn toolchain_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
-    common::list_toolchains(cfg, m.is_present("verbose"))
+    common::list_toolchains(cfg, m.is_present("verbose"), m.is_present("unused"))
 }
 
 fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {

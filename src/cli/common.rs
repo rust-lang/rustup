@@ -1,5 +1,6 @@
 //! Just a dumping ground for cli stuff
 
+use std::collections::HashSet;
 use std::fs;
 use std::io::{BufRead, ErrorKind, Write};
 use std::path::Path;
@@ -469,8 +470,30 @@ fn print_toolchain_path(
     Ok(())
 }
 
-pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
-    let toolchains = cfg.list_toolchains()?;
+pub fn list_toolchains(cfg: &Cfg, verbose: bool, unused: bool) -> Result<utils::ExitCode> {
+    let toolchains = if unused {
+        let overrides = cfg.settings_file.with(|s| Ok(s.overrides.clone()))?;
+        let overrides = overrides.values().cloned().collect::<HashSet<_>>();
+        let toolchains = cfg
+            .list_toolchains()?
+            .into_iter()
+            // stable, beta, and nightly are never considered "unused"
+            .filter(|toolchain| {
+                !(toolchain.starts_with("stable")
+                    || toolchain.starts_with("beta")
+                    || toolchain.starts_with("nightly"))
+            })
+            .collect::<HashSet<_>>();
+        let mut unused = toolchains
+            .difference(&overrides)
+            .cloned()
+            .collect::<Vec<_>>();
+
+        utils::toolchain_sort(&mut unused);
+        unused
+    } else {
+        cfg.list_toolchains()?
+    };
     if toolchains.is_empty() {
         writeln!(process().stdout(), "no installed toolchains")?;
     } else {
