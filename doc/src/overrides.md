@@ -74,22 +74,10 @@ case for nightly-only software that pins to a revision from the release
 archives.
 
 In these cases the toolchain can be named in the project's directory in a file
-called `rust-toolchain`, the content of which is either the name of a single
-`rustup` toolchain, or a TOML file with the following layout:
-
-``` toml
-[toolchain]
-channel = "nightly-2020-07-10"
-components = [ "rustfmt", "rustc-dev" ]
-targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
-```
-
-If the TOML format is used, the `[toolchain]` section is mandatory, and at
-least one property must be specified.
-
-The `rust-toolchain` file is suitable to check in to source control. This file
-has to be encoded in US-ASCII (if you are on Windows, check the encoding and
-that it does not starts with a BOM).
+called `rust-toolchain`, the content of which is the name of a single `rustup`
+toolchain, and which is suitable to check in to source control. This file has
+to be encoded in US-ASCII (if you are on Windows, check the encoding and that
+it does not starts with a BOM).
 
 The toolchains named in this file have a more restricted form than `rustup`
 toolchains generally, and may only contain the names of the three release
