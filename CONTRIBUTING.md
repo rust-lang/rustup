@@ -88,7 +88,7 @@ Similarly, there are many Linux and Unix operating systems images available for
 developers whose usual operating system is Windows. Currently Rustup has no Mac
 OS specific code, so there should be no need to worry about Mac VM images.
 
-Clippy is also run in GitHub Actions, in the 'General Checks / Checks` build
+Clippy is also run in GitHub Actions, in the `General Checks / Checks` build
 task, but not currently run per-platform, which means there is no way to find
 out the status of clippy per platform without running it on that platform as a
 developer.
