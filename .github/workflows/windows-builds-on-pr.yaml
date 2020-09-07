@@ -60,16 +60,13 @@ jobs:
           echo "::add-path::%USERPROFILE%\.cargo\bin"
           echo "::set-env name=TARGET::${{matrix.target}}"
           echo "::set-env name=SKIP_TESTS::"
-      - name: Cache cargo registry
+      - name: Cache cargo registry and git trees
         uses: actions/cache@v2
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-trimmed-${{ hashFiles('**/Cargo.lock') }}
-      - name: Cache cargo git trees
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-gits-trimmed-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Get rustc commit hash
         id: cargo-target-cache
         run: |
