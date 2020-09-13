@@ -150,8 +150,13 @@ impl<'a> Toolchain<'a> {
 
     // Custom only
     pub fn is_custom(&self) -> bool {
-        ToolchainDesc::from_str(&self.name).is_err()
+        Toolchain::is_custom_name(&self.name)
     }
+
+    pub(crate) fn is_custom_name(name: &str) -> bool {
+        ToolchainDesc::from_str(name).is_err()
+    }
+
     // Distributable only
     pub fn is_tracking(&self) -> bool {
         ToolchainDesc::from_str(&self.name)
