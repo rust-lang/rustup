@@ -28,7 +28,7 @@
   determines the directory that traces will be written too. Traces are of the
   form PID.trace. Traces can be read by the Catapult project [tracing viewer].
 
-- `RUSTUP_UNPACK_RAM` *unstable* (default 400M, min 100M) Caps the amount of
+- `RUSTUP_UNPACK_RAM` *unstable* (default free memory or 500MiB if unable to tell, min 210MiB) Caps the amount of
   RAM `rustup` will use for IO tasks while unpacking.
 
 - `RUSTUP_NO_BACKTRACE` Disables backtraces on non-panic errors even when
