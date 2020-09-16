@@ -370,14 +370,10 @@ fn rustup_failed_path_search_toolchain() {
         expect_ok(config, &["rustup", "default", "custom-2"]);
 
         let broken = &["rustup", "run", "custom-1", "cargo-miri"];
-        expect_err(
-            config,
-            broken,
-            "rustup component add miri --toolchain custom-1",
-        );
+        expect_err(config, broken, "cannot use `rustup component add`");
 
         let broken = &["rustup", "run", "custom-2", "cargo-miri"];
-        expect_err(config, broken, "rustup component add miri");
+        expect_err(config, broken, "cannot use `rustup component add`");
 
         // Hardlink will be automatically cleaned up by test setup code
     });
