@@ -87,7 +87,7 @@ impl<'a> Display for Notification<'a> {
             ),
             SetDefaultBufferSize(size) => write!(
                 f,
-                "defaulting to {} unpack ram",
+                "using up to {} of RAM to unpack components",
                 units::Size::new(*size, units::Unit::B, units::UnitMode::Norm)
             ),
             DownloadingFile(url, _) => write!(f, "downloading file from: '{}'", url),
