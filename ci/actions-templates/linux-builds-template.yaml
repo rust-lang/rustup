@@ -28,6 +28,7 @@ jobs:
           - armv7-unknown-linux-gnueabihf
           - aarch64-linux-android
           - aarch64-unknown-linux-gnu     # skip-pr
+          - aarch64-unknown-linux-musl
           - powerpc64-unknown-linux-gnu   # skip-pr
           - x86_64-unknown-linux-musl     # skip-pr
           - i686-unknown-linux-gnu        # skip-pr skip-master

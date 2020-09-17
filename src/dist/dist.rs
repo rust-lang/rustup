@@ -121,6 +121,10 @@ static LIST_ENVS: &[&str] = &[
 const TRIPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-gnu";
 #[cfg(all(not(windows), target_env = "musl"))]
 const TRIPLE_X86_64_UNKNOWN_LINUX: &str = "x86_64-unknown-linux-musl";
+#[cfg(all(not(windows), not(target_env = "musl")))]
+const TRIPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-gnu";
+#[cfg(all(not(windows), target_env = "musl"))]
+const TRIPLE_AARCH64_UNKNOWN_LINUX: &str = "aarch64-unknown-linux-musl";
 
 // MIPS platforms don't indicate endianness in uname, however binaries only
 // run on boxes with the same endianness, as expected.
@@ -245,7 +249,7 @@ impl TargetTriple {
                 (b"Linux", b"arm") => Some("arm-unknown-linux-gnueabi"),
                 (b"Linux", b"armv7l") => Some("armv7-unknown-linux-gnueabihf"),
                 (b"Linux", b"armv8l") => Some("armv7-unknown-linux-gnueabihf"),
-                (b"Linux", b"aarch64") => Some("aarch64-unknown-linux-gnu"),
+                (b"Linux", b"aarch64") => Some(TRIPLE_AARCH64_UNKNOWN_LINUX),
                 (b"Darwin", b"x86_64") => Some("x86_64-apple-darwin"),
                 (b"Darwin", b"i686") => Some("i686-apple-darwin"),
                 (b"FreeBSD", b"x86_64") => Some("x86_64-unknown-freebsd"),
@@ -373,10 +377,10 @@ impl PartialToolchainDesc {
         let env = if self.target.os.is_some() {
             self.target.env
         } else {
-            self.target.env.or_else(|| host_env)
+            self.target.env.or(host_env)
         };
-        let arch = self.target.arch.unwrap_or_else(|| host_arch);
-        let os = self.target.os.unwrap_or_else(|| host_os);
+        let arch = self.target.arch.unwrap_or(host_arch);
+        let os = self.target.os.unwrap_or(host_os);
 
         let trip = if let Some(env) = env {
             format!("{}-{}-{}", arch, os, env)
