@@ -54,7 +54,7 @@ info: removing previous version of component 'rust-docs'
 info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rustc'
 info: installing component 'cargo'
-info: defaulting to 500.0 MiB unpack ram
+info: using up to 500.0 MiB of RAM to unpack components
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
@@ -95,7 +95,7 @@ info: removing previous version of component 'rust-docs'
 info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rustc'
 info: installing component 'cargo'
-info: defaulting to 500.0 MiB unpack ram
+info: using up to 500.0 MiB of RAM to unpack components
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
@@ -160,7 +160,7 @@ info: removing previous version of component 'rust-docs'
 info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rustc'
 info: installing component 'cargo'
-info: defaulting to 500.0 MiB unpack ram
+info: using up to 500.0 MiB of RAM to unpack components
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
@@ -231,7 +231,7 @@ info: removing previous version of component 'rust-docs'
 info: removing previous version of component 'rust-std'
 info: removing previous version of component 'rustc'
 info: installing component 'cargo'
-info: defaulting to 500.0 MiB unpack ram
+info: using up to 500.0 MiB of RAM to unpack components
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
@@ -293,7 +293,7 @@ info: downloading component 'rust-docs'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: installing component 'cargo'
-info: defaulting to 500.0 MiB unpack ram
+info: using up to 500.0 MiB of RAM to unpack components
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'

@@ -194,7 +194,7 @@ impl<'a> Display for Notification<'a> {
                 write!(f, "Force-skipping unavailable component '{}'", component)
             }
             SignatureInvalid(url) => write!(f, "Signature verification failed for '{}'", url),
-            RetryingDownload(url) => write!(f, "Retrying download for '{}'", url),
+            RetryingDownload(url) => write!(f, "retrying download for '{}'", url),
         }
     }
 }
