@@ -94,15 +94,22 @@ pub fn main() -> Result<utils::ExitCode> {
             }
             return Ok(utils::ExitCode(0));
         }
-        Err(clap::Error {
-            kind: MissingArgumentOrSubcommand,
-            message,
-            ..
-        }) => {
-            writeln!(process().stdout().lock(), "{}", message)?;
-            return Ok(utils::ExitCode(1));
-        }
-        Err(e) => Err(e),
+
+        Err(e) => match &e {
+            clap::Error { kind, message, .. } => {
+                if [
+                    InvalidSubcommand,
+                    UnknownArgument,
+                    MissingArgumentOrSubcommand,
+                ]
+                .contains(kind)
+                {
+                    writeln!(process().stdout().lock(), "{}", message)?;
+                    return Ok(utils::ExitCode(1));
+                }
+                Err(e)
+            }
+        },
     }?;
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");
