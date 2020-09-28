@@ -196,6 +196,8 @@ impl MemoryBudget {
             }
         };
 
+        // Future us: this can be removed when IO chunking within a single file is possible: it just helps generate good
+        // errors rather than allocator-failure panics when we hit the large file on a RAM limited system.
         if max_file_size > unpack_ram {
             panic!("RUSTUP_UNPACK_RAM must be larger than {}", max_file_size);
         }
@@ -356,7 +358,16 @@ fn unpack_without_first_dir<'a, R: Read>(
 
         let size = entry.header().size()?;
         if size > MAX_FILE_SIZE {
-            return Err(format!("File too big {} {}", relpath.display(), size).into());
+            // If we cannot tell the user we will either succeed (great), or fail (and we may get a bug report), either
+            // way, we will most likely get reports from users about this, so the possible set of custom builds etc that
+            // don't report are not a great concern.
+            if let Some(notify_handler) = notify_handler {
+                notify_handler(Notification::Error(format!(
+                    "File too big {} {}",
+                    relpath.display(),
+                    size
+                )));
+            }
         }
         while size > budget.available() as u64 {
             for mut item in Vec::from_iter(io_executor.completed()) {
