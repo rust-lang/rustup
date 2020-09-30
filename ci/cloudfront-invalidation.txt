@@ -5,6 +5,8 @@ rustup/dist/aarch64-linux-android/rustup-init
 rustup/dist/aarch64-linux-android/rustup-init.sha256
 rustup/dist/aarch64-unknown-linux-gnu/rustup-init
 rustup/dist/aarch64-unknown-linux-gnu/rustup-init.sha256
+rustup/dist/aarch64-unknown-linux-musl/rustup-init
+rustup/dist/aarch64-unknown-linux-musl/rustup-init.sha256
 rustup/dist/arm-linux-androideabi/rustup-init
 rustup/dist/arm-linux-androideabi/rustup-init.sha256
 rustup/dist/arm-unknown-linux-gnueabi/rustup-init

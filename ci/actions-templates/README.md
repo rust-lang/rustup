@@ -38,6 +38,7 @@ system.
 | armv7-unknown-linux-gnueabihf | Yes        | Two   | Yes    | Yes        |
 | aarch64-linux-android         | Yes        | Two   | Yes    | Yes        |
 | aarch64-unknown-linux-gnu     | Yes        | Two   | No     | Yes        |
+| aarch64-unknown-linux-musl    | Yes        | Two   | No     | Yes        |
 | powerpc64-unknown-linux-gnu   | Yes        | Two   | No     | Yes        |
 | x86_64-unknown-linux-musl     | Yes        | Two   | No     | Yes        |
 | i686-unknown-linux-gnu        | Yes        | One   | No     | No         |
