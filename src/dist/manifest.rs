@@ -4,7 +4,7 @@
 //! release of Rust. They are toml files, typically downloaded from
 //! e.g. static.rust-lang.org/dist/channel-rust-nightly.toml. They
 //! describe where to download, for all platforms, each component of
-//! the a release, and their relationships to each other.
+//! the release, and their relationships to each other.
 //!
 //! Installers use this info to customize Rust installations.
 //!
