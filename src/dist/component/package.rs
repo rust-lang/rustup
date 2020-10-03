@@ -253,7 +253,7 @@ fn filter_result(op: &mut Item) -> io::Result<()> {
 /// Currently the volume of queued items does not count as backpressure against
 /// the main tar extraction process.
 fn trigger_children(
-    io_executor: &mut dyn Executor,
+    io_executor: &dyn Executor,
     directories: &mut HashMap<PathBuf, DirStatus>,
     budget: &mut MemoryBudget,
     item: Item,
@@ -369,14 +369,25 @@ fn unpack_without_first_dir<'a, R: Read>(
                 )));
             }
         }
-        while size > budget.available() as u64 {
+
+        fn flush_ios(
+            mut budget: &mut MemoryBudget,
+            io_executor: &dyn Executor,
+            mut directories: &mut HashMap<PathBuf, DirStatus>,
+        ) -> Result<()> {
             for mut item in Vec::from_iter(io_executor.completed()) {
                 // TODO capture metrics
                 budget.reclaim(&item);
                 filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-                trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+                trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
             }
+            Ok(())
         }
+
+        while size > budget.available() as u64 {
+            flush_ios(&mut budget, &*io_executor, &mut directories)?;
+        }
+
         // Bail out if we get hard links, device nodes or any other unusual content
         // - it is most likely an attack, as rusts cross-platform nature precludes
         // such artifacts
