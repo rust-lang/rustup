@@ -9,6 +9,8 @@
 //! Installers use this info to customize Rust installations.
 //!
 //! See tests/channel-rust-nightly-example.toml for an example.
+//!
+//! Docs: https://forge.rust-lang.org/infra/channel-layout.html
 
 use crate::errors::*;
 use crate::utils::toml_utils::*;
