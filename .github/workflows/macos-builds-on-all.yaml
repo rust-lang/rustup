@@ -38,9 +38,9 @@ jobs:
           mkdir -p ~/.cargo/{registry,git}
       - name: Set environment variables appropriately for the build
         run: |
-          echo "::add-path::$HOME/.cargo/bin"
-          echo "::set-env name=TARGET::${{matrix.target}}"
-          echo "::set-env name=SKIP_TESTS::"
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+          echo "SKIP_TESTS=" >> $GITHUB_ENV
       - name: Cache cargo registry and git trees
         uses: actions/cache@v2
         with:

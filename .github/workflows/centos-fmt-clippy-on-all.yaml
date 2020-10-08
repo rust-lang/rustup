@@ -37,7 +37,7 @@ jobs:
           mkdir -p ~/.cargo/{registry,git}
       - name: Set environment variables appropriately for the build
         run: |
-          echo "::add-path::$HOME/.cargo/bin"
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Cache cargo registry and git trees
         uses: actions/cache@v2
         with:

@@ -71,11 +71,11 @@ jobs:
           mkdir -p ~/.cargo/{registry,git}
       - name: Set environment variables appropriately for the build
         run: |
-          echo "::add-path::$HOME/.cargo/bin"
-          echo "::set-env name=TARGET::${{matrix.target}}"
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
       - name: Skip tests
         run: |
-          echo "::set-env name=SKIP_TESTS::yes"
+          echo "SKIP_TESTS=yes" >> $GITHUB_ENV
         if: matrix.run_tests == ''
       - name: Cache cargo registry and git trees
         uses: actions/cache@v2
@@ -113,7 +113,7 @@ jobs:
             *-linux-android*) DOCKER=android   ;; # Android uses a local docker image
             *)                DOCKER="$TARGET" ;;
           esac
-          echo "::set-env name=DOCKER::$DOCKER"
+          echo "DOCKER=$DOCKER" >> $GITHUB_ENV
       - name: Fetch the docker
         run: bash ci/fetch-rust-docker.bash "${TARGET}"
       - name: Maybe build a docker from there
