@@ -26,6 +26,7 @@ cfg-if = "1.0"
 chrono = "0.4"
 clap = "2"
 download = {path = "download"}
+effective-limits = "0.5.2"
 error-chain = "0.12"
 flate2 = "1"
 git-testament = "0.1.4"
@@ -65,9 +66,6 @@ version = "1"
 [dependencies.rs_tracing]
 features = ["rs_tracing"]
 version = "1.0.1"
-
-[target.'cfg(not(any(target_os="freebsd", target_os="netbsd")))'.dependencies]
-effective-limits = "0.5.1"
 
 [target."cfg(windows)".dependencies]
 cc = "1"

@@ -300,21 +300,13 @@ fn unpack_without_first_dir<'a, R: Read>(
         .entries()
         .chain_err(|| ErrorKind::ExtractingPackage)?;
     const MAX_FILE_SIZE: u64 = 220_000_000;
-    let effective_max_ram = {
-        cfg_if::cfg_if! {
-            if #[cfg(not(any(target_os="freebsd", target_os="netbsd")))] {
-                match effective_limits::memory_limit() {
-                    Ok(ram) => Some(ram as usize),
-                    Err(e) => {
-                        if let Some(h) = notify_handler {
-                            h(Notification::Error(e.to_string()))
-                        }
-                        None
-                    }
-                }
-            } else {
-                None
+    let effective_max_ram = match effective_limits::memory_limit() {
+        Ok(ram) => Some(ram as usize),
+        Err(e) => {
+            if let Some(h) = notify_handler {
+                h(Notification::Error(e.to_string()))
             }
+            None
         }
     };
     let mut budget = MemoryBudget::new(MAX_FILE_SIZE as usize, effective_max_ram, notify_handler);
