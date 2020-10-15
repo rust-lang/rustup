@@ -21,6 +21,7 @@ jobs:
       matrix:
         target:
           - x86_64-apple-darwin
+          - aarch64-apple-darwin
     steps:
       - uses: actions/checkout@v2
         with:
@@ -68,6 +69,22 @@ jobs:
             rustup toolchain uninstall stable
           fi
           rustup toolchain install --profile=minimal stable
+      - name: aarch64-specific items
+        run: |
+          # Use nightly for now
+          rustup toolchain install --profile=minimal nightly
+          rustup default nightly
+
+          # Can't run tests: cross-compiling
+          echo "SKIP_TESTS=yes" >> $GITHUB_ENV
+
+          # Use the beta compiler
+          sudo xcode-select -s /Applications/Xcode_12.2.app/Contents/Developer/
+
+          # Set SDK environment variables
+          echo "SDKROOT=$(xcrun -sdk macosx11.0 --show-sdk-path)" >> $GITHUB_ENV
+          echo "MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx11.0 --show-sdk-platform-version)" >> $GITHUB_ENV
+        if: matrix.target == 'aarch64-apple-darwin'
       - name: Ensure we have our goal target installed
         run: |
           rustup target install "$TARGET"
