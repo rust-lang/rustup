@@ -243,20 +243,20 @@ fn download_file_(
 
     // Keep the curl env var around for a bit
     let use_curl_backend = process().var_os("RUSTUP_USE_CURL").is_some();
-    let avoid_rustls = process().var_os("RUSTUP_AVOID_RUSTLS").is_some();
+    let use_rustls = process().var_os("RUSTUP_USE_RUSTLS").is_some();
     let (backend, notification) = if use_curl_backend {
         (Backend::Curl, Notification::UsingCurl)
     } else {
-        let tls_backend = if avoid_rustls {
-            TlsBackend::Default
+        let tls_backend = if use_rustls {
+            TlsBackend::Rustls
         } else {
-            #[cfg(feature = "reqwest-rustls-tls")]
-            {
-                TlsBackend::Rustls
-            }
-            #[cfg(not(feature = "reqwest-rustls-tls"))]
+            #[cfg(feature = "reqwest-default-tls")]
             {
                 TlsBackend::Default
+            }
+            #[cfg(not(feature = "reqwest-default-tls"))]
+            {
+                TlsBackend::Rustls
             }
         };
         (Backend::Reqwest(tls_backend), Notification::UsingReqwest)
