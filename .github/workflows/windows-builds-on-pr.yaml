@@ -51,15 +51,15 @@ jobs:
           Invoke-WebRequest ${{ matrix.mingw }} -OutFile mingw.7z
           7z x -y mingw.7z -oC:\msys64 | Out-Null
           del mingw.7z
-          echo ::add-path::C:\msys64\usr\bin
-          echo ::add-path::C:\msys64\${{ matrix.mingwdir }}\bin
+          echo "C:\msys64\usr\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+          echo "C:\msys64\${{ matrix.mingwdir }}\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
         shell: powershell
         if: matrix.mingw != ''
       - name: Set environment variables appropriately for the build
         run: |
-          echo "::add-path::%USERPROFILE%\.cargo\bin"
-          echo "::set-env name=TARGET::${{matrix.target}}"
-          echo "::set-env name=SKIP_TESTS::"
+          echo "%USERPROFILE%\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+          echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          echo "SKIP_TESTS=" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Cache cargo registry and git trees
         uses: actions/cache@v2
         with:
