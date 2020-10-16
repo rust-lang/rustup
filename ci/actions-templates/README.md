@@ -59,6 +59,7 @@ system.
 | x86_64-linux-android          | Yes        | Two   | No     | No         |
 | riscv64gc-unknown-linux-gnu   | Yes        | ---   | No     | No         |
 | ----------------------------- | ---------- | ----- | ------ | ---------- |
+| aarch64-apple-darwin          | Yes        | Two   | Yes    | Yes        |
 | x86_64-apple-darwin           | No         | One   | Yes    | Yes        |
 | ----------------------------- | ---------- | ----- | ------ | ---------- |
 | x86_64-pc-windows-msvc        | No         | One   | Yes    | Yes        |
