@@ -1807,7 +1807,7 @@ version = "1.22.1"
 dependencies = [
  "anyhow",
  "cc",
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "chrono",
  "clap",
  "download",
