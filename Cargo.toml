@@ -22,7 +22,7 @@ no-self-update = []
 # Sorted by alphabetic order
 [dependencies]
 anyhow = "1.0.31"
-cfg-if = "0.1"
+cfg-if = "1.0"
 chrono = "0.4"
 clap = "2"
 download = {path = "download"}
@@ -37,13 +37,13 @@ opener = "0.4.0"
 # Used by `curl` or `reqwest` backend although it isn't imported
 # by our rustup.
 openssl = {version = "0.10", optional = true}
-pulldown-cmark = {version = "0.7", default-features = false}
+pulldown-cmark = {version = "0.8", default-features = false}
 rand = "0.7"
 regex = "1"
 remove_dir_all = "0.6.0"
 same-file = "1"
 scopeguard = "1"
-semver = "0.10"
+semver = "0.11"
 serde = {version = "1.0", features = ["derive"]}
 sha2 = "0.9"
 strsim = "0.10"
