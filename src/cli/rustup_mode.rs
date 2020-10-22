@@ -15,7 +15,9 @@ use super::self_update;
 use super::term2;
 use super::term2::Terminal;
 use super::topical_doc;
-use crate::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
+use crate::dist::dist::{
+    PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc,
+};
 use crate::dist::manifest::Component;
 use crate::process;
 use crate::toolchain::{CustomToolchain, DistributableToolchain};
@@ -904,6 +906,32 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     if let Some(names) = m.values_of("toolchain") {
         for name in names {
             update_bare_triple_check(cfg, name)?;
+
+            let toolchain_has_triple = match PartialToolchainDesc::from_str(name) {
+                Ok(x) => x.has_triple(),
+                _ => false,
+            };
+
+            if toolchain_has_triple {
+                let host_arch = TargetTriple::from_host_or_build();
+                match ToolchainDesc::from_str(name) {
+                    Ok(toolchain_desc) => {
+                        let target_triple = toolchain_desc.target;
+                        if host_arch.ne(&target_triple) {
+                            warn!(
+                                "toolchain '{}' may not be able to run on this system.",
+                                name
+                            );
+                            warn!(
+                                "If you meant to build software to target that platform, perhaps try `rustup target add {}` instead?",
+                                target_triple.to_string()
+                            );
+                        }
+                    }
+                    _ => (),
+                }
+            }
+
             let toolchain = cfg.get_toolchain(name, false)?;
 
             let status = if !toolchain.is_custom() {
