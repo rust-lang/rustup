@@ -129,11 +129,62 @@ pub fn download_to_path_with_backend(
 pub mod curl {
     use super::Event;
     use crate::errors::*;
-    use curl::easy::Easy;
+    use curl::easy::{Auth, Easy};
     use std::cell::RefCell;
+    use std::env::var_os;
     use std::str;
     use std::time::Duration;
     use url::Url;
+
+    struct ProxyInfo {
+        url: String,
+        port: Option<u16>,
+        username: Option<String>,
+        password: Option<String>,
+        no_proxy: Option<String>,
+    }
+
+    macro_rules! env_var_pair {
+        ($lc_var:expr, $uc_var:expr) => {
+            var_os($lc_var)
+                .or_else(|| var_os($uc_var))
+                .map(|v| v.to_str().map(str::to_string).or_else(|| None))
+                .unwrap_or_else(|| None)
+        };
+    }
+
+    fn resolve_proxy(request_url: &Url) -> Result<Option<ProxyInfo>> {
+        let proxy = match request_url.scheme() {
+            "http" => env_var_pair!("HTTP_PROXY", "http_proxy"),
+            "https" => env_var_pair!("HTTPS_PROXY", "https_proxy"),
+            "ftp" => env_var_pair!("FTP_PROXY", "ftp_proxy"),
+            _ => env_var_pair!("ALL_PROXY", "all_proxy"),
+        };
+
+        match proxy {
+            Some(proxy_url) => {
+                let url = Url::parse(&proxy_url).chain_err(|| "failed to parse the proxy url.")?;
+                let username = url.username();
+                Ok(Some(ProxyInfo {
+                    url: format!(
+                        "{}://{}",
+                        url.scheme(),
+                        url.host_str()
+                            .chain_err(|| "failed to get the host name from proxy URL")?
+                    ),
+                    username: if username == "" {
+                        None
+                    } else {
+                        Some(String::from(username))
+                    },
+                    password: url.password().map(str::to_string),
+                    port: url.port(),
+                    no_proxy: env_var_pair!("NO_PROXY", "no_proxy"),
+                }))
+            }
+            None => Ok(None),
+        }
+    }
 
     pub fn download(
         url: &Url,
@@ -155,6 +206,38 @@ pub mod curl {
             handle
                 .follow_location(true)
                 .chain_err(|| "failed to set follow redirects")?;
+
+            let proxy_info = resolve_proxy(&url)?;
+            if let Some(proxy_info) = proxy_info {
+                handle
+                    .proxy(&proxy_info.url)
+                    .chain_err(|| "failed to set proxy URL")?;
+                if let Some(port) = proxy_info.port {
+                    handle
+                        .proxy_port(port)
+                        .chain_err(|| "failed to set proxy port")?;
+                }
+                if let Some(username) = proxy_info.username {
+                    let mut auth = Auth::new();
+                    auth.basic(true);
+                    handle
+                        .proxy_auth(&auth)
+                        .chain_err(|| "failed to set proxy authentication type")?;
+                    handle
+                        .proxy_username(&username)
+                        .chain_err(|| "failed to set proxy username")?;
+                    if let Some(password) = proxy_info.password {
+                        handle
+                            .proxy_password(&password)
+                            .chain_err(|| "failed to set proxy password")?;
+                    }
+                }
+                if let Some(no_proxy) = proxy_info.no_proxy {
+                    handle
+                        .noproxy(&no_proxy)
+                        .chain_err(|| "failed to set no proxy URL(s)")?;
+                }
+            }
 
             if resume_from > 0 {
                 handle
