@@ -101,6 +101,8 @@ pub fn this_host_triple() -> String {
         "unknown-linux"
     } else if cfg!(target_os = "macos") {
         "apple-darwin"
+    } else if cfg!(target_os = "illumos") {
+        "unknown-illumos"
     } else {
         unimplemented!()
     };

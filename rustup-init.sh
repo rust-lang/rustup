@@ -8,6 +8,15 @@
 # It runs on Unix shells like {a,ba,da,k,z}sh. It uses the common `local`
 # extension. Note: Most shells limit `local` to 1 var per line, contra bash.
 
+if [ "$KSH_VERSION" = 'Version JM 93t+ 2010-03-05' ]; then
+    # The version of ksh93 that ships with many illumos systems does not
+    # support the "local" extension.  Print a message rather than fail in
+    # subtle ways later on:
+    echo 'rustup does not work with this ksh93 version; please try bash!' >&2
+    exit 1
+fi
+
+
 set -u
 
 # If RUSTUP_UPDATE_ROOT is unset or empty, default it.
@@ -192,6 +201,24 @@ get_architecture() {
         fi
     fi
 
+    if [ "$_ostype" = SunOS ]; then
+        # Both Solaris and illumos presently announce as "SunOS" in "uname -s"
+        # so use "uname -o" to disambiguate.  We use the full path to the
+        # system uname in case the user has coreutils uname first in PATH,
+        # which has historically sometimes printed the wrong value here.
+        if [ "$(/usr/bin/uname -o)" = illumos ]; then
+            _ostype=illumos
+        fi
+
+        # illumos systems have multi-arch userlands, and "uname -m" reports the
+        # machine hardware name; e.g., "i86pc" on both 32- and 64-bit x86
+        # systems.  Check for the native (widest) instruction set on the
+        # running kernel:
+        if [ "$_cputype" = i86pc ]; then
+            _cputype="$(isainfo -n)"
+        fi
+    fi
+
     case "$_ostype" in
 
         Android)
@@ -217,6 +244,10 @@ get_architecture() {
 
         Darwin)
             _ostype=apple-darwin
+            ;;
+
+        illumos)
+            _ostype=unknown-illumos
             ;;
 
         MINGW* | MSYS* | CYGWIN*)

@@ -103,6 +103,7 @@ static LIST_OSES: &[&str] = &[
     "linux",
     "rumprun-netbsd",
     "unknown-freebsd",
+    "unknown-illumos",
 ];
 static LIST_ENVS: &[&str] = &[
     "gnu",
@@ -259,6 +260,7 @@ impl TargetTriple {
                 (b"NetBSD", b"x86_64") => Some("x86_64-unknown-netbsd"),
                 (b"NetBSD", b"i686") => Some("i686-unknown-netbsd"),
                 (b"DragonFly", b"x86_64") => Some("x86_64-unknown-dragonfly"),
+                (b"SunOS", b"i86pc") => Some("x86_64-unknown-illumos"),
                 _ => None,
             };
 

@@ -53,6 +53,8 @@ rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
 rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe.sha256
 rustup/dist/x86_64-unknown-freebsd/rustup-init
 rustup/dist/x86_64-unknown-freebsd/rustup-init.sha256
+rustup/dist/x86_64-unknown-illumos/rustup-init
+rustup/dist/x86_64-unknown-illumos/rustup-init.sha256
 rustup/dist/x86_64-unknown-linux-gnu/rustup-init
 rustup/dist/x86_64-unknown-linux-gnu/rustup-init.sha256
 rustup/dist/x86_64-unknown-linux-musl/rustup-init

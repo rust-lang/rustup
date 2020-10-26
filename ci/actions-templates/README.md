@@ -46,6 +46,7 @@ system.
 | arm-unknown-linux-gnueabihf   | Yes        | Two   | No     | No         |
 | x86_64-unknown-freebsd        | Yes        | Two   | No     | No         |
 | x86_64-unknown-netbsd         | Yes        | Two   | No     | No         |
+| x86_64-unknown-illumos        | Yes        | Two   | No     | No         |
 | powerpc-unknown-linux-gnu     | Yes        | Two   | No     | No         |
 | powerpc64le-unknown-linux-gnu | Yes        | Two   | No     | No         |
 | mips-unknown-linux-gnu        | Yes        | Two   | No     | No         |
