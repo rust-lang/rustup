@@ -7,6 +7,7 @@ use std::process::Command;
 use std::str::FromStr;
 
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
+use regex::Regex;
 
 use super::common;
 use super::errors::*;
@@ -1324,7 +1325,7 @@ fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode
             "exactly one regex filter must be supplied"
         );
 
-        let regex = regex::Regex::from_str(m.values_of("toolchain").unwrap().next().unwrap())
+        let regex = Regex::from_str(m.values_of("toolchain").unwrap().next().unwrap())
             .expect("invalid regex");
 
         for toolchain in cfg.get_toolchains_from_regex(regex)? {

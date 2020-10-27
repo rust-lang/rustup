@@ -8,6 +8,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use pgp::{Deserializable, SignedPublicKey};
+use regex::Regex;
 use serde::Deserialize;
 
 use crate::dist::download::DownloadCfg;
@@ -363,7 +364,7 @@ impl Cfg {
         Toolchain::from(self, name)
     }
 
-    pub fn get_toolchains_from_regex(&self, regex: regex::Regex) -> Result<Vec<Toolchain<'_>>> {
+    pub fn get_toolchains_from_regex(&self, regex: Regex) -> Result<Vec<Toolchain<'_>>> {
         Ok(self
             .list_toolchains_iter()?
             .filter(|toolchain| regex.is_match(toolchain))
