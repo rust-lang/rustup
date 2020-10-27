@@ -405,6 +405,12 @@ pub fn cli() -> App<'static, 'static> {
                         .about("Uninstall a toolchain")
                         .alias("remove")
                         .arg(
+                            Arg::with_name("regex")
+                                .help("Use a regular expression to select the toolchains to uninstall")
+                                .long("regex")
+                                .takes_value(false),
+                        )
+                        .arg(
                             Arg::with_name("toolchain")
                                 .help(TOOLCHAIN_ARG_HELP)
                                 .required(true)
@@ -1312,10 +1318,28 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
 }
 
 fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
-    for toolchain in m.values_of("toolchain").unwrap() {
-        let toolchain = cfg.get_toolchain(toolchain, false)?;
-        toolchain.remove()?;
+    if m.is_present("regex") {
+        assert!(
+            m.values_of("toolchain").unwrap().len() == 1,
+            "exactly one regex filter must be supplied"
+        );
+
+        let regex = regex::Regex::from_str(m.values_of("toolchain").unwrap().next().unwrap())
+            .expect("invalid regex");
+
+        for toolchain in cfg.get_toolchains_from_regex(regex)? {
+            toolchain.remove()?;
+        }
+    } else {
+        for toolchain in m.values_of("toolchain").unwrap() {
+            if m.is_present("regex") {
+            } else {
+            }
+            let toolchain = cfg.get_toolchain(toolchain, false)?;
+            toolchain.remove()?;
+        }
     }
+
     Ok(utils::ExitCode(0))
 }
 
