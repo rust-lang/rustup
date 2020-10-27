@@ -1332,9 +1332,6 @@ fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode
         }
     } else {
         for toolchain in m.values_of("toolchain").unwrap() {
-            if m.is_present("regex") {
-            } else {
-            }
             let toolchain = cfg.get_toolchain(toolchain, false)?;
             toolchain.remove()?;
         }
