@@ -29,6 +29,7 @@ download = {path = "download"}
 error-chain = "0.12"
 flate2 = "1"
 git-testament = "0.1.4"
+glob = "0.3"
 home = {git = "https://github.com/rbtcollins/home", rev = "a243ee2fbee6022c57d56f5aa79aefe194eabe53"}
 lazy_static = "1"
 libc = "0.2"

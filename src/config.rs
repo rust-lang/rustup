@@ -7,8 +7,8 @@ use std::process::Command;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use glob::Pattern;
 use pgp::{Deserializable, SignedPublicKey};
-use regex::Regex;
 use serde::Deserialize;
 
 use crate::dist::download::DownloadCfg;
@@ -364,13 +364,13 @@ impl Cfg {
         Toolchain::from(self, name)
     }
 
-    pub fn get_toolchains_from_regex(
+    pub fn get_toolchains_from_glob(
         &self,
-        regex: Regex,
+        pattern: Pattern,
     ) -> Result<impl Iterator<Item = Toolchain<'_>>> {
         Ok(self
             .list_toolchains_iter()?
-            .filter(move |toolchain| regex.is_match(toolchain))
+            .filter(move |toolchain| pattern.matches(toolchain))
             .map(move |toolchain| Toolchain::from(self, &toolchain).unwrap()))
     }
 

@@ -24,6 +24,7 @@ error_chain! {
         Temp(temp::Error);
         Io(io::Error);
         Term(term::Error);
+        Glob(glob::PatternError);
     }
 
     errors {

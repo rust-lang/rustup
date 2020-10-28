@@ -7,7 +7,7 @@ use std::process::Command;
 use std::str::FromStr;
 
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
-use regex::Regex;
+use glob::Pattern;
 
 use super::common;
 use super::errors::*;
@@ -406,9 +406,10 @@ pub fn cli() -> App<'static, 'static> {
                         .about("Uninstall a toolchain")
                         .alias("remove")
                         .arg(
-                            Arg::with_name("regex")
-                                .help("Use a regular expression to select the toolchains to uninstall")
-                                .long("regex")
+                            Arg::with_name("pattern")
+                                .help("Treat arguments as glob patterns")
+                                .short("p")
+                                .long("pattern")
                                 .takes_value(false),
                         )
                         .arg(
@@ -1319,17 +1320,12 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
 }
 
 fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
-    if m.is_present("regex") {
-        assert!(
-            m.values_of("toolchain").unwrap().len() == 1,
-            "exactly one regex filter must be supplied"
-        );
-
-        let regex = Regex::from_str(m.values_of("toolchain").unwrap().next().unwrap())
-            .expect("invalid regex");
-
-        for toolchain in cfg.get_toolchains_from_regex(regex)? {
-            toolchain.remove()?;
+    if m.is_present("pattern") {
+        for pattern_str in m.values_of("toolchain").unwrap() {
+            let pattern = Pattern::new(pattern_str)?;
+            for toolchain in cfg.get_toolchains_from_glob(pattern)? {
+                toolchain.remove()?;
+            }
         }
     } else {
         for toolchain in m.values_of("toolchain").unwrap() {
