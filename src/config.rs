@@ -364,12 +364,14 @@ impl Cfg {
         Toolchain::from(self, name)
     }
 
-    pub fn get_toolchains_from_regex(&self, regex: Regex) -> Result<Vec<Toolchain<'_>>> {
+    pub fn get_toolchains_from_regex(
+        &self,
+        regex: Regex,
+    ) -> Result<impl Iterator<Item = Toolchain<'_>>> {
         Ok(self
             .list_toolchains_iter()?
-            .filter(|toolchain| regex.is_match(toolchain))
-            .map(|toolchain| Toolchain::from(self, &toolchain).unwrap())
-            .collect())
+            .filter(move |toolchain| regex.is_match(toolchain))
+            .map(move |toolchain| Toolchain::from(self, &toolchain).unwrap()))
     }
 
     pub fn verify_toolchain(&self, name: &str) -> Result<Toolchain<'_>> {
