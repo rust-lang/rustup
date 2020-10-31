@@ -8,7 +8,7 @@ and override which toolchain is used:
    +beta`.
 2. The `RUSTUP_TOOLCHAIN` environment variable.
 3. A [directory override], set with the `rustup override` command.
-4. The [`rustup-toolchain`] file.
+4. The [`rust-toolchain`] file.
 5. The [default toolchain].
 
 The toolchain is chosen in the order listed above, using the first one that is
@@ -24,7 +24,7 @@ To verify which toolchain is active use `rustup show`.
 [toolchain]: concepts/toolchains.md
 [toolchain override shorthand]: #toolchain-override-shorthand
 [directory override]: #directory-overrides
-[`rustup-toolchain`]: #the-toolchain-file
+[`rust-toolchain`]: #the-toolchain-file
 [default toolchain]: #default-toolchain
 
 ## Toolchain override shorthand
