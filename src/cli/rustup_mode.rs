@@ -1322,8 +1322,15 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
 fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     if m.is_present("pattern") {
         for pattern_str in m.values_of("toolchain").unwrap() {
-            let pattern = Pattern::new(pattern_str)?;
-            for toolchain in cfg.get_toolchains_from_glob(pattern)? {
+            let pattern = Pattern::new(&pattern_str)?;
+
+            let mut toolchains = cfg.get_toolchains_from_glob(pattern)?.peekable();
+            if toolchains.peek().is_none() {
+                info!("no toolchains matched pattern '{}'", pattern_str);
+                return Ok(utils::ExitCode(0));
+            }
+
+            for toolchain in toolchains {
                 toolchain.remove()?;
             }
         }
