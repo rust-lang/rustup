@@ -196,7 +196,14 @@ impl Cfg {
 
         // Centralised file for multi-user systems to provide admin/distributor set initial values.
         let fallback_settings = if cfg!(not(windows)) {
-            FallbackSettings::new(PathBuf::from(UNIX_FALLBACK_SETTINGS))?
+            // If present, use the RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS environment
+            // variable as settings path, or UNIX_FALLBACK_SETTINGS otherwise
+            FallbackSettings::new(
+                match process().var("RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS") {
+                    Ok(s) => PathBuf::from(s),
+                    Err(_) => PathBuf::from(UNIX_FALLBACK_SETTINGS),
+                },
+            )?
         } else {
             None
         };

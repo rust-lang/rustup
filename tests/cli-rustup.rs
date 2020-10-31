@@ -1940,3 +1940,41 @@ fn check_host_goes_away() {
         );
     })
 }
+
+#[cfg(unix)]
+#[test]
+fn check_unix_settings_fallback() {
+    setup(&|config| {
+        // No default toolchain specified yet
+        expect_err(
+            config,
+            &["rustup", "default"],
+            r"no default toolchain configured",
+        );
+
+        // Default toolchain specified in fallback settings file
+        let mock_settings_file = config.current_dir().join("mock_fallback_settings.toml");
+        raw::write_file(
+            &mock_settings_file,
+            for_host!(r"default_toolchain = 'nightly-{0}'"),
+        )
+        .unwrap();
+
+        let mut cmd = clitools::cmd(config, "rustup", &["default"]);
+        clitools::env(config, &mut cmd);
+
+        // Override the path to the fallback settings file to be the mock file
+        cmd.env("RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS", mock_settings_file);
+
+        let out = cmd.output().unwrap();
+        assert!(out.status.success());
+        let stdout = String::from_utf8(out.stdout).unwrap();
+        assert_eq!(
+            &stdout,
+            for_host!(
+                r"nightly-{0} (default)
+"
+            )
+        );
+    });
+}

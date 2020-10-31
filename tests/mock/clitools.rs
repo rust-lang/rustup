@@ -446,6 +446,13 @@ pub fn env<E: rustup_test::Env>(config: &Config, cmd: &mut E) {
             .join("tests/mock/signing-key.pub.asc"),
     );
 
+    // The unix fallback settings file may be present in the test environment, so override
+    // the path to the settings file with a non-existing path to avoid intereference
+    cmd.env(
+        "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS",
+        "/bogus-config-file.toml",
+    );
+
     if let Some(root) = config.rustup_update_root.as_ref() {
         cmd.env("RUSTUP_UPDATE_ROOT", root);
     }
