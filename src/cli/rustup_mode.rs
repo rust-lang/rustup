@@ -406,13 +406,6 @@ pub fn cli() -> App<'static, 'static> {
                         .about("Uninstall a toolchain")
                         .alias("remove")
                         .arg(
-                            Arg::with_name("pattern")
-                                .help("Treat arguments as glob patterns")
-                                .short("p")
-                                .long("pattern")
-                                .takes_value(false),
-                        )
-                        .arg(
                             Arg::with_name("toolchain")
                                 .help(TOOLCHAIN_ARG_HELP)
                                 .required(true)
@@ -1320,23 +1313,17 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
 }
 
 fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
-    if m.is_present("pattern") {
-        for pattern_str in m.values_of("toolchain").unwrap() {
-            let pattern = Pattern::new(&pattern_str)?;
+    for pattern_str in m.values_of("toolchain").unwrap() {
+        let pattern = Pattern::new(&pattern_str)?;
 
-            let mut toolchains = cfg.get_toolchains_from_glob(pattern)?.peekable();
-            if toolchains.peek().is_none() {
-                info!("no toolchains matched pattern '{}'", pattern_str);
-                return Ok(utils::ExitCode(0));
-            }
+        let mut toolchains = cfg.get_toolchains_from_glob(pattern)?.peekable();
 
+        if toolchains.peek().is_some() {
             for toolchain in toolchains {
                 toolchain.remove()?;
             }
-        }
-    } else {
-        for toolchain in m.values_of("toolchain").unwrap() {
-            let toolchain = cfg.get_toolchain(toolchain, false)?;
+        } else {
+            let toolchain = cfg.get_toolchain(pattern_str, false)?;
             toolchain.remove()?;
         }
     }
