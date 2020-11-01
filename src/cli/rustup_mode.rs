@@ -1319,10 +1319,12 @@ fn toolchain_remove(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode
         let mut toolchains = cfg.get_toolchains_from_glob(pattern)?.peekable();
 
         if toolchains.peek().is_some() {
+            // This pattern matched some toolchains, so remove each of the ones it matched.
             for toolchain in toolchains {
                 toolchain.remove()?;
             }
         } else {
+            // It didn't match any toolchains, so treat it as a partial toolchain specifier.
             let toolchain = cfg.get_toolchain(pattern_str, false)?;
             toolchain.remove()?;
         }
