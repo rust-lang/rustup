@@ -13,7 +13,7 @@ impl ImmediateUnpacker {
 }
 
 impl Executor for ImmediateUnpacker {
-    fn dispatch(&mut self, mut item: Item) -> Box<dyn Iterator<Item = Item> + '_> {
+    fn dispatch(&self, mut item: Item) -> Box<dyn Iterator<Item = Item> + '_> {
         perform(&mut item);
         Box::new(Some(item).into_iter())
     }
@@ -22,7 +22,7 @@ impl Executor for ImmediateUnpacker {
         Box::new(None.into_iter())
     }
 
-    fn completed(&mut self) -> Box<dyn Iterator<Item = Item>> {
+    fn completed(&self) -> Box<dyn Iterator<Item = Item>> {
         Box::new(None.into_iter())
     }
 }

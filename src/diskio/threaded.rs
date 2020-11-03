@@ -54,7 +54,7 @@ impl<'a> Threaded<'a> {
         }
     }
 
-    fn submit(&mut self, mut item: Item) {
+    fn submit(&self, mut item: Item) {
         let tx = self.tx.clone();
         self.n_files.fetch_add(1, Ordering::Relaxed);
         let n_files = self.n_files.clone();
@@ -68,7 +68,7 @@ impl<'a> Threaded<'a> {
 }
 
 impl<'a> Executor for Threaded<'a> {
-    fn dispatch(&mut self, item: Item) -> Box<dyn Iterator<Item = Item> + '_> {
+    fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = Item> + '_> {
         // Yield any completed work before accepting new work - keep memory
         // pressure under control
         // - return an iterator that runs until we can submit and then submits
@@ -145,7 +145,7 @@ impl<'a> Executor for Threaded<'a> {
         })
     }
 
-    fn completed(&mut self) -> Box<dyn Iterator<Item = Item> + '_> {
+    fn completed(&self) -> Box<dyn Iterator<Item = Item> + '_> {
         Box::new(JoinIterator {
             iter: self.rx.try_iter(),
             consume_sentinel: true,
@@ -187,7 +187,7 @@ impl<T: Iterator<Item = Task>> Iterator for JoinIterator<T> {
 }
 
 struct SubmitIterator<'a, 'b> {
-    executor: &'a mut Threaded<'b>,
+    executor: &'a Threaded<'b>,
     item: Cell<Task>,
 }
 
