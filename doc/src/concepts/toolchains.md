@@ -15,15 +15,15 @@ Standard release channel toolchain names have the following form:
 ```
 <channel>[-<date>][-<host>]
 
-<channel>       = stable|beta|nightly|<version>
+<channel>       = stable|beta|nightly|<major.minor>|<major.minor.patch>
 <date>          = YYYY-MM-DD
 <host>          = <target-triple>
 ```
 
-'channel' is either a named release channel or an explicit version number,
-such as `1.42.0`. Channel names can be optionally appended with an archive
-date, as in `nightly-2014-12-18`, in which case the toolchain is downloaded
-from the archive for that date.
+'channel' is a named release channel, a major and minor version number such as
+`1.42`, or a fully specified version number, such as `1.42.0`. Channel names
+can be optionally appended with an archive date, as in `nightly-2014-12-18`, in
+which case the toolchain is downloaded from the archive for that date.
 
 Finally, the host may be specified as a target triple. This is most useful for
 installing a 32-bit compiler on a 64-bit platform, or for installing the
