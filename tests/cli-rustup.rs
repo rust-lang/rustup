@@ -1978,3 +1978,25 @@ fn check_unix_settings_fallback() {
         );
     });
 }
+
+#[test]
+fn warn_on_unmatch_build() {
+    clitools::setup(Scenario::MultiHost, &|config| {
+        let arch = clitools::MULTI_ARCH1;
+        expect_stderr_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                &format!("nightly-{}", arch),
+                "--no-self-update",
+            ],
+            &format!(
+                r"warning: toolchain 'nightly-{0}' may not be able to run on this system.
+warning: If you meant to build software to target that platform, perhaps try `rustup target add {0}` instead?",
+                arch,
+            ),
+        );
+    });
+}
