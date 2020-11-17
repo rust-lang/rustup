@@ -915,7 +915,7 @@ fn removed_component() {
 }
 
 #[test]
-fn unavailable_components_with_different_target() {
+fn unavailable_components_is_target() {
     // On day 2 the rust-std component is no longer available
     let edit = &|date: &str, chan: &mut MockChannel| {
         // Mark the rust-std package as unavailable in 2016-02-02
@@ -985,8 +985,12 @@ fn unavailable_components_with_different_target() {
             .unwrap_err();
             match *err.kind() {
                 ErrorKind::RequestedComponentsUnavailable(..) => {
-                    assert!(err.to_string().contains("rustup component remove --toolchain nightly --target i686-apple-darwin rust-std"));
-                    assert!(err.to_string().contains("rustup component remove --toolchain nightly --target i686-unknown-linux-gnu rust-std"));
+                    let err_str = err.to_string();
+                    assert!(err_str
+                        .contains("rustup target remove --toolchain nightly i686-apple-darwin"));
+                    assert!(err_str.contains(
+                        "rustup target remove --toolchain nightly i686-unknown-linux-gnu"
+                    ));
                 }
                 _ => panic!(),
             }
@@ -1060,8 +1064,10 @@ fn unavailable_components_with_same_target() {
             .unwrap_err();
             match *err.kind() {
                 ErrorKind::RequestedComponentsUnavailable(..) => {
-                    assert!(err.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin rust-std"));
-                    assert!(err.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin rustc"));
+                    let err_str = err.to_string();
+                    assert!(err_str
+                        .contains("rustup target remove --toolchain nightly x86_64-apple-darwin"));
+                    assert!(err_str.contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin rustc"));
                 }
                 _ => panic!(),
             }

@@ -395,16 +395,26 @@ fn valid_profile_names() -> String {
 }
 
 fn remove_component_msg(cs: &Component, manifest: &Manifest, toolchain: &str) -> String {
-    format!(
-        "rustup component remove --toolchain {}{} {}",
-        toolchain,
-        if let Some(target) = cs.target.as_ref() {
-            format!(" --target {}", target)
-        } else {
-            String::default()
-        },
-        cs.short_name(manifest)
-    )
+    if cs.short_name_in_manifest() == "rust-std" {
+        // We special-case rust-std as it's the stdlib so really you want to do
+        // rustup target remove
+        format!(
+            "    rustup target remove --toolchain {} {}",
+            toolchain,
+            cs.target.as_deref().unwrap_or(toolchain)
+        )
+    } else {
+        format!(
+            "    rustup component remove --toolchain {}{} {}",
+            toolchain,
+            if let Some(target) = cs.target.as_ref() {
+                format!(" --target {}", target)
+            } else {
+                String::default()
+            },
+            cs.short_name(manifest)
+        )
+    }
 }
 
 fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &str) -> String {
@@ -427,7 +437,7 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
 
         let _ = write!(
             buf,
-            "If you don't need the component, you can remove it with:\n{}",
+            "If you don't need the component, you can remove it with:\n\n{}",
             remove_component_msg(&cs[0], manifest, toolchain)
         );
     } else {
@@ -448,7 +458,7 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
             let _ = write!(
                 buf,
                 "some components unavailable for download for channel {}: {}
-                 If you don't need the components, you can remove them with:\n{}\n{}",
+                 If you don't need the components, you can remove them with:\n\n{}\n\n{}",
                 toolchain, cs_str, remove_msg, TOOLSTATE_MSG,
             );
         } else {
