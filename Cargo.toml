@@ -100,6 +100,10 @@ version = "0.3"
 [dev-dependencies]
 walkdir = "2"
 
+[build-dependencies]
+lazy_static = "1"
+regex = "1"
+
 [workspace]
 members = ["download"]
 
