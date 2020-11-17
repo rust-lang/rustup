@@ -764,7 +764,9 @@ fn unavailable_component() {
             )
             .unwrap_err();
             match *err.kind() {
-                ErrorKind::RequestedComponentsUnavailable(..) => {}
+                ErrorKind::RequestedComponentsUnavailable(..) => {
+                    assert!(err.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin bonus"));
+                }
                 _ => panic!(),
             }
         },
@@ -823,7 +825,9 @@ fn unavailable_component_from_profile() {
             )
             .unwrap_err();
             match *err.kind() {
-                ErrorKind::RequestedComponentsUnavailable(..) => {}
+                ErrorKind::RequestedComponentsUnavailable(..) => {
+                    assert!(err.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin rustc"));
+                }
                 _ => panic!(),
             }
 
@@ -889,7 +893,7 @@ fn removed_component() {
 
             // Update without bonus, should fail with RequestedComponentsUnavailable
             change_channel_date(url, "nightly", "2016-02-02");
-            assert!(update_from_dist(
+            let err = update_from_dist(
                 url,
                 toolchain,
                 prefix,
@@ -897,9 +901,176 @@ fn removed_component() {
                 &[],
                 &download_cfg,
                 temp_cfg,
-                false
+                false,
             )
-            .is_err());
+            .unwrap_err();
+            match *err.kind() {
+                ErrorKind::RequestedComponentsUnavailable(..) => {
+                    assert!(err.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin bonus"));
+                }
+                _ => panic!(),
+            }
+        },
+    );
+}
+
+#[test]
+fn unavailable_components_is_target() {
+    // On day 2 the rust-std component is no longer available
+    let edit = &|date: &str, chan: &mut MockChannel| {
+        // Mark the rust-std package as unavailable in 2016-02-02
+        if date == "2016-02-02" {
+            let pkg = chan
+                .packages
+                .iter_mut()
+                .find(|p| p.name == "rust-std")
+                .unwrap();
+
+            for target in &mut pkg.targets {
+                target.available = false;
+            }
+        }
+    };
+
+    setup(
+        Some(edit),
+        false,
+        &|url, toolchain, prefix, download_cfg, temp_cfg| {
+            let adds = [
+                Component::new(
+                    "rust-std".to_string(),
+                    Some(TargetTriple::new("i686-apple-darwin")),
+                    false,
+                ),
+                Component::new(
+                    "rust-std".to_string(),
+                    Some(TargetTriple::new("i686-unknown-linux-gnu")),
+                    false,
+                ),
+            ];
+
+            // Update with rust-std
+            change_channel_date(url, "nightly", "2016-02-01");
+            update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &adds,
+                &[],
+                &download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap();
+
+            assert!(utils::path_exists(
+                &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
+            ));
+            assert!(utils::path_exists(
+                &prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
+            ));
+
+            // Update without rust-std
+            change_channel_date(url, "nightly", "2016-02-02");
+            let err = update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &[],
+                &[],
+                &download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap_err();
+            match *err.kind() {
+                ErrorKind::RequestedComponentsUnavailable(..) => {
+                    let err_str = err.to_string();
+                    assert!(err_str
+                        .contains("rustup target remove --toolchain nightly i686-apple-darwin"));
+                    assert!(err_str.contains(
+                        "rustup target remove --toolchain nightly i686-unknown-linux-gnu"
+                    ));
+                }
+                _ => panic!(),
+            }
+        },
+    );
+}
+
+#[test]
+fn unavailable_components_with_same_target() {
+    // On day 2, the rust-std and rustc components are no longer available
+    let edit = &|date: &str, chan: &mut MockChannel| {
+        // Mark the rust-std package as unavailable in 2016-02-02
+        if date == "2016-02-02" {
+            let pkg = chan
+                .packages
+                .iter_mut()
+                .find(|p| p.name == "rust-std")
+                .unwrap();
+
+            for target in &mut pkg.targets {
+                target.available = false;
+            }
+        }
+
+        // Mark the rustc package as unavailable in 2016-02-02
+        if date == "2016-02-02" {
+            let pkg = chan
+                .packages
+                .iter_mut()
+                .find(|p| p.name == "rustc")
+                .unwrap();
+
+            for target in &mut pkg.targets {
+                target.available = false;
+            }
+        }
+    };
+
+    setup(
+        Some(edit),
+        false,
+        &|url, toolchain, prefix, download_cfg, temp_cfg| {
+            // Update with rust-std and rustc
+            change_channel_date(url, "nightly", "2016-02-01");
+            update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &[],
+                &[],
+                &download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap();
+            assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
+            assert!(utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
+
+            // Update without rust-std and rustc
+            change_channel_date(url, "nightly", "2016-02-02");
+            let err = update_from_dist(
+                url,
+                toolchain,
+                prefix,
+                &[],
+                &[],
+                &download_cfg,
+                temp_cfg,
+                false,
+            )
+            .unwrap_err();
+            match *err.kind() {
+                ErrorKind::RequestedComponentsUnavailable(..) => {
+                    let err_str = err.to_string();
+                    assert!(err_str
+                        .contains("rustup target remove --toolchain nightly x86_64-apple-darwin"));
+                    assert!(err_str.contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin rustc"));
+                }
+                _ => panic!(),
+            }
         },
     );
 }

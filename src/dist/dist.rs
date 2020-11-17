@@ -1,5 +1,6 @@
 use std::env;
 use std::fmt;
+use std::ops::Deref;
 use std::path::Path;
 use std::str::FromStr;
 
@@ -175,6 +176,13 @@ impl FromStr for ParsedToolchainDesc {
         } else {
             Err(ErrorKind::InvalidToolchainName(desc.to_string()).into())
         }
+    }
+}
+
+impl Deref for TargetTriple {
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
