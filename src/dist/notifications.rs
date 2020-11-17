@@ -7,6 +7,8 @@ use crate::utils::notify::NotificationLevel;
 use std::fmt::{self, Display};
 use std::path::Path;
 
+use super::manifest::Manifest;
+
 #[derive(Debug)]
 pub enum Notification<'a> {
     Utils(crate::utils::Notification<'a>),
@@ -31,7 +33,7 @@ pub enum Notification<'a> {
     DownloadingManifest(&'a str),
     DownloadedManifest(&'a str, Option<&'a str>),
     DownloadingLegacyManifest,
-    SkippingNightlyMissingComponent(&'a ToolchainDesc, &'a [Component]),
+    SkippingNightlyMissingComponent(&'a ToolchainDesc, &'a Manifest, &'a [Component]),
     ForcingUnavailableComponent(&'a str),
     ManifestChecksumFailedHack,
     ComponentUnavailable(&'a str, Option<&'a TargetTriple>),
@@ -72,7 +74,7 @@ impl<'a> Notification<'a> {
             | ManifestChecksumFailedHack
             | RollingBack
             | DownloadingManifest(_)
-            | SkippingNightlyMissingComponent(_, _)
+            | SkippingNightlyMissingComponent(_, _, _)
             | RetryingDownload(_)
             | DownloadedManifest(_, _) => NotificationLevel::Info,
             CantReadUpdateHash(_)
@@ -174,7 +176,7 @@ impl<'a> Display for Notification<'a> {
                 "removing stray hash found at '{}' in order to continue",
                 path.display()
             ),
-            SkippingNightlyMissingComponent(toolchain, components) => write!(
+            SkippingNightlyMissingComponent(toolchain, manifest, components) => write!(
                 f,
                 "skipping nightly which is missing installed component{} '{}'",
                 if components.len() > 1 { "s" } else { "" },
@@ -182,9 +184,9 @@ impl<'a> Display for Notification<'a> {
                     .iter()
                     .map(|component| {
                         if component.target.as_ref() != Some(&toolchain.target) {
-                            component.name_in_manifest()
+                            component.name(manifest)
                         } else {
-                            component.short_name_in_manifest().to_owned()
+                            component.short_name(manifest).to_owned()
                         }
                     })
                     .collect::<Vec<_>>()
