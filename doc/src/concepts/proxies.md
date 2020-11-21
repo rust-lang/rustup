@@ -16,7 +16,7 @@ The list of proxies is currently static in `rustup` and is as follows:
 
 - `rust-lldb` and `rust-gdb` are simple wrappers around the `lldb` and `gdb` debuggers respectively. The wrappers enable some pretty-printing of Rust values and add some convenience features to the debuggers by means of their scripting interfaces.
 
-- `rls` and `rust-analyzer` are two different generations of IDE integration tooling. They implement the language-server protocol to permit IDEs and editors such as Visual Studio Code, ViM, or Emacs, access to the semantics of the Rust code you are editing. They come from their respectively named components.
+- `rls` is part of the Rust IDE integration tooling. It implements the language-server protocol to permit IDEs and editors such as Visual Studio Code, ViM, or Emacs, access to the semantics of the Rust code you are editing. It comes from the `rls` component.
 
 - `cargo-clippy` and `clippy-driver` are related to the `clippy` linting tool which provides extra checks for common mistakes and stylistic choices and it comes from the `clippy` component.
 
