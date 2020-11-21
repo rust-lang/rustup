@@ -28,11 +28,11 @@ static TOOLCHAIN_CHANNELS: &[&str] = &[
     "nightly",
     "beta",
     "stable",
-    // Allow from 1.0.0 through to 9.999.99
-    r"\d{1}\.\d{1,3}\.\d{1,2}",
+    // Allow from 1.0.0 through to 9.999.99 with optional patch version
+    r"\d{1}\.\d{1,3}(?:\.\d{1,2})?",
 ];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct ParsedToolchainDesc {
     channel: String,
     date: Option<String>,
@@ -52,7 +52,7 @@ pub struct PartialToolchainDesc {
     pub target: PartialTargetTriple,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PartialTargetTriple {
     pub arch: Option<String>,
     pub os: Option<String>,
@@ -147,7 +147,7 @@ impl FromStr for ParsedToolchainDesc {
     fn from_str(desc: &str) -> Result<Self> {
         lazy_static! {
             static ref TOOLCHAIN_CHANNEL_PATTERN: String = format!(
-                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.*))?$",
+                r"^({})(?:-(\d{{4}}-\d{{2}}-\d{{2}}))?(?:-(.+))?$",
                 TOOLCHAIN_CHANNELS.join("|")
             );
             // Note this regex gives you a guaranteed match of the channel (1)
@@ -947,4 +947,136 @@ fn utc_from_manifest_date(date_str: &str) -> Option<Date<Utc>> {
     NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
         .ok()
         .map(|date| Utc.from_utc_date(&date))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parsed_toolchain_desc_parse() {
+        let success_cases = vec![
+            ("nightly", ("nightly", None, None)),
+            ("beta", ("beta", None, None)),
+            ("stable", ("stable", None, None)),
+            ("0.0", ("0.0", None, None)),
+            ("0.0.0", ("0.0.0", None, None)),
+            ("0.0.0--", ("0.0.0", None, Some("-"))), // possibly a bug?
+            ("9.999.99", ("9.999.99", None, None)),
+            ("0.0.0-anything", ("0.0.0", None, Some("anything"))),
+            ("0.0.0-0000-00-00", ("0.0.0", Some("0000-00-00"), None)),
+            // possibly unexpected behavior, if someone typos a date?
+            (
+                "0.0.0-00000-000-000",
+                ("0.0.0", None, Some("00000-000-000")),
+            ),
+            // possibly unexpected behavior, if someone forgets to add target after the hyphen?
+            ("0.0.0-0000-00-00-", ("0.0.0", None, Some("0000-00-00-"))),
+            (
+                "0.0.0-0000-00-00-any-other-thing",
+                ("0.0.0", Some("0000-00-00"), Some("any-other-thing")),
+            ),
+        ];
+
+        for (input, (channel, date, target)) in success_cases {
+            let parsed = input.parse::<ParsedToolchainDesc>();
+            assert!(
+                parsed.is_ok(),
+                "expected parsing of `{}` to succeed: {:?}",
+                input,
+                parsed
+            );
+
+            let expected = ParsedToolchainDesc {
+                channel: channel.into(),
+                date: date.map(String::from),
+                target: target.map(String::from),
+            };
+            assert_eq!(parsed.unwrap(), expected, "input: `{}`", input);
+        }
+
+        let failure_cases = vec!["anything", "00.0000.000", "3", "", "--", "0.0.0-"];
+
+        for input in failure_cases {
+            let parsed = input.parse::<ParsedToolchainDesc>();
+            assert!(
+                parsed.is_err(),
+                "expected parsing of `{}` to fail: {:?}",
+                input,
+                parsed
+            );
+
+            let error_message = format!("invalid toolchain name: '{}'", input);
+
+            assert_eq!(
+                parsed.unwrap_err().to_string(),
+                error_message,
+                "input: `{}`",
+                input
+            );
+        }
+    }
+
+    #[test]
+    fn test_partial_target_triple_new() {
+        let success_cases = vec![
+            ("", (None, None, None)),
+            ("i386", (Some("i386"), None, None)),
+            ("pc-windows", (None, Some("pc-windows"), None)),
+            ("gnu", (None, None, Some("gnu"))),
+            ("i386-gnu", (Some("i386"), None, Some("gnu"))),
+            ("pc-windows-gnu", (None, Some("pc-windows"), Some("gnu"))),
+            ("i386-pc-windows", (Some("i386"), Some("pc-windows"), None)),
+            (
+                "i386-pc-windows-gnu",
+                (Some("i386"), Some("pc-windows"), Some("gnu")),
+            ),
+        ];
+
+        for (input, (arch, os, env)) in success_cases {
+            let partial_target_triple = PartialTargetTriple::new(input);
+            assert!(
+                partial_target_triple.is_some(),
+                "expected `{}` to create some partial target triple; got None",
+                input
+            );
+
+            let expected = PartialTargetTriple {
+                arch: arch.map(String::from),
+                os: os.map(String::from),
+                env: env.map(String::from),
+            };
+
+            assert_eq!(
+                partial_target_triple.unwrap(),
+                expected,
+                "input: `{}`",
+                input
+            );
+        }
+
+        let failure_cases = vec![
+            "anything",
+            "any-other-thing",
+            "-",
+            "--",
+            "i386-",
+            "i386-pc-",
+            "i386-pc-windows-",
+            "-pc-windows",
+            "i386-pc-windows-anything",
+            "0000-00-00-",
+            "00000-000-000",
+        ];
+
+        for input in failure_cases {
+            let partial_target_triple = PartialTargetTriple::new(input);
+            assert!(
+                partial_target_triple.is_none(),
+                "expected `{}` to be `None`, was: `{:?}`",
+                input,
+                partial_target_triple
+            );
+        }
+    }
 }
