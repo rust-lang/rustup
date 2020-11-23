@@ -464,9 +464,16 @@ impl ToolchainDesc {
         }
     }
 
+    /// Toolchain channels are considered 'tracking' if it is one of the named channels
+    /// such as `stable`, or is an incomplete version such as `1.48`, and the
+    /// date field is empty.
     pub fn is_tracking(&self) -> bool {
         let channels = ["nightly", "beta", "stable"];
-        channels.iter().any(|x| *x == self.channel) && self.date.is_none()
+        lazy_static! {
+            static ref TRACKING_VERSION: Regex = Regex::new(r"^\d{1}\.\d{1,3}$").unwrap();
+        }
+        (channels.iter().any(|x| *x == self.channel) || TRACKING_VERSION.is_match(&self.channel))
+            && self.date.is_none()
     }
 }
 
@@ -1077,6 +1084,24 @@ mod tests {
                 input,
                 partial_target_triple
             );
+        }
+    }
+
+    #[test]
+    fn test_tracking_channels() {
+        static CASES: &[(&str, bool)] = &[
+            ("stable", true),
+            ("beta", true),
+            ("nightly", true),
+            ("nightly-2020-10-04", false),
+            ("1.48", true),
+            ("1.47.0", false),
+        ];
+        for case in CASES {
+            let full_tcn = format!("{}-x86_64-unknown-linux-gnu", case.0);
+            let tcd = ToolchainDesc::from_str(&full_tcn).unwrap();
+            eprintln!("Considering {}", case.0);
+            assert_eq!(tcd.is_tracking(), case.1);
         }
     }
 }
