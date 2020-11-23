@@ -151,7 +151,9 @@ pub fn perform(item: &mut Item) {
         Kind::Directory => create_dir(&item.full_path),
         Kind::File(ref contents) => write_file(&item.full_path, &contents, item.mode),
     };
-    item.finish = item.start.map(|s| s.elapsed());
+    item.finish = item
+        .start
+        .map(|s| Instant::now().saturating_duration_since(s));
 }
 
 #[allow(unused_variables)]
