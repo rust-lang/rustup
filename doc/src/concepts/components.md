@@ -42,9 +42,6 @@ toolchains. The following is an overview of the different components:
   doc --help` for more options.
 * `rls` — [RLS] is a language server that provides support for editors and
   IDEs.
-* `rust-analyzer-preview` — [Rust anaylzer] is a new language server intended
-  to eventually replace [RLS]. This is a preview release as it is still in the
-  experimental phase.
 * `clippy` — [Clippy] is a lint tool that provides extra checks for common
   mistakes and stylistic choices.
 * `miri` — [Miri] is an experimental Rust interpreter, which can be used for
@@ -85,5 +82,4 @@ details.
 [rustfmt]: https://github.com/rust-lang/rustfmt
 [rustup components history]: https://rust-lang.github.io/rustup-components-history/
 [profiles]: profiles.md
-[rust anaylzer]: https://rust-analyzer.github.io/
 [nightly availability]: channels.md#nightly-availability
