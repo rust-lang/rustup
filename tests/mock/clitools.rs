@@ -818,8 +818,10 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
             Release::new("nightly", "1.3.0", "2019-12-10", "2").only_multi_arch(),
         ],
         Scenario::MissingComponentMulti => vec![
-            Release::new("nightly", "1.37.0", "2019-09-12", "1").multi_arch(),
-            Release::new("nightly", "1.37.0", "2019-09-13", "2"),
+            Release::new("nightly", "1.37.0", "2019-09-12", "1")
+                .multi_arch()
+                .with_rls(RlsStatus::Renamed),
+            Release::new("nightly", "1.37.0", "2019-09-13", "2").with_rls(RlsStatus::Renamed),
             Release::new("nightly", "1.37.0", "2019-09-14", "3")
                 .multi_arch()
                 .with_rls(RlsStatus::Unavailable),

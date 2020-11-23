@@ -693,6 +693,11 @@ fn update_from_dist_<'a>(
         old_manifest
     };
 
+    let current_manifest = {
+        let manifestation = Manifestation::open(prefix.clone(), toolchain.target.clone())?;
+        manifestation.load_manifest()?
+    };
+
     loop {
         match try_update_from_dist_(
             download,
@@ -711,9 +716,13 @@ fn update_from_dist_<'a>(
                     break Err(e);
                 }
 
-                if let ErrorKind::RequestedComponentsUnavailable(components, ..) = e.kind() {
+                if let ErrorKind::RequestedComponentsUnavailable(components, manifest, ..) =
+                    e.kind()
+                {
                     (download.notify_handler)(Notification::SkippingNightlyMissingComponent(
-                        &toolchain, components,
+                        &toolchain,
+                        current_manifest.as_ref().unwrap_or(manifest),
+                        components,
                     ));
 
                     if first_err.is_none() {
