@@ -118,7 +118,7 @@ impl DownloadTracker {
         match self.last_sec {
             None => self.last_sec = Some(current_time),
             Some(prev) => {
-                let elapsed = current_time - prev;
+                let elapsed = current_time.saturating_duration_since(prev);
                 if elapsed >= Duration::from_secs(1) {
                     if self.display_progress {
                         self.display();
@@ -166,7 +166,7 @@ impl DownloadTracker {
                 let len = self.downloaded_last_few_secs.len();
                 let speed = if len > 0 { sum / len } else { 0 };
                 let speed_h = Size::new(speed, unit, UnitMode::Rate);
-                let elapsed_h = start_sec.elapsed();
+                let elapsed_h = Instant::now().saturating_duration_since(start_sec);
 
                 // First, move to the start of the current line and clear it.
                 let _ = self.term.carriage_return();
