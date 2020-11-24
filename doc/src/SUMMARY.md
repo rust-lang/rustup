@@ -10,6 +10,7 @@
     - [Toolchains](concepts/toolchains.md)
     - [Components](concepts/components.md)
     - [Profiles](concepts/profiles.md)
+    - [Proxies](concepts/proxies.md)
 - [Basic usage](basics.md)
 - [Overrides](overrides.md)
 - [Cross-compilation](cross-compilation.md)

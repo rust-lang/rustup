@@ -2,11 +2,11 @@
 
 `rustup` provides a number of wrappers for common Rust tools.
 These are called _proxies_ and represent commands which are
-provided by the various [components][].
+provided by the various [components].
 
 The list of proxies is currently static in `rustup` and is as follows:
 
-[components]: concepts/components.html
+[components]: components.md
 
 - `rustc` is the compiler for the Rust programming language, provided by the project itself and comes from the `rustc` component.
 
