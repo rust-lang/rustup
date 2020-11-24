@@ -487,7 +487,7 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
 fn install_msg(bin: &str, toolchain: &str, is_default: bool) -> String {
     if Toolchain::is_custom_name(toolchain) {
         return "\nnote: this is a custom toolchain, which cannot use `rustup component add`\n\
-        help: if you built this toolchain from source, and used `rustup component link`, then you may be able to build the component with `x.py`".to_string();
+        help: if you built this toolchain from source, and used `rustup toolchain link`, then you may be able to build the component with `x.py`".to_string();
     }
     match component_for_bin(bin) {
         Some(c) => format!("\nTo install, run `rustup component add {}{}`", c, {

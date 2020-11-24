@@ -1,5 +1,118 @@
 # Changelog
 
+## [1.23.0] - 2020-11-??
+
+The main points for this release are that `rustup` now supports a number of new
+host platforms, most importantly of which is `aarch64-apple-darwin` for the new
+Apple M1 based devices, and that we support a new structured format for the
+`rust-toolchain` file. You can find more information
+[in the new book format documentation][toolchain-file].
+
+[toolchain-file]: https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file
+
+It is now also possible to install a particular release of the compiler as a
+two-part version number. If you do this, then the release channel will only
+update if there is a patch release of the compiler. For example, if you ran
+`rustup toolchain install 1.48` at the time of this release of `rustup` you
+would end up with a toolchain called `1.48` which contained `1.48.0`. If
+subsequently `1.48.1` were released, a `rustup update` would update your `1.48`
+from `1.48.0` to `1.48.1`.
+
+As always, there were more changes than described below, thanks to everyone
+who contributed to this release. Hilights for this release are detailed below,
+but you can always see the full list of changes via the Git repository.
+
+### Added
+
+- Our documentation is now in "book" form. [pr#2448]
+- When you retrieve `rustup`'s version, you'll also be told the version of the
+  compiler for your default toolchain, to disambiguate things a little. [pr#2465]
+- Support added for `aarch64-unknown-linux-musl` [pr#2493]
+- Support added for `aarch64-apple-darwin` [pr#2521]
+- Support added for `x86_64-unknown-illumos` [pr#2432]
+- You can now override the system-wide settings fallback path [pr#2545]
+- Support for `major.minor` channels [pr#2551]
+
+### Changed
+
+- Significant updates to our handling of `PATH` updating on installation was
+  made. Nominally this ought to have little external change visibility but
+  it may make it more robust for some people. [pr#2387]
+- New support for toml-based `rust-toolchain` file format. This will be expanded
+  upon going into the future to add new functionality, but for now the basics
+  are in place, permitting you to select a channel, targets, and components which
+  may be needed to build your applications. [pr#2438]
+- We now fall back to copying files when rename-in-place causes problems. This
+  may improve matters in dockerised environments where `rustup` is preinstalled
+  with a toolchain already. [pr#2410]
+- We do a better job of exiting gracefully in a number of circumstances.
+  [pr#2427]
+- The `reqwest` backend (the default download backend) now supports socks5
+  proxies. [pr#2466]
+- If you use a proxy for a component which is not part of a custom toolchain
+  you are using then we emit a message about trying to build that component.
+  [pr#2487]
+- If you try and unpack super-large components which would previously be
+  gracefully rejected, instead we _try_ and if we succeed then you get to have
+  the component unpacked. Unfortunately this means if we fail you could end
+  up with a broken toolchain install. [pr#2490]
+- We will recommend ways to recover if you can't update your toolchain due to
+  components or targets going missing. [pr#2384]
+- If you choose to install a toolchain which is for a different target than
+  you are running on, we will warn you and direct you toward `rustup target install`
+  in case that's what you meant. [pr#2534]
+
+### Thanks
+
+- Aaron Loucks
+- Aleksey Kladov
+- Aurelia Dolo
+- Camelid
+- Chansuke
+- Carol (Nichols || Goulding)
+- Daniel Silverstone
+- Dany Marcoux
+- Eduard Miller
+- Eduardo Broto
+- Eric Huss
+- Francesco Zardi
+- FR Bimo
+- Ivan Nejgebauer
+- Ivan Tham
+- Jake Goulding
+- Jens Reidel
+- Joshua M. Clulow
+- Joshua Nelson
+- Jubilee Young
+- Leigh McCulloch
+- Lzu Tao
+- Matthias Krüger
+- Matt Kraai
+- Matt McKay
+- Nick Ashley
+- Pascal Hertleif
+- Paul Lange
+- Pietro Albini
+- Robert Collins
+- Tom Eccles
+
+[pr#2534]: https://github.com/rust-lang/rustup/pull/2534
+[pr#2384]: https://github.com/rust-lang/rustup/pull/2384
+[pr#2545]: https://github.com/rust-lang/rustup/pull/2545
+[pr#2432]: https://github.com/rust-lang/rustup/pull/2432
+[pr#2521]: https://github.com/rust-lang/rustup/pull/2521
+[pr#2493]: https://github.com/rust-lang/rustup/pull/2493
+[pr#2499]: https://github.com/rust-lang/rustup/pull/2499
+[pr#2487]: https://github.com/rust-lang/rustup/pull/2487
+[pr#2466]: https://github.com/rust-lang/rustup/pull/2466
+[pr#2465]: https://github.com/rust-lang/rustup/pull/2465
+[pr#2448]: https://github.com/rust-lang/rustup/pull/2448
+[pr#2427]: https://github.com/rust-lang/rustup/pull/2427
+[pr#2410]: https://github.com/rust-lang/rustup/pull/2410
+[pr#2438]: https://github.com/rust-lang/rustup/pull/2438
+[pr#2387]: https://github.com/rust-lang/rustup/pull/2387
+[pr#2551]: https://github.com/rust-lang/rustup/pull/2551
+
 ## [1.22.1] - 2020-07-08
 
 A regression in proxied behaviour slipped in due to a non-compatible change
