@@ -549,7 +549,7 @@ dependencies = [
 
 [[package]]
 name = "download"
-version = "0.6.7"
+version = "0.6.8"
 dependencies = [
  "curl",
  "env_proxy",
@@ -1803,7 +1803,7 @@ checksum = "b2610b7f643d18c87dff3b489950269617e6601a51f1f05aa5daefee36f64f0b"
 
 [[package]]
 name = "rustup"
-version = "1.22.1"
+version = "1.23.0"
 dependencies = [
  "anyhow",
  "cc",
