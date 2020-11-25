@@ -176,7 +176,7 @@ pub static COMPLETIONS_HELP: &str = r"DISCUSSION:
         $ rustup completions bash >> ~/.local/share/bash-completion/completions/rustup
 
     This installs the completion script. You may have to log out and
-    log back in to your shell session for the changes to take affect.
+    log back in to your shell session for the changes to take effect.
 
     BASH (macOS/Homebrew):
 
@@ -195,7 +195,7 @@ pub static COMPLETIONS_HELP: &str = r"DISCUSSION:
         $ rustup completions fish > ~/.config/fish/completions/rustup.fish
 
     This installs the completion script. You may have to log out and
-    log back in to your shell session for the changes to take affect.
+    log back in to your shell session for the changes to take effect.
 
     ZSH:
 
@@ -225,7 +225,7 @@ pub static COMPLETIONS_HELP: &str = r"DISCUSSION:
 
         $ exec zsh
 
-    for the new completions to take affect.
+    for the new completions to take effect.
 
     CUSTOM LOCATIONS:
 
