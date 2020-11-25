@@ -664,7 +664,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    fn get_manifest(&self) -> Result<Option<Manifest>> {
+    pub fn get_manifest(&self) -> Result<Option<Manifest>> {
         if !self.0.exists() {
             return Err(ErrorKind::ToolchainNotInstalled(self.0.name().to_owned()).into());
         }
