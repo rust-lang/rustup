@@ -94,6 +94,7 @@ but you can always see the full list of changes via the Git repository.
 - Paul Lange
 - Pietro Albini
 - Robert Collins
+- Stephen Muss
 - Tom Eccles
 
 [pr#2534]: https://github.com/rust-lang/rustup/pull/2534
