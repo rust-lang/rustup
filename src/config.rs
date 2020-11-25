@@ -625,17 +625,37 @@ impl Cfg {
             targets: &[&str],
         ) -> Result<bool> {
             let components_requested = !components.is_empty() || !targets.is_empty();
-
+            // If we're here, the toolchain exists on disk and is a dist toolchain
+            // so we should attempt to load its manifest
+            let manifest = if let Some(manifest) = distributable.get_manifest()? {
+                manifest
+            } else {
+                // If we can't read the manifest we'd best try and install
+                return Ok(true);
+            };
             match (distributable.list_components(), components_requested) {
                 // If the toolchain does not support components but there were components requested, bubble up the error
                 (Err(e), true) => Err(e),
-                (Ok(installed_components), _) => {
-                    Ok(components.iter().chain(targets.iter()).all(|name| {
-                        installed_components.iter().any(|status| {
-                            status.component.short_name_in_manifest() == name && status.installed
+                // Otherwise check if all the components we want are installed
+                (Ok(installed_components), _) => Ok(components.iter().all(|name| {
+                    installed_components.iter().any(|status| {
+                        let cname = status.component.short_name(&manifest);
+                        let cname = cname.as_str();
+                        let cnameim = status.component.short_name_in_manifest();
+                        let cnameim = cnameim.as_str();
+                        (cname == *name || cnameim == *name) && status.installed
+                    })
+                })
+                // And that all the targets we want are installed
+                && targets.iter().all(|name| {
+                    installed_components
+                        .iter()
+                        .filter(|c| c.component.short_name_in_manifest() == "rust-std")
+                        .any(|status| {
+                            let ctarg = status.component.target();
+                            (ctarg == *name) && status.installed
                         })
-                    }))
-                }
+                })),
                 _ => Ok(true),
             }
         }
