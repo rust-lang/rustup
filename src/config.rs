@@ -631,7 +631,7 @@ impl Cfg {
                 manifest
             } else {
                 // If we can't read the manifest we'd best try and install
-                return Ok(true);
+                return Ok(false);
             };
             match (distributable.list_components(), components_requested) {
                 // If the toolchain does not support components but there were components requested, bubble up the error
