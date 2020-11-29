@@ -27,6 +27,11 @@ jobs:
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
+      - name: "Uninstall Homebrew"
+        run: |
+          curl -fsSOL https://raw.githubusercontent.com/Homebrew/install/master/uninstall.sh
+          sudo bash uninstall.sh --force --quiet
+          hash -r && rm uninstall.sh
       - name: Acquire tags for the repo
         run: |
           git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
