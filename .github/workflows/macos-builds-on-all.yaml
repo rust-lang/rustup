@@ -98,6 +98,13 @@ jobs:
             echo >&2 "Unfortunately there are /usr/local things in the link. Fail."
             exit 1
           fi
+      - name: Upload the built artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: rustup-init-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/rustup-init
+          retention-days: 7
       - name: Acquire the AWS tooling
         run: |
           pip3 install awscli

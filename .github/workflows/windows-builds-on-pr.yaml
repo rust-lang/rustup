@@ -94,6 +94,13 @@ jobs:
           rustup target install ${{ matrix.target }}
       - name: Run a full build
         run: bash ci/run.bash
+      - name: Upload the built artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: rustup-init-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/rustup-init.exe
+          retention-days: 7
       - name: Acquire the AWS tooling
         run: |
           choco upgrade awscli
