@@ -1,6 +1,26 @@
 # Changelog
 
-## [1.23.0] - 2020-11-??
+## [1.23.1] - 2020-12-01
+
+This point release is mostly to correct a problem where if you installed
+`rustup` with `--no-modify-path` then the `.cargo/env` file would not be created
+in some cases. In addition, we have rebuilt the macos binaries to correct an
+oversight which caused older Macs to be unable to run the new version. If you
+encountered a problem with `liblzma` on mac os 10.13 then this version should
+solve that for you.
+
+Finally, the illumos binary is now part of the release properly.
+
+Thanks go to:
+
+- Élie Roudninski
+- Jeroen Ooms
+- Jake Goulding
+- Joshua M. Clulow
+- Neil Mitchell
+- Richard Gomes
+
+## [1.23.0] - 2020-11-27
 
 The main points for this release are that `rustup` now supports a number of new
 host platforms, most importantly of which is `aarch64-apple-darwin` for the new
