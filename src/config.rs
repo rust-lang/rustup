@@ -91,10 +91,12 @@ impl<'a> OverrideCfg<'a> {
             },
             components: file.toolchain.components.unwrap_or_default(),
             targets: file.toolchain.targets.unwrap_or_default(),
-            profile: match file.toolchain.profile {
-                Some(name) => Some(dist::Profile::from_str(&name)?),
-                None => None,
-            },
+            profile: file
+                .toolchain
+                .profile
+                .as_deref()
+                .map(dist::Profile::from_str)
+                .transpose()?,
         })
     }
 }
@@ -666,7 +668,7 @@ impl Cfg {
             }
         }
 
-        if let Some((toolchain, components, targets, reason)) =
+        if let Some((toolchain, components, targets, reason, profile)) =
             match self.find_override_config(path)? {
                 Some((
                     OverrideCfg {
@@ -685,11 +687,11 @@ impl Cfg {
 
                     toolchain
                         .or(default)
-                        .map(|toolchain| (toolchain, components, targets, Some(reason)))
+                        .map(|toolchain| (toolchain, components, targets, Some(reason), profile))
                 }
                 None => self
                     .find_default()?
-                    .map(|toolchain| (toolchain, vec![], vec![], None)),
+                    .map(|toolchain| (toolchain, vec![], vec![], None, None)),
             }
         {
             if toolchain.is_custom() {
@@ -705,7 +707,7 @@ impl Cfg {
                 let distributable = DistributableToolchain::new(&toolchain)?;
                 if !toolchain.exists() || !components_exist(&distributable, &components, &targets)?
                 {
-                    distributable.install_from_dist(true, false, &components, &targets)?;
+                    distributable.install_from_dist(true, false, &components, &targets, profile)?;
                 }
             }
 
@@ -767,7 +769,7 @@ impl Cfg {
         let channels = channels.map(|(n, t)| {
             let st = t.and_then(|t| {
                 let distributable = DistributableToolchain::new(&t)?;
-                let st = distributable.install_from_dist(force_update, false, &[], &[]);
+                let st = distributable.install_from_dist(force_update, false, &[], &[], None);
                 if let Err(ref e) = st {
                     (self.notify_handler)(Notification::NonFatalError(e));
                 }
@@ -822,7 +824,7 @@ impl Cfg {
         let toolchain = self.get_toolchain(toolchain, false)?;
         if install_if_missing && !toolchain.exists() {
             let distributable = DistributableToolchain::new(&toolchain)?;
-            distributable.install_from_dist(true, false, &[], &[])?;
+            distributable.install_from_dist(true, false, &[], &[], None)?;
         }
 
         if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {

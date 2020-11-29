@@ -949,6 +949,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
                     m.is_present("allow-downgrade"),
                     &components,
                     &targets,
+                    None,
                 )?)
             } else if !toolchain.exists() {
                 return Err(ErrorKind::InvalidToolchainName(toolchain.name().to_string()).into());
