@@ -42,6 +42,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
           echo "SKIP_TESTS=" >> $GITHUB_ENV
+          echo "LZMA_API_STATIC=1" >> $GITHUB_ENV
       - name: Cache cargo registry and git trees
         uses: actions/cache@v2
         with:
@@ -90,6 +91,13 @@ jobs:
           rustup target install "$TARGET"
       - name: Run a full build and test
         run: bash ci/run.bash
+      - name: Dump dynamic link targets
+        run: |
+          otool -L target/${TARGET}/release/rustup-init
+          if otool -L target/${TARGET}/release/rustup-init | grep -q -F /usr/local/; then
+            echo >&2 "Unfortunately there are /usr/local things in the link. Fail."
+            exit 1
+          fi
       - name: Acquire the AWS tooling
         run: |
           pip3 install awscli
