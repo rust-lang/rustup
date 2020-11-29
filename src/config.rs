@@ -35,6 +35,7 @@ struct ToolchainSection {
     channel: Option<String>,
     components: Option<Vec<String>>,
     targets: Option<Vec<String>>,
+    profile: Option<String>,
 }
 
 impl ToolchainSection {
@@ -78,6 +79,7 @@ struct OverrideCfg<'a> {
     toolchain: Option<Toolchain<'a>>,
     components: Vec<String>,
     targets: Vec<String>,
+    profile: Option<dist::Profile>,
 }
 
 impl<'a> OverrideCfg<'a> {
@@ -89,6 +91,10 @@ impl<'a> OverrideCfg<'a> {
             },
             components: file.toolchain.components.unwrap_or_default(),
             targets: file.toolchain.targets.unwrap_or_default(),
+            profile: match file.toolchain.profile {
+                Some(name) => Some(dist::Profile::from_str(&name)?),
+                None => None,
+            },
         })
     }
 }
@@ -667,6 +673,7 @@ impl Cfg {
                         toolchain,
                         components,
                         targets,
+                        profile,
                     },
                     reason,
                 )) => {
@@ -911,6 +918,7 @@ mod tests {
                     channel: Some(contents.into()),
                     components: None,
                     targets: None,
+                    profile: None,
                 }
             }
         );
@@ -922,6 +930,7 @@ mod tests {
 channel = "nightly-2020-07-10"
 components = [ "rustfmt", "rustc-dev" ]
 targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
+profile = "default"
 "#;
 
         let result = Cfg::parse_override_file(contents);
@@ -935,6 +944,7 @@ targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
                         "wasm32-unknown-unknown".into(),
                         "thumbv2-none-eabi".into()
                     ]),
+                    profile: Some("default".into()),
                 }
             }
         );
@@ -954,6 +964,7 @@ channel = "nightly-2020-07-10"
                     channel: Some("nightly-2020-07-10".into()),
                     components: None,
                     targets: None,
+                    profile: None,
                 }
             }
         );
@@ -974,6 +985,7 @@ components = []
                     channel: Some("nightly-2020-07-10".into()),
                     components: Some(vec![]),
                     targets: None,
+                    profile: None,
                 }
             }
         );
@@ -994,6 +1006,7 @@ targets = []
                     channel: Some("nightly-2020-07-10".into()),
                     components: None,
                     targets: Some(vec![]),
+                    profile: None,
                 }
             }
         );
@@ -1013,6 +1026,7 @@ components = [ "rustfmt" ]
                     channel: None,
                     components: Some(vec!["rustfmt".into()]),
                     targets: None,
+                    profile: None,
                 }
             }
         );
