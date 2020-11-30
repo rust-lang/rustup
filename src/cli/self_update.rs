@@ -338,6 +338,7 @@ pub fn install(
 
     let install_res: Result<utils::ExitCode> = (|| {
         install_bins()?;
+        do_write_env_files()?;
         if !opts.no_modify_path {
             do_add_to_path()?;
         }

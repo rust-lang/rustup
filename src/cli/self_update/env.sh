@@ -5,7 +5,7 @@ case ":${PATH}:" in
     *:"{cargo_bin}":*)
         ;;
     *)
-        # Prepending path in case a system-installed rustc must be overwritten
+        # Prepending path in case a system-installed rustc needs to be overridden
         export PATH="{cargo_bin}:$PATH"
         ;;
 esac

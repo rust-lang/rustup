@@ -81,8 +81,6 @@ pub fn do_remove_from_path() -> Result<()> {
 }
 
 pub fn do_add_to_path() -> Result<()> {
-    let mut written = vec![];
-
     for sh in shell::get_available_shells() {
         let source_cmd = sh.source_string()?;
         for rc in sh.update_rcs() {
@@ -92,18 +90,26 @@ pub fn do_add_to_path() -> Result<()> {
                         path: rc.to_path_buf(),
                     }
                 })?;
-                let script = sh.env_script();
-                // Only write scripts once.
-                // TODO 2021: remove this code if Rustup adds 0 shell scripts.
-                if !written.contains(&script) {
-                    script.write()?;
-                    written.push(script);
-                }
             }
         }
     }
 
     remove_legacy_paths()?;
+
+    Ok(())
+}
+
+pub fn do_write_env_files() -> Result<()> {
+    let mut written = vec![];
+
+    for sh in shell::get_available_shells() {
+        let script = sh.env_script();
+        // Only write each possible script once.
+        if !written.contains(&script) {
+            script.write()?;
+            written.push(script);
+        }
+    }
 
     Ok(())
 }

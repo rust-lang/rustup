@@ -110,6 +110,7 @@ Rust is installed now. Great!
         );
         if cfg!(unix) {
             assert!(!config.homedir.join(".profile").exists());
+            assert!(config.cargodir.join("env").exists());
         }
     });
 }
