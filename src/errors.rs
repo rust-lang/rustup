@@ -429,7 +429,7 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
             &cs[0].description(manifest),
             toolchain,
             if toolchain.starts_with("nightly") {
-                "\nSometimes not all components are available in any given nightly."
+                "\nSometimes not all components are available in any given nightly. "
             } else {
                 ""
             }
