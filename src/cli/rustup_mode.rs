@@ -82,7 +82,7 @@ pub fn main() -> Result<utils::ExitCode> {
 
                 if let Some(t) = process().args().find(|x| x.starts_with('+')) {
                     debug!("Fetching rustc version from toolchain `{}`", t);
-                    cfg.set_toolchain_override(&t[1..]);
+                    cfg.set_toolchain_override(&t[1..])?;
                 }
 
                 let toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd)?.0;
@@ -118,7 +118,7 @@ pub fn main() -> Result<utils::ExitCode> {
     let cfg = &mut common::set_globals(verbose, quiet)?;
 
     if let Some(t) = matches.value_of("+toolchain") {
-        cfg.set_toolchain_override(&t[1..]);
+        cfg.set_toolchain_override(&t[1..])?;
     }
 
     if maybe_upgrade_data(cfg, &matches)? {

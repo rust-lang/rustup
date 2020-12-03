@@ -334,8 +334,32 @@ impl Cfg {
         Ok(())
     }
 
-    pub fn set_toolchain_override(&mut self, toolchain_override: &str) {
-        self.toolchain_override = Some(toolchain_override.to_owned());
+    fn resolve_prefix_toolchain(&self, toolchain: &str) -> Result<String> {
+        let toolchains = self.list_toolchains()?;
+        let exact_found = toolchains.iter().any(|s| s == toolchain);
+        let unique_prefix = toolchains
+            .iter()
+            .filter(|s| s.starts_with(toolchain))
+            .count()
+            == 1;
+        Ok(if !exact_found && unique_prefix {
+            // The input override was not found directly, but it is a unique
+            // prefix, so we'll use that instead
+
+            toolchains
+                .into_iter()
+                .find(|s| s.starts_with(toolchain))
+                .unwrap()
+        } else {
+            // Either we had an exact match, or it was not exact and also it wasn't
+            // a unique prefix, as such, use as-is so we can report issues later.
+            toolchain.to_string()
+        })
+    }
+
+    pub fn set_toolchain_override(&mut self, toolchain_override: &str) -> Result<()> {
+        self.toolchain_override = Some(self.resolve_prefix_toolchain(toolchain_override)?);
+        Ok(())
     }
 
     // Returns a profile, if one exists in the settings file.
@@ -812,7 +836,8 @@ impl Cfg {
         install_if_missing: bool,
         binary: &str,
     ) -> Result<Command> {
-        let toolchain = self.get_toolchain(toolchain, false)?;
+        let toolchain = self.resolve_prefix_toolchain(toolchain)?;
+        let toolchain = self.get_toolchain(&toolchain, false)?;
         if install_if_missing && !toolchain.exists() {
             let distributable = DistributableToolchain::new(&toolchain)?;
             distributable.install_from_dist(true, false, &[], &[])?;
