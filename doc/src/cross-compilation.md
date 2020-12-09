@@ -4,7 +4,7 @@ Rust [supports a great number of platforms][p]. For many of these platforms
 The Rust Project publishes binary releases of the standard library, and for
 some the full compiler. `rustup` gives easy access to all of them.
 
-[p]: https://forge.rust-lang.org/release/platform-support.html
+[p]: https://doc.rust-lang.org/nightly/rustc/platform-support.html
 
 When you first install a toolchain, `rustup` installs only the standard
 library for your *host* platform - that is, the architecture and operating
