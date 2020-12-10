@@ -491,6 +491,13 @@ check_help_for() {
     _cmd="$1"
     shift
 
+    local _category
+    if "$_cmd" --help | grep -q 'For all options use the manual or "--help all".'; then
+      _category="all"
+    else
+      _category=""
+    fi
+
     case "$_arch" in
 
         # If we're running on OS-X, older than 10.13, then we always
@@ -508,7 +515,7 @@ check_help_for() {
     esac
 
     for _arg in "$@"; do
-        if ! "$_cmd" --help | grep -q -- "$_arg"; then
+        if ! "$_cmd" --help $_category | grep -q -- "$_arg"; then
             return 1
         fi
     done
