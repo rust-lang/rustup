@@ -13,9 +13,14 @@ version = "1.23.1"
 
 [features]
 curl-backend = ["download/curl-backend"]
-default = ["curl-backend", "reqwest-backend"]
+default = ["curl-backend", "reqwest-backend", "reqwest-default-tls", "reqwest-rustls-tls"]
+
 reqwest-backend = ["download/reqwest-backend"]
 vendored-openssl = ['openssl/vendored']
+
+reqwest-default-tls = ["download/reqwest-default-tls"]
+reqwest-rustls-tls = ["download/reqwest-rustls-tls"]
+
 # Include in the default set to disable self-update and uninstall.
 no-self-update = []
 
@@ -25,7 +30,7 @@ anyhow = "1.0.31"
 cfg-if = "1.0"
 chrono = "0.4"
 clap = "2"
-download = {path = "download"}
+download = { path = "download", default-features = false }
 effective-limits = "0.5.2"
 error-chain = "0.12"
 flate2 = "1"

@@ -10,7 +10,13 @@ pub use crate::errors::*;
 #[derive(Debug, Copy, Clone)]
 pub enum Backend {
     Curl,
-    Reqwest,
+    Reqwest(TlsBackend),
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum TlsBackend {
+    Rustls,
+    Default,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -30,7 +36,7 @@ fn download_with_backend(
 ) -> Result<()> {
     match backend {
         Backend::Curl => curl::download(url, resume_from, callback),
-        Backend::Reqwest => reqwest_be::download(url, resume_from, callback),
+        Backend::Reqwest(tls) => reqwest_be::download(url, resume_from, callback, tls),
     }
 }
 
@@ -249,9 +255,10 @@ pub mod curl {
 #[cfg(feature = "reqwest-backend")]
 pub mod reqwest_be {
     use super::Event;
+    use super::TlsBackend;
     use crate::errors::*;
     use lazy_static::lazy_static;
-    use reqwest::blocking::{Client, Response};
+    use reqwest::blocking::{Client, ClientBuilder, Response};
     use reqwest::{header, Proxy};
     use std::io;
     use std::time::Duration;
@@ -261,13 +268,15 @@ pub mod reqwest_be {
         url: &Url,
         resume_from: u64,
         callback: &dyn Fn(Event<'_>) -> Result<()>,
+        tls: TlsBackend,
     ) -> Result<()> {
         // Short-circuit reqwest for the "file:" URL scheme
         if download_from_file_url(url, resume_from, callback)? {
             return Ok(());
         }
 
-        let mut res = request(url, resume_from).chain_err(|| "failed to make network request")?;
+        let mut res =
+            request(url, resume_from, tls).chain_err(|| "failed to make network request")?;
 
         if !res.status().is_success() {
             let code: u16 = res.status().into();
@@ -295,13 +304,34 @@ pub mod reqwest_be {
         }
     }
 
+    fn client_generic() -> ClientBuilder {
+        Client::builder()
+            .gzip(false)
+            .proxy(Proxy::custom(env_proxy))
+            .timeout(Duration::from_secs(30))
+    }
+    #[cfg(feature = "reqwest-rustls-tls")]
     lazy_static! {
-        static ref CLIENT: Client = {
+        static ref CLIENT_RUSTLS_TLS: Client = {
             let catcher = || {
-                Client::builder()
-                    .gzip(false)
-                    .proxy(Proxy::custom(env_proxy))
-                    .timeout(Duration::from_secs(30))
+                client_generic().use_rustls_tls()
+                    .build()
+            };
+
+            // woah, an unwrap?!
+            // It's OK. This is the same as what is happening in curl.
+            //
+            // The curl::Easy::new() internally assert!s that the initialized
+            // Easy is not null. Inside reqwest, the errors here would be from
+            // the TLS library returning a null pointer as well.
+            catcher().unwrap()
+        };
+    }
+    #[cfg(feature = "reqwest-default-tls")]
+    lazy_static! {
+        static ref CLIENT_DEFAULT_TLS: Client = {
+            let catcher = || {
+                client_generic()
                     .build()
             };
 
@@ -319,8 +349,22 @@ pub mod reqwest_be {
         env_proxy::for_url(url).to_url()
     }
 
-    fn request(url: &Url, resume_from: u64) -> reqwest::Result<Response> {
-        let mut req = CLIENT.get(url.as_str());
+    fn request(url: &Url, resume_from: u64, backend: TlsBackend) -> reqwest::Result<Response> {
+        let client: &Client = match backend {
+            #[cfg(feature = "reqwest-rustls-tls")]
+            TlsBackend::Rustls => &CLIENT_RUSTLS_TLS,
+            #[cfg(not(feature = "reqwest-rustls-tls"))]
+            TlsBackend::Default => {
+                return Err(ErrorKind::BackendUnavailable("reqwest rustls").into());
+            }
+            #[cfg(feature = "reqwest-default-tls")]
+            TlsBackend::Default => &CLIENT_DEFAULT_TLS,
+            #[cfg(not(feature = "reqwest-default-tls"))]
+            TlsBackend::Default => {
+                return Err(ErrorKind::BackendUnavailable("reqwest default TLS").into());
+            }
+        };
+        let mut req = client.get(url.as_str());
 
         if resume_from != 0 {
             req = req.header(header::RANGE, format!("bytes={}-", resume_from));

@@ -207,7 +207,7 @@ fn download_file_(
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
     use download::download_to_path_with_backend;
-    use download::{Backend, Event};
+    use download::{Backend, Event, TlsBackend};
     use sha2::Digest;
     use std::cell::RefCell;
 
@@ -241,12 +241,25 @@ fn download_file_(
 
     // Download the file
 
-    // Keep the hyper env var around for a bit
+    // Keep the curl env var around for a bit
     let use_curl_backend = process().var_os("RUSTUP_USE_CURL").is_some();
+    let use_rustls = process().var_os("RUSTUP_USE_RUSTLS").is_some();
     let (backend, notification) = if use_curl_backend {
         (Backend::Curl, Notification::UsingCurl)
     } else {
-        (Backend::Reqwest, Notification::UsingReqwest)
+        let tls_backend = if use_rustls {
+            TlsBackend::Rustls
+        } else {
+            #[cfg(feature = "reqwest-default-tls")]
+            {
+                TlsBackend::Default
+            }
+            #[cfg(not(feature = "reqwest-default-tls"))]
+            {
+                TlsBackend::Rustls
+            }
+        };
+        (Backend::Reqwest(tls_backend), Notification::UsingReqwest)
     };
     notify_handler(notification);
     let res =
