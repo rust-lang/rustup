@@ -153,6 +153,123 @@ Rust is installed now. Great!
 }
 
 #[test]
+fn installer_shows_default_host_triple() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        let out = run_input(config, &["rustup-init", "--no-modify-path"], "2\n");
+
+        println!("-- stdout --\n {}", out.stdout);
+        println!("-- stderr --\n {}", out.stderr);
+        assert!(out.stdout.contains(for_host!(
+            r"
+Default host triple? [{0}]
+"
+        )));
+    });
+}
+
+#[test]
+fn installer_shows_default_toolchain_as_stable() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        let out = run_input(config, &["rustup-init", "--no-modify-path"], "2\n\n");
+
+        println!("-- stdout --\n {}", out.stdout);
+        println!("-- stderr --\n {}", out.stderr);
+        assert!(out.stdout.contains(
+            r"
+Default toolchain? (stable/beta/nightly/none) [stable]
+"
+        ));
+    });
+}
+
+#[test]
+fn installer_shows_default_toolchain_when_set_in_args() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        let out = run_input(
+            config,
+            &[
+                "rustup-init",
+                "--no-modify-path",
+                "--default-toolchain=nightly",
+            ],
+            "2\n\n",
+        );
+
+        println!("-- stdout --\n {}", out.stdout);
+        println!("-- stderr --\n {}", out.stderr);
+        assert!(out.stdout.contains(
+            r"
+Default toolchain? (stable/beta/nightly/none) [nightly]
+"
+        ));
+    });
+}
+
+#[test]
+fn installer_shows_default_profile() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        let out = run_input(config, &["rustup-init", "--no-modify-path"], "2\n\n\n");
+
+        println!("-- stdout --\n {}", out.stdout);
+        println!("-- stderr --\n {}", out.stderr);
+        assert!(out.stdout.contains(
+            r"
+Profile (which tools and data to install)? (minimal/default/complete) [default]
+"
+        ));
+    });
+}
+
+#[test]
+fn installer_shows_default_profile_when_set_in_args() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        let out = run_input(
+            config,
+            &["rustup-init", "--no-modify-path", "--profile=minimal"],
+            "2\n\n\n",
+        );
+
+        println!("-- stdout --\n {}", out.stdout);
+        println!("-- stderr --\n {}", out.stderr);
+        assert!(out.stdout.contains(
+            r"
+Profile (which tools and data to install)? (minimal/default/complete) [minimal]
+"
+        ));
+    });
+}
+
+#[test]
+fn installer_shows_default_for_modify_path() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        let out = run_input(config, &["rustup-init"], "2\n\n\n\n");
+
+        println!("-- stdout --\n {}", out.stdout);
+        println!("-- stderr --\n {}", out.stderr);
+        assert!(out.stdout.contains(
+            r"
+Modify PATH variable? (Y/n)
+"
+        ));
+    });
+}
+
+#[test]
+fn installer_shows_default_for_modify_path_when_set_with_args() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        let out = run_input(config, &["rustup-init", "--no-modify-path"], "2\n\n\n\n");
+
+        println!("-- stdout --\n {}", out.stdout);
+        println!("-- stderr --\n {}", out.stderr);
+        assert!(out.stdout.contains(
+            r"
+Modify PATH variable? (y/N)
+"
+        ));
+    });
+}
+
+#[test]
 fn user_says_nope() {
     clitools::setup(Scenario::SimpleV2, &|config| {
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "n\n\n");
