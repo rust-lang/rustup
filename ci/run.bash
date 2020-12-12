@@ -7,10 +7,21 @@ export RUST_BACKTRACE=1
 rustc -vV
 cargo -vV
 
-FEATURES=()
+
+FEATURES=('--no-default-features' '--features' 'curl-backend,reqwest-backend,reqwest-default-tls')
 case "$(uname -s)" in
   *NT* ) ;; # Windows NT
-  * ) FEATURES=('--features' 'vendored-openssl') ;;
+  * ) FEATURES+=('--features' 'vendored-openssl') ;;
+esac
+
+case "$TARGET" in
+  # these platforms aren't supported by ring:
+  powerpc* ) ;;
+  mips* ) ;;
+  riscv* ) ;;
+  s390x* ) ;;
+  # default case, build with rustls enabled
+  * ) FEATURES+=('--features' 'reqwest-rustls-tls') ;;
 esac
 
 # rustc only supports armv7: https://doc.rust-lang.org/nightly/rustc/platform-support.html
