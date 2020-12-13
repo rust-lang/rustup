@@ -349,12 +349,12 @@ pub mod reqwest_be {
         env_proxy::for_url(url).to_url()
     }
 
-    fn request(url: &Url, resume_from: u64, backend: TlsBackend) -> reqwest::Result<Response> {
+    fn request(url: &Url, resume_from: u64, backend: TlsBackend) -> Result<Response> {
         let client: &Client = match backend {
             #[cfg(feature = "reqwest-rustls-tls")]
             TlsBackend::Rustls => &CLIENT_RUSTLS_TLS,
             #[cfg(not(feature = "reqwest-rustls-tls"))]
-            TlsBackend::Default => {
+            TlsBackend::Rustls => {
                 return Err(ErrorKind::BackendUnavailable("reqwest rustls").into());
             }
             #[cfg(feature = "reqwest-default-tls")]
@@ -370,7 +370,7 @@ pub mod reqwest_be {
             req = req.header(header::RANGE, format!("bytes={}-", resume_from));
         }
 
-        req.send()
+        Ok(req.send()?)
     }
 
     fn download_from_file_url(
