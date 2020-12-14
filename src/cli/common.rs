@@ -68,7 +68,7 @@ pub fn confirm_advanced() -> Result<Confirm> {
 }
 
 pub fn question_str(question: &str, default: &str) -> Result<String> {
-    writeln!(process().stdout(), "{}", question)?;
+    writeln!(process().stdout(), "{} [{}]", question, default)?;
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
@@ -82,7 +82,8 @@ pub fn question_str(question: &str, default: &str) -> Result<String> {
 }
 
 pub fn question_bool(question: &str, default: bool) -> Result<bool> {
-    writeln!(process().stdout(), "{}", question)?;
+    let default_text = if default { "(Y/n)" } else { "(y/N)" };
+    writeln!(process().stdout(), "{} {}", question, default_text)?;
 
     let _ = std::io::stdout().flush();
     let input = read_line()?;

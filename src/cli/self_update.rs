@@ -612,8 +612,7 @@ fn customize_install(mut opts: InstallOpts<'_>) -> Result<InstallOpts<'_>> {
         &opts.profile,
     )?;
 
-    opts.no_modify_path =
-        !common::question_bool("Modify PATH variable? (y/n)", !opts.no_modify_path)?;
+    opts.no_modify_path = !common::question_bool("Modify PATH variable?", !opts.no_modify_path)?;
 
     Ok(opts)
 }
