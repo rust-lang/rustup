@@ -3,12 +3,18 @@ use std::fmt;
 use std::io::Write;
 use std::time::{Duration, Instant};
 
+/*
 use term::Terminal;
 
 use super::term2;
+*/
+use indicatif::{ProgressBar, ProgressStyle};
+
 use crate::dist::Notification as In;
+/*
 use crate::utils::tty;
 use crate::utils::units::{Size, Unit, UnitMode};
+*/
 use crate::utils::Notification as Un;
 use crate::Notification;
 
@@ -21,16 +27,19 @@ pub struct DownloadTracker {
     content_len: Option<usize>,
     /// Total data downloaded in bytes.
     total_downloaded: usize,
+    /*
     /// Data downloaded this second.
     downloaded_this_sec: usize,
     /// Keeps track of amount of data downloaded every last few secs.
     /// Used for averaging the download speed. NB: This does not necessarily
     /// represent adjacent seconds; thus it may not show the average at all.
     downloaded_last_few_secs: VecDeque<usize>,
+    */
     /// Time stamp of the last second
     last_sec: Option<Instant>,
     /// Time stamp of the start of the download
     start_sec: Option<Instant>,
+    /*
     /// The terminal we write the information to.
     /// XXX: Could be a term trait, but with #1818 on the horizon that
     ///      is a pointless change to make - better to let that transition
@@ -47,6 +56,7 @@ pub struct DownloadTracker {
     displayed_charcount: Option<usize>,
     /// What units to show progress in
     units: Vec<Unit>,
+    */
     /// Whether we display progress
     display_progress: bool,
 }
@@ -57,14 +67,19 @@ impl DownloadTracker {
         Self {
             content_len: None,
             total_downloaded: 0,
+            /*
             downloaded_this_sec: 0,
             downloaded_last_few_secs: VecDeque::with_capacity(DOWNLOAD_TRACK_COUNT),
+            */
             start_sec: None,
             last_sec: None,
+            /*
             term: term2::stdout(),
             displayed_charcount: None,
             units: vec![Unit::B],
+            */
             display_progress: true,
+            progress_bar: None,
         }
     }
 
@@ -81,15 +96,19 @@ impl DownloadTracker {
                 true
             }
             Notification::Install(In::Utils(Un::DownloadDataReceived(data))) => {
+                /*
                 if tty::stdout_isatty() {
                     self.data_received(data.len());
                 }
+                */
+                self.data_received(data.len());
                 true
             }
             Notification::Install(In::Utils(Un::DownloadFinished)) => {
                 self.download_finished();
                 true
             }
+            /*
             Notification::Install(In::Utils(Un::DownloadPushUnit(unit))) => {
                 self.push_unit(unit);
                 true
@@ -98,6 +117,7 @@ impl DownloadTracker {
                 self.pop_unit();
                 true
             }
+            */
 
             _ => false,
         }
@@ -106,12 +126,22 @@ impl DownloadTracker {
     /// Notifies self that Content-Length information has been received.
     pub fn content_length_received(&mut self, content_len: u64) {
         self.content_len = Some(content_len as usize);
+        if self.display_progress {
+            self.progress_bar = ProgressBar::new(self.content_len);
+            self.progress_bar.set_style(ProgressStyle::default_bar()
+                // template: keep bar narrow to support narrow terminals
+                //   line overflow causes progressbar to use multiple lines
+                //   https://github.com/mitsuhiko/indicatif/issues/218
+                .template("{elapsed} [{bar:20}] {percent}% of {total_bytes} {bytes_per_sec} -{eta}")
+                .progress_chars("=> "));
+            );
+        }
     }
 
     /// Notifies self that data of size `len` has been received.
     pub fn data_received(&mut self, len: usize) {
         self.total_downloaded += len;
-        self.downloaded_this_sec += len;
+        //self.downloaded_this_sec += len;
 
         let current_time = Instant::now();
 
@@ -124,34 +154,47 @@ impl DownloadTracker {
                         self.display();
                     }
                     self.last_sec = Some(current_time);
+                    /*
                     if self.downloaded_last_few_secs.len() == DOWNLOAD_TRACK_COUNT {
                         self.downloaded_last_few_secs.pop_back();
                     }
                     self.downloaded_last_few_secs
                         .push_front(self.downloaded_this_sec);
                     self.downloaded_this_sec = 0;
+                    */
                 }
             }
         }
     }
     /// Notifies self that the download has finished.
     pub fn download_finished(&mut self) {
+        /*
         if self.displayed_charcount.is_some() {
             // Display the finished state
             self.display();
             let _ = writeln!(self.term);
         }
+        */
+        if self.display_progress {
+            progress_bar.finish();
+        }
+        //progress_bar.finish_with_message("download done");
         self.prepare_for_new_download();
     }
     /// Resets the state to be ready for a new download.
     fn prepare_for_new_download(&mut self) {
         self.content_len = None;
         self.total_downloaded = 0;
+        /*
         self.downloaded_this_sec = 0;
         self.downloaded_last_few_secs.clear();
+        */
         self.start_sec = Some(Instant::now());
         self.last_sec = None;
+        /*
         self.displayed_charcount = None;
+        */
+        self.progress_bar = None;
     }
     /// Display the tracked download information to the terminal.
     fn display(&mut self) {
@@ -160,6 +203,8 @@ impl DownloadTracker {
             None => {}
             Some(start_sec) => {
                 // Panic if someone pops the default bytes unit...
+                this.progress_bar.set_position(self.total_downloaded);
+                /*
                 let unit = *self.units.last().unwrap();
                 let total_h = Size::new(self.total_downloaded, unit, UnitMode::Norm);
                 let sum: usize = self.downloaded_last_few_secs.iter().sum();
@@ -215,10 +260,12 @@ impl DownloadTracker {
                 // Since stdout is typically line-buffered and we don't print a newline, we manually flush.
                 let _ = self.term.flush();
                 self.displayed_charcount = Some(output.chars().count());
+                */
             }
         }
     }
 
+    /*
     pub fn push_unit(&mut self, new_unit: Unit) {
         self.units.push(new_unit);
     }
@@ -226,8 +273,10 @@ impl DownloadTracker {
     pub fn pop_unit(&mut self) {
         self.units.pop();
     }
+    */
 }
 
+/*
 trait DurationDisplay {
     fn display(self) -> Display;
 }
@@ -284,3 +333,4 @@ mod tests {
         assert_eq!(format_dhms(222_292), (2, 13, 44, 52));
     }
 }
+*/
