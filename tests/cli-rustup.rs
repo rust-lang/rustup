@@ -1549,6 +1549,35 @@ components = [ "rust-bongo" ]
 }
 
 #[test]
+fn file_override_toml_format_specify_profile() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "set", "profile", "default"]);
+        expect_stderr_ok(
+            config,
+            &["rustup", "default", "stable"],
+            "downloading component 'rust-docs'",
+        );
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+profile = "minimal"
+channel = "nightly"
+"#,
+        )
+        .unwrap();
+        expect_not_stdout_ok(
+            config,
+            &["rustup", "component", "list"],
+            for_host!("rust-docs-{} (installed)"),
+        );
+    });
+}
+
+#[test]
 fn directory_override_beats_file_override() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);

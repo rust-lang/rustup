@@ -12,6 +12,7 @@ use wait_timeout::ChildExt;
 
 use crate::component_for_bin;
 use crate::config::Cfg;
+use crate::dist::dist::Profile;
 use crate::dist::dist::TargetTriple;
 use crate::dist::dist::ToolchainDesc;
 use crate::dist::download::DownloadCfg;
@@ -685,12 +686,15 @@ impl<'a> DistributableToolchain<'a> {
         allow_downgrade: bool,
         components: &[&str],
         targets: &[&str],
+        profile: Option<Profile>,
     ) -> Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
         let old_date = self.get_manifest().ok().and_then(|m| m.map(|m| m.date));
         InstallMethod::Dist {
             desc: &self.desc()?,
-            profile: self.0.cfg.get_profile()?,
+            profile: profile
+                .map(Ok)
+                .unwrap_or_else(|| self.0.cfg.get_profile())?,
             update_hash: Some(&update_hash),
             dl_cfg: self.download_cfg(),
             force_update,

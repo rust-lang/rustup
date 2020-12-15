@@ -82,6 +82,7 @@ called `rust-toolchain`, the content of which is either the name of a single
 channel = "nightly-2020-07-10"
 components = [ "rustfmt", "rustc-dev" ]
 targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
+profile = "minimal"
 ```
 
 If the TOML format is used, the `[toolchain]` section is mandatory, and at

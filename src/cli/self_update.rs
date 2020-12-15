@@ -738,7 +738,7 @@ fn maybe_install_rust(
             warn!("Updating existing toolchain, profile choice will be ignored");
         }
         let distributable = DistributableToolchain::new(&toolchain)?;
-        let status = distributable.install_from_dist(true, false, components, targets)?;
+        let status = distributable.install_from_dist(true, false, components, targets, None)?;
         let toolchain_str = toolchain.name().to_owned();
         toolchain.cfg().set_default(&toolchain_str)?;
         writeln!(process().stdout())?;

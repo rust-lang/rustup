@@ -35,6 +35,7 @@ struct ToolchainSection {
     channel: Option<String>,
     components: Option<Vec<String>>,
     targets: Option<Vec<String>>,
+    profile: Option<String>,
 }
 
 impl ToolchainSection {
@@ -78,6 +79,7 @@ struct OverrideCfg<'a> {
     toolchain: Option<Toolchain<'a>>,
     components: Vec<String>,
     targets: Vec<String>,
+    profile: Option<dist::Profile>,
 }
 
 impl<'a> OverrideCfg<'a> {
@@ -89,6 +91,12 @@ impl<'a> OverrideCfg<'a> {
             },
             components: file.toolchain.components.unwrap_or_default(),
             targets: file.toolchain.targets.unwrap_or_default(),
+            profile: file
+                .toolchain
+                .profile
+                .as_deref()
+                .map(dist::Profile::from_str)
+                .transpose()?,
         })
     }
 }
@@ -660,13 +668,14 @@ impl Cfg {
             }
         }
 
-        if let Some((toolchain, components, targets, reason)) =
+        if let Some((toolchain, components, targets, reason, profile)) =
             match self.find_override_config(path)? {
                 Some((
                     OverrideCfg {
                         toolchain,
                         components,
                         targets,
+                        profile,
                     },
                     reason,
                 )) => {
@@ -678,11 +687,11 @@ impl Cfg {
 
                     toolchain
                         .or(default)
-                        .map(|toolchain| (toolchain, components, targets, Some(reason)))
+                        .map(|toolchain| (toolchain, components, targets, Some(reason), profile))
                 }
                 None => self
                     .find_default()?
-                    .map(|toolchain| (toolchain, vec![], vec![], None)),
+                    .map(|toolchain| (toolchain, vec![], vec![], None, None)),
             }
         {
             if toolchain.is_custom() {
@@ -698,7 +707,7 @@ impl Cfg {
                 let distributable = DistributableToolchain::new(&toolchain)?;
                 if !toolchain.exists() || !components_exist(&distributable, &components, &targets)?
                 {
-                    distributable.install_from_dist(true, false, &components, &targets)?;
+                    distributable.install_from_dist(true, false, &components, &targets, profile)?;
                 }
             }
 
@@ -760,7 +769,7 @@ impl Cfg {
         let channels = channels.map(|(n, t)| {
             let st = t.and_then(|t| {
                 let distributable = DistributableToolchain::new(&t)?;
-                let st = distributable.install_from_dist(force_update, false, &[], &[]);
+                let st = distributable.install_from_dist(force_update, false, &[], &[], None);
                 if let Err(ref e) = st {
                     (self.notify_handler)(Notification::NonFatalError(e));
                 }
@@ -815,7 +824,7 @@ impl Cfg {
         let toolchain = self.get_toolchain(toolchain, false)?;
         if install_if_missing && !toolchain.exists() {
             let distributable = DistributableToolchain::new(&toolchain)?;
-            distributable.install_from_dist(true, false, &[], &[])?;
+            distributable.install_from_dist(true, false, &[], &[], None)?;
         }
 
         if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {
@@ -911,6 +920,7 @@ mod tests {
                     channel: Some(contents.into()),
                     components: None,
                     targets: None,
+                    profile: None,
                 }
             }
         );
@@ -922,6 +932,7 @@ mod tests {
 channel = "nightly-2020-07-10"
 components = [ "rustfmt", "rustc-dev" ]
 targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
+profile = "default"
 "#;
 
         let result = Cfg::parse_override_file(contents);
@@ -935,6 +946,7 @@ targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
                         "wasm32-unknown-unknown".into(),
                         "thumbv2-none-eabi".into()
                     ]),
+                    profile: Some("default".into()),
                 }
             }
         );
@@ -954,6 +966,7 @@ channel = "nightly-2020-07-10"
                     channel: Some("nightly-2020-07-10".into()),
                     components: None,
                     targets: None,
+                    profile: None,
                 }
             }
         );
@@ -974,6 +987,7 @@ components = []
                     channel: Some("nightly-2020-07-10".into()),
                     components: Some(vec![]),
                     targets: None,
+                    profile: None,
                 }
             }
         );
@@ -994,6 +1008,7 @@ targets = []
                     channel: Some("nightly-2020-07-10".into()),
                     components: None,
                     targets: Some(vec![]),
+                    profile: None,
                 }
             }
         );
@@ -1013,6 +1028,7 @@ components = [ "rustfmt" ]
                     channel: None,
                     components: Some(vec!["rustfmt".into()]),
                     targets: None,
+                    profile: None,
                 }
             }
         );
