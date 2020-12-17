@@ -1735,7 +1735,7 @@ fn bad_file_override() {
         expect_err(
             config,
             &["rustc", "--version"],
-            "invalid channel name 'gumbo' in",
+            "invalid toolchain name: 'gumbo'",
         );
     });
 }
