@@ -8,13 +8,13 @@ use std::str::FromStr;
 
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 
-use super::common;
 use super::errors::*;
 use super::help::*;
 use super::self_update;
 use super::term2;
 use super::term2::Terminal;
 use super::topical_doc;
+use super::{common, self_update::get_available_rustup_version};
 use crate::dist::dist::{
     PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc,
 };
@@ -316,7 +316,7 @@ pub fn cli() -> App<'static, 'static> {
                         .takes_value(false),
                 ),
         )
-        .subcommand(SubCommand::with_name("check").about("Check for updates to Rust toolchains"))
+        .subcommand(SubCommand::with_name("check").about("Check for updates to Rust toolchains and rustup"))
         .subcommand(
             SubCommand::with_name("default")
                 .about("Set the default toolchain")
@@ -889,6 +889,27 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
             }
             (_, Err(err)) => return Err(err.into()),
         }
+    }
+
+    // Get current rustup version
+    let current_version = env!("CARGO_PKG_VERSION");
+
+    // Get available rustup version
+    let available_version = get_available_rustup_version()?;
+
+    let _ = t.attr(term2::Attr::Bold);
+    write!(t, "{} - ", "rustup")?;
+
+    if current_version != available_version {
+        let _ = t.fg(term2::color::YELLOW);
+        write!(t, "Update available")?;
+        let _ = t.reset();
+        writeln!(t, " : {} -> {}", current_version, available_version)?;
+    } else {
+        let _ = t.fg(term2::color::GREEN);
+        write!(t, "Up to date")?;
+        let _ = t.reset();
+        writeln!(t, " : {}", current_version)?;
     }
     Ok(utils::ExitCode(0))
 }

@@ -1010,46 +1010,17 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     #[cfg(windows)]
     let triple = dist::TargetTriple::from_host().unwrap_or(triple);
 
+    // Get update root.
     let update_root = process()
         .var("RUSTUP_UPDATE_ROOT")
         .unwrap_or_else(|_| String::from(UPDATE_ROOT));
 
-    let tempdir = tempfile::Builder::new()
-        .prefix("rustup-update")
-        .tempdir()
-        .chain_err(|| "error creating temp directory")?;
-
     // Get current version
     let current_version = env!("CARGO_PKG_VERSION");
 
-    // Download available version
+    // Get available version
     info!("checking for self-updates");
-    let release_file_url = format!("{}/release-stable.toml", update_root);
-    let release_file_url = utils::parse_url(&release_file_url)?;
-    let release_file = tempdir.path().join("release-stable.toml");
-    utils::download_file(&release_file_url, &release_file, None, &|_| ())?;
-    let release_toml_str = utils::read_file("rustup release", &release_file)?;
-    let release_toml: toml::Value = toml::from_str(&release_toml_str)
-        .map_err(|_| Error::from("unable to parse rustup release file"))?;
-
-    let schema = release_toml
-        .get("schema-version")
-        .ok_or_else(|| Error::from("no schema key in rustup release file"))?
-        .as_str()
-        .ok_or_else(|| Error::from("invalid schema key in rustup release file"))?;
-
-    let available_version = release_toml
-        .get("version")
-        .ok_or_else(|| Error::from("no version key in rustup release file"))?
-        .as_str()
-        .ok_or_else(|| Error::from("invalid version key in rustup release file"))?;
-
-    if schema != "1" {
-        return Err(Error::from(&*format!(
-            "unknown schema version '{}' in rustup release file",
-            schema
-        )));
-    }
+    let available_version = get_available_rustup_version()?;
 
     // If up-to-date
     if available_version == current_version {
@@ -1073,6 +1044,47 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     utils::make_executable(&setup_path)?;
 
     Ok(Some(setup_path))
+}
+
+pub fn get_available_rustup_version() -> Result<String> {
+    let update_root = process()
+        .var("RUSTUP_UPDATE_ROOT")
+        .unwrap_or_else(|_| String::from(UPDATE_ROOT));
+    let tempdir = tempfile::Builder::new()
+        .prefix("rustup-update")
+        .tempdir()
+        .chain_err(|| "error creating temp directory")?;
+
+    // Parse the release file.
+    let release_file_url = format!("{}/release-stable.toml", update_root);
+    let release_file_url = utils::parse_url(&release_file_url)?;
+    let release_file = tempdir.path().join("release-stable.toml");
+    utils::download_file(&release_file_url, &release_file, None, &|_| ())?;
+    let release_toml_str = utils::read_file("rustup release", &release_file)?;
+    let release_toml: toml::Value = toml::from_str(&release_toml_str)
+        .map_err(|_| Error::from("unable to parse rustup release file"))?;
+
+    // Check the release file schema.
+    let schema = release_toml
+        .get("schema-version")
+        .ok_or_else(|| Error::from("no schema key in rustup release file"))?
+        .as_str()
+        .ok_or_else(|| Error::from("invalid schema key in rustup release file"))?;
+    if schema != "1" {
+        return Err(Error::from(&*format!(
+            "unknown schema version '{}' in rustup release file",
+            schema
+        )));
+    }
+
+    // Get the version.
+    let available_version = release_toml
+        .get("version")
+        .ok_or_else(|| Error::from("no version key in rustup release file"))?
+        .as_str()
+        .ok_or_else(|| Error::from("invalid version key in rustup release file"))?;
+
+    Ok(String::from(available_version))
 }
 
 pub fn cleanup_self_updater() -> Result<()> {
