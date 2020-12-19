@@ -27,6 +27,7 @@ jobs:
       matrix:
         target:
           - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc # skip-pr
           - i686-pc-windows-msvc # skip-pr skip-master
           - x86_64-pc-windows-gnu # skip-pr
           - i686-pc-windows-gnu # skip-pr skip-master
@@ -37,6 +38,8 @@ jobs:
           - target: i686-pc-windows-gnu
             mingwdir: mingw32
             mingw: https://ci-mirrors.rust-lang.org/rustc/i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z
+          - target: aarch64-pc-windows-msvc
+            skip_tests: 1
     steps:
       - uses: actions/checkout@v2
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
@@ -71,6 +74,10 @@ jobs:
           echo "%USERPROFILE%\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           echo "SKIP_TESTS=" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+      - name: Skip tests if needed
+        run: |
+          echo "SKIP_TESTS=1" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+        if: matrix.skip_tests != ''
       - name: Cache cargo registry and git trees
         uses: actions/cache@v2
         with:
