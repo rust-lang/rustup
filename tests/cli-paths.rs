@@ -20,7 +20,7 @@ mod unix {
     // Let's write a fake .rc which looks vaguely like a real script.
     const FAKE_RC: &str = r#"
 # Sources fruity punch.
-source ~/fruit/punch
+. ~/fruit/punch
 
 # Adds apples to PATH.
 export PATH="$HOME/apple/bin"
@@ -29,7 +29,7 @@ export PATH="$HOME/apple/bin"
     const POSIX_SH: &str = "env";
 
     fn source(dir: impl Display, sh: impl Display) -> String {
-        format!("source \"{dir}/{sh}\"\n", dir = dir, sh = sh)
+        format!(". \"{dir}/{sh}\"\n", dir = dir, sh = sh)
     }
 
     #[test]
@@ -273,7 +273,7 @@ export PATH="$HOME/apple/bin"
             assert!(cmd.output().unwrap().status.success());
 
             let new_profile = fs::read_to_string(&profile).unwrap();
-            let expected = format!("{}source \"$HOME/.cargo/env\"\n", FAKE_RC);
+            let expected = format!("{}. \"$HOME/.cargo/env\"\n", FAKE_RC);
             assert_eq!(new_profile, expected);
 
             let mut cmd = clitools::cmd(config, "rustup", &["self", "uninstall", "-y"]);

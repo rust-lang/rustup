@@ -98,7 +98,7 @@ pub trait UnixShell {
     }
 
     fn source_string(&self) -> Result<String> {
-        Ok(format!(r#"source "{}/env""#, cargo_home_str()?))
+        Ok(format!(r#". "{}/env""#, cargo_home_str()?))
     }
 }
 
