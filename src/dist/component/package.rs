@@ -332,10 +332,12 @@ fn unpack_without_first_dir<'a, R: Read>(
             let path = path.chain_err(|| ErrorKind::ExtractingPackage)?;
             path.into_owned()
         };
-        // Reject path components that are not normal (.|..|/| etc)
+        // Reject path components that are not normal (..|/| etc)
         for part in relpath.components() {
             match part {
-                std::path::Component::Normal(_) => {}
+                // Some very early rust tarballs include a "." segment which we have to
+                // support, despite not liking it.
+                std::path::Component::Normal(_) | std::path::Component::CurDir => {}
                 _ => return Err(ErrorKind::BadPath(relpath).into()),
             }
         }
