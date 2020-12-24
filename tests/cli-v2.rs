@@ -1517,3 +1517,32 @@ fn install_allow_downgrade() {
         expect_component_executable(config, "rls");
     });
 }
+
+#[test]
+fn regression_2601() {
+    // We're checking that we don't regress per #2601
+    setup(&|config| {
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "--profile",
+                "minimal",
+                "nightly",
+                "--component",
+                "rust-src",
+                "--no-self-update",
+            ],
+        );
+        // The bug exposed in #2601 was that the above would end up installing
+        // rust-src-$ARCH which would then have to be healed on the following
+        // command, resulting in a reinstallation.
+        expect_stderr_ok(
+            config,
+            &["rustup", "component", "add", "rust-src"],
+            "info: component 'rust-src' is up to date",
+        );
+    });
+}

@@ -617,8 +617,10 @@ impl Update {
                                 // It is the case, so we need to create a fresh wildcard
                                 // component using the package name and add it to the final
                                 // component list
-                                self.final_component_list
-                                    .push(existing_component.wildcard());
+                                let wildcarded = existing_component.wildcard();
+                                if !self.final_component_list.contains(&wildcarded) {
+                                    self.final_component_list.push(wildcarded);
+                                }
                             } else {
                                 self.missing_components.push(existing_component.clone());
                             }

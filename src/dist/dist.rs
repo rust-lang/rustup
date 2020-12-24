@@ -730,11 +730,26 @@ fn try_update_from_dist_<'a>(
 
             let mut all_components: HashSet<Component> = profile_components.into_iter().collect();
 
+            let rust_package = m.get_package("rust")?;
+            let rust_target_package = rust_package.get_target(Some(&toolchain.target.clone()))?;
+
             for component in components.iter().copied() {
                 let mut component =
                     Component::new(component.to_string(), Some(toolchain.target.clone()), false);
                 if let Some(renamed) = m.rename_component(&component) {
                     component = renamed;
+                }
+                // Look up the newly constructed/renamed component and ensure that
+                // if it's a wildcard component we note such, otherwise we end up
+                // exacerbating the problem we thought we'd fixed with #2087 and #2115
+                if let Some(c) = rust_target_package
+                    .components
+                    .iter()
+                    .find(|c| c.short_name_in_manifest() == component.short_name_in_manifest())
+                {
+                    if c.target.is_none() {
+                        component = component.wildcard();
+                    }
                 }
                 all_components.insert(component);
             }
