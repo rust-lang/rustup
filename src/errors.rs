@@ -425,60 +425,51 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
     if cs.len() == 1 {
         let _ = write!(
             buf,
-            "component {} is unavailable for download for channel {}{}",
+            "component {} is unavailable for download for channel '{}'\n",
             &cs[0].description(manifest),
             toolchain,
-            if toolchain.starts_with("nightly") {
-                "\nSometimes not all components are available in any given nightly. "
-            } else {
-                " "
-            }
         );
-
+        if toolchain.starts_with("nightly") {
+            let _ = write!(
+                buf,
+                "Sometimes not all components are available in any given nightly. "
+            );
+        }
         let _ = write!(
             buf,
             "If you don't need the component, you can remove it with:\n\n{}",
             remove_component_msg(&cs[0], manifest, toolchain)
         );
     } else {
+        // More than one component
+
         let same_target = cs
             .iter()
             .all(|c| c.target == cs[0].target || c.target.is_none());
-        if same_target {
-            let cs_str = cs
-                .iter()
+
+        let cs_str = if same_target {
+            cs.iter()
                 .map(|c| format!("'{}'", c.short_name(manifest)))
                 .collect::<Vec<_>>()
-                .join(", ");
-            let remove_msg = cs
-                .iter()
-                .map(|c| remove_component_msg(c, manifest, toolchain))
-                .collect::<Vec<_>>()
-                .join("\n");
-            let _ = write!(
-                buf,
-                "some components unavailable for download for channel {}: {}
-                 If you don't need the components, you can remove them with:\n\n{}\n\n{}",
-                toolchain, cs_str, remove_msg, TOOLSTATE_MSG,
-            );
+                .join(", ")
         } else {
-            let cs_str = cs
-                .iter()
+            cs.iter()
                 .map(|c| c.description(manifest))
                 .collect::<Vec<_>>()
-                .join(", ");
-            let remove_msg = cs
-                .iter()
-                .map(|c| remove_component_msg(c, manifest, toolchain))
-                .collect::<Vec<_>>()
-                .join("\n");
-            let _ = write!(
-                buf,
-                "some components unavailable for download for channel {}: {}
-                If you don't need the components, you can remove them with:\n{}\n{}",
-                toolchain, cs_str, remove_msg, TOOLSTATE_MSG,
-            );
-        }
+                .join(", ")
+        };
+
+        let remove_msg = cs
+            .iter()
+            .map(|c| remove_component_msg(c, manifest, toolchain))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let _ = write!(
+            buf,
+            "some components unavailable for download for channel '{}': {}\n\
+            If you don't need the components, you can remove them with:\n\n{}\n\n{}",
+            toolchain, cs_str, remove_msg, TOOLSTATE_MSG,
+        );
     }
 
     String::from_utf8(buf).unwrap()
