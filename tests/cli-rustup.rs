@@ -11,8 +11,8 @@ use rustup::test::this_host_triple;
 use rustup::utils::raw;
 
 use crate::mock::clitools::{
-    self, expect_err, expect_not_stdout_ok, expect_ok, expect_ok_ex, expect_stderr_ok,
-    expect_stdout_ok, run, set_current_dist_date, Config, Scenario,
+    self, expect_err, expect_not_stderr_ok, expect_not_stdout_ok, expect_ok, expect_ok_ex,
+    expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date, Config, Scenario,
 };
 
 macro_rules! for_host_and_home {
@@ -799,6 +799,42 @@ fn list_default_and_override_toolchain() {
 "
             ),
             r"",
+        );
+    });
+}
+
+#[test]
+fn heal_damaged_toolchain() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_not_stderr_ok(
+            config,
+            &["rustup", "show", "active-toolchain"],
+            "syncing channel updates",
+        );
+        let path = format!(
+            "toolchains/nightly-{}/lib/rustlib/multirust-channel-manifest.toml",
+            this_host_triple()
+        );
+        fs::remove_file(config.rustupdir.join(path)).unwrap();
+        expect_ok_ex(
+            config,
+            &["rustup", "show", "active-toolchain"],
+            &format!(
+                r"nightly-{0} (default)
+",
+                this_host_triple()
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'nightly-{0}'
+"
+            ),
+        );
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_stderr_ok(
+            config,
+            &["rustup", "show", "active-toolchain"],
+            "syncing channel updates",
         );
     });
 }
