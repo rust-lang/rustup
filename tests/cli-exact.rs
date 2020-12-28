@@ -4,8 +4,8 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_err_ex, expect_ok, expect_ok_ex, expect_stdout_ok, set_current_dist_date, Config,
-    Scenario,
+    self, expect_err_ex, expect_ok, expect_ok_ex, expect_stdout_ok, self_update_setup,
+    set_current_dist_date, Config, Scenario,
 };
 use rustup::for_host;
 use rustup::test::this_host_triple;
@@ -105,6 +105,48 @@ nightly-{0} - Update available : 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2
             ),
         );
     })
+}
+
+#[test]
+fn check_updates_self() {
+    let test_version = "2.0.0";
+
+    self_update_setup(
+        &|config, _| {
+            let current_version = env!("CARGO_PKG_VERSION");
+
+            expect_stdout_ok(
+                config,
+                &["rustup", "check"],
+                &format!(
+                    r"rustup - Update available : {} -> {}
+",
+                    current_version, test_version
+                ),
+            );
+        },
+        test_version,
+    )
+}
+
+#[test]
+fn check_updates_self_no_change() {
+    let current_version = env!("CARGO_PKG_VERSION");
+
+    self_update_setup(
+        &|config, _| {
+            expect_stdout_ok(
+                config,
+                &["rustup", "check"],
+                &format!(
+                    r"rustup - Up to date : {}
+",
+                    current_version
+                ),
+            );
+        },
+        current_version,
+    )
 }
 
 #[test]

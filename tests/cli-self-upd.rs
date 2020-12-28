@@ -17,38 +17,15 @@ use rustup::Notification;
 
 use crate::mock::clitools::{
     self, expect_component_executable, expect_component_not_executable, expect_err, expect_err_ex,
-    expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok, expect_stdout_ok, run, Config,
-    Scenario,
+    expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok, expect_stdout_ok,
+    output_release_file, run, self_update_setup, Config, Scenario,
 };
 use crate::mock::dist::calc_hash;
 
 const TEST_VERSION: &str = "1.1.1";
 
 pub fn update_setup(f: &dyn Fn(&Config, &Path)) {
-    clitools::setup(Scenario::SimpleV2, &|config| {
-        // Create a mock self-update server
-        let self_dist_tmp = tempfile::Builder::new()
-            .prefix("self_dist")
-            .tempdir()
-            .unwrap();
-        let self_dist = self_dist_tmp.path();
-
-        let trip = this_host_triple();
-        let dist_dir = self_dist.join(&format!("archive/{}/{}", TEST_VERSION, trip));
-        let dist_exe = dist_dir.join(&format!("rustup-init{}", EXE_SUFFIX));
-        let rustup_bin = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
-
-        fs::create_dir_all(dist_dir).unwrap();
-        output_release_file(self_dist, "1", TEST_VERSION);
-        fs::copy(&rustup_bin, &dist_exe).unwrap();
-        // Modify the exe so it hashes different
-        raw::append_file(&dist_exe, "").unwrap();
-
-        let root_url = format!("file://{}", self_dist.display());
-        config.rustup_update_root = Some(root_url);
-
-        f(config, self_dist);
-    });
+    self_update_setup(f, TEST_VERSION)
 }
 
 /// Empty dist server, rustup installed with no toolchain
@@ -74,18 +51,6 @@ fn setup_installed(f: &dyn Fn(&Config)) {
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
         f(config);
     })
-}
-
-fn output_release_file(dist_dir: &Path, schema: &str, version: &str) {
-    let contents = format!(
-        r#"
-schema-version = "{}"
-version = "{}"
-"#,
-        schema, version
-    );
-    let file = dist_dir.join("release-stable.toml");
-    utils::write_file("release", &file, &contents).unwrap();
 }
 
 #[test]

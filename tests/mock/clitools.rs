@@ -189,6 +189,45 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     assert!(!PathBuf::from("./bogus-cargo-home").exists());
 }
 
+pub fn self_update_setup(f: &dyn Fn(&Config, &Path), version: &str) {
+    setup(Scenario::SimpleV2, &|config| {
+        // Create a mock self-update server
+        let self_dist_tmp = tempfile::Builder::new()
+            .prefix("self_dist")
+            .tempdir()
+            .unwrap();
+        let self_dist = self_dist_tmp.path();
+
+        let trip = this_host_triple();
+        let dist_dir = self_dist.join(&format!("archive/{}/{}", version, trip));
+        let dist_exe = dist_dir.join(&format!("rustup-init{}", EXE_SUFFIX));
+        let rustup_bin = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
+
+        fs::create_dir_all(dist_dir).unwrap();
+        output_release_file(self_dist, "1", version);
+        fs::copy(&rustup_bin, &dist_exe).unwrap();
+        // Modify the exe so it hashes different
+        raw::append_file(&dist_exe, "").unwrap();
+
+        let root_url = format!("file://{}", self_dist.display());
+        config.rustup_update_root = Some(root_url);
+
+        f(config, self_dist);
+    });
+}
+
+pub fn output_release_file(dist_dir: &Path, schema: &str, version: &str) {
+    let contents = format!(
+        r#"
+schema-version = "{}"
+version = "{}"
+"#,
+        schema, version
+    );
+    let file = dist_dir.join("release-stable.toml");
+    utils::write_file("release", &file, &contents).unwrap();
+}
+
 impl Config {
     pub fn current_dir(&self) -> PathBuf {
         self.workdir.borrow().clone()
