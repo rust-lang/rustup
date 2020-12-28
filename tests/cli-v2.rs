@@ -1071,7 +1071,7 @@ fn update_unavailable_std() {
             config,
             &["rustup", "update", "nightly", "--no-self-update"],
             for_host!(
-                "component 'rust-std' for target '{0}' is unavailable for download for channel nightly"
+                "component 'rust-std' for target '{0}' is unavailable for download for channel 'nightly'"
             ),
         );
     });
@@ -1098,7 +1098,7 @@ fn update_unavailable_force() {
             config,
             &["rustup", "update", "nightly", "--no-self-update"],
             for_host!(
-                "component 'rls' for target '{0}' is unavailable for download for channel nightly"
+                "component 'rls' for target '{0}' is unavailable for download for channel 'nightly'"
             ),
         );
         expect_ok(
@@ -1359,7 +1359,7 @@ fn test_complete_profile_skips_missing_when_forced() {
                 "nightly",
                 "--no-self-update",
             ],
-            for_host!("error: component 'rls' for target '{}' is unavailable for download for channel nightly")
+            for_host!("error: component 'rls' for target '{}' is unavailable for download for channel 'nightly'")
         );
         // Now try and force
         expect_stderr_ok(
@@ -1493,7 +1493,7 @@ fn install_allow_downgrade() {
                 "rls",
             ],
             &format!(
-                "component 'rls' for target '{}' is unavailable for download for channel nightly",
+                "component 'rls' for target '{}' is unavailable for download for channel 'nightly'",
                 trip,
             ),
         );
