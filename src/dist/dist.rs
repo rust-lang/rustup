@@ -107,7 +107,7 @@ impl FromStr for ParsedToolchainDesc {
 
         let d = TOOLCHAIN_CHANNEL_RE.captures(desc).map(|c| {
             fn fn_map(s: &str) -> Option<String> {
-                if s == "" {
+                if s.is_empty() {
                     None
                 } else {
                     Some(s.to_owned())
@@ -858,7 +858,7 @@ pub fn dl_v2_manifest<'a>(
     }
 }
 
-fn dl_v1_manifest<'a>(download: DownloadCfg<'a>, toolchain: &ToolchainDesc) -> Result<Vec<String>> {
+fn dl_v1_manifest(download: DownloadCfg<'_>, toolchain: &ToolchainDesc) -> Result<Vec<String>> {
     let root_url = toolchain.package_dir(download.dist_root);
 
     if !["nightly", "beta", "stable"].contains(&&*toolchain.channel) {

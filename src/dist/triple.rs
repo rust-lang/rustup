@@ -77,7 +77,7 @@ impl PartialTargetTriple {
         }
         RE.captures(&name).map(|c| {
             fn fn_map(s: &str) -> Option<String> {
-                if s == "" {
+                if s.is_empty() {
                     None
                 } else {
                     Some(s.to_owned())

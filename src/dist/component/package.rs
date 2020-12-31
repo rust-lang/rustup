@@ -323,7 +323,7 @@ fn unpack_without_first_dir<'a, R: Read>(
             // TODO capture metrics
             budget.reclaim(&item);
             filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-            trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+            trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
         }
 
         let mut entry = entry.chain_err(|| ErrorKind::ExtractingPackage)?;
@@ -461,7 +461,7 @@ fn unpack_without_first_dir<'a, R: Read>(
             // TODO capture metrics
             budget.reclaim(&item);
             filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-            trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+            trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
         }
     }
 
@@ -472,7 +472,7 @@ fn unpack_without_first_dir<'a, R: Read>(
             // TODO capture metrics
             budget.reclaim(&item);
             filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-            triggered += trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+            triggered += trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
         }
         if triggered == 0 {
             // None of the IO submitted before the prior join triggered any new

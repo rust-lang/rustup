@@ -83,11 +83,11 @@ mod tests {
 
         // Test Bytes
         assert_eq!(
-            format!("{}", Size::new(1 as usize, Unit::B, UnitMode::Norm)),
+            format!("{}", Size::new(1, Unit::B, UnitMode::Norm)),
             "  1 B"
         );
         assert_eq!(
-            format!("{}", Size::new(1024 as usize, Unit::B, UnitMode::Norm)),
+            format!("{}", Size::new(1024, Unit::B, UnitMode::Norm)),
             "  1.0 KiB"
         );
         assert_eq!(
@@ -101,11 +101,11 @@ mod tests {
 
         // Test Bytes at given rate
         assert_eq!(
-            format!("{}", Size::new(1 as usize, Unit::B, UnitMode::Rate)),
+            format!("{}", Size::new(1, Unit::B, UnitMode::Rate)),
             "  1 B/s"
         );
         assert_eq!(
-            format!("{}", Size::new(1024 as usize, Unit::B, UnitMode::Rate)),
+            format!("{}", Size::new(1024, Unit::B, UnitMode::Rate)),
             "  1.0 KiB/s"
         );
         assert_eq!(
@@ -119,11 +119,11 @@ mod tests {
 
         //Test I/O Operations
         assert_eq!(
-            format!("{}", Size::new(1 as usize, Unit::IO, UnitMode::Norm)),
+            format!("{}", Size::new(1, Unit::IO, UnitMode::Norm)),
             "  1 IO-ops"
         );
         assert_eq!(
-            format!("{}", Size::new(1000 as usize, Unit::IO, UnitMode::Norm)),
+            format!("{}", Size::new(1000, Unit::IO, UnitMode::Norm)),
             "  1.0 kilo-IO-ops"
         );
         assert_eq!(
@@ -137,11 +137,11 @@ mod tests {
 
         //Test I/O Operations at given rate
         assert_eq!(
-            format!("{}", Size::new(1 as usize, Unit::IO, UnitMode::Rate)),
+            format!("{}", Size::new(1, Unit::IO, UnitMode::Rate)),
             "  1 IOPS"
         );
         assert_eq!(
-            format!("{}", Size::new(1000 as usize, Unit::IO, UnitMode::Rate)),
+            format!("{}", Size::new(1000, Unit::IO, UnitMode::Rate)),
             "  1.0 kilo-IOPS"
         );
         assert_eq!(
