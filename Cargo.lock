@@ -1722,6 +1722,9 @@ name = "retry"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c15ef4789108d066d7fd85dcec330eab9b8e51244275922a9b7161afc4f46dda"
+dependencies = [
+ "rand",
+]
 
 [[package]]
 name = "ring"
