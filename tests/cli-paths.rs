@@ -53,10 +53,7 @@ export PATH="$HOME/apple/bin"
             let mut rcs = files.iter();
             let env = rcs.next().unwrap();
             let envfile = fs::read_to_string(&env).unwrap();
-            let (_, envfile_export) = envfile.split_at(match envfile.find("export PATH") {
-                Some(idx) => idx,
-                None => 0,
-            });
+            let (_, envfile_export) = envfile.split_at(envfile.find("export PATH").unwrap_or(0));
             assert_eq!(&envfile_export[..DEFAULT_EXPORT.len()], DEFAULT_EXPORT);
 
             for rc in rcs {

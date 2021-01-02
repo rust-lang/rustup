@@ -97,8 +97,9 @@ pub fn main() -> Result<utils::ExitCode> {
             return Ok(utils::ExitCode(0));
         }
 
-        Err(e) => match &e {
-            clap::Error { kind, message, .. } => {
+        Err(e) => {
+            {
+                let clap::Error { kind, message, .. } = &e;
                 if [
                     InvalidSubcommand,
                     UnknownArgument,
@@ -109,9 +110,9 @@ pub fn main() -> Result<utils::ExitCode> {
                     writeln!(process().stdout().lock(), "{}", message)?;
                     return Ok(utils::ExitCode(1));
                 }
-                Err(e)
             }
-        },
+            Err(e)
+        }
     }?;
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");
@@ -898,7 +899,7 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
     let available_version = get_available_rustup_version()?;
 
     let _ = t.attr(term2::Attr::Bold);
-    write!(t, "{} - ", "rustup")?;
+    write!(t, "rustup - ")?;
 
     if current_version != available_version {
         let _ = t.fg(term2::color::YELLOW);
@@ -935,21 +936,18 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
 
             if toolchain_has_triple {
                 let host_arch = TargetTriple::from_host_or_build();
-                match ToolchainDesc::from_str(name) {
-                    Ok(toolchain_desc) => {
-                        let target_triple = toolchain_desc.target;
-                        if host_arch.ne(&target_triple) {
-                            warn!(
-                                "toolchain '{}' may not be able to run on this system.",
-                                name
-                            );
-                            warn!(
-                                "If you meant to build software to target that platform, perhaps try `rustup target add {}` instead?",
-                                target_triple.to_string()
-                            );
-                        }
+                if let Ok(toolchain_desc) = ToolchainDesc::from_str(name) {
+                    let target_triple = toolchain_desc.target;
+                    if host_arch.ne(&target_triple) {
+                        warn!(
+                            "toolchain '{}' may not be able to run on this system.",
+                            name
+                        );
+                        warn!(
+                            "If you meant to build software to target that platform, perhaps try `rustup target add {}` instead?",
+                            target_triple.to_string()
+                        );
                     }
-                    _ => (),
                 }
             }
 

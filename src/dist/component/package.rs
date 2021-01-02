@@ -5,7 +5,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::io::{self, ErrorKind as IOErrorKind, Read};
-use std::iter::FromIterator;
 use std::mem;
 use std::path::{Path, PathBuf};
 
@@ -273,7 +272,7 @@ fn trigger_children(
             .or_insert_with(|| unreachable!());
         result += pending.len();
         for pending_item in pending.into_iter() {
-            for mut item in Vec::from_iter(io_executor.execute(pending_item)) {
+            for mut item in io_executor.execute(pending_item).collect::<Vec<_>>() {
                 // TODO capture metrics
                 budget.reclaim(&item);
                 filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
@@ -319,11 +318,11 @@ fn unpack_without_first_dir<'a, R: Read>(
         // drain completed results to keep memory pressure low and respond
         // rapidly to completed events even if we couldn't submit work (because
         // our unpacked item is pending dequeue)
-        for mut item in Vec::from_iter(io_executor.completed()) {
+        for mut item in io_executor.completed().collect::<Vec<_>>() {
             // TODO capture metrics
             budget.reclaim(&item);
             filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-            trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+            trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
         }
 
         let mut entry = entry.chain_err(|| ErrorKind::ExtractingPackage)?;
@@ -369,7 +368,7 @@ fn unpack_without_first_dir<'a, R: Read>(
             io_executor: &dyn Executor,
             mut directories: &mut HashMap<PathBuf, DirStatus>,
         ) -> Result<()> {
-            for mut item in Vec::from_iter(io_executor.completed()) {
+            for mut item in io_executor.completed().collect::<Vec<_>>() {
                 // TODO capture metrics
                 budget.reclaim(&item);
                 filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
@@ -457,22 +456,22 @@ fn unpack_without_first_dir<'a, R: Read>(
             }
         };
 
-        for mut item in Vec::from_iter(io_executor.execute(item)) {
+        for mut item in io_executor.execute(item).collect::<Vec<_>>() {
             // TODO capture metrics
             budget.reclaim(&item);
             filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-            trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+            trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
         }
     }
 
     loop {
         let mut triggered = 0;
-        for mut item in Vec::from_iter(io_executor.join()) {
+        for mut item in io_executor.join().collect::<Vec<_>>() {
             // handle final IOs
             // TODO capture metrics
             budget.reclaim(&item);
             filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-            triggered += trigger_children(&mut *io_executor, &mut directories, &mut budget, item)?;
+            triggered += trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
         }
         if triggered == 0 {
             // None of the IO submitted before the prior join triggered any new

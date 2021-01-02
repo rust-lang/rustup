@@ -186,7 +186,7 @@ impl<'a> Display for Notification<'a> {
                         if component.target.as_ref() != Some(&toolchain.target) {
                             component.name(manifest)
                         } else {
-                            component.short_name(manifest).to_owned()
+                            component.short_name(manifest)
                         }
                     })
                     .collect::<Vec<_>>()

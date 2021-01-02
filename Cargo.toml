@@ -66,6 +66,7 @@ xz2 = "0.1.3"
 
 [dependencies.retry]
 default-features = false
+features = ["random"]
 version = "1"
 
 [dependencies.rs_tracing]
