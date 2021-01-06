@@ -36,6 +36,7 @@ static LIST_OSES: &[&str] = &[
 ];
 static LIST_ENVS: &[&str] = &[
     "gnu",
+    "gnux32",
     "msvc",
     "gnueabi",
     "gnueabihf",
