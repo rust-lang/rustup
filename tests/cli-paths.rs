@@ -32,6 +32,13 @@ export PATH="$HOME/apple/bin"
         format!(". \"{dir}/{sh}\"\n", dir = dir, sh = sh)
     }
 
+    // In 1.23 we used `source` instead of `.` by accident.  This is not POSIX
+    // so we want to ensure that if we put this into someone's dot files, then
+    // with newer rustups we will revert that.
+    fn non_posix_source(dir: impl Display, sh: impl Display) -> String {
+        format!("source \"{dir}/{sh}\"\n", dir = dir, sh = sh)
+    }
+
     #[test]
     fn install_creates_necessary_scripts() {
         clitools::setup(Scenario::Empty, &|config| {
@@ -193,7 +200,8 @@ export PATH="$HOME/apple/bin"
                 config.homedir.join(".zprofile"),
                 zdotdir.path().join(".zprofile"),
             ];
-            let old_rc = FAKE_RC.to_owned() + DEFAULT_EXPORT;
+            let old_rc =
+                FAKE_RC.to_owned() + DEFAULT_EXPORT + &non_posix_source("$HOME/.cargo", POSIX_SH);
             for rc in rcs.iter().chain(zprofiles.iter()) {
                 raw::write_file(&rc, &old_rc).unwrap();
             }
@@ -235,7 +243,8 @@ export PATH="$HOME/apple/bin"
                 .map(|rc| config.homedir.join(rc))
                 .collect();
             rcs.push(zdotdir.path().join(".zprofile"));
-            let old_rc = FAKE_RC.to_owned() + DEFAULT_EXPORT;
+            let old_rc =
+                FAKE_RC.to_owned() + DEFAULT_EXPORT + &non_posix_source("$HOME/.cargo", POSIX_SH);
             for rc in &rcs {
                 raw::write_file(&rc, &old_rc).unwrap();
             }

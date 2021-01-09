@@ -145,22 +145,38 @@ pub fn self_replace() -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn remove_legacy_paths() -> Result<()> {
-    let export = format!("export PATH=\"{}/bin:$PATH\"\n", shell::cargo_home_str()?).into_bytes();
+fn remove_legacy_source_command(source_cmd: String) -> Result<()> {
+    let cmd_bytes = source_cmd.into_bytes();
     for rc in shell::legacy_paths().filter(|rc| rc.is_file()) {
         let file = utils::read_file("rcfile", &rc)?;
         let file_bytes = file.into_bytes();
         // FIXME: This is whitespace sensitive where it should not be.
         if let Some(idx) = file_bytes
-            .windows(export.len())
-            .position(|w| w == export.as_slice())
+            .windows(cmd_bytes.len())
+            .position(|w| w == cmd_bytes.as_slice())
         {
             // Here we rewrite the file without the offending line.
             let mut new_bytes = file_bytes[..idx].to_vec();
-            new_bytes.extend(&file_bytes[idx + export.len()..]);
+            new_bytes.extend(&file_bytes[idx + cmd_bytes.len()..]);
             let new_file = String::from_utf8(new_bytes).unwrap();
             utils::write_file("rcfile", &rc, &new_file)?;
         }
     }
+    Ok(())
+}
+
+fn remove_legacy_paths() -> Result<()> {
+    // Before the work to support more kinds of shells, which was released in
+    // version 1.23.0 of rustup, we always inserted this line instead, which is
+    // now considered legacy
+    remove_legacy_source_command(format!(
+        "export PATH=\"{}/bin:$PATH\"\n",
+        shell::cargo_home_str()?
+    ))?;
+    // Unfortunately in 1.23, we accidentally used `source` rather than `.`
+    // which, while widely supported, isn't actually POSIX, so we also
+    // clean that up here.  This issue was filed as #2623.
+    remove_legacy_source_command(format!("source \"{}/env\"\n", shell::cargo_home_str()?))?;
+
     Ok(())
 }
