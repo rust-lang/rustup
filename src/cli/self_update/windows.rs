@@ -144,11 +144,6 @@ pub fn do_add_to_path() -> Result<()> {
     _apply_new_path(new_path)
 }
 
-// Nothing to do for Windows for now
-pub fn do_write_env_files() -> Result<()> {
-    Ok(())
-}
-
 fn _apply_new_path(new_path: Option<String>) -> Result<()> {
     use std::ptr;
     use winapi::shared::minwindef::*;
