@@ -433,6 +433,7 @@ pub mod curl {
 pub mod reqwest_be {
 
     use super::Event;
+    use super::TlsBackend;
     use crate::errors::*;
     use url::Url;
 
@@ -440,6 +441,7 @@ pub mod reqwest_be {
         _url: &Url,
         _resume_from: u64,
         _callback: &dyn Fn(Event<'_>) -> Result<()>,
+        _tls: TlsBackend,
     ) -> Result<()> {
         Err(ErrorKind::BackendUnavailable("reqwest").into())
     }
