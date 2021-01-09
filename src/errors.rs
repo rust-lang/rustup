@@ -29,6 +29,7 @@ error_chain! {
         Io(io::Error);
         Open(opener::OpenError);
         Thread(std::sync::mpsc::RecvError);
+        Bincode(bincode::Error);
     }
 
     errors {

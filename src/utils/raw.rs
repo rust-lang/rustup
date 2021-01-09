@@ -52,18 +52,22 @@ pub fn if_not_empty<S: PartialEq<str>>(s: S) -> Option<S> {
     }
 }
 
-pub fn write_file(path: &Path, contents: &str) -> io::Result<()> {
+pub fn write_file_bytes(path: &Path, contents: &[u8]) -> io::Result<()> {
     let mut file = fs::OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
         .open(path)?;
 
-    io::Write::write_all(&mut file, contents.as_bytes())?;
+    io::Write::write_all(&mut file, contents)?;
 
     file.sync_data()?;
 
     Ok(())
+}
+
+pub fn write_file(path: &Path, contents: &str) -> io::Result<()> {
+    write_file_bytes(path, contents.as_bytes())
 }
 
 pub fn filter_file<F: FnMut(&str) -> bool>(

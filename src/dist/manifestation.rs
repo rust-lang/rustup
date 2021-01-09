@@ -19,6 +19,7 @@ use crate::errors::*;
 use crate::process;
 use crate::utils::utils;
 
+pub const DIST_MANIFEST_BINCODE: &str = "rustup-channel-manifest.bin";
 pub const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
 pub const CONFIG_FILE: &str = "multirust-config.toml";
 
@@ -120,7 +121,9 @@ impl Manifestation {
         let temp_cfg = download_cfg.temp_cfg;
         let prefix = self.installation.prefix();
         let rel_installed_manifest_path = prefix.rel_manifest_file(DIST_MANIFEST);
+        let rel_installed_manifest_bin_path = prefix.rel_manifest_file(DIST_MANIFEST_BINCODE);
         let installed_manifest_path = prefix.path().join(&rel_installed_manifest_path);
+        let installed_manifest_bin_path = prefix.path().join(&rel_installed_manifest_bin_path);
 
         // Create the lists of components needed for installation
         let config = self.read_config()?;
@@ -269,6 +272,13 @@ impl Manifestation {
         let new_manifest_str = new_manifest.clone().stringify();
         tx.modify_file(rel_installed_manifest_path)?;
         utils::write_file("manifest", &installed_manifest_path, &new_manifest_str)?;
+        let new_manifest_bytes = bincode::serialize(&new_manifest)?;
+        tx.modify_file(rel_installed_manifest_bin_path)?;
+        utils::write_file_bytes(
+            "manifest",
+            &installed_manifest_bin_path,
+            &new_manifest_bytes,
+        )?;
 
         // Write configuration.
         //
@@ -358,6 +368,11 @@ impl Manifestation {
 
     pub fn load_manifest(&self) -> Result<Option<Manifest>> {
         let prefix = self.installation.prefix();
+        let manifest_bin_path = prefix.manifest_file(DIST_MANIFEST_BINCODE);
+        if utils::path_exists(&manifest_bin_path) {
+            let manifest_bytes = utils::read_file_bytes("installed manifest", &manifest_bin_path)?;
+            return Ok(Some(bincode::deserialize(&manifest_bytes)?));
+        }
         let old_manifest_path = prefix.manifest_file(DIST_MANIFEST);
         if utils::path_exists(&old_manifest_path) {
             let manifest_str = utils::read_file("installed manifest", &old_manifest_path)?;

@@ -20,10 +20,12 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
+use serde::{Deserialize, Serialize};
+
 pub const SUPPORTED_MANIFEST_VERSIONS: [&str; 1] = ["2"];
 pub const DEFAULT_MANIFEST_VERSION: &str = "2";
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Manifest {
     pub manifest_version: String,
     pub date: String,
@@ -33,25 +35,25 @@ pub struct Manifest {
     pub profiles: HashMap<Profile, Vec<String>>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Package {
     pub version: String,
     pub targets: PackageTargets,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum PackageTargets {
     Wildcard(TargetedPackage),
     Targeted(HashMap<TargetTriple, TargetedPackage>),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TargetedPackage {
     pub bins: Option<PackageBins>,
     pub components: Vec<Component>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PackageBins {
     pub url: String,
     pub hash: String,
@@ -59,7 +61,7 @@ pub struct PackageBins {
     pub xz_hash: Option<String>,
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Component {
     pkg: String,
     pub target: Option<TargetTriple>,

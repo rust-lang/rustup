@@ -7,6 +7,7 @@ use std::str::FromStr;
 use chrono::{Date, NaiveDate, TimeZone, Utc};
 use lazy_static::lazy_static;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 
 use crate::dist::download::DownloadCfg;
 use crate::dist::manifest::Manifest as ManifestV2;
@@ -64,7 +65,7 @@ pub struct ToolchainDesc {
     pub target: TargetTriple,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct TargetTriple(String);
 
 // Linux hosts don't indicate clib in uname, however binaries only
@@ -417,7 +418,7 @@ impl<'a> Manifest<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Profile {
     Minimal,
     Default,

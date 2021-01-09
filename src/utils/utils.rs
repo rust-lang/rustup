@@ -61,6 +61,13 @@ pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
     })
 }
 
+pub fn write_file_bytes(name: &'static str, path: &Path, contents: &[u8]) -> Result<()> {
+    raw::write_file_bytes(path, contents).chain_err(|| ErrorKind::WritingFile {
+        name,
+        path: PathBuf::from(path),
+    })
+}
+
 pub fn write_file(name: &'static str, path: &Path, contents: &str) -> Result<()> {
     raw::write_file(path, contents).chain_err(|| ErrorKind::WritingFile {
         name,
