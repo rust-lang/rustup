@@ -60,7 +60,7 @@ pub fn serve_file(contents: Vec<u8>) -> SocketAddr {
 
     thread::spawn(move || {
         let server = run_server(addr_tx, addr, contents);
-        let mut rt = tokio::runtime::Runtime::new().expect("could not creating Runtime");
+        let rt = tokio::runtime::Runtime::new().expect("could not creating Runtime");
         rt.block_on(server);
     });
 

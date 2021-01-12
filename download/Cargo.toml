@@ -22,9 +22,9 @@ url = "2.1"
 curl = { version = "0.4.11", optional = true }
 env_proxy = { version = "0.4.1", optional = true }
 lazy_static = { version = "1.0", optional = true }
-reqwest = { version = "0.10.9", default-features = false, features = ["blocking", "gzip", "socks"], optional = true }
+reqwest = { version = "0.11", default-features = false, features = ["blocking", "gzip", "socks"], optional = true }
 
 [dev-dependencies]
-hyper = { version = "0.13", default-features = false, features = ["tcp"] }
+hyper = { version = "0.14", default-features = false, features = ["tcp", "server"] }
 tempfile = "3"
-tokio = { version = "0.2.2", default-features = false, features = ["tcp", "sync"] }
+tokio = { version = "1", default-features = false, features = ["sync"] }
