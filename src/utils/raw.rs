@@ -40,7 +40,7 @@ pub fn random_string(length: usize) -> String {
     const CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyz0123456789_";
     let mut rng = rand::thread_rng();
     (0..length)
-        .map(|_| char::from(CHARSET[rng.gen_range(0, CHARSET.len())]))
+        .map(|_| char::from(CHARSET[rng.gen_range(0..CHARSET.len())]))
         .collect()
 }
 

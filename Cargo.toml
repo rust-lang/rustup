@@ -44,7 +44,7 @@ opener = "0.4.0"
 # by our rustup.
 openssl = {version = "0.10", optional = true}
 pulldown-cmark = {version = "0.8", default-features = false}
-rand = "0.7"
+rand = "0.8"
 regex = "1"
 remove_dir_all = "0.6.0"
 same-file = "1"
@@ -75,7 +75,7 @@ version = "1.0.1"
 
 [target."cfg(windows)".dependencies]
 cc = "1"
-winreg = "0.7"
+winreg = "0.8"
 
 [target."cfg(windows)".dependencies.winapi]
 features = [
