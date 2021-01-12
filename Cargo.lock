@@ -1781,7 +1781,7 @@ dependencies = [
  "openssl",
  "pgp",
  "pulldown-cmark",
- "rand 0.7.3",
+ "rand 0.8.1",
  "regex",
  "remove_dir_all 0.6.1",
  "retry",

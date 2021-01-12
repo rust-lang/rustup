@@ -220,7 +220,7 @@ impl TestProcess {
     fn new_id() -> u64 {
         let low_bits: u64 = std::process::id() as u64;
         let mut rng = thread_rng();
-        let high_bits = rng.gen_range(0, u32::MAX) as u64;
+        let high_bits = rng.gen_range(0..u32::MAX) as u64;
         high_bits << 32 | low_bits
     }
 
