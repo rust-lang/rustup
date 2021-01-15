@@ -5,7 +5,7 @@ use crate::dist::dist;
 use crate::dist::download::DownloadCfg;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::Notification;
-use crate::errors::Result;
+use crate::errors::{ErrorKind, Result};
 use crate::notifications::Notification as RootNotification;
 use crate::toolchain::{CustomToolchain, DistributableToolchain, Toolchain, UpdateStatus};
 use crate::utils::utils;
@@ -76,7 +76,12 @@ impl<'a> InstallMethod<'a> {
             (false, _) => UpdateStatus::Unchanged,
         };
 
-        Ok(status)
+        // Final check, to ensure we're installed
+        if !toolchain.exists() {
+            Err(ErrorKind::ToolchainNotInstallable(toolchain.name().to_string()).into())
+        } else {
+            Ok(status)
+        }
     }
 
     pub fn run(self, path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<bool> {

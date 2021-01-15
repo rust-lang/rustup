@@ -295,6 +295,10 @@ error_chain! {
             description("toolchain is not installed")
             display("toolchain '{}' is not installed", t)
         }
+        ToolchainNotInstallable(t: String) {
+            description("toolchain is not installable")
+            display("toolchain '{}' is not installable", t)
+        }
         ToolchainNotSelected {
             description("toolchain is not selected")
             display("no override and no default toolchain set")
