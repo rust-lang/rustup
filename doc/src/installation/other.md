@@ -76,6 +76,5 @@ You can fetch an older version from
 
 To install `rustup` from source, check out the git repository from
 <https://github.com/rust-lang/rustup> and run `cargo run --release`. Note that
-currently `rustup` only builds on nightly Rust, and that after installation
-the `rustup` toolchains will supersede any pre-existing toolchains by
-prepending `~/.cargo/bin` to the `PATH` environment variable.
+after installation the `rustup` toolchains will supersede any pre-existing
+toolchains by prepending `~/.cargo/bin` to the `PATH` environment variable.
