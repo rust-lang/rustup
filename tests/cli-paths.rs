@@ -318,12 +318,12 @@ mod windows {
 
                 expect_ok(config, &INIT_NONE);
                 assert!(
-                    get_path().unwrap().contains(&path),
+                    get_path().unwrap().to_string().contains(&path),
                     format!("`{}` not in `{}`", get_path().unwrap(), &path)
                 );
 
                 expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-                assert!(!get_path().unwrap().contains(&path));
+                assert!(!get_path().unwrap().to_string().contains(&path));
             })
         });
     }

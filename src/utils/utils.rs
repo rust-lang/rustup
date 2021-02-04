@@ -1,6 +1,5 @@
 use std::cmp::Ord;
 use std::env;
-use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io::{self, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -275,6 +274,8 @@ pub fn parse_url(url: &str) -> Result<Url> {
 }
 
 pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
+    use std::ffi::OsString;
+
     raw::cmd_status(cmd).chain_err(|| ErrorKind::RunningCommand {
         name: OsString::from(name),
     })
@@ -538,10 +539,8 @@ pub fn format_path_for_display(path: &str) -> String {
 
 /// Encodes a utf-8 string as a null-terminated UCS-2 string in bytes
 #[cfg(windows)]
-pub fn string_to_winreg_bytes(s: &str) -> Vec<u8> {
-    use std::ffi::OsStr;
-    use std::os::windows::ffi::OsStrExt;
-    let v: Vec<u16> = OsStr::new(s).encode_wide().chain(Some(0)).collect();
+pub fn string_to_winreg_bytes(mut v: Vec<u16>) -> Vec<u8> {
+    v.push(0);
     unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 2).to_vec() }
 }
 
@@ -550,23 +549,22 @@ pub fn string_to_winreg_bytes(s: &str) -> Vec<u8> {
 // returns null.  The winreg library itself does a lossy unicode
 // conversion.
 #[cfg(windows)]
-pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<String> {
+pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<Vec<u16>> {
     use std::slice;
     use winreg::enums::RegType;
 
     match val.vtype {
         RegType::REG_SZ | RegType::REG_EXPAND_SZ => {
             // Copied from winreg
-            let words = unsafe {
+            let mut words = unsafe {
                 #[allow(clippy::cast_ptr_alignment)]
                 slice::from_raw_parts(val.bytes.as_ptr().cast::<u16>(), val.bytes.len() / 2)
+                    .to_owned()
             };
-            String::from_utf16(words).ok().map(|mut s| {
-                while s.ends_with('\u{0}') {
-                    s.pop();
-                }
-                s
-            })
+            while words.last() == Some(&0) {
+                words.pop();
+            }
+            Some(words)
         }
         _ => None,
     }
