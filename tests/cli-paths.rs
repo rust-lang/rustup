@@ -314,12 +314,15 @@ mod windows {
     fn install_uninstall_affect_path() {
         clitools::setup(Scenario::Empty, &|config| {
             with_saved_path(&|| {
-                let path = config.cargodir.join("bin").to_string_lossy().to_string();
+                let path = format!("{:?}", config.cargodir.join("bin").to_string_lossy());
 
                 expect_ok(config, &INIT_NONE);
                 assert!(
-                    get_path().unwrap().to_string().contains(&path),
-                    format!("`{}` not in `{}`", get_path().unwrap(), &path)
+                    get_path()
+                        .unwrap()
+                        .to_string()
+                        .contains(path.trim_matches('"')),
+                    format!("`{}` not in `{}`", path, get_path().unwrap())
                 );
 
                 expect_ok(config, &["rustup", "self", "uninstall", "-y"]);

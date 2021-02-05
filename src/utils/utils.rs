@@ -739,7 +739,7 @@ impl<'a> io::Read for FileReaderWithProgress<'a> {
 // search user database to get home dir of euid user
 #[cfg(unix)]
 pub fn home_dir_from_passwd() -> Option<PathBuf> {
-    use std::ffi::CStr;
+    use std::ffi::{CStr, OsString};
     use std::mem::MaybeUninit;
     use std::os::unix::ffi::OsStringExt;
     use std::ptr;
