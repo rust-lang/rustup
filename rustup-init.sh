@@ -72,7 +72,7 @@ main() {
     local _url="${RUSTUP_UPDATE_ROOT}/dist/${_arch}/rustup-init${_ext}"
 
     local _dir
-    _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rustup)"
+    _dir="$(ensure mktemp -d)"
     local _file="${_dir}/rustup-init${_ext}"
 
     local _ansi_escapes_are_valid=false
