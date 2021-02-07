@@ -567,10 +567,36 @@ impl Cfg {
                 return Ok(Some((name.into(), reason)));
             }
 
-            // Then look for 'rust-toolchain'
-            let toolchain_file = d.join("rust-toolchain");
-            if let Ok(contents) = utils::read_file("toolchain file", &toolchain_file) {
-                let override_file = Cfg::parse_override_file(contents)?;
+            // Then look for 'rust-toolchain' or 'rust-toolchain.toml'
+            let path_rust_toolchain = d.join("rust-toolchain");
+            let path_rust_toolchain_toml = d.join("rust-toolchain.toml");
+
+            let (toolchain_file, contents, parse_mode) = match (
+                utils::read_file("toolchain file", &path_rust_toolchain),
+                utils::read_file("toolchain file", &path_rust_toolchain_toml),
+            ) {
+                (contents, Err(_)) => {
+                    // no `rust-toolchain.toml` exists
+                    (path_rust_toolchain, contents, ParseMode::Both)
+                }
+                (Err(_), Ok(contents)) => {
+                    // only `rust-toolchain.toml` exists
+                    (path_rust_toolchain_toml, Ok(contents), ParseMode::OnlyToml)
+                }
+                (Ok(contents), Ok(_)) => {
+                    // both `rust-toolchain` and `rust-toolchain.toml` exist
+
+                    notify(Notification::DuplicateToolchainFile {
+                        rust_toolchain: &path_rust_toolchain,
+                        rust_toolchain_toml: &path_rust_toolchain_toml,
+                    });
+
+                    (path_rust_toolchain, Ok(contents), ParseMode::Both)
+                }
+            };
+
+            if let Ok(contents) = contents {
+                let override_file = Cfg::parse_override_file(contents, parse_mode)?;
                 if let Some(toolchain_name) = &override_file.toolchain.channel {
                     let all_toolchains = self.list_toolchains()?;
                     if !all_toolchains.iter().any(|s| s == toolchain_name) {
@@ -590,12 +616,15 @@ impl Cfg {
         Ok(None)
     }
 
-    fn parse_override_file<S: AsRef<str>>(contents: S) -> Result<OverrideFile> {
+    fn parse_override_file<S: AsRef<str>>(
+        contents: S,
+        parse_mode: ParseMode,
+    ) -> Result<OverrideFile> {
         let contents = contents.as_ref();
 
-        match contents.lines().count() {
-            0 => Err(ErrorKind::EmptyOverrideFile.into()),
-            1 => {
+        match (contents.lines().count(), parse_mode) {
+            (0, _) => Err(ErrorKind::EmptyOverrideFile.into()),
+            (1, ParseMode::Both) => {
                 let channel = contents.trim();
 
                 if channel.is_empty() {
@@ -898,6 +927,20 @@ impl Cfg {
     }
 }
 
+/// Specifies how a `rust-toolchain`/`rust-toolchain.toml` configuration file should be parsed.
+enum ParseMode {
+    /// Only permit TOML format in a configuration file.
+    ///
+    /// This variant is used for `rust-toolchain.toml` files (with `.toml` extension).
+    OnlyToml,
+    /// Permit both the legacy format (i.e. just the channel name) and the TOML format in
+    /// a configuration file.
+    ///
+    /// This variant is used for `rust-toolchain` files (no file extension) for backwards
+    /// compatibility.
+    Both,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -906,7 +949,7 @@ mod tests {
     fn parse_legacy_toolchain_file() {
         let contents = "nightly-2020-07-10";
 
-        let result = Cfg::parse_override_file(contents);
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
             result.unwrap(),
             OverrideFile {
@@ -929,7 +972,7 @@ targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
 profile = "default"
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
             result.unwrap(),
             OverrideFile {
@@ -952,7 +995,7 @@ profile = "default"
 channel = "nightly-2020-07-10"
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
             result.unwrap(),
             OverrideFile {
@@ -973,7 +1016,7 @@ channel = "nightly-2020-07-10"
 components = []
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
             result.unwrap(),
             OverrideFile {
@@ -994,7 +1037,7 @@ channel = "nightly-2020-07-10"
 targets = []
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
             result.unwrap(),
             OverrideFile {
@@ -1014,7 +1057,7 @@ targets = []
 components = [ "rustfmt" ]
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert_eq!(
             result.unwrap(),
             OverrideFile {
@@ -1034,7 +1077,7 @@ components = [ "rustfmt" ]
 [toolchain]
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
             result.unwrap_err().kind(),
             ErrorKind::InvalidOverrideFile
@@ -1045,7 +1088,7 @@ components = [ "rustfmt" ]
     fn parse_empty_toolchain_file() {
         let contents = "";
 
-        let result = Cfg::parse_override_file(contents);
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
             result.unwrap_err().kind(),
             ErrorKind::EmptyOverrideFile
@@ -1056,7 +1099,7 @@ components = [ "rustfmt" ]
     fn parse_whitespace_toolchain_file() {
         let contents = "   ";
 
-        let result = Cfg::parse_override_file(contents);
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
             result.unwrap_err().kind(),
             ErrorKind::EmptyOverrideFile
@@ -1069,7 +1112,7 @@ components = [ "rustfmt" ]
 channel = nightly
 "#;
 
-        let result = Cfg::parse_override_file(contents);
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
             result.unwrap_err().kind(),
             ErrorKind::ParsingOverrideFile(..)
