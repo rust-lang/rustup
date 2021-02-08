@@ -437,37 +437,22 @@ mod tests {
     }
 
     #[test]
-    fn windows_doesnt_mess_with_a_non_string_path() {
-        // This writes an error, so we want a sink for it.
-        let tp = Box::new(currentprocess::TestProcess {
-            vars: [("HOME".to_string(), "/unused".to_string())]
-                .iter()
-                .cloned()
-                .collect(),
-            ..Default::default()
-        });
-        with_saved_path(&|| {
-            currentprocess::with(tp.clone(), || {
-                let root = RegKey::predef(HKEY_CURRENT_USER);
-                let environment = root
-                    .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-                    .unwrap();
-                let reg_value = RegValue {
-                    bytes: vec![0x00, 0xD8, 0x01, 0x01, 0x00, 0x00],
-                    vtype: RegType::REG_BINARY,
-                };
-                environment.set_raw_value("PATH", &reg_value).unwrap();
-                // Ok(None) signals no change to the PATH setting layer
-                assert_eq!(
-                    None,
-                    super::_with_path_cargo_home_bin(|_, _| panic!("called")).unwrap()
-                );
-            })
-        });
+    fn windows_handle_non_unicode_path() {
+        let initial_path = vec![
+            0xD800, // leading surrogate
+            0x0101, // bogus trailing surrogate
+            0x0000, // null
+        ];
+        let cargo_home = wide(r"c:\users\example\.cargo\bin");
+        let final_path = [&cargo_home, &[b';' as u16][..], &initial_path].join(&[][..]);
+
         assert_eq!(
-            r"warning: the registry key HKEY_CURRENT_USER\Environment\PATH is not a string. Not modifying the PATH variable
-",
-            String::from_utf8(tp.get_stderr()).unwrap()
+            &final_path,
+            &super::_add_to_path(initial_path.clone(), cargo_home.clone(),).unwrap()
+        );
+        assert_eq!(
+            &initial_path,
+            &super::_remove_from_path(final_path, cargo_home,).unwrap()
         );
     }
 
@@ -534,6 +519,41 @@ mod tests {
                 }
             })
         });
+    }
+
+    #[test]
+    fn windows_doesnt_mess_with_a_non_string_path() {
+        // This writes an error, so we want a sink for it.
+        let tp = Box::new(currentprocess::TestProcess {
+            vars: [("HOME".to_string(), "/unused".to_string())]
+                .iter()
+                .cloned()
+                .collect(),
+            ..Default::default()
+        });
+        with_saved_path(&|| {
+            currentprocess::with(tp.clone(), || {
+                let root = RegKey::predef(HKEY_CURRENT_USER);
+                let environment = root
+                    .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+                    .unwrap();
+                let reg_value = RegValue {
+                    bytes: vec![0x12, 0x34],
+                    vtype: RegType::REG_BINARY,
+                };
+                environment.set_raw_value("PATH", &reg_value).unwrap();
+                // Ok(None) signals no change to the PATH setting layer
+                assert_eq!(
+                    None,
+                    super::_with_path_cargo_home_bin(|_, _| panic!("called")).unwrap()
+                );
+            })
+        });
+        assert_eq!(
+            r"warning: the registry key HKEY_CURRENT_USER\Environment\PATH is not a string. Not modifying the PATH variable
+",
+            String::from_utf8(tp.get_stderr()).unwrap()
+        );
     }
 
     #[test]

@@ -309,7 +309,6 @@ mod windows {
     use crate::mock::clitools::{self, expect_ok, Scenario};
 
     #[test]
-    #[cfg(windows)]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
     fn install_uninstall_affect_path() {
         clitools::setup(Scenario::Empty, &|config| {
@@ -327,6 +326,51 @@ mod windows {
 
                 expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
                 assert!(!get_path().unwrap().to_string().contains(&path));
+            })
+        });
+    }
+
+    #[test]
+    /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
+    fn install_uninstall_affect_path_with_non_unicode() {
+        use std::ffi::OsString;
+        use std::os::windows::ffi::OsStrExt;
+        use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+        use winreg::{RegKey, RegValue};
+
+        clitools::setup(Scenario::Empty, &|config| {
+            with_saved_path(&|| {
+                // Set up a non unicode PATH
+                let reg_value = RegValue {
+                    bytes: vec![
+                        0x00, 0xD8, // leading surrogate
+                        0x01, 0x01, // bogus trailing surrogate
+                        0x00, 0x00, // null
+                    ],
+                    vtype: RegType::REG_EXPAND_SZ,
+                };
+                RegKey::predef(HKEY_CURRENT_USER)
+                    .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
+                    .unwrap()
+                    .set_raw_value("PATH", &reg_value)
+                    .unwrap();
+
+                // compute expected path after installation
+                let expected = RegValue {
+                    bytes: OsString::from(config.cargodir.join("bin"))
+                        .encode_wide()
+                        .flat_map(|v| vec![v as u8, (v >> 8) as u8])
+                        .chain(vec![b';', 0])
+                        .chain(reg_value.bytes.iter().copied())
+                        .collect(),
+                    vtype: RegType::REG_EXPAND_SZ,
+                };
+
+                expect_ok(config, &INIT_NONE);
+                assert_eq!(get_path().unwrap(), expected);
+
+                expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+                assert_eq!(get_path().unwrap(), reg_value);
             })
         });
     }

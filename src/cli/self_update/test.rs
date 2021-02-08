@@ -19,7 +19,7 @@ pub fn get_path() -> Option<RegValue> {
         Ok(val) => Some(val),
         Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => None,
         Err(e) => panic!(
-            "Error getting PATH: {}\nBetter abort to avoid trahsing it.",
+            "Error getting PATH: {}\nBetter abort to avoid trashing it.",
             e
         ),
     }
