@@ -319,13 +319,14 @@ mod windows {
                 assert!(
                     get_path()
                         .unwrap()
+                        .unwrap()
                         .to_string()
                         .contains(path.trim_matches('"')),
-                    format!("`{}` not in `{}`", path, get_path().unwrap())
+                    format!("`{}` not in `{}`", path, get_path().unwrap().unwrap())
                 );
 
                 expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-                assert!(!get_path().unwrap().to_string().contains(&path));
+                assert!(!get_path().unwrap().unwrap().to_string().contains(&path));
             })
         });
     }
@@ -367,10 +368,10 @@ mod windows {
                 };
 
                 expect_ok(config, &INIT_NONE);
-                assert_eq!(get_path().unwrap(), expected);
+                assert_eq!(get_path().unwrap().unwrap(), expected);
 
                 expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-                assert_eq!(get_path().unwrap(), reg_value);
+                assert_eq!(get_path().unwrap().unwrap(), reg_value);
             })
         });
     }

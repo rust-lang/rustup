@@ -10,18 +10,15 @@ use winreg::{
 };
 
 #[cfg(not(unix))]
-pub fn get_path() -> Option<RegValue> {
+pub fn get_path() -> std::io::Result<Option<RegValue>> {
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .unwrap();
     match environment.get_raw_value("PATH") {
-        Ok(val) => Some(val),
-        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => None,
-        Err(e) => panic!(
-            "Error getting PATH: {}\nBetter abort to avoid trashing it.",
-            e
-        ),
+        Ok(val) => Ok(Some(val)),
+        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e),
     }
 }
 
@@ -48,15 +45,15 @@ pub fn with_saved_path(f: &dyn Fn()) {
 
     // On windows these tests mess with the user's PATH. Save
     // and restore them here to keep from trashing things.
-    let saved_path = get_path();
+    let saved_path = get_path().expect("Error getting PATH: Better abort to avoid trashing it.");
     let _g = scopeguard::guard(saved_path, restore_path);
 
     f();
 }
 
 #[cfg(unix)]
-pub fn get_path() -> Option<()> {
-    None
+pub fn get_path() -> std::io::Result<Option<()>> {
+    Ok(None)
 }
 
 #[cfg(unix)]
