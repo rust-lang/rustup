@@ -537,39 +537,6 @@ pub fn format_path_for_display(path: &str) -> String {
     }
 }
 
-/// Encodes a utf-8 string as a null-terminated UCS-2 string in bytes
-#[cfg(windows)]
-pub fn string_to_winreg_bytes(mut v: Vec<u16>) -> Vec<u8> {
-    v.push(0);
-    unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 2).to_vec() }
-}
-
-// This is used to decode the value of HKCU\Environment\PATH. If that
-// key is not unicode (or not REG_SZ | REG_EXPAND_SZ) then this
-// returns null.  The winreg library itself does a lossy unicode
-// conversion.
-#[cfg(windows)]
-pub fn string_from_winreg_value(val: &winreg::RegValue) -> Option<Vec<u16>> {
-    use std::slice;
-    use winreg::enums::RegType;
-
-    match val.vtype {
-        RegType::REG_SZ | RegType::REG_EXPAND_SZ => {
-            // Copied from winreg
-            let mut words = unsafe {
-                #[allow(clippy::cast_ptr_alignment)]
-                slice::from_raw_parts(val.bytes.as_ptr().cast::<u16>(), val.bytes.len() / 2)
-                    .to_owned()
-            };
-            while words.last() == Some(&0) {
-                words.pop();
-            }
-            Some(words)
-        }
-        _ => None,
-    }
-}
-
 pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
     use semver::{Identifier, Version};
 

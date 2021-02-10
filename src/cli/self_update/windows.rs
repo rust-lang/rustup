@@ -169,7 +169,7 @@ fn _apply_new_path(new_path: Option<Vec<u16>>) -> Result<()> {
             .chain_err(|| ErrorKind::PermissionDenied)?;
     } else {
         let reg_value = RegValue {
-            bytes: utils::string_to_winreg_bytes(new_path),
+            bytes: to_winreg_bytes(new_path),
             vtype: RegType::REG_EXPAND_SZ,
         };
         environment
@@ -209,7 +209,7 @@ fn get_windows_path_var() -> Result<Option<Vec<u16>>> {
     let reg_value = environment.get_raw_value("PATH");
     match reg_value {
         Ok(val) => {
-            if let Some(s) = utils::string_from_winreg_value(&val) {
+            if let Some(s) = from_winreg_value(&val) {
                 Ok(Some(s))
             } else {
                 warn!(
@@ -283,6 +283,36 @@ where
 pub fn do_remove_from_path() -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_remove_from_path)?;
     _apply_new_path(new_path)
+}
+
+/// Convert a vector UCS-2 chars to a null-terminated UCS-2 string in bytes
+pub fn to_winreg_bytes(mut v: Vec<u16>) -> Vec<u8> {
+    v.push(0);
+    unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 2).to_vec() }
+}
+
+/// This is used to decode the value of HKCU\Environment\PATH. If that key is
+/// not REG_SZ | REG_EXPAND_SZ then this returns None. The winreg library itself
+/// does a lossy unicode conversion.
+pub fn from_winreg_value(val: &winreg::RegValue) -> Option<Vec<u16>> {
+    use std::slice;
+    use winreg::enums::RegType;
+
+    match val.vtype {
+        RegType::REG_SZ | RegType::REG_EXPAND_SZ => {
+            // Copied from winreg
+            let mut words = unsafe {
+                #[allow(clippy::cast_ptr_alignment)]
+                slice::from_raw_parts(val.bytes.as_ptr().cast::<u16>(), val.bytes.len() / 2)
+                    .to_owned()
+            };
+            while words.last() == Some(&0) {
+                words.pop();
+            }
+            Some(words)
+        }
+        _ => None,
+    }
 }
 
 pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
@@ -419,7 +449,6 @@ mod tests {
 
     use crate::currentprocess;
     use crate::test::with_saved_path;
-    use crate::utils::utils;
 
     fn wide(str: &str) -> Vec<u16> {
         OsString::from(str).encode_wide().collect()
@@ -479,7 +508,7 @@ mod tests {
                     .unwrap();
                 let path = environment.get_raw_value("PATH").unwrap();
                 assert_eq!(path.vtype, RegType::REG_EXPAND_SZ);
-                assert_eq!(utils::string_to_winreg_bytes(wide("foo")), &path.bytes[..]);
+                assert_eq!(super::to_winreg_bytes(wide("foo")), &path.bytes[..]);
             })
         });
     }
@@ -500,7 +529,7 @@ mod tests {
                     .set_raw_value(
                         "PATH",
                         &RegValue {
-                            bytes: utils::string_to_winreg_bytes(wide("foo")),
+                            bytes: super::to_winreg_bytes(wide("foo")),
                             vtype: RegType::REG_EXPAND_SZ,
                         },
                     )
