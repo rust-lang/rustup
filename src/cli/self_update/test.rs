@@ -5,39 +5,31 @@ use std::sync::Mutex;
 use lazy_static::lazy_static;
 #[cfg(not(unix))]
 use winreg::{
-    enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE},
+    enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE},
     RegKey, RegValue,
 };
 
 #[cfg(not(unix))]
-use crate::utils::utils;
-
-#[cfg(not(unix))]
-pub fn get_path() -> Option<String> {
+pub fn get_path() -> std::io::Result<Option<RegValue>> {
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .unwrap();
-    // XXX: copied from the mock support crate, but I am suspicous of this
-    // code: This uses ok to allow signalling None for 'delete', but this
-    // can fail e.g. with !(winerror::ERROR_BAD_FILE_TYPE) or other
-    // failures; which will lead to attempting to delete the users path
-    // rather than aborting the test suite.
-    environment.get_value("PATH").ok()
+    match environment.get_raw_value("PATH") {
+        Ok(val) => Ok(Some(val)),
+        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e),
+    }
 }
 
 #[cfg(not(unix))]
-fn restore_path(p: Option<String>) {
+fn restore_path(p: Option<RegValue>) {
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .unwrap();
     if let Some(p) = p.as_ref() {
-        let reg_value = RegValue {
-            bytes: utils::string_to_winreg_bytes(&p),
-            vtype: RegType::REG_EXPAND_SZ,
-        };
-        environment.set_raw_value("PATH", &reg_value).unwrap();
+        environment.set_raw_value("PATH", &p).unwrap();
     } else {
         let _ = environment.delete_value("PATH");
     }
@@ -53,16 +45,16 @@ pub fn with_saved_path(f: &dyn Fn()) {
 
     // On windows these tests mess with the user's PATH. Save
     // and restore them here to keep from trashing things.
-    let saved_path = get_path();
+    let saved_path = get_path().expect("Error getting PATH: Better abort to avoid trashing it.");
     let _g = scopeguard::guard(saved_path, restore_path);
 
     f();
 }
 
 #[cfg(unix)]
-pub fn get_path() -> Option<String> {
-    None
+pub fn get_path() -> std::io::Result<Option<()>> {
+    Ok(None)
 }
 
 #[cfg(unix)]
-fn restore_path(_: Option<String>) {}
+fn restore_path(_: Option<()>) {}
