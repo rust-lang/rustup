@@ -425,7 +425,7 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
     if cs.len() == 1 {
         let _ = writeln!(
             buf,
-            "component {} is unavailable for download for channel '{}'",
+            "component {} is unavailable for download for channel '{}'. ",
             &cs[0].description(manifest),
             toolchain,
         );
