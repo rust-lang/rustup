@@ -85,7 +85,9 @@ pub fn main() -> Result<utils::ExitCode> {
                     cfg.set_toolchain_override(&t[1..]);
                 }
 
-                let toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd)?.0;
+                let toolchain = cfg
+                    .find_or_install_override_toolchain_or_default(&cwd, false)?
+                    .0;
 
                 Ok(toolchain.rustc_version())
             }
@@ -1051,7 +1053,7 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
     let cwd = utils::current_dir()?;
     let installed_toolchains = cfg.list_toolchains()?;
     // XXX: we may want a find_without_install capability for show.
-    let active_toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd);
+    let active_toolchain = cfg.find_or_install_override_toolchain_or_default(&cwd, false);
 
     // active_toolchain will carry the reason we don't have one in its detail.
     let active_targets = if let Ok(ref at) = active_toolchain {
@@ -1176,7 +1178,7 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
 
 fn show_active_toolchain(cfg: &Cfg) -> Result<utils::ExitCode> {
     let cwd = utils::current_dir()?;
-    match cfg.find_or_install_override_toolchain_or_default(&cwd) {
+    match cfg.find_or_install_override_toolchain_or_default(&cwd, false) {
         Err(crate::Error(crate::ErrorKind::ToolchainNotSelected, _)) => {}
         Err(e) => return Err(e.into()),
         Ok((toolchain, reason)) => {
@@ -1337,7 +1339,7 @@ fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Too
     }
 
     let cwd = utils::current_dir()?;
-    let (toolchain, _) = cfg.toolchain_for_dir(&cwd)?;
+    let (toolchain, _) = cfg.find_or_install_override_toolchain_or_default(&cwd, true)?;
 
     Ok(toolchain)
 }

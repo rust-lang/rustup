@@ -409,7 +409,7 @@ impl Cfg {
     }
 
     pub fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {
-        let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
+        let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path, true)?;
         Ok(Some(toolchain.binary_file(binary)))
     }
 
@@ -620,6 +620,7 @@ impl Cfg {
     pub fn find_or_install_override_toolchain_or_default(
         &self,
         path: &Path,
+        install: bool,
     ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
         fn components_exist(
             distributable: &DistributableToolchain<'_>,
@@ -699,7 +700,9 @@ impl Cfg {
                 let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
 
                 let distributable = DistributableToolchain::new(&toolchain)?;
-                if !toolchain.exists() || !components_exist(&distributable, &components, &targets)?
+                if install
+                    && (!toolchain.exists()
+                        || !components_exist(&distributable, &components, &targets)?)
                 {
                     distributable.install_from_dist(true, false, &components, &targets, profile)?;
                 }
@@ -789,15 +792,8 @@ impl Cfg {
         })
     }
 
-    pub fn toolchain_for_dir(
-        &self,
-        path: &Path,
-    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
-        self.find_or_install_override_toolchain_or_default(path)
-    }
-
     pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
-        let (ref toolchain, _) = self.toolchain_for_dir(path)?;
+        let (ref toolchain, _) = self.find_or_install_override_toolchain_or_default(path, true)?;
 
         if let Some(cmd) = self.maybe_do_cargo_fallback(toolchain, binary)? {
             Ok(cmd)
