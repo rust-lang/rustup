@@ -297,7 +297,7 @@ error_chain! {
         }
         ToolchainNotSelected {
             description("toolchain is not selected")
-            display("no override and no default toolchain set")
+            display("no override and no default toolchain set; run 'rustup default stable' to set the stable toolchain as default")
         }
         OverrideToolchainNotInstalled(t: String) {
             description("override toolchain is not installed")
