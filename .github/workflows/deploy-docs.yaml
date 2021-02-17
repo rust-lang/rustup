@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - stable
+      - master
 
 jobs:
   doc:
@@ -11,20 +12,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Install mdbook
         run: |
           mkdir mdbook
-          curl -Lf https://github.com/rust-lang/mdBook/releases/download/v0.4.5/mdbook-v0.4.5-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
+          curl -Lf https://github.com/rust-lang/mdBook/releases/download/v0.4.6/mdbook-v0.4.6-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
           echo "`pwd`/mdbook" >> $GITHUB_PATH
       - name: Build book
-        run: cd doc && mdbook build
+        run: |
+          git checkout stable
+          cd doc
+          mdbook build
+          mv book ${{ runner.temp }}
+          git checkout master
+          mdbook build
+          mv book ${{ runner.temp }}/book/devel
       - name: Deploy to GitHub
         run: |
-          cd doc/book
+          cd ${{ runner.temp }}/book
           git init
           git config user.name "Deploy from CI"
           git config user.email ""
           git add . .nojekyll
-          git commit -m "Deploy $GITHUB_SHA to gh-pages"
+          git commit -m "Deploy $GITHUB_REF $GITHUB_SHA to gh-pages"
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
           git push --force --set-upstream origin master:gh-pages
