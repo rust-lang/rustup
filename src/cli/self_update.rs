@@ -344,6 +344,7 @@ pub fn install(
         do_write_env_files()?;
 
         if !opts.no_modify_path {
+            do_add_to_programs()?;
             do_add_to_path()?;
         }
         utils::create_rustup_home()?;
@@ -855,6 +856,7 @@ pub fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
 
     // Remove CARGO_HOME/bin from PATH
     do_remove_from_path()?;
+    do_remove_from_programs()?;
 
     // Delete everything in CARGO_HOME *except* the rustup bin
 

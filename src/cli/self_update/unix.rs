@@ -120,6 +120,14 @@ pub fn do_write_env_files() -> Result<()> {
     Ok(())
 }
 
+pub fn do_add_to_programs() -> Result<()> {
+    Ok(())
+}
+
+pub fn do_remove_from_programs() -> Result<()> {
+    Ok(())
+}
+
 /// Tell the upgrader to replace the rustup bins, then delete
 /// itself. Like with uninstallation, on Windows we're going to
 /// have to jump through hoops to make everything work right.
