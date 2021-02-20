@@ -310,7 +310,12 @@ fn bad_sha_on_manifest() {
         sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
         let sha_str = String::from_utf8(sha_bytes).unwrap();
         rustup::utils::raw::write_file(&sha_file, &sha_str).unwrap();
-        expect_ok(config, &["rustup", "default", "nightly"]);
+        // We fail because the sha is bad, but we should emit the special message to that effect.
+        expect_err(
+            config,
+            &["rustup", "default", "nightly"],
+            "update not yet available",
+        );
     });
 }
 

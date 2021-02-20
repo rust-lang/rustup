@@ -685,6 +685,26 @@ fn update_unavailable_rustc() {
     });
 }
 
+// issue 2562
+#[test]
+fn install_unavailable_platform() {
+    clitools::setup(Scenario::Unavailable, &|config| {
+        set_current_dist_date(config, "2015-01-02");
+        // explicit attempt to install should fail
+        expect_err(
+            config,
+            &["rustup", "toolchain", "install", "nightly"],
+            "is not installable",
+        );
+        // implicit attempt to install should fail
+        expect_err(
+            config,
+            &["rustup", "default", "nightly"],
+            "is not installable",
+        );
+    });
+}
+
 #[test]
 fn update_nightly_even_with_incompat() {
     clitools::setup(Scenario::MissingComponent, &|config| {

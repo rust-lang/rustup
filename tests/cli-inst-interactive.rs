@@ -12,8 +12,8 @@ use rustup::test::with_saved_path;
 use rustup::utils::raw;
 
 use crate::mock::clitools::{
-    self, expect_ok, expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date, Config,
-    SanitizedOutput, Scenario,
+    self, expect_err, expect_ok, expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date,
+    Config, SanitizedOutput, Scenario,
 };
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> SanitizedOutput {
@@ -604,4 +604,22 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
         );
         assert!(out.ok);
     });
+}
+
+// Issue 2547
+#[test]
+fn install_non_installable_toolchain() {
+    clitools::setup(Scenario::Unavailable, &|config| {
+        expect_err(
+            config,
+            &[
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "nightly",
+            ],
+            "is not installable",
+        );
+    })
 }
