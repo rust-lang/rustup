@@ -4,8 +4,8 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, expect_err_ex, expect_ok, expect_ok_ex, expect_stdout_ok, self_update_setup,
-    set_current_dist_date, Config, Scenario,
+    self, check_update_setup, expect_err_ex, expect_ok, expect_ok_ex, expect_stdout_ok,
+    self_update_setup, set_current_dist_date, Config, Scenario,
 };
 use rustup::for_host;
 use rustup::test::this_host_triple;
@@ -68,7 +68,7 @@ fn update_again() {
 
 #[test]
 fn check_updates_none() {
-    setup(&|config| {
+    check_update_setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
@@ -88,7 +88,7 @@ nightly-{0} - Up to date : 1.2.0 (hash-nightly-1)
 
 #[test]
 fn check_updates_some() {
-    setup(&|config| {
+    check_update_setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
@@ -151,7 +151,7 @@ fn check_updates_self_no_change() {
 
 #[test]
 fn check_updates_with_update() {
-    setup(&|config| {
+    check_update_setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);

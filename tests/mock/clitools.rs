@@ -189,6 +189,36 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     assert!(!PathBuf::from("./bogus-cargo-home").exists());
 }
 
+fn create_local_update_server(self_dist: &Path, config: &mut Config, version: &str) {
+    let trip = this_host_triple();
+    let dist_dir = self_dist.join(&format!("archive/{}/{}", version, trip));
+    let dist_exe = dist_dir.join(&format!("rustup-init{}", EXE_SUFFIX));
+    let rustup_bin = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
+
+    fs::create_dir_all(dist_dir).unwrap();
+    output_release_file(&self_dist, "1", version);
+    fs::copy(&rustup_bin, &dist_exe).unwrap();
+
+    let root_url = format!("file://{}", self_dist.display());
+    config.rustup_update_root = Some(root_url);
+}
+
+pub fn check_update_setup(f: &dyn Fn(&mut Config)) {
+    let version = env!("CARGO_PKG_VERSION");
+
+    setup(Scenario::ArchivesV2, &|config| {
+        let self_dist_tmp = tempfile::Builder::new()
+            .prefix("self_dist")
+            .tempdir()
+            .unwrap();
+        let self_dist = self_dist_tmp.path();
+
+        create_local_update_server(self_dist, config, version);
+
+        f(config);
+    });
+}
+
 pub fn self_update_setup(f: &dyn Fn(&Config, &Path), version: &str) {
     setup(Scenario::SimpleV2, &|config| {
         // Create a mock self-update server
@@ -198,21 +228,16 @@ pub fn self_update_setup(f: &dyn Fn(&Config, &Path), version: &str) {
             .unwrap();
         let self_dist = self_dist_tmp.path();
 
+        create_local_update_server(self_dist, config, version);
+
         let trip = this_host_triple();
         let dist_dir = self_dist.join(&format!("archive/{}/{}", version, trip));
         let dist_exe = dist_dir.join(&format!("rustup-init{}", EXE_SUFFIX));
-        let rustup_bin = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
 
-        fs::create_dir_all(dist_dir).unwrap();
-        output_release_file(self_dist, "1", version);
-        fs::copy(&rustup_bin, &dist_exe).unwrap();
         // Modify the exe so it hashes different
         raw::append_file(&dist_exe, "").unwrap();
 
-        let root_url = format!("file://{}", self_dist.display());
-        config.rustup_update_root = Some(root_url);
-
-        f(config, self_dist);
+        f(config, &self_dist);
     });
 }
 
