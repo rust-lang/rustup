@@ -183,7 +183,7 @@ fn show_channel_updates(
     toolchains: Vec<(String, crate::Result<UpdateStatus>)>,
 ) -> Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
-        let toolchain = cfg.get_toolchain(&name, false).unwrap();
+        let toolchain = cfg.get_toolchain(&name, false)?;
         let mut version: String = toolchain.rustc_version();
 
         let banner;
@@ -219,12 +219,12 @@ fn show_channel_updates(
 
         let width = name.len() + 1 + banner.len();
 
-        (name, banner, width, color, version, previous_version)
+        Ok((name, banner, width, color, version, previous_version))
     });
 
     let mut t = term2::stdout();
 
-    let data: Vec<_> = data.collect();
+    let data: Vec<_> = data.collect::<Result<_>>()?;
     let max_width = data
         .iter()
         .fold(0, |a, &(_, _, width, _, _, _)| cmp::max(a, width));
