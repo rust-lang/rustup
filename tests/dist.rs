@@ -478,7 +478,7 @@ fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url
         dist_server, toolchain.channel
     );
 
-    Ok(Url::parse(&url).unwrap())
+    Ok(Url::parse(&url).map_err(|e| format!("{:?}", e))?)
 }
 
 fn uninstall(
