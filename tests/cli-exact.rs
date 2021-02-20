@@ -49,9 +49,27 @@ info: default toolchain set to 'nightly-{0}'
 fn update_again() {
     setup(&|config| {
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(
+            config,
+            &["rustup", "upgrade", "nightly", "--no-self-update"],
+        );
         expect_ok_ex(
             config,
             &["rustup", "update", "nightly", "--no-self-update"],
+            for_host!(
+                r"
+  nightly-{0} unchanged - 1.3.0 (hash-nightly-2)
+
+"
+            ),
+            for_host!(
+                r"info: syncing channel updates for 'nightly-{0}'
+"
+            ),
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "upgrade", "nightly", "--no-self-update"],
             for_host!(
                 r"
   nightly-{0} unchanged - 1.3.0 (hash-nightly-2)
@@ -73,6 +91,12 @@ fn check_updates_none() {
         expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "upgrade", "stable", "--no-self-update"]);
+        expect_ok(config, &["rustup", "upgrade", "beta", "--no-self-update"]);
+        expect_ok(
+            config,
+            &["rustup", "upgrade", "nightly", "--no-self-update"],
+        );
         expect_stdout_ok(
             config,
             &["rustup", "check"],
@@ -93,6 +117,12 @@ fn check_updates_some() {
         expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
         expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
         expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "upgrade", "stable", "--no-self-update"]);
+        expect_ok(config, &["rustup", "upgrade", "beta", "--no-self-update"]);
+        expect_ok(
+            config,
+            &["rustup", "upgrade", "nightly", "--no-self-update"],
+        );
         set_current_dist_date(config, "2015-01-02");
         expect_stdout_ok(
             config,
