@@ -8,14 +8,14 @@ and override which toolchain is used:
    +beta`.
 2. The `RUSTUP_TOOLCHAIN` environment variable.
 3. A [directory override], set with the `rustup override` command.
-4. The [`rust-toolchain`] file.
+4. The [`rust-toolchain.toml`] file.
 5. The [default toolchain].
 
 The toolchain is chosen in the order listed above, using the first one that is
 specified. There is one exception though: directory overrides and the
-`rust-toolchain` file are also preferred by their proximity to the current
+`rust-toolchain.toml` file are also preferred by their proximity to the current
 directory. That is, these two override methods are discovered by walking up
-the directory tree toward the filesystem root, and a `rust-toolchain` file
+the directory tree toward the filesystem root, and a `rust-toolchain.toml` file
 that is closer to the current directory will be preferred over a directory
 override that is further away.
 
@@ -24,7 +24,7 @@ To verify which toolchain is active use `rustup show`.
 [toolchain]: concepts/toolchains.md
 [toolchain override shorthand]: #toolchain-override-shorthand
 [directory override]: #directory-overrides
-[`rust-toolchain`]: #the-toolchain-file
+[`rust-toolchain.toml`]: #the-toolchain-file
 [default toolchain]: #default-toolchain
 
 ## Toolchain override shorthand
@@ -74,8 +74,11 @@ case for nightly-only software that pins to a revision from the release
 archives.
 
 In these cases the toolchain can be named in the project's directory in a file
-called `rust-toolchain`, the content of which is either the name of a single
-`rustup` toolchain, or a TOML file with the following layout:
+called `rust-toolchain.toml` or `rust-toolchain`. If both files are present in
+a directory, the latter is used for backwards compatibility. The files use the
+[TOML] format and have the following layout:
+
+[TOML]: https://toml.io/
 
 ``` toml
 [toolchain]
@@ -85,14 +88,19 @@ targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
 profile = "minimal"
 ```
 
-If the TOML format is used, the `[toolchain]` section is mandatory, and at
-least one property must be specified.
+The `[toolchain]` section is mandatory, and at least one property must be
+specified.
 
-The `rust-toolchain` file is suitable to check in to source control. This file
-has to be encoded in US-ASCII (if you are on Windows, check the encoding and
-that it does not starts with a BOM).
+For backwards compatibility, `rust-toolchain` files also support a legacy
+format that only contains a toolchain name without any TOML encoding, e.g.
+just `nightly-2021-01-21`. The file has to be encoded in US-ASCII this case
+(if you are on Windows, check the encoding and that it does not starts with a
+BOM). The legacy format is not available in `rust-toolchain.toml` files.
 
-The toolchains named in this file have a more restricted form than `rustup`
+The `rust-toolchain.toml`/`rust-toolchain` files are suitable to check in to
+source control.
+
+The toolchains named in these files have a more restricted form than `rustup`
 toolchains generally, and may only contain the names of the three release
 channels, 'stable', 'beta', 'nightly', Rust version numbers, like '1.0.0', and
 optionally an archive date, like 'nightly-2017-01-01'. They may not name
