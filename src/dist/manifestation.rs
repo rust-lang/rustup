@@ -11,7 +11,7 @@ use crate::dist::component::{Components, Package, TarGzPackage, TarXzPackage, Tr
 use crate::dist::config::Config;
 use crate::dist::dist::{Profile, TargetTriple, DEFAULT_DIST_SERVER};
 use crate::dist::download::{DownloadCfg, File};
-use crate::dist::manifest::{Component, Manifest, TargetedPackage};
+use crate::dist::manifest::{Component, CompressionKind, Manifest, TargetedPackage};
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
@@ -21,11 +21,6 @@ use crate::utils::utils;
 
 pub const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
 pub const CONFIG_FILE: &str = "multirust-config.toml";
-
-enum Format {
-    Gz,
-    Xz,
-}
 
 #[derive(Debug)]
 pub struct Manifestation {
@@ -153,7 +148,7 @@ impl Manifestation {
         let altered = temp_cfg.dist_server != DEFAULT_DIST_SERVER;
 
         // Download component packages and validate hashes
-        let mut things_to_install: Vec<(Component, Format, File)> = Vec::new();
+        let mut things_to_install: Vec<(Component, CompressionKind, File)> = Vec::new();
         let mut things_downloaded: Vec<String> = Vec::new();
         let components = update.components_urls_and_hashes(new_manifest)?;
 
@@ -246,11 +241,11 @@ impl Manifestation {
             let reader =
                 utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
             let package: &dyn Package = match format {
-                Format::Gz => {
+                CompressionKind::GZip => {
                     gz = TarGzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
                     &gz
                 }
-                Format::Xz => {
+                CompressionKind::XZ => {
                     xz = TarXzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
                     &xz
                 }
@@ -683,28 +678,24 @@ impl Update {
     fn components_urls_and_hashes(
         &self,
         new_manifest: &Manifest,
-    ) -> Result<Vec<(Component, Format, String, String)>> {
+    ) -> Result<Vec<(Component, CompressionKind, String, String)>> {
         let mut components_urls_and_hashes = Vec::new();
         for component in &self.components_to_install {
             let package = new_manifest.get_package(&component.short_name_in_manifest())?;
             let target_package = package.get_target(component.target.as_ref())?;
 
-            let bins = match target_package.bins {
-                None => continue,
-                Some(ref bins) => bins,
-            };
-            let c_u_h = if let (Some(url), Some(hash)) = (bins.xz_url.clone(), bins.xz_hash.clone())
-            {
-                (component.clone(), Format::Xz, url, hash)
-            } else {
-                (
-                    component.clone(),
-                    Format::Gz,
-                    bins.url.clone(),
-                    bins.hash.clone(),
-                )
-            };
-            components_urls_and_hashes.push(c_u_h);
+            if target_package.bins.is_empty() {
+                // This package is not available, no files to download.
+                continue;
+            }
+            // We prefer the first format in the list, since the parsing of the
+            // manifest leaves us with the files/hash pairs in preference order.
+            components_urls_and_hashes.push((
+                component.clone(),
+                target_package.bins[0].0,
+                target_package.bins[0].1.url.clone(),
+                target_package.bins[0].1.hash.clone(),
+            ));
         }
 
         Ok(components_urls_and_hashes)

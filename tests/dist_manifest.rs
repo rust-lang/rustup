@@ -27,8 +27,8 @@ fn parse_smoke_test() {
         .get_target(Some(&x86_64_unknown_linux_gnu))
         .unwrap();
     assert_eq!(rust_target_pkg.available(), true);
-    assert_eq!(rust_target_pkg.bins.clone().unwrap().url, "example.com");
-    assert_eq!(rust_target_pkg.bins.clone().unwrap().hash, "...");
+    assert_eq!(rust_target_pkg.bins[0].1.url, "example.com");
+    assert_eq!(rust_target_pkg.bins[0].1.hash, "...");
 
     let component = &rust_target_pkg.components[0];
     assert_eq!(component.short_name_in_manifest(), "rustc");
@@ -42,7 +42,7 @@ fn parse_smoke_test() {
     let docs_target_pkg = docs_pkg
         .get_target(Some(&x86_64_unknown_linux_gnu))
         .unwrap();
-    assert_eq!(docs_target_pkg.bins.clone().unwrap().url, "example.com");
+    assert_eq!(docs_target_pkg.bins[0].1.url, "example.com");
 }
 
 #[test]

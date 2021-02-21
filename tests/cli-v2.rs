@@ -1051,7 +1051,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &str) {
         let std_pkg = manifest.packages.get_mut(name).unwrap();
         let target = TargetTriple::new(target);
         let target_pkg = std_pkg.targets.get_mut(&target).unwrap();
-        target_pkg.bins = None;
+        target_pkg.bins = Vec::new();
     }
     let manifest_str = manifest.stringify();
     rustup::utils::raw::write_file(&manifest_path, &manifest_str).unwrap();
