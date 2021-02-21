@@ -33,6 +33,11 @@ pub enum Notification<'a> {
     UpgradeRemovesToolchains,
     MissingFileDuringSelfUninstall(PathBuf),
     PlainVerboseMessage(&'a str),
+    /// Both `rust-toolchain` and `rust-toolchain.toml` exist within a directory
+    DuplicateToolchainFile {
+        rust_toolchain: &'a Path,
+        rust_toolchain_toml: &'a Path,
+    },
 }
 
 impl<'a> From<crate::dist::Notification<'a>> for Notification<'a> {
@@ -77,7 +82,9 @@ impl<'a> Notification<'a> {
             | UpgradingMetadata(_, _)
             | MetadataUpgradeNotNeeded(_) => NotificationLevel::Info,
             NonFatalError(_) => NotificationLevel::Error,
-            UpgradeRemovesToolchains | MissingFileDuringSelfUninstall(_) => NotificationLevel::Warn,
+            UpgradeRemovesToolchains
+            | MissingFileDuringSelfUninstall(_)
+            | DuplicateToolchainFile { .. } => NotificationLevel::Warn,
         }
     }
 }
@@ -130,6 +137,15 @@ impl<'a> Display for Notification<'a> {
                 p.display()
             ),
             PlainVerboseMessage(r) => write!(f, "{}", r),
+            DuplicateToolchainFile {
+                rust_toolchain,
+                rust_toolchain_toml,
+            } => write!(
+                f,
+                "both `{0}` and `{1}` exist. Using `{0}`",
+                rust_toolchain.display(),
+                rust_toolchain_toml.display()
+            ),
         }
     }
 }
