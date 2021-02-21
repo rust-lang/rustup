@@ -911,7 +911,7 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         path: path.to_owned(),
         channels: chans.iter().map(|c| c.mock()).collect(),
     }
-    .write(&vs, true);
+    .write(&vs, true, true);
 
     for chan in &chans {
         chan.link(path)

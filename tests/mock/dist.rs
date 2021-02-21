@@ -112,6 +112,7 @@ pub struct MockComponent {
 pub struct MockHashes {
     pub gz: String,
     pub xz: Option<String>,
+    pub zst: Option<String>,
 }
 
 pub enum ManifestVersion {
@@ -120,13 +121,13 @@ pub enum ManifestVersion {
 }
 
 impl MockDistServer {
-    pub fn write(&self, vs: &[ManifestVersion], enable_xz: bool) {
+    pub fn write(&self, vs: &[ManifestVersion], enable_xz: bool, enable_zst: bool) {
         fs::create_dir_all(&self.path).unwrap();
 
         for channel in self.channels.iter() {
             let mut hashes = HashMap::new();
             for package in &channel.packages {
-                let new_hashes = self.build_package(&channel, &package, enable_xz);
+                let new_hashes = self.build_package(&channel, &package, enable_xz, enable_zst);
                 hashes.extend(new_hashes.into_iter());
             }
             for v in vs {
@@ -143,6 +144,7 @@ impl MockDistServer {
         channel: &MockChannel,
         package: &MockPackage,
         enable_xz: bool,
+        enable_zst: bool,
     ) -> HashMap<MockComponent, MockHashes> {
         let mut hashes = HashMap::new();
 
@@ -150,6 +152,11 @@ impl MockDistServer {
             let gz_hash = self.build_target_package(channel, package, target_package, ".tar.gz");
             let xz_hash = if enable_xz {
                 Some(self.build_target_package(channel, package, target_package, ".tar.xz"))
+            } else {
+                None
+            };
+            let zst_hash = if enable_zst {
+                Some(self.build_target_package(channel, package, target_package, ".tar.zst"))
             } else {
                 None
             };
@@ -163,6 +170,7 @@ impl MockDistServer {
                 MockHashes {
                     gz: gz_hash,
                     xz: xz_hash,
+                    zst: zst_hash,
                 },
             );
         }
@@ -356,6 +364,13 @@ impl MockDistServer {
                     );
                     toml_target.insert(String::from("xz_hash"), toml::Value::String(xz_hash));
                 }
+                if let Some(zst_hash) = hash.zst {
+                    toml_target.insert(
+                        String::from("zst_url"),
+                        toml::Value::String(url.replace(".tar.gz", ".tar.zst")),
+                    );
+                    toml_target.insert(String::from("zst_hash"), toml::Value::String(zst_hash));
+                }
 
                 // [pkg.*.target.*.components.*] and [pkg.*.target.*.extensions.*]
                 let mut toml_components = toml::value::Array::new();
@@ -457,6 +472,7 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) -> io::Result<()> {
     let outfile = File::create(dst)?;
     let mut gzwriter;
     let mut xzwriter;
+    let mut zstwriter;
     let writer: &mut dyn Write = match &dst.to_string_lossy() {
         s if s.ends_with(".tar.gz") => {
             gzwriter = flate2::write::GzEncoder::new(outfile, flate2::Compression::none());
@@ -465,6 +481,10 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) -> io::Result<()> {
         s if s.ends_with(".tar.xz") => {
             xzwriter = xz2::write::XzEncoder::new(outfile, 0);
             &mut xzwriter
+        }
+        s if s.ends_with(".tar.zst") => {
+            zstwriter = zstd::stream::write::Encoder::new(outfile, 0)?.auto_finish();
+            &mut zstwriter
         }
         _ => panic!("Unsupported archive format"),
     };
