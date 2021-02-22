@@ -64,12 +64,35 @@ pub enum UpdateStatus {
 
 impl<'a> Toolchain<'a> {
     pub fn from(cfg: &'a Cfg, name: &str) -> Result<Self> {
+        if name.contains('/') || name.contains('\\') {
+            return Self::from_path(cfg, name);
+        }
         let resolved_name = cfg.resolve_toolchain(name)?;
         let path = cfg.toolchains_dir.join(&resolved_name);
         Ok(Toolchain {
             cfg,
             name: resolved_name,
             path,
+            dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
+        })
+    }
+
+    pub fn from_path(cfg: &'a Cfg, path: impl AsRef<Path>) -> Result<Self> {
+        let path = path.as_ref();
+        let base = path
+            .components()
+            .last()
+            .ok_or_else(|| ErrorKind::InvalidToolchainPath(path.into()))?
+            .as_os_str()
+            .to_string_lossy();
+        // Perform minimal validation - that there's a `bin/` which might contain things for us to run
+        if !path.join("bin").is_dir() {
+            return Err(ErrorKind::InvalidToolchainPath(path.into()).into());
+        }
+        Ok(Toolchain {
+            cfg,
+            name: base.into(),
+            path: path.to_path_buf(),
             dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
         })
     }
@@ -253,6 +276,15 @@ impl<'a> Toolchain<'a> {
         } else {
             String::from("(toolchain not installed)")
         }
+    }
+}
+
+impl<'a> std::fmt::Debug for Toolchain<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Toolchain")
+            .field("name", &self.name)
+            .field("path", &self.path)
+            .finish()
     }
 }
 
