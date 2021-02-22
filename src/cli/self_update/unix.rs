@@ -83,14 +83,20 @@ pub fn do_remove_from_path() -> Result<()> {
 pub fn do_add_to_path() -> Result<()> {
     for sh in shell::get_available_shells() {
         let source_cmd = sh.source_string()?;
+        let source_cmd_with_newline = format!("\n{}", &source_cmd);
+
         for rc in sh.update_rcs() {
-            if !rc.is_file() || !utils::read_file("rcfile", &rc)?.contains(&source_cmd) {
-                utils::append_file("rcfile", &rc, &source_cmd).chain_err(|| {
-                    ErrorKind::WritingShellProfile {
-                        path: rc.to_path_buf(),
-                    }
-                })?;
-            }
+            let cmd_to_write = match utils::read_file("rcfile", &rc) {
+                Ok(contents) if contents.contains(&source_cmd) => continue,
+                Ok(contents) if !contents.ends_with('\n') => &source_cmd_with_newline,
+                _ => &source_cmd,
+            };
+
+            utils::append_file("rcfile", &rc, &cmd_to_write).chain_err(|| {
+                ErrorKind::WritingShellProfile {
+                    path: rc.to_path_buf(),
+                }
+            })?;
         }
     }
 

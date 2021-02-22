@@ -158,6 +158,47 @@ export PATH="$HOME/apple/bin"
     }
 
     #[test]
+    fn install_adds_path_to_rc_handling_no_newline() {
+        clitools::setup(Scenario::Empty, &|config| {
+            let profile = config.homedir.join(".profile");
+            let fake_rc_modified = FAKE_RC.strip_suffix('\n').expect("Should end in a newline");
+            raw::write_file(&profile, fake_rc_modified).unwrap();
+            // Run once to to add the configuration
+            expect_ok(config, &INIT_NONE);
+            // Run twice to test that the process is idempotent
+            expect_ok(config, &INIT_NONE);
+
+            let new_profile = fs::read_to_string(&profile).unwrap();
+            let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
+            assert_eq!(new_profile, expected);
+        });
+    }
+
+    #[test]
+    fn install_adds_path_to_multiple_rc_files() {
+        clitools::setup(Scenario::Empty, &|config| {
+            // Two RC files that are both from the same shell
+            let bash_profile = config.homedir.join(".bash_profile");
+            let bashrc = config.homedir.join(".bashrc");
+
+            let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
+
+            // The order that the two files are processed isn't known, so test both orders
+            for [path1, path2] in &[[&bash_profile, &bashrc], [&bashrc, &bash_profile]] {
+                raw::write_file(&path1, &expected).unwrap();
+                raw::write_file(&path2, FAKE_RC).unwrap();
+
+                expect_ok(config, &INIT_NONE);
+
+                let new1 = fs::read_to_string(&path1).unwrap();
+                assert_eq!(new1, expected);
+                let new2 = fs::read_to_string(&path2).unwrap();
+                assert_eq!(new2, expected);
+            }
+        });
+    }
+
+    #[test]
     fn uninstall_removes_source_from_rcs() {
         clitools::setup(Scenario::Empty, &|config| {
             let rcs: Vec<PathBuf> = [
