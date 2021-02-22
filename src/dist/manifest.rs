@@ -47,16 +47,34 @@ pub enum PackageTargets {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TargetedPackage {
-    pub bins: Option<PackageBins>,
+    pub bins: Vec<(CompressionKind, HashedBinary)>,
     pub components: Vec<Component>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum CompressionKind {
+    GZip,
+    XZ,
+}
+
+/// Each compression kind, in order of preference for use, from most desirable
+/// to least desirable.
+static COMPRESSION_KIND_PREFERENCE_ORDER: &[CompressionKind] =
+    &[CompressionKind::XZ, CompressionKind::GZip];
+
+impl CompressionKind {
+    const fn key_prefix(self) -> &'static str {
+        match self {
+            Self::GZip => "",
+            Self::XZ => "xz_",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
-pub struct PackageBins {
+pub struct HashedBinary {
     pub url: String,
     pub hash: String,
-    pub xz_url: Option<String>,
-    pub xz_hash: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialOrd)]
@@ -417,19 +435,21 @@ impl TargetedPackage {
         )?);
 
         if get_bool(&mut table, "available", path)? {
-            Ok(Self {
-                bins: Some(PackageBins {
-                    url: get_string(&mut table, "url", path)?,
-                    hash: get_string(&mut table, "hash", path)?,
-                    xz_url: get_string(&mut table, "xz_url", path).ok(),
-                    xz_hash: get_string(&mut table, "xz_hash", path).ok(),
-                }),
-                components,
-            })
+            let mut bins = Vec::new();
+            for kind in COMPRESSION_KIND_PREFERENCE_ORDER.iter().copied() {
+                let url_key = format!("{}url", kind.key_prefix());
+                let hash_key = format!("{}hash", kind.key_prefix());
+                let url = get_string(&mut table, &url_key, path).ok();
+                let hash = get_string(&mut table, &hash_key, path).ok();
+                if let (Some(url), Some(hash)) = (url, hash) {
+                    bins.push((kind, HashedBinary { url, hash }));
+                }
+            }
+            Ok(Self { bins, components })
         } else {
             Ok(Self {
-                bins: None,
-                components: vec![],
+                bins: Vec::new(),
+                components: Vec::new(),
             })
         }
     }
@@ -442,22 +462,22 @@ impl TargetedPackage {
         if !extensions.is_empty() {
             result.insert("extensions".to_owned(), toml::Value::Array(extensions));
         }
-        if let Some(bins) = self.bins {
-            result.insert("hash".to_owned(), toml::Value::String(bins.hash));
-            result.insert("url".to_owned(), toml::Value::String(bins.url));
-            if let (Some(xz_hash), Some(xz_url)) = (bins.xz_hash, bins.xz_url) {
-                result.insert("xz_hash".to_owned(), toml::Value::String(xz_hash));
-                result.insert("xz_url".to_owned(), toml::Value::String(xz_url));
+        if self.bins.is_empty() {
+            result.insert("available".to_owned(), toml::Value::Boolean(false));
+        } else {
+            for (kind, bin) in self.bins {
+                let url_key = format!("{}url", kind.key_prefix());
+                let hash_key = format!("{}hash", kind.key_prefix());
+                result.insert(url_key, toml::Value::String(bin.url));
+                result.insert(hash_key, toml::Value::String(bin.hash));
             }
             result.insert("available".to_owned(), toml::Value::Boolean(true));
-        } else {
-            result.insert("available".to_owned(), toml::Value::Boolean(false));
         }
         result
     }
 
     pub fn available(&self) -> bool {
-        self.bins.is_some()
+        !self.bins.is_empty()
     }
 
     fn toml_to_components(
