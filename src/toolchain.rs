@@ -82,10 +82,6 @@ impl<'a> Toolchain<'a> {
             .ok_or_else(|| ErrorKind::InvalidToolchainPath(path.into()))?
             .as_os_str()
             .to_string_lossy();
-        // Perform minimal validation - that there's a `bin/` which might contain things for us to run
-        if !path.join("bin").is_dir() {
-            return Err(ErrorKind::InvalidToolchainPath(path.into()).into());
-        }
         Ok(Toolchain {
             cfg,
             name: base.into(),

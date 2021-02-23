@@ -609,6 +609,13 @@ impl Cfg {
                         dist::validate_channel_name(&toolchain_name)?;
                     }
                 }
+                if let Some(toolchain_path) = &override_file.toolchain.path {
+                    // Perform minimal validation; there should at least be a `bin/` that might
+                    // contain things for us to run.
+                    if !toolchain_path.join("bin").is_dir() {
+                        return Err(ErrorKind::InvalidToolchainPath(toolchain_path.into()).into());
+                    }
+                }
 
                 let reason = OverrideReason::ToolchainFile(toolchain_file);
                 return Ok(Some((override_file, reason)));
