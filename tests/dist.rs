@@ -573,33 +573,8 @@ fn setup_from_dist_server(
     );
 }
 
-#[test]
-fn initial_install() {
-    setup(None, GZOnly, &|url,
-                          toolchain,
-                          prefix,
-                          download_cfg,
-                          temp_cfg| {
-        update_from_dist(
-            url,
-            toolchain,
-            prefix,
-            &[],
-            &[],
-            download_cfg,
-            temp_cfg,
-            false,
-        )
-        .unwrap();
-
-        assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
-        assert!(utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
-    });
-}
-
-#[test]
-fn initial_install_xz() {
-    setup(None, AddXZ, &|url,
+fn initial_install(comps: Compressions) {
+    setup(None, comps, &|url,
                          toolchain,
                          prefix,
                          download_cfg,
@@ -622,27 +597,18 @@ fn initial_install_xz() {
 }
 
 #[test]
-fn initial_install_zst() {
-    setup(None, AddZStd, &|url,
-                           toolchain,
-                           prefix,
-                           download_cfg,
-                           temp_cfg| {
-        update_from_dist(
-            url,
-            toolchain,
-            prefix,
-            &[],
-            &[],
-            download_cfg,
-            temp_cfg,
-            false,
-        )
-        .unwrap();
+fn initial_install_gziponly() {
+    initial_install(GZOnly);
+}
 
-        assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
-        assert!(utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
-    });
+#[test]
+fn initial_install_xz() {
+    initial_install(AddXZ);
+}
+
+#[test]
+fn initial_install_zst() {
+    initial_install(AddZStd);
 }
 
 #[test]
