@@ -33,7 +33,7 @@ impl OverrideFile {
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 struct ToolchainSection {
     channel: Option<String>,
-    path: Option<String>,
+    path: Option<PathBuf>,
     components: Option<Vec<String>>,
     targets: Option<Vec<String>>,
     profile: Option<String>,
@@ -41,7 +41,10 @@ struct ToolchainSection {
 
 impl ToolchainSection {
     fn is_empty(&self) -> bool {
-        self.channel.is_none() && self.components.is_none() && self.targets.is_none()
+        self.channel.is_none()
+            && self.components.is_none()
+            && self.targets.is_none()
+            && self.path.is_none()
     }
 }
 
@@ -534,6 +537,7 @@ impl Cfg {
                     path.display()
                 ),
             };
+
             let override_cfg = OverrideCfg::from_file(self, file)?;
             if let Some(toolchain) = &override_cfg.toolchain {
                 // Overridden toolchains can be literally any string, but only
@@ -1015,6 +1019,27 @@ channel = "nightly-2020-07-10"
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
                     path: None,
+                    components: None,
+                    targets: None,
+                    profile: None,
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file_only_path() {
+        let contents = r#"[toolchain]
+path = "foobar"
+"#;
+
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: None,
+                    path: Some("foobar".into()),
                     components: None,
                     targets: None,
                     profile: None,
