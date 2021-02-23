@@ -190,7 +190,7 @@ error_chain! {
         }
         InvalidToolchainPath(p: PathBuf) {
             description("invalid toolchain path"),
-            display("invalid toolchain path: '{}'", p.display())
+            display("invalid toolchain path: '{}'", p.to_string_lossy())
         }
         CannotSpecifyPathAndOptions(path: PathBuf) {
             description("toolchain options are ignored for path toolchains"),

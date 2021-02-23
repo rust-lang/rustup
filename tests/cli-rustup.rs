@@ -1470,7 +1470,10 @@ fn file_override_path() {
         let toolchain_file = config.current_dir().join("rust-toolchain.toml");
         raw::write_file(
             &toolchain_file,
-            &format!("[toolchain]\npath=\"{}\"", toolchain_path.to_str().unwrap()),
+            &dbg!(format!(
+                "[toolchain]\npath=\"{}\"",
+                toolchain_path.to_str().unwrap()
+            )),
         )
         .unwrap();
 
@@ -1545,7 +1548,7 @@ fn file_override_path_relative() {
         // Find shared prefix so we can determine a relative path
         let mut p1 = dbg!(&toolchain_path).components().peekable();
         let mut p2 = dbg!(&toolchain_file).components().peekable();
-        while let (Some(p1p), Some(p2p)) = (p1.peek(), p2.peek()) {
+        while let (Some(p1p), Some(p2p)) = (dbg!(p1.peek()), dbg!(p2.peek())) {
             if p1p == p2p {
                 let _ = p1.next();
                 let _ = p2.next();
@@ -1556,13 +1559,14 @@ fn file_override_path_relative() {
         }
         let mut relative_path = PathBuf::new();
         // NOTE: We skip 1 since we don't need to .. across the .toml file at the end of the path
-        for _ in p2.skip(1) {
+        for p in p2.skip(1) {
+            dbg!(p);
             relative_path.push("..");
         }
         for p in p1 {
-            relative_path.push(p);
+            relative_path.push(dbg!(p));
         }
-        assert!(relative_path.is_relative());
+        assert!(dbg!(&relative_path).is_relative());
 
         raw::write_file(
             &toolchain_file,
