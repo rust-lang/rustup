@@ -192,6 +192,10 @@ error_chain! {
             description("invalid toolchain path"),
             display("invalid toolchain path: '{}'", p.display())
         }
+        CannotSpecifyPathAndOptions(path: PathBuf) {
+            description("toolchain options are ignored for path toolchains"),
+            display("toolchain options are ignored for path toolchain ({})", path.display())
+        }
         CannotSpecifyChannelAndPath(channel: String, path: PathBuf) {
             description("cannot specify channel and path simultaneously"),
             display("cannot specify both channel ({}) and path ({}) simultaneously", channel, path.display())

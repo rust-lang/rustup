@@ -1479,6 +1479,54 @@ fn file_override_path_relative() {
 }
 
 #[test]
+fn file_override_path_no_options() {
+    setup(&|config| {
+        // Make a plausible-looking toolchain
+        let cwd = config.current_dir();
+        let toolchain_path = cwd.join("ephemeral");
+        let toolchain_bin = toolchain_path.join("bin");
+        fs::create_dir_all(&toolchain_bin).unwrap();
+
+        let toolchain_file = cwd.join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            "[toolchain]\npath=\"ephemeral\"\ntargets=[\"dummy\"]",
+        )
+        .unwrap();
+
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "toolchain options are ignored for path toolchain (ephemeral)",
+        );
+
+        raw::write_file(
+            &toolchain_file,
+            "[toolchain]\npath=\"ephemeral\"\ncomponents=[\"dummy\"]",
+        )
+        .unwrap();
+
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "toolchain options are ignored for path toolchain (ephemeral)",
+        );
+
+        raw::write_file(
+            &toolchain_file,
+            "[toolchain]\npath=\"ephemeral\"\nprofile=\"minimal\"",
+        )
+        .unwrap();
+
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "toolchain options are ignored for path toolchain (ephemeral)",
+        );
+    });
+}
+
+#[test]
 fn file_override_path_xor_channel() {
     setup(&|config| {
         // Make a plausible-looking toolchain

@@ -95,7 +95,15 @@ impl<'a> OverrideCfg<'a> {
         Ok(Self {
             toolchain: match (file.toolchain.channel, file.toolchain.path) {
                 (Some(name), None) => Some(Toolchain::from(cfg, &name)?),
-                (None, Some(path)) => Some(Toolchain::from_path(cfg, cfg_path, &path)?),
+                (None, Some(path)) => {
+                    if file.toolchain.targets.is_some()
+                        || file.toolchain.components.is_some()
+                        || file.toolchain.profile.is_some()
+                    {
+                        return Err(ErrorKind::CannotSpecifyPathAndOptions(path.into()).into());
+                    }
+                    Some(Toolchain::from_path(cfg, cfg_path, &path)?)
+                }
                 (Some(channel), Some(path)) => {
                     return Err(ErrorKind::CannotSpecifyChannelAndPath(channel, path.into()).into())
                 }
