@@ -64,9 +64,6 @@ pub enum UpdateStatus {
 
 impl<'a> Toolchain<'a> {
     pub fn from(cfg: &'a Cfg, name: &str) -> Result<Self> {
-        if name.contains('/') || name.contains('\\') {
-            return Self::from_path(cfg, name);
-        }
         let resolved_name = cfg.resolve_toolchain(name)?;
         let path = cfg.toolchains_dir.join(&resolved_name);
         Ok(Toolchain {

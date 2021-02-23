@@ -47,21 +47,11 @@ impl ToolchainSection {
 
 impl<T: Into<String>> From<T> for OverrideFile {
     fn from(channel: T) -> Self {
-        let channel = channel.into();
-        if channel.contains('/') || channel.contains('\\') {
-            Self {
-                toolchain: ToolchainSection {
-                    path: Some(channel),
-                    ..Default::default()
-                },
-            }
-        } else {
-            Self {
-                toolchain: ToolchainSection {
-                    channel: Some(channel),
-                    ..Default::default()
-                },
-            }
+        Self {
+            toolchain: ToolchainSection {
+                channel: Some(channel.into()),
+                ..Default::default()
+            },
         }
     }
 }
