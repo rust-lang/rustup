@@ -83,13 +83,16 @@ a directory, the latter is used for backwards compatibility. The files use the
 ``` toml
 [toolchain]
 channel = "nightly-2020-07-10"
+# or
+path = "/path/to/local/toolchain"
+
 components = [ "rustfmt", "rustc-dev" ]
 targets = [ "wasm32-unknown-unknown", "thumbv2-none-eabi" ]
 profile = "minimal"
 ```
 
 The `[toolchain]` section is mandatory, and at least one property must be
-specified.
+specified. `channel` and `path` are mutually exclusive.
 
 For backwards compatibility, `rust-toolchain` files also support a legacy
 format that only contains a toolchain name without any TOML encoding, e.g.
@@ -104,7 +107,9 @@ The toolchains named in these files have a more restricted form than `rustup`
 toolchains generally, and may only contain the names of the three release
 channels, 'stable', 'beta', 'nightly', Rust version numbers, like '1.0.0', and
 optionally an archive date, like 'nightly-2017-01-01'. They may not name
-custom toolchains, nor host-specific toolchains.
+custom toolchains, nor host-specific toolchains, except by giving the
+`path` to said toolchain directly. A relative `path` is resolved
+relative to the location of the `rust-toolchain.toml` file.
 
 ## Default toolchain
 
