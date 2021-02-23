@@ -1411,6 +1411,13 @@ fn file_override_path() {
         .unwrap();
 
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+
+        // Check that the toolchain has the right name
+        expect_stdout_ok(
+            config,
+            &["rustup", "show", "active-toolchain"],
+            &format!("nightly-{}", this_host_triple()),
+        );
     });
 }
 
