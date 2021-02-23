@@ -87,11 +87,15 @@ struct OverrideCfg<'a> {
 }
 
 impl<'a> OverrideCfg<'a> {
-    fn from_file(cfg: &'a Cfg, file: OverrideFile) -> Result<Self> {
+    fn from_file(
+        cfg: &'a Cfg,
+        cfg_path: Option<impl AsRef<Path>>,
+        file: OverrideFile,
+    ) -> Result<Self> {
         Ok(Self {
             toolchain: match (file.toolchain.channel, file.toolchain.path) {
                 (Some(name), None) => Some(Toolchain::from(cfg, &name)?),
-                (None, Some(path)) => Some(Toolchain::from_path(cfg, &path)?),
+                (None, Some(path)) => Some(Toolchain::from_path(cfg, cfg_path, &path)?),
                 (Some(channel), Some(path)) => {
                     return Err(ErrorKind::CannotSpecifyChannelAndPath(channel, path.into()).into())
                 }
@@ -538,7 +542,13 @@ impl Cfg {
                 ),
             };
 
-            let override_cfg = OverrideCfg::from_file(self, file)?;
+            let cfg_file = if let OverrideReason::ToolchainFile(ref path) = reason {
+                Some(path)
+            } else {
+                None
+            };
+
+            let override_cfg = OverrideCfg::from_file(self, cfg_file, file)?;
             if let Some(toolchain) = &override_cfg.toolchain {
                 // Overridden toolchains can be literally any string, but only
                 // distributable toolchains will be auto-installed by the wrapping
@@ -611,13 +621,6 @@ impl Cfg {
                         // The given name is not resolvable as a toolchain, so
                         // instead check it's plausible for installation later
                         dist::validate_channel_name(&toolchain_name)?;
-                    }
-                }
-                if let Some(toolchain_path) = &override_file.toolchain.path {
-                    // Perform minimal validation; there should at least be a `bin/` that might
-                    // contain things for us to run.
-                    if !toolchain_path.join("bin").is_dir() {
-                        return Err(ErrorKind::InvalidToolchainPath(toolchain_path.into()).into());
                     }
                 }
 
