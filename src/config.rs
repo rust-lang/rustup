@@ -54,14 +54,14 @@ impl<T: Into<String>> From<T> for OverrideFile {
         if Path::new(&override_).is_absolute() {
             Self {
                 toolchain: ToolchainSection {
-                    channel: Some(override_),
+                    path: Some(PathBuf::from(override_)),
                     ..Default::default()
                 },
             }
         } else {
             Self {
                 toolchain: ToolchainSection {
-                    path: Some(PathBuf::from(override_)),
+                    channel: Some(override_),
                     ..Default::default()
                 },
             }
