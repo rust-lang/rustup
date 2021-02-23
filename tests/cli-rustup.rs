@@ -1385,64 +1385,95 @@ fn file_override() {
 }
 
 #[test]
-#[cfg_attr(
-    not(unix),
-    ignore = "TODO: Figure out how to write a wrapper toolchain on Windows"
-)]
 fn file_override_path() {
     setup(&|config| {
-        let cwd = config.current_dir();
-        let toolchain_path = cwd.join("ephemeral");
-        let toolchain_bin = toolchain_path.join("bin");
-        fs::create_dir_all(&toolchain_bin).unwrap();
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
 
-        // Inject a wrapper binary for rustc.
-        let rustc = toolchain_bin.join("rustc");
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            raw::write_file(&rustc, "#!/bin/sh\necho custom-toolchain").unwrap();
-            fs::set_permissions(rustc, fs::Permissions::from_mode(0o755)).unwrap();
-        }
-
-        let toolchain_file = cwd.join("rust-toolchain.toml");
+        let toolchain_path = config
+            .rustupdir
+            .join("toolchains")
+            .join(format!("nightly-{}", this_host_triple()));
+        let toolchain_file = config.current_dir().join("rust-toolchain.toml");
         raw::write_file(
             &toolchain_file,
             &format!("[toolchain]\npath=\"{}\"", toolchain_path.display()),
         )
         .unwrap();
 
-        expect_stdout_ok(config, &["rustc", "--version"], "custom-toolchain");
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
     });
 }
 
 #[test]
-#[cfg_attr(
-    not(unix),
-    ignore = "TODO: Figure out how to write a wrapper toolchain on Windows"
-)]
 fn file_override_path_relative() {
     setup(&|config| {
-        let cwd = config.current_dir();
-        let toolchain_path = cwd.join("ephemeral");
-        let toolchain_bin = toolchain_path.join("bin");
-        fs::create_dir_all(&toolchain_bin).unwrap();
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
 
-        // Inject a wrapper binary for rustc.
-        let rustc = toolchain_bin.join("rustc");
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            raw::write_file(&rustc, "#!/bin/sh\necho custom-toolchain").unwrap();
-            fs::set_permissions(rustc, fs::Permissions::from_mode(0o755)).unwrap();
+        let toolchain_path = config
+            .rustupdir
+            .join("toolchains")
+            .join(format!("nightly-{}", this_host_triple()))
+            .canonicalize()
+            .unwrap();
+        let toolchain_file = config
+            .current_dir()
+            .canonicalize()
+            .unwrap()
+            .join("rust-toolchain.toml");
+
+        // Find shared prefix so we can determine a relative path
+        let mut p1 = dbg!(&toolchain_path).components().peekable();
+        let mut p2 = dbg!(&toolchain_file).components().peekable();
+        while let (Some(p1p), Some(p2p)) = (p1.peek(), p2.peek()) {
+            if p1p == p2p {
+                let _ = p1.next();
+                let _ = p2.next();
+            } else {
+                // The two paths diverge here
+                break;
+            }
         }
+        let mut relative_path = PathBuf::new();
+        // NOTE: We skip 1 since we don't need to .. across the .toml file at the end of the path
+        for _ in p2.skip(1) {
+            relative_path.push("..");
+        }
+        for p in p1 {
+            relative_path.push(p);
+        }
+        assert!(relative_path.is_relative());
 
-        let toolchain_file = cwd.join("rust-toolchain.toml");
-        raw::write_file(&toolchain_file, "[toolchain]\npath=\"ephemeral\"").unwrap();
+        raw::write_file(
+            &toolchain_file,
+            &format!("[toolchain]\npath=\"{}\"", relative_path.display()),
+        )
+        .unwrap();
 
-        // Change into ephemeral so that we actually test that the path is relative to the override
-        config.change_dir(&toolchain_path, || {
-            expect_stdout_ok(config, &["rustc", "--version"], "custom-toolchain")
+        // Change into an ephemeral dir so that we test that the path is relative to the override
+        let ephemeral = config.current_dir().join("ephemeral");
+        fs::create_dir_all(&ephemeral).unwrap();
+        config.change_dir(&ephemeral, || {
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         });
     });
 }
