@@ -50,11 +50,21 @@ impl ToolchainSection {
 
 impl<T: Into<String>> From<T> for OverrideFile {
     fn from(channel: T) -> Self {
-        Self {
-            toolchain: ToolchainSection {
-                channel: Some(channel.into()),
-                ..Default::default()
-            },
+        let override_ = channel.into();
+        if Path::new(&override_).is_absolute() {
+            Self {
+                toolchain: ToolchainSection {
+                    channel: Some(override_),
+                    ..Default::default()
+                },
+            }
+        } else {
+            Self {
+                toolchain: ToolchainSection {
+                    path: Some(PathBuf::from(override_)),
+                    ..Default::default()
+                },
+            }
         }
     }
 }

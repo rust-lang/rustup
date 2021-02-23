@@ -1385,6 +1385,70 @@ fn file_override() {
 }
 
 #[test]
+fn env_override_path() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+
+        let toolchain_path = config
+            .rustupdir
+            .join("toolchains")
+            .join(format!("nightly-{}", this_host_triple()));
+
+        let mut cmd = clitools::cmd(config, "rustc", &["--version"]);
+        clitools::env(config, &mut cmd);
+        cmd.env("RUSTUP_TOOLCHAIN", toolchain_path.to_str().unwrap());
+
+        let out = cmd.output().unwrap();
+        assert!(String::from_utf8(out.stdout)
+            .unwrap()
+            .contains("hash-nightly-2"));
+    });
+}
+
+#[test]
+fn plus_override_path() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+
+        let toolchain_path = config
+            .rustupdir
+            .join("toolchains")
+            .join(format!("nightly-{}", this_host_triple()));
+        expect_stdout_ok(
+            config,
+            &[
+                "rustup",
+                "run",
+                toolchain_path.to_str().unwrap(),
+                "rustc",
+                "--version",
+            ],
+            "hash-nightly-2",
+        );
+    });
+}
+
+#[test]
 fn file_override_path() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
@@ -1406,7 +1470,7 @@ fn file_override_path() {
         let toolchain_file = config.current_dir().join("rust-toolchain.toml");
         raw::write_file(
             &toolchain_file,
-            &format!("[toolchain]\npath=\"{}\"", toolchain_path.display()),
+            &format!("[toolchain]\npath=\"{}\"", toolchain_path.to_str().unwrap()),
         )
         .unwrap();
 
@@ -1418,6 +1482,36 @@ fn file_override_path() {
             &["rustup", "show", "active-toolchain"],
             &format!("nightly-{}", this_host_triple()),
         );
+    });
+}
+
+#[test]
+fn proxy_override_path() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+
+        let toolchain_path = config
+            .rustupdir
+            .join("toolchains")
+            .join(format!("nightly-{}", this_host_triple()));
+        let toolchain_file = config.current_dir().join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            &format!("[toolchain]\npath=\"{}\"", toolchain_path.to_str().unwrap()),
+        )
+        .unwrap();
+
+        expect_stdout_ok(config, &["cargo", "--call-rustc"], "hash-nightly-2");
     });
 }
 
@@ -1472,7 +1566,7 @@ fn file_override_path_relative() {
 
         raw::write_file(
             &toolchain_file,
-            &format!("[toolchain]\npath=\"{}\"", relative_path.display()),
+            &format!("[toolchain]\npath=\"{}\"", relative_path.to_str().unwrap()),
         )
         .unwrap();
 

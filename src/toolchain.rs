@@ -91,15 +91,13 @@ impl<'a> Toolchain<'a> {
             return Err(ErrorKind::InvalidToolchainPath(path.into()).into());
         }
 
-        let base = path
-            .components()
-            .last()
-            .ok_or_else(|| ErrorKind::InvalidToolchainPath(path.clone()))?
-            .as_os_str()
-            .to_string_lossy();
         Ok(Toolchain {
             cfg,
-            name: base.into(),
+            name: path
+                .as_os_str()
+                .to_str()
+                .ok_or_else(|| ErrorKind::InvalidToolchainPath(path.clone().into()))?
+                .to_owned(),
             path,
             dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
         })
