@@ -1562,11 +1562,14 @@ fn file_override_path_relative() {
         for p in p1 {
             relative_path.push(p);
         }
-        assert!(relative_path.is_relative());
+        assert!(dbg!(&relative_path).is_relative());
 
         raw::write_file(
             &toolchain_file,
-            &format!("[toolchain]\npath='{}'", relative_path.to_str().unwrap()),
+            dbg!(&format!(
+                "[toolchain]\npath='{}'",
+                relative_path.to_str().unwrap()
+            )),
         )
         .unwrap();
 

@@ -87,15 +87,13 @@ impl<'a> Toolchain<'a> {
 
         // Perform minimal validation; there should at least be a `bin/` that might
         // contain things for us to run.
-        if !path.join("bin").is_dir() {
+        if !dbg!(path.join("bin")).is_dir() {
             return Err(ErrorKind::InvalidToolchainPath(path.into()).into());
         }
 
         Ok(Toolchain {
             cfg,
-            name: path
-                .as_os_str()
-                .to_str()
+            name: dbg!(path.to_str())
                 .ok_or_else(|| ErrorKind::InvalidToolchainPath(path.clone().into()))?
                 .to_owned(),
             path,
