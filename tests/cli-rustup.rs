@@ -1516,6 +1516,7 @@ fn proxy_override_path() {
 }
 
 #[test]
+#[ignore = "FIXME: Windows uses UNC paths which do not work with relative paths"]
 fn file_override_path_relative() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);
@@ -1556,14 +1557,11 @@ fn file_override_path_relative() {
         for p in p1 {
             relative_path.push(p);
         }
-        assert!(dbg!(&relative_path).is_relative());
+        assert!(relative_path.is_relative());
 
         raw::write_file(
             &toolchain_file,
-            dbg!(&format!(
-                "[toolchain]\npath='{}'",
-                relative_path.to_str().unwrap()
-            )),
+            &format!("[toolchain]\npath='{}'", relative_path.to_str().unwrap()),
         )
         .unwrap();
 
