@@ -1533,14 +1533,8 @@ fn file_override_path_relative() {
         let toolchain_path = config
             .rustupdir
             .join("toolchains")
-            .join(format!("nightly-{}", this_host_triple()))
-            .canonicalize()
-            .unwrap();
-        let toolchain_file = config
-            .current_dir()
-            .canonicalize()
-            .unwrap()
-            .join("rust-toolchain.toml");
+            .join(format!("nightly-{}", this_host_triple()));
+        let toolchain_file = config.current_dir().join("rust-toolchain.toml");
 
         // Find shared prefix so we can determine a relative path
         let mut p1 = toolchain_path.components().peekable();
