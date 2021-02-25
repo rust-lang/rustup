@@ -307,7 +307,7 @@ pub fn install(
             warn!("installing msvc toolchain without its prerequisites");
         } else {
             md(&mut term, MSVC_MESSAGE);
-            if !common::confirm("\nContinue? (Y/n)", true)? {
+            if !common::confirm("\nContinue? (y/N)", false)? {
                 info!("aborting installation");
                 return Ok(utils::ExitCode(0));
             }
