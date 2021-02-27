@@ -572,3 +572,39 @@ impl<'a> Package for TarXzPackage<'a> {
         self.0.components()
     }
 }
+
+#[derive(Debug)]
+pub struct TarZStdPackage<'a>(TarPackage<'a>);
+
+impl<'a> TarZStdPackage<'a> {
+    pub fn new<R: Read>(
+        stream: R,
+        temp_cfg: &'a temp::Cfg,
+        notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
+    ) -> Result<Self> {
+        let stream = zstd::stream::read::Decoder::new(stream)?;
+        Ok(TarZStdPackage(TarPackage::new(
+            stream,
+            temp_cfg,
+            notify_handler,
+        )?))
+    }
+}
+
+impl<'a> Package for TarZStdPackage<'a> {
+    fn contains(&self, component: &str, short_name: Option<&str>) -> bool {
+        self.0.contains(component, short_name)
+    }
+    fn install<'b>(
+        &self,
+        target: &Components,
+        component: &str,
+        short_name: Option<&str>,
+        tx: Transaction<'b>,
+    ) -> Result<Transaction<'b>> {
+        self.0.install(target, component, short_name, tx)
+    }
+    fn components(&self) -> Vec<String> {
+        self.0.components()
+    }
+}

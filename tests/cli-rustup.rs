@@ -323,7 +323,7 @@ info: note that the toolchain 'nightly-{0}' is currently in use (directory overr
 }
 
 #[test]
-fn rustup_xz() {
+fn rustup_zstd() {
     setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
         expect_stderr_ok(
@@ -335,7 +335,7 @@ fn rustup_xz() {
                 "nightly",
                 "--no-self-update",
             ],
-            for_host!(r"dist/2015-01-01/rust-std-nightly-{0}.tar.xz"),
+            for_host!(r"dist/2015-01-01/rust-std-nightly-{0}.tar.zst"),
         );
     });
 }

@@ -7,7 +7,9 @@ use retry::delay::NoDelay;
 use retry::{retry, OperationResult};
 
 use crate::config::PgpPublicKey;
-use crate::dist::component::{Components, Package, TarGzPackage, TarXzPackage, Transaction};
+use crate::dist::component::{
+    Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
+};
 use crate::dist::config::Config;
 use crate::dist::dist::{Profile, TargetTriple, DEFAULT_DIST_SERVER};
 use crate::dist::download::{DownloadCfg, File};
@@ -238,6 +240,7 @@ impl Manifestation {
             };
             let gz;
             let xz;
+            let zst;
             let reader =
                 utils::FileReaderWithProgress::new_file(&installer_file, &notification_converter)?;
             let package: &dyn Package = match format {
@@ -248,6 +251,10 @@ impl Manifestation {
                 CompressionKind::XZ => {
                     xz = TarXzPackage::new(reader, temp_cfg, Some(&notification_converter))?;
                     &xz
+                }
+                CompressionKind::ZStd => {
+                    zst = TarZStdPackage::new(reader, temp_cfg, Some(&notification_converter))?;
+                    &zst
                 }
             };
 

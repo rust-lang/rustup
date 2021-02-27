@@ -328,7 +328,10 @@ fn bad_sha_on_installer() {
             let file = file.unwrap();
             let path = file.path();
             let filename = path.to_string_lossy();
-            if filename.ends_with(".tar.gz") || filename.ends_with(".tar.xz") {
+            if filename.ends_with(".tar.gz")
+                || filename.ends_with(".tar.xz")
+                || filename.ends_with(".tar.zst")
+            {
                 rustup::utils::raw::write_file(&path, "xxx").unwrap();
             }
         }

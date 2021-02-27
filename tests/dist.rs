@@ -231,7 +231,7 @@ fn mock_dist_server_smoke_test() {
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let path = tempdir.path();
 
-    create_mock_dist_server(&path, None).write(&[ManifestVersion::V2], false);
+    create_mock_dist_server(&path, None).write(&[ManifestVersion::V2], false, false);
 
     assert!(utils::path_exists(path.join(
         "dist/2016-02-01/rustc-nightly-x86_64-apple-darwin.tar.gz"
@@ -314,7 +314,7 @@ fn rename_component() {
     setup_from_dist_server(
         mock_dist_server,
         &url,
-        false,
+        GZOnly,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
             let adds = [Component::new(
                 "bonus".to_string(),
@@ -379,7 +379,7 @@ fn rename_component_new() {
     setup_from_dist_server(
         mock_dist_server,
         &url,
-        false,
+        GZOnly,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
             let adds = [Component::new(
                 "bobo".to_string(),
@@ -496,24 +496,47 @@ fn uninstall(
     Ok(())
 }
 
+#[derive(Copy, Clone, Debug)]
+enum Compressions {
+    GZOnly,
+    AddXZ,
+    AddZStd,
+    AddXZAndZStd,
+}
+use Compressions::*;
+
+impl Compressions {
+    fn enable_xz(self) -> bool {
+        matches!(self, AddXZ | AddXZAndZStd)
+    }
+
+    fn enable_zst(self) -> bool {
+        matches!(self, AddZStd | AddXZAndZStd)
+    }
+}
+
 fn setup(
     edit: Option<&dyn Fn(&str, &mut MockChannel)>,
-    enable_xz: bool,
+    comps: Compressions,
     f: &dyn Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg<'_>, &temp::Cfg),
 ) {
     let dist_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let mock_dist_server = create_mock_dist_server(dist_tempdir.path(), edit);
     let url = Url::parse(&format!("file://{}", dist_tempdir.path().to_string_lossy())).unwrap();
-    setup_from_dist_server(mock_dist_server, &url, enable_xz, f);
+    setup_from_dist_server(mock_dist_server, &url, comps, f);
 }
 
 fn setup_from_dist_server(
     server: MockDistServer,
     url: &Url,
-    enable_xz: bool,
+    comps: Compressions,
     f: &dyn Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg<'_>, &temp::Cfg),
 ) {
-    server.write(&[ManifestVersion::V2], enable_xz);
+    server.write(
+        &[ManifestVersion::V2],
+        comps.enable_xz(),
+        comps.enable_zst(),
+    );
 
     let prefix_tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
@@ -550,9 +573,8 @@ fn setup_from_dist_server(
     );
 }
 
-#[test]
-fn initial_install() {
-    setup(None, false, &|url,
+fn initial_install(comps: Compressions) {
+    setup(None, comps, &|url,
                          toolchain,
                          prefix,
                          download_cfg,
@@ -572,39 +594,30 @@ fn initial_install() {
         assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
         assert!(utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
     });
+}
+
+#[test]
+fn initial_install_gziponly() {
+    initial_install(GZOnly);
 }
 
 #[test]
 fn initial_install_xz() {
-    setup(None, true, &|url,
-                        toolchain,
-                        prefix,
-                        download_cfg,
-                        temp_cfg| {
-        update_from_dist(
-            url,
-            toolchain,
-            prefix,
-            &[],
-            &[],
-            download_cfg,
-            temp_cfg,
-            false,
-        )
-        .unwrap();
+    initial_install(AddXZ);
+}
 
-        assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
-        assert!(utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
-    });
+#[test]
+fn initial_install_zst() {
+    initial_install(AddZStd);
 }
 
 #[test]
 fn test_uninstall() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         update_from_dist(
             url,
             toolchain,
@@ -625,11 +638,11 @@ fn test_uninstall() {
 
 #[test]
 fn uninstall_removes_config_file() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         update_from_dist(
             url,
             toolchain,
@@ -653,11 +666,11 @@ fn uninstall_removes_config_file() {
 
 #[test]
 fn upgrade() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         change_channel_date(url, "nightly", "2016-02-01");
         update_from_dist(
             url,
@@ -727,7 +740,7 @@ fn unavailable_component() {
 
     setup(
         Some(edit),
-        false,
+        GZOnly,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
             let adds = [Component::new(
                 "bonus".to_string(),
@@ -794,7 +807,7 @@ fn unavailable_component_from_profile() {
 
     setup(
         Some(edit),
-        false,
+        GZOnly,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
             change_channel_date(url, "nightly", "2016-02-01");
             // Update with rustc.
@@ -868,7 +881,7 @@ fn removed_component() {
 
     setup(
         Some(edit),
-        false,
+        GZOnly,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
             let adds = [Component::new(
                 "bonus".to_string(),
@@ -934,7 +947,7 @@ fn unavailable_components_is_target() {
 
     setup(
         Some(edit),
-        false,
+        GZOnly,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
             let adds = [
                 Component::new(
@@ -1031,7 +1044,7 @@ fn unavailable_components_with_same_target() {
 
     setup(
         Some(edit),
-        false,
+        GZOnly,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
             // Update with rust-std and rustc
             change_channel_date(url, "nightly", "2016-02-01");
@@ -1077,11 +1090,11 @@ fn unavailable_components_with_same_target() {
 
 #[test]
 fn update_preserves_extensions() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let adds = vec![
             Component::new(
                 "rust-std".to_string(),
@@ -1139,11 +1152,11 @@ fn update_preserves_extensions() {
 
 #[test]
 fn update_makes_no_changes_for_identical_manifest() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let status = update_from_dist(
             url,
             toolchain,
@@ -1173,11 +1186,11 @@ fn update_makes_no_changes_for_identical_manifest() {
 
 #[test]
 fn add_extensions_for_initial_install() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let adds = vec![
             Component::new(
                 "rust-std".to_string(),
@@ -1213,11 +1226,11 @@ fn add_extensions_for_initial_install() {
 
 #[test]
 fn add_extensions_for_same_manifest() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         update_from_dist(
             url,
             toolchain,
@@ -1266,11 +1279,11 @@ fn add_extensions_for_same_manifest() {
 
 #[test]
 fn add_extensions_for_upgrade() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         change_channel_date(url, "nightly", "2016-02-01");
 
         update_from_dist(
@@ -1324,11 +1337,11 @@ fn add_extensions_for_upgrade() {
 #[test]
 #[should_panic]
 fn add_extension_not_in_manifest() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let adds = vec![Component::new(
             "rust-bogus".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
@@ -1352,11 +1365,11 @@ fn add_extension_not_in_manifest() {
 #[test]
 #[should_panic]
 fn add_extension_that_is_required_component() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let adds = vec![Component::new(
             "rustc".to_string(),
             Some(TargetTriple::new("x86_64-apple-darwin")),
@@ -1387,11 +1400,11 @@ fn add_extensions_for_same_manifest_when_extension_already_installed() {}
 
 #[test]
 fn add_extensions_does_not_remove_other_components() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         update_from_dist(
             url,
             toolchain,
@@ -1430,11 +1443,11 @@ fn add_extensions_does_not_remove_other_components() {
 #[test]
 #[should_panic]
 fn remove_extensions_for_initial_install() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let removes = vec![Component::new(
             "rustc".to_string(),
             Some(TargetTriple::new("x86_64-apple-darwin")),
@@ -1457,11 +1470,11 @@ fn remove_extensions_for_initial_install() {
 
 #[test]
 fn remove_extensions_for_same_manifest() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let adds = vec![
             Component::new(
                 "rust-std".to_string(),
@@ -1516,11 +1529,11 @@ fn remove_extensions_for_same_manifest() {
 
 #[test]
 fn remove_extensions_for_upgrade() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         change_channel_date(url, "nightly", "2016-02-01");
 
         let adds = vec![
@@ -1580,11 +1593,11 @@ fn remove_extensions_for_upgrade() {
 #[test]
 #[should_panic]
 fn remove_extension_not_in_manifest() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         change_channel_date(url, "nightly", "2016-02-01");
 
         update_from_dist(
@@ -1643,7 +1656,7 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
     };
     setup(
         Some(edit),
-        false,
+        GZOnly,
         &|url, toolchain, prefix, download_cfg, temp_cfg| {
             change_channel_date(url, "nightly", "2016-02-01");
 
@@ -1690,11 +1703,11 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
 #[test]
 #[should_panic]
 fn remove_extension_that_is_required_component() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         update_from_dist(
             url,
             toolchain,
@@ -1730,11 +1743,11 @@ fn remove_extension_that_is_required_component() {
 #[test]
 #[should_panic]
 fn remove_extension_not_installed() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         update_from_dist(
             url,
             toolchain,
@@ -1773,11 +1786,11 @@ fn remove_extensions_for_same_manifest_does_not_reinstall_other_components() {}
 
 #[test]
 fn remove_extensions_does_not_remove_other_components() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let adds = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-apple-darwin")),
@@ -1820,11 +1833,11 @@ fn remove_extensions_does_not_remove_other_components() {
 
 #[test]
 fn add_and_remove_for_upgrade() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         change_channel_date(url, "nightly", "2016-02-01");
 
         let adds = vec![Component::new(
@@ -1882,11 +1895,11 @@ fn add_and_remove_for_upgrade() {
 
 #[test]
 fn add_and_remove() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let adds = vec![Component::new(
             "rust-std".to_string(),
             Some(TargetTriple::new("i686-unknown-linux-gnu")),
@@ -1940,11 +1953,11 @@ fn add_and_remove() {
 
 #[test]
 fn add_and_remove_same_component() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         update_from_dist(
             url,
             toolchain,
@@ -1985,11 +1998,11 @@ fn add_and_remove_same_component() {
 
 #[test]
 fn bad_component_hash() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let path = url.to_file_path().unwrap();
         let path = path.join("dist/2016-02-02/rustc-nightly-x86_64-apple-darwin.tar.gz");
         utils_raw::write_file(&path, "bogus").unwrap();
@@ -2015,11 +2028,11 @@ fn bad_component_hash() {
 
 #[test]
 fn unable_to_download_component() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let path = url.to_file_path().unwrap();
         let path = path.join("dist/2016-02-02/rustc-nightly-x86_64-apple-darwin.tar.gz");
         fs::remove_file(&path).unwrap();
@@ -2061,11 +2074,11 @@ fn allow_installation(prefix: &InstallPrefix) {
 
 #[test]
 fn reuse_downloaded_file() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         prevent_installation(prefix);
 
         let reuse_notification_fired = Arc::new(Cell::new(false));
@@ -2118,11 +2131,11 @@ fn reuse_downloaded_file() {
 
 #[test]
 fn checks_files_hashes_before_reuse() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         let path = url.to_file_path().unwrap();
         let target_hash = utils::read_file(
             "target hash",
@@ -2174,11 +2187,11 @@ fn checks_files_hashes_before_reuse() {
 
 #[test]
 fn handle_corrupt_partial_downloads() {
-    setup(None, false, &|url,
-                         toolchain,
-                         prefix,
-                         download_cfg,
-                         temp_cfg| {
+    setup(None, GZOnly, &|url,
+                          toolchain,
+                          prefix,
+                          download_cfg,
+                          temp_cfg| {
         // write a corrupt partial out
         let path = url.to_file_path().unwrap();
         let target_hash = utils::read_file(

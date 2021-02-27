@@ -55,18 +55,23 @@ pub struct TargetedPackage {
 pub enum CompressionKind {
     GZip,
     XZ,
+    ZStd,
 }
 
 /// Each compression kind, in order of preference for use, from most desirable
 /// to least desirable.
-static COMPRESSION_KIND_PREFERENCE_ORDER: &[CompressionKind] =
-    &[CompressionKind::XZ, CompressionKind::GZip];
+static COMPRESSION_KIND_PREFERENCE_ORDER: &[CompressionKind] = &[
+    CompressionKind::ZStd,
+    CompressionKind::XZ,
+    CompressionKind::GZip,
+];
 
 impl CompressionKind {
     const fn key_prefix(self) -> &'static str {
         match self {
             Self::GZip => "",
             Self::XZ => "xz_",
+            Self::ZStd => "zst_",
         }
     }
 }
