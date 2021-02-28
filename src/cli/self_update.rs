@@ -162,7 +162,7 @@ macro_rules! post_install_msg_unix {
     () => {
         r"# Rust is installed now. Great!
 
-To get started you may need to log out and back in.
+To get started you may need to restart your current shell.
 This would reload your `PATH` environment variable to include
 Cargo's bin directory ({cargo_home}/bin).
 
