@@ -143,8 +143,14 @@ impl<'a> Display for Notification<'a> {
             } => write!(
                 f,
                 "both `{0}` and `{1}` exist. Using `{0}`",
-                rust_toolchain.display(),
-                rust_toolchain_toml.display()
+                rust_toolchain
+                    .canonicalize()
+                    .unwrap_or_else(|_| PathBuf::from(rust_toolchain))
+                    .display(),
+                rust_toolchain_toml
+                    .canonicalize()
+                    .unwrap_or_else(|_| PathBuf::from(rust_toolchain_toml))
+                    .display(),
             ),
         }
     }
