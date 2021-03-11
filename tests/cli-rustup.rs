@@ -1516,10 +1516,6 @@ fn proxy_override_path() {
 }
 
 #[test]
-#[cfg_attr(
-    windows,
-    ignore = "FIXME: Windows uses UNC paths which do not work with relative paths"
-)]
 fn file_override_path_relative() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);

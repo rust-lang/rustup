@@ -93,7 +93,7 @@ impl<'a> Toolchain<'a> {
 
         Ok(Toolchain {
             cfg,
-            name: path
+            name: utils::canonicalize_path(&path, cfg.notify_handler.as_ref())
                 .to_str()
                 .ok_or_else(|| ErrorKind::InvalidToolchainPath(path.clone().into()))?
                 .to_owned(),

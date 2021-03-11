@@ -552,11 +552,11 @@ impl Cfg {
                 }
                 OverrideReason::OverrideDB(ref path) => format!(
                     "the directory override for '{}' specifies an uninstalled toolchain",
-                    path.display()
+                    utils::canonicalize_path(path, self.notify_handler.as_ref()).display(),
                 ),
                 OverrideReason::ToolchainFile(ref path) => format!(
                     "the toolchain file at '{}' specifies an uninstalled toolchain",
-                    path.display()
+                    utils::canonicalize_path(path, self.notify_handler.as_ref()).display(),
                 ),
             };
 
@@ -593,8 +593,7 @@ impl Cfg {
         settings: &Settings,
     ) -> Result<Option<(OverrideFile, OverrideReason)>> {
         let notify = self.notify_handler.as_ref();
-        let dir = utils::canonicalize_path(dir, notify);
-        let mut dir = Some(&*dir);
+        let mut dir = Some(dir);
 
         while let Some(d) = dir {
             // First check the override database
