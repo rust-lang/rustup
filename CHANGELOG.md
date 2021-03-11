@@ -1,5 +1,147 @@
 # Changelog
 
+## [1.24.0] - 2021-03-??
+
+This release is mostly a bugfix and quality of life improvement release. However
+the headlines for this release are:
+
+1. Support of `rust-toolchain.toml` as a filename for specifying toolchains.
+2. Streaming support for large files to better enable Rust on lower memory
+   platforms such as some Raspberry Pi systems.
+
+When we introduced TOML support to `rust-toolchain` we expected to see some
+uptake but we saw a lot more than we had expected. Since Cargo is migrating to
+explicit `.toml` extensions on things like `.cargo/config.toml` it was
+considered sensible to also do this for `rust-toolchain` - at least the `toml`
+variant thereof.
+
+This release of `rustup` has seen a significant number of new contributors to
+the project, and we hope to see many of you again in the future.
+
+### Added
+
+- Optional use of RUSTLS as TLS backend for Reqwest [pr#2517][]
+- We now support some corner cases in tarballs to permit unpacking early Rust
+  versions [pr#2502][]
+- When running `rustup check` we now report possible `rustup` upgrades too.
+  [pr#2615][]
+- We detect and warn if you try and install on an `x32` system since for now
+  Rust isn't hostable on that. [pr#2622][]
+- We do, however, support `gnux32` as an environment label ready for future
+  support [pr#2631][]
+- We now support managing `PATH`s on Windows which contain non-unicode values.
+  [pr#2649][]
+- You can now name the TOML variant of `rust-toolchain` as `rust-toolchain.toml`
+  [pr#2653][]
+- We prompt harder when checking for the MSVC tooling on Windows now.
+  [pr#2529][]
+- _Experimental_ support for `zstd` compressed tarballs in channels. NOTE, this
+  does not mean channels will magically gain `zstd` compressed component files
+  any time soon. [pr#2676][]
+- Register `rustup` with the Windows installed programs list when installing.
+  This is another experiment into whether this is useful for Windows users.
+  [pr#2670][]
+- Added the ability to specify a `path` rather than a toolchain channel in the
+  `rust-toolchain.toml` file. [pr#2678][]
+
+### Changed
+
+- `rustup-init` now detects tls1.2 for cURL 7.73+ [pr#2604][]
+- Installation now indicates the defaults on all questions [pr#2605][]
+- We now support the Big Sur major OS version [pr#2607][]
+- You can now specify `profile` in `rust-toolchain`'s TOML form [pr#2586][]
+- We now use `.` instead of `source` to better support non-bash POSIX shells
+  [pr#2616][]
+- We fixed a nasty corner case on wildcarded component installation/recognition
+  [pr#2602][]
+- Our website now has a favicon [pr#2419][]
+- We no longer rely on a broken `mktemp` invocation, this should make
+  `rustup-init.sh` more compatible [pr#2650][]
+- We now do a better job of reporting non-installable toolchains [pr#2562][]
+- We cope better when modifying RC files which lack a trailing newline
+  [pr#2667][]
+- We are edging closer to requiring a specific force argument to install a
+  toolchain whose host doesn't match the running system. This may break your
+  CI in future so you should check carefully. The main use-case for this
+  capability is the `rust-embedded/cross` project which we are working with
+  to ensure this doesn't cause problems in the future. [pr#2672][]
+- Support streaming large files during unpack phase. [pr#2707][]
+- We report when you call `rustup` with an unsupported `arg0` -- for example
+  if you make a symlink or hard link to the binary with a name other than one
+  of the proxies. [pr#2716][]
+
+We also cleaned up a number of error message cases, including some on invalid
+toolchain name [pr#2613][], a better message when no toolchain is installed
+[pr#2657][], and some on component unavailability [pr#2619][].
+
+### Documented
+
+- Added notes about Powershell to proxies documentation [pr#2592][]
+- Various updates to the `rustup` manual build process including [pr#2628][]
+- Small fixes on how to build `rustup` documentation [pr#2641][]
+- We clarified the message around restarting the shell when installing
+  [pr#2684][]
+
+Thanks go to:
+
+- SHA Miao
+- est31
+- Andrew Norton
+- Gareth Hubball
+- 二手掉包工程师 (hi-rustin)
+- Tudor Brindus
+- Eduard Miller
+- Daniel Alley
+- наб (nabijaczleweli)
+- Eric Huss
+- chansuke
+- skim (sl4m)
+- Joshua Nelson
+- kellda
+- Alex Chan
+- Philipp Oppermann
+- Michael Cooper
+- Aloïs Micard
+- Gurkenglas
+- Vasili (3point2)
+- Jakub Stasiak
+- Robert Collins
+- Jubilee (workingjubilee)
+- Avery Harnish
+
+[pr#2716]: https://github.com/rust-lang/rustup/pull/2716
+[pr#2718]: https://github.com/rust-lang/rustup/pull/2718
+[pr#2707]: https://github.com/rust-lang/rustup/pull/2707
+[pr#2678]: https://github.com/rust-lang/rustup/pull/2678
+[pr#2695]: https://github.com/rust-lang/rustup/pull/2695
+[pr#2670]: https://github.com/rust-lang/rustup/pull/2670
+[pr#2684]: https://github.com/rust-lang/rustup/pull/2684
+[pr#2676]: https://github.com/rust-lang/rustup/pull/2676
+[pr#2529]: https://github.com/rust-lang/rustup/pull/2529
+[pr#2667]: https://github.com/rust-lang/rustup/pull/2667
+[pr#2653]: https://github.com/rust-lang/rustup/pull/2653
+[pr#2657]: https://github.com/rust-lang/rustup/pull/2657
+[pr#2562]: https://github.com/rust-lang/rustup/pull/2562
+[pr#2649]: https://github.com/rust-lang/rustup/pull/2649
+[pr#2650]: https://github.com/rust-lang/rustup/pull/2650
+[pr#2641]: https://github.com/rust-lang/rustup/pull/2641
+[pr#2419]: https://github.com/rust-lang/rustup/pull/2419
+[pr#2631]: https://github.com/rust-lang/rustup/pull/2631
+[pr#2628]: https://github.com/rust-lang/rustup/pull/2628
+[pr#2622]: https://github.com/rust-lang/rustup/pull/2622
+[pr#2619]: https://github.com/rust-lang/rustup/pull/2619
+[pr#2615]: https://github.com/rust-lang/rustup/pull/2615
+[pr#2602]: https://github.com/rust-lang/rustup/pull/2602
+[pr#2502]: https://github.com/rust-lang/rustup/pull/2502
+[pr#2616]: https://github.com/rust-lang/rustup/pull/2616
+[pr#2613]: https://github.com/rust-lang/rustup/pull/2613
+[pr#2586]: https://github.com/rust-lang/rustup/pull/2586
+[pr#2607]: https://github.com/rust-lang/rustup/pull/2607
+[pr#2605]: https://github.com/rust-lang/rustup/pull/2605
+[pr#2604]: https://github.com/rust-lang/rustup/pull/2604
+[pr#2517]: https://github.com/rust-lang/rustup/pull/2517
+[pr#2592]: https://github.com/rust-lang/rustup/pull/2592
+
 ## [1.23.1] - 2020-12-01
 
 This point release is mostly to correct a problem where if you installed
