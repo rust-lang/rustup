@@ -1,4 +1,6 @@
 use std::env::consts::EXE_SUFFIX;
+use std::ffi::{OsStr, OsString};
+use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::path::Path;
 use std::process::Command;
 
@@ -9,6 +11,9 @@ use crate::dist::dist::TargetTriple;
 use crate::process;
 use crate::utils::utils;
 use crate::utils::Notification;
+
+use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+use winreg::{RegKey, RegValue};
 
 pub fn ensure_prompt() -> Result<()> {
     writeln!(process().stdout(),)?;
@@ -42,7 +47,6 @@ pub fn do_msvc_check(opts: &InstallOpts<'_>) -> Result<bool> {
 
 /// Run by rustup-gc-$num.exe to delete CARGO_HOME
 pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
-    use std::ffi::OsStr;
     use std::process::Stdio;
 
     wait_for_parent()?;
@@ -150,8 +154,6 @@ fn _apply_new_path(new_path: Option<Vec<u16>>) -> Result<()> {
     use winapi::um::winuser::{
         SendMessageTimeoutA, HWND_BROADCAST, SMTO_ABORTIFHUNG, WM_SETTINGCHANGE,
     };
-    use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::{RegKey, RegValue};
 
     let new_path = match new_path {
         Some(new_path) => new_path,
@@ -198,8 +200,6 @@ fn _apply_new_path(new_path: Option<Vec<u16>>) -> Result<()> {
 // should not mess with it.
 fn get_windows_path_var() -> Result<Option<Vec<u16>>> {
     use std::io;
-    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
-    use winreg::RegKey;
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
@@ -270,9 +270,6 @@ fn _with_path_cargo_home_bin<F>(f: F) -> Result<Option<Vec<u16>>>
 where
     F: FnOnce(Vec<u16>, Vec<u16>) -> Option<Vec<u16>>,
 {
-    use std::ffi::OsString;
-    use std::os::windows::ffi::OsStrExt;
-
     let windows_path = get_windows_path_var()?;
     let mut path_str = utils::cargo_home()?;
     path_str.push("bin");
@@ -283,6 +280,55 @@ where
 pub fn do_remove_from_path() -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_remove_from_path)?;
     _apply_new_path(new_path)
+}
+
+const RUSTUP_UNINSTALL_ENTRY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup";
+
+pub fn do_add_to_programs() -> Result<()> {
+    use std::path::PathBuf;
+
+    let key = RegKey::predef(HKEY_CURRENT_USER)
+        .create_subkey(RUSTUP_UNINSTALL_ENTRY)
+        .chain_err(|| ErrorKind::PermissionDenied)?
+        .0;
+
+    // Don't overwrite registry if Rustup is already installed
+    let prev = key
+        .get_raw_value("UninstallString")
+        .map(|val| from_winreg_value(&val));
+    if let Ok(Some(s)) = prev {
+        let mut path = PathBuf::from(OsString::from_wide(&s));
+        path.pop();
+        if path.exists() {
+            return Ok(());
+        }
+    }
+
+    let mut path = utils::cargo_home()?;
+    path.push("bin\rustup.exe");
+    let mut uninstall_cmd = OsString::from("\"");
+    uninstall_cmd.push(path);
+    uninstall_cmd.push("\" self uninstall");
+
+    let reg_value = RegValue {
+        bytes: to_winreg_bytes(uninstall_cmd.encode_wide().collect()),
+        vtype: RegType::REG_SZ,
+    };
+
+    key.set_raw_value("UninstallString", &reg_value)
+        .chain_err(|| ErrorKind::PermissionDenied)?;
+    key.set_value("DisplayName", &"Rustup: the Rust toolchain installer")
+        .chain_err(|| ErrorKind::PermissionDenied)?;
+
+    Ok(())
+}
+
+pub fn do_remove_from_programs() -> Result<()> {
+    match RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(RUSTUP_UNINSTALL_ENTRY) {
+        Ok(()) => Ok(()),
+        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e).chain_err(|| ErrorKind::PermissionDenied),
+    }
 }
 
 /// Convert a vector UCS-2 chars to a null-terminated UCS-2 string in bytes
@@ -296,7 +342,6 @@ pub fn to_winreg_bytes(mut v: Vec<u16>) -> Vec<u8> {
 /// does a lossy unicode conversion.
 pub fn from_winreg_value(val: &winreg::RegValue) -> Option<Vec<u16>> {
     use std::slice;
-    use winreg::enums::RegType;
 
     match val.vtype {
         RegType::REG_SZ | RegType::REG_EXPAND_SZ => {
@@ -364,7 +409,6 @@ pub fn self_replace() -> Result<utils::ExitCode> {
 pub fn delete_rustup_and_cargo_home() -> Result<()> {
     use std::io;
     use std::mem;
-    use std::os::windows::ffi::OsStrExt;
     use std::ptr;
     use std::thread;
     use std::time::Duration;
