@@ -234,6 +234,7 @@ impl TargetTriple {
             // First detect architecture
             const PROCESSOR_ARCHITECTURE_AMD64: u16 = 9;
             const PROCESSOR_ARCHITECTURE_INTEL: u16 = 0;
+            const PROCESSOR_ARCHITECTURE_ARM64: u16 = 12;
 
             let mut sys_info;
             unsafe {
@@ -244,6 +245,7 @@ impl TargetTriple {
             let arch = match unsafe { sys_info.u.s() }.wProcessorArchitecture {
                 PROCESSOR_ARCHITECTURE_AMD64 => "x86_64",
                 PROCESSOR_ARCHITECTURE_INTEL => "i686",
+                PROCESSOR_ARCHITECTURE_ARM64 => "aarch64",
                 _ => return None,
             };
 

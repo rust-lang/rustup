@@ -16,7 +16,7 @@ tools" and "Windows 10 SDK" option. No additional software installation is
 necessary for basic use of the GNU build.
 
 By default `rustup` on Windows configures Rust to target the MSVC ABI, that is
-a target triple of either `i686-pc-windows-msvc` or `x86_64-pc-windows-msvc`
+a target triple of either `i686-pc-windows-msvc`, `x86_64-pc-windows-msvc`, or `aarch64-pc-windows-msvc`
 depending on the CPU architecture of the host Windows OS. The toolchains that
 `rustup` chooses to install, unless told otherwise through the [toolchain
 specification], will be compiled to run on that target triple host and will
