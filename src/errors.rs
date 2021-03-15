@@ -106,6 +106,10 @@ error_chain! {
             description("could not download file")
             display("could not download file from '{}' to '{}'", url, path.display())
         }
+        DisconnectedChannel (v: PathBuf) {
+            description("IO channel disconnected")
+            display("IO receiver for '{}' disconnected", v.display())
+        }
         InvalidUrl {
             url: String,
         } {
