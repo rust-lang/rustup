@@ -74,6 +74,34 @@ impl<'a> Toolchain<'a> {
         })
     }
 
+    pub fn from_path(
+        cfg: &'a Cfg,
+        cfg_file: Option<impl AsRef<Path>>,
+        path: impl AsRef<Path>,
+    ) -> Result<Self> {
+        let path = if let Some(cfg_file) = cfg_file {
+            cfg_file.as_ref().parent().unwrap().join(path)
+        } else {
+            path.as_ref().to_path_buf()
+        };
+
+        // Perform minimal validation; there should at least be a `bin/` that might
+        // contain things for us to run.
+        if !path.join("bin").is_dir() {
+            return Err(ErrorKind::InvalidToolchainPath(path.into()).into());
+        }
+
+        Ok(Toolchain {
+            cfg,
+            name: utils::canonicalize_path(&path, cfg.notify_handler.as_ref())
+                .to_str()
+                .ok_or_else(|| ErrorKind::InvalidToolchainPath(path.clone().into()))?
+                .to_owned(),
+            path,
+            dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
+        })
+    }
+
     pub fn as_installed_common(&'a self) -> Result<InstalledCommonToolchain<'a>> {
         if !self.exists() {
             // Should be verify perhaps?
@@ -253,6 +281,15 @@ impl<'a> Toolchain<'a> {
         } else {
             String::from("(toolchain not installed)")
         }
+    }
+}
+
+impl<'a> std::fmt::Debug for Toolchain<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Toolchain")
+            .field("name", &self.name)
+            .field("path", &self.path)
+            .finish()
     }
 }
 

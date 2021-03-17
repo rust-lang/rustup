@@ -1385,6 +1385,267 @@ fn file_override() {
 }
 
 #[test]
+fn env_override_path() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+
+        let toolchain_path = config
+            .rustupdir
+            .join("toolchains")
+            .join(format!("nightly-{}", this_host_triple()));
+
+        let mut cmd = clitools::cmd(config, "rustc", &["--version"]);
+        clitools::env(config, &mut cmd);
+        cmd.env("RUSTUP_TOOLCHAIN", toolchain_path.to_str().unwrap());
+
+        let out = cmd.output().unwrap();
+        assert!(String::from_utf8(out.stdout)
+            .unwrap()
+            .contains("hash-nightly-2"));
+    });
+}
+
+#[test]
+fn plus_override_path() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+
+        let toolchain_path = config
+            .rustupdir
+            .join("toolchains")
+            .join(format!("nightly-{}", this_host_triple()));
+        expect_stdout_ok(
+            config,
+            &[
+                "rustup",
+                "run",
+                toolchain_path.to_str().unwrap(),
+                "rustc",
+                "--version",
+            ],
+            "hash-nightly-2",
+        );
+    });
+}
+
+#[test]
+fn file_override_path() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+
+        let toolchain_path = config
+            .rustupdir
+            .join("toolchains")
+            .join(format!("nightly-{}", this_host_triple()));
+        let toolchain_file = config.current_dir().join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            &format!("[toolchain]\npath='{}'", toolchain_path.to_str().unwrap()),
+        )
+        .unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+
+        // Check that the toolchain has the right name
+        expect_stdout_ok(
+            config,
+            &["rustup", "show", "active-toolchain"],
+            &format!("nightly-{}", this_host_triple()),
+        );
+    });
+}
+
+#[test]
+fn proxy_override_path() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+
+        let toolchain_path = config
+            .rustupdir
+            .join("toolchains")
+            .join(format!("nightly-{}", this_host_triple()));
+        let toolchain_file = config.current_dir().join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            &format!("[toolchain]\npath='{}'", toolchain_path.to_str().unwrap()),
+        )
+        .unwrap();
+
+        expect_stdout_ok(config, &["cargo", "--call-rustc"], "hash-nightly-2");
+    });
+}
+
+#[test]
+fn file_override_path_relative() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "stable"]);
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "nightly",
+                "--no-self-update",
+            ],
+        );
+
+        let toolchain_path = config
+            .rustupdir
+            .join("toolchains")
+            .join(format!("nightly-{}", this_host_triple()));
+        let toolchain_file = config.current_dir().join("rust-toolchain.toml");
+
+        // Find shared prefix so we can determine a relative path
+        let mut p1 = toolchain_path.components().peekable();
+        let mut p2 = toolchain_file.components().peekable();
+        while let (Some(p1p), Some(p2p)) = (p1.peek(), p2.peek()) {
+            if p1p == p2p {
+                let _ = p1.next();
+                let _ = p2.next();
+            } else {
+                // The two paths diverge here
+                break;
+            }
+        }
+        let mut relative_path = PathBuf::new();
+        // NOTE: We skip 1 since we don't need to .. across the .toml file at the end of the path
+        for _ in p2.skip(1) {
+            relative_path.push("..");
+        }
+        for p in p1 {
+            relative_path.push(p);
+        }
+        assert!(relative_path.is_relative());
+
+        raw::write_file(
+            &toolchain_file,
+            &format!("[toolchain]\npath='{}'", relative_path.to_str().unwrap()),
+        )
+        .unwrap();
+
+        // Change into an ephemeral dir so that we test that the path is relative to the override
+        let ephemeral = config.current_dir().join("ephemeral");
+        fs::create_dir_all(&ephemeral).unwrap();
+        config.change_dir(&ephemeral, || {
+            expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+        });
+    });
+}
+
+#[test]
+fn file_override_path_no_options() {
+    setup(&|config| {
+        // Make a plausible-looking toolchain
+        let cwd = config.current_dir();
+        let toolchain_path = cwd.join("ephemeral");
+        let toolchain_bin = toolchain_path.join("bin");
+        fs::create_dir_all(&toolchain_bin).unwrap();
+
+        let toolchain_file = cwd.join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            "[toolchain]\npath=\"ephemeral\"\ntargets=[\"dummy\"]",
+        )
+        .unwrap();
+
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "toolchain options are ignored for path toolchain (ephemeral)",
+        );
+
+        raw::write_file(
+            &toolchain_file,
+            "[toolchain]\npath=\"ephemeral\"\ncomponents=[\"dummy\"]",
+        )
+        .unwrap();
+
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "toolchain options are ignored for path toolchain (ephemeral)",
+        );
+
+        raw::write_file(
+            &toolchain_file,
+            "[toolchain]\npath=\"ephemeral\"\nprofile=\"minimal\"",
+        )
+        .unwrap();
+
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "toolchain options are ignored for path toolchain (ephemeral)",
+        );
+    });
+}
+
+#[test]
+fn file_override_path_xor_channel() {
+    setup(&|config| {
+        // Make a plausible-looking toolchain
+        let cwd = config.current_dir();
+        let toolchain_path = cwd.join("ephemeral");
+        let toolchain_bin = toolchain_path.join("bin");
+        fs::create_dir_all(&toolchain_bin).unwrap();
+
+        let toolchain_file = cwd.join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            "[toolchain]\npath=\"ephemeral\"\nchannel=\"nightly\"",
+        )
+        .unwrap();
+
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "cannot specify both channel (nightly) and path (ephemeral) simultaneously",
+        );
+    });
+}
+
+#[test]
 fn file_override_subdir() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "stable"]);

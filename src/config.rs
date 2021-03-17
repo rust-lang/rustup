@@ -33,6 +33,7 @@ impl OverrideFile {
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 struct ToolchainSection {
     channel: Option<String>,
+    path: Option<PathBuf>,
     components: Option<Vec<String>>,
     targets: Option<Vec<String>>,
     profile: Option<String>,
@@ -40,17 +41,30 @@ struct ToolchainSection {
 
 impl ToolchainSection {
     fn is_empty(&self) -> bool {
-        self.channel.is_none() && self.components.is_none() && self.targets.is_none()
+        self.channel.is_none()
+            && self.components.is_none()
+            && self.targets.is_none()
+            && self.path.is_none()
     }
 }
 
 impl<T: Into<String>> From<T> for OverrideFile {
     fn from(channel: T) -> Self {
-        Self {
-            toolchain: ToolchainSection {
-                channel: Some(channel.into()),
-                ..Default::default()
-            },
+        let override_ = channel.into();
+        if Path::new(&override_).is_absolute() {
+            Self {
+                toolchain: ToolchainSection {
+                    path: Some(PathBuf::from(override_)),
+                    ..Default::default()
+                },
+            }
+        } else {
+            Self {
+                toolchain: ToolchainSection {
+                    channel: Some(override_),
+                    ..Default::default()
+                },
+            }
         }
     }
 }
@@ -74,7 +88,7 @@ impl Display for OverrideReason {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct OverrideCfg<'a> {
     toolchain: Option<Toolchain<'a>>,
     components: Vec<String>,
@@ -83,11 +97,27 @@ struct OverrideCfg<'a> {
 }
 
 impl<'a> OverrideCfg<'a> {
-    fn from_file(cfg: &'a Cfg, file: OverrideFile) -> Result<Self> {
+    fn from_file(
+        cfg: &'a Cfg,
+        cfg_path: Option<impl AsRef<Path>>,
+        file: OverrideFile,
+    ) -> Result<Self> {
         Ok(Self {
-            toolchain: match file.toolchain.channel {
-                Some(name) => Some(Toolchain::from(cfg, &name)?),
-                None => None,
+            toolchain: match (file.toolchain.channel, file.toolchain.path) {
+                (Some(name), None) => Some(Toolchain::from(cfg, &name)?),
+                (None, Some(path)) => {
+                    if file.toolchain.targets.is_some()
+                        || file.toolchain.components.is_some()
+                        || file.toolchain.profile.is_some()
+                    {
+                        return Err(ErrorKind::CannotSpecifyPathAndOptions(path.into()).into());
+                    }
+                    Some(Toolchain::from_path(cfg, cfg_path, &path)?)
+                }
+                (Some(channel), Some(path)) => {
+                    return Err(ErrorKind::CannotSpecifyChannelAndPath(channel, path.into()).into())
+                }
+                (None, None) => None,
             },
             components: file.toolchain.components.unwrap_or_default(),
             targets: file.toolchain.targets.unwrap_or_default(),
@@ -522,15 +552,21 @@ impl Cfg {
                 }
                 OverrideReason::OverrideDB(ref path) => format!(
                     "the directory override for '{}' specifies an uninstalled toolchain",
-                    path.display()
+                    utils::canonicalize_path(path, self.notify_handler.as_ref()).display(),
                 ),
                 OverrideReason::ToolchainFile(ref path) => format!(
                     "the toolchain file at '{}' specifies an uninstalled toolchain",
-                    path.display()
+                    utils::canonicalize_path(path, self.notify_handler.as_ref()).display(),
                 ),
             };
 
-            let override_cfg = OverrideCfg::from_file(self, file)?;
+            let cfg_file = if let OverrideReason::ToolchainFile(ref path) = reason {
+                Some(path)
+            } else {
+                None
+            };
+
+            let override_cfg = OverrideCfg::from_file(self, cfg_file, file)?;
             if let Some(toolchain) = &override_cfg.toolchain {
                 // Overridden toolchains can be literally any string, but only
                 // distributable toolchains will be auto-installed by the wrapping
@@ -557,8 +593,7 @@ impl Cfg {
         settings: &Settings,
     ) -> Result<Option<(OverrideFile, OverrideReason)>> {
         let notify = self.notify_handler.as_ref();
-        let dir = utils::canonicalize_path(dir, notify);
-        let mut dir = Some(&*dir);
+        let mut dir = Some(dir);
 
         while let Some(d) = dir {
             // First check the override database
@@ -955,6 +990,7 @@ mod tests {
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some(contents.into()),
+                    path: None,
                     components: None,
                     targets: None,
                     profile: None,
@@ -978,6 +1014,7 @@ profile = "default"
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
+                    path: None,
                     components: Some(vec!["rustfmt".into(), "rustc-dev".into()]),
                     targets: Some(vec![
                         "wasm32-unknown-unknown".into(),
@@ -1001,6 +1038,28 @@ channel = "nightly-2020-07-10"
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
+                    path: None,
+                    components: None,
+                    targets: None,
+                    profile: None,
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file_only_path() {
+        let contents = r#"[toolchain]
+path = "foobar"
+"#;
+
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: None,
+                    path: Some("foobar".into()),
                     components: None,
                     targets: None,
                     profile: None,
@@ -1022,6 +1081,7 @@ components = []
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
+                    path: None,
                     components: Some(vec![]),
                     targets: None,
                     profile: None,
@@ -1043,6 +1103,7 @@ targets = []
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: Some("nightly-2020-07-10".into()),
+                    path: None,
                     components: None,
                     targets: Some(vec![]),
                     profile: None,
@@ -1063,6 +1124,7 @@ components = [ "rustfmt" ]
             OverrideFile {
                 toolchain: ToolchainSection {
                     channel: None,
+                    path: None,
                     components: Some(vec!["rustfmt".into()]),
                     targets: None,
                     profile: None,

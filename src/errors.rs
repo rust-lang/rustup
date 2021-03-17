@@ -188,6 +188,18 @@ error_chain! {
             description("invalid toolchain name")
             display("invalid toolchain name: '{}'", t)
         }
+        InvalidToolchainPath(p: PathBuf) {
+            description("invalid toolchain path"),
+            display("invalid toolchain path: '{}'", p.to_string_lossy())
+        }
+        CannotSpecifyPathAndOptions(path: PathBuf) {
+            description("toolchain options are ignored for path toolchains"),
+            display("toolchain options are ignored for path toolchain ({})", path.display())
+        }
+        CannotSpecifyChannelAndPath(channel: String, path: PathBuf) {
+            description("cannot specify channel and path simultaneously"),
+            display("cannot specify both channel ({}) and path ({}) simultaneously", channel, path.display())
+        }
         InvalidProfile(t: String) {
             description("invalid profile name")
             display("invalid profile name: '{}'; valid names are: {}", t, valid_profile_names())

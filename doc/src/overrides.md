@@ -89,7 +89,7 @@ profile = "minimal"
 ```
 
 The `[toolchain]` section is mandatory, and at least one property must be
-specified.
+specified. `channel` and `path` are mutually exclusive.
 
 For backwards compatibility, `rust-toolchain` files also support a legacy
 format that only contains a toolchain name without any TOML encoding, e.g.
@@ -104,7 +104,19 @@ The toolchains named in these files have a more restricted form than `rustup`
 toolchains generally, and may only contain the names of the three release
 channels, 'stable', 'beta', 'nightly', Rust version numbers, like '1.0.0', and
 optionally an archive date, like 'nightly-2017-01-01'. They may not name
-custom toolchains, nor host-specific toolchains.
+custom toolchains, nor host-specific toolchains. To use a custom local
+toolchain, you can instead use a `path` toolchain:
+
+``` toml
+[toolchain]
+path = "/path/to/local/toolchain"
+```
+
+Since a `path` directive directly names a local toolchain, other options
+like `components`, `targets`, and `profile` have no effect. `channel`
+and `path` are mutually exclusive, since a `path` already points to a
+specific toolchain. A relative `path` is resolved relative to the
+location of the `rust-toolchain.toml` file.
 
 ## Default toolchain
 
