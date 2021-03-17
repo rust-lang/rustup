@@ -316,7 +316,12 @@ pub fn cli() -> App<'static, 'static> {
                         .help("Force an update, even if some components are missing")
                         .long("force")
                         .takes_value(false),
-                ),
+                )
+                .arg(
+                    Arg::with_name("force-non-host")
+                        .help("Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains")
+                        .long("force-non-host")
+                        .takes_value(false)),
         )
         .subcommand(SubCommand::with_name("check").about("Check for updates to Rust toolchains and rustup"))
         .subcommand(
@@ -918,6 +923,7 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
 
 fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let self_update = !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE;
+    let forced = m.is_present("force-non-host");
     if let Some(p) = m.value_of("profile") {
         let p = Profile::from_str(p)?;
         cfg.set_profile_override(p);
@@ -939,7 +945,8 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
                 let host_arch = TargetTriple::from_host_or_build();
                 if let Ok(toolchain_desc) = ToolchainDesc::from_str(name) {
                     let target_triple = toolchain_desc.target;
-                    if host_arch.ne(&target_triple) {
+                    if !forced && host_arch.ne(&target_triple) {
+                        err!("DEPRECATED: future versions of rustup will require --force-non-host to install a non-host toolchain as the default.");
                         warn!(
                             "toolchain '{}' may not be able to run on this system.",
                             name
