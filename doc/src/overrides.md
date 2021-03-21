@@ -97,17 +97,15 @@ just `nightly-2021-01-21`. The file has to be encoded in US-ASCII this case
 (if you are on Windows, check the encoding and that it does not start with a
 BOM). The legacy format is not available in `rust-toolchain.toml` files.
 
-If you ever get an error like the following (when running `rustc`, `cargo` or
-other command)
+If you see the following error (when running `rustc`, `cargo` or other command)
 
 ```
 error: invalid channel name '[toolchain]' in '/PATH/TO/DIRECTORY/rust-toolchain'
 ```
 
-it means you're running `rustup` pre-1.23.0 (or just a default toolchain set by
+it means you're running `rustup` pre-1.23.0
 `rustup` pre-1.23.0) and trying to interact with a project that uses the new TOML
-encoding in the `rust-toolchain` file.  You need to upgrade `rustup` to 1.23.0+
-and set the default toolchain again.
+encoding in the `rust-toolchain` file.  You need to upgrade `rustup` to 1.23.0+.
 
 The `rust-toolchain.toml`/`rust-toolchain` files are suitable to check in to
 source control.
