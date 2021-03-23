@@ -103,9 +103,9 @@ If you see the following error (when running `rustc`, `cargo` or other command)
 error: invalid channel name '[toolchain]' in '/PATH/TO/DIRECTORY/rust-toolchain'
 ```
 
-it means you're running `rustup` pre-1.23.0
-`rustup` pre-1.23.0) and trying to interact with a project that uses the new TOML
-encoding in the `rust-toolchain` file.  You need to upgrade `rustup` to 1.23.0+.
+it means you're running `rustup` pre-1.23.0 and trying to interact with a project
+that uses the new TOML encoding in the `rust-toolchain` file. You need to upgrade
+`rustup` to 1.23.0+.
 
 The `rust-toolchain.toml`/`rust-toolchain` files are suitable to check in to
 source control.
