@@ -139,7 +139,7 @@ pub struct Item {
 }
 
 #[derive(Debug)]
-pub enum CompletedIO {
+pub enum CompletedIo {
     /// A submitted Item has completed
     Item(Item),
     /// An IncrementalFile has completed a single chunk
@@ -211,14 +211,14 @@ impl IncrementalFileState {
         mode: u32,
     ) -> Result<(Box<dyn FnMut(Vec<u8>) -> bool>, IncrementalFile)> {
         use std::sync::mpsc::channel;
-        match self {
-            &IncrementalFileState::Threaded => {
+        match *self {
+            IncrementalFileState::Threaded => {
                 let (tx, rx) = channel::<Vec<u8>>();
                 let content_callback = IncrementalFile::ThreadedReceiver(rx);
                 let chunk_submit = move |chunk: Vec<u8>| tx.send(chunk).is_ok();
                 Ok((Box::new(chunk_submit), content_callback))
             }
-            &IncrementalFileState::Immediate(ref state) => {
+            IncrementalFileState::Immediate(ref state) => {
                 let content_callback = IncrementalFile::ImmediateReceiver;
                 let mut writer = immediate::IncrementalFileWriter::new(path, mode, state.clone())?;
                 let chunk_submit = move |chunk: Vec<u8>| writer.chunk_submit(chunk);
@@ -236,7 +236,7 @@ pub trait Executor {
     /// During overload situations previously queued items may
     /// need to be completed before the item is accepted:
     /// consume the returned iterator.
-    fn execute(&self, mut item: Item) -> Box<dyn Iterator<Item = CompletedIO> + '_> {
+    fn execute(&self, mut item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
         item.start = Some(Instant::now());
         self.dispatch(item)
     }
@@ -244,16 +244,16 @@ pub trait Executor {
     /// Actually dispatch a operation.
     /// This is called by the default execute() implementation and
     /// should not be called directly.
-    fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = CompletedIO> + '_>;
+    fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_>;
 
     /// Wrap up any pending operations and iterate over them.
     /// All operations submitted before the join will have been
     /// returned either through ready/complete or join once join
     /// returns.
-    fn join(&mut self) -> Box<dyn Iterator<Item = CompletedIO> + '_>;
+    fn join(&mut self) -> Box<dyn Iterator<Item = CompletedIo> + '_>;
 
     /// Iterate over completed items.
-    fn completed(&self) -> Box<dyn Iterator<Item = CompletedIO> + '_>;
+    fn completed(&self) -> Box<dyn Iterator<Item = CompletedIo> + '_>;
 
     /// Get any state needed for incremental file processing
     fn incremental_file_state(&self) -> IncrementalFileState;

@@ -11,7 +11,7 @@ use std::{
     time::Instant,
 };
 
-use super::{CompletedIO, Executor, Item};
+use super::{CompletedIo, Executor, Item};
 
 #[derive(Debug)]
 pub struct _IncrementalFileState {
@@ -35,7 +35,7 @@ impl ImmediateUnpacker {
         }
     }
 
-    fn deque(&self) -> Box<dyn Iterator<Item = CompletedIO>> {
+    fn deque(&self) -> Box<dyn Iterator<Item = CompletedIo>> {
         let mut guard = self.incremental_state.lock().unwrap();
         // incremental file in progress
         if let Some(ref mut state) = *guard {
@@ -52,16 +52,12 @@ impl ImmediateUnpacker {
                 if state.finished {
                     *guard = None;
                 }
-                Box::new(Some(CompletedIO::Item(item)).into_iter())
+                Box::new(Some(CompletedIo::Item(item)).into_iter())
             } else {
                 // Case 2: pending chunks (which might be empty)
                 let mut completed_chunks = vec![];
                 completed_chunks.append(&mut state.completed_chunks);
-                Box::new(
-                    completed_chunks
-                        .into_iter()
-                        .map(|size| CompletedIO::Chunk(size)),
-                )
+                Box::new(completed_chunks.into_iter().map(CompletedIo::Chunk))
             }
         } else {
             Box::new(None.into_iter())
@@ -70,7 +66,7 @@ impl ImmediateUnpacker {
 }
 
 impl Executor for ImmediateUnpacker {
-    fn dispatch(&self, mut item: Item) -> Box<dyn Iterator<Item = CompletedIO> + '_> {
+    fn dispatch(&self, mut item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
         item.result = match &mut item.kind {
             super::Kind::Directory => super::create_dir(&item.full_path),
             super::Kind::File(ref contents) => {
@@ -89,7 +85,7 @@ impl Executor for ImmediateUnpacker {
                                 .start
                                 .map(|s| Instant::now().saturating_duration_since(s));
                             *guard = None;
-                            Box::new(Some(CompletedIO::Item(item)).into_iter())
+                            Box::new(Some(CompletedIo::Item(item)).into_iter())
                         } else {
                             state.item = Some(item);
                             Box::new(None.into_iter())
@@ -103,20 +99,20 @@ impl Executor for ImmediateUnpacker {
         item.finish = item
             .start
             .map(|s| Instant::now().saturating_duration_since(s));
-        Box::new(Some(CompletedIO::Item(item)).into_iter())
+        Box::new(Some(CompletedIo::Item(item)).into_iter())
     }
 
-    fn join(&mut self) -> Box<dyn Iterator<Item = CompletedIO>> {
+    fn join(&mut self) -> Box<dyn Iterator<Item = CompletedIo>> {
         self.deque()
     }
 
-    fn completed(&self) -> Box<dyn Iterator<Item = CompletedIO>> {
+    fn completed(&self) -> Box<dyn Iterator<Item = CompletedIo>> {
         self.deque()
     }
 
     fn incremental_file_state(&self) -> super::IncrementalFileState {
         let mut state = self.incremental_state.lock().unwrap();
-        if let Some(_) = *state {
+        if state.is_some() {
             unreachable!();
         } else {
             *state = Some(_IncrementalFileState {
@@ -188,7 +184,7 @@ impl IncrementalFileWriter {
         if let Some(ref mut state) = *state {
             if let Some(ref mut file) = (&mut self.file).as_mut() {
                 // Length 0 vector is used for clean EOF signalling.
-                if chunk.len() == 0 {
+                if chunk.is_empty() {
                     trace_scoped!("close", "name:": self.path_display);
                     drop(std::mem::take(&mut self.file));
                     state.finished = true;

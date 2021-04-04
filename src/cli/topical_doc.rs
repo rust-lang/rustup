@@ -22,7 +22,7 @@ fn index_html(doc: &DocData<'_>, wpath: &Path) -> Option<PathBuf> {
     }
 }
 
-fn dir_into_vec(dir: &PathBuf) -> Result<Vec<OsString>> {
+fn dir_into_vec(dir: &Path) -> Result<Vec<OsString>> {
     let entries = fs::read_dir(dir).chain_err(|| format!("Opening directory {:?}", dir))?;
     let mut v = Vec::new();
     for entry in entries {

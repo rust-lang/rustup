@@ -9,12 +9,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 
-use super::{perform, CompletedIO, Executor, Item};
+use super::{perform, CompletedIo, Executor, Item};
 use crate::utils::notifications::Notification;
 use crate::utils::units::Unit;
 
 enum Task {
-    Request(CompletedIO),
+    Request(CompletedIo),
     // Used to synchronise in the join method.
     Sentinel,
 }
@@ -60,19 +60,19 @@ impl<'a> Threaded<'a> {
         let n_files = self.n_files.clone();
         self.pool.execute(move || {
             let chunk_complete_callback = |size| {
-                tx.send(Task::Request(CompletedIO::Chunk(size)))
+                tx.send(Task::Request(CompletedIo::Chunk(size)))
                     .expect("receiver should be listening")
             };
             perform(&mut item, chunk_complete_callback);
             n_files.fetch_sub(1, Ordering::Relaxed);
-            tx.send(Task::Request(CompletedIO::Item(item)))
+            tx.send(Task::Request(CompletedIo::Item(item)))
                 .expect("receiver should be listening");
         });
     }
 }
 
 impl<'a> Executor for Threaded<'a> {
-    fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = CompletedIO> + '_> {
+    fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
         // Yield any completed work before accepting new work - keep memory
         // pressure under control
         // - return an iterator that runs until we can submit and then submits
@@ -83,7 +83,7 @@ impl<'a> Executor for Threaded<'a> {
         })
     }
 
-    fn join(&mut self) -> Box<dyn Iterator<Item = CompletedIO> + '_> {
+    fn join(&mut self) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
         // Some explanation is in order. Even though the tar we are reading from (if
         // any) will have had its FileWithProgress download tracking
         // completed before we hit drop, that is not true if we are unwinding due to a
@@ -149,7 +149,7 @@ impl<'a> Executor for Threaded<'a> {
         })
     }
 
-    fn completed(&self) -> Box<dyn Iterator<Item = CompletedIO> + '_> {
+    fn completed(&self) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
         Box::new(JoinIterator {
             iter: self.rx.try_iter(),
             consume_sentinel: true,
@@ -174,9 +174,9 @@ struct JoinIterator<T: Iterator<Item = Task>> {
 }
 
 impl<T: Iterator<Item = Task>> Iterator for JoinIterator<T> {
-    type Item = CompletedIO;
+    type Item = CompletedIo;
 
-    fn next(&mut self) -> Option<CompletedIO> {
+    fn next(&mut self) -> Option<CompletedIo> {
         let task_o = self.iter.next();
         match task_o {
             None => None,
@@ -200,9 +200,9 @@ struct SubmitIterator<'a, 'b> {
 }
 
 impl<'a, 'b> Iterator for SubmitIterator<'a, 'b> {
-    type Item = CompletedIO;
+    type Item = CompletedIo;
 
-    fn next(&mut self) -> Option<CompletedIO> {
+    fn next(&mut self) -> Option<CompletedIo> {
         // The number here is arbitrary; just a number to stop exhausting fd's on linux
         // and still allow rapid decompression to generate work to dispatch
         // This function could perhaps be tuned: e.g. it may wait in rx.iter()

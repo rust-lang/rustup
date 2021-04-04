@@ -35,8 +35,8 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
         loop {
             for work in io_executor.completed().collect::<Vec<_>>() {
                 match work {
-                    super::CompletedIO::Chunk(size) => written += size,
-                    super::CompletedIO::Item(item) => unreachable!(format!("{:?}", item)),
+                    super::CompletedIo::Chunk(size) => written += size,
+                    super::CompletedIo::Item(item) => unreachable!(format!("{:?}", item)),
                 }
             }
             if written == 20 {
@@ -48,8 +48,8 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
         loop {
             for work in io_executor.completed().collect::<Vec<_>>() {
                 match work {
-                    super::CompletedIO::Chunk(_) => unreachable!(),
-                    super::CompletedIO::Item(_) => {
+                    super::CompletedIo::Chunk(_) => unreachable!(),
+                    super::CompletedIo::Item(_) => {
                         file_finished = true;
                     }
                 }

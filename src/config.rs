@@ -110,12 +110,12 @@ impl<'a> OverrideCfg<'a> {
                         || file.toolchain.components.is_some()
                         || file.toolchain.profile.is_some()
                     {
-                        return Err(ErrorKind::CannotSpecifyPathAndOptions(path.into()).into());
+                        return Err(ErrorKind::CannotSpecifyPathAndOptions(path).into());
                     }
                     Some(Toolchain::from_path(cfg, cfg_path, &path)?)
                 }
                 (Some(channel), Some(path)) => {
-                    return Err(ErrorKind::CannotSpecifyChannelAndPath(channel, path.into()).into())
+                    return Err(ErrorKind::CannotSpecifyChannelAndPath(channel, path).into())
                 }
                 (None, None) => None,
             },
@@ -172,8 +172,7 @@ impl PgpPublicKey {
             Ok(ret)
         }
         use pgp::types::KeyTrait;
-        let mut ret = Vec::new();
-        ret.push(format!("from {}", self));
+        let mut ret = vec![format!("from {}", self)];
         let key = self.key();
         let keyid = format_hex(&key.key_id().to_vec(), "-", 4)?;
         let algo = key.algorithm();

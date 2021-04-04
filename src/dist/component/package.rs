@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use tar::EntryType;
 
-use crate::diskio::{get_executor, CompletedIO, Executor, Item, Kind};
+use crate::diskio::{get_executor, CompletedIo, Executor, Item, Kind};
 use crate::dist::component::components::*;
 use crate::dist::component::transaction::*;
 use crate::dist::temp;
@@ -204,14 +204,14 @@ impl MemoryBudget {
         }
     }
 
-    fn reclaim(&mut self, op: &CompletedIO) {
+    fn reclaim(&mut self, op: &CompletedIo) {
         match &op {
-            CompletedIO::Item(op) => match &op.kind {
+            CompletedIo::Item(op) => match &op.kind {
                 Kind::Directory => {}
                 Kind::File(content) => self.used -= content.len(),
                 Kind::IncrementalFile(_) => {}
             },
-            CompletedIO::Chunk(size) => self.used -= size,
+            CompletedIo::Chunk(size) => self.used -= size,
         }
     }
 
@@ -234,8 +234,8 @@ impl MemoryBudget {
 
 /// Handle the async result of io operations
 /// Replaces op.result with Ok(())
-fn filter_result(op: &mut CompletedIO) -> io::Result<()> {
-    if let CompletedIO::Item(op) = op {
+fn filter_result(op: &mut CompletedIo) -> io::Result<()> {
+    if let CompletedIo::Item(op) = op {
         let result = mem::replace(&mut op.result, Ok(()));
         match result {
             Ok(_) => Ok(()),
@@ -268,10 +268,10 @@ fn trigger_children(
     io_executor: &dyn Executor,
     directories: &mut HashMap<PathBuf, DirStatus>,
     budget: &mut MemoryBudget,
-    op: CompletedIO,
+    op: CompletedIo,
 ) -> Result<usize> {
     let mut result = 0;
-    if let CompletedIO::Item(item) = op {
+    if let CompletedIo::Item(item) = op {
         if let Kind::Directory = item.kind {
             let mut pending = Vec::new();
             directories
@@ -510,12 +510,9 @@ fn unpack_without_first_dir<'a, R: Read>(
             filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
             trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
         }
-        let mut incremental_file_sender =
-            if let Some(incremental_file_sender) = incremental_file_sender {
-                Some((incremental_file_sender, &mut entry))
-            } else {
-                None
-            };
+
+        let mut incremental_file_sender = incremental_file_sender
+            .map(|incremental_file_sender| (incremental_file_sender, &mut entry));
 
         // monitor io queue and feed in the content of the file (if needed)
         while !flush_ios(

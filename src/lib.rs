@@ -1,5 +1,9 @@
 #![deny(rust_2018_idioms)]
-#![allow(clippy::too_many_arguments)]
+#![allow(
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    clippy::upper_case_acronyms // see https://github.com/rust-lang/rust-clippy/issues/6974
+)]
 #![recursion_limit = "1024"]
 
 pub use crate::config::*;

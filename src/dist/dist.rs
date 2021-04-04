@@ -407,13 +407,13 @@ impl<'a> Manifest<'a> {
         ext: &str,
     ) -> Result<Option<String>> {
         let suffix = target_triple.to_owned() + ext;
-        Ok(utils::match_file("manifest", &self.0, |line| {
+        utils::match_file("manifest", &self.0, |line| {
             if line.starts_with(package) && line.ends_with(&suffix) {
                 Some(format!("{}/{}", &self.1, line))
             } else {
                 None
             }
-        })?)
+        })
     }
 }
 

@@ -450,6 +450,7 @@ pub fn file_size(path: &Path) -> Result<u64> {
 }
 
 pub fn make_executable(path: &Path) -> Result<()> {
+    #[allow(clippy::unnecessary_wraps)]
     #[cfg(windows)]
     fn inner(_: &Path) -> Result<()> {
         Ok(())

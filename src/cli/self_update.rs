@@ -413,6 +413,7 @@ pub fn install(
 
 fn rustc_or_cargo_exists_in_path() -> Result<()> {
     // Ignore rustc and cargo if present in $HOME/.cargo/bin or a few other directories
+    #[allow(clippy::ptr_arg)]
     fn ignore_paths(path: &PathBuf) -> bool {
         !path
             .components()

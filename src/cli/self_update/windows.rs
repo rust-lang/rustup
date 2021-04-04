@@ -180,6 +180,7 @@ fn _apply_new_path(new_path: Option<Vec<u16>>) -> Result<()> {
     }
 
     // Tell other processes to update their environment
+    #[allow(clippy::unnecessary_cast)]
     unsafe {
         SendMessageTimeoutA(
             HWND_BROADCAST,

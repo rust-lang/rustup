@@ -88,14 +88,14 @@ impl<'a> Toolchain<'a> {
         // Perform minimal validation; there should at least be a `bin/` that might
         // contain things for us to run.
         if !path.join("bin").is_dir() {
-            return Err(ErrorKind::InvalidToolchainPath(path.into()).into());
+            return Err(ErrorKind::InvalidToolchainPath(path).into());
         }
 
         Ok(Toolchain {
             cfg,
             name: utils::canonicalize_path(&path, cfg.notify_handler.as_ref())
                 .to_str()
-                .ok_or_else(|| ErrorKind::InvalidToolchainPath(path.clone().into()))?
+                .ok_or_else(|| ErrorKind::InvalidToolchainPath(path.clone()))?
                 .to_owned(),
             path,
             dist_handler: Box::new(move |n| (cfg.notify_handler)(n.into())),
@@ -610,7 +610,7 @@ impl<'a> DistributableToolchain<'a> {
 
     // Installed and not-installed?
     pub fn desc(&self) -> Result<ToolchainDesc> {
-        Ok(ToolchainDesc::from_str(&self.0.name)?)
+        ToolchainDesc::from_str(&self.0.name)
     }
 
     fn download_cfg(&self) -> DownloadCfg<'_> {
@@ -917,7 +917,7 @@ impl<'a> DistributableToolchain<'a> {
 
     // Installed only.
     fn update_hash(&self) -> Result<PathBuf> {
-        Ok(self.0.cfg.get_hash_file(&self.0.name, true)?)
+        self.0.cfg.get_hash_file(&self.0.name, true)
     }
 }
 

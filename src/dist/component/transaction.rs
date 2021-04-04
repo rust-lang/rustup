@@ -229,16 +229,12 @@ impl<'a> ChangedItem<'a> {
         }
         Ok(())
     }
-    fn dest_abs_path(
-        prefix: &InstallPrefix,
-        component: &str,
-        relpath: &PathBuf,
-    ) -> Result<PathBuf> {
+    fn dest_abs_path(prefix: &InstallPrefix, component: &str, relpath: &Path) -> Result<PathBuf> {
         let abs_path = prefix.abs_path(relpath);
         if utils::path_exists(&abs_path) {
             Err(ErrorKind::ComponentConflict {
                 name: component.to_owned(),
-                path: relpath.clone(),
+                path: relpath.to_path_buf(),
             }
             .into())
         } else {
