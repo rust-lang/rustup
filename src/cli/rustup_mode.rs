@@ -131,7 +131,7 @@ pub fn main() -> Result<utils::ExitCode> {
     Ok(match matches.subcommand() {
         ("dump-testament", _) => common::dump_testament()?,
         ("show", Some(c)) => match c.subcommand() {
-            ("active-toolchain", Some(_)) => handle_epipe(show_active_toolchain(cfg))?,
+            ("active-toolchain", Some(m)) => handle_epipe(show_active_toolchain(cfg, m))?,
             ("home", Some(_)) => handle_epipe(show_rustup_home(cfg))?,
             ("profile", Some(_)) => handle_epipe(show_profile(cfg))?,
             ("keys", Some(_)) => handle_epipe(show_keys(cfg))?,
@@ -243,7 +243,14 @@ pub fn cli() -> App<'static, 'static> {
                 .subcommand(
                     SubCommand::with_name("active-toolchain")
                         .about("Show the active toolchain")
-                        .after_help(SHOW_ACTIVE_TOOLCHAIN_HELP),
+                        .after_help(SHOW_ACTIVE_TOOLCHAIN_HELP)
+                        .arg(
+                            Arg::with_name("verbose")
+                                .help("Enable verbose output with rustc information")
+                                .takes_value(false)
+                                .short("v")
+                                .long("verbose"),
+                        ),
                 )
                 .subcommand(
                     SubCommand::with_name("home")
@@ -1182,17 +1189,22 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn show_active_toolchain(cfg: &Cfg) -> Result<utils::ExitCode> {
+fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
+    let verbose = m.is_present("verbose");
     let cwd = utils::current_dir()?;
     match cfg.find_or_install_override_toolchain_or_default(&cwd) {
         Err(crate::Error(crate::ErrorKind::ToolchainNotSelected, _)) => {}
         Err(e) => return Err(e.into()),
         Ok((toolchain, reason)) => {
             if let Some(reason) = reason {
-                writeln!(process().stdout(), "{} ({})", toolchain.name(), reason)?;
+                write!(process().stdout(), "{} ({})", toolchain.name(), reason,)?;
             } else {
-                writeln!(process().stdout(), "{} (default)", toolchain.name())?;
+                write!(process().stdout(), "{} (default)", toolchain.name(),)?;
             }
+            if verbose {
+                write!(process().stdout(), " - {}", toolchain.rustc_version())?;
+            }
+            writeln!(process().stdout())?
         }
     }
     Ok(utils::ExitCode(0))
