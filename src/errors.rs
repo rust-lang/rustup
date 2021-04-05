@@ -303,6 +303,10 @@ error_chain! {
             description("some requested components are unavailable to download")
             display("{}", component_unavailable_msg(&c, &manifest, &toolchain))
         }
+        ToolchainComponentsMissing(c: Vec<Component>, manifest: Manifest,toolchain: String) {
+            description("at least one of the requested components is unavailable to download")
+            display("{}", components_missing_msg(&c,&manifest, &toolchain))
+        }
         UnknownMetadataVersion(v: String) {
             description("unknown metadata version")
             display("unknown metadata version: '{}'", v)
@@ -489,6 +493,54 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
             "some components unavailable for download for channel '{}': {}\n\
             If you don't need the components, you can remove them with:\n\n{}\n\n{}",
             toolchain, cs_str, remove_msg, TOOLSTATE_MSG,
+        );
+    }
+
+    String::from_utf8(buf).unwrap()
+}
+
+fn components_missing_msg(cs: &[Component], manifest: &Manifest, toolchain: &str) -> String {
+    assert!(!cs.is_empty());
+    let mut buf = vec![];
+    let suggestion = format!("    rustup toolchain add {} --profile minimal", toolchain);
+    let nightly_tips = "Sometimes not all components are available in any given nightly. ";
+
+    if cs.len() == 1 {
+        let _ = writeln!(
+            buf,
+            "component {} is unavailable for download for channel '{}'",
+            &cs[0].description(manifest),
+            toolchain,
+        );
+
+        if toolchain.starts_with("nightly") {
+            let _ = write!(buf, "{}", nightly_tips.to_string());
+        }
+
+        let _ = write!(
+            buf,
+            "If you don't need the component, you could try a minimal installation with:\n\n{}",
+            suggestion
+        );
+    } else {
+        let cs_str = cs
+            .iter()
+            .map(|c| c.description(manifest))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = write!(
+            buf,
+            "some components unavailable for download for channel '{}': {}",
+            toolchain, cs_str
+        );
+
+        if toolchain.starts_with("nightly") {
+            let _ = write!(buf, "{}", nightly_tips.to_string());
+        }
+        let _ = write!(
+            buf,
+            "If you don't need the components, you could try a minimal installation with:\n\n{}",
+            suggestion
         );
     }
 

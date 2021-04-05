@@ -625,9 +625,7 @@ fn update_from_dist_<'a>(
                     break Err(e);
                 }
 
-                if let ErrorKind::RequestedComponentsUnavailable(components, manifest, ..) =
-                    e.kind()
-                {
+                if let ErrorKind::ToolchainComponentsMissing(components, manifest, ..) = e.kind() {
                     (download.notify_handler)(Notification::SkippingNightlyMissingComponent(
                         &toolchain,
                         current_manifest.as_ref().unwrap_or(manifest),
@@ -777,9 +775,28 @@ fn try_update_from_dist_<'a>(
                 &download.notify_handler,
                 &toolchain.manifest_name(),
                 true,
-            )? {
-                UpdateStatus::Unchanged => Ok(None),
-                UpdateStatus::Changed => Ok(Some(hash)),
+            ) {
+                Ok(status) => match status {
+                    UpdateStatus::Unchanged => Ok(None),
+                    UpdateStatus::Changed => Ok(Some(hash)),
+                },
+                Err(err) => {
+                    return if let ErrorKind::RequestedComponentsUnavailable(
+                        cs,
+                        manifest,
+                        toolchain_str,
+                    ) = err.kind()
+                    {
+                        Err(ErrorKind::ToolchainComponentsMissing(
+                            cs.to_owned(),
+                            manifest.to_owned(),
+                            toolchain_str.to_owned(),
+                        )
+                        .into())
+                    } else {
+                        Err(err)
+                    }
+                }
             };
         }
         Ok(None) => return Ok(None),
