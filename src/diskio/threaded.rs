@@ -4,17 +4,17 @@
 /// than desired. In particular the docs workload with 20K files requires
 /// very low latency per file, which even a few ms per syscall per file
 /// will cause minutes of wall clock time.
-use super::{perform, Executor, Item};
-use crate::utils::notifications::Notification;
-use crate::utils::units::Unit;
-
 use std::cell::Cell;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 
+use super::{perform, CompletedIo, Executor, Item};
+use crate::utils::notifications::Notification;
+use crate::utils::units::Unit;
+
 enum Task {
-    Request(Item),
+    Request(CompletedIo),
     // Used to synchronise in the join method.
     Sentinel,
 }
@@ -59,27 +59,31 @@ impl<'a> Threaded<'a> {
         self.n_files.fetch_add(1, Ordering::Relaxed);
         let n_files = self.n_files.clone();
         self.pool.execute(move || {
-            perform(&mut item);
+            let chunk_complete_callback = |size| {
+                tx.send(Task::Request(CompletedIo::Chunk(size)))
+                    .expect("receiver should be listening")
+            };
+            perform(&mut item, chunk_complete_callback);
             n_files.fetch_sub(1, Ordering::Relaxed);
-            tx.send(Task::Request(item))
+            tx.send(Task::Request(CompletedIo::Item(item)))
                 .expect("receiver should be listening");
         });
     }
 }
 
 impl<'a> Executor for Threaded<'a> {
-    fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = Item> + '_> {
+    fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
         // Yield any completed work before accepting new work - keep memory
         // pressure under control
         // - return an iterator that runs until we can submit and then submits
         //   as its last action
         Box::new(SubmitIterator {
             executor: self,
-            item: Cell::new(Task::Request(item)),
+            item: Cell::new(Some(item)),
         })
     }
 
-    fn join(&mut self) -> Box<dyn Iterator<Item = Item> + '_> {
+    fn join(&mut self) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
         // Some explanation is in order. Even though the tar we are reading from (if
         // any) will have had its FileWithProgress download tracking
         // completed before we hit drop, that is not true if we are unwinding due to a
@@ -145,11 +149,15 @@ impl<'a> Executor for Threaded<'a> {
         })
     }
 
-    fn completed(&self) -> Box<dyn Iterator<Item = Item> + '_> {
+    fn completed(&self) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
         Box::new(JoinIterator {
             iter: self.rx.try_iter(),
             consume_sentinel: true,
         })
+    }
+
+    fn incremental_file_state(&self) -> super::IncrementalFileState {
+        super::IncrementalFileState::Threaded
     }
 }
 
@@ -166,9 +174,9 @@ struct JoinIterator<T: Iterator<Item = Task>> {
 }
 
 impl<T: Iterator<Item = Task>> Iterator for JoinIterator<T> {
-    type Item = Item;
+    type Item = CompletedIo;
 
-    fn next(&mut self) -> Option<Item> {
+    fn next(&mut self) -> Option<CompletedIo> {
         let task_o = self.iter.next();
         match task_o {
             None => None,
@@ -188,13 +196,13 @@ impl<T: Iterator<Item = Task>> Iterator for JoinIterator<T> {
 
 struct SubmitIterator<'a, 'b> {
     executor: &'a Threaded<'b>,
-    item: Cell<Task>,
+    item: Cell<Option<Item>>,
 }
 
 impl<'a, 'b> Iterator for SubmitIterator<'a, 'b> {
-    type Item = Item;
+    type Item = CompletedIo;
 
-    fn next(&mut self) -> Option<Item> {
+    fn next(&mut self) -> Option<CompletedIo> {
         // The number here is arbitrary; just a number to stop exhausting fd's on linux
         // and still allow rapid decompression to generate work to dispatch
         // This function could perhaps be tuned: e.g. it may wait in rx.iter()
@@ -203,7 +211,7 @@ impl<'a, 'b> Iterator for SubmitIterator<'a, 'b> {
         // actually completes; however, results are presently ok.
         let threshold = 5;
         if self.executor.pool.queued_count() < threshold {
-            if let Task::Request(item) = self.item.take() {
+            if let Some(item) = self.item.take() {
                 self.executor.submit(item);
             };
             None
@@ -213,7 +221,7 @@ impl<'a, 'b> Iterator for SubmitIterator<'a, 'b> {
                     return Some(item);
                 }
                 if self.executor.pool.queued_count() < threshold {
-                    if let Task::Request(item) = self.item.take() {
+                    if let Some(item) = self.item.take() {
                         self.executor.submit(item);
                     };
                     return None;

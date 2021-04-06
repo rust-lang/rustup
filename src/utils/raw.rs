@@ -177,6 +177,7 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
     const MAXIMUM_REPARSE_DATA_BUFFER_SIZE: usize = 16 * 1024;
 
     #[repr(C)]
+    #[allow(non_snake_case)]
     pub struct REPARSE_MOUNTPOINT_DATA_BUFFER {
         pub ReparseTag: DWORD,
         pub ReparseDataLength: DWORD,

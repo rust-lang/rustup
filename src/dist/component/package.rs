@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use tar::EntryType;
 
-use crate::diskio::{get_executor, Executor, Item, Kind};
+use crate::diskio::{get_executor, CompletedIo, Executor, Item, Kind};
 use crate::dist::component::components::*;
 use crate::dist::component::transaction::*;
 use crate::dist::temp;
@@ -165,7 +165,7 @@ struct MemoryBudget {
 // Probably this should live in diskio but ¯\_(ツ)_/¯
 impl MemoryBudget {
     fn new(
-        max_file_size: usize,
+        io_chunk_size: usize,
         effective_max_ram: Option<usize>,
         notify_handler: Option<&dyn Fn(Notification<'_>)>,
     ) -> Self {
@@ -195,28 +195,36 @@ impl MemoryBudget {
             }
         };
 
-        // Future us: this can be removed when IO chunking within a single file is possible: it just helps generate good
-        // errors rather than allocator-failure panics when we hit the large file on a RAM limited system.
-        if max_file_size > unpack_ram {
-            panic!("RUSTUP_UNPACK_RAM must be larger than {}", max_file_size);
+        if io_chunk_size > unpack_ram {
+            panic!("RUSTUP_UNPACK_RAM must be larger than {}", io_chunk_size);
         }
         Self {
             limit: unpack_ram,
             used: 0,
         }
     }
-    fn reclaim(&mut self, op: &Item) {
-        match &op.kind {
-            Kind::Directory => {}
-            Kind::File(content) => self.used -= content.len(),
-        };
+
+    fn reclaim(&mut self, op: &CompletedIo) {
+        match &op {
+            CompletedIo::Item(op) => match &op.kind {
+                Kind::Directory => {}
+                Kind::File(content) => self.used -= content.len(),
+                Kind::IncrementalFile(_) => {}
+            },
+            CompletedIo::Chunk(size) => self.used -= size,
+        }
     }
 
     fn claim(&mut self, op: &Item) {
         match &op.kind {
             Kind::Directory => {}
             Kind::File(content) => self.used += content.len(),
+            Kind::IncrementalFile(_) => {}
         };
+    }
+
+    fn claim_chunk(&mut self, len: usize) {
+        self.used += len;
     }
 
     fn available(&self) -> usize {
@@ -226,23 +234,27 @@ impl MemoryBudget {
 
 /// Handle the async result of io operations
 /// Replaces op.result with Ok(())
-fn filter_result(op: &mut Item) -> io::Result<()> {
-    let result = mem::replace(&mut op.result, Ok(()));
-    match result {
-        Ok(_) => Ok(()),
-        Err(e) => match e.kind() {
-            IOErrorKind::AlreadyExists => {
-                // mkdir of e.g. ~/.rustup already existing is just fine;
-                // for others it would be better to know whether it is
-                // expected to exist or not -so put a flag in the state.
-                if let Kind::Directory = op.kind {
-                    Ok(())
-                } else {
-                    Err(e)
+fn filter_result(op: &mut CompletedIo) -> io::Result<()> {
+    if let CompletedIo::Item(op) = op {
+        let result = mem::replace(&mut op.result, Ok(()));
+        match result {
+            Ok(_) => Ok(()),
+            Err(e) => match e.kind() {
+                IOErrorKind::AlreadyExists => {
+                    // mkdir of e.g. ~/.rustup already existing is just fine;
+                    // for others it would be better to know whether it is
+                    // expected to exist or not -so put a flag in the state.
+                    if let Kind::Directory = op.kind {
+                        Ok(())
+                    } else {
+                        Err(e)
+                    }
                 }
-            }
-            _ => Err(e),
-        },
+                _ => Err(e),
+            },
+        }
+    } else {
+        Ok(())
     }
 }
 
@@ -251,32 +263,35 @@ fn filter_result(op: &mut Item) -> io::Result<()> {
 ///
 /// Currently the volume of queued items does not count as backpressure against
 /// the main tar extraction process.
+/// Returns the number of triggered children
 fn trigger_children(
     io_executor: &dyn Executor,
     directories: &mut HashMap<PathBuf, DirStatus>,
     budget: &mut MemoryBudget,
-    item: Item,
+    op: CompletedIo,
 ) -> Result<usize> {
     let mut result = 0;
-    if let Kind::Directory = item.kind {
-        let mut pending = Vec::new();
-        directories
-            .entry(item.full_path)
-            .and_modify(|status| match status {
-                DirStatus::Exists => unreachable!(),
-                DirStatus::Pending(pending_inner) => {
-                    pending.append(pending_inner);
-                    *status = DirStatus::Exists;
+    if let CompletedIo::Item(item) = op {
+        if let Kind::Directory = item.kind {
+            let mut pending = Vec::new();
+            directories
+                .entry(item.full_path)
+                .and_modify(|status| match status {
+                    DirStatus::Exists => unreachable!(),
+                    DirStatus::Pending(pending_inner) => {
+                        pending.append(pending_inner);
+                        *status = DirStatus::Exists;
+                    }
+                })
+                .or_insert_with(|| unreachable!());
+            result += pending.len();
+            for pending_item in pending.into_iter() {
+                for mut item in io_executor.execute(pending_item).collect::<Vec<_>>() {
+                    // TODO capture metrics
+                    budget.reclaim(&item);
+                    filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+                    result += trigger_children(io_executor, directories, budget, item)?;
                 }
-            })
-            .or_insert_with(|| unreachable!());
-        result += pending.len();
-        for pending_item in pending.into_iter() {
-            for mut item in io_executor.execute(pending_item).collect::<Vec<_>>() {
-                // TODO capture metrics
-                budget.reclaim(&item);
-                filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-                result += trigger_children(io_executor, directories, budget, item)?;
             }
         }
     };
@@ -298,7 +313,7 @@ fn unpack_without_first_dir<'a, R: Read>(
     let entries = archive
         .entries()
         .chain_err(|| ErrorKind::ExtractingPackage)?;
-    const MAX_FILE_SIZE: u64 = 220_000_000;
+    const IO_CHUNK_SIZE: u64 = 16_777_216;
     let effective_max_ram = match effective_limits::memory_limit() {
         Ok(ram) => Some(ram as usize),
         Err(e) => {
@@ -308,7 +323,7 @@ fn unpack_without_first_dir<'a, R: Read>(
             None
         }
     };
-    let mut budget = MemoryBudget::new(MAX_FILE_SIZE as usize, effective_max_ram, notify_handler);
+    let mut budget = MemoryBudget::new(IO_CHUNK_SIZE as usize, effective_max_ram, notify_handler);
 
     let mut directories: HashMap<PathBuf, DirStatus> = HashMap::new();
     // Path is presumed to exist. Call it a precondition.
@@ -349,36 +364,44 @@ fn unpack_without_first_dir<'a, R: Read>(
             continue;
         }
 
-        let size = entry.header().size()?;
-        if size > MAX_FILE_SIZE {
-            // If we cannot tell the user we will either succeed (great), or fail (and we may get a bug report), either
-            // way, we will most likely get reports from users about this, so the possible set of custom builds etc that
-            // don't report are not a great concern.
-            if let Some(notify_handler) = notify_handler {
-                notify_handler(Notification::Error(format!(
-                    "File too big {} {}",
-                    relpath.display(),
-                    size
-                )));
-            }
-        }
-
-        fn flush_ios(
+        /// true if either no sender_entry was provided, or the incremental file
+        /// has been fully dispatched.
+        fn flush_ios<'a, R: std::io::Read, P: AsRef<Path>>(
             mut budget: &mut MemoryBudget,
             io_executor: &dyn Executor,
             mut directories: &mut HashMap<PathBuf, DirStatus>,
-        ) -> Result<()> {
-            for mut item in io_executor.completed().collect::<Vec<_>>() {
+            mut sender_entry: Option<&mut (
+                Box<dyn FnMut(Vec<u8>) -> bool + 'a>,
+                &mut tar::Entry<'_, R>,
+            )>,
+            full_path: P,
+        ) -> Result<bool> {
+            let mut result = sender_entry.is_none();
+            for mut op in io_executor.completed().collect::<Vec<_>>() {
                 // TODO capture metrics
-                budget.reclaim(&item);
-                filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-                trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
+                budget.reclaim(&op);
+                filter_result(&mut op).chain_err(|| ErrorKind::ExtractingPackage)?;
+                trigger_children(&*io_executor, &mut directories, &mut budget, op)?;
             }
-            Ok(())
-        }
-
-        while size > budget.available() as u64 {
-            flush_ios(&mut budget, &*io_executor, &mut directories)?;
+            // Maybe stream a file incrementally
+            if let Some((sender, entry)) = sender_entry.as_mut() {
+                if budget.available() as u64 >= IO_CHUNK_SIZE {
+                    let mut v = vec![0; IO_CHUNK_SIZE as usize];
+                    let len = entry.read(&mut v)?;
+                    if len == 0 {
+                        result = true;
+                    }
+                    v.resize(len, 0);
+                    budget.claim_chunk(len);
+                    if !sender(v) {
+                        return Err(ErrorKind::DisconnectedChannel(
+                            full_path.as_ref().to_path_buf(),
+                        )
+                        .into());
+                    }
+                }
+            }
+            Ok(result)
         }
 
         // Bail out if we get hard links, device nodes or any other unusual content
@@ -409,15 +432,39 @@ fn unpack_without_first_dir<'a, R: Read>(
         let o_mode = g_mode >> 3;
         let mode = u_mode | g_mode | o_mode;
 
+        let file_size = entry.header().size()?;
+        let size = std::cmp::min(IO_CHUNK_SIZE, file_size);
+
+        while size > budget.available() as u64 {
+            flush_ios::<tar::Entry<'_, R>, _>(
+                &mut budget,
+                &*io_executor,
+                &mut directories,
+                None,
+                &full_path,
+            )?;
+        }
+
+        let mut incremental_file_sender: Option<Box<dyn FnMut(Vec<u8>) -> bool + '_>> = None;
         let mut item = match kind {
             EntryType::Directory => {
                 directories.insert(full_path.to_owned(), DirStatus::Pending(Vec::new()));
-                Item::make_dir(full_path, mode)
+                Item::make_dir(full_path.clone(), mode)
             }
             EntryType::Regular => {
-                let mut v = Vec::with_capacity(size as usize);
-                entry.read_to_end(&mut v)?;
-                Item::write_file(full_path, v, mode)
+                if file_size > IO_CHUNK_SIZE {
+                    let (item, sender) = Item::write_file_segmented(
+                        full_path.clone(),
+                        mode,
+                        io_executor.incremental_file_state(),
+                    )?;
+                    incremental_file_sender = Some(sender);
+                    item
+                } else {
+                    let mut v = Vec::with_capacity(size as usize);
+                    entry.read_to_end(&mut v)?;
+                    Item::write_file(full_path.clone(), v, mode)
+                }
             }
             _ => return Err(ErrorKind::UnsupportedKind(format!("{:?}", kind)).into()),
         };
@@ -456,12 +503,25 @@ fn unpack_without_first_dir<'a, R: Read>(
             }
         };
 
+        // Submit the new item
         for mut item in io_executor.execute(item).collect::<Vec<_>>() {
             // TODO capture metrics
             budget.reclaim(&item);
             filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
             trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
         }
+
+        let mut incremental_file_sender = incremental_file_sender
+            .map(|incremental_file_sender| (incremental_file_sender, &mut entry));
+
+        // monitor io queue and feed in the content of the file (if needed)
+        while !flush_ios(
+            &mut budget,
+            &*io_executor,
+            &mut directories,
+            incremental_file_sender.as_mut(),
+            &full_path,
+        )? {}
     }
 
     loop {

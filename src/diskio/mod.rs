@@ -52,23 +52,74 @@
 // f) data gathering: record (name, bytes, start, duration)
 //    write to disk afterwards as a csv file?
 pub mod immediate;
+#[cfg(test)]
+mod test;
 pub mod threaded;
 
-use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
+use std::{fmt::Debug, fs::OpenOptions};
 
 use crate::errors::{Result, ResultExt};
 use crate::process;
 use crate::utils::notifications::Notification;
 
+/// Carries the implementation specific channel data into the executor.
+#[derive(Debug)]
+pub enum IncrementalFile {
+    ImmediateReceiver,
+    ThreadedReceiver(Receiver<Vec<u8>>),
+}
+
+// The basic idea is that in single threaded mode we get this pattern:
+// package budget io-layer
+// +<-claim->
+// +-submit--------+ | write
+// +-complete------+
+// +<reclaim>
+// .. loop ..
+// In thread mode with lots of memory we want the following:
+// +<-claim->
+// +-submit--------+
+// +<-claim->
+// +-submit--------+
+// .. loop .. | writes
+// +-complete------+
+// +<reclaim>
+// +-complete------+
+// +<reclaim>
+// In thread mode with limited memory we want the following:
+// +<-claim->
+// +-submit--------+
+// +<-claim->
+// +-submit--------+
+// .. loop up to budget .. | writes
+// +-complete------+
+// +<reclaim>
+// +<-claim->
+// +-submit--------+
+// .. loop etc ..
+//
+// lastly we want pending IOs such as directory creation to be able to complete in the same way, so a chunk completion
+// needs to be able to report back in the same fashion; folding it into the same enum will make the driver code easier to write.
+//
+// The implementation is done via a pair of MPSC channels. One to send data to write. In
+// the immediate model, acknowledgements are sent after doing the write immediately. In the threaded model,
+// acknowledgements are sent after the write completes in the thread pool handler. In the packages code the inner that
+// handles iops and continues processing incremental mode files handles the connection between the acks and the budget.
+// Error reporting is passed through the regular completion port, to avoid creating a new special case.
+
+/// What kind of IO operation to perform
 #[derive(Debug)]
 pub enum Kind {
     Directory,
     File(Vec<u8>),
+    IncrementalFile(IncrementalFile),
 }
 
+/// The details of the IO operation
 #[derive(Debug)]
 pub struct Item {
     /// The path to operate on
@@ -81,10 +132,18 @@ pub struct Item {
     pub finish: Option<Duration>,
     /// The length of the file, for files (for stats)
     pub size: Option<usize>,
-    /// The result of the operation
+    /// The result of the operation (could now be factored into CompletedIO...)
     pub result: io::Result<()>,
     /// The mode to apply
     pub mode: u32,
+}
+
+#[derive(Debug)]
+pub enum CompletedIo {
+    /// A submitted Item has completed
+    Item(Item),
+    /// An IncrementalFile has completed a single chunk
+    Chunk(usize),
 }
 
 impl Item {
@@ -112,6 +171,61 @@ impl Item {
             mode,
         }
     }
+
+    pub fn write_file_segmented<'a>(
+        full_path: PathBuf,
+        mode: u32,
+        state: IncrementalFileState,
+    ) -> Result<(Self, Box<dyn FnMut(Vec<u8>) -> bool + 'a>)> {
+        let (chunk_submit, content_callback) = state.incremental_file_channel(&full_path, mode)?;
+        let result = Self {
+            full_path,
+            kind: Kind::IncrementalFile(content_callback),
+            start: None,
+            finish: None,
+            size: None,
+            result: Ok(()),
+            mode,
+        };
+        Ok((result, Box::new(chunk_submit)))
+    }
+}
+
+// This could be a boxed trait object perhaps... but since we're looking at
+// rewriting this all into an aio layer anyway, and not looking at plugging
+// different backends in at this time, it can keep.
+/// Implementation specific state for incremental file writes. This effectively
+/// just allows the immediate codepath to get access to the Arc referenced state
+/// without holding a lifetime reference to the executor, as the threaded code
+/// path is all message passing.
+pub enum IncrementalFileState {
+    Threaded,
+    Immediate(immediate::IncrementalFileState),
+}
+
+impl IncrementalFileState {
+    /// Get a channel for submitting incremental file chunks to the executor
+    fn incremental_file_channel(
+        &self,
+        path: &Path,
+        mode: u32,
+    ) -> Result<(Box<dyn FnMut(Vec<u8>) -> bool>, IncrementalFile)> {
+        use std::sync::mpsc::channel;
+        match *self {
+            IncrementalFileState::Threaded => {
+                let (tx, rx) = channel::<Vec<u8>>();
+                let content_callback = IncrementalFile::ThreadedReceiver(rx);
+                let chunk_submit = move |chunk: Vec<u8>| tx.send(chunk).is_ok();
+                Ok((Box::new(chunk_submit), content_callback))
+            }
+            IncrementalFileState::Immediate(ref state) => {
+                let content_callback = IncrementalFile::ImmediateReceiver;
+                let mut writer = immediate::IncrementalFileWriter::new(path, mode, state.clone())?;
+                let chunk_submit = move |chunk: Vec<u8>| writer.chunk_submit(chunk);
+                Ok((Box::new(chunk_submit), content_callback))
+            }
+        }
+    }
 }
 
 /// Trait object for performing IO. At this point the overhead
@@ -122,7 +236,7 @@ pub trait Executor {
     /// During overload situations previously queued items may
     /// need to be completed before the item is accepted:
     /// consume the returned iterator.
-    fn execute(&self, mut item: Item) -> Box<dyn Iterator<Item = Item> + '_> {
+    fn execute(&self, mut item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_> {
         item.start = Some(Instant::now());
         self.dispatch(item)
     }
@@ -130,26 +244,35 @@ pub trait Executor {
     /// Actually dispatch a operation.
     /// This is called by the default execute() implementation and
     /// should not be called directly.
-    fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = Item> + '_>;
+    fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_>;
 
     /// Wrap up any pending operations and iterate over them.
     /// All operations submitted before the join will have been
     /// returned either through ready/complete or join once join
     /// returns.
-    fn join(&mut self) -> Box<dyn Iterator<Item = Item> + '_>;
+    fn join(&mut self) -> Box<dyn Iterator<Item = CompletedIo> + '_>;
 
     /// Iterate over completed items.
-    fn completed(&self) -> Box<dyn Iterator<Item = Item> + '_>;
+    fn completed(&self) -> Box<dyn Iterator<Item = CompletedIo> + '_>;
+
+    /// Get any state needed for incremental file processing
+    fn incremental_file_state(&self) -> IncrementalFileState;
 }
 
 /// Trivial single threaded IO to be used from executors.
 /// (Crazy sophisticated ones can obviously ignore this)
-pub fn perform(item: &mut Item) {
+pub fn perform<F: Fn(usize)>(item: &mut Item, chunk_complete_callback: F) {
     // directories: make them, TODO: register with the dir existence cache.
     // Files, write them.
-    item.result = match item.kind {
+    item.result = match &mut item.kind {
         Kind::Directory => create_dir(&item.full_path),
         Kind::File(ref contents) => write_file(&item.full_path, &contents, item.mode),
+        Kind::IncrementalFile(incremental_file) => write_file_incremental(
+            &item.full_path,
+            incremental_file,
+            item.mode,
+            chunk_complete_callback,
+        ),
     };
     item.finish = item
         .start
@@ -179,6 +302,51 @@ pub fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(
     {
         trace_scoped!("write", "name": path_display, "len": len);
         f.write_all(contents)?;
+    }
+    {
+        trace_scoped!("close", "name:": path_display);
+        drop(f);
+    }
+    Ok(())
+}
+
+#[allow(unused_variables)]
+pub fn write_file_incremental<P: AsRef<Path>, F: Fn(usize)>(
+    path: P,
+    content_callback: &mut IncrementalFile,
+    mode: u32,
+    chunk_complete_callback: F,
+) -> io::Result<()> {
+    let mut opts = OpenOptions::new();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(mode);
+    }
+    let path = path.as_ref();
+    let path_display = format!("{}", path.display());
+    let mut f = {
+        trace_scoped!("creat", "name": path_display);
+        opts.write(true).create(true).truncate(true).open(path)?
+    };
+    if let IncrementalFile::ThreadedReceiver(recv) = content_callback {
+        loop {
+            // We unwrap here because the documented only reason for recv to fail is a close by the sender, which is reading
+            // from the tar file: a failed read there will propogate the error in the main thread directly.
+            let contents = recv.recv().unwrap();
+            let len = contents.len();
+            // Length 0 vector is used for clean EOF signalling.
+            if len == 0 {
+                break;
+            }
+            {
+                trace_scoped!("write_segment", "name": path_display, "len": len);
+                f.write_all(&contents)?;
+                chunk_complete_callback(len);
+            }
+        }
+    } else {
+        unreachable!();
     }
     {
         trace_scoped!("close", "name:": path_display);

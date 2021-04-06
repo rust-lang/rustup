@@ -132,7 +132,7 @@ impl<'a> DownloadCfg<'a> {
             (self.notify_handler)(n.into())
         })?;
 
-        Ok(utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())?)
+        utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
     }
 
     fn download_signature(&self, url: &str) -> Result<String> {
@@ -143,7 +143,7 @@ impl<'a> DownloadCfg<'a> {
             (self.notify_handler)(n.into())
         })?;
 
-        Ok(utils::read_file("signature", &sig_file)?)
+        utils::read_file("signature", &sig_file)
     }
 
     fn check_signature(&self, url: &str, file: &temp::File<'_>) -> Result<&PgpPublicKey> {
