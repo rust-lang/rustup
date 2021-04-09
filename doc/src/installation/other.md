@@ -3,19 +3,19 @@
 The primary installation method, as described at <https://rustup.rs>, differs
 by platform:
 
-* On Windows, download and run the [rustup-init.exe built for
-  `i686-pc-windows-gnu` target][setup]. In general, this is the build of
-  `rustup` one should install on Windows. Despite being built against the GNU
-  toolchain, _the Windows build of `rustup` will install Rust for the MSVC
-  toolchain if it detects that MSVC is installed_. If you prefer to install
-  GNU toolchains or x86_64 toolchains by default this can be modified at
-  install time, either interactively or with the `--default-host` flag, or
-  after installation via `rustup set default-host`.
+* On Windows, download and run the [`rustup-init.exe` built for the
+  `x86_64-pc-windows-msvc` target][setup]. In general, this is the build of
+  `rustup` one should install on Windows. This will require the Visual C++
+  Build Tools 2019 or equivalent (Visual Studio 2019, etc.) to already be
+  installed. If you would prefer to install GNU toolchains or the i686
+  toolchains by default this can be modified at install time, either
+  interactively, with the `--default-host` flag, or after installation
+  via `rustup set default-host`.
 * On Unix, run `curl https://sh.rustup.rs -sSf | sh` in your shell. This
   downloads and runs [`rustup-init.sh`], which in turn downloads and runs the
   correct version of the `rustup-init` executable for your platform.
 
-[setup]: https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe
+[setup]: https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
 [`rustup-init.sh`]: https://static.rust-lang.org/rustup/rustup-init.sh
 
 `rustup-init` accepts arguments, which can be passed through the shell script.
