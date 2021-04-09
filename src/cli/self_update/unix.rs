@@ -129,13 +129,7 @@ pub fn do_remove_from_programs() -> Result<()> {
 }
 
 /// Tell the upgrader to replace the rustup bins, then delete
-/// itself. Like with uninstallation, on Windows we're going to
-/// have to jump through hoops to make everything work right.
-///
-/// On windows we're not going to wait for it to finish before exiting
-/// successfully, so it should not do much, and it should try
-/// really hard to succeed, because at this point the upgrade is
-/// considered successful.
+/// itself.
 pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
     let status = Command::new(setup_path)
         .arg("--self-replace")
@@ -151,8 +145,7 @@ pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
 
 /// This function is as the final step of a self-upgrade. It replaces
 /// `CARGO_HOME`/bin/rustup with the running exe, and updates the the
-/// links to it. On windows this will run *after* the original
-/// rustup process exits.
+/// links to it.
 pub fn self_replace() -> Result<utils::ExitCode> {
     install_bins()?;
 
@@ -181,7 +174,7 @@ fn remove_legacy_source_command(source_cmd: String) -> Result<()> {
 
 fn remove_legacy_paths() -> Result<()> {
     // Before the work to support more kinds of shells, which was released in
-    // version 1.23.0 of rustup, we always inserted this line instead, which is
+    // version 1.23.0 of Rustup, we always inserted this line instead, which is
     // now considered legacy
     remove_legacy_source_command(format!(
         "export PATH=\"{}/bin:$PATH\"\n",

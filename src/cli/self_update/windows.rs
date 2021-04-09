@@ -391,7 +391,7 @@ pub fn self_replace() -> Result<utils::ExitCode> {
 //   This file is opened as inheritable so that subsequent
 //   processes created with the option to inherit handles
 //   will also keep them open.
-// - Run the gc exe, which waits for the original rustup
+// - Run the gc exe, which waits for the original rustup.exe
 //   process to close, then deletes CARGO_HOME. This process
 //   has inherited a FILE_FLAG_DELETE_ON_CLOSE handle to itself.
 // - Finally, spawn yet another system binary with the inherit handles

@@ -1,6 +1,6 @@
 // FIXME: stolen from cargo. Should be extracted into a common crate.
 
-//! Job management (mostly for windows)
+//! Job management (mostly for Windows)
 //!
 //! Most of the time when you're running cargo you expect Ctrl-C to actually
 //! terminate the entire tree of processes in play, not just the one at the top
