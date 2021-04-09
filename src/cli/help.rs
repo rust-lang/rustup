@@ -1,5 +1,5 @@
 pub static RUSTUP_HELP: &str = r"DISCUSSION:
-    rustup installs The Rust Programming Language from the official
+    Rustup installs The Rust Programming Language from the official
     release channels, enabling you to easily switch between stable,
     beta, and nightly compilers and keep them updated. It makes
     cross-compiling simpler with binary builds of the standard library
@@ -105,7 +105,7 @@ pub static TOOLCHAIN_LINK_HELP: &str = r"DISCUSSION:
     toolchain 'latest-stage1' will be used.";
 
 pub static OVERRIDE_HELP: &str = r"DISCUSSION:
-    Overrides configure rustup to use a specific toolchain when
+    Overrides configure Rustup to use a specific toolchain when
     running in a specific directory.
 
     Directories can be assigned their own Rust toolchain with `rustup

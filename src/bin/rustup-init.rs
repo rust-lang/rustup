@@ -1,15 +1,14 @@
-//! The main rustup commandline application
+//! The main Rustup command-line interface
 //!
 //! The rustup binary is a chimera, changing its behavior based on the
 //! name of the binary. This is used most prominently to enable
-//! rustup's tool 'proxies' - that is, rustup itself and the rustup
-//! proxies are the same binary; when the binary is called 'rustup' or
-//! 'rustup.exe' rustup behaves like the rustup commandline
-//! application; when it is called 'rustc' it behaves as a proxy to
-//! 'rustc'.
+//! Rustup's tool 'proxies' - that is, rustup itself and the rustup
+//! proxies are the same binary: when the binary is called 'rustup' or
+//! 'rustup.exe' it offers the Rustup command-line interface, and
+//! when it is called 'rustc' it behaves as a proxy to 'rustc'.
 //!
-//! This scheme is further used to distinguish the rustup installer,
-//! called 'rustup-init' which is again just the rustup binary under a
+//! This scheme is further used to distinguish the Rustup installer,
+//! called 'rustup-init', which is again just the rustup binary under a
 //! different name.
 
 #![recursion_limit = "1024"]

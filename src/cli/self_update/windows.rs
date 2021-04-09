@@ -383,7 +383,7 @@ pub fn self_replace() -> Result<utils::ExitCode> {
 // like when they are running.
 //
 // Here's what we're going to do:
-// - Copy rustup to a temporary file in
+// - Copy rustup.exe to a temporary file in
 //   CARGO_HOME/../rustup-gc-$random.exe.
 // - Open the gc exe with the FILE_FLAG_DELETE_ON_CLOSE and
 //   FILE_SHARE_DELETE flags. This is going to be the last

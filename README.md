@@ -1,4 +1,4 @@
-# rustup: the Rust toolchain installer
+# Rustup: the Rust toolchain installer
 
 | Master CI    | Build Status                                             |
 |--------------|----------------------------------------------------------|
@@ -6,7 +6,7 @@
 | macOS        | ![maOS builds][actions-macos-master]                     |
 | Linux Etc    | ![Linux (etc) builds][actions-linux-master]              |
 
-*rustup* installs [The Rust Programming Language][rustlang] from the official
+*Rustup* installs [The Rust Programming Language][rustlang] from the official
 release channels, enabling you to easily switch between stable, beta,
 and nightly compilers and keep them updated. It makes cross-compiling
 simpler with binary builds of the standard library for common platforms.
@@ -16,16 +16,16 @@ And it runs on all platforms Rust supports, including Windows.
 
 ## Documentation
 
-See [**The rustup book**](https://rust-lang.github.io/rustup/) for
-documentation on installing and using rustup.
+See [**The Rustup book**](https://rust-lang.github.io/rustup/) for
+documentation on installing and using Rustup.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for information on contributing to rustup.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for information on contributing to Rustup.
 
 ## License
 
-Copyright Diggory Blake, the Mozilla Corporation, and rustup
+Copyright Diggory Blake, the Mozilla Corporation, and Rustup
 contributors.
 
 Licensed under either of
