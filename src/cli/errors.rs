@@ -13,6 +13,7 @@ use strsim::damerau_levenshtein;
 
 use super::rustup_mode::CompletionCommand;
 use crate::dist::temp;
+use crate::TOOLS;
 
 error_chain! {
     links {
@@ -47,6 +48,14 @@ error_chain! {
         NoExeName {
             description("couldn't determine self executable name")
         }
+        UnknownProxyName(n: String) {
+            description("unknown proxy name")
+            display(
+                "unknown proxy name: '{}'; valid proxy names are {}",
+                n,
+                valid_proxy_names(),
+            )
+        }
         NotSelfInstalled(p: PathBuf) {
             description("rustup is not installed")
             display("rustup is not installed at '{}'", p.display())
@@ -72,6 +81,14 @@ error_chain! {
             display("could not amend shell profile: '{}'", path.display())
         }
     }
+}
+
+fn valid_proxy_names() -> String {
+    TOOLS
+        .iter()
+        .map(|s| format!("'{}'", s))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn maybe_suggest_toolchain(bad_name: &str) -> String {
