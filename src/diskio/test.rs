@@ -14,7 +14,7 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
         vars,
         ..Default::default()
     });
-    currentprocess::with(tp.clone(), || -> Result<()> {
+    currentprocess::with(tp, || -> Result<()> {
         let mut written = 0;
         let mut file_finished = false;
         let mut io_executor: Box<dyn Executor> = get_executor(None)?;
@@ -31,7 +31,7 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
         chunk.extend(b"0123456789");
         // We should be able to submit more than one chunk
         sender(chunk.clone());
-        sender(chunk.clone());
+        sender(chunk);
         loop {
             for work in io_executor.completed().collect::<Vec<_>>() {
                 match work {
@@ -54,7 +54,7 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
                     }
                 }
             }
-            if file_finished == true {
+            if file_finished {
                 break;
             }
         }

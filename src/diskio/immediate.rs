@@ -154,8 +154,8 @@ impl IncrementalFileWriter {
             opts.write(true).create(true).truncate(true).open(path)?
         });
         Ok(IncrementalFileWriter {
-            file,
             state,
+            file,
             path_display,
         })
     }

@@ -106,7 +106,8 @@ Rust is installed now. Great!
 
 "
             )),
-            format!("pattern not found in \"\"\"{}\"\"\"", out.stdout)
+            "pattern not found in \"\"\"{}\"\"\"",
+            out.stdout
         );
         if cfg!(unix) {
             assert!(!config.homedir.join(".profile").exists());
