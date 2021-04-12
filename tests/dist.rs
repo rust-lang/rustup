@@ -501,17 +501,16 @@ enum Compressions {
     GZOnly,
     AddXZ,
     AddZStd,
-    AddXZAndZStd,
 }
 use Compressions::*;
 
 impl Compressions {
     fn enable_xz(self) -> bool {
-        matches!(self, AddXZ | AddXZAndZStd)
+        matches!(self, AddXZ)
     }
 
     fn enable_zst(self) -> bool {
-        matches!(self, AddZStd | AddXZAndZStd)
+        matches!(self, AddZStd)
     }
 }
 

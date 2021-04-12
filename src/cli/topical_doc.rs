@@ -42,10 +42,8 @@ fn search_path(doc: &DocData<'_>, wpath: &Path, keywords: &[&str]) -> Result<Pat
                 return Ok(dir.join(filename));
             }
         }
-        no_document(doc.topic)
-    } else {
-        no_document(doc.topic)
     }
+    no_document(doc.topic)
 }
 
 pub fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
