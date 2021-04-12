@@ -21,7 +21,7 @@
 //!
 //! Rustup addresses this by:
 //! 1) using a shell script that updates PATH if the path is not in PATH
-//! 2) sourcing this script in any known and appropriate rc file
+//! 2) sourcing this script (`. /path/to/script`) in any appropriate rc file
 
 use std::path::PathBuf;
 
@@ -82,7 +82,7 @@ pub trait UnixShell {
     // heuristic should be used, assuming shells exist if any traces do.
     fn does_exist(&self) -> bool;
 
-    // Gives all rcfiles of a given shell that rustup is concerned with.
+    // Gives all rcfiles of a given shell that Rustup is concerned with.
     // Used primarily in checking rcfiles for cleanup.
     fn rcfiles(&self) -> Vec<PathBuf>;
 
