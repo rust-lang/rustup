@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.24.0] - 2021-03-??
+## [1.24.0] - 2021-04-27
 
 This release is mostly a bugfix and quality of life improvement release. However
 the headlines for this release are:
