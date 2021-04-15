@@ -238,7 +238,7 @@ pub static COMPLETIONS_HELP: &str = r"DISCUSSION:
     POWERSHELL:
 
     The powershell completion scripts require PowerShell v5.0+ (which
-    comes Windows 10, but can be downloaded separately for windows 7
+    comes with Windows 10, but can be downloaded separately for windows 7
     or 8.1).
 
     First, check if a profile has already been set
