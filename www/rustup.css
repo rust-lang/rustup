@@ -70,9 +70,13 @@ body#idx > #pitch {
     width: 35rem;
 }
 
-#pitch em {
+#pitch i {
     font-style: normal;
     font-weight: 400;
+}
+
+#about i ,i, #platform-instructions-default i, #platform-instructions-win64 i, #platform-instructions-win32 i{
+    font-style: normal;
 }
 
 body#idx p {
