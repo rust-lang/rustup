@@ -372,7 +372,9 @@ mod windows {
                         .unwrap()
                         .to_string()
                         .contains(path.trim_matches('"')),
-                    format!("`{}` not in `{}`", path, get_path().unwrap().unwrap())
+                    "`{}` not in `{}`",
+                    path,
+                    get_path().unwrap().unwrap()
                 );
 
                 expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
