@@ -325,10 +325,7 @@ fn rustup_failed_path_search() {
         expect_err(
             config,
             broken,
-            &format!(
-                "'fake_proxy{}' is not installed for the toolchain 'custom'",
-                EXE_SUFFIX
-            ),
+            &format!("unknown proxy name: 'fake_proxy'; valid proxy names are 'rustc', 'rustdoc', 'cargo', 'rust-lldb', 'rust-gdb', 'rls', 'cargo-clippy', 'clippy-driver', 'cargo-miri'",),
         );
 
         // Hardlink will be automatically cleaned up by test setup code
