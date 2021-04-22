@@ -489,12 +489,18 @@ fn unpack_without_first_dir<'a, R: Read>(
                         continue;
                     }
                     Some(DirStatus::Exists) => {
-                        break item;
+                        break Some(item);
                     }
                     Some(DirStatus::Pending(pending)) => {
-                        // Parent dir is being made, take next item from tar
+                        // Parent dir is being made
                         pending.push(item);
-                        continue 'entries;
+                        if incremental_file_sender.is_none() {
+                            // take next item from tar
+                            continue 'entries;
+                        } else {
+                            // don't submit a new item for processing, but do be ready to feed data to the incremental file.
+                            break None;
+                        }
                     }
                 }
             } else {
@@ -503,12 +509,14 @@ fn unpack_without_first_dir<'a, R: Read>(
             }
         };
 
-        // Submit the new item
-        for mut item in io_executor.execute(item).collect::<Vec<_>>() {
-            // TODO capture metrics
-            budget.reclaim(&item);
-            filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
-            trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
+        if let Some(item) = item {
+            // Submit the new item
+            for mut item in io_executor.execute(item).collect::<Vec<_>>() {
+                // TODO capture metrics
+                budget.reclaim(&item);
+                filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+                trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
+            }
         }
 
         let mut incremental_file_sender = incremental_file_sender
