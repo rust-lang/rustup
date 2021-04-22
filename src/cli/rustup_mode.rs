@@ -1197,9 +1197,9 @@ fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCod
         Err(e) => return Err(e.into()),
         Ok((toolchain, reason)) => {
             if let Some(reason) = reason {
-                writeln!(process().stdout(), "{} ({})", toolchain.name(), reason,)?;
+                writeln!(process().stdout(), "{} ({})", toolchain.name(), reason)?;
             } else {
-                writeln!(process().stdout(), "{} (default)", toolchain.name(),)?;
+                writeln!(process().stdout(), "{} (default)", toolchain.name())?;
             }
             if verbose {
                 writeln!(process().stdout(), "{}", toolchain.rustc_version())?;
