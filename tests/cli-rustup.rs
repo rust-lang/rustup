@@ -1090,7 +1090,8 @@ fn show_active_toolchain_with_verbose() {
             config,
             &["rustup", "show", "active-toolchain", "--verbose"],
             for_host!(
-                r"nightly-{0} (default) - 1.3.0 (hash-nightly-2)
+                r"nightly-{0} (default)
+1.3.0 (hash-nightly-2)
 "
             ),
             r"",
