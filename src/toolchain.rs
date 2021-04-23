@@ -245,11 +245,15 @@ impl<'a> Toolchain<'a> {
 
                 // some toolchains are faulty with some combinations of platforms and
                 // may fail to launch but also to timely terminate.
-                // (known cases include Rust 1.3.0 through 1.10.0 in recent macOS Sierra.)
+                // (
+                //   known cases include Rust versions
+                //     - 1.3.0 through 1.10.0 in recent macOS Sierra.
+                //     - 1.10.0 through 1.51.0 in macOS Big Surf.
+                // )
                 // we guard against such cases by enforcing a reasonable timeout to read.
                 let mut line1 = None;
                 if let Ok(mut child) = cmd.spawn() {
-                    let timeout = Duration::new(10, 0);
+                    let timeout = Duration::new(24, 0);
                     match child.wait_timeout(timeout) {
                         Ok(Some(status)) if status.success() => {
                             let out = child
