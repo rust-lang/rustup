@@ -16,7 +16,7 @@ use crate::mock::clitools::hard_link;
 // This function changes the mock manifest for a given channel to that
 // of a particular date. For advancing the build from e.g. 2016-02-1
 // to 2016-02-02
-pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
+pub(crate) fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
     let path = dist_server.to_file_path().unwrap();
 
     // V2
@@ -61,67 +61,67 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
 }
 
 // The manifest version created by this mock
-pub const MOCK_MANIFEST_VERSION: &str = "2";
+pub(crate) const MOCK_MANIFEST_VERSION: &str = "2";
 
 // A mock Rust v2 distribution server. Create it and and run `write`
 // to write its structure to a directory.
-pub struct MockDistServer {
+pub(crate) struct MockDistServer {
     // The local path to the dist server root
-    pub path: PathBuf,
-    pub channels: Vec<MockChannel>,
+    pub(crate) path: PathBuf,
+    pub(crate) channels: Vec<MockChannel>,
 }
 
 // A Rust distribution channel
-pub struct MockChannel {
+pub(crate) struct MockChannel {
     // e.g. "nightly"
-    pub name: String,
+    pub(crate) name: String,
     // YYYY-MM-DD
-    pub date: String,
-    pub packages: Vec<MockPackage>,
-    pub renames: HashMap<String, String>,
+    pub(crate) date: String,
+    pub(crate) packages: Vec<MockPackage>,
+    pub(crate) renames: HashMap<String, String>,
 }
 
 // A single rust-installer package
 #[derive(Debug, Hash, Eq, PartialEq)]
-pub struct MockPackage {
+pub(crate) struct MockPackage {
     // rust, rustc, rust-std-$triple, rust-doc, etc.
-    pub name: &'static str,
-    pub version: String,
-    pub targets: Vec<MockTargetedPackage>,
+    pub(crate) name: &'static str,
+    pub(crate) version: String,
+    pub(crate) targets: Vec<MockTargetedPackage>,
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
-pub struct MockTargetedPackage {
+pub(crate) struct MockTargetedPackage {
     // Target triple
-    pub target: String,
+    pub(crate) target: String,
     // Whether the file actually exists (could be due to build failure)
-    pub available: bool,
-    pub components: Vec<MockComponent>,
+    pub(crate) available: bool,
+    pub(crate) components: Vec<MockComponent>,
     // The mock rust-installer
-    pub installer: MockInstallerBuilder,
+    pub(crate) installer: MockInstallerBuilder,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct MockComponent {
-    pub name: String,
-    pub target: String,
-    pub is_extension: bool,
+pub(crate) struct MockComponent {
+    pub(crate) name: String,
+    pub(crate) target: String,
+    pub(crate) is_extension: bool,
 }
 
 #[derive(Clone)]
-pub struct MockHashes {
-    pub gz: String,
-    pub xz: Option<String>,
-    pub zst: Option<String>,
+pub(crate) struct MockHashes {
+    pub(crate) gz: String,
+    pub(crate) xz: Option<String>,
+    pub(crate) zst: Option<String>,
 }
 
-pub enum ManifestVersion {
+pub(crate) enum ManifestVersion {
     V1,
     V2,
 }
 
 impl MockDistServer {
-    pub fn write(&self, vs: &[ManifestVersion], enable_xz: bool, enable_zst: bool) {
+    pub(crate) fn write(&self, vs: &[ManifestVersion], enable_xz: bool, enable_zst: bool) {
         fs::create_dir_all(&self.path).unwrap();
 
         for channel in self.channels.iter() {
@@ -506,7 +506,7 @@ fn create_tarball(relpath: &Path, src: &Path, dst: &Path) -> io::Result<()> {
     tar.finish()
 }
 
-pub fn calc_hash(src: &Path) -> String {
+pub(crate) fn calc_hash(src: &Path) -> String {
     let mut buf = Vec::new();
     File::open(src).unwrap().read_to_end(&mut buf).unwrap();
     let mut hasher = Sha256::new();
@@ -514,7 +514,7 @@ pub fn calc_hash(src: &Path) -> String {
     format!("{:x}", hasher.finalize())
 }
 
-pub fn create_hash(src: &Path, dst: &Path) -> String {
+pub(crate) fn create_hash(src: &Path, dst: &Path) -> String {
     let hex = calc_hash(src);
     let src_file = src.file_name().unwrap();
     let file_contents = format!("{} *{}\n", hex, src_file.to_string_lossy());
@@ -522,7 +522,7 @@ pub fn create_hash(src: &Path, dst: &Path) -> String {
     hex
 }
 
-pub fn write_file(dst: &Path, contents: &str) {
+pub(crate) fn write_file(dst: &Path, contents: &str) {
     drop(fs::remove_file(dst));
     File::create(dst)
         .and_then(|mut f| f.write_all(contents.as_bytes()))
@@ -539,7 +539,7 @@ fn get_secret_key() -> pgp::SignedSecretKey {
     key
 }
 
-pub fn get_public_key() -> pgp::SignedPublicKey {
+pub(crate) fn get_public_key() -> pgp::SignedPublicKey {
     use pgp::Deserializable;
     let (key, _) =
         pgp::SignedPublicKey::from_armor_single(std::io::Cursor::new(PUB_SIGNING_KEY_BYTES))
@@ -547,7 +547,7 @@ pub fn get_public_key() -> pgp::SignedPublicKey {
     key
 }
 
-pub fn create_signature(data: &[u8]) -> std::result::Result<String, pgp::errors::Error> {
+pub(crate) fn create_signature(data: &[u8]) -> std::result::Result<String, pgp::errors::Error> {
     let key = get_secret_key();
 
     let msg = pgp::Message::new_literal_bytes("message", data);

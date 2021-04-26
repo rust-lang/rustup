@@ -1,6 +1,6 @@
 //! Test cases for new rustup UI
 
-pub mod mock;
+pub(crate) mod mock;
 
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
@@ -21,7 +21,7 @@ macro_rules! for_host_and_home {
     };
 }
 
-pub fn setup(f: &dyn Fn(&Config)) {
+pub(crate) fn setup(f: &dyn Fn(&Config)) {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         f(config);
     });

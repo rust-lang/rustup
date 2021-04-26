@@ -1,7 +1,7 @@
 // Tests of installation and updates from a v2 Rust distribution
 // server (mocked on the file system)
 
-pub mod mock;
+pub(crate) mod mock;
 
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -33,7 +33,7 @@ use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 const SHA256_HASH_LEN: usize = 64;
 
 // Creates a mock dist server populated with some test data
-pub fn create_mock_dist_server(
+pub(crate) fn create_mock_dist_server(
     path: &Path,
     edit: Option<&dyn Fn(&str, &mut MockChannel)>,
 ) -> MockDistServer {
@@ -46,7 +46,7 @@ pub fn create_mock_dist_server(
     }
 }
 
-pub fn create_mock_channel(
+pub(crate) fn create_mock_channel(
     channel: &str,
     date: &str,
     edit: Option<&dyn Fn(&str, &mut MockChannel)>,

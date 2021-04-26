@@ -1,6 +1,6 @@
 //! Testing self install, uninstall and update
 
-pub mod mock;
+pub(crate) mod mock;
 
 use std::env;
 use std::env::consts::EXE_SUFFIX;
@@ -24,7 +24,7 @@ use crate::mock::dist::calc_hash;
 
 const TEST_VERSION: &str = "1.1.1";
 
-pub fn update_setup(f: &dyn Fn(&Config, &Path)) {
+pub(crate) fn update_setup(f: &dyn Fn(&Config, &Path)) {
     self_update_setup(f, TEST_VERSION)
 }
 

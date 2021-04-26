@@ -1,7 +1,7 @@
 //! Test cases of the rustup command, using v1 manifests, mostly
 //! derived from multirust/test-v2.sh
 
-pub mod mock;
+pub(crate) mod mock;
 
 use std::fs;
 
@@ -12,7 +12,7 @@ use crate::mock::clitools::{
     Scenario,
 };
 
-pub fn setup(f: &dyn Fn(&mut Config)) {
+pub(crate) fn setup(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV1, f);
 }
 

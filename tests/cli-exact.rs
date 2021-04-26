@@ -1,7 +1,7 @@
 //! Yet more cli test cases. These are testing that the output
 //! is exactly as expected.
 
-pub mod mock;
+pub(crate) mod mock;
 
 use crate::mock::clitools::{
     self, check_update_setup, expect_err_ex, expect_ok, expect_ok_ex, expect_stdout_ok,

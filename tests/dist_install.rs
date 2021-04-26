@@ -1,4 +1,4 @@
-pub mod mock;
+pub(crate) mod mock;
 
 use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 use rustup::dist::component::Components;

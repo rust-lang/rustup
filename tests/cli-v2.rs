@@ -1,7 +1,7 @@
 //! Test cases of the rustup command, using v2 manifests, mostly
 //! derived from multirust/test-v2.sh
 
-pub mod mock;
+pub(crate) mod mock;
 
 use std::fs;
 use std::io::Write;
@@ -16,11 +16,11 @@ use crate::mock::clitools::{
     expect_stdout_ok, set_current_dist_date, Config, Scenario,
 };
 
-pub fn setup(f: &dyn Fn(&mut Config)) {
+pub(crate) fn setup(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);
 }
 
-pub fn setup_complex(f: &dyn Fn(&mut Config)) {
+pub(crate) fn setup_complex(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::UnavailableRls, f);
 }
 

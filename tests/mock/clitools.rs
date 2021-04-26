@@ -28,31 +28,31 @@ use crate::mock::topical_doc_data;
 use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 /// The configuration used by the tests in this module
-pub struct Config {
+pub(crate) struct Config {
     /// Where we put the rustup / rustc / cargo bins
-    pub exedir: PathBuf,
+    pub(crate) exedir: PathBuf,
     /// The distribution server
-    pub distdir: PathBuf,
+    pub(crate) distdir: PathBuf,
     /// RUSTUP_HOME
-    pub rustupdir: rustup_test::RustupHome,
+    pub(crate) rustupdir: rustup_test::RustupHome,
     /// Custom toolchains
-    pub customdir: PathBuf,
+    pub(crate) customdir: PathBuf,
     /// CARGO_HOME
-    pub cargodir: PathBuf,
+    pub(crate) cargodir: PathBuf,
     /// ~
-    pub homedir: PathBuf,
+    pub(crate) homedir: PathBuf,
     /// An empty directory. Tests should not write to this.
-    pub emptydir: PathBuf,
+    pub(crate) emptydir: PathBuf,
     /// Root for updates to rustup itself aka RUSTUP_UPDATE_ROOT
-    pub rustup_update_root: Option<String>,
+    pub(crate) rustup_update_root: Option<String>,
     /// This is cwd for the test
-    pub workdir: RefCell<PathBuf>,
+    pub(crate) workdir: RefCell<PathBuf>,
 }
 
 // Describes all the features of the mock dist server.
 // Building the mock server is slow, so use simple scenario when possible.
 #[derive(PartialEq, Copy, Clone)]
-pub enum Scenario {
+pub(crate) enum Scenario {
     /// No dist server content
     Empty,
     /// Two dates, two manifests
@@ -82,18 +82,18 @@ pub enum Scenario {
     MissingComponentMulti,
 }
 
-pub static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
-pub static CROSS_ARCH2: &str = "arm-linux-androideabi";
+pub(crate) static CROSS_ARCH1: &str = "x86_64-unknown-linux-musl";
+pub(crate) static CROSS_ARCH2: &str = "arm-linux-androideabi";
 
 // Architecture for testing 'multi-host' installation.
 #[cfg(target_pointer_width = "64")]
-pub static MULTI_ARCH1: &str = "i686-unknown-linux-gnu";
+pub(crate) static MULTI_ARCH1: &str = "i686-unknown-linux-gnu";
 #[cfg(not(target_pointer_width = "64"))]
-pub static MULTI_ARCH1: &str = "x86_64-unknown-linux-gnu";
+pub(crate) static MULTI_ARCH1: &str = "x86_64-unknown-linux-gnu";
 
 /// Run this to create the test environment containing rustup, and
 /// a mock dist server.
-pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
+pub(crate) fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     // Unset env variables that will break our testing
     env::remove_var("RUSTUP_UPDATE_ROOT");
     env::remove_var("RUSTUP_TOOLCHAIN");
@@ -203,7 +203,7 @@ fn create_local_update_server(self_dist: &Path, config: &mut Config, version: &s
     config.rustup_update_root = Some(root_url);
 }
 
-pub fn check_update_setup(f: &dyn Fn(&mut Config)) {
+pub(crate) fn check_update_setup(f: &dyn Fn(&mut Config)) {
     let version = env!("CARGO_PKG_VERSION");
 
     setup(Scenario::ArchivesV2, &|config| {
@@ -219,7 +219,7 @@ pub fn check_update_setup(f: &dyn Fn(&mut Config)) {
     });
 }
 
-pub fn self_update_setup(f: &dyn Fn(&Config, &Path), version: &str) {
+pub(crate) fn self_update_setup(f: &dyn Fn(&Config, &Path), version: &str) {
     setup(Scenario::SimpleV2, &|config| {
         // Create a mock self-update server
         let self_dist_tmp = tempfile::Builder::new()
@@ -241,7 +241,7 @@ pub fn self_update_setup(f: &dyn Fn(&Config, &Path), version: &str) {
     });
 }
 
-pub fn output_release_file(dist_dir: &Path, schema: &str, version: &str) {
+pub(crate) fn output_release_file(dist_dir: &Path, schema: &str, version: &str) {
     let contents = format!(
         r#"
 schema-version = "{}"
@@ -254,11 +254,11 @@ version = "{}"
 }
 
 impl Config {
-    pub fn current_dir(&self) -> PathBuf {
+    pub(crate) fn current_dir(&self) -> PathBuf {
         self.workdir.borrow().clone()
     }
 
-    pub fn change_dir<F>(&self, path: &Path, mut f: F)
+    pub(crate) fn change_dir<F>(&self, path: &Path, mut f: F)
     where
         F: FnMut(),
     {
@@ -271,7 +271,7 @@ impl Config {
         *self.workdir.borrow_mut() = prev;
     }
 
-    pub fn create_rustup_sh_metadata(&self) {
+    pub(crate) fn create_rustup_sh_metadata(&self) {
         let rustup_dir = self.homedir.join(".rustup");
         fs::create_dir_all(&rustup_dir).unwrap();
         let version_file = rustup_dir.join("rustup-version");
@@ -280,14 +280,14 @@ impl Config {
 }
 
 /// Change the current distribution manifest to a particular date
-pub fn set_current_dist_date(config: &Config, date: &str) {
+pub(crate) fn set_current_dist_date(config: &Config, date: &str) {
     let url = Url::from_file_path(&config.distdir).unwrap();
     for channel in &["nightly", "beta", "stable"] {
         change_channel_date(&url, channel, date);
     }
 }
 
-pub fn expect_ok(config: &Config, args: &[&str]) {
+pub(crate) fn expect_ok(config: &Config, args: &[&str]) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok {
         print_command(args, &out);
@@ -296,7 +296,7 @@ pub fn expect_ok(config: &Config, args: &[&str]) {
     }
 }
 
-pub fn expect_err(config: &Config, args: &[&str], expected: &str) {
+pub(crate) fn expect_err(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if out.ok || !out.stderr.contains(expected) {
         print_command(args, &out);
@@ -306,7 +306,7 @@ pub fn expect_err(config: &Config, args: &[&str], expected: &str) {
     }
 }
 
-pub fn expect_stdout_ok(config: &Config, args: &[&str], expected: &str) {
+pub(crate) fn expect_stdout_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || !out.stdout.contains(expected) {
         print_command(args, &out);
@@ -316,7 +316,7 @@ pub fn expect_stdout_ok(config: &Config, args: &[&str], expected: &str) {
     }
 }
 
-pub fn expect_not_stdout_ok(config: &Config, args: &[&str], expected: &str) {
+pub(crate) fn expect_not_stdout_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || out.stdout.contains(expected) {
         print_command(args, &out);
@@ -326,7 +326,7 @@ pub fn expect_not_stdout_ok(config: &Config, args: &[&str], expected: &str) {
     }
 }
 
-pub fn expect_not_stderr_ok(config: &Config, args: &[&str], expected: &str) {
+pub(crate) fn expect_not_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || out.stderr.contains(expected) {
         print_command(args, &out);
@@ -336,7 +336,7 @@ pub fn expect_not_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     }
 }
 
-pub fn expect_not_stderr_err(config: &Config, args: &[&str], expected: &str) {
+pub(crate) fn expect_not_stderr_err(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if out.ok || out.stderr.contains(expected) {
         print_command(args, &out);
@@ -346,7 +346,7 @@ pub fn expect_not_stderr_err(config: &Config, args: &[&str], expected: &str) {
     }
 }
 
-pub fn expect_stderr_ok(config: &Config, args: &[&str], expected: &str) {
+pub(crate) fn expect_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || !out.stderr.contains(expected) {
         print_command(args, &out);
@@ -356,7 +356,7 @@ pub fn expect_stderr_ok(config: &Config, args: &[&str], expected: &str) {
     }
 }
 
-pub fn expect_ok_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) {
+pub(crate) fn expect_ok_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || out.stdout != stdout || out.stderr != stderr {
         print_command(args, &out);
@@ -369,7 +369,7 @@ pub fn expect_ok_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) 
     }
 }
 
-pub fn expect_err_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) {
+pub(crate) fn expect_err_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if out.ok || out.stdout != stdout || out.stderr != stderr {
         print_command(args, &out);
@@ -380,7 +380,7 @@ pub fn expect_err_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str)
     }
 }
 
-pub fn expect_ok_contains(config: &Config, args: &[&str], stdout: &str, stderr: &str) {
+pub(crate) fn expect_ok_contains(config: &Config, args: &[&str], stdout: &str, stderr: &str) {
     let out = run(config, args[0], &args[1..], &[]);
     if !out.ok || !out.stdout.contains(stdout) || !out.stderr.contains(stderr) {
         print_command(args, &out);
@@ -391,7 +391,7 @@ pub fn expect_ok_contains(config: &Config, args: &[&str], stdout: &str, stderr: 
     }
 }
 
-pub fn expect_ok_eq(config: &Config, args1: &[&str], args2: &[&str]) {
+pub(crate) fn expect_ok_eq(config: &Config, args1: &[&str], args2: &[&str]) {
     let out1 = run(config, args1[0], &args1[1..], &[]);
     let out2 = run(config, args2[0], &args2[1..], &[]);
     if !out1.ok || !out2.ok || out1.stdout != out2.stdout || out1.stderr != out2.stderr {
@@ -403,7 +403,7 @@ pub fn expect_ok_eq(config: &Config, args1: &[&str], args2: &[&str]) {
     }
 }
 
-pub fn expect_component_executable(config: &Config, cmd: &str) {
+pub(crate) fn expect_component_executable(config: &Config, cmd: &str) {
     let out1 = run(config, cmd, &["--version"], &[]);
     if !out1.ok {
         print_command(&[cmd, "--version"], &out1);
@@ -412,7 +412,7 @@ pub fn expect_component_executable(config: &Config, cmd: &str) {
     }
 }
 
-pub fn expect_component_not_executable(config: &Config, cmd: &str) {
+pub(crate) fn expect_component_not_executable(config: &Config, cmd: &str) {
     let out1 = run(config, cmd, &["--version"], &[]);
     if out1.ok {
         print_command(&[cmd, "--version"], &out1);
@@ -445,20 +445,20 @@ fn print_indented(heading: &str, text: &str) {
     );
 }
 
-pub struct Output {
-    pub status: Option<i32>,
-    pub stdout: Vec<u8>,
-    pub stderr: Vec<u8>,
+pub(crate) struct Output {
+    pub(crate) status: Option<i32>,
+    pub(crate) stdout: Vec<u8>,
+    pub(crate) stderr: Vec<u8>,
 }
 
 #[derive(Debug)]
-pub struct SanitizedOutput {
-    pub ok: bool,
-    pub stdout: String,
-    pub stderr: String,
+pub(crate) struct SanitizedOutput {
+    pub(crate) ok: bool,
+    pub(crate) stdout: String,
+    pub(crate) stderr: String,
 }
 
-pub fn cmd<I, A>(config: &Config, name: &str, args: I) -> Command
+pub(crate) fn cmd<I, A>(config: &Config, name: &str, args: I) -> Command
 where
     I: IntoIterator<Item = A>,
     A: AsRef<OsStr>,
@@ -471,7 +471,7 @@ where
     cmd
 }
 
-pub fn env<E: rustup_test::Env>(config: &Config, cmd: &mut E) {
+pub(crate) fn env<E: rustup_test::Env>(config: &Config, cmd: &mut E) {
     // Ensure PATH is prefixed with the rustup-exe directory
     let prev_path = env::var_os("PATH");
     let mut new_path = config.exedir.clone().into_os_string();
@@ -531,7 +531,7 @@ use std::sync::RwLock;
 /// environments. In doing this we can ensure that new test environment creation
 /// does not result in ETXTBSY because the FDs in question happen to be in
 /// newly `fork()`d but not yet `exec()`d subprocesses of other tests.
-pub fn cmd_lock() -> &'static RwLock<()> {
+pub(crate) fn cmd_lock() -> &'static RwLock<()> {
     lazy_static! {
         static ref LOCK: RwLock<()> = RwLock::new(());
     };
@@ -575,7 +575,12 @@ where
     !(run || self_cmd || version || (is_update && !no_self_update))
 }
 
-pub fn run<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
+pub(crate) fn run<I, A>(
+    config: &Config,
+    name: &str,
+    args: I,
+    env: &[(&str, &str)],
+) -> SanitizedOutput
 where
     I: IntoIterator<Item = A> + Clone,
     A: AsRef<OsStr>,
@@ -600,7 +605,12 @@ where
     output
 }
 
-pub fn run_inprocess<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> Output
+pub(crate) fn run_inprocess<I, A>(
+    config: &Config,
+    name: &str,
+    args: I,
+    env: &[(&str, &str)],
+) -> Output
 where
     I: IntoIterator<Item = A>,
     A: AsRef<OsStr>,
@@ -643,7 +653,12 @@ where
     }
 }
 
-pub fn run_subprocess<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> Output
+pub(crate) fn run_subprocess<I, A>(
+    config: &Config,
+    name: &str,
+    args: I,
+    env: &[(&str, &str)],
+) -> Output
 where
     I: IntoIterator<Item = A>,
     A: AsRef<OsStr>,
@@ -1343,7 +1358,7 @@ fn create_custom_toolchains(customdir: &Path) {
     }
 }
 
-pub fn hard_link<A, B>(a: A, b: B) -> io::Result<()>
+pub(crate) fn hard_link<A, B>(a: A, b: B) -> io::Result<()>
 where
     A: AsRef<Path>,
     B: AsRef<Path>,
@@ -1358,7 +1373,7 @@ where
     inner(a.as_ref(), b.as_ref())
 }
 
-pub fn copy_binary<A, B>(a: A, b: B) -> io::Result<()>
+pub(crate) fn copy_binary<A, B>(a: A, b: B) -> io::Result<()>
 where
     A: AsRef<Path>,
     B: AsRef<Path>,

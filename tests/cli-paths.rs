@@ -1,7 +1,7 @@
 //! This file contains tests relevant to Rustup's handling of updating PATHs.
 //! It depends on self-update working, so if absolutely everything here breaks,
 //! check those tests as well.
-pub mod mock;
+pub(crate) mod mock;
 
 // Prefer omitting actually unpacking content while just testing paths.
 const INIT_NONE: [&str; 4] = ["rustup-init", "-y", "--default-toolchain", "none"];

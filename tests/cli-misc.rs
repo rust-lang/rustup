@@ -1,7 +1,7 @@
 //! Test cases of the rustup command that do not depend on the
 //! dist server, mostly derived from multirust/test-v2.sh
 
-pub mod mock;
+pub(crate) mod mock;
 
 use std::env::consts::EXE_SUFFIX;
 use std::str;
@@ -16,7 +16,7 @@ use crate::mock::clitools::{
     expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date, Config, Scenario,
 };
 
-pub fn setup(f: &dyn Fn(&mut Config)) {
+pub(crate) fn setup(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);
 }
 

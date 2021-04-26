@@ -1,6 +1,6 @@
 //! Tests of the interactive console installer
 
-pub mod mock;
+pub(crate) mod mock;
 
 use std::env::consts::EXE_SUFFIX;
 use std::io::Write;

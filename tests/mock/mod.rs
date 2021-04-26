@@ -1,8 +1,8 @@
 //! Mocks for testing
 
-pub mod clitools;
-pub mod dist;
-pub mod topical_doc_data;
+pub(crate) mod clitools;
+pub(crate) mod dist;
+pub(crate) mod topical_doc_data;
 
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
@@ -11,18 +11,18 @@ use std::sync::Arc;
 
 // Mock of the on-disk structure of rust-installer installers
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct MockInstallerBuilder {
-    pub components: Vec<MockComponentBuilder>,
+pub(crate) struct MockInstallerBuilder {
+    pub(crate) components: Vec<MockComponentBuilder>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct MockComponentBuilder {
-    pub name: String,
-    pub files: Vec<MockFile>,
+pub(crate) struct MockComponentBuilder {
+    pub(crate) name: String,
+    pub(crate) files: Vec<MockFile>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct MockFile {
+pub(crate) struct MockFile {
     path: String,
     contents: Contents,
 }
@@ -49,7 +49,7 @@ impl std::fmt::Debug for MockContents {
 }
 
 impl MockInstallerBuilder {
-    pub fn build(&self, path: &Path) {
+    pub(crate) fn build(&self, path: &Path) {
         for component in &self.components {
             // Update the components file
             let comp_file = path.join("components");
@@ -88,11 +88,11 @@ impl MockInstallerBuilder {
 }
 
 impl MockFile {
-    pub fn new<S: Into<String>>(path: S, contents: &[u8]) -> MockFile {
+    pub(crate) fn new<S: Into<String>>(path: S, contents: &[u8]) -> MockFile {
         MockFile::_new(path.into(), Arc::new(contents.to_vec()))
     }
 
-    pub fn new_arc<S: Into<String>>(path: S, contents: Arc<Vec<u8>>) -> MockFile {
+    pub(crate) fn new_arc<S: Into<String>>(path: S, contents: Arc<Vec<u8>>) -> MockFile {
         MockFile::_new(path.into(), contents)
     }
 
@@ -106,7 +106,7 @@ impl MockFile {
         }
     }
 
-    pub fn new_dir(path: &str, files: &[(&'static str, &'static [u8], bool)]) -> MockFile {
+    pub(crate) fn new_dir(path: &str, files: &[(&'static str, &'static [u8], bool)]) -> MockFile {
         MockFile {
             path: path.to_string(),
             contents: Contents::Dir(
@@ -126,14 +126,14 @@ impl MockFile {
         }
     }
 
-    pub fn executable(mut self, exe: bool) -> Self {
+    pub(crate) fn executable(mut self, exe: bool) -> Self {
         if let Contents::File(c) = &mut self.contents {
             c.executable = exe;
         }
         self
     }
 
-    pub fn build(&self, path: &Path) {
+    pub(crate) fn build(&self, path: &Path) {
         let path = path.join(&self.path);
         match self.contents {
             Contents::Dir(ref files) => {
