@@ -67,7 +67,7 @@ fn run_rustup_inner() -> Result<utils::ExitCode> {
         Ok(v) => Some(v),
         Err(_) => process().args().next(),
     }
-        .map(PathBuf::from);
+    .map(PathBuf::from);
     let name = arg0
         .as_ref()
         .and_then(|a| a.file_stem())
