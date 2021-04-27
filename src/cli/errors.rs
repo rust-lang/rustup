@@ -13,7 +13,7 @@ use strsim::damerau_levenshtein;
 
 use super::rustup_mode::CompletionCommand;
 use crate::dist::temp;
-use crate::TOOLS;
+use crate::{DUP_TOOLS, TOOLS};
 
 error_chain! {
     links {
@@ -86,6 +86,7 @@ error_chain! {
 fn valid_proxy_names() -> String {
     TOOLS
         .iter()
+        .chain(DUP_TOOLS.iter())
         .map(|s| format!("'{}'", s))
         .collect::<Vec<_>>()
         .join(", ")
