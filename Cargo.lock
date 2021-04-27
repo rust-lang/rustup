@@ -1663,9 +1663,9 @@ dependencies = [
 
 [[package]]
 name = "retry"
-version = "1.2.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c15ef4789108d066d7fd85dcec330eab9b8e51244275922a9b7161afc4f46dda"
+checksum = "d0ee4a654b43dd7e3768be7a1c0fc20e90f0a84b72a60ffb6c11e1cae2545c2e"
 dependencies = [
  "rand 0.7.3",
 ]

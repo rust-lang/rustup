@@ -68,7 +68,7 @@ zstd = "0.6"
 [dependencies.retry]
 default-features = false
 features = ["random"]
-version = "1"
+version = "1.2.1"
 
 [dependencies.rs_tracing]
 features = ["rs_tracing"]
