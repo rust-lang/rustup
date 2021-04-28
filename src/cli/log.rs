@@ -23,6 +23,11 @@ macro_rules! debug {
     ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::debug_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 
+pub fn on_quit_log() {
+    let mut t = term2::stderr();
+    let _ = t.reset();
+}
+
 pub fn warn_fmt(args: fmt::Arguments<'_>) {
     let mut t = term2::stderr();
     let _ = t.fg(term2::color::YELLOW);

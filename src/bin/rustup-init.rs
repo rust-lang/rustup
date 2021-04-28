@@ -12,14 +12,19 @@
 //! different name.
 
 #![recursion_limit = "1024"]
+#![feature(rt)]
 
 use std::path::PathBuf;
+#[cfg(feature = "rt")]
+use std::rt;
 
 use cfg_if::cfg_if;
 use rs_tracing::*;
 
 use rustup::cli::common;
 use rustup::cli::errors::*;
+#[cfg(feature = "rt")]
+use rustup::cli::log;
 use rustup::cli::proxy_mode;
 use rustup::cli::rustup_mode;
 #[cfg(windows)]
@@ -42,6 +47,10 @@ fn main() {
 }
 
 fn run_rustup() -> Result<utils::ExitCode> {
+    #[cfg(feature = "rt")]
+    {
+        let _ = rt::at_exit(log::on_quit_log);
+    }
     if let Ok(dir) = process().var("RUSTUP_TRACE_DIR") {
         open_trace_file!(dir)?;
     }
