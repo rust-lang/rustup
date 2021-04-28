@@ -43,6 +43,7 @@ jobs:
           echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
           echo "SKIP_TESTS=" >> $GITHUB_ENV
           echo "LZMA_API_STATIC=1" >> $GITHUB_ENV
+          echo "RUSTUP_UPDATE_ROOT=https://dev-static.rust-lang.org/rustup" >> $GITHUB_ENV
       - name: Cache cargo registry and git trees
         uses: actions/cache@v2
         with:

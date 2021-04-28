@@ -63,6 +63,7 @@ jobs:
           echo "%USERPROFILE%\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           echo "SKIP_TESTS=" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          echo "RUSTUP_UPDATE_ROOT=https://dev-static.rust-lang.org/rustup" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Cache cargo registry and git trees
         uses: actions/cache@v2
         with:

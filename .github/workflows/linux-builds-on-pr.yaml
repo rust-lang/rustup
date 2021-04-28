@@ -44,6 +44,7 @@ jobs:
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+          echo "RUSTUP_UPDATE_ROOT=https://dev-static.rust-lang.org/rustup" >> $GITHUB_ENV
       - name: Skip tests
         run: |
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV

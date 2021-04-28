@@ -38,6 +38,7 @@ jobs:
       - name: Set environment variables appropriately for the build
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          echo "RUSTUP_UPDATE_ROOT=https://dev-static.rust-lang.org/rustup" >> $GITHUB_ENV
       - name: Cache cargo registry and git trees
         uses: actions/cache@v2
         with:
