@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.24.1] - 2021-04-27
+
+This bugfix release [corrects an oversight][pr#2738] in the code we introduced to check for
+unknown proxy names. The original change accidentally omitted the `rustfmt` and
+`cargo-fmt` proxies due to a quirk of the fact those proxies were not originally
+part of a Rust component.
+
+We're sorry for pain this may have caused.
+
+[pr#2738]: https://github.com/rust-lang/rustup/pull/2738
+
 ## [1.24.0] - 2021-04-27
 
 This release is mostly a bugfix and quality of life improvement release. However
