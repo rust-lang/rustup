@@ -1086,6 +1086,23 @@ fn update_unavailable_std() {
 }
 
 #[test]
+fn add_missing_component_toolchain() {
+    setup(&|config| {
+        make_component_unavailable(config, "rust-std", &this_host_triple());
+        expect_err(
+            config,
+            &["rustup", "toolchain", "add", "nightly"],
+            for_host!(
+                r"component 'rust-std' for target '{0}' is unavailable for download for channel 'nightly'
+Sometimes not all components are available in any given nightly. If you don't need the component, you could try a minimal installation with:
+
+    rustup toolchain add nightly --profile minimal"
+            ),
+        );
+    });
+}
+
+#[test]
 fn update_unavailable_force() {
     setup(&|config| {
         let trip = this_host_triple();
