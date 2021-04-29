@@ -784,7 +784,9 @@ fn add_target_bogus() {
         expect_err(
             config,
             &["rustup", "target", "add", "bogus"],
-            "does not contain component 'rust-std' for target 'bogus'",
+            "does not contain component 'rust-std' for target 'bogus'\n\
+                note: not all platforms have the standard library pre-compiled: https://doc.rust-lang.org/nightly/rustc/platform-support.html\n\
+                help: consider using `cargo build -Z build-std` instead",
         );
     });
 }

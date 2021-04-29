@@ -355,11 +355,16 @@ error_chain! {
         }
         UnknownComponent(t: String, c: String, s: Option<String>) {
             description("toolchain does not contain component")
-            display("toolchain '{}' does not contain component {}{}", t, c, if let Some(suggestion) = s {
-                format!("; did you mean '{}'?", suggestion)
-            } else {
-                "".to_string()
-            })
+            display("toolchain '{}' does not contain component {}{}{}", t, c, if let Some(suggestion) = s {
+                    format!("; did you mean '{}'?", suggestion)
+                } else {
+                    "".to_string()
+                }, if c.contains("rust-std") {
+                    format!("\nnote: not all platforms have the standard library pre-compiled: https://doc.rust-lang.org/nightly/rustc/platform-support.html{}",
+                        if t.contains("nightly") { "\nhelp: consider using `cargo build -Z build-std` instead" } else { "" }
+                    )
+                } else { "".to_string() }
+            )
         }
         UnknownProfile(p: String) {
             description("unknown profile name")
