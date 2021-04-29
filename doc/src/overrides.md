@@ -1,4 +1,4 @@
-[[#]] Overrides
+# Overrides
 
 `rustup` automatically determines which [toolchain] to use when one of the
 installed commands like `rustc` is executed. There are several ways to control
