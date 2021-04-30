@@ -11,6 +11,7 @@ use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use anyhow::{anyhow, Result};
 use url::Url;
 
 use rustup::currentprocess;
@@ -21,10 +22,9 @@ use rustup::dist::manifestation::{Changes, Manifestation, UpdateStatus};
 use rustup::dist::prefix::InstallPrefix;
 use rustup::dist::temp;
 use rustup::dist::Notification;
-use rustup::errors::Result;
+use rustup::errors::RustupError;
 use rustup::utils::raw as utils_raw;
 use rustup::utils::utils;
-use rustup::ErrorKind;
 use rustup::PgpPublicKey;
 
 use crate::mock::dist::*;
@@ -478,7 +478,7 @@ fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url
         dist_server, toolchain.channel
     );
 
-    Ok(Url::parse(&url).map_err(|e| format!("{:?}", e))?)
+    Ok(Url::parse(&url).map_err(|e| anyhow!(format!("{:?}", e)))?)
 }
 
 fn uninstall(
@@ -775,9 +775,9 @@ fn unavailable_component() {
                 false,
             )
             .unwrap_err();
-            match *err.kind() {
-                ErrorKind::RequestedComponentsUnavailable(..) => {
-                    assert!(err.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin bonus"));
+            match err.downcast::<RustupError>() {
+                Ok(e @ RustupError::RequestedComponentsUnavailable { .. }) => {
+                    assert!(e.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin bonus"));
                 }
                 _ => panic!(),
             }
@@ -836,9 +836,9 @@ fn unavailable_component_from_profile() {
                 false,
             )
             .unwrap_err();
-            match *err.kind() {
-                ErrorKind::RequestedComponentsUnavailable(..) => {
-                    assert!(err.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin rustc"));
+            match err.downcast::<RustupError>() {
+                Ok(e @ RustupError::RequestedComponentsUnavailable { .. }) => {
+                    assert!(e.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin rustc"));
                 }
                 _ => panic!(),
             }
@@ -916,9 +916,9 @@ fn removed_component() {
                 false,
             )
             .unwrap_err();
-            match *err.kind() {
-                ErrorKind::RequestedComponentsUnavailable(..) => {
-                    assert!(err.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin bonus"));
+            match err.downcast::<RustupError>() {
+                Ok(e @ RustupError::RequestedComponentsUnavailable { .. }) => {
+                    assert!(e.to_string().contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin bonus"));
                 }
                 _ => panic!(),
             }
@@ -995,9 +995,9 @@ fn unavailable_components_is_target() {
                 false,
             )
             .unwrap_err();
-            match *err.kind() {
-                ErrorKind::RequestedComponentsUnavailable(..) => {
-                    let err_str = err.to_string();
+            match err.downcast::<RustupError>() {
+                Ok(e @ RustupError::RequestedComponentsUnavailable { .. }) => {
+                    let err_str = e.to_string();
                     assert!(err_str
                         .contains("rustup target remove --toolchain nightly i686-apple-darwin"));
                     assert!(err_str.contains(
@@ -1074,12 +1074,14 @@ fn unavailable_components_with_same_target() {
                 false,
             )
             .unwrap_err();
-            match *err.kind() {
-                ErrorKind::RequestedComponentsUnavailable(..) => {
-                    let err_str = err.to_string();
+            match err.downcast::<RustupError>() {
+                Ok(e @ RustupError::RequestedComponentsUnavailable { .. }) => {
+                    let err_str = e.to_string();
                     assert!(err_str
                         .contains("rustup target remove --toolchain nightly x86_64-apple-darwin"));
-                    assert!(err_str.contains("rustup component remove --toolchain nightly --target x86_64-apple-darwin rustc"));
+                    assert!(err_str.contains(
+                                "rustup component remove --toolchain nightly --target x86_64-apple-darwin rustc"
+                            ));
                 }
                 _ => panic!(),
             }
@@ -2018,8 +2020,8 @@ fn bad_component_hash() {
         )
         .unwrap_err();
 
-        match *err.kind() {
-            ErrorKind::ComponentDownloadFailed(_) => (),
+        match err.downcast::<RustupError>() {
+            Ok(RustupError::ComponentDownloadFailed(..)) => (),
             _ => panic!(),
         }
     });
@@ -2048,8 +2050,8 @@ fn unable_to_download_component() {
         )
         .unwrap_err();
 
-        match *err.kind() {
-            ErrorKind::ComponentDownloadFailed(..) => (),
+        match err.downcast::<RustupError>() {
+            Ok(RustupError::ComponentDownloadFailed(..)) => (),
             _ => panic!(),
         }
     });

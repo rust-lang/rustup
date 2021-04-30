@@ -2,6 +2,8 @@ use std::ffi::OsStr;
 use std::io;
 use std::process::{self, Command};
 
+use anyhow::{Context, Result};
+
 use crate::errors::*;
 use crate::utils::utils::ExitCode;
 
@@ -18,7 +20,7 @@ pub fn run_command_for_dir<S: AsRef<OsStr>>(
     // then tests that depend on rustups stdin being inherited won't work in-process.
     cmd.stdin(process::Stdio::inherit());
 
-    return exec(&mut cmd).chain_err(|| crate::ErrorKind::RunningCommand {
+    return exec(&mut cmd).with_context(|| RustupError::RunningCommand {
         name: OsStr::new(arg0).to_owned(),
     });
 

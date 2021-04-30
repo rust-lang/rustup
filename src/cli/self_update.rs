@@ -51,6 +51,7 @@ use std::fs;
 use std::path::{Component, Path, PathBuf, MAIN_SEPARATOR};
 use std::process::Command;
 
+use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
 use same_file::Handle;
 
@@ -303,7 +304,7 @@ pub fn install(
     let mut term = term2::stdout();
 
     #[cfg(windows)]
-    if !do_msvc_check(&opts)? {
+    if !do_msvc_check(&opts) {
         if no_prompt {
             warn!("installing msvc toolchain without its prerequisites");
         } else {
@@ -362,8 +363,8 @@ pub fn install(
         Ok(utils::ExitCode(0))
     })();
 
-    if let Err(ref e) = install_res {
-        common::report_error(e);
+    if let Err(e) = install_res {
+        common::report_error(&e);
 
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, give
@@ -428,7 +429,7 @@ fn rustc_or_cargo_exists_in_path() -> Result<()> {
             let cargo = path.join(format!("cargo{}", EXE_SUFFIX));
 
             if rustc.exists() || cargo.exists() {
-                return Err(path.to_str().unwrap().into());
+                return Err(anyhow!("{}", path.to_str().unwrap().to_owned()));
             }
         }
     }
@@ -452,7 +453,7 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool) -> Result<()> {
         warn!("If you are sure that you want both rustup and your already installed Rust");
         warn!("then please reply `y' or `yes' or set RUSTUP_INIT_SKIP_PATH_CHECK to yes");
         warn!("or pass `-y' to ignore all ignorable checks.");
-        ignorable_error("cannot install while Rust is installed".into(), no_prompt)?;
+        ignorable_error("cannot install while Rust is installed", no_prompt)?;
     }
     Ok(())
 }
@@ -473,7 +474,7 @@ fn do_pre_install_sanity_checks(no_prompt: bool) -> Result<()> {
             "run `{}` as root to uninstall Rust",
             uninstaller_path.display()
         );
-        ignorable_error("cannot install while Rust is installed".into(), no_prompt)?;
+        ignorable_error("cannot install while Rust is installed", no_prompt)?;
     }
 
     if rustup_sh_exists {
@@ -483,10 +484,7 @@ fn do_pre_install_sanity_checks(no_prompt: bool) -> Result<()> {
         warn!("or, if you already have rustup installed, you can run");
         warn!("`rustup self update` and `rustup toolchain list` to upgrade");
         warn!("your directory structure");
-        ignorable_error(
-            "cannot install while rustup.sh is installed".into(),
-            no_prompt,
-        )?;
+        ignorable_error("cannot install while rustup.sh is installed", no_prompt)?;
     }
 
     Ok(())
@@ -515,7 +513,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
         Ok(())
     })()
     .map_err(|e: Box<dyn std::error::Error>| {
-        format!(
+        anyhow!(
             "Pre-checks for host and toolchain failed: {}\n\
              If you are unsure of suitable values, the 'stable' toolchain is the default.\n\
              Valid host triples look something like: {}",
@@ -529,7 +527,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
 fn pre_install_msg(no_modify_path: bool) -> Result<String> {
     let cargo_home = utils::cargo_home()?;
     let cargo_home_bin = cargo_home.join("bin");
-    let rustup_home = utils::rustup_home()?;
+    let rustup_home = home::rustup_home()?;
 
     if !no_modify_path {
         // Brittle code warning: some duplication in unix::do_add_to_path
@@ -693,7 +691,7 @@ pub fn install_proxies() -> Result<()> {
             // preexisting tools we found, then we're going to assume that it
             // was preinstalled and actually pointing to a totally different
             // binary. This is intended for cases where historically users
-            // rand `cargo install rustfmt` and so they had custom `rustfmt`
+            // ran `cargo install rustfmt` and so they had custom `rustfmt`
             // and `cargo-fmt` executables lying around, but we as rustup have
             // since started managing these tools.
             //
@@ -830,7 +828,7 @@ pub fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
         .join(&format!("bin/rustup{}", EXE_SUFFIX))
         .exists()
     {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home).into());
+        return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
     }
 
     if !no_prompt {
@@ -846,12 +844,10 @@ pub fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
     info!("removing rustup home");
 
     // Delete RUSTUP_HOME
-    let rustup_dir = utils::rustup_home()?;
+    let rustup_dir = home::rustup_home()?;
     if rustup_dir.exists() {
         utils::remove_dir("rustup_home", &rustup_dir, &|_: Notification<'_>| {})?;
     }
-
-    let read_dir_err = "failure reading directory";
 
     info!("removing cargo home");
 
@@ -862,9 +858,15 @@ pub fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
     // Delete everything in CARGO_HOME *except* the rustup bin
 
     // First everything except the bin directory
-    let diriter = fs::read_dir(&cargo_home).chain_err(|| read_dir_err)?;
+    let diriter = fs::read_dir(&cargo_home).map_err(|e| CLIError::ReadDirError {
+        p: cargo_home.clone(),
+        source: e,
+    })?;
     for dirent in diriter {
-        let dirent = dirent.chain_err(|| read_dir_err)?;
+        let dirent = dirent.map_err(|e| CLIError::ReadDirError {
+            p: cargo_home.clone(),
+            source: e,
+        })?;
         if dirent.file_name().to_str() != Some("bin") {
             if dirent.path().is_dir() {
                 utils::remove_dir("cargo_home", &dirent.path(), &|_: Notification<'_>| {})?;
@@ -881,9 +883,16 @@ pub fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
         .chain(DUP_TOOLS.iter())
         .map(|t| format!("{}{}", t, EXE_SUFFIX));
     let tools: Vec<_> = tools.chain(vec![format!("rustup{}", EXE_SUFFIX)]).collect();
-    let diriter = fs::read_dir(&cargo_home.join("bin")).chain_err(|| read_dir_err)?;
+    let bin_dir = cargo_home.join("bin");
+    let diriter = fs::read_dir(&bin_dir).map_err(|e| CLIError::ReadDirError {
+        p: bin_dir.clone(),
+        source: e,
+    })?;
     for dirent in diriter {
-        let dirent = dirent.chain_err(|| read_dir_err)?;
+        let dirent = dirent.map_err(|e| CLIError::ReadDirError {
+            p: bin_dir.clone(),
+            source: e,
+        })?;
         let name = dirent.file_name();
         let file_is_tool = name.to_str().map(|n| tools.iter().any(|t| *t == n));
         if file_is_tool == Some(false) {
@@ -998,7 +1007,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     let setup_path = cargo_home.join(&format!("bin{}rustup-init{}", MAIN_SEPARATOR, EXE_SUFFIX));
 
     if !rustup_path.exists() {
-        return Err(ErrorKind::NotSelfInstalled(cargo_home).into());
+        return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
     }
 
     if setup_path.exists() {
@@ -1060,7 +1069,7 @@ pub fn get_available_rustup_version() -> Result<String> {
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-update")
         .tempdir()
-        .chain_err(|| "error creating temp directory")?;
+        .context("error creating temp directory")?;
 
     // Parse the release file.
     let release_file_url = format!("{}/release-stable.toml", update_root);
@@ -1068,17 +1077,17 @@ pub fn get_available_rustup_version() -> Result<String> {
     let release_file = tempdir.path().join("release-stable.toml");
     utils::download_file(&release_file_url, &release_file, None, &|_| ())?;
     let release_toml_str = utils::read_file("rustup release", &release_file)?;
-    let release_toml: toml::Value = toml::from_str(&release_toml_str)
-        .map_err(|_| Error::from("unable to parse rustup release file"))?;
+    let release_toml: toml::Value =
+        toml::from_str(&release_toml_str).context("unable to parse rustup release file")?;
 
     // Check the release file schema.
     let schema = release_toml
         .get("schema-version")
-        .ok_or_else(|| Error::from("no schema key in rustup release file"))?
+        .ok_or_else(|| anyhow!("no schema key in rustup release file"))?
         .as_str()
-        .ok_or_else(|| Error::from("invalid schema key in rustup release file"))?;
+        .ok_or_else(|| anyhow!("invalid schema key in rustup release file"))?;
     if schema != "1" {
-        return Err(Error::from(&*format!(
+        return Err(anyhow!(format!(
             "unknown schema version '{}' in rustup release file",
             schema
         )));
@@ -1087,9 +1096,9 @@ pub fn get_available_rustup_version() -> Result<String> {
     // Get the version.
     let available_version = release_toml
         .get("version")
-        .ok_or_else(|| Error::from("no version key in rustup release file"))?
+        .ok_or_else(|| anyhow!("no version key in rustup release file"))?
         .as_str()
-        .ok_or_else(|| Error::from("invalid version key in rustup release file"))?;
+        .ok_or_else(|| anyhow!("invalid version key in rustup release file"))?;
 
     Ok(String::from(available_version))
 }
@@ -1109,6 +1118,8 @@ pub fn cleanup_self_updater() -> Result<()> {
 mod tests {
     use std::collections::HashMap;
 
+    use anyhow::Result;
+
     use crate::cli::common;
     use crate::dist::dist::ToolchainDesc;
     use crate::test::{test_dir, with_rustup_home, Env};
@@ -1123,7 +1134,7 @@ mod tests {
                 vars,
                 ..Default::default()
             });
-            currentprocess::with(tp.clone(), || -> anyhow::Result<()> {
+            currentprocess::with(tp.clone(), || -> Result<()> {
                 // TODO: we could pass in a custom cfg to get notification
                 // callbacks rather than output to the tp sink.
                 let mut cfg = common::set_globals(false, false).unwrap();
@@ -1170,7 +1181,7 @@ info: default host triple is {0}
             vars,
             ..Default::default()
         });
-        currentprocess::with(tp, || -> anyhow::Result<()> {
+        currentprocess::with(tp, || -> Result<()> {
             super::install_bins().unwrap();
             Ok(())
         })

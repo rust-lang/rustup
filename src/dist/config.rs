@@ -1,3 +1,5 @@
+use anyhow::{bail, Context, Result};
+
 use super::manifest::Component;
 use crate::errors::*;
 use crate::utils::toml_utils::*;
@@ -15,7 +17,7 @@ impl Config {
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let config_version = get_string(&mut table, "config_version", path)?;
         if !SUPPORTED_CONFIG_VERSIONS.contains(&&*config_version) {
-            return Err(ErrorKind::UnsupportedVersion(config_version).into());
+            bail!(RustupError::UnsupportedVersion(config_version));
         }
 
         let components = get_array(&mut table, "components", path)?;
@@ -41,7 +43,7 @@ impl Config {
     }
 
     pub fn parse(data: &str) -> Result<Self> {
-        let value = toml::from_str(data).map_err(ErrorKind::Parsing)?;
+        let value = toml::from_str(data).context("error parsing manifest")?;
         Self::from_toml(value, "")
     }
 

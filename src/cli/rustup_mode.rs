@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt;
 use std::io::Write;
 use std::iter;
@@ -6,9 +5,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
 
+use anyhow::{anyhow, bail, Error, Result};
 use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 
-use super::errors::*;
 use super::help::*;
 use super::self_update;
 use super::term2;
@@ -19,6 +18,7 @@ use crate::dist::dist::{
     PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc,
 };
 use crate::dist::manifest::Component;
+use crate::errors::RustupError;
 use crate::process;
 use crate::toolchain::{CustomToolchain, DistributableToolchain};
 use crate::utils::utils;
@@ -27,16 +27,22 @@ use crate::{command, Cfg, ComponentStatus, Toolchain};
 
 fn handle_epipe(res: Result<utils::ExitCode>) -> Result<utils::ExitCode> {
     match res {
-        Err(Error(ErrorKind::Io(ref err), _)) if err.kind() == std::io::ErrorKind::BrokenPipe => {
-            Ok(utils::ExitCode(0))
+        Err(e) => {
+            let root = e.root_cause();
+            if let Some(io_err) = root.downcast_ref::<std::io::Error>() {
+                if io_err.kind() == std::io::ErrorKind::BrokenPipe {
+                    return Ok(utils::ExitCode(0));
+                }
+            }
+            Err(e)
         }
         res => res,
     }
 }
 
-fn deprecated<F, B>(instead: &str, cfg: &mut Cfg, matches: B, callee: F) -> Result<utils::ExitCode>
+fn deprecated<F, B, R>(instead: &str, cfg: &mut Cfg, matches: B, callee: F) -> R
 where
-    F: FnOnce(&mut Cfg, B) -> Result<utils::ExitCode>,
+    F: FnOnce(&mut Cfg, B) -> R,
 {
     (cfg.notify_handler)(Notification::PlainVerboseMessage(
         "Use of (currently) unmaintained command line interface.",
@@ -183,12 +189,12 @@ pub fn main() -> Result<utils::ExitCode> {
         },
         ("completions", Some(c)) => {
             if let Some(shell) = c.value_of("shell") {
-                output_completion_script(
+                (output_completion_script(
                     shell.parse::<Shell>().unwrap(),
                     c.value_of("command")
                         .and_then(|cmd| cmd.parse::<CompletionCommand>().ok())
                         .unwrap_or(CompletionCommand::Rustup),
-                )?
+                ))?
             } else {
                 unreachable!()
             }
@@ -792,7 +798,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
                 writeln!(process().stdout(),)?;
             }
         }
-        return Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into());
+        bail!(RustupError::ToolchainNotInstalled(name.to_string()));
     }
     Ok(())
 }
@@ -818,7 +824,7 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
                     toolchain.name()
                 )?;
             }
-            return Err(ErrorKind::ToolchainNotInstalled(name.to_string()).into());
+            return Err(RustupError::ToolchainNotInstalled(name.to_string()).into());
         }
     }
     Ok(())
@@ -834,7 +840,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
             let distributable = DistributableToolchain::new(&toolchain)?;
             Some(distributable.install_from_dist_if_not_installed()?)
         } else if !toolchain.exists() {
-            return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
+            return Err(RustupError::ToolchainNotInstalled(toolchain.name().to_string()).into());
         } else {
             None
         };
@@ -857,7 +863,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     } else {
         let default_toolchain: Result<String> = cfg
             .get_default()?
-            .ok_or_else(|| "no default toolchain configured".into());
+            .ok_or(anyhow!("no default toolchain configured"));
         writeln!(process().stdout(), "{} (default)", default_toolchain?)?;
     }
 
@@ -901,7 +907,7 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
                     }
                 }
             }
-            (_, Err(err)) => return Err(err.into()),
+            (_, Err(err)) => return Err(err),
         }
     }
 
@@ -986,7 +992,9 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
                     None,
                 )?)
             } else if !toolchain.exists() {
-                return Err(ErrorKind::InvalidToolchainName(toolchain.name().to_string()).into());
+                bail!(RustupError::InvalidToolchainName(
+                    toolchain.name().to_string()
+                ));
             } else {
                 None
             };
@@ -1031,11 +1039,10 @@ fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let binary_path = if m.is_present("toolchain") {
         let toolchain = m.value_of("toolchain").unwrap();
         cfg.which_binary_by_toolchain(toolchain, binary)?
-            .expect("binary not found")
     } else {
         cfg.which_binary(&utils::current_dir()?, binary)?
-            .expect("binary not found")
-    };
+    }
+    .expect("binary not found");
 
     utils::assert_is_file(&binary_path)?;
 
@@ -1105,11 +1112,11 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
     if show_installed_toolchains {
         let mut t = term2::stdout();
         if show_headers {
-            print_header(&mut t, "installed toolchains")?;
+            print_header::<Error>(&mut t, "installed toolchains")?;
         }
         let default_name: Result<String> = cfg
             .get_default()?
-            .ok_or_else(|| "no default toolchain configured".into());
+            .ok_or(anyhow!("no default toolchain configured"));
         let default_name = default_name?;
         for it in installed_toolchains {
             if default_name == it {
@@ -1126,7 +1133,7 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
     if show_active_targets {
         let mut t = term2::stdout();
         if show_headers {
-            print_header(&mut t, "installed targets for active toolchain")?;
+            print_header::<Error>(&mut t, "installed targets for active toolchain")?;
         }
         for at in active_targets {
             writeln!(
@@ -1146,7 +1153,7 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
     if show_active_toolchain {
         let mut t = term2::stdout();
         if show_headers {
-            print_header(&mut t, "active toolchain")?;
+            print_header::<Error>(&mut t, "active toolchain")?;
         }
 
         match active_toolchain {
@@ -1160,11 +1167,13 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
                     writeln!(t, "{}", toolchain.rustc_version())?;
                 }
             },
-            Err(crate::Error(crate::ErrorKind::ToolchainNotSelected, _)) => {
-                writeln!(t, "no active toolchain")?;
-            }
             Err(err) => {
-                if let Some(cause) = err.source() {
+                let root_cause = err.root_cause();
+                if let Some(RustupError::ToolchainNotSelected) =
+                    root_cause.downcast_ref::<RustupError>()
+                {
+                    writeln!(t, "no active toolchain")?;
+                } else if let Some(cause) = err.source() {
                     writeln!(t, "(error: {}, {})", err, cause)?;
                 } else {
                     writeln!(t, "(error: {})", err)?;
@@ -1177,7 +1186,10 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
         }
     }
 
-    fn print_header(t: &mut term2::StdoutTerminal, s: &str) -> Result<()> {
+    fn print_header<E>(t: &mut term2::StdoutTerminal, s: &str) -> std::result::Result<(), E>
+    where
+        E: From<term::Error> + From<std::io::Error>,
+    {
         t.attr(term2::Attr::Bold)?;
         writeln!(t, "{}", s)?;
         writeln!(t, "{}", iter::repeat("-").take(s.len()).collect::<String>())?;
@@ -1193,8 +1205,15 @@ fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCod
     let verbose = m.is_present("verbose");
     let cwd = utils::current_dir()?;
     match cfg.find_or_install_override_toolchain_or_default(&cwd) {
-        Err(crate::Error(crate::ErrorKind::ToolchainNotSelected, _)) => {}
-        Err(e) => return Err(e.into()),
+        Err(e) => {
+            let root_cause = e.root_cause();
+            if let Some(RustupError::ToolchainNotSelected) =
+                root_cause.downcast_ref::<RustupError>()
+            {
+            } else {
+                return Err(e);
+            }
+        }
         Ok((toolchain, reason)) => {
             if let Some(reason) = reason {
                 writeln!(process().stdout(), "{} ({})", toolchain.name(), reason)?;
@@ -1231,13 +1250,7 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     // isn't a feature yet.
     // list_components *and* add_component would both be inappropriate for
     // custom toolchains.
-    if toolchain.is_custom() {
-        return Err(crate::Error(
-            crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()),
-            error_chain::State::default(),
-        )
-        .into());
-    }
+    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
 
     let mut targets: Vec<String> = m
         .values_of("target")
@@ -1247,11 +1260,13 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
 
     if targets.contains(&"all".to_string()) {
         if targets.len() != 1 {
-            return Err(ErrorKind::TargetAllSpecifiedWithTargets(targets).into());
+            return Err(anyhow!(
+                "`rustup target add {}` includes `all`",
+                targets.join(" ")
+            ));
         }
 
         targets.clear();
-        let distributable = DistributableToolchain::new(&toolchain)?;
         for component in distributable.list_components()? {
             if component.component.short_name_in_manifest() == "rust-std"
                 && component.available
@@ -1273,7 +1288,6 @@ fn target_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
             Some(TargetTriple::new(target)),
             false,
         );
-        let distributable = DistributableToolchain::new(&toolchain)?;
         distributable.add_component(new_component)?;
     }
 
@@ -1289,8 +1303,7 @@ fn target_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
             Some(TargetTriple::new(target)),
             false,
         );
-        let distributable = DistributableToolchain::new(&toolchain)
-            .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+        let distributable = DistributableToolchain::new_for_components(&toolchain)?;
         distributable.remove_component(new_component)?;
     }
 
@@ -1303,7 +1316,8 @@ fn component_list(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     if m.is_present("installed") {
         common::list_installed_components(&toolchain)
     } else {
-        common::list_components(&toolchain)
+        common::list_components(&toolchain)?;
+        Ok(utils::ExitCode(0))
     }
 }
 
@@ -1329,8 +1343,7 @@ fn component_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
 
 fn component_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
-    let distributable = DistributableToolchain::new(&toolchain)
-        .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
     let target = m.value_of("target").map(TargetTriple::new).or_else(|| {
         distributable
             .desc()
@@ -1374,7 +1387,10 @@ fn toolchain_link(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
         custom.install_from_dir(Path::new(path), true)?;
         Ok(utils::ExitCode(0))
     } else {
-        Err(ErrorKind::InvalidCustomToolchainName(toolchain.name().to_string()).into())
+        Err(anyhow!(
+            "invalid custom toolchain name: '{}'",
+            toolchain.name().to_string()
+        ))
     }
 }
 
@@ -1394,7 +1410,7 @@ fn override_add(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
         let distributable = DistributableToolchain::new(&toolchain)?;
         Some(distributable.install_from_dist_if_not_installed()?)
     } else if !toolchain.exists() {
-        return Err(ErrorKind::ToolchainNotInstalled(toolchain.name().to_string()).into());
+        return Err(RustupError::ToolchainNotInstalled(toolchain.name().to_string()).into());
     } else {
         None
     };
@@ -1498,7 +1514,9 @@ fn doc(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
                 "To install, try `rustup component add --toolchain {} rust-docs`",
                 toolchain.name()
             );
-            return Err("unable to view documentation which is not installed".into());
+            return Err(anyhow!(
+                "unable to view documentation which is not installed"
+            ));
         }
     }
     let topical_path: PathBuf;
@@ -1636,7 +1654,13 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
             let script = match shell {
                 Shell::Bash => "/etc/bash_completion.d/cargo",
                 Shell::Zsh => "/share/zsh/site-functions/_cargo",
-                _ => return Err(ErrorKind::UnsupportedCompletionShell(shell, command).into()),
+                _ => {
+                    return Err(anyhow!(
+                        "{} does not currently support completions for {}",
+                        command,
+                        shell
+                    ))
+                }
             };
 
             writeln!(

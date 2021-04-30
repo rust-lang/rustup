@@ -4,6 +4,8 @@ use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::path::Path;
 use std::process::Command;
 
+use anyhow::{anyhow, Context, Result};
+
 use super::super::errors::*;
 use super::common;
 use super::{install_bins, InstallOpts};
@@ -24,10 +26,10 @@ pub fn ensure_prompt() -> Result<()> {
 
 // Provide guidance about setting up MSVC if it doesn't appear to be
 // installed
-pub fn do_msvc_check(opts: &InstallOpts<'_>) -> Result<bool> {
+pub fn do_msvc_check(opts: &InstallOpts<'_>) -> bool {
     // Test suite skips this since it's env dependent
     if process().var("RUSTUP_INIT_SKIP_MSVC_CHECK").is_ok() {
-        return Ok(true);
+        return true;
     }
 
     use cc::windows_registry;
@@ -39,10 +41,10 @@ pub fn do_msvc_check(opts: &InstallOpts<'_>) -> Result<bool> {
     let installing_msvc = host_triple.contains("msvc");
     let have_msvc = windows_registry::find_tool(&host_triple, "cl.exe").is_some();
     if installing_msvc && !have_msvc {
-        return Ok(false);
+        return false;
     }
 
-    Ok(true)
+    true
 }
 
 /// Run by rustup-gc-$num.exe to delete CARGO_HOME
@@ -65,7 +67,7 @@ pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .chain_err(|| ErrorKind::WindowsUninstallMadness)?;
+        .context(CLIError::WindowsUninstallMadness)?;
 
     Ok(utils::ExitCode(0))
 }
@@ -89,7 +91,7 @@ pub fn wait_for_parent() -> Result<()> {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if snapshot == INVALID_HANDLE_VALUE {
             let err = io::Error::last_os_error();
-            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
+            return Err(err).context(CLIError::WindowsUninstallMadness);
         }
 
         let snapshot = scopeguard::guard(snapshot, |h| {
@@ -103,7 +105,7 @@ pub fn wait_for_parent() -> Result<()> {
         let success = Process32First(*snapshot, &mut entry);
         if success == 0 {
             let err = io::Error::last_os_error();
-            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
+            return Err(err).context(CLIError::WindowsUninstallMadness);
         }
 
         let this_pid = GetCurrentProcessId();
@@ -111,7 +113,7 @@ pub fn wait_for_parent() -> Result<()> {
             let success = Process32Next(*snapshot, &mut entry);
             if success == 0 {
                 let err = io::Error::last_os_error();
-                return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
+                return Err(err).context(CLIError::WindowsUninstallMadness);
             }
         }
 
@@ -136,7 +138,7 @@ pub fn wait_for_parent() -> Result<()> {
 
         if res != WAIT_OBJECT_0 {
             let err = io::Error::last_os_error();
-            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
+            return Err(err).context(CLIError::WindowsUninstallMadness);
         }
     }
 
@@ -161,22 +163,16 @@ fn _apply_new_path(new_path: Option<Vec<u16>>) -> Result<()> {
     };
 
     let root = RegKey::predef(HKEY_CURRENT_USER);
-    let environment = root
-        .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .chain_err(|| ErrorKind::PermissionDenied)?;
+    let environment = root.open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)?;
 
     if new_path.is_empty() {
-        environment
-            .delete_value("PATH")
-            .chain_err(|| ErrorKind::PermissionDenied)?;
+        environment.delete_value("PATH")?;
     } else {
         let reg_value = RegValue {
             bytes: to_winreg_bytes(new_path),
             vtype: RegType::REG_EXPAND_SZ,
         };
-        environment
-            .set_raw_value("PATH", &reg_value)
-            .chain_err(|| ErrorKind::PermissionDenied)?;
+        environment.set_raw_value("PATH", &reg_value)?;
     }
 
     // Tell other processes to update their environment
@@ -205,7 +201,7 @@ fn get_windows_path_var() -> Result<Option<Vec<u16>>> {
     let root = RegKey::predef(HKEY_CURRENT_USER);
     let environment = root
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
-        .chain_err(|| ErrorKind::PermissionDenied)?;
+        .context("Failed opening Environment key")?;
 
     let reg_value = environment.get_raw_value("PATH");
     match reg_value {
@@ -221,7 +217,7 @@ fn get_windows_path_var() -> Result<Option<Vec<u16>>> {
             }
         }
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => Ok(Some(Vec::new())),
-        Err(e) => Err(e).chain_err(|| ErrorKind::WindowsUninstallMadness),
+        Err(e) => Err(e).context(CLIError::WindowsUninstallMadness),
     }
 }
 
@@ -290,7 +286,7 @@ pub fn do_add_to_programs() -> Result<()> {
 
     let key = RegKey::predef(HKEY_CURRENT_USER)
         .create_subkey(RUSTUP_UNINSTALL_ENTRY)
-        .chain_err(|| ErrorKind::PermissionDenied)?
+        .context("Failed creating uninstall key")?
         .0;
 
     // Don't overwrite registry if Rustup is already installed
@@ -317,9 +313,9 @@ pub fn do_add_to_programs() -> Result<()> {
     };
 
     key.set_raw_value("UninstallString", &reg_value)
-        .chain_err(|| ErrorKind::PermissionDenied)?;
+        .context("Failed to set uninstall string")?;
     key.set_value("DisplayName", &"Rustup: the Rust toolchain installer")
-        .chain_err(|| ErrorKind::PermissionDenied)?;
+        .context("Failed to set display name")?;
 
     Ok(())
 }
@@ -328,7 +324,7 @@ pub fn do_remove_from_programs() -> Result<()> {
     match RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(RUSTUP_UNINSTALL_ENTRY) {
         Ok(()) => Ok(()),
         Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(e) => Err(e).chain_err(|| ErrorKind::PermissionDenied),
+        Err(e) => Err(anyhow!(e)),
     }
 }
 
@@ -365,7 +361,7 @@ pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
     Command::new(setup_path)
         .arg("--self-replace")
         .spawn()
-        .chain_err(|| "unable to run updater")?;
+        .context("unable to run updater")?;
 
     Ok(utils::ExitCode(0))
 }
@@ -460,7 +456,7 @@ pub fn delete_rustup_and_cargo_home() -> Result<()> {
 
         if gc_handle == INVALID_HANDLE_VALUE {
             let err = io::Error::last_os_error();
-            return Err(err).chain_err(|| ErrorKind::WindowsUninstallMadness);
+            return Err(err).context(CLIError::WindowsUninstallMadness);
         }
 
         scopeguard::guard(gc_handle, |h| {
@@ -470,7 +466,7 @@ pub fn delete_rustup_and_cargo_home() -> Result<()> {
 
     Command::new(gc_exe)
         .spawn()
-        .chain_err(|| ErrorKind::WindowsUninstallMadness)?;
+        .context(CLIError::WindowsUninstallMadness)?;
 
     // The catch 22 article says we must sleep here to give
     // Windows a chance to bump the processes file reference

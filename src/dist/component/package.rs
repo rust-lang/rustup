@@ -8,6 +8,7 @@ use std::io::{self, ErrorKind as IOErrorKind, Read};
 use std::mem;
 use std::path::{Path, PathBuf};
 
+use anyhow::{anyhow, bail, Context, Result};
 use tar::EntryType;
 
 use crate::diskio::{get_executor, CompletedIo, Executor, Item, Kind};
@@ -65,7 +66,7 @@ fn validate_installer_version(path: &Path) -> Result<()> {
     if v == INSTALLER_VERSION {
         Ok(())
     } else {
-        Err(ErrorKind::BadInstallerVersion(v.to_owned()).into())
+        Err(anyhow!(format!("unsupported installer version: {}", v)))
     }
 }
 
@@ -100,7 +101,7 @@ impl Package for DirectoryPackage {
 
         for l in manifest.lines() {
             let part = ComponentPart::decode(l)
-                .ok_or_else(|| ErrorKind::CorruptComponent(name.to_owned()))?;
+                .ok_or_else(|| RustupError::CorruptComponent(name.to_owned()))?;
 
             let path = part.1;
             let src_path = root.join(&path);
@@ -120,7 +121,7 @@ impl Package for DirectoryPackage {
                         builder.move_dir(path.clone(), &src_path)?
                     }
                 }
-                _ => return Err(ErrorKind::CorruptComponent(name.to_owned()).into()),
+                _ => return Err(RustupError::CorruptComponent(name.to_owned()).into()),
             }
         }
 
@@ -148,7 +149,8 @@ impl<'a> TarPackage<'a> {
         // The rust-installer packages unpack to a directory called
         // $pkgname-$version-$target. Skip that directory when
         // unpacking.
-        unpack_without_first_dir(&mut archive, &*temp_dir, notify_handler)?;
+        unpack_without_first_dir(&mut archive, &*temp_dir, notify_handler)
+            .context("failed to extract package (perhaps you ran out of disk space?)")?;
 
         Ok(TarPackage(
             DirectoryPackage::new(temp_dir.to_owned(), false)?,
@@ -289,7 +291,7 @@ fn trigger_children(
                 for mut item in io_executor.execute(pending_item).collect::<Vec<_>>() {
                     // TODO capture metrics
                     budget.reclaim(&item);
-                    filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+                    filter_result(&mut item)?;
                     result += trigger_children(io_executor, directories, budget, item)?;
                 }
             }
@@ -310,9 +312,7 @@ fn unpack_without_first_dir<'a, R: Read>(
     notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
 ) -> Result<()> {
     let mut io_executor: Box<dyn Executor> = get_executor(notify_handler)?;
-    let entries = archive
-        .entries()
-        .chain_err(|| ErrorKind::ExtractingPackage)?;
+    let entries = archive.entries()?;
     const IO_CHUNK_SIZE: u64 = 16_777_216;
     let effective_max_ram = match effective_limits::memory_limit() {
         Ok(ram) => Some(ram as usize),
@@ -336,14 +336,14 @@ fn unpack_without_first_dir<'a, R: Read>(
         for mut item in io_executor.completed().collect::<Vec<_>>() {
             // TODO capture metrics
             budget.reclaim(&item);
-            filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+            filter_result(&mut item)?;
             trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
         }
 
-        let mut entry = entry.chain_err(|| ErrorKind::ExtractingPackage)?;
+        let mut entry = entry?;
         let relpath = {
             let path = entry.path();
-            let path = path.chain_err(|| ErrorKind::ExtractingPackage)?;
+            let path = path?;
             path.into_owned()
         };
         // Reject path components that are not normal (..|/| etc)
@@ -352,7 +352,7 @@ fn unpack_without_first_dir<'a, R: Read>(
                 // Some very early rust tarballs include a "." segment which we have to
                 // support, despite not liking it.
                 std::path::Component::Normal(_) | std::path::Component::CurDir => {}
-                _ => return Err(ErrorKind::BadPath(relpath).into()),
+                _ => bail!(format!("tar path '{}' is not supported", relpath.display())),
             }
         }
         let mut components = relpath.components();
@@ -380,7 +380,7 @@ fn unpack_without_first_dir<'a, R: Read>(
             for mut op in io_executor.completed().collect::<Vec<_>>() {
                 // TODO capture metrics
                 budget.reclaim(&op);
-                filter_result(&mut op).chain_err(|| ErrorKind::ExtractingPackage)?;
+                filter_result(&mut op)?;
                 trigger_children(&*io_executor, &mut directories, &mut budget, op)?;
             }
             // Maybe stream a file incrementally
@@ -394,10 +394,10 @@ fn unpack_without_first_dir<'a, R: Read>(
                     v.resize(len, 0);
                     budget.claim_chunk(len);
                     if !sender(v) {
-                        return Err(ErrorKind::DisconnectedChannel(
-                            full_path.as_ref().to_path_buf(),
-                        )
-                        .into());
+                        bail!(format!(
+                            "IO receiver for '{}' disconnected",
+                            full_path.as_ref().display()
+                        ))
                     }
                 }
             }
@@ -466,7 +466,7 @@ fn unpack_without_first_dir<'a, R: Read>(
                     Item::write_file(full_path.clone(), v, mode)
                 }
             }
-            _ => return Err(ErrorKind::UnsupportedKind(format!("{:?}", kind)).into()),
+            _ => bail!(format!("tar entry kind '{:?}' is not supported", kind)),
         };
         budget.claim(&item);
 
@@ -514,7 +514,7 @@ fn unpack_without_first_dir<'a, R: Read>(
             for mut item in io_executor.execute(item).collect::<Vec<_>>() {
                 // TODO capture metrics
                 budget.reclaim(&item);
-                filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+                filter_result(&mut item)?;
                 trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
             }
         }
@@ -538,7 +538,7 @@ fn unpack_without_first_dir<'a, R: Read>(
             // handle final IOs
             // TODO capture metrics
             budget.reclaim(&item);
-            filter_result(&mut item).chain_err(|| ErrorKind::ExtractingPackage)?;
+            filter_result(&mut item)?;
             triggered += trigger_children(&*io_executor, &mut directories, &mut budget, item)?;
         }
         if triggered == 0 {

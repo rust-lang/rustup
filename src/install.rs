@@ -1,15 +1,17 @@
 //! Installation and upgrade of both distribution-managed and local
 //! toolchains
+use std::path::Path;
+
+use anyhow::Result;
 
 use crate::dist::dist;
 use crate::dist::download::DownloadCfg;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::Notification;
-use crate::errors::{ErrorKind, Result};
+use crate::errors::RustupError;
 use crate::notifications::Notification as RootNotification;
 use crate::toolchain::{CustomToolchain, DistributableToolchain, Toolchain, UpdateStatus};
 use crate::utils::utils;
-use std::path::Path;
 
 #[derive(Copy, Clone)]
 pub enum InstallMethod<'a> {
@@ -78,7 +80,7 @@ impl<'a> InstallMethod<'a> {
 
         // Final check, to ensure we're installed
         if !toolchain.exists() {
-            Err(ErrorKind::ToolchainNotInstallable(toolchain.name().to_string()).into())
+            Err(RustupError::ToolchainNotInstallable(toolchain.name().to_string()).into())
         } else {
             Ok(status)
         }

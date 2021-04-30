@@ -804,7 +804,7 @@ fn add_target_v1_toolchain() {
                 clitools::CROSS_ARCH1,
                 "--toolchain=nightly",
             ],
-            for_host!("toolchain 'nightly-{0}' does not support components"),
+            for_host!("Missing manifest in toolchain 'nightly-{0}'"),
         );
     });
 }
@@ -946,7 +946,7 @@ fn remove_target_v1_toolchain() {
                 clitools::CROSS_ARCH1,
                 "--toolchain=nightly",
             ],
-            for_host!("toolchain 'nightly-{0}' does not support components"),
+            for_host!("Missing manifest in toolchain 'nightly-{0}'"),
         );
     });
 }

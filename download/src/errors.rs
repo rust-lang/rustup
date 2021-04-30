@@ -1,25 +1,20 @@
-#![allow(deprecated)] // because of `Error::description` deprecation in `error_chain`
-use error_chain::error_chain;
+use thiserror::Error;
 
-error_chain! {
-    links { }
-
-    foreign_links {
-        Io(std::io::Error);
-        Reqwest(::reqwest::Error) #[cfg(feature = "reqwest-backend")];
-    }
-
-    errors {
-        HttpStatus(e: u32) {
-            description("http request returned an unsuccessful status code")
-            display("http request returned an unsuccessful status code: {}", e)
-        }
-        FileNotFound {
-            description("file not found")
-        }
-        BackendUnavailable(be: &'static str) {
-            description("download backend unavailable")
-            display("download backend '{}' unavailable", be)
-        }
-    }
+#[derive(Debug, Error)]
+pub enum DownloadError {
+    #[error("http request returned an unsuccessful status code: {0}")]
+    HttpStatus(u32),
+    #[error("file not found")]
+    FileNotFound,
+    #[error("download backend '{0}' unavailable")]
+    BackendUnavailable(&'static str),
+    #[error("{0}")]
+    Message(String),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+    #[cfg(feature = "reqwest-backend")]
+    #[error(transparent)]
+    Reqwest(#[from] ::reqwest::Error),
+    #[error(transparent)]
+    CurlError(#[from] curl::Error),
 }

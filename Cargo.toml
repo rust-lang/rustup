@@ -30,9 +30,8 @@ anyhow = "1.0.31"
 cfg-if = "1.0"
 chrono = "0.4"
 clap = "2"
-download = { path = "download", default-features = false }
+download = {path = "download", default-features = false}
 effective-limits = "0.5.2"
-error-chain = "0.12"
 flate2 = "1"
 git-testament = "0.1.4"
 home = {git = "https://github.com/rbtcollins/home", rev = "a243ee2fbee6022c57d56f5aa79aefe194eabe53"}
@@ -43,6 +42,7 @@ opener = "0.4.0"
 # Used by `curl` or `reqwest` backend although it isn't imported
 # by our rustup.
 openssl = {version = "0.10", optional = true}
+pgp = {version = "0.7", default-features = false}
 pulldown-cmark = {version = "0.8", default-features = false}
 rand = "0.8"
 regex = "1"
@@ -55,9 +55,9 @@ sha2 = "0.9"
 strsim = "0.10"
 tar = "0.4.26"
 tempfile = "3.1"
-pgp = {version = "0.7", default-features = false}
 # FIXME(issue #1818, #1826, and friends)
 term = "=0.5.1"
+thiserror = "1.0"
 threadpool = "1"
 toml = "0.5"
 url = "2.1"
@@ -68,7 +68,7 @@ zstd = "0.6"
 [dependencies.retry]
 default-features = false
 features = ["random"]
-version = "1"
+version = "1.2.1"
 
 [dependencies.rs_tracing]
 features = ["rs_tracing"]

@@ -12,13 +12,15 @@
 //!
 //! Docs: https://forge.rust-lang.org/infra/channel-layout.html
 
-use crate::errors::*;
-use crate::utils::toml_utils::*;
-
-use crate::dist::dist::{PartialTargetTriple, Profile, TargetTriple};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
+
+use anyhow::{anyhow, bail, Context, Result};
+
+use crate::dist::dist::{PartialTargetTriple, Profile, TargetTriple};
+use crate::errors::*;
+use crate::utils::toml_utils::*;
 
 pub const SUPPORTED_MANIFEST_VERSIONS: [&str; 1] = ["2"];
 pub const DEFAULT_MANIFEST_VERSION: &str = "2";
@@ -109,7 +111,7 @@ impl Hash for Component {
 
 impl Manifest {
     pub fn parse(data: &str) -> Result<Self> {
-        let value = toml::from_str(data).map_err(ErrorKind::Parsing)?;
+        let value = toml::from_str(data).context("error parsing manifest")?;
         let manifest = Self::from_toml(value, "")?;
         manifest.validate()?;
 
@@ -122,7 +124,7 @@ impl Manifest {
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let version = get_string(&mut table, "manifest-version", path)?;
         if !SUPPORTED_MANIFEST_VERSIONS.contains(&&*version) {
-            return Err(ErrorKind::UnsupportedVersion(version).into());
+            bail!(RustupError::UnsupportedVersion(version));
         }
         let (renames, reverse_renames) = Self::table_to_renames(&mut table, path)?;
         Ok(Self {
@@ -243,7 +245,7 @@ impl Manifest {
     pub fn get_package(&self, name: &str) -> Result<&Package> {
         self.packages
             .get(name)
-            .ok_or_else(|| format!("package not found: '{}'", name).into())
+            .ok_or_else(|| anyhow!(format!("package not found: '{}'", name)))
     }
 
     pub fn get_rust_version(&self) -> Result<&str> {
@@ -276,7 +278,7 @@ impl Manifest {
         let profile = self
             .profiles
             .get(&profile)
-            .ok_or_else(|| format!("profile not found: '{}'", profile))?;
+            .ok_or_else(|| anyhow!(format!("profile not found: '{}'", profile)))?;
 
         let rust_pkg = self.get_package("rust")?.get_target(Some(target))?;
         let result = profile
@@ -299,10 +301,10 @@ impl Manifest {
         for c in tpkg.components.iter() {
             let cpkg = self
                 .get_package(&c.pkg)
-                .chain_err(|| ErrorKind::MissingPackageForComponent(c.short_name(self)))?;
+                .with_context(|| RustupError::MissingPackageForComponent(c.short_name(self)))?;
             let _ctpkg = cpkg
                 .get_target(c.target.as_ref())
-                .chain_err(|| ErrorKind::MissingPackageForComponent(c.short_name(self)))?;
+                .with_context(|| RustupError::MissingPackageForComponent(c.short_name(self)))?;
         }
         Ok(())
     }
@@ -326,7 +328,10 @@ impl Manifest {
         // renames is unconstrained.
         for name in self.renames.values() {
             if !self.packages.contains_key(name) {
-                return Err(ErrorKind::MissingPackageForRename(name.clone()).into());
+                bail!(format!(
+                    "server sent a broken manifest: missing package for the target of a rename {}",
+                    name
+                ));
             }
         }
 
@@ -401,10 +406,10 @@ impl Package {
                 if let Some(t) = target {
                     tpkgs
                         .get(t)
-                        .ok_or_else(|| format!("target '{}' not found in channel.  \
-                        Perhaps check https://doc.rust-lang.org/nightly/rustc/platform-support.html for available targets", t).into())
+                        .ok_or_else(|| anyhow!(format!("target '{}' not found in channel.  \
+                        Perhaps check https://doc.rust-lang.org/nightly/rustc/platform-support.html for available targets", t)))
                 } else {
-                    Err("no target specified".into())
+                    Err(anyhow!("no target specified"))
                 }
             }
         }

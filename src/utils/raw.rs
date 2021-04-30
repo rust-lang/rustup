@@ -1,13 +1,13 @@
 use std::env;
-use std::error;
 use std::ffi::{OsStr, OsString};
-use std::fmt;
 use std::fs;
 use std::io;
 use std::io::Write;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 use std::str;
+
+use thiserror::Error as ThisError;
 
 use crate::process;
 
@@ -92,21 +92,6 @@ pub fn filter_file<F: FnMut(&str) -> bool>(
     Ok(removed)
 }
 
-pub fn match_file<T, F: FnMut(&str) -> Option<T>>(src: &Path, mut f: F) -> io::Result<Option<T>> {
-    let src_file = fs::File::open(src)?;
-
-    let mut reader = io::BufReader::new(src_file);
-
-    for result in io::BufRead::lines(&mut reader) {
-        let line = result?;
-        if let Some(r) = f(&line) {
-            return Ok(Some(r));
-        }
-    }
-
-    Ok(None)
-}
-
 pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
     let mut dest_file = fs::OpenOptions::new()
         .write(true)
@@ -119,23 +104,6 @@ pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
     dest_file.sync_data()?;
 
     Ok(())
-}
-
-pub fn tee_file<W: io::Write>(path: &Path, w: &mut W) -> io::Result<()> {
-    let mut file = fs::OpenOptions::new().read(true).open(path)?;
-
-    let buffer_size = 0x10000;
-    let mut buffer = vec![0u8; buffer_size];
-
-    loop {
-        let bytes_read = io::Read::read(&mut file, &mut buffer)?;
-
-        if bytes_read != 0 {
-            io::Write::write_all(w, &buffer[0..bytes_read])?;
-        } else {
-            return Ok(());
-        }
-    }
 }
 
 pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
@@ -251,40 +219,15 @@ pub fn hardlink(src: &Path, dest: &Path) -> io::Result<()> {
     fs::hard_link(src, dest)
 }
 
-#[derive(Debug)]
+#[derive(Debug, ThisError)]
 pub enum CommandError {
-    Io(io::Error),
+    #[error("error running command")]
+    Io(#[source] io::Error),
+    #[error("command exited with unsuccessful status {0}")]
     Status(ExitStatus),
 }
 
-pub type CommandResult<T> = std::result::Result<T, CommandError>;
-
-impl error::Error for CommandError {
-    fn description(&self) -> &str {
-        use self::CommandError::*;
-        match self {
-            Io(_) => "could not execute command",
-            Status(_) => "command exited with unsuccessful status",
-        }
-    }
-
-    fn cause(&self) -> Option<&dyn error::Error> {
-        use self::CommandError::*;
-        match self {
-            Io(e) => Some(e),
-            Status(_) => None,
-        }
-    }
-}
-
-impl fmt::Display for CommandError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Io(e) => write!(f, "Io: {}", e),
-            Self::Status(s) => write!(f, "Status: {}", s),
-        }
-    }
-}
+pub type CommandResult<T> = Result<T, CommandError>;
 
 pub fn cmd_status(cmd: &mut Command) -> CommandResult<()> {
     cmd.status().map_err(CommandError::Io).and_then(|s| {

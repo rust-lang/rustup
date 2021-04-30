@@ -1,95 +1,24 @@
 #![allow(clippy::large_enum_variant)]
 #![allow(dead_code)]
-#![allow(deprecated)] // because of `Error::description` deprecation in `error_chain`
 
 use std::io;
 use std::path::PathBuf;
 
-use clap::Shell;
-use error_chain::error_chain;
 use lazy_static::lazy_static;
 use regex::Regex;
 use strsim::damerau_levenshtein;
+use thiserror::Error as ThisError;
 
-use super::rustup_mode::CompletionCommand;
-use crate::dist::temp;
-use crate::{DUP_TOOLS, TOOLS};
-
-error_chain! {
-    links {
-        Rustup(crate::Error, crate::ErrorKind);
-    }
-
-    foreign_links {
-        Clap(clap::Error);
-        Temp(temp::Error);
-        Io(io::Error);
-        Term(term::Error);
-    }
-
-    errors {
-        InvalidCustomToolchainName(t: String) {
-            display("invalid custom toolchain name: '{}'", t)
-        }
-        PermissionDenied {
-            description("permission denied")
-        }
-        ToolchainNotInstalled(t: String) {
-            description("toolchain is not installed")
-            display("toolchain '{}' is not installed", t)
-        }
-        InvalidToolchainName(t: String) {
-            description("invalid toolchain name")
-            display("invalid toolchain name: '{}'{}", t, maybe_suggest_toolchain(t))
-        }
-        InfiniteRecursion {
-            description("infinite recursion detected")
-        }
-        NoExeName {
-            description("couldn't determine self executable name")
-        }
-        UnknownProxyName(n: String) {
-            description("unknown proxy name")
-            display(
-                "unknown proxy name: '{}'; valid proxy names are {}",
-                n,
-                valid_proxy_names(),
-            )
-        }
-        NotSelfInstalled(p: PathBuf) {
-            description("rustup is not installed")
-            display("rustup is not installed at '{}'", p.display())
-        }
-        WindowsUninstallMadness {
-            description("failure during windows uninstall")
-        }
-        UnsupportedCompletionShell(shell: Shell, cmd: CompletionCommand) {
-            description("completion script for shell not yet supported for tool")
-            display("{} does not currently support completions for {}", cmd, shell)
-        }
-        TargetAllSpecifiedWithTargets(t: Vec<String>) {
-            description(
-                "the `all` target, which installs all available targets, \
-                 cannot be combined with other targets"
-            )
-            display("`rustup target add {}` includes `all`", t.join(" "))
-        }
-        WritingShellProfile {
-            path: PathBuf,
-        } {
-            description("could not amend shell profile")
-            display("could not amend shell profile: '{}'", path.display())
-        }
-    }
-}
-
-fn valid_proxy_names() -> String {
-    TOOLS
-        .iter()
-        .chain(DUP_TOOLS.iter())
-        .map(|s| format!("'{}'", s))
-        .collect::<Vec<_>>()
-        .join(", ")
+#[derive(ThisError, Debug)]
+pub enum CLIError {
+    #[error("couldn't determine self executable name")]
+    NoExeName,
+    #[error("rustup is not installed at '{}'", .p.display())]
+    NotSelfInstalled { p: PathBuf },
+    #[error("failure reading directory {}", .p.display())]
+    ReadDirError { p: PathBuf, source: io::Error },
+    #[error("failure during windows uninstall")]
+    WindowsUninstallMadness,
 }
 
 fn maybe_suggest_toolchain(bad_name: &str) -> String {

@@ -1,10 +1,13 @@
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+
+use anyhow::{Context, Result};
+
 use crate::errors::*;
 use crate::notifications::*;
 use crate::toml_utils::*;
 use crate::utils::utils;
-use std::cell::RefCell;
-use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
 
 pub const SUPPORTED_METADATA_VERSIONS: [&str; 2] = ["2", "12"];
 pub const DEFAULT_METADATA_VERSION: &str = "12";
@@ -126,7 +129,7 @@ impl Settings {
     }
 
     pub fn parse(data: &str) -> Result<Self> {
-        let value = toml::from_str(data).map_err(ErrorKind::ParsingSettings)?;
+        let value = toml::from_str(data).context("error parsing settings")?;
         Self::from_toml(value, "")
     }
     pub fn stringify(self) -> String {
@@ -136,7 +139,7 @@ impl Settings {
     pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let version = get_string(&mut table, "version", path)?;
         if !SUPPORTED_METADATA_VERSIONS.contains(&&*version) {
-            return Err(ErrorKind::UnknownMetadataVersion(version).into());
+            return Err(RustupError::UnknownMetadataVersion(version).into());
         }
         Ok(Self {
             version,

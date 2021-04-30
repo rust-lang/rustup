@@ -2,17 +2,13 @@
 
 // TODO: Determine whether we want external keyring support
 
+use std::io::Read;
+
+use anyhow::{Context, Result};
 use pgp::types::KeyTrait;
 use pgp::{Deserializable, StandaloneSignature};
 
 use crate::config::PgpPublicKey;
-use crate::errors::*;
-
-use std::io::Read;
-
-fn squish_internal_err<E: std::fmt::Display>(err: E) -> Error {
-    ErrorKind::SignatureVerificationInternalError(format!("{}", err)).into()
-}
 
 pub fn verify_signature<T: Read>(
     mut content: T,
@@ -22,10 +18,10 @@ pub fn verify_signature<T: Read>(
     let mut content_buf = Vec::new();
     content.read_to_end(&mut content_buf)?;
     let (signatures, _) =
-        StandaloneSignature::from_string_many(signature).map_err(squish_internal_err)?;
+        StandaloneSignature::from_string_many(signature).context("error verifying signature")?;
 
     for signature in signatures {
-        let signature = signature.map_err(squish_internal_err)?;
+        let signature = signature.context("error verifying signature")?;
 
         for (idx, key) in keys.iter().enumerate() {
             let actual_key = key.key();

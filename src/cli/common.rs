@@ -6,11 +6,11 @@ use std::path::Path;
 use std::sync::Arc;
 use std::{cmp, env, iter};
 
+use anyhow::{anyhow, Context, Result};
 use git_testament::{git_testament, render_testament};
 use lazy_static::lazy_static;
 use term2::Terminal;
 
-use super::errors::*;
 use super::self_update;
 use super::term2;
 use crate::dist::notifications as dist_notifications;
@@ -105,10 +105,12 @@ pub fn read_line() -> Result<String> {
     let stdin = process().stdin();
     let stdin = stdin.lock();
     let mut lines = stdin.lines();
-    lines
-        .next()
-        .and_then(std::result::Result::ok)
-        .ok_or_else(|| "unable to read from stdin for confirmation".into())
+    let lines = lines.next().transpose()?;
+    match lines {
+        None => Err(anyhow!("no lines found from stdin")),
+        Some(v) => Ok(v),
+    }
+    .context("unable to read from stdin for confirmation")
 }
 
 #[derive(Default)]
@@ -170,18 +172,11 @@ pub fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
     }))?)
 }
 
-pub fn show_channel_update(
-    cfg: &Cfg,
-    name: &str,
-    updated: crate::Result<UpdateStatus>,
-) -> Result<()> {
+pub fn show_channel_update(cfg: &Cfg, name: &str, updated: Result<UpdateStatus>) -> Result<()> {
     show_channel_updates(cfg, vec![(name.to_string(), updated)])
 }
 
-fn show_channel_updates(
-    cfg: &Cfg,
-    toolchains: Vec<(String, crate::Result<UpdateStatus>)>,
-) -> Result<()> {
+fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>)>) -> Result<()> {
     let data = toolchains.into_iter().map(|(name, result)| {
         let toolchain = cfg.get_toolchain(&name, false)?;
         let mut version: String = toolchain.rustc_version();
@@ -305,11 +300,7 @@ pub fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
                 }
             }
             Err(env::VarError::NotPresent) => {}
-            Err(e) => {
-                return Err(
-                    format!("Could not interrogate SNAP environment variable: {}", e).into(),
-                )
-            }
+            Err(e) => return Err(e).context("Could not interrogate SNAP environment variable"),
         }
         let current_exe = env::current_exe()?;
         let current_exe_dir = current_exe.parent().expect("Rustup isn't in a directory‽");
@@ -362,8 +353,7 @@ where
 
 pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new(&toolchain)
-        .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
     let components = distributable.list_components()?;
     for component in components {
         if component.component.short_name_in_manifest() == "rust-std" {
@@ -387,8 +377,7 @@ pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
 
 pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new(&toolchain)
-        .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
     let components = distributable.list_components()?;
     for component in components {
         if component.component.short_name_in_manifest() == "rust-std" {
@@ -407,8 +396,7 @@ pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCo
 
 pub fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new(&toolchain)
-        .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
     let components = distributable.list_components()?;
     for component in components {
         let name = component.name;
@@ -426,8 +414,7 @@ pub fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
 
 pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new(&toolchain)
-        .chain_err(|| crate::ErrorKind::ComponentsUnsupported(toolchain.name().to_string()))?;
+    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
     let components = distributable.list_components()?;
     for component in components {
         if component.installed {
@@ -499,7 +486,7 @@ pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
             };
 
             print_toolchain_path(cfg, &toolchain, if_default, if_override, verbose)
-                .expect("Failed to list toolchains' directories");
+                .context("Failed to list toolchains' directories")?;
         }
     }
     Ok(utils::ExitCode(0))
@@ -615,22 +602,21 @@ fn show_backtrace() -> bool {
     false
 }
 
-pub fn report_error(e: &Error) {
-    err!("{}", e);
-
-    for e in e.iter().skip(1) {
-        err!("caused by: {}", e);
-    }
-
+pub fn report_error(e: &anyhow::Error) {
+    // NB: This shows one error: even for multiple causes and backtraces etc,
+    // rather than one per cause, and one for the backtrace. This seems like a
+    // reasonable tradeoff, but if we want to do differently, this is the code
+    // hunk to revisit, that and a similar build.rs auto-detect glue as anyhow
+    // has to detect when backtrace is available.
     if show_backtrace() {
-        if let Some(backtrace) = e.backtrace() {
-            err!("backtrace:");
-            err!("{:?}", backtrace);
-        }
+        err!("{:?}", e);
+    } else {
+        err!("{:#}", e);
     }
 }
 
-pub fn ignorable_error(error: super::errors::Error, no_prompt: bool) -> Result<()> {
+pub fn ignorable_error(error: &'static str, no_prompt: bool) -> Result<()> {
+    let error = anyhow!(error);
     report_error(&error);
     if no_prompt {
         warn!("continuing (because the -y flag is set and the error is ignorable)");

@@ -1,15 +1,16 @@
+use std::fs;
+use std::ops;
+use std::path::{Path, PathBuf};
+
+use anyhow::{anyhow, Context, Result};
+use sha2::{Digest, Sha256};
+use url::Url;
+
 use crate::config::PgpPublicKey;
 use crate::dist::notifications::*;
 use crate::dist::temp;
 use crate::errors::*;
 use crate::utils::utils;
-
-use sha2::{Digest, Sha256};
-use url::Url;
-
-use std::fs;
-use std::ops;
-use std::path::{Path, PathBuf};
 
 const UPDATE_HASH_LEN: usize = 20;
 
@@ -55,7 +56,7 @@ impl<'a> DownloadCfg<'a> {
                 return Ok(File { path: target_file });
             } else {
                 (self.notify_handler)(Notification::CachedFileChecksumFailed);
-                fs::remove_file(&target_file).chain_err(|| "cleaning up previous download")?;
+                fs::remove_file(&target_file).context("cleaning up previous download")?;
             }
         }
 
@@ -79,10 +80,11 @@ impl<'a> DownloadCfg<'a> {
             true,
             &|n| (self.notify_handler)(n.into()),
         ) {
+            let err = Err(e);
             if partial_file_existed {
-                return Err(e).chain_err(|| ErrorKind::BrokenPartialFile);
+                return err.context(RustupError::BrokenPartialFile);
             } else {
-                return Err(e);
+                return err;
             }
         };
 
@@ -92,9 +94,9 @@ impl<'a> DownloadCfg<'a> {
             // Incorrect hash
             if partial_file_existed {
                 self.clean(&[hash.to_string() + &".partial".to_string()])?;
-                Err(ErrorKind::BrokenPartialFile.into())
+                Err(anyhow!(RustupError::BrokenPartialFile))
             } else {
-                Err(ErrorKind::ChecksumFailed {
+                Err(RustupError::ChecksumFailed {
                     url: url.to_string(),
                     expected: hash.to_string(),
                     calculated: actual_hash,
@@ -118,7 +120,7 @@ impl<'a> DownloadCfg<'a> {
         for hash in hashes.iter() {
             let used_file = self.download_dir.join(hash);
             if self.download_dir.join(&used_file).exists() {
-                fs::remove_file(used_file).chain_err(|| "cleaning up cached downloads")?;
+                fs::remove_file(used_file).context("cleaning up cached downloads")?;
             }
         }
         Ok(())
@@ -152,14 +154,12 @@ impl<'a> DownloadCfg<'a> {
             "At least the builtin key must be present"
         );
 
-        let signature = self.download_signature(url).map_err(|e| {
-            e.chain_err(|| ErrorKind::SignatureVerificationFailed {
-                url: url.to_owned(),
-            })
-        })?;
+        let signature = self
+            .download_signature(url)
+            .with_context(|| format!("failed to download signature file {}", url))?;
 
         let file_path: &Path = &file;
-        let content = std::fs::File::open(file_path).chain_err(|| ErrorKind::ReadingFile {
+        let content = std::fs::File::open(file_path).with_context(|| RustupError::ReadingFile {
             name: "channel data",
             path: PathBuf::from(file_path),
         })?;
@@ -170,10 +170,10 @@ impl<'a> DownloadCfg<'a> {
             let key = &self.pgp_keys[keyidx];
             Ok(key)
         } else {
-            Err(ErrorKind::SignatureVerificationFailed {
-                url: url.to_owned(),
-            }
-            .into())
+            Err(anyhow!(format!(
+                "signature verification failed for {}",
+                url
+            )))
         }
     }
 
@@ -217,7 +217,7 @@ impl<'a> DownloadCfg<'a> {
 
         if hash != actual_hash {
             // Incorrect hash
-            return Err(ErrorKind::ChecksumFailed {
+            return Err(RustupError::ChecksumFailed {
                 url: url_str.to_owned(),
                 expected: hash,
                 calculated: actual_hash,

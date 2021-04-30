@@ -1,9 +1,10 @@
-use crate::errors::*;
-use crate::utils::utils;
 use serde::Deserialize;
-use std::error::Error;
 use std::io;
 use std::path::Path;
+
+use anyhow::{Context, Result};
+
+use crate::utils::utils;
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct FallbackSettings {
@@ -25,16 +26,15 @@ impl FallbackSettings {
         // sorts of issues, logging messages about errors that should be fixed. Instead we trap some conservative errors
         // that hopefully won't lead to too many tickets.
         match utils::read_file("fallback settings", path.as_ref()) {
-            Err(e @ Error(ErrorKind::ReadingFile { .. }, _)) => {
-                let io_err = e.source().unwrap().downcast_ref::<io::Error>().unwrap();
-                match io_err.kind() {
+            Err(e) => match e.downcast_ref::<io::Error>() {
+                Some(io_err) => match io_err.kind() {
                     io::ErrorKind::NotFound | io::ErrorKind::PermissionDenied => Ok(None),
                     _ => Err(e),
-                }
-            }
-            Err(e) => Err(e),
+                },
+                None => Err(e),
+            },
             Ok(file_contents) => Ok(Some(
-                toml::from_str(&file_contents).map_err(ErrorKind::ParsingFallbackSettings)?,
+                toml::from_str(&file_contents).context("error parsing settings")?,
             )),
         }
     }

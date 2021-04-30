@@ -1,11 +1,10 @@
 [package]
 
+authors = ["Brian Anderson <banderson@mozilla.com>"]
+edition = "2018"
+license = "MIT/Apache-2.0"
 name = "download"
 version = "0.6.9"
-edition = "2018"
-authors = [ "Brian Anderson <banderson@mozilla.com>" ]
-
-license = "MIT/Apache-2.0"
 
 [features]
 
@@ -17,14 +16,15 @@ reqwest-default-tls = ["reqwest/default-tls"]
 reqwest-rustls-tls = ["reqwest/rustls-tls-native-roots"]
 
 [dependencies]
-error-chain = "0.12"
+anyhow = "1.0.31"
+curl = {version = "0.4.11", optional = true}
+env_proxy = {version = "0.4.1", optional = true}
+lazy_static = {version = "1.0", optional = true}
+reqwest = {version = "0.11", default-features = false, features = ["blocking", "gzip", "socks"], optional = true}
+thiserror = "1.0"
 url = "2.1"
-curl = { version = "0.4.11", optional = true }
-env_proxy = { version = "0.4.1", optional = true }
-lazy_static = { version = "1.0", optional = true }
-reqwest = { version = "0.11", default-features = false, features = ["blocking", "gzip", "socks"], optional = true }
 
 [dev-dependencies]
-hyper = { version = "0.14", default-features = false, features = ["tcp", "server"] }
+hyper = {version = "0.14", default-features = false, features = ["tcp", "server"]}
 tempfile = "3"
-tokio = { version = "1", default-features = false, features = ["sync"] }
+tokio = {version = "1", default-features = false, features = ["sync"]}

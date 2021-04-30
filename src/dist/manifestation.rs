@@ -3,6 +3,7 @@
 
 use std::path::Path;
 
+use anyhow::{anyhow, bail, Context, Result};
 use retry::delay::NoDelay;
 use retry::{retry, OperationResult};
 
@@ -17,7 +18,7 @@ use crate::dist::manifest::{Component, CompressionKind, Manifest, TargetedPackag
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-use crate::errors::*;
+use crate::errors::{OperationError, RustupError};
 use crate::process;
 use crate::utils::utils;
 
@@ -51,7 +52,7 @@ impl Changes {
     fn check_invariants(&self, config: &Option<Config>) -> Result<()> {
         for component_to_add in self.iter_add_components() {
             if self.remove_components.contains(component_to_add) {
-                return Err("can't both add and remove components".into());
+                bail!("can't both add and remove components");
             }
         }
         for component_to_remove in &self.remove_components {
@@ -133,8 +134,10 @@ impl Manifestation {
             Ok(_) => {}
             Err(e) => {
                 if force_update {
-                    if let ErrorKind::RequestedComponentsUnavailable(components, _, _) = e.kind() {
-                        for component in components {
+                    if let Ok(RustupError::RequestedComponentsUnavailable { components, .. }) =
+                        e.downcast::<RustupError>()
+                    {
+                        for component in &components {
                             notify_handler(Notification::ForcingUnavailableComponent(
                                 component.name(new_manifest).as_str(),
                             ));
@@ -178,18 +181,24 @@ impl Manifestation {
             let downloaded_file = retry(NoDelay.take(max_retries), || {
                 match download_cfg.download(&url_url, &hash) {
                     Ok(f) => OperationResult::Ok(f),
-                    Err(e) => match e.kind() {
-                        // If there was a broken partial file, try again
-                        ErrorKind::DownloadingFile { .. } | ErrorKind::BrokenPartialFile => {
-                            notify_handler(Notification::RetryingDownload(&url));
-                            OperationResult::Retry(e)
-                        }
-
-                        _ => OperationResult::Err(e),
-                    },
+                    Err(e) => {
+                        match e.downcast_ref::<RustupError>() {
+                            Some(RustupError::BrokenPartialFile) => {
+                                notify_handler(Notification::RetryingDownload(&url));
+                                return OperationResult::Retry(OperationError(e));
+                            }
+                            Some(RustupError::DownloadingFile { .. }) => {
+                                notify_handler(Notification::RetryingDownload(&url));
+                                return OperationResult::Retry(OperationError(e));
+                            }
+                            Some(_) => return OperationResult::Err(OperationError(e)),
+                            None => (),
+                        };
+                        OperationResult::Err(OperationError(e))
+                    }
                 }
             })
-            .chain_err(|| ErrorKind::ComponentDownloadFailed(component.name(new_manifest)))?;
+            .with_context(|| RustupError::ComponentDownloadFailed(component.name(new_manifest)))?;
 
             things_downloaded.push(hash);
 
@@ -261,7 +270,7 @@ impl Manifestation {
             // If the package doesn't contain the component that the
             // manifest says it does then somebody must be playing a joke on us.
             if !package.contains(&pkg_name, Some(&short_pkg_name)) {
-                return Err(ErrorKind::CorruptComponent(short_name).into());
+                return Err(RustupError::CorruptComponent(short_name).into());
             }
 
             tx = package.install(&self.installation, &pkg_name, Some(&short_pkg_name), tx)?;
@@ -380,21 +389,19 @@ impl Manifestation {
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if self.read_config()?.is_some() {
-            return Err(
+            return Err(anyhow!(
                 "the server unexpectedly provided an obsolete version of the distribution manifest"
-                    .into(),
-            );
+            ));
         }
 
         let url = new_manifest
             .iter()
             .find(|u| u.contains(&format!("{}{}", self.target_triple, ".tar.gz")));
         if url.is_none() {
-            return Err(format!(
+            return Err(anyhow!(
                 "binary package was not provided for '{}'",
                 self.target_triple.to_string()
-            )
-            .into());
+            ));
         }
         // Only replace once. The cost is inexpensive.
         let url = url
@@ -655,12 +662,11 @@ impl Update {
         unavailable_components.extend_from_slice(&self.missing_components);
 
         if !unavailable_components.is_empty() {
-            return Err(ErrorKind::RequestedComponentsUnavailable(
-                unavailable_components,
-                new_manifest.clone(),
-                toolchain_str.to_owned(),
-            )
-            .into());
+            bail!(RustupError::RequestedComponentsUnavailable {
+                components: unavailable_components,
+                manifest: new_manifest.clone(),
+                toolchain: toolchain_str.to_owned(),
+            });
         }
 
         Ok(())

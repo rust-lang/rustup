@@ -1,7 +1,7 @@
+use anyhow::Result;
 use clap::{App, AppSettings, Arg};
 
 use super::common;
-use super::errors::*;
 use super::self_update::{self, InstallOpts};
 use crate::dist::dist::Profile;
 use crate::process;

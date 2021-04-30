@@ -1,22 +1,25 @@
-use crate::utils::raw;
-use crate::utils::utils;
-use std::error;
 use std::fmt::{self, Display};
 use std::fs;
 use std::io;
 use std::ops;
 use std::path::{Path, PathBuf};
 
+pub use anyhow::{Context, Result};
+use thiserror::Error as ThisError;
+
 use crate::utils::notify::NotificationLevel;
+use crate::utils::raw;
+use crate::utils::utils;
 
-#[derive(Debug)]
+#[derive(Debug, ThisError)]
 pub enum Error {
-    CreatingRoot { path: PathBuf, error: io::Error },
-    CreatingFile { path: PathBuf, error: io::Error },
-    CreatingDirectory { path: PathBuf, error: io::Error },
+    #[error("could not create temp root {}" ,.0.display())]
+    CreatingRoot(PathBuf),
+    #[error("could not create temp file {}",.0.display())]
+    CreatingFile(PathBuf),
+    #[error("could not create temp directory {}",.0.display())]
+    CreatingDirectory(PathBuf),
 }
-
-pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -86,43 +89,6 @@ impl<'a> Display for Notification<'a> {
     }
 }
 
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        use self::Error::*;
-        match self {
-            CreatingRoot { .. } => "could not create temp root",
-            CreatingFile { .. } => "could not create temp file",
-            CreatingDirectory { .. } => "could not create temp directory",
-        }
-    }
-
-    fn cause(&self) -> Option<&dyn error::Error> {
-        use self::Error::*;
-        match self {
-            CreatingRoot { error, .. }
-            | CreatingFile { error, .. }
-            | CreatingDirectory { error, .. } => Some(error),
-        }
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
-        use self::Error::*;
-        match self {
-            CreatingRoot { path, .. } => {
-                write!(f, "could not create temp root: {}", path.display())
-            }
-            CreatingFile { path, .. } => {
-                write!(f, "could not create temp file: {}", path.display())
-            }
-            CreatingDirectory { path, .. } => {
-                write!(f, "could not create temp directory: {}", path.display())
-            }
-        }
-    }
-}
-
 impl Cfg {
     pub fn new(
         root_directory: PathBuf,
@@ -140,10 +106,7 @@ impl Cfg {
         raw::ensure_dir_exists(&self.root_directory, |p| {
             (self.notify_handler)(Notification::CreatingRoot(p));
         })
-        .map_err(|e| Error::CreatingRoot {
-            path: PathBuf::from(&self.root_directory),
-            error: e,
-        })
+        .with_context(|| Error::CreatingRoot(PathBuf::from(&self.root_directory)))
     }
 
     pub fn new_directory(&self) -> Result<Dir<'_>> {
@@ -158,10 +121,8 @@ impl Cfg {
             // random names at exactly the same time is... low.
             if !raw::path_exists(&temp_dir) {
                 (self.notify_handler)(Notification::CreatingDirectory(&temp_dir));
-                fs::create_dir(&temp_dir).map_err(|e| Error::CreatingDirectory {
-                    path: PathBuf::from(&temp_dir),
-                    error: e,
-                })?;
+                fs::create_dir(&temp_dir)
+                    .with_context(|| Error::CreatingDirectory(PathBuf::from(&temp_dir)))?;
                 return Ok(Dir {
                     cfg: self,
                     path: temp_dir,
@@ -186,10 +147,8 @@ impl Cfg {
             // random names at exactly the same time is... low.
             if !raw::path_exists(&temp_file) {
                 (self.notify_handler)(Notification::CreatingFile(&temp_file));
-                fs::File::create(&temp_file).map_err(|e| Error::CreatingFile {
-                    path: PathBuf::from(&temp_file),
-                    error: e,
-                })?;
+                fs::File::create(&temp_file)
+                    .with_context(|| Error::CreatingFile(PathBuf::from(&temp_file)))?;
                 return Ok(File {
                     cfg: self,
                     path: temp_file,

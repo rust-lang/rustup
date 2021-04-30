@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use super::super::errors::*;
+use anyhow::{bail, Context, Result};
+
 use super::install_bins;
 use super::shell;
 use crate::process;
@@ -48,9 +49,7 @@ pub fn do_anti_sudo_check(no_prompt: bool) -> Result<utils::ExitCode> {
 
 pub fn delete_rustup_and_cargo_home() -> Result<()> {
     let cargo_home = utils::cargo_home()?;
-    utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())?;
-
-    Ok(())
+    utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())
 }
 
 pub fn do_remove_from_path() -> Result<()> {
@@ -92,11 +91,8 @@ pub fn do_add_to_path() -> Result<()> {
                 _ => &source_cmd,
             };
 
-            utils::append_file("rcfile", &rc, &cmd_to_write).chain_err(|| {
-                ErrorKind::WritingShellProfile {
-                    path: rc.to_path_buf(),
-                }
-            })?;
+            utils::append_file("rcfile", &rc, &cmd_to_write)
+                .with_context(|| format!("could not amend shell profile: '{}'", rc.display()))?;
         }
     }
 
@@ -134,10 +130,10 @@ pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
     let status = Command::new(setup_path)
         .arg("--self-replace")
         .status()
-        .chain_err(|| "unable to run updater")?;
+        .context("unable to run updater")?;
 
     if !status.success() {
-        return Err("self-updated failed to replace rustup executable".into());
+        bail!("self-updated failed to replace rustup executable");
     }
 
     Ok(utils::ExitCode(0))

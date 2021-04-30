@@ -2,6 +2,8 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process;
 
+use anyhow::Result;
+
 use super::common::set_globals;
 use super::errors::*;
 use super::job;
@@ -23,7 +25,7 @@ pub fn main() -> Result<ExitCode> {
             .as_ref()
             .and_then(|a| a.file_name())
             .and_then(std::ffi::OsStr::to_str);
-        let arg0 = arg0.ok_or(ErrorKind::NoExeName)?;
+        let arg0 = arg0.ok_or(CLIError::NoExeName)?;
 
         // Check for a toolchain specifier.
         let arg1 = args.next();

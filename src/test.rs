@@ -8,6 +8,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use anyhow::Result;
+
 pub use crate::cli::self_update::test::{get_path, with_saved_path};
 use crate::currentprocess;
 use crate::dist::dist::TargetTriple;
@@ -166,9 +168,9 @@ impl fmt::Display for RustupHome {
 
 /// Create an isolated rustup home with no content, then call f with it, and
 /// delete it afterwards.
-pub fn with_rustup_home<F>(f: F) -> anyhow::Result<()>
+pub fn with_rustup_home<F>(f: F) -> Result<()>
 where
-    F: FnOnce(&RustupHome) -> anyhow::Result<()>,
+    F: FnOnce(&RustupHome) -> Result<()>,
 {
     let test_dir = test_dir()?;
     let rustup_home = RustupHome::new_in(test_dir)?;

@@ -23,11 +23,12 @@
 //! 1) using a shell script that updates PATH if the path is not in PATH
 //! 2) sourcing this script (`. /path/to/script`) in any appropriate rc file
 
+use std::borrow::Cow;
 use std::path::PathBuf;
 
-use error_chain::bail;
+use anyhow::{bail, Result};
 
-use super::*;
+use super::utils;
 use crate::process;
 
 pub type Shell = Box<dyn UnixShell>;
