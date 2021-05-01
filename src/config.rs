@@ -25,7 +25,7 @@ use crate::toolchain::{DistributableToolchain, Toolchain, UpdateStatus};
 use crate::utils::utils;
 
 #[derive(Debug, ThisError)]
-enum ConfigError {
+enum OverrideFileConfigError {
     #[error("empty toolchain override file detected. Please remove it, or else specify the desired toolchain properties in the file")]
     Empty,
     #[error("missing toolchain properties in toolchain override file")]
@@ -677,22 +677,22 @@ impl Cfg {
         let contents = contents.as_ref();
 
         match (contents.lines().count(), parse_mode) {
-            (0, _) => Err(anyhow!(ConfigError::Empty)),
+            (0, _) => Err(anyhow!(OverrideFileConfigError::Empty)),
             (1, ParseMode::Both) => {
                 let channel = contents.trim();
 
                 if channel.is_empty() {
-                    Err(anyhow!(ConfigError::Empty))
+                    Err(anyhow!(OverrideFileConfigError::Empty))
                 } else {
                     Ok(channel.into())
                 }
             }
             _ => {
-                let override_file =
-                    toml::from_str::<OverrideFile>(contents).context(ConfigError::Parsing)?;
+                let override_file = toml::from_str::<OverrideFile>(contents)
+                    .context(OverrideFileConfigError::Parsing)?;
 
                 if override_file.is_empty() {
-                    Err(anyhow!(ConfigError::Invalid))
+                    Err(anyhow!(OverrideFileConfigError::Invalid))
                 } else {
                     Ok(override_file)
                 }
@@ -1162,8 +1162,8 @@ components = [ "rustfmt" ]
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
-            result.unwrap_err().downcast::<ConfigError>(),
-            Ok(ConfigError::Invalid)
+            result.unwrap_err().downcast::<OverrideFileConfigError>(),
+            Ok(OverrideFileConfigError::Invalid)
         ));
     }
 
@@ -1173,8 +1173,8 @@ components = [ "rustfmt" ]
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
-            result.unwrap_err().downcast::<ConfigError>(),
-            Ok(ConfigError::Empty)
+            result.unwrap_err().downcast::<OverrideFileConfigError>(),
+            Ok(OverrideFileConfigError::Empty)
         ));
     }
 
@@ -1184,8 +1184,8 @@ components = [ "rustfmt" ]
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
-            result.unwrap_err().downcast::<ConfigError>(),
-            Ok(ConfigError::Empty)
+            result.unwrap_err().downcast::<OverrideFileConfigError>(),
+            Ok(OverrideFileConfigError::Empty)
         ));
     }
 
@@ -1197,8 +1197,8 @@ channel = nightly
 
         let result = Cfg::parse_override_file(contents, ParseMode::Both);
         assert!(matches!(
-            result.unwrap_err().downcast::<ConfigError>(),
-            Ok(ConfigError::Parsing)
+            result.unwrap_err().downcast::<OverrideFileConfigError>(),
+            Ok(OverrideFileConfigError::Parsing)
         ));
     }
 }
