@@ -914,10 +914,11 @@ fn try_update_from_dist_<'a>(
     let mut download_not_exists = false;
     match &result {
         Ok(_) => (),
-        Err(e) => match e.downcast_ref::<RustupError>() {
-            Some(RustupError::DownloadNotExists { .. }) => download_not_exists = true,
-            _ => (),
-        },
+        Err(e) => {
+            if let Some(RustupError::DownloadNotExists { .. }) = e.downcast_ref::<RustupError>() {
+                download_not_exists = true
+            }
+        }
     }
     if download_not_exists {
         result.with_context(|| {
@@ -951,14 +952,9 @@ pub fn dl_v2_manifest<'a>(
             Ok(Some((manifest, manifest_hash)))
         }
         Err(any) => {
-            match any.downcast_ref::<RustupError>() {
-                Some(e) => {
-                    // Checksum failed - issue warning to try again later
-                    if let RustupError::ChecksumFailed { .. } = e {
-                        (download.notify_handler)(Notification::ManifestChecksumFailedHack);
-                    }
-                }
-                None => (),
+            if let Some(RustupError::ChecksumFailed { .. }) = any.downcast_ref::<RustupError>() {
+                // Checksum failed - issue warning to try again later
+                (download.notify_handler)(Notification::ManifestChecksumFailedHack);
             }
             Err(any)
         }

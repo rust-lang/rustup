@@ -112,16 +112,14 @@ pub fn filter_file<F: FnMut(&str) -> bool>(
     dest: &Path,
     filter: F,
 ) -> Result<usize> {
-    raw::filter_file(src, dest, filter)
-        .with_context(|| {
-            format!(
-                "could not copy {} file from '{}' to '{}'",
-                name,
-                src.display(),
-                dest.display()
-            )
-        })
-        .into()
+    raw::filter_file(src, dest, filter).with_context(|| {
+        format!(
+            "could not copy {} file from '{}' to '{}'",
+            name,
+            src.display(),
+            dest.display()
+        )
+    })
 }
 
 pub fn canonicalize_path<'a, N>(path: &'a Path, notify_handler: &dyn Fn(N)) -> PathBuf
@@ -366,7 +364,7 @@ where
 {
     notify_handler(Notification::RemovingDirectory(name, path).into());
     raw::remove_dir(path).with_context(|| RustupError::RemovingDirectory {
-        name: name,
+        name,
         path: PathBuf::from(path),
     })
 }

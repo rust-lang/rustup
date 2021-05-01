@@ -164,12 +164,12 @@ pub fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
         ..Default::default()
     });
 
-    Ok(Cfg::from_env(Arc::new(move |n: Notification<'_>| {
+    Cfg::from_env(Arc::new(move |n: Notification<'_>| {
         if download_tracker.borrow_mut().handle_notification(&n) {
             return;
         }
         console_notifier.borrow_mut().handle(n);
-    }))?)
+    }))
 }
 
 pub fn show_channel_update(cfg: &Cfg, name: &str, updated: Result<UpdateStatus>) -> Result<()> {

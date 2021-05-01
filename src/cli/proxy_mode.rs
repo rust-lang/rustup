@@ -60,5 +60,5 @@ fn direct_proxy(
         None => cfg.create_command_for_dir(&utils::current_dir()?, arg0)?,
         Some(tc) => cfg.create_command_for_toolchain(tc, false, arg0)?,
     };
-    Ok(run_command_for_dir(cmd, arg0, args)?)
+    run_command_for_dir(cmd, arg0, args)
 }

@@ -94,12 +94,7 @@ fn run_rustup_inner() -> Result<utils::ExitCode> {
             }
         }
         Some(n) => {
-            if TOOLS
-                .iter()
-                .chain(DUP_TOOLS.iter())
-                .find(|&&name| name == n)
-                .is_some()
-            {
+            if TOOLS.iter().chain(DUP_TOOLS.iter()).any(|&name| name == n) {
                 proxy_mode::main()
             } else {
                 Err(anyhow!(format!(
