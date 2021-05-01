@@ -863,7 +863,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     } else {
         let default_toolchain: Result<String> = cfg
             .get_default()?
-            .ok_or(anyhow!("no default toolchain configured"));
+            .ok_or_else(|| anyhow!("no default toolchain configured"));
         writeln!(process().stdout(), "{} (default)", default_toolchain?)?;
     }
 
@@ -1116,7 +1116,7 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
         }
         let default_name: Result<String> = cfg
             .get_default()?
-            .ok_or(anyhow!("no default toolchain configured"));
+            .ok_or_else(|| anyhow!("no default toolchain configured"));
         let default_name = default_name?;
         for it in installed_toolchains {
             if default_name == it {

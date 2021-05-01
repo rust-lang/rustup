@@ -26,7 +26,7 @@ fn parse_smoke_test() {
     let rust_target_pkg = rust_pkg
         .get_target(Some(&x86_64_unknown_linux_gnu))
         .unwrap();
-    assert_eq!(rust_target_pkg.available(), true);
+    assert!(rust_target_pkg.available());
     assert_eq!(rust_target_pkg.bins[0].1.url, "example.com");
     assert_eq!(rust_target_pkg.bins[0].1.hash, "...");
 

@@ -59,7 +59,7 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
                 break;
             }
         }
-        assert_eq!(true, file_finished);
+        assert!(file_finished);
         for _ in io_executor.join().collect::<Vec<_>>() {
             // no more work should be outstanding
             unreachable!();
