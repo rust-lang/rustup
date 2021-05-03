@@ -354,13 +354,13 @@ pub mod reqwest_be {
             TlsBackend::Rustls => &CLIENT_RUSTLS_TLS,
             #[cfg(not(feature = "reqwest-rustls-tls"))]
             TlsBackend::Rustls => {
-                return Err(ErrorKind::BackendUnavailable("reqwest rustls").into());
+                return Err(DownloadError::BackendUnavailable("reqwest rustls"));
             }
             #[cfg(feature = "reqwest-default-tls")]
             TlsBackend::Default => &CLIENT_DEFAULT_TLS,
             #[cfg(not(feature = "reqwest-default-tls"))]
             TlsBackend::Default => {
-                return Err(ErrorKind::BackendUnavailable("reqwest default TLS").into());
+                return Err(DownloadError::BackendUnavailable("reqwest default TLS"));
             }
         };
         let mut req = client.get(url.as_str());
@@ -414,6 +414,8 @@ pub mod reqwest_be {
 #[cfg(not(feature = "curl-backend"))]
 pub mod curl {
 
+    use anyhow::{anyhow, Result};
+
     use super::Event;
     use crate::errors::*;
     use url::Url;
@@ -421,14 +423,16 @@ pub mod curl {
     pub fn download(
         _url: &Url,
         _resume_from: u64,
-        _callback: &dyn Fn(Event<'_>) -> Result<(), DownloadError>,
-    ) -> Result<(), DownloadError> {
-        Err(ErrorKind::BackendUnavailable("curl").into())
+        _callback: &dyn Fn(Event<'_>) -> Result<()>,
+    ) -> Result<()> {
+        Err(anyhow!(DownloadError::BackendUnavailable("curl")))
     }
 }
 
 #[cfg(not(feature = "reqwest-backend"))]
 pub mod reqwest_be {
+
+    use anyhow::{anyhow, Result};
 
     use super::Event;
     use super::TlsBackend;
@@ -438,9 +442,9 @@ pub mod reqwest_be {
     pub fn download(
         _url: &Url,
         _resume_from: u64,
-        _callback: &dyn Fn(Event<'_>) -> Result<(), DownloadError>,
+        _callback: &dyn Fn(Event<'_>) -> Result<()>,
         _tls: TlsBackend,
-    ) -> Result<(), DownloadError> {
-        Err(ErrorKind::BackendUnavailable("reqwest").into())
+    ) -> Result<()> {
+        Err(anyhow!(DownloadError::BackendUnavailable("reqwest")))
     }
 }
