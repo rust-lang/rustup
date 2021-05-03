@@ -11,11 +11,11 @@ use std::sync::{Arc, Mutex};
 
 use rand::{thread_rng, Rng};
 
-pub mod argsource;
-pub mod cwdsource;
-pub mod filesource;
+pub(crate) mod argsource;
+pub(crate) mod cwdsource;
+pub(crate) mod filesource;
 mod homethunk;
-pub mod varsource;
+pub(crate) mod varsource;
 
 use argsource::*;
 use cwdsource::*;
@@ -121,7 +121,7 @@ pub fn process() -> Box<dyn CurrentProcess> {
 }
 
 /// Obtain the current instance of HomeProcess
-pub fn home_process() -> Box<dyn HomeProcess> {
+pub(crate) fn home_process() -> Box<dyn HomeProcess> {
     match PROCESS.with(|p| p.borrow().clone()) {
         None => panic!("No process instance"),
         Some(p) => p,
@@ -163,7 +163,7 @@ fn clear_process() {
 }
 
 thread_local! {
-    pub static PROCESS:RefCell<Option<Box<dyn HomeProcess>>> = RefCell::new(None);
+    pub(crate) static PROCESS:RefCell<Option<Box<dyn HomeProcess>>> = RefCell::new(None);
 }
 
 // PID related things
@@ -191,13 +191,13 @@ impl ProcessSource for OSProcess {
 
 #[derive(Clone, Debug, Default)]
 pub struct TestProcess {
-    pub cwd: PathBuf,
-    pub args: Vec<String>,
-    pub vars: HashMap<String, String>,
-    pub id: u64,
-    pub stdin: TestStdinInner,
-    pub stdout: TestWriterInner,
-    pub stderr: TestWriterInner,
+    pub(crate) cwd: PathBuf,
+    pub(crate) args: Vec<String>,
+    pub(crate) vars: HashMap<String, String>,
+    pub(crate) id: u64,
+    pub(crate) stdin: TestStdinInner,
+    pub(crate) stdout: TestWriterInner,
+    pub(crate) stderr: TestWriterInner,
 }
 
 impl TestProcess {

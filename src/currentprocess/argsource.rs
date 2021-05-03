@@ -20,7 +20,7 @@ impl ArgSource for super::OSProcess {
 }
 
 /// Helper for ArgSource over `Vec<String>`
-pub struct VecArgs<T> {
+pub(crate) struct VecArgs<T> {
     v: Vec<String>,
     i: usize,
     _marker: PhantomData<T>,
