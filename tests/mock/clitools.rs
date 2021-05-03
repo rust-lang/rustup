@@ -600,7 +600,12 @@ where
     output
 }
 
-pub fn run_inprocess<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> Output
+pub(crate) fn run_inprocess<I, A>(
+    config: &Config,
+    name: &str,
+    args: I,
+    env: &[(&str, &str)],
+) -> Output
 where
     I: IntoIterator<Item = A>,
     A: AsRef<OsStr>,
