@@ -343,6 +343,7 @@ pub fn write_file_incremental<P: AsRef<Path>, F: Fn(usize)>(
             {
                 trace_scoped!("write_segment", "name": path_display, "len": len);
                 f.write_all(&contents)?;
+                drop(contents);
                 chunk_complete_callback(len);
             }
         }
