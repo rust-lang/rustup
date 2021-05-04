@@ -914,3 +914,98 @@ fn install_minimal_profile() {
         expect_component_not_executable(config, "cargo");
     });
 }
+
+#[test]
+fn install_from_rust_toolchain_file_specific_version() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain.toml");
+
+        raw::write_file(
+            &toolchain_file,
+            r#"[toolchain]
+channel = "1.1.0""#,
+        )
+        .unwrap();
+
+        expect_ok(
+            config,
+            &["rustup-init", "-y", "--from-file", "rust-toolchain.toml"],
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "toolchain", "list"],
+            &format!("1.1.0-{} (default)", this_host_triple()),
+        );
+    })
+}
+
+#[test]
+fn install_from_rust_toolchain_file_latest_stable() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain.toml");
+
+        raw::write_file(
+            &toolchain_file,
+            r#"[toolchain]
+channel = "stable""#,
+        )
+        .unwrap();
+
+        expect_ok(
+            config,
+            &["rustup-init", "-y", "--from-file", "rust-toolchain.toml"],
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "toolchain", "list"],
+            &format!("stable-{} (default)", this_host_triple()),
+        );
+    })
+}
+
+#[test]
+fn install_from_rust_toolchain_file_toml_format_without_toml_extension() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+
+        raw::write_file(
+            &toolchain_file,
+            r#"[toolchain]
+channel = "1.1.0""#,
+        )
+        .unwrap();
+
+        expect_ok(
+            config,
+            &["rustup-init", "-y", "--from-file", "rust-toolchain"],
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "toolchain", "list"],
+            &format!("1.1.0-{} (default)", this_host_triple()),
+        );
+    })
+}
+
+#[test]
+fn install_from_rust_toolchain_file_legacy_format() {
+    clitools::setup(Scenario::SimpleV2, &|config| {
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain");
+
+        raw::write_file(&toolchain_file, r#"nightly"#).unwrap();
+
+        expect_ok(
+            config,
+            &["rustup-init", "-y", "--from-file", "rust-toolchain"],
+        );
+        expect_stdout_ok(
+            config,
+            &["rustup", "toolchain", "list"],
+            &format!("nightly-{} (default)", this_host_triple()),
+        );
+    })
+}

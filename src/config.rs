@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::ffi::OsStr;
 use std::fmt::{self, Display};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -995,6 +996,45 @@ enum ParseMode {
     /// This variant is used for `rust-toolchain` files (no file extension) for backwards
     /// compatibility.
     Both,
+}
+
+/// Configuration used with `rustup-init`, to install a default toolchain from a toolchain file.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct InstallFromToolchainFileCfg {
+    toolchain_file: OverrideFile,
+}
+
+impl InstallFromToolchainFileCfg {
+    /// Try to create a new `InstallFromToolchainFileCfg`.
+    ///
+    /// If the given toolchain file path (given through the `path` argument) ends in a `toml` file
+    /// extension, only the TOML parse mode will be used.
+    ///
+    /// Fails if the toolchain file does not exist, is not a file, can not be read
+    /// or if the toolchain file contents cannot be parsed.
+    pub fn try_from_file(path: impl AsRef<Path>) -> Result<Self> {
+        let path = path.as_ref();
+        let parse_mode = Self::parse_mode(path);
+        let contents = utils::read_file("toolchain file", path)?;
+
+        let toolchain_file = Cfg::parse_override_file(&contents, parse_mode)?;
+
+        Ok(Self { toolchain_file })
+    }
+
+    /// The `channel` defined by a toolchain file corresponds to the `toolchain` field when installing
+    /// a toolchain with `rustup-init`.
+    pub fn channel(&self) -> Option<String> {
+        self.toolchain_file.toolchain.channel.to_owned()
+    }
+
+    /// Allow only the legacy format, if the file doesn't end in a toml file extension.
+    fn parse_mode(path: &Path) -> ParseMode {
+        path.extension()
+            .filter(|ext| ext == &OsStr::new("toml"))
+            .map(|_| ParseMode::OnlyToml)
+            .unwrap_or(ParseMode::Both)
+    }
 }
 
 #[cfg(test)]
