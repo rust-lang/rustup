@@ -103,11 +103,11 @@ mod termhack {
 // - Disable all terminal controls on non-tty's
 // - Swallow errors when we try to use features a terminal doesn't have
 //   such as setting colours when no TermInfo DB is present
-pub struct AutomationFriendlyTerminal<T>(Box<dyn term::Terminal<Output = T> + Send>)
+pub(crate) struct AutomationFriendlyTerminal<T>(Box<dyn term::Terminal<Output = T> + Send>)
 where
     T: Isatty + io::Write;
-pub type StdoutTerminal = AutomationFriendlyTerminal<Box<dyn Writer>>;
-pub type StderrTerminal = AutomationFriendlyTerminal<Box<dyn Writer>>;
+pub(crate) type StdoutTerminal = AutomationFriendlyTerminal<Box<dyn Writer>>;
+pub(crate) type StderrTerminal = AutomationFriendlyTerminal<Box<dyn Writer>>;
 
 macro_rules! swallow_unsupported {
     ( $call:expr ) => {{
@@ -225,14 +225,14 @@ lazy_static! {
         Mutex::new(term::terminfo::TermInfo::from_env().ok());
 }
 
-pub fn stdout() -> StdoutTerminal {
+pub(crate) fn stdout() -> StdoutTerminal {
     let info_result = TERMINFO.lock().unwrap().clone();
     AutomationFriendlyTerminal(termhack::make_terminal_with_fallback(info_result, || {
         process().stdout()
     }))
 }
 
-pub fn stderr() -> StderrTerminal {
+pub(crate) fn stderr() -> StderrTerminal {
     let info_result = TERMINFO.lock().unwrap().clone();
     AutomationFriendlyTerminal(termhack::make_terminal_with_fallback(info_result, || {
         process().stderr()

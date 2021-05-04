@@ -58,7 +58,7 @@ impl BufRead for TestStdinLock<'_> {
     }
 }
 
-pub type TestStdinInner = Arc<Mutex<Cursor<String>>>;
+pub(crate) type TestStdinInner = Arc<Mutex<Cursor<String>>>;
 
 struct TestStdin(TestStdinInner);
 
@@ -165,7 +165,7 @@ impl Write for TestWriterLock<'_> {
     }
 }
 
-pub type TestWriterInner = Arc<Mutex<Vec<u8>>>;
+pub(crate) type TestWriterInner = Arc<Mutex<Vec<u8>>>;
 
 struct TestWriter(TestWriterInner);
 
