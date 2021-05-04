@@ -15,6 +15,7 @@ pub enum DownloadError {
     #[cfg(feature = "reqwest-backend")]
     #[error(transparent)]
     Reqwest(#[from] ::reqwest::Error),
+    #[cfg(feature = "curl-backend")]
     #[error(transparent)]
     CurlError(#[from] curl::Error),
 }
