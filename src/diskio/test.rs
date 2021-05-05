@@ -66,6 +66,11 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
         }
         Ok(())
     })?;
+    // We should be able to read back the file
+    assert_eq!(
+        std::fs::read_to_string(work_dir.path().join("scratch"))?,
+        "01234567890123456789".to_string()
+    );
     Ok(())
 }
 
