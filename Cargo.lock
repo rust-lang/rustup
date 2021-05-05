@@ -553,6 +553,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "enum-map"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34c3f3c98ee954dbafd343b3e0d827bb167cdda151b3c88ae04b0e5fa7db1028"
+dependencies = [
+ "enum-map-derive",
+]
+
+[[package]]
+name = "enum-map-derive"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2dccd930f0c0a8968d873b10d3611f71bffc4dff84879dabf7b746b0686ea81"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "env_proxy"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1694,6 +1714,7 @@ dependencies = [
  "clap",
  "download",
  "effective-limits",
+ "enum-map",
  "flate2",
  "git-testament",
  "home",
@@ -1714,6 +1735,7 @@ dependencies = [
  "semver",
  "serde",
  "sha2",
+ "sharded-slab",
  "strsim 0.10.0",
  "tar",
  "tempfile",
@@ -1897,6 +1919,15 @@ dependencies = [
  "digest",
  "keccak",
  "opaque-debug",
+]
+
+[[package]]
+name = "sharded-slab"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79c719719ee05df97490f80a45acfc99e5a30ce98a1e4fb67aee422745ae14e3"
+dependencies = [
+ "lazy_static",
 ]
 
 [[package]]

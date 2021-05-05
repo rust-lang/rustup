@@ -58,6 +58,7 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
     }
 }
 
+#[macro_use]
 pub mod cli;
 pub mod command;
 mod config;

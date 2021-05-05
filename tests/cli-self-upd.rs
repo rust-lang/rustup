@@ -77,7 +77,6 @@ info: downloading component 'rust-docs'
 info: downloading component 'rust-std'
 info: downloading component 'rustc'
 info: installing component 'cargo'
-info: using up to 500.0 MiB of RAM to unpack components
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
