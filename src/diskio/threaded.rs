@@ -18,7 +18,7 @@ use crate::utils::notifications::Notification;
 use crate::utils::units::Unit;
 
 #[derive(Copy, Clone, Debug, Enum)]
-pub enum Bucket {
+pub(crate) enum Bucket {
     FourK,
     EightK,
     OneM,
@@ -27,13 +27,13 @@ pub enum Bucket {
 }
 
 #[derive(Debug)]
-pub enum PoolReference {
+pub(crate) enum PoolReference {
     Owned(OwnedRef<Vec<u8>>, Arc<sharded_slab::Pool<Vec<u8>>>),
     Mut(OwnedRefMut<Vec<u8>>, Arc<sharded_slab::Pool<Vec<u8>>>),
 }
 
 impl PoolReference {
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         match self {
             PoolReference::Mut(orm, pool) => {
                 pool.clear(orm.key());
@@ -96,7 +96,7 @@ impl fmt::Debug for Pool {
     }
 }
 
-pub struct Threaded<'a> {
+pub(crate) struct Threaded<'a> {
     n_files: Arc<AtomicUsize>,
     pool: threadpool::ThreadPool,
     notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
@@ -108,7 +108,7 @@ pub struct Threaded<'a> {
 
 impl<'a> Threaded<'a> {
     /// Construct a new Threaded executor.
-    pub fn new(
+    pub(crate) fn new(
         notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
         thread_count: usize,
         ram_budget: usize,

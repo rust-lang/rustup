@@ -14,7 +14,7 @@ use std::{
 use super::{CompletedIo, Executor, FileBuffer, Item};
 
 #[derive(Debug)]
-pub struct _IncrementalFileState {
+pub(crate) struct _IncrementalFileState {
     completed_chunks: Vec<usize>,
     err: Option<io::Result<()>>,
     item: Option<Item>,
@@ -24,12 +24,12 @@ pub struct _IncrementalFileState {
 pub(super) type IncrementalFileState = Arc<Mutex<Option<_IncrementalFileState>>>;
 
 #[derive(Default, Debug)]
-pub struct ImmediateUnpacker {
+pub(crate) struct ImmediateUnpacker {
     incremental_state: IncrementalFileState,
 }
 
 impl ImmediateUnpacker {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             ..Default::default()
         }
@@ -148,7 +148,7 @@ pub(super) struct IncrementalFileWriter {
 
 impl IncrementalFileWriter {
     #[allow(unused_variables)]
-    pub fn new<P: AsRef<Path>>(
+    pub(crate) fn new<P: AsRef<Path>>(
         path: P,
         mode: u32,
         state: IncrementalFileState,
@@ -172,7 +172,7 @@ impl IncrementalFileWriter {
         })
     }
 
-    pub fn chunk_submit(&mut self, chunk: FileBuffer) -> bool {
+    pub(crate) fn chunk_submit(&mut self, chunk: FileBuffer) -> bool {
         if (self.state.lock().unwrap()).is_none() {
             return false;
         }
