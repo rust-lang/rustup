@@ -174,8 +174,24 @@ impl FromStr for ParsedToolchainDesc {
                 }
             }
 
+            // These versions don't have v2 manifests, but they don't have point releases either,
+            // so to make the two-part version numbers work for these versions, specially turn
+            // them into their corresponding ".0" version.
+            let channel = match c.get(1).unwrap().as_str() {
+                "1.0" => "1.0.0",
+                "1.1" => "1.1.0",
+                "1.2" => "1.2.0",
+                "1.3" => "1.3.0",
+                "1.4" => "1.4.0",
+                "1.5" => "1.5.0",
+                "1.6" => "1.6.0",
+                "1.7" => "1.7.0",
+                "1.8" => "1.8.0",
+                other => other,
+            };
+
             Self {
-                channel: c.get(1).unwrap().as_str().to_owned(),
+                channel: channel.to_owned(),
                 date: c.get(2).map(|s| s.as_str()).and_then(fn_map),
                 target: c.get(3).map(|s| s.as_str()).and_then(fn_map),
             }
@@ -1019,6 +1035,16 @@ mod tests {
                 "0.0.0-0000-00-00-any-other-thing",
                 ("0.0.0", Some("0000-00-00"), Some("any-other-thing")),
             ),
+            // special hardcoded cases that only have v1 manifests
+            ("1.0", ("1.0.0", None, None)),
+            ("1.1", ("1.1.0", None, None)),
+            ("1.2", ("1.2.0", None, None)),
+            ("1.3", ("1.3.0", None, None)),
+            ("1.4", ("1.4.0", None, None)),
+            ("1.5", ("1.5.0", None, None)),
+            ("1.6", ("1.6.0", None, None)),
+            ("1.7", ("1.7.0", None, None)),
+            ("1.8", ("1.8.0", None, None)),
         ];
 
         for (input, (channel, date, target)) in success_cases {
