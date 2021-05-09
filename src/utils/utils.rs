@@ -392,10 +392,14 @@ pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
 }
 
 pub fn ensure_file_removed(name: &'static str, path: &Path) -> Result<()> {
-    let result = fs::remove_file(path);
+    let result = remove_file(name, path);
     if let Err(err) = &result {
-        if err.kind() == io::ErrorKind::NotFound {
-            return Ok(());
+        if let Some(retry::Error::Operation { error: e, .. }) =
+            err.downcast_ref::<retry::Error<io::Error>>()
+        {
+            if e.kind() == io::ErrorKind::NotFound {
+                return Ok(());
+            }
         }
     }
     result.with_context(|| RustupError::RemovingFile {
@@ -755,5 +759,40 @@ mod tests {
         toolchain_sort(&mut v);
 
         assert_eq!(expected, v);
+    }
+
+    #[test]
+    fn test_remove_file() {
+        let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+        let f_path = tempdir.path().join("f");
+        File::create(&f_path).unwrap();
+
+        assert!(f_path.exists());
+        assert!(remove_file("f", &f_path).is_ok());
+
+        assert!(!f_path.exists());
+        let result = remove_file("f", &f_path);
+        let err = result.unwrap_err();
+
+        match err.downcast_ref::<RustupError>() {
+            Some(RustupError::RemovingFile { name, path }) => {
+                assert_eq!(*name, "f");
+                assert_eq!(path.clone(), f_path);
+            }
+            _ => panic!("Expected an error removing file"),
+        }
+    }
+
+    #[test]
+    fn test_ensure_file_removed() {
+        let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
+        let f_path = tempdir.path().join("f");
+        File::create(&f_path).unwrap();
+
+        assert!(f_path.exists());
+        assert!(ensure_file_removed("f", &f_path).is_ok());
+
+        assert!(!f_path.exists());
+        assert!(ensure_file_removed("f", &f_path).is_ok());
     }
 }
