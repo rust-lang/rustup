@@ -4,4 +4,5 @@ pub enum NotificationLevel {
     Info,
     Warn,
     Error,
+    Debug,
 }

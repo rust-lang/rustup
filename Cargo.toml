@@ -32,6 +32,7 @@ chrono = "0.4"
 clap = "2"
 download = {path = "download", default-features = false}
 effective-limits = "0.5.2"
+enum-map = "1.1.0"
 flate2 = "1"
 git-testament = "0.1.4"
 home = {git = "https://github.com/rbtcollins/home", rev = "a243ee2fbee6022c57d56f5aa79aefe194eabe53"}
@@ -52,6 +53,7 @@ scopeguard = "1"
 semver = "0.11"
 serde = {version = "1.0", features = ["derive"]}
 sha2 = "0.9"
+sharded-slab = "0.1.1"
 strsim = "0.10"
 tar = "0.4.26"
 tempfile = "3.1"

@@ -11,7 +11,7 @@ use std::{
     time::Instant,
 };
 
-use super::{CompletedIo, Executor, Item};
+use super::{CompletedIo, Executor, FileBuffer, Item};
 
 #[derive(Debug)]
 pub struct _IncrementalFileState {
@@ -70,7 +70,11 @@ impl Executor for ImmediateUnpacker {
         item.result = match &mut item.kind {
             super::Kind::Directory => super::create_dir(&item.full_path),
             super::Kind::File(ref contents) => {
-                super::write_file(&item.full_path, &contents, item.mode)
+                if let super::FileBuffer::Immediate(ref contents) = &contents {
+                    super::write_file(&item.full_path, contents, item.mode)
+                } else {
+                    unreachable!()
+                }
             }
             super::Kind::IncrementalFile(_incremental_file) => {
                 return {
@@ -124,6 +128,14 @@ impl Executor for ImmediateUnpacker {
             super::IncrementalFileState::Immediate(self.incremental_state.clone())
         }
     }
+
+    fn get_buffer(&mut self, capacity: usize) -> super::FileBuffer {
+        super::FileBuffer::Immediate(Vec::with_capacity(capacity))
+    }
+
+    fn buffer_available(&self, _len: usize) -> bool {
+        true
+    }
 }
 
 /// The non-shared state for writing a file incrementally
@@ -160,10 +172,15 @@ impl IncrementalFileWriter {
         })
     }
 
-    pub fn chunk_submit(&mut self, chunk: Vec<u8>) -> bool {
+    pub fn chunk_submit(&mut self, chunk: FileBuffer) -> bool {
         if (self.state.lock().unwrap()).is_none() {
             return false;
         }
+        let chunk = if let FileBuffer::Immediate(v) = chunk {
+            v
+        } else {
+            unreachable!()
+        };
         match self.write(chunk) {
             Ok(v) => v,
             Err(e) => {

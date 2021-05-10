@@ -46,6 +46,7 @@ impl<'a> Notification<'a> {
     pub fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match self {
+            SetDefaultBufferSize(_) => NotificationLevel::Debug,
             CreatingDirectory(_, _)
             | RemovingDirectory(_, _)
             | LinkingDirectory(_, _)
@@ -59,7 +60,7 @@ impl<'a> Notification<'a> {
             | ResumingPartialDownload
             | UsingCurl
             | UsingReqwest => NotificationLevel::Verbose,
-            RenameInUse(_, _) | SetDefaultBufferSize(_) => NotificationLevel::Info,
+            RenameInUse(_, _) => NotificationLevel::Info,
             NoCanonicalPath(_) => NotificationLevel::Warn,
             Error(_) => NotificationLevel::Error,
         }

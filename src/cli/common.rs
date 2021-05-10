@@ -148,6 +148,9 @@ impl NotifyOnConsole {
                 NotificationLevel::Error => {
                     err!("{}", n);
                 }
+                NotificationLevel::Debug => {
+                    debug!("{}", n);
+                }
             }
         }
     }
