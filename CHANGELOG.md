@@ -10,6 +10,7 @@ part of a Rust component.
 We're sorry for pain this may have caused.
 
 [pr#2738]: https://github.com/rust-lang/rustup/pull/2738
+[1.24.1]: https://github.com/rust-lang/rustup/releases/tag/1.24.1
 
 ## [1.24.0] - 2021-04-27
 
@@ -152,6 +153,7 @@ Thanks go to:
 [pr#2604]: https://github.com/rust-lang/rustup/pull/2604
 [pr#2517]: https://github.com/rust-lang/rustup/pull/2517
 [pr#2592]: https://github.com/rust-lang/rustup/pull/2592
+[1.24.0]: https://github.com/rust-lang/rustup/releases/tag/1.24.0
 
 ## [1.23.1] - 2020-12-01
 
@@ -172,6 +174,8 @@ Thanks go to:
 - Joshua M. Clulow
 - Neil Mitchell
 - Richard Gomes
+
+[1.23.1]: https://github.com/rust-lang/rustup/releases/tag/1.23.1
 
 ## [1.23.0] - 2020-11-27
 
@@ -286,6 +290,7 @@ but you can always see the full list of changes via the Git repository.
 [pr#2438]: https://github.com/rust-lang/rustup/pull/2438
 [pr#2387]: https://github.com/rust-lang/rustup/pull/2387
 [pr#2551]: https://github.com/rust-lang/rustup/pull/2551
+[1.23.0]: https://github.com/rust-lang/rustup/releases/tag/1.23.0
 
 ## [1.22.1] - 2020-07-08
 
@@ -313,6 +318,7 @@ We apologise for any inconvenience this caused.
 [env_proxy@5591cc7]: https://github.com/inejge/env_proxy/commit/5591cc7
 [pr#2399]: https://github.com/rust-lang/rustup/pull/2399
 [pr#2398]: https://github.com/rust-lang/rustup/pull/2398
+[1.22.1]: https://github.com/rust-lang/rustup/releases/tag/1.22.1
 
 ## [1.22.0] - 2020-06-30
 
@@ -435,12 +441,15 @@ main changes and additions…
 [pr#2363]: https://github.com/rust-lang/rustup/pull/2363
 [pr#2372]: https://github.com/rust-lang/rustup/pull/2372
 [pr#2339]: https://github.com/rust-lang/rustup/pull/2339
+[1.22.0]: https://github.com/rust-lang/rustup/releases/tag/1.22.0
 
 ## [1.21.1] - 2019-12-19
 
 A panic occurred if a `rustup update` was run with nothing to update and the
 download directory was missing. This was harmless but could have confused some
 automation jobs.
+
+[1.21.1]: https://github.com/rust-lang/rustup/releases/tag/1.21.1
 
 ## [1.21.0] - 2019-12-19
 
@@ -528,6 +537,7 @@ listed below, they are still greatly appreciated.
 [pr#2141]: https://github.com/rust-lang/rustup/pull/2141
 [pr#2143]: https://github.com/rust-lang/rustup/pull/2143
 [pr#2155]: https://github.com/rust-lang/rustup/pull/2155
+[1.21.0]: https://github.com/rust-lang/rustup/releases/tag/1.21.0
 
 ## [1.20.2] - 2019-10-16
 
@@ -535,6 +545,8 @@ One final tweak was needed to the force-installation of toolchains because
 otherwise components would be marked as installed when they were not.
 
 Our apologies to anyone adversely affected by the 1.20.0/1 releases.
+
+[1.20.2]: https://github.com/rust-lang/rustup/releases/tag/1.20.2
 
 ## [1.20.1] - 2019-10-16
 
@@ -545,6 +557,8 @@ This release was made to solve two problems spotted in `1.20.0`
 - Assume the `default` profile if a profile is missing from configuration
   which will solve a problem where distro-provided `rustup` binaries did not
   upgrade the configuration properly
+
+[1.20.1]: https://github.com/rust-lang/rustup/releases/tag/1.20.1
 
 ## [1.20.0] - 2019-10-15
 
@@ -586,6 +600,8 @@ This release was made to solve two problems spotted in `1.20.0`
 [pr#1945]: https://github.com/rust-lang/rustup/pull/1945
 [pr#2026]: https://github.com/rust-lang/rustup/pull/2026
 [pr#2030]: https://github.com/rust-lang/rustup/pull/2030
+
+[1.20.0]: https://github.com/rust-lang/rustup/releases/tag/1.20.0
 
 ## [1.19.0] - 2019-09-09
 
@@ -642,6 +658,7 @@ This release was made to solve two problems spotted in `1.20.0`
 [pr#1868]: https://github.com/rust-lang/rustup/pull/1868
 [pr#1933]: https://github.com/rust-lang/rustup/pull/1933
 [pr#1978]: https://github.com/rust-lang/rustup/pull/1978
+[1.19.0]: https://github.com/rust-lang/rustup/releases/tag/1.19.0
 
 ## [1.18.3] - 2019-05-22
 
@@ -683,6 +700,7 @@ This release was made to solve two problems spotted in `1.20.0`
 [pr#1832]: https://github.com/rust-lang/rustup/pull/1832
 [pr#1850]: https://github.com/rust-lang/rustup/pull/1850
 [pr#1824]: https://github.com/rust-lang/rustup/pull/1824
+[1.18.3]: https://github.com/rust-lang/rustup/releases/tag/1.18.3
 
 ## [1.18.2] - 2019-05-02
 
@@ -719,6 +737,7 @@ This release was made, in part, thanks to:
 [pr#1808]: https://github.com/rust-lang/rustup/pull/1808
 [pr#1810]: https://github.com/rust-lang/rustup/pull/1810
 [pr#1813]: https://github.com/rust-lang/rustup/pull/1813
+[1.18.2]: https://github.com/rust-lang/rustup/releases/tag/1.18.2
 
 ## [1.18.1] - 2019-04-25
 
@@ -733,6 +752,7 @@ This release was made, in part, thanks to:
 [pr#1796]: https://github.com/rust-lang/rustup/pull/1796
 [pr#1797]: https://github.com/rust-lang/rustup/pull/1797
 [pr#1803]: https://github.com/rust-lang/rustup/pull/1803
+[1.18.1]: https://github.com/rust-lang/rustup/releases/tag/1.18.1
 
 ## [1.18.0] - 2019-04-22
 
@@ -798,6 +818,7 @@ This release was made, in part, thanks to:
 [pr#1780]: https://github.com/rust-lang/rustup/pull/1780
 [pr#1781]: https://github.com/rust-lang/rustup/pull/1781
 [pr#1788]: https://github.com/rust-lang/rustup/pull/1788
+[1.18.0]: https://github.com/rust-lang/rustup/releases/tag/1.18.0
 
 ## [1.17.0] - 2019-03-05
 
@@ -862,12 +883,14 @@ This release was made, in part, thanks to:
 [pr#1659]: https://github.com/rust-lang/rustup/pull/1659
 [pr#1679]: https://github.com/rust-lang/rustup/pull/1679
 [pr#1666]: https://github.com/rust-lang/rustup/pull/1666
+[1.17.0]: https://github.com/rust-lang/rustup/releases/tag/1.17.0
 
 ## [1.16.0] - 2018-12-06
 
 - [Fix rename_rls_remove test on Windows][pr#1561]
 
 [pr#1561]: https://github.com/rust-lang/rustup/pull/1561
+[1.16.0]: https://github.com/rust-lang/rustup/releases/tag/1.16.0
 
 ## [1.15.0] - 2018-11-27
 
@@ -884,6 +907,7 @@ This release was made, in part, thanks to:
 [pr#1526]: https://github.com/rust-lang/rustup/pull/1526
 [pr#1536]: https://github.com/rust-lang/rustup/pull/1536
 [pr#1549]: https://github.com/rust-lang/rustup/pull/1549
+[1.15.0]: https://github.com/rust-lang/rustup/releases/tag/1.15.0
 
 ## [1.14.0] - 2018-10-04
 
@@ -898,12 +922,14 @@ This release was made, in part, thanks to:
 [pr#1478]: https://github.com/rust-lang/rustup/pull/1478
 [pr#1472]: https://github.com/rust-lang/rustup/pull/1472
 [pr#1468]: https://github.com/rust-lang/rustup/pull/1468
+[1.14.0]: https://github.com/rust-lang/rustup/releases/tag/1.14.0
 
 ## [1.13.0] - 2018-07-16
 
 - [Add clippy to the tools list][pr1461]
 
 [pr1461]: https://github.com/rust-lang/rustup/pull/1461
+[1.13.0]: https://github.com/rust-lang/rustup/releases/tag/1.13.0
 
 Contributors: Jane Lusby
 
@@ -942,6 +968,7 @@ Contributors: Jane Lusby
 [pr1290]: https://github.com/rust-lang/rustup/pull/1290
 [pr1289]: https://github.com/rust-lang/rustup/pull/1289
 [pr1269]: https://github.com/rust-lang/rustup/pull/1269
+[1.12.0]: https://github.com/rust-lang/rustup/releases/tag/1.12.0
 
 Contributors: Andrew Pennebaker, Who? Me?!, Matteo Bertini, mog422,
 Kasper Møller Andersen, Thibault Delor, Justin Worthe, TitanSnow,
@@ -955,6 +982,7 @@ Segev Finer, Dan Aloni, Joeri van Ruth
 - [windows: detect architecture on website, update to matching arch][pr1354]
 
 [pr1354]: https://github.com/rust-lang/rustup/pull/1354
+[1.11.0]: https://github.com/rust-lang/rustup/releases/tag/1.11.0
 
 Contributors: Steffen Butzer
 
@@ -963,6 +991,7 @@ Contributors: Steffen Butzer
 - [Warn when tools are missing and allow an override][pr1337]
 
 [pr1337]: https://github.com/rust-lang/rustup/pull/1337
+[1.10.0]: https://github.com/rust-lang/rustup/releases/tag/1.10.0
 
 Contributors: Nick Cameron, Steffen Butzer
 
@@ -971,6 +1000,7 @@ Contributors: Nick Cameron, Steffen Butzer
 - [Fix self update errors filling in missing proxies][pr1326]
 
 [pr1326]: https://github.com/rust-lang/rustup/pull/1326
+[1.9.0]: https://github.com/rust-lang/rustup/releases/tag/1.9.0
 
 Contributors: Alex Crichton
 
@@ -983,6 +1013,7 @@ Contributors: Alex Crichton
 [pr1295]: https://github.com/rust-lang/rustup/pull/1295
 [pr1298]: https://github.com/rust-lang/rustup/pull/1298
 [pr1294]: https://github.com/rust-lang/rustup/pull/1294
+[1.8.0]: https://github.com/rust-lang/rustup/releases/tag/1.8.0
 
 Contributors: Alex Crichton, kennytm, Nick Cameron, Simon Sapin, Who? Me?!
 
@@ -995,6 +1026,7 @@ Contributors: Alex Crichton, kennytm, Nick Cameron, Simon Sapin, Who? Me?!
 [pr1255]: https://github.com/rust-lang/rustup/pull/1255
 [pr1257]: https://github.com/rust-lang/rustup/pull/1257
 [pr1250]: https://github.com/rust-lang/rustup/pull/1250
+[1.7.0]: https://github.com/rust-lang/rustup/releases/tag/1.7.0
 
 Contributors: Aidan Hobson Sayers, Alan Du, Alex Crichton, Christoph Wurst,
 Jason Mobarak, Leon Isenberg, Simon Sapin, Vadim Petrochenkov
@@ -1014,6 +1046,7 @@ Jason Mobarak, Leon Isenberg, Simon Sapin, Vadim Petrochenkov
 [pr1222]: https://github.com/rust-lang/rustup/pull/1222
 [pr1212]: https://github.com/rust-lang/rustup/pull/1212
 [pr1242]: https://github.com/rust-lang/rustup/pull/1242
+[1.6.0]: https://github.com/rust-lang/rustup/releases/tag/1.6.0
 
 Contributors: Alex Crichton, Chen Rotem Levy, Krishna Sundarram, Martin Geisler,
 Matt Brubeck, Matt Ickstadt, Michael Benfield, Michael Fletcher, Nick Cameron,
@@ -1029,6 +1062,8 @@ Patrick Reisert, Ralf Jung, Sean McArthur, Steven Fackler
 - [Update sha2 crate](https://github.com/rust-lang/rustup/pull/1162)
 - [Check for unexpected cargo/rustc before install](https://github.com/rust-lang/rustup/pull/705)
 - [Update PATH in .bash_profile](https://github.com/rust-lang/rustup/pull/1179)
+
+[1.5.0]: https://github.com/rust-lang/rustup/releases/tag/1.5.0
 
 Contributors: Allen Welkie, bors, Brian Anderson, Diggory Blake, Erick
 Tryzelaar, Ricardo Martins, Артём Павлов [Artyom Pavlov]
@@ -1062,6 +1097,8 @@ Tryzelaar, Ricardo Martins, Артём Павлов [Artyom Pavlov]
 - [Add sensible-browser to the browser list](https://github.com/rust-lang/rustup/pull/1087)
 - [Added help for `rustup toolchain link`](https://github.com/rust-lang/rustup/pull/1017)
 
+[1.4.0]: https://github.com/rust-lang/rustup/releases/tag/1.4.0
+
 Contributors: Andrea Canciani, bors, Brian Anderson, CrazyMerlyn, Diggory Blake,
 Fabio B, James Elford, Jim McGrath, johnthagen, Josh Lee, Kim Christensen, Marco
 A L Barbosa, Mateusz Mikula, Matthew, Matt Ickstadt, Mikhail Modin, Patrick
@@ -1080,6 +1117,8 @@ Xidorn Quan
 - [Enforce timeouts for reading rustc version](https://github.com/rust-lang/rustup/pull/1071)
 - [Fix OpenSSL linkage by using the final install-directory in the build](https://github.com/rust-lang/rustup/pull/1065)
 
+[1.3.0]: https://github.com/rust-lang/rustup/releases/tag/1.3.0
+
 Contributors: bors, Brian Anderson, Diggory Blake, Greg Alexander, James Elford,
 Jordan Hiltunen, Justin Noah, Kang Seonghoon, Kevin K, Marco A L Barbosa
 
@@ -1090,6 +1129,8 @@ Jordan Hiltunen, Justin Noah, Kang Seonghoon, Kevin K, Marco A L Barbosa
 - [Add bash completion guidance for macOS users](https://github.com/rust-lang/rustup/pull/1035)
 - [Support partial downloads](https://github.com/rust-lang/rustup/pull/1020)
 - [Don't crash if modifying multiple profile files](https://github.com/rust-lang/rustup/pull/1040)
+
+[1.2.0]: https://github.com/rust-lang/rustup/releases/tag/1.2.0
 
 Contributors: Brian Anderson, James Elford, Jason Dreyzehner, Marco A
 L Barbosa, Wim Looman
@@ -1131,6 +1172,8 @@ L Barbosa, Wim Looman
 - [Document installing to a custom location using CARGO_HOME and RUSTUP_HOME environment variables](https://github.com/rust-lang/rustup/pull/1024)
 - [Aggressive remove_dir_all](https://github.com/rust-lang/rustup/pull/1015)
 
+[1.1.0]: https://github.com/rust-lang/rustup/releases/tag/1.1.0
+
 Contributors: Aarthi Janakiraman, Alex Burka, Alex Crichton, bors,
 Brian Anderson, Christian Muirhead, Christopher Armstrong, Daniel
 Lockyer, Diggory Blake, Evgenii Pashkin, Grissiom, James Elford, Luca
@@ -1142,6 +1185,8 @@ Klabnik, Tomáš Hübelbauer, topecongiro, Wang Xuerui
 
 - [Statically link MSVC CRT](https://github.com/rust-lang/rustup/pull/843)
 - [Upgrade ~/.multirust correctly from rustup-init](https://github.com/rust-lang/rustup/pull/858)
+
+[1.0.0]: https://github.com/rust-lang/rustup/releases/tag/1.0.0
 
 Contributors: Alex Crichton, Andrew Koroluk, Arch, benaryorg, Benedikt Reinartz,
 Björn Steinbrink, bors, Boutin, Michael, Brian Anderson, Cam Swords, Chungmin
@@ -1176,6 +1221,8 @@ Wesley Moore, Yasushi Abe, Y. T. Chung
 - [Update libc for MIPS64 host builds](https://github.com/rust-lang/rustup/pull/847)
 - [Default to MSVC on Windows](https://github.com/rust-lang/rustup/pull/842)
 
+[0.7.0]: https://github.com/rust-lang/rustup/releases/tag/0.7.0
+
 Contributors: Alex Crichton, Arch, bors, Brian Anderson, Diggory Blake, Kai
 Roßwag, Kevin K, Oliver Schneider, Ryan Havar, Tobias Bucher, Wang Xuerui
 
@@ -1186,6 +1233,8 @@ Roßwag, Kevin K, Oliver Schneider, Ryan Havar, Tobias Bucher, Wang Xuerui
 - [Fix two small typos in the error descriptions](https://github.com/rust-lang/rustup/pull/788)
 - [Update README](https://github.com/rust-lang/rustup/pull/782)
 - [Fix name of bash completion directory](https://github.com/rust-lang/rustup/pull/780)
+
+[0.6.5]: https://github.com/rust-lang/rustup/releases/tag/0.6.5
 
 Contributors: Alex Crichton, Björn Steinbrink, Brian Anderson, Jian Zeng, Matt
 Brubeck
@@ -1209,6 +1258,8 @@ Brubeck
 - [Check stdout is a tty before using terminal features](https://github.com/rust-lang/rustup/pull/772)
 - [Add completion generation for zsh, bash and fish shells](https://github.com/rust-lang/rustup/pull/773)
 
+[0.6.4]: https://github.com/rust-lang/rustup/releases/tag/0.6.4
+
 Contributors: Alex Crichton, Andrew Koroluk, Brian Anderson, Chungmin Park,
 Diggory Blake, Guillaume Fraux, Jake Goldsborough, jethrogb, Kamal Marhubi,
 Kevin K, Kevin Rauwolf, Raphael Cohn, Ricardo Martins
@@ -1218,6 +1269,8 @@ Kevin K, Kevin Rauwolf, Raphael Cohn, Ricardo Martins
 - [Disable anti-sudo check](https://github.com/rust-lang/rustup/pull/698)
 - [Fixed CI toolchain pinning](https://github.com/rust-lang/rustup/pull/696)
 
+[0.6.3]: https://github.com/rust-lang/rustup/releases/tag/0.6.3
+
 Contributors: Brian Anderson
 
 ## [0.6.2] - 2016-08-27
@@ -1225,12 +1278,16 @@ Contributors: Brian Anderson
 - [Add basic autocompletion for Zsh](https://github.com/rust-lang/rustup/pull/689)
 - [Sort toolchains by semantic version](https://github.com/rust-lang/rustup/pull/688)
 
+[0.6.2]: https://github.com/rust-lang/rustup/releases/tag/0.6.2
+
 Contributors: Brian Anderson, Diggory Blake, Knight, Marco A L Barbosa
 
 ## [0.6.1] - 2016-08-24
 
 - [Fix mysterious crash on OS X 10.10+](https://github.com/rust-lang/rustup/pull/684)
 - [Fix `component remove` command and add a test for it](https://github.com/rust-lang/rustup/pull/683)
+
+[0.6.1]: https://github.com/rust-lang/rustup/releases/tag/0.6.1
 
 Contributors: Brian Anderson, Diggory Blake
 
@@ -1247,6 +1304,8 @@ Contributors: Brian Anderson, Diggory Blake
 - [Add `--path` and `--nonexistent` options to `rustup override unset`](https://github.com/rust-lang/rustup/pull/650)
 - [Add `component` subcommand](https://github.com/rust-lang/rustup/pull/659)
 
+[0.6.0]: https://github.com/rust-lang/rustup/releases/tag/0.6.0
+
 Contributors: Alex Crichton, Brian Anderson, Diggory Blake, Ivan Nejgebauer Josh
 Machol, Julien Blanchard, Patrick Reisert, Ri, Tim Neumann
 
@@ -1259,6 +1318,8 @@ Machol, Julien Blanchard, Patrick Reisert, Ri, Tim Neumann
 - [Add `rustup man`](https://github.com/rust-lang/rustup/pull/616)
 - [Try detecting sudo when running `rustup-init`](https://github.com/rust-lang/rustup/pull/617)
 - [Handle active custom toolchain in `rustup show`](https://github.com/rust-lang/rustup/pull/621)
+
+[0.5.0]: https://github.com/rust-lang/rustup/releases/tag/0.5.0
 
 Contributors: Brian Anderson, Cam Swords, Daniel Keep, Diggory Blake,
 Florian Gilcher, Ivan Nejgebauer, theindigamer
@@ -1278,6 +1339,8 @@ Florian Gilcher, Ivan Nejgebauer, theindigamer
 - [Add the "no-self-update" feature](https://github.com/rust-lang/rustup/pull/602)
 - [Update to error-chain 0.2.2](https://github.com/rust-lang/rustup/pull/609)
 - [Add HTTP proxy documentation to README](https://github.com/rust-lang/rustup/pull/610)
+
+[0.4.0]: https://github.com/rust-lang/rustup/releases/tag/0.4.0
 
 Contributors: Alex Crichton, Brian Anderson, Ivan Nejgebauer, Jimmy
 Cuadra, Martin Pool, Wesley Moore
@@ -1304,6 +1367,8 @@ Cuadra, Martin Pool, Wesley Moore
 - [Link to rustup-init.sh in README](https://github.com/rust-lang/rustup/pull/541).
 - [Improve docs for `set default-host`](https://github.com/rust-lang/rustup/pull/540).
 
+[0.3.0]: https://github.com/rust-lang/rustup/releases/tag/0.3.0
+
 Contributors: Alex Crichton, Brian Anderson, Drew Fisher, geemili,
 Ivan Petkov, James Lucas, jethrogb, Kevin Yap, leonardo.yvens, Michael
 DeWitt, Nate Mara, Virgile Andreani
@@ -1329,6 +1394,8 @@ DeWitt, Nate Mara, Virgile Andreani
 - [Point PATH to toolchain/bin on Windows](https://github.com/rust-lang/rustup/pull/402).
 - [Remove extra '.' in docs](https://github.com/rust-lang/rustup/pull/472).
 
+[0.2.0]: https://github.com/rust-lang/rustup/releases/tag/0.2.0
+
 Contributors: Alex Crichton, benaryorg, Benedikt Reinartz, Boutin,
 Michael, Brian Anderson, Diggory Blake, Erick Tryzelaar, Ivan
 Nejgebauer, Jeremiah Peschka, Josh Stone, Knight, mdinger, Ryan Kung,
@@ -1338,11 +1405,15 @@ Tad Hardesty
 
 - [Don't install when multirust metadata exists](https://github.com/rust-lang/rustup/pull/456).
 
+[0.1.12]: https://github.com/rust-lang/rustup/releases/tag/0.1.12
+
 ## [0.1.11] - 2016-05-12
 
 - [Actually dispatch the `rustup install` command](https://github.com/rust-lang/rustup/pull/444).
 - [Migrate to libcurl instead of hyper](https://github.com/rust-lang/rustup/pull/434).
 - [Add error for downloading bogus versions](https://github.com/rust-lang/rustup/pull/428).
+
+[0.1.11]: https://github.com/rust-lang/rustup/releases/tag/0.1.11
 
 ## [0.1.10] - 2016-05-09
 
@@ -1352,6 +1423,8 @@ Tad Hardesty
 - [Don't try to update non-tracking channels](https://github.com/rust-lang/rustup/pull/425).
 - [Don't panic when NativeSslStream lock is poisoned](https://github.com/rust-lang/rustup/pull/429).
 - [Fix multiple issues in schannel bindings](https://github.com/sfackler/schannel-rs/pull/1)
+
+[0.1.10]: https://github.com/rust-lang/rustup/releases/tag/0.1.10
 
 ## [0.1.9] - 2016-05-07
 
@@ -1363,6 +1436,8 @@ Tad Hardesty
 - [Fix color display during telemetry capture](https://github.com/rust-lang/rustup/pull/394).
 - [Make it less of an error for the self-update hash to be wrong](https://github.com/rust-lang/rustup/pull/372).
 
+[0.1.9]: https://github.com/rust-lang/rustup/releases/tag/0.1.9
+
 ## [0.1.8] - 2016-04-28
 
 - [Initial telemetry implementation (disabled)](https://github.com/rust-lang/rustup/pull/289)
@@ -1372,6 +1447,8 @@ Tad Hardesty
 - [Add armv7l support to www](https://github.com/rust-lang/rustup/pull/359)
 - [Overhaul website](https://github.com/rust-lang/rustup/pull/363)
 
+[0.1.8]: https://github.com/rust-lang/rustup/releases/tag/0.1.8
+
 ## [0.1.7] - 2016-04-17
 
 - [Fix overrides for Windows root directories](https://github.com/rust-lang/rustup/pull/317).
@@ -1380,3 +1457,5 @@ Tad Hardesty
 - [Don't open /dev/tty if passed -y](https://github.com/rust-lang/rustup/pull/334).
 - [Add interactive install, `--default-toolchain` argument](https://github.com/rust-lang/rustup/pull/293).
 - [Rename rustup-setup to rustu-init](https://github.com/rust-lang/rustup/pull/303).
+
+[0.1.7]: https://github.com/rust-lang/rustup/releases/tag/0.1.7
