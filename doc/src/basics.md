@@ -30,9 +30,22 @@ info: downloading self-updates
 
 ## Keeping `rustup` up to date
 
-Running `rustup update` also checks for updates to `rustup` itself and automatically
-installs the latest version. To manually update `rustup` only,
-without updating installed toolchains, type `rustup self update`:
+If your `rustup` was built with the `no-self-update` feature, it can not update
+itself. This is not the default, and only versions of `rustup` built with
+`--no-default-features`, or obtained from a third-party distributor who has
+disabled it (such as the Ubuntu snap store).
+
+Otherwise Rustup can update itself. It is possible to control Rustup's automatic
+self update mechanism with the `auto-self-update` configuration variable. This
+setting supports three values: `enable` and `disable` and `check-only`.
+
+* `disable` will ensure that no automatic self updating actions are taken.
+* `enable` will mean that `rustup update` and similar commands will also check for, and install, any update to Rustup.
+* `check-only` will cause any automatic self update to check and report on any updates, but not to automatically install them.
+
+Whether `auto-self-update` is `enable` or not, you can request that Rustup
+update itself to the latest version of `rustup` by running `rustup self update`.
+This will not download new toolchains:
 
 ```console
 $ rustup self update
@@ -40,10 +53,10 @@ info: checking for self-updates
 info: downloading self-updates
 ```
 
-> #### Disable automatic self-updates
-> `rustup` will automatically update itself at the end of any toolchain installation.
-> You can prevent this automatic behaviour by passing the `--no-self-update` argument
-> when running `rustup update` or `rustup toolchain install`.
+### Disabling self updates on a per-invocation basis
+> Self updates can also be suppressed on individual invocations of `rustup` by
+> passing the argurment `--no-self-update`  when running `rustup update` or
+> `rustup toolchain install`.
 
 ## Help system
 

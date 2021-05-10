@@ -19,7 +19,7 @@ fn update_once() {
     setup(&|config| {
         expect_ok_ex(
             config,
-            &["rustup", "update", "nightly", "--no-self-update"],
+            &["rustup", "update", "nightly"],
             for_host!(
                 r"
   nightly-{0} installed - 1.3.0 (hash-nightly-2)
@@ -45,16 +45,93 @@ info: default toolchain set to 'nightly-{0}'
 }
 
 #[test]
+fn update_once_and_check_self_update() {
+    let test_version = "2.0.0";
+
+    self_update_setup(
+        &|config, _| {
+            expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+            expect_ok(config, &["rustup", "set", "auto-self-update", "check-only"]);
+            let current_version = env!("CARGO_PKG_VERSION");
+
+            expect_ok_ex(
+                config,
+                &["rustup", "update", "nightly"],
+                &format!(
+                    r"
+  nightly-{} installed - 1.3.0 (hash-nightly-2)
+
+rustup - Update available : {} -> {}
+",
+                    &this_host_triple(),
+                    current_version,
+                    test_version
+                ),
+                for_host!(
+                    r"info: syncing channel updates for 'nightly-{0}'
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: downloading component 'cargo'
+info: downloading component 'rust-docs'
+info: downloading component 'rust-std'
+info: downloading component 'rustc'
+info: installing component 'cargo'
+info: installing component 'rust-docs'
+info: installing component 'rust-std'
+info: installing component 'rustc'
+"
+                ),
+            );
+        },
+        test_version,
+    )
+}
+
+#[test]
+fn update_once_and_self_update() {
+    let test_version = "2.0.0";
+
+    self_update_setup(
+        &|config, _| {
+            expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+            expect_ok(config, &["rustup", "set", "auto-self-update", "enable"]);
+            expect_ok_ex(
+                config,
+                &["rustup", "update", "nightly"],
+                for_host!(
+                    r"
+  nightly-{0} installed - 1.3.0 (hash-nightly-2)
+
+"
+                ),
+                for_host!(
+                    r"info: syncing channel updates for 'nightly-{0}'
+info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
+info: downloading component 'cargo'
+info: downloading component 'rust-docs'
+info: downloading component 'rust-std'
+info: downloading component 'rustc'
+info: installing component 'cargo'
+info: installing component 'rust-docs'
+info: installing component 'rust-std'
+info: installing component 'rustc'
+info: checking for self-updates
+info: downloading self-update
+"
+                ),
+            );
+        },
+        test_version,
+    )
+}
+
+#[test]
 fn update_again() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_ok(
-            config,
-            &["rustup", "upgrade", "nightly", "--no-self-update"],
-        );
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "upgrade", "nightly"]);
         expect_ok_ex(
             config,
-            &["rustup", "update", "nightly", "--no-self-update"],
+            &["rustup", "update", "nightly"],
             for_host!(
                 r"
   nightly-{0} unchanged - 1.3.0 (hash-nightly-2)
@@ -68,7 +145,7 @@ fn update_again() {
         );
         expect_ok_ex(
             config,
-            &["rustup", "upgrade", "nightly", "--no-self-update"],
+            &["rustup", "upgrade", "nightly"],
             for_host!(
                 r"
   nightly-{0} unchanged - 1.3.0 (hash-nightly-2)
@@ -87,15 +164,12 @@ fn update_again() {
 fn check_updates_none() {
     check_update_setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
-        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_ok(config, &["rustup", "upgrade", "stable", "--no-self-update"]);
-        expect_ok(config, &["rustup", "upgrade", "beta", "--no-self-update"]);
-        expect_ok(
-            config,
-            &["rustup", "upgrade", "nightly", "--no-self-update"],
-        );
+        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_ok(config, &["rustup", "update", "beta"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "upgrade", "stable"]);
+        expect_ok(config, &["rustup", "upgrade", "beta"]);
+        expect_ok(config, &["rustup", "upgrade", "nightly"]);
         expect_stdout_ok(
             config,
             &["rustup", "check"],
@@ -113,15 +187,12 @@ nightly-{0} - Up to date : 1.2.0 (hash-nightly-1)
 fn check_updates_some() {
     check_update_setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
-        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_ok(config, &["rustup", "upgrade", "stable", "--no-self-update"]);
-        expect_ok(config, &["rustup", "upgrade", "beta", "--no-self-update"]);
-        expect_ok(
-            config,
-            &["rustup", "upgrade", "nightly", "--no-self-update"],
-        );
+        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_ok(config, &["rustup", "update", "beta"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "upgrade", "stable"]);
+        expect_ok(config, &["rustup", "upgrade", "beta"]);
+        expect_ok(config, &["rustup", "upgrade", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
         expect_stdout_ok(
             config,
@@ -182,9 +253,9 @@ fn check_updates_self_no_change() {
 fn check_updates_with_update() {
     check_update_setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
-        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "stable"]);
+        expect_ok(config, &["rustup", "update", "beta"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(
             config,
             &["rustup", "check"],
@@ -206,7 +277,7 @@ nightly-{0} - Update available : 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2
 "
             ),
         );
-        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "beta"]);
         expect_stdout_ok(
             config,
             &["rustup", "check"],
@@ -613,7 +684,7 @@ fn install_unreleased_component() {
         set_current_dist_date(config, "2019-09-13");
         expect_ok_ex(
             config,
-            &["rustup", "update", "nightly", "--no-self-update"],
+            &["rustup", "update", "nightly"],
             &for_host!(
                 r"
   nightly-{} unchanged - 1.37.0 (hash-nightly-1)
@@ -635,7 +706,7 @@ info: syncing channel updates for 'nightly-2019-09-12-{0}'
         set_current_dist_date(config, "2019-09-14");
         expect_ok_ex(
             config,
-            &["rustup", "update", "nightly", "--no-self-update"],
+            &["rustup", "update", "nightly"],
             &for_host!(
                 r"
   nightly-{} unchanged - 1.37.0 (hash-nightly-1)

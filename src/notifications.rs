@@ -13,6 +13,7 @@ pub enum Notification<'a> {
     SetDefaultToolchain(&'a str),
     SetOverrideToolchain(&'a Path, &'a str),
     SetProfile(&'a str),
+    SetSelfUpdate(&'a str),
     LookingForToolchain(&'a str),
     ToolchainDirectory(&'a Path, &'a str),
     UpdatingToolchain(&'a str),
@@ -73,6 +74,7 @@ impl<'a> Notification<'a> {
             SetDefaultToolchain(_)
             | SetOverrideToolchain(_, _)
             | SetProfile(_)
+            | SetSelfUpdate(_)
             | UsingExistingToolchain(_)
             | UninstallingToolchain(_)
             | UninstalledToolchain(_)
@@ -102,6 +104,7 @@ impl<'a> Display for Notification<'a> {
                 name
             ),
             SetProfile(name) => write!(f, "profile set to '{}'", name),
+            SetSelfUpdate(mode) => write!(f, "auto-self-update mode set to '{}'", mode),
             LookingForToolchain(name) => write!(f, "looking for installed toolchain '{}'", name),
             ToolchainDirectory(path, _) => write!(f, "toolchain directory: '{}'", path.display()),
             UpdatingToolchain(name) => write!(f, "updating existing install for '{}'", name),

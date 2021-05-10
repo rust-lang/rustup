@@ -1,9 +1,11 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use anyhow::{Context, Result};
 
+use crate::cli::self_update::SelfUpdateMode;
 use crate::errors::*;
 use crate::notifications::*;
 use crate::toml_utils::*;
@@ -25,11 +27,13 @@ impl SettingsFile {
             cache: RefCell::new(None),
         }
     }
+
     fn write_settings(&self) -> Result<()> {
         let s = self.cache.borrow().as_ref().unwrap().clone();
         utils::write_file("settings", &self.path, &s.stringify())?;
         Ok(())
     }
+
     fn read_settings(&self) -> Result<()> {
         let mut needs_save = false;
         {
@@ -49,12 +53,14 @@ impl SettingsFile {
         }
         Ok(())
     }
+
     pub fn with<T, F: FnOnce(&Settings) -> Result<T>>(&self, f: F) -> Result<T> {
         self.read_settings()?;
 
         // Settings can no longer be None so it's OK to unwrap
         f(self.cache.borrow().as_ref().unwrap())
     }
+
     pub fn with_mut<T, F: FnOnce(&mut Settings) -> Result<T>>(&self, f: F) -> Result<T> {
         self.read_settings()?;
 
@@ -73,6 +79,7 @@ pub struct Settings {
     pub profile: Option<String>,
     pub overrides: BTreeMap<String, String>,
     pub pgp_keys: Option<String>,
+    pub auto_self_update: Option<SelfUpdateMode>,
 }
 
 impl Default for Settings {
@@ -84,6 +91,7 @@ impl Default for Settings {
             profile: Some("default".to_owned()),
             overrides: BTreeMap::new(),
             pgp_keys: None,
+            auto_self_update: None,
         }
     }
 }
@@ -132,6 +140,7 @@ impl Settings {
         let value = toml::from_str(data).context("error parsing settings")?;
         Self::from_toml(value, "")
     }
+
     pub fn stringify(self) -> String {
         toml::Value::Table(self.into_toml()).to_string()
     }
@@ -141,6 +150,13 @@ impl Settings {
         if !SUPPORTED_METADATA_VERSIONS.contains(&&*version) {
             return Err(RustupError::UnknownMetadataVersion(version).into());
         }
+        let auto_self_update = match get_opt_string(&mut table, "auto_self_update", path)? {
+            Some(auto_self_update) => match SelfUpdateMode::from_str(auto_self_update.as_str()) {
+                Ok(mode) => Some(mode),
+                Err(_) => None,
+            },
+            None => None,
+        };
         Ok(Self {
             version,
             default_host_triple: get_opt_string(&mut table, "default_host_triple", path)?,
@@ -148,6 +164,7 @@ impl Settings {
             profile: get_opt_string(&mut table, "profile", path)?,
             overrides: Self::table_to_overrides(&mut table, path)?,
             pgp_keys: get_opt_string(&mut table, "pgp_keys", path)?,
+            auto_self_update,
         })
     }
     pub fn into_toml(self) -> toml::value::Table {
@@ -169,6 +186,13 @@ impl Settings {
 
         if let Some(v) = self.pgp_keys {
             result.insert("pgp_keys".to_owned(), toml::Value::String(v));
+        }
+
+        if let Some(v) = self.auto_self_update {
+            result.insert(
+                "auto_self_update".to_owned(),
+                toml::Value::String(v.to_string()),
+            );
         }
 
         let overrides = Self::overrides_to_table(self.overrides);
