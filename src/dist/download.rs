@@ -36,7 +36,7 @@ impl ops::Deref for File {
 }
 
 impl<'a> DownloadCfg<'a> {
-    /// Downloads a file, validating its hash, and resuming interrupted downloads
+    /// Downloads a file and validates its hash. Resumes interrupted downloads.
     /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
     /// target file already exists, then the hash is checked and it is returned
     /// immediately without re-downloading.
