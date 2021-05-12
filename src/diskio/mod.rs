@@ -51,10 +51,10 @@
 //    loss or errors in this model.
 // f) data gathering: record (name, bytes, start, duration)
 //    write to disk afterwards as a csv file?
-pub mod immediate;
+pub(crate) mod immediate;
 #[cfg(test)]
 mod test;
-pub mod threaded;
+pub(crate) mod threaded;
 
 use std::io::{self, Write};
 use std::ops::{Deref, DerefMut};
@@ -71,7 +71,7 @@ use threaded::PoolReference;
 
 /// Carries the implementation specific data for complete file transfers into the executor.
 #[derive(Debug)]
-pub enum FileBuffer {
+pub(crate) enum FileBuffer {
     Immediate(Vec<u8>),
     // A reference to the object in the pool, and a handle to write to it
     Threaded(PoolReference),
@@ -131,7 +131,7 @@ pub(crate) const IO_CHUNK_SIZE: usize = 16_777_216;
 
 /// Carries the implementation specific channel data into the executor.
 #[derive(Debug)]
-pub enum IncrementalFile {
+pub(crate) enum IncrementalFile {
     ImmediateReceiver,
     ThreadedReceiver(Receiver<FileBuffer>),
 }
@@ -176,7 +176,7 @@ pub enum IncrementalFile {
 
 /// What kind of IO operation to perform
 #[derive(Debug)]
-pub enum Kind {
+pub(crate) enum Kind {
     Directory,
     File(FileBuffer),
     IncrementalFile(IncrementalFile),
@@ -184,25 +184,25 @@ pub enum Kind {
 
 /// The details of the IO operation
 #[derive(Debug)]
-pub struct Item {
+pub(crate) struct Item {
     /// The path to operate on
-    pub full_path: PathBuf,
+    pub(crate) full_path: PathBuf,
     /// The operation to perform
-    pub kind: Kind,
+    pub(crate) kind: Kind,
     /// When the operation started
-    pub start: Option<Instant>,
+    start: Option<Instant>,
     /// Amount of time the operation took to finish
-    pub finish: Option<Duration>,
+    finish: Option<Duration>,
     /// The length of the file, for files (for stats)
-    pub size: Option<usize>,
+    size: Option<usize>,
     /// The result of the operation (could now be factored into CompletedIO...)
-    pub result: io::Result<()>,
+    pub(crate) result: io::Result<()>,
     /// The mode to apply
-    pub mode: u32,
+    mode: u32,
 }
 
 #[derive(Debug)]
-pub enum CompletedIo {
+pub(crate) enum CompletedIo {
     /// A submitted Item has completed
     Item(Item),
     /// An IncrementalFile has completed a single chunk
@@ -210,7 +210,7 @@ pub enum CompletedIo {
 }
 
 impl Item {
-    pub fn make_dir(full_path: PathBuf, mode: u32) -> Self {
+    pub(crate) fn make_dir(full_path: PathBuf, mode: u32) -> Self {
         Self {
             full_path,
             kind: Kind::Directory,
@@ -222,7 +222,7 @@ impl Item {
         }
     }
 
-    pub fn write_file(full_path: PathBuf, mode: u32, content: FileBuffer) -> Self {
+    pub(crate) fn write_file(full_path: PathBuf, mode: u32, content: FileBuffer) -> Self {
         let len = content.len();
         Self {
             full_path,
@@ -235,7 +235,7 @@ impl Item {
         }
     }
 
-    pub fn write_file_segmented<'a>(
+    pub(crate) fn write_file_segmented<'a>(
         full_path: PathBuf,
         mode: u32,
         state: IncrementalFileState,
@@ -261,7 +261,7 @@ impl Item {
 /// just allows the immediate codepath to get access to the Arc referenced state
 /// without holding a lifetime reference to the executor, as the threaded code
 /// path is all message passing.
-pub enum IncrementalFileState {
+pub(crate) enum IncrementalFileState {
     Threaded,
     Immediate(immediate::IncrementalFileState),
 }
@@ -294,7 +294,7 @@ impl IncrementalFileState {
 /// Trait object for performing IO. At this point the overhead
 /// of trait invocation is not a bottleneck, but if it becomes
 /// one we could consider an enum variant based approach instead.
-pub trait Executor {
+pub(crate) trait Executor {
     /// Perform a single operation.
     /// During overload situations previously queued items may
     /// need to be completed before the item is accepted:
@@ -332,7 +332,7 @@ pub trait Executor {
 
 /// Trivial single threaded IO to be used from executors.
 /// (Crazy sophisticated ones can obviously ignore this)
-pub fn perform<F: Fn(usize)>(item: &mut Item, chunk_complete_callback: F) {
+pub(crate) fn perform<F: Fn(usize)>(item: &mut Item, chunk_complete_callback: F) {
     // directories: make them, TODO: register with the dir existence cache.
     // Files, write them.
     item.result = match &mut item.kind {
@@ -361,7 +361,7 @@ pub fn perform<F: Fn(usize)>(item: &mut Item, chunk_complete_callback: F) {
 }
 
 #[allow(unused_variables)]
-pub fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(
+pub(crate) fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(
     path: P,
     contents: C,
     mode: u32,
@@ -392,7 +392,7 @@ pub fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(
 }
 
 #[allow(unused_variables)]
-pub fn write_file_incremental<P: AsRef<Path>, F: Fn(usize)>(
+pub(crate) fn write_file_incremental<P: AsRef<Path>, F: Fn(usize)>(
     path: P,
     content_callback: &mut IncrementalFile,
     mode: u32,
@@ -437,7 +437,7 @@ pub fn write_file_incremental<P: AsRef<Path>, F: Fn(usize)>(
     Ok(())
 }
 
-pub fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
+pub(crate) fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
     let path = path.as_ref();
     let path_display = format!("{}", path.display());
     trace_scoped!("create_dir", "name": path_display);
@@ -445,7 +445,7 @@ pub fn create_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
 }
 
 /// Get the executor for disk IO.
-pub fn get_executor<'a>(
+pub(crate) fn get_executor<'a>(
     notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
     ram_budget: usize,
 ) -> Result<Box<dyn Executor + 'a>> {
