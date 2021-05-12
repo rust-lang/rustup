@@ -1,5 +1,61 @@
 # Changelog
 
+## [1.24.2] - 2021-05-05
+
+This patch release primarily exists to work around a
+[problem discovered][issue#2748] on some Windows (and potentially other) systems
+where a combination of factors, including suspected allocator behaviour, led to
+Rustup failing to install certain toolchains. The symptom users observed was a
+failure to allocate 1677732 bytes: a chunk used for unpacking very large files.
+We hope this is fixed in a combination of [pr#2750][] and [pr#2756][].
+
+In addition to that, we also:
+
+### Added
+
+- SHA256 links on the download page so that you can verify your downloads if you
+  want to be certain. [pr#2719][]
+- Added `--verbose` to `rustup show active-toolchain` to also display the version
+  of the compiler for the toolchain. [pr#2710]
+- We now support `1.x` installation channel names for versions 1.0 through 1.8
+  by hardcoding `1.x.0` since they lack patch releases. [pr#2758][]
+
+### Changed
+
+- Amended the behaviour of the 'missing components' code so that if the problem
+  exists when _installing_ a toolchain (rather than updating it) the message
+  is different and leads you to other remediations. [pr#2709][]
+- Amended the error message for a missing component so that when you're using
+  a nightly toolchain and `rust-std` is missing for a given target, we lead you
+  to `cargo build -Z build-std` as a remediation. [pr#2732][]
+- Improved the documentation around `settings.toml` locations. [pr#2698][]
+- Internal improvements around retrying removal of files. [pr#2752][]
+
+Thanks go to:
+
+- 二手掉包工程师 (hi-rustin)
+- Robert Collins
+- Daniel Silverstone
+- Joshua Nelson
+- João Marcos Bezerra
+- Carol (Nichols || Goulding)
+- Josh Rotenberg
+- Martijn Gribnau
+- pierwill
+
+[issue#2748]: https://github.com/rust-lang/rustup/issues/2748
+[pr#2753]: https://github.com/rust-lang/rustup/pull/2753
+[pr#2756]: https://github.com/rust-lang/rustup/pull/2756
+[pr#2752]: https://github.com/rust-lang/rustup/pull/2752
+[pr#2758]: https://github.com/rust-lang/rustup/pull/2758
+[pr#2698]: https://github.com/rust-lang/rustup/pull/2698
+[pr#2750]: https://github.com/rust-lang/rustup/pull/2750
+[pr#2732]: https://github.com/rust-lang/rustup/pull/2732
+[pr#2710]: https://github.com/rust-lang/rustup/pull/2710
+[pr#2709]: https://github.com/rust-lang/rustup/pull/2709
+[pr#2719]: https://github.com/rust-lang/rustup/pull/2719
+[1.24.2]: https://github.com/rust-lang/rustup/releases/tag/1.24.2
+
 ## [1.24.1] - 2021-04-27
 
 This bugfix release [corrects an oversight][pr#2738] in the code we introduced to check for
@@ -600,7 +656,6 @@ This release was made to solve two problems spotted in `1.20.0`
 [pr#1945]: https://github.com/rust-lang/rustup/pull/1945
 [pr#2026]: https://github.com/rust-lang/rustup/pull/2026
 [pr#2030]: https://github.com/rust-lang/rustup/pull/2030
-
 [1.20.0]: https://github.com/rust-lang/rustup/releases/tag/1.20.0
 
 ## [1.19.0] - 2019-09-09
