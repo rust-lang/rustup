@@ -28,7 +28,7 @@ info: downloading self-updates
 
 ```
 
-## Keeping rustup up to date
+## Keeping `rustup` up to date
 
 Running `rustup update` also checks for updates to `rustup` itself and automatically
 installs the latest version. To manually update `rustup` only,
@@ -40,7 +40,8 @@ info: checking for self-updates
 info: downloading self-updates
 ```
 
-> **Note**: `rustup` will automatically update itself at the end of any toolchain installation as well.
+> #### Disable automatic self-updates
+> `rustup` will automatically update itself at the end of any toolchain installation.
 > You can prevent this automatic behaviour by passing the `--no-self-update` argument
 > when running `rustup update` or `rustup toolchain install`.
 
