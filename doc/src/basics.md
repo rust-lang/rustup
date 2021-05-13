@@ -1,12 +1,5 @@
 # Basic usage
 
-The `rustup` command-line has a built-in help system that provides more
-information about each command. Run `rustup help` for an overview. Detailed
-help for each subcommand is also available. For example, run `rustup toolchain
-install --help` for specifics on installing [toolchains].
-
-[toolchains]: concepts/toolchains.md
-
 ## Keeping Rust up to date
 
 Rust is distributed on three different [release channels]: stable, beta, and
@@ -35,8 +28,6 @@ info: downloading self-updates
 
 ```
 
-This is the essence of `rustup`.
-
 ## Keeping rustup up to date
 
 Running `rustup update` also checks for updates to `rustup` itself and automatically
@@ -52,4 +43,13 @@ info: downloading self-updates
 > **Note**: `rustup` will automatically update itself at the end of any toolchain installation as well.
 > You can prevent this automatic behaviour by passing the `--no-self-update` argument
 > when running `rustup update` or `rustup toolchain install`.
+
+## Help system
+
+The `rustup` command-line has a built-in help system that provides more
+information about each command. Run `rustup help` for an overview. Detailed
+help for each subcommand is also available. For example, run `rustup toolchain
+install --help` for specifics on installing [toolchains].
+
+[toolchains]: concepts/toolchains.md
 
