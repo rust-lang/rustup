@@ -1559,10 +1559,11 @@ dependencies = [
 
 [[package]]
 name = "remove_dir_all"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7b19f5c2df95a07275e7224924cc62f76f04525f4fda801473f85e325e81977"
+checksum = "882f368737489ea543bc5c340e6f3d34a28c39980bd9a979e47322b26f60ac40"
 dependencies = [
+ "libc",
  "log",
  "num_cpus",
  "rayon",
@@ -1727,7 +1728,7 @@ dependencies = [
  "pulldown-cmark",
  "rand 0.8.3",
  "regex",
- "remove_dir_all 0.6.1",
+ "remove_dir_all 0.7.0",
  "retry",
  "rs_tracing",
  "same-file",
