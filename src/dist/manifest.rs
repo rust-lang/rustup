@@ -10,7 +10,7 @@
 //!
 //! See tests/channel-rust-nightly-example.toml for an example.
 //!
-//! Docs: https://forge.rust-lang.org/infra/channel-layout.html
+//! Docs: <https://forge.rust-lang.org/infra/channel-layout.html>
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};

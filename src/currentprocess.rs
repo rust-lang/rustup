@@ -27,7 +27,7 @@ use varsource::*;
 /// This provides replacements env::arg*, env::var*, and the standard files
 /// io::std* with traits that are customisable for tests. As a result any macros
 /// or code that have non-pluggable usage of those are incompatible with
-/// CurrentProcess and must not be used. That includes [e]println! as well as
+/// CurrentProcess and must not be used. That includes \[e\]println! as well as
 /// third party crates.
 ///
 /// CurrentProcess is used via an instance in a thread local variable; when

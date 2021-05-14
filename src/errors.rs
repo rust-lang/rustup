@@ -18,7 +18,7 @@ pub const TOOLSTATE_MSG: &str =
      Then you can use the toolchain with commands such as:\n\n    \
      cargo +nightly-2018-12-27 build";
 
-/// A type erasing thunk for the retry crate to permit use with anyhow. See https://github.com/dtolnay/anyhow/issues/149
+/// A type erasing thunk for the retry crate to permit use with anyhow. See <https://github.com/dtolnay/anyhow/issues/149>
 #[derive(Debug, ThisError)]
 #[error(transparent)]
 pub struct OperationError(pub anyhow::Error);
