@@ -302,7 +302,7 @@ pub fn do_add_to_programs() -> Result<()> {
     }
 
     let mut path = utils::cargo_home()?;
-    path.push("bin\rustup.exe");
+    path.push("bin\\rustup.exe");
     let mut uninstall_cmd = OsString::from("\"");
     uninstall_cmd.push(path);
     uninstall_cmd.push("\" self uninstall");
