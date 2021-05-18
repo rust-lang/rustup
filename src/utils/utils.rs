@@ -637,7 +637,7 @@ where
 }
 
 pub fn delete_dir_contents(dir_path: &Path) {
-    match remove_dir_all::remove_dir_all(dir_path) {
+    match remove_dir_all::remove_dir_contents(dir_path) {
         Err(e) if e.kind() != io::ErrorKind::NotFound => {
             panic!("Unable to clean up {}: {:?}", dir_path.display(), e);
         }
