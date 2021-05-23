@@ -422,9 +422,11 @@ pub(crate) fn write_file_incremental<P: AsRef<Path>, F: Fn(usize)>(
             let len = contents.len();
             // Length 0 vector is used for clean EOF signalling.
             if len == 0 {
+                trace_scoped!("EOF_chunk", "name": path_display, "len": len);
+                drop(contents);
+                chunk_complete_callback(len);
                 break;
-            }
-            {
+            } else {
                 trace_scoped!("write_segment", "name": path_display, "len": len);
                 f.write_all(&contents)?;
                 drop(contents);
