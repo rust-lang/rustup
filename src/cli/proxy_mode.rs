@@ -1,31 +1,22 @@
 use std::ffi::OsString;
-use std::path::PathBuf;
 use std::process;
 
 use anyhow::Result;
 
 use super::common::set_globals;
-use super::errors::*;
 use super::job;
 use super::self_update;
 use crate::command::run_command_for_dir;
 use crate::utils::utils::{self, ExitCode};
 use crate::Cfg;
 
-pub fn main() -> Result<ExitCode> {
+pub fn main(arg0: &str) -> Result<ExitCode> {
     self_update::cleanup_self_updater()?;
 
     let ExitCode(c) = {
         let _setup = job::setup();
 
-        let mut args = crate::process().args_os();
-
-        let arg0 = args.next().map(PathBuf::from);
-        let arg0 = arg0
-            .as_ref()
-            .and_then(|a| a.file_name())
-            .and_then(std::ffi::OsStr::to_str);
-        let arg0 = arg0.ok_or(CLIError::NoExeName)?;
+        let mut args = crate::process().args_os().skip(1);
 
         // Check for a toolchain specifier.
         let arg1 = args.next();

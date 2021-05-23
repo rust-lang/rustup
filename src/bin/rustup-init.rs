@@ -95,7 +95,7 @@ fn run_rustup_inner() -> Result<utils::ExitCode> {
         }
         Some(n) => {
             if TOOLS.iter().chain(DUP_TOOLS.iter()).any(|&name| name == n) {
-                proxy_mode::main()
+                proxy_mode::main(n)
             } else {
                 Err(anyhow!(format!(
                     "unknown proxy name: '{}'; valid proxy names are {}",
