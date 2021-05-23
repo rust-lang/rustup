@@ -350,6 +350,11 @@ impl<'a> Executor for Threaded<'a> {
         let total_used = Threaded::ram_highwater(&self.vec_pools);
         total_used + size < self.ram_budget
     }
+
+    #[cfg(test)]
+    fn buffer_used(&self) -> usize {
+        self.vec_pools.iter().map(|(_, p)| *p.in_use.borrow()).sum()
+    }
 }
 
 impl<'a> Drop for Threaded<'a> {

@@ -328,6 +328,10 @@ pub(crate) trait Executor {
 
     /// Query the memory budget to see if a particular size buffer is available
     fn buffer_available(&self, len: usize) -> bool;
+
+    #[cfg(test)]
+    /// Query the memory budget to see how much of the buffer pool is in use
+    fn buffer_used(&self) -> usize;
 }
 
 /// Trivial single threaded IO to be used from executors.
