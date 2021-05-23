@@ -311,6 +311,33 @@ impl TargetTriple {
     pub fn from_host_or_build() -> Self {
         Self::from_host().unwrap_or_else(Self::from_build)
     }
+
+    pub fn can_run(&self, other: &TargetTriple) -> Result<bool> {
+        // Most trivial shortcut of all
+        if self == other {
+            return Ok(true);
+        }
+        // Otherwise we need to parse things
+        let partial_self = PartialTargetTriple::new(&self.0)
+            .ok_or_else(|| anyhow!(format!("Unable to parse target triple: {}", self.0)))?;
+        let partial_other = PartialTargetTriple::new(&other.0)
+            .ok_or_else(|| anyhow!(format!("Unable to parse target triple: {}", other.0)))?;
+        // First obvious check is OS, if that doesn't match there's no chance
+        let ret = if partial_self.os != partial_other.os {
+            false
+        } else if partial_self.os.as_deref() == Some("pc-windows") {
+            // Windows is a special case here, we know we can run 32bit on 64bit
+            // and we know we can run gnu and msvc on the same system
+            // We don't immediately assume we can cross between x86 and aarch64 though
+            (partial_self.arch == partial_other.arch)
+                || (partial_self.arch.as_deref() == Some("x86_64")
+                    && partial_other.arch.as_deref() == Some("i686"))
+        } else {
+            // For other OSes, for now, we assume other toolchains won't run
+            false
+        };
+        Ok(ret)
+    }
 }
 
 impl std::convert::TryFrom<PartialTargetTriple> for TargetTriple {
