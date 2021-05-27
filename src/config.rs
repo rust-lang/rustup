@@ -11,6 +11,7 @@ use pgp::{Deserializable, SignedPublicKey};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 
+use crate::cli::self_update::SelfUpdateMode;
 use crate::dist::download::DownloadCfg;
 use crate::dist::{
     dist::{self, valid_profile_names},
@@ -405,6 +406,20 @@ impl Cfg {
         Ok(())
     }
 
+    pub fn set_auto_self_update(&mut self, mode: &str) -> Result<()> {
+        match SelfUpdateMode::from_str(mode) {
+            Ok(update_mode) => {
+                self.settings_file.with_mut(|s| {
+                    s.auto_self_update = Some(update_mode);
+                    Ok(())
+                })?;
+                (self.notify_handler)(Notification::SetSelfUpdate(mode));
+                Ok(())
+            }
+            Err(err) => Err(err),
+        }
+    }
+
     pub fn set_toolchain_override(&mut self, toolchain_override: &str) {
         self.toolchain_override = Some(toolchain_override.to_owned());
     }
@@ -427,6 +442,16 @@ impl Cfg {
             };
             let p = dist::Profile::from_str(p)?;
             Ok(p)
+        })
+    }
+
+    pub fn get_self_update_mode(&self) -> Result<SelfUpdateMode> {
+        self.settings_file.with(|s| {
+            let mode = match &s.auto_self_update {
+                Some(mode) => mode.clone(),
+                None => SelfUpdateMode::Enable,
+            };
+            Ok(mode)
         })
     }
 

@@ -92,7 +92,6 @@ fn install_with_profile() {
                 "--profile",
                 "minimal",
                 "nightly",
-                "--no-self-update",
             ],
         );
         expect_ok(config, &["rustup", "default", "nightly"]);
@@ -103,7 +102,7 @@ fn install_with_profile() {
 
         // After an update, we should _still_ only have the profile-dictated components
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
 
         expect_component_executable(config, "rustup");
         expect_component_executable(config, "rustc");
@@ -114,7 +113,7 @@ fn install_with_profile() {
 #[test]
 fn default_existing_toolchain() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stderr_ok(
             config,
             &["rustup", "default", "nightly"],
@@ -130,7 +129,7 @@ fn update_channel() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
     });
 }
@@ -138,11 +137,8 @@ fn update_channel() {
 #[test]
 fn list_toolchains() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_ok(
-            config,
-            &["rustup", "update", "beta-2015-01-01", "--no-self-update"],
-        );
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_ok(config, &["rustup", "update", "beta-2015-01-01"]);
         expect_stdout_ok(config, &["rustup", "toolchain", "list"], "nightly");
         expect_stdout_ok(
             config,
@@ -181,7 +177,7 @@ fn list_toolchains() {
 fn list_toolchains_with_bogus_file() {
     // #520
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
 
         let name = "bogus_regular_file.txt";
         let path = config.rustupdir.join("toolchains").join(name);
@@ -205,7 +201,7 @@ fn list_toolchains_with_none() {
 #[test]
 fn remove_toolchain() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
         expect_ok(config, &["rustup", "toolchain", "list"]);
         expect_stdout_ok(
@@ -223,10 +219,7 @@ fn add_remove_multiple_toolchains() {
             let tch1 = "beta";
             let tch2 = "nightly";
 
-            expect_ok(
-                config,
-                &["rustup", "toolchain", add, tch1, tch2, "--no-self-update"],
-            );
+            expect_ok(config, &["rustup", "toolchain", add, tch1, tch2]);
             expect_ok(config, &["rustup", "toolchain", "list"]);
             expect_stdout_ok(config, &["rustup", "toolchain", "list"], tch1);
             expect_stdout_ok(config, &["rustup", "toolchain", "list"], tch2);
@@ -503,12 +496,8 @@ fn remove_override_with_multiple_overrides() {
 #[test]
 fn no_update_on_channel_when_date_has_not_changed() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
-        expect_stdout_ok(
-            config,
-            &["rustup", "update", "nightly", "--no-self-update"],
-            "unchanged",
-        );
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_stdout_ok(config, &["rustup", "update", "nightly"], "unchanged");
     });
 }
 
@@ -519,7 +508,7 @@ fn update_on_channel_when_date_has_changed() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
     });
 }
@@ -527,7 +516,7 @@ fn update_on_channel_when_date_has_changed() {
 #[test]
 fn run_command() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok(config, &["rustup", "default", "beta"]);
         expect_stdout_ok(
             config,
@@ -543,7 +532,7 @@ fn remove_toolchain_then_add_again() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "beta"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "beta"]);
-        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "beta"]);
         expect_ok(config, &["rustc", "--version"]);
     });
 }
@@ -557,7 +546,7 @@ fn upgrade_v1_to_v2() {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
     });
 }
@@ -591,7 +580,7 @@ fn list_targets_no_toolchain() {
 #[test]
 fn list_targets_v1_toolchain() {
     clitools::setup(Scenario::SimpleV1, &|config| {
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_err(
             config,
             &["rustup", "target", "list", "--toolchain=nightly"],
@@ -794,7 +783,7 @@ fn add_target_bogus() {
 #[test]
 fn add_target_v1_toolchain() {
     clitools::setup(Scenario::SimpleV1, &|config| {
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_err(
             config,
             &[
@@ -1003,7 +992,7 @@ fn remove_target_host() {
 // Issue #304
 fn remove_target_missing_update_hash() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
 
         let file_name = format!("nightly-{}", this_host_triple());
         fs::remove_file(config.rustupdir.join("update-hashes").join(file_name)).unwrap();
@@ -1028,13 +1017,7 @@ fn warn_about_and_remove_stray_hash() {
 
         expect_stderr_ok(
             config,
-            &[
-                "rustup",
-                "toolchain",
-                "install",
-                "nightly",
-                "--no-self-update",
-            ],
+            &["rustup", "toolchain", "install", "nightly"],
             &format!(
                 "removing stray hash found at '{}' in order to continue",
                 hash_path.display()
@@ -1079,7 +1062,7 @@ fn update_unavailable_std() {
         make_component_unavailable(config, "rust-std", &this_host_triple());
         expect_err(
             config,
-            &["rustup", "update", "nightly", "--no-self-update"],
+            &["rustup", "update", "nightly", ],
             for_host!(
                 "component 'rust-std' for target '{0}' is unavailable for download for channel 'nightly'"
             ),
@@ -1108,7 +1091,7 @@ Sometimes not all components are available in any given nightly. If you don't ne
 fn update_unavailable_force() {
     setup(&|config| {
         let trip = this_host_triple();
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok(
             config,
             &[
@@ -1123,15 +1106,12 @@ fn update_unavailable_force() {
         make_component_unavailable(config, "rls-preview", &trip);
         expect_err(
             config,
-            &["rustup", "update", "nightly", "--no-self-update"],
+            &["rustup", "update", "nightly"],
             for_host!(
                 "component 'rls' for target '{0}' is unavailable for download for channel 'nightly'"
             ),
         );
-        expect_ok(
-            config,
-            &["rustup", "update", "nightly", "--force", "--no-self-update"],
-        );
+        expect_ok(config, &["rustup", "update", "nightly", "--force"]);
     });
 }
 
@@ -1248,10 +1228,7 @@ fn target_list_ignores_unavailable_targets() {
         let target_list = &["rustup", "target", "list"];
         expect_stdout_ok(config, target_list, clitools::CROSS_ARCH1);
         make_component_unavailable(config, "rust-std", clitools::CROSS_ARCH1);
-        expect_ok(
-            config,
-            &["rustup", "update", "nightly", "--force", "--no-self-update"],
-        );
+        expect_ok(config, &["rustup", "update", "nightly", "--force"]);
         expect_not_stdout_ok(config, target_list, clitools::CROSS_ARCH1);
     })
 }
@@ -1259,13 +1236,7 @@ fn target_list_ignores_unavailable_targets() {
 #[test]
 fn install_with_components() {
     fn go(comp_args: &[&str]) {
-        let mut args = vec![
-            "rustup",
-            "toolchain",
-            "install",
-            "nightly",
-            "--no-self-update",
-        ];
+        let mut args = vec!["rustup", "toolchain", "install", "nightly"];
         args.extend_from_slice(comp_args);
 
         setup(&|config| {
@@ -1290,13 +1261,7 @@ fn install_with_components() {
 #[test]
 fn install_with_targets() {
     fn go(comp_args: &[&str]) {
-        let mut args = vec![
-            "rustup",
-            "toolchain",
-            "install",
-            "nightly",
-            "--no-self-update",
-        ];
+        let mut args = vec!["rustup", "toolchain", "install", "nightly"];
         args.extend_from_slice(comp_args);
 
         setup(&|config| {
@@ -1336,7 +1301,6 @@ fn install_with_component_and_target() {
                 "rls",
                 "-t",
                 clitools::CROSS_ARCH1,
-                "--no-self-update",
             ],
         );
         expect_stdout_ok(
@@ -1355,6 +1319,7 @@ fn install_with_component_and_target() {
 #[test]
 fn test_warn_if_complete_profile_is_used() {
     setup(&|config| {
+        expect_ok(config, &["rustup", "set", "auto-self-update", "enable"]);
         expect_err(
             config,
             &[
@@ -1384,21 +1349,13 @@ fn test_complete_profile_skips_missing_when_forced() {
                 "toolchain",
                 "install",
                 "nightly",
-                "--no-self-update",
             ],
             for_host!("error: component 'rls' for target '{}' is unavailable for download for channel 'nightly'")
         );
         // Now try and force
         expect_stderr_ok(
             config,
-            &[
-                "rustup",
-                "toolchain",
-                "install",
-                "--force",
-                "nightly",
-                "--no-self-update",
-            ],
+            &["rustup", "toolchain", "install", "--force", "nightly"],
             for_host!("warning: Force-skipping unavailable component 'rls-{}'"),
         );
 
@@ -1462,7 +1419,7 @@ fn warn_on_invalid_signature() {
 
         expect_stderr_ok(
             config,
-            &["rustup", "update", "nightly", "--no-self-update"],
+            &["rustup", "update", "nightly", ],
             &format!(
                 "warning: Signature verification failed for 'file://{}/dist/channel-rust-nightly.toml'",
                 config.distdir.display(),
@@ -1494,30 +1451,13 @@ fn install_allow_downgrade() {
 
         // this dist has no rls and there is no newer one
         set_current_dist_date(config, "2019-09-14");
-        expect_ok(
-            config,
-            &[
-                "rustup",
-                "toolchain",
-                "install",
-                "nightly",
-                "--no-self-update",
-            ],
-        );
+        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-3");
         expect_component_not_executable(config, "rls");
 
         expect_err(
             config,
-            &[
-                "rustup",
-                "toolchain",
-                "install",
-                "nightly",
-                "--no-self-update",
-                "-c",
-                "rls",
-            ],
+            &["rustup", "toolchain", "install", "nightly", "-c", "rls"],
             &format!(
                 "component 'rls' for target '{}' is unavailable for download for channel 'nightly'",
                 trip,
@@ -1533,7 +1473,6 @@ fn install_allow_downgrade() {
                 "toolchain",
                 "install",
                 "nightly",
-                "--no-self-update",
                 "-c",
                 "rls",
                 "--allow-downgrade",
@@ -1559,7 +1498,6 @@ fn regression_2601() {
                 "nightly",
                 "--component",
                 "rust-src",
-                "--no-self-update",
             ],
         );
         // The bug exposed in #2601 was that the above would end up installing

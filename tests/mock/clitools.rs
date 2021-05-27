@@ -177,6 +177,14 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
         &[],
     );
 
+    // Set the auto update mode to disable, as most tests do not want to update rustup itself during the test.
+    run(
+        &config,
+        "rustup",
+        &["set", "auto-self-update", "disable"],
+        &[],
+    );
+
     // Create some custom toolchains
     create_custom_toolchains(&config.customdir);
 

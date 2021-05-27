@@ -13,7 +13,11 @@ use super::self_update;
 use super::term2;
 use super::term2::Terminal;
 use super::topical_doc;
-use super::{common, self_update::get_available_rustup_version};
+use super::{
+    common,
+    self_update::{check_rustup_update, SelfUpdateMode},
+};
+use crate::cli::errors::CLIError;
 use crate::dist::dist::{
     PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc,
 };
@@ -185,6 +189,7 @@ pub fn main() -> Result<utils::ExitCode> {
         ("set", Some(c)) => match c.subcommand() {
             ("default-host", Some(m)) => set_default_host_triple(cfg, m)?,
             ("profile", Some(m)) => set_profile(cfg, m)?,
+            ("auto-self-update", Some(m)) => set_auto_self_update(cfg, m)?,
             (_, _) => unreachable!(),
         },
         ("completions", Some(c)) => {
@@ -707,6 +712,16 @@ pub fn cli() -> App<'static, 'static> {
                                 .possible_values(Profile::names())
                                 .default_value(Profile::default_name()),
                         ),
+                )
+                .subcommand(
+                    SubCommand::with_name("auto-self-update")
+                        .about("The rustup auto self update mode")
+                        .arg(
+                            Arg::with_name("auto-self-update-mode")
+                                .required(true)
+                                .possible_values(SelfUpdateMode::modes())
+                                .default_value(SelfUpdateMode::default_mode()),
+                        ),
                 ),
         );
 
@@ -911,31 +926,20 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
         }
     }
 
-    // Get current rustup version
-    let current_version = env!("CARGO_PKG_VERSION");
+    check_rustup_update()?;
 
-    // Get available rustup version
-    let available_version = get_available_rustup_version()?;
-
-    let _ = t.attr(term2::Attr::Bold);
-    write!(t, "rustup - ")?;
-
-    if current_version != available_version {
-        let _ = t.fg(term2::color::YELLOW);
-        write!(t, "Update available")?;
-        let _ = t.reset();
-        writeln!(t, " : {} -> {}", current_version, available_version)?;
-    } else {
-        let _ = t.fg(term2::color::GREEN);
-        write!(t, "Up to date")?;
-        let _ = t.reset();
-        writeln!(t, " : {}", current_version)?;
-    }
     Ok(utils::ExitCode(0))
 }
 
 fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
-    let self_update = !m.is_present("no-self-update") && !self_update::NEVER_SELF_UPDATE;
+    let self_update_mode = cfg.get_self_update_mode()?;
+    // Priority: no-self-update feature > self_update_mode > no-self-update args.
+    // Update only if rustup does **not** have the no-self-update feature,
+    // and auto-self-update is configured to **enable**
+    // and has **no** no-self-update parameter.
+    let self_update = !self_update::NEVER_SELF_UPDATE
+        && self_update_mode == SelfUpdateMode::Enable
+        && !m.is_present("no-self-update");
     let forced = m.is_present("force-non-host");
     if let Some(p) = m.value_of("profile") {
         let p = Profile::from_str(p)?;
@@ -1019,6 +1023,10 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
         info!("cleaning up downloads & tmp directories");
         utils::delete_dir_contents(&cfg.download_dir);
         cfg.temp_cfg.clean();
+    }
+
+    if !self_update::NEVER_SELF_UPDATE && self_update_mode == SelfUpdateMode::CheckOnly {
+        check_rustup_update()?;
     }
 
     Ok(utils::ExitCode(0))
@@ -1575,6 +1583,20 @@ fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitC
 
 fn set_profile(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     cfg.set_profile(&m.value_of("profile-name").unwrap())?;
+    Ok(utils::ExitCode(0))
+}
+
+fn set_auto_self_update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
+    if self_update::NEVER_SELF_UPDATE {
+        let mut args = crate::process().args_os();
+        let arg0 = args.next().map(PathBuf::from);
+        let arg0 = arg0
+            .as_ref()
+            .and_then(|a| a.to_str())
+            .ok_or(CLIError::NoExeName)?;
+        warn!("{} is built with the no-self-update feature: setting auto-self-update will not have any effect.",arg0);
+    }
+    cfg.set_auto_self_update(&m.value_of("auto-self-update-mode").unwrap())?;
     Ok(utils::ExitCode(0))
 }
 

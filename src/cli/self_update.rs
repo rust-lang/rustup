@@ -48,8 +48,10 @@ use std::borrow::Cow;
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
+use std::io::Write;
 use std::path::{Component, Path, PathBuf, MAIN_SEPARATOR};
 use std::process::Command;
+use std::str::FromStr;
 
 use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
@@ -59,6 +61,7 @@ use super::common::{self, ignorable_error, Confirm};
 use super::errors::*;
 use super::markdown::md;
 use super::term2;
+use crate::cli::term2::Terminal;
 use crate::dist::dist::{self, Profile, TargetTriple};
 use crate::process;
 use crate::toolchain::{DistributableToolchain, Toolchain};
@@ -85,6 +88,51 @@ pub struct InstallOpts<'a> {
 pub const NEVER_SELF_UPDATE: bool = true;
 #[cfg(not(feature = "no-self-update"))]
 pub const NEVER_SELF_UPDATE: bool = false;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum SelfUpdateMode {
+    Enable,
+    Disable,
+    CheckOnly,
+}
+
+impl SelfUpdateMode {
+    pub fn modes() -> &'static [&'static str] {
+        &["enable", "disable", "check-only"]
+    }
+
+    pub fn default_mode() -> &'static str {
+        "enable"
+    }
+}
+
+impl FromStr for SelfUpdateMode {
+    type Err = anyhow::Error;
+
+    fn from_str(mode: &str) -> Result<Self> {
+        match mode {
+            "enable" => Ok(Self::Enable),
+            "disable" => Ok(Self::Disable),
+            "check-only" => Ok(Self::CheckOnly),
+            _ => Err(anyhow!(format!(
+                "unknown self update mode: '{}'; valid modes are {}",
+                mode,
+                valid_self_update_modes(),
+            ))),
+        }
+    }
+}
+
+impl ToString for SelfUpdateMode {
+    fn to_string(&self) -> String {
+        match self {
+            SelfUpdateMode::Enable => "enable",
+            SelfUpdateMode::Disable => "disable",
+            SelfUpdateMode::CheckOnly => "check-only",
+        }
+        .into()
+    }
+}
 
 // The big installation messages. These are macros because the first
 // argument of format! needs to be a literal.
@@ -491,7 +539,6 @@ fn do_pre_install_sanity_checks(no_prompt: bool) -> Result<()> {
 }
 
 fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
-    use std::str::FromStr;
     // Verify that the installation options are vaguely sane
     (|| {
         let host_triple = opts
@@ -1103,6 +1150,32 @@ pub fn get_available_rustup_version() -> Result<String> {
     Ok(String::from(available_version))
 }
 
+pub fn check_rustup_update() -> Result<()> {
+    let mut t = term2::stdout();
+    // Get current rustup version
+    let current_version = env!("CARGO_PKG_VERSION");
+
+    // Get available rustup version
+    let available_version = get_available_rustup_version()?;
+
+    let _ = t.attr(term2::Attr::Bold);
+    write!(t, "rustup - ")?;
+
+    if current_version != available_version {
+        let _ = t.fg(term2::color::YELLOW);
+        write!(t, "Update available")?;
+        let _ = t.reset();
+        writeln!(t, " : {} -> {}", current_version, available_version)?;
+    } else {
+        let _ = t.fg(term2::color::GREEN);
+        write!(t, "Up to date")?;
+        let _ = t.reset();
+        writeln!(t, " : {}", current_version)?;
+    }
+
+    Ok(())
+}
+
 pub fn cleanup_self_updater() -> Result<()> {
     let cargo_home = utils::cargo_home()?;
     let setup = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
@@ -1112,6 +1185,14 @@ pub fn cleanup_self_updater() -> Result<()> {
     }
 
     Ok(())
+}
+
+pub fn valid_self_update_modes() -> String {
+    SelfUpdateMode::modes()
+        .iter()
+        .map(|s| format!("'{}'", s))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 #[cfg(test)]

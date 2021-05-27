@@ -112,7 +112,7 @@ fn update_all_no_update_whitespace() {
     setup(&|config| {
         expect_stdout_ok(
             config,
-            &["rustup", "update", "nightly", "--no-self-update"],
+            &["rustup", "update", "nightly"],
             for_host!(
                 r"
   nightly-{} installed - 1.3.0 (hash-nightly-2)
@@ -127,7 +127,7 @@ fn update_all_no_update_whitespace() {
 #[test]
 fn update_works_without_term() {
     setup(&|config| {
-        let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly", "--no-self-update"]);
+        let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly"]);
         clitools::env(config, &mut cmd);
         cmd.env_remove("TERM");
 
@@ -234,13 +234,13 @@ fn custom_toolchain_cargo_fallback_proxy() {
         );
         expect_ok(config, &["rustup", "default", "mytoolchain"]);
 
-        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "stable"]);
         expect_stdout_ok(config, &["cargo", "--version"], "hash-stable-1.1.0");
 
-        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "beta"]);
         expect_stdout_ok(config, &["cargo", "--version"], "hash-beta-1.2.0");
 
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(config, &["cargo", "--version"], "hash-nightly-2");
     });
 }
@@ -262,21 +262,21 @@ fn custom_toolchain_cargo_fallback_run() {
         );
         expect_ok(config, &["rustup", "default", "mytoolchain"]);
 
-        expect_ok(config, &["rustup", "update", "stable", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "stable"]);
         expect_stdout_ok(
             config,
             &["rustup", "run", "mytoolchain", "cargo", "--version"],
             "hash-stable-1.1.0",
         );
 
-        expect_ok(config, &["rustup", "update", "beta", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "beta"]);
         expect_stdout_ok(
             config,
             &["rustup", "run", "mytoolchain", "cargo", "--version"],
             "hash-beta-1.2.0",
         );
 
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(
             config,
             &["rustup", "run", "mytoolchain", "cargo", "--version"],
@@ -379,7 +379,7 @@ fn rustup_failed_path_search_toolchain() {
 #[test]
 fn rustup_run_not_installed() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "install", "stable", "--no-self-update"]);
+        expect_ok(config, &["rustup", "install", "stable"]);
         expect_err(
             config,
             &["rustup", "run", "nightly", "rustc", "--version"],
@@ -391,7 +391,7 @@ fn rustup_run_not_installed() {
 #[test]
 fn rustup_run_install() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "install", "stable", "--no-self-update"]);
+        expect_ok(config, &["rustup", "install", "stable"]);
         expect_stderr_ok(
             config,
             &[
@@ -471,7 +471,7 @@ fn run_rls_when_not_available_in_toolchain() {
         );
 
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update"]);
         expect_ok(config, &["rustup", "component", "add", "rls"]);
 
         expect_ok(config, &["rls", "--version"]);
@@ -519,7 +519,7 @@ fn rename_rls_before() {
         expect_ok(config, &["rustup", "component", "add", "rls"]);
 
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update"]);
 
         assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
         expect_ok(config, &["rls", "--version"]);
@@ -533,7 +533,7 @@ fn rename_rls_after() {
         expect_ok(config, &["rustup", "default", "nightly"]);
 
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update"]);
         expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
 
         assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
@@ -548,7 +548,7 @@ fn rename_rls_add_old_name() {
         expect_ok(config, &["rustup", "default", "nightly"]);
 
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update"]);
         expect_ok(config, &["rustup", "component", "add", "rls"]);
 
         assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
@@ -563,7 +563,7 @@ fn rename_rls_list() {
         expect_ok(config, &["rustup", "default", "nightly"]);
 
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update"]);
         expect_ok(config, &["rustup", "component", "add", "rls"]);
 
         let out = run(config, "rustup", &["component", "list"], &[]);
@@ -579,7 +579,7 @@ fn rename_rls_preview_list() {
         expect_ok(config, &["rustup", "default", "nightly"]);
 
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update"]);
         expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
 
         let out = run(config, "rustup", &["component", "list"], &[]);
@@ -595,7 +595,7 @@ fn rename_rls_remove() {
         expect_ok(config, &["rustup", "default", "nightly"]);
 
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update"]);
 
         expect_ok(config, &["rustup", "component", "add", "rls"]);
         expect_ok(config, &["rls", "--version"]);
@@ -677,7 +677,7 @@ fn update_unavailable_rustc() {
         // latest nightly is unavailable
         set_current_dist_date(config, "2015-01-02");
         // update should do nothing
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
     });
 }
@@ -717,7 +717,7 @@ fn update_nightly_even_with_incompat() {
 
         expect_component_executable(config, "rls");
         // update should bring us to latest nightly that does
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
         expect_component_executable(config, "rls");
     });
@@ -737,7 +737,7 @@ fn nightly_backtrack_skips_missing() {
         set_current_dist_date(config, "2019-09-18");
 
         // update should not change nightly, and should not error
-        expect_ok(config, &["rustup", "update", "nightly", "--no-self-update"]);
+        expect_ok(config, &["rustup", "update", "nightly"]);
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
     });
 }
@@ -958,13 +958,7 @@ fn deprecated_interfaces() {
         // In verbose mode we want the deprecated interfaces to complain
         expect_ok_contains(
             config,
-            &[
-                "rustup",
-                "--verbose",
-                "install",
-                "nightly",
-                "--no-self-update",
-            ],
+            &["rustup", "--verbose", "install", "nightly"],
             "",
             "Please use `rustup toolchain install` instead",
         );
@@ -977,7 +971,7 @@ fn deprecated_interfaces() {
         // But if not verbose then they should *NOT* complain
         expect_not_stderr_ok(
             config,
-            &["rustup", "install", "nightly", "--no-self-update"],
+            &["rustup", "install", "nightly"],
             "Please use `rustup toolchain install` instead",
         );
         expect_not_stderr_ok(
