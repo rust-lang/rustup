@@ -48,13 +48,13 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
             }
         }
         // sending a zero length chunk closes the file
-        let mut chunk = io_executor.get_buffer(0);
+        let mut chunk = io_executor.get_buffer(super::IO_CHUNK_SIZE);
         chunk = chunk.finished();
         sender(chunk);
         loop {
             for work in io_executor.completed().collect::<Vec<_>>() {
                 match work {
-                    super::CompletedIo::Chunk(_) => unreachable!(),
+                    super::CompletedIo::Chunk(_) => {}
                     super::CompletedIo::Item(_) => {
                         file_finished = true;
                     }
@@ -69,6 +69,8 @@ fn test_incremental_file(io_threads: &str) -> Result<()> {
             // no more work should be outstanding
             unreachable!();
         }
+
+        assert_eq!(io_executor.buffer_used(), 0);
         Ok(())
     })?;
     // We should be able to read back the file

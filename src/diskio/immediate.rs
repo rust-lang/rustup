@@ -136,6 +136,11 @@ impl Executor for ImmediateUnpacker {
     fn buffer_available(&self, _len: usize) -> bool {
         true
     }
+
+    #[cfg(test)]
+    fn buffer_used(&self) -> usize {
+        0
+    }
 }
 
 /// The non-shared state for writing a file incrementally
