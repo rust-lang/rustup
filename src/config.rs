@@ -740,8 +740,10 @@ impl Cfg {
             let manifest = if let Some(manifest) = distributable.get_manifest()? {
                 manifest
             } else {
-                // If we can't read the manifest we'd best try and install
-                return Ok(false);
+                // We can't read the manifest.  If this is a v1 install that's understandable
+                // and we assume the components are all good, otherwise we need to have a go
+                // at re-fetching the manifest to try again.
+                return Ok(distributable.guess_v1_manifest());
             };
             match (distributable.list_components(), components_requested) {
                 // If the toolchain does not support components but there were components requested, bubble up the error

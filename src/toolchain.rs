@@ -64,6 +64,8 @@ pub enum UpdateStatus {
     Unchanged,
 }
 
+static V1_COMMON_COMPONENT_LIST: &[&str] = &["cargo", "rustc", "rust-docs"];
+
 impl<'a> Toolchain<'a> {
     pub fn from(cfg: &'a Cfg, name: &str) -> Result<Self> {
         let resolved_name = cfg.resolve_toolchain(name)?;
@@ -952,6 +954,23 @@ impl<'a> DistributableToolchain<'a> {
     // Installed only.
     fn update_hash(&self) -> Result<PathBuf> {
         self.0.cfg.get_hash_file(&self.0.name, true)
+    }
+
+    // Installed only.
+    pub fn guess_v1_manifest(&self) -> bool {
+        let prefix = InstallPrefix::from(self.0.path().to_owned());
+        // If all the v1 common components are present this is likely to be
+        // a v1 manifest install.  The v1 components are not called the same
+        // in a v2 install.
+        for component in V1_COMMON_COMPONENT_LIST {
+            let manifest = format!("manifest-{}", component);
+            let manifest_path = prefix.manifest_file(&manifest);
+            if !utils::path_exists(manifest_path) {
+                return false;
+            }
+        }
+        // It's reasonable to assume this is a v1 manifest installation
+        true
     }
 }
 
