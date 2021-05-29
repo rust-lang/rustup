@@ -182,9 +182,23 @@ fn unpack_ram(
         .ok()
         .and_then(|budget_str| budget_str.parse::<usize>().ok())
     {
-        // Note: In future we may want to add a warning or even an override if a user
-        // supplied budget is larger than effective_max_ram.
-        Some(budget) => budget,
+        Some(budget) => {
+            if budget < minimum_ram {
+                warn!(
+                    "Ignoring RUSTUP_UNPACK_RAM ({}) less than minimum of {}.",
+                    budget, minimum_ram
+                );
+                minimum_ram
+            } else if budget > default_max_unpack_ram {
+                warn!(
+                    "Ignoring RUSTUP_UNPACK_RAM ({}) greater than detected available RAM of {}.",
+                    budget, default_max_unpack_ram
+                );
+                default_max_unpack_ram
+            } else {
+                budget
+            }
+        }
         None => {
             if let Some(h) = notify_handler {
                 h(Notification::SetDefaultBufferSize(default_max_unpack_ram))
@@ -193,10 +207,11 @@ fn unpack_ram(
         }
     };
 
-    if io_chunk_size > unpack_ram {
-        panic!("RUSTUP_UNPACK_RAM must be larger than {}", io_chunk_size);
+    if minimum_ram > unpack_ram {
+        panic!("RUSTUP_UNPACK_RAM must be larger than {}", minimum_ram);
+    } else {
+        unpack_ram
     }
-    unpack_ram
 }
 
 /// Handle the async result of io operations
