@@ -1130,4 +1130,71 @@ mod tests {
             assert_eq!(tcd.is_tracking(), case.1);
         }
     }
+
+    #[test]
+    fn compatible_host_triples() {
+        static CASES: &[(&str, &[&str], &[&str])] = &[
+            (
+                // 64bit linux
+                "x86_64-unknown-linux-gnu",
+                // Not compatible beyond itself
+                &[],
+                // Even 32bit linux is considered not compatible by default
+                &["i686-unknown-linux-gnu"],
+            ),
+            (
+                // On the other hand, 64 bit Windows
+                "x86_64-pc-windows-msvc",
+                // is compatible with 32 bit windows, and even gnu
+                &[
+                    "i686-pc-windows-msvc",
+                    "x86_64-pc-windows-gnu",
+                    "i686-pc-windows-gnu",
+                ],
+                // But is not compatible with Linux
+                &["x86_64-unknown-linux-gnu"],
+            ),
+            (
+                // Indeed, 64bit windows with the gnu toolchain
+                "x86_64-pc-windows-gnu",
+                // is compatible with the other windows platforms
+                &[
+                    "i686-pc-windows-msvc",
+                    "x86_64-pc-windows-gnu",
+                    "i686-pc-windows-gnu",
+                ],
+                // But is not compatible with Linux despite also being gnu
+                &["x86_64-unknown-linux-gnu"],
+            ),
+            (
+                // However, 32bit Windows is not expected to be able to run
+                // 64bit windows
+                "i686-pc-windows-msvc",
+                &["i686-pc-windows-gnu"],
+                &["x86_64-pc-windows-msvc", "x86_64-pc-windows-gnu"],
+            ),
+        ];
+
+        for (host, compatible, incompatible) in CASES {
+            println!("host={}", host);
+            let host = TargetTriple::new(host);
+            assert!(host.can_run(&host).unwrap(), "host wasn't self-compatible");
+            for other in compatible.iter() {
+                println!("compatible with {}", other);
+                let other = TargetTriple::new(other);
+                assert!(
+                    host.can_run(&other).unwrap(),
+                    "host and other were unexpectedly incompatible"
+                );
+            }
+            for other in incompatible.iter() {
+                println!("incompatible with {}", other);
+                let other = TargetTriple::new(other);
+                assert!(
+                    !host.can_run(&other).unwrap(),
+                    "host and other were unexpectedly compatible"
+                );
+            }
+        }
+    }
 }
