@@ -1,5 +1,51 @@
 # Changelog
 
+## [1.24.3] - 2021-05-31
+
+This patch release focusses around resolving some regressions in behaviour in
+the 1.24.x series. One problem, related to accounting for the release of data
+blocks in the unpack slab allocator, fixed in [pr#2779], would manifest in the
+installer [hanging during installation][issue#2774]. A second, fixed in
+[pr#2781], manifested in very early Rust versions (1.0 through 1.7) [repeatedly
+having their checksums fetched][issue#2777] despite already being installed.
+Finally the heuristic which started warning that toolchains being installed may
+not work on the given host was improved in [pr#2782] to reduce false-positive
+rate and reduce worry among Windows users in particular.
+
+### Added
+
+- Added the ability to configure the auto-self-update functionality. This will
+  be of most use when people are testing unreleased versions of Rustup and wish
+  to ensure they don't accidentally lose the test version, without having to
+  remember to run with `--no-self-update` all the time. [pr#2763]
+
+### Changed
+
+- We no longer delete the top level of `$RUSTUP_HOME/tmp` and
+  `$RUSTUP_HOME/download` meaning that if you have these set up as symlinks to
+  another place, or bind mounts, etc. things should work. [pr#2433]
+- We more gracefully handle outlier situations with unpack-RAM, panicing less
+  often, clamping settings into viable ranges and warning instead. [pr#2780]
+
+Thanks go to:
+
+- Ian Jackson
+- Alexander (asv7c2)
+- pierwill
+- 二手掉包工程师 (hi-rustin)
+- Robert Collins
+- Daniel Silverstone
+
+[1.24.3]: https://github.com/rust-lang/rustup/releases/tag/1.24.3
+[issue#2777]: https://github.com/rust-lang/rustup/issues/2777
+[issue#2774]: https://github.com/rust-lang/rustup/issues/2774
+[pr#2782]: https://github.com/rust-lang/rustup/pull/2782
+[pr#2780]: https://github.com/rust-lang/rustup/pull/2780
+[pr#2781]: https://github.com/rust-lang/rustup/pull/2781
+[pr#2779]: https://github.com/rust-lang/rustup/pull/2779
+[pr#2763]: https://github.com/rust-lang/rustup/pull/2763
+[pr#2433]: https://github.com/rust-lang/rustup/pull/2433
+
 ## [1.24.2] - 2021-05-05
 
 This patch release primarily exists to work around a
