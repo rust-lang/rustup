@@ -311,6 +311,33 @@ impl TargetTriple {
     pub fn from_host_or_build() -> Self {
         Self::from_host().unwrap_or_else(Self::from_build)
     }
+
+    pub fn can_run(&self, other: &TargetTriple) -> Result<bool> {
+        // Most trivial shortcut of all
+        if self == other {
+            return Ok(true);
+        }
+        // Otherwise we need to parse things
+        let partial_self = PartialTargetTriple::new(&self.0)
+            .ok_or_else(|| anyhow!(format!("Unable to parse target triple: {}", self.0)))?;
+        let partial_other = PartialTargetTriple::new(&other.0)
+            .ok_or_else(|| anyhow!(format!("Unable to parse target triple: {}", other.0)))?;
+        // First obvious check is OS, if that doesn't match there's no chance
+        let ret = if partial_self.os != partial_other.os {
+            false
+        } else if partial_self.os.as_deref() == Some("pc-windows") {
+            // Windows is a special case here, we know we can run 32bit on 64bit
+            // and we know we can run gnu and msvc on the same system
+            // We don't immediately assume we can cross between x86 and aarch64 though
+            (partial_self.arch == partial_other.arch)
+                || (partial_self.arch.as_deref() == Some("x86_64")
+                    && partial_other.arch.as_deref() == Some("i686"))
+        } else {
+            // For other OSes, for now, we assume other toolchains won't run
+            false
+        };
+        Ok(ret)
+    }
 }
 
 impl std::convert::TryFrom<PartialTargetTriple> for TargetTriple {
@@ -1101,6 +1128,73 @@ mod tests {
             let tcd = ToolchainDesc::from_str(&full_tcn).unwrap();
             eprintln!("Considering {}", case.0);
             assert_eq!(tcd.is_tracking(), case.1);
+        }
+    }
+
+    #[test]
+    fn compatible_host_triples() {
+        static CASES: &[(&str, &[&str], &[&str])] = &[
+            (
+                // 64bit linux
+                "x86_64-unknown-linux-gnu",
+                // Not compatible beyond itself
+                &[],
+                // Even 32bit linux is considered not compatible by default
+                &["i686-unknown-linux-gnu"],
+            ),
+            (
+                // On the other hand, 64 bit Windows
+                "x86_64-pc-windows-msvc",
+                // is compatible with 32 bit windows, and even gnu
+                &[
+                    "i686-pc-windows-msvc",
+                    "x86_64-pc-windows-gnu",
+                    "i686-pc-windows-gnu",
+                ],
+                // But is not compatible with Linux
+                &["x86_64-unknown-linux-gnu"],
+            ),
+            (
+                // Indeed, 64bit windows with the gnu toolchain
+                "x86_64-pc-windows-gnu",
+                // is compatible with the other windows platforms
+                &[
+                    "i686-pc-windows-msvc",
+                    "x86_64-pc-windows-gnu",
+                    "i686-pc-windows-gnu",
+                ],
+                // But is not compatible with Linux despite also being gnu
+                &["x86_64-unknown-linux-gnu"],
+            ),
+            (
+                // However, 32bit Windows is not expected to be able to run
+                // 64bit windows
+                "i686-pc-windows-msvc",
+                &["i686-pc-windows-gnu"],
+                &["x86_64-pc-windows-msvc", "x86_64-pc-windows-gnu"],
+            ),
+        ];
+
+        for (host, compatible, incompatible) in CASES {
+            println!("host={}", host);
+            let host = TargetTriple::new(host);
+            assert!(host.can_run(&host).unwrap(), "host wasn't self-compatible");
+            for other in compatible.iter() {
+                println!("compatible with {}", other);
+                let other = TargetTriple::new(other);
+                assert!(
+                    host.can_run(&other).unwrap(),
+                    "host and other were unexpectedly incompatible"
+                );
+            }
+            for other in incompatible.iter() {
+                println!("incompatible with {}", other);
+                let other = TargetTriple::new(other);
+                assert!(
+                    !host.can_run(&other).unwrap(),
+                    "host and other were unexpectedly compatible"
+                );
+            }
         }
     }
 }

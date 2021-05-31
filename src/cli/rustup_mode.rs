@@ -962,7 +962,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
                 let host_arch = TargetTriple::from_host_or_build();
                 if let Ok(toolchain_desc) = ToolchainDesc::from_str(name) {
                     let target_triple = toolchain_desc.target;
-                    if !forced && host_arch.ne(&target_triple) {
+                    if !forced && !host_arch.can_run(&target_triple)? {
                         err!("DEPRECATED: future versions of rustup will require --force-non-host to install a non-host toolchain as the default.");
                         warn!(
                             "toolchain '{}' may not be able to run on this system.",
