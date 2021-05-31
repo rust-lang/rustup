@@ -249,7 +249,7 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
     Ok(())
 }
 
-pub fn update_all_channels(
+pub(crate) fn update_all_channels(
     cfg: &Cfg,
     do_self_update: bool,
     force_update: bool,
@@ -327,7 +327,7 @@ pub fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
     }
 }
 
-pub fn self_update<F>(before_restart: F) -> Result<utils::ExitCode>
+pub(crate) fn self_update<F>(before_restart: F) -> Result<utils::ExitCode>
 where
     F: FnOnce() -> Result<utils::ExitCode>,
 {
@@ -354,7 +354,7 @@ where
     Ok(utils::ExitCode(0))
 }
 
-pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
     let distributable = DistributableToolchain::new_for_components(&toolchain)?;
     let components = distributable.list_components()?;
@@ -378,7 +378,7 @@ pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
     let distributable = DistributableToolchain::new_for_components(&toolchain)?;
     let components = distributable.list_components()?;
@@ -397,7 +397,7 @@ pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCo
     Ok(utils::ExitCode(0))
 }
 
-pub fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
     let distributable = DistributableToolchain::new_for_components(&toolchain)?;
     let components = distributable.list_components()?;
@@ -415,7 +415,7 @@ pub fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
     let distributable = DistributableToolchain::new_for_components(&toolchain)?;
     let components = distributable.list_components()?;
@@ -460,7 +460,7 @@ fn print_toolchain_path(
     Ok(())
 }
 
-pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
+pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
     let toolchains = cfg.list_toolchains()?;
     if toolchains.is_empty() {
         writeln!(process().stdout(), "no installed toolchains")?;
@@ -495,7 +495,7 @@ pub fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-pub fn list_overrides(cfg: &Cfg) -> Result<utils::ExitCode> {
+pub(crate) fn list_overrides(cfg: &Cfg) -> Result<utils::ExitCode> {
     let overrides = cfg.settings_file.with(|s| Ok(s.overrides.clone()))?;
 
     if overrides.is_empty() {
@@ -538,7 +538,7 @@ pub fn version() -> &'static str {
     &RENDERED
 }
 
-pub fn dump_testament() -> Result<utils::ExitCode> {
+pub(crate) fn dump_testament() -> Result<utils::ExitCode> {
     use git_testament::GitModification::*;
     writeln!(
         process().stdout(),

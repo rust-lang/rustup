@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use thiserror::Error as ThisError;
 
-pub fn get_value(table: &mut toml::value::Table, key: &str, path: &str) -> Result<toml::Value> {
+fn get_value(table: &mut toml::value::Table, key: &str, path: &str) -> Result<toml::Value> {
     table
         .remove(key)
         .ok_or_else(|| anyhow!(format!("missing key: '{}'", path.to_owned() + key)))
@@ -11,7 +11,7 @@ pub fn get_value(table: &mut toml::value::Table, key: &str, path: &str) -> Resul
 #[error("expected type: '{0}' for '{1}'")]
 struct ExpectedType(&'static str, String);
 
-pub fn get_string(table: &mut toml::value::Table, key: &str, path: &str) -> Result<String> {
+pub(crate) fn get_string(table: &mut toml::value::Table, key: &str, path: &str) -> Result<String> {
     if let toml::Value::String(s) = get_value(table, key, path)? {
         Ok(s)
     } else {
@@ -19,7 +19,7 @@ pub fn get_string(table: &mut toml::value::Table, key: &str, path: &str) -> Resu
     }
 }
 
-pub fn get_opt_string(
+pub(crate) fn get_opt_string(
     table: &mut toml::value::Table,
     key: &str,
     path: &str,
@@ -35,7 +35,7 @@ pub fn get_opt_string(
     }
 }
 
-pub fn get_bool(table: &mut toml::value::Table, key: &str, path: &str) -> Result<bool> {
+pub(crate) fn get_bool(table: &mut toml::value::Table, key: &str, path: &str) -> Result<bool> {
     get_value(table, key, path).and_then(|v| {
         if let toml::Value::Boolean(b) = v {
             Ok(b)
@@ -45,7 +45,7 @@ pub fn get_bool(table: &mut toml::value::Table, key: &str, path: &str) -> Result
     })
 }
 
-pub fn get_table(
+pub(crate) fn get_table(
     table: &mut toml::value::Table,
     key: &str,
     path: &str,
@@ -61,7 +61,7 @@ pub fn get_table(
     }
 }
 
-pub fn get_array(
+pub(crate) fn get_array(
     table: &mut toml::value::Table,
     key: &str,
     path: &str,

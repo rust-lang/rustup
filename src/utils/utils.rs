@@ -3,7 +3,6 @@ use std::env;
 use std::fs::{self, File};
 use std::io::{self, BufReader, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use anyhow::{anyhow, bail, Context, Result};
 use retry::delay::{jitter, Fibonacci};
@@ -17,9 +16,9 @@ use crate::utils::notifications::Notification;
 use crate::utils::raw;
 use crate::{home_process, process};
 
-pub use crate::utils::utils::raw::{
-    find_cmd, has_cmd, if_not_empty, is_directory, is_file, path_exists, prefix_arg, random_string,
-};
+pub(crate) use crate::utils::utils::raw::{find_cmd, if_not_empty, is_directory};
+
+pub use crate::utils::utils::raw::{is_file, path_exists};
 
 pub struct ExitCode(pub i32);
 
@@ -40,7 +39,7 @@ where
     })
 }
 
-pub fn open_file(name: &'static str, path: &Path) -> Result<File> {
+pub(crate) fn open_file(name: &'static str, path: &Path) -> Result<File> {
     File::open(path).with_context(|| RustupError::ReadingFile {
         name,
         path: PathBuf::from(path),
@@ -61,21 +60,26 @@ pub fn write_file(name: &'static str, path: &Path, contents: &str) -> Result<()>
     })
 }
 
-pub fn append_file(name: &'static str, path: &Path, line: &str) -> Result<()> {
+pub(crate) fn append_file(name: &'static str, path: &Path, line: &str) -> Result<()> {
     raw::append_file(path, line).with_context(|| RustupError::WritingFile {
         name,
         path: PathBuf::from(path),
     })
 }
 
-pub fn write_line(name: &'static str, file: &mut File, path: &Path, line: &str) -> Result<()> {
+pub(crate) fn write_line(
+    name: &'static str,
+    file: &mut File,
+    path: &Path,
+    line: &str,
+) -> Result<()> {
     writeln!(file, "{}", line).with_context(|| RustupError::WritingFile {
         name,
         path: path.to_path_buf(),
     })
 }
 
-pub fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> Result<()> {
+pub(crate) fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> Result<()> {
     write!(file, "{}", s).with_context(|| RustupError::WritingFile {
         name,
         path: path.to_path_buf(),
@@ -94,7 +98,7 @@ where
     rename(name, src, dest, notify)
 }
 
-pub fn rename_dir<'a, N>(
+pub(crate) fn rename_dir<'a, N>(
     name: &'static str,
     src: &'a Path,
     dest: &'a Path,
@@ -106,7 +110,7 @@ where
     rename(name, src, dest, notify)
 }
 
-pub fn filter_file<F: FnMut(&str) -> bool>(
+pub(crate) fn filter_file<F: FnMut(&str) -> bool>(
     name: &'static str,
     src: &Path,
     dest: &Path,
@@ -122,7 +126,7 @@ pub fn filter_file<F: FnMut(&str) -> bool>(
     })
 }
 
-pub fn canonicalize_path<'a, N>(path: &'a Path, notify_handler: &dyn Fn(N)) -> PathBuf
+pub(crate) fn canonicalize_path<'a, N>(path: &'a Path, notify_handler: &dyn Fn(N)) -> PathBuf
 where
     N: From<Notification<'a>>,
 {
@@ -141,7 +145,7 @@ pub fn download_file(
     download_file_with_resume(&url, &path, hasher, false, &notify_handler)
 }
 
-pub fn download_file_with_resume(
+pub(crate) fn download_file_with_resume(
     url: &Url,
     path: &Path,
     hasher: Option<&mut Sha256>,
@@ -247,19 +251,11 @@ fn download_file_(
     res
 }
 
-pub fn parse_url(url: &str) -> Result<Url> {
+pub(crate) fn parse_url(url: &str) -> Result<Url> {
     Url::parse(url).with_context(|| format!("failed to parse url: {}", url))
 }
 
-pub fn cmd_status(name: &'static str, cmd: &mut Command) -> Result<()> {
-    use std::ffi::OsString;
-
-    raw::cmd_status(cmd).with_context(|| RustupError::RunningCommand {
-        name: OsString::from(name),
-    })
-}
-
-pub fn assert_is_file(path: &Path) -> Result<()> {
+pub(crate) fn assert_is_file(path: &Path) -> Result<()> {
     if !is_file(path) {
         Err(anyhow!(format!("not a file: '{}'", path.display())))
     } else {
@@ -267,7 +263,7 @@ pub fn assert_is_file(path: &Path) -> Result<()> {
     }
 }
 
-pub fn assert_is_directory(path: &Path) -> Result<()> {
+pub(crate) fn assert_is_directory(path: &Path) -> Result<()> {
     if !is_directory(path) {
         Err(anyhow!(format!("not a directory: '{}'", path.display())))
     } else {
@@ -275,7 +271,11 @@ pub fn assert_is_directory(path: &Path) -> Result<()> {
     }
 }
 
-pub fn symlink_dir<'a, N>(src: &'a Path, dest: &'a Path, notify_handler: &dyn Fn(N)) -> Result<()>
+pub(crate) fn symlink_dir<'a, N>(
+    src: &'a Path,
+    dest: &'a Path,
+    notify_handler: &dyn Fn(N),
+) -> Result<()>
 where
     N: From<Notification<'a>>,
 {
@@ -289,7 +289,7 @@ where
     })
 }
 
-pub fn hard_or_symlink_file(src: &Path, dest: &Path) -> Result<()> {
+pub(crate) fn hard_or_symlink_file(src: &Path, dest: &Path) -> Result<()> {
     if hardlink_file(src, dest).is_err() {
         symlink_file(src, dest)?;
     }
@@ -304,7 +304,7 @@ pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
 }
 
 #[cfg(unix)]
-pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
+fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     std::os::unix::fs::symlink(src, dest).with_context(|| RustupError::LinkingFile {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
@@ -312,7 +312,7 @@ pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
 }
 
 #[cfg(windows)]
-pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
+fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     // we are supposed to not use symlink on windows
     Err(anyhow!(RustupError::LinkingFile {
         src: PathBuf::from(src),
@@ -320,7 +320,11 @@ pub fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     }))
 }
 
-pub fn copy_dir<'a, N>(src: &'a Path, dest: &'a Path, notify_handler: &dyn Fn(N)) -> Result<()>
+pub(crate) fn copy_dir<'a, N>(
+    src: &'a Path,
+    dest: &'a Path,
+    notify_handler: &dyn Fn(N),
+) -> Result<()>
 where
     N: From<Notification<'a>>,
 {
@@ -334,7 +338,7 @@ where
     })
 }
 
-pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
+pub(crate) fn copy_file(src: &Path, dest: &Path) -> Result<()> {
     let metadata = fs::symlink_metadata(src).with_context(|| RustupError::ReadingFile {
         name: "metadata for",
         path: PathBuf::from(src),
@@ -354,7 +358,7 @@ pub fn copy_file(src: &Path, dest: &Path) -> Result<()> {
     }
 }
 
-pub fn remove_dir<'a, N>(
+pub(crate) fn remove_dir<'a, N>(
     name: &'static str,
     path: &'a Path,
     notify_handler: &dyn Fn(N),
@@ -391,7 +395,7 @@ pub fn remove_file(name: &'static str, path: &Path) -> Result<()> {
     })
 }
 
-pub fn ensure_file_removed(name: &'static str, path: &Path) -> Result<()> {
+pub(crate) fn ensure_file_removed(name: &'static str, path: &Path) -> Result<()> {
     let result = remove_file(name, path);
     if let Err(err) = &result {
         if let Some(retry::Error::Operation { error: e, .. }) =
@@ -408,18 +412,18 @@ pub fn ensure_file_removed(name: &'static str, path: &Path) -> Result<()> {
     })
 }
 
-pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
+pub(crate) fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
     fs::read_dir(path).with_context(|| RustupError::ReadingDirectory {
         name,
         path: PathBuf::from(path),
     })
 }
 
-pub fn open_browser(path: &Path) -> Result<()> {
+pub(crate) fn open_browser(path: &Path) -> Result<()> {
     opener::open_browser(path).context("couldn't open browser")
 }
 
-pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
+fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
     fs::set_permissions(path, perms).map_err(|e| {
         RustupError::SettingPermissions {
             p: PathBuf::from(path),
@@ -438,7 +442,7 @@ pub fn file_size(path: &Path) -> Result<u64> {
         .len())
 }
 
-pub fn make_executable(path: &Path) -> Result<()> {
+pub(crate) fn make_executable(path: &Path) -> Result<()> {
     #[allow(clippy::unnecessary_wraps)]
     #[cfg(windows)]
     fn inner(_: &Path) -> Result<()> {
@@ -468,7 +472,7 @@ pub fn make_executable(path: &Path) -> Result<()> {
     inner(path)
 }
 
-pub fn current_dir() -> Result<PathBuf> {
+pub(crate) fn current_dir() -> Result<PathBuf> {
     process()
         .current_dir()
         .context(RustupError::LocatingWorkingDir)
@@ -478,23 +482,23 @@ pub fn current_exe() -> Result<PathBuf> {
     env::current_exe().context(RustupError::LocatingWorkingDir)
 }
 
-pub fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
+pub(crate) fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
     current_dir().map(|mut v| {
         v.push(path);
         v
     })
 }
 
-pub fn home_dir() -> Option<PathBuf> {
+pub(crate) fn home_dir() -> Option<PathBuf> {
     home::home_dir_from(&home_process())
 }
 
-pub fn cargo_home() -> Result<PathBuf> {
+pub(crate) fn cargo_home() -> Result<PathBuf> {
     home::cargo_home_from(&home_process()).context("failed to determine cargo home")
 }
 
 // Creates a ~/.rustup folder
-pub fn create_rustup_home() -> Result<()> {
+pub(crate) fn create_rustup_home() -> Result<()> {
     // If RUSTUP_HOME is set then don't make any assumptions about where it's
     // ok to put ~/.rustup
     if process().var_os("RUSTUP_HOME").is_some() {
@@ -511,16 +515,16 @@ fn dot_dir(name: &str) -> Option<PathBuf> {
     home_dir().map(|p| p.join(name))
 }
 
-pub fn rustup_home_in_user_dir() -> Result<PathBuf> {
+fn rustup_home_in_user_dir() -> Result<PathBuf> {
     // XXX: This error message seems wrong/bogus.
     dot_dir(".rustup").ok_or_else(|| anyhow::anyhow!("couldn't find value of RUSTUP_HOME"))
 }
 
-pub fn rustup_home() -> Result<PathBuf> {
+pub(crate) fn rustup_home() -> Result<PathBuf> {
     home::rustup_home_from(&home_process()).context("failed to determine rustup home dir")
 }
 
-pub fn format_path_for_display(path: &str) -> String {
+pub(crate) fn format_path_for_display(path: &str) -> String {
     let unc_present = path.find(r"\\?\");
 
     match unc_present {
@@ -529,7 +533,7 @@ pub fn format_path_for_display(path: &str) -> String {
     }
 }
 
-pub fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
+pub(crate) fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
     use semver::{Identifier, Version};
 
     fn special_version(ord: u64, s: &str) -> Version {
@@ -636,7 +640,7 @@ where
     })
 }
 
-pub fn delete_dir_contents(dir_path: &Path) {
+pub(crate) fn delete_dir_contents(dir_path: &Path) {
     match remove_dir_all::remove_dir_contents(dir_path) {
         Err(e) if e.kind() != io::ErrorKind::NotFound => {
             panic!("Unable to clean up {}: {:?}", dir_path.display(), e);
@@ -645,7 +649,7 @@ pub fn delete_dir_contents(dir_path: &Path) {
     }
 }
 
-pub struct FileReaderWithProgress<'a> {
+pub(crate) struct FileReaderWithProgress<'a> {
     fh: io::BufReader<File>,
     notify_handler: &'a dyn Fn(Notification<'_>),
     nbytes: u64,
@@ -653,7 +657,10 @@ pub struct FileReaderWithProgress<'a> {
 }
 
 impl<'a> FileReaderWithProgress<'a> {
-    pub fn new_file(path: &Path, notify_handler: &'a dyn Fn(Notification<'_>)) -> Result<Self> {
+    pub(crate) fn new_file(
+        path: &Path,
+        notify_handler: &'a dyn Fn(Notification<'_>),
+    ) -> Result<Self> {
         let fh = match File::open(path) {
             Ok(fh) => fh,
             Err(_) => {
@@ -699,7 +706,7 @@ impl<'a> io::Read for FileReaderWithProgress<'a> {
 
 // search user database to get home dir of euid user
 #[cfg(unix)]
-pub fn home_dir_from_passwd() -> Option<PathBuf> {
+pub(crate) fn home_dir_from_passwd() -> Option<PathBuf> {
     use std::ffi::{CStr, OsString};
     use std::mem::MaybeUninit;
     use std::os::unix::ffi::OsStringExt;

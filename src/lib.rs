@@ -13,7 +13,7 @@ pub use crate::currentprocess::*;
 pub use crate::errors::*;
 pub use crate::notifications::*;
 pub use crate::toolchain::*;
-pub use crate::utils::{notify, toml_utils};
+pub(crate) use crate::utils::toml_utils;
 
 #[macro_use]
 extern crate rs_tracing;

@@ -1,17 +1,13 @@
 use std::env;
-use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io;
 use std::io::Write;
 use std::path::Path;
-use std::process::{Command, ExitStatus};
 use std::str;
-
-use thiserror::Error as ThisError;
 
 use crate::process;
 
-pub fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
+pub(crate) fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
     path: P,
     callback: F,
 ) -> io::Result<bool> {
@@ -23,7 +19,7 @@ pub fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
     }
 }
 
-pub fn is_directory<P: AsRef<Path>>(path: P) -> bool {
+pub(crate) fn is_directory<P: AsRef<Path>>(path: P) -> bool {
     fs::metadata(path).ok().as_ref().map(fs::Metadata::is_dir) == Some(true)
 }
 
@@ -35,7 +31,7 @@ pub fn path_exists<P: AsRef<Path>>(path: P) -> bool {
     fs::metadata(path).is_ok()
 }
 
-pub fn random_string(length: usize) -> String {
+pub(crate) fn random_string(length: usize) -> String {
     use rand::Rng;
     const CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyz0123456789_";
     let mut rng = rand::thread_rng();
@@ -44,7 +40,7 @@ pub fn random_string(length: usize) -> String {
         .collect()
 }
 
-pub fn if_not_empty<S: PartialEq<str>>(s: S) -> Option<S> {
+pub(crate) fn if_not_empty<S: PartialEq<str>>(s: S) -> Option<S> {
     if s == *"" {
         None
     } else {
@@ -66,7 +62,7 @@ pub fn write_file(path: &Path, contents: &str) -> io::Result<()> {
     Ok(())
 }
 
-pub fn filter_file<F: FnMut(&str) -> bool>(
+pub(crate) fn filter_file<F: FnMut(&str) -> bool>(
     src: &Path,
     dest: &Path,
     mut filter: F,
@@ -106,7 +102,7 @@ pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
     Ok(())
 }
 
-pub fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
+pub(crate) fn symlink_dir(src: &Path, dest: &Path) -> io::Result<()> {
     #[cfg(windows)]
     fn symlink_dir_inner(src: &Path, dest: &Path) -> io::Result<()> {
         // std's symlink uses Windows's symlink function, which requires
@@ -146,14 +142,14 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
 
     #[repr(C)]
     #[allow(non_snake_case)]
-    pub struct REPARSE_MOUNTPOINT_DATA_BUFFER {
-        pub ReparseTag: DWORD,
-        pub ReparseDataLength: DWORD,
-        pub Reserved: WORD,
-        pub ReparseTargetLength: WORD,
-        pub ReparseTargetMaximumLength: WORD,
-        pub Reserved1: WORD,
-        pub ReparseTarget: WCHAR,
+    struct REPARSE_MOUNTPOINT_DATA_BUFFER {
+        ReparseTag: DWORD,
+        ReparseDataLength: DWORD,
+        Reserved: WORD,
+        ReparseTargetLength: WORD,
+        ReparseTargetMaximumLength: WORD,
+        Reserved1: WORD,
+        ReparseTarget: WCHAR,
     }
 
     // We're using low-level APIs to create the junction, and these are more picky about paths.
@@ -214,29 +210,9 @@ fn symlink_junction_inner(target: &Path, junction: &Path) -> io::Result<()> {
     }
 }
 
-pub fn hardlink(src: &Path, dest: &Path) -> io::Result<()> {
+pub(crate) fn hardlink(src: &Path, dest: &Path) -> io::Result<()> {
     let _ = fs::remove_file(dest);
     fs::hard_link(src, dest)
-}
-
-#[derive(Debug, ThisError)]
-pub enum CommandError {
-    #[error("error running command")]
-    Io(#[source] io::Error),
-    #[error("command exited with unsuccessful status {0}")]
-    Status(ExitStatus),
-}
-
-pub type CommandResult<T> = Result<T, CommandError>;
-
-pub fn cmd_status(cmd: &mut Command) -> CommandResult<()> {
-    cmd.status().map_err(CommandError::Io).and_then(|s| {
-        if s.success() {
-            Ok(())
-        } else {
-            Err(CommandError::Status(s))
-        }
-    })
 }
 
 pub fn remove_dir(path: &Path) -> io::Result<()> {
@@ -255,7 +231,7 @@ pub fn remove_dir(path: &Path) -> io::Result<()> {
     }
 }
 
-pub fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
+pub(crate) fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
     fs::create_dir(dest)?;
     for entry in src.read_dir()? {
         let entry = entry?;
@@ -271,13 +247,7 @@ pub fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
     Ok(())
 }
 
-pub fn prefix_arg<S: AsRef<OsStr>>(name: &str, s: S) -> OsString {
-    let mut arg = OsString::from(name);
-    arg.push(s);
-    arg
-}
-
-pub fn has_cmd(cmd: &str) -> bool {
+fn has_cmd(cmd: &str) -> bool {
     let cmd = format!("{}{}", cmd, env::consts::EXE_SUFFIX);
     let path = process().var_os("PATH").unwrap_or_default();
     env::split_paths(&path)
@@ -285,17 +255,17 @@ pub fn has_cmd(cmd: &str) -> bool {
         .any(|p| p.exists())
 }
 
-pub fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
+pub(crate) fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
     cmds.iter().cloned().find(|&s| has_cmd(s))
 }
 
 #[cfg(windows)]
-pub mod windows {
+pub(crate) mod windows {
     use std::ffi::OsStr;
     use std::io;
     use std::os::windows::ffi::OsStrExt;
 
-    pub fn to_u16s<S: AsRef<OsStr>>(s: S) -> io::Result<Vec<u16>> {
+    pub(crate) fn to_u16s<S: AsRef<OsStr>>(s: S) -> io::Result<Vec<u16>> {
         fn inner(s: &OsStr) -> io::Result<Vec<u16>> {
             let mut maybe_result: Vec<u16> = s.encode_wide().collect();
             if maybe_result.iter().any(|&u| u == 0) {

@@ -56,7 +56,7 @@ impl<'a> From<temp::Notification<'a>> for Notification<'a> {
 }
 
 impl<'a> Notification<'a> {
-    pub fn level(&self) -> NotificationLevel {
+    pub(crate) fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match self {
             Install(n) => n.level(),

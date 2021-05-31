@@ -108,7 +108,7 @@ impl Settings {
         }
     }
 
-    pub fn remove_override(
+    pub(crate) fn remove_override(
         &mut self,
         path: &Path,
         notify_handler: &dyn Fn(Notification<'_>),
@@ -117,7 +117,7 @@ impl Settings {
         self.overrides.remove(&key).is_some()
     }
 
-    pub fn add_override(
+    pub(crate) fn add_override(
         &mut self,
         path: &Path,
         toolchain: String,
@@ -128,7 +128,7 @@ impl Settings {
         self.overrides.insert(key, toolchain);
     }
 
-    pub fn dir_override(
+    pub(crate) fn dir_override(
         &self,
         dir: &Path,
         notify_handler: &dyn Fn(Notification<'_>),

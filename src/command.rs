@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use crate::errors::*;
 use crate::utils::utils::ExitCode;
 
-pub fn run_command_for_dir<S: AsRef<OsStr>>(
+pub(crate) fn run_command_for_dir<S: AsRef<OsStr>>(
     mut cmd: Command,
     arg0: &str,
     args: &[S],

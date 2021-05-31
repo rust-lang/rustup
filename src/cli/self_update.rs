@@ -70,7 +70,7 @@ use crate::utils::Notification;
 use crate::{Cfg, UpdateStatus};
 use crate::{DUP_TOOLS, TOOLS};
 use os::*;
-pub use os::{delete_rustup_and_cargo_home, run_update, self_replace};
+pub(crate) use os::{delete_rustup_and_cargo_home, run_update, self_replace};
 #[cfg(windows)]
 pub use windows::complete_windows_uninstall;
 
@@ -324,7 +324,7 @@ fn canonical_cargo_home() -> Result<Cow<'static, str>> {
 /// Installing is a simple matter of copying the running binary to
 /// `CARGO_HOME`/bin, hard-linking the various Rust tools to it,
 /// and adding `CARGO_HOME`/bin to PATH.
-pub fn install(
+pub(crate) fn install(
     no_prompt: bool,
     verbose: bool,
     quiet: bool,
@@ -862,7 +862,7 @@ fn _install_selection<'a>(
     })
 }
 
-pub fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
+pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
     if NEVER_SELF_UPDATE {
         err!("self-uninstall is disabled for this build of rustup");
         err!("you should probably use your system package manager to uninstall rustup");
@@ -978,7 +978,7 @@ pub fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
 /// (and on windows this process will not be running to do it),
 /// rustup-init is stored in `CARGO_HOME`/bin, and then deleted next
 /// time rustup runs.
-pub fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
+pub(crate) fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
     use common::SelfUpdatePermission::*;
     let update_permitted = if NEVER_SELF_UPDATE {
         HardFail

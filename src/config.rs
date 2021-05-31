@@ -246,7 +246,7 @@ pub struct Cfg {
 }
 
 impl Cfg {
-    pub fn from_env(notify_handler: Arc<dyn Fn(Notification<'_>)>) -> Result<Self> {
+    pub(crate) fn from_env(notify_handler: Arc<dyn Fn(Notification<'_>)>) -> Result<Self> {
         // Set up the rustup home directory
         let rustup_dir = utils::rustup_home()?;
 
@@ -359,7 +359,7 @@ impl Cfg {
     }
 
     /// construct a download configuration
-    pub fn download_cfg<'a>(
+    pub(crate) fn download_cfg<'a>(
         &'a self,
         notify_handler: &'a dyn Fn(crate::dist::Notification<'_>),
     ) -> DownloadCfg<'a> {

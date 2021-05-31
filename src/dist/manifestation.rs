@@ -379,7 +379,7 @@ impl Manifestation {
     }
 
     /// Installation using the legacy v1 manifest format
-    pub fn update_v1(
+    pub(crate) fn update_v1(
         &self,
         new_manifest: &[String],
         update_hash: Option<&Path>,
