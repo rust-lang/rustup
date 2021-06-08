@@ -6,6 +6,7 @@ use std::str::FromStr;
 use anyhow::{Context, Result};
 
 use crate::cli::self_update::SelfUpdateMode;
+use crate::dist::dist::Profile;
 use crate::errors::*;
 use crate::notifications::*;
 use crate::toml_utils::*;
@@ -76,7 +77,7 @@ pub struct Settings {
     pub version: String,
     pub default_host_triple: Option<String>,
     pub default_toolchain: Option<String>,
-    pub profile: Option<String>,
+    pub profile: Option<Profile>,
     pub overrides: BTreeMap<String, String>,
     pub pgp_keys: Option<String>,
     pub auto_self_update: Option<SelfUpdateMode>,
@@ -88,7 +89,7 @@ impl Default for Settings {
             version: DEFAULT_METADATA_VERSION.to_owned(),
             default_host_triple: None,
             default_toolchain: None,
-            profile: Some("default".to_owned()),
+            profile: Some(Profile::Default),
             overrides: BTreeMap::new(),
             pgp_keys: None,
             auto_self_update: None,
@@ -150,18 +151,15 @@ impl Settings {
         if !SUPPORTED_METADATA_VERSIONS.contains(&&*version) {
             return Err(RustupError::UnknownMetadataVersion(version).into());
         }
-        let auto_self_update = match get_opt_string(&mut table, "auto_self_update", path)? {
-            Some(auto_self_update) => match SelfUpdateMode::from_str(auto_self_update.as_str()) {
-                Ok(mode) => Some(mode),
-                Err(_) => None,
-            },
-            None => None,
-        };
+        let auto_self_update = get_opt_string(&mut table, "auto_self_update", path)?
+            .and_then(|mode| SelfUpdateMode::from_str(mode.as_str()).ok());
+        let profile = get_opt_string(&mut table, "profile", path)?
+            .and_then(|p| Profile::from_str(p.as_str()).ok());
         Ok(Self {
             version,
             default_host_triple: get_opt_string(&mut table, "default_host_triple", path)?,
             default_toolchain: get_opt_string(&mut table, "default_toolchain", path)?,
-            profile: get_opt_string(&mut table, "profile", path)?,
+            profile,
             overrides: Self::table_to_overrides(&mut table, path)?,
             pgp_keys: get_opt_string(&mut table, "pgp_keys", path)?,
             auto_self_update,
@@ -181,7 +179,7 @@ impl Settings {
         }
 
         if let Some(v) = self.profile {
-            result.insert("profile".to_owned(), toml::Value::String(v));
+            result.insert("profile".to_owned(), toml::Value::String(v.to_string()));
         }
 
         if let Some(v) = self.pgp_keys {

@@ -518,7 +518,7 @@ impl FromStr for Profile {
             "default" | "d" | "" => Ok(Self::Default),
             "complete" | "c" => Ok(Self::Complete),
             _ => Err(anyhow!(format!(
-                "invalid profile name: '{}'; valid names are: {}",
+                "unknown profile name: '{}'; valid profile names are: {}",
                 name,
                 valid_profile_names()
             ))),

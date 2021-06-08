@@ -14,7 +14,7 @@ use thiserror::Error as ThisError;
 use crate::cli::self_update::SelfUpdateMode;
 use crate::dist::download::DownloadCfg;
 use crate::dist::{
-    dist::{self, valid_profile_names},
+    dist::{self, Profile},
     temp,
 };
 use crate::errors::RustupError;
@@ -390,20 +390,18 @@ impl Cfg {
     }
 
     pub fn set_profile(&mut self, profile: &str) -> Result<()> {
-        if !dist::Profile::names().contains(&profile) {
-            return Err(anyhow!(
-                "unknown profile name: '{}'; valid profile names are {}",
-                profile.to_owned(),
-                valid_profile_names(),
-            ));
+        match Profile::from_str(profile) {
+            Ok(p) => {
+                self.profile_override = None;
+                self.settings_file.with_mut(|s| {
+                    s.profile = Some(p);
+                    Ok(())
+                })?;
+                (self.notify_handler)(Notification::SetProfile(profile));
+                Ok(())
+            }
+            Err(err) => Err(err),
         }
-        self.profile_override = None;
-        self.settings_file.with_mut(|s| {
-            s.profile = Some(profile.to_owned());
-            Ok(())
-        })?;
-        (self.notify_handler)(Notification::SetProfile(profile));
-        Ok(())
     }
 
     pub fn set_auto_self_update(&mut self, mode: &str) -> Result<()> {
@@ -427,7 +425,7 @@ impl Cfg {
     // Returns a profile, if one exists in the settings file.
     //
     // Returns `Err` if the settings file could not be read or the profile is
-    // invalid. Returns `Ok(...)` if there is a valid profile, and `Ok(Profile::default())`
+    // invalid. Returns `Ok(...)` if there is a valid profile, and `Ok(Profile::Default)`
     // if there is no profile in the settings file. The last variant happens when
     // a user upgrades from a version of Rustup without profiles to a version of
     // Rustup with profiles.
@@ -436,11 +434,10 @@ impl Cfg {
             return Ok(p);
         }
         self.settings_file.with(|s| {
-            let p = match &s.profile {
+            let p = match s.profile {
                 Some(p) => p,
-                None => dist::Profile::default_name(),
+                None => Profile::Default,
             };
-            let p = dist::Profile::from_str(p)?;
             Ok(p)
         })
     }
