@@ -1191,12 +1191,12 @@ pub(crate) fn check_rustup_update() -> Result<()> {
     write!(t, "rustup - ")?;
 
     if current_version != available_version {
-        let _ = t.fg(term2::color::YELLOW);
+        let _ = t.fg(term2::Color::Yellow);
         write!(t, "Update available")?;
         let _ = t.reset();
         writeln!(t, " : {} -> {}", current_version, available_version)?;
     } else {
-        let _ = t.fg(term2::color::GREEN);
+        let _ = t.fg(term2::Color::Green);
         write!(t, "Up to date")?;
         let _ = t.reset();
         writeln!(t, " : {}", current_version)?;

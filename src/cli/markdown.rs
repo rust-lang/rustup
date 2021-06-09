@@ -4,7 +4,7 @@ use std::io;
 
 use pulldown_cmark::{Event, Tag};
 
-use super::term2::{color, Attr, Terminal};
+use super::term2::{Attr, Color, Terminal};
 
 // Handles the wrapping of text written to the console
 struct LineWrapper<'a, T: Terminal> {
@@ -145,7 +145,7 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
                 self.wrapper.write_line();
             }
             Tag::Emphasis => {
-                self.push_attr(Attr::ForegroundColor(color::RED));
+                self.push_attr(Attr::ForegroundColor(Color::Red));
             }
             Tag::Strong => {}
             Tag::Strikethrough => {}

@@ -9,8 +9,7 @@ use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches, Shell, SubCommand};
 
 use super::help::*;
 use super::self_update;
-use super::term2;
-use super::term2::Terminal;
+use super::term2::{self, Terminal};
 use super::topical_doc;
 use super::{
     common,
@@ -896,23 +895,23 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
                 write!(t, "{} - ", name)?;
                 match (current_version, dist_version) {
                     (None, None) => {
-                        let _ = t.fg(term2::color::RED);
+                        let _ = t.fg(term2::Color::Red);
                         writeln!(t, "Cannot identify installed or update versions")?;
                     }
                     (Some(cv), None) => {
-                        let _ = t.fg(term2::color::GREEN);
+                        let _ = t.fg(term2::Color::Green);
                         write!(t, "Up to date")?;
                         let _ = t.reset();
                         writeln!(t, " : {}", cv)?;
                     }
                     (Some(cv), Some(dv)) => {
-                        let _ = t.fg(term2::color::YELLOW);
+                        let _ = t.fg(term2::Color::Yellow);
                         write!(t, "Update available")?;
                         let _ = t.reset();
                         writeln!(t, " : {} -> {}", cv, dv)?;
                     }
                     (None, Some(dv)) => {
-                        let _ = t.fg(term2::color::YELLOW);
+                        let _ = t.fg(term2::Color::Yellow);
                         write!(t, "Update available")?;
                         let _ = t.reset();
                         writeln!(t, " : (Unknown version) -> {}", dv)?;
@@ -1197,7 +1196,7 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
 
     fn print_header<E>(t: &mut term2::StdoutTerminal, s: &str) -> std::result::Result<(), E>
     where
-        E: From<term::Error> + From<std::io::Error>,
+        E: From<std::io::Error>,
     {
         t.attr(term2::Attr::Bold)?;
         writeln!(t, "{}", s)?;

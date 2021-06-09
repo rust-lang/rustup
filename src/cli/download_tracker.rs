@@ -3,7 +3,7 @@ use std::fmt;
 use std::io::Write;
 use std::time::{Duration, Instant};
 
-use term::Terminal;
+use term2::Terminal;
 
 use super::term2;
 use crate::dist::Notification as In;

@@ -194,7 +194,7 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
         match result {
             Ok(UpdateStatus::Installed) => {
                 banner = "installed";
-                color = Some(term2::color::GREEN);
+                color = Some(term2::Color::Green);
             }
             Ok(UpdateStatus::Updated(v)) => {
                 if name == "rustup" {
@@ -204,7 +204,7 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
                     previous_version = Some(v);
                 }
                 banner = "updated";
-                color = Some(term2::color::GREEN);
+                color = Some(term2::Color::Green);
             }
             Ok(UpdateStatus::Unchanged) => {
                 if name == "rustup" {
@@ -215,7 +215,7 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
             }
             Err(_) => {
                 banner = "update failed";
-                color = Some(term2::color::RED);
+                color = Some(term2::Color::Red);
             }
         }
 

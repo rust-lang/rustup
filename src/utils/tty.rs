@@ -1,42 +1,7 @@
-// Copied from rustc. isatty crate did not work as expected
-#[cfg(unix)]
 pub(crate) fn stderr_isatty() -> bool {
-    isatty(libc::STDERR_FILENO)
+    atty::is(atty::Stream::Stderr)
 }
 
-#[cfg(windows)]
-pub(crate) fn stderr_isatty() -> bool {
-    isatty(winapi::um::winbase::STD_ERROR_HANDLE)
-}
-
-#[cfg(unix)]
 pub(crate) fn stdout_isatty() -> bool {
-    isatty(libc::STDOUT_FILENO)
-}
-
-#[cfg(windows)]
-pub(crate) fn stdout_isatty() -> bool {
-    isatty(winapi::um::winbase::STD_OUTPUT_HANDLE)
-}
-
-#[inline]
-#[cfg(unix)]
-fn isatty(fd: libc::c_int) -> bool {
-    unsafe { libc::isatty(fd) == 1 }
-}
-
-#[inline]
-#[cfg(windows)]
-fn isatty(fd: winapi::shared::minwindef::DWORD) -> bool {
-    if std::env::var("MSYSTEM").is_ok() {
-        // FIXME: No color is better than broken color codes in MSYS shells
-        //        https://github.com/rust-lang/rustup/issues/2292
-        return false;
-    }
-    use winapi::um::{consoleapi::GetConsoleMode, processenv::GetStdHandle};
-    unsafe {
-        let handle = GetStdHandle(fd);
-        let mut out = 0;
-        GetConsoleMode(handle, &mut out) != 0
-    }
+    atty::is(atty::Stream::Stdout)
 }

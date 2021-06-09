@@ -27,6 +27,7 @@ no-self-update = []
 # Sorted by alphabetic order
 [dependencies]
 anyhow = "1.0.31"
+atty = "0.2"
 cfg-if = "1.0"
 chrono = "0.4"
 clap = "2"
@@ -57,8 +58,7 @@ sharded-slab = "0.1.1"
 strsim = "0.10"
 tar = "0.4.26"
 tempfile = "3.1"
-# FIXME(issue #1818, #1826, and friends)
-term = "=0.5.1"
+termcolor = "1.1"
 thiserror = "1.0"
 threadpool = "1"
 toml = "0.5"
