@@ -61,7 +61,6 @@ use super::common::{self, ignorable_error, Confirm};
 use super::errors::*;
 use super::markdown::md;
 use super::term2;
-use crate::cli::term2::Terminal;
 use crate::dist::dist::{self, Profile, TargetTriple};
 use crate::process;
 use crate::toolchain::{DistributableToolchain, Toolchain};
@@ -370,22 +369,22 @@ pub(crate) fn install(
         if no_prompt {
             warn!("installing msvc toolchain without its prerequisites");
         } else if !quiet && plan == VsInstallPlan::Automatic {
-            md(&mut term, MSVC_AUTO_INSTALL_MESSAGE);
+            md(term.as_mut(), MSVC_AUTO_INSTALL_MESSAGE);
             if common::confirm(
                 "\nAutomatically download and install Visual Studio 2022 Community edition? (Y/n)",
                 true,
             )? {
                 try_install_msvc()?;
             } else {
-                md(&mut term, MSVC_MANUAL_INSTALL_MESSAGE);
+                md(term.as_mut(), MSVC_MANUAL_INSTALL_MESSAGE);
                 if !common::confirm("\nContinue? (y/N)", false)? {
                     info!("aborting installation");
                     return Ok(utils::ExitCode(0));
                 }
             }
         } else {
-            md(&mut term, MSVC_MESSAGE);
-            md(&mut term, MSVC_MANUAL_INSTALL_MESSAGE);
+            md(term.as_mut(), MSVC_MESSAGE);
+            md(term.as_mut(), MSVC_MANUAL_INSTALL_MESSAGE);
             if !common::confirm("\nContinue? (y/N)", false)? {
                 info!("aborting installation");
                 return Ok(utils::ExitCode(0));
@@ -396,10 +395,10 @@ pub(crate) fn install(
     if !no_prompt {
         let msg = pre_install_msg(opts.no_modify_path)?;
 
-        md(&mut term, msg);
+        md(&mut *term, msg);
 
         loop {
-            md(&mut term, current_install_opts(&opts));
+            md(&mut *term, current_install_opts(&opts));
             match common::confirm_advanced()? {
                 Confirm::No => {
                     info!("aborting installation");
@@ -476,7 +475,7 @@ pub(crate) fn install(
     } else {
         format!(post_install_msg_unix!(), cargo_home = cargo_home)
     };
-    md(&mut term, msg);
+    md(&mut *term, msg);
 
     #[cfg(windows)]
     if !no_prompt {
@@ -910,7 +909,7 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
     if !no_prompt {
         writeln!(process().stdout())?;
         let msg = format!(pre_uninstall_msg!(), cargo_home = canonical_cargo_home()?);
-        md(&mut term2::stdout(), msg);
+        md(&mut *term2::stdout(), msg);
         if !common::confirm("\nContinue? (y/N)", false)? {
             info!("aborting uninstallation");
             return Ok(utils::ExitCode(0));

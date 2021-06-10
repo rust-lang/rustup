@@ -98,7 +98,7 @@ pub fn main() -> Result<utils::ExitCode> {
             if e.kind == clap::ErrorKind::HelpDisplayed
                 || e.kind == clap::ErrorKind::VersionDisplayed =>
         {
-            writeln!(process().stdout().lock(), "{}", e.message)?;
+            writeln!(process().stdout(), "{}", e.message)?;
             return Ok(utils::ExitCode(0));
         }
         Err(e) => return Err(e.into()),

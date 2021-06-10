@@ -1,6 +1,5 @@
 use std::fmt;
 use std::io::Write;
-use term2::Terminal;
 
 use super::term2;
 use crate::process;

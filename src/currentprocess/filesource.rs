@@ -1,6 +1,7 @@
 use std::io::{self, BufRead, Cursor, Read, Result, Write};
 use std::sync::{Arc, Mutex, MutexGuard};
 
+use crate::cli::term2::{AutomationFriendlyTerminal, Terminal};
 use crate::utils::tty;
 
 /// Stand-in for std::io::Stdin
@@ -95,14 +96,14 @@ pub trait Writer: Write + Isatty + Send {
 
 /// Stand-in for std::io::stdout
 pub trait StdoutSource {
-    fn stdout(&self) -> Box<dyn Writer>;
+    fn stdout(&self) -> Box<dyn Terminal>;
 }
 
 // -------------- stderr -------------------------------
 
 /// Stand-in for std::io::stderr
 pub trait StderrSource {
-    fn stderr(&self) -> Box<dyn Writer>;
+    fn stderr(&self) -> Box<dyn Terminal>;
 }
 
 // ----------------- OS support for writers -----------------
@@ -122,8 +123,8 @@ impl Isatty for io::Stdout {
 }
 
 impl StdoutSource for super::OSProcess {
-    fn stdout(&self) -> Box<dyn Writer> {
-        Box::new(io::stdout())
+    fn stdout(&self) -> Box<dyn Terminal> {
+        Box::new(AutomationFriendlyTerminal::stdout())
     }
 }
 
@@ -142,8 +143,8 @@ impl Isatty for io::Stderr {
 }
 
 impl StderrSource for super::OSProcess {
-    fn stderr(&self) -> Box<dyn Writer> {
-        Box::new(io::stderr())
+    fn stderr(&self) -> Box<dyn Terminal> {
+        Box::new(AutomationFriendlyTerminal::stderr())
     }
 }
 
@@ -169,17 +170,31 @@ pub(crate) type TestWriterInner = Arc<Mutex<Vec<u8>>>;
 
 struct TestWriter(TestWriterInner);
 
-impl Writer for TestWriter {
-    fn lock(&self) -> Box<dyn WriterLock + '_> {
-        Box::new(TestWriterLock {
-            inner: self.0.lock().unwrap_or_else(|e| e.into_inner()),
-        })
+impl Terminal for TestWriter {
+    fn fg(&mut self, _: crate::cli::term2::Color) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn bg(&mut self, _: crate::cli::term2::Color) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn attr(&mut self, _: crate::cli::term2::Attr) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn reset(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn carriage_return(&mut self) -> io::Result<()> {
+        self.0.lock().unwrap().write(b"\r").map(|_| ())
     }
 }
 
 impl Write for TestWriter {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        self.lock().write(buf)
+        self.0.lock().unwrap().write(buf)
     }
 
     fn flush(&mut self) -> Result<()> {
@@ -194,13 +209,13 @@ impl Isatty for TestWriter {
 }
 
 impl StdoutSource for super::TestProcess {
-    fn stdout(&self) -> Box<dyn Writer> {
+    fn stdout(&self) -> Box<dyn Terminal> {
         Box::new(TestWriter(self.stdout.clone()))
     }
 }
 
 impl StderrSource for super::TestProcess {
-    fn stderr(&self) -> Box<dyn Writer> {
+    fn stderr(&self) -> Box<dyn Terminal> {
         Box::new(TestWriter(self.stderr.clone()))
     }
 }

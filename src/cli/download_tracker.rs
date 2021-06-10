@@ -3,8 +3,6 @@ use std::fmt;
 use std::io::Write;
 use std::time::{Duration, Instant};
 
-use term2::Terminal;
-
 use super::term2;
 use crate::dist::Notification as In;
 use crate::utils::tty;
@@ -32,10 +30,7 @@ pub(crate) struct DownloadTracker {
     /// Time stamp of the start of the download
     start_sec: Option<Instant>,
     /// The terminal we write the information to.
-    /// XXX: Could be a term trait, but with #1818 on the horizon that
-    ///      is a pointless change to make - better to let that transition
-    ///      happen and take stock after that.
-    term: term2::StdoutTerminal,
+    term: Box<dyn term2::Terminal>,
     /// Whether we displayed progress for the download or not.
     ///
     /// If the download is quick enough, we don't have time to
