@@ -39,7 +39,7 @@ home = {git = "https://github.com/rbtcollins/home", rev = "a243ee2fbee6022c57d56
 lazy_static = "1"
 libc = "0.2"
 num_cpus = "1.13"
-opener = "0.4.0"
+opener = "0.5.0"
 # Used by `curl` or `reqwest` backend although it isn't imported
 # by our rustup.
 openssl = {version = "0.10", optional = true}
