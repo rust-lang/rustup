@@ -20,6 +20,11 @@ gen_workflow linux-builds pr
 gen_workflow linux-builds master
 gen_workflow linux-builds stable
 
+# freebsd
+gen_workflow freebsd-builds pr
+gen_workflow freebsd-builds master
+gen_workflow freebsd-builds stable
+
 # The clippy checks only have a single target and thus single flow
 gen_workflow centos-fmt-clippy all
 
