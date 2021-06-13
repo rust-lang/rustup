@@ -113,10 +113,12 @@ export PATH="$HOME/apple/bin"
     fn install_errors_when_rc_cannot_be_updated() {
         clitools::setup(Scenario::Empty, &|config| {
             let rc = config.homedir.join(".profile");
-            fs::File::create(&rc).unwrap();
+            println!("Setting {} to be read-only", rc.display());
+            drop(fs::File::create(&rc).unwrap());
             let mut perms = fs::metadata(&rc).unwrap().permissions();
             perms.set_readonly(true);
             fs::set_permissions(&rc, perms).unwrap();
+            assert!(fs::metadata(&rc).unwrap().permissions().readonly());
 
             expect_err(config, &INIT_NONE, "amend shell");
         });
