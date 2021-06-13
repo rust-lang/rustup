@@ -416,7 +416,7 @@ pub fn read_dir(name: &'static str, path: &Path) -> Result<fs::ReadDir> {
 }
 
 pub fn open_browser(path: &Path) -> Result<()> {
-    opener::open(path).context("couldn't open browser")
+    opener::open_browser(path).context("couldn't open browser")
 }
 
 pub fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
