@@ -91,9 +91,14 @@ profile = "minimal"
 The `[toolchain]` section is mandatory, and at least one property must be
 specified. `channel` and `path` are mutually exclusive.
 
-For backwards compatibility, `rust-toolchain` files also support a legacy
+For backwards compatibility, the `rust-toolchain` file also supports a legacy
 format that only contains a toolchain name without any TOML encoding, e.g.
-just `nightly-2021-01-21`. The file has to be encoded in US-ASCII this case
+
+```
+nightly-2021-01-21
+```
+
+The file has to be encoded in US-ASCII this case
 (if you are on Windows, check the encoding and that it does not start with a
 BOM). The legacy format is not available in `rust-toolchain.toml` files.
 
