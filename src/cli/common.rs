@@ -4,7 +4,7 @@ use std::fs;
 use std::io::{BufRead, ErrorKind, Write};
 use std::path::Path;
 use std::sync::Arc;
-use std::{cmp, env, iter};
+use std::{cmp, env};
 
 use anyhow::{anyhow, Context, Result};
 use git_testament::{git_testament, render_testament};
@@ -229,7 +229,7 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
 
     for (name, banner, width, color, version, previous_version) in data {
         let padding = max_width - width;
-        let padding: String = iter::repeat(' ').take(padding).collect();
+        let padding: String = " ".repeat(padding);
         let _ = write!(t, "  {}", padding);
         let _ = t.attr(term2::Attr::Bold);
         if let Some(color) = color {
@@ -356,7 +356,7 @@ where
 
 pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
+    let distributable = DistributableToolchain::new_for_components(toolchain)?;
     let components = distributable.list_components()?;
     for component in components {
         if component.component.short_name_in_manifest() == "rust-std" {
@@ -380,7 +380,7 @@ pub fn list_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
 
 pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
+    let distributable = DistributableToolchain::new_for_components(toolchain)?;
     let components = distributable.list_components()?;
     for component in components {
         if component.component.short_name_in_manifest() == "rust-std" {
@@ -399,7 +399,7 @@ pub fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCo
 
 pub fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
+    let distributable = DistributableToolchain::new_for_components(toolchain)?;
     let components = distributable.list_components()?;
     for component in components {
         let name = component.name;
@@ -417,7 +417,7 @@ pub fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
 
 pub fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new_for_components(&toolchain)?;
+    let distributable = DistributableToolchain::new_for_components(toolchain)?;
     let components = distributable.list_components()?;
     for component in components {
         if component.installed {

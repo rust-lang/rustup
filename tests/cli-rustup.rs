@@ -571,7 +571,7 @@ fn show_toolchain_none() {
         expect_ok_ex(
             config,
             &["rustup", "show"],
-            &for_host_and_home!(
+            for_host_and_home!(
                 config,
                 r"Default host: {0}
 rustup home:  {1}
@@ -1005,7 +1005,7 @@ fn override_set_unset_with_path() {
         expect_ok_ex(
             config,
             &["rustup", "override", "list"],
-            &"no overrides\n",
+            "no overrides\n",
             r"",
         );
     });

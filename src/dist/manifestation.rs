@@ -225,7 +225,7 @@ impl Manifestation {
                 component.target.as_ref(),
             ));
 
-            tx = self.uninstall_component(&component, new_manifest, tx, &notify_handler)?;
+            tx = self.uninstall_component(component, new_manifest, tx, &notify_handler)?;
         }
 
         // Install components
@@ -269,11 +269,11 @@ impl Manifestation {
 
             // If the package doesn't contain the component that the
             // manifest says it does then somebody must be playing a joke on us.
-            if !package.contains(&pkg_name, Some(&short_pkg_name)) {
+            if !package.contains(&pkg_name, Some(short_pkg_name)) {
                 return Err(RustupError::CorruptComponent(short_name).into());
             }
 
-            tx = package.install(&self.installation, &pkg_name, Some(&short_pkg_name), tx)?;
+            tx = package.install(&self.installation, &pkg_name, Some(short_pkg_name), tx)?;
         }
 
         // Install new distribution manifest
@@ -342,7 +342,7 @@ impl Manifestation {
         let short_name = component.short_name_in_manifest();
         if let Some(c) = self.installation.find(&name)? {
             tx = c.uninstall(tx)?;
-        } else if let Some(c) = self.installation.find(&short_name)? {
+        } else if let Some(c) = self.installation.find(short_name)? {
             tx = c.uninstall(tx)?;
         } else {
             notify_handler(Notification::MissingInstalledComponent(
@@ -512,7 +512,7 @@ impl Update {
         let rust_package = new_manifest.get_package("rust")?;
         let rust_target_package = rust_package.get_target(Some(&manifestation.target_triple))?;
 
-        changes.check_invariants(&config)?;
+        changes.check_invariants(config)?;
 
         // The list of components already installed, empty if a new install
         let mut starting_list = config
@@ -542,7 +542,7 @@ impl Update {
             &starting_list,
             rust_target_package,
             new_manifest,
-            &changes,
+            changes,
         );
 
         // If this is a full upgrade then the list of components to
@@ -567,7 +567,7 @@ impl Update {
             for component in &result.final_component_list {
                 if !starting_list.contains(component) {
                     result.components_to_install.push(component.clone());
-                } else if changes.explicit_add_components.contains(&component) {
+                } else if changes.explicit_add_components.contains(component) {
                     notify_handler(Notification::ComponentAlreadyInstalled(
                         &component.description(new_manifest),
                     ));
@@ -601,8 +601,7 @@ impl Update {
             if !removed {
                 // If there is a rename in the (new) manifest, then we uninstall the component with the
                 // old name and install a component with the new name
-                if let Some(renamed_component) = new_manifest.rename_component(&existing_component)
-                {
+                if let Some(renamed_component) = new_manifest.rename_component(existing_component) {
                     let is_already_included =
                         self.final_component_list.contains(&renamed_component);
                     if !is_already_included {
@@ -651,7 +650,7 @@ impl Update {
             .filter(|c| {
                 use crate::dist::manifest::*;
                 let pkg: Option<&Package> =
-                    new_manifest.get_package(&c.short_name_in_manifest()).ok();
+                    new_manifest.get_package(c.short_name_in_manifest()).ok();
                 let target_pkg: Option<&TargetedPackage> =
                     pkg.and_then(|p| p.get_target(c.target.as_ref()).ok());
                 target_pkg.map(TargetedPackage::available) != Some(true)
@@ -676,13 +675,13 @@ impl Update {
         let components: Vec<_> = self
             .components_to_install
             .drain(..)
-            .filter(|c| !to_drop.contains(&c))
+            .filter(|c| !to_drop.contains(c))
             .collect();
         self.components_to_install.extend(components);
         let final_components: Vec<_> = self
             .final_component_list
             .drain(..)
-            .filter(|c| !to_drop.contains(&c))
+            .filter(|c| !to_drop.contains(c))
             .collect();
         self.final_component_list = final_components;
     }
@@ -694,7 +693,7 @@ impl Update {
     ) -> Result<Vec<(Component, CompressionKind, String, String)>> {
         let mut components_urls_and_hashes = Vec::new();
         for component in &self.components_to_install {
-            let package = new_manifest.get_package(&component.short_name_in_manifest())?;
+            let package = new_manifest.get_package(component.short_name_in_manifest())?;
             let target_package = package.get_target(component.target.as_ref())?;
 
             if target_package.bins.is_empty() {

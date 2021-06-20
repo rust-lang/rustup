@@ -58,7 +58,7 @@ pub fn do_remove_from_path() -> Result<()> {
 
         // Check more files for cleanup than normally are updated.
         for rc in sh.rcfiles().iter().filter(|rc| rc.is_file()) {
-            let file = utils::read_file("rcfile", &rc)?;
+            let file = utils::read_file("rcfile", rc)?;
             let file_bytes = file.into_bytes();
             // FIXME: This is whitespace sensitive where it should not be.
             if let Some(idx) = file_bytes
@@ -69,7 +69,7 @@ pub fn do_remove_from_path() -> Result<()> {
                 let mut new_bytes = file_bytes[..idx].to_vec();
                 new_bytes.extend(&file_bytes[idx + source_bytes.len()..]);
                 let new_file = String::from_utf8(new_bytes).unwrap();
-                utils::write_file("rcfile", &rc, &new_file)?;
+                utils::write_file("rcfile", rc, &new_file)?;
             }
         }
     }
@@ -91,7 +91,7 @@ pub fn do_add_to_path() -> Result<()> {
                 _ => &source_cmd,
             };
 
-            utils::append_file("rcfile", &rc, &cmd_to_write)
+            utils::append_file("rcfile", &rc, cmd_to_write)
                 .with_context(|| format!("could not amend shell profile: '{}'", rc.display()))?;
         }
     }

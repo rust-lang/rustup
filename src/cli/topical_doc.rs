@@ -63,7 +63,7 @@ pub fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
     }
 
     let doc = DocData {
-        topic: &topic,
+        topic,
         subtopic,
         root,
     };
@@ -135,7 +135,7 @@ pub fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
             Some(f) => f,
             None => {
                 let parent = work_path.parent().unwrap();
-                search_path(&doc, &parent, &keywords_top)?
+                search_path(&doc, parent, &keywords_top)?
             }
         },
         _ => match index_html(&doc, &work_path) {
@@ -143,7 +143,7 @@ pub fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
             None => {
                 // len > 2, guaranteed to have a parent, safe to unwrap
                 let parent = work_path.parent().unwrap();
-                search_path(&doc, &parent, &keywords_mod)?
+                search_path(&doc, parent, &keywords_mod)?
             }
         },
     };

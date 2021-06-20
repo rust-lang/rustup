@@ -63,7 +63,7 @@ fn socks_proxy_request() {
         }
     });
 
-    let env_proxy = |url: &Url| for_url(&url).to_url();
+    let env_proxy = |url: &Url| for_url(url).to_url();
     let url = Url::parse("http://192.168.0.1/").unwrap();
 
     let client = Client::builder()

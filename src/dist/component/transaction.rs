@@ -99,7 +99,7 @@ impl<'a> Transaction<'a> {
             &self.prefix,
             component,
             relpath,
-            &self.temp_cfg,
+            self.temp_cfg,
             self.notify_handler(),
         )?;
         self.change(item);
@@ -114,7 +114,7 @@ impl<'a> Transaction<'a> {
             &self.prefix,
             component,
             relpath,
-            &self.temp_cfg,
+            self.temp_cfg,
             self.notify_handler(),
         )?;
         self.change(item);
@@ -142,7 +142,7 @@ impl<'a> Transaction<'a> {
     /// This is used for arbitrarily manipulating a file.
     pub fn modify_file(&mut self, relpath: PathBuf) -> Result<()> {
         assert!(relpath.is_relative());
-        let item = ChangedItem::modify_file(&self.prefix, relpath, &self.temp_cfg)?;
+        let item = ChangedItem::modify_file(&self.prefix, relpath, self.temp_cfg)?;
         self.change(item);
         Ok(())
     }
@@ -217,7 +217,7 @@ impl<'a> ChangedItem<'a> {
             AddedFile(path) => utils::remove_file("component", &prefix.abs_path(path))?,
             AddedDir(path) => utils::remove_dir("component", &prefix.abs_path(path), notify)?,
             RemovedFile(path, tmp) | ModifiedFile(path, Some(tmp)) => {
-                utils::rename_file("component", &tmp, &prefix.abs_path(path), notify)?
+                utils::rename_file("component", tmp, &prefix.abs_path(path), notify)?
             }
             RemovedDir(path, tmp) => {
                 utils::rename_dir("component", &tmp.join("bk"), &prefix.abs_path(path), notify)?

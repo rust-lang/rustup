@@ -108,7 +108,7 @@ impl Deref for FileBuffer {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            FileBuffer::Immediate(ref vec) => &vec,
+            FileBuffer::Immediate(ref vec) => vec,
             FileBuffer::Threaded(PoolReference::Owned(owned, _)) => owned,
             FileBuffer::Threaded(PoolReference::Mut(mutable, _)) => mutable,
         }

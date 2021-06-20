@@ -231,7 +231,7 @@ fn mock_dist_server_smoke_test() {
     let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
     let path = tempdir.path();
 
-    create_mock_dist_server(&path, None).write(&[ManifestVersion::V2], false, false);
+    create_mock_dist_server(path, None).write(&[ManifestVersion::V2], false, false);
 
     assert!(utils::path_exists(path.join(
         "dist/2016-02-01/rustc-nightly-x86_64-apple-darwin.tar.gz"
@@ -896,7 +896,7 @@ fn removed_component() {
                 prefix,
                 &adds,
                 &[],
-                &download_cfg,
+                download_cfg,
                 temp_cfg,
                 false,
             )
@@ -911,7 +911,7 @@ fn removed_component() {
                 prefix,
                 &[],
                 &[],
-                &download_cfg,
+                download_cfg,
                 temp_cfg,
                 false,
             )
@@ -969,7 +969,7 @@ fn unavailable_components_is_target() {
                 prefix,
                 &adds,
                 &[],
-                &download_cfg,
+                download_cfg,
                 temp_cfg,
                 false,
             )
@@ -990,7 +990,7 @@ fn unavailable_components_is_target() {
                 prefix,
                 &[],
                 &[],
-                &download_cfg,
+                download_cfg,
                 temp_cfg,
                 false,
             )
@@ -1053,7 +1053,7 @@ fn unavailable_components_with_same_target() {
                 prefix,
                 &[],
                 &[],
-                &download_cfg,
+                download_cfg,
                 temp_cfg,
                 false,
             )
@@ -1069,7 +1069,7 @@ fn unavailable_components_with_same_target() {
                 prefix,
                 &[],
                 &[],
-                &download_cfg,
+                download_cfg,
                 temp_cfg,
                 false,
             )
@@ -2112,7 +2112,7 @@ fn reuse_downloaded_file() {
         .unwrap_err();
         assert!(!reuse_notification_fired.get());
 
-        allow_installation(&prefix);
+        allow_installation(prefix);
 
         update_from_dist(
             url,
@@ -2147,7 +2147,7 @@ fn checks_files_hashes_before_reuse() {
         let prev_download = download_cfg.download_dir.join(target_hash);
         utils::ensure_dir_exists(
             "download dir",
-            &download_cfg.download_dir,
+            download_cfg.download_dir,
             &|_: Notification<'_>| {},
         )
         .unwrap();
@@ -2204,7 +2204,7 @@ fn handle_corrupt_partial_downloads() {
 
         utils::ensure_dir_exists(
             "download dir",
-            &download_cfg.download_dir,
+            download_cfg.download_dir,
             &|_: Notification<'_>| {},
         )
         .unwrap();

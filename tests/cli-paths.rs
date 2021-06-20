@@ -79,7 +79,7 @@ export PATH="$HOME/apple/bin"
                 .map(|rc| config.homedir.join(rc))
                 .collect();
             for rc in &rcs {
-                raw::write_file(&rc, FAKE_RC).unwrap();
+                raw::write_file(rc, FAKE_RC).unwrap();
             }
 
             expect_ok(config, &INIT_NONE);
@@ -185,8 +185,8 @@ export PATH="$HOME/apple/bin"
 
             // The order that the two files are processed isn't known, so test both orders
             for [path1, path2] in &[[&bash_profile, &bashrc], [&bashrc, &bash_profile]] {
-                raw::write_file(&path1, &expected).unwrap();
-                raw::write_file(&path2, FAKE_RC).unwrap();
+                raw::write_file(path1, &expected).unwrap();
+                raw::write_file(path2, FAKE_RC).unwrap();
 
                 expect_ok(config, &INIT_NONE);
 
@@ -213,7 +213,7 @@ export PATH="$HOME/apple/bin"
             .collect();
 
             for rc in &rcs {
-                raw::write_file(&rc, FAKE_RC).unwrap();
+                raw::write_file(rc, FAKE_RC).unwrap();
             }
 
             expect_ok(config, &INIT_NONE);
@@ -244,7 +244,7 @@ export PATH="$HOME/apple/bin"
             let old_rc =
                 FAKE_RC.to_owned() + DEFAULT_EXPORT + &non_posix_source("$HOME/.cargo", POSIX_SH);
             for rc in rcs.iter().chain(zprofiles.iter()) {
-                raw::write_file(&rc, &old_rc).unwrap();
+                raw::write_file(rc, &old_rc).unwrap();
             }
 
             let mut cmd = clitools::cmd(config, "rustup-init", &INIT_NONE[1..]);
@@ -287,7 +287,7 @@ export PATH="$HOME/apple/bin"
             let old_rc =
                 FAKE_RC.to_owned() + DEFAULT_EXPORT + &non_posix_source("$HOME/.cargo", POSIX_SH);
             for rc in &rcs {
-                raw::write_file(&rc, &old_rc).unwrap();
+                raw::write_file(rc, &old_rc).unwrap();
             }
 
             let mut cmd = clitools::cmd(config, "rustup", &["self", "uninstall", "-y"]);
