@@ -12,7 +12,7 @@ use crate::utils::Notification;
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because
 // sudo is configured not to change $HOME. Don't let that bogosity happen.
-pub fn do_anti_sudo_check(no_prompt: bool) -> Result<utils::ExitCode> {
+pub(crate) fn do_anti_sudo_check(no_prompt: bool) -> Result<utils::ExitCode> {
     pub fn home_mismatch() -> (bool, PathBuf, PathBuf) {
         let fallback = || (false, PathBuf::new(), PathBuf::new());
         // test runner should set this, nothing else
@@ -126,7 +126,7 @@ pub fn do_remove_from_programs() -> Result<()> {
 
 /// Tell the upgrader to replace the rustup bins, then delete
 /// itself.
-pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
+pub(crate) fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
     let status = Command::new(setup_path)
         .arg("--self-replace")
         .status()
@@ -142,7 +142,7 @@ pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
 /// This function is as the final step of a self-upgrade. It replaces
 /// `CARGO_HOME`/bin/rustup with the running exe, and updates the the
 /// links to it.
-pub fn self_replace() -> Result<utils::ExitCode> {
+pub(crate) fn self_replace() -> Result<utils::ExitCode> {
     install_bins()?;
 
     Ok(utils::ExitCode(0))

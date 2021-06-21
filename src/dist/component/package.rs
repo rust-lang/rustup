@@ -139,7 +139,7 @@ impl Package for DirectoryPackage {
 pub struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
 
 impl<'a> TarPackage<'a> {
-    pub fn new<R: Read>(
+    pub(crate) fn new<R: Read>(
         stream: R,
         temp_cfg: &'a temp::Cfg,
         notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
@@ -551,7 +551,7 @@ impl<'a> Package for TarPackage<'a> {
 pub struct TarGzPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarGzPackage<'a> {
-    pub fn new<R: Read>(
+    pub(crate) fn new<R: Read>(
         stream: R,
         temp_cfg: &'a temp::Cfg,
         notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
@@ -587,7 +587,7 @@ impl<'a> Package for TarGzPackage<'a> {
 pub struct TarXzPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarXzPackage<'a> {
-    pub fn new<R: Read>(
+    pub(crate) fn new<R: Read>(
         stream: R,
         temp_cfg: &'a temp::Cfg,
         notify_handler: Option<&'a dyn Fn(Notification<'_>)>,
@@ -623,7 +623,7 @@ impl<'a> Package for TarXzPackage<'a> {
 pub struct TarZStdPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarZStdPackage<'a> {
-    pub fn new<R: Read>(
+    pub(crate) fn new<R: Read>(
         stream: R,
         temp_cfg: &'a temp::Cfg,
         notify_handler: Option<&'a dyn Fn(Notification<'_>)>,

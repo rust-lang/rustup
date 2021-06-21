@@ -73,7 +73,7 @@ impl DownloadTracker {
         self
     }
 
-    pub fn handle_notification(&mut self, n: &Notification<'_>) -> bool {
+    pub(crate) fn handle_notification(&mut self, n: &Notification<'_>) -> bool {
         match *n {
             Notification::Install(In::Utils(Un::DownloadContentLengthReceived(content_len))) => {
                 self.content_length_received(content_len);
@@ -219,7 +219,7 @@ impl DownloadTracker {
         }
     }
 
-    pub fn push_unit(&mut self, new_unit: Unit) {
+    pub(crate) fn push_unit(&mut self, new_unit: Unit) {
         self.units.push(new_unit);
     }
 

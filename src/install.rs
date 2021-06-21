@@ -86,7 +86,11 @@ impl<'a> InstallMethod<'a> {
         }
     }
 
-    pub fn run(self, path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<bool> {
+    pub(crate) fn run(
+        self,
+        path: &Path,
+        notify_handler: &dyn Fn(Notification<'_>),
+    ) -> Result<bool> {
         if path.exists() {
             // Don't uninstall first for Dist method
             match self {
@@ -147,6 +151,6 @@ impl<'a> InstallMethod<'a> {
     }
 }
 
-pub fn uninstall(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<()> {
+pub(crate) fn uninstall(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<()> {
     utils::remove_dir("install", path, notify_handler)
 }

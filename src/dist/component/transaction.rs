@@ -168,7 +168,7 @@ impl<'a> Transaction<'a> {
     pub fn temp(&self) -> &'a temp::Cfg {
         self.temp_cfg
     }
-    pub fn notify_handler(&self) -> &'a dyn Fn(Notification<'_>) {
+    pub(crate) fn notify_handler(&self) -> &'a dyn Fn(Notification<'_>) {
         self.notify_handler
     }
 }

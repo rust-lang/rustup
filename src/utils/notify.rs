@@ -1,5 +1,5 @@
 #[derive(Debug)]
-pub enum NotificationLevel {
+pub(crate) enum NotificationLevel {
     Verbose,
     Info,
     Warn,

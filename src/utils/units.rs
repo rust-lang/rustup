@@ -6,19 +6,19 @@ pub enum Unit {
     IO,
 }
 
-pub enum UnitMode {
+pub(crate) enum UnitMode {
     Norm,
     Rate,
 }
 
 /// Human readable size (some units)
-pub enum Size {
+pub(crate) enum Size {
     B(usize, UnitMode),
     IO(usize, UnitMode),
 }
 
 impl Size {
-    pub fn new(size: usize, unit: Unit, unitmode: UnitMode) -> Self {
+    pub(crate) fn new(size: usize, unit: Unit, unitmode: UnitMode) -> Self {
         match unit {
             Unit::B => Self::B(size, unitmode),
             Unit::IO => Self::IO(size, unitmode),

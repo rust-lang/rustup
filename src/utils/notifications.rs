@@ -43,7 +43,7 @@ pub enum Notification<'a> {
 }
 
 impl<'a> Notification<'a> {
-    pub fn level(&self) -> NotificationLevel {
+    pub(crate) fn level(&self) -> NotificationLevel {
         use self::Notification::*;
         match self {
             SetDefaultBufferSize(_) => NotificationLevel::Debug,
