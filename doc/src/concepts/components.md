@@ -30,7 +30,7 @@ Most components have a target-triple suffix, such as
 The set of available components may vary with different releases and
 toolchains. The following is an overview of the different components:
 
-* `rustc` — The Rust compiler.
+* `rustc` — The Rust compiler and [Rustdoc].
 * `cargo` — [Cargo] is a package manager and build tool.
 * `rustfmt` — [Rustfmt] is a tool for automatically formatting code.
 * `rust-std` — This is the Rust [standard library]. There is a separate
@@ -76,6 +76,7 @@ details.
 [build-std]: https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std
 [miri]: https://github.com/rust-lang/miri/
 [RLS]: https://github.com/rust-lang/rls
+[rustdoc]: https://doc.rust-lang.org/rustdoc/
 [cargo]: https://doc.rust-lang.org/cargo/
 [clippy]: https://github.com/rust-lang/rust-clippy
 [LLVM]: https://llvm.org/
