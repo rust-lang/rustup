@@ -142,7 +142,7 @@ pub fn download_file(
     hasher: Option<&mut Sha256>,
     notify_handler: &dyn Fn(Notification<'_>),
 ) -> Result<()> {
-    download_file_with_resume(&url, &path, hasher, false, &notify_handler)
+    download_file_with_resume(url, path, hasher, false, &notify_handler)
 }
 
 pub(crate) fn download_file_with_resume(
@@ -344,7 +344,7 @@ pub(crate) fn copy_file(src: &Path, dest: &Path) -> Result<()> {
         path: PathBuf::from(src),
     })?;
     if metadata.file_type().is_symlink() {
-        symlink_file(&src, dest).map(|_| ())
+        symlink_file(src, dest).map(|_| ())
     } else {
         fs::copy(src, dest)
             .with_context(|| {
@@ -613,7 +613,7 @@ where
             Ok(()) => OperationResult::Ok(()),
             Err(e) => match e.kind() {
                 io::ErrorKind::PermissionDenied => {
-                    notify_handler(Notification::RenameInUse(&src, &dest).into());
+                    notify_handler(Notification::RenameInUse(src, dest).into());
                     OperationResult::Retry(e)
                 }
                 #[cfg(target_os = "linux")]

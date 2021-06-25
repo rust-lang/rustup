@@ -540,7 +540,7 @@ fn install_stops_if_rustc_exists() {
             &["--no-modify-path"],
             &[
                 ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
-                ("PATH", &temp_dir_path),
+                ("PATH", temp_dir_path),
             ],
         );
         assert!(!out.ok);
@@ -571,7 +571,7 @@ fn install_stops_if_cargo_exists() {
             &["--no-modify-path"],
             &[
                 ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
-                ("PATH", &temp_dir_path),
+                ("PATH", temp_dir_path),
             ],
         );
         assert!(!out.ok);
@@ -602,7 +602,7 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
             &["-y", "--no-modify-path"],
             &[
                 ("RUSTUP_INIT_SKIP_PATH_CHECK", "no"),
-                ("PATH", &temp_dir_path),
+                ("PATH", temp_dir_path),
             ],
         );
         assert!(out.ok);

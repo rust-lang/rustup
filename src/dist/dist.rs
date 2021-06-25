@@ -87,7 +87,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
 
 #[derive(Debug, ThisError)]
 enum DistError {
-    #[error("{}", components_missing_msg(&.0, &.1, &.2))]
+    #[error("{}", components_missing_msg(.0, .1, .2))]
     ToolchainComponentsMissing(Vec<Component>, ManifestV2, String),
     #[error("no release found for '{0}'")]
     MissingReleaseForToolchain(String),
@@ -491,7 +491,7 @@ impl ToolchainDesc {
 
 // A little convenience for just parsing a channel name or archived channel name
 pub fn validate_channel_name(name: &str) -> Result<()> {
-    let toolchain = PartialToolchainDesc::from_str(&name)?;
+    let toolchain = PartialToolchainDesc::from_str(name)?;
     if toolchain.has_triple() {
         Err(anyhow!(format!("target triple in channel name '{}'", name)))
     } else {
@@ -949,9 +949,9 @@ fn try_update_from_dist_<'a>(
     let result = manifestation.update_v1(
         &manifest,
         update_hash,
-        &download.temp_cfg,
+        download.temp_cfg,
         &download.notify_handler,
-        &download.pgp_keys,
+        download.pgp_keys,
     );
     // inspect, determine what context to add, then process afterwards.
     let mut download_not_exists = false;

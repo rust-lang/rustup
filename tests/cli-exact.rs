@@ -685,7 +685,7 @@ fn install_unreleased_component() {
         expect_ok_ex(
             config,
             &["rustup", "update", "nightly"],
-            &for_host!(
+            for_host!(
                 r"
   nightly-{} unchanged - 1.37.0 (hash-nightly-1)
 
@@ -707,7 +707,7 @@ info: syncing channel updates for 'nightly-2019-09-12-{0}'
         expect_ok_ex(
             config,
             &["rustup", "update", "nightly"],
-            &for_host!(
+            for_host!(
                 r"
   nightly-{} unchanged - 1.37.0 (hash-nightly-1)
 

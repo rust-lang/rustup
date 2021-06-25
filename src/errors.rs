@@ -76,7 +76,7 @@ pub enum RustupError {
     RemovingDirectory { name: &'static str, path: PathBuf },
     #[error("could not remove '{name}' file: '{}'", .path.display())]
     RemovingFile { name: &'static str, path: PathBuf },
-    #[error("{}", component_unavailable_msg(&.components, &.manifest, &.toolchain))]
+    #[error("{}", component_unavailable_msg(.components, .manifest, .toolchain))]
     RequestedComponentsUnavailable {
         components: Vec<Component>,
         manifest: Manifest,

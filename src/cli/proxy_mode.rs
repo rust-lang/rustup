@@ -35,7 +35,7 @@ pub fn main(arg0: &str) -> Result<ExitCode> {
 
         let cfg = set_globals(false, true)?;
         cfg.check_metadata_version()?;
-        direct_proxy(&cfg, &arg0, toolchain, &cmd_args)?
+        direct_proxy(&cfg, arg0, toolchain, &cmd_args)?
     };
 
     process::exit(c)

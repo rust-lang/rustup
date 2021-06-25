@@ -1,6 +1,5 @@
 use std::fmt;
 use std::io::Write;
-use std::iter;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
@@ -892,7 +891,7 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
     for channel in channels {
         match channel {
             (ref name, Ok(ref toolchain)) => {
-                let distributable = DistributableToolchain::new(&toolchain)?;
+                let distributable = DistributableToolchain::new(toolchain)?;
                 let current_version = distributable.show_version()?;
                 let dist_version = distributable.show_dist_version()?;
                 let _ = t.attr(term2::Attr::Bold);
@@ -1200,7 +1199,7 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
     {
         t.attr(term2::Attr::Bold)?;
         writeln!(t, "{}", s)?;
-        writeln!(t, "{}", iter::repeat("-").take(s.len()).collect::<String>())?;
+        writeln!(t, "{}", "-".repeat(s.len()))?;
         writeln!(t)?;
         t.reset()?;
         Ok(())
@@ -1465,7 +1464,7 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     for path in paths {
         if cfg
             .settings_file
-            .with_mut(|s| Ok(s.remove_override(&Path::new(&path), cfg.notify_handler.as_ref())))?
+            .with_mut(|s| Ok(s.remove_override(Path::new(&path), cfg.notify_handler.as_ref())))?
         {
             info!("override toolchain for '{}' removed", path);
         } else {
@@ -1582,7 +1581,7 @@ fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitC
 }
 
 fn set_profile(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
-    cfg.set_profile(&m.value_of("profile-name").unwrap())?;
+    cfg.set_profile(m.value_of("profile-name").unwrap())?;
     Ok(utils::ExitCode(0))
 }
 
@@ -1596,7 +1595,7 @@ fn set_auto_self_update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::Exit
             .ok_or(CLIError::NoExeName)?;
         warn!("{} is built with the no-self-update feature: setting auto-self-update will not have any effect.",arg0);
     }
-    cfg.set_auto_self_update(&m.value_of("auto-self-update-mode").unwrap())?;
+    cfg.set_auto_self_update(m.value_of("auto-self-update-mode").unwrap())?;
     Ok(utils::ExitCode(0))
 }
 

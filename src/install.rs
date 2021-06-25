@@ -48,19 +48,17 @@ impl<'a> InstallMethod<'a> {
             None
         };
         if previous_version.is_some() {
-            (toolchain.cfg().notify_handler)(RootNotification::UpdatingToolchain(
-                &toolchain.name(),
-            ));
+            (toolchain.cfg().notify_handler)(RootNotification::UpdatingToolchain(toolchain.name()));
         } else {
             (toolchain.cfg().notify_handler)(RootNotification::InstallingToolchain(
-                &toolchain.name(),
+                toolchain.name(),
             ));
         }
         (toolchain.cfg().notify_handler)(RootNotification::ToolchainDirectory(
-            &toolchain.path(),
-            &toolchain.name(),
+            toolchain.path(),
+            toolchain.name(),
         ));
-        let updated = self.run(&toolchain.path(), &|n| {
+        let updated = self.run(toolchain.path(), &|n| {
             (toolchain.cfg().notify_handler)(n.into())
         })?;
 
@@ -68,7 +66,7 @@ impl<'a> InstallMethod<'a> {
             (toolchain.cfg().notify_handler)(RootNotification::UpdateHashMatches);
         } else {
             (toolchain.cfg().notify_handler)(RootNotification::InstalledToolchain(
-                &toolchain.name(),
+                toolchain.name(),
             ));
         }
 
@@ -107,7 +105,7 @@ impl<'a> InstallMethod<'a> {
                 Ok(true)
             }
             InstallMethod::Link(src, ..) => {
-                utils::symlink_dir(src, &path, notify_handler)?;
+                utils::symlink_dir(src, path, notify_handler)?;
                 Ok(true)
             }
             InstallMethod::Dist {

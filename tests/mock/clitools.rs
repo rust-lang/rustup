@@ -204,7 +204,7 @@ fn create_local_update_server(self_dist: &Path, config: &mut Config, version: &s
     let rustup_bin = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
 
     fs::create_dir_all(dist_dir).unwrap();
-    output_release_file(&self_dist, "1", version);
+    output_release_file(self_dist, "1", version);
     fs::copy(&rustup_bin, &dist_exe).unwrap();
 
     let root_url = format!("file://{}", self_dist.display());
@@ -245,7 +245,7 @@ pub fn self_update_setup(f: &dyn Fn(&Config, &Path), version: &str) {
         // Modify the exe so it hashes different
         raw::append_file(&dist_exe, "").unwrap();
 
-        f(config, &self_dist);
+        f(config, self_dist);
     });
 }
 
@@ -1230,7 +1230,7 @@ fn build_mock_cargo_installer(version: &str, version_hash: &str) -> MockInstalle
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
             name: "cargo".to_string(),
-            files: mock_bin("cargo", version, &version_hash),
+            files: mock_bin("cargo", version, version_hash),
         }],
     }
 }

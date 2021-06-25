@@ -166,7 +166,7 @@ impl Manifest {
 
         for (k, v) in pkg_table {
             if let toml::Value::Table(t) = v {
-                result.insert(k, Package::from_toml(t, &path)?);
+                result.insert(k, Package::from_toml(t, path)?);
             }
         }
 
@@ -372,13 +372,13 @@ impl Package {
 
         if let Some(toml::Value::Table(t)) = target_table.remove("*") {
             Ok(PackageTargets::Wildcard(TargetedPackage::from_toml(
-                t, &path,
+                t, path,
             )?))
         } else {
             let mut result = HashMap::new();
             for (k, v) in target_table {
                 if let toml::Value::Table(t) = v {
-                    result.insert(TargetTriple::new(&k), TargetedPackage::from_toml(t, &path)?);
+                    result.insert(TargetTriple::new(&k), TargetedPackage::from_toml(t, path)?);
                 }
             }
             Ok(PackageTargets::Targeted(result))

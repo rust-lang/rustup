@@ -549,7 +549,7 @@ fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
         let toolchain_to_use = match &opts.default_toolchain {
             None => "stable",
             Some(s) if s == "none" => "stable",
-            Some(s) => &s,
+            Some(s) => s,
         };
         let partial_channel = dist::PartialToolchainDesc::from_str(toolchain_to_use)?;
         let resolved = partial_channel.resolve(&host_triple)?.to_string();
@@ -793,7 +793,7 @@ fn maybe_install_rust(
         let toolchain_str = toolchain.name().to_owned();
         toolchain.cfg().set_default(&toolchain_str)?;
         writeln!(process().stdout())?;
-        common::show_channel_update(&toolchain.cfg(), &toolchain_str, Ok(status))?;
+        common::show_channel_update(toolchain.cfg(), &toolchain_str, Ok(status))?;
     }
     Ok(())
 }

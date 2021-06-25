@@ -173,8 +173,8 @@ impl PgpPublicKey {
     pub fn key(&self) -> &SignedPublicKey {
         match self {
             Self::Builtin => &*BUILTIN_PGP_KEY,
-            Self::FromEnvironment(_, k) => &k,
-            Self::FromConfiguration(_, k) => &k,
+            Self::FromEnvironment(_, k) => k,
+            Self::FromConfiguration(_, k) => k,
         }
     }
 
@@ -678,7 +678,7 @@ impl Cfg {
                     if !all_toolchains.iter().any(|s| s == toolchain_name) {
                         // The given name is not resolvable as a toolchain, so
                         // instead check it's plausible for installation later
-                        dist::validate_channel_name(&toolchain_name)?;
+                        dist::validate_channel_name(toolchain_name)?;
                     }
                 }
 
@@ -992,7 +992,7 @@ impl Cfg {
             .with(|s| {
                 Ok(s.default_host_triple
                     .as_ref()
-                    .map(|s| dist::TargetTriple::new(&s)))
+                    .map(|s| dist::TargetTriple::new(s)))
             })?
             .unwrap_or_else(dist::TargetTriple::from_host_or_build))
     }

@@ -128,7 +128,7 @@ impl<'a> Toolchain<'a> {
         }
     }
     pub fn cfg(&self) -> &Cfg {
-        &self.cfg
+        self.cfg
     }
     pub fn name(&self) -> &str {
         &self.name
@@ -173,7 +173,7 @@ impl<'a> Toolchain<'a> {
         let installed = self.as_installed()?;
         for path in installed.installed_paths()? {
             match path {
-                InstalledPath::File { name, path } => utils::ensure_file_removed(&name, &path)?,
+                InstalledPath::File { name, path } => utils::ensure_file_removed(name, &path)?,
                 InstalledPath::Dir { path } => {
                     install::uninstall(path, &|n| (self.cfg.notify_handler)(n.into()))?
                 }
@@ -466,7 +466,7 @@ pub struct CustomToolchain<'a>(&'a Toolchain<'a>);
 impl<'a> CustomToolchain<'a> {
     pub fn new(toolchain: &'a Toolchain<'a>) -> Result<CustomToolchain<'a>> {
         if toolchain.is_custom() {
-            Ok(CustomToolchain(&toolchain))
+            Ok(CustomToolchain(toolchain))
         } else {
             Err(anyhow!(format!(
                 "{} is not a custom toolchain",
@@ -488,9 +488,9 @@ impl<'a> CustomToolchain<'a> {
         utils::assert_is_file(&pathbuf)?;
 
         if link {
-            InstallMethod::Link(&utils::to_absolute(src)?, self).install(&self.0)?;
+            InstallMethod::Link(&utils::to_absolute(src)?, self).install(self.0)?;
         } else {
-            InstallMethod::Copy(src, self).install(&self.0)?;
+            InstallMethod::Copy(src, self).install(self.0)?;
         }
 
         Ok(())
@@ -515,7 +515,7 @@ impl<'a> DistributableToolchain<'a> {
                 toolchain.name()
             )))
         } else {
-            Ok(DistributableToolchain(&toolchain))
+            Ok(DistributableToolchain(toolchain))
         }
     }
 
@@ -774,9 +774,9 @@ impl<'a> DistributableToolchain<'a> {
             old_date: old_date.as_deref(),
             components,
             targets,
-            distributable: &self,
+            distributable: self,
         }
-        .install(&self.0)
+        .install(self.0)
     }
 
     // Installed or not installed.
@@ -795,9 +795,9 @@ impl<'a> DistributableToolchain<'a> {
                 old_date: None,
                 components: &[],
                 targets: &[],
-                distributable: &self,
+                distributable: self,
             }
-            .install(&self.0)?)
+            .install(self.0)?)
         } else {
             (self.0.cfg.notify_handler)(Notification::UsingExistingToolchain(&self.0.name));
             Ok(UpdateStatus::Unchanged)
@@ -843,7 +843,7 @@ impl<'a> DistributableToolchain<'a> {
 
                 // Get the component so we can check if it is available
                 let component_pkg = manifest
-                    .get_package(&component.short_name_in_manifest())
+                    .get_package(component.short_name_in_manifest())
                     .unwrap_or_else(|_| {
                         panic!(
                             "manifest should contain component {}",

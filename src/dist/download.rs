@@ -43,7 +43,7 @@ impl<'a> DownloadCfg<'a> {
     pub fn download(&self, url: &Url, hash: &str) -> Result<File> {
         utils::ensure_dir_exists(
             "Download Directory",
-            &self.download_dir,
+            self.download_dir,
             &self.notify_handler,
         )?;
         let target_file = self.download_dir.join(Path::new(hash));
@@ -74,7 +74,7 @@ impl<'a> DownloadCfg<'a> {
         let mut hasher = Sha256::new();
 
         if let Err(e) = utils::download_file_with_resume(
-            &url,
+            url,
             &partial_file_path,
             Some(&mut hasher),
             true,
@@ -158,14 +158,14 @@ impl<'a> DownloadCfg<'a> {
             .download_signature(url)
             .with_context(|| format!("failed to download signature file {}", url))?;
 
-        let file_path: &Path = &file;
+        let file_path: &Path = file;
         let content = std::fs::File::open(file_path).with_context(|| RustupError::ReadingFile {
             name: "channel data",
             path: PathBuf::from(file_path),
         })?;
 
         let sig_result =
-            crate::dist::signatures::verify_signature(content, &signature, &self.pgp_keys)?;
+            crate::dist::signatures::verify_signature(content, &signature, self.pgp_keys)?;
         if let Some(keyidx) = sig_result {
             let key = &self.pgp_keys[keyidx];
             Ok(key)
@@ -229,7 +229,7 @@ impl<'a> DownloadCfg<'a> {
 
         // No signatures for tarballs for now.
         if !url_str.ends_with(".tar.gz") && !url_str.ends_with(".tar.xz") {
-            match self.check_signature(&url_str, &file) {
+            match self.check_signature(url_str, &file) {
                 Ok(key) => (self.notify_handler)(Notification::SignatureValid(url_str, key)),
                 Err(_) => (self.notify_handler)(Notification::SignatureInvalid(url_str)),
             }
@@ -244,7 +244,7 @@ fn file_hash(path: &Path, notify_handler: &dyn Fn(Notification<'_>)) -> Result<S
     let notification_converter = |notification: crate::utils::Notification<'_>| {
         notify_handler(notification.into());
     };
-    let mut downloaded = utils::FileReaderWithProgress::new_file(&path, &notification_converter)?;
+    let mut downloaded = utils::FileReaderWithProgress::new_file(path, &notification_converter)?;
     use std::io::Read;
     let mut buf = vec![0; 32768];
     while let Ok(n) = downloaded.read(&mut buf) {

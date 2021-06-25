@@ -127,13 +127,13 @@ impl MockDistServer {
         for channel in self.channels.iter() {
             let mut hashes = HashMap::new();
             for package in &channel.packages {
-                let new_hashes = self.build_package(&channel, &package, enable_xz, enable_zst);
+                let new_hashes = self.build_package(channel, package, enable_xz, enable_zst);
                 hashes.extend(new_hashes.into_iter());
             }
             for v in vs {
                 match *v {
-                    ManifestVersion::V1 => self.write_manifest_v1(&channel),
-                    ManifestVersion::V2 => self.write_manifest_v2(&channel, &hashes),
+                    ManifestVersion::V1 => self.write_manifest_v1(channel),
+                    ManifestVersion::V2 => self.write_manifest_v2(channel, &hashes),
                 }
             }
         }
