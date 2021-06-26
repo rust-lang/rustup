@@ -5,13 +5,13 @@ pub use crate::dist::notifications::Notification;
 pub mod temp;
 
 pub mod component;
-pub mod config;
+pub(crate) mod config;
 #[allow(clippy::module_inception)]
 pub mod dist;
 pub mod download;
 pub mod manifest;
 pub mod manifestation;
-pub mod notifications;
+pub(crate) mod notifications;
 pub mod prefix;
-pub mod signatures;
-pub mod triple;
+pub(crate) mod signatures;
+pub(crate) mod triple;

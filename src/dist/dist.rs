@@ -18,7 +18,7 @@ use crate::dist::manifestation::{Changes, Manifestation, UpdateStatus};
 use crate::dist::notifications::*;
 use crate::dist::prefix::InstallPrefix;
 use crate::dist::temp;
-pub use crate::dist::triple::*;
+pub(crate) use crate::dist::triple::*;
 use crate::errors::RustupError;
 use crate::process;
 use crate::utils::utils;
@@ -26,7 +26,7 @@ use crate::utils::utils;
 pub static DEFAULT_DIST_SERVER: &str = "https://static.rust-lang.org";
 
 // Deprecated
-pub static DEFAULT_DIST_ROOT: &str = "https://static.rust-lang.org/dist";
+pub(crate) static DEFAULT_DIST_ROOT: &str = "https://static.rust-lang.org/dist";
 
 // The channel patterns we support
 static TOOLCHAIN_CHANNELS: &[&str] = &[
@@ -217,7 +217,7 @@ impl TargetTriple {
         Self(name.to_string())
     }
 
-    pub fn from_build() -> Self {
+    pub(crate) fn from_build() -> Self {
         if let Some(triple) = option_env!("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
             Self::new(triple)
         } else {
@@ -225,7 +225,7 @@ impl TargetTriple {
         }
     }
 
-    pub fn from_host() -> Option<Self> {
+    pub(crate) fn from_host() -> Option<Self> {
         #[cfg(windows)]
         fn inner() -> Option<TargetTriple> {
             use std::mem;
@@ -308,11 +308,11 @@ impl TargetTriple {
         }
     }
 
-    pub fn from_host_or_build() -> Self {
+    pub(crate) fn from_host_or_build() -> Self {
         Self::from_host().unwrap_or_else(Self::from_build)
     }
 
-    pub fn can_run(&self, other: &TargetTriple) -> Result<bool> {
+    pub(crate) fn can_run(&self, other: &TargetTriple) -> Result<bool> {
         // Most trivial shortcut of all
         if self == other {
             return Ok(true);
@@ -373,7 +373,7 @@ impl FromStr for PartialToolchainDesc {
 }
 
 impl PartialToolchainDesc {
-    pub fn resolve(self, input_host: &TargetTriple) -> Result<ToolchainDesc> {
+    pub(crate) fn resolve(self, input_host: &TargetTriple) -> Result<ToolchainDesc> {
         let host = PartialTargetTriple::new(&input_host.0).ok_or_else(|| {
             anyhow!(format!(
                 "Provided host '{}' couldn't be converted to partial triple",
@@ -417,7 +417,7 @@ impl PartialToolchainDesc {
         })
     }
 
-    pub fn has_triple(&self) -> bool {
+    pub(crate) fn has_triple(&self) -> bool {
         self.target.arch.is_some() || self.target.os.is_some() || self.target.env.is_some()
     }
 }
@@ -440,7 +440,7 @@ impl FromStr for ToolchainDesc {
 }
 
 impl ToolchainDesc {
-    pub fn manifest_v1_url(&self, dist_root: &str) -> String {
+    pub(crate) fn manifest_v1_url(&self, dist_root: &str) -> String {
         let do_manifest_staging = process().var("RUSTUP_STAGED_MANIFEST").is_ok();
         match (self.date.as_ref(), do_manifest_staging) {
             (None, false) => format!("{}/channel-rust-{}", dist_root, self.channel),
@@ -450,7 +450,7 @@ impl ToolchainDesc {
         }
     }
 
-    pub fn manifest_v2_url(&self, dist_root: &str) -> String {
+    pub(crate) fn manifest_v2_url(&self, dist_root: &str) -> String {
         format!("{}.toml", self.manifest_v1_url(dist_root))
     }
     /// Either "$channel" or "channel-$date"
@@ -461,25 +461,17 @@ impl ToolchainDesc {
         }
     }
 
-    pub fn package_dir(&self, dist_root: &str) -> String {
+    pub(crate) fn package_dir(&self, dist_root: &str) -> String {
         match self.date {
             None => dist_root.to_string(),
             Some(ref date) => format!("{}/{}", dist_root, date),
         }
     }
 
-    pub fn full_spec(&self) -> String {
-        if self.date.is_some() {
-            format!("{}", self)
-        } else {
-            format!("{} (tracking)", self)
-        }
-    }
-
     /// Toolchain channels are considered 'tracking' if it is one of the named channels
     /// such as `stable`, or is an incomplete version such as `1.48`, and the
     /// date field is empty.
-    pub fn is_tracking(&self) -> bool {
+    pub(crate) fn is_tracking(&self) -> bool {
         let channels = ["nightly", "beta", "stable"];
         lazy_static! {
             static ref TRACKING_VERSION: Regex = Regex::new(r"^\d{1}\.\d{1,3}$").unwrap();
@@ -490,7 +482,7 @@ impl ToolchainDesc {
 }
 
 // A little convenience for just parsing a channel name or archived channel name
-pub fn validate_channel_name(name: &str) -> Result<()> {
+pub(crate) fn validate_channel_name(name: &str) -> Result<()> {
     let toolchain = PartialToolchainDesc::from_str(name)?;
     if toolchain.has_triple() {
         Err(anyhow!(format!("target triple in channel name '{}'", name)))
@@ -500,7 +492,7 @@ pub fn validate_channel_name(name: &str) -> Result<()> {
 }
 
 #[derive(Debug)]
-pub struct Manifest<'a>(temp::File<'a>, String);
+pub(crate) struct Manifest<'a>(temp::File<'a>, String);
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum Profile {
@@ -527,11 +519,11 @@ impl FromStr for Profile {
 }
 
 impl Profile {
-    pub fn names() -> &'static [&'static str] {
+    pub(crate) fn names() -> &'static [&'static str] {
         &["minimal", "default", "complete"]
     }
 
-    pub fn default_name() -> &'static str {
+    pub(crate) fn default_name() -> &'static str {
         "default"
     }
 }
@@ -592,7 +584,7 @@ impl fmt::Display for Profile {
     }
 }
 
-pub fn valid_profile_names() -> String {
+pub(crate) fn valid_profile_names() -> String {
     Profile::names()
         .iter()
         .map(|s| format!("'{}'", s))
@@ -605,7 +597,7 @@ pub fn valid_profile_names() -> String {
 // an upgrade then all the existing components will be upgraded.
 //
 // Returns the manifest's hash if anything changed.
-pub fn update_from_dist<'a>(
+pub(crate) fn update_from_dist<'a>(
     download: DownloadCfg<'a>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
@@ -975,7 +967,7 @@ fn try_update_from_dist_<'a>(
     }
 }
 
-pub fn dl_v2_manifest<'a>(
+pub(crate) fn dl_v2_manifest<'a>(
     download: DownloadCfg<'a>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,

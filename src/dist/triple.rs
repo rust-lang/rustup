@@ -54,7 +54,7 @@ pub struct PartialTargetTriple {
 }
 
 impl PartialTargetTriple {
-    pub fn new(name: &str) -> Option<Self> {
+    pub(crate) fn new(name: &str) -> Option<Self> {
         if name.is_empty() {
             return Some(Self {
                 arch: None,

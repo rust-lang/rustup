@@ -4,8 +4,8 @@ use super::manifest::Component;
 use crate::errors::*;
 use crate::utils::toml_utils::*;
 
-pub const SUPPORTED_CONFIG_VERSIONS: [&str; 1] = ["1"];
-pub const DEFAULT_CONFIG_VERSION: &str = "1";
+pub(crate) const SUPPORTED_CONFIG_VERSIONS: [&str; 1] = ["1"];
+pub(crate) const DEFAULT_CONFIG_VERSION: &str = "1";
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -14,7 +14,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
+    pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let config_version = get_string(&mut table, "config_version", path)?;
         if !SUPPORTED_CONFIG_VERSIONS.contains(&&*config_version) {
             bail!(RustupError::UnsupportedVersion(config_version));
@@ -29,7 +29,7 @@ impl Config {
             components,
         })
     }
-    pub fn into_toml(self) -> toml::value::Table {
+    pub(crate) fn into_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
         result.insert(
             "config_version".to_owned(),
@@ -42,12 +42,12 @@ impl Config {
         result
     }
 
-    pub fn parse(data: &str) -> Result<Self> {
+    pub(crate) fn parse(data: &str) -> Result<Self> {
         let value = toml::from_str(data).context("error parsing manifest")?;
         Self::from_toml(value, "")
     }
 
-    pub fn stringify(self) -> String {
+    pub(crate) fn stringify(self) -> String {
         toml::Value::Table(self.into_toml()).to_string()
     }
 
@@ -72,7 +72,7 @@ impl Config {
         result
     }
 
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Default::default()
     }
 }

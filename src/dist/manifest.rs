@@ -22,17 +22,16 @@ use crate::dist::dist::{PartialTargetTriple, Profile, TargetTriple};
 use crate::errors::*;
 use crate::utils::toml_utils::*;
 
-pub const SUPPORTED_MANIFEST_VERSIONS: [&str; 1] = ["2"];
-pub const DEFAULT_MANIFEST_VERSION: &str = "2";
+pub(crate) const SUPPORTED_MANIFEST_VERSIONS: [&str; 1] = ["2"];
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Manifest {
-    pub manifest_version: String,
+    manifest_version: String,
     pub date: String,
     pub packages: HashMap<String, Package>,
     pub renames: HashMap<String, String>,
     pub reverse_renames: HashMap<String, String>,
-    pub profiles: HashMap<Profile, Vec<String>>,
+    profiles: HashMap<Profile, Vec<String>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -121,7 +120,7 @@ impl Manifest {
         toml::Value::Table(self.into_toml()).to_string()
     }
 
-    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
+    pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let version = get_string(&mut table, "manifest-version", path)?;
         if !SUPPORTED_MANIFEST_VERSIONS.contains(&&*version) {
             bail!(RustupError::UnsupportedVersion(version));
@@ -136,7 +135,7 @@ impl Manifest {
             profiles: Self::table_to_profiles(&mut table, path)?,
         })
     }
-    pub fn into_toml(self) -> toml::value::Table {
+    pub(crate) fn into_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
 
         result.insert("date".to_owned(), toml::Value::String(self.date));
@@ -248,11 +247,11 @@ impl Manifest {
             .ok_or_else(|| anyhow!(format!("package not found: '{}'", name)))
     }
 
-    pub fn get_rust_version(&self) -> Result<&str> {
+    pub(crate) fn get_rust_version(&self) -> Result<&str> {
         self.get_package("rust").map(|p| &*p.version)
     }
 
-    pub fn get_legacy_components(&self, target: &TargetTriple) -> Result<Vec<Component>> {
+    pub(crate) fn get_legacy_components(&self, target: &TargetTriple) -> Result<Vec<Component>> {
         // Build a profile from the components/extensions.
         let result = self
             .get_package("rust")?
@@ -340,7 +339,7 @@ impl Manifest {
 
     // If the component should be renamed by this manifest, then return a new
     // component with the new name. If not, return `None`.
-    pub fn rename_component(&self, component: &Component) -> Option<Component> {
+    pub(crate) fn rename_component(&self, component: &Component) -> Option<Component> {
         self.renames.get(&component.pkg).map(|r| {
             let mut c = component.clone();
             c.pkg = r.clone();
@@ -350,13 +349,13 @@ impl Manifest {
 }
 
 impl Package {
-    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
+    pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         Ok(Self {
             version: get_string(&mut table, "version", path)?,
             targets: Self::toml_to_targets(table, path)?,
         })
     }
-    pub fn into_toml(self) -> toml::value::Table {
+    pub(crate) fn into_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
 
         result.insert("version".to_owned(), toml::Value::String(self.version));
@@ -417,7 +416,7 @@ impl Package {
 }
 
 impl PackageTargets {
-    pub fn get<'a>(&'a self, target: &TargetTriple) -> Option<&'a TargetedPackage> {
+    pub(crate) fn get<'a>(&'a self, target: &TargetTriple) -> Option<&'a TargetedPackage> {
         match self {
             Self::Wildcard(tpkg) => Some(tpkg),
             Self::Targeted(tpkgs) => tpkgs.get(target),
@@ -432,7 +431,7 @@ impl PackageTargets {
 }
 
 impl TargetedPackage {
-    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
+    pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let components = get_array(&mut table, "components", path)?;
         let extensions = get_array(&mut table, "extensions", path)?;
 
@@ -463,7 +462,7 @@ impl TargetedPackage {
             })
         }
     }
-    pub fn into_toml(self) -> toml::value::Table {
+    pub(crate) fn into_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
         let (components, extensions) = Self::components_to_toml(self.components);
         if !components.is_empty() {
@@ -529,7 +528,7 @@ impl Component {
         }
     }
 
-    pub fn new_with_target(pkg_with_target: &str, is_extension: bool) -> Option<Self> {
+    pub(crate) fn new_with_target(pkg_with_target: &str, is_extension: bool) -> Option<Self> {
         use std::convert::TryFrom;
         for (pos, _) in pkg_with_target.match_indices('-') {
             let pkg = &pkg_with_target[0..pos];
@@ -547,14 +546,14 @@ impl Component {
         None
     }
 
-    pub fn wildcard(&self) -> Self {
+    pub(crate) fn wildcard(&self) -> Self {
         Self {
             pkg: self.pkg.clone(),
             target: None,
             is_extension: false,
         }
     }
-    pub fn from_toml(
+    pub(crate) fn from_toml(
         mut table: toml::value::Table,
         path: &str,
         is_extension: bool,
@@ -571,7 +570,7 @@ impl Component {
             is_extension,
         })
     }
-    pub fn into_toml(self) -> toml::value::Table {
+    pub(crate) fn into_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
         result.insert(
             "target".to_owned(),
@@ -584,7 +583,7 @@ impl Component {
         result.insert("pkg".to_owned(), toml::Value::String(self.pkg));
         result
     }
-    pub fn name(&self, manifest: &Manifest) -> String {
+    pub(crate) fn name(&self, manifest: &Manifest) -> String {
         let pkg = self.short_name(manifest);
         if let Some(ref t) = self.target {
             format!("{}-{}", pkg, t)
@@ -592,14 +591,14 @@ impl Component {
             pkg
         }
     }
-    pub fn short_name(&self, manifest: &Manifest) -> String {
+    pub(crate) fn short_name(&self, manifest: &Manifest) -> String {
         if let Some(from) = manifest.reverse_renames.get(&self.pkg) {
             from.to_owned()
         } else {
             self.pkg.clone()
         }
     }
-    pub fn description(&self, manifest: &Manifest) -> String {
+    pub(crate) fn description(&self, manifest: &Manifest) -> String {
         let pkg = self.short_name(manifest);
         if let Some(ref t) = self.target {
             format!("'{}' for target '{}'", pkg, t)
@@ -610,7 +609,7 @@ impl Component {
     pub fn short_name_in_manifest(&self) -> &String {
         &self.pkg
     }
-    pub fn name_in_manifest(&self) -> String {
+    pub(crate) fn name_in_manifest(&self) -> String {
         let pkg = self.short_name_in_manifest();
         if let Some(ref t) = self.target {
             format!("{}-{}", pkg, t)
@@ -618,7 +617,7 @@ impl Component {
             pkg.to_string()
         }
     }
-    pub fn target(&self) -> String {
+    pub(crate) fn target(&self) -> String {
         if let Some(t) = self.target.as_ref() {
             t.to_string()
         } else {
@@ -626,7 +625,7 @@ impl Component {
         }
     }
 
-    pub fn contained_within(&self, components: &[Component]) -> bool {
+    pub(crate) fn contained_within(&self, components: &[Component]) -> bool {
         if components.contains(self) {
             // Yes, we're within the component set, move on
             true

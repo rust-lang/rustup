@@ -10,7 +10,7 @@ use pgp::{Deserializable, StandaloneSignature};
 
 use crate::config::PgpPublicKey;
 
-pub fn verify_signature<T: Read>(
+pub(crate) fn verify_signature<T: Read>(
     mut content: T,
     signature: &str,
     keys: &[PgpPublicKey],

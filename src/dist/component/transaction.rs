@@ -148,7 +148,12 @@ impl<'a> Transaction<'a> {
     }
 
     /// Move a file to a relative path of the install prefix.
-    pub fn move_file(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
+    pub(crate) fn move_file(
+        &mut self,
+        component: &str,
+        relpath: PathBuf,
+        src: &Path,
+    ) -> Result<()> {
         assert!(relpath.is_relative());
         let item =
             ChangedItem::move_file(&self.prefix, component, relpath, src, self.notify_handler())?;
@@ -157,7 +162,7 @@ impl<'a> Transaction<'a> {
     }
 
     /// Recursively move a directory to a relative path of the install prefix.
-    pub fn move_dir(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
+    pub(crate) fn move_dir(&mut self, component: &str, relpath: PathBuf, src: &Path) -> Result<()> {
         assert!(relpath.is_relative());
         let item =
             ChangedItem::move_dir(&self.prefix, component, relpath, src, self.notify_handler())?;
@@ -165,7 +170,7 @@ impl<'a> Transaction<'a> {
         Ok(())
     }
 
-    pub fn temp(&self) -> &'a temp::Cfg {
+    pub(crate) fn temp(&self) -> &'a temp::Cfg {
         self.temp_cfg
     }
     pub(crate) fn notify_handler(&self) -> &'a dyn Fn(Notification<'_>) {

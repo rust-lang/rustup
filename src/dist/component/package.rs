@@ -21,8 +21,8 @@ use crate::utils::notifications::Notification;
 use crate::utils::utils;
 
 /// The current metadata revision used by rust-installer
-pub const INSTALLER_VERSION: &str = "3";
-pub const VERSION_FILE: &str = "rust-installer-version";
+pub(crate) const INSTALLER_VERSION: &str = "3";
+pub(crate) const VERSION_FILE: &str = "rust-installer-version";
 
 pub trait Package: fmt::Debug {
     fn contains(&self, component: &str, short_name: Option<&str>) -> bool;
@@ -136,7 +136,7 @@ impl Package for DirectoryPackage {
 }
 
 #[derive(Debug)]
-pub struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
+pub(crate) struct TarPackage<'a>(DirectoryPackage, temp::Dir<'a>);
 
 impl<'a> TarPackage<'a> {
     pub(crate) fn new<R: Read>(
@@ -548,7 +548,7 @@ impl<'a> Package for TarPackage<'a> {
 }
 
 #[derive(Debug)]
-pub struct TarGzPackage<'a>(TarPackage<'a>);
+pub(crate) struct TarGzPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarGzPackage<'a> {
     pub(crate) fn new<R: Read>(
@@ -584,7 +584,7 @@ impl<'a> Package for TarGzPackage<'a> {
 }
 
 #[derive(Debug)]
-pub struct TarXzPackage<'a>(TarPackage<'a>);
+pub(crate) struct TarXzPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarXzPackage<'a> {
     pub(crate) fn new<R: Read>(
@@ -620,7 +620,7 @@ impl<'a> Package for TarXzPackage<'a> {
 }
 
 #[derive(Debug)]
-pub struct TarZStdPackage<'a>(TarPackage<'a>);
+pub(crate) struct TarZStdPackage<'a>(TarPackage<'a>);
 
 impl<'a> TarZStdPackage<'a> {
     pub(crate) fn new<R: Read>(

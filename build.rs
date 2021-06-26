@@ -2,7 +2,7 @@ use std::env;
 
 include!("src/dist/triple.rs");
 
-pub fn from_build() -> Result<PartialTargetTriple, String> {
+fn from_build() -> Result<PartialTargetTriple, String> {
     let triple = if let Ok(triple) = env::var("RUSTUP_OVERRIDE_BUILD_TRIPLE") {
         triple
     } else {
