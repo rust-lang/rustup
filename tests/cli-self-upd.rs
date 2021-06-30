@@ -92,6 +92,9 @@ info: default toolchain set to 'stable-{0}'
                 .cargodir
                 .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
             let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
+            let rust_gdbgui = config
+                .cargodir
+                .join(&format!("bin/rust-gdbgui{}", EXE_SUFFIX));
             #[cfg(windows)]
             fn check(path: &Path) {
                 assert!(path.exists());
@@ -111,6 +114,7 @@ info: default toolchain set to 'stable-{0}'
             check(&cargo);
             check(&rust_lldb);
             check(&rust_gdb);
+            check(&rust_gdbgui);
         })
     });
 }
@@ -165,12 +169,16 @@ fn uninstall_deletes_bins() {
             .cargodir
             .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
+        let rust_gdbgui = config
+            .cargodir
+            .join(&format!("bin/rust-gdbgui{}", EXE_SUFFIX));
         assert!(!rustup.exists());
         assert!(!rustc.exists());
         assert!(!rustdoc.exists());
         assert!(!cargo.exists());
         assert!(!rust_lldb.exists());
         assert!(!rust_gdb.exists());
+        assert!(!rust_gdbgui.exists());
     });
 }
 
@@ -185,6 +193,7 @@ fn uninstall_works_if_some_bins_dont_exist() {
             .cargodir
             .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
+        let rust_gdbgui = config.cargodir.join(&format!("bin/rust-gdbgui{}", EXE_SUFFIX));
 
         fs::remove_file(&rustc).unwrap();
         fs::remove_file(&cargo).unwrap();
@@ -197,6 +206,7 @@ fn uninstall_works_if_some_bins_dont_exist() {
         assert!(!cargo.exists());
         assert!(!rust_lldb.exists());
         assert!(!rust_gdb.exists());
+        assert!(!rust_gdbgui.exists());
     });
 }
 
@@ -263,11 +273,15 @@ fn uninstall_self_delete_works() {
             .cargodir
             .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
+        let rust_gdbgui = config
+            .cargodir
+            .join(&format!("bin/rust-gdbgui{}", EXE_SUFFIX));
         assert!(!rustc.exists());
         assert!(!rustdoc.exists());
         assert!(!cargo.exists());
         assert!(!rust_lldb.exists());
         assert!(!rust_gdb.exists());
+        assert!(!rust_gdbgui.exists());
     });
 }
 
