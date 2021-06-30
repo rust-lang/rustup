@@ -623,8 +623,8 @@ where
     let mut vars: HashMap<String, String> = HashMap::default();
     self::env(config, &mut vars);
     vars.extend(env.iter().map(|(k, v)| (k.to_string(), v.to_string())));
-    let mut arg_strings: Vec<Box<str>> = Vec::new();
-    arg_strings.push(name.to_owned().into_boxed_str());
+    let mut arg_strings: Vec<Box<str>> = vec![name.to_owned().into_boxed_str()];
+
     for arg in args {
         arg_strings.push(
             arg.as_ref()
