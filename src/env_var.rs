@@ -4,7 +4,7 @@ use std::process::Command;
 
 use crate::process;
 
-pub const RUST_RECURSION_COUNT_MAX: u32 = 5;
+pub const RUST_RECURSION_COUNT_MAX: u32 = 20;
 
 #[allow(unused)]
 pub fn append_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
