@@ -1,3 +1,4 @@
+#[cfg(not(windows))]
 use std::env;
 use std::fs;
 use std::io;
@@ -5,6 +6,7 @@ use std::io::Write;
 use std::path::Path;
 use std::str;
 
+#[cfg(not(windows))]
 use crate::process;
 
 pub(crate) fn ensure_dir_exists<P: AsRef<Path>, F: FnOnce(&Path)>(
@@ -247,6 +249,7 @@ pub(crate) fn copy_dir(src: &Path, dest: &Path) -> io::Result<()> {
     Ok(())
 }
 
+#[cfg(not(windows))]
 fn has_cmd(cmd: &str) -> bool {
     let cmd = format!("{}{}", cmd, env::consts::EXE_SUFFIX);
     let path = process().var_os("PATH").unwrap_or_default();
@@ -255,6 +258,7 @@ fn has_cmd(cmd: &str) -> bool {
         .any(|p| p.exists())
 }
 
+#[cfg(not(windows))]
 pub(crate) fn find_cmd<'a>(cmds: &[&'a str]) -> Option<&'a str> {
     cmds.iter().cloned().find(|&s| has_cmd(s))
 }

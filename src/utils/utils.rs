@@ -16,7 +16,9 @@ use crate::utils::notifications::Notification;
 use crate::utils::raw;
 use crate::{home_process, process};
 
-pub(crate) use crate::utils::utils::raw::{find_cmd, if_not_empty, is_directory};
+#[cfg(not(windows))]
+pub(crate) use crate::utils::utils::raw::find_cmd;
+pub(crate) use crate::utils::utils::raw::{if_not_empty, is_directory};
 
 pub use crate::utils::utils::raw::{is_file, path_exists};
 
@@ -423,6 +425,7 @@ pub(crate) fn open_browser(path: &Path) -> Result<()> {
     opener::open_browser(path).context("couldn't open browser")
 }
 
+#[cfg(not(windows))]
 fn set_permissions(path: &Path, perms: fs::Permissions) -> Result<()> {
     fs::set_permissions(path, perms).map_err(|e| {
         RustupError::SettingPermissions {
