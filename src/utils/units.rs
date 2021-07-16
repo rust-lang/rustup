@@ -1,11 +1,13 @@
 use std::fmt::{self, Display};
 
+#[allow(dead_code)]
 #[derive(Copy, Clone, Debug)]
 pub enum Unit {
     B,
     IO,
 }
 
+#[allow(dead_code)]
 pub(crate) enum UnitMode {
     Norm,
     Rate,

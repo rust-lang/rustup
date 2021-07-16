@@ -1,75 +1,28 @@
-use std::collections::VecDeque;
 use std::fmt;
-use std::io::Write;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use term::Terminal;
-
-use super::term2;
 use crate::dist::Notification as In;
 use crate::utils::tty;
-use crate::utils::units::{Size, Unit, UnitMode};
 use crate::utils::Notification as Un;
 use crate::Notification;
 
-/// Keep track of this many past download amounts
-const DOWNLOAD_TRACK_COUNT: usize = 5;
-
 /// Tracks download progress and displays information about it to a terminal.
 pub struct DownloadTracker {
-    /// Content-Length of the to-be downloaded object.
-    content_len: Option<usize>,
-    /// Total data downloaded in bytes.
-    total_downloaded: usize,
-    /// Data downloaded this second.
-    downloaded_this_sec: usize,
-    /// Keeps track of amount of data downloaded every last few secs.
-    /// Used for averaging the download speed. NB: This does not necessarily
-    /// represent adjacent seconds; thus it may not show the average at all.
-    downloaded_last_few_secs: VecDeque<usize>,
-    /// Time stamp of the last second
-    last_sec: Option<Instant>,
-    /// Time stamp of the start of the download
-    start_sec: Option<Instant>,
-    /// The terminal we write the information to.
-    /// XXX: Could be a term trait, but with #1818 on the horizon that
-    ///      is a pointless change to make - better to let that transition
-    ///      happen and take stock after that.
-    term: term2::StdoutTerminal,
-    /// Whether we displayed progress for the download or not.
-    ///
-    /// If the download is quick enough, we don't have time to
-    /// display the progress info.
-    /// In that case, we do not want to do some cleanup stuff we normally do.
-    ///
-    /// If we have displayed progress, this is the number of characters we
-    /// rendered, so we can erase it cleanly.
-    displayed_charcount: Option<usize>,
-    /// What units to show progress in
-    units: Vec<Unit>,
-    /// Whether we display progress
-    display_progress: bool,
+    progress_bar: Option<indicatif::ProgressBar>,
 }
 
 impl DownloadTracker {
     /// Creates a new DownloadTracker.
     pub fn new() -> Self {
         Self {
-            content_len: None,
-            total_downloaded: 0,
-            downloaded_this_sec: 0,
-            downloaded_last_few_secs: VecDeque::with_capacity(DOWNLOAD_TRACK_COUNT),
-            start_sec: None,
-            last_sec: None,
-            term: term2::stdout(),
-            displayed_charcount: None,
-            units: vec![Unit::B],
-            display_progress: true,
+            progress_bar: None,
         }
     }
 
     pub fn with_display_progress(mut self, display_progress: bool) -> Self {
-        self.display_progress = display_progress;
+        if !display_progress {
+            self.progress_bar = Some(indicatif::ProgressBar::hidden());
+        }
         self
     }
 
@@ -90,14 +43,6 @@ impl DownloadTracker {
                 self.download_finished();
                 true
             }
-            Notification::Install(In::Utils(Un::DownloadPushUnit(unit))) => {
-                self.push_unit(unit);
-                true
-            }
-            Notification::Install(In::Utils(Un::DownloadPopUnit)) => {
-                self.pop_unit();
-                true
-            }
 
             _ => false,
         }
@@ -105,126 +50,26 @@ impl DownloadTracker {
 
     /// Notifies self that Content-Length information has been received.
     pub fn content_length_received(&mut self, content_len: u64) {
-        self.content_len = Some(content_len as usize);
+        if self.progress_bar.is_none() {
+            self.progress_bar = Some(indicatif::ProgressBar::new(content_len));
+        };
+
+        let progress_bar = self.progress_bar.as_ref().unwrap();
+        progress_bar.set_style(
+            indicatif::ProgressStyle::default_bar()
+                .template("{bytes} / {total_bytes} ({percent:3.0}%) {bytes_per_sec} ETA: {eta}"),
+        );
+        progress_bar.set_draw_target(indicatif::ProgressDrawTarget::stdout());
     }
 
     /// Notifies self that data of size `len` has been received.
     pub fn data_received(&mut self, len: usize) {
-        self.total_downloaded += len;
-        self.downloaded_this_sec += len;
-
-        let current_time = Instant::now();
-
-        match self.last_sec {
-            None => self.last_sec = Some(current_time),
-            Some(prev) => {
-                let elapsed = current_time.saturating_duration_since(prev);
-                if elapsed >= Duration::from_secs(1) {
-                    if self.display_progress {
-                        self.display();
-                    }
-                    self.last_sec = Some(current_time);
-                    if self.downloaded_last_few_secs.len() == DOWNLOAD_TRACK_COUNT {
-                        self.downloaded_last_few_secs.pop_back();
-                    }
-                    self.downloaded_last_few_secs
-                        .push_front(self.downloaded_this_sec);
-                    self.downloaded_this_sec = 0;
-                }
-            }
-        }
+        self.progress_bar.as_ref().unwrap().inc(len as u64);
     }
+
     /// Notifies self that the download has finished.
     pub fn download_finished(&mut self) {
-        if self.displayed_charcount.is_some() {
-            // Display the finished state
-            self.display();
-            let _ = writeln!(self.term);
-        }
-        self.prepare_for_new_download();
-    }
-    /// Resets the state to be ready for a new download.
-    fn prepare_for_new_download(&mut self) {
-        self.content_len = None;
-        self.total_downloaded = 0;
-        self.downloaded_this_sec = 0;
-        self.downloaded_last_few_secs.clear();
-        self.start_sec = Some(Instant::now());
-        self.last_sec = None;
-        self.displayed_charcount = None;
-    }
-    /// Display the tracked download information to the terminal.
-    fn display(&mut self) {
-        match self.start_sec {
-            // Maybe forgot to call `prepare_for_new_download` first
-            None => {}
-            Some(start_sec) => {
-                // Panic if someone pops the default bytes unit...
-                let unit = *self.units.last().unwrap();
-                let total_h = Size::new(self.total_downloaded, unit, UnitMode::Norm);
-                let sum: usize = self.downloaded_last_few_secs.iter().sum();
-                let len = self.downloaded_last_few_secs.len();
-                let speed = if len > 0 { sum / len } else { 0 };
-                let speed_h = Size::new(speed, unit, UnitMode::Rate);
-                let elapsed_h = Instant::now().saturating_duration_since(start_sec);
-
-                // First, move to the start of the current line and clear it.
-                let _ = self.term.carriage_return();
-                // We'd prefer to use delete_line() but on Windows it seems to
-                // sometimes do unusual things
-                // let _ = self.term.as_mut().unwrap().delete_line();
-                // So instead we do:
-                if let Some(n) = self.displayed_charcount {
-                    // This is not ideal as very narrow terminals might mess up,
-                    // but it is more likely to succeed until term's windows console
-                    // fixes whatever's up with delete_line().
-                    let _ = write!(self.term, "{}", " ".repeat(n));
-                    let _ = self.term.flush();
-                    let _ = self.term.carriage_return();
-                }
-
-                let output = match self.content_len {
-                    Some(content_len) => {
-                        let content_len_h = Size::new(content_len, unit, UnitMode::Norm);
-                        let percent = (self.total_downloaded as f64 / content_len as f64) * 100.;
-                        let remaining = content_len - self.total_downloaded;
-                        let eta_h = Duration::from_secs(if speed == 0 {
-                            std::u64::MAX
-                        } else {
-                            (remaining / speed) as u64
-                        });
-                        format!(
-                            "{} / {} ({:3.0} %) {} in {} ETA: {}",
-                            total_h,
-                            content_len_h,
-                            percent,
-                            speed_h,
-                            elapsed_h.display(),
-                            eta_h.display(),
-                        )
-                    }
-                    None => format!(
-                        "Total: {} Speed: {} Elapsed: {}",
-                        total_h,
-                        speed_h,
-                        elapsed_h.display()
-                    ),
-                };
-
-                let _ = write!(self.term, "{}", output);
-                // Since stdout is typically line-buffered and we don't print a newline, we manually flush.
-                let _ = self.term.flush();
-                self.displayed_charcount = Some(output.chars().count());
-            }
-        }
-    }
-
-    pub(crate) fn push_unit(&mut self, new_unit: Unit) {
-        self.units.push(new_unit);
-    }
-
-    pub fn pop_unit(&mut self) {
-        self.units.pop();
+        self.progress_bar = None;
     }
 }
 

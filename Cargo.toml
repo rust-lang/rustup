@@ -66,6 +66,7 @@ url = "2.1"
 wait-timeout = "0.2"
 xz2 = "0.1.3"
 zstd = "0.6"
+indicatif = "0.16"
 
 [dependencies.retry]
 default-features = false

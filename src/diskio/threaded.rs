@@ -15,7 +15,6 @@ use sharded_slab::pool::{OwnedRef, OwnedRefMut};
 
 use super::{perform, CompletedIo, Executor, Item};
 use crate::utils::notifications::Notification;
-use crate::utils::units::Unit;
 
 #[derive(Copy, Clone, Debug, Enum)]
 pub(crate) enum Bucket {
@@ -263,7 +262,6 @@ impl<'a> Executor for Threaded<'a> {
         let mut prev_files = self.n_files.load(Ordering::Relaxed);
         if let Some(handler) = self.notify_handler {
             handler(Notification::DownloadFinished);
-            handler(Notification::DownloadPushUnit(Unit::IO));
             handler(Notification::DownloadContentLengthReceived(
                 prev_files as u64,
             ));
@@ -289,7 +287,6 @@ impl<'a> Executor for Threaded<'a> {
         self.pool.join();
         if let Some(handler) = self.notify_handler {
             handler(Notification::DownloadFinished);
-            handler(Notification::DownloadPopUnit);
         }
         // close the feedback channel so that blocking reads on it can
         // complete. send is atomic, and we know the threads completed from the
