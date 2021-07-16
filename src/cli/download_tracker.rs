@@ -8,20 +8,28 @@ use crate::Notification;
 
 /// Tracks download progress and displays information about it to a terminal.
 pub struct DownloadTracker {
-    progress_bar: Option<indicatif::ProgressBar>,
+    progress_bar: indicatif::ProgressBar,
 }
 
 impl DownloadTracker {
     /// Creates a new DownloadTracker.
     pub fn new() -> Self {
-        Self {
-            progress_bar: None,
-        }
+        let progress_bar = indicatif::ProgressBar::hidden();
+        progress_bar.set_draw_target(indicatif::ProgressDrawTarget::hidden());
+        Self { progress_bar }
     }
 
-    pub fn with_display_progress(mut self, display_progress: bool) -> Self {
-        if !display_progress {
-            self.progress_bar = Some(indicatif::ProgressBar::hidden());
+    pub fn with_display_progress(self, display_progress: bool) -> Self {
+        if display_progress {
+            self.progress_bar.set_style(
+                indicatif::ProgressStyle::default_bar().template(
+                    "{bytes} / {total_bytes} ({percent:3.0}%) {bytes_per_sec} ETA: {eta}",
+                ),
+            );
+            self.progress_bar
+                .set_draw_target(indicatif::ProgressDrawTarget::stdout());
+        } else {
+            self.progress_bar.set_draw_target(indicatif::ProgressDrawTarget::hidden());
         }
         self
     }
@@ -50,26 +58,18 @@ impl DownloadTracker {
 
     /// Notifies self that Content-Length information has been received.
     pub fn content_length_received(&mut self, content_len: u64) {
-        if self.progress_bar.is_none() {
-            self.progress_bar = Some(indicatif::ProgressBar::new(content_len));
-        };
-
-        let progress_bar = self.progress_bar.as_ref().unwrap();
-        progress_bar.set_style(
-            indicatif::ProgressStyle::default_bar()
-                .template("{bytes} / {total_bytes} ({percent:3.0}%) {bytes_per_sec} ETA: {eta}"),
-        );
-        progress_bar.set_draw_target(indicatif::ProgressDrawTarget::stdout());
+        self.progress_bar.set_length(content_len);
     }
 
     /// Notifies self that data of size `len` has been received.
     pub fn data_received(&mut self, len: usize) {
-        self.progress_bar.as_ref().unwrap().inc(len as u64);
+        self.progress_bar.inc(len as u64);
     }
 
     /// Notifies self that the download has finished.
     pub fn download_finished(&mut self) {
-        self.progress_bar = None;
+        self.progress_bar.finish();
+        self.progress_bar.reset();
     }
 }
 
