@@ -121,16 +121,16 @@ impl<'a> Display for Notification<'a> {
             }
             DownloadingComponent(c, h, t) => {
                 if Some(h) == t.as_ref() || t.is_none() {
-                    write!(f, "downloading component '{}'", c)
+                    write!(f, "downloading component '{}'\n", c)
                 } else {
-                    write!(f, "downloading component '{}' for '{}'", c, t.unwrap())
+                    write!(f, "downloading component '{}' for '{}'\n", c, t.unwrap())
                 }
             }
             InstallingComponent(c, h, t) => {
                 if Some(h) == t.as_ref() || t.is_none() {
-                    write!(f, "installing component '{}'", c)
+                    write!(f, "installing component '{}'\n", c)
                 } else {
-                    write!(f, "installing component '{}' for '{}'", c, t.unwrap())
+                    write!(f, "installing component '{}' for '{}'\n", c, t.unwrap())
                 }
             }
             RemovingComponent(c, h, t) => {

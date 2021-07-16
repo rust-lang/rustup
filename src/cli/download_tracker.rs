@@ -21,15 +21,15 @@ impl DownloadTracker {
 
     pub fn with_display_progress(self, display_progress: bool) -> Self {
         if display_progress {
-            self.progress_bar.set_style(
-                indicatif::ProgressStyle::default_bar().template(
-                    "{bytes} / {total_bytes} ({percent:3.0}%) {bytes_per_sec} ETA: {eta}",
-                ),
-            );
+            self.progress_bar
+                .set_style(indicatif::ProgressStyle::default_bar().template(
+                " {bytes} / {total_bytes} ({percent:3.0}%) {bytes_per_sec} in {elapsed} ETA: {eta}",
+            ));
             self.progress_bar
                 .set_draw_target(indicatif::ProgressDrawTarget::stdout());
         } else {
-            self.progress_bar.set_draw_target(indicatif::ProgressDrawTarget::hidden());
+            self.progress_bar
+                .set_draw_target(indicatif::ProgressDrawTarget::hidden());
         }
         self
     }
@@ -51,7 +51,12 @@ impl DownloadTracker {
                 self.download_finished();
                 true
             }
-
+            // Notification::Install(
+            //     ref dis @ (In::InstallingComponent(..) | In::DownloadingComponent(..)),
+            // ) => {
+            //     self.progress_bar.set_prefix(format!("{} ", dis));
+            //     false
+            // }
             _ => false,
         }
     }
@@ -59,17 +64,33 @@ impl DownloadTracker {
     /// Notifies self that Content-Length information has been received.
     pub fn content_length_received(&mut self, content_len: u64) {
         self.progress_bar.set_length(content_len);
+        self.progress_bar.tick();
     }
 
     /// Notifies self that data of size `len` has been received.
     pub fn data_received(&mut self, len: usize) {
         self.progress_bar.inc(len as u64);
+        self.progress_bar.tick();
     }
 
     /// Notifies self that the download has finished.
     pub fn download_finished(&mut self) {
         self.progress_bar.finish();
-        self.progress_bar.reset();
+        self.progress_bar.tick();
+        let progress_bar = indicatif::ProgressBar::hidden();
+        progress_bar.set_draw_delta(0);
+        if !self.progress_bar.is_hidden() {
+            progress_bar
+                .set_style(indicatif::ProgressStyle::default_bar().template(
+                " {bytes} / {total_bytes} ({percent:3.0}%) {bytes_per_sec} in {elapsed} ETA: {eta}",
+            ));
+            progress_bar
+                .set_draw_target(indicatif::ProgressDrawTarget::stdout());
+        } else {
+            progress_bar
+                .set_draw_target(indicatif::ProgressDrawTarget::hidden());
+        }
+        self.progress_bar = progress_bar;
     }
 }
 
