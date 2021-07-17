@@ -17,8 +17,15 @@ pub struct DownloadTracker {
 impl DownloadTracker {
     /// Creates a new DownloadTracker.
     pub fn new() -> Self {
+        let progress_bar = indicatif::ProgressBar::new(u64::MAX);
+        progress_bar.set_style(
+            indicatif::ProgressStyle::default_bar()
+                .template("Total: {bytes} Speed: {bytes_per_sec} Elapsed: {elapsed}"),
+        );
+        progress_bar.set_draw_target(indicatif::ProgressDrawTarget::stdout());
+
         Self {
-            progress_bar: indicatif::ProgressBar::hidden(),
+            progress_bar,
             display_progress: true,
         }
     }
@@ -48,10 +55,16 @@ impl DownloadTracker {
 
     /// Notifies self that the download has finished.
     pub fn download_finished(&mut self) {
-        if !self.progress_bar.is_hidden() && self.progress_bar.elapsed() >= Duration::from_secs(1) {
+        if self.display_progress && self.progress_bar.elapsed() >= Duration::from_secs(1) {
             self.progress_bar.finish();
         }
         self.progress_bar = indicatif::ProgressBar::hidden();
+        self.progress_bar.set_style(
+            indicatif::ProgressStyle::default_bar()
+                .template("Total: {bytes} Speed: {bytes_per_sec} Elapsed: {elapsed}"),
+        );
+        self.progress_bar
+            .set_draw_target(indicatif::ProgressDrawTarget::stdout());
     }
 
     pub(crate) fn handle_notification(&mut self, n: &Notification<'_>) -> bool {
