@@ -9,18 +9,32 @@ use crate::Notification;
 /// Tracks download progress and displays information about it to a terminal.
 pub struct DownloadTracker {
     progress_bar: indicatif::ProgressBar,
+    display_progress: bool,
 }
 
+// Note: Sometimes the [`DownloadTracker`]'s methods are called without setting
+// the content length.
 impl DownloadTracker {
     /// Creates a new DownloadTracker.
     pub fn new() -> Self {
-        let progress_bar = indicatif::ProgressBar::hidden();
-        progress_bar.set_draw_target(indicatif::ProgressDrawTarget::hidden());
-        Self { progress_bar }
+        Self {
+            progress_bar: indicatif::ProgressBar::hidden(),
+            display_progress: true,
+        }
     }
 
-    pub fn with_display_progress(self, display_progress: bool) -> Self {
-        if display_progress {
+    pub fn with_display_progress(mut self, display: bool) -> Self {
+        self.display_progress = display;
+        self
+    }
+
+    /// Notifies self that Content-Length information has been received.
+    pub fn content_length_received(&mut self, content_len: u64) {
+        self.progress_bar = indicatif::ProgressBar::new(content_len);
+        self.progress_bar.set_draw_delta(0);
+
+        // Initialize the progress bar with defaults.
+        if self.display_progress {
             self.progress_bar
                 .set_style(indicatif::ProgressStyle::default_bar().template(
                 " {bytes} / {total_bytes} ({percent:3.0}%) {bytes_per_sec} in {elapsed} ETA: {eta}",
@@ -31,7 +45,22 @@ impl DownloadTracker {
             self.progress_bar
                 .set_draw_target(indicatif::ProgressDrawTarget::hidden());
         }
-        self
+    }
+
+    /// Notifies self that data of size `len` has been received.
+    pub fn data_received(&mut self, len: usize) {
+        self.progress_bar.inc(len as u64);
+        if !self.progress_bar.is_hidden() && self.progress_bar.elapsed() >= Duration::from_secs(1) {
+            self.progress_bar.tick();
+        }
+    }
+
+    /// Notifies self that the download has finished.
+    pub fn download_finished(&mut self) {
+        if !self.progress_bar.is_hidden() && self.progress_bar.elapsed() >= Duration::from_secs(1) {
+            self.progress_bar.finish();
+        }
+        self.progress_bar = indicatif::ProgressBar::hidden();
     }
 
     pub(crate) fn handle_notification(&mut self, n: &Notification<'_>) -> bool {
@@ -51,46 +80,8 @@ impl DownloadTracker {
                 self.download_finished();
                 true
             }
-            // Notification::Install(
-            //     ref dis @ (In::InstallingComponent(..) | In::DownloadingComponent(..)),
-            // ) => {
-            //     self.progress_bar.set_prefix(format!("{} ", dis));
-            //     false
-            // }
             _ => false,
         }
-    }
-
-    /// Notifies self that Content-Length information has been received.
-    pub fn content_length_received(&mut self, content_len: u64) {
-        self.progress_bar.set_length(content_len);
-        self.progress_bar.tick();
-    }
-
-    /// Notifies self that data of size `len` has been received.
-    pub fn data_received(&mut self, len: usize) {
-        self.progress_bar.inc(len as u64);
-        self.progress_bar.tick();
-    }
-
-    /// Notifies self that the download has finished.
-    pub fn download_finished(&mut self) {
-        self.progress_bar.finish();
-        self.progress_bar.tick();
-        let progress_bar = indicatif::ProgressBar::hidden();
-        progress_bar.set_draw_delta(0);
-        if !self.progress_bar.is_hidden() {
-            progress_bar
-                .set_style(indicatif::ProgressStyle::default_bar().template(
-                " {bytes} / {total_bytes} ({percent:3.0}%) {bytes_per_sec} in {elapsed} ETA: {eta}",
-            ));
-            progress_bar
-                .set_draw_target(indicatif::ProgressDrawTarget::stdout());
-        } else {
-            progress_bar
-                .set_draw_target(indicatif::ProgressDrawTarget::hidden());
-        }
-        self.progress_bar = progress_bar;
     }
 }
 
