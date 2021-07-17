@@ -6,6 +6,15 @@ use crate::utils::tty;
 use crate::utils::Notification as Un;
 use crate::Notification;
 
+fn new_progress_bar() -> indicatif::ProgressBar {
+    let progress_bar = indicatif::ProgressBar::hidden();
+    progress_bar.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("Total: {bytes} Speed: {bytes_per_sec} Elapsed: {elapsed}"),
+    );
+    progress_bar
+}
+
 /// Tracks download progress and displays information about it to a terminal.
 pub struct DownloadTracker {
     progress_bar: indicatif::ProgressBar,
@@ -17,15 +26,8 @@ pub struct DownloadTracker {
 impl DownloadTracker {
     /// Creates a new DownloadTracker.
     pub fn new() -> Self {
-        let progress_bar = indicatif::ProgressBar::new(u64::MAX);
-        progress_bar.set_style(
-            indicatif::ProgressStyle::default_bar()
-                .template("Total: {bytes} Speed: {bytes_per_sec} Elapsed: {elapsed}"),
-        );
-        progress_bar.set_draw_target(indicatif::ProgressDrawTarget::stdout());
-
         Self {
-            progress_bar,
+            progress_bar: new_progress_bar(),
             display_progress: true,
         }
     }
@@ -44,13 +46,20 @@ impl DownloadTracker {
                 " {bytes} / {total_bytes} ({percent:3.0}%) {bytes_per_sec} in {elapsed} ETA: {eta}",
             ));
             self.progress_bar
-                .set_draw_target(indicatif::ProgressDrawTarget::stdout());
+                .set_draw_target(indicatif::ProgressDrawTarget::hidden());
         }
     }
 
     /// Notifies self that data of size `len` has been received.
     pub fn data_received(&mut self, len: usize) {
         self.progress_bar.inc(len as u64);
+        if self.display_progress
+            && self.progress_bar.is_hidden()
+            && self.progress_bar.elapsed() >= Duration::from_secs(1)
+        {
+            self.progress_bar
+                .set_draw_target(indicatif::ProgressDrawTarget::stdout());
+        }
     }
 
     /// Notifies self that the download has finished.
@@ -58,13 +67,7 @@ impl DownloadTracker {
         if self.display_progress && self.progress_bar.elapsed() >= Duration::from_secs(1) {
             self.progress_bar.finish();
         }
-        self.progress_bar = indicatif::ProgressBar::hidden();
-        self.progress_bar.set_style(
-            indicatif::ProgressStyle::default_bar()
-                .template("Total: {bytes} Speed: {bytes_per_sec} Elapsed: {elapsed}"),
-        );
-        self.progress_bar
-            .set_draw_target(indicatif::ProgressDrawTarget::stdout());
+        self.progress_bar = new_progress_bar();
     }
 
     pub(crate) fn handle_notification(&mut self, n: &Notification<'_>) -> bool {
