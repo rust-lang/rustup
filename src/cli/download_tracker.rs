@@ -30,29 +30,20 @@ impl DownloadTracker {
 
     /// Notifies self that Content-Length information has been received.
     pub fn content_length_received(&mut self, content_len: u64) {
-        self.progress_bar = indicatif::ProgressBar::new(content_len);
-        self.progress_bar.set_draw_delta(0);
-
-        // Initialize the progress bar with defaults.
         if self.display_progress {
+            self.progress_bar = indicatif::ProgressBar::new(content_len);
             self.progress_bar
                 .set_style(indicatif::ProgressStyle::default_bar().template(
                 " {bytes} / {total_bytes} ({percent:3.0}%) {bytes_per_sec} in {elapsed} ETA: {eta}",
             ));
             self.progress_bar
                 .set_draw_target(indicatif::ProgressDrawTarget::stdout());
-        } else {
-            self.progress_bar
-                .set_draw_target(indicatif::ProgressDrawTarget::hidden());
         }
     }
 
     /// Notifies self that data of size `len` has been received.
     pub fn data_received(&mut self, len: usize) {
         self.progress_bar.inc(len as u64);
-        if !self.progress_bar.is_hidden() && self.progress_bar.elapsed() >= Duration::from_secs(1) {
-            self.progress_bar.tick();
-        }
     }
 
     /// Notifies self that the download has finished.
@@ -67,7 +58,6 @@ impl DownloadTracker {
         match *n {
             Notification::Install(In::Utils(Un::DownloadContentLengthReceived(content_len))) => {
                 self.content_length_received(content_len);
-
                 true
             }
             Notification::Install(In::Utils(Un::DownloadDataReceived(data))) => {
