@@ -13,10 +13,10 @@ impl InstallPrefix {
     pub fn path(&self) -> &Path {
         &self.path
     }
-    pub fn abs_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+    pub(crate) fn abs_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         self.path.join(path)
     }
-    pub fn manifest_dir(&self) -> PathBuf {
+    pub(crate) fn manifest_dir(&self) -> PathBuf {
         let mut path = self.path.clone();
         path.push(REL_MANIFEST_DIR);
         path
@@ -26,7 +26,7 @@ impl InstallPrefix {
         path.push(name);
         path
     }
-    pub fn rel_manifest_file(&self, name: &str) -> PathBuf {
+    pub(crate) fn rel_manifest_file(&self, name: &str) -> PathBuf {
         let mut path = PathBuf::from(REL_MANIFEST_DIR);
         path.push(name);
         path

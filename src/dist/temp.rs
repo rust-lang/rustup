@@ -4,7 +4,7 @@ use std::io;
 use std::ops;
 use std::path::{Path, PathBuf};
 
-pub use anyhow::{Context, Result};
+pub(crate) use anyhow::{Context, Result};
 use thiserror::Error as ThisError;
 
 use crate::utils::notify::NotificationLevel;
@@ -12,13 +12,13 @@ use crate::utils::raw;
 use crate::utils::utils;
 
 #[derive(Debug, ThisError)]
-pub enum Error {
+pub(crate) enum CreatingError {
     #[error("could not create temp root {}" ,.0.display())]
-    CreatingRoot(PathBuf),
+    Root(PathBuf),
     #[error("could not create temp file {}",.0.display())]
-    CreatingFile(PathBuf),
+    File(PathBuf),
     #[error("could not create temp directory {}",.0.display())]
-    CreatingDirectory(PathBuf),
+    Directory(PathBuf),
 }
 
 #[derive(Debug)]
@@ -37,7 +37,7 @@ pub struct Cfg {
 }
 
 #[derive(Debug)]
-pub struct Dir<'a> {
+pub(crate) struct Dir<'a> {
     cfg: &'a Cfg,
     path: PathBuf,
 }
@@ -102,14 +102,14 @@ impl Cfg {
         }
     }
 
-    pub fn create_root(&self) -> Result<bool> {
+    pub(crate) fn create_root(&self) -> Result<bool> {
         raw::ensure_dir_exists(&self.root_directory, |p| {
             (self.notify_handler)(Notification::CreatingRoot(p));
         })
-        .with_context(|| Error::CreatingRoot(PathBuf::from(&self.root_directory)))
+        .with_context(|| CreatingError::Root(PathBuf::from(&self.root_directory)))
     }
 
-    pub fn new_directory(&self) -> Result<Dir<'_>> {
+    pub(crate) fn new_directory(&self) -> Result<Dir<'_>> {
         self.create_root()?;
 
         loop {
@@ -122,7 +122,7 @@ impl Cfg {
             if !raw::path_exists(&temp_dir) {
                 (self.notify_handler)(Notification::CreatingDirectory(&temp_dir));
                 fs::create_dir(&temp_dir)
-                    .with_context(|| Error::CreatingDirectory(PathBuf::from(&temp_dir)))?;
+                    .with_context(|| CreatingError::Directory(PathBuf::from(&temp_dir)))?;
                 return Ok(Dir {
                     cfg: self,
                     path: temp_dir,
@@ -135,7 +135,7 @@ impl Cfg {
         self.new_file_with_ext("", "")
     }
 
-    pub fn new_file_with_ext(&self, prefix: &str, ext: &str) -> Result<File<'_>> {
+    pub(crate) fn new_file_with_ext(&self, prefix: &str, ext: &str) -> Result<File<'_>> {
         self.create_root()?;
 
         loop {
@@ -148,7 +148,7 @@ impl Cfg {
             if !raw::path_exists(&temp_file) {
                 (self.notify_handler)(Notification::CreatingFile(&temp_file));
                 fs::File::create(&temp_file)
-                    .with_context(|| Error::CreatingFile(PathBuf::from(&temp_file)))?;
+                    .with_context(|| CreatingError::File(PathBuf::from(&temp_file)))?;
                 return Ok(File {
                     cfg: self,
                     path: temp_file,
@@ -157,7 +157,7 @@ impl Cfg {
         }
     }
 
-    pub fn clean(&self) {
+    pub(crate) fn clean(&self) {
         utils::delete_dir_contents(&self.root_directory);
     }
 }

@@ -528,7 +528,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    pub fn add_component(&self, mut component: Component) -> Result<()> {
+    pub(crate) fn add_component(&self, mut component: Component) -> Result<()> {
         if !self.0.exists() {
             return Err(RustupError::ToolchainNotInstalled(self.0.name.to_owned()).into());
         }
@@ -643,7 +643,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed and not-installed?
-    pub fn desc(&self) -> Result<ToolchainDesc> {
+    pub(crate) fn desc(&self) -> Result<ToolchainDesc> {
         ToolchainDesc::from_str(&self.0.name)
     }
 
@@ -736,7 +736,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    pub fn get_manifest(&self) -> Result<Option<Manifest>> {
+    pub(crate) fn get_manifest(&self) -> Result<Option<Manifest>> {
         if !self.0.exists() {
             bail!(RustupError::ToolchainNotInstalled(self.0.name().to_owned()));
         }
@@ -751,7 +751,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Not installed only?
-    pub fn install_from_dist(
+    pub(crate) fn install_from_dist(
         &self,
         force_update: bool,
         allow_downgrade: bool,
@@ -872,7 +872,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    pub fn remove_component(&self, mut component: Component) -> Result<()> {
+    pub(crate) fn remove_component(&self, mut component: Component) -> Result<()> {
         // Overlapping code with get_manifest :/.
         if !self.0.exists() {
             return Err(RustupError::ToolchainNotInstalled(self.0.name.to_owned()).into());

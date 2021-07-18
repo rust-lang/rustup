@@ -23,7 +23,7 @@ pub struct DownloadCfg<'a> {
     pub pgp_keys: &'a [PgpPublicKey],
 }
 
-pub struct File {
+pub(crate) struct File {
     path: PathBuf,
 }
 
@@ -40,7 +40,7 @@ impl<'a> DownloadCfg<'a> {
     /// Partial downloads are stored in `self.download_dir`, keyed by hash. If the
     /// target file already exists, then the hash is checked and it is returned
     /// immediately without re-downloading.
-    pub fn download(&self, url: &Url, hash: &str) -> Result<File> {
+    pub(crate) fn download(&self, url: &Url, hash: &str) -> Result<File> {
         utils::ensure_dir_exists(
             "Download Directory",
             self.download_dir,
@@ -116,7 +116,7 @@ impl<'a> DownloadCfg<'a> {
         }
     }
 
-    pub fn clean(&self, hashes: &[String]) -> Result<()> {
+    pub(crate) fn clean(&self, hashes: &[String]) -> Result<()> {
         for hash in hashes.iter() {
             let used_file = self.download_dir.join(hash);
             if self.download_dir.join(&used_file).exists() {
@@ -182,7 +182,7 @@ impl<'a> DownloadCfg<'a> {
     /// and if they match, the download is skipped.
     /// Verifies the signature found at the same url with a `.asc` suffix, and prints a
     /// warning when the signature does not verify, or is not found.
-    pub fn download_and_check(
+    pub(crate) fn download_and_check(
         &self,
         url_str: &str,
         update_hash: Option<&Path>,

@@ -22,8 +22,8 @@ use crate::errors::{OperationError, RustupError};
 use crate::process;
 use crate::utils::utils;
 
-pub const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
-pub const CONFIG_FILE: &str = "multirust-config.toml";
+pub(crate) const DIST_MANIFEST: &str = "multirust-channel-manifest.toml";
+pub(crate) const CONFIG_FILE: &str = "multirust-config.toml";
 
 #[derive(Debug)]
 pub struct Manifestation {
@@ -38,13 +38,6 @@ pub struct Changes {
 }
 
 impl Changes {
-    pub fn none() -> Self {
-        Self {
-            explicit_add_components: Vec::new(),
-            remove_components: Vec::new(),
-        }
-    }
-
     fn iter_add_components(&self) -> impl Iterator<Item = &Component> {
         self.explicit_add_components.iter()
     }
@@ -355,7 +348,7 @@ impl Manifestation {
 
     // Read the config file. Config files are presently only created
     // for v2 installations.
-    pub fn read_config(&self) -> Result<Option<Config>> {
+    pub(crate) fn read_config(&self) -> Result<Option<Config>> {
         let prefix = self.installation.prefix();
         let rel_config_path = prefix.rel_manifest_file(CONFIG_FILE);
         let config_path = prefix.path().join(rel_config_path);

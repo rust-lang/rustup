@@ -73,7 +73,7 @@ impl Components {
             })
             .collect())
     }
-    pub fn add<'a>(&self, name: &str, tx: Transaction<'a>) -> ComponentBuilder<'a> {
+    pub(crate) fn add<'a>(&self, name: &str, tx: Transaction<'a>) -> ComponentBuilder<'a> {
         ComponentBuilder {
             components: self.clone(),
             name: name.to_owned(),
@@ -85,12 +85,12 @@ impl Components {
         let result = self.list()?;
         Ok(result.into_iter().find(|c| (c.name() == name)))
     }
-    pub fn prefix(&self) -> InstallPrefix {
+    pub(crate) fn prefix(&self) -> InstallPrefix {
         self.prefix.clone()
     }
 }
 
-pub struct ComponentBuilder<'a> {
+pub(crate) struct ComponentBuilder<'a> {
     components: Components,
     name: String,
     parts: Vec<ComponentPart>,
@@ -98,27 +98,27 @@ pub struct ComponentBuilder<'a> {
 }
 
 impl<'a> ComponentBuilder<'a> {
-    pub fn copy_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
+    pub(crate) fn copy_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
         self.parts
             .push(ComponentPart("file".to_owned(), path.clone()));
         self.tx.copy_file(&self.name, path, src)
     }
-    pub fn copy_dir(&mut self, path: PathBuf, src: &Path) -> Result<()> {
+    pub(crate) fn copy_dir(&mut self, path: PathBuf, src: &Path) -> Result<()> {
         self.parts
             .push(ComponentPart("dir".to_owned(), path.clone()));
         self.tx.copy_dir(&self.name, path, src)
     }
-    pub fn move_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
+    pub(crate) fn move_file(&mut self, path: PathBuf, src: &Path) -> Result<()> {
         self.parts
             .push(ComponentPart("file".to_owned(), path.clone()));
         self.tx.move_file(&self.name, path, src)
     }
-    pub fn move_dir(&mut self, path: PathBuf, src: &Path) -> Result<()> {
+    pub(crate) fn move_dir(&mut self, path: PathBuf, src: &Path) -> Result<()> {
         self.parts
             .push(ComponentPart("dir".to_owned(), path.clone()));
         self.tx.move_dir(&self.name, path, src)
     }
-    pub fn finish(mut self) -> Result<Transaction<'a>> {
+    pub(crate) fn finish(mut self) -> Result<Transaction<'a>> {
         // Write component manifest
         let path = self.components.rel_component_manifest(&self.name);
         let abs_path = self.components.prefix.abs_path(&path);
@@ -146,10 +146,10 @@ impl<'a> ComponentBuilder<'a> {
 pub struct ComponentPart(pub String, pub PathBuf);
 
 impl ComponentPart {
-    pub fn encode(&self) -> String {
+    pub(crate) fn encode(&self) -> String {
         format!("{}:{}", &self.0, &self.1.to_string_lossy())
     }
-    pub fn decode(line: &str) -> Option<Self> {
+    pub(crate) fn decode(line: &str) -> Option<Self> {
         line.find(':')
             .map(|pos| Self(line[0..pos].to_owned(), PathBuf::from(&line[(pos + 1)..])))
     }
@@ -162,21 +162,21 @@ pub struct Component {
 }
 
 impl Component {
-    pub fn manifest_name(&self) -> String {
+    pub(crate) fn manifest_name(&self) -> String {
         format!("manifest-{}", &self.name)
     }
-    pub fn manifest_file(&self) -> PathBuf {
+    pub(crate) fn manifest_file(&self) -> PathBuf {
         self.components.prefix.manifest_file(&self.manifest_name())
     }
-    pub fn rel_manifest_file(&self) -> PathBuf {
+    pub(crate) fn rel_manifest_file(&self) -> PathBuf {
         self.components
             .prefix
             .rel_manifest_file(&self.manifest_name())
     }
-    pub fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &str {
         &self.name
     }
-    pub fn parts(&self) -> Result<Vec<ComponentPart>> {
+    pub(crate) fn parts(&self) -> Result<Vec<ComponentPart>> {
         let mut result = Vec::new();
         for line in utils::read_file("component", &self.manifest_file())?.lines() {
             result.push(
