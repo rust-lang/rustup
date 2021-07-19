@@ -32,16 +32,16 @@
 
 #[cfg(unix)]
 mod shell;
-pub mod test;
+pub(crate) mod test;
 #[cfg(unix)]
 mod unix;
 #[cfg(windows)]
 mod windows;
 mod os {
     #[cfg(unix)]
-    pub use super::unix::*;
+    pub(crate) use super::unix::*;
     #[cfg(windows)]
-    pub use super::windows::*;
+    pub(crate) use super::windows::*;
 }
 
 use std::borrow::Cow;
@@ -85,9 +85,9 @@ pub struct InstallOpts<'a> {
 }
 
 #[cfg(feature = "no-self-update")]
-pub const NEVER_SELF_UPDATE: bool = true;
+pub(crate) const NEVER_SELF_UPDATE: bool = true;
 #[cfg(not(feature = "no-self-update"))]
-pub const NEVER_SELF_UPDATE: bool = false;
+pub(crate) const NEVER_SELF_UPDATE: bool = false;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SelfUpdateMode {
@@ -97,11 +97,11 @@ pub enum SelfUpdateMode {
 }
 
 impl SelfUpdateMode {
-    pub fn modes() -> &'static [&'static str] {
+    pub(crate) fn modes() -> &'static [&'static str] {
         &["enable", "disable", "check-only"]
     }
 
-    pub fn default_mode() -> &'static str {
+    pub(crate) fn default_mode() -> &'static str {
         "enable"
     }
 }
@@ -684,7 +684,7 @@ fn install_bins() -> Result<()> {
     install_proxies()
 }
 
-pub fn install_proxies() -> Result<()> {
+pub(crate) fn install_proxies() -> Result<()> {
     let bin_path = utils::cargo_home()?.join("bin");
     let rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
 
@@ -1048,7 +1048,7 @@ fn parse_new_rustup_version(version: String) -> String {
     String::from(matched_version)
 }
 
-pub fn prepare_update() -> Result<Option<PathBuf>> {
+pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
     let cargo_home = utils::cargo_home()?;
     let rustup_path = cargo_home.join(&format!("bin{}rustup{}", MAIN_SEPARATOR, EXE_SUFFIX));
     let setup_path = cargo_home.join(&format!("bin{}rustup-init{}", MAIN_SEPARATOR, EXE_SUFFIX));
@@ -1109,7 +1109,7 @@ pub fn prepare_update() -> Result<Option<PathBuf>> {
     Ok(Some(setup_path))
 }
 
-pub fn get_available_rustup_version() -> Result<String> {
+pub(crate) fn get_available_rustup_version() -> Result<String> {
     let update_root = process()
         .var("RUSTUP_UPDATE_ROOT")
         .unwrap_or_else(|_| String::from(UPDATE_ROOT));
@@ -1150,7 +1150,7 @@ pub fn get_available_rustup_version() -> Result<String> {
     Ok(String::from(available_version))
 }
 
-pub fn check_rustup_update() -> Result<()> {
+pub(crate) fn check_rustup_update() -> Result<()> {
     let mut t = term2::stdout();
     // Get current rustup version
     let current_version = env!("CARGO_PKG_VERSION");
@@ -1176,7 +1176,7 @@ pub fn check_rustup_update() -> Result<()> {
     Ok(())
 }
 
-pub fn cleanup_self_updater() -> Result<()> {
+pub(crate) fn cleanup_self_updater() -> Result<()> {
     let cargo_home = utils::cargo_home()?;
     let setup = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
 
@@ -1187,7 +1187,7 @@ pub fn cleanup_self_updater() -> Result<()> {
     Ok(())
 }
 
-pub fn valid_self_update_modes() -> String {
+pub(crate) fn valid_self_update_modes() -> String {
     SelfUpdateMode::modes()
         .iter()
         .map(|s| format!("'{}'", s))

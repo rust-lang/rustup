@@ -7,9 +7,9 @@ use std::ops::Deref;
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
-pub use term::color;
-pub use term::Attr;
-pub use term::Terminal;
+pub(crate) use term::color;
+pub(crate) use term::Attr;
+pub(crate) use term::Terminal;
 
 use crate::currentprocess::filesource::{Isatty, Writer};
 use crate::process;
@@ -50,7 +50,7 @@ mod termhack {
         }
     }
 
-    pub fn make_terminal_with_fallback<T, F>(
+    pub(crate) fn make_terminal_with_fallback<T, F>(
         terminfo: Option<TermInfo>,
         source: F,
     ) -> Box<dyn Terminal<Output = T> + Send>
@@ -75,26 +75,26 @@ mod termhack {
     /// Return a Terminal wrapping stdout, or None if a terminal couldn't be
     /// opened.
     #[allow(unused)]
-    pub fn stdout(terminfo: Option<TermInfo>) -> Option<Box<StdoutTerminal>> {
+    pub(crate) fn stdout(terminfo: Option<TermInfo>) -> Option<Box<StdoutTerminal>> {
         make_terminal(terminfo, io::stdout)
     }
 
     /// Return a Terminal wrapping stderr, or None if a terminal couldn't be
     /// opened.
     #[allow(unused)]
-    pub fn stderr(terminfo: Option<TermInfo>) -> Option<Box<StderrTerminal>> {
+    pub(crate) fn stderr(terminfo: Option<TermInfo>) -> Option<Box<StderrTerminal>> {
         make_terminal(terminfo, io::stderr)
     }
 
     /// Return a Terminal wrapping stdout.
     #[allow(unused)]
-    pub fn stdout_with_fallback(terminfo: Option<TermInfo>) -> Box<StdoutTerminal> {
+    pub(crate) fn stdout_with_fallback(terminfo: Option<TermInfo>) -> Box<StdoutTerminal> {
         make_terminal_with_fallback(terminfo, io::stdout)
     }
 
     /// Return a Terminal wrapping stderr.
     #[allow(unused)]
-    pub fn stderr_with_fallback(terminfo: Option<TermInfo>) -> Box<StderrTerminal> {
+    pub(crate) fn stderr_with_fallback(terminfo: Option<TermInfo>) -> Box<StderrTerminal> {
         make_terminal_with_fallback(terminfo, io::stderr)
     }
 }

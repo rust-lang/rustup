@@ -17,7 +17,7 @@ use crate::utils::Notification;
 use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 use winreg::{RegKey, RegValue};
 
-pub fn ensure_prompt() -> Result<()> {
+pub(crate) fn ensure_prompt() -> Result<()> {
     writeln!(process().stdout(),)?;
     writeln!(process().stdout(), "Press the Enter key to continue.")?;
     common::read_line()?;
@@ -26,7 +26,7 @@ pub fn ensure_prompt() -> Result<()> {
 
 // Provide guidance about setting up MSVC if it doesn't appear to be
 // installed
-pub fn do_msvc_check(opts: &InstallOpts<'_>) -> bool {
+pub(crate) fn do_msvc_check(opts: &InstallOpts<'_>) -> bool {
     // Test suite skips this since it's env dependent
     if process().var("RUSTUP_INIT_SKIP_MSVC_CHECK").is_ok() {
         return true;
@@ -72,7 +72,7 @@ pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-pub fn wait_for_parent() -> Result<()> {
+pub(crate) fn wait_for_parent() -> Result<()> {
     use std::io;
     use std::mem;
     use winapi::shared::minwindef::DWORD;
@@ -145,7 +145,7 @@ pub fn wait_for_parent() -> Result<()> {
     Ok(())
 }
 
-pub fn do_add_to_path() -> Result<()> {
+pub(crate) fn do_add_to_path() -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_add_to_path)?;
     _apply_new_path(new_path)
 }
@@ -274,14 +274,14 @@ where
         .and_then(|old_path| f(old_path, OsString::from(path_str).encode_wide().collect())))
 }
 
-pub fn do_remove_from_path() -> Result<()> {
+pub(crate) fn do_remove_from_path() -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_remove_from_path)?;
     _apply_new_path(new_path)
 }
 
 const RUSTUP_UNINSTALL_ENTRY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Rustup";
 
-pub fn do_add_to_programs() -> Result<()> {
+pub(crate) fn do_add_to_programs() -> Result<()> {
     use std::path::PathBuf;
 
     let key = RegKey::predef(HKEY_CURRENT_USER)
@@ -320,7 +320,7 @@ pub fn do_add_to_programs() -> Result<()> {
     Ok(())
 }
 
-pub fn do_remove_from_programs() -> Result<()> {
+pub(crate) fn do_remove_from_programs() -> Result<()> {
     match RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(RUSTUP_UNINSTALL_ENTRY) {
         Ok(()) => Ok(()),
         Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -329,7 +329,7 @@ pub fn do_remove_from_programs() -> Result<()> {
 }
 
 /// Convert a vector UCS-2 chars to a null-terminated UCS-2 string in bytes
-pub fn to_winreg_bytes(mut v: Vec<u16>) -> Vec<u8> {
+pub(crate) fn to_winreg_bytes(mut v: Vec<u16>) -> Vec<u8> {
     v.push(0);
     unsafe { std::slice::from_raw_parts(v.as_ptr().cast::<u8>(), v.len() * 2).to_vec() }
 }
@@ -337,7 +337,7 @@ pub fn to_winreg_bytes(mut v: Vec<u16>) -> Vec<u8> {
 /// This is used to decode the value of HKCU\Environment\PATH. If that key is
 /// not REG_SZ | REG_EXPAND_SZ then this returns None. The winreg library itself
 /// does a lossy unicode conversion.
-pub fn from_winreg_value(val: &winreg::RegValue) -> Option<Vec<u16>> {
+pub(crate) fn from_winreg_value(val: &winreg::RegValue) -> Option<Vec<u16>> {
     use std::slice;
 
     match val.vtype {
@@ -357,7 +357,7 @@ pub fn from_winreg_value(val: &winreg::RegValue) -> Option<Vec<u16>> {
     }
 }
 
-pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
+pub(crate) fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
     Command::new(setup_path)
         .arg("--self-replace")
         .spawn()
@@ -366,7 +366,7 @@ pub fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-pub fn self_replace() -> Result<utils::ExitCode> {
+pub(crate) fn self_replace() -> Result<utils::ExitCode> {
     wait_for_parent()?;
     install_bins()?;
 
@@ -403,7 +403,7 @@ pub fn self_replace() -> Result<utils::ExitCode> {
 //
 // .. augmented with this SO answer
 // https://stackoverflow.com/questions/10319526/understanding-a-self-deleting-program-in-c
-pub fn delete_rustup_and_cargo_home() -> Result<()> {
+pub(crate) fn delete_rustup_and_cargo_home() -> Result<()> {
     use std::io;
     use std::mem;
     use std::ptr;

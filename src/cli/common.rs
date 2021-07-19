@@ -21,9 +21,9 @@ use crate::utils::notify::NotificationLevel;
 use crate::utils::utils;
 use crate::{Cfg, Notification, Toolchain, UpdateStatus};
 
-pub const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
+pub(crate) const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
 
-pub fn confirm(question: &str, default: bool) -> Result<bool> {
+pub(crate) fn confirm(question: &str, default: bool) -> Result<bool> {
     write!(process().stdout(), "{} ", question)?;
     let _ = std::io::stdout().flush();
     let input = read_line()?;
@@ -40,13 +40,13 @@ pub fn confirm(question: &str, default: bool) -> Result<bool> {
     Ok(r)
 }
 
-pub enum Confirm {
+pub(crate) enum Confirm {
     Yes,
     No,
     Advanced,
 }
 
-pub fn confirm_advanced() -> Result<Confirm> {
+pub(crate) fn confirm_advanced() -> Result<Confirm> {
     writeln!(process().stdout())?;
     writeln!(process().stdout(), "1) Proceed with installation (default)")?;
     writeln!(process().stdout(), "2) Customize installation")?;
@@ -67,7 +67,7 @@ pub fn confirm_advanced() -> Result<Confirm> {
     Ok(r)
 }
 
-pub fn question_str(question: &str, default: &str) -> Result<String> {
+pub(crate) fn question_str(question: &str, default: &str) -> Result<String> {
     writeln!(process().stdout(), "{} [{}]", question, default)?;
     let _ = std::io::stdout().flush();
     let input = read_line()?;
@@ -81,7 +81,7 @@ pub fn question_str(question: &str, default: &str) -> Result<String> {
     }
 }
 
-pub fn question_bool(question: &str, default: bool) -> Result<bool> {
+pub(crate) fn question_bool(question: &str, default: bool) -> Result<bool> {
     let default_text = if default { "(Y/n)" } else { "(y/N)" };
     writeln!(process().stdout(), "{} {}", question, default_text)?;
 
@@ -101,7 +101,7 @@ pub fn question_bool(question: &str, default: bool) -> Result<bool> {
     }
 }
 
-pub fn read_line() -> Result<String> {
+pub(crate) fn read_line() -> Result<String> {
     let stdin = process().stdin();
     let stdin = stdin.lock();
     let mut lines = stdin.lines();
@@ -156,7 +156,7 @@ impl NotifyOnConsole {
     }
 }
 
-pub fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
+pub(crate) fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
     use std::cell::RefCell;
 
     use super::download_tracker::DownloadTracker;
@@ -175,7 +175,11 @@ pub fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
     }))
 }
 
-pub fn show_channel_update(cfg: &Cfg, name: &str, updated: Result<UpdateStatus>) -> Result<()> {
+pub(crate) fn show_channel_update(
+    cfg: &Cfg,
+    name: &str,
+    updated: Result<UpdateStatus>,
+) -> Result<()> {
     show_channel_updates(cfg, vec![(name.to_string(), updated)])
 }
 
@@ -277,13 +281,13 @@ pub(crate) fn update_all_channels(
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum SelfUpdatePermission {
+pub(crate) enum SelfUpdatePermission {
     HardFail,
     Skip,
     Permit,
 }
 
-pub fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
+pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermission> {
     if cfg!(windows) {
         Ok(SelfUpdatePermission::Permit)
     } else {
@@ -528,7 +532,7 @@ pub(crate) fn list_overrides(cfg: &Cfg) -> Result<utils::ExitCode> {
 
 git_testament!(TESTAMENT);
 
-pub fn version() -> &'static str {
+pub(crate) fn version() -> &'static str {
     lazy_static! {
         // Because we trust our `stable` branch given the careful release
         // process, we mark it trusted here so that our version numbers look
@@ -618,7 +622,7 @@ pub fn report_error(e: &anyhow::Error) {
     }
 }
 
-pub fn ignorable_error(error: &'static str, no_prompt: bool) -> Result<()> {
+pub(crate) fn ignorable_error(error: &'static str, no_prompt: bool) -> Result<()> {
     let error = anyhow!(error);
     report_error(&error);
     if no_prompt {

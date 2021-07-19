@@ -16,7 +16,7 @@ use crate::Notification;
 const DOWNLOAD_TRACK_COUNT: usize = 5;
 
 /// Tracks download progress and displays information about it to a terminal.
-pub struct DownloadTracker {
+pub(crate) struct DownloadTracker {
     /// Content-Length of the to-be downloaded object.
     content_len: Option<usize>,
     /// Total data downloaded in bytes.
@@ -53,7 +53,7 @@ pub struct DownloadTracker {
 
 impl DownloadTracker {
     /// Creates a new DownloadTracker.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             content_len: None,
             total_downloaded: 0,
@@ -68,7 +68,7 @@ impl DownloadTracker {
         }
     }
 
-    pub fn with_display_progress(mut self, display_progress: bool) -> Self {
+    pub(crate) fn with_display_progress(mut self, display_progress: bool) -> Self {
         self.display_progress = display_progress;
         self
     }
@@ -104,12 +104,12 @@ impl DownloadTracker {
     }
 
     /// Notifies self that Content-Length information has been received.
-    pub fn content_length_received(&mut self, content_len: u64) {
+    pub(crate) fn content_length_received(&mut self, content_len: u64) {
         self.content_len = Some(content_len as usize);
     }
 
     /// Notifies self that data of size `len` has been received.
-    pub fn data_received(&mut self, len: usize) {
+    pub(crate) fn data_received(&mut self, len: usize) {
         self.total_downloaded += len;
         self.downloaded_this_sec += len;
 
@@ -135,7 +135,7 @@ impl DownloadTracker {
         }
     }
     /// Notifies self that the download has finished.
-    pub fn download_finished(&mut self) {
+    pub(crate) fn download_finished(&mut self) {
         if self.displayed_charcount.is_some() {
             // Display the finished state
             self.display();
@@ -223,7 +223,7 @@ impl DownloadTracker {
         self.units.push(new_unit);
     }
 
-    pub fn pop_unit(&mut self) {
+    pub(crate) fn pop_unit(&mut self) {
         self.units.pop();
     }
 }

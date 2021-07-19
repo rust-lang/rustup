@@ -23,7 +23,7 @@ macro_rules! debug {
     ( $ ( $ arg : tt ) * ) => ( $crate::cli::log::debug_fmt ( format_args ! ( $ ( $ arg ) * ) ) )
 }
 
-pub fn warn_fmt(args: fmt::Arguments<'_>) {
+pub(crate) fn warn_fmt(args: fmt::Arguments<'_>) {
     let mut t = term2::stderr();
     let _ = t.fg(term2::color::YELLOW);
     let _ = t.attr(term2::Attr::Bold);
@@ -33,7 +33,7 @@ pub fn warn_fmt(args: fmt::Arguments<'_>) {
     let _ = writeln!(t);
 }
 
-pub fn err_fmt(args: fmt::Arguments<'_>) {
+pub(crate) fn err_fmt(args: fmt::Arguments<'_>) {
     let mut t = term2::stderr();
     let _ = t.fg(term2::color::RED);
     let _ = t.attr(term2::Attr::Bold);
@@ -43,7 +43,7 @@ pub fn err_fmt(args: fmt::Arguments<'_>) {
     let _ = writeln!(t);
 }
 
-pub fn info_fmt(args: fmt::Arguments<'_>) {
+pub(crate) fn info_fmt(args: fmt::Arguments<'_>) {
     let mut t = term2::stderr();
     let _ = t.attr(term2::Attr::Bold);
     let _ = write!(t, "info: ");
@@ -52,7 +52,7 @@ pub fn info_fmt(args: fmt::Arguments<'_>) {
     let _ = writeln!(t);
 }
 
-pub fn verbose_fmt(args: fmt::Arguments<'_>) {
+pub(crate) fn verbose_fmt(args: fmt::Arguments<'_>) {
     let mut t = term2::stderr();
     let _ = t.fg(term2::color::MAGENTA);
     let _ = t.attr(term2::Attr::Bold);
@@ -62,7 +62,7 @@ pub fn verbose_fmt(args: fmt::Arguments<'_>) {
     let _ = writeln!(t);
 }
 
-pub fn debug_fmt(args: fmt::Arguments<'_>) {
+pub(crate) fn debug_fmt(args: fmt::Arguments<'_>) {
     if process().var("RUSTUP_DEBUG").is_ok() {
         let mut t = term2::stderr();
         let _ = t.fg(term2::color::BLUE);

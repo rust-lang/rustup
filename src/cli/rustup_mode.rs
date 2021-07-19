@@ -207,7 +207,7 @@ pub fn main() -> Result<utils::ExitCode> {
     })
 }
 
-pub fn cli() -> App<'static, 'static> {
+pub(crate) fn cli() -> App<'static, 'static> {
     let mut app = App::new("rustup")
         .version(common::version())
         .about("The Rust toolchain installer")
@@ -1614,7 +1614,7 @@ fn show_keys(cfg: &Cfg) -> Result<utils::ExitCode> {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum CompletionCommand {
+pub(crate) enum CompletionCommand {
     Rustup,
     Cargo,
 }
