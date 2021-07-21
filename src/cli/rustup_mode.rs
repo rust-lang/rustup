@@ -853,7 +853,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
         let status = if !toolchain.is_custom() {
             let distributable = DistributableToolchain::new(&toolchain)?;
             Some(distributable.install_from_dist_if_not_installed()?)
-        } else if !toolchain.exists() {
+        } else if !toolchain.exists() && toolchain.name() != "none" {
             return Err(RustupError::ToolchainNotInstalled(toolchain.name().to_string()).into());
         } else {
             None

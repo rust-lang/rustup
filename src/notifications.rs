@@ -96,6 +96,7 @@ impl<'a> Display for Notification<'a> {
             Install(n) => n.fmt(f),
             Utils(n) => n.fmt(f),
             Temp(n) => n.fmt(f),
+            SetDefaultToolchain("none") => write!(f, "default toolchain unset"),
             SetDefaultToolchain(name) => write!(f, "default toolchain set to '{}'", name),
             SetOverrideToolchain(path, name) => write!(
                 f,

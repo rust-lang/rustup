@@ -193,7 +193,9 @@ fn uninstall_works_if_some_bins_dont_exist() {
             .cargodir
             .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
         let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
-        let rust_gdbgui = config.cargodir.join(&format!("bin/rust-gdbgui{}", EXE_SUFFIX));
+        let rust_gdbgui = config
+            .cargodir
+            .join(&format!("bin/rust-gdbgui{}", EXE_SUFFIX));
 
         fs::remove_file(&rustc).unwrap();
         fs::remove_file(&cargo).unwrap();

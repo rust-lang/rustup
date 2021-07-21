@@ -382,7 +382,11 @@ impl Cfg {
 
     pub fn set_default(&self, toolchain: &str) -> Result<()> {
         self.settings_file.with_mut(|s| {
-            s.default_toolchain = Some(toolchain.to_owned());
+            s.default_toolchain = if toolchain == "none" {
+                None
+            } else {
+                Some(toolchain.to_owned())
+            };
             Ok(())
         })?;
         (self.notify_handler)(Notification::SetDefaultToolchain(toolchain));
