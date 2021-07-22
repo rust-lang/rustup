@@ -59,7 +59,7 @@ fn run_rustup_inner() -> Result<utils::ExitCode> {
 
     // Before we do anything else, ensure we know where we are and who we
     // are because otherwise we cannot proceed usefully.
-    process().current_dir()?;
+    utils::current_dir()?;
     utils::current_exe()?;
 
     // The name of arg0 determines how the program is going to behave
