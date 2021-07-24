@@ -1686,7 +1686,9 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
 
             writeln!(
                 &mut term2::stdout(),
-                "source $(rustc --print sysroot){}",
+                "if command -v rustc >/dev/null 2>&1; then\n\
+                    \tsource \"$(rustc --print sysroot)\"{}\n\
+                 fi",
                 script,
             )?;
         }
