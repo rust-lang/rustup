@@ -30,6 +30,13 @@ installing the NDK components as well.
 
 [Android NDK]: https://developer.android.com/tools/sdk/ndk/index.html
 
+To tell cargo which linker it should use for a specific target, you can add the
+following lines to `~/.cargo/config`:
+```console
+[target.armv7-unknown-linux-gnueabihf]
+linker = "arm-linux-gnueabihf-gcc-5.3.1"
+```
+
 To install a target for a toolchain that isn't the default toolchain use the
 `--toolchain` argument of `rustup target add`, like so:
 
