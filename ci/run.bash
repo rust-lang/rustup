@@ -20,6 +20,7 @@ case "$TARGET" in
   mips* ) ;;
   riscv* ) ;;
   s390x* ) ;;
+  aarch64-pc-windows-msvc ) ;;
   # default case, build with rustls enabled
   * ) FEATURES+=('--features' 'reqwest-rustls-tls') ;;
 esac
