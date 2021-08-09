@@ -29,8 +29,6 @@ jobs:
           - target: i686-pc-windows-gnu
             mingwdir: mingw32
             mingw: https://ci-mirrors.rust-lang.org/rustc/i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z
-          - target: aarch64-pc-windows-msvc
-            skip_tests: yes
     steps:
       - uses: actions/checkout@v2
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
