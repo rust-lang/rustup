@@ -32,6 +32,7 @@ function detect_platform() {
     if (navigator.platform == "FreeBSD amd64") {os = "unix";}
     if (navigator.platform == "NetBSD x86_64") {os = "unix";}
     if (navigator.platform == "NetBSD amd64") {os = "unix";}
+    if (navigator.platform == "SunOS i86pc") {os = "unix";}
 
     // I wish I knew by now, but I don't. Try harder.
     if (os == "unknown") {
@@ -49,6 +50,7 @@ function detect_platform() {
         if (navigator.oscpu.indexOf("Linux")!=-1) {os = "unix";}
         if (navigator.oscpu.indexOf("FreeBSD")!=-1) {os = "unix";}
         if (navigator.oscpu.indexOf("NetBSD")!=-1) {os = "unix";}
+        if (navigator.oscpu.indexOf("SunOS")!=-1) {os = "unix";}
     }
 
     return os;
