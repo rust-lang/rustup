@@ -19,17 +19,17 @@
 
 #![allow(clippy::missing_safety_doc)]
 
-pub use self::imp::Setup;
+pub(crate) use self::imp::Setup;
 
-pub fn setup() -> Option<Setup> {
+pub(crate) fn setup() -> Option<Setup> {
     unsafe { imp::setup() }
 }
 
 #[cfg(unix)]
 mod imp {
-    pub type Setup = ();
+    pub(crate) type Setup = ();
 
-    pub unsafe fn setup() -> Option<()> {
+    pub(crate) unsafe fn setup() -> Option<()> {
         Some(())
     }
 }
@@ -47,11 +47,11 @@ mod imp {
     use winapi::um::winnt::HANDLE;
     use winapi::um::winnt::*;
 
-    pub struct Setup {
+    pub(crate) struct Setup {
         job: Handle,
     }
 
-    pub struct Handle {
+    pub(crate) struct Handle {
         inner: HANDLE,
     }
 
@@ -59,7 +59,7 @@ mod imp {
         io::Error::last_os_error()
     }
 
-    pub unsafe fn setup() -> Option<Setup> {
+    pub(crate) unsafe fn setup() -> Option<Setup> {
         // Creates a new job object for us to use and then adds ourselves to it.
         // Note that all errors are basically ignored in this function,
         // intentionally. Job objects are "relatively new" in Windows,

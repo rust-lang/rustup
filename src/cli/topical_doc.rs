@@ -42,7 +42,7 @@ fn search_path(doc: &DocData<'_>, wpath: &Path, keywords: &[&str]) -> Result<Pat
     Err(anyhow!(format!("No document for '{}'", doc.topic)))
 }
 
-pub fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
+pub(crate) fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
     // The ORDER of keywords_top is used for the default search and should not
     // be changed.
     // https://github.com/rust-lang/rustup/issues/2076#issuecomment-546613036

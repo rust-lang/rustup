@@ -13,7 +13,7 @@ use crate::utils::Notification;
 // result in writing root-owned files to the user's home directory, because
 // sudo is configured not to change $HOME. Don't let that bogosity happen.
 pub(crate) fn do_anti_sudo_check(no_prompt: bool) -> Result<utils::ExitCode> {
-    pub fn home_mismatch() -> (bool, PathBuf, PathBuf) {
+    pub(crate) fn home_mismatch() -> (bool, PathBuf, PathBuf) {
         let fallback = || (false, PathBuf::new(), PathBuf::new());
         // test runner should set this, nothing else
         if process()
@@ -47,12 +47,12 @@ pub(crate) fn do_anti_sudo_check(no_prompt: bool) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-pub fn delete_rustup_and_cargo_home() -> Result<()> {
+pub(crate) fn delete_rustup_and_cargo_home() -> Result<()> {
     let cargo_home = utils::cargo_home()?;
     utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())
 }
 
-pub fn do_remove_from_path() -> Result<()> {
+pub(crate) fn do_remove_from_path() -> Result<()> {
     for sh in shell::get_available_shells() {
         let source_bytes = format!("{}\n", sh.source_string()?).into_bytes();
 
@@ -79,7 +79,7 @@ pub fn do_remove_from_path() -> Result<()> {
     Ok(())
 }
 
-pub fn do_add_to_path() -> Result<()> {
+pub(crate) fn do_add_to_path() -> Result<()> {
     for sh in shell::get_available_shells() {
         let source_cmd = sh.source_string()?;
         let source_cmd_with_newline = format!("\n{}", &source_cmd);
@@ -101,7 +101,7 @@ pub fn do_add_to_path() -> Result<()> {
     Ok(())
 }
 
-pub fn do_write_env_files() -> Result<()> {
+pub(crate) fn do_write_env_files() -> Result<()> {
     let mut written = vec![];
 
     for sh in shell::get_available_shells() {
@@ -116,11 +116,11 @@ pub fn do_write_env_files() -> Result<()> {
     Ok(())
 }
 
-pub fn do_add_to_programs() -> Result<()> {
+pub(crate) fn do_add_to_programs() -> Result<()> {
     Ok(())
 }
 
-pub fn do_remove_from_programs() -> Result<()> {
+pub(crate) fn do_remove_from_programs() -> Result<()> {
     Ok(())
 }
 

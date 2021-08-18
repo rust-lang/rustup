@@ -31,16 +31,16 @@ use anyhow::{bail, Result};
 use super::utils;
 use crate::process;
 
-pub type Shell = Box<dyn UnixShell>;
+pub(crate) type Shell = Box<dyn UnixShell>;
 
 #[derive(Debug, PartialEq)]
-pub struct ShellScript {
+pub(crate) struct ShellScript {
     content: &'static str,
     name: &'static str,
 }
 
 impl ShellScript {
-    pub fn write(&self) -> Result<()> {
+    pub(crate) fn write(&self) -> Result<()> {
         let home = utils::cargo_home()?;
         let cargo_bin = format!("{}/bin", cargo_home_str()?);
         let env_name = home.join(self.name);
@@ -51,7 +51,7 @@ impl ShellScript {
 }
 
 // TODO: Update into a bytestring.
-pub fn cargo_home_str() -> Result<Cow<'static, str>> {
+pub(crate) fn cargo_home_str() -> Result<Cow<'static, str>> {
     let path = utils::cargo_home()?;
 
     let default_cargo_home = utils::home_dir()
@@ -74,11 +74,11 @@ fn enumerate_shells() -> Vec<Shell> {
     vec![Box::new(Posix), Box::new(Bash), Box::new(Zsh)]
 }
 
-pub fn get_available_shells() -> impl Iterator<Item = Shell> {
+pub(crate) fn get_available_shells() -> impl Iterator<Item = Shell> {
     enumerate_shells().into_iter().filter(|sh| sh.does_exist())
 }
 
-pub trait UnixShell {
+pub(crate) trait UnixShell {
     // Detects if a shell "exists". Users have multiple shells, so an "eager"
     // heuristic should be used, assuming shells exist if any traces do.
     fn does_exist(&self) -> bool;
@@ -201,7 +201,7 @@ impl UnixShell for Zsh {
     }
 }
 
-pub fn legacy_paths() -> impl Iterator<Item = PathBuf> {
+pub(crate) fn legacy_paths() -> impl Iterator<Item = PathBuf> {
     let zprofiles = Zsh::zdotdir()
         .into_iter()
         .chain(utils::home_dir())

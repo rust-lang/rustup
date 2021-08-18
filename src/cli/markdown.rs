@@ -11,7 +11,7 @@ struct LineWrapper<'a, T: Terminal> {
     indent: u32,
     margin: u32,
     pos: u32,
-    pub w: &'a mut T,
+    w: &'a mut T,
 }
 
 impl<'a, T: Terminal + 'a> LineWrapper<'a, T> {
@@ -221,7 +221,7 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
     }
 }
 
-pub fn md<'a, S: AsRef<str>, T: Terminal + io::Write + 'a>(t: &'a mut T, content: S) {
+pub(crate) fn md<'a, S: AsRef<str>, T: Terminal + io::Write + 'a>(t: &'a mut T, content: S) {
     let mut f = LineFormatter::new(t, 0, 79);
     let parser = pulldown_cmark::Parser::new(content.as_ref());
     for event in parser {
