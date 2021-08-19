@@ -10,11 +10,11 @@ use crate::dist::prefix::InstallPrefix;
 use crate::dist::Notification;
 use crate::errors::RustupError;
 use crate::notifications::Notification as RootNotification;
-use crate::toolchain::{CustomToolchain, DistributableToolchain, Toolchain, UpdateStatus};
+use crate::toolchain::{CustomToolchain, Toolchain, UpdateStatus};
 use crate::utils::utils;
 
 #[derive(Copy, Clone)]
-pub enum InstallMethod<'a> {
+pub(crate) enum InstallMethod<'a> {
     Copy(&'a Path, &'a CustomToolchain<'a>),
     Link(&'a Path, &'a CustomToolchain<'a>),
     // bool is whether to force an update
@@ -35,13 +35,12 @@ pub enum InstallMethod<'a> {
         components: &'a [&'a str],
         // Extra targets to install from dist
         targets: &'a [&'a str],
-        distributable: &'a DistributableToolchain<'a>,
     },
 }
 
 impl<'a> InstallMethod<'a> {
     // Install a toolchain
-    pub fn install(&self, toolchain: &Toolchain<'a>) -> Result<UpdateStatus> {
+    pub(crate) fn install(&self, toolchain: &Toolchain<'a>) -> Result<UpdateStatus> {
         let previous_version = if toolchain.exists() {
             Some(toolchain.rustc_version())
         } else {

@@ -12,8 +12,8 @@ use crate::notifications::*;
 use crate::toml_utils::*;
 use crate::utils::utils;
 
-pub const SUPPORTED_METADATA_VERSIONS: [&str; 2] = ["2", "12"];
-pub const DEFAULT_METADATA_VERSION: &str = "12";
+pub(crate) const SUPPORTED_METADATA_VERSIONS: [&str; 2] = ["2", "12"];
+pub(crate) const DEFAULT_METADATA_VERSION: &str = "12";
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SettingsFile {
@@ -22,7 +22,7 @@ pub struct SettingsFile {
 }
 
 impl SettingsFile {
-    pub fn new(path: PathBuf) -> Self {
+    pub(crate) fn new(path: PathBuf) -> Self {
         Self {
             path,
             cache: RefCell::new(None),
@@ -55,14 +55,14 @@ impl SettingsFile {
         Ok(())
     }
 
-    pub fn with<T, F: FnOnce(&Settings) -> Result<T>>(&self, f: F) -> Result<T> {
+    pub(crate) fn with<T, F: FnOnce(&Settings) -> Result<T>>(&self, f: F) -> Result<T> {
         self.read_settings()?;
 
         // Settings can no longer be None so it's OK to unwrap
         f(self.cache.borrow().as_ref().unwrap())
     }
 
-    pub fn with_mut<T, F: FnOnce(&mut Settings) -> Result<T>>(&self, f: F) -> Result<T> {
+    pub(crate) fn with_mut<T, F: FnOnce(&mut Settings) -> Result<T>>(&self, f: F) -> Result<T> {
         self.read_settings()?;
 
         // Settings can no longer be None so it's OK to unwrap
@@ -137,16 +137,16 @@ impl Settings {
         self.overrides.get(&key).cloned()
     }
 
-    pub fn parse(data: &str) -> Result<Self> {
+    pub(crate) fn parse(data: &str) -> Result<Self> {
         let value = toml::from_str(data).context("error parsing settings")?;
         Self::from_toml(value, "")
     }
 
-    pub fn stringify(self) -> String {
+    pub(crate) fn stringify(self) -> String {
         toml::Value::Table(self.into_toml()).to_string()
     }
 
-    pub fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
+    pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
         let version = get_string(&mut table, "version", path)?;
         if !SUPPORTED_METADATA_VERSIONS.contains(&&*version) {
             return Err(RustupError::UnknownMetadataVersion(version).into());
@@ -165,7 +165,7 @@ impl Settings {
             auto_self_update,
         })
     }
-    pub fn into_toml(self) -> toml::value::Table {
+    pub(crate) fn into_toml(self) -> toml::value::Table {
         let mut result = toml::value::Table::new();
 
         result.insert("version".to_owned(), toml::Value::String(self.version));
