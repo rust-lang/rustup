@@ -25,6 +25,7 @@ pub static TOOLS: &[&str] = &[
     "cargo",
     "rust-lldb",
     "rust-gdb",
+    "rust-gdbgui",
     "rls",
     "cargo-clippy",
     "clippy-driver",
@@ -48,7 +49,7 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
     match binary_prefix {
         "rustc" | "rustdoc" => Some("rustc"),
         "cargo" => Some("cargo"),
-        "rust-lldb" | "rust-gdb" => Some("rustc"), // These are not always available
+        "rust-lldb" | "rust-gdb" | "rust-gdbgui" => Some("rustc"), // These are not always available
         "rls" => Some("rls"),
         "cargo-clippy" => Some("clippy"),
         "clippy-driver" => Some("clippy"),

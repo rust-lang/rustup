@@ -14,7 +14,7 @@ The list of proxies is currently static in `rustup` and is as follows:
 
 - `cargo` is the Rust package manager which downloads your Rust package’s dependencies, compiles your packages, makes distributable packages, and uploads them to crates.io (the Rust community’s package registry). It comes from the `cargo` component.
 
-- `rust-lldb` and `rust-gdb` are simple wrappers around the `lldb` and `gdb` debuggers respectively. The wrappers enable some pretty-printing of Rust values and add some convenience features to the debuggers by means of their scripting interfaces.
+- `rust-lldb`, `rust-gdb`, and `rust-gdbgui` are simple wrappers around the `lldb`, `gdb`, and `gdbgui` debuggers respectively. The wrappers enable some pretty-printing of Rust values and add some convenience features to the debuggers by means of their scripting interfaces.
 
 - `rls` is part of the Rust IDE integration tooling. It implements the language-server protocol to permit IDEs and editors such as Visual Studio Code, ViM, or Emacs, access to the semantics of the Rust code you are editing. It comes from the `rls` component.
 
