@@ -284,7 +284,7 @@ tools:
 
 Check its box for "Desktop development with C++" which will ensure that
 the Windows 10 SDK is selected.  If your locale language is not English,
-then additionally check the box for English under Language packs.  Or minimally, use the tab Single Components and select these items: “MSVC - VS 2019 C++ x64/x86 build tools” and “Windows 10 SDK”
+then additionally check the box for English under Language packs.  Or minimally, use the tab Single Components and select these items: "MSVC - VS 2019 C++ x64/x86 build tools" and "Windows 10 SDK"
 
 Alternately, you can install Visual Studio 2019, Visual Studio 2017,
 Visual Studio 2015, or Visual Studio 2013 and during install select
