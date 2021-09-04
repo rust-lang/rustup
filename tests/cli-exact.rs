@@ -4,8 +4,8 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, check_update_setup, expect_err_ex, expect_ok, expect_ok_ex, expect_stdout_ok,
-    self_update_setup, set_current_dist_date, Config, Scenario,
+    self, check_update_setup, expect_err_ex, expect_ok, expect_ok_ex, expect_stderr_ok,
+    expect_stdout_ok, self_update_setup, set_current_dist_date, Config, Scenario,
 };
 use rustup::for_host;
 use rustup::test::this_host_triple;
@@ -585,6 +585,23 @@ error: target '2016-03-1' not found in channel.  Perhaps check https://doc.rust-
 ",
         );
     });
+}
+
+#[test]
+fn default_none() {
+    setup(&|config| {
+        expect_stderr_ok(
+            config,
+            &["rustup", "default", "none"],
+            "info: default toolchain unset",
+        );
+        expect_err_ex(
+            config,
+            &["rustc", "--version"],
+            "",
+            "error: no override and no default toolchain set\n",
+        );
+    })
 }
 
 #[test]

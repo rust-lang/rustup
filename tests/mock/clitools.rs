@@ -384,7 +384,15 @@ pub fn expect_err_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str)
         println!("expected.ok: false");
         print_indented("expected.stdout", stdout);
         print_indented("expected.stderr", stderr);
-        panic!();
+        if out.ok {
+            panic!("expected command to fail");
+        } else if out.stdout != stdout {
+            panic!("expected stdout to match");
+        } else if out.stderr != stderr {
+            panic!("expected stderr to match");
+        } else {
+            unreachable!()
+        }
     }
 }
 
@@ -445,10 +453,16 @@ fn print_command(args: &[&str], out: &SanitizedOutput) {
 }
 
 fn print_indented(heading: &str, text: &str) {
+    let mut lines = text.lines().count();
+    // The standard library treats `a\n` and `a` as both being one line.
+    // This is confusing when the test fails because of a missing newline.
+    if !text.is_empty() && !text.ends_with('\n') {
+        lines -= 1;
+    }
     println!(
         "{} ({} lines):\n    {}",
         heading,
-        text.lines().count(),
+        lines,
         text.replace("\n", "\n    ")
     );
 }
