@@ -67,6 +67,7 @@ system.
 | x86_64-pc-windows-gnu         | No         | One   | No     | Yes        |
 | i686-pc-windows-msvc          | No         | One   | No     | No         |
 | i686-pc-windows-gnu           | No         | One   | No     | No         |
+| aarch64-pc-windows-msvc       | Yes        | Two   | No     | Yes        |
 
 We also have a clippy/shellcheck target which runs on x86_64 linux and is
 run in all cases. It does a `cargo fmt` check, a `cargo clippy` check on the
