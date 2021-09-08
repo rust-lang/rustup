@@ -38,7 +38,7 @@ pub enum RustupError {
     #[error("unable to read the PGP key '{}'", .path.display())]
     InvalidPgpKey {
         path: PathBuf,
-        source: pgp::errors::Error,
+        source: anyhow::Error,
     },
     #[error("invalid toolchain name: '{0}'")]
     InvalidToolchainName(String),

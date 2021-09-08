@@ -3,6 +3,7 @@
 
 use crate::mock::MockInstallerBuilder;
 use lazy_static::lazy_static;
+use sequoia_openpgp::{parse::Parse, Cert};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -532,29 +533,39 @@ pub fn write_file(dst: &Path, contents: &str) {
 const SIGNING_KEY_BYTES: &[u8] = include_bytes!("signing-key.asc");
 const PUB_SIGNING_KEY_BYTES: &[u8] = include_bytes!("signing-key.pub.asc");
 
-fn get_secret_key() -> pgp::SignedSecretKey {
-    use pgp::Deserializable;
-    let (key, _) =
-        pgp::SignedSecretKey::from_armor_single(std::io::Cursor::new(SIGNING_KEY_BYTES)).unwrap();
-    key
+fn get_secret_key() -> Cert {
+    Cert::from_bytes(SIGNING_KEY_BYTES).unwrap()
 }
 
-pub fn get_public_key() -> pgp::SignedPublicKey {
-    use pgp::Deserializable;
-    let (key, _) =
-        pgp::SignedPublicKey::from_armor_single(std::io::Cursor::new(PUB_SIGNING_KEY_BYTES))
-            .unwrap();
-    key
+pub fn get_public_key() -> Cert {
+    Cert::from_bytes(PUB_SIGNING_KEY_BYTES).unwrap()
 }
 
-pub fn create_signature(data: &[u8]) -> std::result::Result<String, pgp::errors::Error> {
+pub fn create_signature(data: &[u8]) -> anyhow::Result<String> {
+    use sequoia_openpgp::serialize::stream::*;
     let key = get_secret_key();
 
-    let msg = pgp::Message::new_literal_bytes("message", data);
-    let signed_message = msg.sign(&key, || "".into(), pgp::crypto::HashAlgorithm::SHA2_256)?;
-    let sig = signed_message.into_signature();
+    let p = sequoia_openpgp::policy::StandardPolicy::new();
+    let signing_keypair = key
+        .with_policy(&p, None)?
+        .keys()
+        .secret()
+        .supported()
+        .alive()
+        .revoked(false)
+        .for_signing()
+        .nth(0)
+        .unwrap()
+        .key()
+        .clone()
+        .into_keypair()?;
 
-    sig.verify(&key, data).expect("invalid sig created");
+    let mut buf = Vec::new();
+    let message = Message::new(&mut buf);
+    let message = Armorer::new(message).build()?;
+    let mut message = Signer::new(message, signing_keypair).detached().build()?;
+    message.write_all(data)?;
+    message.finalize()?;
 
-    sig.to_armored_string(None)
+    Ok(String::from_utf8(buf)?)
 }

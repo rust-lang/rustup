@@ -7,7 +7,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use anyhow::{anyhow, bail, Context, Result};
-use pgp::{Deserializable, SignedPublicKey};
+use sequoia_openpgp::{parse::Parse, policy, Cert};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 
@@ -155,22 +155,21 @@ impl<'a> OverrideCfg<'a> {
 }
 
 lazy_static::lazy_static! {
-    static ref BUILTIN_PGP_KEY: SignedPublicKey = pgp::SignedPublicKey::from_armor_single(
-        io::Cursor::new(&include_bytes!("rust-key.pgp.ascii")[..])
-    ).unwrap().0;
+    static ref BUILTIN_PGP_KEY: Cert =
+        Cert::from_bytes(&include_bytes!("rust-key.pgp.ascii")[..]).unwrap();
 }
 
 #[allow(clippy::large_enum_variant)] // Builtin is tiny, the rest are sane
 #[derive(Debug)]
 pub enum PgpPublicKey {
     Builtin,
-    FromEnvironment(PathBuf, SignedPublicKey),
-    FromConfiguration(PathBuf, SignedPublicKey),
+    FromEnvironment(PathBuf, Cert),
+    FromConfiguration(PathBuf, Cert),
 }
 
 impl PgpPublicKey {
     /// Retrieve the key.
-    pub(crate) fn key(&self) -> &SignedPublicKey {
+    pub(crate) fn cert(&self) -> &Cert {
         match self {
             Self::Builtin => &*BUILTIN_PGP_KEY,
             Self::FromEnvironment(_, k) => k,
@@ -194,18 +193,17 @@ impl PgpPublicKey {
             }
             Ok(ret)
         }
-        use pgp::types::KeyTrait;
         let mut ret = vec![format!("from {}", self)];
-        let key = self.key();
-        let keyid = format_hex(&key.key_id().to_vec(), "-", 4)?;
-        let algo = key.algorithm();
-        let fpr = format_hex(&key.fingerprint(), " ", 2)?;
-        let uid0 = key
-            .details
-            .users
-            .get(0)
-            .map(|u| u.id.id())
-            .unwrap_or("<No User ID>");
+        let cert = self.cert();
+        let keyid = format_hex(cert.keyid().as_bytes(), "-", 4)?;
+        let algo = cert.primary_key().pk_algo();
+        let fpr = format_hex(cert.fingerprint().as_bytes(), " ", 2)?;
+        let p = policy::StandardPolicy::new();
+        let uid0 = cert
+            .with_policy(&p, None)?
+            .primary_userid()
+            .map(|u| u.userid().to_string())
+            .unwrap_or("<No User ID>".into());
         ret.push(format!("  {:?}/{} - {}", algo, keyid, uid0));
         ret.push(format!("  Fingerprint: {}", fpr));
         Ok(ret)
@@ -277,11 +275,9 @@ impl Cfg {
         if let Some(ref s_path) = process().var_os("RUSTUP_PGP_KEY") {
             let path = PathBuf::from(s_path);
             let file = utils::open_file("RUSTUP_PGP_KEY", &path)?;
-            let (key, _) = SignedPublicKey::from_armor_single(file).map_err(|error| {
-                RustupError::InvalidPgpKey {
-                    path: s_path.into(),
-                    source: error,
-                }
+            let key = Cert::from_reader(file).map_err(|error| RustupError::InvalidPgpKey {
+                path: s_path.into(),
+                source: error,
             })?;
 
             pgp_keys.push(PgpPublicKey::FromEnvironment(path, key));
@@ -290,7 +286,7 @@ impl Cfg {
             if let Some(s) = &s.pgp_keys {
                 let path = PathBuf::from(s);
                 let file = utils::open_file("PGP Key from config", &path)?;
-                let (key, _) = SignedPublicKey::from_armor_single(file).map_err(|error| {
+                let key = Cert::from_reader(file).map_err(|error| {
                     anyhow!(RustupError::InvalidPgpKey {
                         path: s.into(),
                         source: error,
