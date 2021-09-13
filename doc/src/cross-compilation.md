@@ -26,9 +26,11 @@ Note that `rustup target add` only installs the Rust standard library for a
 given target. There are typically other tools necessary to cross-compile,
 particularly a linker. For example, to cross compile to Android the [Android
 NDK] must be installed. In the future, `rustup` will provide assistance
-installing the NDK components as well.
+installing the NDK components as well. See the [target section] of the
+`cargo` configuration for how to setup a linker to use for a certain target.
 
 [Android NDK]: https://developer.android.com/tools/sdk/ndk/index.html
+[target section]: https://doc.rust-lang.org/cargo/reference/config.html#target
 
 To install a target for a toolchain that isn't the default toolchain use the
 `--toolchain` argument of `rustup target add`, like so:
