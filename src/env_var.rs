@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use std::env;
 use std::ffi::OsStr;
 use std::path::PathBuf;
@@ -44,7 +44,7 @@ fn append_path<E: ProcessEnvs>(name: &str, value: Vec<PathBuf>, cmd: &mut E) {
     }
 }
 
-pub(crate) fn prepend_path(name: &str, prepend: Vec<PathBuf>, cmd: &mut Command) {
+pub(crate) fn prepend_path<E: ProcessEnvs>(name: &str, prepend: Vec<PathBuf>, cmd: &mut E) {
     let old_value = process().var_os(name);
     let parts = if let Some(ref v) = old_value {
         let mut tail = env::split_paths(v).collect::<VecDeque<_>>();
@@ -222,8 +222,8 @@ mod tests {
                         &Some(
                             env::join_paths(
                                 vec![
-                                    "/home/a/.cargo/bin",
                                     "/home/z/.cargo/bin",
+                                    "/home/a/.cargo/bin",
                                     "/home/b/.cargo/bin"
                                 ]
                                 .iter()
