@@ -69,7 +69,7 @@ fn tempdir_in_with_prefix<P: AsRef<Path>>(path: P, prefix: &str) -> io::Result<P
         .into_path())
 }
 
-/// What is this host's triple - seems very redunant with from_host_or_build()
+/// What is this host's triple - seems very redundant with from_host_or_build()
 /// ... perhaps this is so that the test data we have is only exercised on known
 /// triples?
 ///
