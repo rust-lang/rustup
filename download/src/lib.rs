@@ -132,6 +132,8 @@ pub fn download_to_path_with_backend(
     })
 }
 
+static USER_AGENT: &str = concat!("rustup/", env!("CARGO_PKG_VERSION"));
+
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
 #[cfg(feature = "curl-backend")]
@@ -163,6 +165,7 @@ pub mod curl {
 
             handle.url(&url.to_string())?;
             handle.follow_location(true)?;
+            handle.useragent(super::USER_AGENT)?;
 
             if resume_from > 0 {
                 handle.resume_from(resume_from)?;
@@ -302,6 +305,7 @@ pub mod reqwest_be {
     fn client_generic() -> ClientBuilder {
         Client::builder()
             .gzip(false)
+            .user_agent(super::USER_AGENT)
             .proxy(Proxy::custom(env_proxy))
             .timeout(Duration::from_secs(30))
     }
