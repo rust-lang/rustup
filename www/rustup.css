@@ -21,14 +21,14 @@
     font-family: 'Work Sans';
     font-style: normal;
     font-weight: 500;
-    src: local('Work Sans Medium'), url("fonts/WorkSans-Medium.ttf") format('ttf');
+    src: local('Work Sans Medium'), url("fonts/WorkSans-Medium.ttf") format('truetype');
 }
 
 @font-face {
     font-family: 'Inconsolata';
     font-style: normal;
     font-weight: 400;
-    src: local('Inconsolata Regular'), url("fonts/Inconsolata-Regular.ttf") format('ttf');
+    src: local('Inconsolata Regular'), url("fonts/Inconsolata-Regular.ttf") format('truetype');
 }
 
 body {
