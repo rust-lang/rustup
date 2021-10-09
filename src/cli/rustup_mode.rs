@@ -179,7 +179,7 @@ pub fn main() -> Result<utils::ExitCode> {
         ("man", Some(m)) => man(cfg, m)?,
         ("self", Some(c)) => match c.subcommand() {
             ("update", Some(_)) => self_update::update(cfg)?,
-            ("uninstall", Some(m)) => self_uninstall(m)?,
+            ("uninstall", Some(m)) => self_uninstall(cfg, m)?,
             (_, _) => unreachable!(),
         },
         ("set", Some(c)) => match c.subcommand() {
@@ -1590,10 +1590,10 @@ fn man(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn self_uninstall(m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
+fn self_uninstall(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     let no_prompt = m.is_present("no-prompt");
 
-    self_update::uninstall(no_prompt)
+    self_update::uninstall(cfg, no_prompt)
 }
 
 fn set_default_host_triple(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
