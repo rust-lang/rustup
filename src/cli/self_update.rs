@@ -680,7 +680,11 @@ fn install_bins() -> Result<()> {
     if rustup_path.exists() {
         utils::remove_file("rustup-bin", &rustup_path)?;
     }
-    utils::copy_file(&this_exe_path, &rustup_path)?;
+    if cfg!(feature = "no-self-update") {
+        utils::symlink_file(&this_exe_path, &rustup_path)?;
+    } else {
+        utils::copy_file(&this_exe_path, &rustup_path)?;
+    }
     utils::make_executable(&rustup_path)?;
     install_proxies()
 }

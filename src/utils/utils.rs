@@ -306,7 +306,7 @@ pub fn hardlink_file(src: &Path, dest: &Path) -> Result<()> {
 }
 
 #[cfg(unix)]
-fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
+pub(crate) fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     std::os::unix::fs::symlink(src, dest).with_context(|| RustupError::LinkingFile {
         src: PathBuf::from(src),
         dest: PathBuf::from(dest),
@@ -314,7 +314,7 @@ fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
 }
 
 #[cfg(windows)]
-fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
+pub(crate) fn symlink_file(src: &Path, dest: &Path) -> Result<()> {
     // we are supposed to not use symlink on windows
     Err(anyhow!(RustupError::LinkingFile {
         src: PathBuf::from(src),
