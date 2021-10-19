@@ -496,10 +496,10 @@ downloader() {
             echo "Warning: Not enforcing strong cipher suites for TLS, this is potentially less secure"
             if ! check_help_for "$3" curl --proto --tlsv1.2; then
                 echo "Warning: Not enforcing TLS v1.2, this is potentially less secure"
-                _err=$(curl --silent --show-error --fail --location "$1" --output "$2" 2>&1)
+                _err=$(curl $_retry --silent --show-error --fail --location "$1" --output "$2" 2>&1)
                 _status=$?
             else
-                _err=$(curl --proto '=https' --tlsv1.2 --silent --show-error --fail --location "$1" --output "$2" 2>&1)
+                _err=$(curl $_retry --proto '=https' --tlsv1.2 --silent --show-error --fail --location "$1" --output "$2" 2>&1)
                 _status=$?
             fi
         fi
@@ -594,9 +594,10 @@ check_help_for() {
 
 # Check if curl supports the --retry flag, then pass it to the curl invocation.
 check_curl_for_retry_support() {
+  local _retry_supported=""
   # "unspecified" is for arch, allows for possibility old OS using macports, homebrew, etc.
   if check_help_for "notspecified" "curl" "--retry"; then
-    local _retry_supported="--retry 3"
+    _retry_supported="--retry 3"
   fi
 
   RETVAL="$_retry_supported"
