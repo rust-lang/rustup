@@ -153,7 +153,7 @@ home directory, located at:
 
 This can be modified with the RUSTUP_HOME environment variable.
 
-The Cargo home directory located at:
+The Cargo home directory is located at:
 
     {cargo_home}
 
