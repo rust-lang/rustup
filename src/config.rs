@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::fmt::{self, Display};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -38,6 +39,8 @@ enum OverrideFileConfigError {
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 struct OverrideFile {
     toolchain: ToolchainSection,
+    #[serde(default)]
+    env: HashMap<String, EnvOverride>,
 }
 
 impl OverrideFile {
@@ -64,6 +67,19 @@ impl ToolchainSection {
     }
 }
 
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+enum EnvOverride {
+    Literal(String),
+    Table {
+        value: String,
+        #[serde(default)]
+        force: bool,
+        #[serde(default)]
+        relative: bool,
+    },
+}
+
 impl<T: Into<String>> From<T> for OverrideFile {
     fn from(channel: T) -> Self {
         let override_ = channel.into();
@@ -73,6 +89,7 @@ impl<T: Into<String>> From<T> for OverrideFile {
                     path: Some(PathBuf::from(override_)),
                     ..Default::default()
                 },
+                env: Default::default(),
             }
         } else {
             Self {
@@ -80,6 +97,7 @@ impl<T: Into<String>> From<T> for OverrideFile {
                     channel: Some(override_),
                     ..Default::default()
                 },
+                env: Default::default(),
             }
         }
     }
@@ -110,6 +128,7 @@ struct OverrideCfg<'a> {
     components: Vec<String>,
     targets: Vec<String>,
     profile: Option<dist::Profile>,
+    env: HashMap<String, String>,
 }
 
 impl<'a> OverrideCfg<'a> {
@@ -150,6 +169,30 @@ impl<'a> OverrideCfg<'a> {
                 .as_deref()
                 .map(dist::Profile::from_str)
                 .transpose()?,
+            env: file
+                .env
+                .into_iter()
+                .filter_map(|(k, v)| {
+                    let (v, force, relative) = match v {
+                        EnvOverride::Literal(v) => (v, false, false),
+                        EnvOverride::Table {
+                            value,
+                            force,
+                            relative,
+                        } => (value, force, relative),
+                    };
+
+                    if relative {
+                        return Some(Err(anyhow!(
+                            "Rustup does not yet support config-relative values"
+                        )));
+                    }
+                    if !force && process().var_os(&k).is_some() {
+                        return None;
+                    }
+                    Some(Ok((k, v)))
+                })
+                .collect::<Result<_, _>>()?,
         })
     }
 }
@@ -492,7 +535,7 @@ impl Cfg {
     }
 
     pub fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {
-        let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
+        let (toolchain, _, _) = self.find_or_install_override_toolchain_or_default(path)?;
         Ok(Some(toolchain.binary_file(binary)))
     }
 
@@ -729,7 +772,11 @@ impl Cfg {
     pub fn find_or_install_override_toolchain_or_default(
         &self,
         path: &Path,
-    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
+    ) -> Result<(
+        Toolchain<'_>,
+        HashMap<String, String>,
+        Option<OverrideReason>,
+    )> {
         fn components_exist(
             distributable: &DistributableToolchain<'_>,
             components: &[&str],
@@ -773,7 +820,7 @@ impl Cfg {
             }
         }
 
-        if let Some((toolchain, components, targets, reason, profile)) =
+        if let Some((toolchain, components, targets, reason, profile, env)) =
             match self.find_override_config(path)? {
                 Some((
                     OverrideCfg {
@@ -781,6 +828,7 @@ impl Cfg {
                         components,
                         targets,
                         profile,
+                        env,
                     },
                     reason,
                 )) => {
@@ -790,13 +838,13 @@ impl Cfg {
                         None
                     };
 
-                    toolchain
-                        .or(default)
-                        .map(|toolchain| (toolchain, components, targets, Some(reason), profile))
+                    toolchain.or(default).map(|toolchain| {
+                        (toolchain, components, targets, Some(reason), profile, env)
+                    })
                 }
                 None => self
                     .find_default()?
-                    .map(|toolchain| (toolchain, vec![], vec![], None, None)),
+                    .map(|toolchain| (toolchain, vec![], vec![], None, None, Default::default())),
             }
         {
             if toolchain.is_custom() {
@@ -816,7 +864,7 @@ impl Cfg {
                 }
             }
 
-            Ok((toolchain, reason))
+            Ok((toolchain, env, reason))
         } else {
             // No override and no default set
             Err(RustupError::ToolchainNotSelected.into())
@@ -905,21 +953,29 @@ impl Cfg {
     pub fn toolchain_for_dir(
         &self,
         path: &Path,
-    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
+    ) -> Result<(
+        Toolchain<'_>,
+        HashMap<String, String>,
+        Option<OverrideReason>,
+    )> {
         self.find_or_install_override_toolchain_or_default(path)
     }
 
     pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
-        let (ref toolchain, _) = self.toolchain_for_dir(path)?;
+        let (ref toolchain, ref env, _) = self.toolchain_for_dir(path)?;
 
-        if let Some(cmd) = self.maybe_do_cargo_fallback(toolchain, binary)? {
+        let mut cmd = if let Some(cmd) = self.maybe_do_cargo_fallback(toolchain, binary)? {
             Ok(cmd)
         } else {
             // NB this can only fail in race conditions since we used toolchain
             // for dir.
             let installed = toolchain.as_installed_common()?;
             installed.create_command(binary)
-        }
+        }?;
+
+        cmd.envs(env);
+
+        Ok(cmd)
     }
 
     pub fn create_command_for_toolchain(
@@ -1043,7 +1099,8 @@ mod tests {
                     components: None,
                     targets: None,
                     profile: None,
-                }
+                },
+                env: Default::default(),
             }
         );
     }
@@ -1070,7 +1127,8 @@ profile = "default"
                         "thumbv2-none-eabi".into()
                     ]),
                     profile: Some("default".into()),
-                }
+                },
+                env: Default::default(),
             }
         );
     }
@@ -1091,7 +1149,8 @@ channel = "nightly-2020-07-10"
                     components: None,
                     targets: None,
                     profile: None,
-                }
+                },
+                env: Default::default(),
             }
         );
     }
@@ -1112,7 +1171,8 @@ path = "foobar"
                     components: None,
                     targets: None,
                     profile: None,
-                }
+                },
+                env: Default::default(),
             }
         );
     }
@@ -1134,7 +1194,8 @@ components = []
                     components: Some(vec![]),
                     targets: None,
                     profile: None,
-                }
+                },
+                env: Default::default(),
             }
         );
     }
@@ -1156,7 +1217,8 @@ targets = []
                     components: None,
                     targets: Some(vec![]),
                     profile: None,
-                }
+                },
+                env: Default::default(),
             }
         );
     }
@@ -1177,7 +1239,8 @@ components = [ "rustfmt" ]
                     components: Some(vec!["rustfmt".into()]),
                     targets: None,
                     profile: None,
-                }
+                },
+                env: Default::default(),
             }
         );
     }
@@ -1193,6 +1256,103 @@ components = [ "rustfmt" ]
             result.unwrap_err().downcast::<OverrideFileConfigError>(),
             Ok(OverrideFileConfigError::Invalid)
         ));
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file_env_literal() {
+        // XXX: It'd be nice if it was possible to specify [env] but _not_ [toolchain],
+        // but that seems to currently cause an "empty config" error.
+        let contents = r#"
+[toolchain]
+channel = "nightly-2020-07-10"
+[env]
+OPENSSL_DIR = "/opt/openssl"
+"#;
+
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: Some("nightly-2020-07-10".into()),
+                    path: None,
+                    components: None,
+                    targets: None,
+                    profile: None,
+                },
+                env: HashMap::from([(
+                    String::from("OPENSSL_DIR"),
+                    EnvOverride::Literal(String::from("/opt/openssl"))
+                )]),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_toml_toolchain_file_env_table() {
+        let contents = r#"
+[toolchain]
+channel = "nightly-2020-07-10"
+[env]
+TMPDIR = { value = "/home/tmp", force = true }
+OPENSSL_DIR = { value = "vendor/openssl", relative = true }
+"#;
+
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: Some("nightly-2020-07-10".into()),
+                    path: None,
+                    components: None,
+                    targets: None,
+                    profile: None,
+                },
+                env: HashMap::from([
+                    (
+                        String::from("TMPDIR"),
+                        EnvOverride::Table {
+                            value: String::from("/home/tmp"),
+                            force: true,
+                            relative: false
+                        }
+                    ),
+                    (
+                        String::from("OPENSSL_DIR"),
+                        EnvOverride::Table {
+                            value: String::from("vendor/openssl"),
+                            force: false,
+                            relative: true
+                        }
+                    )
+                ]),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_empty_toml_toolchain_file_env() {
+        let contents = r#"
+[toolchain]
+channel = "nightly-2020-07-10"
+[env]
+"#;
+
+        let result = Cfg::parse_override_file(contents, ParseMode::Both);
+        assert_eq!(
+            result.unwrap(),
+            OverrideFile {
+                toolchain: ToolchainSection {
+                    channel: Some("nightly-2020-07-10".into()),
+                    path: None,
+                    components: None,
+                    targets: None,
+                    profile: None,
+                },
+                env: Default::default(),
+            }
+        );
     }
 
     #[test]
