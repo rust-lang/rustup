@@ -67,6 +67,11 @@ fn main() {
                 writeln!(out, "{}", arg.to_string_lossy()).unwrap();
             }
         }
+        Some("--print-env") => {
+            for (k, v) in env::vars() {
+                println!("{} = {}", k, v);
+            }
+        }
         _ => panic!("bad mock proxy commandline"),
     }
 }

@@ -12,7 +12,8 @@ use rustup::utils::raw;
 
 use crate::mock::clitools::{
     self, expect_err, expect_not_stderr_ok, expect_not_stdout_ok, expect_ok, expect_ok_ex,
-    expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date, Config, Scenario,
+    expect_stderr_ok, expect_stdout_ok, print_command, print_indented, run, set_current_dist_date,
+    Config, Scenario,
 };
 
 macro_rules! for_host_and_home {
@@ -2199,6 +2200,73 @@ fn warn_on_duplicate_rust_toolchain_file() {
                 toolchain_file_1.canonicalize().unwrap().display(),
                 toolchain_file_2.canonicalize().unwrap().display(),
             ),
+        );
+    });
+}
+
+/// Checks that `[env]` in `rust-toolchain.toml` is respected
+#[test]
+fn rust_toolchain_toml_env() {
+    setup(&|config| {
+        let env_contains = |env_in, expected| {
+            let args = &["rustc", "--print-env"];
+            let out = run(config, args[0], &args[1..], env_in);
+            if !out.ok || !out.stdout.contains(expected) {
+                print_command(args, &out);
+                println!("expected.ok: true");
+                print_indented("expected.stdout.contains", expected);
+                panic!();
+            }
+        };
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain.toml");
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+channel = "nightly"
+[env]
+SET_BY_RUSTUP = "hello"
+"#,
+        )
+        .unwrap();
+
+        // If not set in the environment, Rustup sets the envvar.
+        env_contains(&[], "SET_BY_RUSTUP = hello");
+
+        // If it is set, then the value form the environment wins.
+        env_contains(&[("SET_BY_RUSTUP", "world")], "SET_BY_RUSTUP = world");
+
+        // Unless force is set
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+channel = "nightly"
+[env]
+SET_BY_RUSTUP = { value = "hello", force = true }
+"#,
+        )
+        .unwrap();
+        env_contains(&[("SET_BY_RUSTUP", "world")], "SET_BY_RUSTUP = hello");
+
+        // Trying to set relative doesn't work (for now),
+        // and produces a reasonable error message.
+        raw::write_file(
+            &toolchain_file,
+            r#"
+[toolchain]
+channel = "nightly"
+[env]
+SET_BY_RUSTUP = { value = "hello", relative = true }
+"#,
+        )
+        .unwrap();
+        expect_err(
+            config,
+            &["rustc", "--print-env"],
+            "error: Rustup does not yet support config-relative values",
         );
     });
 }

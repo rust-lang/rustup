@@ -437,7 +437,7 @@ pub fn expect_component_not_executable(config: &Config, cmd: &str) {
     }
 }
 
-fn print_command(args: &[&str], out: &SanitizedOutput) {
+pub fn print_command(args: &[&str], out: &SanitizedOutput) {
     print!("\n>");
     for arg in args {
         if arg.contains(' ') {
@@ -452,7 +452,7 @@ fn print_command(args: &[&str], out: &SanitizedOutput) {
     print_indented("out.stderr", &out.stderr);
 }
 
-fn print_indented(heading: &str, text: &str) {
+pub fn print_indented(heading: &str, text: &str) {
     let mut lines = text.lines().count();
     // The standard library treats `a\n` and `a` as both being one line.
     // This is confusing when the test fails because of a missing newline.

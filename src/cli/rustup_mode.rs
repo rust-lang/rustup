@@ -1165,11 +1165,11 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
 
         match active_toolchain {
             Ok(atc) => match atc {
-                (ref toolchain, Some(ref reason)) => {
+                (ref toolchain, _, Some(ref reason)) => {
                     writeln!(t, "{} ({})", toolchain.name(), reason)?;
                     writeln!(t, "{}", toolchain.rustc_version())?;
                 }
-                (ref toolchain, None) => {
+                (ref toolchain, _, None) => {
                     writeln!(t, "{} (default)", toolchain.name())?;
                     writeln!(t, "{}", toolchain.rustc_version())?;
                 }
@@ -1221,7 +1221,7 @@ fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCod
                 return Err(e);
             }
         }
-        Ok((toolchain, reason)) => {
+        Ok((toolchain, _, reason)) => {
             if let Some(reason) = reason {
                 writeln!(process().stdout(), "{} ({})", toolchain.name(), reason)?;
             } else {
@@ -1376,7 +1376,7 @@ fn explicit_or_dir_toolchain<'a>(cfg: &'a Cfg, m: &ArgMatches<'_>) -> Result<Too
     }
 
     let cwd = utils::current_dir()?;
-    let (toolchain, _) = cfg.toolchain_for_dir(&cwd)?;
+    let (toolchain, _, _) = cfg.toolchain_for_dir(&cwd)?;
 
     Ok(toolchain)
 }
