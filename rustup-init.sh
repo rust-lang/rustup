@@ -508,20 +508,26 @@ downloader() {
         fi
         return $_status
     elif [ "$_dld" = wget ]; then
-        get_ciphersuites_for_wget
-        _ciphersuites="$RETVAL"
-        if [ -n "$_ciphersuites" ]; then
-            _err=$(wget --https-only --secure-protocol=TLSv1_2 --ciphers "$_ciphersuites" "$1" -O "$2" 2>&1)
+        if [ "$(wget -V 2>&1|head -2|tail -1|cut -f1 -d" ")" = "BusyBox" ]; then
+            echo "Warning: using the BusyBox version of wget.  Not enforcing strong cipher suites for TLS or TLS v1.2, this is potentially less secure"
+            _err=$(wget "$1" -O "$2" 2>&1)
             _status=$?
         else
-            echo "Warning: Not enforcing strong cipher suites for TLS, this is potentially less secure"
-            if ! check_help_for "$3" wget --https-only --secure-protocol; then
-                echo "Warning: Not enforcing TLS v1.2, this is potentially less secure"
-                _err=$(wget "$1" -O "$2" 2>&1)
+            get_ciphersuites_for_wget
+            _ciphersuites="$RETVAL"
+            if [ -n "$_ciphersuites" ]; then
+                _err=$(wget --https-only --secure-protocol=TLSv1_2 --ciphers "$_ciphersuites" "$1" -O "$2" 2>&1)
                 _status=$?
             else
-                _err=$(wget --https-only --secure-protocol=TLSv1_2 "$1" -O "$2" 2>&1)
-                _status=$?
+                echo "Warning: Not enforcing strong cipher suites for TLS, this is potentially less secure"
+                if ! check_help_for "$3" wget --https-only --secure-protocol; then
+                    echo "Warning: Not enforcing TLS v1.2, this is potentially less secure"
+                    _err=$(wget "$1" -O "$2" 2>&1)
+                    _status=$?
+                else
+                    _err=$(wget --https-only --secure-protocol=TLSv1_2 "$1" -O "$2" 2>&1)
+                    _status=$?
+                fi
             fi
         fi
         if [ -n "$_err" ]; then
