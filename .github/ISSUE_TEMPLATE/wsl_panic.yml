@@ -42,6 +42,8 @@ body:
       description: >
         A clear and concise description of what the bug is,
         including what currently happens and what you expected to happen.
+    validations:
+      required: true
 
   - type: textarea
     id: steps
@@ -52,6 +54,8 @@ body:
         1.
         2.
         3.
+    validations:
+      required: true
 
   - type: textarea
     id: solutions
@@ -72,6 +76,8 @@ body:
       label: Rustup version
       description: Output of `rustup --version`
       render: console
+    validations:
+      required: true
 
   - type: textarea
     id: toolchains
@@ -79,3 +85,5 @@ body:
       label: Installed toolchains
       description: Output of `rustup show`
       render: console
+    validations:
+      required: true
