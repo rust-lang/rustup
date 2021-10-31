@@ -1,0 +1,43 @@
+name: Bug report
+description: Create a report to help us improve
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a 🐛 bug report 😄!
+
+  - type: textarea
+    attributes:
+      label: Problem
+      description: |
+        A clear and concise description of what the bug is,
+        including what currently happens and what you expected to happen.
+
+  - type: textarea
+    attributes:
+      label: Steps
+      description: The steps to reproduce the bug.
+      placeholder: |
+        1.
+        2.
+        3.
+
+  - type: textarea
+    attributes:
+      label: Possible Solution(s)
+      description: |
+        Not obligatory, but suggest a fix/reason for the bug,
+        or ideas how to implement the addition or change.
+
+  - type: textarea
+    attributes:
+      label: Notes
+
+  - type: textarea
+    attributes:
+      label: Output of `rustup --version`
+
+  - type: textarea
+    attributes:
+      label: Output of `rustup show`
