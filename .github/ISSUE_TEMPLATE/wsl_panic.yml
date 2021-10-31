@@ -4,7 +4,7 @@ labels: [bug]
 body:
   - type: markdown
     attributes:
-      value: |
+      value: >
         Please read the following very carefully and decide if you
         actually need to file this bug...
 
@@ -22,25 +22,24 @@ body:
 
         This is known to affect:
 
-        * Ubuntu 20.04
-        * Arch Linux
+          * Ubuntu 20.04
+          * Arch Linux
 
         But it may affect other versions of Linux on WSL1.
 
-        You can find more information on the WSL bug report here:
-
-        https://github.com/microsoft/WSL/issues/4898
+        You can find more information on the WSL bug report
+        [here](https://github.com/microsoft/WSL/issues/4898).
 
         If you're CERTAIN that you're not reporting yet another duplicate
         of the above issue, then...
 
-        Thanks for filing a 🐛 bug report 😄!
+        **Thanks for filing a 🐛 bug report 😄!**
 
   - type: textarea
     id: problem
     attributes:
       label: Problem
-      description: |
+      description: >
         A clear and concise description of what the bug is,
         including what currently happens and what you expected to happen.
 
@@ -58,7 +57,7 @@ body:
     id: solutions
     attributes:
       label: Possible Solution(s)
-      description: |
+      description: >
         Not obligatory, but suggest a fix/reason for the bug,
         or ideas how to implement the addition or change.
 
@@ -70,9 +69,13 @@ body:
   - type: textarea
     id: version
     attributes:
-      label: Output of `rustup --version`
+      label: Rustup version
+      description: Output of `rustup --version`
+      render: console
 
   - type: textarea
     id: toolchains
     attributes:
-      label: Output of `rustup show`
+      label: Installed toolchains
+      description: Output of `rustup show`
+      render: console

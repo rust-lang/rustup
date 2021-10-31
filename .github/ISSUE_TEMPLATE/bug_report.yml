@@ -4,14 +4,14 @@ labels: [bug]
 body:
   - type: markdown
     attributes:
-      value: |
-        Thanks for filing a 🐛 bug report 😄!
+      value: >
+        **Thanks for filing a 🐛 bug report 😄!**
 
   - type: textarea
     id: problem
     attributes:
       label: Problem
-      description: |
+      description: >
         A clear and concise description of what the bug is,
         including what currently happens and what you expected to happen.
 
@@ -29,7 +29,7 @@ body:
     id: solutions
     attributes:
       label: Possible Solution(s)
-      description: |
+      description: >
         Not obligatory, but suggest a fix/reason for the bug,
         or ideas how to implement the addition or change.
 
@@ -41,9 +41,13 @@ body:
   - type: textarea
     id: version
     attributes:
-      label: Output of `rustup --version`
+      label: Rustup version
+      description: Output of `rustup --version`
+      render: console
 
   - type: textarea
     id: toolchains
     attributes:
-      label: Output of `rustup show`
+      label: Installed toolchains
+      description: Output of `rustup show`
+      render: console
