@@ -7,7 +7,7 @@ use crate::process;
 pub const RUST_RECURSION_COUNT_MAX: u32 = 20;
 
 #[allow(unused)]
-pub fn append_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
+fn append_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
     let old_value = process().var_os(name);
     let mut parts: Vec<PathBuf>;
     if let Some(ref v) = old_value {
@@ -21,7 +21,7 @@ pub fn append_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
     }
 }
 
-pub fn prepend_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
+pub(crate) fn prepend_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
     let old_value = process().var_os(name);
     let mut parts: Vec<PathBuf>;
     if let Some(ref v) = old_value {
@@ -36,7 +36,7 @@ pub fn prepend_path(name: &str, value: Vec<PathBuf>, cmd: &mut Command) {
     }
 }
 
-pub fn inc(name: &str, cmd: &mut Command) {
+pub(crate) fn inc(name: &str, cmd: &mut Command) {
     let old_value = process()
         .var(name)
         .ok()

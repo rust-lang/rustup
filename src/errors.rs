@@ -10,7 +10,7 @@ use url::Url;
 
 use crate::dist::manifest::{Component, Manifest};
 
-pub const TOOLSTATE_MSG: &str =
+const TOOLSTATE_MSG: &str =
     "If you require these components, please install and use the latest successful build version,\n\
      which you can find at <https://rust-lang.github.io/rustup-components-history>.\n\nAfter determining \
      the correct date, install it with a command such as:\n\n    \

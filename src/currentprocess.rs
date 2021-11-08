@@ -191,13 +191,13 @@ impl ProcessSource for OSProcess {
 
 #[derive(Clone, Debug, Default)]
 pub struct TestProcess {
-    pub(crate) cwd: PathBuf,
-    pub(crate) args: Vec<String>,
-    pub(crate) vars: HashMap<String, String>,
-    pub(crate) id: u64,
-    pub(crate) stdin: TestStdinInner,
-    pub(crate) stdout: TestWriterInner,
-    pub(crate) stderr: TestWriterInner,
+    pub cwd: PathBuf,
+    pub args: Vec<String>,
+    pub vars: HashMap<String, String>,
+    pub id: u64,
+    pub stdin: TestStdinInner,
+    pub stdout: TestWriterInner,
+    pub stderr: TestWriterInner,
 }
 
 impl TestProcess {

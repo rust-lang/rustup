@@ -67,7 +67,7 @@ pub enum UpdateStatus {
 static V1_COMMON_COMPONENT_LIST: &[&str] = &["cargo", "rustc", "rust-docs"];
 
 impl<'a> Toolchain<'a> {
-    pub fn from(cfg: &'a Cfg, name: &str) -> Result<Self> {
+    pub(crate) fn from(cfg: &'a Cfg, name: &str) -> Result<Self> {
         let resolved_name = cfg.resolve_toolchain(name)?;
         let path = cfg.toolchains_dir.join(&resolved_name);
         Ok(Toolchain {
@@ -78,7 +78,7 @@ impl<'a> Toolchain<'a> {
         })
     }
 
-    pub fn from_path(
+    pub(crate) fn from_path(
         cfg: &'a Cfg,
         cfg_file: Option<impl AsRef<Path>>,
         path: impl AsRef<Path>,
@@ -127,7 +127,7 @@ impl<'a> Toolchain<'a> {
             Ok(Box::new(toolchain) as Box<dyn InstalledToolchain<'a>>)
         }
     }
-    pub fn cfg(&self) -> &Cfg {
+    pub(crate) fn cfg(&self) -> &Cfg {
         self.cfg
     }
     pub fn name(&self) -> &str {
@@ -774,7 +774,6 @@ impl<'a> DistributableToolchain<'a> {
             old_date: old_date.as_deref(),
             components,
             targets,
-            distributable: self,
         }
         .install(self.0)
     }
@@ -795,7 +794,6 @@ impl<'a> DistributableToolchain<'a> {
                 old_date: None,
                 components: &[],
                 targets: &[],
-                distributable: self,
             }
             .install(self.0)?)
         } else {

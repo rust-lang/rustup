@@ -86,7 +86,7 @@ impl<T: Into<String>> From<T> for OverrideFile {
 }
 
 #[derive(Debug)]
-pub enum OverrideReason {
+pub(crate) enum OverrideReason {
     Environment,
     CommandLine,
     OverrideDB(PathBuf),
@@ -170,7 +170,7 @@ pub enum PgpPublicKey {
 
 impl PgpPublicKey {
     /// Retrieve the key.
-    pub fn key(&self) -> &SignedPublicKey {
+    pub(crate) fn key(&self) -> &SignedPublicKey {
         match self {
             Self::Builtin => &*BUILTIN_PGP_KEY,
             Self::FromEnvironment(_, k) => k,
@@ -179,7 +179,7 @@ impl PgpPublicKey {
     }
 
     /// Display the key in detail for the user
-    pub fn show_key(&self) -> Result<Vec<String>> {
+    pub(crate) fn show_key(&self) -> Result<Vec<String>> {
         fn format_hex(bytes: &[u8], separator: &str, every: usize) -> Result<String> {
             use std::fmt::Write;
             let mut ret = String::new();
@@ -226,7 +226,7 @@ impl Display for PgpPublicKey {
     }
 }
 
-pub const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
+pub(crate) const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
 
 pub struct Cfg {
     profile_override: Option<dist::Profile>,
@@ -241,7 +241,6 @@ pub struct Cfg {
     pub toolchain_override: Option<String>,
     pub env_override: Option<String>,
     pub dist_root_url: String,
-    pub dist_root_server: String,
     pub notify_handler: Arc<dyn Fn(Notification<'_>)>,
 }
 
@@ -330,7 +329,7 @@ impl Cfg {
             dist_root_server.as_str(),
             Box::new(move |n| (notify_clone)(n.into())),
         );
-        let dist_root = dist_root_server.clone() + "/dist";
+        let dist_root = dist_root_server + "/dist";
 
         let cfg = Self {
             profile_override: None,
@@ -346,7 +345,6 @@ impl Cfg {
             toolchain_override: None,
             env_override,
             dist_root_url: dist_root,
-            dist_root_server,
         };
 
         // Run some basic checks against the constructed configuration
@@ -372,7 +370,7 @@ impl Cfg {
         }
     }
 
-    pub fn get_pgp_keys(&self) -> &[PgpPublicKey] {
+    pub(crate) fn get_pgp_keys(&self) -> &[PgpPublicKey] {
         &self.pgp_keys
     }
 
@@ -380,7 +378,7 @@ impl Cfg {
         self.profile_override = Some(profile);
     }
 
-    pub fn set_default(&self, toolchain: &str) -> Result<()> {
+    pub(crate) fn set_default(&self, toolchain: &str) -> Result<()> {
         self.settings_file.with_mut(|s| {
             s.default_toolchain = if toolchain == "none" {
                 None
@@ -393,7 +391,7 @@ impl Cfg {
         Ok(())
     }
 
-    pub fn set_profile(&mut self, profile: &str) -> Result<()> {
+    pub(crate) fn set_profile(&mut self, profile: &str) -> Result<()> {
         match Profile::from_str(profile) {
             Ok(p) => {
                 self.profile_override = None;
@@ -408,7 +406,7 @@ impl Cfg {
         }
     }
 
-    pub fn set_auto_self_update(&mut self, mode: &str) -> Result<()> {
+    pub(crate) fn set_auto_self_update(&mut self, mode: &str) -> Result<()> {
         match SelfUpdateMode::from_str(mode) {
             Ok(update_mode) => {
                 self.settings_file.with_mut(|s| {
@@ -422,7 +420,7 @@ impl Cfg {
         }
     }
 
-    pub fn set_toolchain_override(&mut self, toolchain_override: &str) {
+    pub(crate) fn set_toolchain_override(&mut self, toolchain_override: &str) {
         self.toolchain_override = Some(toolchain_override.to_owned());
     }
 
@@ -446,7 +444,7 @@ impl Cfg {
         })
     }
 
-    pub fn get_self_update_mode(&self) -> Result<SelfUpdateMode> {
+    pub(crate) fn get_self_update_mode(&self) -> Result<SelfUpdateMode> {
         self.settings_file.with(|s| {
             let mode = match &s.auto_self_update {
                 Some(mode) => mode.clone(),
@@ -456,7 +454,7 @@ impl Cfg {
         })
     }
 
-    pub fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain<'_>> {
+    pub(crate) fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain<'_>> {
         if create_parent {
             utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {
                 (self.notify_handler)(n)
@@ -466,7 +464,7 @@ impl Cfg {
         Toolchain::from(self, name)
     }
 
-    pub fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> Result<PathBuf> {
+    pub(crate) fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> Result<PathBuf> {
         if create_parent {
             utils::ensure_dir_exists(
                 "update-hash",
@@ -478,7 +476,7 @@ impl Cfg {
         Ok(self.update_hash_dir.join(toolchain))
     }
 
-    pub fn which_binary_by_toolchain(
+    pub(crate) fn which_binary_by_toolchain(
         &self,
         toolchain: &str,
         binary: &str,
@@ -491,12 +489,12 @@ impl Cfg {
         }
     }
 
-    pub fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {
+    pub(crate) fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {
         let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
         Ok(Some(toolchain.binary_file(binary)))
     }
 
-    pub fn upgrade_data(&self) -> Result<()> {
+    pub(crate) fn upgrade_data(&self) -> Result<()> {
         let current_version = self.settings_file.with(|s| Ok(s.version.clone()))?;
 
         if current_version == DEFAULT_METADATA_VERSION {
@@ -536,7 +534,7 @@ impl Cfg {
         }
     }
 
-    pub fn find_default(&self) -> Result<Option<Toolchain<'_>>> {
+    pub(crate) fn find_default(&self) -> Result<Option<Toolchain<'_>>> {
         let opt_name = self.get_default()?;
 
         if let Some(name) = opt_name {
@@ -547,7 +545,10 @@ impl Cfg {
         }
     }
 
-    pub fn find_override(&self, path: &Path) -> Result<Option<(Toolchain<'_>, OverrideReason)>> {
+    pub(crate) fn find_override(
+        &self,
+        path: &Path,
+    ) -> Result<Option<(Toolchain<'_>, OverrideReason)>> {
         self.find_override_config(path).map(|opt| {
             opt.and_then(|(override_cfg, reason)| {
                 override_cfg.toolchain.map(|toolchain| (toolchain, reason))
@@ -726,7 +727,7 @@ impl Cfg {
         }
     }
 
-    pub fn find_or_install_override_toolchain_or_default(
+    pub(crate) fn find_or_install_override_toolchain_or_default(
         &self,
         path: &Path,
     ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
@@ -823,7 +824,7 @@ impl Cfg {
         }
     }
 
-    pub fn get_default(&self) -> Result<Option<String>> {
+    pub(crate) fn get_default(&self) -> Result<Option<String>> {
         let user_opt = self.settings_file.with(|s| Ok(s.default_toolchain.clone()));
         if let Some(fallback_settings) = &self.fallback_settings {
             match user_opt {
@@ -834,7 +835,7 @@ impl Cfg {
         user_opt
     }
 
-    pub fn list_toolchains(&self) -> Result<Vec<String>> {
+    pub(crate) fn list_toolchains(&self) -> Result<Vec<String>> {
         if utils::is_directory(&self.toolchains_dir) {
             let mut toolchains: Vec<_> = utils::read_dir("toolchains", &self.toolchains_dir)?
                 .filter_map(io::Result::ok)
@@ -850,7 +851,7 @@ impl Cfg {
         }
     }
 
-    pub fn list_channels(&self) -> Result<Vec<(String, Result<Toolchain<'_>>)>> {
+    pub(crate) fn list_channels(&self) -> Result<Vec<(String, Result<Toolchain<'_>>)>> {
         let toolchains = self.list_toolchains()?;
 
         // Convert the toolchain strings to Toolchain values
@@ -863,7 +864,7 @@ impl Cfg {
             .collect())
     }
 
-    pub fn update_all_channels(
+    pub(crate) fn update_all_channels(
         &self,
         force_update: bool,
     ) -> Result<Vec<(String, Result<UpdateStatus>)>> {
@@ -887,7 +888,7 @@ impl Cfg {
         Ok(channels.collect())
     }
 
-    pub fn check_metadata_version(&self) -> Result<()> {
+    pub(crate) fn check_metadata_version(&self) -> Result<()> {
         utils::assert_is_directory(&self.rustup_dir)?;
 
         self.settings_file.with(|s| {
@@ -902,14 +903,14 @@ impl Cfg {
         })
     }
 
-    pub fn toolchain_for_dir(
+    pub(crate) fn toolchain_for_dir(
         &self,
         path: &Path,
     ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
         self.find_or_install_override_toolchain_or_default(path)
     }
 
-    pub fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
+    pub(crate) fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
         let (ref toolchain, _) = self.toolchain_for_dir(path)?;
 
         if let Some(cmd) = self.maybe_do_cargo_fallback(toolchain, binary)? {
@@ -922,7 +923,7 @@ impl Cfg {
         }
     }
 
-    pub fn create_command_for_toolchain(
+    pub(crate) fn create_command_for_toolchain(
         &self,
         toolchain: &str,
         install_if_missing: bool,
@@ -978,7 +979,7 @@ impl Cfg {
         Ok(None)
     }
 
-    pub fn set_default_host_triple(&self, host_triple: &str) -> Result<()> {
+    pub(crate) fn set_default_host_triple(&self, host_triple: &str) -> Result<()> {
         // Ensure that the provided host_triple is capable of resolving
         // against the 'stable' toolchain.  This provides early errors
         // if the supplied triple is insufficient / bad.
@@ -1001,7 +1002,7 @@ impl Cfg {
             .unwrap_or_else(dist::TargetTriple::from_host_or_build))
     }
 
-    pub fn resolve_toolchain(&self, name: &str) -> Result<String> {
+    pub(crate) fn resolve_toolchain(&self, name: &str) -> Result<String> {
         if let Ok(desc) = dist::PartialToolchainDesc::from_str(name) {
             let host = self.get_default_host_triple()?;
             Ok(desc.resolve(&host)?.to_string())

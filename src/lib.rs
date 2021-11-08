@@ -8,11 +8,10 @@
 #![recursion_limit = "1024"]
 
 pub use crate::config::*;
-pub use crate::currentprocess::varsource::*;
-pub use crate::currentprocess::*;
+use crate::currentprocess::*;
 pub use crate::errors::*;
 pub use crate::notifications::*;
-pub use crate::toolchain::*;
+use crate::toolchain::*;
 pub(crate) use crate::utils::toml_utils;
 
 #[macro_use]
@@ -61,17 +60,17 @@ fn component_for_bin(binary: &str) -> Option<&'static str> {
 
 #[macro_use]
 pub mod cli;
-pub mod command;
+mod command;
 mod config;
 pub mod currentprocess;
-pub mod diskio;
+mod diskio;
 pub mod dist;
 pub mod env_var;
 pub mod errors;
-pub mod fallback_settings;
+mod fallback_settings;
 mod install;
-mod notifications;
-pub mod settings;
+pub mod notifications;
+mod settings;
 pub mod test;
-pub mod toolchain;
+mod toolchain;
 pub mod utils;

@@ -4,7 +4,7 @@ pub mod log;
 pub mod common;
 mod download_tracker;
 pub mod errors;
-pub mod help;
+mod help;
 mod job;
 mod markdown;
 pub mod proxy_mode;
