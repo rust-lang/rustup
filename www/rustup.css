@@ -95,7 +95,7 @@ body#idx p.other-platforms-help {
 }
 
 .instructions > * {
-    width: 40rem;
+    width: 45rem;
     margin-left: auto;
     margin-right: auto;
 }
@@ -105,23 +105,33 @@ hr {
     margin-bottom: 2em;
 }
 
-#platform-instructions-unix > div > pre,
-#platform-instructions-win32 > div > pre,
-#platform-instructions-win64 > div > pre,
-#platform-instructions-default > div > div > pre,
-#platform-instructions-unknown > div > div > pre {
+#platform-instructions-unix > p,
+#platform-instructions-win32 > p,
+#platform-instructions-win64 > p,
+#platform-instructions-default > p,
+#platform-instructions-unknown > p {
+    width: 40rem;
+}
+
+.rustup-command::before {
+    color: #999;
+    content: " $ ";
+	margin-left: 15px;
+}
+
+.rustup-command {
     background-color: #515151;
     color: white;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 1rem;
+    padding: 1rem 1rem 1rem 0;
     width: 45rem;
     text-align: center;
     border-radius: 3px;
     box-shadow: inset 0px 0px 20px 0px #333333;
-    overflow-x: scroll;
+    overflow: auto;
     font-size: 0.6em;
-    height: 27px;
+    white-space: nowrap;
+    height: 26px;
+    line-height: 26px;
 }
 
 #platform-instructions-unix div.copy-container,
@@ -138,7 +148,7 @@ hr {
 #platform-instructions-win64 button.copy-button,
 #platform-instructions-default button.copy-button,
 #platform-instructions-unknown button.copy-button {
-    height: 60px;
+    height: 58px;
     margin: 1px;
     padding-right: 5px;
     border-radius: 3px;
