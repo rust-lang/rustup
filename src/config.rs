@@ -1003,11 +1003,13 @@ impl Cfg {
     }
 
     pub(crate) fn resolve_toolchain(&self, name: &str) -> Result<String> {
-        if let Ok(desc) = dist::PartialToolchainDesc::from_str(name) {
+        // remove trailing slashes in toolchain name
+        let normalized_name = name.trim_end_matches('/');
+        if let Ok(desc) = dist::PartialToolchainDesc::from_str(normalized_name) {
             let host = self.get_default_host_triple()?;
             Ok(desc.resolve(&host)?.to_string())
         } else {
-            Ok(name.to_owned())
+            Ok(normalized_name.to_owned())
         }
     }
 }
