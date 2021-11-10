@@ -529,30 +529,21 @@ impl<'a> DistributableToolchain<'a> {
 
     // Installed only.
     pub(crate) fn add_component(&self, mut component: Component) -> Result<()> {
-        if !self.0.exists() {
-            return Err(RustupError::ToolchainNotInstalled(self.0.name.to_owned()).into());
-        }
-
-        let toolchain = &self.0.name;
-        let toolchain = ToolchainDesc::from_str(toolchain).expect("must be valid");
-
-        let prefix = InstallPrefix::from(self.0.path.to_owned());
-        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
-
-        if let Some(manifest) = manifestation.load_manifest()? {
+        if let Some(desc) = self.get_toolchain_desc_with_manifest()? {
             // Rename the component if necessary.
-            if let Some(c) = manifest.rename_component(&component) {
+            if let Some(c) = desc.manifest.rename_component(&component) {
                 component = c;
             }
 
             // Validate the component name
-            let rust_pkg = manifest
+            let rust_pkg = desc
+                .manifest
                 .packages
                 .get("rust")
                 .expect("manifest should contain a rust package");
             let targ_pkg = rust_pkg
                 .targets
-                .get(&toolchain.target)
+                .get(&desc.toolchain.target)
                 .expect("installed manifest should have a known target");
 
             if !targ_pkg.components.contains(&component) {
@@ -562,8 +553,12 @@ impl<'a> DistributableToolchain<'a> {
                 } else {
                     return Err(RustupError::UnknownComponent {
                         name: self.0.name.to_string(),
-                        component: component.description(&manifest),
-                        suggestion: self.get_component_suggestion(&component, &manifest, false),
+                        component: component.description(&desc.manifest),
+                        suggestion: self.get_component_suggestion(
+                            &component,
+                            &desc.manifest,
+                            false,
+                        ),
                     }
                     .into());
                 }
@@ -574,13 +569,13 @@ impl<'a> DistributableToolchain<'a> {
                 remove_components: vec![],
             };
 
-            manifestation.update(
-                &manifest,
+            desc.manifestation.update(
+                &desc.manifest,
                 changes,
                 false,
                 &self.download_cfg(),
                 &self.download_cfg().notify_handler,
-                &toolchain.manifest_name(),
+                &desc.toolchain.manifest_name(),
                 false,
             )?;
 
@@ -737,17 +732,7 @@ impl<'a> DistributableToolchain<'a> {
 
     // Installed only.
     pub(crate) fn get_manifest(&self) -> Result<Option<Manifest>> {
-        if !self.0.exists() {
-            bail!(RustupError::ToolchainNotInstalled(self.0.name().to_owned()));
-        }
-
-        let toolchain = &self.0.name();
-        let toolchain = ToolchainDesc::from_str(toolchain)?;
-
-        let prefix = InstallPrefix::from(self.0.path().to_owned());
-        let manifestation = Manifestation::open(prefix, toolchain.target)?;
-
-        manifestation.load_manifest()
+        Ok(self.get_toolchain_desc_with_manifest()?.map(|d| d.manifest))
     }
 
     // Not installed only?
@@ -802,68 +787,30 @@ impl<'a> DistributableToolchain<'a> {
         }
     }
 
-    // Installed only.
-    pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
+    pub(crate) fn get_toolchain_desc_with_manifest(
+        &self,
+    ) -> Result<Option<ToolchainDescWithManifest>> {
         if !self.0.exists() {
             bail!(RustupError::ToolchainNotInstalled(self.0.name.to_owned()));
         }
-
         let toolchain = &self.0.name;
         let toolchain = ToolchainDesc::from_str(toolchain)
             .context(RustupError::ComponentsUnsupported(self.0.name.to_string()))?;
 
         let prefix = InstallPrefix::from(self.0.path.to_owned());
         let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
+        Ok(manifestation
+            .load_manifest()?
+            .map(|manifest| ToolchainDescWithManifest {
+                toolchain,
+                manifestation,
+                manifest,
+            }))
+    }
 
-        if let Some(manifest) = manifestation.load_manifest()? {
-            let config = manifestation.read_config()?;
-
-            // Return all optional components of the "rust" package for the
-            // toolchain's target triple.
-            let mut res = Vec::new();
-
-            let rust_pkg = manifest
-                .packages
-                .get("rust")
-                .expect("manifest should contain a rust package");
-            let targ_pkg = rust_pkg
-                .targets
-                .get(&toolchain.target)
-                .expect("installed manifest should have a known target");
-
-            for component in &targ_pkg.components {
-                let installed = config
-                    .as_ref()
-                    .map(|c| component.contained_within(&c.components))
-                    .unwrap_or(false);
-
-                let component_target = TargetTriple::new(&component.target());
-
-                // Get the component so we can check if it is available
-                let component_pkg = manifest
-                    .get_package(component.short_name_in_manifest())
-                    .unwrap_or_else(|_| {
-                        panic!(
-                            "manifest should contain component {}",
-                            &component.short_name(&manifest)
-                        )
-                    });
-                let component_target_pkg = component_pkg
-                    .targets
-                    .get(&component_target)
-                    .expect("component should have target toolchain");
-
-                res.push(ComponentStatus {
-                    component: component.clone(),
-                    name: component.name(&manifest),
-                    installed,
-                    available: component_target_pkg.available(),
-                });
-            }
-
-            res.sort_by(|a, b| a.component.cmp(&b.component));
-
-            Ok(res)
+    pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
+        if let Some(toolchain) = self.get_toolchain_desc_with_manifest()? {
+            toolchain.list_components()
         } else {
             Err(RustupError::ComponentsUnsupported(self.0.name.to_string()).into())
         }
@@ -871,24 +818,13 @@ impl<'a> DistributableToolchain<'a> {
 
     // Installed only.
     pub(crate) fn remove_component(&self, mut component: Component) -> Result<()> {
-        // Overlapping code with get_manifest :/.
-        if !self.0.exists() {
-            return Err(RustupError::ToolchainNotInstalled(self.0.name.to_owned()).into());
-        }
-
-        let toolchain = &self.0.name;
-        let toolchain = ToolchainDesc::from_str(toolchain).expect("must be valid");
-
-        let prefix = InstallPrefix::from(self.0.path.to_owned());
-        let manifestation = Manifestation::open(prefix, toolchain.target.clone())?;
-
-        if let Some(manifest) = manifestation.load_manifest()? {
+        if let Some(desc) = self.get_toolchain_desc_with_manifest()? {
             // Rename the component if necessary.
-            if let Some(c) = manifest.rename_component(&component) {
+            if let Some(c) = desc.manifest.rename_component(&component) {
                 component = c;
             }
 
-            let dist_config = manifestation.read_config()?.unwrap();
+            let dist_config = desc.manifestation.read_config()?.unwrap();
             if !dist_config.components.contains(&component) {
                 let wildcard_component = component.wildcard();
                 if dist_config.components.contains(&wildcard_component) {
@@ -896,8 +832,8 @@ impl<'a> DistributableToolchain<'a> {
                 } else {
                     return Err(RustupError::UnknownComponent {
                         name: self.0.name.to_string(),
-                        component: component.description(&manifest),
-                        suggestion: self.get_component_suggestion(&component, &manifest, true),
+                        component: component.description(&desc.manifest),
+                        suggestion: self.get_component_suggestion(&component, &desc.manifest, true),
                     }
                     .into());
                 }
@@ -908,13 +844,13 @@ impl<'a> DistributableToolchain<'a> {
                 remove_components: vec![component],
             };
 
-            manifestation.update(
-                &manifest,
+            desc.manifestation.update(
+                &desc.manifest,
                 changes,
                 false,
                 &self.download_cfg(),
                 &self.download_cfg().notify_handler,
-                &toolchain.manifest_name(),
+                &desc.toolchain.manifest_name(),
                 false,
             )?;
 
@@ -969,6 +905,68 @@ impl<'a> DistributableToolchain<'a> {
         }
         // It's reasonable to assume this is a v1 manifest installation
         true
+    }
+}
+
+/// Helper type to avoid parsing a manifest more than once
+pub(crate) struct ToolchainDescWithManifest {
+    toolchain: ToolchainDesc,
+    manifestation: Manifestation,
+    pub manifest: Manifest,
+}
+
+impl ToolchainDescWithManifest {
+    pub(crate) fn list_components(&self) -> Result<Vec<ComponentStatus>> {
+        let config = self.manifestation.read_config()?;
+
+        // Return all optional components of the "rust" package for the
+        // toolchain's target triple.
+        let mut res = Vec::new();
+
+        let rust_pkg = self
+            .manifest
+            .packages
+            .get("rust")
+            .expect("manifest should contain a rust package");
+        let targ_pkg = rust_pkg
+            .targets
+            .get(&self.toolchain.target)
+            .expect("installed manifest should have a known target");
+
+        for component in &targ_pkg.components {
+            let installed = config
+                .as_ref()
+                .map(|c| component.contained_within(&c.components))
+                .unwrap_or(false);
+
+            let component_target = TargetTriple::new(&component.target());
+
+            // Get the component so we can check if it is available
+            let component_pkg = self
+                .manifest
+                .get_package(component.short_name_in_manifest())
+                .unwrap_or_else(|_| {
+                    panic!(
+                        "manifest should contain component {}",
+                        &component.short_name(&self.manifest)
+                    )
+                });
+            let component_target_pkg = component_pkg
+                .targets
+                .get(&component_target)
+                .expect("component should have target toolchain");
+
+            res.push(ComponentStatus {
+                component: component.clone(),
+                name: component.name(&self.manifest),
+                installed,
+                available: component_target_pkg.available(),
+            });
+        }
+
+        res.sort_by(|a, b| a.component.cmp(&b.component));
+
+        Ok(res)
     }
 }
 

@@ -739,21 +739,21 @@ impl Cfg {
             let components_requested = !components.is_empty() || !targets.is_empty();
             // If we're here, the toolchain exists on disk and is a dist toolchain
             // so we should attempt to load its manifest
-            let manifest = if let Some(manifest) = distributable.get_manifest()? {
-                manifest
+            let desc = if let Some(desc) = distributable.get_toolchain_desc_with_manifest()? {
+                desc
             } else {
                 // We can't read the manifest.  If this is a v1 install that's understandable
                 // and we assume the components are all good, otherwise we need to have a go
                 // at re-fetching the manifest to try again.
                 return Ok(distributable.guess_v1_manifest());
             };
-            match (distributable.list_components(), components_requested) {
+            match (desc.list_components(), components_requested) {
                 // If the toolchain does not support components but there were components requested, bubble up the error
                 (Err(e), true) => Err(e),
                 // Otherwise check if all the components we want are installed
                 (Ok(installed_components), _) => Ok(components.iter().all(|name| {
                     installed_components.iter().any(|status| {
-                        let cname = status.component.short_name(&manifest);
+                        let cname = status.component.short_name(&desc.manifest);
                         let cname = cname.as_str();
                         let cnameim = status.component.short_name_in_manifest();
                         let cnameim = cnameim.as_str();
