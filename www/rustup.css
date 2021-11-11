@@ -18,17 +18,17 @@
 }
 
 @font-face {
+    font-family: 'Fira Mono';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Fira Mono'), url("fonts/FiraMono-Regular.ttf") format('truetype');
+}
+
+@font-face {
     font-family: 'Work Sans';
     font-style: normal;
     font-weight: 500;
     src: local('Work Sans Medium'), url("fonts/WorkSans-Medium.ttf") format('truetype');
-}
-
-@font-face {
-    font-family: 'Inconsolata';
-    font-style: normal;
-    font-weight: 400;
-    src: local('Inconsolata Regular'), url("fonts/Inconsolata-Regular.ttf") format('truetype');
 }
 
 body {
@@ -41,7 +41,7 @@ body {
 }
 
 pre {
-    font-family: Inconsolata,Menlo,Monaco,Consolas,"Courier New",monospace;
+    font-family: "Fira Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-weight: 400;
 }
 
