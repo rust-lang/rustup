@@ -125,10 +125,11 @@ pub fn download_to_path_with_backend(
     }()
     .map_err(|e| {
         // TODO: We currently clear up the cached download on any error, should we restrict it to a subset?
-        remove_file(path)
-            .context("cleaning up cached downloads")
-            .unwrap();
-        e
+        if let Err(file_err) = remove_file(path).context("cleaning up cached downloads") {
+            file_err.context(e)
+        } else {
+            e
+        }
     })
 }
 
