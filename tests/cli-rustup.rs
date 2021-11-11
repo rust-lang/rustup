@@ -2147,6 +2147,31 @@ warning: If you meant to build software to target that platform, perhaps try `ru
     });
 }
 
+#[test]
+fn dont_warn_on_partial_build() {
+    setup(&|config| {
+        let triple = this_host_triple();
+        let arch = triple.split('-').next().unwrap();
+        let mut cmd = clitools::cmd(
+            config,
+            "rustup",
+            &["toolchain", "install", &format!("nightly-{}", arch)],
+        );
+        clitools::env(config, &mut cmd);
+        let out = cmd.output().unwrap();
+        assert!(out.status.success());
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(stderr.contains(&format!(
+            r"info: syncing channel updates for 'nightly-{0}'",
+            triple
+        )));
+        assert!(!stderr.contains(&format!(
+            r"warning: toolchain 'nightly-{0}' may not be able to run on this system.",
+            arch
+        )));
+    })
+}
+
 /// Checks that `rust-toolchain.toml` files are considered
 #[test]
 fn rust_toolchain_toml() {

@@ -17,9 +17,7 @@ use super::{
     self_update::{check_rustup_update, SelfUpdateMode},
 };
 use crate::cli::errors::CLIError;
-use crate::dist::dist::{
-    PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc,
-};
+use crate::dist::dist::{PartialTargetTriple, PartialToolchainDesc, Profile, TargetTriple};
 use crate::dist::manifest::Component;
 use crate::errors::RustupError;
 use crate::process;
@@ -959,8 +957,8 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
 
             if toolchain_has_triple {
                 let host_arch = TargetTriple::from_host_or_build();
-                if let Ok(toolchain_desc) = ToolchainDesc::from_str(name) {
-                    let target_triple = toolchain_desc.target;
+                if let Ok(partial_toolchain_desc) = PartialToolchainDesc::from_str(name) {
+                    let target_triple = partial_toolchain_desc.resolve(&host_arch)?.target;
                     if !forced && !host_arch.can_run(&target_triple)? {
                         err!("DEPRECATED: future versions of rustup will require --force-non-host to install a non-host toolchain as the default.");
                         warn!(
