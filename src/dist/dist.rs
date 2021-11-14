@@ -685,7 +685,7 @@ fn update_from_dist_<'a>(
     // bunch of the tests, which (inexplicably) use 2015-01-01 as their manifest dates.
     let first_manifest = Utc.from_utc_date(&NaiveDate::from_ymd(2014, 12, 20));
     let old_manifest = old_date
-        .and_then(|date| utc_from_manifest_date(date))
+        .and_then(utc_from_manifest_date)
         .unwrap_or(first_manifest);
     let last_manifest = if allow_downgrade {
         first_manifest
