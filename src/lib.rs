@@ -1,4 +1,5 @@
 #![deny(rust_2018_idioms)]
+#![deny(unreachable_pub)]
 #![allow(
     clippy::too_many_arguments,
     clippy::type_complexity,

@@ -73,14 +73,14 @@ impl SettingsFile {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Settings {
-    pub version: String,
-    pub default_host_triple: Option<String>,
-    pub default_toolchain: Option<String>,
-    pub profile: Option<Profile>,
-    pub overrides: BTreeMap<String, String>,
-    pub pgp_keys: Option<String>,
-    pub auto_self_update: Option<SelfUpdateMode>,
+pub(crate) struct Settings {
+    pub(crate) version: String,
+    pub(crate) default_host_triple: Option<String>,
+    pub(crate) default_toolchain: Option<String>,
+    pub(crate) profile: Option<Profile>,
+    pub(crate) overrides: BTreeMap<String, String>,
+    pub(crate) pgp_keys: Option<String>,
+    pub(crate) auto_self_update: Option<SelfUpdateMode>,
 }
 
 impl Default for Settings {

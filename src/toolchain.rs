@@ -42,7 +42,7 @@ enum InstalledPath<'a> {
 }
 
 /// A fully resolved reference to a toolchain which may or may not exist
-pub struct Toolchain<'a> {
+pub(crate) struct Toolchain<'a> {
     cfg: &'a Cfg,
     name: String,
     path: PathBuf,
@@ -50,15 +50,15 @@ pub struct Toolchain<'a> {
 }
 
 /// Used by the `list_component` function
-pub struct ComponentStatus {
-    pub component: Component,
-    pub name: String,
-    pub installed: bool,
-    pub available: bool,
+pub(crate) struct ComponentStatus {
+    pub(crate) component: Component,
+    pub(crate) name: String,
+    pub(crate) installed: bool,
+    pub(crate) available: bool,
 }
 
 #[derive(Clone, Debug)]
-pub enum UpdateStatus {
+pub(crate) enum UpdateStatus {
     Installed,
     Updated(String), // Stores the version of rustc *before* the update
     Unchanged,
@@ -110,7 +110,7 @@ impl<'a> Toolchain<'a> {
         })
     }
 
-    pub fn as_installed_common(&'a self) -> Result<InstalledCommonToolchain<'a>> {
+    pub(crate) fn as_installed_common(&'a self) -> Result<InstalledCommonToolchain<'a>> {
         if !self.exists() {
             // Should be verify perhaps?
             return Err(RustupError::ToolchainNotInstalled(self.name.to_owned()).into());
@@ -130,10 +130,10 @@ impl<'a> Toolchain<'a> {
     pub(crate) fn cfg(&self) -> &Cfg {
         self.cfg
     }
-    pub fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &str {
         &self.name
     }
-    pub fn path(&self) -> &Path {
+    pub(crate) fn path(&self) -> &Path {
         &self.path
     }
     fn is_symlink(&self) -> bool {
@@ -145,7 +145,7 @@ impl<'a> Toolchain<'a> {
     /// Is there a filesystem component with the name of the toolchain in the toolchains dir - valid install or not.
     /// Used to determine whether this toolchain should be uninstallable.
     /// Custom and Distributable. Installed and uninstalled. (perhaps onstalled only?)
-    pub fn exists(&self) -> bool {
+    pub(crate) fn exists(&self) -> bool {
         // HACK: linked toolchains are symlinks, and, contrary to what std docs
         // lead me to believe `fs::metadata`, used by `is_directory` does not
         // seem to follow symlinks on windows.
@@ -159,11 +159,11 @@ impl<'a> Toolchain<'a> {
     /// Is there a valid usable toolchain with this name, either in the toolchains dir, or symlinked from it.
     // Could in future check for rustc perhaps.
     // Custom and Distributable. Installed only?
-    pub fn verify(&self) -> Result<()> {
+    pub(crate) fn verify(&self) -> Result<()> {
         utils::assert_is_directory(&self.path)
     }
     // Custom and Distributable. Installed only.
-    pub fn remove(&self) -> Result<()> {
+    pub(crate) fn remove(&self) -> Result<()> {
         if self.exists() || self.is_symlink() {
             (self.cfg.notify_handler)(Notification::UninstallingToolchain(&self.name));
         } else {
@@ -186,7 +186,7 @@ impl<'a> Toolchain<'a> {
     }
 
     // Custom only
-    pub fn is_custom(&self) -> bool {
+    pub(crate) fn is_custom(&self) -> bool {
         Toolchain::is_custom_name(&self.name)
     }
 
@@ -195,7 +195,7 @@ impl<'a> Toolchain<'a> {
     }
 
     // Distributable only
-    pub fn is_tracking(&self) -> bool {
+    pub(crate) fn is_tracking(&self) -> bool {
         ToolchainDesc::from_str(&self.name)
             .ok()
             .map(|d| d.is_tracking())
@@ -203,7 +203,7 @@ impl<'a> Toolchain<'a> {
     }
 
     // Custom and Distributable. Installed only.
-    pub fn doc_path(&self, relative: &str) -> Result<PathBuf> {
+    pub(crate) fn doc_path(&self, relative: &str) -> Result<PathBuf> {
         self.verify()?;
 
         let parts = vec!["share", "doc", "rust", "html"];
@@ -216,31 +216,31 @@ impl<'a> Toolchain<'a> {
         Ok(doc_dir)
     }
     // Custom and Distributable. Installed only.
-    pub fn open_docs(&self, relative: &str) -> Result<()> {
+    pub(crate) fn open_docs(&self, relative: &str) -> Result<()> {
         self.verify()?;
 
         utils::open_browser(&self.doc_path(relative)?)
     }
     // Custom and Distributable. Installed only.
-    pub fn make_default(&self) -> Result<()> {
+    pub(crate) fn make_default(&self) -> Result<()> {
         self.cfg.set_default(&self.name)
     }
     // Custom and Distributable. Installed only.
-    pub fn make_override(&self, path: &Path) -> Result<()> {
+    pub(crate) fn make_override(&self, path: &Path) -> Result<()> {
         self.cfg.settings_file.with_mut(|s| {
             s.add_override(path, self.name.clone(), self.cfg.notify_handler.as_ref());
             Ok(())
         })
     }
     // Distributable and Custom. Installed only.
-    pub fn binary_file(&self, name: &str) -> PathBuf {
+    pub(crate) fn binary_file(&self, name: &str) -> PathBuf {
         let mut path = self.path.clone();
         path.push("bin");
         path.push(name.to_owned() + env::consts::EXE_SUFFIX);
         path
     }
     // Distributable and Custom. Installed only.
-    pub fn rustc_version(&self) -> String {
+    pub(crate) fn rustc_version(&self) -> String {
         if let Ok(installed) = self.as_installed_common() {
             let rustc_path = self.binary_file("rustc");
             if utils::is_file(&rustc_path) {
@@ -318,10 +318,10 @@ fn install_msg(bin: &str, toolchain: &str, is_default: bool) -> String {
     }
 }
 /// Newtype hosting functions that apply to both custom and distributable toolchains that are installed.
-pub struct InstalledCommonToolchain<'a>(&'a Toolchain<'a>);
+pub(crate) struct InstalledCommonToolchain<'a>(&'a Toolchain<'a>);
 
 impl<'a> InstalledCommonToolchain<'a> {
-    pub fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
+    pub(crate) fn create_command<T: AsRef<OsStr>>(&self, binary: T) -> Result<Command> {
         // Create the path to this binary within the current toolchain sysroot
         let binary = if let Some(binary_str) = binary.as_ref().to_str() {
             if binary_str.to_lowercase().ends_with(EXE_SUFFIX) {
@@ -408,7 +408,7 @@ impl<'a> InstalledCommonToolchain<'a> {
 
         #[cfg(not(target_os = "macos"))]
         mod sysenv {
-            pub const LOADER_PATH: &str = "LD_LIBRARY_PATH";
+            pub(crate) const LOADER_PATH: &str = "LD_LIBRARY_PATH";
         }
         #[cfg(target_os = "macos")]
         mod sysenv {
@@ -423,7 +423,7 @@ impl<'a> InstalledCommonToolchain<'a> {
             // find the library in the install path.
             // Setting DYLD_LIBRARY_PATH can easily have unintended
             // consequences.
-            pub const LOADER_PATH: &str = "DYLD_FALLBACK_LIBRARY_PATH";
+            pub(crate) const LOADER_PATH: &str = "DYLD_FALLBACK_LIBRARY_PATH";
         }
         if cfg!(target_os = "macos")
             && process()
@@ -461,10 +461,10 @@ impl<'a> InstalledCommonToolchain<'a> {
 }
 
 /// Newtype to facilitate splitting out custom-toolchain specific code.
-pub struct CustomToolchain<'a>(&'a Toolchain<'a>);
+pub(crate) struct CustomToolchain<'a>(&'a Toolchain<'a>);
 
 impl<'a> CustomToolchain<'a> {
-    pub fn new(toolchain: &'a Toolchain<'a>) -> Result<CustomToolchain<'a>> {
+    pub(crate) fn new(toolchain: &'a Toolchain<'a>) -> Result<CustomToolchain<'a>> {
         if toolchain.is_custom() {
             Ok(CustomToolchain(toolchain))
         } else {
@@ -476,7 +476,7 @@ impl<'a> CustomToolchain<'a> {
     }
 
     // Not installed only.
-    pub fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
+    pub(crate) fn install_from_dir(&self, src: &Path, link: bool) -> Result<()> {
         let mut pathbuf = PathBuf::from(src);
 
         pathbuf.push("lib");
@@ -505,10 +505,10 @@ impl<'a> InstalledToolchain<'a> for CustomToolchain<'a> {
 }
 
 /// Newtype to facilitate splitting out distributable-toolchain specific code.
-pub struct DistributableToolchain<'a>(&'a Toolchain<'a>);
+pub(crate) struct DistributableToolchain<'a>(&'a Toolchain<'a>);
 
 impl<'a> DistributableToolchain<'a> {
-    pub fn new(toolchain: &'a Toolchain<'a>) -> Result<DistributableToolchain<'a>> {
+    pub(crate) fn new(toolchain: &'a Toolchain<'a>) -> Result<DistributableToolchain<'a>> {
         if toolchain.is_custom() {
             Err(anyhow!(format!(
                 "{} is a custom toolchain",
@@ -521,7 +521,9 @@ impl<'a> DistributableToolchain<'a> {
 
     /// Temporary helper until we further split this into a newtype for
     /// InstalledDistributableToolchain - one where the type can protect component operations.
-    pub fn new_for_components(toolchain: &'a Toolchain<'a>) -> Result<DistributableToolchain<'a>> {
+    pub(crate) fn new_for_components(
+        toolchain: &'a Toolchain<'a>,
+    ) -> Result<DistributableToolchain<'a>> {
         DistributableToolchain::new(toolchain).context(RustupError::ComponentsUnsupported(
             toolchain.name().to_string(),
         ))
@@ -591,7 +593,7 @@ impl<'a> DistributableToolchain<'a> {
     // Create a command as a fallback for another toolchain. This is used
     // to give custom toolchains access to cargo
     // Installed only.
-    pub fn create_fallback_command<T: AsRef<OsStr>>(
+    pub(crate) fn create_fallback_command<T: AsRef<OsStr>>(
         &self,
         binary: T,
         primary_toolchain: &Toolchain<'_>,
@@ -764,7 +766,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed or not installed.
-    pub fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
+    pub(crate) fn install_from_dist_if_not_installed(&self) -> Result<UpdateStatus> {
         let update_hash = self.update_hash()?;
         (self.0.cfg.notify_handler)(Notification::LookingForToolchain(&self.0.name));
         if !self.0.exists() {
@@ -808,7 +810,7 @@ impl<'a> DistributableToolchain<'a> {
             }))
     }
 
-    pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
+    pub(crate) fn list_components(&self) -> Result<Vec<ComponentStatus>> {
         if let Some(toolchain) = self.get_toolchain_desc_with_manifest()? {
             toolchain.list_components()
         } else {
@@ -864,7 +866,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    pub fn show_dist_version(&self) -> Result<Option<String>> {
+    pub(crate) fn show_dist_version(&self) -> Result<Option<String>> {
         let update_hash = self.update_hash()?;
 
         match crate::dist::dist::dl_v2_manifest(
@@ -878,7 +880,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    pub fn show_version(&self) -> Result<Option<String>> {
+    pub(crate) fn show_version(&self) -> Result<Option<String>> {
         match self.get_manifest()? {
             Some(manifest) => Ok(Some(manifest.get_rust_version()?.to_string())),
             None => Ok(None),
@@ -891,7 +893,7 @@ impl<'a> DistributableToolchain<'a> {
     }
 
     // Installed only.
-    pub fn guess_v1_manifest(&self) -> bool {
+    pub(crate) fn guess_v1_manifest(&self) -> bool {
         let prefix = InstallPrefix::from(self.0.path().to_owned());
         // If all the v1 common components are present this is likely to be
         // a v1 manifest install.  The v1 components are not called the same
@@ -912,7 +914,7 @@ impl<'a> DistributableToolchain<'a> {
 pub(crate) struct ToolchainDescWithManifest {
     toolchain: ToolchainDesc,
     manifestation: Manifestation,
-    pub manifest: Manifest,
+    pub(crate) manifest: Manifest,
 }
 
 impl ToolchainDescWithManifest {

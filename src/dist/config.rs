@@ -8,9 +8,9 @@ pub(crate) const SUPPORTED_CONFIG_VERSIONS: [&str; 1] = ["1"];
 pub(crate) const DEFAULT_CONFIG_VERSION: &str = "1";
 
 #[derive(Clone, Debug)]
-pub struct Config {
-    pub config_version: String,
-    pub components: Vec<Component>,
+pub(crate) struct Config {
+    pub(crate) config_version: String,
+    pub(crate) components: Vec<Component>,
 }
 
 impl Config {
