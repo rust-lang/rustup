@@ -52,7 +52,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
         );
 
         if toolchain.starts_with("nightly") {
-            let _ = write!(buf, "{}", nightly_tips.to_string());
+            let _ = write!(buf, "{}", nightly_tips);
         }
 
         let _ = write!(
@@ -73,7 +73,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
         );
 
         if toolchain.starts_with("nightly") {
-            let _ = write!(buf, "{}", nightly_tips.to_string());
+            let _ = write!(buf, "{}", nightly_tips);
         }
         let _ = write!(
             buf,
