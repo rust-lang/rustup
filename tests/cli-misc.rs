@@ -861,6 +861,36 @@ fn which() {
 }
 
 #[test]
+fn which_asking_uninstalled_toolchain() {
+    setup(&|config| {
+        let path_1 = config.customdir.join("custom-1");
+        let path_1 = path_1.to_string_lossy();
+        expect_ok(
+            config,
+            &["rustup", "toolchain", "link", "custom-1", &path_1],
+        );
+        expect_ok(config, &["rustup", "default", "custom-1"]);
+        #[cfg(windows)]
+        expect_stdout_ok(
+            config,
+            &["rustup", "which", "rustc"],
+            "\\toolchains\\custom-1\\bin\\rustc",
+        );
+        #[cfg(not(windows))]
+        expect_stdout_ok(
+            config,
+            &["rustup", "which", "rustc"],
+            "/toolchains/custom-1/bin/rustc",
+        );
+        expect_err(
+            config,
+            &["rustup", "which", "--toolchain=nightly", "rustc"],
+            "toolchain 'nightly' is not installed",
+        );
+    });
+}
+
+#[test]
 fn override_by_toolchain_on_the_command_line() {
     setup(&|config| {
         #[cfg(windows)]
