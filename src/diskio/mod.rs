@@ -193,8 +193,6 @@ pub(crate) struct Item {
     start: Option<Instant>,
     /// Amount of time the operation took to finish
     finish: Option<Duration>,
-    /// The length of the file, for files (for stats)
-    size: Option<usize>,
     /// The result of the operation (could now be factored into CompletedIO...)
     pub(crate) result: io::Result<()>,
     /// The mode to apply
@@ -216,20 +214,17 @@ impl Item {
             kind: Kind::Directory,
             start: None,
             finish: None,
-            size: None,
             result: Ok(()),
             mode,
         }
     }
 
     pub(crate) fn write_file(full_path: PathBuf, mode: u32, content: FileBuffer) -> Self {
-        let len = content.len();
         Self {
             full_path,
             kind: Kind::File(content),
             start: None,
             finish: None,
-            size: Some(len),
             result: Ok(()),
             mode,
         }
@@ -246,7 +241,6 @@ impl Item {
             kind: Kind::IncrementalFile(content_callback),
             start: None,
             finish: None,
-            size: None,
             result: Ok(()),
             mode,
         };

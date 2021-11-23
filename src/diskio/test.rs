@@ -4,8 +4,18 @@ use anyhow::Result;
 
 use crate::test::test_dir;
 
-use super::{get_executor, Executor, Item};
+use super::{get_executor, Executor, Item, Kind};
 use crate::currentprocess;
+
+impl Item {
+    /// The length of the file, for files (for stats)
+    fn size(&self) -> Option<usize> {
+        match &self.kind {
+            Kind::File(buf) => Some(buf.len()),
+            _ => None,
+        }
+    }
+}
 
 fn test_incremental_file(io_threads: &str) -> Result<()> {
     let work_dir = test_dir()?;
@@ -96,10 +106,10 @@ fn test_complete_file(io_threads: &str) -> Result<()> {
         assert_eq!(chunk.len(), 10);
         chunk = chunk.finished();
         let item = Item::write_file(work_dir.path().join("scratch"), 0o666, chunk);
-        assert_eq!(item.size, Some(10));
+        assert_eq!(item.size(), Some(10));
         let mut items = 0;
         let mut check_item = |item: Item| {
-            assert_eq!(item.size, Some(10));
+            assert_eq!(item.size(), Some(10));
             items += 1;
             assert_eq!(1, items);
         };
