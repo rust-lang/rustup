@@ -6,17 +6,9 @@ use anyhow::{Context, Result};
 
 use crate::utils::utils;
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Default)]
 pub struct FallbackSettings {
     pub default_toolchain: Option<String>,
-}
-
-impl Default for FallbackSettings {
-    fn default() -> Self {
-        Self {
-            default_toolchain: None,
-        }
-    }
 }
 
 impl FallbackSettings {

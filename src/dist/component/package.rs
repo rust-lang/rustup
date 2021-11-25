@@ -349,7 +349,7 @@ fn unpack_without_first_dir<'a, R: Read>(
         /// has been fully dispatched.
         fn flush_ios<'a, R: std::io::Read, P: AsRef<Path>>(
             io_executor: &mut dyn Executor,
-            mut directories: &mut HashMap<PathBuf, DirStatus>,
+            directories: &mut HashMap<PathBuf, DirStatus>,
             mut sender_entry: Option<&mut SenderEntry<'a, '_, R>>,
             full_path: P,
         ) -> Result<bool> {
@@ -357,7 +357,7 @@ fn unpack_without_first_dir<'a, R: Read>(
             for mut op in io_executor.completed().collect::<Vec<_>>() {
                 // TODO capture metrics
                 filter_result(&mut op)?;
-                trigger_children(&*io_executor, &mut directories, op)?;
+                trigger_children(&*io_executor, directories, op)?;
             }
             // Maybe stream a file incrementally
             if let Some(sender) = sender_entry.as_mut() {
