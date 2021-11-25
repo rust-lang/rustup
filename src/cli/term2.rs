@@ -4,6 +4,9 @@
 
 use std::io;
 use std::io::Write;
+use std::sync::{Arc, Mutex};
+
+use once_cell::sync::OnceCell;
 
 use termcolor::{ColorChoice, ColorSpec, StandardStream, WriteColor};
 
@@ -137,10 +140,60 @@ impl AutomationFriendlyTerminal {
     }
 }
 
+/// A cheaply clonable handle to a terminal.
+#[derive(Clone)]
+struct SharedTerminal {
+    inner: Arc<Mutex<Box<dyn Terminal + Send + Sync>>>,
+}
+
+impl io::Write for SharedTerminal {
+    fn write(&mut self, buf: &[u8]) -> std::result::Result<usize, io::Error> {
+        self.inner.lock().unwrap().write(buf)
+    }
+
+    fn flush(&mut self) -> std::result::Result<(), io::Error> {
+        self.inner.lock().unwrap().flush()
+    }
+}
+
+impl Terminal for SharedTerminal {
+    fn fg(&mut self, color: Color) -> io::Result<()> {
+        self.inner.lock().unwrap().fg(color)
+    }
+
+    fn bg(&mut self, color: Color) -> io::Result<()> {
+        self.inner.lock().unwrap().bg(color)
+    }
+
+    fn attr(&mut self, attr: Attr) -> io::Result<()> {
+        self.inner.lock().unwrap().attr(attr)
+    }
+
+    fn reset(&mut self) -> io::Result<()> {
+        self.inner.lock().unwrap().reset()
+    }
+
+    fn carriage_return(&mut self) -> io::Result<()> {
+        self.inner.lock().unwrap().carriage_return()
+    }
+}
+
 pub(crate) fn stdout() -> Box<dyn Terminal> {
-    process().stdout()
+    static STDOUT: OnceCell<Box<SharedTerminal>> = OnceCell::new();
+    let shared = STDOUT.get_or_init(|| {
+        Box::new(SharedTerminal {
+            inner: Arc::new(Mutex::new(process().stdout())),
+        })
+    });
+    Box::<SharedTerminal>::clone(shared)
 }
 
 pub(crate) fn stderr() -> Box<dyn Terminal> {
-    process().stderr()
+    static STDERR: OnceCell<Box<SharedTerminal>> = OnceCell::new();
+    let shared = STDERR.get_or_init(|| {
+        Box::new(SharedTerminal {
+            inner: Arc::new(Mutex::new(process().stderr())),
+        })
+    });
+    Box::<SharedTerminal>::clone(shared)
 }

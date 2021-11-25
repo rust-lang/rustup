@@ -2020,6 +2020,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "num_cpus",
+ "once_cell",
  "opener",
  "openssl",
  "pulldown-cmark",

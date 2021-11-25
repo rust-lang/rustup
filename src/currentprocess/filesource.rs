@@ -96,14 +96,14 @@ pub trait Writer: Write + Isatty + Send {
 
 /// Stand-in for std::io::stdout
 pub trait StdoutSource {
-    fn stdout(&self) -> Box<dyn Terminal>;
+    fn stdout(&self) -> Box<dyn Terminal + Send + Sync>;
 }
 
 // -------------- stderr -------------------------------
 
 /// Stand-in for std::io::stderr
 pub trait StderrSource {
-    fn stderr(&self) -> Box<dyn Terminal>;
+    fn stderr(&self) -> Box<dyn Terminal + Send + Sync>;
 }
 
 // ----------------- OS support for writers -----------------
@@ -123,7 +123,7 @@ impl Isatty for io::Stdout {
 }
 
 impl StdoutSource for super::OSProcess {
-    fn stdout(&self) -> Box<dyn Terminal> {
+    fn stdout(&self) -> Box<dyn Terminal + Send + Sync> {
         Box::new(AutomationFriendlyTerminal::stdout())
     }
 }
@@ -143,7 +143,7 @@ impl Isatty for io::Stderr {
 }
 
 impl StderrSource for super::OSProcess {
-    fn stderr(&self) -> Box<dyn Terminal> {
+    fn stderr(&self) -> Box<dyn Terminal + Send + Sync> {
         Box::new(AutomationFriendlyTerminal::stderr())
     }
 }
@@ -209,13 +209,13 @@ impl Isatty for TestWriter {
 }
 
 impl StdoutSource for super::TestProcess {
-    fn stdout(&self) -> Box<dyn Terminal> {
+    fn stdout(&self) -> Box<dyn Terminal + Send + Sync> {
         Box::new(TestWriter(self.stdout.clone()))
     }
 }
 
 impl StderrSource for super::TestProcess {
-    fn stderr(&self) -> Box<dyn Terminal> {
+    fn stderr(&self) -> Box<dyn Terminal + Send + Sync> {
         Box::new(TestWriter(self.stderr.clone()))
     }
 }

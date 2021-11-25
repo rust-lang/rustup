@@ -1,5 +1,8 @@
 [package]
-authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>", "Diggory Blake <diggsey@googlemail.com>"]
+authors = [
+  "Daniel Silverstone <dsilvers@digital-scurf.org>",
+  "Diggory Blake <diggsey@googlemail.com>",
+]
 build = "build.rs"
 description = "Manage multiple rust installations with ease"
 edition = "2021"
@@ -13,7 +16,12 @@ version = "1.24.3"
 
 [features]
 curl-backend = ["download/curl-backend"]
-default = ["curl-backend", "reqwest-backend", "reqwest-default-tls", "reqwest-rustls-tls"]
+default = [
+  "curl-backend",
+  "reqwest-backend",
+  "reqwest-default-tls",
+  "reqwest-rustls-tls",
+]
 
 reqwest-backend = ["download/reqwest-backend"]
 vendored-openssl = ['openssl/vendored']
@@ -31,28 +39,33 @@ atty = "0.2"
 cfg-if = "1.0"
 chrono = "0.4"
 clap = "2"
-download = {path = "download", default-features = false}
+download = { path = "download", default-features = false }
 effective-limits = "0.5.3"
 enum-map = "2.0.3"
 flate2 = "1"
 git-testament = "0.2"
-home = {git = "https://github.com/rbtcollins/home", rev = "a243ee2fbee6022c57d56f5aa79aefe194eabe53"}
+home = { git = "https://github.com/rbtcollins/home", rev = "a243ee2fbee6022c57d56f5aa79aefe194eabe53" }
 lazy_static = "1"
 libc = "0.2"
 num_cpus = "1.13"
+once_cell = "1.8"
 opener = "0.5.0"
 # Used by `curl` or `reqwest` backend although it isn't imported
 # by our rustup.
-openssl = {version = "0.10", optional = true}
-pulldown-cmark = {version = "0.8", default-features = false}
+openssl = { version = "0.10", optional = true }
+pulldown-cmark = { version = "0.8", default-features = false }
 rand = "0.8"
 regex = "1"
 remove_dir_all = "0.7.0"
 same-file = "1"
 scopeguard = "1"
 semver = "1.0"
-serde = {version = "1.0", features = ["derive"]}
-sequoia-openpgp = { version = "1.5", default-features = false, features = ["crypto-rust", "allow-experimental-crypto", "allow-variable-time-crypto"] }
+sequoia-openpgp = { version = "1.5", default-features = false, features = [
+  "crypto-rust",
+  "allow-experimental-crypto",
+  "allow-variable-time-crypto",
+] }
+serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10"
 sharded-slab = "0.1.1"
 strsim = "0.10"
