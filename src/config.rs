@@ -715,7 +715,11 @@ impl Cfg {
                 }
             }
             _ => {
-                let override_file = toml::from_str::<OverrideFile>(contents)
+                let mut toml_deserializer = toml::Deserializer::new(contents);
+                let override_file: OverrideFile =
+                    serde_ignored::deserialize(&mut toml_deserializer, |path| {
+                        warn!("Unknown property in toolchain file: {}", path);
+                    })
                     .context(OverrideFileConfigError::Parsing)?;
 
                 if override_file.is_empty() {

@@ -1755,6 +1755,7 @@ dependencies = [
  "scopeguard",
  "semver",
  "serde",
+ "serde_ignored",
  "sha2",
  "sharded-slab",
  "strsim 0.10.0",
@@ -1879,6 +1880,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "serde_ignored"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c2c7d39d14f2f2ea82239de71594782f186fd03501ac81f0ce08e674819ff2f"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
