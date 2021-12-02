@@ -212,6 +212,32 @@ fn remove_toolchain() {
     });
 }
 
+// Issue #2873
+#[test]
+fn remove_toolchain_ignore_trailing_slash() {
+    setup(&|config| {
+        // custom toolchain name with trailing slash
+        let path = config.customdir.join("custom-1");
+        let path_str = path.to_string_lossy();
+        expect_ok(config, &["rustup", "toolchain", "link", "dev", &path_str]);
+        expect_stderr_ok(
+            config,
+            &["rustup", "toolchain", "remove", "dev/"],
+            "toolchain 'dev' uninstalled",
+        );
+        // check if custom toolchain directory contents are not removed
+        let toolchain_dir_is_non_empty = fs::read_dir(&path).unwrap().next().is_some();
+        assert!(toolchain_dir_is_non_empty);
+        // distributable toolchain name with trailing slash
+        expect_ok(config, &["rustup", "update", "nightly"]);
+        expect_stderr_ok(
+            config,
+            &["rustup", "toolchain", "remove", for_host!("nightly-{}/")],
+            for_host!("toolchain 'nightly-{}' uninstalled"),
+        );
+    });
+}
+
 #[test]
 fn add_remove_multiple_toolchains() {
     fn go(add: &str, rm: &str) {
