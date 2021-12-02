@@ -478,20 +478,20 @@ impl Cfg {
 
     pub(crate) fn which_binary_by_toolchain(
         &self,
-        toolchain: &str,
+        toolchain_name: &str,
         binary: &str,
-    ) -> Result<Option<PathBuf>> {
-        let toolchain = self.get_toolchain(toolchain, false)?;
+    ) -> Result<PathBuf> {
+        let toolchain = self.get_toolchain(toolchain_name, false)?;
         if toolchain.exists() {
-            Ok(Some(toolchain.binary_file(binary)))
+            Ok(toolchain.binary_file(binary))
         } else {
-            Ok(None)
+            Err(RustupError::ToolchainNotInstalled(toolchain_name.to_string()).into())
         }
     }
 
-    pub(crate) fn which_binary(&self, path: &Path, binary: &str) -> Result<Option<PathBuf>> {
+    pub(crate) fn which_binary(&self, path: &Path, binary: &str) -> Result<PathBuf> {
         let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
-        Ok(Some(toolchain.binary_file(binary)))
+        Ok(toolchain.binary_file(binary))
     }
 
     pub(crate) fn upgrade_data(&self) -> Result<()> {

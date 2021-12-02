@@ -1046,8 +1046,7 @@ fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
         cfg.which_binary_by_toolchain(toolchain, binary)?
     } else {
         cfg.which_binary(&utils::current_dir()?, binary)?
-    }
-    .expect("binary not found");
+    };
 
     utils::assert_is_file(&binary_path)?;
 
