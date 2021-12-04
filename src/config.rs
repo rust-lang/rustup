@@ -736,7 +736,9 @@ impl Cfg {
             components: &[&str],
             targets: &[&str],
         ) -> Result<bool> {
-            let components_requested = !components.is_empty() || !targets.is_empty();
+            if components.is_empty() && targets.is_empty() {
+                return Ok(true);
+            }
             // If we're here, the toolchain exists on disk and is a dist toolchain
             // so we should attempt to load its manifest
             let desc = if let Some(desc) = distributable.get_toolchain_desc_with_manifest()? {
@@ -747,11 +749,8 @@ impl Cfg {
                 // at re-fetching the manifest to try again.
                 return Ok(distributable.guess_v1_manifest());
             };
-            match (desc.list_components(), components_requested) {
-                // If the toolchain does not support components but there were components requested, bubble up the error
-                (Err(e), true) => Err(e),
-                // Otherwise check if all the components we want are installed
-                (Ok(installed_components), _) => Ok(components.iter().all(|name| {
+            let installed_components = desc.list_components()?;
+            Ok(components.iter().all(|name| {
                     installed_components.iter().any(|status| {
                         let cname = status.component.short_name(&desc.manifest);
                         let cname = cname.as_str();
@@ -769,9 +768,7 @@ impl Cfg {
                             let ctarg = status.component.target();
                             (ctarg == *name) && status.installed
                         })
-                })),
-                _ => Ok(true),
-            }
+                }))
         }
 
         if let Some((toolchain, components, targets, reason, profile)) =
