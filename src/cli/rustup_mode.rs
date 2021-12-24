@@ -1026,6 +1026,11 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
         check_rustup_update()?;
     }
 
+    if self_update::NEVER_SELF_UPDATE {
+        info!("self-update is disabled for this build of rustup");
+        info!("any updates to rustup will need to be fetched with your system package manager")
+    }
+
     Ok(utils::ExitCode(0))
 }
 
