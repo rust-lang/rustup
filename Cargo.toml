@@ -43,7 +43,6 @@ opener = "0.5.0"
 # Used by `curl` or `reqwest` backend although it isn't imported
 # by our rustup.
 openssl = {version = "0.10", optional = true}
-pgp = {version = "0.7", default-features = false}
 pulldown-cmark = {version = "0.8", default-features = false}
 rand = "0.8"
 regex = "1"
@@ -52,6 +51,7 @@ same-file = "1"
 scopeguard = "1"
 semver = "0.11"
 serde = {version = "1.0", features = ["derive"]}
+sequoia-openpgp = { version = "1.5", default-features = false, features = ["crypto-rust", "allow-experimental-crypto", "allow-variable-time-crypto"] }
 sha2 = "0.9"
 sharded-slab = "0.1.1"
 strsim = "0.10"

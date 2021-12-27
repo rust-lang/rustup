@@ -4,38 +4,83 @@
 
 use std::io::Read;
 
-use anyhow::{Context, Result};
-use pgp::types::KeyTrait;
-use pgp::{Deserializable, StandaloneSignature};
+use anyhow::Result;
+
+use sequoia_openpgp::{
+    parse::{stream::*, Parse},
+    policy, Cert, KeyHandle,
+};
 
 use crate::config::PgpPublicKey;
 
-pub(crate) fn verify_signature<T: Read>(
-    mut content: T,
+/// Returns the index of the cert in `certs` that verifies a
+/// signature.
+///
+/// Ignores any signatures that are bad for any reason.  If no
+/// signature could be verified, returns `None`.
+// XXX: This is a bit of an odd policy.  Shouldn't we fail if we
+// encounter a single bad signature (bad as in checksum doesn't check
+// out, not bad as in we don't have the key)?
+pub(crate) fn verify_signature<T: Read + Send + Sync>(
+    content: T,
     signature: &str,
-    keys: &[PgpPublicKey],
+    certs: &[PgpPublicKey],
 ) -> Result<Option<usize>> {
-    let mut content_buf = Vec::new();
-    content.read_to_end(&mut content_buf)?;
-    let (signatures, _) =
-        StandaloneSignature::from_string_many(signature).context("error verifying signature")?;
+    let p = policy::StandardPolicy::new();
+    let helper = Helper::new(certs);
+    let mut v = DetachedVerifierBuilder::from_reader(signature.as_bytes())?
+        .with_policy(&p, None, helper)?;
+    v.verify_reader(content)?;
+    Ok(v.into_helper().index)
+}
 
-    for signature in signatures {
-        let signature = signature.context("error verifying signature")?;
+struct Helper<'a> {
+    certs: &'a [PgpPublicKey],
+    // The index of the cert in certs that successfully verified a
+    // signature.
+    index: Option<usize>,
+}
 
-        for (idx, key) in keys.iter().enumerate() {
-            let actual_key = key.key();
-            if actual_key.is_signing_key() && signature.verify(actual_key, &content_buf).is_ok() {
-                return Ok(Some(idx));
-            }
+impl<'a> Helper<'a> {
+    fn new(certs: &'a [PgpPublicKey]) -> Self {
+        Helper { certs, index: None }
+    }
+}
 
-            for sub_key in &actual_key.public_subkeys {
-                if sub_key.is_signing_key() && signature.verify(sub_key, &content_buf).is_ok() {
-                    return Ok(Some(idx));
+impl VerificationHelper for Helper<'_> {
+    fn get_certs(&mut self, _: &[KeyHandle]) -> anyhow::Result<Vec<Cert>> {
+        Ok(self.certs.iter().map(|c| c.cert().clone()).collect())
+    }
+
+    fn check(&mut self, structure: MessageStructure<'_>) -> anyhow::Result<()> {
+        for layer in structure.into_iter() {
+            match layer {
+                MessageLayer::SignatureGroup { results } => {
+                    for result in results {
+                        match result {
+                            Ok(GoodChecksum { ka, .. }) => {
+                                // A good signature!  Find the index
+                                // of the singer key and return
+                                // success.
+                                self.index = self.certs.iter().position(|c| c.cert() == ka.cert());
+                                assert!(self.index.is_some());
+                                return Ok(());
+                            }
+                            _ => {
+                                // We ignore any errors.
+                            }
+                        }
+                    }
+                }
+                MessageLayer::Compression { .. } => {
+                    unreachable!("we're verifying detached signatures")
+                }
+                MessageLayer::Encryption { .. } => {
+                    unreachable!("we're verifying detached signatures")
                 }
             }
         }
-    }
 
-    Ok(None)
+        Ok(())
+    }
 }
