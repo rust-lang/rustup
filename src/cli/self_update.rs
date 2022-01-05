@@ -165,6 +165,7 @@ Cargo's bin directory, located at:
     {cargo_home_bin}
 
 ",
+            pre_install_msg_linking!(),
             $platform_msg,
             r#"
 
@@ -173,6 +174,26 @@ these changes will be reverted.
 "#
         )
     };
+}
+
+#[cfg(feature = "no-self-update")]
+macro_rules! pre_install_msg_linking {
+    () => {
+        r"
+These commands will be symlinked to `rustup-init`.
+
+`WARNING` - if the path to `rustup-init` changes, your Rust install
+will cease to function.
+
+"
+    }
+}
+
+#[cfg(not(feature = "no-self-update"))]
+macro_rules! pre_install_msg_linking {
+    () => {
+        ""
+    }
 }
 
 #[cfg(not(windows))]
