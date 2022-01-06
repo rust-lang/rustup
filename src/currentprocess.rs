@@ -87,6 +87,8 @@ pub trait CurrentProcess:
     + Debug
 {
     fn clone_boxed(&self) -> Box<dyn CurrentProcess>;
+
+    fn name(&self) -> Option<String>;
 }
 
 // Machinery for Cloning boxes
@@ -106,6 +108,19 @@ where
 {
     fn clone_boxed(&self) -> Box<dyn CurrentProcess + 'static> {
         Box::new(T::clone(self))
+    }
+
+    fn name(&self) -> Option<String> {
+        let arg0 = match self.var("RUSTUP_FORCE_ARG0") {
+            Ok(v) => Some(v),
+            Err(_) => self.args().next(),
+        }
+        .map(PathBuf::from);
+
+        arg0.as_ref()
+            .and_then(|a| a.file_stem())
+            .and_then(std::ffi::OsStr::to_str)
+            .map(String::from)
     }
 }
 
