@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use thiserror::Error as ThisError;
 use url::Url;
 
+use crate::currentprocess::process;
 use crate::dist::manifest::{Component, Manifest};
 
 const TOOLSTATE_MSG: &str =
@@ -88,7 +89,11 @@ pub enum RustupError {
     ToolchainNotInstallable(String),
     #[error("toolchain '{0}' is not installed")]
     ToolchainNotInstalled(String),
-    #[error("no override and no default toolchain set")]
+    #[error(
+        "rustup could not choose a version of {} to run, because one wasn't specified explicitly, and no default is configured.\n{}",
+        process().name().unwrap_or_else(|| "Rust".into()),
+        "help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain."
+    )]
     ToolchainNotSelected,
     #[error("toolchain '{}' does not contain component {}{}{}", .name, .component, if let Some(suggestion) = .suggestion {
         format!("; did you mean '{}'?", suggestion)

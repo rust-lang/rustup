@@ -599,7 +599,9 @@ fn default_none() {
             config,
             &["rustc", "--version"],
             "",
-            "error: no override and no default toolchain set\n",
+            "error: rustup could not choose a version of rustc to run, because one wasn't specified explicitly, and no default is configured.
+help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.
+",
         );
     })
 }

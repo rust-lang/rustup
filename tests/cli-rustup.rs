@@ -2179,7 +2179,7 @@ fn rust_toolchain_toml() {
         expect_err(
             config,
             &["rustc", "--version"],
-            "no override and no default toolchain set",
+            "rustup could not choose a version of rustc to run",
         );
 
         let cwd = config.current_dir();
