@@ -167,20 +167,14 @@ function fill_in_bug_report_values() {
     nav_app.textContent = navigator.appVersion;
 }
 
-function clear_copy_status_message(id) {
-    document.getElementById(id).innerText = '';
-}
-
 function process_copy_button_click(id) {
     try {
-        navigator.clipboard.writeText(rustup_install_command).then(function() {
-            document.getElementById(id).innerText = 'Copied!';
-        });
-        setTimeout(function () {
-            clear_copy_status_message(id);
-        }, 5000);
+        navigator.clipboard.writeText(rustup_install_command).then(() =>
+          document.getElementById(id).style.opacity = '1');
+
+        setTimeout(() => document.getElementById(id).style.opacity = '0', 3000);
     } catch (e) {
-        console.log('Hit a snag when copying to clipboard:', e);
+        console.log('Hit a snag when copying to clipboard: ', e);
     }
 }
 
