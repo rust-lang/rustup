@@ -124,10 +124,11 @@ hr {
     color: white;
     padding: 1rem 1rem 1rem 0;
     width: 45rem;
+    height: auto;
     text-align: center;
-    border-radius: 3px;
+    border-radius: 3px 0 0 3px;
     box-shadow: inset 0px 0px 20px 0px #333333;
-    overflow: auto;
+    overflow: hidden;
     font-size: 0.6em;
     white-space: nowrap;
     height: 26px;
@@ -149,9 +150,11 @@ hr {
 #platform-instructions-default button.copy-button,
 #platform-instructions-unknown button.copy-button {
     height: 58px;
-    margin: 1px;
-    padding-right: 5px;
-    border-radius: 3px;
+    margin: 0;
+    padding: 0 5px 0 5px;
+    border-radius: 0 3px 3px 0;
+    border-left-width: 0px;
+    border-left-style: solid;
 }
 
 #platform-instructions-unix div.copy-icon,
@@ -159,7 +162,12 @@ hr {
 #platform-instructions-win64 div.copy-icon,
 #platform-instructions-default div.copy-icon,
 #platform-instructions-unknown div.copy-icon {
-    margin-top: 12px;
+    position: relative;
+    width: fit-content;
+    height: fit-content;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 #platform-instructions-unix div.copy-button-text,
@@ -171,6 +179,8 @@ hr {
     color: green;
     width: 41px;
     height: 15px;
+    position: relative;
+    top: 5px;
 }
 
 #platform-instructions-win32 a.windows-download,
