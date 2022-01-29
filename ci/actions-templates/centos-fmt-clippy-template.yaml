@@ -87,7 +87,7 @@ jobs:
           git ls-files -- '*.bash' | xargs shellcheck -s bash -e SC1090
       - name: Run formatting checks
         run: |
-          cargo fmt --all -- --check
+          cargo fmt --all --check
       - name: Run cargo check and clippy
         run: |
           cargo check --all --all-targets
