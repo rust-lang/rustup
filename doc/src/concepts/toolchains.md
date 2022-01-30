@@ -59,8 +59,8 @@ For example, on Ubuntu you might clone `rust-lang/rust` into `~/rust`, build
 it, and then run:
 
 ```console
-$ rustup toolchain link myrust ~/rust/build/x86_64-unknown-linux-gnu/stage2/
-$ rustup default myrust
+$ rustup toolchain link my-toolchain ~/rust/build/x86_64-unknown-linux-gnu/stage2/
+$ rustup default my-toolchain
 ```
 
 Now you can name `my-toolchain` as any other `rustup` toolchain. Create a
