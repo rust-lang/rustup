@@ -536,7 +536,7 @@ pub(crate) fn format_path_for_display(path: &str) -> String {
     }
 }
 
-pub(crate) fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
+pub(crate) fn toolchain_sort<T: AsRef<str>>(v: &mut [T]) {
     use semver::{Identifier, Version};
 
     fn special_version(ord: u64, s: &str) -> Version {
