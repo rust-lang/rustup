@@ -52,7 +52,7 @@ impl<'a> DownloadCfg<'a> {
             let cached_result = file_hash(&target_file, self.notify_handler)?;
             if hash == cached_result {
                 (self.notify_handler)(Notification::FileAlreadyDownloaded);
-                (self.notify_handler)(Notification::ChecksumValid(&url.to_string()));
+                (self.notify_handler)(Notification::ChecksumValid(url.as_ref()));
                 return Ok(File { path: target_file });
             } else {
                 (self.notify_handler)(Notification::CachedFileChecksumFailed);
@@ -93,7 +93,7 @@ impl<'a> DownloadCfg<'a> {
         if hash != actual_hash {
             // Incorrect hash
             if partial_file_existed {
-                self.clean(&[hash.to_string() + &".partial".to_string()])?;
+                self.clean(&[hash.to_string() + ".partial"])?;
                 Err(anyhow!(RustupError::BrokenPartialFile))
             } else {
                 Err(RustupError::ChecksumFailed {
@@ -104,7 +104,7 @@ impl<'a> DownloadCfg<'a> {
                 .into())
             }
         } else {
-            (self.notify_handler)(Notification::ChecksumValid(&url.to_string()));
+            (self.notify_handler)(Notification::ChecksumValid(url.as_ref()));
 
             utils::rename_file(
                 "downloaded",

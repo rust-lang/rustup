@@ -822,7 +822,7 @@ fn try_update_from_dist_<'a>(
             let rust_package = m.get_package("rust")?;
             let rust_target_package = rust_package.get_target(Some(&toolchain.target.clone()))?;
 
-            for component in components.iter().copied() {
+            for component in components {
                 let mut component =
                     Component::new(component.to_string(), Some(toolchain.target.clone()), false);
                 if let Some(renamed) = m.rename_component(&component) {

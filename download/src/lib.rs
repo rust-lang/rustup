@@ -162,7 +162,7 @@ pub mod curl {
         EASY.with(|handle| {
             let mut handle = handle.borrow_mut();
 
-            handle.url(&url.to_string())?;
+            handle.url(url.as_ref())?;
             handle.follow_location(true)?;
 
             if resume_from > 0 {
