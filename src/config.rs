@@ -203,7 +203,7 @@ impl PgpPublicKey {
             .with_policy(&p, None)?
             .primary_userid()
             .map(|u| u.userid().to_string())
-            .unwrap_or("<No User ID>".into());
+            .unwrap_or_else(|_| "<No User ID>".into());
         ret.push(format!("  {:?}/{} - {}", algo, keyid, uid0));
         ret.push(format!("  Fingerprint: {}", fpr));
         Ok(ret)
