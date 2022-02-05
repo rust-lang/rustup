@@ -1671,7 +1671,7 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
         }
         CompletionCommand::Cargo => {
             if let Shell::Zsh = shell {
-                writeln!(&mut term2::stdout(), "#compdef cargo")?;
+                writeln!(term2::stdout(), "#compdef cargo")?;
             }
 
             let script = match shell {
@@ -1687,7 +1687,7 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
             };
 
             writeln!(
-                &mut term2::stdout(),
+                term2::stdout(),
                 "if command -v rustc >/dev/null 2>&1; then\n\
                     \tsource \"$(rustc --print sysroot)\"{}\n\
                  fi",

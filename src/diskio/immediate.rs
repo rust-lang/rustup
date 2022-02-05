@@ -204,7 +204,7 @@ impl IncrementalFileWriter {
     fn write(&mut self, chunk: Vec<u8>) -> std::result::Result<bool, io::Error> {
         let mut state = self.state.lock().unwrap();
         if let Some(ref mut state) = *state {
-            if let Some(ref mut file) = (&mut self.file).as_mut() {
+            if let Some(ref mut file) = self.file.as_mut() {
                 // Length 0 vector is used for clean EOF signalling.
                 if chunk.is_empty() {
                     trace_scoped!("close", "name:": self.path_display);
