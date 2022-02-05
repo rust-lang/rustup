@@ -557,7 +557,7 @@ pub(crate) fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
         } else if s.starts_with("nightly") {
             special_version(2, s)
         } else {
-            Version::parse(&s.replace("_", "-")).unwrap_or_else(|_| special_version(3, s))
+            Version::parse(&s.replace('_', "-")).unwrap_or_else(|_| special_version(3, s))
         }
     }
 
