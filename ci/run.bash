@@ -36,9 +36,25 @@ runtest () {
   cargo test --locked --release --target "$TARGET" "${FEATURES[@]}" "$@"
 }
 
+run_download_pkg_test() {
+  features=('--no-default-features' '--features' 'curl-backend,reqwest-backend,reqwest-default-tls')
+  case "$TARGET" in
+    # these platforms aren't supported by ring:
+    powerpc* ) ;;
+    mips* ) ;;
+    riscv* ) ;;
+    s390x* ) ;;
+    aarch64-pc-windows-msvc ) ;;
+    # default case, build with rustls enabled
+    * ) features+=('--features' 'reqwest-rustls-tls') ;;
+  esac
+
+  cargo test --locked --release --target "$TARGET" "${features[@]}" -p download
+}
+
 if [ -z "$SKIP_TESTS" ]; then
   cargo run --locked --release --target "$TARGET" "${FEATURES[@]}" -- --dump-testament
-  runtest -p download
+  run_download_pkg_test 
   runtest --bin rustup-init
   runtest --lib --all
   runtest --doc --all

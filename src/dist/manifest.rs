@@ -529,7 +529,6 @@ impl Component {
     }
 
     pub(crate) fn new_with_target(pkg_with_target: &str, is_extension: bool) -> Option<Self> {
-        use std::convert::TryFrom;
         for (pos, _) in pkg_with_target.match_indices('-') {
             let pkg = &pkg_with_target[0..pos];
             let target = &pkg_with_target[pos + 1..];
