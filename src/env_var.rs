@@ -187,7 +187,10 @@ mod tests {
     #[test]
     fn prepend_unique_path() {
         let mut vars = HashMap::new();
-        vars.env("PATH", "/home/a/.cargo/bin:/home/b/.cargo/bin");
+        vars.env(
+            "PATH",
+            env::join_paths(vec!["/home/a/.cargo/bin", "/home/b/.cargo/bin"].iter()).unwrap(),
+        );
         let tp = Box::new(currentprocess::TestProcess {
             vars,
             ..Default::default()
@@ -216,9 +219,17 @@ mod tests {
                     envs,
                     &[(
                         &OsString::from("PATH"),
-                        &Some(OsString::from(
-                            "/home/a/.cargo/bin:/home/z/.cargo/bin:/home/b/.cargo/bin"
-                        ))
+                        &Some(
+                            env::join_paths(
+                                vec![
+                                    "/home/a/.cargo/bin",
+                                    "/home/z/.cargo/bin",
+                                    "/home/b/.cargo/bin"
+                                ]
+                                .iter()
+                            )
+                            .unwrap()
+                        )
                     ),]
                 );
             });
