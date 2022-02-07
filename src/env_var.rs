@@ -8,7 +8,7 @@ use crate::process;
 
 pub const RUST_RECURSION_COUNT_MAX: u32 = 20;
 
-/// This can be removed when https://github.com/rust-lang/rust/issues/ 44434 is
+/// This can be removed when https://github.com/rust-lang/rust/issues/44434 is
 /// stablised.
 pub(crate) trait ProcessEnvs {
     fn env<K, V>(&mut self, key: K, val: V) -> &mut Self
