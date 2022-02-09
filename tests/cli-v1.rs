@@ -22,7 +22,7 @@ fn rustc_no_default_toolchain() {
         expect_err(
             config,
             &["rustc"],
-            "no override and no default toolchain set",
+            "rustup could not choose a version of rustc to run",
         );
     });
 }
@@ -305,7 +305,7 @@ fn remove_override_no_default() {
             expect_err(
                 config,
                 &["rustc"],
-                "no override and no default toolchain set",
+                "rustup could not choose a version of rustc to run",
             );
         });
     });

@@ -13,8 +13,6 @@
 
 #![recursion_limit = "1024"]
 
-use std::path::PathBuf;
-
 use anyhow::{anyhow, Result};
 use cfg_if::cfg_if;
 use rs_tracing::*;
@@ -62,18 +60,7 @@ fn run_rustup_inner() -> Result<utils::ExitCode> {
     utils::current_dir()?;
     utils::current_exe()?;
 
-    // The name of arg0 determines how the program is going to behave
-    let arg0 = match process().var("RUSTUP_FORCE_ARG0") {
-        Ok(v) => Some(v),
-        Err(_) => process().args().next(),
-    }
-    .map(PathBuf::from);
-    let name = arg0
-        .as_ref()
-        .and_then(|a| a.file_stem())
-        .and_then(std::ffi::OsStr::to_str);
-
-    match name {
+    match process().name().as_deref() {
         Some("rustup") => rustup_mode::main(),
         Some(n) if n.starts_with("rustup-setup") || n.starts_with("rustup-init") => {
             // NB: The above check is only for the prefix of the file
