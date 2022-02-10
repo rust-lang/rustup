@@ -88,7 +88,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
 #[derive(Debug, ThisError)]
 enum DistError {
     #[error("{}", components_missing_msg(.0, .1, .2))]
-    ToolchainComponentsMissing(Vec<Component>, ManifestV2, String),
+    ToolchainComponentsMissing(Vec<Component>, Box<ManifestV2>, String),
     #[error("no release found for '{0}'")]
     MissingReleaseForToolchain(String),
 }
@@ -878,7 +878,7 @@ fn try_update_from_dist_<'a>(
                         toolchain,
                     }) => Err(anyhow!(DistError::ToolchainComponentsMissing(
                         components.to_owned(),
-                        manifest.to_owned(),
+                        Box::new(manifest.to_owned()),
                         toolchain.to_owned(),
                     ))),
                     Some(_) | None => Err(err),
