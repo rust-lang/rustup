@@ -2,7 +2,7 @@
 authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>", "Diggory Blake <diggsey@googlemail.com>"]
 build = "build.rs"
 description = "Manage multiple rust installations with ease"
-edition = "2018"
+edition = "2021"
 homepage = "https://github.com/rust-lang/rustup"
 keywords = ["rustup", "multirust", "install", "proxy"]
 license = "MIT OR Apache-2.0"
