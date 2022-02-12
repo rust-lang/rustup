@@ -554,7 +554,7 @@ pub fn create_signature(data: &[u8]) -> anyhow::Result<String> {
         .alive()
         .revoked(false)
         .for_signing()
-        .nth(0)
+        .next()
         .unwrap()
         .key()
         .clone()

@@ -79,7 +79,7 @@ pub(crate) fn filter_file<F: FnMut(&str) -> bool>(
     for result in io::BufRead::lines(&mut reader) {
         let line = result?;
         if filter(&line) {
-            writeln!(&mut writer, "{}", &line)?;
+            writeln!(writer, "{}", &line)?;
         } else {
             removed += 1;
         }
@@ -97,7 +97,7 @@ pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
         .create(true)
         .open(dest)?;
 
-    writeln!(&mut dest_file, "{}", line)?;
+    writeln!(dest_file, "{}", line)?;
 
     dest_file.sync_data()?;
 

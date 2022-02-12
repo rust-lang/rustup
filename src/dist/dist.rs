@@ -88,7 +88,7 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
 #[derive(Debug, ThisError)]
 enum DistError {
     #[error("{}", components_missing_msg(.0, .1, .2))]
-    ToolchainComponentsMissing(Vec<Component>, ManifestV2, String),
+    ToolchainComponentsMissing(Vec<Component>, Box<ManifestV2>, String),
     #[error("no release found for '{0}'")]
     MissingReleaseForToolchain(String),
 }
@@ -822,7 +822,7 @@ fn try_update_from_dist_<'a>(
             let rust_package = m.get_package("rust")?;
             let rust_target_package = rust_package.get_target(Some(&toolchain.target.clone()))?;
 
-            for component in components.iter().copied() {
+            for component in components {
                 let mut component =
                     Component::new(component.to_string(), Some(toolchain.target.clone()), false);
                 if let Some(renamed) = m.rename_component(&component) {
@@ -878,7 +878,7 @@ fn try_update_from_dist_<'a>(
                         toolchain,
                     }) => Err(anyhow!(DistError::ToolchainComponentsMissing(
                         components.to_owned(),
-                        manifest.to_owned(),
+                        Box::new(manifest.to_owned()),
                         toolchain.to_owned(),
                     ))),
                     Some(_) | None => Err(err),

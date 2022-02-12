@@ -463,7 +463,7 @@ fn print_indented(heading: &str, text: &str) {
         "{} ({} lines):\n    {}",
         heading,
         lines,
-        text.replace("\n", "\n    ")
+        text.replace('\n', "\n    ")
     );
 }
 

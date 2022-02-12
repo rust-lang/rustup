@@ -56,20 +56,13 @@ impl VerificationHelper for Helper<'_> {
         for layer in structure.into_iter() {
             match layer {
                 MessageLayer::SignatureGroup { results } => {
-                    for result in results {
-                        match result {
-                            Ok(GoodChecksum { ka, .. }) => {
-                                // A good signature!  Find the index
-                                // of the singer key and return
-                                // success.
-                                self.index = self.certs.iter().position(|c| c.cert() == ka.cert());
-                                assert!(self.index.is_some());
-                                return Ok(());
-                            }
-                            _ => {
-                                // We ignore any errors.
-                            }
-                        }
+                    // We ignore any errors for now.
+                    for GoodChecksum { ka, .. } in results.into_iter().flatten() {
+                        // A good signature!  Find the index
+                        // of the signer key and return
+                        // success.
+                        self.index = self.certs.iter().position(|c| c.cert() == ka.cert());
+                        assert!(self.index.is_some());
                     }
                 }
                 MessageLayer::Compression { .. } => {

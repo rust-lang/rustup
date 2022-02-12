@@ -536,7 +536,7 @@ pub(crate) fn format_path_for_display(path: &str) -> String {
     }
 }
 
-pub(crate) fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
+pub(crate) fn toolchain_sort<T: AsRef<str>>(v: &mut [T]) {
     use semver::{Identifier, Version};
 
     fn special_version(ord: u64, s: &str) -> Version {
@@ -557,7 +557,7 @@ pub(crate) fn toolchain_sort<T: AsRef<str>>(v: &mut Vec<T>) {
         } else if s.starts_with("nightly") {
             special_version(2, s)
         } else {
-            Version::parse(&s.replace("_", "-")).unwrap_or_else(|_| special_version(3, s))
+            Version::parse(&s.replace('_', "-")).unwrap_or_else(|_| special_version(3, s))
         }
     }
 

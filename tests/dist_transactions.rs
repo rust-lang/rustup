@@ -27,7 +27,7 @@ fn add_file() {
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
     let mut file = tx.add_file("c", PathBuf::from("foo/bar")).unwrap();
-    write!(&mut file, "test").unwrap();
+    write!(file, "test").unwrap();
 
     tx.commit();
     drop(file);
@@ -759,9 +759,9 @@ fn rollback_failure_keeps_going() {
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix.clone(), &tmpcfg, &notify);
 
-    write!(&mut tx.add_file("", PathBuf::from("foo")).unwrap(), "").unwrap();
-    write!(&mut tx.add_file("", PathBuf::from("bar")).unwrap(), "").unwrap();
-    write!(&mut tx.add_file("", PathBuf::from("baz")).unwrap(), "").unwrap();
+    write!(tx.add_file("", PathBuf::from("foo")).unwrap(), "").unwrap();
+    write!(tx.add_file("", PathBuf::from("bar")).unwrap(), "").unwrap();
+    write!(tx.add_file("", PathBuf::from("baz")).unwrap(), "").unwrap();
 
     fs::remove_file(prefix.path().join("bar")).unwrap();
 
