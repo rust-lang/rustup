@@ -287,7 +287,7 @@ get_architecture() {
             _ostype=unknown-illumos
             ;;
 
-        MINGW* | MSYS* | CYGWIN*)
+        MINGW* | MSYS* | CYGWIN* | Windows_NT)
             _ostype=pc-windows-gnu
             ;;
 
