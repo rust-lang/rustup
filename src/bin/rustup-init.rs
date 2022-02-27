@@ -25,8 +25,8 @@ use rustup::cli::self_update;
 use rustup::cli::setup_mode;
 use rustup::currentprocess::{process, with, OSProcess};
 use rustup::env_var::RUST_RECURSION_COUNT_MAX;
+use rustup::is_proxyable_tools;
 use rustup::utils::utils;
-use rustup::{DUP_TOOLS, TOOLS};
 
 fn main() {
     let process = OSProcess::default();
@@ -81,20 +81,8 @@ fn run_rustup_inner() -> Result<utils::ExitCode> {
             }
         }
         Some(n) => {
-            if TOOLS.iter().chain(DUP_TOOLS.iter()).any(|&name| name == n) {
-                proxy_mode::main(n)
-            } else {
-                Err(anyhow!(format!(
-                    "unknown proxy name: '{}'; valid proxy names are {}",
-                    n,
-                    TOOLS
-                        .iter()
-                        .chain(DUP_TOOLS.iter())
-                        .map(|s| format!("'{}'", s))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )))
-            }
+            is_proxyable_tools(n)?;
+            proxy_mode::main(n)
         }
         None => {
             // Weird case. No arg0, or it's unparsable.
