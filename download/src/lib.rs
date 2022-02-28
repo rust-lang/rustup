@@ -10,6 +10,10 @@ use url::Url;
 mod errors;
 pub use crate::errors::*;
 
+/// User agent header value for HTTP request.
+/// See: https://github.com/rust-lang/rustup/issues/2860.
+const USER_AGENT: &str = concat!("rustup/", env!("CARGO_PKG_VERSION"));
+
 #[derive(Debug, Copy, Clone)]
 pub enum Backend {
     Curl,
@@ -164,6 +168,7 @@ pub mod curl {
 
             handle.url(url.as_ref())?;
             handle.follow_location(true)?;
+            handle.useragent(super::USER_AGENT)?;
 
             if resume_from > 0 {
                 handle.resume_from(resume_from)?;
@@ -303,6 +308,7 @@ pub mod reqwest_be {
     fn client_generic() -> ClientBuilder {
         Client::builder()
             .gzip(false)
+            .user_agent(super::USER_AGENT)
             .proxy(Proxy::custom(env_proxy))
             .timeout(Duration::from_secs(30))
     }
