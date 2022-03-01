@@ -108,6 +108,8 @@ pub fn this_host_triple() -> String {
         "apple-darwin"
     } else if cfg!(target_os = "illumos") {
         "unknown-illumos"
+    } else if cfg!(target_os = "freebsd") {
+        "unknown-freebsd"
     } else {
         unimplemented!()
     };
