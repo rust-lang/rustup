@@ -369,7 +369,7 @@ pub(crate) fn install(
     if let Some(plan) = do_msvc_check(&opts) {
         if no_prompt {
             warn!("installing msvc toolchain without its prerequisites");
-        } else if plan == VsInstallPlan::Automatic {
+        } else if !quiet && plan == VsInstallPlan::Automatic {
             md(&mut term, MSVC_AUTO_INSTALL_MESSAGE);
             if common::confirm(
                 "Automatically download and install Visual Studio 2022 Community edition? (Y/n)",
@@ -383,7 +383,7 @@ pub(crate) fn install(
                     return Ok(utils::ExitCode(0));
                 }
             }
-        } else if plan == VsInstallPlan::Manual {
+        } else {
             md(&mut term, MSVC_MESSAGE);
             md(&mut term, MSVC_MANUAL_INSTALL_MESSAGE);
             if !common::confirm("\nContinue? (y/N)", false)? {
