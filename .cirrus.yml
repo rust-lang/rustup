@@ -5,34 +5,15 @@ task:
   name: FreeBSD
   freebsd_instance:
     image: freebsd-13-0-release-amd64
-  setup_script:
-    - pkg install -y git gmake bash
-    - echo "========="
-    - echo "Acquire tags for the repo"
-    - git fetch --no-tags --prune --depth=1 origin +refs/tags/*:refs/tags/*
-    - echo "========="
-    - echo "Display the current git status"
-    - git status
-    - git describe
-    - echo "========="
-    - echo "Prep cargo dirs"
-    - mkdir -p ~/.cargo/{registry,git}
-    - echo "========="
-    - echo "Install Rustup using ./rustup-init.sh"
-    - sh rustup-init.sh --default-toolchain=stable --profile=minimal -y
-    # It's the equivalent of `source`
-    - . $HOME/.cargo/env
-    - echo "========="
-    - echo "Ensure we have the components we need"
-    - rustup component add rustfmt
-    - rustup component add clippy
-    - echo "========="
-    - echo "Run the freebsd check"
-    - unset SKIP_TESTS
-    - export LIBZ_SYS_STATIC=1
-    - export CARGO_BUILD_JOBS=1
-    - export TARGET="x86_64-unknown-freebsd"
-    - bash ci/run.bash
+  setup_script: |
+    pkg install -y git gmake bash
+    echo "========="
+    echo "create non-root user and log into it"
+    pw group add -n tester
+    pw user add -n tester -g tester -s `which bash`
+    pw user mod tester -d `pwd`
+    chown -R tester .
+    sudo -u tester bash ci/cirrus-templates/script.bash
   upload_to_s3:
     only_if: $CIRRUS_BRANCH == "stable"
     script:
