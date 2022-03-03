@@ -1,5 +1,6 @@
-use std::env::consts::EXE_SUFFIX;
+use std::env::{consts::EXE_SUFFIX, split_paths};
 use std::ffi::{OsStr, OsString};
+use std::fmt;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::path::Path;
 use std::process::Command;
@@ -24,12 +25,18 @@ pub(crate) fn ensure_prompt() -> Result<()> {
     Ok(())
 }
 
+#[derive(PartialEq, Eq)]
+pub(crate) enum VsInstallPlan {
+    Automatic,
+    Manual,
+}
+
 // Provide guidance about setting up MSVC if it doesn't appear to be
 // installed
-pub(crate) fn do_msvc_check(opts: &InstallOpts<'_>) -> bool {
+pub(crate) fn do_msvc_check(opts: &InstallOpts<'_>) -> Option<VsInstallPlan> {
     // Test suite skips this since it's env dependent
     if process().var("RUSTUP_INIT_SKIP_MSVC_CHECK").is_ok() {
-        return true;
+        return None;
     }
 
     use cc::windows_registry;
@@ -41,10 +48,102 @@ pub(crate) fn do_msvc_check(opts: &InstallOpts<'_>) -> bool {
     let installing_msvc = host_triple.contains("msvc");
     let have_msvc = windows_registry::find_tool(&host_triple, "cl.exe").is_some();
     if installing_msvc && !have_msvc {
-        return false;
+        // Visual Studio build tools are required.
+        // If the user does not have Visual Studio installed and their host
+        // machine is i686 or x86_64 then it's OK to try an auto install.
+        // Otherwise a manual install will be required.
+        let has_any_vs = windows_registry::find_vs_version().is_ok();
+        let is_x86 = host_triple.contains("i686") || host_triple.contains("x86_64");
+        if is_x86 && !has_any_vs {
+            Some(VsInstallPlan::Automatic)
+        } else {
+            Some(VsInstallPlan::Manual)
+        }
+    } else {
+        None
     }
+}
 
-    true
+#[derive(Debug)]
+struct VsInstallError(i32);
+impl std::error::Error for VsInstallError {}
+impl fmt::Display for VsInstallError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // See https://docs.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?view=vs-2022#error-codes
+        let message = match self.0 {
+            740 => "elevation required",
+            1001 => "Visual Studio installer process is running",
+            1003 => "Visual Studio is in use",
+            1602 => "operation was canceled",
+            1618 => "another installation running",
+            1641 => "operation completed successfully, and reboot was initiated",
+            3010 => "operation completed successfully, but install requires reboot before it can be used",
+            5003 => "bootstrapper failed to download installer",
+            5004 => "operation was canceled",
+            5005 => "bootstrapper command-line parse error",
+            5007 => "operation was blocked - the computer does not meet the requirements",
+            8001 => "arm machine check failure",
+            8002 => "background download precheck failure",
+            8003 => "out of support selectable failure",
+            8004 => "target directory failure",
+            8005 => "verifying source payloads failure",
+            8006 => "Visual Studio processes running",
+            -1073720687 => "connectivity failure",
+            -1073741510 => "Microsoft Visual Studio Installer was terminated",
+            _ => "error installing Visual Studio"
+        };
+        write!(f, "{} (exit code {})", message, self.0)
+    }
+}
+
+pub(crate) fn try_install_msvc() -> Result<()> {
+    // download the installer
+    let visual_studio_url = utils::parse_url("https://aka.ms/vs/17/release/vs_community.exe")?;
+
+    let tempdir = tempfile::Builder::new()
+        .prefix("rustup-visualstudio")
+        .tempdir()
+        .context("error creating temp directory")?;
+
+    let visual_studio = tempdir.path().join("vs_setup.exe");
+    utils::download_file(&visual_studio_url, &visual_studio, None, &|_| ())?;
+
+    // Run the installer. Arguments are documented at:
+    // https://docs.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio
+    let mut cmd = Command::new(visual_studio);
+    cmd.arg("--wait")
+        // Display an interactive GUI focused on installing just the selected components.
+        .arg("--focusedUi")
+        // Add the linker and C runtime libraries.
+        .args(["--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"]);
+
+    // It's possible an earlier or later version of the Windows SDK has been
+    // installed separately from Visual Studio so installing it can be skipped.
+    let mut has_libs = false;
+    if let Some(paths) = process().var_os("lib") {
+        for mut path in split_paths(&paths) {
+            path.push("kernel32.lib");
+            if path.exists() {
+                has_libs = true;
+            }
+        }
+    };
+    if !has_libs {
+        cmd.args([
+            "--add",
+            "Microsoft.VisualStudio.Component.Windows11SDK.22000",
+        ]);
+    }
+    let exit_status = cmd
+        .spawn()
+        .and_then(|mut child| child.wait())
+        .context("error running Visual Studio installer")?;
+
+    if exit_status.success() {
+        Ok(())
+    } else {
+        Err(VsInstallError(exit_status.code().unwrap())).context("failed to install Visual Studio")
+    }
 }
 
 /// Run by rustup-gc-$num.exe to delete CARGO_HOME

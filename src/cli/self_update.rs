@@ -276,7 +276,11 @@ static MSVC_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
 Rust requires the Microsoft C++ build tools for Visual Studio 2013 or
 later, but they don't seem to be installed.
 
-The easiest way to acquire the build tools is by installing Microsoft
+"#;
+
+#[cfg(windows)]
+static MSVC_MANUAL_INSTALL_MESSAGE: &str = r#"
+You can acquire the build tools by installing Microsoft
 Visual C++ Build Tools 2019 which provides just the Visual C++ build
 tools:
 
@@ -297,6 +301,15 @@ _Install the C++ build tools before proceeding_.
 If you will be targeting the GNU ABI or otherwise know what you are
 doing then it is fine to continue installation without the build
 tools, but otherwise, install the C++ build tools before proceeding.
+"#;
+
+#[cfg(windows)]
+static MSVC_AUTO_INSTALL_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
+
+Rust requires a linker and Windows API libraries but they don't seem to be avaliable.
+
+These components can be acquired by installing Visual Studio.
+
 "#;
 
 static UPDATE_ROOT: &str = "https://static.rust-lang.org/rustup";
@@ -353,11 +366,26 @@ pub(crate) fn install(
     let mut term = term2::stdout();
 
     #[cfg(windows)]
-    if !do_msvc_check(&opts) {
+    if let Some(plan) = do_msvc_check(&opts) {
         if no_prompt {
             warn!("installing msvc toolchain without its prerequisites");
-        } else {
+        } else if plan == VsInstallPlan::Automatic {
+            md(&mut term, MSVC_AUTO_INSTALL_MESSAGE);
+            if common::confirm(
+                "Automatically download and install Visual Studio 2022 Community edition? (Y/n)",
+                true,
+            )? {
+                try_install_msvc()?;
+            } else {
+                md(&mut term, MSVC_MANUAL_INSTALL_MESSAGE);
+                if !common::confirm("\nContinue? (y/N)", false)? {
+                    info!("aborting installation");
+                    return Ok(utils::ExitCode(0));
+                }
+            }
+        } else if plan == VsInstallPlan::Manual {
             md(&mut term, MSVC_MESSAGE);
+            md(&mut term, MSVC_MANUAL_INSTALL_MESSAGE);
             if !common::confirm("\nContinue? (y/N)", false)? {
                 info!("aborting installation");
                 return Ok(utils::ExitCode(0));
