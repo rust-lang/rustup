@@ -135,7 +135,7 @@ main() {
         exit 1
     fi
 
-    if [ "$need_tty" = "yes" ]; then
+    if [ "$need_tty" = "yes" ] && [ ! -t 0 ]; then
         # The installer is going to want to ask for confirmation by
         # reading stdin.  This script was piped into `sh` though and
         # doesn't have stdin to pass to its children. Instead we're going
@@ -287,7 +287,7 @@ get_architecture() {
             _ostype=unknown-illumos
             ;;
 
-        MINGW* | MSYS* | CYGWIN*)
+        MINGW* | MSYS* | CYGWIN* | Windows_NT)
             _ostype=pc-windows-gnu
             ;;
 
