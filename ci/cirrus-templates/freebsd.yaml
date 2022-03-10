@@ -14,11 +14,3 @@ task:
     pw user mod tester -d `pwd`
     chown -R tester .
     sudo -u tester bash ci/cirrus-templates/script.bash
-  upload_to_s3:
-    only_if: $CIRRUS_BRANCH == "stable"
-    script:
-      - pkg install -y py36-pip bash
-      - pip-3.6 install -U setuptools
-      - pip-3.6 install awscli
-      - bash ci/prepare-deploy.bash
-      - aws s3 cp --recursive deploy/ s3://dev-static-rust-lang-org/rustup/
