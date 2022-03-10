@@ -152,7 +152,7 @@ APIs, we should behave well if we can.
 Producing the final release artifacts is a bit involved because of the way
 Rustup is distributed. The steps for a release are:
 
-1. Update all `Cargo.toml` to have the new version
+1. Update `Cargo.toml` and `download/Cargo.toml`to have the same new version
    (optionally make a commit)
 2. Run `cargo build` and review `Cargo.lock` changes
    if all looks well, make a commit
