@@ -109,6 +109,7 @@ export PATH="$HOME/apple/bin"
         });
     }
 
+    // This test should NOT be run as root!
     #[test]
     fn install_errors_when_rc_cannot_be_updated() {
         clitools::setup(Scenario::Empty, &|config| {
