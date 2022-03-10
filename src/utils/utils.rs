@@ -537,15 +537,15 @@ pub(crate) fn format_path_for_display(path: &str) -> String {
 }
 
 pub(crate) fn toolchain_sort<T: AsRef<str>>(v: &mut [T]) {
-    use semver::{Identifier, Version};
+    use semver::{BuildMetadata, Prerelease, Version};
 
     fn special_version(ord: u64, s: &str) -> Version {
         Version {
             major: 0,
             minor: 0,
             patch: 0,
-            pre: vec![Identifier::Numeric(ord), Identifier::AlphaNumeric(s.into())],
-            build: vec![],
+            pre: Prerelease::new(&format!("pre.{}.{}", ord, s.replace('_', "-"))).unwrap(),
+            build: BuildMetadata::EMPTY,
         }
     }
 
