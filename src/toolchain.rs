@@ -401,6 +401,19 @@ impl<'a> InstalledCommonToolchain<'a> {
 
         cmd.env("RUSTUP_TOOLCHAIN", &self.0.name);
         cmd.env("RUSTUP_HOME", &self.0.cfg.rustup_dir);
+        // It's valid (although slightly cursed) to tell a rustup cargo proxy to use a custom rustc
+        // from a different toolchain.
+        if env::var("RUSTC").is_err() {
+            // Set RUSTC for the spawned binary. This serves two purposes:
+            // 1. It avoids the overhead of having to re-parse `settings.toml` on each proxy.
+            //    In projects with many crates, this can have non-trivial overhead.
+            // 2. For build scripts, it provides an absolute path for RUSTC rather than forcing them to look it up in PATH.
+            //    This allows them to find the sysroot path for the toolchain, rather than ending up somewhere in CARGO_HOME.
+            cmd.env("RUSTC", self.0.path.join("bin").join("rustc"));
+        }
+        if env::var("RUSTDOC").is_err() {
+            cmd.env("RUSTDOC", self.0.path.join("bin").join("rustdoc"));
+        }
     }
 
     fn set_ldpath(&self, cmd: &mut Command) {
