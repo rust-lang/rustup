@@ -32,7 +32,7 @@ chrono = "0.4"
 clap = "2"
 download = {path = "download", default-features = false}
 effective-limits = "0.5.3"
-enum-map = "1.1.0"
+enum-map = "2.0.3"
 flate2 = "1"
 git-testament = "0.2"
 home = {git = "https://github.com/rbtcollins/home", rev = "a243ee2fbee6022c57d56f5aa79aefe194eabe53"}
