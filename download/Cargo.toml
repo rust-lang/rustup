@@ -2,7 +2,7 @@
 
 authors = ["Brian Anderson <banderson@mozilla.com>"]
 edition = "2021"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 name = "download"
 version = "1.24.3"
 
