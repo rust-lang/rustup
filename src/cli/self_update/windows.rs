@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::env::{consts::EXE_SUFFIX, split_paths};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
@@ -10,6 +11,7 @@ use anyhow::{anyhow, Context, Result};
 use super::super::errors::*;
 use super::common;
 use super::{install_bins, InstallOpts};
+use crate::cli::download_tracker::DownloadTracker;
 use crate::dist::dist::TargetTriple;
 use crate::process;
 use crate::utils::utils;
@@ -106,7 +108,15 @@ pub(crate) fn try_install_msvc() -> Result<()> {
         .context("error creating temp directory")?;
 
     let visual_studio = tempdir.path().join("vs_setup.exe");
-    utils::download_file(&visual_studio_url, &visual_studio, None, &|_| ())?;
+    let download_tracker = RefCell::new(DownloadTracker::new().with_display_progress(true));
+    download_tracker.borrow_mut().download_finished();
+    utils::download_file(&visual_studio_url, &visual_studio, None, &move |n| {
+        download_tracker
+            .borrow_mut()
+            .handle_notification(&crate::Notification::Install(
+                crate::dist::Notification::Utils(n),
+            ));
+    })?;
 
     // Run the installer. Arguments are documented at:
     // https://docs.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio
