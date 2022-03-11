@@ -1,5 +1,8 @@
 #!/bin/bash
 
+script_dir=$(cd "$(dirname "$0")" && pwd)
+. "$script_dir/shared.bash"
+
 set -ex
 
 export RUST_BACKTRACE=1
@@ -8,27 +11,9 @@ rustc -vV
 cargo -vV
 
 
-FEATURES=('--no-default-features' '--features' 'curl-backend,reqwest-backend,reqwest-default-tls')
-case "$(uname -s)" in
-  *NT* ) ;; # Windows NT
-  * ) FEATURES+=('--features' 'vendored-openssl') ;;
-esac
-
-case "$TARGET" in
-  # these platforms aren't supported by ring:
-  powerpc* ) ;;
-  mips* ) ;;
-  riscv* ) ;;
-  s390x* ) ;;
-  aarch64-pc-windows-msvc ) ;;
-  # default case, build with rustls enabled
-  * ) FEATURES+=('--features' 'reqwest-rustls-tls') ;;
-esac
-
-# rustc only supports armv7: https://doc.rust-lang.org/nightly/rustc/platform-support.html
-if [ "$TARGET" = arm-linux-androideabi ]; then
-  export CFLAGS='-march=armv7'
-fi
+declare -a FEATURES
+set_features_by_target "$TARGET"
+try_export_CFLAGS_by_target "$TARGET"
 
 cargo build --locked --release --target "$TARGET" "${FEATURES[@]}"
 

@@ -82,6 +82,8 @@ jobs:
       - name: Ensure we have our goal target installed
         run: |
           rustup target install "$TARGET"
+      - name: Run the smoke test
+        run: bash ci/smoke-test.bash
       - name: Run a full build and test
         run: bash ci/run.bash
       - name: Dump dynamic link targets

@@ -130,6 +130,31 @@ jobs:
           if [ -f "ci/docker/$DOCKER/Dockerfile" ]; then
             docker build -t "$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
           fi
+      - name: Run the smoke test within the docker image
+        run: |
+          mkdir -p "${PWD}/target"
+          chown -R "$(id -u)":"$(id -g)" "${PWD}/target"
+          mkdir -p "${PWD}/home"
+          chown -R "$(id -u)":"$(id -g)" "${PWD}/home"
+          docker run \
+            --entrypoint sh \
+            --user "$(id -u)":"$(id -g)" \
+            --volume "$(rustc --print sysroot)":/rustc-sysroot:ro \
+            --volume "${PWD}":/checkout:ro \
+            --volume "${PWD}"/target:/checkout/target \
+            --volume "${PWD}"/home:/checkout/home \
+            --workdir /checkout \
+            --env TARGET="${TARGET}" \
+            --env SKIP_TESTS="${SKIP_TESTS}" \
+            --volume "${HOME}/.cargo:/cargo" \
+            --env CARGO_HOME=/cargo \
+            --env CARGO_TARGET_DIR=/checkout/target \
+            --env LIBZ_SYS_STATIC=1 \
+            --tty \
+            --init \
+            --rm \
+            "${DOCKER}" \
+            -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/smoke-test.bash'
       - name: Run the build within the docker image
         run: |
           mkdir -p "${PWD}/target"

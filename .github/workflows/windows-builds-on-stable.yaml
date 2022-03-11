@@ -95,6 +95,8 @@ jobs:
       - name: Install the target
         run: |
           rustup target install ${{ matrix.target }}
+      - name: Run the smoke test
+        run: bash ci/smoke-test.bash
       - name: Run a full build
         run: bash ci/run.bash
       - name: Upload the built artifact
