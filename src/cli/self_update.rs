@@ -372,7 +372,7 @@ pub(crate) fn install(
         } else if !quiet && plan == VsInstallPlan::Automatic {
             md(&mut term, MSVC_AUTO_INSTALL_MESSAGE);
             if common::confirm(
-                "Automatically download and install Visual Studio 2022 Community edition? (Y/n)",
+                "\nAutomatically download and install Visual Studio 2022 Community edition? (Y/n)",
                 true,
             )? {
                 try_install_msvc()?;

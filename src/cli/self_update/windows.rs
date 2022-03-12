@@ -110,6 +110,8 @@ pub(crate) fn try_install_msvc() -> Result<()> {
     let visual_studio = tempdir.path().join("vs_setup.exe");
     let download_tracker = RefCell::new(DownloadTracker::new().with_display_progress(true));
     download_tracker.borrow_mut().download_finished();
+
+    info!("downloading Visual Studio installer");
     utils::download_file(&visual_studio_url, &visual_studio, None, &move |n| {
         download_tracker
             .borrow_mut()
@@ -144,6 +146,8 @@ pub(crate) fn try_install_msvc() -> Result<()> {
             "Microsoft.VisualStudio.Component.Windows11SDK.22000",
         ]);
     }
+    info!("running the Visual Studio install");
+    info!("rustup will continue once Visual Studio installation is complete\n");
     let exit_status = cmd
         .spawn()
         .and_then(|mut child| child.wait())
