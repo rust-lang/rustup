@@ -637,17 +637,16 @@ where
     let mut vars: HashMap<String, String> = HashMap::default();
     self::env(config, &mut vars);
     vars.extend(env.iter().map(|(k, v)| (k.to_string(), v.to_string())));
-    let mut arg_strings: Vec<Box<str>> = Vec::new();
-    arg_strings.push(name.to_owned().into_boxed_str());
-    for arg in args {
-        arg_strings.push(
+    let arg_strings = Some(name.to_owned().into_boxed_str())
+        .into_iter()
+        .chain(args.into_iter().map(|arg| {
             arg.as_ref()
                 .to_os_string()
                 .into_string()
                 .unwrap()
-                .into_boxed_str(),
-        );
-    }
+                .into_boxed_str()
+        }))
+        .collect::<Vec<Box<str>>>();
     let tp = Box::new(currentprocess::TestProcess::new(
         &*config.workdir.borrow(),
         &arg_strings,
