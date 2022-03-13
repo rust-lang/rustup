@@ -10,10 +10,9 @@ use std::process::Command;
 
 use remove_dir_all::remove_dir_all;
 
-use rustup::for_host;
 use rustup::test::{this_host_triple, with_saved_path};
 use rustup::utils::{raw, utils};
-use rustup::Notification;
+use rustup::{for_host, Notification, DUP_TOOLS, TOOLS};
 
 use crate::mock::clitools::{
     self, expect_component_executable, expect_component_not_executable, expect_err, expect_err_ex,
@@ -54,7 +53,7 @@ fn setup_installed(f: &dyn Fn(&Config)) {
 }
 
 #[test]
-/// This is the primary smoke test testing the full end to end behaviour of the
+/// This is the primary smoke test testing the full end to end behavior of the
 /// installation code path: everything that is output, the proxy installation,
 /// status of the proxies.
 fn install_bins_to_cargo_home() {
@@ -84,17 +83,6 @@ info: default toolchain set to 'stable-{0}'
 "
                 ),
             );
-            let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
-            let rustc = config.cargodir.join(&format!("bin/rustc{}", EXE_SUFFIX));
-            let rustdoc = config.cargodir.join(&format!("bin/rustdoc{}", EXE_SUFFIX));
-            let cargo = config.cargodir.join(&format!("bin/cargo{}", EXE_SUFFIX));
-            let rust_lldb = config
-                .cargodir
-                .join(&format!("bin/rust-lldb{}", EXE_SUFFIX));
-            let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{}", EXE_SUFFIX));
-            let rust_gdbgui = config
-                .cargodir
-                .join(&format!("bin/rust-gdbgui{}", EXE_SUFFIX));
             #[cfg(windows)]
             fn check(path: &Path) {
                 assert!(path.exists());
@@ -108,13 +96,11 @@ info: default toolchain set to 'stable-{0}'
                 }
                 assert!(is_exe(path));
             }
-            check(&rustup);
-            check(&rustc);
-            check(&rustdoc);
-            check(&cargo);
-            check(&rust_lldb);
-            check(&rust_gdb);
-            check(&rust_gdbgui);
+
+            for tool in TOOLS.iter().chain(DUP_TOOLS.iter()) {
+                let path = &config.cargodir.join(&format!("bin/{}{}", tool, EXE_SUFFIX));
+                check(path);
+            }
         })
     });
 }
