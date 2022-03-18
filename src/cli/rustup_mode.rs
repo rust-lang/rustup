@@ -296,6 +296,11 @@ pub(crate) fn cli() -> App<'static, 'static> {
                         .help("Force an update, even if some components are missing")
                         .long("force")
                         .takes_value(false),
+                ).arg(
+                    Arg::with_name("force-non-host")
+                        .help("Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains")
+                        .long("force-non-host")
+                        .takes_value(false)
                 ),
         )
         .subcommand(
@@ -422,7 +427,12 @@ pub(crate) fn cli() -> App<'static, 'static> {
                                 .help("Allow rustup to downgrade the toolchain to satisfy your component choice")
                                 .long("allow-downgrade")
                                 .takes_value(false),
-                        ),
+                        )
+                        .arg(
+                            Arg::with_name("force-non-host")
+                                .help("Install toolchains that require an emulator. See https://github.com/rust-lang/rustup/wiki/Non-host-toolchains")
+                                .long("force-non-host")
+                                .takes_value(false)),
                 )
                 .subcommand(
                     SubCommand::with_name("uninstall")
