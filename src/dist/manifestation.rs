@@ -35,6 +35,7 @@ pub struct Manifestation {
 pub struct Changes {
     pub explicit_add_components: Vec<Component>,
     pub remove_components: Vec<Component>,
+    pub permit_empty: bool,
 }
 
 impl Changes {
@@ -118,7 +119,7 @@ impl Manifestation {
         let mut update =
             Update::build_update(self, new_manifest, &changes, &config, notify_handler)?;
 
-        if update.nothing_changes() {
+        if update.nothing_changes() && !changes.permit_empty {
             return Ok(UpdateStatus::Unchanged);
         }
 

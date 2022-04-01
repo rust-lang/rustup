@@ -459,6 +459,7 @@ fn update_from_dist(
     let changes = Changes {
         explicit_add_components: add_components,
         remove_components: remove.to_owned(),
+        permit_empty: false,
     };
 
     manifestation.update(

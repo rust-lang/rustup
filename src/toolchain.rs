@@ -580,6 +580,7 @@ impl<'a> DistributableToolchain<'a> {
             let changes = Changes {
                 explicit_add_components: vec![component],
                 remove_components: vec![],
+                permit_empty: false,
             };
 
             desc.manifestation.update(
@@ -855,6 +856,7 @@ impl<'a> DistributableToolchain<'a> {
             let changes = Changes {
                 explicit_add_components: vec![],
                 remove_components: vec![component],
+                permit_empty: false,
             };
 
             desc.manifestation.update(

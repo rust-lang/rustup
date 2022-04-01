@@ -498,6 +498,7 @@ pub(crate) struct Manifest<'a>(temp::File<'a>, String);
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum Profile {
+    Empty,
     Minimal,
     Default,
     Complete,
@@ -508,6 +509,7 @@ impl FromStr for Profile {
 
     fn from_str(name: &str) -> Result<Self> {
         match name {
+            "empty" | "e" => Ok(Self::Empty),
             "minimal" | "m" => Ok(Self::Minimal),
             "default" | "d" | "" => Ok(Self::Default),
             "complete" | "c" => Ok(Self::Complete),
@@ -522,7 +524,7 @@ impl FromStr for Profile {
 
 impl Profile {
     pub(crate) fn names() -> &'static [&'static str] {
-        &["minimal", "default", "complete"]
+        &["empty", "minimal", "default", "complete"]
     }
 
     pub(crate) fn default_name() -> &'static str {
@@ -579,6 +581,7 @@ impl fmt::Display for ToolchainDesc {
 impl fmt::Display for Profile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
+            Self::Empty => write!(f, "empty"),
             Self::Minimal => write!(f, "minimal"),
             Self::Default => write!(f, "default"),
             Self::Complete => write!(f, "complete"),
@@ -813,8 +816,8 @@ fn try_update_from_dist_<'a>(
             ));
 
             let profile_components = match profile {
+                Some(Profile::Empty) | None => Vec::new(),
                 Some(profile) => m.get_profile_components(profile, &toolchain.target)?,
-                None => Vec::new(),
             };
 
             let mut all_components: HashSet<Component> = profile_components.into_iter().collect();
@@ -854,6 +857,7 @@ fn try_update_from_dist_<'a>(
             let changes = Changes {
                 explicit_add_components,
                 remove_components: Vec::new(),
+                permit_empty: profile == Some(Profile::Empty),
             };
 
             *fetched = m.date.clone();
