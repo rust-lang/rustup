@@ -1536,3 +1536,135 @@ fn regression_2601() {
         );
     });
 }
+
+#[test]
+fn empty_profile_can_be_installed() {
+    setup(&|config| {
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "--profile",
+                "empty",
+                "nightly",
+            ],
+        );
+        // In theory there should be no installed components, but the toolchain should be present
+        expect_ok_ex(
+            config,
+            &[
+                "rustup",
+                "component",
+                "list",
+                "--installed",
+                "--toolchain",
+                "nightly",
+            ],
+            "",
+            "",
+        );
+    });
+}
+
+#[test]
+fn empty_profile_can_be_uninstalled() {
+    setup(&|config| {
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "--profile",
+                "empty",
+                "nightly",
+            ],
+        );
+        // In theory there should be no installed components, but the toolchain should be present
+        expect_ok(config, &["rustup", "toolchain", "uninstall", "nightly"]);
+    });
+}
+
+#[test]
+fn empty_profile_can_manipulate_components() {
+    setup(&|config| {
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "toolchain",
+                "install",
+                "--profile",
+                "empty",
+                "nightly",
+            ],
+        );
+        // In theory there should be no installed components, but the toolchain should be present
+        expect_ok_ex(
+            config,
+            &[
+                "rustup",
+                "component",
+                "list",
+                "--installed",
+                "--toolchain",
+                "nightly",
+            ],
+            "",
+            "",
+        );
+        // Install rust-src and check for it
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "component",
+                "add",
+                "--toolchain",
+                "nightly",
+                "rust-src",
+            ],
+        );
+        expect_ok_ex(
+            config,
+            &[
+                "rustup",
+                "component",
+                "list",
+                "--installed",
+                "--toolchain",
+                "nightly",
+            ],
+            "rust-src\n",
+            "",
+        );
+
+        // Remove rust-src and check we're back to blank
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "component",
+                "remove",
+                "--toolchain",
+                "nightly",
+                "rust-src",
+            ],
+        );
+        expect_ok_ex(
+            config,
+            &[
+                "rustup",
+                "component",
+                "list",
+                "--installed",
+                "--toolchain",
+                "nightly",
+            ],
+            "",
+            "",
+        );
+    });
+}
