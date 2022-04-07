@@ -215,7 +215,7 @@ fn installer_shows_default_profile() {
         println!("-- stderr --\n {}", out.stderr);
         assert!(out.stdout.contains(
             r"
-Profile (which tools and data to install)? (minimal/default/complete) [default]
+Profile (which tools and data to install)? (empty/minimal/default/complete) [default]
 "
         ));
     });
@@ -234,7 +234,7 @@ fn installer_shows_default_profile_when_set_in_args() {
         println!("-- stderr --\n {}", out.stderr);
         assert!(out.stdout.contains(
             r"
-Profile (which tools and data to install)? (minimal/default/complete) [minimal]
+Profile (which tools and data to install)? (empty/minimal/default/complete) [minimal]
 "
         ));
     });
