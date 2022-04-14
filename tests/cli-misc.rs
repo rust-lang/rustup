@@ -299,6 +299,59 @@ fn rustup_run_searches_path() {
 }
 
 #[test]
+fn rustup_doesnt_prepend_path_unnecessarily() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+
+        let expect_stderr_ok_env_startswith =
+            |config: &Config, args: &[&str], env: &[(&str, &str)], expected: &str| {
+                let out = run(config, args[0], &args[1..], env);
+                if !out.ok || !out.stderr.starts_with(expected) {
+                    clitools::print_command(args, &out);
+                    println!("expected.ok: true");
+                    clitools::print_indented("expected.stderr.starts_with", expected);
+                    panic!();
+                }
+            };
+
+        // For all of these, CARGO_HOME/bin will be auto-prepended.
+        let cargo_home_bin = config.cargodir.join("bin");
+        expect_stderr_ok_env_startswith(
+            config,
+            &["cargo", "--echo-path"],
+            &[],
+            &format!("{}", cargo_home_bin.display()),
+        );
+        expect_stderr_ok_env_startswith(
+            config,
+            &["cargo", "--echo-path"],
+            &[("PATH", "")],
+            &format!("{}", cargo_home_bin.display()),
+        );
+
+        // Check that CARGO_HOME/bin is prepended to path.
+        expect_stderr_ok_env_startswith(
+            config,
+            &["cargo", "--echo-path"],
+            &[("PATH", &format!("{}", config.exedir.display()))],
+            &format!("{}:{}", cargo_home_bin.display(), config.exedir.display()),
+        );
+
+        // But if CARGO_HOME/bin is already on PATH, it will not be prepended again,
+        // so exedir will take precedence.
+        expect_stderr_ok_env_startswith(
+            config,
+            &["cargo", "--echo-path"],
+            &[(
+                "PATH",
+                &format!("{}:{}", config.exedir.display(), cargo_home_bin.display()),
+            )],
+            &format!("{}:{}", config.exedir.display(), cargo_home_bin.display()),
+        );
+    });
+}
+
+#[test]
 fn rustup_failed_path_search() {
     setup(&|config| {
         use std::env::consts::EXE_SUFFIX;
