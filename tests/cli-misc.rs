@@ -3,8 +3,8 @@
 
 pub mod mock;
 
-use std::env::consts::EXE_SUFFIX;
 use std::str;
+use std::{env::consts::EXE_SUFFIX, path::Path};
 
 use rustup::for_host;
 use rustup::test::this_host_triple;
@@ -303,50 +303,80 @@ fn rustup_doesnt_prepend_path_unnecessarily() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
 
-        let expect_stderr_ok_env_startswith =
-            |config: &Config, args: &[&str], env: &[(&str, &str)], expected: &str| {
+        let expect_stderr_ok_env_first_then =
+            |config: &Config,
+             args: &[&str],
+             env: &[(&str, &str)],
+             first: &Path,
+             second: Option<&Path>| {
                 let out = run(config, args[0], &args[1..], env);
-                if !out.ok || !out.stderr.starts_with(expected) {
+                let first_then_second = |list: &str| -> bool {
+                    let mut saw_first = false;
+                    let mut saw_second = false;
+                    for path in std::env::split_paths(list) {
+                        if path == first {
+                            if saw_second {
+                                return false;
+                            }
+                            saw_first = true;
+                        }
+                        if Some(&*path) == second {
+                            if !saw_first {
+                                return false;
+                            }
+                            saw_second = true;
+                        }
+                    }
+                    true
+                };
+                if !out.ok || !first_then_second(&out.stderr) {
                     clitools::print_command(args, &out);
                     println!("expected.ok: true");
-                    clitools::print_indented("expected.stderr.starts_with", expected);
+                    clitools::print_indented(
+                        "expected.stderr.first_then",
+                        &format!("{} comes before {:?}", first.display(), second),
+                    );
                     panic!();
                 }
             };
 
         // For all of these, CARGO_HOME/bin will be auto-prepended.
         let cargo_home_bin = config.cargodir.join("bin");
-        expect_stderr_ok_env_startswith(
+        expect_stderr_ok_env_first_then(
             config,
             &["cargo", "--echo-path"],
             &[],
-            &format!("{}", cargo_home_bin.display()),
+            &cargo_home_bin,
+            None,
         );
-        expect_stderr_ok_env_startswith(
+        expect_stderr_ok_env_first_then(
             config,
             &["cargo", "--echo-path"],
             &[("PATH", "")],
-            &format!("{}", cargo_home_bin.display()),
+            &cargo_home_bin,
+            None,
         );
 
         // Check that CARGO_HOME/bin is prepended to path.
-        expect_stderr_ok_env_startswith(
+        expect_stderr_ok_env_first_then(
             config,
             &["cargo", "--echo-path"],
             &[("PATH", &format!("{}", config.exedir.display()))],
-            &format!("{}:{}", cargo_home_bin.display(), config.exedir.display()),
+            &cargo_home_bin,
+            Some(&config.exedir),
         );
 
         // But if CARGO_HOME/bin is already on PATH, it will not be prepended again,
         // so exedir will take precedence.
-        expect_stderr_ok_env_startswith(
+        expect_stderr_ok_env_first_then(
             config,
             &["cargo", "--echo-path"],
             &[(
                 "PATH",
                 &format!("{}:{}", config.exedir.display(), cargo_home_bin.display()),
             )],
-            &format!("{}:{}", config.exedir.display(), cargo_home_bin.display()),
+            &config.exedir,
+            Some(&cargo_home_bin),
         );
     });
 }
