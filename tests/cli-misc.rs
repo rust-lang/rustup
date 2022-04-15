@@ -373,7 +373,10 @@ fn rustup_doesnt_prepend_path_unnecessarily() {
             &["cargo", "--echo-path"],
             &[(
                 "PATH",
-                &format!("{}:{}", config.exedir.display(), cargo_home_bin.display()),
+                std::env::join_paths([&config.exedir, &cargo_home_bin])
+                    .unwrap()
+                    .to_str()
+                    .unwrap(),
             )],
             &config.exedir,
             Some(&cargo_home_bin),
