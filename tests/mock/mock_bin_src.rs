@@ -67,6 +67,10 @@ fn main() {
                 writeln!(out, "{}", arg.to_string_lossy()).unwrap();
             }
         }
+        Some("--echo-path") => {
+            let mut out = io::stderr();
+            writeln!(out, "{}", std::env::var("PATH").unwrap()).unwrap();
+        }
         _ => panic!("bad mock proxy commandline"),
     }
 }
