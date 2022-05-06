@@ -411,7 +411,7 @@ pub(crate) fn write_file_incremental<P: AsRef<Path>, F: Fn(usize)>(
     if let IncrementalFile::ThreadedReceiver(recv) = content_callback {
         loop {
             // We unwrap here because the documented only reason for recv to fail is a close by the sender, which is reading
-            // from the tar file: a failed read there will propogate the error in the main thread directly.
+            // from the tar file: a failed read there will propagate the error in the main thread directly.
             let contents = recv.recv().unwrap();
             let len = contents.len();
             // Length 0 vector is used for clean EOF signalling.
