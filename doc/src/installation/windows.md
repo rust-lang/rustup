@@ -11,7 +11,7 @@ using the [MinGW/MSYS2 toolchain] use the GNU build.
 
 When targeting the MSVC ABI, Rust additionally requires an [installation of
 Visual Studio 2013 (or later) or the Visual C++ Build Tools 2019][vs] so
-`rustc` can use its linker and libraries. The Build Tools require a Visual
+`rustc` can use its linker and libraries. The Visual C++ Build Tools require a Visual
 Studio license (either Community, Pro, or Enterprise).
 
 For Visual Studio, make sure to check the "C++
