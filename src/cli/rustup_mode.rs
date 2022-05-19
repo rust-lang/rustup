@@ -142,7 +142,7 @@ pub fn main() -> Result<utils::ExitCode> {
             ("home", Some(_)) => handle_epipe(show_rustup_home(cfg))?,
             ("profile", Some(_)) => handle_epipe(show_profile(cfg))?,
             ("keys", Some(_)) => handle_epipe(show_keys(cfg))?,
-            (_, _) => handle_epipe(show(cfg))?,
+            (_, _) => handle_epipe(show(cfg, c))?,
         },
         ("install", Some(m)) => deprecated("toolchain install", cfg, m, update)?,
         ("update", Some(m)) => update(cfg, m)?,
@@ -243,6 +243,9 @@ pub(crate) fn cli() -> App<'static, 'static> {
             SubCommand::with_name("show")
                 .about("Show the active and installed toolchains or profiles")
                 .after_help(SHOW_HELP)
+                .arg(
+                    verbose_arg("Enable verbose output with rustc information for all installed toolchains"),
+                )
                 .setting(AppSettings::VersionlessSubcommands)
                 .setting(AppSettings::DeriveDisplayOrder)
                 .subcommand(
@@ -1056,7 +1059,9 @@ fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
+fn show(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
+    let verbose = m.is_present("verbose");
+
     // Print host triple
     {
         let mut t = term2::stdout();
@@ -1129,6 +1134,14 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
                 writeln!(t, "{} (default)", it)?;
             } else {
                 writeln!(t, "{}", it)?;
+            }
+            if verbose {
+                if let Ok(toolchain) = cfg.get_toolchain(&it, false) {
+                    writeln!(process().stdout(), "{}", toolchain.rustc_version())?;
+                }
+                // To make it easy to see what rustc that belongs to what
+                // toolchain we separate each pair with an extra newline
+                writeln!(process().stdout())?;
             }
         }
         if show_headers {
