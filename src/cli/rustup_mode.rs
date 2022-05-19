@@ -214,10 +214,7 @@ pub(crate) fn cli() -> App<'static, 'static> {
         .setting(AppSettings::DeriveDisplayOrder)
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(
-            Arg::with_name("verbose")
-                .help("Enable verbose output")
-                .short("v")
-                .long("verbose"),
+            verbose_arg("Enable verbose output"),
         )
         .arg(
             Arg::with_name("quiet")
@@ -253,11 +250,7 @@ pub(crate) fn cli() -> App<'static, 'static> {
                         .about("Show the active toolchain")
                         .after_help(SHOW_ACTIVE_TOOLCHAIN_HELP)
                         .arg(
-                            Arg::with_name("verbose")
-                                .help("Enable verbose output with rustc information")
-                                .takes_value(false)
-                                .short("v")
-                                .long("verbose"),
+                            verbose_arg("Enable verbose output with rustc information"),
                         ),
                 )
                 .subcommand(
@@ -360,11 +353,7 @@ pub(crate) fn cli() -> App<'static, 'static> {
                     SubCommand::with_name("list")
                         .about("List installed toolchains")
                         .arg(
-                            Arg::with_name("verbose")
-                                .help("Enable verbose output with toolchain information")
-                                .takes_value(false)
-                                .short("v")
-                                .long("verbose"),
+                            verbose_arg("Enable verbose output with toolchain information"),
                         ),
                 )
                 .subcommand(
@@ -744,6 +733,14 @@ pub(crate) fn cli() -> App<'static, 'static> {
                     .default_value_ifs(&completion_defaults[..]),
             ),
     )
+}
+
+fn verbose_arg<'a, 'b>(help: &'b str) -> Arg<'a, 'b> {
+    Arg::with_name("verbose")
+        .help(help)
+        .takes_value(false)
+        .short("v")
+        .long("verbose")
 }
 
 fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<bool> {
