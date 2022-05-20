@@ -843,6 +843,19 @@ fn add_target_custom_toolchain() {
 }
 
 #[test]
+fn cannot_add_empty_named_custom_toolchain() {
+    setup(&|config| {
+        let path = config.customdir.join("custom-1");
+        let path = path.to_string_lossy();
+        expect_err(
+            config,
+            &["rustup", "toolchain", "link", "", &path],
+            "toolchain names must not be empty",
+        );
+    });
+}
+
+#[test]
 fn add_target_again() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);

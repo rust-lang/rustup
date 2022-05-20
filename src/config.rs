@@ -457,6 +457,10 @@ impl Cfg {
             })?;
         }
 
+        if name.is_empty() {
+            anyhow::bail!("toolchain names must not be empty");
+        }
+
         Toolchain::from(self, name)
     }
 
