@@ -1427,7 +1427,7 @@ info: installing component 'rustc'
     });
 }
 
-/// Invalidates the signature on the manifest of the nigthly channel.
+/// Invalidates the signature on the manifest of the nightly channel.
 fn make_signature_invalid(config: &Config) {
     let manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");
 

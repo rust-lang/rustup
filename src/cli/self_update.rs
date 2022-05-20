@@ -311,7 +311,7 @@ tools, but otherwise, install the C++ build tools before proceeding.
 #[cfg(windows)]
 static MSVC_AUTO_INSTALL_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
 
-Rust requires a linker and Windows API libraries but they don't seem to be avaliable.
+Rust requires a linker and Windows API libraries but they don't seem to be available.
 
 These components can be acquired by installing Visual Studio.
 
