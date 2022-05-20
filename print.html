@@ -1,0 +1,1168 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>The rustup book</title>
+        
+        <meta name="robots" content="noindex" />
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="favicon.png">
+        
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        
+        <link rel="stylesheet" href="css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="installation/index.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="installation/windows.html"><strong aria-hidden="true">1.1.</strong> Windows</a></li><li class="chapter-item expanded "><a href="installation/other.html"><strong aria-hidden="true">1.2.</strong> Other installation methods</a></li><li class="chapter-item expanded "><a href="installation/package-managers.html"><strong aria-hidden="true">1.3.</strong> Package managers</a></li></ol></li><li class="chapter-item expanded "><a href="concepts/index.html"><strong aria-hidden="true">2.</strong> Concepts</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="concepts/channels.html"><strong aria-hidden="true">2.1.</strong> Channels</a></li><li class="chapter-item expanded "><a href="concepts/toolchains.html"><strong aria-hidden="true">2.2.</strong> Toolchains</a></li><li class="chapter-item expanded "><a href="concepts/components.html"><strong aria-hidden="true">2.3.</strong> Components</a></li><li class="chapter-item expanded "><a href="concepts/profiles.html"><strong aria-hidden="true">2.4.</strong> Profiles</a></li><li class="chapter-item expanded "><a href="concepts/proxies.html"><strong aria-hidden="true">2.5.</strong> Proxies</a></li></ol></li><li class="chapter-item expanded "><a href="basics.html"><strong aria-hidden="true">3.</strong> Basic usage</a></li><li class="chapter-item expanded "><a href="overrides.html"><strong aria-hidden="true">4.</strong> Overrides</a></li><li class="chapter-item expanded "><a href="cross-compilation.html"><strong aria-hidden="true">5.</strong> Cross-compilation</a></li><li class="chapter-item expanded "><a href="environment-variables.html"><strong aria-hidden="true">6.</strong> Environment variables</a></li><li class="chapter-item expanded "><a href="configuration.html"><strong aria-hidden="true">7.</strong> Configuration</a></li><li class="chapter-item expanded "><a href="network-proxies.html"><strong aria-hidden="true">8.</strong> Network proxies</a></li><li class="chapter-item expanded "><a href="examples.html"><strong aria-hidden="true">9.</strong> Examples</a></li><li class="chapter-item expanded "><a href="security.html"><strong aria-hidden="true">10.</strong> Security</a></li><li class="chapter-item expanded "><a href="faq.html"><strong aria-hidden="true">11.</strong> FAQ</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">The rustup book</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                        <a href="https://github.com/rust-lang/rustup/tree/master/doc" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#introduction" id="introduction">Introduction</a></h1>
+<p><em>rustup</em> installs <a href="https://www.rust-lang.org">The Rust Programming Language</a> from the official
+release channels, enabling you to easily switch between stable, beta, and
+nightly compilers and keep them updated. It makes cross-compiling simpler with
+binary builds of the standard library for common platforms. And it runs on all
+platforms Rust supports.</p>
+<p>Check out the <a href="concepts/index.html">Concepts</a> chapter for an overview of how rustup works and some
+of the terminology it uses. The <a href="installation/index.html">Installation</a> chapter covers installing
+rustup and getting started.</p>
+<p>The source code of rustup and this manual may be found at
+<a href="https://github.com/rust-lang/rustup">https://github.com/rust-lang/rustup</a>. If you find a problem, check out the
+<a href="https://github.com/rust-lang/rustup/issues">issue tracker</a>.</p>
+<p>Release notes for rustup may be found in the <a href="https://github.com/rust-lang/rustup/blob/master/CHANGELOG.md">CHANGELOG</a>.</p>
+<h1><a class="header" href="#installation" id="installation">Installation</a></h1>
+<p>Follow the instructions at <a href="https://www.rust-lang.org/tools/install">https://www.rust-lang.org/tools/install</a>. If that
+doesn't work for you there are <a href="installation/other.html">other installation methods</a>.</p>
+<p><code>rustup</code> installs <code>rustc</code>, <code>cargo</code>, <code>rustup</code> and other standard tools to
+Cargo's <code>bin</code> directory. On Unix it is located at <code>$HOME/.cargo/bin</code> and on
+Windows at <code>%USERPROFILE%\.cargo\bin</code>. This is the same directory that <code>cargo install</code> will install Rust programs and Cargo plugins.</p>
+<p>This directory will be in your <code>$PATH</code> environment variable, which means you
+can run them from the shell without further configuration. Open a <em>new</em> shell
+and type the following:</p>
+<pre><code class="language-console">rustc --version
+</code></pre>
+<p>If you see something like <code>rustc 1.19.0 (0ade33941 2017-07-17)</code> then you are
+ready to Rust. If you decide Rust isn't your thing, you can completely remove
+it from your system by running <code>rustup self uninstall</code>.</p>
+<h2><a class="header" href="#choosing-where-to-install" id="choosing-where-to-install">Choosing where to install</a></h2>
+<p><code>rustup</code> allows you to customise your installation by setting the environment
+variables <code>CARGO_HOME</code> and <code>RUSTUP_HOME</code> before running the <code>rustup-init</code>
+executable. As mentioned in the <a href="installation/../environment-variables.html">Environment Variables</a> section, <code>RUSTUP_HOME</code>
+sets the root <code>rustup</code> folder, which is used for storing installed toolchains
+and configuration options. <code>CARGO_HOME</code> contains cache files used by <a href="https://doc.rust-lang.org/cargo/">cargo</a>.</p>
+<p>Note that you will need to ensure these environment variables are always set
+and that <code>CARGO_HOME/bin</code> is in the <code>$PATH</code> environment variable when using
+the toolchain.</p>
+<h2><a class="header" href="#installing-nightly" id="installing-nightly">Installing nightly</a></h2>
+<p>If you specify the <a href="installation/../concepts/channels.html">nightly channel</a> when installing <code>rustup</code>, the
+<code>rustup-init</code> script will do a &quot;forced&quot; installation by default. A &quot;forced&quot;
+installation means it will install the nightly channel regardless of whether
+it might be missing <a href="installation/../concepts/components.html">components</a> that you want. If you want to install rustup
+with the nightly channel, and ensure it has the components that you want, you
+will need to do this in two phases. For example, if you want to make a fresh
+installation of <code>rustup</code> and then install <code>nightly</code> along with <code>clippy</code> or
+<code>miri</code>, first install <code>rustup</code> without a toolchain:</p>
+<pre><code class="language-console">curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+</code></pre>
+<p>Next you can install <code>nightly</code> allowing <code>rustup</code> to downgrade until it finds
+the components you need:</p>
+<pre><code class="language-console">rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy
+</code></pre>
+<p>This can be used to great effect in CI, to get you a toolchain rapidly which
+meets your criteria.</p>
+<h2><a class="header" href="#enable-tab-completion-for-bash-fish-zsh-or-powershell" id="enable-tab-completion-for-bash-fish-zsh-or-powershell">Enable tab completion for Bash, Fish, Zsh, or PowerShell</a></h2>
+<p><code>rustup</code> now supports generating completion scripts for Bash, Fish, Zsh, and
+PowerShell. See <code>rustup help completions</code> for full details, but the gist is as
+simple as using one of the following:</p>
+<pre><code class="language-console"># Bash
+$ rustup completions bash &gt; ~/.local/share/bash-completion/completions/rustup
+
+# Bash (macOS/Homebrew)
+$ rustup completions bash &gt; $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
+
+# Fish
+$ mkdir -p ~/.config/fish/completions
+$ rustup completions fish &gt; ~/.config/fish/completions/rustup.fish
+
+# Zsh
+$ rustup completions zsh &gt; ~/.zfunc/_rustup
+
+# PowerShell v5.0+
+$ rustup completions powershell &gt;&gt; $PROFILE.CurrentUserCurrentHost
+# or
+$ rustup completions powershell | Out-String | Invoke-Expression
+</code></pre>
+<p><strong>Note</strong>: you may need to restart your shell in order for the changes to take
+effect.</p>
+<p>For <code>zsh</code>, you must then add the following line in your <code>~/.zshrc</code> before
+<code>compinit</code>:</p>
+<pre><code class="language-zsh">fpath+=~/.zfunc
+</code></pre>
+<h1><a class="header" href="#windows" id="windows">Windows</a></h1>
+<p><code>rustup</code> works the same on Windows as it does on Unix, but there are some
+special considerations for Rust developers on Windows. As <a href="https://www.rust-lang.org/tools/install?platform_override=win">mentioned on the
+Rust download page</a>, there are two <a href="https://en.wikipedia.org/wiki/Application_binary_interface">ABIs</a> in use on Windows:
+the native (MSVC) ABI used by <a href="https://visualstudio.microsoft.com/visual-cpp-build-tools/">Visual Studio</a>, and the GNU ABI used by the
+<a href="https://gcc.gnu.org/">GCC toolchain</a>. Which version of Rust you need depends largely on what C/C++
+libraries you want to interoperate with: for interop with software produced by
+Visual Studio use the MSVC build of Rust; for interop with GNU software built
+using the <a href="https://msys2.github.io/">MinGW/MSYS2 toolchain</a> use the GNU build.</p>
+<p>When targeting the MSVC ABI, Rust additionally requires an <a href="https://visualstudio.microsoft.com/downloads/">installation of
+Visual Studio 2013 (or later) or the Visual C++ Build Tools 2019</a> so
+<code>rustc</code> can use its linker. For Visual Studio, make sure to check the &quot;C++
+tools&quot; and &quot;Windows 10 SDK&quot; option. No additional software installation is
+necessary for basic use of the GNU build.</p>
+<p>By default <code>rustup</code> on Windows configures Rust to target the MSVC ABI, that is
+a target triple of either <code>i686-pc-windows-msvc</code> or <code>x86_64-pc-windows-msvc</code>
+depending on the CPU architecture of the host Windows OS. The toolchains that
+<code>rustup</code> chooses to install, unless told otherwise through the <a href="installation/../concepts/toolchains.html#toolchain-specification">toolchain
+specification</a>, will be compiled to run on that target triple host and will
+target that triple by default.</p>
+<p>You can change this behavior with <code>rustup set default-host</code> or during
+installation.</p>
+<p>For example, to explicitly select the 32-bit MSVC host:</p>
+<pre><code class="language-console">$ rustup set default-host i686-pc-windows-msvc
+</code></pre>
+<p>Or to choose the 64 bit GNU toolchain:</p>
+<pre><code class="language-console">$ rustup set default-host x86_64-pc-windows-gnu
+</code></pre>
+<p>Since the MSVC ABI provides the best interoperation with other Windows
+software it is recommended for most purposes. The GNU toolchain is always
+available, even if you don't use it by default. Just install it with <code>rustup toolchain install</code>:</p>
+<pre><code class="language-console">$ rustup toolchain install stable-gnu
+</code></pre>
+<p>You don't need to switch toolchains to support all windows targets though; a
+single toolchain supports all four x86 windows targets:</p>
+<pre><code class="language-console">$ rustup target add x86_64-pc-windows-msvc
+$ rustup target add x86_64-pc-windows-gnu
+$ rustup target add i686-pc-windows-msvc
+$ rustup target add i686-pc-windows-gnu
+</code></pre>
+<p>See the <a href="installation/../cross-compilation.html">Cross-compilation</a> chapter for more details on specifying different
+targets with the same compiler.</p>
+<h1><a class="header" href="#other-installation-methods" id="other-installation-methods">Other installation methods</a></h1>
+<p>The primary installation method, as described at <a href="https://rustup.rs">https://rustup.rs</a>, differs
+by platform:</p>
+<ul>
+<li>On Windows, download and run the <a href="https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe"><code>rustup-init.exe</code> built for the
+<code>x86_64-pc-windows-msvc</code> target</a>. In general, this is the build of
+<code>rustup</code> one should install on Windows. This will require the Visual C++
+Build Tools 2019 or equivalent (Visual Studio 2019, etc.) to already be
+installed. If you would prefer to install GNU toolchains or the i686
+toolchains by default this can be modified at install time, either
+interactively, with the <code>--default-host</code> flag, or after installation
+via <code>rustup set default-host</code>.</li>
+<li>On Unix, run <code>curl https://sh.rustup.rs -sSf | sh</code> in your shell. This
+downloads and runs <a href="https://static.rust-lang.org/rustup/rustup-init.sh"><code>rustup-init.sh</code></a>, which in turn downloads and runs the
+correct version of the <code>rustup-init</code> executable for your platform.</li>
+</ul>
+<p><code>rustup-init</code> accepts arguments, which can be passed through the shell script.
+Some examples:</p>
+<pre><code class="language-console">$ curl https://sh.rustup.rs -sSf | sh -s -- --help
+$ curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
+$ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
+$ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none
+$ curl https://sh.rustup.rs -sSf | sh -s -- --profile minimal --default-toolchain nightly
+</code></pre>
+<p>If you prefer you can directly download <code>rustup-init</code> for the platform of your
+choice:</p>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/aarch64-linux-android/rustup-init">aarch64-linux-android</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/aarch64-linux-android/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-init">aarch64-unknown-linux-gnu</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-musl/rustup-init">aarch64-unknown-linux-musl</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-musl/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/arm-linux-androideabi/rustup-init">arm-linux-androideabi</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/arm-linux-androideabi/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/arm-unknown-linux-gnueabi/rustup-init">arm-unknown-linux-gnueabi</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/arm-unknown-linux-gnueabi/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/arm-unknown-linux-gnueabihf/rustup-init">arm-unknown-linux-gnueabihf</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/arm-unknown-linux-gnueabihf/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/armv7-linux-androideabi/rustup-init">armv7-linux-androideabi</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/armv7-linux-androideabi/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/armv7-unknown-linux-gnueabihf/rustup-init">armv7-unknown-linux-gnueabihf</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/armv7-unknown-linux-gnueabihf/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/i686-apple-darwin/rustup-init">i686-apple-darwin</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/i686-apple-darwin/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/i686-linux-android/rustup-init">i686-linux-android</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/i686-linux-android/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe">i686-pc-windows-gnu</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-init.exe">i686-pc-windows-msvc</a><sup class="footnote-reference"><a href="#msvc">1</a></sup>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/i686-pc-windows-msvc/rustup-init.exe.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/i686-unknown-linux-gnu/rustup-init">i686-unknown-linux-gnu</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/i686-unknown-linux-gnu/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/mips-unknown-linux-gnu/rustup-init">mips-unknown-linux-gnu</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/mips-unknown-linux-gnu/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/mips64-unknown-linux-gnuabi64/rustup-init">mips64-unknown-linux-gnuabi64</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/mips64-unknown-linux-gnuabi64/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/mips64el-unknown-linux-gnuabi64/rustup-init">mips64el-unknown-linux-gnuabi64</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/mips64el-unknown-linux-gnuabi64/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/mipsel-unknown-linux-gnu/rustup-init">mipsel-unknown-linux-gnu</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/mipsel-unknown-linux-gnu/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/powerpc-unknown-linux-gnu/rustup-init">powerpc-unknown-linux-gnu</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/powerpc-unknown-linux-gnu/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/powerpc64-unknown-linux-gnu/rustup-init">powerpc64-unknown-linux-gnu</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/powerpc64-unknown-linux-gnu/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/powerpc64le-unknown-linux-gnu/rustup-init">powerpc64le-unknown-linux-gnu</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/powerpc64le-unknown-linux-gnu/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/s390x-unknown-linux-gnu/rustup-init">s390x-unknown-linux-gnu</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/s390x-unknown-linux-gnu/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-apple-darwin/rustup-init">x86_64-apple-darwin</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-apple-darwin/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-linux-android/rustup-init">x86_64-linux-android</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-linux-android/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe">x86_64-pc-windows-gnu</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe">x86_64-pc-windows-msvc</a><sup class="footnote-reference"><a href="#msvc">1</a></sup>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-unknown-freebsd/rustup-init">x86_64-unknown-freebsd</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-unknown-freebsd/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-unknown-illumos/rustup-init">x86_64-unknown-illumos</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-unknown-illumos/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init">x86_64-unknown-linux-gnu</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-musl/rustup-init">x86_64-unknown-linux-musl</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-musl/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-unknown-netbsd/rustup-init">x86_64-unknown-netbsd</a>
+<ul>
+<li><a href="https://static.rust-lang.org/rustup/dist/x86_64-unknown-netbsd/rustup-init.sha256">sha256 file</a></li>
+</ul>
+</li>
+</ul>
+<div class="footnote-definition" id="msvc"><sup class="footnote-definition-label">1</sup>
+<p>MSVC builds of <code>rustup</code> additionally require an <a href="https://visualstudio.microsoft.com/downloads/">installation of
+Visual Studio 2019 or the Visual C++ Build Tools 2019</a>. For Visual
+Studio, make sure to check the &quot;C++ tools&quot; and &quot;Windows 10 SDK&quot; option. No
+additional software installation is necessary for basic use of the GNU
+build.</p>
+</div>
+<p>You can fetch an older version from
+<code>https://static.rust-lang.org/rustup/archive/{rustup-version}/{target-triple}/rustup-init[.exe]</code></p>
+<p>To install <code>rustup</code> from source, check out the git repository from
+<a href="https://github.com/rust-lang/rustup">https://github.com/rust-lang/rustup</a> and run <code>cargo run --release</code>. Note that
+after installation the <code>rustup</code> toolchains will supersede any pre-existing
+toolchains by prepending <code>~/.cargo/bin</code> to the <code>PATH</code> environment variable.</p>
+<h1><a class="header" href="#package-managers" id="package-managers">Package managers</a></h1>
+<p>Several Linux distributions package Rust, and you may wish to use the packaged
+toolchain, such as for distribution package development. You may also wish to
+use a <code>rustup</code>-managed toolchain such as nightly or beta. Normally, <code>rustup</code>
+will complain that you already have Rust installed in <code>/usr</code> and refuse to
+install. However, you can install Rust via <code>rustup</code> and have it coexist with
+your distribution's packaged Rust.</p>
+<p>When you initially install Rust with <code>rustup</code>, pass the <code>-y</code> option to make it
+ignore the packaged Rust toolchain and install a <code>rustup</code>-managed toolchain
+into <code>~/.cargo/bin</code>. Add that directory to your <code>$PATH</code> (or let <code>rustup</code> do it
+for you by not passing <code>--no-modify-path</code>). Then, to tell <code>rustup</code> about your
+system toolchain, run:</p>
+<pre><code class="language-console">rustup toolchain link system /usr
+</code></pre>
+<p>You can then use &quot;system&quot; as a <code>rustup</code> toolchain, just like &quot;nightly&quot;.
+For example, using the <a href="installation/../overrides.html#toolchain-override-shorthand">toolchain override shorthand</a>, you can run <code>cargo +system build</code>
+to build with the system toolchain, or <code>cargo +nightly build</code> to build with nightly.</p>
+<p>If you do distribution Rust development, you should likely make &quot;system&quot; your
+<a href="installation/../overrides.html#default-toolchain">default toolchain</a>:</p>
+<pre><code class="language-console">rustup default system
+</code></pre>
+<h1><a class="header" href="#concepts" id="concepts">Concepts</a></h1>
+<h2><a class="header" href="#how-rustup-works" id="how-rustup-works">How rustup works</a></h2>
+<p><code>rustup</code> is a <em>toolchain multiplexer</em>. It installs and manages many Rust
+toolchains and presents them all through a single set of tools installed to
+<code>~/.cargo/bin</code>. The <a href="https://doc.rust-lang.org/rustc/"><code>rustc</code></a> and <a href="https://doc.rust-lang.org/cargo/"><code>cargo</code></a> executables installed in
+<code>~/.cargo/bin</code> are <em><a href="concepts/proxies.html">proxies</a></em> that delegate to the real toolchain. <code>rustup</code>
+then provides mechanisms to easily change the active toolchain by
+reconfiguring the behavior of the proxies.</p>
+<p>So when <code>rustup</code> is first installed, running <code>rustc</code> will run the proxy in
+<code>$HOME/.cargo/bin/rustc</code>, which in turn will run the stable compiler. If you
+later <em>change the default toolchain</em> to nightly with <code>rustup default nightly</code>,
+then that same proxy will run the <code>nightly</code> compiler instead.</p>
+<p>This is similar to Ruby's <a href="https://github.com/rbenv/rbenv">rbenv</a>, Python's <a href="https://github.com/yyuu/pyenv">pyenv</a>, or Node's <a href="https://github.com/creationix/nvm">nvm</a>.</p>
+<h2><a class="header" href="#terminology" id="terminology">Terminology</a></h2>
+<ul>
+<li>
+<p><strong>channel</strong> — Rust is released to three different &quot;channels&quot;: stable, beta,
+and nightly. See the <a href="concepts/channels.html">Channels</a> chapter for more details.</p>
+</li>
+<li>
+<p><strong>toolchain</strong> — A &quot;toolchain&quot; is a complete installation of the Rust
+compiler (<code>rustc</code>) and related tools (like <code>cargo</code>). A <a href="concepts/toolchains.html">toolchain
+specification</a> includes the release channel or version, and the host
+platform that the toolchain runs on.</p>
+</li>
+<li>
+<p><strong>target</strong> — <code>rustc</code> is capable of generating code for many platforms. The
+&quot;target&quot; specifies the platform that the code will be generated for. By
+default, <code>cargo</code> and <code>rustc</code> use the host toolchain's platform as the
+target. To build for a different target, usually the target's standard
+library needs to be installed first via the <code>rustup target</code> command. See the
+<a href="concepts/../cross-compilation.html">Cross-compilation</a> chapter for more details.</p>
+</li>
+<li>
+<p><strong>component</strong> — Each release of Rust includes several &quot;components&quot;, some of
+which are required (like <code>rustc</code>) and some that are optional (like
+<a href="https://github.com/rust-lang/rust-clippy"><code>clippy</code></a>). See the <a href="concepts/components.html">Components</a> chapter for more detail.</p>
+</li>
+<li>
+<p><strong>profile</strong> — In order to make it easier to work with components, a
+&quot;profile&quot; defines a grouping of components. See the <a href="concepts/profiles.html">Profiles</a> chapter for
+more details.</p>
+</li>
+</ul>
+<h1><a class="header" href="#channels" id="channels">Channels</a></h1>
+<p>Rust is released to three different &quot;channels&quot;: stable, beta, and nightly. The
+stable releases are made every 6 weeks (with occasional point releases). Beta
+releases are the version that will appear in the next stable release. Nightly
+releases are made every night. See <a href="https://doc.rust-lang.org/book/appendix-07-nightly-rust.html">The Rust Book</a> for more details
+on Rust's train release model. The release schedule is posted to the <a href="https://forge.rust-lang.org/">Rust
+Forge</a>. <code>rustup</code> assists with installing different channels, keeping them
+up-to-date, and easily switching between them.</p>
+<p>After a release channel has been installed, <code>rustup</code> can be used to update the
+installed version to the latest release on that channel. See the <a href="concepts/../basics.html#keeping-rust-up-to-date">Keeping rust
+up to date</a> section for more information.</p>
+<p><code>rustup</code> can also install specific versions of Rust, such as <code>1.45.2</code> or
+<code>nightly-2020-07-27</code>. See the <a href="concepts/toolchains.html">Toolchains</a> chapter for more information on
+installing different channels and releases. See the <a href="concepts/../overrides.html">Overrides</a> chapter for
+details on switching between toolchains and pinning your project to a specific
+toolchain.</p>
+<h2><a class="header" href="#working-with-nightly-rust" id="working-with-nightly-rust">Working with nightly Rust</a></h2>
+<p><code>rustup</code> gives you easy access to the nightly compiler and its <a href="https://doc.rust-lang.org/unstable-book/">experimental
+features</a>. To add it just run <code>rustup toolchain install nightly</code>:</p>
+<pre><code class="language-console">$ rustup toolchain install nightly
+info: syncing channel updates for 'nightly'
+info: downloading toolchain manifest
+info: downloading component 'rustc'
+info: downloading component 'rust-std'
+info: downloading component 'rust-docs'
+info: downloading component 'cargo'
+info: installing component 'rustc'
+info: installing component 'rust-std'
+info: installing component 'rust-docs'
+info: installing component 'cargo'
+
+  nightly installed: rustc 1.9.0-nightly (02310fd31 2016-03-19)
+
+</code></pre>
+<p>Now Rust nightly is installed, but not activated. To test it out you can run a
+command from the nightly toolchain like</p>
+<pre><code class="language-console">$ rustup run nightly rustc --version
+rustc 1.9.0-nightly (02310fd31 2016-03-19)
+</code></pre>
+<p>But more likely you want to use it for a while. To switch to nightly globally,
+change <a href="concepts/../overrides.html#default-toolchain">the default</a> with <code>rustup default nightly</code>:</p>
+<pre><code class="language-console">$ rustup default nightly
+info: using existing install for 'nightly'
+info: default toolchain set to 'nightly'
+
+  nightly unchanged: rustc 1.9.0-nightly (02310fd31 2016-03-19)
+
+</code></pre>
+<p>Now any time you run <code>cargo</code> or <code>rustc</code> you will be running the nightly
+compiler.</p>
+<p>With nightly installed any time you run <code>rustup update</code>, the nightly channel
+will be updated in addition to stable:</p>
+<pre><code class="language-console">$ rustup update
+info: syncing channel updates for 'stable'
+info: syncing channel updates for 'nightly'
+info: checking for self-updates
+info: downloading self-updates
+
+   stable unchanged: rustc 1.7.0 (a5d1e7a59 2016-02-29)
+  nightly unchanged: rustc 1.9.0-nightly (02310fd31 2016-03-19)
+
+</code></pre>
+<h2><a class="header" href="#nightly-availability" id="nightly-availability">Nightly availability</a></h2>
+<p>Nightly toolchains may fail to build, so for any given date and target
+platform there may not be a toolchain available. Furthermore, nightly builds
+may be published with missing non-default <a href="concepts/components.html">components</a> (such as <a href="https://github.com/rust-lang/rust-clippy"><code>clippy</code></a>).
+As such, it can be difficult to find fully-working nightlies. Use the
+<a href="https://rust-lang.github.io/rustup-components-history/">rustup-components-history</a> project to find the build status of recent
+nightly toolchains and components.</p>
+<p>When you attempt to install or update the <code>nightly</code> channel, <code>rustup</code> will
+check if a required or previously installed component is missing. If it is
+missing, <code>rustup</code> will automatically search for an older release that contains
+the required components. There are several ways to change this behavior:</p>
+<ul>
+<li>Use the <code>--force</code> flag to <code>rustup toolchain install</code> to force it to install
+the most recent version even if there is a missing component.</li>
+<li>Use the <code>--profile</code> flag to <code>rustup toolchain install</code> to use a different
+profile that does not contain the missing component. For example,
+<code>--profile=minimal</code> should always work, as the minimal set is required to
+exist. See the <a href="concepts/profiles.html">Profiles</a> chapter for more detail.</li>
+<li>Install a specific date that contains the components you need. For example,
+<code>rustup toolchain install nightly-2020-07-27</code>. You can then use <a href="concepts/../overrides.html">overrides</a>
+to pin to that specific release.</li>
+</ul>
+<h1><a class="header" href="#toolchains" id="toolchains">Toolchains</a></h1>
+<p>Many <code>rustup</code> commands deal with <em>toolchains</em>, a single installation of the
+Rust compiler. <code>rustup</code> supports multiple types of toolchains. The most basic
+track the official release <a href="concepts/channels.html">channels</a>: <em>stable</em>, <em>beta</em> and <em>nightly</em>; but
+<code>rustup</code> can also install toolchains from the official archives, for alternate
+host platforms, and from local builds.</p>
+<h2><a class="header" href="#toolchain-specification" id="toolchain-specification">Toolchain specification</a></h2>
+<p>Standard release channel toolchain names have the following form:</p>
+<pre><code>&lt;channel&gt;[-&lt;date&gt;][-&lt;host&gt;]
+
+&lt;channel&gt;       = stable|beta|nightly|&lt;major.minor&gt;|&lt;major.minor.patch&gt;
+&lt;date&gt;          = YYYY-MM-DD
+&lt;host&gt;          = &lt;target-triple&gt;
+</code></pre>
+<p>'channel' is a named release channel, a major and minor version number such as
+<code>1.42</code>, or a fully specified version number, such as <code>1.42.0</code>. Channel names
+can be optionally appended with an archive date, as in <code>nightly-2014-12-18</code>, in
+which case the toolchain is downloaded from the archive for that date.</p>
+<p>Finally, the host may be specified as a target triple. This is most useful for
+installing a 32-bit compiler on a 64-bit platform, or for installing the
+<a href="https://www.rust-lang.org/tools/install?platform_override=win">MSVC-based toolchain</a> on Windows. For example:</p>
+<pre><code class="language-console">$ rustup toolchain install stable-x86_64-pc-windows-msvc
+</code></pre>
+<p>For convenience, elements of the target triple that are omitted will be
+inferred, so the above could be written:</p>
+<pre><code class="language-console">$ rustup toolchain install stable-msvc
+</code></pre>
+<p>Toolchain names that don't name a channel instead can be used to name <a href="concepts/toolchains.html#custom-toolchains">custom
+toolchains</a>.</p>
+<h2><a class="header" href="#custom-toolchains" id="custom-toolchains">Custom toolchains</a></h2>
+<p>For convenience of developers working on Rust itself, <code>rustup</code> can manage
+local builds of the Rust toolchain. To teach <code>rustup</code> about your build, run:</p>
+<pre><code class="language-console">$ rustup toolchain link my-toolchain path/to/my/toolchain/sysroot
+</code></pre>
+<p>For example, on Ubuntu you might clone <code>rust-lang/rust</code> into <code>~/rust</code>, build
+it, and then run:</p>
+<pre><code class="language-console">$ rustup toolchain link myrust ~/rust/build/x86_64-unknown-linux-gnu/stage2/
+$ rustup default myrust
+</code></pre>
+<p>Now you can name <code>my-toolchain</code> as any other <code>rustup</code> toolchain. Create a
+<code>rustup</code> toolchain for each of your <code>rust-lang/rust</code> workspaces and test them
+easily with <code>rustup run my-toolchain rustc</code>.</p>
+<p>Because the <code>rust-lang/rust</code> tree does not include Cargo, <em>when <code>cargo</code> is
+invoked for a custom toolchain and it is not available, <code>rustup</code> will attempt
+to use <code>cargo</code> from one of the release channels</em>, preferring 'nightly', then
+'beta' or 'stable'.</p>
+<h1><a class="header" href="#components" id="components">Components</a></h1>
+<p>Each <a href="concepts/toolchains.html">toolchain</a> has several &quot;components&quot;, some of which are required (like
+<code>rustc</code>) and some that are optional (like <a href="https://github.com/rust-lang/rust-clippy"><code>clippy</code></a>). The <code>rustup component</code> command is used to manage the installed components. For example,
+run <code>rustup component list</code> to see a list of available and installed
+components.</p>
+<p>Components can be added when installing a toolchain with the <code>--component</code>
+flag. For example:</p>
+<pre><code class="language-console">rustup toolchain install nightly --component rust-docs
+</code></pre>
+<p>Components can be added to an already-installed toolchain with the <code>rustup component</code> command:</p>
+<pre><code class="language-console">rustup component add rust-docs
+</code></pre>
+<p>To make it easier to choose which components are installed, <code>rustup</code> has the
+concept of &quot;profiles&quot; which provide named groupings of different components.
+See the <a href="concepts/profiles.html">Profiles</a> chapter for more detail.</p>
+<p>Most components have a target-triple suffix, such as
+<code>rustc-x86_64-apple-darwin</code>, to signify the platform the component is for.</p>
+<p>The set of available components may vary with different releases and
+toolchains. The following is an overview of the different components:</p>
+<ul>
+<li><code>rustc</code> — The Rust compiler.</li>
+<li><code>cargo</code> — <a href="https://doc.rust-lang.org/cargo/">Cargo</a> is a package manager and build tool.</li>
+<li><code>rustfmt</code> — <a href="https://github.com/rust-lang/rustfmt">Rustfmt</a> is a tool for automatically formatting code.</li>
+<li><code>rust-std</code> — This is the Rust <a href="https://doc.rust-lang.org/std/">standard library</a>. There is a separate
+<code>rust-std</code> component for each target that <code>rustc</code> supports, such as
+<code>rust-std-x86_64-pc-windows-msvc</code>. See the <a href="concepts/../cross-compilation.html">Cross-compilation</a> chapter for
+more detail.</li>
+<li><code>rust-docs</code> — This is a local copy of the <a href="https://doc.rust-lang.org/">Rust documentation</a>. Use the
+<code>rustup doc</code> command to open the documentation in a web browser. Run <code>rustup doc --help</code> for more options.</li>
+<li><code>rls</code> — <a href="https://github.com/rust-lang/rls">RLS</a> is a language server that provides support for editors and
+IDEs.</li>
+<li><code>clippy</code> — <a href="https://github.com/rust-lang/rust-clippy">Clippy</a> is a lint tool that provides extra checks for common
+mistakes and stylistic choices.</li>
+<li><code>miri</code> — <a href="https://github.com/rust-lang/miri/">Miri</a> is an experimental Rust interpreter, which can be used for
+checking for undefined-behavior.</li>
+<li><code>rust-src</code> — This is a local copy of the source code of the Rust standard
+library. This can be used by some tools, such as <a href="https://github.com/rust-lang/rls">RLS</a>, to provide
+auto-completion for functions within the standard library; <a href="https://github.com/rust-lang/miri/">Miri</a> which is a
+Rust interpreter; and Cargo's experimental <a href="https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std">build-std</a> feature, which allows
+you to rebuild the standard library locally.</li>
+<li><code>rust-analysis</code> — Metadata about the standard library, used by tools like
+<a href="https://github.com/rust-lang/rls">RLS</a>.</li>
+<li><code>rust-mingw</code> — This contains a linker and platform libraries for building on
+the <code>x86_64-pc-windows-gnu</code> platform.</li>
+<li><code>llvm-tools-preview</code> — This is an experimental component which contains a
+collection of <a href="https://llvm.org/">LLVM</a> tools.</li>
+<li><code>rustc-dev</code> — This component contains the compiler as a library. Most users
+will not need this; it is only needed for development <em>of</em> tools that link
+to the compiler, such as making modifications to <a href="https://github.com/rust-lang/rust-clippy">Clippy</a>.</li>
+</ul>
+<h2><a class="header" href="#component-availability" id="component-availability">Component availability</a></h2>
+<p>Not all components are available for all toolchains. Especially on the nightly
+channel, some components may not be included if they are in a broken state.
+The current status of all the components may be found on the <a href="https://rust-lang.github.io/rustup-components-history/">rustup
+components history</a> page. See the <a href="concepts/channels.html#nightly-availability">Nightly availability</a> section for more
+details.</p>
+<h1><a class="header" href="#profiles" id="profiles">Profiles</a></h1>
+<p><code>rustup</code> has the concept of &quot;profiles&quot;. They are groups of <a href="concepts/components.html">components</a> you
+can choose to download while installing a new Rust toolchain. The profiles
+available at this time are <code>minimal</code>, <code>default</code>, and <code>complete</code>:</p>
+<ul>
+<li>The <strong>minimal</strong> profile includes as few components as possible to get a
+working compiler (<code>rustc</code>, <code>rust-std</code>, and <code>cargo</code>). It's recommended to use
+this component on Windows systems if you don't use local documentation (the
+large number of files can cause issues with some Antivirus systems), and in
+CI.</li>
+<li>The <strong>default</strong> profile includes all of components in the <strong>minimal</strong>
+profile, and adds <code>rust-docs</code>, <code>rustfmt</code>, and <code>clippy</code>. This profile will be
+used by <code>rustup</code> by default, and it's the one recommended for general use.</li>
+<li>The <strong>complete</strong> profile includes all the components available through
+<code>rustup</code>. This should never be used, as it includes <em>every</em> component ever
+included in the metadata and thus will almost always fail. If you are
+looking for a way to install devtools such as <code>miri</code> or IDE integration
+tools (<code>rls</code>), you should use the <code>default</code> profile and
+install the needed additional components manually, either by using <code>rustup component add</code> or by using <code>-c</code> when installing the toolchain.</li>
+</ul>
+<p>To change the <code>rustup</code> profile you can use the <code>rustup set profile</code> command.
+For example, to select the minimal profile you can use:</p>
+<pre><code class="language-console">rustup set profile minimal
+</code></pre>
+<p>It's also possible to choose the profile when installing <code>rustup</code> for the
+first time, either interactively by choosing the &quot;Customize installation&quot;
+option or programmatically by passing the <code>--profile=&lt;name&gt;</code> flag. Profiles
+will only affect newly installed toolchains: as usual it will be possible to
+install individual components later with: <code>rustup component add</code>.</p>
+<h1><a class="header" href="#proxies" id="proxies">Proxies</a></h1>
+<p><code>rustup</code> provides a number of wrappers for common Rust tools.
+These are called <em>proxies</em> and represent commands which are
+provided by the various <a href="concepts/components.html">components</a>.</p>
+<p>The list of proxies is currently static in <code>rustup</code> and is as follows:</p>
+<ul>
+<li>
+<p><code>rustc</code> is the compiler for the Rust programming language, provided by the project itself and comes from the <code>rustc</code> component.</p>
+</li>
+<li>
+<p><code>rustdoc</code> is a tool distributed in the <code>rustc</code> component which helps you to generate documentation for Rust projects.</p>
+</li>
+<li>
+<p><code>cargo</code> is the Rust package manager which downloads your Rust package’s dependencies, compiles your packages, makes distributable packages, and uploads them to crates.io (the Rust community’s package registry). It comes from the <code>cargo</code> component.</p>
+</li>
+<li>
+<p><code>rust-lldb</code> and <code>rust-gdb</code> are simple wrappers around the <code>lldb</code> and <code>gdb</code> debuggers respectively. The wrappers enable some pretty-printing of Rust values and add some convenience features to the debuggers by means of their scripting interfaces.</p>
+</li>
+<li>
+<p><code>rls</code> is part of the Rust IDE integration tooling. It implements the language-server protocol to permit IDEs and editors such as Visual Studio Code, ViM, or Emacs, access to the semantics of the Rust code you are editing. It comes from the <code>rls</code> component.</p>
+</li>
+<li>
+<p><code>cargo-clippy</code> and <code>clippy-driver</code> are related to the <code>clippy</code> linting tool which provides extra checks for common mistakes and stylistic choices and it comes from the <code>clippy</code> component.</p>
+</li>
+<li>
+<p><code>cargo-miri</code> is an experimental interpreter for Rust's mid-level intermediate representation (MIR) and it comes from the <code>miri</code> component.</p>
+</li>
+</ul>
+<h1><a class="header" href="#basic-usage" id="basic-usage">Basic usage</a></h1>
+<h2><a class="header" href="#keeping-rust-up-to-date" id="keeping-rust-up-to-date">Keeping Rust up to date</a></h2>
+<p>Rust is distributed on three different <a href="concepts/channels.html">release channels</a>: stable, beta, and
+nightly. <code>rustup</code> uses the stable channel by default, which
+represents the latest release of Rust. Stable publishes new releases every six weeks.</p>
+<p>When a new version of Rust is released, simply type <code>rustup update</code> to update:</p>
+<pre><code class="language-console">$ rustup update
+info: syncing channel updates for 'stable'
+info: downloading component 'rustc'
+info: downloading component 'rust-std'
+info: downloading component 'rust-docs'
+info: downloading component 'cargo'
+info: installing component 'rustc'
+info: installing component 'rust-std'
+info: installing component 'rust-docs'
+info: installing component 'cargo'
+info: checking for self-updates
+info: downloading self-updates
+
+  stable updated: rustc 1.7.0 (a5d1e7a59 2016-02-29)
+
+</code></pre>
+<h2><a class="header" href="#keeping-rustup-up-to-date" id="keeping-rustup-up-to-date">Keeping <code>rustup</code> up to date</a></h2>
+<p>If your <code>rustup</code> was built with the <code>no-self-update</code> feature, it can not update
+itself. This is not the default, and only versions of <code>rustup</code> built with
+<code>--no-default-features</code>, or obtained from a third-party distributor who has
+disabled it (such as the Ubuntu snap store).</p>
+<p>Otherwise Rustup can update itself. It is possible to control Rustup's automatic
+self update mechanism with the <code>auto-self-update</code> configuration variable. This
+setting supports three values: <code>enable</code> and <code>disable</code> and <code>check-only</code>.</p>
+<ul>
+<li><code>disable</code> will ensure that no automatic self updating actions are taken.</li>
+<li><code>enable</code> will mean that <code>rustup update</code> and similar commands will also check for, and install, any update to Rustup.</li>
+<li><code>check-only</code> will cause any automatic self update to check and report on any updates, but not to automatically install them.</li>
+</ul>
+<p>Whether <code>auto-self-update</code> is <code>enable</code> or not, you can request that Rustup
+update itself to the latest version of <code>rustup</code> by running <code>rustup self update</code>.
+This will not download new toolchains:</p>
+<pre><code class="language-console">$ rustup self update
+info: checking for self-updates
+info: downloading self-updates
+</code></pre>
+<h3><a class="header" href="#disabling-self-updates-on-a-per-invocation-basis" id="disabling-self-updates-on-a-per-invocation-basis">Disabling self updates on a per-invocation basis</a></h3>
+<blockquote>
+<p>Self updates can also be suppressed on individual invocations of <code>rustup</code> by
+passing the argurment <code>--no-self-update</code>  when running <code>rustup update</code> or
+<code>rustup toolchain install</code>.</p>
+</blockquote>
+<h2><a class="header" href="#help-system" id="help-system">Help system</a></h2>
+<p>The <code>rustup</code> command-line has a built-in help system that provides more
+information about each command. Run <code>rustup help</code> for an overview. Detailed
+help for each subcommand is also available. For example, run <code>rustup toolchain install --help</code> for specifics on installing <a href="concepts/toolchains.html">toolchains</a>.</p>
+<h1><a class="header" href="#overrides" id="overrides">Overrides</a></h1>
+<p><code>rustup</code> automatically determines which <a href="concepts/toolchains.html">toolchain</a> to use when one of the
+installed commands like <code>rustc</code> is executed. There are several ways to control
+and override which toolchain is used:</p>
+<ol>
+<li>A <a href="overrides.html#toolchain-override-shorthand">toolchain override shorthand</a> used on the command-line, such as <code>cargo +beta</code>.</li>
+<li>The <code>RUSTUP_TOOLCHAIN</code> environment variable.</li>
+<li>A <a href="overrides.html#directory-overrides">directory override</a>, set with the <code>rustup override</code> command.</li>
+<li>The <a href="overrides.html#the-toolchain-file"><code>rust-toolchain.toml</code></a> file.</li>
+<li>The <a href="overrides.html#default-toolchain">default toolchain</a>.</li>
+</ol>
+<p>The toolchain is chosen in the order listed above, using the first one that is
+specified. There is one exception though: directory overrides and the
+<code>rust-toolchain.toml</code> file are also preferred by their proximity to the current
+directory. That is, these two override methods are discovered by walking up
+the directory tree toward the filesystem root, and a <code>rust-toolchain.toml</code> file
+that is closer to the current directory will be preferred over a directory
+override that is further away.</p>
+<p>To verify which toolchain is active use <code>rustup show</code>.</p>
+<h2><a class="header" href="#toolchain-override-shorthand" id="toolchain-override-shorthand">Toolchain override shorthand</a></h2>
+<p>The <code>rustup</code> toolchain proxies can be instructed directly to use a specific
+toolchain, a convenience for developers who often test different toolchains.
+If the first argument to <code>cargo</code>, <code>rustc</code> or other tools in the toolchain
+begins with <code>+</code>, it will be interpreted as a <code>rustup</code> toolchain name, and that
+toolchain will be preferred, as in</p>
+<pre><code class="language-console">cargo +beta test
+</code></pre>
+<h2><a class="header" href="#directory-overrides" id="directory-overrides">Directory overrides</a></h2>
+<p>Directories can be assigned their own Rust toolchain with <code>rustup override</code>.
+When a directory has an override then any time <code>rustc</code> or <code>cargo</code> is run
+inside that directory, or one of its child directories, the override toolchain
+will be invoked.</p>
+<p>To use to a specific nightly for a directory:</p>
+<pre><code class="language-console">rustup override set nightly-2014-12-18
+</code></pre>
+<p>Or a specific stable release:</p>
+<pre><code class="language-console">rustup override set 1.0.0
+</code></pre>
+<p>To see the active toolchain use <code>rustup show</code>. To remove the override and use
+the default toolchain again, <code>rustup override unset</code>.</p>
+<p>The per-directory overrides are stored in <a href="configuration.html">a configuration file</a> in <code>rustup</code>'s
+home directory.</p>
+<h2><a class="header" href="#the-toolchain-file" id="the-toolchain-file">The toolchain file</a></h2>
+<p>Some projects find themselves 'pinned' to a specific release of Rust and want
+this information reflected in their source repository. This is most often the
+case for nightly-only software that pins to a revision from the release
+archives.</p>
+<p>In these cases the toolchain can be named in the project's directory in a file
+called <code>rust-toolchain.toml</code> or <code>rust-toolchain</code>. If both files are present in
+a directory, the latter is used for backwards compatibility. The files use the
+<a href="https://toml.io/">TOML</a> format and have the following layout:</p>
+<pre><code class="language-toml">[toolchain]
+channel = &quot;nightly-2020-07-10&quot;
+components = [ &quot;rustfmt&quot;, &quot;rustc-dev&quot; ]
+targets = [ &quot;wasm32-unknown-unknown&quot;, &quot;thumbv2-none-eabi&quot; ]
+profile = &quot;minimal&quot;
+</code></pre>
+<p>The <code>[toolchain]</code> section is mandatory, and at least one property must be
+specified. <code>channel</code> and <code>path</code> are mutually exclusive.</p>
+<p>For backwards compatibility, <code>rust-toolchain</code> files also support a legacy
+format that only contains a toolchain name without any TOML encoding, e.g.
+just <code>nightly-2021-01-21</code>. The file has to be encoded in US-ASCII this case
+(if you are on Windows, check the encoding and that it does not start with a
+BOM). The legacy format is not available in <code>rust-toolchain.toml</code> files.</p>
+<p>If you see the following error (when running <code>rustc</code>, <code>cargo</code> or other command)</p>
+<pre><code>error: invalid channel name '[toolchain]' in '/PATH/TO/DIRECTORY/rust-toolchain'
+</code></pre>
+<p>it means you're running <code>rustup</code> pre-1.23.0 and trying to interact with a project
+that uses the new TOML encoding in the <code>rust-toolchain</code> file. You need to upgrade
+<code>rustup</code> to 1.23.0+.</p>
+<p>The <code>rust-toolchain.toml</code>/<code>rust-toolchain</code> files are suitable to check in to
+source control.</p>
+<p>The toolchains named in these files have a more restricted form than <code>rustup</code>
+toolchains generally, and may only contain the names of the three release
+channels, 'stable', 'beta', 'nightly', Rust version numbers, like '1.0.0', and
+optionally an archive date, like 'nightly-2017-01-01'. They may not name
+custom toolchains, nor host-specific toolchains. To use a custom local
+toolchain, you can instead use a <code>path</code> toolchain:</p>
+<pre><code class="language-toml">[toolchain]
+path = &quot;/path/to/local/toolchain&quot;
+</code></pre>
+<p>Since a <code>path</code> directive directly names a local toolchain, other options
+like <code>components</code>, <code>targets</code>, and <code>profile</code> have no effect. <code>channel</code>
+and <code>path</code> are mutually exclusive, since a <code>path</code> already points to a
+specific toolchain. A relative <code>path</code> is resolved relative to the
+location of the <code>rust-toolchain.toml</code> file.</p>
+<h2><a class="header" href="#default-toolchain" id="default-toolchain">Default toolchain</a></h2>
+<p>If no other overrides are set, the global default toolchain will be used. This
+default can be chosen when <code>rustup</code> is <a href="installation/index.html">installed</a>. The <code>rustup default</code>
+command can be used to set and query the current default. Run <code>rustup default</code>
+without any arguments to print the current default. Specify a toolchain as an
+argument to change the default:</p>
+<pre><code class="language-console">rustup default nightly-2020-07-27
+</code></pre>
+<h1><a class="header" href="#cross-compilation" id="cross-compilation">Cross-compilation</a></h1>
+<p>Rust <a href="https://doc.rust-lang.org/nightly/rustc/platform-support.html">supports a great number of platforms</a>. For many of these platforms
+The Rust Project publishes binary releases of the standard library, and for
+some the full compiler. <code>rustup</code> gives easy access to all of them.</p>
+<p>When you first install a toolchain, <code>rustup</code> installs only the standard
+library for your <em>host</em> platform - that is, the architecture and operating
+system you are presently running. To compile to other platforms you must
+install other <em>target</em> platforms. This is done with the <code>rustup target add</code>
+command. For example, to add the Android target:</p>
+<pre><code class="language-console">$ rustup target add arm-linux-androideabi
+info: downloading component 'rust-std' for 'arm-linux-androideabi'
+info: installing component 'rust-std' for 'arm-linux-androideabi'
+</code></pre>
+<p>With the <code>arm-linux-androideabi</code> target installed you can then build for
+Android with Cargo by passing the <code>--target</code> flag, as in <code>cargo build --target=arm-linux-androideabi</code>.</p>
+<p>Note that <code>rustup target add</code> only installs the Rust standard library for a
+given target. There are typically other tools necessary to cross-compile,
+particularly a linker. For example, to cross compile to Android the <a href="https://developer.android.com/tools/sdk/ndk/index.html">Android
+NDK</a> must be installed. In the future, <code>rustup</code> will provide assistance
+installing the NDK components as well.</p>
+<p>To install a target for a toolchain that isn't the default toolchain use the
+<code>--toolchain</code> argument of <code>rustup target add</code>, like so:</p>
+<pre><code class="language-console">$ rustup target add --toolchain &lt;toolchain&gt; &lt;target&gt;...
+</code></pre>
+<p>To see a list of available targets, <code>rustup target list</code>. To remove a
+previously-added target, <code>rustup target remove</code>.</p>
+<h1><a class="header" href="#environment-variables" id="environment-variables">Environment variables</a></h1>
+<ul>
+<li>
+<p><code>RUSTUP_HOME</code> (default: <code>~/.rustup</code> or <code>%USERPROFILE%/.rustup</code>) Sets the
+root <code>rustup</code> folder, used for storing installed toolchains and
+configuration options.</p>
+</li>
+<li>
+<p><code>RUSTUP_TOOLCHAIN</code> (default: none) If set, will <a href="overrides.html">override</a> the toolchain
+used for all rust tool invocations. A toolchain with this name should be
+installed, or invocations will fail.</p>
+</li>
+<li>
+<p><code>RUSTUP_DIST_SERVER</code> (default: <code>https://static.rust-lang.org</code>) Sets the root
+URL for downloading static resources related to Rust. You can change this to
+instead use a local mirror, or to test the binaries from the staging
+directory.</p>
+</li>
+<li>
+<p><code>RUSTUP_DIST_ROOT</code> (default: <code>https://static.rust-lang.org/dist</code>)
+Deprecated. Use <code>RUSTUP_DIST_SERVER</code> instead.</p>
+</li>
+<li>
+<p><code>RUSTUP_UPDATE_ROOT</code> (default <code>https://static.rust-lang.org/rustup</code>) Sets
+the root URL for downloading self-updates.</p>
+</li>
+<li>
+<p><code>RUSTUP_IO_THREADS</code> <em>unstable</em> (defaults to reported cpu count). Sets the
+number of threads to perform close IO in. Set to <code>1</code> to force
+single-threaded IO for troubleshooting, or an arbitrary number to override
+automatic detection.</p>
+</li>
+<li>
+<p><code>RUSTUP_TRACE_DIR</code> <em>unstable</em> (default: no tracing) Enables tracing and
+determines the directory that traces will be written too. Traces are of the
+form PID.trace. Traces can be read by the Catapult project <a href="https://github.com/catapult-project/catapult/blob/master/tracing/README.md">tracing viewer</a>.</p>
+</li>
+<li>
+<p><code>RUSTUP_UNPACK_RAM</code> <em>unstable</em> (default free memory or 500MiB if unable to tell, min 210MiB) Caps the amount of
+RAM <code>rustup</code> will use for IO tasks while unpacking.</p>
+</li>
+<li>
+<p><code>RUSTUP_NO_BACKTRACE</code> Disables backtraces on non-panic errors even when
+<code>RUST_BACKTRACE</code> is set.</p>
+</li>
+<li>
+<p><code>RUSTUP_PERMIT_COPY_RENAME</code> <em>unstable</em> When set, allows rustup to fall-back
+to copying files if attempts to <code>rename</code> result in an cross-device link
+errors. These errors occur on OverlayFS, which is used by <a href="https://docs.docker.com/storage/storagedriver/overlayfs-driver/#modifying-files-or-directories">Docker</a>. This
+feature sacrifices some transactions protections and may be removed at any
+point. Linux only.</p>
+</li>
+</ul>
+<h1><a class="header" href="#configuration" id="configuration">Configuration</a></h1>
+<p>Rustup has a <a href="https://github.com/toml-lang/toml">TOML</a> settings file at
+<code>${RUSTUP_HOME}/settings.toml</code> (which defaults to <code>~/.rustup</code> or
+<code>%USERPROFILE%/.rustup</code>). The schema for this file is not part of the public
+interface for rustup - the rustup CLI should be used to query and set settings.</p>
+<p>On Unix operating systems a fallback settings file is consulted for some
+settings. This fallback file is located at <code>/etc/rustup/settings.toml</code> and
+currently can define only <code>default_toolchain</code>.</p>
+<h1><a class="header" href="#network-proxies" id="network-proxies">Network proxies</a></h1>
+<p>Enterprise networks often don't have direct outside HTTP access, but enforce
+the use of proxies. If you're on such a network, you can request that <code>rustup</code>
+uses a proxy by setting its URL in the environment. In most cases, setting
+<code>https_proxy</code> should be sufficient. Commands may differ between different
+systems and shells:</p>
+<ul>
+<li>On a Unix-like system with a shell like <strong>bash</strong> or <strong>zsh</strong>:
+<pre><code class="language-bash">export https_proxy=socks5://proxy.example.com:1080
+</code></pre>
+</li>
+<li>On Windows <a href="https://en.wikipedia.org/wiki/Cmd.exe"><strong>Command Prompt (cmd)</strong></a>:
+<pre><code class="language-cmd">set https_proxy=socks5://proxy.example.com:1080
+</code></pre>
+</li>
+<li>On Windows <a href="https://en.wikipedia.org/wiki/PowerShell"><strong>PowerShell</strong></a> (or <strong>PowerShell Core</strong>):
+<pre><code class="language-cmd">$env:https_proxy=&quot;socks5://proxy.example.com:1080&quot;
+</code></pre>
+</li>
+<li>Replace <code>socks5://proxy.example.com:1080</code> with 
+<code>http://proxy.example.com:8080</code> when an HTTP proxy is used instead.</li>
+</ul>
+<p>If you need a more complex setup, <code>rustup</code> supports the convention used by the
+<strong>curl</strong> program, documented in the ENVIRONMENT section of <a href="https://curl.haxx.se/docs/manpage.html">its manual
+page</a>.</p>
+<p>The use of <code>curl</code> is presently <strong>deprecated</strong>, however it can still be used by
+providing the <code>RUSTUP_USE_CURL</code> environment variable, for example:</p>
+<pre><code class="language-bash">RUSTUP_USE_CURL=1 rustup update
+</code></pre>
+<p>Note that some versions of <code>libcurl</code> apparently require you to drop the
+<code>http://</code> or <code>https://</code> prefix in environment variables. For example, <code>export http_proxy=proxy.example.com:1080</code> (and likewise for HTTPS). If you are
+getting an SSL <code>unknown protocol</code> error from <code>rustup</code> via <code>libcurl</code> but the
+command-line <code>curl</code> command works fine, this may be the problem.</p>
+<h1><a class="header" href="#examples" id="examples">Examples</a></h1>
+<table><thead><tr><th>Command</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>rustup default nightly</code></td><td>Set the <a href="overrides.html#default-toolchain">default toolchain</a> to the latest nightly</td></tr>
+<tr><td><code>rustup set profile minimal</code></td><td>Set the default <a href="concepts/profiles.html">profile</a></td></tr>
+<tr><td><code>rustup target list</code></td><td>List all available <a href="cross-compilation.html">targets</a> for the active toolchain</td></tr>
+<tr><td><code>rustup target add arm-linux-androideabi</code></td><td>Install the Android target</td></tr>
+<tr><td><code>rustup target remove arm-linux-androideabi</code></td><td>Remove the Android target</td></tr>
+<tr><td><code>rustup run nightly rustc foo.rs</code></td><td>Run the nightly regardless of the active toolchain</td></tr>
+<tr><td><code>rustc +nightly foo.rs</code></td><td><a href="overrides.html#toolchain-override-shorthand">Shorthand</a> way to run a nightly compiler</td></tr>
+<tr><td><code>rustup run nightly bash</code></td><td>Run a shell configured for the nightly compiler</td></tr>
+<tr><td><code>rustup default stable-msvc</code></td><td>On Windows, use the MSVC toolchain instead of GNU</td></tr>
+<tr><td><code>rustup override set nightly-2015-04-01</code></td><td>For the current directory, use a nightly from a specific date</td></tr>
+<tr><td><code>rustup toolchain link my-toolchain &quot;C:\RustInstallation&quot;</code></td><td>Install a custom toolchain by symlinking an existing installation</td></tr>
+<tr><td><code>rustup show</code></td><td>Show which toolchain will be used in the current directory</td></tr>
+<tr><td><code>rustup toolchain uninstall nightly</code></td><td>Uninstall a given toolchain</td></tr>
+<tr><td><code>rustup toolchain help</code></td><td>Show the <code>help</code> page for a subcommand (like <code>toolchain</code>)</td></tr>
+<tr><td><code>rustup man cargo</code></td><td>(<em>Unix only</em>) View the man page for a given command (like <code>cargo</code>)</td></tr>
+</tbody></table>
+<h1><a class="header" href="#security" id="security">Security</a></h1>
+<p><code>rustup</code> is secure enough for most people, but it <a href="https://github.com/rust-lang/rustup/issues?q=is%3Aopen+is%3Aissue+label%3Asecurity">still needs work</a>.
+<code>rustup</code> performs all downloads over HTTPS, but does not yet validate
+signatures of downloads.</p>
+<p>File modes on installation honor umask as of 1.18.4, use umask if very tight
+controls are desired.</p>
+<p>If you wish to report a security issue, please follow the <a href="https://www.rust-lang.org/policies/security">Rust security
+policy</a>.</p>
+<h1><a class="header" href="#faq" id="faq">FAQ</a></h1>
+<h3><a class="header" href="#is-this-an-official-rust-project" id="is-this-an-official-rust-project">Is this an official Rust project?</a></h3>
+<p>Yes. rustup is an official Rust project. It is the recommended way to install
+Rust at https://www.rust-lang.org.</p>
+<h3><a class="header" href="#how-is-this-related-to-multirust" id="how-is-this-related-to-multirust">How is this related to multirust?</a></h3>
+<p>rustup is the successor to <a href="https://github.com/brson/multirust">multirust</a>. rustup began as multirust-rs, a
+rewrite of multirust from shell script to Rust, by <a href="https://github.com/Diggsey">Diggory Blake</a>, and is now
+maintained by The Rust Project.</p>
+<h3><a class="header" href="#can-rustup-download-the-rust-source-code" id="can-rustup-download-the-rust-source-code">Can rustup download the Rust source code?</a></h3>
+<p>The source for Rust's standard library can be obtained by running <code>rustup component add rust-src</code>. It will be downloaded to the <code>&lt;toolchain root&gt;/lib/rustlib/src/rust</code> directory of the current toolchain.</p>
+<p>The source for the compiler and tools must be obtained from the <a href="https://github.com/rust-lang/rust/">Rust
+repository</a> or the standalone <a href="https://forge.rust-lang.org/infra/other-installation-methods.html#source-code">source tarballs</a>.</p>
+<h3><a class="header" href="#rustup-fails-with-windows-error-32" id="rustup-fails-with-windows-error-32">rustup fails with Windows error 32</a></h3>
+<p>If <code>rustup</code> fails with Windows error 32, it may be due to antivirus scanning
+in the background. Disable antivirus scanner and try again.</p>
+<h3><a class="header" href="#i-get-error-could-not-remove-rustup-bin-file-cusersusercargobinrustupexe" id="i-get-error-could-not-remove-rustup-bin-file-cusersusercargobinrustupexe">I get &quot;error: could not remove 'rustup-bin' file: 'C:\Users\USER\.cargo\bin\rustup.exe'&quot;</a></h3>
+<p>If <code>rustup</code> fails to self-update in this way it's usually because RLS is
+running (your editor is open and running RLS). The solution is to stop RLS (by
+closing your editor) and try again.</p>
+<h3><a class="header" href="#rustup-exited-successfully-but-i-cant-run-rustc---version" id="rustup-exited-successfully-but-i-cant-run-rustc---version">rustup exited successfully but I can't run <code>rustc --version</code></a></h3>
+<p>Restart your shell. This will reload your <code>PATH</code> environment
+variable to include Cargo's bin directory (<code>$CARGO_HOME/bin</code>).</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+        
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+        
+        
+
+    </body>
+</html>
