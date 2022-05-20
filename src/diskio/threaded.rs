@@ -269,7 +269,7 @@ impl<'a> Executor for Threaded<'a> {
             ));
         }
         if prev_files > 50 {
-            println!("{} deferred IO operations", prev_files);
+            eprintln!("{} deferred IO operations", prev_files);
         }
         let buf: Vec<u8> = vec![0; prev_files];
         // Cheap wrap-around correctness check - we have 20k files, more than
