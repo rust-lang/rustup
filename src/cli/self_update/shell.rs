@@ -26,7 +26,7 @@
 use std::borrow::Cow;
 use std::path::PathBuf;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 
 use super::utils;
 use crate::process;
@@ -71,7 +71,12 @@ pub(crate) fn cargo_home_str() -> Result<Cow<'static, str>> {
 // TODO?: Make a decision on Ion Shell, Power Shell, Nushell
 // Cross-platform non-POSIX shells have not been assessed for integration yet
 fn enumerate_shells() -> Vec<Shell> {
-    vec![Box::new(Posix), Box::new(Bash), Box::new(Zsh)]
+    vec![
+        Box::new(Posix),
+        Box::new(Bash),
+        Box::new(Zsh),
+        Box::new(Fish),
+    ]
 }
 
 pub(crate) fn get_available_shells() -> impl Iterator<Item = Shell> {
@@ -89,6 +94,23 @@ pub(crate) trait UnixShell {
 
     // Gives rcs that should be written to.
     fn update_rcs(&self) -> Vec<PathBuf>;
+
+    // By defualt follows POSIX and sources <cargo home>/env
+    fn add_to_path(&self) -> Result<(), anyhow::Error> {
+        let source_cmd = self.source_string()?;
+        let source_cmd_with_newline = format!("\n{}", &source_cmd);
+        for rc in self.update_rcs() {
+            let cmd_to_write = match utils::read_file("rcfile", &rc) {
+                Ok(contents) if contents.contains(&source_cmd) => continue,
+                Ok(contents) if !contents.ends_with('\n') => &source_cmd_with_newline,
+                _ => &source_cmd,
+            };
+
+            utils::append_file("rcfile", &rc, cmd_to_write)
+                .with_context(|| format!("could not amend shell profile: '{}'", rc.display()))?;
+        }
+        Ok(())
+    }
 
     // Writes the relevant env file.
     fn env_script(&self) -> ShellScript {
@@ -198,6 +220,45 @@ impl UnixShell for Zsh {
             .chain(self.rcfiles().into_iter())
             .take(1)
             .collect()
+    }
+}
+
+struct Fish;
+
+impl Fish {
+    /// Returns Fish version using path env.
+    ///
+    /// Version 3.2.0 introduces fish_add_path which is the recommended way of adding to path.
+    fn version(&self) -> Result<String> {
+        if self.does_exist() {
+            match process().var("FISH_VERSION") {
+                Ok(version) => Ok(version),
+                Err(_) => match std::process::Command::new("fish").arg("-v").output() {
+                    Ok(io) => match String::from_utf8(io.stdout) {
+                        Ok(x) => Ok(x),
+                        Err(_) => bail!("Couldn't detect fish version"),
+                    },
+                    _ => bail!("Couldn't detect fish version"),
+                },
+            }
+        } else {
+            bail!("Fish does not exist")
+        }
+    }
+}
+
+impl UnixShell for Fish {
+    fn does_exist(&self) -> bool {
+        matches!(process().var("SHELL"), Ok(sh) if sh.contains("fish"))
+            || matches!(utils::find_cmd(&["fish"]), Some(_))
+    }
+
+    fn rcfiles(&self) -> Vec<PathBuf> {
+        todo!()
+    }
+
+    fn update_rcs(&self) -> Vec<PathBuf> {
+        todo!()
     }
 }
 
