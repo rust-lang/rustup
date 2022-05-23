@@ -54,24 +54,7 @@ pub(crate) fn delete_rustup_and_cargo_home() -> Result<()> {
 
 pub(crate) fn do_remove_from_path() -> Result<()> {
     for sh in shell::get_available_shells() {
-        let source_bytes = format!("{}\n", sh.source_string()?).into_bytes();
-
-        // Check more files for cleanup than normally are updated.
-        for rc in sh.rcfiles().iter().filter(|rc| rc.is_file()) {
-            let file = utils::read_file("rcfile", rc)?;
-            let file_bytes = file.into_bytes();
-            // FIXME: This is whitespace sensitive where it should not be.
-            if let Some(idx) = file_bytes
-                .windows(source_bytes.len())
-                .position(|w| w == source_bytes.as_slice())
-            {
-                // Here we rewrite the file without the offending line.
-                let mut new_bytes = file_bytes[..idx].to_vec();
-                new_bytes.extend(&file_bytes[idx + source_bytes.len()..]);
-                let new_file = String::from_utf8(new_bytes).unwrap();
-                utils::write_file("rcfile", rc, &new_file)?;
-            }
-        }
+        sh.remove_from_path()?;
     }
 
     remove_legacy_paths()?;

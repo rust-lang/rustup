@@ -1,6 +1,6 @@
 //! Paths and Unix shells
 //!
-//! MacOS, Linux, FreeBSD, and many other OS model their design on Unix,
+//! MacOS, Linux, FreeBSD, and many other OS model their d&esign on Unix,
 //! so handling them is relatively consistent. But only relatively.
 //! POSIX postdates Unix by 20 years, and each "Unix-like" shell develops
 //! unique quirks over time.
@@ -26,7 +26,7 @@
 use std::borrow::Cow;
 use std::path::PathBuf;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Error, Result};
 
 use super::utils;
 use crate::process;
@@ -108,6 +108,26 @@ pub(crate) trait UnixShell {
 
             utils::append_file("rcfile", &rc, cmd_to_write)
                 .with_context(|| format!("could not amend shell profile: '{}'", rc.display()))?;
+        }
+        Ok(())
+    }
+
+    fn remove_from_path(&self) -> Result<(), anyhow::Error> {
+        let source_bytes = format!("{}\n", self.source_string()?).into_bytes();
+        for rc in self.rcfiles().iter().filter(|rc| rc.is_file()) {
+            let file = utils::read_file("rcfile", rc)?;
+            let file_bytes = file.into_bytes();
+            // FIXME: This is whitespace sensitive where it should not be.
+            if let Some(idx) = file_bytes
+                .windows(source_bytes.len())
+                .position(|w| w == source_bytes.as_slice())
+            {
+                // Here we rewrite the file without the offending line.
+                let mut new_bytes = file_bytes[..idx].to_vec();
+                new_bytes.extend(&file_bytes[idx + source_bytes.len()..]);
+                let new_file = String::from_utf8(new_bytes).unwrap();
+                utils::write_file("rcfile", rc, &new_file)?;
+            }
         }
         Ok(())
     }
@@ -229,21 +249,33 @@ impl Fish {
     /// Returns Fish version using path env.
     ///
     /// Version 3.2.0 introduces fish_add_path which is the recommended way of adding to path.
-    fn version(&self) -> Result<String> {
-        if self.does_exist() {
-            match process().var("FISH_VERSION") {
-                Ok(version) => Ok(version),
-                Err(_) => match std::process::Command::new("fish").arg("-v").output() {
-                    Ok(io) => match String::from_utf8(io.stdout) {
-                        Ok(x) => Ok(x),
-                        Err(_) => bail!("Couldn't detect fish version"),
-                    },
-                    _ => bail!("Couldn't detect fish version"),
-                },
-            }
-        } else {
-            bail!("Fish does not exist")
+    fn version(&self) -> Result<Vec<u8>> {
+        if !self.does_exist() {
+            bail!("Fish does not exist");
         }
+
+        if let Ok(version) = process().var("FISH_VERSION") {
+            return version
+                .splitn(3, ',')
+                .map(|i| i.parse().map_err(Error::new))
+                .collect();
+        }
+
+        if let Ok(io) = std::process::Command::new("fish").arg("-v").output() {
+            if let Ok(x) = String::from_utf8(io.stdout) {
+                let var = x
+                    .rsplit_once(' ')
+                    .ok_or_else(|| anyhow!("Couldn't detect fish version"))?
+                    .1;
+
+                return var
+                    .splitn(3, '.')
+                    .map(|i| i.parse().map_err(Error::new))
+                    .collect();
+            }
+        }
+
+        bail!("Couldn't detect fish version")
     }
 }
 
@@ -254,11 +286,59 @@ impl UnixShell for Fish {
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
-        todo!()
+        //TODO: Check if omf changes this behaviour
+        ["config.fish"]
+            .iter()
+            .filter_map(|rc| utils::home_dir().map(|dir| dir.join(rc)))
+            .collect()
     }
 
     fn update_rcs(&self) -> Vec<PathBuf> {
-        todo!()
+        //TODO: Check if there is any funky behaviour similar to zsh
+        self.rcfiles()
+            .into_iter()
+            .filter(|rc| rc.is_file())
+            .collect()
+    }
+
+    fn add_to_path(&self) -> Result<(), anyhow::Error> {
+        if self.version()? >= vec![3, 2, 0] {
+            // If invokation fails, propogate error, if statuscode is failure, return error
+            if !std::process::Command::new("fish")
+                .arg("-c")
+                .arg("fish_add_path")
+                .arg(format!("{}/env", cargo_home_str()?))
+                .status()?
+                .success()
+            {
+                bail!("Failed to add to fish user path")
+            }
+        } else if !std::process::Command::new("fish")
+            .args([
+                "-c",
+                "set",
+                "-Up",
+                "fish_user_paths",
+                &format!("{}/env", cargo_home_str()?),
+            ])
+            .status()?
+            .success()
+        {
+            bail!("Failed to add to fish user path")
+        }
+
+        Ok(())
+    }
+
+    fn env_script(&self) -> ShellScript {
+        ShellScript {
+            name: "env",
+            content: include_str!("env.sh"),
+        }
+    }
+
+    fn source_string(&self) -> Result<String> {
+        Ok(format!(r#". "{}/env""#, cargo_home_str()?))
     }
 }
 
