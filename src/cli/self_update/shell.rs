@@ -1,6 +1,6 @@
 //! Paths and Unix shells
 //!
-//! MacOS, Linux, FreeBSD, and many other OS model their d&esign on Unix,
+//! MacOS, Linux, FreeBSD, and many other OS model their design on Unix,
 //! so handling them is relatively consistent. But only relatively.
 //! POSIX postdates Unix by 20 years, and each "Unix-like" shell develops
 //! unique quirks over time.
@@ -24,9 +24,9 @@
 //! 2) sourcing this script (`. /path/to/script`) in any appropriate rc file
 
 use std::borrow::Cow;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, bail, Context, Error, Result};
+use anyhow::{bail, Context, Result};
 
 use super::utils;
 use crate::process;
@@ -245,40 +245,6 @@ impl UnixShell for Zsh {
 
 struct Fish;
 
-impl Fish {
-    /// Returns Fish version using path env.
-    ///
-    /// Version 3.2.0 introduces fish_add_path which is the recommended way of adding to path.
-    fn version(&self) -> Result<Vec<u8>> {
-        if !self.does_exist() {
-            bail!("Fish does not exist");
-        }
-
-        if let Ok(version) = process().var("FISH_VERSION") {
-            return version
-                .splitn(3, ',')
-                .map(|i| i.parse().map_err(Error::new))
-                .collect();
-        }
-
-        if let Ok(io) = std::process::Command::new("fish").arg("-v").output() {
-            if let Ok(x) = String::from_utf8(io.stdout) {
-                let var = x
-                    .rsplit_once(' ')
-                    .ok_or_else(|| anyhow!("Couldn't detect fish version"))?
-                    .1;
-
-                return var
-                    .splitn(3, '.')
-                    .map(|i| i.parse().map_err(Error::new))
-                    .collect();
-            }
-        }
-
-        bail!("Couldn't detect fish version")
-    }
-}
-
 impl UnixShell for Fish {
     fn does_exist(&self) -> bool {
         matches!(process().var("SHELL"), Ok(sh) if sh.contains("fish"))
@@ -286,8 +252,9 @@ impl UnixShell for Fish {
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
-        //TODO: Check if omf changes this behaviour
-        ["config.fish"]
+        //Fish stores individual source files in ~/.config/fish/conf.d/
+        // As per https://github.com/fish-shell/fish-shell/issues/3170
+        [".config/fish/conf.d/cargo.fish"]
             .iter()
             .filter_map(|rc| utils::home_dir().map(|dir| dir.join(rc)))
             .collect()
@@ -297,36 +264,29 @@ impl UnixShell for Fish {
         //TODO: Check if there is any funky behaviour similar to zsh
         self.rcfiles()
             .into_iter()
-            .filter(|rc| rc.is_file())
+            .filter(|rc| Path::parent(rc).map_or(false, std::path::Path::is_dir))
             .collect()
     }
 
     fn add_to_path(&self) -> Result<(), anyhow::Error> {
-        if self.version()? >= vec![3, 2, 0] {
-            // If invokation fails, propogate error, if statuscode is failure, return error
-            if !std::process::Command::new("fish")
-                .arg("-c")
-                .arg("fish_add_path")
-                .arg(format!("{}/env", cargo_home_str()?))
-                .status()?
-                .success()
-            {
-                bail!("Failed to add to fish user path")
-            }
-        } else if !std::process::Command::new("fish")
-            .args([
-                "-c",
-                "set",
-                "-Up",
-                "fish_user_paths",
-                &format!("{}/env", cargo_home_str()?),
-            ])
-            .status()?
-            .success()
-        {
-            bail!("Failed to add to fish user path")
-        }
+        let source_cmd = self.source_string()?;
+        for rc in self.update_rcs() {
+            let cmd_to_write = match utils::read_file("rcfile", &rc) {
+                Ok(contents) if contents.contains(&source_cmd) => continue,
+                _ => &source_cmd,
+            };
 
+            utils::write_file("fish conf.d", &rc, cmd_to_write)
+                .with_context(|| format!("Could not add source to {}", rc.display()))?;
+        }
+        Ok(())
+    }
+
+    fn remove_from_path(&self) -> Result<(), anyhow::Error> {
+        for rc in self.update_rcs() {
+            utils::remove_file("Cargo.fish", &rc)
+                .with_context(|| format!("Could not remove {}", rc.display()))?;
+        }
         Ok(())
     }
 
@@ -338,7 +298,11 @@ impl UnixShell for Fish {
     }
 
     fn source_string(&self) -> Result<String> {
-        Ok(format!(r#". "{}/env""#, cargo_home_str()?))
+        Ok(format!(
+            "contains {}/bin $fish_user_paths; or set -Ua fish_user_paths {}/bin",
+            cargo_home_str()?,
+            cargo_home_str()?
+        ))
     }
 }
 
