@@ -1,0 +1,3 @@
+$ git tag -v mytag
+# Verifies the signed tag
+$ [ -f ~/.bashrc ] && echo 'export GPG_TTY=$(tty)' >> ~/.bashrc
