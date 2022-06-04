@@ -1068,6 +1068,42 @@ fn show_active_toolchain() {
 }
 
 #[test]
+fn show_with_verbose() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        expect_ok(config, &["rustup", "update", "nightly-2015-01-01"]);
+        expect_ok_ex(
+            config,
+            &["rustup", "show", "--verbose"],
+            for_host_and_home!(
+                config,
+                r"Default host: {0}
+rustup home:  {1}
+
+installed toolchains
+--------------------
+
+nightly-2015-01-01-{0}
+1.2.0 (hash-nightly-1)
+
+nightly-{0} (default)
+1.3.0 (hash-nightly-2)
+
+
+active toolchain
+----------------
+
+nightly-{0} (default)
+1.3.0 (hash-nightly-2)
+
+"
+            ),
+            r"",
+        );
+    });
+}
+
+#[test]
 fn show_active_toolchain_with_verbose() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);

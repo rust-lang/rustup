@@ -142,7 +142,7 @@ pub fn main() -> Result<utils::ExitCode> {
             ("home", Some(_)) => handle_epipe(show_rustup_home(cfg))?,
             ("profile", Some(_)) => handle_epipe(show_profile(cfg))?,
             ("keys", Some(_)) => handle_epipe(show_keys(cfg))?,
-            (_, _) => handle_epipe(show(cfg))?,
+            (_, _) => handle_epipe(show(cfg, c))?,
         },
         ("install", Some(m)) => deprecated("toolchain install", cfg, m, update)?,
         ("update", Some(m)) => update(cfg, m)?,
@@ -214,10 +214,7 @@ pub(crate) fn cli() -> App<'static, 'static> {
         .setting(AppSettings::DeriveDisplayOrder)
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(
-            Arg::with_name("verbose")
-                .help("Enable verbose output")
-                .short("v")
-                .long("verbose"),
+            verbose_arg("Enable verbose output"),
         )
         .arg(
             Arg::with_name("quiet")
@@ -246,6 +243,9 @@ pub(crate) fn cli() -> App<'static, 'static> {
             SubCommand::with_name("show")
                 .about("Show the active and installed toolchains or profiles")
                 .after_help(SHOW_HELP)
+                .arg(
+                    verbose_arg("Enable verbose output with rustc information for all installed toolchains"),
+                )
                 .setting(AppSettings::VersionlessSubcommands)
                 .setting(AppSettings::DeriveDisplayOrder)
                 .subcommand(
@@ -253,11 +253,7 @@ pub(crate) fn cli() -> App<'static, 'static> {
                         .about("Show the active toolchain")
                         .after_help(SHOW_ACTIVE_TOOLCHAIN_HELP)
                         .arg(
-                            Arg::with_name("verbose")
-                                .help("Enable verbose output with rustc information")
-                                .takes_value(false)
-                                .short("v")
-                                .long("verbose"),
+                            verbose_arg("Enable verbose output with rustc information"),
                         ),
                 )
                 .subcommand(
@@ -360,11 +356,7 @@ pub(crate) fn cli() -> App<'static, 'static> {
                     SubCommand::with_name("list")
                         .about("List installed toolchains")
                         .arg(
-                            Arg::with_name("verbose")
-                                .help("Enable verbose output with toolchain information")
-                                .takes_value(false)
-                                .short("v")
-                                .long("verbose"),
+                            verbose_arg("Enable verbose output with toolchain information"),
                         ),
                 )
                 .subcommand(
@@ -746,6 +738,14 @@ pub(crate) fn cli() -> App<'static, 'static> {
     )
 }
 
+fn verbose_arg<'a, 'b>(help: &'b str) -> Arg<'a, 'b> {
+    Arg::with_name("verbose")
+        .help(help)
+        .takes_value(false)
+        .short("v")
+        .long("verbose")
+}
+
 fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<bool> {
     match m.subcommand() {
         ("self", Some(c)) => match c.subcommand() {
@@ -1059,7 +1059,9 @@ fn which(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
-fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
+fn show(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
+    let verbose = m.is_present("verbose");
+
     // Print host triple
     {
         let mut t = term2::stdout();
@@ -1132,6 +1134,14 @@ fn show(cfg: &Cfg) -> Result<utils::ExitCode> {
                 writeln!(t, "{} (default)", it)?;
             } else {
                 writeln!(t, "{}", it)?;
+            }
+            if verbose {
+                if let Ok(toolchain) = cfg.get_toolchain(&it, false) {
+                    writeln!(process().stdout(), "{}", toolchain.rustc_version())?;
+                }
+                // To make it easy to see what rustc that belongs to what
+                // toolchain we separate each pair with an extra newline
+                writeln!(process().stdout())?;
             }
         }
         if show_headers {
