@@ -24,7 +24,7 @@
 //! 2) sourcing this script (`. /path/to/script`) in any appropriate rc file
 
 use std::borrow::Cow;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
 
@@ -245,6 +245,27 @@ impl UnixShell for Zsh {
 
 struct Fish;
 
+impl Fish {
+    #![allow(non_snake_case)]
+    /// Gets fish vendor config location from `XDG_DATA_DIRS`
+    /// Returns None if `XDG_DATA_DIRS` is not set or if there is no fis`fish/vendor_conf.d`.d directory found
+    pub fn get_XDG_DATA_DIRS() -> Option<PathBuf> {
+        #[cfg(test)]
+        return None;
+
+        return process()
+            .var("XDG_DATA_DIRS")
+            // If var is found
+            .map(|var| {
+                var.split(':')
+                    .map(PathBuf::from)
+                    .find(|path| path.ends_with("fish/vendor_conf.d"))
+            })
+            .ok()
+            .flatten();
+    }
+}
+
 impl UnixShell for Fish {
     fn does_exist(&self) -> bool {
         matches!(process().var("SHELL"), Ok(sh) if sh.contains("fish"))
@@ -252,31 +273,49 @@ impl UnixShell for Fish {
     }
 
     fn rcfiles(&self) -> Vec<PathBuf> {
-        //Fish stores individual source files in ~/.config/fish/conf.d/
-        // As per https://github.com/fish-shell/fish-shell/issues/3170
-        [".config/fish/conf.d/cargo.fish"]
-            .iter()
-            .filter_map(|rc| utils::home_dir().map(|dir| dir.join(rc)))
-            .collect()
+        // As per https://fishshell.com/docs/current/language.html#configuration
+        // Vendor config files should be written to `/fish/vendor_config.d/`
+        // if that does not exist then it should be written to `/usr/share/fish/vendor_conf.d/`
+        // otherwise it should be written to `$HOME/.config/fish/conf.d/ as per discussions in github issue #478
+        [
+            #[cfg(test)] // Write to test location so we don't pollute during testing.
+            utils::home_dir().map(|home| home.join(".config/fish/conf.d/")),
+            Self::get_XDG_DATA_DIRS(),
+            Some(PathBuf::from("/usr/share/fish/vendor_conf.d/")),
+            utils::home_dir().map(|home| home.join(".config/fish/conf.d/")),
+        ]
+        .iter_mut()
+        .flatten()
+        .map(|x| x.join("cargo.fish"))
+        .collect()
     }
 
     fn update_rcs(&self) -> Vec<PathBuf> {
-        //TODO: Check if there is any funky behaviour similar to zsh
         self.rcfiles()
             .into_iter()
-            .filter(|rc| Path::parent(rc).map_or(false, std::path::Path::is_dir))
+            .filter(|rc| {
+                rc.metadata() // Returns error if path doesnt exist so separate check is not needed
+                    .map_or(false, |metadata| {
+                        dbg!(rc);
+                        dbg!(metadata.permissions());
+                        dbg!(metadata.permissions().readonly());
+                        dbg!();
+                        !metadata.permissions().readonly()
+                    })
+            })
             .collect()
     }
 
     fn add_to_path(&self) -> Result<(), anyhow::Error> {
         let source_cmd = self.source_string()?;
-        for rc in self.update_rcs() {
-            let cmd_to_write = match utils::read_file("rcfile", &rc) {
-                Ok(contents) if contents.contains(&source_cmd) => continue,
+        // Write to first path location if it exists.
+        if let Some(rc) = self.update_rcs().get(0) {
+            let cmd_to_write = match utils::read_file("rcfile", rc) {
+                Ok(contents) if contents.contains(&source_cmd) => return Ok(()),
                 _ => &source_cmd,
             };
 
-            utils::write_file("fish conf.d", &rc, cmd_to_write)
+            utils::write_file("fish conf.d", rc, cmd_to_write)
                 .with_context(|| format!("Could not add source to {}", rc.display()))?;
         }
         Ok(())
