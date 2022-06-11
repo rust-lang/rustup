@@ -98,7 +98,7 @@ impl fmt::Display for VsInstallError {
     }
 }
 
-pub(crate) fn try_install_msvc() -> Result<()> {
+pub(crate) fn try_install_msvc(opts: &InstallOpts<'_>) -> Result<()> {
     // download the installer
     let visual_studio_url = utils::parse_url("https://aka.ms/vs/17/release/vs_community.exe")?;
 
@@ -131,16 +131,7 @@ pub(crate) fn try_install_msvc() -> Result<()> {
 
     // It's possible an earlier or later version of the Windows SDK has been
     // installed separately from Visual Studio so installing it can be skipped.
-    let mut has_libs = false;
-    if let Some(paths) = process().var_os("lib") {
-        for mut path in split_paths(&paths) {
-            path.push("kernel32.lib");
-            if path.exists() {
-                has_libs = true;
-            }
-        }
-    };
-    if !has_libs {
+    if !has_windows_sdk_libs() {
         cmd.args([
             "--add",
             "Microsoft.VisualStudio.Component.Windows11SDK.22000",
@@ -156,8 +147,32 @@ pub(crate) fn try_install_msvc() -> Result<()> {
     if exit_status.success() {
         Ok(())
     } else {
-        Err(VsInstallError(exit_status.code().unwrap())).context("failed to install Visual Studio")
+        let err = VsInstallError(exit_status.code().unwrap());
+        // It's possible that the installer returned a non-zero exit code
+        // even though the required components were successfully installed.
+        // In that case we warn about the error but continue on.
+        let have_msvc = do_msvc_check(opts).is_none();
+        let has_libs = has_windows_sdk_libs();
+        if have_msvc && has_libs {
+            warn!("Visual Studio is installed but a problem ocurred during installation");
+            warn!("{}", err);
+            Ok(())
+        } else {
+            Err(err).context("failed to install Visual Studio")
+        }
     }
+}
+
+fn has_windows_sdk_libs() -> bool {
+    if let Some(paths) = process().var_os("lib") {
+        for mut path in split_paths(&paths) {
+            path.push("kernel32.lib");
+            if path.exists() {
+                return true;
+            }
+        }
+    };
+    false
 }
 
 /// Run by rustup-gc-$num.exe to delete CARGO_HOME

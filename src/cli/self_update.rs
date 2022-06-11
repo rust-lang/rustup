@@ -57,7 +57,7 @@ use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
 use same_file::Handle;
 
-use super::common::{self, ignorable_error, Confirm};
+use super::common::{self, ignorable_error, report_error, Confirm};
 use super::errors::*;
 use super::markdown::md;
 use super::term2;
@@ -380,7 +380,15 @@ pub(crate) fn install(
                 "\nAutomatically download and install Visual Studio 2022 Community edition? (Y/n)",
                 true,
             )? {
-                try_install_msvc()?;
+                if let Err(e) = try_install_msvc(&opts) {
+                    // Make sure the console doesn't exit before the user can
+                    // see the error and give the option to continue anyway.
+                    report_error(&e);
+                    if !common::confirm("\nContinue installing rustup? (y/N)", false)? {
+                        info!("aborting installation");
+                        return Ok(utils::ExitCode(0));
+                    }
+                }
             } else {
                 md(&mut term, MSVC_MANUAL_INSTALL_MESSAGE);
                 if !common::confirm("\nContinue? (y/N)", false)? {
