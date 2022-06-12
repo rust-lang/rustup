@@ -82,6 +82,8 @@ winreg = "0.8"
 
 [target."cfg(windows)".dependencies.winapi]
 features = [
+  "accctrl",
+  "aclapi",
   "combaseapi",
   "errhandlingapi",
   "fileapi",
@@ -92,6 +94,7 @@ features = [
   "minwindef",
   "processthreadsapi",
   "psapi",
+  "sddl",
   "shlobj",
   "shtypes",
   "synchapi",
