@@ -187,6 +187,13 @@ pub fn main() -> Result<utils::ExitCode> {
             ("default-host", Some(m)) => set_default_host_triple(cfg, m)?,
             ("profile", Some(m)) => set_profile(cfg, m)?,
             ("auto-self-update", Some(m)) => set_auto_self_update(cfg, m)?,
+            ("safe-directories", Some(c)) => match c.subcommand() {
+                ("add", Some(m)) => safe_directories_add(cfg, m.value_of("path").unwrap())?,
+                ("remove", Some(m)) => safe_directories_remove(cfg, m.value_of("path").unwrap())?,
+                ("list", Some(_)) => handle_epipe(safe_directories_list(cfg))?,
+                ("clear", Some(_)) => safe_directories_clear(cfg)?,
+                (_, _) => unreachable!(),
+            },
             (_, _) => unreachable!(),
         },
         ("completions", Some(c)) => {
@@ -720,6 +727,30 @@ pub(crate) fn cli() -> App<'static, 'static> {
                                 .required(true)
                                 .possible_values(SelfUpdateMode::modes())
                                 .default_value(SelfUpdateMode::default_mode()),
+                        ),
+                )
+                .subcommand(
+                    SubCommand::with_name("safe-directories")
+                        .about("Configure directories that allow toolchain override files")
+                        .setting(AppSettings::VersionlessSubcommands)
+                        .setting(AppSettings::DeriveDisplayOrder)
+                        .setting(AppSettings::SubcommandRequiredElseHelp)
+                        .subcommand(
+                            SubCommand::with_name("add")
+                                .about("Adds a path to the safe-directories list")
+                                .arg(Arg::with_name("path").required(true)),
+                        )
+                        .subcommand(
+                            SubCommand::with_name("remove")
+                                .about("Removes the given path from the safe directories list")
+                                .arg(Arg::with_name("path").required(true)),
+                        )
+                        .subcommand(
+                            SubCommand::with_name("list")
+                                .about("Lists the currently configured safe directories"),
+                        )
+                        .subcommand(
+                            SubCommand::with_name("clear").about("Removes all safe directories"),
                         ),
                 ),
         );
@@ -1716,5 +1747,60 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
         }
     }
 
+    Ok(utils::ExitCode(0))
+}
+
+pub(crate) fn safe_directories_add(cfg: &Cfg, path: &str) -> Result<utils::ExitCode> {
+    let p_buf = PathBuf::from(path);
+    if path != "*" && !p_buf.exists() {
+        warn!("path `{}` does not exist", path);
+    }
+    cfg.settings_file.with_mut(|s| {
+        if !s.safe_directories.iter().any(|p| Path::new(p) == p_buf) {
+            s.safe_directories.push(path.to_string());
+        }
+        Ok(())
+    })?;
+    info!("added `{}` to safe directories", path);
+    Ok(utils::ExitCode(0))
+}
+
+pub(crate) fn safe_directories_remove(cfg: &Cfg, path: &str) -> Result<utils::ExitCode> {
+    let p_buf = PathBuf::from(path);
+    let found = cfg.settings_file.with_mut(|s| {
+        Ok(s.safe_directories
+            .iter()
+            .position(|p| Path::new(p) == p_buf)
+            .map(|idx| s.safe_directories.remove(idx))
+            .is_some())
+    })?;
+    if found {
+        info!("removed `{}` from the safe directories list", path);
+    } else {
+        bail!("path `{}` was not found in the safe directory list", path);
+    }
+    Ok(utils::ExitCode(0))
+}
+
+pub(crate) fn safe_directories_list(cfg: &Cfg) -> Result<utils::ExitCode> {
+    cfg.settings_file.with(|s| {
+        if s.safe_directories.is_empty() {
+            info!("no safe directories configured");
+        } else {
+            for path in &s.safe_directories {
+                writeln!(process().stdout(), "{}", path)?;
+            }
+        }
+        Ok(())
+    })?;
+    Ok(utils::ExitCode(0))
+}
+
+pub(crate) fn safe_directories_clear(cfg: &Cfg) -> Result<utils::ExitCode> {
+    cfg.settings_file.with_mut(|s| {
+        s.safe_directories.clear();
+        Ok(())
+    })?;
+    info!("safe directories cleared");
     Ok(utils::ExitCode(0))
 }
