@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 
 use crate::cli::self_update::SelfUpdateMode;
 use crate::dist::dist::Profile;
@@ -81,6 +81,7 @@ pub struct Settings {
     pub overrides: BTreeMap<String, String>,
     pub pgp_keys: Option<String>,
     pub auto_self_update: Option<SelfUpdateMode>,
+    pub safe_directories: Vec<String>,
 }
 
 impl Default for Settings {
@@ -93,6 +94,7 @@ impl Default for Settings {
             overrides: BTreeMap::new(),
             pgp_keys: None,
             auto_self_update: None,
+            safe_directories: Vec::new(),
         }
     }
 }
@@ -155,6 +157,16 @@ impl Settings {
             .and_then(|mode| SelfUpdateMode::from_str(mode.as_str()).ok());
         let profile = get_opt_string(&mut table, "profile", path)?
             .and_then(|p| Profile::from_str(p.as_str()).ok());
+        let safe_directories = get_array(&mut table, "safe_directories", path)?
+            .into_iter()
+            .map(|p| match p {
+                toml::Value::String(s) => Ok(s),
+                _ => Err(anyhow!(format!(
+                    "expected string in safe_directories in `{}`",
+                    path
+                ))),
+            })
+            .collect::<Result<_>>()?;
         Ok(Self {
             version,
             default_host_triple: get_opt_string(&mut table, "default_host_triple", path)?,
@@ -163,6 +175,7 @@ impl Settings {
             overrides: Self::table_to_overrides(&mut table, path)?,
             pgp_keys: get_opt_string(&mut table, "pgp_keys", path)?,
             auto_self_update,
+            safe_directories,
         })
     }
     pub(crate) fn into_toml(self) -> toml::value::Table {
@@ -191,6 +204,15 @@ impl Settings {
                 "auto_self_update".to_owned(),
                 toml::Value::String(v.to_string()),
             );
+        }
+
+        if !self.safe_directories.is_empty() {
+            let array = Vec::from_iter(
+                self.safe_directories
+                    .iter()
+                    .map(|p| toml::Value::String(p.to_string())),
+            );
+            result.insert("safe_directories".to_owned(), toml::Value::Array(array));
         }
 
         let overrides = Self::overrides_to_table(self.overrides);
