@@ -2263,3 +2263,98 @@ fn warn_on_duplicate_rust_toolchain_file() {
         );
     });
 }
+
+/// Checks safe directories are honored.
+#[test]
+fn safe_directories() {
+    setup(&|config| {
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join("rust-toolchain.toml");
+        let toolchain_str = toolchain_file.to_str().unwrap();
+        let toolchain_parent_str = cwd.to_str().unwrap();
+        raw::write_file(&toolchain_file, "[toolchain]\nchannel = \"nightly\"").unwrap();
+        // It should err when owned by a different user.
+        let out = run(
+            config,
+            "rustc",
+            &["--version"],
+            &[("__SAFE_DIRECTORIES_TEST", toolchain_str)],
+        );
+        assert!(!out.ok);
+        assert!(out.stderr.contains("is owned by a different user"));
+
+        // Make sure env var works.
+        let out = run(
+            config,
+            "rustc",
+            &["--env", "RUSTUP_SAFE_DIRECTORIES"],
+            &[
+                ("__SAFE_DIRECTORIES_TEST", toolchain_str),
+                ("RUSTUP_UNSTABLE_SAFE_DIRECTORIES", "true"),
+                ("RUSTUP_SAFE_DIRECTORIES", toolchain_parent_str),
+            ],
+        );
+        assert!(out.ok);
+        assert_eq!(out.stdout, format!("{}\n", toolchain_parent_str));
+
+        // Add the dir to the allow list and try again, should succeed.
+        expect_ok(
+            config,
+            &[
+                "rustup",
+                "set",
+                "safe-directories",
+                "add",
+                toolchain_parent_str,
+            ],
+        );
+        let out = run(
+            config,
+            "rustc",
+            &["--env", "RUSTUP_SAFE_DIRECTORIES"],
+            &[
+                ("__SAFE_DIRECTORIES_TEST", toolchain_str),
+                ("RUSTUP_UNSTABLE_SAFE_DIRECTORIES", "true"),
+            ],
+        );
+        assert!(out.ok);
+        assert_eq!(out.stdout, format!("{}\n", toolchain_parent_str));
+
+        // Check that the env var will join and relay both settings and RUSTUP_SAFE_DIRECTORIES.
+        let out = run(
+            config,
+            "rustc",
+            &["--env", "RUSTUP_SAFE_DIRECTORIES"],
+            &[
+                ("__SAFE_DIRECTORIES_TEST", toolchain_str),
+                ("RUSTUP_UNSTABLE_SAFE_DIRECTORIES", "true"),
+                ("RUSTUP_SAFE_DIRECTORIES", "foo"),
+            ],
+        );
+        assert!(out.ok);
+        // assert_eq!(out.stdout, format!("{}\n", toolchain_parent_str));
+        assert_eq!(
+            out.stdout.trim(),
+            std::env::join_paths([toolchain_parent_str, "foo"])
+                .unwrap()
+                .to_str()
+                .unwrap()
+        );
+
+        // Make sure * works, too.
+        expect_ok(config, &["rustup", "set", "safe-directories", "clear"]);
+        expect_ok(config, &["rustup", "set", "safe-directories", "add", "*"]);
+        let out = run(
+            config,
+            "rustc",
+            &["--env", "RUSTUP_SAFE_DIRECTORIES"],
+            &[
+                ("__SAFE_DIRECTORIES_TEST", toolchain_str),
+                ("RUSTUP_UNSTABLE_SAFE_DIRECTORIES", "true"),
+            ],
+        );
+        assert!(out.ok);
+        assert_eq!(out.stdout, "*\n");
+        // assert_eq!(out.stdout.trim(), std::env::join_paths([toolchain_parent_str, "*"]).unwrap().to_str().unwrap());
+    });
+}
