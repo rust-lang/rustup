@@ -139,6 +139,8 @@ pub(crate) fn try_install_msvc(opts: &InstallOpts<'_>) -> Result<ContinueInstall
     cmd.arg("--wait")
         // Display an interactive GUI focused on installing just the selected components.
         .arg("--focusedUi")
+        // Add the English language pack
+        .args(["--addProductLang", "En-us"])
         // Add the linker and C runtime libraries.
         .args(["--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"]);
 
