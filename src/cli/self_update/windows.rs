@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::env::{consts::EXE_SUFFIX, split_paths};
 use std::ffi::{OsStr, OsString};
 use std::fmt;
+use std::io::Write;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::path::Path;
 use std::process::Command;
@@ -25,6 +26,58 @@ pub(crate) fn ensure_prompt() -> Result<()> {
     writeln!(process().stdout(), "Press the Enter key to continue.")?;
     common::read_line()?;
     Ok(())
+}
+
+fn choice(max: u8) -> Result<Option<u8>> {
+    write!(process().stdout(), ">")?;
+
+    let _ = std::io::stdout().flush();
+    let input = common::read_line()?;
+
+    let r = match str::parse(&input) {
+        Ok(n) if n <= max => Some(n),
+        _ => None,
+    };
+
+    writeln!(process().stdout())?;
+    Ok(r)
+}
+
+pub(crate) fn choose_vs_install() -> Result<Option<VsInstallPlan>> {
+    writeln!(
+        process().stdout(),
+        "\n1) Quick install via the Visual Studio Community installer"
+    )?;
+    writeln!(
+        process().stdout(),
+        "   (free for individuals, academic uses, and open source)."
+    )?;
+    writeln!(
+        process().stdout(),
+        "\n2) Manually install the prerequisites"
+    )?;
+    writeln!(
+        process().stdout(),
+        "   (for enterprise and advanced users)."
+    )?;
+    writeln!(process().stdout(), "\n3) Don't install the prerequisites")?;
+    writeln!(
+        process().stdout(),
+        "   (if you're targetting the GNU ABI).\n"
+    )?;
+
+    let choice = loop {
+        if let Some(n) = choice(3)? {
+            break n;
+        }
+        writeln!(process().stdout(), "Select option 1, 2 or 3")?;
+    };
+    let plan = match choice {
+        1 => Some(VsInstallPlan::Automatic),
+        2 => Some(VsInstallPlan::Manual),
+        _ => None,
+    };
+    Ok(plan)
 }
 
 #[derive(PartialEq, Eq)]

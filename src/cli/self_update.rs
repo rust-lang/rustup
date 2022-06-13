@@ -313,7 +313,7 @@ static MSVC_AUTO_INSTALL_MESSAGE: &str = r#"# Rust Visual C++ prerequisites
 
 Rust requires a linker and Windows API libraries but they don't seem to be available.
 
-These components can be acquired by installing Visual Studio.
+These components can be acquired through a Visual Studio installer.
 
 "#;
 
@@ -376,37 +376,38 @@ pub(crate) fn install(
             warn!("installing msvc toolchain without its prerequisites");
         } else if !quiet && plan == VsInstallPlan::Automatic {
             md(&mut term, MSVC_AUTO_INSTALL_MESSAGE);
-            if common::confirm(
-                "\nAutomatically download and install Visual Studio 2022 Community edition? (Y/n)",
-                true,
-            )? {
-                match try_install_msvc(&opts) {
-                    Err(e) => {
-                        // Make sure the console doesn't exit before the user can
-                        // see the error and give the option to continue anyway.
-                        report_error(&e);
-                        if !common::confirm("\nContinue installing rustup? (y/N)", false)? {
-                            info!("aborting installation");
+            match windows::choose_vs_install()? {
+                Some(VsInstallPlan::Automatic) => {
+                    match try_install_msvc(&opts) {
+                        Err(e) => {
+                            // Make sure the console doesn't exit before the user can
+                            // see the error and give the option to continue anyway.
+                            report_error(&e);
+                            if !common::question_bool("\nContinue?", false)? {
+                                info!("aborting installation");
+                                return Ok(utils::ExitCode(0));
+                            }
+                        }
+                        Ok(ContinueInstall::No) => {
+                            ensure_prompt()?;
                             return Ok(utils::ExitCode(0));
                         }
+                        _ => {}
                     }
-                    Ok(ContinueInstall::No) => {
-                        ensure_prompt()?;
+                }
+                Some(VsInstallPlan::Manual) => {
+                    md(&mut term, MSVC_MANUAL_INSTALL_MESSAGE);
+                    if !common::question_bool("\nContinue?", false)? {
+                        info!("aborting installation");
                         return Ok(utils::ExitCode(0));
                     }
-                    _ => {}
                 }
-            } else {
-                md(&mut term, MSVC_MANUAL_INSTALL_MESSAGE);
-                if !common::confirm("\nContinue? (y/N)", false)? {
-                    info!("aborting installation");
-                    return Ok(utils::ExitCode(0));
-                }
+                None => {}
             }
         } else {
             md(&mut term, MSVC_MESSAGE);
             md(&mut term, MSVC_MANUAL_INSTALL_MESSAGE);
-            if !common::confirm("\nContinue? (y/N)", false)? {
+            if !common::question_bool("\nContinue?", false)? {
                 info!("aborting installation");
                 return Ok(utils::ExitCode(0));
             }
