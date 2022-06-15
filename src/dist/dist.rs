@@ -229,27 +229,80 @@ impl TargetTriple {
         #[cfg(windows)]
         fn inner() -> Option<TargetTriple> {
             use std::mem;
-            use winapi::um::sysinfoapi::GetNativeSystemInfo;
 
-            // First detect architecture
-            const PROCESSOR_ARCHITECTURE_AMD64: u16 = 9;
-            const PROCESSOR_ARCHITECTURE_INTEL: u16 = 0;
-            const PROCESSOR_ARCHITECTURE_ARM64: u16 = 12;
+            /// Get the host architecture using `IsWow64Process2`. This function
+            /// produces the most accurate results (supports detecting aarch64), but
+            /// it is only available on Windows 10 1511+, so we use `GetProcAddress`
+            /// to maintain backward compatibility with older Windows versions.
+            fn arch_primary() -> Option<&'static str> {
+                use winapi::shared::minwindef::BOOL;
+                use winapi::um::libloaderapi::{GetModuleHandleA, GetProcAddress};
+                use winapi::um::processthreadsapi::GetCurrentProcess;
+                use winapi::um::winnt::HANDLE;
 
-            let mut sys_info;
-            unsafe {
-                sys_info = mem::zeroed();
-                GetNativeSystemInfo(&mut sys_info);
+                const IMAGE_FILE_MACHINE_ARM64: u16 = 0xAA64;
+                const IMAGE_FILE_MACHINE_AMD64: u16 = 0x8664;
+                const IMAGE_FILE_MACHINE_I386: u16 = 0x014c;
+
+                #[allow(non_snake_case)]
+                let IsWow64Process2: unsafe extern "system" fn(
+                    HANDLE,
+                    *mut u16,
+                    *mut u16,
+                )
+                    -> BOOL = unsafe {
+                    let module = GetModuleHandleA(b"kernel32.dll\0" as *const u8 as *const i8);
+                    if module.is_null() {
+                        return None;
+                    }
+                    let process =
+                        GetProcAddress(module, b"IsWow64Process2\0" as *const u8 as *const i8);
+                    if process.is_null() {
+                        return None;
+                    }
+                    mem::transmute(process)
+                };
+
+                let mut _machine = 0;
+                let mut native_machine = 0;
+                unsafe {
+                    // cannot fail; handle does not need to be closed.
+                    let process = GetCurrentProcess();
+                    if IsWow64Process2(process, &mut _machine, &mut native_machine) == 0 {
+                        return None;
+                    }
+                };
+                match native_machine {
+                    IMAGE_FILE_MACHINE_AMD64 => Some("x86_64"),
+                    IMAGE_FILE_MACHINE_I386 => Some("i686"),
+                    IMAGE_FILE_MACHINE_ARM64 => Some("aarch64"),
+                    _ => None,
+                }
             }
 
-            let arch = match unsafe { sys_info.u.s() }.wProcessorArchitecture {
-                PROCESSOR_ARCHITECTURE_AMD64 => "x86_64",
-                PROCESSOR_ARCHITECTURE_INTEL => "i686",
-                PROCESSOR_ARCHITECTURE_ARM64 => "aarch64",
-                _ => return None,
-            };
+            /// Get the host architecture using `GetNativeSystemInfo`.
+            /// Does not support detecting aarch64.
+            fn arch_fallback() -> Option<&'static str> {
+                use winapi::um::sysinfoapi::GetNativeSystemInfo;
+
+                const PROCESSOR_ARCHITECTURE_AMD64: u16 = 9;
+                const PROCESSOR_ARCHITECTURE_INTEL: u16 = 0;
+
+                let mut sys_info;
+                unsafe {
+                    sys_info = mem::zeroed();
+                    GetNativeSystemInfo(&mut sys_info);
+                }
+
+                match unsafe { sys_info.u.s() }.wProcessorArchitecture {
+                    PROCESSOR_ARCHITECTURE_AMD64 => Some("x86_64"),
+                    PROCESSOR_ARCHITECTURE_INTEL => Some("i686"),
+                    _ => None,
+                }
+            }
 
             // Default to msvc
+            let arch = arch_primary().or_else(arch_fallback)?;
             let msvc_triple = format!("{}-pc-windows-msvc", arch);
             Some(TargetTriple(msvc_triple))
         }
@@ -328,11 +381,12 @@ impl TargetTriple {
         let ret = if partial_self.os != partial_other.os {
             false
         } else if partial_self.os.as_deref() == Some("pc-windows") {
-            // Windows is a special case here, we know we can run 32bit on 64bit
-            // and we know we can run gnu and msvc on the same system
-            // We don't immediately assume we can cross between x86 and aarch64 though
+            // Windows is a special case here: we can run gnu and msvc on the same system,
+            // x86_64 can run i686, and aarch64 can run i686 through emulation
             (partial_self.arch == partial_other.arch)
                 || (partial_self.arch.as_deref() == Some("x86_64")
+                    && partial_other.arch.as_deref() == Some("i686"))
+                || (partial_self.arch.as_deref() == Some("aarch64")
                     && partial_other.arch.as_deref() == Some("i686"))
         } else {
             // For other OSes, for now, we assume other toolchains won't run
