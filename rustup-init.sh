@@ -73,6 +73,9 @@ main() {
 
     local _dir
     _dir="$(ensure mktemp -d)"
+    # Because the previous command ran in a subshell, we must manually propagate
+    # exit status.
+    [ $? -ne 0 ] && exit 1
     local _file="${_dir}/rustup-init${_ext}"
 
     local _ansi_escapes_are_valid=false
