@@ -27,6 +27,7 @@ pub static TOOLS: &[&str] = &[
     "rust-gdb",
     "rust-gdbgui",
     "rls",
+    "rust-analyzer",
     "cargo-clippy",
     "clippy-driver",
     "cargo-miri",
@@ -110,12 +111,12 @@ mod tests {
         for tool in DUP_TOOLS {
             assert!(is_proxyable_tools(tool).is_ok());
         }
-        let message = &"unknown proxy name: 'unknown-tool'; valid proxy names are 'rustc', \
-        'rustdoc', 'cargo', 'rust-lldb', 'rust-gdb', 'rust-gdbgui', 'rls', 'cargo-clippy', \
-        'clippy-driver', 'cargo-miri', 'rustfmt', 'cargo-fmt'";
-        assert!(is_proxyable_tools("unknown-tool")
-            .unwrap_err()
-            .to_string()
-            .eq(message));
+        let message = "unknown proxy name: 'unknown-tool'; valid proxy names are 'rustc', \
+        'rustdoc', 'cargo', 'rust-lldb', 'rust-gdb', 'rust-gdbgui', 'rls', 'rust-analyzer', \
+        'cargo-clippy', 'clippy-driver', 'cargo-miri', 'rustfmt', 'cargo-fmt'";
+        assert_eq!(
+            is_proxyable_tools("unknown-tool").unwrap_err().to_string(),
+            message
+        );
     }
 }
