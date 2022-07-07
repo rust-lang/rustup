@@ -462,7 +462,7 @@ pub(crate) fn install(
     })();
 
     if let Err(e) = install_res {
-        common::report_error(&e);
+        report_error(&e);
 
         // On windows, where installation happens in a console
         // that may have opened just for this purpose, give
