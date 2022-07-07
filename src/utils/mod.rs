@@ -1,4 +1,4 @@
-///!  Utility functions for Rustup
+//!  Utility functions for Rustup
 pub(crate) mod notifications;
 pub mod raw;
 pub(crate) mod toml_utils;
