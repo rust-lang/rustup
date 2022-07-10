@@ -3,7 +3,7 @@
 ## [1.25.0] - UNRELEASED
 
 This version of Rustup involves a significant number of internal cleanups, both in terms
-of the Rutup code and its documentation. In addition to a lot of work on the codebase
+of the Rustup code and its documentation. In addition to a lot of work on the codebase
 itself, due to the length of time since the last release this one has a record number
 of contributors and we thank you all for your efforts and time.
 
