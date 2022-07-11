@@ -62,9 +62,9 @@ pub enum CompressionKind {
 /// Each compression kind, in order of preference for use, from most desirable
 /// to least desirable.
 static COMPRESSION_KIND_PREFERENCE_ORDER: &[CompressionKind] = &[
-    CompressionKind::ZStd,
-    CompressionKind::XZ,
     CompressionKind::GZip,
+    CompressionKind::XZ,
+    CompressionKind::ZStd,
 ];
 
 impl CompressionKind {
