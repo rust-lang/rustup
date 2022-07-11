@@ -1,5 +1,118 @@
 # Changelog
 
+## [1.25.0] - UNRELEASED
+
+This version of Rustup involves a significant number of internal cleanups, both in terms
+of the Rustup code and its documentation. In addition to a lot of work on the codebase
+itself, due to the length of time since the last release this one has a record number
+of contributors and we thank you all for your efforts and time.
+
+Rather than list every single merged PR since the last release, we have pulled out
+a number of highlights to include in this changelog entry. For everything else,
+please review the repository.
+
+### Added
+
+- Added `rust-gdbgui` to the proxy list [pr#2811]
+- Support `rustup default none` as a way to unset the default toolchain [pr#2831]
+- Build Rustup for Windows arm64 [pr#2835]
+- Support Illumos/OpenIndiana platform check on website [pr#2839]
+- Add info message if self-update is disabled during update [pr#2845]
+- Added `RUSTC` and `RUSTDOC` environment variables for proxied child processes [pr#2958]
+- Added offer to auto-install VS 2022 [pr#2954]
+- Added `--verbose` mode for `rustup show` [pr#2992]
+- Added support for `--force-non-host` to more subcommands [pr#2968]
+
+### Changed
+
+- Updated the `opener` crate used for `rustup-doc` [pr#2792]
+- Changed the recursion limit for tool/proxy invocation to 20 [pr#2812]
+- Updated to newer `effective-limits` crate to reduce "sysinfo not supported" errors [pr#2817]
+- Handle `-y` more robustly in `rustup-init.sh` [pr#2815]
+- Fix infinite recursion in bash completion when rustc not on PATH [pr#2833]
+- Update macOS aarch64 CI to newer xcode [pr#2877]
+- Update website to load TTF fonts more effectively [pr#2862]
+- Retry curl invocations in `rustup-init.sh` [pr#2869]
+- Better handle busybox's wget in `rustup-init.sh` [pr#2885]
+- Improve target matching to reduce spurious deprecation warnings [pr#2854]
+- Parse channel manifest only once to improve performance [pr#2898]
+- Remove trailing slashes from toolchain names [pr#2897]
+- Migrate OpenPGP support to Sequoia PGP [pr#2847]
+- We now send a user agent on http requests to improve compatibility with proxies [pr#2953]
+- We won't prepend `${CARGO_HOME}/bin` to `PATH` unless it's missing [pr#2978]
+
+Thanks go to:
+
+- 二手掉包工程师 (hi-rustin)
+- Brian Bowman (Seeker14491)
+- Jon Gjengset (jonho)
+- pierwill
+- Daniel Silverstone (kinnison)
+- Robert Collins (rbtcollins)
+- Alan Somers (asomers)
+- Brennan Vincent (umanwizard)
+- Joshua Nelson (jyn514)
+- Eric Huss (ehuss)
+- Will Bush (willbush)
+- Thad Guidry (thadguidry)
+- Alexander Lovchin (alovchin91)
+- zoodirector
+- Takayuki Nakata (giraffate)
+- Yusuke Abe (chansuke)
+- Wyatt Carss (wcarss)
+- Sondre Aasemoen (sondr3)
+- facklambda
+- Chad Dougherty (crd477)
+- Noritada Kobayashi (noritada)
+- Milan (mdaverde)
+- Pat Sier (pjsier)
+- Matt Keeter (mkeeter)
+- Alex Macleod (alexendoo)
+- Sathwik Matsa (sathwikmatsa)
+- Kushal Das (kushaldas)
+- Justus Winter (teythoon)
+- k900
+- Nicolas Ambram (nico-abram)
+- Connor Slade (basicprogrammer10)
+- Yerkebulan Tulibergenov (yerke)
+- Caleb Cartwright (calebcartwright)
+- Matthias Beyer (matthiasbeyer)
+- spacemaniac
+- Alex Touchet (atouchet)
+- Guillaume Gomez (guillaumegomez)
+- Chris Denton (chrisdenton)
+- Thomas Orozco (krallin)
+- cui fliter (cuishuang)
+- Martin Nordholts (enselic)
+- Emil Gardström (emilgardis)
+- Arlo Siemsen (arlosi)
+
+[1.25.0]: https://github.com/rust-lang/rustup/release/tag/1.25.0
+[pr#2968]: https://github.com/rust-lang/rustup/pull/2968
+[pr#2992]: https://github.com/rust-lang/rustup/pull/2992
+[pr#2978]: https://github.com/rust-lang/rustup/pull/2978
+[pr#2954]: https://github.com/rust-lang/rustup/pull/2954
+[pr#2958]: https://github.com/rust-lang/rustup/pull/2958
+[pr#2953]: https://github.com/rust-lang/rustup/pull/2953
+[pr#2847]: https://github.com/rust-lang/rustup/pull/2847
+[pr#2845]: https://github.com/rust-lang/rustup/pull/2845
+[pr#2897]: https://github.com/rust-lang/rustup/pull/2897
+[pr#2898]: https://github.com/rust-lang/rustup/pull/2898
+[pr#2854]: https://github.com/rust-lang/rustup/pull/2854
+[pr#2839]: https://github.com/rust-lang/rustup/pull/2839
+[pr#2885]: https://github.com/rust-lang/rustup/pull/2885
+[pr#2869]: https://github.com/rust-lang/rustup/pull/2869
+[pr#2862]: https://github.com/rust-lang/rustup/pull/2862
+[pr#2877]: https://github.com/rust-lang/rustup/pull/2877
+[pr#2835]: https://github.com/rust-lang/rustup/pull/2835
+[pr#2831]: https://github.com/rust-lang/rustup/pull/2831
+[pr#2811]: https://github.com/rust-lang/rustup/pull/2811
+[pr#2833]: https://github.com/rust-lang/rustup/pull/2833
+[pr#2815]: https://github.com/rust-lang/rustup/pull/2815
+[pr#2817]: https://github.com/rust-lang/rustup/pull/2817
+[pr#2812]: https://github.com/rust-lang/rustup/pull/2812
+[pr#2792]: https://github.com/rust-lang/rustup/pull/2792
+
 ## [1.24.3] - 2021-05-31
 
 This patch release focusses around resolving some regressions in behaviour in

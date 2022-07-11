@@ -22,9 +22,9 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             run_tests: YES
-            snap_arch: amd64
+            #snap_arch: amd64
           - target: armv7-unknown-linux-gnueabihf
-            snap_arch: armhf
+            #snap_arch: armhf
     steps:
       - uses: actions/checkout@v2
         with:
