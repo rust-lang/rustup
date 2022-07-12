@@ -33,7 +33,7 @@ info: downloading self-updates
 If your `rustup` was built with the [no-self-update feature](https://github.com/rust-lang/rustup/blob/master/Cargo.toml#L25), it can not update
 itself. This is not the default, and only versions of `rustup` built with
 `--no-default-features`, or obtained from a third-party distributor who has
-disabled it (such as the Ubuntu snap store).
+disabled it (such as Nixos).
 
 Otherwise Rustup can update itself. It is possible to control Rustup's automatic
 self update mechanism with the `auto-self-update` configuration variable. This

@@ -292,23 +292,6 @@ pub(crate) fn self_update_permitted(explicit: bool) -> Result<SelfUpdatePermissi
         Ok(SelfUpdatePermission::Permit)
     } else {
         // Detect if rustup is not meant to self-update
-        match process().var("SNAP") {
-            Ok(_) => {
-                // We're running under snappy so don't even bother
-                // trying to self-update
-                // TODO: Report this to the user?
-                // TODO: Maybe ask snapd if there's an update and report
-                //       that to the user instead?
-                debug!("Skipping self-update because SNAP was detected");
-                if explicit {
-                    return Ok(SelfUpdatePermission::HardFail);
-                } else {
-                    return Ok(SelfUpdatePermission::Skip);
-                }
-            }
-            Err(env::VarError::NotPresent) => {}
-            Err(e) => return Err(e).context("Could not interrogate SNAP environment variable"),
-        }
         let current_exe = env::current_exe()?;
         let current_exe_dir = current_exe.parent().expect("Rustup isn't in a directory‽");
         if let Err(e) = tempfile::Builder::new()
