@@ -166,7 +166,7 @@ pub(crate) enum ContinueInstall {
 /// but the rustup install should not be continued at this time.
 pub(crate) fn try_install_msvc(opts: &InstallOpts<'_>) -> Result<ContinueInstall> {
     // download the installer
-    let visual_studio_url = utils::parse_url("https://aka.ms/vs/17/release/vs_community.exe")?;
+    let visual_studio_url = utils::parse_url("https://aka.ms/vs/17/release/vs_buildtools.exe")?;
 
     let tempdir = tempfile::Builder::new()
         .prefix("rustup-visualstudio")
