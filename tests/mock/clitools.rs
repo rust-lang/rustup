@@ -566,7 +566,7 @@ where
     A: AsRef<OsStr>,
 {
     // Only the rustup alias is currently ready for in-process testing:
-    // - -init performs self-updates which monkey with global external state.
+    // - -init performs self-update which monkey with global external state.
     // - proxies themselves behave appropriately the proxied output needs to be
     //   collected for assertions to be made on it as our tests traverse layers.
     // - self update executions cannot run in-process because on windows the

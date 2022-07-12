@@ -1132,7 +1132,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available version
-    info!("checking for self-updates");
+    info!("checking for self-update");
     let available_version = get_available_rustup_version()?;
 
     // If up-to-date

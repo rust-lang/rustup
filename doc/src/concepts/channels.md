@@ -77,8 +77,8 @@ will be updated in addition to stable:
 $ rustup update
 info: syncing channel updates for 'stable'
 info: syncing channel updates for 'nightly'
-info: checking for self-updates
-info: downloading self-updates
+info: checking for self-update
+info: downloading self-update
 
    stable unchanged: rustc 1.7.0 (a5d1e7a59 2016-02-29)
   nightly unchanged: rustc 1.9.0-nightly (02310fd31 2016-03-19)
