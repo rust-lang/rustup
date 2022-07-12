@@ -1,6 +1,25 @@
 # Changelog
 
-## [1.25.0] - UNRELEASED
+## [1.25.1] - 2022-07-12
+
+This version of Rustup reverts a single PR from 1.25.1 and tidies a couple of internal
+bits of code.
+
+In brief, it turns out that our optimisation for `RUSTC` and `RUSTDOC` cause problems
+with some tooling which runs under one `cargo` invocation, but expects to invoke either
+`cargo` or `rustc` without resetting the environment completely. As such, some particularly
+confusing error messages ensued, and we decided to revert this one optimisation while we
+wait to correct things in a future release.
+
+Thanks go to:
+
+- Joshua Nelson
+- Manish Goregaokar
+- Robert Collins
+
+[1.25.1]: https://github.com/rust-lang/rustup/release/tag/1.25.1
+
+## [1.25.0] - 2022-07-11
 
 This version of Rustup involves a significant number of internal cleanups, both in terms
 of the Rustup code and its documentation. In addition to a lot of work on the codebase
