@@ -17,7 +17,7 @@ Thanks go to:
 - Manish Goregaokar
 - Robert Collins
 
-[1.25.1]: https://github.com/rust-lang/rustup/release/tag/1.25.1
+[1.25.1]: https://github.com/rust-lang/rustup/releases/tag/1.25.1
 
 ## [1.25.0] - 2022-07-11
 
@@ -106,7 +106,7 @@ Thanks go to:
 - Emil Gardström (emilgardis)
 - Arlo Siemsen (arlosi)
 
-[1.25.0]: https://github.com/rust-lang/rustup/release/tag/1.25.0
+[1.25.0]: https://github.com/rust-lang/rustup/releases/tag/1.25.0
 [pr#2968]: https://github.com/rust-lang/rustup/pull/2968
 [pr#2992]: https://github.com/rust-lang/rustup/pull/2992
 [pr#2978]: https://github.com/rust-lang/rustup/pull/2978
