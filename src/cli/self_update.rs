@@ -546,7 +546,7 @@ fn check_existence_of_rustc_or_cargo_in_path(no_prompt: bool) -> Result<()> {
     if let Err(path) = rustc_or_cargo_exists_in_path() {
         warn!("it looks like you have an existing installation of Rust at:");
         warn!("{}", path);
-        warn!("rustup should not be installed alongside Rust. Please uninstall your existing Rust first.");
+        warn!("It is recommended that rustup be the primary Rust installation.");
         warn!("Otherwise you may have confusion unless you are careful with your PATH");
         warn!("If you are sure that you want both rustup and your already installed Rust");
         warn!("then please reply `y' or `yes' or set RUSTUP_INIT_SKIP_PATH_CHECK to yes");
