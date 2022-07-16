@@ -21,8 +21,8 @@ info: installing component 'rustc'
 info: installing component 'rust-std'
 info: installing component 'rust-docs'
 info: installing component 'cargo'
-info: checking for self-updates
-info: downloading self-updates
+info: checking for self-update
+info: downloading self-update
 
   stable updated: rustc 1.7.0 (a5d1e7a59 2016-02-29)
 
@@ -49,8 +49,8 @@ This will not download new toolchains:
 
 ```console
 $ rustup self update
-info: checking for self-updates
-info: downloading self-updates
+info: checking for self-update
+info: downloading self-update
 ```
 
 ### Disabling self updates on a per-invocation basis

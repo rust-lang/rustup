@@ -114,7 +114,7 @@ info: installing component 'cargo'
 info: installing component 'rust-docs'
 info: installing component 'rust-std'
 info: installing component 'rustc'
-info: checking for self-updates
+info: checking for self-update
 info: downloading self-update
 "
                 ),

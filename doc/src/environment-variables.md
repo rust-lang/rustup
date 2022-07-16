@@ -17,7 +17,7 @@
   Deprecated. Use `RUSTUP_DIST_SERVER` instead.
 
 - `RUSTUP_UPDATE_ROOT` (default `https://static.rust-lang.org/rustup`) Sets
-  the root URL for downloading self-updates.
+  the root URL for downloading self-update.
 
 - `RUSTUP_IO_THREADS` *unstable* (defaults to reported cpu count). Sets the
   number of threads to perform close IO in. Set to `1` to force

@@ -299,7 +299,7 @@ fn uninstall_doesnt_leave_gc_file() {
 #[test]
 fn update_exact() {
     let version = env!("CARGO_PKG_VERSION");
-    let expected_output = "info: checking for self-updates
+    let expected_output = "info: checking for self-update
 info: downloading self-update
 "
     .to_string();
@@ -439,7 +439,7 @@ fn update_no_change() {
 ",
                 version
             ),
-            r"info: checking for self-updates
+            r"info: checking for self-update
 ",
         );
     });
@@ -512,7 +512,7 @@ fn rustup_self_update_exact() {
             ),
             for_host!(
                 r"info: syncing channel updates for 'stable-{0}'
-info: checking for self-updates
+info: checking for self-update
 info: downloading self-update
 info: cleaning up downloads & tmp directories
 "
