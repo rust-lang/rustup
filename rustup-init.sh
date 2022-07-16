@@ -72,7 +72,11 @@ main() {
     local _url="${RUSTUP_UPDATE_ROOT}/dist/${_arch}/rustup-init${_ext}"
 
     local _dir
-    _dir="$(ensure mktemp -d)"
+    if ! _dir="$(ensure mktemp -d)"; then
+        # Because the previous command ran in a subshell, we must manually
+        # propagate exit status.
+        exit 1
+    fi
     local _file="${_dir}/rustup-init${_ext}"
 
     local _ansi_escapes_are_valid=false
