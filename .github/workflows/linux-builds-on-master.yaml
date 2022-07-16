@@ -33,7 +33,8 @@ jobs:
           - target: armv7-unknown-linux-gnueabihf
             #snap_arch: armhf
     steps:
-      - uses: actions/checkout@v2
+      - name: Clone repo
+        uses: actions/checkout@v2
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
@@ -145,25 +146,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-west-1
         if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
-      - name: Build a snapcraft configuration file
-        run: |
-          bash ci/snapcraft.bash
-        if: matrix.snap_arch != ''
-        env:
-          DO_SNAP: 1
-          SNAP_ARCH: ${{ matrix.snap_arch }}
-          SNAP_EDGE: 1 # skip-stable
-      - uses: snapcore/action-build@v1
-        id: snapcraftbuild
-        with:
-          path: snapcraft
-        if: matrix.snap_arch != ''
-      - uses: snapcore/action-publish@v1
-        with:
-          store_login: ${{ secrets.SNAPCRAFT_TOKEN }}
-          snap: ${{ steps.snapcraftbuild.outputs.snap }}
-          release: edge # skip-pr skip-stable
-        if: matrix.snap_arch != '' # skip-pr
       - name: Clear the cargo caches
         run: |
           cargo install cargo-cache --no-default-features --features ci-autoclean

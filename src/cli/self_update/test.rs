@@ -29,7 +29,7 @@ fn restore_path(p: Option<RegValue>) {
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .unwrap();
     if let Some(p) = p.as_ref() {
-        environment.set_raw_value("PATH", &p).unwrap();
+        environment.set_raw_value("PATH", p).unwrap();
     } else {
         let _ = environment.delete_value("PATH");
     }
