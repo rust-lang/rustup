@@ -27,7 +27,6 @@ pub static TOOLS: &[&str] = &[
     "rust-gdb",
     "rust-gdbgui",
     "rls",
-    "rust-analyzer",
     "cargo-clippy",
     "clippy-driver",
     "cargo-miri",
@@ -36,7 +35,7 @@ pub static TOOLS: &[&str] = &[
 // Tools which are commonly installed by Cargo as well as rustup. We take a bit
 // more care with these to ensure we don't overwrite the user's previous
 // installation.
-pub static DUP_TOOLS: &[&str] = &["rustfmt", "cargo-fmt"];
+pub static DUP_TOOLS: &[&str] = &["rust-analyzer", "rustfmt", "cargo-fmt"];
 
 // If the given name is one of the tools we proxy.
 pub fn is_proxyable_tools(tool: &str) -> Result<()> {
@@ -112,8 +111,8 @@ mod tests {
             assert!(is_proxyable_tools(tool).is_ok());
         }
         let message = "unknown proxy name: 'unknown-tool'; valid proxy names are 'rustc', \
-        'rustdoc', 'cargo', 'rust-lldb', 'rust-gdb', 'rust-gdbgui', 'rls', 'rust-analyzer', \
-        'cargo-clippy', 'clippy-driver', 'cargo-miri', 'rustfmt', 'cargo-fmt'";
+        'rustdoc', 'cargo', 'rust-lldb', 'rust-gdb', 'rust-gdbgui', 'rls', \
+        'cargo-clippy', 'clippy-driver', 'cargo-miri', 'rust-analyzer', 'rustfmt', 'cargo-fmt'";
         assert_eq!(
             is_proxyable_tools("unknown-tool").unwrap_err().to_string(),
             message

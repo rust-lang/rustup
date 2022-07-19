@@ -413,8 +413,8 @@ fn rustup_failed_path_search() {
             broken,
             "unknown proxy name: 'fake_proxy'; valid proxy names are \
              'rustc', 'rustdoc', 'cargo', 'rust-lldb', 'rust-gdb', 'rust-gdbgui', \
-             'rls', 'rust-analyzer', 'cargo-clippy', 'clippy-driver', 'cargo-miri', \
-             'rustfmt', 'cargo-fmt'",
+             'rls', 'cargo-clippy', 'clippy-driver', 'cargo-miri', \
+             'rust-analyzer', 'rustfmt', 'cargo-fmt'",
         );
 
         // Hardlink will be automatically cleaned up by test setup code
