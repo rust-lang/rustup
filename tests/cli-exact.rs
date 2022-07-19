@@ -170,6 +170,9 @@ fn check_updates_none() {
         expect_ok(config, &["rustup", "upgrade", "stable"]);
         expect_ok(config, &["rustup", "upgrade", "beta"]);
         expect_ok(config, &["rustup", "upgrade", "nightly"]);
+        expect_ok(config, &["rustup", "up", "stable"]);
+        expect_ok(config, &["rustup", "up", "beta"]);
+        expect_ok(config, &["rustup", "up", "nightly"]);
         expect_stdout_ok(
             config,
             &["rustup", "check"],
