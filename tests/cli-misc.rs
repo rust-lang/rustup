@@ -11,7 +11,7 @@ use rustup::test::this_host_triple;
 use rustup::utils::utils;
 
 use crate::mock::clitools::{
-    self, expect_component_executable, expect_component_not_executable, expect_err,
+    self, expect_component_executable, expect_component_not_executable, expect_err, expect_err_ex,
     expect_not_stderr_ok, expect_ok, expect_ok_contains, expect_ok_eq, expect_ok_ex,
     expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date, Config, Scenario,
 };
@@ -1094,6 +1094,100 @@ fn deprecated_interfaces() {
             config,
             &["rustup", "uninstall", "nightly"],
             "Please use `rustup toolchain uninstall` instead",
+        );
+    })
+}
+
+#[test]
+fn safe_directories_add() {
+    setup(&|config| {
+        expect_ok_ex(
+            config,
+            &["rustup", "set", "safe-directories", "add", "foo"],
+            "",
+            "warning: path `foo` does not exist\n\
+            info: added `foo` to safe directories\n",
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "set", "safe-directories", "add", "*"],
+            "",
+            "info: added `*` to safe directories\n",
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "set", "safe-directories", "list"],
+            "foo\n*\n",
+            "",
+        );
+    })
+}
+
+#[test]
+fn safe_directories_remove() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "set", "safe-directories", "add", "foo"]);
+        expect_ok(config, &["rustup", "set", "safe-directories", "add", "*"]);
+        expect_err_ex(
+            config,
+            &["rustup", "set", "safe-directories", "remove", "bar"],
+            "",
+            "error: path `bar` was not found in the safe directory list\n",
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "set", "safe-directories", "remove", "foo"],
+            "",
+            "info: removed `foo` from the safe directories list\n",
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "set", "safe-directories", "list"],
+            "*\n",
+            "",
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "set", "safe-directories", "remove", "*"],
+            "",
+            "info: removed `*` from the safe directories list\n",
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "set", "safe-directories", "list"],
+            "",
+            "info: no safe directories configured\n",
+        );
+    })
+}
+
+#[test]
+fn safe_directories_clear() {
+    setup(&|config| {
+        expect_ok_ex(
+            config,
+            &["rustup", "set", "safe-directories", "clear"],
+            "",
+            "info: safe directories cleared\n",
+        );
+        expect_ok(config, &["rustup", "set", "safe-directories", "add", "foo"]);
+        expect_ok_ex(
+            config,
+            &["rustup", "set", "safe-directories", "list"],
+            "foo\n",
+            "",
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "set", "safe-directories", "clear"],
+            "",
+            "info: safe directories cleared\n",
+        );
+        expect_ok_ex(
+            config,
+            &["rustup", "set", "safe-directories", "list"],
+            "",
+            "info: no safe directories configured\n",
         );
     })
 }

@@ -47,9 +47,10 @@ fn direct_proxy(
     toolchain: Option<&str>,
     args: &[OsString],
 ) -> Result<ExitCode> {
-    let cmd = match toolchain {
+    let mut cmd = match toolchain {
         None => cfg.create_command_for_dir(&utils::current_dir()?, arg0)?,
         Some(tc) => cfg.create_command_for_toolchain(tc, false, arg0)?,
     };
+    cfg.rustup_safe_directories_env(&mut cmd)?;
     run_command_for_dir(cmd, arg0, args)
 }

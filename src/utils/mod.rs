@@ -1,5 +1,6 @@
 //!  Utility functions for Rustup
 pub(crate) mod notifications;
+pub(crate) mod ownership;
 pub mod raw;
 pub(crate) mod toml_utils;
 pub(crate) mod tty;

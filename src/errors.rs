@@ -1,5 +1,6 @@
 #![allow(clippy::large_enum_variant)]
 
+use std::borrow::Cow;
 use std::ffi::OsString;
 use std::fmt::Debug;
 use std::io::{self, Write};
@@ -10,6 +11,7 @@ use url::Url;
 
 use crate::currentprocess::process;
 use crate::dist::manifest::{Component, Manifest};
+use crate::utils::ownership::OwnershipError;
 
 const TOOLSTATE_MSG: &str =
     "If you require these components, please install and use the latest successful build version,\n\
@@ -115,6 +117,8 @@ pub enum RustupError {
     UnsupportedVersion(String),
     #[error("could not write {name} file: '{}'", .path.display())]
     WritingFile { name: &'static str, path: PathBuf },
+    #[error("{}", ownership_error_msg(.0))]
+    Ownership(OwnershipError),
 }
 
 fn remove_component_msg(cs: &Component, manifest: &Manifest, toolchain: &str) -> String {
@@ -196,4 +200,23 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
     }
 
     String::from_utf8(buf).unwrap()
+}
+
+fn ownership_error_msg(err: &OwnershipError) -> String {
+    // rust-toolchain or rust-toolchain.toml
+    let what = err.path.file_name().unwrap().to_string_lossy();
+    let to_add = err.path.parent().unwrap();
+    let escaped = shell_escape::escape(Cow::Borrowed(to_add.to_str().expect("utf-8 path")));
+    format!(
+        "`{}` is owned by a different user\n    \
+        For safety reasons, Rustup does not allow opening `{what}` files owned by\n    \
+        a different user, unless explicitly approved.\n\
+        \n    \
+        To approve this directory, run\n\
+        \n        \
+        rustup set safe-directories add {escaped}\n\
+        \n    \
+        See https://rust-lang.github.io/rustup/safe-directories.html for more information.",
+        err.path.display(),
+    )
 }

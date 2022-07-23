@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::env;
 use std::fmt::{self, Display};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -23,6 +24,7 @@ use crate::notifications::*;
 use crate::process;
 use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
 use crate::toolchain::{DistributableToolchain, Toolchain, UpdateStatus};
+use crate::utils::ownership;
 use crate::utils::utils;
 
 #[derive(Debug, ThisError)]
@@ -636,6 +638,7 @@ impl Cfg {
     ) -> Result<Option<(OverrideFile, OverrideReason)>> {
         let notify = self.notify_handler.as_ref();
         let mut dir = Some(dir);
+        let safe_directories = self.safe_directories(settings);
 
         while let Some(d) = dir {
             // First check the override database
@@ -673,6 +676,12 @@ impl Cfg {
             };
 
             if let Ok(contents) = contents {
+                ownership::validate_ownership(&toolchain_file, &safe_directories).map_err(
+                    |err| match err.downcast::<ownership::OwnershipError>() {
+                        Ok(e) => RustupError::Ownership(e).into(),
+                        Err(e) => e,
+                    },
+                )?;
                 let override_file = Cfg::parse_override_file(contents, parse_mode)?;
                 if let Some(toolchain_name) = &override_file.toolchain.channel {
                     let all_toolchains = self.list_toolchains()?;
@@ -1007,6 +1016,38 @@ impl Cfg {
         } else {
             Ok(normalized_name.to_owned())
         }
+    }
+
+    /// This adds the `RUSTUP_SAFE_DIRECTORIES` environment variable to the
+    /// given command so that the directory listing can be relayed to Cargo so
+    /// that it can share the same configuration.
+    pub(crate) fn rustup_safe_directories_env(&self, cmd: &mut Command) -> Result<()> {
+        self.settings_file.with(|s| {
+            let dirs = self.safe_directories(s);
+            if !dirs.is_empty() {
+                let dirs = env::join_paths(dirs)?;
+                cmd.env("RUSTUP_SAFE_DIRECTORIES", dirs);
+            }
+            Ok(())
+        })
+    }
+
+    /// Returns the safe_directories setting, including from the environment.
+    fn safe_directories(&self, settings: &Settings) -> Vec<PathBuf> {
+        let mut safe_directories: Vec<PathBuf> = settings
+            .safe_directories
+            .iter()
+            .map(PathBuf::from)
+            .collect();
+        if let Some(dirs) = process().var_os("RUSTUP_SAFE_DIRECTORIES") {
+            let from_env = env::split_paths(&dirs)
+                // Filter so that the environment doesn't grow if there are
+                // recursive invocations of a proxy.
+                .filter(|env_path| !safe_directories.iter().any(|d| d == env_path))
+                .collect::<Vec<_>>();
+            safe_directories.extend(from_env);
+        }
+        safe_directories
     }
 }
 
