@@ -99,6 +99,8 @@ pub fn this_host_triple() -> String {
         "riscv64gc"
     } else if cfg!(target_arch = "aarch64") {
         "aarch64"
+    } else if cfg!(target_arch = "loongarch64") {
+        "loongarch64"
     } else {
         unimplemented!()
     };

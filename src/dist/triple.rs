@@ -22,6 +22,7 @@ static LIST_ARCHS: &[&str] = &[
     "powerpc64le",
     "riscv64gc",
     "s390x",
+    "loongarch64",
 ];
 static LIST_OSES: &[&str] = &[
     "pc-windows",
