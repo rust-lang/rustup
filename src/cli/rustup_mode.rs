@@ -1032,8 +1032,9 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
         cfg.temp_cfg.clean();
     }
 
-    if self_update_mode == SelfUpdateMode::CheckOnly {
-        check_rustup_update()?;
+    match (&self_update_mode, self_update::NEVER_SELF_UPDATE) {
+        (SelfUpdateMode::CheckOnly, _) | (SelfUpdateMode::Enable, true) => check_rustup_update()?,
+        (SelfUpdateMode::Disable, _) | (SelfUpdateMode::Enable, false) => {}
     }
 
     if self_update::NEVER_SELF_UPDATE && self_update_mode == SelfUpdateMode::Enable {
@@ -1618,7 +1619,7 @@ fn set_auto_self_update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::Exit
             .and_then(|a| a.to_str())
             .ok_or(CLIError::NoExeName)?;
         warn!("{} is built with the no-self-update feature", arg0);
-        warn!("setting auto-self-update to enable won't lead to updates being checked");
+        warn!("setting auto-self-update to enable won't lead to updates being installed");
     }
 
     Ok(utils::ExitCode(0))
