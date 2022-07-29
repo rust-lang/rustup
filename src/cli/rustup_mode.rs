@@ -1036,7 +1036,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
         check_rustup_update()?;
     }
 
-    if self_update::NEVER_SELF_UPDATE {
+    if self_update::NEVER_SELF_UPDATE && self_update_mode != SelfUpdateMode::Disable {
         info!("self-update is disabled for this build of rustup");
         info!("any updates to rustup will need to be fetched with your system package manager")
     }
@@ -1608,16 +1608,23 @@ fn set_profile(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
 }
 
 fn set_auto_self_update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
-    if self_update::NEVER_SELF_UPDATE {
+    cfg.set_auto_self_update(m.value_of("auto-self-update-mode").unwrap())?;
+
+    let new_self_update_mode = cfg.get_self_update_mode()?;
+    if self_update::NEVER_SELF_UPDATE && new_self_update_mode != SelfUpdateMode::Disable {
         let mut args = crate::process().args_os();
         let arg0 = args.next().map(PathBuf::from);
         let arg0 = arg0
             .as_ref()
             .and_then(|a| a.to_str())
             .ok_or(CLIError::NoExeName)?;
-        warn!("{} is built with the no-self-update feature: setting auto-self-update will not have any effect.",arg0);
+        warn!("{} is built with the no-self-update feature", arg0);
+        warn!(
+            "setting auto-self-update to {} won't lead to updates being checked",
+            new_self_update_mode.to_string(),
+        );
     }
-    cfg.set_auto_self_update(m.value_of("auto-self-update-mode").unwrap())?;
+
     Ok(utils::ExitCode(0))
 }
 
