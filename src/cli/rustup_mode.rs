@@ -1038,8 +1038,19 @@ fn update(cfg: &mut Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
     }
 
     if self_update::NEVER_SELF_UPDATE && self_update_mode == SelfUpdateMode::Enable {
+        let mut args = crate::process().args_os();
+        let arg0 = args.next().map(PathBuf::from);
+        let arg0 = arg0
+            .as_ref()
+            .and_then(|a| a.to_str())
+            .ok_or(CLIError::NoExeName)?;
+
         info!("self-update is disabled for this build of rustup");
-        info!("any updates to rustup will need to be fetched with your system package manager")
+        info!("any updates to rustup will need to be fetched with your system package manager");
+        info!(
+            "to suppress this message, run `{} set auto-self-update disable`",
+            arg0,
+        );
     }
 
     Ok(utils::ExitCode(0))
