@@ -290,7 +290,7 @@ then additionally check the box for English under Language packs.
 
 For more details see:
 
-    https://rust-lang.github.io/rustup/installation/windows-msvc
+    https://rust-lang.github.io/rustup/installation/windows-msvc.html
 
 _Install the C++ build tools before proceeding_.
 

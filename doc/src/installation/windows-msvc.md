@@ -47,7 +47,7 @@ If you'd like a more minimal install (and won't doing C++ development) then you 
 Note that the specific version of the Windows SDK doesn't matter for pure Rust code but if using C++ as well you'll likely want either the latest or whichever version is required by the C++ project (or both).
 
 ![Select the latest MSVC component](images/component-msvc.png)
-![Select the Windows 11 SDK component](images/component-sdk.PNG)
+![Select the Windows 11 SDK component](images/component-sdk.png)
 
 ### Completing the install
 
