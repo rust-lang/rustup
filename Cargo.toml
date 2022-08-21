@@ -29,7 +29,8 @@ no-self-update = []
 anyhow.workspace = true
 cfg-if = "1.0"
 chrono = "0.4"
-clap = {version = "2", features = ["wrap_help"]}
+clap = {version = "3", features = ["wrap_help"]}
+clap_complete = "3"
 download = {path = "download", default-features = false}
 effective-limits = "0.5.5"
 enum-map = "2.4.2"
