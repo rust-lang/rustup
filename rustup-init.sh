@@ -370,6 +370,9 @@ get_architecture() {
         riscv64)
             _cputype=riscv64gc
             ;;
+        loongarch64)
+            _cputype=loongarch64
+            ;;
         *)
             err "unknown CPU type: $_cputype"
 
