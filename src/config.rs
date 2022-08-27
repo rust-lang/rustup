@@ -673,13 +673,16 @@ impl Cfg {
             };
 
             if let Ok(contents) = contents {
-                let override_file = Cfg::parse_override_file(contents, parse_mode)?;
+                let add_file_context = || format!("in {}", toolchain_file.to_string_lossy());
+                let override_file = Cfg::parse_override_file(contents, parse_mode)
+                    .with_context(add_file_context)?;
                 if let Some(toolchain_name) = &override_file.toolchain.channel {
-                    let all_toolchains = self.list_toolchains()?;
+                    let all_toolchains = self.list_toolchains().with_context(add_file_context)?;
                     if !all_toolchains.iter().any(|s| s == toolchain_name) {
                         // The given name is not resolvable as a toolchain, so
                         // instead check it's plausible for installation later
-                        dist::validate_channel_name(toolchain_name)?;
+                        dist::validate_channel_name(toolchain_name)
+                            .with_context(add_file_context)?;
                     }
                 }
 
