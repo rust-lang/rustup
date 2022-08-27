@@ -523,10 +523,14 @@ pub(crate) fn do_add_to_programs() -> Result<()> {
         vtype: RegType::REG_SZ,
     };
 
+    let current_version: &str = env!("CARGO_PKG_VERSION");
+
     key.set_raw_value("UninstallString", &reg_value)
         .context("Failed to set uninstall string")?;
     key.set_value("DisplayName", &"Rustup: the Rust toolchain installer")
         .context("Failed to set display name")?;
+    key.set_value("DisplayVersion", &current_version)
+        .context("Failed to set display version")?;
 
     Ok(())
 }
