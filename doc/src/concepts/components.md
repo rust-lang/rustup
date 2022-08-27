@@ -40,8 +40,10 @@ toolchains. The following is an overview of the different components:
 * `rust-docs` — This is a local copy of the [Rust documentation]. Use the
   `rustup doc` command to open the documentation in a web browser. Run `rustup
   doc --help` for more options.
-* `rls` — [RLS] is a language server that provides support for editors and
-  IDEs.
+* `rust-analyzer` — [rust-analyzer] is a language server that provides support
+  for editors and IDEs.
+* `rls` — [RLS] is a language server that is deprecated and has been replaced
+  by rust-analyzer.
 * `clippy` — [Clippy] is a lint tool that provides extra checks for common
   mistakes and stylistic choices.
 * `miri` — [Miri] is an experimental Rust interpreter, which can be used for
@@ -76,6 +78,7 @@ details.
 [build-std]: https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std
 [miri]: https://github.com/rust-lang/miri/
 [RLS]: https://github.com/rust-lang/rls
+[rust-analyzer]: https://rust-analyzer.github.io/
 [rustdoc]: https://doc.rust-lang.org/rustdoc/
 [cargo]: https://doc.rust-lang.org/cargo/
 [clippy]: https://github.com/rust-lang/rust-clippy
