@@ -232,6 +232,28 @@ impl TargetTriple {
         }
     }
 
+    #[cfg(not(target_os = "macos"))]
+    pub(crate) fn is_host_emulated() -> bool {
+        false
+    }
+
+    /// Detects Rosetta emulation on macOS
+    #[cfg(target_os = "macos")]
+    pub(crate) fn is_host_emulated() -> bool {
+        unsafe {
+            let mut ret: libc::c_int = 0;
+            let mut size = std::mem::size_of::<libc::c_int>() as libc::size_t;
+            let err = libc::sysctlbyname(
+                b"sysctl.proc_translated\0".as_ptr().cast(),
+                (&mut ret) as *mut _ as *mut libc::c_void,
+                &mut size,
+                std::ptr::null_mut(),
+                0,
+            );
+            err == 0 && ret != 0
+        }
+    }
+
     pub(crate) fn from_host() -> Option<Self> {
         #[cfg(windows)]
         fn inner() -> Option<TargetTriple> {

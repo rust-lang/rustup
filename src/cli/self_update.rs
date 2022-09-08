@@ -589,6 +589,8 @@ fn do_pre_install_sanity_checks(no_prompt: bool) -> Result<()> {
 }
 
 fn do_pre_install_options_sanity_checks(opts: &InstallOpts<'_>) -> Result<()> {
+    common::warn_if_host_is_emulated();
+
     // Verify that the installation options are vaguely sane
     (|| {
         let host_triple = opts
@@ -1058,6 +1060,8 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
 /// rustup-init is stored in `CARGO_HOME`/bin, and then deleted next
 /// time rustup runs.
 pub(crate) fn update(cfg: &Cfg) -> Result<utils::ExitCode> {
+    common::warn_if_host_is_emulated();
+
     use common::SelfUpdatePermission::*;
     let update_permitted = if NEVER_SELF_UPDATE {
         HardFail

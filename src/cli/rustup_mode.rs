@@ -841,6 +841,8 @@ fn maybe_upgrade_data(cfg: &Cfg, m: &ArgMatches) -> Result<bool> {
 }
 
 fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    common::warn_if_host_is_emulated();
+
     if let Some(toolchain) = m.get_one::<MaybeResolvableToolchainName>("toolchain") {
         match toolchain.to_owned() {
             MaybeResolvableToolchainName::None => {
@@ -918,6 +920,7 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
 }
 
 fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    common::warn_if_host_is_emulated();
     let self_update_mode = cfg.get_self_update_mode()?;
     // Priority: no-self-update feature > self_update_mode > no-self-update args.
     // Update only if rustup does **not** have the no-self-update feature,
@@ -1051,6 +1054,8 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
 fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
+    common::warn_if_host_is_emulated();
+
     let verbose = m.get_flag("verbose");
 
     // Print host triple

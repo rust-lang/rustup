@@ -20,10 +20,11 @@ use crate::currentprocess::{
     terminalsource,
     varsource::VarSource,
 };
+use crate::dist::dist::{TargetTriple, ToolchainDesc};
+use crate::install::UpdateStatus;
 use crate::utils::notifications as util_notifications;
 use crate::utils::notify::NotificationLevel;
 use crate::utils::utils;
-use crate::{dist::dist::ToolchainDesc, install::UpdateStatus};
 use crate::{
     dist::notifications as dist_notifications, toolchain::distributable::DistributableToolchain,
 };
@@ -672,5 +673,16 @@ pub(crate) fn ignorable_error(error: &'static str, no_prompt: bool) -> Result<()
         Ok(())
     } else {
         Err(error)
+    }
+}
+
+/// Warns if rustup is running under emulation, such as macOS Rosetta
+pub(crate) fn warn_if_host_is_emulated() {
+    if TargetTriple::is_host_emulated() {
+        warn!(
+            "Rustup is not running natively. It's running under emulation of {}.",
+            TargetTriple::from_host_or_build()
+        );
+        warn!("For best compatibility and performance you should reinstall rustup for your native CPU.");
     }
 }
