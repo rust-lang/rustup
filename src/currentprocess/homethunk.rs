@@ -10,19 +10,19 @@ use super::OSProcess;
 use super::TestProcess;
 use super::VarSource;
 
-impl home::Env for Box<dyn HomeProcess + 'static> {
+impl home::env::Env for Box<dyn HomeProcess + 'static> {
     fn home_dir(&self) -> Option<PathBuf> {
         (**self).home_dir()
     }
     fn current_dir(&self) -> Result<PathBuf, io::Error> {
-        home::Env::current_dir(&(**self))
+        home::env::Env::current_dir(&(**self))
     }
     fn var_os(&self, key: &str) -> Option<OsString> {
-        home::Env::var_os(&(**self), key)
+        home::env::Env::var_os(&(**self), key)
     }
 }
 
-impl home::Env for TestProcess {
+impl home::env::Env for TestProcess {
     fn home_dir(&self) -> Option<PathBuf> {
         self.var("HOME").ok().map(|v| v.into())
     }
@@ -34,14 +34,14 @@ impl home::Env for TestProcess {
     }
 }
 
-impl home::Env for OSProcess {
+impl home::env::Env for OSProcess {
     fn home_dir(&self) -> Option<PathBuf> {
-        home::OS_ENV.home_dir()
+        home::env::OS_ENV.home_dir()
     }
     fn current_dir(&self) -> Result<PathBuf, io::Error> {
-        home::OS_ENV.current_dir()
+        home::env::OS_ENV.current_dir()
     }
     fn var_os(&self, key: &str) -> Option<OsString> {
-        home::OS_ENV.var_os(key)
+        home::env::OS_ENV.var_os(key)
     }
 }

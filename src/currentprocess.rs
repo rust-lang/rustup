@@ -55,7 +55,7 @@ use varsource::*;
 /// The real trait is CurrentProcess; HomeProcess is a single trait because
 /// Box<T> only allows autotraits to be added to it; so we use a subtrait to add
 /// home::Env in.
-pub trait HomeProcess: CurrentProcess + home::Env {
+pub trait HomeProcess: CurrentProcess + home::env::Env {
     fn clone_boxed(&self) -> Box<dyn HomeProcess>;
 }
 
@@ -63,7 +63,7 @@ pub trait HomeProcess: CurrentProcess + home::Env {
 
 impl<T> HomeProcess for T
 where
-    T: 'static + CurrentProcess + home::Env + Clone,
+    T: 'static + CurrentProcess + home::env::Env + Clone,
 {
     fn clone_boxed(&self) -> Box<dyn HomeProcess + 'static> {
         Box::new(T::clone(self))

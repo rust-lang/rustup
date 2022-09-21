@@ -493,11 +493,11 @@ pub(crate) fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
 }
 
 pub(crate) fn home_dir() -> Option<PathBuf> {
-    home::home_dir_from(&home_process())
+    home::env::home_dir_with_env(&home_process())
 }
 
 pub(crate) fn cargo_home() -> Result<PathBuf> {
-    home::cargo_home_from(&home_process()).context("failed to determine cargo home")
+    home::env::cargo_home_with_env(&home_process()).context("failed to determine cargo home")
 }
 
 // Creates a ~/.rustup folder
@@ -524,7 +524,7 @@ fn rustup_home_in_user_dir() -> Result<PathBuf> {
 }
 
 pub(crate) fn rustup_home() -> Result<PathBuf> {
-    home::rustup_home_from(&home_process()).context("failed to determine rustup home dir")
+    home::env::rustup_home_with_env(&home_process()).context("failed to determine rustup home dir")
 }
 
 pub(crate) fn format_path_for_display(path: &str) -> String {
