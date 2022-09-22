@@ -5,6 +5,7 @@ use std::io::{self, BufReader, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, bail, Context, Result};
+use home::env as home;
 use retry::delay::{jitter, Fibonacci};
 use retry::{retry, OperationResult};
 use sha2::Sha256;
@@ -493,11 +494,11 @@ pub(crate) fn to_absolute<P: AsRef<Path>>(path: P) -> Result<PathBuf> {
 }
 
 pub(crate) fn home_dir() -> Option<PathBuf> {
-    home::env::home_dir_with_env(&home_process())
+    home::home_dir_with_env(&home_process())
 }
 
 pub(crate) fn cargo_home() -> Result<PathBuf> {
-    home::env::cargo_home_with_env(&home_process()).context("failed to determine cargo home")
+    home::cargo_home_with_env(&home_process()).context("failed to determine cargo home")
 }
 
 // Creates a ~/.rustup folder
@@ -524,7 +525,7 @@ fn rustup_home_in_user_dir() -> Result<PathBuf> {
 }
 
 pub(crate) fn rustup_home() -> Result<PathBuf> {
-    home::env::rustup_home_with_env(&home_process()).context("failed to determine rustup home dir")
+    home::rustup_home_with_env(&home_process()).context("failed to determine rustup home dir")
 }
 
 pub(crate) fn format_path_for_display(path: &str) -> String {
