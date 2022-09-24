@@ -63,7 +63,7 @@ pub(crate) fn choose_vs_install() -> Result<Option<VsInstallPlan>> {
     writeln!(process().stdout(), "\n3) Don't install the prerequisites")?;
     writeln!(
         process().stdout(),
-        "   (if you're targetting the GNU ABI).\n"
+        "   (if you're targeting the GNU ABI).\n"
     )?;
 
     let choice = loop {
@@ -235,7 +235,7 @@ pub(crate) fn try_install_msvc(opts: &InstallOpts<'_>) -> Result<ContinueInstall
                 let have_msvc = do_msvc_check(opts).is_none();
                 let has_libs = has_windows_sdk_libs();
                 if have_msvc && has_libs {
-                    warn!("Visual Studio is installed but a problem ocurred during installation");
+                    warn!("Visual Studio is installed but a problem occurred during installation");
                     warn!("{}", err);
                     Ok(ContinueInstall::Yes)
                 } else {
