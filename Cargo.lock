@@ -1520,6 +1520,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "path-slash"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e91099d4268b0e11973f036e885d652fb0b21fedcf69738c627f94db6a44f42"
+
+[[package]]
 name = "pem"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1964,6 +1970,7 @@ dependencies = [
  "num_cpus",
  "opener",
  "openssl",
+ "path-slash",
  "pulldown-cmark",
  "rand 0.8.5",
  "regex",
