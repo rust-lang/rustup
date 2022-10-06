@@ -29,7 +29,7 @@ no-self-update = []
 anyhow = "1.0.31"
 cfg-if = "1.0"
 chrono = "0.4"
-clap = "2"
+clap = {version = "2", features = ["wrap_help"]}
 download = {path = "download", default-features = false}
 effective-limits = "0.5.3"
 enum-map = "2.0.3"
