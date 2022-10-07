@@ -7,11 +7,11 @@ available at this time are `minimal`, `default`, and `complete`:
 * The **minimal** profile includes as few components as possible to get a
   working compiler (`rustc`, `rust-std`, and `cargo`). It's recommended to use
   this component on Windows systems if you don't use local documentation (the
-  large number of files can cause issues with some Antivirus systems), and in
-  CI.
+  large number of files can cause issues with some Antivirus systems).
 * The **default** profile includes all of components in the **minimal**
   profile, and adds `rust-docs`, `rustfmt`, and `clippy`. This profile will be
-  used by `rustup` by default, and it's the one recommended for general use.
+  used by `rustup` by default if no other profile is specified. This profile
+  is recommended for general use and for use in CI.
 * The **complete** profile includes all the components available through
   `rustup`. This should never be used, as it includes *every* component ever
   included in the metadata and thus will almost always fail. If you are
