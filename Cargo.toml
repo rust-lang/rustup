@@ -35,7 +35,7 @@ effective-limits = "0.5.3"
 enum-map = "2.0.3"
 flate2 = "1"
 git-testament = "0.2"
-home = {git = "https://github.com/rbtcollins/home", rev = "a243ee2fbee6022c57d56f5aa79aefe194eabe53"}
+home = "0.5.4"
 lazy_static = "1"
 libc = "0.2"
 num_cpus = "1.13"
@@ -127,3 +127,4 @@ lto = true
 # Reduce build time by setting proc-macro crates non optimized.
 [profile.release.build-override]
 opt-level = 0
+
