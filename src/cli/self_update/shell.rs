@@ -1,3 +1,7 @@
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::doc_markdown)]
+
 //! Paths and Unix shells
 //!
 //! MacOS, Linux, FreeBSD, and many other OS model their design on Unix,
@@ -95,7 +99,7 @@ pub(crate) trait UnixShell {
     // Gives rcs that should be written to.
     fn update_rcs(&self) -> Vec<PathBuf>;
 
-    // By defualt follows POSIX and sources <cargo home>/env
+    // By default follows POSIX and sources <cargo home>/env
     fn add_to_path(&self) -> Result<(), anyhow::Error> {
         let source_cmd = self.source_string()?;
         let source_cmd_with_newline = format!("\n{}", &source_cmd);
@@ -249,13 +253,13 @@ impl Fish {
     #![allow(non_snake_case)]
     /// Gets fish vendor config location from `XDG_DATA_DIRS`
     /// Returns None if `XDG_DATA_DIRS` is not set or if there is no fis`fish/vendor_conf.d`.d directory found
-    pub fn get_XDG_DATA_DIRS() -> Option<PathBuf> {
-        #[cfg(test)]
-        return None;
+    pub fn get_vendor_config_from_XDG_DATA_DIRS() -> Option<PathBuf> {
+        // Skip the directory during testing as we don't want to write into the XDG_DATA_DIRS by accident
+        // TODO: Change the definition of XDG_DATA_DIRS in test so that doesn't happen
 
+        // TODO: Set up XDG DATA DIRS in a test to test the location being correct
         return process()
             .var("XDG_DATA_DIRS")
-            // If var is found
             .map(|var| {
                 var.split(':')
                     .map(PathBuf::from)
@@ -274,14 +278,15 @@ impl UnixShell for Fish {
 
     fn rcfiles(&self) -> Vec<PathBuf> {
         // As per https://fishshell.com/docs/current/language.html#configuration
-        // Vendor config files should be written to `/fish/vendor_config.d/`
+        // Vendor config files should be written to `/usr/share/fish/vendor_config.d/`
         // if that does not exist then it should be written to `/usr/share/fish/vendor_conf.d/`
         // otherwise it should be written to `$HOME/.config/fish/conf.d/ as per discussions in github issue #478
         [
-            #[cfg(test)] // Write to test location so we don't pollute during testing.
-            utils::home_dir().map(|home| home.join(".config/fish/conf.d/")),
-            Self::get_XDG_DATA_DIRS(),
+            // #[cfg(test)] // Write to test location so we don't pollute during testing.
+            // utils::home_dir().map(|home| home.join(".config/fish/conf.d/")),
+            Self::get_vendor_config_from_XDG_DATA_DIRS(),
             Some(PathBuf::from("/usr/share/fish/vendor_conf.d/")),
+            Some(PathBuf::from("/usr/local/share/fish/vendor_conf.d/")),
             utils::home_dir().map(|home| home.join(".config/fish/conf.d/")),
         ]
         .iter_mut()
@@ -291,17 +296,16 @@ impl UnixShell for Fish {
     }
 
     fn update_rcs(&self) -> Vec<PathBuf> {
+        // TODO: Change rcfiles to just read parent dirs
         self.rcfiles()
             .into_iter()
             .filter(|rc| {
-                rc.metadata() // Returns error if path doesnt exist so separate check is not needed
-                    .map_or(false, |metadata| {
-                        dbg!(rc);
-                        dbg!(metadata.permissions());
-                        dbg!(metadata.permissions().readonly());
-                        dbg!();
-                        !metadata.permissions().readonly()
-                    })
+                // We only want to check if the directory exists as in fish we create a new file for every applications env
+                rc.parent().map_or(false, |parent| {
+                    parent
+                        .metadata() // Returns error if path doesn't exist so separate check is not needed
+                        .map_or(false, |metadata| !metadata.permissions().readonly())
+                })
             })
             .collect()
     }
@@ -331,8 +335,8 @@ impl UnixShell for Fish {
 
     fn env_script(&self) -> ShellScript {
         ShellScript {
-            name: "env",
-            content: include_str!("env.sh"),
+            name: "env.fish",
+            content: include_str!("env.fish"),
         }
     }
 
@@ -346,13 +350,14 @@ impl UnixShell for Fish {
 }
 
 pub(crate) fn legacy_paths() -> impl Iterator<Item = PathBuf> {
-    let zprofiles = Zsh::zdotdir()
+    let z_profiles = Zsh::zdotdir()
         .into_iter()
         .chain(utils::home_dir())
         .map(|d| d.join(".zprofile"));
-    let profiles = [".bash_profile", ".profile"]
+
+    let bash_profiles = [".bash_profile", ".profile"]
         .iter()
         .filter_map(|rc| utils::home_dir().map(|d| d.join(rc)));
 
-    profiles.chain(zprofiles)
+    bash_profiles.chain(z_profiles)
 }

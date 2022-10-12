@@ -72,6 +72,31 @@ export PATH="$HOME/apple/bin"
     }
 
     #[test]
+    fn install_creates_necessary_fish_scripts_new() {
+        clitools::setup(Scenario::Empty, &|config| {
+            let mut cmd = clitools::cmd(config, "rustup-init", &INIT_NONE[1..]);
+            let rcs: Vec<PathBuf> = [".cargo/env.fish", ".config/fish/config.fish"]
+                .iter()
+                .map(|file| config.homedir.join(file))
+                .collect();
+            for file in &rcs {
+                assert!(!file.exists());
+            }
+            cmd.env_remove("CARGO_HOME");
+            cmd.env("SHELL", "fish");
+            cmd.env("XDG_DATA_DIRS", ""); // Overwrite XDG as host shouldn't be affected by the test.
+            assert!(cmd.output().unwrap().status.success());
+            let expected = include_str!("../src/cli/self_update/env.fish")
+                .replace("{cargo_bin}", "$HOME/.cargo/bin");
+
+            assert!(rcs
+                .iter()
+                .filter_map(|rc| fs::read_to_string(rc).ok()) // Read contents of files that exist
+                .any(|rc_content| rc_content.contains(&expected)));
+        })
+    }
+
+    #[test]
     fn install_updates_bash_rcs() {
         clitools::setup(Scenario::Empty, &|config| {
             let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login", ".profile"]

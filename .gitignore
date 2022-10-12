@@ -9,3 +9,4 @@
 /local-rustup
 /snapcraft
 flake.lock
+.vscode/
