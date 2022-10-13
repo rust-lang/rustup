@@ -4,6 +4,8 @@ use std::io;
 use std::ops::Deref;
 use std::path::PathBuf;
 
+use home::env as home;
+
 use super::CurrentDirSource;
 use super::HomeProcess;
 use super::OSProcess;

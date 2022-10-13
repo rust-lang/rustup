@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Once;
 use std::sync::{Arc, Mutex};
 
+use home::env as home;
 use rand::{thread_rng, Rng};
 
 pub(crate) mod argsource;
