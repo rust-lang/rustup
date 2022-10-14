@@ -48,9 +48,13 @@ This is similar to Ruby's [rbenv], Python's [pyenv], or Node's [nvm].
   "profile" defines a grouping of components. See the [Profiles] chapter for
   more details.
 
+* **proxy** —  A wrapper for a common Rust component (like `rustc`), built to forward
+  CLI invocations to the active Rust toolchain. See the [Proxies] chapter for more details.
+
 [`clippy`]: https://github.com/rust-lang/rust-clippy
 [components]: components.md
 [cross-compilation]: ../cross-compilation.md
 [profiles]: profiles.md
 [toolchain specification]: toolchains.md
 [channels]: channels.md
+[proxies]: proxies.md
