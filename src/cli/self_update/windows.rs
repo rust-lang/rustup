@@ -485,7 +485,7 @@ where
         .and_then(|old_path| f(old_path, OsString::from(path_str).encode_wide().collect())))
 }
 
-pub(crate) fn do_remove_from_path() -> Result<()> {
+pub(crate) fn do_remove_from_paths() -> Result<()> {
     let new_path = _with_path_cargo_home_bin(_remove_from_path)?;
     _apply_new_path(new_path)
 }

@@ -3,11 +3,13 @@ use std::process::Command;
 
 use anyhow::{bail, Context, Result};
 
-use super::install_bins;
-use super::shell;
+use crate::cli::self_update::shell::Shell;
 use crate::process;
 use crate::utils::utils;
 use crate::utils::Notification;
+
+use super::install_bins;
+use super::shell;
 
 // If the user is trying to install with sudo, on some systems this will
 // result in writing root-owned files to the user's home directory, because
@@ -52,31 +54,41 @@ pub(crate) fn delete_rustup_and_cargo_home() -> Result<()> {
     utils::remove_dir("cargo_home", &cargo_home, &|_: Notification<'_>| ())
 }
 
-pub(crate) fn do_remove_from_path() -> Result<()> {
+pub(crate) fn do_remove_from_paths() -> Result<()> {
     for sh in shell::get_available_shells() {
-        let source_bytes = format!("{}\n", sh.source_string()?).into_bytes();
-
-        // Check more files for cleanup than normally are updated.
-        for rc in sh.rcfiles().iter().filter(|rc| rc.is_file()) {
-            let file = utils::read_file("rcfile", rc)?;
-            let file_bytes = file.into_bytes();
-            // FIXME: This is whitespace sensitive where it should not be.
-            if let Some(idx) = file_bytes
-                .windows(source_bytes.len())
-                .position(|w| w == source_bytes.as_slice())
-            {
-                // Here we rewrite the file without the offending line.
-                let mut new_bytes = file_bytes[..idx].to_vec();
-                new_bytes.extend(&file_bytes[idx + source_bytes.len()..]);
-                let new_file = String::from_utf8(new_bytes).unwrap();
-                utils::write_file("rcfile", rc, &new_file)?;
-            }
-        }
+        do_remove_from_path(&sh)?;
     }
-
     remove_legacy_paths()?;
 
     Ok(())
+}
+
+pub(crate) fn do_remove_from_path(sh: &Shell) -> Result<()> {
+    let source_string = sh.source_string()?;
+
+    // Check more files for cleanup than normally are updated.
+    for rc in sh.rcfiles().iter().filter(|rc| rc.is_file()) {
+        let file = utils::read_file("rcfile", rc)?;
+
+        let mut new_file = String::new();
+        for line in file.lines() {
+            let line = normalize_whitespaces_in_line(line);
+
+            if line != source_string {
+                new_file.push_str(&line);
+                new_file.push('\n')
+            }
+
+            utils::write_file("rcfile", rc, &new_file)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn normalize_whitespaces_in_line(line: &str) -> String {
+    let words: Vec<_> = line.trim().split_whitespace().collect();
+    words.join(" ")
 }
 
 pub(crate) fn do_add_to_path() -> Result<()> {
@@ -182,4 +194,69 @@ fn remove_legacy_paths() -> Result<()> {
     remove_legacy_source_command(format!("source \"{}/env\"\n", shell::cargo_home_str()?))?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::io::Write;
+
+    use tempfile::NamedTempFile;
+
+    use crate::cli::self_update::shell::UnixShell;
+
+    use super::*;
+
+    struct TestShell {
+        rcfile: NamedTempFile,
+    }
+
+    impl TestShell {
+        pub fn new(rcfile_content: &String) -> Result<TestShell> {
+            let mut rcfile = NamedTempFile::new()?;
+            rcfile.write(rcfile_content.as_bytes())?;
+
+            Ok(TestShell { rcfile })
+        }
+    }
+
+    impl UnixShell for TestShell {
+        fn does_exist(&self) -> bool {
+            true
+        }
+
+        fn rcfiles(&self) -> Vec<PathBuf> {
+            vec![self.rcfile.path().to_path_buf()]
+        }
+
+        fn update_rcs(&self) -> Vec<PathBuf> {
+            unimplemented!()
+        }
+
+        fn source_string(&self) -> Result<String> {
+            Ok("source \"$HOME/.cargo/env\"".to_string())
+        }
+    }
+
+    #[test]
+    fn test_normalize_whitespace() {
+        let input = "    foo  bar      baz    ";
+        assert_eq!("foo bar baz", normalize_whitespaces_in_line(input));
+    }
+
+    #[test]
+    fn test_regression_dont_remove_parts_of_rcfile_lines() {
+        let expected =
+            "some code\n[ -f \"$HOME/.cargo/env\" ] && source \"$HOME/.cargo/env\"\nsome more\n"
+                .to_string();
+
+        let sh = TestShell::new(&expected).unwrap();
+        let path = sh.rcfile.path().to_owned();
+        let sh: Box<(dyn UnixShell)> = Box::new(sh);
+
+        do_remove_from_path(&sh).unwrap();
+
+        let content = fs::read_to_string(path).unwrap();
+        assert_eq!(expected, content);
+    }
 }
