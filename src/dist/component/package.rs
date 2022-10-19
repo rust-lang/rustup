@@ -149,7 +149,7 @@ impl<'a> TarPackage<'a> {
         // The rust-installer packages unpack to a directory called
         // $pkgname-$version-$target. Skip that directory when
         // unpacking.
-        unpack_without_first_dir(&mut archive, &*temp_dir, notify_handler)
+        unpack_without_first_dir(&mut archive, &temp_dir, notify_handler)
             .context("failed to extract package (perhaps you ran out of disk space?)")?;
 
         Ok(TarPackage(
