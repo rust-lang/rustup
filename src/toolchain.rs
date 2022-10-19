@@ -381,7 +381,7 @@ impl<'a> InstalledCommonToolchain<'a> {
             }
             Path::new(&binary)
         };
-        let mut cmd = Command::new(&path);
+        let mut cmd = Command::new(path);
         self.set_env(&mut cmd);
         Ok(cmd)
     }

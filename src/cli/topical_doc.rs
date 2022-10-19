@@ -29,7 +29,7 @@ fn dir_into_vec(dir: &Path) -> Result<Vec<OsString>> {
 }
 
 fn search_path(doc: &DocData<'_>, wpath: &Path, keywords: &[&str]) -> Result<PathBuf> {
-    let dir = &doc.root.join(&wpath);
+    let dir = &doc.root.join(wpath);
     if dir.is_dir() {
         let entries = dir_into_vec(dir)?;
         for k in keywords {

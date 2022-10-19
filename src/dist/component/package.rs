@@ -334,7 +334,7 @@ fn unpack_without_first_dir<'a, R: Read>(
         let mut components = relpath.components();
         // Throw away the first path component: our root was supplied.
         components.next();
-        let full_path = path.join(&components.as_path());
+        let full_path = path.join(components.as_path());
         if full_path == path {
             // The tmp dir code makes the root dir for us.
             continue;
