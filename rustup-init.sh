@@ -607,14 +607,17 @@ check_help_for() {
 
 # Check if curl supports the --retry flag, then pass it to the curl invocation.
 check_curl_for_retry_support() {
-  local _retry_supported=""
-  # "unspecified" is for arch, allows for possibility old OS using macports, homebrew, etc.
-  if check_help_for "notspecified" "curl" "--retry"; then
-    _retry_supported="--retry 3"
-  fi
+    local _retry_supported=""
+    # "unspecified" is for arch, allows for possibility old OS using macports, homebrew, etc.
+    if check_help_for "notspecified" "curl" "--retry"; then
+        _retry_supported="--retry 3"
+        if check_help_for "notspecified" "curl" "--continue-at"; then
+            # "-C -" tells curl to automatically find where to resume the download when retrying.
+            _retry_supported="--retry 3 -C -"
+        fi
+    fi
 
-  RETVAL="$_retry_supported"
-
+    RETVAL="$_retry_supported"
 }
 
 # Return cipher suite string specified by user, otherwise return strong TLS 1.2-1.3 cipher suites
