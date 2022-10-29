@@ -1,9 +1,11 @@
 FROM rust-android
 
+# See https://github.com/rust-lang/cc-rs#external-configuration-via-environment-variables
 ENV PATH=$PATH:/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin \
     CC_arm_linux_androideabi=arm-linux-androideabi-clang \
     CC_armv7_linux_androideabi=arm-linux-androideabi-clang \
     CC_aarch64_linux_android=aarch64-linux-android21-clang \
+    AR_aarch64_linux_android=llvm-ar \
     CC_i686_linux_android=i686-linux-android21-clang \
     CC_x86_64_linux_android=x86_64-linux-android21-clang \
     CXX_arm_linux_androideabi=arm-linux-androideabi-clang++ \
