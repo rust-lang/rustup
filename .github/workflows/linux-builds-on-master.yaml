@@ -101,27 +101,7 @@ jobs:
             docker build -t "$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
           fi
       - name: Run the build within the docker image
-        run: |
-          mkdir -p "${PWD}/target"
-          chown -R "$(id -u)":"$(id -g)" "${PWD}/target"
-          docker run \
-            --entrypoint sh \
-            --user "$(id -u)":"$(id -g)" \
-            --volume "$(rustc --print sysroot)":/rustc-sysroot:ro \
-            --volume "${PWD}":/checkout:ro \
-            --volume "${PWD}"/target:/checkout/target \
-            --workdir /checkout \
-            --env TARGET="${TARGET}" \
-            --env SKIP_TESTS="${SKIP_TESTS}" \
-            --volume "${HOME}/.cargo:/cargo" \
-            --env CARGO_HOME=/cargo \
-            --env CARGO_TARGET_DIR=/checkout/target \
-            --env LIBZ_SYS_STATIC=1 \
-            --tty \
-            --init \
-            --rm \
-            "${DOCKER}" \
-            -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
+        run: ./ci/run-in-docker.sh $TARGET $SKIP_TESTS $DOCKER
       - name: Upload the built artifact
         uses: actions/upload-artifact@v2
         with:
