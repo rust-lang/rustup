@@ -94,7 +94,7 @@ jobs:
             docker build -t "$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
           fi
       - name: Run the build within the docker image
-        run: ./ci/run-in-docker.sh $TARGET $SKIP_TESTS "$DOCKER"
+        run: ./ci/run-in-docker.sh $TARGET "${SKIP_TESTS}" $DOCKER
       - name: Upload the built artifact
         uses: actions/upload-artifact@v2
         with:
