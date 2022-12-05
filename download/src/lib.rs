@@ -61,7 +61,7 @@ pub fn download_to_path_with_backend(
 
     || -> Result<()> {
         let (file, resume_from) = if resume_from_partial {
-            let possible_partial = OpenOptions::new().read(true).open(&path);
+            let possible_partial = OpenOptions::new().read(true).open(path);
 
             let downloaded_so_far = if let Ok(mut partial) = possible_partial {
                 if let Some(cb) = callback {
@@ -90,7 +90,7 @@ pub fn download_to_path_with_backend(
             let mut possible_partial = OpenOptions::new()
                 .write(true)
                 .create(true)
-                .open(&path)
+                .open(path)
                 .context("error opening file for download")?;
 
             possible_partial.seek(SeekFrom::End(0))?;
@@ -101,7 +101,7 @@ pub fn download_to_path_with_backend(
                 OpenOptions::new()
                     .write(true)
                     .create(true)
-                    .open(&path)
+                    .open(path)
                     .context("error creating file for download")?,
                 0,
             )

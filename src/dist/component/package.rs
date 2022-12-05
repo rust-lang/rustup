@@ -149,7 +149,7 @@ impl<'a> TarPackage<'a> {
         // The rust-installer packages unpack to a directory called
         // $pkgname-$version-$target. Skip that directory when
         // unpacking.
-        unpack_without_first_dir(&mut archive, &*temp_dir, notify_handler)
+        unpack_without_first_dir(&mut archive, &temp_dir, notify_handler)
             .context("failed to extract package (perhaps you ran out of disk space?)")?;
 
         Ok(TarPackage(
@@ -334,7 +334,7 @@ fn unpack_without_first_dir<'a, R: Read>(
         let mut components = relpath.components();
         // Throw away the first path component: our root was supplied.
         components.next();
-        let full_path = path.join(&components.as_path());
+        let full_path = path.join(components.as_path());
         if full_path == path {
             // The tmp dir code makes the root dir for us.
             continue;

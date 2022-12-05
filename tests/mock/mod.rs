@@ -151,7 +151,7 @@ impl MockContents {
     fn build(&self, path: &Path) {
         let dir_path = path.parent().unwrap().to_owned();
         fs::create_dir_all(dir_path).unwrap();
-        File::create(&path)
+        File::create(path)
             .unwrap()
             .write_all(&self.contents)
             .unwrap();

@@ -127,7 +127,7 @@ fn update_all_no_update_whitespace() {
 #[test]
 fn update_works_without_term() {
     setup(&|config| {
-        let mut cmd = clitools::cmd(config, "rustup", &["update", "nightly"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["update", "nightly"]);
         clitools::env(config, &mut cmd);
         cmd.env_remove("TERM");
 
@@ -140,7 +140,7 @@ fn update_works_without_term() {
 #[test]
 fn show_works_with_dumb_term() {
     setup(&|config| {
-        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["show"]);
         clitools::env(config, &mut cmd);
         cmd.env("TERM", "dumb");
         assert!(cmd.spawn().unwrap().wait().unwrap().success());
@@ -152,12 +152,12 @@ fn show_works_with_dumb_term() {
 #[test]
 fn subcommand_required_for_target() {
     setup(&|config| {
-        let mut cmd = clitools::cmd(config, "rustup", &["target"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["target"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
         assert_eq!(out.status.code().unwrap(), 1);
-        assert!(str::from_utf8(&out.stdout).unwrap().contains(&"USAGE"));
+        assert!(str::from_utf8(&out.stdout).unwrap().contains("USAGE"));
     });
 }
 
@@ -166,12 +166,12 @@ fn subcommand_required_for_target() {
 #[test]
 fn subcommand_required_for_toolchain() {
     setup(&|config| {
-        let mut cmd = clitools::cmd(config, "rustup", &["toolchain"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["toolchain"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
         assert_eq!(out.status.code().unwrap(), 1);
-        assert!(str::from_utf8(&out.stdout).unwrap().contains(&"USAGE"));
+        assert!(str::from_utf8(&out.stdout).unwrap().contains("USAGE"));
     });
 }
 
@@ -180,12 +180,12 @@ fn subcommand_required_for_toolchain() {
 #[test]
 fn subcommand_required_for_override() {
     setup(&|config| {
-        let mut cmd = clitools::cmd(config, "rustup", &["override"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["override"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
         assert_eq!(out.status.code().unwrap(), 1);
-        assert!(str::from_utf8(&out.stdout).unwrap().contains(&"USAGE"));
+        assert!(str::from_utf8(&out.stdout).unwrap().contains("USAGE"));
     });
 }
 
@@ -194,12 +194,12 @@ fn subcommand_required_for_override() {
 #[test]
 fn subcommand_required_for_self() {
     setup(&|config| {
-        let mut cmd = clitools::cmd(config, "rustup", &["self"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["self"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
         assert_eq!(out.status.code().unwrap(), 1);
-        assert!(str::from_utf8(&out.stdout).unwrap().contains(&"USAGE"));
+        assert!(str::from_utf8(&out.stdout).unwrap().contains("USAGE"));
     });
 }
 

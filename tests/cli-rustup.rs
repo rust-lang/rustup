@@ -947,7 +947,7 @@ fn show_toolchain_toolchain_file_override_not_installed() {
 
         // I'm not sure this should really be erroring when the toolchain
         // is not installed; just capturing the behavior.
-        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["show"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
@@ -965,7 +965,7 @@ fn show_toolchain_override_not_installed() {
     setup(&|config| {
         expect_ok(config, &["rustup", "override", "add", "nightly"]);
         expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
-        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["show"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(out.status.success());
@@ -1015,7 +1015,7 @@ fn override_set_unset_with_path() {
 fn show_toolchain_env() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
-        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["show"]);
         clitools::env(config, &mut cmd);
         cmd.env("RUSTUP_TOOLCHAIN", "nightly");
         let out = cmd.output().unwrap();
@@ -1039,7 +1039,7 @@ nightly-{0} (environment override by RUSTUP_TOOLCHAIN)
 #[test]
 fn show_toolchain_env_not_installed() {
     setup(&|config| {
-        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["show"]);
         clitools::env(config, &mut cmd);
         cmd.env("RUSTUP_TOOLCHAIN", "nightly");
         let out = cmd.output().unwrap();
@@ -1197,7 +1197,7 @@ fn update_doesnt_update_non_tracking_channels() {
     setup(&|config| {
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "update", "nightly-2015-01-01"]);
-        let mut cmd = clitools::cmd(config, "rustup", &["update"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["update"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         let stderr = String::from_utf8(out.stderr).unwrap();
@@ -1261,7 +1261,7 @@ fn toolchain_update_is_like_update() {
 fn toolchain_uninstall_is_like_uninstall() {
     setup(&|config| {
         expect_ok(config, &["rustup", "uninstall", "nightly"]);
-        let mut cmd = clitools::cmd(config, "rustup", &["show"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["show"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(out.status.success());
@@ -1324,7 +1324,7 @@ fn remove_component() {
         ));
         assert!(config.rustupdir.has(&path));
         expect_ok(config, &["rustup", "component", "remove", "rust-src"]);
-        assert!(!config.rustupdir.has(&path.parent().unwrap()));
+        assert!(!config.rustupdir.has(path.parent().unwrap()));
     });
 }
 
@@ -1355,7 +1355,7 @@ fn add_remove_multiple_components() {
                 this_host_triple(),
                 file
             ));
-            assert!(!config.rustupdir.has(&path.parent().unwrap()));
+            assert!(!config.rustupdir.has(path.parent().unwrap()));
         }
     });
 }
@@ -1387,7 +1387,7 @@ fn env_override_path() {
             .join("toolchains")
             .join(format!("nightly-{}", this_host_triple()));
 
-        let mut cmd = clitools::cmd(config, "rustc", &["--version"]);
+        let mut cmd = clitools::cmd(config, "rustc", ["--version"]);
         clitools::env(config, &mut cmd);
         cmd.env("RUSTUP_TOOLCHAIN", toolchain_path.to_str().unwrap());
 
@@ -1871,7 +1871,7 @@ fn env_override_beats_file_override() {
         let toolchain_file = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
-        let mut cmd = clitools::cmd(config, "rustc", &["--version"]);
+        let mut cmd = clitools::cmd(config, "rustc", ["--version"]);
         clitools::env(config, &mut cmd);
         cmd.env("RUSTUP_TOOLCHAIN", "beta");
 
@@ -1963,7 +1963,7 @@ fn docs_with_path() {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
 
-        let mut cmd = clitools::cmd(config, "rustup", &["doc", "--path"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["doc", "--path"]);
         clitools::env(config, &mut cmd);
 
         let out = cmd.output().unwrap();
@@ -1973,7 +1973,7 @@ fn docs_with_path() {
         let mut cmd = clitools::cmd(
             config,
             "rustup",
-            &["doc", "--path", "--toolchain", "nightly"],
+            ["doc", "--path", "--toolchain", "nightly"],
         );
         clitools::env(config, &mut cmd);
 
@@ -1989,7 +1989,7 @@ fn docs_topical_with_path() {
         expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
 
         for (topic, path) in mock::topical_doc_data::test_cases() {
-            let mut cmd = clitools::cmd(config, "rustup", &["doc", "--path", topic]);
+            let mut cmd = clitools::cmd(config, "rustup", ["doc", "--path", topic]);
             clitools::env(config, &mut cmd);
 
             let out = cmd.output().unwrap();
@@ -2143,7 +2143,7 @@ fn check_unix_settings_fallback() {
         )
         .unwrap();
 
-        let mut cmd = clitools::cmd(config, "rustup", &["default"]);
+        let mut cmd = clitools::cmd(config, "rustup", ["default"]);
         clitools::env(config, &mut cmd);
 
         // Override the path to the fallback settings file to be the mock file
@@ -2191,7 +2191,7 @@ fn dont_warn_on_partial_build() {
         let mut cmd = clitools::cmd(
             config,
             "rustup",
-            &["toolchain", "install", &format!("nightly-{}", arch)],
+            ["toolchain", "install", &format!("nightly-{}", arch)],
         );
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();

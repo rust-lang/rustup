@@ -339,7 +339,7 @@ pub(crate) fn perform<F: Fn(usize)>(item: &mut Item, chunk_complete_callback: F)
             contents.clear();
             match contents {
                 FileBuffer::Immediate(ref contents) => {
-                    write_file(&item.full_path, &contents, item.mode)
+                    write_file(&item.full_path, contents, item.mode)
                 }
                 FileBuffer::Threaded(ref mut contents) => {
                     write_file(&item.full_path, &contents, item.mode)
