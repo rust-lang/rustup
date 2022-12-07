@@ -1,6 +1,7 @@
 #!/bin/bash
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=ci/shared.bash
 . "$script_dir/shared.bash"
 
 set -e

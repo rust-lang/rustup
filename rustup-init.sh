@@ -590,7 +590,7 @@ check_help_for() {
     esac
 
     for _arg in "$@"; do
-        if ! "$_cmd" --help $_category | grep -q -- "$_arg"; then
+        if ! "$_cmd" --help "$_category" | grep -q -- "$_arg"; then
             return 1
         fi
     done
