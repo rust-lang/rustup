@@ -59,13 +59,13 @@ export PATH="$HOME/apple/bin"
             assert!(cmd.output().unwrap().status.success());
             let mut rcs = files.iter();
             let env = rcs.next().unwrap();
-            let envfile = fs::read_to_string(&env).unwrap();
+            let envfile = fs::read_to_string(env).unwrap();
             let (_, envfile_export) = envfile.split_at(envfile.find("export PATH").unwrap_or(0));
             assert_eq!(&envfile_export[..DEFAULT_EXPORT.len()], DEFAULT_EXPORT);
 
             for rc in rcs {
                 let expected = source("$HOME/.cargo", POSIX_SH);
-                let new_profile = fs::read_to_string(&rc).unwrap();
+                let new_profile = fs::read_to_string(rc).unwrap();
                 assert_eq!(new_profile, expected);
             }
         });
@@ -86,7 +86,7 @@ export PATH="$HOME/apple/bin"
 
             let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
             for rc in &rcs {
-                let new_rc = fs::read_to_string(&rc).unwrap();
+                let new_rc = fs::read_to_string(rc).unwrap();
                 assert_eq!(new_rc, expected);
             }
         })
@@ -191,9 +191,9 @@ export PATH="$HOME/apple/bin"
 
                 expect_ok(config, &INIT_NONE);
 
-                let new1 = fs::read_to_string(&path1).unwrap();
+                let new1 = fs::read_to_string(path1).unwrap();
                 assert_eq!(new1, expected);
-                let new2 = fs::read_to_string(&path2).unwrap();
+                let new2 = fs::read_to_string(path2).unwrap();
                 assert_eq!(new2, expected);
             }
         });
@@ -221,7 +221,7 @@ export PATH="$HOME/apple/bin"
             expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
 
             for rc in &rcs {
-                let new_rc = fs::read_to_string(&rc).unwrap();
+                let new_rc = fs::read_to_string(rc).unwrap();
                 assert_eq!(new_rc, FAKE_RC);
             }
         })
@@ -255,11 +255,11 @@ export PATH="$HOME/apple/bin"
             assert!(cmd.output().unwrap().status.success());
             let fixed_rc = FAKE_RC.to_owned() + &source("$HOME/.cargo", POSIX_SH);
             for rc in &rcs {
-                let new_rc = fs::read_to_string(&rc).unwrap();
+                let new_rc = fs::read_to_string(rc).unwrap();
                 assert_eq!(new_rc, fixed_rc);
             }
             for rc in &zprofiles {
-                let new_rc = fs::read_to_string(&rc).unwrap();
+                let new_rc = fs::read_to_string(rc).unwrap();
                 assert_eq!(new_rc, FAKE_RC);
             }
         })
@@ -291,14 +291,14 @@ export PATH="$HOME/apple/bin"
                 raw::write_file(rc, &old_rc).unwrap();
             }
 
-            let mut cmd = clitools::cmd(config, "rustup", &["self", "uninstall", "-y"]);
+            let mut cmd = clitools::cmd(config, "rustup", ["self", "uninstall", "-y"]);
             cmd.env("SHELL", "zsh");
             cmd.env("ZDOTDIR", zdotdir.path());
             cmd.env_remove("CARGO_HOME");
             assert!(cmd.output().unwrap().status.success());
 
             for rc in &rcs {
-                let new_rc = fs::read_to_string(&rc).unwrap();
+                let new_rc = fs::read_to_string(rc).unwrap();
                 // It's not ideal, but it's OK, if we leave whitespace.
                 assert_eq!(new_rc, FAKE_RC);
             }
@@ -324,7 +324,7 @@ export PATH="$HOME/apple/bin"
             let expected = format!("{}. \"$HOME/.cargo/env\"\n", FAKE_RC);
             assert_eq!(new_profile, expected);
 
-            let mut cmd = clitools::cmd(config, "rustup", &["self", "uninstall", "-y"]);
+            let mut cmd = clitools::cmd(config, "rustup", ["self", "uninstall", "-y"]);
             cmd.env_remove("CARGO_HOME");
             assert!(cmd.output().unwrap().status.success());
 

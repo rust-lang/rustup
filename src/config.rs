@@ -171,7 +171,7 @@ impl PgpPublicKey {
     /// Retrieve the key.
     pub(crate) fn cert(&self) -> &Cert {
         match self {
-            Self::Builtin => &*BUILTIN_PGP_KEY,
+            Self::Builtin => &BUILTIN_PGP_KEY,
             Self::FromEnvironment(_, k) => k,
             Self::FromConfiguration(_, k) => k,
         }

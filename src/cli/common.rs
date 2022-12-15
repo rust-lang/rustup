@@ -423,7 +423,7 @@ fn print_toolchain_path(
 ) -> Result<()> {
     let toolchain_path = {
         let mut t_path = cfg.toolchains_dir.clone();
-        t_path.push(&toolchain);
+        t_path.push(toolchain);
         t_path
     };
     let toolchain_meta = fs::symlink_metadata(&toolchain_path)?;

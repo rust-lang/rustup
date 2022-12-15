@@ -244,7 +244,7 @@ fn uninstall_self_delete_works() {
     setup_empty_installed(&|config| {
         let rustup = config.cargodir.join(&format!("bin/rustup{}", EXE_SUFFIX));
         let mut cmd = Command::new(rustup.clone());
-        cmd.args(&["self", "uninstall", "-y"]);
+        cmd.args(["self", "uninstall", "-y"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         println!("out: {}", String::from_utf8(out.stdout).unwrap());
@@ -396,7 +396,7 @@ fn update_updates_rustup_bin() {
         // Running the self update command on the installed binary,
         // so that the running binary must be replaced.
         let mut cmd = Command::new(&bin);
-        cmd.args(&["self", "update"]);
+        cmd.args(["self", "update"]);
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
 
