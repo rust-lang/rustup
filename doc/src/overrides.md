@@ -113,23 +113,70 @@ that uses the new TOML encoding in the `rust-toolchain` file. You need to upgrad
 The `rust-toolchain.toml`/`rust-toolchain` files are suitable to check in to
 source control.
 
-The toolchains named in these files have a more restricted form than `rustup`
-toolchains generally, and may only contain the names of the three release
-channels, 'stable', 'beta', 'nightly', Rust version numbers, like '1.0.0', and
-optionally an archive date, like 'nightly-2017-01-01'. They may not name
-custom toolchains, nor host-specific toolchains. To use a custom local
-toolchain, you can instead use a `path` toolchain:
+### Toolchain file settings
 
-``` toml
-[toolchain]
-path = "/path/to/local/toolchain"
+#### channel
+
+The `channel` setting specifies which [toolchain] to use. The value is a
+string in the following form:
+
+```
+<channel>[-<date>]
+
+<channel>       = stable|beta|nightly|<major.minor.patch>
+<date>          = YYYY-MM-DD
 ```
 
+Note that this is a more restricted form than `rustup` toolchains
+generally, and cannot be used to specify custom toolchains or
+host-specific toolchains.
+
+[toolchain]: concepts/toolchains.md
+
+#### path
+
+The `path` setting allows a custom toolchain to be used. The value is a
+path string. A relative path is resolved relative to the location of the
+`rust-toolchain.toml` file.
+
 Since a `path` directive directly names a local toolchain, other options
-like `components`, `targets`, and `profile` have no effect. `channel`
-and `path` are mutually exclusive, since a `path` already points to a
-specific toolchain. A relative `path` is resolved relative to the
-location of the `rust-toolchain.toml` file.
+like `components`, `targets`, and `profile` have no effect.
+
+`channel` and `path` are mutually exclusive, since a `path` already
+points to a specific toolchain.
+
+#### profile
+
+The `profile` setting names a group of components to be installed. The
+value is a string. The valid options are: `minimal`, `default`, and
+`complete`. See [profiles] for details of each.
+
+Note that if not specified, the `default` profile is not necessarily
+used, as a different default profile might have been set with `rustup
+set profile`.
+
+[profiles]: concepts/profiles.md
+
+#### components
+
+The `components` setting contains a list of additional components to
+install. The value is a list of strings. See [components] for a list of
+components. Note that different toolchains may have different components
+available.
+
+The components listed here are additive with the current profile.
+
+[components]: concepts/components.md
+
+#### targets
+
+The `targets` setting contains a list of platforms to install for
+[cross-compilation]. The value is a list of strings.
+
+The host platform is automatically included; the targets listed here are
+additive.
+
+[cross-compilation]: https://rust-lang.github.io/rustup/cross-compilation.html
 
 ## Default toolchain
 
