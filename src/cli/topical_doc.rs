@@ -103,7 +103,7 @@ pub(crate) fn local_path(root: &Path, topic: &str) -> Result<PathBuf> {
     # search for index.html in rel_path
     std::AAA::MMM std/AAA/MMM/index.html     root/std/AAA/MMM
 
-    # OR check if parent() dir exists and search for fn/sturct/etc
+    # OR check if parent() dir exists and search for fn/struct/etc
     std::AAA::FFF std/AAA/fn.FFF9.html       root/std/AAA
     std::AAA::SSS std/AAA/struct.SSS.html    root/std/AAA
     core:AAA::SSS std/AAA/struct.SSS.html    root/coreAAA
