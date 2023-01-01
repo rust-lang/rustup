@@ -1515,7 +1515,7 @@ const DOCS_DATA: &[(&str, &str, &str,)] = &[
     ("reference", "The Rust Reference", "reference/index.html"),
     ("rust-by-example", "A collection of runnable examples that illustrate various Rust concepts and standard libraries", "rust-by-example/index.html"),
     ("rustc", "The compiler for the Rust programming language", "rustc/index.html"),
-    ("rustdoc", "Generate documentation for Rust projects", "rustdoc/index.html"),
+    ("rustdoc", "Documentation generator for Rust projects", "rustdoc/index.html"),
     ("std", "Standard library API documentation", "std/index.html"),
     ("test", "Support code for rustc's built in unit-test and micro-benchmarking framework", "test/index.html"),
     ("unstable-book", "The Unstable Book", "unstable-book/index.html"),
