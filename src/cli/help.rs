@@ -154,7 +154,7 @@ pub(crate) static DOC_HELP: &str = r"DISCUSSION:
     By default, it opens the documentation index. Use the various
     flags to open specific pieces of documentation.";
 
-pub(crate) static COMPLETIONS_HELP: &str = r"DISCUSSION:
+pub(crate) static COMPLETIONS_HELP: &str = r#"DISCUSSION:
     Enable tab completion for Bash, Fish, Zsh, or PowerShell
     The script is output on `stdout`, allowing one to re-direct the
     output to the file of their choosing. Where you place the file
@@ -243,21 +243,25 @@ pub(crate) static COMPLETIONS_HELP: &str = r"DISCUSSION:
 
     First, check if a profile has already been set
 
-        PS C:\> Test-Path $profile
+        PS C:\> Test-Path $PROFILE
 
     If the above command returns `False` run the following
 
-        PS C:\> New-Item -path $profile -type file -force
+        PS C:\> New-Item -path $PROFILE -type file -force
 
-    Now open the file provided by `$profile` (if you used the
-    `New-Item` command it will be
-    `${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1`
+    Next, we save the completions file into a separate file and source it
+    inside our profile. To do so, simply use
 
-    Next, we either save the completions file into our profile, or
-    into a separate file and source it inside our profile. To save the
-    completions into our profile simply use
+        PS C:\> rustup completions powershell > "$(Split-Path $PROFILE)\rustup_completions.ps1"
+        PS C:\> Write-Output ". `"`$PSScriptRoot\rustup_completions.ps1`"" >> $PROFILE
 
-        PS C:\> rustup completions powershell >> ${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1
+    This will enable completions for the current PowerShell host. To enable
+    them for all hosts, replace $PROFILE by $PROFILE.CurrentUserAllHosts in the
+    above commands.
+
+    If you use both the Windows PowerShell powershell.exe and PowerShell Core
+    pwsh.exe, you may have to repeat the steps above in both, as they use
+    different profile directories.
 
     CARGO:
 
@@ -272,7 +276,7 @@ pub(crate) static COMPLETIONS_HELP: &str = r"DISCUSSION:
 
     ZSH:
 
-        $ rustup completions zsh cargo > ~/.zfunc/_cargo";
+        $ rustup completions zsh cargo > ~/.zfunc/_cargo"#;
 
 pub(crate) static TOOLCHAIN_ARG_HELP: &str = "Toolchain name, such as 'stable', 'nightly', \
                                        or '1.8.0'. For more information see `rustup \
