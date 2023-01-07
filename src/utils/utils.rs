@@ -293,7 +293,15 @@ where
 }
 
 pub(crate) fn hard_or_symlink_file(src: &Path, dest: &Path) -> Result<()> {
-    if hardlink_file(src, dest).is_err() {
+    // Some mac filesystems can do hardlinks to symlinks, some can't.
+    // See rust-lang/rustup#3136 for why it's better never to use them.
+    #[cfg(target_os = "macos")]
+    let force_symlink = fs::symlink_metadata(src)
+        .map(|m| m.file_type().is_symlink())
+        .unwrap_or(false);
+    #[cfg(not(target_os = "macos"))]
+    let force_symlink = false;
+    if force_symlink || hardlink_file(src, dest).is_err() {
         symlink_file(src, dest)?;
     }
     Ok(())
