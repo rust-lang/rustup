@@ -1,4 +1,4 @@
-#!/bin/bash                                                                                            
+#!/bin/bash
 
 set -ex
 
@@ -26,6 +26,7 @@ echo "Install Rustup using ./rustup-init.sh"
 
 sh rustup-init.sh --default-toolchain=stable --profile=minimal -y
 # It's the equivalent of `source`
+# shellcheck source=src/cli/self_update/env.sh
 source "$HOME"/.cargo/env
 
 echo "========="
