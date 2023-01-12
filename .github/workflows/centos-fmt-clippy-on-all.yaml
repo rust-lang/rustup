@@ -82,9 +82,9 @@ jobs:
             sh ./ci/raw_init.sh
       - name: Run shell checks
         run: |
-          shellcheck -s dash -- rustup-init.sh
-          git ls-files -- '*.sh' | xargs shellcheck -s dash -e SC1090
-          git ls-files -- '*.bash' | xargs shellcheck -s bash -e SC1090
+          shellcheck -x -s dash -- rustup-init.sh
+          git ls-files -- '*.sh' | xargs shellcheck -x -s dash
+          git ls-files -- '*.bash' | xargs shellcheck -x -s bash
       - name: Run formatting checks
         run: |
           cargo fmt --all --check
