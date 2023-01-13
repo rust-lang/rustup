@@ -5,5 +5,11 @@
     ],
     "labels": [
         "dependencies"
-    ]
+    ],
+    "lockFileMaintenance": {
+        "enabled": true
+    },
+    "prCreation": "not-pending",
+    "rangeStrategy": "replace",
+    "stabilityDays": 3
 }
