@@ -44,7 +44,7 @@ jobs:
           echo "SKIP_TESTS=" >> $GITHUB_ENV
           echo "LZMA_API_STATIC=1" >> $GITHUB_ENV
       - name: Cache cargo registry and git trees
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
@@ -56,7 +56,7 @@ jobs:
           echo "::set-output name=rust_hash::$(rustc -Vv | grep commit-hash | awk '{print $2}')"
         shell: bash
       - name: Cache cargo build
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: target
           key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}-3
