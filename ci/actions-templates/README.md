@@ -4,12 +4,15 @@ This directory contains all the workflows we use in Rustup for GitHub Actions.
 
 ## Triggers for CI builds
 
-Rustup has four situations in which we perform CI builds:
+Rustup has five situations in which we perform CI builds:
 
 1. On PR changes
 2. On merge to master
 3. Time-based rebuilds of master
 4. Pushes to the stable branch
+5. Renovate branches with dependency updates, tested before opening a PR or
+   merging. They are assessed the same as a PR: if it would be good enough as a
+   human proposed change, its good enough as a robot proposed change.
 
 The goals for each of those situations are subtly different. For PR changes,
 we want to know as quickly as possible if the change is likely to be an issue.

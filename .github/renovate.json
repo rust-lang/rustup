@@ -11,5 +11,10 @@
     },
     "prCreation": "not-pending",
     "rangeStrategy": "replace",
-    "stabilityDays": 3
+    "stabilityDays": 3,
+    "github-actions": {
+        "fileMatch": [
+            "^ci\\/.*/[^/]+\\.ya?ml$"
+        ]
+    }
 }
