@@ -280,26 +280,17 @@ later, but they don't seem to be installed.
 
 #[cfg(windows)]
 static MSVC_MANUAL_INSTALL_MESSAGE: &str = r#"
-You can acquire the build tools by installing Microsoft
-Visual C++ Build Tools 2019 which provides just the Visual C++ build
-tools:
-
-    https://visualstudio.microsoft.com/visual-cpp-build-tools/
-
-Check its box for "Desktop development with C++" which will ensure that
-the Windows 10 SDK is selected.  If your locale language is not English,
-then additionally check the box for English under Language packs.
-Or minimally, use the tab "Individual Components" and select these items:
-
-    "MSVC - VS 2019 C++ x64/x86 build tools"
-    and
-    "Windows 10 SDK"
-
-Alternately, you can install Visual Studio 2019, Visual Studio 2017,
-Visual Studio 2015, or Visual Studio 2013 and during install select
-the "C++ tools":
+You can acquire the build tools by installing Microsoft Visual Studio.
 
     https://visualstudio.microsoft.com/downloads/
+
+Check the box for "Desktop development with C++" which will ensure that the
+needed components are installed. If your locale language is not English,
+then additionally check the box for English under Language packs.
+
+For more details see:
+
+    https://rust-lang.github.io/rustup/installation/windows-msvc.html
 
 _Install the C++ build tools before proceeding_.
 
