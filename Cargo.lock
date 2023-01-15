@@ -1873,13 +1873,12 @@ dependencies = [
 
 [[package]]
 name = "rs_tracing"
-version = "1.0.1"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92b10cbf58a21be5d96a9c0336bd06b50f581dcb735f66ff69781a12336ac03b"
+checksum = "e3b121670da627e1c0110e7972c9db150dd7f8704dc073cce32c3db9cb7861e0"
 dependencies = [
  "serde",
  "serde_json",
- "time 0.1.43",
 ]
 
 [[package]]
