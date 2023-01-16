@@ -53,7 +53,7 @@ semver = "1.0"
 serde = {version = "1.0", features = ["derive"]}
 sequoia-openpgp = { version = "1.13", default-features = false, features = ["crypto-rust", "allow-experimental-crypto", "allow-variable-time-crypto"] }
 sha2 = "0.10"
-sharded-slab = "0.1.1"
+sharded-slab = "0.1.4"
 strsim = "0.10"
 tar = "0.4.26"
 tempfile = "3.1"
