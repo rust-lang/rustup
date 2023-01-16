@@ -87,7 +87,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8824ecca2e851cec16968d54a01dd372ef8f95b244fb84b84e70128be347c3c6"
 dependencies = [
- "term 0.7.0",
+ "term",
 ]
 
 [[package]]
@@ -1261,7 +1261,7 @@ dependencies = [
  "regex",
  "regex-syntax",
  "string_cache",
- "term 0.7.0",
+ "term",
  "tiny-keccak",
  "unicode-xid",
 ]
@@ -2064,7 +2064,7 @@ dependencies = [
  "strsim 0.10.0",
  "tar",
  "tempfile",
- "term 0.5.1",
+ "term",
  "thiserror",
  "threadpool",
  "toml",
@@ -2466,16 +2466,6 @@ dependencies = [
  "libc",
  "redox_syscall",
  "remove_dir_all 0.5.3",
- "winapi",
-]
-
-[[package]]
-name = "term"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e6b677dd1e8214ea1ef4297f85dbcbed8e8cdddb561040cc998ca2551c37561"
-dependencies = [
- "byteorder",
  "winapi",
 ]
 
