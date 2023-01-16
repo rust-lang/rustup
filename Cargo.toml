@@ -55,7 +55,7 @@ sequoia-openpgp = { version = "1.13", default-features = false, features = ["cry
 sha2 = "0.10"
 sharded-slab = "0.1.1"
 strsim = "0.10"
-tar = "0.4.26"
+tar = "0.4.38"
 tempfile = "3.1"
 # FIXME(issue #1818, #1826, and friends)
 term = "=0.5.1"
