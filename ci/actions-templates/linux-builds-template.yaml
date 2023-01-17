@@ -6,13 +6,14 @@ name: Linux (master) # skip-pr skip-stable
 name: Linux (stable) # skip-master skip-pr
 
 on:
-  pull_request: # skip-master skip-stable
-    branches:   # skip-master skip-stable
-      - "*"     # skip-master skip-stable
-  push:         # skip-pr
-    branches:   # skip-pr
-      - master  # skip-pr skip-stable
-      - stable  # skip-pr skip-master
+  pull_request:    # skip-master skip-stable
+    branches:      # skip-master skip-stable
+      - "*"        # skip-master skip-stable
+  push:            # skip-pr
+    branches:      # skip-pr
+      - master     # skip-pr skip-stable
+      - stable     # skip-pr skip-master
+      - renovate/* # skip-master skip-stable
   schedule: # skip-pr skip-stable
     - cron: "30 0 * * 1" # Every Monday at half past midnight UTC skip-pr skip-stable
 

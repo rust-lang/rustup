@@ -4,9 +4,9 @@
 name: Windows (stable) # skip-master skip-pr
 
 on:
-  push:         # skip-pr
-    branches:   # skip-pr
-      - stable  # skip-pr skip-master
+  push:            # skip-pr
+    branches:      # skip-pr
+      - stable     # skip-pr skip-master
 
 jobs:
   build:

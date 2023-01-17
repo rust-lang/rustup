@@ -4,9 +4,10 @@
 name: Linux (PR) # skip-master skip-stable
 
 on:
-  pull_request: # skip-master skip-stable
-    branches:   # skip-master skip-stable
-      - "*"     # skip-master skip-stable
+  pull_request:    # skip-master skip-stable
+    branches:      # skip-master skip-stable
+      - "*"        # skip-master skip-stable
+      - renovate/* # skip-master skip-stable
 
 jobs:
   build:

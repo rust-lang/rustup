@@ -4,9 +4,9 @@
 name: Linux (master) # skip-pr skip-stable
 
 on:
-  push:         # skip-pr
-    branches:   # skip-pr
-      - master  # skip-pr skip-stable
+  push:            # skip-pr
+    branches:      # skip-pr
+      - master     # skip-pr skip-stable
   schedule: # skip-pr skip-stable
     - cron: "30 0 * * 1" # Every Monday at half past midnight UTC skip-pr skip-stable
 
