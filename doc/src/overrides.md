@@ -111,7 +111,9 @@ that uses the new TOML encoding in the `rust-toolchain` file. You need to upgrad
 `rustup` to 1.23.0+.
 
 The `rust-toolchain.toml`/`rust-toolchain` files are suitable to check in to
-source control.
+source control. If that's done, `Cargo.lock` should probably be tracked too if
+the toolchain is pinned to a specific release, to avoid potential compatibility
+issues with dependencies.
 
 ### Toolchain file settings
 
