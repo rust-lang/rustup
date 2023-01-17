@@ -8,6 +8,8 @@ For `msvc` targets these can be acquired through Visual Studio.
 If you don't have Visual Studio already installed then [rustup-init] will offer to automatically install the prerequisites.
 Doing so means you can skip the rest of this page.
 However, it installs Visual Studio Community edition which may not be appropriate for all users.
+It is free for individuals, academic and open source use but other uses, such as in proprietary enterprise software, should ask their organisation which edition is right for them.
+See [licensing terms][vs licences] for more details.
 
 ## Manual install
 
