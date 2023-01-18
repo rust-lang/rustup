@@ -465,7 +465,7 @@ pub struct CustomToolchain<'a>(&'a Toolchain<'a>);
 
 impl<'a> CustomToolchain<'a> {
     pub fn new(toolchain: &'a Toolchain<'a>) -> Result<CustomToolchain<'a>> {
-        if toolchain.is_custom() {
+        if toolchain.is_custom() && toolchain.name() != "none" {
             Ok(CustomToolchain(toolchain))
         } else {
             Err(anyhow!(format!(

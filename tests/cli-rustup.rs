@@ -513,6 +513,12 @@ fn link() {
         expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_stdout_ok(config, &["rustup", "show"], "custom");
+        // should not allow 'none' for custom toolchain name
+        expect_err(
+            config,
+            &["rustup", "toolchain", "link", "none", &path],
+            "error: invalid custom toolchain name: 'none'",
+        );
     });
 }
 
