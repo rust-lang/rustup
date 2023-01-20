@@ -89,7 +89,7 @@ pub(crate) const NEVER_SELF_UPDATE: bool = true;
 #[cfg(not(feature = "no-self-update"))]
 pub(crate) const NEVER_SELF_UPDATE: bool = false;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SelfUpdateMode {
     Enable,
     Disable,
