@@ -134,7 +134,7 @@ Thanks go to:
 
 ## [1.24.3] - 2021-05-31
 
-This patch release focusses around resolving some regressions in behaviour in
+This patch release focuses around resolving some regressions in behaviour in
 the 1.24.x series. One problem, related to accounting for the release of data
 blocks in the unpack slab allocator, fixed in [pr#2779], would manifest in the
 installer [hanging during installation][issue#2774]. A second, fixed in
@@ -430,7 +430,7 @@ subsequently `1.48.1` were released, a `rustup update` would update your `1.48`
 from `1.48.0` to `1.48.1`.
 
 As always, there were more changes than described below, thanks to everyone
-who contributed to this release. Hilights for this release are detailed below,
+who contributed to this release. Highlights for this release are detailed below,
 but you can always see the full list of changes via the Git repository.
 
 ### Added
@@ -1315,7 +1315,7 @@ Tryzelaar, Ricardo Martins, Артём Павлов [Artyom Pavlov]
 - [Add PATH in post-install message when not modifying PATH](https://github.com/rust-lang/rustup/pull/1126)
 - [Cleanup download-related code in the rustup_dist crate](https://github.com/rust-lang/rustup/pull/1131)
 - [Increase Rust detection timeout to 3 seconds](https://github.com/rust-lang/rustup/pull/1130)
-- [Supress confusing NotADirectory error and show override missing](https://github.com/rust-lang/rustup/pull/1128)
+- [Suppress confusing NotADirectory error and show override missing](https://github.com/rust-lang/rustup/pull/1128)
 - [Don't try to update archive toolchains](https://github.com/rust-lang/rustup/pull/1121)
 - [Exit successfully on "update not yet available"](https://github.com/rust-lang/rustup/pull/1120)
 - [Add a message when removing a component](https://github.com/rust-lang/rustup/pull/1119)

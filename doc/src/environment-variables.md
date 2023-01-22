@@ -35,7 +35,7 @@
   `RUST_BACKTRACE` is set.
 
 - `RUSTUP_PERMIT_COPY_RENAME` *unstable* When set, allows rustup to fall-back
-  to copying files if attempts to `rename` result in an cross-device link
+  to copying files if attempts to `rename` result in cross-device link
   errors. These errors occur on OverlayFS, which is used by [Docker][dc]. This
   feature sacrifices some transactions protections and may be removed at any
   point. Linux only.

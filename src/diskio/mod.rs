@@ -298,7 +298,7 @@ pub(crate) trait Executor {
         self.dispatch(item)
     }
 
-    /// Actually dispatch a operation.
+    /// Actually dispatch an operation.
     /// This is called by the default execute() implementation and
     /// should not be called directly.
     fn dispatch(&self, item: Item) -> Box<dyn Iterator<Item = CompletedIo> + '_>;
