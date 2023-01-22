@@ -453,10 +453,6 @@ impl<'a> InstalledCommonToolchain<'a> {
             path_entries.push(cargo_home.join("bin"));
         }
 
-        if cfg!(target_os = "windows") {
-            path_entries.push(self.0.path.join("bin"));
-        }
-
         env_var::prepend_path("PATH", path_entries, cmd);
     }
 }
