@@ -73,10 +73,10 @@ simple as using one of the following:
 
 ```console
 # Bash
-$ rustup completions bash > ~/.local/share/bash-completion/completions/rustup
+$ printf 'eval -- "$("$1" completions bash)"\n' > ~/.local/share/bash-completion/completions/rustup
 
 # Bash (macOS/Homebrew)
-$ rustup completions bash > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
+$ printf 'eval -- "$(rustup completions bash)"\n' > $(brew --prefix)/etc/bash_completion.d/rustup.bash-completion
 
 # Fish
 $ mkdir -p ~/.config/fish/completions
