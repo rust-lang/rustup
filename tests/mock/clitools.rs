@@ -99,7 +99,7 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     env::remove_var("RUSTUP_TOOLCHAIN");
     env::remove_var("SHELL");
     env::remove_var("ZDOTDIR");
-    // clap does it's own terminal colour probing, and that isn't
+    // clap does its own terminal colour probing, and that isn't
     // trait-controllable, but it does honour the terminal. To avoid testing
     // claps code, lie about whatever terminal this process was started under.
     env::set_var("TERM", "dumb");
@@ -533,7 +533,7 @@ pub fn env<E: rustup_test::Env>(config: &Config, cmd: &mut E) {
     );
 
     // The unix fallback settings file may be present in the test environment, so override
-    // the path to the settings file with a non-existing path to avoid intereference
+    // the path to the settings file with a non-existing path to avoid interference
     cmd.env(
         "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS",
         "/bogus-config-file.toml",
@@ -693,7 +693,7 @@ where
                     && e.kind() == std::io::ErrorKind::Other
                     && e.raw_os_error() == Some(26)
                 {
-                    // This is a ETXTBSY situation
+                    // This is an ETXTBSY situation
                     std::thread::sleep(std::time::Duration::from_millis(250));
                 } else {
                     panic!("Unable to run test command: {:?}", e);

@@ -457,7 +457,7 @@ fn _remove_from_path(old_path: Vec<u16>, path_str: Vec<u16>) -> Option<Vec<u16>>
         .position(|path| path == path_str)?;
     // If there's a trailing semicolon (likely, since we probably added one
     // during install), include that in the substring to remove. We don't search
-    // for that to find the string, because if its the last string in the path,
+    // for that to find the string, because if it's the last string in the path,
     // there may not be.
     let mut len = path_str.len();
     if old_path.get(idx + path_str.len()) == Some(&(b';' as u16)) {

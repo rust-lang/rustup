@@ -181,7 +181,7 @@ Rustup is distributed. The steps for a release are:
 ### `RUSTUP_FORCE_ARG0`
 
 The environment variable `RUSTUP_FORCE_ARG0` can be used to get rustup to think
-its a particular binary, rather than e.g. copying it, symlinking it or other
+it's a particular binary, rather than e.g. copying it, symlinking it or other
 tricks with exec. This is handy when testing particular code paths from cargo
 run.
 

@@ -12,7 +12,7 @@ Rustup has five situations in which we perform CI builds:
 4. Pushes to the stable branch
 5. Renovate branches with dependency updates, tested before opening a PR or
    merging. They are assessed the same as a PR: if it would be good enough as a
-   human proposed change, its good enough as a robot proposed change.
+   human proposed change, it's good enough as a robot proposed change.
 
 The goals for each of those situations are subtly different. For PR changes,
 we want to know as quickly as possible if the change is likely to be an issue.
@@ -20,7 +20,7 @@ we want to know as quickly as possible if the change is likely to be an issue.
 Once a change hits master, we want to know that all our targets build.
 
 Time based rebuilds of master are about determining if updates to the toolchain
-have caused us problems, and also to try and hilight if we have flaky tests.
+have caused us problems, and also to try and highlight if we have flaky tests.
 
 The stable branch is about making releases. Builds from that branch are uploaded
 to S3 so that we can then make a release of rustup.

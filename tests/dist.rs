@@ -860,7 +860,7 @@ fn unavailable_component_from_profile() {
 
 #[test]
 fn removed_component() {
-    // On day 1 install the 'bonus' component, on day 2 its no longer a component
+    // On day 1 install the 'bonus' component, on day 2 it's no longer a component
     let edit = &|date: &str, chan: &mut MockChannel| {
         if date == "2016-02-01" {
             let tpkg = chan.packages[0]
