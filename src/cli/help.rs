@@ -169,10 +169,9 @@ pub(crate) static COMPLETIONS_HELP: &str = r"Discussion:
 
     Bash:
 
-    Completion files are commonly stored in
-    `/usr/share/bash-completion/completions` for
-    system-wide commands, but can be stored in
-    `~/.local/share/bash-completion/completions` for user-specific commands.
+    System wide completion files are commonly stored in
+    `/usr/share/bash-completion/completions`, and user-specific ones
+    can be stored in `~/.local/share/bash-completion/completions`.
     Run the command:
 
         $ mkdir -p ~/.local/share/bash-completion/completions
