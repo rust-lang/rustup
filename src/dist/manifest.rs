@@ -24,7 +24,7 @@ use crate::utils::toml_utils::*;
 
 pub(crate) const SUPPORTED_MANIFEST_VERSIONS: [&str; 1] = ["2"];
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Manifest {
     manifest_version: String,
     pub date: String,
@@ -34,25 +34,25 @@ pub struct Manifest {
     profiles: HashMap<Profile, Vec<String>>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Package {
     pub version: String,
     pub targets: PackageTargets,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PackageTargets {
     Wildcard(TargetedPackage),
     Targeted(HashMap<TargetTriple, TargetedPackage>),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TargetedPackage {
     pub bins: Vec<(CompressionKind, HashedBinary)>,
     pub components: Vec<Component>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CompressionKind {
     GZip,
     XZ,
@@ -77,7 +77,7 @@ impl CompressionKind {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HashedBinary {
     pub url: String,
     pub hash: String,

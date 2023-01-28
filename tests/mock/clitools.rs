@@ -51,7 +51,7 @@ pub struct Config {
 
 // Describes all the features of the mock dist server.
 // Building the mock server is slow, so use simple scenario when possible.
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Scenario {
     /// No dist server content
     Empty,

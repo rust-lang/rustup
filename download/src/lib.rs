@@ -47,12 +47,13 @@ fn download_with_backend(
     }
 }
 
+type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> Result<()>;
 pub fn download_to_path_with_backend(
     backend: Backend,
     url: &Url,
     path: &Path,
     resume_from_partial: bool,
-    callback: Option<&dyn Fn(Event<'_>) -> Result<()>>,
+    callback: Option<DownloadCallback<'_>>,
 ) -> Result<()> {
     use std::cell::RefCell;
     use std::fs::remove_file;

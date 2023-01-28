@@ -61,7 +61,7 @@ impl Changes {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Eq)]
 pub enum UpdateStatus {
     Changed,
     Unchanged,
