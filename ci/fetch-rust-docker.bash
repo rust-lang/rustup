@@ -1,6 +1,7 @@
 #!/bin/bash
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=ci/shared.bash
 . "$script_dir/shared.bash"
 
 set -e
@@ -39,6 +40,11 @@ case "$TARGET" in
 esac
 
 master=$(git ls-remote "$RUST_REPO" refs/heads/master | cut -f1)
+# FIXME: bad hack to get a good working image for the 2023-02-01 release, this
+# will get broken for future releases
+if [[ "${image}" = "dist-android" ]]; then
+    master="6d46b1ec8769fbbb3ac2a2cb12f0cad527135413"
+fi
 image_url="$ARTIFACTS_BASE_URL/$master/image-$image.txt"
 info="/tmp/image-$image.txt"
 
