@@ -62,16 +62,18 @@ fn main() {
             Command::new(rustc).arg("--version").status().unwrap();
         }
         Some("--recursive-cargo-subcommand") => {
-            Command::new("cargo-foo")
+            let status = Command::new("cargo-foo")
                 .arg("--recursive-cargo")
                 .status()
                 .unwrap();
+            assert!(status.success());
         }
         Some("--recursive-cargo") => {
-            Command::new("cargo")
+            let status = Command::new("cargo")
                 .args(&["+nightly", "--version"])
                 .status()
                 .unwrap();
+            assert!(status.success());
         }
         Some("--echo-args") => {
             let mut out = io::stderr();

@@ -585,7 +585,21 @@ fn recursive_cargo() {
             fs::create_dir_all(&cargo_bin_path).unwrap();
             fs::copy(&real_mock_cargo, &cargo_subcommand).unwrap();
 
-            config.expect_stdout_ok(&["cargo", "--recursive-cargo-subcommand"], "hash-nightly-2");
+            // Verify the default behavior, which is currently broken on Windows.
+            let args = &["cargo", "--recursive-cargo-subcommand"];
+            if cfg!(windows) {
+                config.expect_err(
+                    &["cargo", "--recursive-cargo-subcommand"],
+                    "bad mock proxy commandline",
+                );
+            }
+
+            // Try the opt-in, which should fix it.
+            let out = config.run(args[0], &args[1..], &[("RUSTUP_WINDOWS_PATH_ADD_BIN", "0")]);
+            if !out.ok || !out.stdout.contains("hash-nightly-2") {
+                clitools::print_command(args, &out);
+                panic!("expected hash-nightly-2 in output");
+            }
         });
     });
 }
