@@ -7,12 +7,13 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use anyhow::{anyhow, bail, Context, Result};
-use sequoia_openpgp::{parse::Parse, policy, Cert};
+use sequoia_openpgp::{parse::Parse, Cert};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 
 use crate::cli::self_update::SelfUpdateMode;
 use crate::dist::download::DownloadCfg;
+use crate::dist::signatures::sequoia_policy;
 use crate::dist::{
     dist::{self, Profile},
     temp,
@@ -198,7 +199,8 @@ impl PgpPublicKey {
         let keyid = format_hex(cert.keyid().as_bytes(), "-", 4)?;
         let algo = cert.primary_key().pk_algo();
         let fpr = format_hex(cert.fingerprint().as_bytes(), " ", 2)?;
-        let p = policy::StandardPolicy::new();
+        let p = sequoia_policy();
+
         let uid0 = cert
             .with_policy(&p, None)?
             .primary_userid()

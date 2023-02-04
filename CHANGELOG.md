@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.25.2] - 2023-02-01
+
+This version of Rustup changes the signature verification code to continue
+accepting Rust's release signature key, which previously caused warnings due to
+a time-based check.
+
+Note that signature verification in Rustup is still an experimental feature,
+and there is intentionally no way to enforce signature verification due to the
+feature being incomplete.
+
+Thanks go to:
+
+- Pietro Albini
+- Daniel Silverstone
+
+[1.25.2]: https://github.com/rust-lang/rustup/release/tag/1.25.2
+
 ## [1.25.1] - 2022-07-12
 
 This version of Rustup reverts a single PR from 1.25.1 and tidies a couple of internal
