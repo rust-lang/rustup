@@ -5,6 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Result};
+use path_slash::PathBufExt;
 
 use crate::dist::component::package::{INSTALLER_VERSION, VERSION_FILE};
 use crate::dist::component::transaction::Transaction;
@@ -150,8 +151,12 @@ impl ComponentPart {
         format!("{}:{}", &self.0, &self.1.to_string_lossy())
     }
     pub(crate) fn decode(line: &str) -> Option<Self> {
-        line.find(':')
-            .map(|pos| Self(line[0..pos].to_owned(), PathBuf::from(&line[(pos + 1)..])))
+        line.find(':').map(|pos| {
+            Self(
+                line[0..pos].to_owned(),
+                PathBuf::from_slash(&line[(pos + 1)..]),
+            )
+        })
     }
 }
 
@@ -314,5 +319,20 @@ impl Component {
         tx.remove_file(&self.name, self.rel_manifest_file())?;
 
         Ok(tx)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode_component_part() {
+        let part = ComponentPart::decode("dir:share/doc/rust/html").unwrap();
+        assert_eq!(part.0, "dir");
+        #[cfg(target_os = "windows")]
+        assert_eq!(part.1, Path::new(r"share\doc\rust\html"));
+        #[cfg(not(target_os = "windows"))]
+        assert_eq!(part.1, Path::new("share/doc/rust/html"));
     }
 }
