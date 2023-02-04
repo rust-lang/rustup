@@ -4,8 +4,8 @@ use clap::{App, AppSettings, Arg};
 use super::common;
 use super::self_update::{self, InstallOpts};
 use crate::dist::dist::Profile;
-use crate::process;
 use crate::utils::utils;
+use crate::{process, InstallFromToolchainFileCfg};
 
 pub fn main() -> Result<utils::ExitCode> {
     let args: Vec<_> = process().args().collect();
@@ -58,6 +58,12 @@ pub fn main() -> Result<utils::ExitCode> {
                 .help("Choose a default toolchain to install"),
         )
         .arg(
+            Arg::with_name("from-file")
+                .long("from-file")
+                .takes_value(true)
+                .help("Use the default toolchain specified by the rust-toolchain file"),
+        )
+        .arg(
             Arg::with_name("profile")
                 .long("profile")
                 .possible_values(Profile::names())
@@ -103,11 +109,25 @@ pub fn main() -> Result<utils::ExitCode> {
         }
         Err(e) => return Err(e.into()),
     };
+
+    let toolchain_cfg = match matches
+        .value_of("from-file")
+        .map(InstallFromToolchainFileCfg::try_from_file)
+    {
+        Some(Ok(cfg)) => Some(cfg),
+        Some(Err(e)) => return Err(e.into()),
+        None => None,
+    };
+
     let no_prompt = matches.is_present("no-prompt");
     let verbose = matches.is_present("verbose");
     let quiet = matches.is_present("quiet");
     let default_host = matches.value_of("default-host").map(ToOwned::to_owned);
-    let default_toolchain = matches.value_of("default-toolchain").map(ToOwned::to_owned);
+    let default_toolchain = matches
+        .value_of("default-toolchain")
+        .map(ToOwned::to_owned)
+        .or_else(|| toolchain_cfg.and_then(|cfg| cfg.channel()));
+
     let profile = matches
         .value_of("profile")
         .expect("Unreachable: Clap should supply a default");
