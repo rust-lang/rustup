@@ -1,6 +1,6 @@
 FROM rust-android
 
-ENV PATH=$PATH:/android/ndk/arm-21/bin:/android/ndk/arm64-21/bin:/android/ndk/x86-21/bin:/android/ndk/x86_64-21/bin \
+ENV PATH=$PATH:/android/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin \
     CC_arm_linux_androideabi=arm-linux-androideabi-clang \
     CC_armv7_linux_androideabi=arm-linux-androideabi-clang \
     CC_aarch64_linux_android=aarch64-linux-android-clang \
