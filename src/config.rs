@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::collections::VecDeque;
 use std::fmt::{self, Display};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -650,35 +651,36 @@ impl Cfg {
                 return Ok(Some((name.into(), reason)));
             }
 
-            // Then look for 'rust-toolchain' or 'rust-toolchain.toml'
-            let path_rust_toolchain = d.join("rust-toolchain");
-            let path_rust_toolchain_toml = d.join("rust-toolchain.toml");
+            let mut toolchain_files: VecDeque<_> = [
+                "rust-toolchain",
+                "rust-toolchain.toml",
+                ".rust-toolchain.toml",
+            ]
+            .into_iter()
+            .filter_map(|toolchain_file_name| {
+                let toolchain_file_path = d.join(toolchain_file_name);
+                let content = utils::read_file("toolchain file", &toolchain_file_path).ok()?;
+                let parse_mode = if toolchain_file_name.ends_with(".toml") {
+                    ParseMode::OnlyToml
+                } else {
+                    ParseMode::Both
+                };
+                Some((toolchain_file_path, content, parse_mode))
+            })
+            .collect();
 
-            let (toolchain_file, contents, parse_mode) = match (
-                utils::read_file("toolchain file", &path_rust_toolchain),
-                utils::read_file("toolchain file", &path_rust_toolchain_toml),
-            ) {
-                (contents, Err(_)) => {
-                    // no `rust-toolchain.toml` exists
-                    (path_rust_toolchain, contents, ParseMode::Both)
-                }
-                (Err(_), Ok(contents)) => {
-                    // only `rust-toolchain.toml` exists
-                    (path_rust_toolchain_toml, Ok(contents), ParseMode::OnlyToml)
-                }
-                (Ok(contents), Ok(_)) => {
-                    // both `rust-toolchain` and `rust-toolchain.toml` exist
+            if toolchain_files.len() > 1 {
+                notify(Notification::MultipleToolchainFiles(
+                    toolchain_files
+                        .iter()
+                        .map(|(file_path, _, _)| file_path.as_path())
+                        .collect(),
+                ));
+            }
 
-                    notify(Notification::DuplicateToolchainFile {
-                        rust_toolchain: &path_rust_toolchain,
-                        rust_toolchain_toml: &path_rust_toolchain_toml,
-                    });
+            let first_toolchain_file = toolchain_files.pop_front();
 
-                    (path_rust_toolchain, Ok(contents), ParseMode::Both)
-                }
-            };
-
-            if let Ok(contents) = contents {
+            if let Some((toolchain_file, contents, parse_mode)) = first_toolchain_file {
                 let add_file_context = || format!("in {}", toolchain_file.to_string_lossy());
                 let override_file = Cfg::parse_override_file(contents, parse_mode)
                     .with_context(add_file_context)?;

@@ -32,11 +32,7 @@ pub enum Notification<'a> {
     UpgradeRemovesToolchains,
     MissingFileDuringSelfUninstall(PathBuf),
     PlainVerboseMessage(&'a str),
-    /// Both `rust-toolchain` and `rust-toolchain.toml` exist within a directory
-    DuplicateToolchainFile {
-        rust_toolchain: &'a Path,
-        rust_toolchain_toml: &'a Path,
-    },
+    MultipleToolchainFiles(Vec<&'a Path>),
 }
 
 impl<'a> From<crate::dist::Notification<'a>> for Notification<'a> {
@@ -84,7 +80,7 @@ impl<'a> Notification<'a> {
             NonFatalError(_) => NotificationLevel::Error,
             UpgradeRemovesToolchains
             | MissingFileDuringSelfUninstall(_)
-            | DuplicateToolchainFile { .. } => NotificationLevel::Warn,
+            | MultipleToolchainFiles(_) => NotificationLevel::Warn,
         }
     }
 }
@@ -139,21 +135,22 @@ impl<'a> Display for Notification<'a> {
                 p.display()
             ),
             PlainVerboseMessage(r) => write!(f, "{}", r),
-            DuplicateToolchainFile {
-                rust_toolchain,
-                rust_toolchain_toml,
-            } => write!(
-                f,
-                "both `{0}` and `{1}` exist. Using `{0}`",
-                rust_toolchain
-                    .canonicalize()
-                    .unwrap_or_else(|_| PathBuf::from(rust_toolchain))
-                    .display(),
-                rust_toolchain_toml
-                    .canonicalize()
-                    .unwrap_or_else(|_| PathBuf::from(rust_toolchain_toml))
-                    .display(),
-            ),
+            MultipleToolchainFiles(rust_toolchain_paths) => {
+                assert!(rust_toolchain_paths.len() > 1);
+                let used_path = rust_toolchain_paths[0];
+                let all_paths = rust_toolchain_paths
+                    .iter()
+                    .skip(1)
+                    .fold(format!("`{}`", used_path.display()), |all_paths, path| {
+                        format!("{} and `{}`", all_paths, path.display())
+                    });
+                write!(
+                    f,
+                    "both {} exist. Using `{}`",
+                    all_paths,
+                    used_path.display()
+                )
+            }
         }
     }
 }
