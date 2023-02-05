@@ -137,13 +137,19 @@ impl<'a> Display for Notification<'a> {
             PlainVerboseMessage(r) => write!(f, "{}", r),
             MultipleToolchainFiles(rust_toolchain_paths) => {
                 assert!(rust_toolchain_paths.len() > 1);
-                let used_path = rust_toolchain_paths[0];
-                let all_paths = rust_toolchain_paths
-                    .iter()
-                    .skip(1)
-                    .fold(format!("`{}`", used_path.display()), |all_paths, path| {
-                        format!("{} and `{}`", all_paths, path.display())
-                    });
+                let canonicalize_when_possible =
+                    |path: &Path| path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+                let used_path = canonicalize_when_possible(rust_toolchain_paths[0]);
+                let all_paths = rust_toolchain_paths.iter().skip(1).fold(
+                    format!("`{}`", used_path.display()),
+                    |all_paths, path| {
+                        format!(
+                            "{} and `{}`",
+                            all_paths,
+                            canonicalize_when_possible(path).display()
+                        )
+                    },
+                );
                 write!(
                     f,
                     "both {} exist. Using `{}`",
