@@ -2242,6 +2242,40 @@ fn only_toml_in_rust_toolchain_toml() {
     });
 }
 
+/// Checks that `.rust-toolchain.toml` files are considered
+#[test]
+fn rust_hidden_toolchain_toml() {
+    setup(&|config| {
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "rustup could not choose a version of rustc to run",
+        );
+
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join(".rust-toolchain.toml");
+        raw::write_file(&toolchain_file, "[toolchain]\nchannel = \"nightly\"").unwrap();
+
+        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+    });
+}
+
+/// Ensures that `.rust-toolchain.toml` files (with `.toml` extension) only allow TOML contents
+#[test]
+fn only_toml_in_rust_hidden_toolchain_toml() {
+    setup(&|config| {
+        let cwd = config.current_dir();
+        let toolchain_file = cwd.join(".rust-toolchain.toml");
+        raw::write_file(&toolchain_file, "nightly").unwrap();
+
+        expect_err(
+            config,
+            &["rustc", "--version"],
+            "error parsing override file",
+        );
+    });
+}
+
 /// Checks that a warning occurs if both `rust-toolchain` and `rust-toolchain.toml` files exist
 #[test]
 fn warn_on_duplicate_rust_toolchain_file() {
@@ -2250,6 +2284,50 @@ fn warn_on_duplicate_rust_toolchain_file() {
         let toolchain_file_1 = cwd.join("rust-toolchain");
         raw::write_file(&toolchain_file_1, "stable").unwrap();
         let toolchain_file_2 = cwd.join("rust-toolchain.toml");
+        raw::write_file(&toolchain_file_2, "[toolchain]").unwrap();
+
+        expect_stderr_ok(
+            config,
+            &["rustc", "--version"],
+            &format!(
+                "warning: both `{0}` and `{1}` exist. Using `{0}`",
+                toolchain_file_1.canonicalize().unwrap().display(),
+                toolchain_file_2.canonicalize().unwrap().display(),
+            ),
+        );
+    });
+}
+
+/// Checks that a warning occurs if both `rust-toolchain` and `.rust-toolchain.toml` files exist
+#[test]
+fn warn_on_duplicate_rust_toolchain_and_hidden_file() {
+    setup(&|config| {
+        let cwd = config.current_dir();
+        let toolchain_file_1 = cwd.join("rust-toolchain");
+        raw::write_file(&toolchain_file_1, "stable").unwrap();
+        let toolchain_file_2 = cwd.join(".rust-toolchain.toml");
+        raw::write_file(&toolchain_file_2, "[toolchain]").unwrap();
+
+        expect_stderr_ok(
+            config,
+            &["rustc", "--version"],
+            &format!(
+                "warning: both `{0}` and `{1}` exist. Using `{0}`",
+                toolchain_file_1.canonicalize().unwrap().display(),
+                toolchain_file_2.canonicalize().unwrap().display(),
+            ),
+        );
+    });
+}
+
+/// Checks that a warning occurs if both `rust-toolchain.toml` and `.rust-toolchain.toml` files exist
+#[test]
+fn warn_on_duplicate_rust_toolchain_toml_file() {
+    setup(&|config| {
+        let cwd = config.current_dir();
+        let toolchain_file_1 = cwd.join("rust-toolchain.toml");
+        raw::write_file(&toolchain_file_1, "[toolchain]\nchannel=\"stable\"").unwrap();
+        let toolchain_file_2 = cwd.join(".rust-toolchain.toml");
         raw::write_file(&toolchain_file_2, "[toolchain]").unwrap();
 
         expect_stderr_ok(
