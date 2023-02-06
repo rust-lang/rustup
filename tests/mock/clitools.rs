@@ -99,7 +99,8 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     env::remove_var("RUSTUP_TOOLCHAIN");
     env::remove_var("SHELL");
     env::remove_var("ZDOTDIR");
-    // clap does its own terminal colour probing, and that isn't
+    env::remove_var("XDG_DATA_DIRS");
+    // clap does it's own terminal colour probing, and that isn't
     // trait-controllable, but it does honour the terminal. To avoid testing
     // claps code, lie about whatever terminal this process was started under.
     env::set_var("TERM", "dumb");
@@ -637,8 +638,7 @@ where
     let mut vars: HashMap<String, String> = HashMap::default();
     self::env(config, &mut vars);
     vars.extend(env.iter().map(|(k, v)| (k.to_string(), v.to_string())));
-    let mut arg_strings: Vec<Box<str>> = Vec::new();
-    arg_strings.push(name.to_owned().into_boxed_str());
+    let mut arg_strings: Vec<Box<str>> = vec![name.to_owned().into_boxed_str()];
     for arg in args {
         arg_strings.push(
             arg.as_ref()

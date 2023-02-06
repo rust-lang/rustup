@@ -1,3 +1,7 @@
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::doc_markdown)]
+
 //! Paths and Unix shells
 //!
 //! MacOS, Linux, FreeBSD, and many other OS model their design on Unix,
@@ -26,7 +30,7 @@
 use std::borrow::Cow;
 use std::path::PathBuf;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 
 use super::utils;
 use crate::process;
@@ -71,7 +75,12 @@ pub(crate) fn cargo_home_str() -> Result<Cow<'static, str>> {
 // TODO?: Make a decision on Ion Shell, Power Shell, Nushell
 // Cross-platform non-POSIX shells have not been assessed for integration yet
 fn enumerate_shells() -> Vec<Shell> {
-    vec![Box::new(Posix), Box::new(Bash), Box::new(Zsh)]
+    vec![
+        Box::new(Posix),
+        Box::new(Bash),
+        Box::new(Zsh),
+        Box::new(Fish),
+    ]
 }
 
 pub(crate) fn get_available_shells() -> impl Iterator<Item = Shell> {
@@ -89,6 +98,43 @@ pub(crate) trait UnixShell {
 
     // Gives rcs that should be written to.
     fn update_rcs(&self) -> Vec<PathBuf>;
+
+    // By default follows POSIX and sources <cargo home>/env
+    fn add_to_path(&self) -> Result<(), anyhow::Error> {
+        let source_cmd = self.source_string()?;
+        let source_cmd_with_newline = format!("\n{}", &source_cmd);
+        for rc in self.update_rcs() {
+            let cmd_to_write = match utils::read_file("rcfile", &rc) {
+                Ok(contents) if contents.contains(&source_cmd) => continue,
+                Ok(contents) if !contents.ends_with('\n') => &source_cmd_with_newline,
+                _ => &source_cmd,
+            };
+
+            utils::append_file("rcfile", &rc, cmd_to_write)
+                .with_context(|| format!("could not amend shell profile: '{}'", rc.display()))?;
+        }
+        Ok(())
+    }
+
+    fn remove_from_path(&self) -> Result<(), anyhow::Error> {
+        let source_bytes = format!("{}\n", self.source_string()?).into_bytes();
+        for rc in self.rcfiles().iter().filter(|rc| rc.is_file()) {
+            let file = utils::read_file("rcfile", rc)?;
+            let file_bytes = file.into_bytes();
+            // FIXME: This is whitespace sensitive where it should not be.
+            if let Some(idx) = file_bytes
+                .windows(source_bytes.len())
+                .position(|w| w == source_bytes.as_slice())
+            {
+                // Here we rewrite the file without the offending line.
+                let mut new_bytes = file_bytes[..idx].to_vec();
+                new_bytes.extend(&file_bytes[idx + source_bytes.len()..]);
+                let new_file = String::from_utf8(new_bytes).unwrap();
+                utils::write_file("rcfile", rc, &new_file)?;
+            }
+        }
+        Ok(())
+    }
 
     // Writes the relevant env file.
     fn env_script(&self) -> ShellScript {
@@ -201,14 +247,117 @@ impl UnixShell for Zsh {
     }
 }
 
+struct Fish;
+
+impl Fish {
+    #![allow(non_snake_case)]
+    /// Gets fish vendor config location from `XDG_DATA_DIRS`
+    /// Returns None if `XDG_DATA_DIRS` is not set or if there is no fis`fish/vendor_conf.d`.d directory found
+    pub fn get_vendor_config_from_XDG_DATA_DIRS() -> Option<PathBuf> {
+        // Skip the directory during testing as we don't want to write into the XDG_DATA_DIRS by accident
+        // TODO: Change the definition of XDG_DATA_DIRS in test so that doesn't happen
+
+        // TODO: Set up XDG DATA DIRS in a test to test the location being correct
+        return process()
+            .var("XDG_DATA_DIRS")
+            .map(|var| {
+                var.split(':')
+                    .map(PathBuf::from)
+                    .find(|path| path.ends_with("fish/vendor_conf.d"))
+            })
+            .ok()
+            .flatten();
+    }
+}
+
+impl UnixShell for Fish {
+    fn does_exist(&self) -> bool {
+        matches!(process().var("SHELL"), Ok(sh) if sh.contains("fish"))
+            || matches!(utils::find_cmd(&["fish"]), Some(_))
+    }
+
+    fn rcfiles(&self) -> Vec<PathBuf> {
+        // As per https://fishshell.com/docs/current/language.html#configuration
+        // Vendor config files should be written to `/usr/share/fish/vendor_config.d/`
+        // if that does not exist then it should be written to `/usr/share/fish/vendor_conf.d/`
+        // otherwise it should be written to `$HOME/.config/fish/conf.d/ as per discussions in github issue #478
+        [
+            // #[cfg(test)] // Write to test location so we don't pollute during testing.
+            // utils::home_dir().map(|home| home.join(".config/fish/conf.d/")),
+            Self::get_vendor_config_from_XDG_DATA_DIRS(),
+            Some(PathBuf::from("/usr/share/fish/vendor_conf.d/")),
+            Some(PathBuf::from("/usr/local/share/fish/vendor_conf.d/")),
+            utils::home_dir().map(|home| home.join(".config/fish/conf.d/")),
+        ]
+        .iter_mut()
+        .flatten()
+        .map(|x| x.join("cargo.fish"))
+        .collect()
+    }
+
+    fn update_rcs(&self) -> Vec<PathBuf> {
+        // TODO: Change rcfiles to just read parent dirs
+        self.rcfiles()
+            .into_iter()
+            .filter(|rc| {
+                // We only want to check if the directory exists as in fish we create a new file for every applications env
+                rc.parent().map_or(false, |parent| {
+                    parent
+                        .metadata() // Returns error if path doesn't exist so separate check is not needed
+                        .map_or(false, |metadata| !metadata.permissions().readonly())
+                })
+            })
+            .collect()
+    }
+
+    fn add_to_path(&self) -> Result<(), anyhow::Error> {
+        let source_cmd = self.source_string()?;
+        // Write to first path location if it exists.
+        if let Some(rc) = self.update_rcs().get(0) {
+            let cmd_to_write = match utils::read_file("rcfile", rc) {
+                Ok(contents) if contents.contains(&source_cmd) => return Ok(()),
+                _ => &source_cmd,
+            };
+
+            utils::write_file("fish conf.d", rc, cmd_to_write)
+                .with_context(|| format!("Could not add source to {}", rc.display()))?;
+        }
+        Ok(())
+    }
+
+    fn remove_from_path(&self) -> Result<(), anyhow::Error> {
+        for rc in self.update_rcs() {
+            utils::remove_file("Cargo.fish", &rc)
+                .with_context(|| format!("Could not remove {}", rc.display()))?;
+        }
+        Ok(())
+    }
+
+    fn env_script(&self) -> ShellScript {
+        ShellScript {
+            name: "env.fish",
+            content: include_str!("env.fish"),
+        }
+    }
+
+    fn source_string(&self) -> Result<String> {
+        Ok(format!(
+            "contains {}/bin $fish_user_paths; or set -Ua fish_user_paths {}/bin",
+            cargo_home_str()?,
+            cargo_home_str()?
+        ))
+    }
+}
+
 pub(crate) fn legacy_paths() -> impl Iterator<Item = PathBuf> {
-    let zprofiles = Zsh::zdotdir()
+    let z_profiles = Zsh::zdotdir()
         .into_iter()
         .chain(utils::home_dir())
         .map(|d| d.join(".zprofile"));
-    let profiles = [".bash_profile", ".profile"]
+
+    let bash_profiles = [".bash_profile", ".profile"]
         .iter()
         .filter_map(|rc| utils::home_dir().map(|d| d.join(rc)));
 
-    profiles.chain(zprofiles)
+    bash_profiles.chain(z_profiles)
 }
