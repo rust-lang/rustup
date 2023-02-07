@@ -514,8 +514,8 @@ fn rustc_or_cargo_exists_in_path() -> Result<()> {
         let paths = env::split_paths(&paths).filter(ignore_paths);
 
         for path in paths {
-            let rustc = path.join(format!("rustc{}", EXE_SUFFIX));
-            let cargo = path.join(format!("cargo{}", EXE_SUFFIX));
+            let rustc = path.join(format!("rustc{EXE_SUFFIX}"));
+            let cargo = path.join(format!("cargo{EXE_SUFFIX}"));
 
             if rustc.exists() || cargo.exists() {
                 return Err(anyhow!("{}", path.to_str().unwrap().to_owned()));
@@ -712,7 +712,7 @@ fn customize_install(mut opts: InstallOpts<'_>) -> Result<InstallOpts<'_>> {
 fn install_bins() -> Result<()> {
     let bin_path = utils::cargo_home()?.join("bin");
     let this_exe_path = utils::current_exe()?;
-    let rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
+    let rustup_path = bin_path.join(&format!("rustup{EXE_SUFFIX}"));
 
     utils::ensure_dir_exists("bin", &bin_path, &|_: Notification<'_>| {})?;
     // NB: Even on Linux we can't just copy the new binary over the (running)
@@ -727,7 +727,7 @@ fn install_bins() -> Result<()> {
 
 pub(crate) fn install_proxies() -> Result<()> {
     let bin_path = utils::cargo_home()?.join("bin");
-    let rustup_path = bin_path.join(&format!("rustup{}", EXE_SUFFIX));
+    let rustup_path = bin_path.join(&format!("rustup{EXE_SUFFIX}"));
 
     let rustup = Handle::from_path(&rustup_path)?;
 
@@ -756,7 +756,7 @@ pub(crate) fn install_proxies() -> Result<()> {
     // `tool_handles` later on. This'll allow us, afterwards, to actually
     // overwrite all the previous hard links with new ones.
     for tool in TOOLS {
-        let tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
+        let tool_path = bin_path.join(&format!("{tool}{EXE_SUFFIX}"));
         if let Ok(handle) = Handle::from_path(&tool_path) {
             tool_handles.push(handle);
             if rustup == *tool_handles.last().unwrap() {
@@ -767,7 +767,7 @@ pub(crate) fn install_proxies() -> Result<()> {
     }
 
     for tool in DUP_TOOLS {
-        let tool_path = bin_path.join(&format!("{}{}", tool, EXE_SUFFIX));
+        let tool_path = bin_path.join(&format!("{tool}{EXE_SUFFIX}"));
         if let Ok(handle) = Handle::from_path(&tool_path) {
             // Like above, don't clobber anything that's already hardlinked to
             // avoid extraneous errors from being returned.
@@ -912,10 +912,7 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
 
     let cargo_home = utils::cargo_home()?;
 
-    if !cargo_home
-        .join(&format!("bin/rustup{}", EXE_SUFFIX))
-        .exists()
-    {
+    if !cargo_home.join(&format!("bin/rustup{EXE_SUFFIX}")).exists() {
         return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
     }
 
@@ -969,8 +966,8 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
     let tools = TOOLS
         .iter()
         .chain(DUP_TOOLS.iter())
-        .map(|t| format!("{}{}", t, EXE_SUFFIX));
-    let tools: Vec<_> = tools.chain(vec![format!("rustup{}", EXE_SUFFIX)]).collect();
+        .map(|t| format!("{t}{EXE_SUFFIX}"));
+    let tools: Vec<_> = tools.chain(vec![format!("rustup{EXE_SUFFIX}")]).collect();
     let bin_dir = cargo_home.join("bin");
     let diriter = fs::read_dir(&bin_dir).map_err(|e| CLIError::ReadDirError {
         p: bin_dir.clone(),
@@ -1091,8 +1088,8 @@ fn parse_new_rustup_version(version: String) -> String {
 
 pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
     let cargo_home = utils::cargo_home()?;
-    let rustup_path = cargo_home.join(&format!("bin{}rustup{}", MAIN_SEPARATOR, EXE_SUFFIX));
-    let setup_path = cargo_home.join(&format!("bin{}rustup-init{}", MAIN_SEPARATOR, EXE_SUFFIX));
+    let rustup_path = cargo_home.join(&format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
+    let setup_path = cargo_home.join(&format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
 
     if !rustup_path.exists() {
         return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
@@ -1132,10 +1129,7 @@ pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
     }
 
     // Get download URL
-    let url = format!(
-        "{}/archive/{}/{}/rustup-init{}",
-        update_root, available_version, triple, EXE_SUFFIX
-    );
+    let url = format!("{update_root}/archive/{available_version}/{triple}/rustup-init{EXE_SUFFIX}");
 
     // Get download path
     let download_url = utils::parse_url(&url)?;
@@ -1160,7 +1154,7 @@ pub(crate) fn get_available_rustup_version() -> Result<String> {
         .context("error creating temp directory")?;
 
     // Parse the release file.
-    let release_file_url = format!("{}/release-stable.toml", update_root);
+    let release_file_url = format!("{update_root}/release-stable.toml");
     let release_file_url = utils::parse_url(&release_file_url)?;
     let release_file = tempdir.path().join("release-stable.toml");
     utils::download_file(&release_file_url, &release_file, None, &|_| ())?;
@@ -1176,8 +1170,7 @@ pub(crate) fn get_available_rustup_version() -> Result<String> {
         .ok_or_else(|| anyhow!("invalid schema key in rustup release file"))?;
     if schema != "1" {
         return Err(anyhow!(format!(
-            "unknown schema version '{}' in rustup release file",
-            schema
+            "unknown schema version '{schema}' in rustup release file"
         )));
     }
 
@@ -1206,12 +1199,12 @@ pub(crate) fn check_rustup_update() -> Result<()> {
         let _ = t.fg(term2::color::YELLOW);
         write!(t, "Update available")?;
         let _ = t.reset();
-        writeln!(t, " : {} -> {}", current_version, available_version)?;
+        writeln!(t, " : {current_version} -> {available_version}")?;
     } else {
         let _ = t.fg(term2::color::GREEN);
         write!(t, "Up to date")?;
         let _ = t.reset();
-        writeln!(t, " : {}", current_version)?;
+        writeln!(t, " : {current_version}")?;
     }
 
     Ok(())
@@ -1219,7 +1212,7 @@ pub(crate) fn check_rustup_update() -> Result<()> {
 
 pub(crate) fn cleanup_self_updater() -> Result<()> {
     let cargo_home = utils::cargo_home()?;
-    let setup = cargo_home.join(&format!("bin/rustup-init{}", EXE_SUFFIX));
+    let setup = cargo_home.join(&format!("bin/rustup-init{EXE_SUFFIX}"));
 
     if setup.exists() {
         utils::remove_file("setup", &setup)?;
@@ -1231,7 +1224,7 @@ pub(crate) fn cleanup_self_updater() -> Result<()> {
 pub(crate) fn valid_self_update_modes() -> String {
     SelfUpdateMode::modes()
         .iter()
-        .map(|s| format!("'{}'", s))
+        .map(|s| format!("'{s}'"))
         .collect::<Vec<_>>()
         .join(", ")
 }

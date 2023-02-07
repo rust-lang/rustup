@@ -218,7 +218,7 @@ fn bonus_component(name: &'static str, contents: Arc<Vec<u8>>) -> MockPackage {
             components: vec![],
             installer: MockInstallerBuilder {
                 components: vec![MockComponentBuilder {
-                    name: format!("{}-x86_64-apple-darwin", name),
+                    name: format!("{name}-x86_64-apple-darwin"),
                     files: vec![MockFile::new_arc("bin/bonus", contents)],
                 }],
             },
@@ -478,7 +478,7 @@ fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url
         dist_server, toolchain.channel
     );
 
-    Url::parse(&url).map_err(|e| anyhow!(format!("{:?}", e)))
+    Url::parse(&url).map_err(|e| anyhow!(format!("{e:?}")))
 }
 
 fn uninstall(
@@ -553,7 +553,7 @@ fn setup_from_dist_server(
         temp_cfg: &temp_cfg,
         download_dir: &prefix.path().to_owned().join("downloads"),
         notify_handler: &|event| {
-            println!("{}", event);
+            println!("{event}");
         },
         pgp_keys: &[PgpPublicKey::FromEnvironment(
             "test-key".into(),
@@ -2210,7 +2210,7 @@ fn handle_corrupt_partial_downloads() {
         .unwrap();
         let partial_path = download_cfg
             .download_dir
-            .join(format!("{}.partial", target_hash));
+            .join(format!("{target_hash}.partial"));
         utils_raw::write_file(
             &partial_path,
             "file will be resumed from here and not match hash",

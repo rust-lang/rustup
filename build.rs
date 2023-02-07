@@ -15,9 +15,9 @@ fn main() {
     println!("cargo:rerun-if-env-changed=RUSTUP_OVERRIDE_BUILD_TRIPLE");
     println!("cargo:rerun-if-env-changed=TARGET");
     match from_build() {
-        Ok(triple) => eprintln!("Computed build based partial target triple: {:#?}", triple),
+        Ok(triple) => eprintln!("Computed build based partial target triple: {triple:#?}"),
         Err(s) => {
-            eprintln!("Unable to parse target '{}' as a PartialTargetTriple", s);
+            eprintln!("Unable to parse target '{s}' as a PartialTargetTriple");
             eprintln!(
                 "If you are attempting to bootstrap a new target you may need to adjust the\n\
                permitted values found in src/dist/triple.rs"
@@ -26,5 +26,5 @@ fn main() {
         }
     }
     let target = env::var("TARGET").unwrap();
-    println!("cargo:rustc-env=TARGET={}", target);
+    println!("cargo:rustc-env=TARGET={target}");
 }

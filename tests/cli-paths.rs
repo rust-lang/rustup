@@ -29,14 +29,14 @@ export PATH="$HOME/apple/bin"
     const POSIX_SH: &str = "env";
 
     fn source(dir: impl Display, sh: impl Display) -> String {
-        format!(". \"{dir}/{sh}\"\n", dir = dir, sh = sh)
+        format!(". \"{dir}/{sh}\"\n")
     }
 
     // In 1.23 we used `source` instead of `.` by accident.  This is not POSIX
     // so we want to ensure that if we put this into someone's dot files, then
     // with newer rustups we will revert that.
     fn non_posix_source(dir: impl Display, sh: impl Display) -> String {
-        format!("source \"{dir}/{sh}\"\n", dir = dir, sh = sh)
+        format!("source \"{dir}/{sh}\"\n")
     }
 
     #[test]
@@ -321,7 +321,7 @@ export PATH="$HOME/apple/bin"
             assert!(cmd.output().unwrap().status.success());
 
             let new_profile = fs::read_to_string(&profile).unwrap();
-            let expected = format!("{}. \"$HOME/.cargo/env\"\n", FAKE_RC);
+            let expected = format!("{FAKE_RC}. \"$HOME/.cargo/env\"\n");
             assert_eq!(new_profile, expected);
 
             let mut cmd = clitools::cmd(config, "rustup", ["self", "uninstall", "-y"]);

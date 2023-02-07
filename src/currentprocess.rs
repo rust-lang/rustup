@@ -164,7 +164,7 @@ where
 
     PROCESS.with(|p| {
         if let Some(old_p) = &*p.borrow() {
-            panic!("current process already set {:?}", old_p);
+            panic!("current process already set {old_p:?}");
         }
         *p.borrow_mut() = Some(process);
         let result = f();

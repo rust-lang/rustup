@@ -244,7 +244,7 @@ impl Manifest {
     pub fn get_package(&self, name: &str) -> Result<&Package> {
         self.packages
             .get(name)
-            .ok_or_else(|| anyhow!(format!("package not found: '{}'", name)))
+            .ok_or_else(|| anyhow!(format!("package not found: '{name}'")))
     }
 
     pub(crate) fn get_rust_version(&self) -> Result<&str> {
@@ -277,7 +277,7 @@ impl Manifest {
         let profile = self
             .profiles
             .get(&profile)
-            .ok_or_else(|| anyhow!(format!("profile not found: '{}'", profile)))?;
+            .ok_or_else(|| anyhow!(format!("profile not found: '{profile}'")))?;
 
         let rust_pkg = self.get_package("rust")?.get_target(Some(target))?;
         let result = profile
@@ -328,8 +328,7 @@ impl Manifest {
         for name in self.renames.values() {
             if !self.packages.contains_key(name) {
                 bail!(format!(
-                    "server sent a broken manifest: missing package for the target of a rename {}",
-                    name
+                    "server sent a broken manifest: missing package for the target of a rename {name}"
                 ));
             }
         }
@@ -405,8 +404,8 @@ impl Package {
                 if let Some(t) = target {
                     tpkgs
                         .get(t)
-                        .ok_or_else(|| anyhow!(format!("target '{}' not found in channel.  \
-                        Perhaps check https://doc.rust-lang.org/nightly/rustc/platform-support.html for available targets", t)))
+                        .ok_or_else(|| anyhow!(format!("target '{t}' not found in channel.  \
+                        Perhaps check https://doc.rust-lang.org/nightly/rustc/platform-support.html for available targets")))
                 } else {
                     Err(anyhow!("no target specified"))
                 }
@@ -498,7 +497,7 @@ impl TargetedPackage {
 
         for (i, v) in arr.into_iter().enumerate() {
             if let toml::Value::Table(t) = v {
-                let path = format!("{}[{}]", path, i);
+                let path = format!("{path}[{i}]");
                 result.push(Component::from_toml(t, &path, is_extension)?);
             }
         }
@@ -585,7 +584,7 @@ impl Component {
     pub(crate) fn name(&self, manifest: &Manifest) -> String {
         let pkg = self.short_name(manifest);
         if let Some(ref t) = self.target {
-            format!("{}-{}", pkg, t)
+            format!("{pkg}-{t}")
         } else {
             pkg
         }
@@ -600,9 +599,9 @@ impl Component {
     pub(crate) fn description(&self, manifest: &Manifest) -> String {
         let pkg = self.short_name(manifest);
         if let Some(ref t) = self.target {
-            format!("'{}' for target '{}'", pkg, t)
+            format!("'{pkg}' for target '{t}'")
         } else {
-            format!("'{}'", pkg)
+            format!("'{pkg}'")
         }
     }
     pub fn short_name_in_manifest(&self) -> &String {
@@ -611,7 +610,7 @@ impl Component {
     pub(crate) fn name_in_manifest(&self) -> String {
         let pkg = self.short_name_in_manifest();
         if let Some(ref t) = self.target {
-            format!("{}-{}", pkg, t)
+            format!("{pkg}-{t}")
         } else {
             pkg.to_string()
         }

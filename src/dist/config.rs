@@ -56,7 +56,7 @@ impl Config {
 
         for (i, v) in arr.into_iter().enumerate() {
             if let toml::Value::Table(t) = v {
-                let path = format!("{}[{}]", path, i);
+                let path = format!("{path}[{i}]");
                 result.push(Component::from_toml(t, &path, false)?);
             }
         }

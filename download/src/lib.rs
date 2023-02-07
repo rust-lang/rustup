@@ -374,7 +374,7 @@ pub mod reqwest_be {
         let mut req = client.get(url.as_str());
 
         if resume_from != 0 {
-            req = req.header(header::RANGE, format!("bytes={}-", resume_from));
+            req = req.header(header::RANGE, format!("bytes={resume_from}-"));
         }
 
         Ok(req.send()?)
@@ -391,7 +391,7 @@ pub mod reqwest_be {
         if url.scheme() == "file" {
             let src = url
                 .to_file_path()
-                .map_err(|_| DownloadError::Message(format!("bogus file url: '{}'", url)))?;
+                .map_err(|_| DownloadError::Message(format!("bogus file url: '{url}'")))?;
             if !src.is_file() {
                 // Because some of rustup's logic depends on checking
                 // the error when a downloaded file doesn't exist, make

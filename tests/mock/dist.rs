@@ -21,37 +21,37 @@ pub fn change_channel_date(dist_server: &Url, channel: &str, date: &str) {
     let path = dist_server.to_file_path().unwrap();
 
     // V2
-    let manifest_name = format!("dist/channel-rust-{}", channel);
-    let manifest_path = path.join(format!("{}.toml", manifest_name));
-    let hash_path = path.join(format!("{}.toml.sha256", manifest_name));
-    let sig_path = path.join(format!("{}.toml.asc", manifest_name));
+    let manifest_name = format!("dist/channel-rust-{channel}");
+    let manifest_path = path.join(format!("{manifest_name}.toml"));
+    let hash_path = path.join(format!("{manifest_name}.toml.sha256"));
+    let sig_path = path.join(format!("{manifest_name}.toml.asc"));
 
-    let archive_manifest_name = format!("dist/{}/channel-rust-{}", date, channel);
-    let archive_manifest_path = path.join(format!("{}.toml", archive_manifest_name));
-    let archive_hash_path = path.join(format!("{}.toml.sha256", archive_manifest_name));
-    let archive_sig_path = path.join(format!("{}.toml.asc", archive_manifest_name));
+    let archive_manifest_name = format!("dist/{date}/channel-rust-{channel}");
+    let archive_manifest_path = path.join(format!("{archive_manifest_name}.toml"));
+    let archive_hash_path = path.join(format!("{archive_manifest_name}.toml.sha256"));
+    let archive_sig_path = path.join(format!("{archive_manifest_name}.toml.asc"));
 
     let _ = hard_link(archive_manifest_path, manifest_path);
     let _ = hard_link(archive_hash_path, hash_path);
     let _ = hard_link(archive_sig_path, sig_path);
 
     // V1
-    let manifest_name = format!("dist/channel-rust-{}", channel);
+    let manifest_name = format!("dist/channel-rust-{channel}");
     let manifest_path = path.join(&manifest_name);
-    let hash_path = path.join(format!("{}.sha256", manifest_name));
-    let sig_path = path.join(format!("{}.asc", manifest_name));
+    let hash_path = path.join(format!("{manifest_name}.sha256"));
+    let sig_path = path.join(format!("{manifest_name}.asc"));
 
-    let archive_manifest_name = format!("dist/{}/channel-rust-{}", date, channel);
+    let archive_manifest_name = format!("dist/{date}/channel-rust-{channel}");
     let archive_manifest_path = path.join(&archive_manifest_name);
-    let archive_hash_path = path.join(format!("{}.sha256", archive_manifest_name));
-    let archive_sig_path = path.join(format!("{}.asc", archive_manifest_name));
+    let archive_hash_path = path.join(format!("{archive_manifest_name}.sha256"));
+    let archive_sig_path = path.join(format!("{archive_manifest_name}.asc"));
 
     let _ = hard_link(archive_manifest_path, manifest_path);
     let _ = hard_link(archive_hash_path, hash_path);
     let _ = hard_link(archive_sig_path, sig_path);
 
     // Copy all files that look like rust-* for the v1 installers
-    let archive_path = path.join(format!("dist/{}", date));
+    let archive_path = path.join(format!("dist/{date}"));
     for dir in fs::read_dir(archive_path).unwrap() {
         let dir = dir.unwrap();
         if dir.file_name().to_str().unwrap().contains("rust-") {
@@ -205,8 +205,8 @@ impl MockDistServer {
             format!("{}-{}", package.name, channel.name)
         };
         let installer_dir = workdir.join(&installer_name);
-        let installer_tarball = archive_dir.join(format!("{}{}", installer_name, format));
-        let installer_hash = archive_dir.join(format!("{}{}.sha256", installer_name, format));
+        let installer_tarball = archive_dir.join(format!("{installer_name}{format}"));
+        let installer_hash = archive_dir.join(format!("{installer_name}{format}.sha256"));
 
         fs::create_dir_all(&installer_dir).unwrap();
 
@@ -258,8 +258,8 @@ impl MockDistServer {
 
         // Copy from the archive to the main dist directory
         if package.name == "rust" {
-            let main_installer_tarball = dist_dir.join(format!("{}{}", installer_name, format));
-            let main_installer_hash = dist_dir.join(format!("{}{}.sha256", installer_name, format));
+            let main_installer_tarball = dist_dir.join(format!("{installer_name}{format}"));
+            let main_installer_hash = dist_dir.join(format!("{installer_name}{format}.sha256"));
             hard_link(installer_tarball, main_installer_tarball).unwrap();
             hard_link(installer_hash, main_installer_hash).unwrap();
         }
@@ -284,7 +284,7 @@ impl MockDistServer {
         let manifest_path = self.path.join(&manifest_name);
         write_file(&manifest_path, &buf);
 
-        let hash_path = self.path.join(format!("{}.sha256", manifest_name));
+        let hash_path = self.path.join(format!("{manifest_name}.sha256"));
         create_hash(&manifest_path, &hash_path);
 
         // Also copy the manifest and hash into the archive folder
@@ -292,14 +292,14 @@ impl MockDistServer {
         let archive_manifest_path = self.path.join(&archive_manifest_name);
         hard_link(manifest_path, archive_manifest_path).unwrap();
 
-        let archive_hash_path = self.path.join(format!("{}.sha256", archive_manifest_name));
+        let archive_hash_path = self.path.join(format!("{archive_manifest_name}.sha256"));
         hard_link(&hash_path, archive_hash_path).unwrap();
 
         let signature = create_signature(buf.as_bytes()).unwrap();
-        let sig_path = self.path.join(format!("{}.asc", manifest_name));
+        let sig_path = self.path.join(format!("{manifest_name}.asc"));
         write_file(&sig_path, &signature);
 
-        let archive_sig_path = self.path.join(format!("{}.asc", archive_manifest_name));
+        let archive_sig_path = self.path.join(format!("{archive_manifest_name}.asc"));
         hard_link(sig_path, archive_sig_path).unwrap();
     }
 
@@ -436,30 +436,28 @@ impl MockDistServer {
         toml_manifest.insert(String::from("profiles"), toml::Value::Table(toml_profiles));
 
         let manifest_name = format!("dist/channel-rust-{}", channel.name);
-        let manifest_path = self.path.join(format!("{}.toml", manifest_name));
+        let manifest_path = self.path.join(format!("{manifest_name}.toml"));
         let manifest_content = toml::to_string(&toml_manifest).unwrap();
         write_file(&manifest_path, &manifest_content);
 
-        let hash_path = self.path.join(format!("{}.toml.sha256", manifest_name));
+        let hash_path = self.path.join(format!("{manifest_name}.toml.sha256"));
         create_hash(&manifest_path, &hash_path);
 
         // Also copy the manifest and hash into the archive folder
         let archive_manifest_name = format!("dist/{}/channel-rust-{}", channel.date, channel.name);
-        let archive_manifest_path = self.path.join(format!("{}.toml", archive_manifest_name));
+        let archive_manifest_path = self.path.join(format!("{archive_manifest_name}.toml"));
         hard_link(&manifest_path, archive_manifest_path).unwrap();
 
         let archive_hash_path = self
             .path
-            .join(format!("{}.toml.sha256", archive_manifest_name));
+            .join(format!("{archive_manifest_name}.toml.sha256"));
         hard_link(hash_path, archive_hash_path).unwrap();
 
         let signature = create_signature(manifest_content.as_bytes()).unwrap();
-        let sig_path = self.path.join(format!("{}.toml.asc", manifest_name));
+        let sig_path = self.path.join(format!("{manifest_name}.toml.asc"));
         write_file(&sig_path, &signature);
 
-        let archive_sig_path = self
-            .path
-            .join(format!("{}.toml.asc", archive_manifest_name));
+        let archive_sig_path = self.path.join(format!("{archive_manifest_name}.toml.asc"));
         hard_link(sig_path, archive_sig_path).unwrap();
     }
 }

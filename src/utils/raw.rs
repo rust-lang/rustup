@@ -97,7 +97,7 @@ pub fn append_file(dest: &Path, line: &str) -> io::Result<()> {
         .create(true)
         .open(dest)?;
 
-    writeln!(dest_file, "{}", line)?;
+    writeln!(dest_file, "{line}")?;
 
     dest_file.sync_data()?;
 

@@ -55,8 +55,7 @@ where
         "Eventually this command will be a true alias.  Until then:",
     ));
     (cfg.notify_handler)(Notification::PlainVerboseMessage(&format!(
-        "  Please use `rustup {}` instead",
-        instead
+        "  Please use `rustup {instead}` instead"
     )));
     callee(cfg, matches)
 }
@@ -72,7 +71,7 @@ pub fn main() -> Result<utils::ExitCode> {
             message,
             ..
         }) => {
-            writeln!(process().stdout().lock(), "{}", message)?;
+            writeln!(process().stdout().lock(), "{message}")?;
             return Ok(utils::ExitCode(0));
         }
         Err(clap::Error {
@@ -80,7 +79,7 @@ pub fn main() -> Result<utils::ExitCode> {
             message,
             ..
         }) => {
-            writeln!(process().stdout().lock(), "{}", message)?;
+            writeln!(process().stdout().lock(), "{message}")?;
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
             fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
@@ -114,7 +113,7 @@ pub fn main() -> Result<utils::ExitCode> {
                 ]
                 .contains(kind)
                 {
-                    writeln!(process().stdout().lock(), "{}", message)?;
+                    writeln!(process().stdout().lock(), "{message}")?;
                     return Ok(utils::ExitCode(1));
                 }
             }
@@ -815,7 +814,7 @@ fn update_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
                     "\nyou may use one of the following toolchains:"
                 )?;
                 for n in &candidates {
-                    writeln!(process().stdout(), "{}", n)?;
+                    writeln!(process().stdout(), "{n}")?;
                 }
                 writeln!(process().stdout(),)?;
             }
@@ -832,7 +831,7 @@ fn default_bare_triple_check(cfg: &Cfg, name: &str) -> Result<()> {
         let default_name = default.map(|t| t.name().to_string()).unwrap_or_default();
         if let Ok(mut desc) = PartialToolchainDesc::from_str(&default_name) {
             desc.target = triple;
-            let maybe_toolchain = format!("{}", desc);
+            let maybe_toolchain = format!("{desc}");
             let toolchain = cfg.get_toolchain(maybe_toolchain.as_ref(), false)?;
             if toolchain.name() == default_name {
                 warn!(
@@ -903,7 +902,7 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
                 let current_version = distributable.show_version()?;
                 let dist_version = distributable.show_dist_version()?;
                 let _ = t.attr(term2::Attr::Bold);
-                write!(t, "{} - ", name)?;
+                write!(t, "{name} - ")?;
                 match (current_version, dist_version) {
                     (None, None) => {
                         let _ = t.fg(term2::color::RED);
@@ -913,19 +912,19 @@ fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
                         let _ = t.fg(term2::color::GREEN);
                         write!(t, "Up to date")?;
                         let _ = t.reset();
-                        writeln!(t, " : {}", cv)?;
+                        writeln!(t, " : {cv}")?;
                     }
                     (Some(cv), Some(dv)) => {
                         let _ = t.fg(term2::color::YELLOW);
                         write!(t, "Update available")?;
                         let _ = t.reset();
-                        writeln!(t, " : {} -> {}", cv, dv)?;
+                        writeln!(t, " : {cv} -> {dv}")?;
                     }
                     (None, Some(dv)) => {
                         let _ = t.fg(term2::color::YELLOW);
                         write!(t, "Update available")?;
                         let _ = t.reset();
-                        writeln!(t, " : (Unknown version) -> {}", dv)?;
+                        writeln!(t, " : (Unknown version) -> {dv}")?;
                     }
                 }
             }
@@ -1141,9 +1140,9 @@ fn show(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
         let default_name = default_name?;
         for it in installed_toolchains {
             if default_name == it {
-                writeln!(t, "{} (default)", it)?;
+                writeln!(t, "{it} (default)")?;
             } else {
-                writeln!(t, "{}", it)?;
+                writeln!(t, "{it}")?;
             }
             if verbose {
                 if let Ok(toolchain) = cfg.get_toolchain(&it, false) {
@@ -1203,9 +1202,9 @@ fn show(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
                 {
                     writeln!(t, "no active toolchain")?;
                 } else if let Some(cause) = err.source() {
-                    writeln!(t, "(error: {}, {})", err, cause)?;
+                    writeln!(t, "(error: {err}, {cause})")?;
                 } else {
-                    writeln!(t, "(error: {})", err)?;
+                    writeln!(t, "(error: {err})")?;
                 }
             }
         }
@@ -1220,7 +1219,7 @@ fn show(cfg: &Cfg, m: &ArgMatches<'_>) -> Result<utils::ExitCode> {
         E: From<term::Error> + From<std::io::Error>,
     {
         t.attr(term2::Attr::Bold)?;
-        writeln!(t, "{}", s)?;
+        writeln!(t, "{s}")?;
         writeln!(t, "{}", "-".repeat(s.len()))?;
         writeln!(t)?;
         t.reset()?;
@@ -1665,7 +1664,7 @@ impl FromStr for CompletionCommand {
                 let completion_options = COMPLETIONS
                     .iter()
                     .map(|&(v, _)| v)
-                    .fold("".to_owned(), |s, v| format!("{}{}, ", s, v));
+                    .fold("".to_owned(), |s, v| format!("{s}{v}, "));
                 Err(format!(
                     "[valid values: {}]",
                     completion_options.trim_end_matches(", ")
@@ -1678,7 +1677,7 @@ impl FromStr for CompletionCommand {
 impl fmt::Display for CompletionCommand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match COMPLETIONS.iter().find(|&(_, cmd)| cmd == self) {
-            Some(&(val, _)) => write!(f, "{}", val),
+            Some(&(val, _)) => write!(f, "{val}"),
             None => unreachable!(),
         }
     }
@@ -1709,9 +1708,8 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
             writeln!(
                 term2::stdout(),
                 "if command -v rustc >/dev/null 2>&1; then\n\
-                    \tsource \"$(rustc --print sysroot)\"{}\n\
+                    \tsource \"$(rustc --print sysroot)\"{script}\n\
                  fi",
-                script,
             )?;
         }
     }

@@ -47,7 +47,7 @@ impl Display for Size {
                 } else if size >= KI {
                     write!(f, "{:5.1} KiB{}", size / KI, suffix)
                 } else {
-                    write!(f, "{:3.0} B{}", size, suffix)
+                    write!(f, "{size:3.0} B{suffix}")
                 }
             }
             Size::IO(size, unitmode) => {
@@ -68,7 +68,7 @@ impl Display for Size {
                 } else if size >= K {
                     write!(f, "{:5.1} kilo-{}", size / K, suffix)
                 } else {
-                    write!(f, "{:3.0} {}", size, suffix)
+                    write!(f, "{size:3.0} {suffix}")
                 }
             }
         }

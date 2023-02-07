@@ -66,7 +66,7 @@ fn validate_installer_version(path: &Path) -> Result<()> {
     if v == INSTALLER_VERSION {
         Ok(())
     } else {
-        Err(anyhow!(format!("unsupported installer version: {}", v)))
+        Err(anyhow!(format!("unsupported installer version: {v}")))
     }
 }
 
@@ -208,7 +208,7 @@ fn unpack_ram(
     };
 
     if minimum_ram > unpack_ram {
-        panic!("RUSTUP_UNPACK_RAM must be larger than {}", minimum_ram);
+        panic!("RUSTUP_UNPACK_RAM must be larger than {minimum_ram}");
     } else {
         unpack_ram
     }
@@ -445,7 +445,7 @@ fn unpack_without_first_dir<'a, R: Read>(
                     Item::write_file(full_path.clone(), mode, content)
                 }
             }
-            _ => bail!(format!("tar entry kind '{:?}' is not supported", kind)),
+            _ => bail!(format!("tar entry kind '{kind:?}' is not supported")),
         };
 
         let item = loop {

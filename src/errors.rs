@@ -96,7 +96,7 @@ pub enum RustupError {
     )]
     ToolchainNotSelected,
     #[error("toolchain '{}' does not contain component {}{}{}", .name, .component, if let Some(suggestion) = .suggestion {
-        format!("; did you mean '{}'?", suggestion)
+        format!("; did you mean '{suggestion}'?")
     } else {
         "".to_string()
     }, if .component.contains("rust-std") {
@@ -131,7 +131,7 @@ fn remove_component_msg(cs: &Component, manifest: &Manifest, toolchain: &str) ->
             "    rustup component remove --toolchain {}{} {}",
             toolchain,
             if let Some(target) = cs.target.as_ref() {
-                format!(" --target {}", target)
+                format!(" --target {target}")
             } else {
                 String::default()
             },
@@ -189,9 +189,8 @@ fn component_unavailable_msg(cs: &[Component], manifest: &Manifest, toolchain: &
             .join("\n");
         let _ = write!(
             buf,
-            "some components unavailable for download for channel '{}': {}\n\
-            If you don't need the components, you can remove them with:\n\n{}\n\n{}",
-            toolchain, cs_str, remove_msg, TOOLSTATE_MSG,
+            "some components unavailable for download for channel '{toolchain}': {cs_str}\n\
+            If you don't need the components, you can remove them with:\n\n{remove_msg}\n\n{TOOLSTATE_MSG}",
         );
     }
 
