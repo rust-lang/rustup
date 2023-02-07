@@ -389,8 +389,8 @@ fn rustup_failed_path_search() {
     setup(&|config| {
         use std::env::consts::EXE_SUFFIX;
 
-        let rustup_path = config.exedir.join(&format!("rustup{EXE_SUFFIX}"));
-        let tool_path = config.exedir.join(&format!("fake_proxy{EXE_SUFFIX}"));
+        let rustup_path = config.exedir.join(format!("rustup{EXE_SUFFIX}"));
+        let tool_path = config.exedir.join(format!("fake_proxy{EXE_SUFFIX}"));
         utils::hardlink_file(&rustup_path, &tool_path)
             .expect("Failed to create fake proxy for test");
 
@@ -426,8 +426,8 @@ fn rustup_failed_path_search_toolchain() {
     setup(&|config| {
         use std::env::consts::EXE_SUFFIX;
 
-        let rustup_path = config.exedir.join(&format!("rustup{EXE_SUFFIX}"));
-        let tool_path = config.exedir.join(&format!("cargo-miri{EXE_SUFFIX}"));
+        let rustup_path = config.exedir.join(format!("rustup{EXE_SUFFIX}"));
+        let tool_path = config.exedir.join(format!("cargo-miri{EXE_SUFFIX}"));
         utils::hardlink_file(&rustup_path, &tool_path)
             .expect("Failed to create fake cargo-miri for test");
 

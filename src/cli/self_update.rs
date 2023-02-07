@@ -712,7 +712,7 @@ fn customize_install(mut opts: InstallOpts<'_>) -> Result<InstallOpts<'_>> {
 fn install_bins() -> Result<()> {
     let bin_path = utils::cargo_home()?.join("bin");
     let this_exe_path = utils::current_exe()?;
-    let rustup_path = bin_path.join(&format!("rustup{EXE_SUFFIX}"));
+    let rustup_path = bin_path.join(format!("rustup{EXE_SUFFIX}"));
 
     utils::ensure_dir_exists("bin", &bin_path, &|_: Notification<'_>| {})?;
     // NB: Even on Linux we can't just copy the new binary over the (running)
@@ -1088,8 +1088,8 @@ fn parse_new_rustup_version(version: String) -> String {
 
 pub(crate) fn prepare_update() -> Result<Option<PathBuf>> {
     let cargo_home = utils::cargo_home()?;
-    let rustup_path = cargo_home.join(&format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
-    let setup_path = cargo_home.join(&format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
+    let rustup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup{EXE_SUFFIX}"));
+    let setup_path = cargo_home.join(format!("bin{MAIN_SEPARATOR}rustup-init{EXE_SUFFIX}"));
 
     if !rustup_path.exists() {
         return Err(CLIError::NotSelfInstalled { p: cargo_home }.into());
@@ -1212,7 +1212,7 @@ pub(crate) fn check_rustup_update() -> Result<()> {
 
 pub(crate) fn cleanup_self_updater() -> Result<()> {
     let cargo_home = utils::cargo_home()?;
-    let setup = cargo_home.join(&format!("bin/rustup-init{EXE_SUFFIX}"));
+    let setup = cargo_home.join(format!("bin/rustup-init{EXE_SUFFIX}"));
 
     if setup.exists() {
         utils::remove_file("setup", &setup)?;

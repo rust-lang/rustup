@@ -111,7 +111,7 @@ fn install_twice() {
         with_saved_path(&|| {
             expect_ok(config, &["rustup-init", "-y"]);
             expect_ok(config, &["rustup-init", "-y"]);
-            let rustup = config.cargodir.join(&format!("bin/rustup{EXE_SUFFIX}"));
+            let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
             assert!(rustup.exists());
         })
     });
@@ -147,15 +147,13 @@ fn uninstall_deletes_bins() {
         // no-modify-path isn't needed here, as the test-dir-path isn't present
         // in the registry, so the no-change code path will be triggered.
         expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
-        let rustup = config.cargodir.join(&format!("bin/rustup{EXE_SUFFIX}"));
-        let rustc = config.cargodir.join(&format!("bin/rustc{EXE_SUFFIX}"));
-        let rustdoc = config.cargodir.join(&format!("bin/rustdoc{EXE_SUFFIX}"));
-        let cargo = config.cargodir.join(&format!("bin/cargo{EXE_SUFFIX}"));
-        let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{EXE_SUFFIX}"));
-        let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{EXE_SUFFIX}"));
-        let rust_gdbgui = config
-            .cargodir
-            .join(&format!("bin/rust-gdbgui{EXE_SUFFIX}"));
+        let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
+        let rustc = config.cargodir.join(format!("bin/rustc{EXE_SUFFIX}"));
+        let rustdoc = config.cargodir.join(format!("bin/rustdoc{EXE_SUFFIX}"));
+        let cargo = config.cargodir.join(format!("bin/cargo{EXE_SUFFIX}"));
+        let rust_lldb = config.cargodir.join(format!("bin/rust-lldb{EXE_SUFFIX}"));
+        let rust_gdb = config.cargodir.join(format!("bin/rust-gdb{EXE_SUFFIX}"));
+        let rust_gdbgui = config.cargodir.join(format!("bin/rust-gdbgui{EXE_SUFFIX}"));
         assert!(!rustup.exists());
         assert!(!rustc.exists());
         assert!(!rustdoc.exists());
@@ -169,15 +167,13 @@ fn uninstall_deletes_bins() {
 #[test]
 fn uninstall_works_if_some_bins_dont_exist() {
     setup_empty_installed(&|config| {
-        let rustup = config.cargodir.join(&format!("bin/rustup{EXE_SUFFIX}"));
-        let rustc = config.cargodir.join(&format!("bin/rustc{EXE_SUFFIX}"));
-        let rustdoc = config.cargodir.join(&format!("bin/rustdoc{EXE_SUFFIX}"));
-        let cargo = config.cargodir.join(&format!("bin/cargo{EXE_SUFFIX}"));
-        let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{EXE_SUFFIX}"));
-        let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{EXE_SUFFIX}"));
-        let rust_gdbgui = config
-            .cargodir
-            .join(&format!("bin/rust-gdbgui{EXE_SUFFIX}"));
+        let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
+        let rustc = config.cargodir.join(format!("bin/rustc{EXE_SUFFIX}"));
+        let rustdoc = config.cargodir.join(format!("bin/rustdoc{EXE_SUFFIX}"));
+        let cargo = config.cargodir.join(format!("bin/cargo{EXE_SUFFIX}"));
+        let rust_lldb = config.cargodir.join(format!("bin/rust-lldb{EXE_SUFFIX}"));
+        let rust_gdb = config.cargodir.join(format!("bin/rust-gdb{EXE_SUFFIX}"));
+        let rust_gdbgui = config.cargodir.join(format!("bin/rust-gdbgui{EXE_SUFFIX}"));
 
         fs::remove_file(&rustc).unwrap();
         fs::remove_file(&cargo).unwrap();
@@ -221,8 +217,8 @@ fn uninstall_deletes_cargo_home() {
 #[test]
 fn uninstall_fails_if_not_installed() {
     setup_empty_installed(&|config| {
-        let rustup = config.cargodir.join(&format!("bin/rustup{EXE_SUFFIX}"));
-        fs::remove_file(&rustup).unwrap();
+        let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
+        fs::remove_file(rustup).unwrap();
         expect_err(
             config,
             &["rustup", "self", "uninstall", "-y"],
@@ -238,7 +234,7 @@ fn uninstall_fails_if_not_installed() {
 #[cfg_attr(target_os = "macos", ignore)] // FIXME #1515
 fn uninstall_self_delete_works() {
     setup_empty_installed(&|config| {
-        let rustup = config.cargodir.join(&format!("bin/rustup{EXE_SUFFIX}"));
+        let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         let mut cmd = Command::new(rustup.clone());
         cmd.args(["self", "uninstall", "-y"]);
         clitools::env(config, &mut cmd);
@@ -250,14 +246,12 @@ fn uninstall_self_delete_works() {
         assert!(!rustup.exists());
         assert!(!config.cargodir.exists());
 
-        let rustc = config.cargodir.join(&format!("bin/rustc{EXE_SUFFIX}"));
-        let rustdoc = config.cargodir.join(&format!("bin/rustdoc{EXE_SUFFIX}"));
-        let cargo = config.cargodir.join(&format!("bin/cargo{EXE_SUFFIX}"));
-        let rust_lldb = config.cargodir.join(&format!("bin/rust-lldb{EXE_SUFFIX}"));
-        let rust_gdb = config.cargodir.join(&format!("bin/rust-gdb{EXE_SUFFIX}"));
-        let rust_gdbgui = config
-            .cargodir
-            .join(&format!("bin/rust-gdbgui{EXE_SUFFIX}"));
+        let rustc = config.cargodir.join(format!("bin/rustc{EXE_SUFFIX}"));
+        let rustdoc = config.cargodir.join(format!("bin/rustdoc{EXE_SUFFIX}"));
+        let cargo = config.cargodir.join(format!("bin/cargo{EXE_SUFFIX}"));
+        let rust_lldb = config.cargodir.join(format!("bin/rust-lldb{EXE_SUFFIX}"));
+        let rust_gdb = config.cargodir.join(format!("bin/rust-gdb{EXE_SUFFIX}"));
+        let rust_gdbgui = config.cargodir.join(format!("bin/rust-gdbgui{EXE_SUFFIX}"));
         assert!(!rustc.exists());
         assert!(!rustdoc.exists());
         assert!(!cargo.exists());
@@ -329,9 +323,7 @@ fn update_but_not_installed() {
 fn update_but_delete_existing_updater_first() {
     update_setup(&|config, _| {
         // The updater is stored in a known location
-        let setup = config
-            .cargodir
-            .join(&format!("bin/rustup-init{EXE_SUFFIX}"));
+        let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
 
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
 
@@ -340,7 +332,7 @@ fn update_but_delete_existing_updater_first() {
         raw::write_file(&setup, "").unwrap();
         expect_ok(config, &["rustup", "self", "update"]);
 
-        let rustup = config.cargodir.join(&format!("bin/rustup{EXE_SUFFIX}"));
+        let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         assert!(rustup.exists());
     });
 }
@@ -351,8 +343,8 @@ fn update_download_404() {
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
 
         let trip = this_host_triple();
-        let dist_dir = self_dist.join(&format!("archive/{TEST_VERSION}/{trip}"));
-        let dist_exe = dist_dir.join(&format!("rustup-init{EXE_SUFFIX}"));
+        let dist_dir = self_dist.join(format!("archive/{TEST_VERSION}/{trip}"));
+        let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
 
         fs::remove_file(dist_exe).unwrap();
 
@@ -384,7 +376,7 @@ fn update_updates_rustup_bin() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
 
-        let bin = config.cargodir.join(&format!("bin/rustup{EXE_SUFFIX}"));
+        let bin = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         let before_hash = calc_hash(&bin);
 
         // Running the self update command on the installed binary,
@@ -444,7 +436,7 @@ fn rustup_self_updates_trivial() {
         expect_ok(config, &["rustup", "set", "auto-self-update", "enable"]);
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
 
-        let bin = config.cargodir.join(&format!("bin/rustup{EXE_SUFFIX}"));
+        let bin = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         let before_hash = calc_hash(&bin);
 
         expect_ok(config, &["rustup", "update"]);
@@ -461,7 +453,7 @@ fn rustup_self_updates_with_specified_toolchain() {
         expect_ok(config, &["rustup", "set", "auto-self-update", "enable"]);
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
 
-        let bin = config.cargodir.join(&format!("bin/rustup{EXE_SUFFIX}"));
+        let bin = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         let before_hash = calc_hash(&bin);
 
         expect_ok(config, &["rustup", "update", "stable"]);
@@ -477,7 +469,7 @@ fn rustup_no_self_update_with_specified_toolchain() {
     update_setup(&|config, _| {
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
 
-        let bin = config.cargodir.join(&format!("bin/rustup{EXE_SUFFIX}"));
+        let bin = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         let before_hash = calc_hash(&bin);
 
         expect_ok(config, &["rustup", "update", "stable"]);
@@ -524,9 +516,7 @@ fn updater_leaves_itself_for_later_deletion() {
         expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok(config, &["rustup", "self", "update"]);
 
-        let setup = config
-            .cargodir
-            .join(&format!("bin/rustup-init{EXE_SUFFIX}"));
+        let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
         assert!(setup.exists());
     });
 }
@@ -540,9 +530,7 @@ fn updater_is_deleted_after_running_rustup() {
 
         expect_ok(config, &["rustup", "update", "nightly"]);
 
-        let setup = config
-            .cargodir
-            .join(&format!("bin/rustup-init{EXE_SUFFIX}"));
+        let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
         assert!(!setup.exists());
     });
 }
@@ -556,9 +544,7 @@ fn updater_is_deleted_after_running_rustc() {
 
         expect_ok(config, &["rustc", "--version"]);
 
-        let setup = config
-            .cargodir
-            .join(&format!("bin/rustup-init{EXE_SUFFIX}"));
+        let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
         assert!(!setup.exists());
     });
 }
@@ -582,7 +568,7 @@ fn as_rustup_setup() {
     clitools::setup(Scenario::Empty, &|config| {
         let init = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
         let setup = config.exedir.join(format!("rustup-setup{EXE_SUFFIX}"));
-        fs::copy(&init, &setup).unwrap();
+        fs::copy(init, setup).unwrap();
         expect_ok(
             config,
             &[
@@ -708,11 +694,11 @@ fn readline_no_stdin() {
 fn rustup_init_works_with_weird_names() {
     // Browsers often rename bins to e.g. rustup-init(2).exe.
     clitools::setup(Scenario::SimpleV2, &|config| {
-        let old = config.exedir.join(&format!("rustup-init{EXE_SUFFIX}"));
-        let new = config.exedir.join(&format!("rustup-init(2){EXE_SUFFIX}"));
+        let old = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
+        let new = config.exedir.join(format!("rustup-init(2){EXE_SUFFIX}"));
         utils::rename_file("test", &old, &new, &|_: Notification<'_>| {}).unwrap();
         expect_ok(config, &["rustup-init(2)", "-y", "--no-modify-path"]);
-        let rustup = config.cargodir.join(&format!("bin/rustup{EXE_SUFFIX}"));
+        let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         assert!(rustup.exists());
     });
 }
