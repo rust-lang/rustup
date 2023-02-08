@@ -285,7 +285,7 @@ fn component_bad_version() {
     let e = Components::open(prefix).unwrap_err();
     assert_eq!(
         "unsupported metadata version in existing installation: 100",
-        format!("{}", e)
+        format!("{e}")
     );
 }
 

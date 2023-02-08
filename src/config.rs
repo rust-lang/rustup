@@ -190,11 +190,11 @@ impl PgpPublicKey {
                     wait = every;
                 }
                 wait -= 1;
-                write!(ret, "{:02X}", b)?;
+                write!(ret, "{b:02X}")?;
             }
             Ok(ret)
         }
-        let mut ret = vec![format!("from {}", self)];
+        let mut ret = vec![format!("from {self}")];
         let cert = self.cert();
         let keyid = format_hex(cert.keyid().as_bytes(), "-", 4)?;
         let algo = cert.primary_key().pk_algo();
@@ -206,8 +206,8 @@ impl PgpPublicKey {
             .primary_userid()
             .map(|u| u.userid().to_string())
             .unwrap_or_else(|_| "<No User ID>".into());
-        ret.push(format!("  {:?}/{} - {}", algo, keyid, uid0));
-        ret.push(format!("  Fingerprint: {}", fpr));
+        ret.push(format!("  {algo:?}/{keyid} - {uid0}"));
+        ret.push(format!("  Fingerprint: {fpr}"));
         Ok(ret)
     }
 }

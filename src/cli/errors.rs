@@ -29,10 +29,7 @@ fn maybe_suggest_toolchain(bad_name: &str) -> String {
     }
 
     if NUMBERED.is_match(bad_name) {
-        return format!(
-            ". Toolchain numbers tend to have three parts, e.g. {}.0",
-            bad_name
-        );
+        return format!(". Toolchain numbers tend to have three parts, e.g. {bad_name}.0");
     }
 
     // Suggest only for very small differences

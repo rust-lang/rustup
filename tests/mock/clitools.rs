@@ -151,14 +151,14 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
 
     create_mock_dist_server(&config.distdir, s);
 
-    let build_path = exe_dir.join(format!("rustup-init{}", EXE_SUFFIX));
+    let build_path = exe_dir.join(format!("rustup-init{EXE_SUFFIX}"));
 
-    let rustup_path = config.exedir.join(format!("rustup{}", EXE_SUFFIX));
-    let setup_path = config.exedir.join(format!("rustup-init{}", EXE_SUFFIX));
-    let rustc_path = config.exedir.join(format!("rustc{}", EXE_SUFFIX));
-    let cargo_path = config.exedir.join(format!("cargo{}", EXE_SUFFIX));
-    let rls_path = config.exedir.join(format!("rls{}", EXE_SUFFIX));
-    let rust_lldb_path = config.exedir.join(format!("rust-lldb{}", EXE_SUFFIX));
+    let rustup_path = config.exedir.join(format!("rustup{EXE_SUFFIX}"));
+    let setup_path = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
+    let rustc_path = config.exedir.join(format!("rustc{EXE_SUFFIX}"));
+    let cargo_path = config.exedir.join(format!("cargo{EXE_SUFFIX}"));
+    let rls_path = config.exedir.join(format!("rls{EXE_SUFFIX}"));
+    let rust_lldb_path = config.exedir.join(format!("rust-lldb{EXE_SUFFIX}"));
 
     copy_binary(&build_path, &rustup_path).unwrap();
     hard_link(&rustup_path, setup_path).unwrap();
@@ -199,9 +199,9 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
 
 fn create_local_update_server(self_dist: &Path, config: &mut Config, version: &str) {
     let trip = this_host_triple();
-    let dist_dir = self_dist.join(&format!("archive/{}/{}", version, trip));
-    let dist_exe = dist_dir.join(&format!("rustup-init{}", EXE_SUFFIX));
-    let rustup_bin = config.exedir.join(&format!("rustup-init{}", EXE_SUFFIX));
+    let dist_dir = self_dist.join(&format!("archive/{version}/{trip}"));
+    let dist_exe = dist_dir.join(&format!("rustup-init{EXE_SUFFIX}"));
+    let rustup_bin = config.exedir.join(&format!("rustup-init{EXE_SUFFIX}"));
 
     fs::create_dir_all(dist_dir).unwrap();
     output_release_file(self_dist, "1", version);
@@ -239,8 +239,8 @@ pub fn self_update_setup(f: &dyn Fn(&Config, &Path), version: &str) {
         create_local_update_server(self_dist, config, version);
 
         let trip = this_host_triple();
-        let dist_dir = self_dist.join(&format!("archive/{}/{}", version, trip));
-        let dist_exe = dist_dir.join(&format!("rustup-init{}", EXE_SUFFIX));
+        let dist_dir = self_dist.join(&format!("archive/{version}/{trip}"));
+        let dist_exe = dist_dir.join(&format!("rustup-init{EXE_SUFFIX}"));
 
         // Modify the exe so it hashes different
         raw::append_file(&dist_exe, "").unwrap();
@@ -252,10 +252,9 @@ pub fn self_update_setup(f: &dyn Fn(&Config, &Path), version: &str) {
 pub fn output_release_file(dist_dir: &Path, schema: &str, version: &str) {
     let contents = format!(
         r#"
-schema-version = "{}"
-version = "{}"
-"#,
-        schema, version
+schema-version = "{schema}"
+version = "{version}"
+"#
     );
     let file = dist_dir.join("release-stable.toml");
     utils::write_file("release", &file, &contents).unwrap();
@@ -441,9 +440,9 @@ pub(crate) fn print_command(args: &[&str], out: &SanitizedOutput) {
     print!("\n>");
     for arg in args {
         if arg.contains(' ') {
-            print!(" {:?}", arg);
+            print!(" {arg:?}");
         } else {
-            print!(" {}", arg);
+            print!(" {arg}");
         }
     }
     println!();
@@ -485,7 +484,7 @@ where
     I: IntoIterator<Item = A>,
     A: AsRef<OsStr>,
 {
-    let exe_path = config.exedir.join(format!("{}{}", name, EXE_SUFFIX));
+    let exe_path = config.exedir.join(format!("{name}{EXE_SUFFIX}"));
     let mut cmd = Command::new(exe_path);
     cmd.args(args);
     cmd.current_dir(&*config.workdir.borrow());
@@ -614,7 +613,7 @@ where
         stderr: String::from_utf8(out.stderr).unwrap(),
     };
 
-    println!("inprocess: {}", inprocess);
+    println!("inprocess: {inprocess}");
     println!("status: {:?}", out.status);
     println!("----- stdout\n{}", output.stdout);
     println!("----- stderr\n{}", output.stderr);
@@ -696,7 +695,7 @@ where
                     // This is an ETXTBSY situation
                     std::thread::sleep(std::time::Duration::from_millis(250));
                 } else {
-                    panic!("Unable to run test command: {:?}", e);
+                    panic!("Unable to run test command: {e:?}");
                 }
             }
         }
@@ -770,7 +769,7 @@ impl Release {
             channel: channel.to_string(),
             date: date.to_string(),
             version: version.to_string(),
-            hash: format!("hash-{}-{}", channel, suffix),
+            hash: format!("hash-{channel}-{suffix}"),
             available: true,
             multi_arch: false,
             rls: RlsStatus::Available,
@@ -1069,7 +1068,7 @@ fn build_mock_channel(
 
         MockPackage {
             name,
-            version: format!("{} ({})", version, version_hash),
+            version: format!("{version} ({version_hash})"),
             targets: target_pkgs.collect(),
         }
     });
@@ -1176,7 +1175,7 @@ fn build_mock_unavailable_channel(
         .iter()
         .map(|name| MockPackage {
             name,
-            version: format!("{} ({})", version, version_hash),
+            version: format!("{version} ({version_hash})"),
             targets: vec![MockTargetedPackage {
                 target: host_triple.clone(),
                 available: false,
@@ -1197,9 +1196,9 @@ fn build_mock_unavailable_channel(
 fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
-            name: format!("rust-std-{}", trip),
+            name: format!("rust-std-{trip}"),
             files: vec![MockFile::new(
-                format!("lib/rustlib/{}/libstd.rlib", trip),
+                format!("lib/rustlib/{trip}/libstd.rlib"),
                 b"",
             )],
         }],
@@ -1209,10 +1208,10 @@ fn build_mock_std_installer(trip: &str) -> MockInstallerBuilder {
 fn build_mock_cross_std_installer(target: &str, date: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
-            name: format!("rust-std-{}", target),
+            name: format!("rust-std-{target}"),
             files: vec![
-                MockFile::new(format!("lib/rustlib/{}/lib/libstd.rlib", target), b""),
-                MockFile::new(format!("lib/rustlib/{}/lib/{}", target, date), b""),
+                MockFile::new(format!("lib/rustlib/{target}/lib/libstd.rlib"), b""),
+                MockFile::new(format!("lib/rustlib/{target}/lib/{date}"), b""),
             ],
         }],
     }
@@ -1278,9 +1277,9 @@ fn build_mock_rust_doc_installer() -> MockInstallerBuilder {
 fn build_mock_rust_analysis_installer(trip: &str) -> MockInstallerBuilder {
     MockInstallerBuilder {
         components: vec![MockComponentBuilder {
-            name: format!("rust-analysis-{}", trip),
+            name: format!("rust-analysis-{trip}"),
             files: vec![MockFile::new(
-                format!("lib/rustlib/{}/analysis/libfoo.json", trip),
+                format!("lib/rustlib/{trip}/analysis/libfoo.json"),
                 b"",
             )],
         }],
@@ -1318,7 +1317,7 @@ fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
             // Create a temp directory to hold the source and the output
             let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
             let source_path = tempdir.path().join("in.rs");
-            let dest_path = tempdir.path().join(&format!("out{}", EXE_SUFFIX));
+            let dest_path = tempdir.path().join(&format!("out{EXE_SUFFIX}"));
 
             // Write the source
             let source = include_bytes!("mock_bin_src.rs");
@@ -1347,10 +1346,10 @@ fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
         };
     }
 
-    let name = format!("bin/{}{}", name, EXE_SUFFIX);
+    let name = format!("bin/{name}{EXE_SUFFIX}");
     vec![
-        MockFile::new(format!("{}.version", name), version.as_bytes()),
-        MockFile::new(format!("{}.version-hash", name), version_hash.as_bytes()),
+        MockFile::new(format!("{name}.version"), version.as_bytes()),
+        MockFile::new(format!("{name}.version-hash"), version_hash.as_bytes()),
         MockFile::new_arc(name, MOCK_BIN.clone()).executable(true),
     ]
 }

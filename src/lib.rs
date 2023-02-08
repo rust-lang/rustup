@@ -52,7 +52,7 @@ pub fn is_proxyable_tools(tool: &str) -> Result<()> {
             TOOLS
                 .iter()
                 .chain(DUP_TOOLS.iter())
-                .map(|s| format!("'{}'", s))
+                .map(|s| format!("'{s}'"))
                 .collect::<Vec<_>>()
                 .join(", ")
         )))

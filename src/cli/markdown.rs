@@ -48,7 +48,7 @@ impl<'a, T: Terminal + 'a> LineWrapper<'a, T> {
         }
 
         // Write the word
-        let _ = write!(self.w, "{}", word);
+        let _ = write!(self.w, "{word}");
         self.pos += word_len;
     }
     fn write_space(&mut self) {

@@ -39,7 +39,7 @@ impl Components {
         self.prefix.rel_manifest_file(COMPONENTS_FILE)
     }
     fn rel_component_manifest(&self, name: &str) -> PathBuf {
-        self.prefix.rel_manifest_file(&format!("manifest-{}", name))
+        self.prefix.rel_manifest_file(&format!("manifest-{name}"))
     }
     fn read_version(&self) -> Result<Option<String>> {
         let p = self.prefix.manifest_file(VERSION_FILE);

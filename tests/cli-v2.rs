@@ -1498,8 +1498,7 @@ fn install_allow_downgrade() {
             config,
             &["rustup", "toolchain", "install", "nightly", "-c", "rls"],
             &format!(
-                "component 'rls' for target '{}' is unavailable for download for channel 'nightly'",
-                trip,
+                "component 'rls' for target '{trip}' is unavailable for download for channel 'nightly'",
             ),
         );
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-3");
