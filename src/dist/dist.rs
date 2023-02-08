@@ -7,7 +7,7 @@ use std::path::Path;
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Result};
-use chrono::{Date, NaiveDate, TimeZone, Utc};
+use chrono::NaiveDate;
 use lazy_static::lazy_static;
 use regex::Regex;
 use thiserror::Error as ThisError;
@@ -734,9 +734,9 @@ fn update_from_dist_<'a>(
     //
     // We could arguably use the date of the first rustup release here, but that would break a
     // bunch of the tests, which (inexplicably) use 2015-01-01 as their manifest dates.
-    let first_manifest = Utc.from_utc_date(&NaiveDate::from_ymd(2014, 12, 20));
+    let first_manifest = date_from_manifest_date("2014-12-20").unwrap();
     let old_manifest = old_date
-        .and_then(utc_from_manifest_date)
+        .and_then(date_from_manifest_date)
         .unwrap_or(first_manifest);
     let last_manifest = if allow_downgrade {
         first_manifest
@@ -808,9 +808,10 @@ fn update_from_dist_<'a>(
                 // nightlies in reverse chronological order until we find a nightly that does,
                 // starting at one date earlier than the current manifest's date.
                 let toolchain_date = toolchain.date.as_ref().unwrap_or(&fetched);
-                let try_next = utc_from_manifest_date(toolchain_date)
+                let try_next = date_from_manifest_date(toolchain_date)
                     .unwrap_or_else(|| panic!("Malformed manifest date: {toolchain_date:?}"))
-                    .pred();
+                    .pred_opt()
+                    .unwrap();
 
                 if try_next < last_manifest {
                     // Wouldn't be an update if we go further back than the user's current nightly.
@@ -1071,10 +1072,8 @@ fn dl_v1_manifest(download: DownloadCfg<'_>, toolchain: &ToolchainDesc) -> Resul
     Ok(urls)
 }
 
-fn utc_from_manifest_date(date_str: &str) -> Option<Date<Utc>> {
-    NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
-        .ok()
-        .map(|date| Utc.from_utc_date(&date))
+fn date_from_manifest_date(date_str: &str) -> Option<NaiveDate> {
+    NaiveDate::parse_from_str(date_str, "%Y-%m-%d").ok()
 }
 
 #[cfg(test)]
