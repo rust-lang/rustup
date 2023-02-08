@@ -33,7 +33,7 @@ fn add_file() {
     drop(file);
 
     assert_eq!(
-        fs::read_to_string(&prefix.path().join("foo/bar")).unwrap(),
+        fs::read_to_string(prefix.path().join("foo/bar")).unwrap(),
         "test"
     );
 }
@@ -76,7 +76,7 @@ fn add_file_that_exists() {
     let notify = |_: Notification<'_>| ();
     let mut tx = Transaction::new(prefix, &tmpcfg, &notify);
 
-    fs::create_dir_all(&prefixdir.path().join("foo")).unwrap();
+    fs::create_dir_all(prefixdir.path().join("foo")).unwrap();
     utils::write_file("", &prefixdir.path().join("foo/bar"), "").unwrap();
 
     let err = tx.add_file("c", PathBuf::from("foo/bar")).unwrap_err();
@@ -164,7 +164,7 @@ fn copy_file_that_exists() {
     let srcpath = srcdir.path().join("bar");
     utils::write_file("", &srcpath, "").unwrap();
 
-    fs::create_dir_all(&prefixdir.path().join("foo")).unwrap();
+    fs::create_dir_all(prefixdir.path().join("foo")).unwrap();
     utils::write_file("", &prefixdir.path().join("foo/bar"), "").unwrap();
 
     let err = tx
@@ -484,7 +484,7 @@ fn write_file_then_rollback() {
         .unwrap();
     drop(tx);
 
-    assert!(!utils::is_file(&prefix.path().join("foo/bar")));
+    assert!(!utils::is_file(prefix.path().join("foo/bar")));
 }
 
 #[test]
@@ -678,7 +678,7 @@ fn do_multiple_op_transaction(rollback: bool) {
     let path5 = prefix.path().join(&relpath5);
     let path6 = prefix.path().join(&relpath6);
     let path7 = prefix.path().join(&relpath7);
-    let path8 = prefix.path().join(&relpath8);
+    let path8 = prefix.path().join(relpath8);
 
     let srcpath1 = srcdir.path().join(&relpath1);
     fs::create_dir_all(srcpath1.parent().unwrap()).unwrap();

@@ -529,7 +529,7 @@ fn install_stops_if_rustc_exists() {
         .tempdir()
         .unwrap();
     // Create fake executable
-    let fake_exe = temp_dir.path().join(&format!("{}{}", "rustc", EXE_SUFFIX));
+    let fake_exe = temp_dir.path().join(format!("{}{}", "rustc", EXE_SUFFIX));
     raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
@@ -560,7 +560,7 @@ fn install_stops_if_cargo_exists() {
         .tempdir()
         .unwrap();
     // Create fake executable
-    let fake_exe = temp_dir.path().join(&format!("{}{}", "cargo", EXE_SUFFIX));
+    let fake_exe = temp_dir.path().join(format!("{}{}", "cargo", EXE_SUFFIX));
     raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
@@ -591,7 +591,7 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
         .tempdir()
         .unwrap();
     // Create fake executable
-    let fake_exe = temp_dir.path().join(&format!("{}{}", "rustc", EXE_SUFFIX));
+    let fake_exe = temp_dir.path().join(format!("{}{}", "rustc", EXE_SUFFIX));
     raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 

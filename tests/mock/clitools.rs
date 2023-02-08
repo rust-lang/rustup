@@ -160,7 +160,7 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     let rls_path = config.exedir.join(format!("rls{EXE_SUFFIX}"));
     let rust_lldb_path = config.exedir.join(format!("rust-lldb{EXE_SUFFIX}"));
 
-    copy_binary(&build_path, &rustup_path).unwrap();
+    copy_binary(build_path, &rustup_path).unwrap();
     hard_link(&rustup_path, setup_path).unwrap();
     hard_link(&rustup_path, rustc_path).unwrap();
     hard_link(&rustup_path, cargo_path).unwrap();
@@ -199,13 +199,13 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
 
 fn create_local_update_server(self_dist: &Path, config: &mut Config, version: &str) {
     let trip = this_host_triple();
-    let dist_dir = self_dist.join(&format!("archive/{version}/{trip}"));
-    let dist_exe = dist_dir.join(&format!("rustup-init{EXE_SUFFIX}"));
-    let rustup_bin = config.exedir.join(&format!("rustup-init{EXE_SUFFIX}"));
+    let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
+    let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
+    let rustup_bin = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
 
     fs::create_dir_all(dist_dir).unwrap();
     output_release_file(self_dist, "1", version);
-    fs::copy(&rustup_bin, &dist_exe).unwrap();
+    fs::copy(rustup_bin, dist_exe).unwrap();
 
     let root_url = format!("file://{}", self_dist.display());
     config.rustup_update_root = Some(root_url);
@@ -239,8 +239,8 @@ pub fn self_update_setup(f: &dyn Fn(&Config, &Path), version: &str) {
         create_local_update_server(self_dist, config, version);
 
         let trip = this_host_triple();
-        let dist_dir = self_dist.join(&format!("archive/{version}/{trip}"));
-        let dist_exe = dist_dir.join(&format!("rustup-init{EXE_SUFFIX}"));
+        let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
+        let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
 
         // Modify the exe so it hashes different
         raw::append_file(&dist_exe, "").unwrap();
@@ -1317,7 +1317,7 @@ fn mock_bin(name: &str, version: &str, version_hash: &str) -> Vec<MockFile> {
             // Create a temp directory to hold the source and the output
             let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
             let source_path = tempdir.path().join("in.rs");
-            let dest_path = tempdir.path().join(&format!("out{EXE_SUFFIX}"));
+            let dest_path = tempdir.path().join(format!("out{EXE_SUFFIX}"));
 
             // Write the source
             let source = include_bytes!("mock_bin_src.rs");

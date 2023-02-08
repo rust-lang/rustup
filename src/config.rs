@@ -865,7 +865,7 @@ impl Cfg {
 
         // Filter out toolchains that don't track a release channel
         Ok(toolchains
-            .filter(|&(_, ref t)| t.as_ref().map(Toolchain::is_tracking).unwrap_or(false))
+            .filter(|(_, ref t)| t.as_ref().map(Toolchain::is_tracking).unwrap_or(false))
             .collect())
     }
 

@@ -137,7 +137,7 @@ impl MockFile {
         let path = path.join(&self.path);
         match self.contents {
             Contents::Dir(ref files) => {
-                for &(ref name, ref contents) in files {
+                for (name, contents) in files {
                     let fname = path.join(name);
                     contents.build(&fname);
                 }

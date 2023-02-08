@@ -510,7 +510,7 @@ pub(crate) fn create_rustup_home() -> Result<()> {
     }
 
     let home = rustup_home_in_user_dir()?;
-    fs::create_dir_all(&home).context("unable to create ~/.rustup")?;
+    fs::create_dir_all(home).context("unable to create ~/.rustup")?;
 
     Ok(())
 }
