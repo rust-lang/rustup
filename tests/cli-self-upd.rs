@@ -153,9 +153,7 @@ fn uninstall_deletes_bins() {
         let cargo = config.cargodir.join(format!("bin/cargo{EXE_SUFFIX}"));
         let rust_lldb = config.cargodir.join(format!("bin/rust-lldb{EXE_SUFFIX}"));
         let rust_gdb = config.cargodir.join(format!("bin/rust-gdb{EXE_SUFFIX}"));
-        let rust_gdbgui = config
-            .cargodir
-            .join(format!("bin/rust-gdbgui{EXE_SUFFIX}"));
+        let rust_gdbgui = config.cargodir.join(format!("bin/rust-gdbgui{EXE_SUFFIX}"));
         assert!(!rustup.exists());
         assert!(!rustc.exists());
         assert!(!rustdoc.exists());
@@ -175,9 +173,7 @@ fn uninstall_works_if_some_bins_dont_exist() {
         let cargo = config.cargodir.join(format!("bin/cargo{EXE_SUFFIX}"));
         let rust_lldb = config.cargodir.join(format!("bin/rust-lldb{EXE_SUFFIX}"));
         let rust_gdb = config.cargodir.join(format!("bin/rust-gdb{EXE_SUFFIX}"));
-        let rust_gdbgui = config
-            .cargodir
-            .join(format!("bin/rust-gdbgui{EXE_SUFFIX}"));
+        let rust_gdbgui = config.cargodir.join(format!("bin/rust-gdbgui{EXE_SUFFIX}"));
 
         fs::remove_file(&rustc).unwrap();
         fs::remove_file(&cargo).unwrap();
@@ -255,9 +251,7 @@ fn uninstall_self_delete_works() {
         let cargo = config.cargodir.join(format!("bin/cargo{EXE_SUFFIX}"));
         let rust_lldb = config.cargodir.join(format!("bin/rust-lldb{EXE_SUFFIX}"));
         let rust_gdb = config.cargodir.join(format!("bin/rust-gdb{EXE_SUFFIX}"));
-        let rust_gdbgui = config
-            .cargodir
-            .join(format!("bin/rust-gdbgui{EXE_SUFFIX}"));
+        let rust_gdbgui = config.cargodir.join(format!("bin/rust-gdbgui{EXE_SUFFIX}"));
         assert!(!rustc.exists());
         assert!(!rustdoc.exists());
         assert!(!cargo.exists());
@@ -329,9 +323,7 @@ fn update_but_not_installed() {
 fn update_but_delete_existing_updater_first() {
     update_setup(&|config, _| {
         // The updater is stored in a known location
-        let setup = config
-            .cargodir
-            .join(format!("bin/rustup-init{EXE_SUFFIX}"));
+        let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
 
         expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
 
@@ -524,9 +516,7 @@ fn updater_leaves_itself_for_later_deletion() {
         expect_ok(config, &["rustup", "update", "nightly"]);
         expect_ok(config, &["rustup", "self", "update"]);
 
-        let setup = config
-            .cargodir
-            .join(format!("bin/rustup-init{EXE_SUFFIX}"));
+        let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
         assert!(setup.exists());
     });
 }
@@ -540,9 +530,7 @@ fn updater_is_deleted_after_running_rustup() {
 
         expect_ok(config, &["rustup", "update", "nightly"]);
 
-        let setup = config
-            .cargodir
-            .join(format!("bin/rustup-init{EXE_SUFFIX}"));
+        let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
         assert!(!setup.exists());
     });
 }
@@ -556,9 +544,7 @@ fn updater_is_deleted_after_running_rustc() {
 
         expect_ok(config, &["rustc", "--version"]);
 
-        let setup = config
-            .cargodir
-            .join(format!("bin/rustup-init{EXE_SUFFIX}"));
+        let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
         assert!(!setup.exists());
     });
 }
