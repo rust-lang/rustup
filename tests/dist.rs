@@ -32,11 +32,10 @@ use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 const SHA256_HASH_LEN: usize = 64;
 
+pub type EditChannel = dyn Fn(/* date */ &str, &mut MockChannel);
+
 // Creates a mock dist server populated with some test data
-pub fn create_mock_dist_server(
-    path: &Path,
-    edit: Option<&dyn Fn(&str, &mut MockChannel)>,
-) -> MockDistServer {
+pub fn create_mock_dist_server(path: &Path, edit: Option<&EditChannel>) -> MockDistServer {
     MockDistServer {
         path: path.to_owned(),
         channels: vec![
@@ -46,11 +45,7 @@ pub fn create_mock_dist_server(
     }
 }
 
-pub fn create_mock_channel(
-    channel: &str,
-    date: &str,
-    edit: Option<&dyn Fn(&str, &mut MockChannel)>,
-) -> MockChannel {
+pub fn create_mock_channel(channel: &str, date: &str, edit: Option<&EditChannel>) -> MockChannel {
     // Put the date in the files so they can be differentiated
     let contents = Arc::new(date.as_bytes().to_vec());
 
@@ -515,7 +510,7 @@ impl Compressions {
 }
 
 fn setup(
-    edit: Option<&dyn Fn(&str, &mut MockChannel)>,
+    edit: Option<&EditChannel>,
     comps: Compressions,
     f: &dyn Fn(&Url, &ToolchainDesc, &InstallPrefix, &DownloadCfg<'_>, &temp::Cfg),
 ) {
