@@ -26,7 +26,7 @@ no-self-update = []
 
 # Sorted by alphabetic order
 [dependencies]
-anyhow = "1.0.68"
+anyhow = "1.0.69"
 cfg-if = "1.0"
 chrono = "0.4"
 clap = {version = "2", features = ["wrap_help"]}

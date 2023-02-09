@@ -16,7 +16,7 @@ reqwest-default-tls = ["reqwest/default-tls"]
 reqwest-rustls-tls = ["reqwest/rustls-tls-native-roots"]
 
 [dependencies]
-anyhow = "1.0.68"
+anyhow = "1.0.69"
 curl = {version = "0.4.11", optional = true}
 env_proxy = {version = "0.4.1", optional = true}
 lazy_static = {version = "1.0", optional = true}
