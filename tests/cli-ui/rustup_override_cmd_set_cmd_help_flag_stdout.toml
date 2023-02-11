@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["override","set","--help"]
 stdout = """
-rustup-override-set 
+...
 Set the override toolchain for a directory
 
 USAGE:
-    rustup override set [OPTIONS] <toolchain>
+    rustup[EXE] override set [OPTIONS] <toolchain>
 
 FLAGS:
     -h, --help    Prints help information

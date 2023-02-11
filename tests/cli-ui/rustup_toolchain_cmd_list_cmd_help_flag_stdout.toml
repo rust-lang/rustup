@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["toolchain","list","--help"]
 stdout = """
-rustup-toolchain-list 
+...
 List installed toolchains
 
 USAGE:
-    rustup toolchain list [FLAGS]
+    rustup[EXE] toolchain list [FLAGS]
 
 FLAGS:
     -h, --help       Prints help information

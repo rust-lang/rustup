@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["toolchain","--help"]
 stdout = """
-rustup-toolchain 
+...
 Modify or query the installed toolchains
 
 USAGE:
-    rustup toolchain <SUBCOMMAND>
+    rustup[EXE] toolchain <SUBCOMMAND>
 
 FLAGS:
     -h, --help    Prints help information

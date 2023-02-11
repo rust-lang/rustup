@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["target","add","--help"]
 stdout = """
-rustup-target-add 
+...
 Add a target to a Rust toolchain
 
 USAGE:
-    rustup target add [OPTIONS] <target>...
+    rustup[EXE] target add [OPTIONS] <target>...
 
 FLAGS:
     -h, --help    Prints help information

@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["component","add","--help"]
 stdout = """
-rustup-component-add 
+...
 Add a component to a Rust toolchain
 
 USAGE:
-    rustup component add [OPTIONS] <component>...
+    rustup[EXE] component add [OPTIONS] <component>...
 
 FLAGS:
     -h, --help    Prints help information

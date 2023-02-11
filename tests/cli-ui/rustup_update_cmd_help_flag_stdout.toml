@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["update","--help"]
 stdout = """
-rustup-update 
+...
 Update Rust toolchains and rustup
 
 USAGE:
-    rustup update [FLAGS] [toolchain]...
+    rustup[EXE] update [FLAGS] [toolchain]...
 
 FLAGS:
         --force             Force an update, even if some components are missing

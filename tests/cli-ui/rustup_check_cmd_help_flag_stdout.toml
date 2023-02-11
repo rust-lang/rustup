@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["check","--help"]
 stdout = """
-rustup-check 
+...
 Check for updates to Rust toolchains and rustup
 
 USAGE:
-    rustup check
+    rustup[EXE] check
 
 FLAGS:
     -h, --help    Prints help information

@@ -6,7 +6,7 @@ rustup [..]
 The Rust toolchain installer
 
 USAGE:
-    rustup [FLAGS] [+toolchain] <SUBCOMMAND>
+    rustup[EXE] [FLAGS] [+toolchain] <SUBCOMMAND>
 
 FLAGS:
     -v, --verbose    Enable verbose output
@@ -29,7 +29,7 @@ SUBCOMMANDS:
     run            Run a command with an environment configured for a given toolchain
     which          Display which binary will be run for a given command
     doc            Open the documentation for the current toolchain
-    man            View the man page for a given command
+...
     self           Modify the rustup installation
     set            Alter rustup settings
     completions    Generate tab-completion scripts for your shell

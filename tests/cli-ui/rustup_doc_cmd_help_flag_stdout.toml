@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["doc","--help"]
 stdout = """
-rustup-doc 
+...
 Open the documentation for the current toolchain
 
 USAGE:
-    rustup doc [FLAGS] [OPTIONS] [topic]
+    rustup[EXE] doc [FLAGS] [OPTIONS] [topic]
 
 FLAGS:
         --alloc              The Rust core allocation and collections library

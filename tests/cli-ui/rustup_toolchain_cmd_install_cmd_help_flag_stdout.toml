@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["toolchain","install","--help"]
 stdout = """
-rustup-toolchain-install 
+...
 Install or update a given toolchain
 
 USAGE:
-    rustup toolchain install [FLAGS] [OPTIONS] <toolchain>...
+    rustup[EXE] toolchain install [FLAGS] [OPTIONS] <toolchain>...
 
 FLAGS:
         --allow-downgrade    Allow rustup to downgrade the toolchain to satisfy your component choice

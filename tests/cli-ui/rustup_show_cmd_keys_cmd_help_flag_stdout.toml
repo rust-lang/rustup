@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["show","keys","--help"]
 stdout = """
-rustup-show-keys 
+...
 Display the known PGP keys
 
 USAGE:
-    rustup show keys
+    rustup[EXE] show keys
 
 FLAGS:
     -h, --help    Prints help information

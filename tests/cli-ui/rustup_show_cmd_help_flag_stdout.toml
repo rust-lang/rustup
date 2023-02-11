@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["show","--help"]
 stdout = """
-rustup-show 
+...
 Show the active and installed toolchains or profiles
 
 USAGE:
-    rustup show [FLAGS] [SUBCOMMAND]
+    rustup[EXE] show [FLAGS] [SUBCOMMAND]
 
 FLAGS:
     -v, --verbose    Enable verbose output with rustc information for all installed toolchains

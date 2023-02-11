@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["which","--help"]
 stdout = """
-rustup-which 
+...
 Display which binary will be run for a given command
 
 USAGE:
-    rustup which [OPTIONS] <command>
+    rustup[EXE] which [OPTIONS] <command>
 
 FLAGS:
     -h, --help    Prints help information

@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["completions","--help"]
 stdout = """
-rustup-completions 
+...
 Generate tab-completion scripts for your shell
 
 USAGE:
-    rustup completions [ARGS]
+    rustup[EXE] completions [ARGS]
 
 FLAGS:
     -h, --help    Prints help information

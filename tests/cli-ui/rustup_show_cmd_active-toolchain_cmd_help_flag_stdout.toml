@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["show","active-toolchain","--help"]
 stdout = """
-rustup-show-active-toolchain 
+...
 Show the active toolchain
 
 USAGE:
-    rustup show active-toolchain [FLAGS]
+    rustup[EXE] show active-toolchain [FLAGS]
 
 FLAGS:
     -h, --help       Prints help information

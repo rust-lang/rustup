@@ -10,4 +10,9 @@ fn ui_tests() {
     fs::copy(&rustup_init, &rustup).unwrap();
     t.register_bin("rustup", &rustup);
     t.case("tests/cli-ui/*.toml");
+    #[cfg(target_os = "windows")]
+    {
+        // On windows, we don't have man command, so skip the tests.
+        t.skip("tests/cli-ui/rustup_man_cmd_help_flag_stdout.toml");
+    }
 }

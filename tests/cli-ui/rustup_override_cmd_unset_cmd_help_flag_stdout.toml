@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["override","unset","--help"]
 stdout = """
-rustup-override-unset 
+...
 Remove the override toolchain for a directory
 
 USAGE:
-    rustup override unset [FLAGS] [OPTIONS]
+    rustup[EXE] override unset [FLAGS] [OPTIONS]
 
 FLAGS:
     -h, --help           Prints help information

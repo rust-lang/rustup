@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["run","--help"]
 stdout = """
-rustup-run 
+...
 Run a command with an environment configured for a given toolchain
 
 USAGE:
-    rustup run [FLAGS] <toolchain> <command>...
+    rustup[EXE] run [FLAGS] <toolchain> <command>...
 
 FLAGS:
     -h, --help       Prints help information

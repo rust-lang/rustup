@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["man","--help"]
 stdout = """
-rustup-man 
+...
 View the man page for a given command
 
 USAGE:
-    rustup man [OPTIONS] <command>
+    rustup[EXE] man [OPTIONS] <command>
 
 FLAGS:
     -h, --help    Prints help information

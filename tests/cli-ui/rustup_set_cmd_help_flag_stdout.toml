@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["set","--help"]
 stdout = """
-rustup-set 
+...
 Alter rustup settings
 
 USAGE:
-    rustup set <SUBCOMMAND>
+    rustup[EXE] set <SUBCOMMAND>
 
 FLAGS:
     -h, --help    Prints help information

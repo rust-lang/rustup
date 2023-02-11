@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["default","--help"]
 stdout = """
-rustup-default 
+...
 Set the default toolchain
 
 USAGE:
-    rustup default [toolchain]
+    rustup[EXE] default [toolchain]
 
 FLAGS:
     -h, --help    Prints help information

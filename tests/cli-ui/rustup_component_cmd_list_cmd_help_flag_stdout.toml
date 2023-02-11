@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["component","list","--help"]
 stdout = """
-rustup-component-list 
+...
 List installed and available components
 
 USAGE:
-    rustup component list [FLAGS] [OPTIONS]
+    rustup[EXE] component list [FLAGS] [OPTIONS]
 
 FLAGS:
     -h, --help         Prints help information

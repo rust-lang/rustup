@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["target","remove","--help"]
 stdout = """
-rustup-target-remove 
+...
 Remove a target from a Rust toolchain
 
 USAGE:
-    rustup target remove [OPTIONS] <target>...
+    rustup[EXE] target remove [OPTIONS] <target>...
 
 FLAGS:
     -h, --help    Prints help information

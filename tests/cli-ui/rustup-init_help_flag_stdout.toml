@@ -6,7 +6,7 @@ rustup-init [..]
 The installer for rustup
 
 USAGE:
-    rustup-init [FLAGS] [OPTIONS]
+    rustup-init[EXE] [FLAGS] [OPTIONS]
 
 FLAGS:
     -v, --verbose                        Enable verbose output

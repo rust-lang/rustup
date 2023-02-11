@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["component","remove","--help"]
 stdout = """
-rustup-component-remove 
+...
 Remove a component from a Rust toolchain
 
 USAGE:
-    rustup component remove [OPTIONS] <component>...
+    rustup[EXE] component remove [OPTIONS] <component>...
 
 FLAGS:
     -h, --help    Prints help information

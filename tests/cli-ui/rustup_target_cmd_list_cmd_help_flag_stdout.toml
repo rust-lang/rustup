@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["target","list","--help"]
 stdout = """
-rustup-target-list 
+...
 List installed and available targets
 
 USAGE:
-    rustup target list [FLAGS] [OPTIONS]
+    rustup[EXE] target list [FLAGS] [OPTIONS]
 
 FLAGS:
     -h, --help         Prints help information

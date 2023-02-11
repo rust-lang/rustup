@@ -1,11 +1,11 @@
 bin.name = "rustup"
 args = ["self","--help"]
 stdout = """
-rustup-self 
+...
 Modify the rustup installation
 
 USAGE:
-    rustup self <SUBCOMMAND>
+    rustup[EXE] self <SUBCOMMAND>
 
 FLAGS:
     -h, --help    Prints help information
