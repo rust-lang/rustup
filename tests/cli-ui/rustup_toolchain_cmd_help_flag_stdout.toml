@@ -1,0 +1,62 @@
+bin.name = "rustup"
+args = ["toolchain","--help"]
+stdout = """
+...
+Modify or query the installed toolchains
+
+USAGE:
+    rustup[EXE] toolchain <SUBCOMMAND>
+
+FLAGS:
+    -h, --help    Prints help information
+
+SUBCOMMANDS:
+    list         List installed toolchains
+    install      Install or update a given toolchain
+    uninstall    Uninstall a toolchain
+    link         Create a custom toolchain by symlinking to a directory
+    help         Prints this message or the help of the given subcommand(s)
+
+DISCUSSION:
+    Many `rustup` commands deal with *toolchains*, a single
+    installation of the Rust compiler. `rustup` supports multiple
+    types of toolchains. The most basic track the official release
+    channels: 'stable', 'beta' and 'nightly'; but `rustup` can also
+    install toolchains from the official archives, for alternate host
+    platforms, and from local builds.
+
+    Standard release channel toolchain names have the following form:
+
+        <channel>[-<date>][-<host>]
+
+        <channel>       = stable|beta|nightly|<major.minor>|<major.minor.patch>
+        <date>          = YYYY-MM-DD
+        <host>          = <target-triple>
+
+    'channel' is a named release channel, a major and minor version
+    number such as `1.42`, or a fully specified version number, such
+    as `1.42.0`. Channel names can be optionally appended with an
+    archive date, as in `nightly-2014-12-18`, in which case the
+    toolchain is downloaded from the archive for that date.
+
+    The host may be specified as a target triple. This is most useful
+    for installing a 32-bit compiler on a 64-bit platform, or for
+    installing the [MSVC-based toolchain] on Windows. For example:
+
+        $ rustup toolchain install stable-x86_64-pc-windows-msvc
+
+    For convenience, omitted elements of the target triple will be
+    inferred, so the above could be written:
+
+        $ rustup toolchain install stable-msvc
+
+    The `rustup default` command may be used to both install and set
+    the desired toolchain as default in a single command:
+
+        $ rustup default stable-msvc
+
+    rustup can also manage symlinked local toolchain builds, which are
+    often used for developing Rust itself. For more information see
+    `rustup toolchain help link`.
+"""
+stderr = ""

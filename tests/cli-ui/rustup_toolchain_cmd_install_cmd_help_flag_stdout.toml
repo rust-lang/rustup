@@ -1,0 +1,27 @@
+bin.name = "rustup"
+args = ["toolchain","install","--help"]
+stdout = """
+...
+Install or update a given toolchain
+
+USAGE:
+    rustup[EXE] toolchain install [FLAGS] [OPTIONS] <toolchain>...
+
+FLAGS:
+        --allow-downgrade    Allow rustup to downgrade the toolchain to satisfy your component choice
+        --force              Force an update, even if some components are missing
+        --force-non-host     Install toolchains that require an emulator. See https://github.com/rust-
+                             lang/rustup/wiki/Non-host-toolchains
+    -h, --help               Prints help information
+        --no-self-update     Don't perform self update when running the`rustup toolchain install` command
+
+OPTIONS:
+    -c, --component <components>...    Add specific components on installation
+        --profile <profile>             [possible values: minimal, default, complete]
+    -t, --target <targets>...          Add specific targets on installation
+
+ARGS:
+    <toolchain>...    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see `rustup help
+                      toolchain`
+"""
+stderr = ""

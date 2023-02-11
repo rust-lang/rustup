@@ -1,0 +1,14 @@
+bin.name = "rustup"
+args = ["toolchain","list","--help"]
+stdout = """
+...
+List installed toolchains
+
+USAGE:
+    rustup[EXE] toolchain list [FLAGS]
+
+FLAGS:
+    -h, --help       Prints help information
+    -v, --verbose    Enable verbose output with toolchain information
+"""
+stderr = ""

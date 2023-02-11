@@ -1,0 +1,13 @@
+bin.name = "rustup"
+args = ["self","upgrade-data","--help"]
+stdout = """
+...
+Upgrade the internal data format.
+
+USAGE:
+    rustup[EXE] self upgrade-data
+
+FLAGS:
+    -h, --help    Prints help information
+"""
+stderr = ""

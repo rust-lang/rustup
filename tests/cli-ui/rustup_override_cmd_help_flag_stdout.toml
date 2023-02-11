@@ -1,0 +1,40 @@
+bin.name = "rustup"
+args = ["override","--help"]
+stdout = """
+...
+Modify directory toolchain overrides
+
+USAGE:
+    rustup[EXE] override <SUBCOMMAND>
+
+FLAGS:
+    -h, --help    Prints help information
+
+SUBCOMMANDS:
+    list     List directory toolchain overrides
+    set      Set the override toolchain for a directory
+    unset    Remove the override toolchain for a directory
+    help     Prints this message or the help of the given subcommand(s)
+
+DISCUSSION:
+    Overrides configure Rustup to use a specific toolchain when
+    running in a specific directory.
+
+    Directories can be assigned their own Rust toolchain with `rustup
+    override`. When a directory has an override then any time `rustc`
+    or `cargo` is run inside that directory, or one of its child
+    directories, the override toolchain will be invoked.
+
+    To pin to a specific nightly:
+
+        $ rustup override set nightly-2014-12-18
+
+    Or a specific stable release:
+
+        $ rustup override set 1.0.0
+
+    To see the active toolchain use `rustup show`. To remove the
+    override and use the default toolchain again, `rustup override
+    unset`.
+"""
+stderr = ""
