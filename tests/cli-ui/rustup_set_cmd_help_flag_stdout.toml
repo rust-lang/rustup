@@ -1,0 +1,19 @@
+bin.name = "rustup"
+args = ["set","--help"]
+stdout = """
+rustup-set 
+Alter rustup settings
+
+USAGE:
+    rustup set <SUBCOMMAND>
+
+FLAGS:
+    -h, --help    Prints help information
+
+SUBCOMMANDS:
+    auto-self-update    The rustup auto self update mode
+    default-host        The triple used to identify toolchains when not specified
+    help                Prints this message or the help of the given subcommand(s)
+    profile             The default components installed
+"""
+stderr = ""

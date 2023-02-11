@@ -1,0 +1,20 @@
+bin.name = "rustup"
+args = ["override","add","--help"]
+stdout = """
+rustup-override-set 
+Set the override toolchain for a directory
+
+USAGE:
+    rustup override set [OPTIONS] <toolchain>
+
+FLAGS:
+    -h, --help    Prints help information
+
+OPTIONS:
+        --path <path>    Path to the directory
+
+ARGS:
+    <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see `rustup help
+                   toolchain`
+"""
+stderr = ""

@@ -1,0 +1,23 @@
+bin.name = "rustup"
+args = ["show","active-toolchain","--help"]
+stdout = """
+rustup-show-active-toolchain 
+Show the active toolchain
+
+USAGE:
+    rustup show active-toolchain [FLAGS]
+
+FLAGS:
+    -h, --help       Prints help information
+    -v, --verbose    Enable verbose output with rustc information
+
+DISCUSSION:
+    Shows the name of the active toolchain.
+
+    This is useful for figuring out the active tool chain from
+    scripts.
+
+    You should use `rustc --print sysroot` to get the sysroot, or
+    `rustc --version` to get the toolchain version.
+"""
+stderr = ""

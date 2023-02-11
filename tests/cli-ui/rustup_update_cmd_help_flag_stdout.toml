@@ -1,0 +1,29 @@
+bin.name = "rustup"
+args = ["update","--help"]
+stdout = """
+rustup-update 
+Update Rust toolchains and rustup
+
+USAGE:
+    rustup update [FLAGS] [toolchain]...
+
+FLAGS:
+        --force             Force an update, even if some components are missing
+        --force-non-host    Install toolchains that require an emulator. See https://github.com/rust-
+                            lang/rustup/wiki/Non-host-toolchains
+    -h, --help              Prints help information
+        --no-self-update    Don't perform self update when running the `rustup update` command
+
+ARGS:
+    <toolchain>...    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see `rustup help
+                      toolchain`
+
+DISCUSSION:
+    With no toolchain specified, the `update` command updates each of
+    the installed toolchains from the official release channels, then
+    updates rustup itself.
+
+    If given a toolchain argument then `update` updates that
+    toolchain, the same as `rustup toolchain install`.
+"""
+stderr = ""

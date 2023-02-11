@@ -1,0 +1,13 @@
+bin.name = "rustup"
+args = ["override","list","--help"]
+stdout = """
+rustup-override-list 
+List directory toolchain overrides
+
+USAGE:
+    rustup override list
+
+FLAGS:
+    -h, --help    Prints help information
+"""
+stderr = ""

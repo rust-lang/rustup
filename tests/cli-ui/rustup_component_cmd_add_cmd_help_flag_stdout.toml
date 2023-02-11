@@ -1,0 +1,21 @@
+bin.name = "rustup"
+args = ["component","add","--help"]
+stdout = """
+rustup-component-add 
+Add a component to a Rust toolchain
+
+USAGE:
+    rustup component add [OPTIONS] <component>...
+
+FLAGS:
+    -h, --help    Prints help information
+
+OPTIONS:
+        --target <target>          
+        --toolchain <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see
+                                   `rustup help toolchain`
+
+ARGS:
+    <component>...    
+"""
+stderr = ""

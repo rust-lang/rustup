@@ -1,0 +1,20 @@
+bin.name = "rustup"
+args = ["which","--help"]
+stdout = """
+rustup-which 
+Display which binary will be run for a given command
+
+USAGE:
+    rustup which [OPTIONS] <command>
+
+FLAGS:
+    -h, --help    Prints help information
+
+OPTIONS:
+        --toolchain <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see
+                                   `rustup help toolchain`
+
+ARGS:
+    <command>    
+"""
+stderr = ""

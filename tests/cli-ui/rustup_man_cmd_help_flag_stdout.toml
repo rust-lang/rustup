@@ -1,0 +1,20 @@
+bin.name = "rustup"
+args = ["man","--help"]
+stdout = """
+rustup-man 
+View the man page for a given command
+
+USAGE:
+    rustup man [OPTIONS] <command>
+
+FLAGS:
+    -h, --help    Prints help information
+
+OPTIONS:
+        --toolchain <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see
+                                   `rustup help toolchain`
+
+ARGS:
+    <command>    
+"""
+stderr = ""

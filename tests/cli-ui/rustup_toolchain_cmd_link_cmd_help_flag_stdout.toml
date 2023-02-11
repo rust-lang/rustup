@@ -1,0 +1,36 @@
+bin.name = "rustup"
+args = ["toolchain","link","--help"]
+stdout = """
+rustup-toolchain-link 
+Create a custom toolchain by symlinking to a directory
+
+USAGE:
+    rustup toolchain link <toolchain> <path>
+
+FLAGS:
+    -h, --help    Prints help information
+
+ARGS:
+    <toolchain>    Custom toolchain name
+    <path>         Path to the directory
+
+DISCUSSION:
+    'toolchain' is the custom name to be assigned to the new toolchain.
+    Any name is permitted as long as it does not fully match an initial
+    substring of a standard release channel. For example, you can use
+    the names 'latest' or '2017-04-01' but you cannot use 'stable' or
+    'beta-i686' or 'nightly-x86_64-unknown-linux-gnu'.
+
+    'path' specifies the directory where the binaries and libraries for
+    the custom toolchain can be found. For example, when used for
+    development of Rust itself, toolchains can be linked directly out of
+    the build directory. After building, you can test out different
+    compiler versions as follows:
+
+        $ rustup toolchain link latest-stage1 build/x86_64-unknown-linux-gnu/stage1
+        $ rustup override set latest-stage1
+
+    If you now compile a crate in the current directory, the custom
+    toolchain 'latest-stage1' will be used.
+"""
+stderr = ""

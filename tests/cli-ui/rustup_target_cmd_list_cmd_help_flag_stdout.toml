@@ -1,0 +1,18 @@
+bin.name = "rustup"
+args = ["target","list","--help"]
+stdout = """
+rustup-target-list 
+List installed and available targets
+
+USAGE:
+    rustup target list [FLAGS] [OPTIONS]
+
+FLAGS:
+    -h, --help         Prints help information
+        --installed    List only installed targets
+
+OPTIONS:
+        --toolchain <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see
+                                   `rustup help toolchain`
+"""
+stderr = ""
