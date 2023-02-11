@@ -3,7 +3,10 @@
 1. Fork it!
 2. Create your feature branch: `git checkout -b my-new-feature`
 3. Test it: `cargo test`
-4. Lint it: `cargo +nightly clippy --all --all-targets -- -D warnings`
+4. Lint it: `cargo +beta clippy --all --all-targets -- -D warnings`
+> We use `cargo clippy` to ensure high-quality code and to enforce a set of best practices for Rust programming. However, not all lints provided by `cargo clippy` are relevant or applicable to our project.
+> We may choose to ignore some lints if they are unstable, experimental, or specific to our project.
+> If you are unsure about a lint, please ask us in the [rustup Discord channel](https://discord.com/channels/442252698964721669/463480252723888159).
 5. Commit your changes: `git commit -am 'Add some feature'`
 6. Push to the branch: `git push origin my-new-feature`
 7. Submit a pull request :D
