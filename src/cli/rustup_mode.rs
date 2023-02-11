@@ -747,7 +747,7 @@ pub(crate) fn cli() -> App<'static, 'static> {
     )
 }
 
-fn verbose_arg<'a, 'b>(help: &'b str) -> Arg<'a, 'b> {
+fn verbose_arg(help: &str) -> Arg<'_, '_> {
     Arg::with_name("verbose")
         .help(help)
         .takes_value(false)

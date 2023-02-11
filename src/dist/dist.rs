@@ -650,8 +650,8 @@ pub(crate) fn valid_profile_names() -> String {
 // an upgrade then all the existing components will be upgraded.
 //
 // Returns the manifest's hash if anything changed.
-pub(crate) fn update_from_dist<'a>(
-    download: DownloadCfg<'a>,
+pub(crate) fn update_from_dist(
+    download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
     profile: Option<Profile>,
@@ -694,8 +694,8 @@ pub(crate) fn update_from_dist<'a>(
     res
 }
 
-fn update_from_dist_<'a>(
-    download: DownloadCfg<'a>,
+fn update_from_dist_(
+    download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
     profile: Option<Profile>,
@@ -830,8 +830,8 @@ fn update_from_dist_<'a>(
     }
 }
 
-fn try_update_from_dist_<'a>(
-    download: DownloadCfg<'a>,
+fn try_update_from_dist_(
+    download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
     profile: Option<Profile>,
@@ -1018,8 +1018,8 @@ fn try_update_from_dist_<'a>(
     }
 }
 
-pub(crate) fn dl_v2_manifest<'a>(
-    download: DownloadCfg<'a>,
+pub(crate) fn dl_v2_manifest(
+    download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
 ) -> Result<Option<(ManifestV2, String)>> {

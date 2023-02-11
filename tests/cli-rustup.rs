@@ -336,7 +336,7 @@ fn add_target() {
         );
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
     });
 }
 
@@ -378,13 +378,13 @@ fn add_remove_multiple_targets() {
             &this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             &this_host_triple(),
             clitools::CROSS_ARCH2
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
 
         expect_ok(
             config,
@@ -401,13 +401,13 @@ fn add_remove_multiple_targets() {
             &this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(!config.rustupdir.has(&path));
+        assert!(!config.rustupdir.has(path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             &this_host_triple(),
             clitools::CROSS_ARCH2
         );
-        assert!(!config.rustupdir.has(&path));
+        assert!(!config.rustupdir.has(path));
     });
 }
 
@@ -449,7 +449,7 @@ fn add_target_explicit() {
                 clitools::CROSS_ARCH1,
             ],
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
     });
 }
 
@@ -528,7 +528,7 @@ fn fallback_cargo_calls_correct_rustc() {
         let cargo_bin_path = config.cargodir.join("bin");
         fs::create_dir_all(&cargo_bin_path).unwrap();
         let rustc_path = cargo_bin_path.join(format!("rustc{EXE_SUFFIX}"));
-        fs::hard_link(&rustup_path, &rustc_path).unwrap();
+        fs::hard_link(rustup_path, &rustc_path).unwrap();
 
         // Install a custom toolchain and a nightly toolchain for the cargo fallback
         let path = config.customdir.join("custom-1");
@@ -1309,7 +1309,7 @@ fn add_component() {
             "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
             this_host_triple()
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
     });
 }
 
@@ -1527,7 +1527,7 @@ fn file_override_path_no_options() {
         let cwd = config.current_dir();
         let toolchain_path = cwd.join("ephemeral");
         let toolchain_bin = toolchain_path.join("bin");
-        fs::create_dir_all(&toolchain_bin).unwrap();
+        fs::create_dir_all(toolchain_bin).unwrap();
 
         let toolchain_file = cwd.join("rust-toolchain.toml");
         raw::write_file(
@@ -1575,7 +1575,7 @@ fn file_override_path_xor_channel() {
         let cwd = config.current_dir();
         let toolchain_path = cwd.join("ephemeral");
         let toolchain_bin = toolchain_path.join("bin");
-        fs::create_dir_all(&toolchain_bin).unwrap();
+        fs::create_dir_all(toolchain_bin).unwrap();
 
         let toolchain_file = cwd.join("rust-toolchain.toml");
         raw::write_file(
