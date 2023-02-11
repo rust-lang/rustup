@@ -71,6 +71,11 @@ fn main() {
             let mut out = io::stderr();
             writeln!(out, "{}", std::env::var("PATH").unwrap()).unwrap();
         }
+        Some("--echo-env") => {
+            let mut out = io::stderr();
+            let var = args.next().unwrap();
+            writeln!(out, "{}", std::env::var(var).unwrap_or_default()).unwrap();
+        }
         _ => panic!("bad mock proxy commandline"),
     }
 }

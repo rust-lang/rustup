@@ -4,7 +4,7 @@ pub mod mock;
 
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
-use std::path::{PathBuf, MAIN_SEPARATOR};
+use std::path::{Path, PathBuf, MAIN_SEPARATOR};
 
 use rustup::for_host;
 use rustup::test::this_host_triple;
@@ -2249,6 +2249,22 @@ fn warn_on_duplicate_rust_toolchain_file() {
                 toolchain_file_1.canonicalize().unwrap().display(),
                 toolchain_file_2.canonicalize().unwrap().display(),
             ),
+        );
+    });
+}
+
+/// Checks that the RUSTUP_TOOLCHAIN_DIR is set.
+#[test]
+fn toolchain_dir_env() {
+    setup(&|config| {
+        expect_ok(config, &["rustup", "default", "nightly"]);
+        let output = clitools::run(config, "rustup", &["which", "rustc"], &[]);
+        let real_mock_rustc = Path::new(output.stdout.trim());
+        let toolchain_dir = real_mock_rustc.parent().unwrap().parent().unwrap();
+        expect_stderr_ok(
+            config,
+            &["rustc", "--echo-env", "RUSTUP_TOOLCHAIN_DIR"],
+            toolchain_dir.to_str().unwrap(),
         );
     });
 }

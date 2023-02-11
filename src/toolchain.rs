@@ -401,6 +401,7 @@ impl<'a> InstalledCommonToolchain<'a> {
 
         cmd.env("RUSTUP_TOOLCHAIN", &self.0.name);
         cmd.env("RUSTUP_HOME", &self.0.cfg.rustup_dir);
+        cmd.env("RUSTUP_TOOLCHAIN_DIR", &self.0.path);
     }
 
     fn set_ldpath(&self, cmd: &mut Command) {
