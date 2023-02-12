@@ -2059,7 +2059,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "winreg 0.10.1",
+ "winreg",
 ]
 
 [[package]]
@@ -2221,7 +2221,7 @@ dependencies = [
  "wait-timeout",
  "walkdir",
  "winapi",
- "winreg 0.8.0",
+ "winreg",
  "xz2",
  "zstd",
 ]
@@ -3290,15 +3290,6 @@ name = "windows_x86_64_msvc"
 version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "447660ad36a13288b1db4d4248e857b510e8c3a225c822ba4fb748c0aafecffd"
-
-[[package]]
-name = "winreg"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d107f8c6e916235c4c01cabb3e8acf7bea8ef6a63ca2e7fa0527c049badfc48c"
-dependencies = [
- "winapi",
-]
 
 [[package]]
 name = "winreg"
