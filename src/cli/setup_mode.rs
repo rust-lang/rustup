@@ -22,7 +22,7 @@ pub fn main() -> Result<utils::ExitCode> {
         return Ok(utils::ExitCode(0));
     }
 
-    // XXX: If you change anything here, please make the same changes in rustup-init.sh
+    // NOTICE: If you change anything here, please make the same changes in rustup-init.sh.
     let cli = App::new("rustup-init")
         .version(common::version())
         .about("The installer for rustup")
