@@ -218,7 +218,7 @@ fn bonus_component(name: &'static str, contents: Arc<Vec<u8>>) -> MockPackage {
             components: vec![],
             installer: MockInstallerBuilder {
                 components: vec![MockComponentBuilder {
-                    name: format!("{}-x86_64-apple-darwin", name),
+                    name: format!("{name}-x86_64-apple-darwin"),
                     files: vec![MockFile::new_arc("bin/bonus", contents)],
                 }],
             },
@@ -334,8 +334,8 @@ fn rename_component() {
                 false,
             )
             .unwrap();
-            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
-            assert!(!utils::path_exists(&prefix.path().join("bin/bobo")));
+            assert!(utils::path_exists(prefix.path().join("bin/bonus")));
+            assert!(!utils::path_exists(prefix.path().join("bin/bobo")));
             change_channel_date(url, "nightly", "2016-02-02");
             update_from_dist(
                 url,
@@ -348,8 +348,8 @@ fn rename_component() {
                 false,
             )
             .unwrap();
-            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
-            assert!(!utils::path_exists(&prefix.path().join("bin/bobo")));
+            assert!(utils::path_exists(prefix.path().join("bin/bonus")));
+            assert!(!utils::path_exists(prefix.path().join("bin/bobo")));
         },
     );
 }
@@ -400,8 +400,8 @@ fn rename_component_new() {
             )
             .unwrap();
             // Neither bonus nor bobo are installed at this point.
-            assert!(!utils::path_exists(&prefix.path().join("bin/bonus")));
-            assert!(!utils::path_exists(&prefix.path().join("bin/bobo")));
+            assert!(!utils::path_exists(prefix.path().join("bin/bonus")));
+            assert!(!utils::path_exists(prefix.path().join("bin/bobo")));
             // Now we move to day 2, where bobo is part of the set of things we want
             // to have installed
             change_channel_date(url, "nightly", "2016-02-02");
@@ -419,8 +419,8 @@ fn rename_component_new() {
             // As a result `bin/bonus` is present but not `bin/bobo` which we'd
             // expect since the bonus component installs `bin/bonus` regardless of
             // its name being `bobo`
-            assert!(!utils::path_exists(&prefix.path().join("bin/bobo")));
-            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
+            assert!(!utils::path_exists(prefix.path().join("bin/bobo")));
+            assert!(utils::path_exists(prefix.path().join("bin/bonus")));
         },
     );
 }
@@ -478,7 +478,7 @@ fn make_manifest_url(dist_server: &Url, toolchain: &ToolchainDesc) -> Result<Url
         dist_server, toolchain.channel
     );
 
-    Url::parse(&url).map_err(|e| anyhow!(format!("{:?}", e)))
+    Url::parse(&url).map_err(|e| anyhow!(format!("{e:?}")))
 }
 
 fn uninstall(
@@ -553,7 +553,7 @@ fn setup_from_dist_server(
         temp_cfg: &temp_cfg,
         download_dir: &prefix.path().to_owned().join("downloads"),
         notify_handler: &|event| {
-            println!("{}", event);
+            println!("{event}");
         },
         pgp_keys: &[PgpPublicKey::FromEnvironment(
             "test-key".into(),
@@ -563,7 +563,7 @@ fn setup_from_dist_server(
 
     currentprocess::with(
         Box::new(currentprocess::TestProcess::new(
-            &env::current_dir().unwrap(),
+            env::current_dir().unwrap(),
             &["rustup"],
             HashMap::default(),
             "",
@@ -590,8 +590,8 @@ fn initial_install(comps: Compressions) {
         )
         .unwrap();
 
-        assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
-        assert!(utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
+        assert!(utils::path_exists(prefix.path().join("bin/rustc")));
+        assert!(utils::path_exists(prefix.path().join("lib/libstd.rlib")));
     });
 }
 
@@ -630,8 +630,8 @@ fn test_uninstall() {
         .unwrap();
         uninstall(toolchain, prefix, temp_cfg, &|_| ()).unwrap();
 
-        assert!(!utils::path_exists(&prefix.path().join("bin/rustc")));
-        assert!(!utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
+        assert!(!utils::path_exists(prefix.path().join("bin/rustc")));
+        assert!(!utils::path_exists(prefix.path().join("lib/libstd.rlib")));
     });
 }
 
@@ -654,11 +654,11 @@ fn uninstall_removes_config_file() {
         )
         .unwrap();
         assert!(utils::path_exists(
-            &prefix.manifest_file("multirust-config.toml")
+            prefix.manifest_file("multirust-config.toml")
         ));
         uninstall(toolchain, prefix, temp_cfg, &|_| ()).unwrap();
         assert!(!utils::path_exists(
-            &prefix.manifest_file("multirust-config.toml")
+            prefix.manifest_file("multirust-config.toml")
         ));
     });
 }
@@ -684,7 +684,7 @@ fn upgrade() {
         .unwrap();
         assert_eq!(
             "2016-02-01",
-            fs::read_to_string(&prefix.path().join("bin/rustc")).unwrap()
+            fs::read_to_string(prefix.path().join("bin/rustc")).unwrap()
         );
         change_channel_date(url, "nightly", "2016-02-02");
         update_from_dist(
@@ -700,7 +700,7 @@ fn upgrade() {
         .unwrap();
         assert_eq!(
             "2016-02-02",
-            fs::read_to_string(&prefix.path().join("bin/rustc")).unwrap()
+            fs::read_to_string(prefix.path().join("bin/rustc")).unwrap()
         );
     });
 }
@@ -760,7 +760,7 @@ fn unavailable_component() {
                 false,
             )
             .unwrap();
-            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
+            assert!(utils::path_exists(prefix.path().join("bin/bonus")));
             change_channel_date(url, "nightly", "2016-02-02");
 
             // Update without bonus, should fail.
@@ -821,7 +821,7 @@ fn unavailable_component_from_profile() {
                 false,
             )
             .unwrap();
-            assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
+            assert!(utils::path_exists(prefix.path().join("bin/rustc")));
             change_channel_date(url, "nightly", "2016-02-02");
 
             // Update without rustc, should fail.
@@ -901,7 +901,7 @@ fn removed_component() {
                 false,
             )
             .unwrap();
-            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
+            assert!(utils::path_exists(prefix.path().join("bin/bonus")));
 
             // Update without bonus, should fail with RequestedComponentsUnavailable
             change_channel_date(url, "nightly", "2016-02-02");
@@ -976,10 +976,10 @@ fn unavailable_components_is_target() {
             .unwrap();
 
             assert!(utils::path_exists(
-                &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
+                prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
             ));
             assert!(utils::path_exists(
-                &prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
+                prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
             ));
 
             // Update without rust-std
@@ -1058,8 +1058,8 @@ fn unavailable_components_with_same_target() {
                 false,
             )
             .unwrap();
-            assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
-            assert!(utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
+            assert!(utils::path_exists(prefix.path().join("bin/rustc")));
+            assert!(utils::path_exists(prefix.path().join("lib/libstd.rlib")));
 
             // Update without rust-std and rustc
             change_channel_date(url, "nightly", "2016-02-02");
@@ -1123,10 +1123,10 @@ fn update_preserves_extensions() {
         .unwrap();
 
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
+            prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
         ));
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
+            prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
         ));
 
         change_channel_date(url, "nightly", "2016-02-02");
@@ -1143,10 +1143,10 @@ fn update_preserves_extensions() {
         .unwrap();
 
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
+            prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
         ));
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
+            prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
         ));
     });
 }
@@ -1217,10 +1217,10 @@ fn add_extensions_for_initial_install() {
         )
         .unwrap();
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
+            prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
         ));
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
+            prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
         ));
     });
 }
@@ -1270,10 +1270,10 @@ fn add_extensions_for_same_manifest() {
         .unwrap();
 
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
+            prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
         ));
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
+            prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
         ));
     });
 }
@@ -1327,10 +1327,10 @@ fn add_extensions_for_upgrade() {
         .unwrap();
 
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
+            prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
         ));
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
+            prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
         ));
     });
 }
@@ -1436,7 +1436,7 @@ fn add_extensions_does_not_remove_other_components() {
         )
         .unwrap();
 
-        assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
+        assert!(utils::path_exists(prefix.path().join("bin/rustc")));
     });
 }
 
@@ -1520,10 +1520,10 @@ fn remove_extensions_for_same_manifest() {
         .unwrap();
 
         assert!(!utils::path_exists(
-            &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
+            prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
         ));
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
+            prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
         ));
     });
 }
@@ -1583,10 +1583,10 @@ fn remove_extensions_for_upgrade() {
         .unwrap();
 
         assert!(!utils::path_exists(
-            &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
+            prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
         ));
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
+            prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
         ));
     });
 }
@@ -1677,7 +1677,7 @@ fn remove_extension_not_in_manifest_but_is_already_installed() {
                 false,
             )
             .unwrap();
-            assert!(utils::path_exists(&prefix.path().join("bin/bonus")));
+            assert!(utils::path_exists(prefix.path().join("bin/bonus")));
 
             change_channel_date(url, "nightly", "2016-02-02");
 
@@ -1828,7 +1828,7 @@ fn remove_extensions_does_not_remove_other_components() {
         )
         .unwrap();
 
-        assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
+        assert!(utils::path_exists(prefix.path().join("bin/rustc")));
     });
 }
 
@@ -1886,10 +1886,10 @@ fn add_and_remove_for_upgrade() {
         .unwrap();
 
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
+            prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
         ));
         assert!(!utils::path_exists(
-            &prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
+            prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
         ));
     });
 }
@@ -1944,10 +1944,10 @@ fn add_and_remove() {
         .unwrap();
 
         assert!(utils::path_exists(
-            &prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
+            prefix.path().join("lib/i686-apple-darwin/libstd.rlib")
         ));
         assert!(!utils::path_exists(
-            &prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
+            prefix.path().join("lib/i686-unknown-linux-gnu/libstd.rlib")
         ));
     });
 }
@@ -2036,7 +2036,7 @@ fn unable_to_download_component() {
                           temp_cfg| {
         let path = url.to_file_path().unwrap();
         let path = path.join("dist/2016-02-02/rustc-nightly-x86_64-apple-darwin.tar.gz");
-        fs::remove_file(&path).unwrap();
+        fs::remove_file(path).unwrap();
 
         let err = update_from_dist(
             url,
@@ -2210,7 +2210,7 @@ fn handle_corrupt_partial_downloads() {
         .unwrap();
         let partial_path = download_cfg
             .download_dir
-            .join(format!("{}.partial", target_hash));
+            .join(format!("{target_hash}.partial"));
         utils_raw::write_file(
             &partial_path,
             "file will be resumed from here and not match hash",
@@ -2229,7 +2229,7 @@ fn handle_corrupt_partial_downloads() {
         )
         .unwrap();
 
-        assert!(utils::path_exists(&prefix.path().join("bin/rustc")));
-        assert!(utils::path_exists(&prefix.path().join("lib/libstd.rlib")));
+        assert!(utils::path_exists(prefix.path().join("bin/rustc")));
+        assert!(utils::path_exists(prefix.path().join("lib/libstd.rlib")));
     });
 }

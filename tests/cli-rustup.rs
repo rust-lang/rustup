@@ -336,7 +336,7 @@ fn add_target() {
         );
         expect_ok(config, &["rustup", "default", "nightly"]);
         expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
     });
 }
 
@@ -378,13 +378,13 @@ fn add_remove_multiple_targets() {
             &this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             &this_host_triple(),
             clitools::CROSS_ARCH2
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
 
         expect_ok(
             config,
@@ -401,13 +401,13 @@ fn add_remove_multiple_targets() {
             &this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(!config.rustupdir.has(&path));
+        assert!(!config.rustupdir.has(path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             &this_host_triple(),
             clitools::CROSS_ARCH2
         );
-        assert!(!config.rustupdir.has(&path));
+        assert!(!config.rustupdir.has(path));
     });
 }
 
@@ -449,7 +449,7 @@ fn add_target_explicit() {
                 clitools::CROSS_ARCH1,
             ],
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
     });
 }
 
@@ -524,11 +524,11 @@ fn fallback_cargo_calls_correct_rustc() {
     setup(&|config| {
         // Hm, this is the _only_ test that assumes that toolchain proxies
         // exist in CARGO_HOME. Adding that proxy here.
-        let rustup_path = config.exedir.join(format!("rustup{}", EXE_SUFFIX));
+        let rustup_path = config.exedir.join(format!("rustup{EXE_SUFFIX}"));
         let cargo_bin_path = config.cargodir.join("bin");
         fs::create_dir_all(&cargo_bin_path).unwrap();
-        let rustc_path = cargo_bin_path.join(format!("rustc{}", EXE_SUFFIX));
-        fs::hard_link(&rustup_path, &rustc_path).unwrap();
+        let rustc_path = cargo_bin_path.join(format!("rustc{EXE_SUFFIX}"));
+        fs::hard_link(rustup_path, &rustc_path).unwrap();
 
         // Install a custom toolchain and a nightly toolchain for the cargo fallback
         let path = config.customdir.join("custom-1");
@@ -1309,7 +1309,7 @@ fn add_component() {
             "toolchains/stable-{}/lib/rustlib/src/rust-src/foo.rs",
             this_host_triple()
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
     });
 }
 
@@ -1527,7 +1527,7 @@ fn file_override_path_no_options() {
         let cwd = config.current_dir();
         let toolchain_path = cwd.join("ephemeral");
         let toolchain_bin = toolchain_path.join("bin");
-        fs::create_dir_all(&toolchain_bin).unwrap();
+        fs::create_dir_all(toolchain_bin).unwrap();
 
         let toolchain_file = cwd.join("rust-toolchain.toml");
         raw::write_file(
@@ -1575,7 +1575,7 @@ fn file_override_path_xor_channel() {
         let cwd = config.current_dir();
         let toolchain_path = cwd.join("ephemeral");
         let toolchain_bin = toolchain_path.join("bin");
-        fs::create_dir_all(&toolchain_bin).unwrap();
+        fs::create_dir_all(toolchain_bin).unwrap();
 
         let toolchain_file = cwd.join("rust-toolchain.toml");
         raw::write_file(
@@ -1967,7 +1967,7 @@ fn docs_with_path() {
         clitools::env(config, &mut cmd);
 
         let out = cmd.output().unwrap();
-        let path = format!("share{0}doc{0}rust{0}html", MAIN_SEPARATOR);
+        let path = format!("share{MAIN_SEPARATOR}doc{MAIN_SEPARATOR}rust{MAIN_SEPARATOR}html");
         assert!(String::from_utf8(out.stdout).unwrap().contains(&path));
 
         let mut cmd = clitools::cmd(
@@ -1997,10 +1997,7 @@ fn docs_topical_with_path() {
             let out_str = String::from_utf8(out.stdout).unwrap();
             assert!(
                 out_str.contains(&path),
-                "comparing path\ntopic: '{}'\nexpected path: '{}'\noutput: {}\n\n\n",
-                topic,
-                path,
-                out_str,
+                "comparing path\ntopic: '{topic}'\nexpected path: '{path}'\noutput: {out_str}\n\n\n",
             );
         }
     });
@@ -2168,16 +2165,10 @@ fn warn_on_unmatch_build() {
         let arch = clitools::MULTI_ARCH1;
         expect_stderr_ok(
             config,
-            &[
-                "rustup",
-                "toolchain",
-                "install",
-                &format!("nightly-{}", arch),
-            ],
+            &["rustup", "toolchain", "install", &format!("nightly-{arch}")],
             &format!(
-                r"warning: toolchain 'nightly-{0}' may not be able to run on this system.
-warning: If you meant to build software to target that platform, perhaps try `rustup target add {0}` instead?",
-                arch,
+                r"warning: toolchain 'nightly-{arch}' may not be able to run on this system.
+warning: If you meant to build software to target that platform, perhaps try `rustup target add {arch}` instead?",
             ),
         );
     });
@@ -2191,19 +2182,17 @@ fn dont_warn_on_partial_build() {
         let mut cmd = clitools::cmd(
             config,
             "rustup",
-            ["toolchain", "install", &format!("nightly-{}", arch)],
+            ["toolchain", "install", &format!("nightly-{arch}")],
         );
         clitools::env(config, &mut cmd);
         let out = cmd.output().unwrap();
         assert!(out.status.success());
         let stderr = String::from_utf8(out.stderr).unwrap();
         assert!(stderr.contains(&format!(
-            r"info: syncing channel updates for 'nightly-{0}'",
-            triple
+            r"info: syncing channel updates for 'nightly-{triple}'"
         )));
         assert!(!stderr.contains(&format!(
-            r"warning: toolchain 'nightly-{0}' may not be able to run on this system.",
-            arch
+            r"warning: toolchain 'nightly-{arch}' may not be able to run on this system."
         )));
     })
 }

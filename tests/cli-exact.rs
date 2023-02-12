@@ -222,9 +222,8 @@ fn check_updates_self() {
                 config,
                 &["rustup", "check"],
                 &format!(
-                    r"rustup - Update available : {} -> {}
-",
-                    current_version, test_version
+                    r"rustup - Update available : {current_version} -> {test_version}
+"
                 ),
             );
         },
@@ -242,9 +241,8 @@ fn check_updates_self_no_change() {
                 config,
                 &["rustup", "check"],
                 &format!(
-                    r"rustup - Up to date : {}
-",
-                    current_version
+                    r"rustup - Up to date : {current_version}
+"
                 ),
             );
         },
@@ -498,7 +496,7 @@ fn list_overrides() {
             &format!(
                 "{:<40}\t{:<20}\n",
                 cwd_formatted,
-                &format!("nightly-{}", trip)
+                &format!("nightly-{trip}")
             ),
             r"",
         );
@@ -535,7 +533,7 @@ fn list_overrides_with_nonexistent() {
             &format!(
                 "{:<40}\t{:<20}\n\n",
                 path_formatted + " (not a directory)",
-                &format!("nightly-{}", trip)
+                &format!("nightly-{trip}")
             ),
             "info: you may remove overrides for non-existent directories with
 `rustup override unset --nonexistent`\n",

@@ -24,7 +24,7 @@ use crate::{Cfg, Notification, Toolchain, UpdateStatus};
 pub(crate) const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
 
 pub(crate) fn confirm(question: &str, default: bool) -> Result<bool> {
-    write!(process().stdout(), "{} ", question)?;
+    write!(process().stdout(), "{question} ")?;
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
@@ -68,7 +68,7 @@ pub(crate) fn confirm_advanced() -> Result<Confirm> {
 }
 
 pub(crate) fn question_str(question: &str, default: &str) -> Result<String> {
-    writeln!(process().stdout(), "{} [{}]", question, default)?;
+    writeln!(process().stdout(), "{question} [{default}]")?;
     let _ = std::io::stdout().flush();
     let input = read_line()?;
 
@@ -83,7 +83,7 @@ pub(crate) fn question_str(question: &str, default: &str) -> Result<String> {
 
 pub(crate) fn question_bool(question: &str, default: bool) -> Result<bool> {
     let default_text = if default { "(Y/n)" } else { "(y/N)" };
-    writeln!(process().stdout(), "{} {}", question, default_text)?;
+    writeln!(process().stdout(), "{question} {default_text}")?;
 
     let _ = std::io::stdout().flush();
     let input = read_line()?;
@@ -132,7 +132,7 @@ impl NotifyOnConsole {
             }
         };
         let level = n.level();
-        for n in format!("{}", n).lines() {
+        for n in format!("{n}").lines() {
             match level {
                 NotificationLevel::Verbose => {
                     if self.verbose {
@@ -234,17 +234,17 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
     for (name, banner, width, color, version, previous_version) in data {
         let padding = max_width - width;
         let padding: String = " ".repeat(padding);
-        let _ = write!(t, "  {}", padding);
+        let _ = write!(t, "  {padding}");
         let _ = t.attr(term2::Attr::Bold);
         if let Some(color) = color {
             let _ = t.fg(color);
         }
-        let _ = write!(t, "{} ", name);
-        let _ = write!(t, "{}", banner);
+        let _ = write!(t, "{name} ");
+        let _ = write!(t, "{banner}");
         let _ = t.reset();
-        let _ = write!(t, " - {}", version);
+        let _ = write!(t, " - {version}");
         if let Some(previous_version) = previous_version {
-            let _ = write!(t, " (from {})", previous_version);
+            let _ = write!(t, " (from {previous_version})");
         }
         let _ = writeln!(t);
     }
@@ -354,10 +354,10 @@ pub(crate) fn list_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode>
                 .expect("rust-std should have a target");
             if component.installed {
                 let _ = t.attr(term2::Attr::Bold);
-                let _ = writeln!(t, "{} (installed)", target);
+                let _ = writeln!(t, "{target} (installed)");
                 let _ = t.reset();
             } else if component.available {
-                let _ = writeln!(t, "{}", target);
+                let _ = writeln!(t, "{target}");
             }
         }
     }
@@ -377,7 +377,7 @@ pub(crate) fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils:
                 .as_ref()
                 .expect("rust-std should have a target");
             if component.installed {
-                writeln!(t, "{}", target)?;
+                writeln!(t, "{target}")?;
             }
         }
     }
@@ -392,10 +392,10 @@ pub(crate) fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCo
         let name = component.name;
         if component.installed {
             t.attr(term2::Attr::Bold)?;
-            writeln!(t, "{} (installed)", name)?;
+            writeln!(t, "{name} (installed)")?;
             t.reset()?;
         } else if component.available {
-            writeln!(t, "{}", name)?;
+            writeln!(t, "{name}")?;
         }
     }
 

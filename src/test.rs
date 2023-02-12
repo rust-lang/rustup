@@ -122,9 +122,9 @@ pub fn this_host_triple() -> String {
     };
 
     if let Some(env) = env {
-        format!("{}-{}-{}", arch, os, env)
+        format!("{arch}-{os}-{env}")
     } else {
-        format!("{}-{}", arch, os)
+        format!("{arch}-{os}")
     }
 }
 

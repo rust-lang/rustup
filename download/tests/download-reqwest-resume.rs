@@ -40,7 +40,7 @@ fn callback_gets_all_data_as_if_the_download_happened_all_at_once() {
 
     let addr = serve_file(b"xxx45".to_vec());
 
-    let from_url = format!("http://{}", addr).parse().unwrap();
+    let from_url = format!("http://{addr}").parse().unwrap();
 
     let callback_partial = AtomicBool::new(false);
     let callback_len = Mutex::new(None);

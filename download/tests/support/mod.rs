@@ -50,7 +50,7 @@ async fn run_server(addr_tx: Sender<SocketAddr>, addr: SocketAddr, contents: Vec
     addr_tx.send(addr).unwrap();
 
     if let Err(e) = server.await {
-        eprintln!("server error: {}", e);
+        eprintln!("server error: {e}");
     }
 }
 

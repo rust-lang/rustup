@@ -93,38 +93,35 @@ impl<'a> Display for Notification<'a> {
             Utils(n) => n.fmt(f),
             Temp(n) => n.fmt(f),
             SetDefaultToolchain("none") => write!(f, "default toolchain unset"),
-            SetDefaultToolchain(name) => write!(f, "default toolchain set to '{}'", name),
+            SetDefaultToolchain(name) => write!(f, "default toolchain set to '{name}'"),
             SetOverrideToolchain(path, name) => write!(
                 f,
                 "override toolchain for '{}' set to '{}'",
                 path.display(),
                 name
             ),
-            SetProfile(name) => write!(f, "profile set to '{}'", name),
-            SetSelfUpdate(mode) => write!(f, "auto-self-update mode set to '{}'", mode),
-            LookingForToolchain(name) => write!(f, "looking for installed toolchain '{}'", name),
+            SetProfile(name) => write!(f, "profile set to '{name}'"),
+            SetSelfUpdate(mode) => write!(f, "auto-self-update mode set to '{mode}'"),
+            LookingForToolchain(name) => write!(f, "looking for installed toolchain '{name}'"),
             ToolchainDirectory(path, _) => write!(f, "toolchain directory: '{}'", path.display()),
-            UpdatingToolchain(name) => write!(f, "updating existing install for '{}'", name),
-            InstallingToolchain(name) => write!(f, "installing toolchain '{}'", name),
-            InstalledToolchain(name) => write!(f, "toolchain '{}' installed", name),
-            UsingExistingToolchain(name) => write!(f, "using existing install for '{}'", name),
-            UninstallingToolchain(name) => write!(f, "uninstalling toolchain '{}'", name),
-            UninstalledToolchain(name) => write!(f, "toolchain '{}' uninstalled", name),
-            ToolchainNotInstalled(name) => write!(f, "no toolchain installed for '{}'", name),
+            UpdatingToolchain(name) => write!(f, "updating existing install for '{name}'"),
+            InstallingToolchain(name) => write!(f, "installing toolchain '{name}'"),
+            InstalledToolchain(name) => write!(f, "toolchain '{name}' installed"),
+            UsingExistingToolchain(name) => write!(f, "using existing install for '{name}'"),
+            UninstallingToolchain(name) => write!(f, "uninstalling toolchain '{name}'"),
+            UninstalledToolchain(name) => write!(f, "toolchain '{name}' uninstalled"),
+            ToolchainNotInstalled(name) => write!(f, "no toolchain installed for '{name}'"),
             UpdateHashMatches => write!(f, "toolchain is already up to date"),
             UpgradingMetadata(from_ver, to_ver) => write!(
                 f,
-                "upgrading metadata version from '{}' to '{}'",
-                from_ver, to_ver
+                "upgrading metadata version from '{from_ver}' to '{to_ver}'"
             ),
-            MetadataUpgradeNotNeeded(ver) => write!(
-                f,
-                "nothing to upgrade: metadata version is already '{}'",
-                ver
-            ),
-            WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{}'", ver),
-            ReadMetadataVersion(ver) => write!(f, "read metadata version: '{}'", ver),
-            NonFatalError(e) => write!(f, "{}", e),
+            MetadataUpgradeNotNeeded(ver) => {
+                write!(f, "nothing to upgrade: metadata version is already '{ver}'")
+            }
+            WritingMetadataVersion(ver) => write!(f, "writing metadata version: '{ver}'"),
+            ReadMetadataVersion(ver) => write!(f, "read metadata version: '{ver}'"),
+            NonFatalError(e) => write!(f, "{e}"),
             UpgradeRemovesToolchains => write!(
                 f,
                 "this upgrade will remove all existing toolchains. you will need to reinstall them"
@@ -134,7 +131,7 @@ impl<'a> Display for Notification<'a> {
                 "expected file does not exist to uninstall: {}",
                 p.display()
             ),
-            PlainVerboseMessage(r) => write!(f, "{}", r),
+            PlainVerboseMessage(r) => write!(f, "{r}"),
             MultipleToolchainFiles(rust_toolchain_paths) => {
                 assert!(rust_toolchain_paths.len() > 1);
                 let canonicalize_when_possible =

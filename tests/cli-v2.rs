@@ -662,7 +662,7 @@ fn add_target1() {
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
     });
 }
 
@@ -676,7 +676,7 @@ fn add_target2() {
             this_host_triple(),
             clitools::CROSS_ARCH2
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
     });
 }
 
@@ -690,13 +690,13 @@ fn add_all_targets() {
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             this_host_triple(),
             clitools::CROSS_ARCH2
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
     });
 }
 
@@ -873,7 +873,7 @@ fn add_target_again() {
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(config.rustupdir.has(&path));
+        assert!(config.rustupdir.has(path));
     });
 }
 
@@ -900,19 +900,19 @@ fn remove_target() {
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(!config.rustupdir.has(&path));
+        assert!(!config.rustupdir.has(path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib",
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(!config.rustupdir.has(&path));
+        assert!(!config.rustupdir.has(path));
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}",
             this_host_triple(),
             clitools::CROSS_ARCH1
         );
-        assert!(!config.rustupdir.has(&path));
+        assert!(!config.rustupdir.has(path));
     });
 }
 
@@ -1498,8 +1498,7 @@ fn install_allow_downgrade() {
             config,
             &["rustup", "toolchain", "install", "nightly", "-c", "rls"],
             &format!(
-                "component 'rls' for target '{}' is unavailable for download for channel 'nightly'",
-                trip,
+                "component 'rls' for target '{trip}' is unavailable for download for channel 'nightly'",
             ),
         );
         expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-3");

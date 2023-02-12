@@ -26,7 +26,7 @@ no-self-update = []
 
 # Sorted by alphabetic order
 [dependencies]
-anyhow = "1.0.68"
+anyhow = "1.0.69"
 cfg-if = "1.0"
 chrono = "0.4"
 clap = {version = "2", features = ["wrap_help"]}
@@ -66,6 +66,7 @@ url = "2.1"
 wait-timeout = "0.2"
 xz2 = "0.1.3"
 zstd = "0.11"
+trycmd = "0.14.11"
 
 [dependencies.retry]
 default-features = false

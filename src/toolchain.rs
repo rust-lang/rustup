@@ -311,7 +311,7 @@ fn install_msg(bin: &str, toolchain: &str, is_default: bool) -> String {
             if is_default {
                 String::new()
             } else {
-                format!(" --toolchain {}", toolchain)
+                format!(" --toolchain {toolchain}")
             }
         }),
         None => String::new(),
@@ -327,7 +327,7 @@ impl<'a> InstalledCommonToolchain<'a> {
             if binary_str.to_lowercase().ends_with(EXE_SUFFIX) {
                 binary.as_ref().to_owned()
             } else {
-                OsString::from(format!("{}{}", binary_str, EXE_SUFFIX))
+                OsString::from(format!("{binary_str}{EXE_SUFFIX}"))
             }
         } else {
             // Very weird case. Non-unicode command.
@@ -355,7 +355,7 @@ impl<'a> InstalledCommonToolchain<'a> {
                             .iter()
                             .find(|cs| cs.component.short_name(&manifest) == component_name)
                             .unwrap_or_else(|| {
-                                panic!("component {} should be in the manifest", component_name)
+                                panic!("component {component_name} should be in the manifest")
                             });
                         if !component_status.available {
                             return Err(anyhow!(format!(
@@ -484,7 +484,7 @@ impl<'a> CustomToolchain<'a> {
         pathbuf.pop();
         pathbuf.push("bin");
         utils::assert_is_directory(&pathbuf)?;
-        pathbuf.push(format!("rustc{}", EXE_SUFFIX));
+        pathbuf.push(format!("rustc{EXE_SUFFIX}"));
         utils::assert_is_file(&pathbuf)?;
 
         if link {
@@ -604,7 +604,7 @@ impl<'a> DistributableToolchain<'a> {
         }
         let installed_primary = primary_toolchain.as_installed_common()?;
 
-        let src_file = self.0.path.join("bin").join(format!("cargo{}", EXE_SUFFIX));
+        let src_file = self.0.path.join("bin").join(format!("cargo{EXE_SUFFIX}"));
 
         // MAJOR HACKS: Copy cargo.exe to its own directory on windows before
         // running it. This is so that the fallback cargo, when it in turn runs
@@ -897,7 +897,7 @@ impl<'a> DistributableToolchain<'a> {
         // a v1 manifest install.  The v1 components are not called the same
         // in a v2 install.
         for component in V1_COMMON_COMPONENT_LIST {
-            let manifest = format!("manifest-{}", component);
+            let manifest = format!("manifest-{component}");
             let manifest_path = prefix.manifest_file(&manifest);
             if !utils::path_exists(manifest_path) {
                 return false;

@@ -389,8 +389,8 @@ fn rustup_failed_path_search() {
     setup(&|config| {
         use std::env::consts::EXE_SUFFIX;
 
-        let rustup_path = config.exedir.join(&format!("rustup{}", EXE_SUFFIX));
-        let tool_path = config.exedir.join(&format!("fake_proxy{}", EXE_SUFFIX));
+        let rustup_path = config.exedir.join(format!("rustup{EXE_SUFFIX}"));
+        let tool_path = config.exedir.join(format!("fake_proxy{EXE_SUFFIX}"));
         utils::hardlink_file(&rustup_path, &tool_path)
             .expect("Failed to create fake proxy for test");
 
@@ -426,8 +426,8 @@ fn rustup_failed_path_search_toolchain() {
     setup(&|config| {
         use std::env::consts::EXE_SUFFIX;
 
-        let rustup_path = config.exedir.join(&format!("rustup{}", EXE_SUFFIX));
-        let tool_path = config.exedir.join(&format!("cargo-miri{}", EXE_SUFFIX));
+        let rustup_path = config.exedir.join(format!("rustup{EXE_SUFFIX}"));
+        let tool_path = config.exedir.join(format!("cargo-miri{EXE_SUFFIX}"));
         utils::hardlink_file(&rustup_path, &tool_path)
             .expect("Failed to create fake cargo-miri for test");
 
@@ -505,7 +505,7 @@ fn toolchains_are_resolved_early() {
         expect_stderr_ok(
             config,
             &["rustup", "default", &full_toolchain],
-            &format!("info: using existing install for '{}'", full_toolchain),
+            &format!("info: using existing install for '{full_toolchain}'"),
         );
     });
 }
@@ -539,7 +539,7 @@ fn rls_exists_in_toolchain() {
         expect_ok(config, &["rustup", "default", "stable"]);
         expect_ok(config, &["rustup", "component", "add", "rls"]);
 
-        assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
+        assert!(config.exedir.join(format!("rls{EXE_SUFFIX}")).exists());
         expect_ok(config, &["rls", "--version"]);
     });
 }
@@ -610,7 +610,7 @@ fn rename_rls_before() {
         set_current_dist_date(config, "2015-01-02");
         expect_ok(config, &["rustup", "update"]);
 
-        assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
+        assert!(config.exedir.join(format!("rls{EXE_SUFFIX}")).exists());
         expect_ok(config, &["rls", "--version"]);
     });
 }
@@ -625,7 +625,7 @@ fn rename_rls_after() {
         expect_ok(config, &["rustup", "update"]);
         expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
 
-        assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
+        assert!(config.exedir.join(format!("rls{EXE_SUFFIX}")).exists());
         expect_ok(config, &["rls", "--version"]);
     });
 }
@@ -640,7 +640,7 @@ fn rename_rls_add_old_name() {
         expect_ok(config, &["rustup", "update"]);
         expect_ok(config, &["rustup", "component", "add", "rls"]);
 
-        assert!(config.exedir.join(format!("rls{}", EXE_SUFFIX)).exists());
+        assert!(config.exedir.join(format!("rls{EXE_SUFFIX}")).exists());
         expect_ok(config, &["rls", "--version"]);
     });
 }
@@ -692,7 +692,7 @@ fn rename_rls_remove() {
         expect_err(
             config,
             &["rls", "--version"],
-            &format!("'rls{}' is not installed", EXE_SUFFIX),
+            &format!("'rls{EXE_SUFFIX}' is not installed"),
         );
 
         expect_ok(config, &["rustup", "component", "add", "rls"]);
@@ -701,7 +701,7 @@ fn rename_rls_remove() {
         expect_err(
             config,
             &["rls", "--version"],
-            &format!("'rls{}' is not installed", EXE_SUFFIX),
+            &format!("'rls{EXE_SUFFIX}' is not installed"),
         );
     });
 }

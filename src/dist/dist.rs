@@ -7,7 +7,7 @@ use std::path::Path;
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Result};
-use chrono::{Date, NaiveDate, TimeZone, Utc};
+use chrono::NaiveDate;
 use lazy_static::lazy_static;
 use regex::Regex;
 use thiserror::Error as ThisError;
@@ -40,7 +40,7 @@ static TOOLCHAIN_CHANNELS: &[&str] = &[
 fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &str) -> String {
     assert!(!cs.is_empty());
     let mut buf = vec![];
-    let suggestion = format!("    rustup toolchain add {} --profile minimal", toolchain);
+    let suggestion = format!("    rustup toolchain add {toolchain} --profile minimal");
     let nightly_tips = "Sometimes not all components are available in any given nightly. ";
 
     if cs.len() == 1 {
@@ -52,13 +52,12 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
         );
 
         if toolchain.starts_with("nightly") {
-            let _ = write!(buf, "{}", nightly_tips);
+            let _ = write!(buf, "{nightly_tips}");
         }
 
         let _ = write!(
             buf,
-            "If you don't need the component, you could try a minimal installation with:\n\n{}",
-            suggestion
+            "If you don't need the component, you could try a minimal installation with:\n\n{suggestion}"
         );
     } else {
         let cs_str = cs
@@ -68,17 +67,15 @@ fn components_missing_msg(cs: &[Component], manifest: &ManifestV2, toolchain: &s
             .join(", ");
         let _ = write!(
             buf,
-            "some components unavailable for download for channel '{}': {}",
-            toolchain, cs_str
+            "some components unavailable for download for channel '{toolchain}': {cs_str}"
         );
 
         if toolchain.starts_with("nightly") {
-            let _ = write!(buf, "{}", nightly_tips);
+            let _ = write!(buf, "{nightly_tips}");
         }
         let _ = write!(
             buf,
-            "If you don't need the components, you could try a minimal installation with:\n\n{}",
-            suggestion
+            "If you don't need the components, you could try a minimal installation with:\n\n{suggestion}"
         );
     }
 
@@ -461,9 +458,9 @@ impl PartialToolchainDesc {
         let os = self.target.os.unwrap_or(host_os);
 
         let trip = if let Some(env) = env {
-            format!("{}-{}-{}", arch, os, env)
+            format!("{arch}-{os}-{env}")
         } else {
-            format!("{}-{}", arch, os)
+            format!("{arch}-{os}")
         };
 
         Ok(ToolchainDesc {
@@ -520,7 +517,7 @@ impl ToolchainDesc {
     pub(crate) fn package_dir(&self, dist_root: &str) -> String {
         match self.date {
             None => dist_root.to_string(),
-            Some(ref date) => format!("{}/{}", dist_root, date),
+            Some(ref date) => format!("{dist_root}/{date}"),
         }
     }
 
@@ -541,7 +538,7 @@ impl ToolchainDesc {
 pub(crate) fn validate_channel_name(name: &str) -> Result<()> {
     let toolchain = PartialToolchainDesc::from_str(name)?;
     if toolchain.has_triple() {
-        Err(anyhow!(format!("target triple in channel name '{}'", name)))
+        Err(anyhow!(format!("target triple in channel name '{name}'")))
     } else {
         Ok(())
     }
@@ -601,16 +598,16 @@ impl fmt::Display for PartialToolchainDesc {
         write!(f, "{}", &self.channel)?;
 
         if let Some(ref date) = self.date {
-            write!(f, "-{}", date)?;
+            write!(f, "-{date}")?;
         }
         if let Some(ref arch) = self.target.arch {
-            write!(f, "-{}", arch)?;
+            write!(f, "-{arch}")?;
         }
         if let Some(ref os) = self.target.os {
-            write!(f, "-{}", os)?;
+            write!(f, "-{os}")?;
         }
         if let Some(ref env) = self.target.env {
-            write!(f, "-{}", env)?;
+            write!(f, "-{env}")?;
         }
 
         Ok(())
@@ -622,7 +619,7 @@ impl fmt::Display for ToolchainDesc {
         write!(f, "{}", &self.channel)?;
 
         if let Some(ref date) = self.date {
-            write!(f, "-{}", date)?;
+            write!(f, "-{date}")?;
         }
         write!(f, "-{}", self.target)?;
 
@@ -643,7 +640,7 @@ impl fmt::Display for Profile {
 pub(crate) fn valid_profile_names() -> String {
     Profile::names()
         .iter()
-        .map(|s| format!("'{}'", s))
+        .map(|s| format!("'{s}'"))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -653,8 +650,8 @@ pub(crate) fn valid_profile_names() -> String {
 // an upgrade then all the existing components will be upgraded.
 //
 // Returns the manifest's hash if anything changed.
-pub(crate) fn update_from_dist<'a>(
-    download: DownloadCfg<'a>,
+pub(crate) fn update_from_dist(
+    download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
     profile: Option<Profile>,
@@ -697,8 +694,8 @@ pub(crate) fn update_from_dist<'a>(
     res
 }
 
-fn update_from_dist_<'a>(
-    download: DownloadCfg<'a>,
+fn update_from_dist_(
+    download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
     profile: Option<Profile>,
@@ -737,9 +734,9 @@ fn update_from_dist_<'a>(
     //
     // We could arguably use the date of the first rustup release here, but that would break a
     // bunch of the tests, which (inexplicably) use 2015-01-01 as their manifest dates.
-    let first_manifest = Utc.from_utc_date(&NaiveDate::from_ymd(2014, 12, 20));
+    let first_manifest = date_from_manifest_date("2014-12-20").unwrap();
     let old_manifest = old_date
-        .and_then(utc_from_manifest_date)
+        .and_then(date_from_manifest_date)
         .unwrap_or(first_manifest);
     let last_manifest = if allow_downgrade {
         first_manifest
@@ -811,9 +808,10 @@ fn update_from_dist_<'a>(
                 // nightlies in reverse chronological order until we find a nightly that does,
                 // starting at one date earlier than the current manifest's date.
                 let toolchain_date = toolchain.date.as_ref().unwrap_or(&fetched);
-                let try_next = utc_from_manifest_date(toolchain_date)
-                    .unwrap_or_else(|| panic!("Malformed manifest date: {:?}", toolchain_date))
-                    .pred();
+                let try_next = date_from_manifest_date(toolchain_date)
+                    .unwrap_or_else(|| panic!("Malformed manifest date: {toolchain_date:?}"))
+                    .pred_opt()
+                    .unwrap();
 
                 if try_next < last_manifest {
                     // Wouldn't be an update if we go further back than the user's current nightly.
@@ -832,8 +830,8 @@ fn update_from_dist_<'a>(
     }
 }
 
-fn try_update_from_dist_<'a>(
-    download: DownloadCfg<'a>,
+fn try_update_from_dist_(
+    download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
     profile: Option<Profile>,
@@ -1013,18 +1011,15 @@ fn try_update_from_dist_<'a>(
     }
     if download_not_exists {
         result.with_context(|| {
-            format!(
-                "could not download nonexistent rust version `{}`",
-                toolchain_str
-            )
+            format!("could not download nonexistent rust version `{toolchain_str}`")
         })
     } else {
         result
     }
 }
 
-pub(crate) fn dl_v2_manifest<'a>(
-    download: DownloadCfg<'a>,
+pub(crate) fn dl_v2_manifest(
+    download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
     toolchain: &ToolchainDesc,
 ) -> Result<Option<(ManifestV2, String)>> {
@@ -1071,16 +1066,14 @@ fn dl_v1_manifest(download: DownloadCfg<'_>, toolchain: &ToolchainDesc) -> Resul
     let manifest_str = utils::read_file("manifest", &manifest_file)?;
     let urls = manifest_str
         .lines()
-        .map(|s| format!("{}/{}", root_url, s))
+        .map(|s| format!("{root_url}/{s}"))
         .collect();
 
     Ok(urls)
 }
 
-fn utc_from_manifest_date(date_str: &str) -> Option<Date<Utc>> {
-    NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
-        .ok()
-        .map(|date| Utc.from_utc_date(&date))
+fn date_from_manifest_date(date_str: &str) -> Option<NaiveDate> {
+    NaiveDate::parse_from_str(date_str, "%Y-%m-%d").ok()
 }
 
 #[cfg(test)]
@@ -1126,9 +1119,7 @@ mod tests {
             let parsed = input.parse::<ParsedToolchainDesc>();
             assert!(
                 parsed.is_ok(),
-                "expected parsing of `{}` to succeed: {:?}",
-                input,
-                parsed
+                "expected parsing of `{input}` to succeed: {parsed:?}"
             );
 
             let expected = ParsedToolchainDesc {
@@ -1136,7 +1127,7 @@ mod tests {
                 date: date.map(String::from),
                 target: target.map(String::from),
             };
-            assert_eq!(parsed.unwrap(), expected, "input: `{}`", input);
+            assert_eq!(parsed.unwrap(), expected, "input: `{input}`");
         }
 
         let failure_cases = vec!["anything", "00.0000.000", "3", "", "--", "0.0.0-"];
@@ -1145,18 +1136,15 @@ mod tests {
             let parsed = input.parse::<ParsedToolchainDesc>();
             assert!(
                 parsed.is_err(),
-                "expected parsing of `{}` to fail: {:?}",
-                input,
-                parsed
+                "expected parsing of `{input}` to fail: {parsed:?}"
             );
 
-            let error_message = format!("invalid toolchain name: '{}'", input);
+            let error_message = format!("invalid toolchain name: '{input}'");
 
             assert_eq!(
                 parsed.unwrap_err().to_string(),
                 error_message,
-                "input: `{}`",
-                input
+                "input: `{input}`"
             );
         }
     }
@@ -1224,11 +1212,11 @@ mod tests {
         ];
 
         for (host, compatible, incompatible) in CASES {
-            println!("host={}", host);
+            println!("host={host}");
             let host = TargetTriple::new(host);
             assert!(host.can_run(&host).unwrap(), "host wasn't self-compatible");
             for other in compatible.iter() {
-                println!("compatible with {}", other);
+                println!("compatible with {other}");
                 let other = TargetTriple::new(other);
                 assert!(
                     host.can_run(&other).unwrap(),
@@ -1236,7 +1224,7 @@ mod tests {
                 );
             }
             for other in incompatible.iter() {
-                println!("incompatible with {}", other);
+                println!("incompatible with {other}");
                 let other = TargetTriple::new(other);
                 assert!(
                     !host.can_run(&other).unwrap(),

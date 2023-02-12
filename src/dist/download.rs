@@ -156,7 +156,7 @@ impl<'a> DownloadCfg<'a> {
 
         let signature = self
             .download_signature(url)
-            .with_context(|| format!("failed to download signature file {}", url))?;
+            .with_context(|| format!("failed to download signature file {url}"))?;
 
         let file_path: &Path = file;
         let content = std::fs::File::open(file_path).with_context(|| RustupError::ReadingFile {
@@ -170,10 +170,7 @@ impl<'a> DownloadCfg<'a> {
             let key = &self.pgp_keys[keyidx];
             Ok(key)
         } else {
-            Err(anyhow!(format!(
-                "signature verification failed for {}",
-                url
-            )))
+            Err(anyhow!(format!("signature verification failed for {url}")))
         }
     }
 

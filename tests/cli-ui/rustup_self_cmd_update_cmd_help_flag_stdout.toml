@@ -1,0 +1,13 @@
+bin.name = "rustup"
+args = ["self","update","--help"]
+stdout = """
+...
+Download and install updates to rustup
+
+USAGE:
+    rustup[EXE] self update
+
+FLAGS:
+    -h, --help    Prints help information
+"""
+stderr = ""

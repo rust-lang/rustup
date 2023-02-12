@@ -76,14 +76,14 @@ pub(crate) fn write_line(
     path: &Path,
     line: &str,
 ) -> Result<()> {
-    writeln!(file, "{}", line).with_context(|| RustupError::WritingFile {
+    writeln!(file, "{line}").with_context(|| RustupError::WritingFile {
         name,
         path: path.to_path_buf(),
     })
 }
 
 pub(crate) fn write_str(name: &'static str, file: &mut File, path: &Path, s: &str) -> Result<()> {
-    write!(file, "{}", s).with_context(|| RustupError::WritingFile {
+    write!(file, "{s}").with_context(|| RustupError::WritingFile {
         name,
         path: path.to_path_buf(),
     })
@@ -255,7 +255,7 @@ fn download_file_(
 }
 
 pub(crate) fn parse_url(url: &str) -> Result<Url> {
-    Url::parse(url).with_context(|| format!("failed to parse url: {}", url))
+    Url::parse(url).with_context(|| format!("failed to parse url: {url}"))
 }
 
 pub(crate) fn assert_is_file(path: &Path) -> Result<()> {
@@ -510,7 +510,7 @@ pub(crate) fn create_rustup_home() -> Result<()> {
     }
 
     let home = rustup_home_in_user_dir()?;
-    fs::create_dir_all(&home).context("unable to create ~/.rustup")?;
+    fs::create_dir_all(home).context("unable to create ~/.rustup")?;
 
     Ok(())
 }

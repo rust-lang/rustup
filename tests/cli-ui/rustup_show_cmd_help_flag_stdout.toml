@@ -1,0 +1,30 @@
+bin.name = "rustup"
+args = ["show","--help"]
+stdout = """
+...
+Show the active and installed toolchains or profiles
+
+USAGE:
+    rustup[EXE] show [FLAGS] [SUBCOMMAND]
+
+FLAGS:
+    -v, --verbose    Enable verbose output with rustc information for all installed toolchains
+    -h, --help       Prints help information
+
+SUBCOMMANDS:
+    active-toolchain    Show the active toolchain
+    home                Display the computed value of RUSTUP_HOME
+    profile             Show the current profile
+    keys                Display the known PGP keys
+    help                Prints this message or the help of the given subcommand(s)
+
+DISCUSSION:
+    Shows the name of the active toolchain and the version of `rustc`.
+
+    If the active toolchain has installed support for additional
+    compilation targets, then they are listed as well.
+
+    If there are multiple toolchains installed then all installed
+    toolchains are listed as well.
+"""
+stderr = ""

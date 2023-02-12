@@ -1,0 +1,19 @@
+bin.name = "rustup"
+args = ["self","--help"]
+stdout = """
+...
+Modify the rustup installation
+
+USAGE:
+    rustup[EXE] self <SUBCOMMAND>
+
+FLAGS:
+    -h, --help    Prints help information
+
+SUBCOMMANDS:
+    update          Download and install updates to rustup
+    uninstall       Uninstall rustup.
+    upgrade-data    Upgrade the internal data format.
+    help            Prints this message or the help of the given subcommand(s)
+"""
+stderr = ""
