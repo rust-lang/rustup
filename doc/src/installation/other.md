@@ -32,6 +32,8 @@ $ curl https://sh.rustup.rs -sSf | sh -s -- --profile minimal --default-toolchai
 If you prefer you can directly download `rustup-init` for the platform of your
 choice:
 
+- [aarch64-apple-darwin](https://static.rust-lang.org/rustup/dist/aarch64-apple-darwin/rustup-init)
+  - [sha256 file](https://static.rust-lang.org/rustup/dist/aarch64-apple-darwin/rustup-init.sha256)
 - [aarch64-linux-android](https://static.rust-lang.org/rustup/dist/aarch64-linux-android/rustup-init)
   - [sha256 file](https://static.rust-lang.org/rustup/dist/aarch64-linux-android/rustup-init.sha256)
 - [aarch64-unknown-linux-gnu](https://static.rust-lang.org/rustup/dist/aarch64-unknown-linux-gnu/rustup-init)
