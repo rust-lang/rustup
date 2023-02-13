@@ -99,7 +99,8 @@ For backwards compatibility, `rust-toolchain` files also support a legacy
 format that only contains a toolchain name without any TOML encoding, e.g.
 just `nightly-2021-01-21`. The file has to be encoded in US-ASCII in this case
 (if you are on Windows, check the encoding and that it does not start with a
-BOM). The legacy format is not available in `rust-toolchain.toml` files.
+BOM). The legacy format is not available in `.rust-toolchain.toml`/
+`rust-toolchain.toml` files.
 
 If you see the following error (when running `rustc`, `cargo` or other command)
 
