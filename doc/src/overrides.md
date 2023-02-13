@@ -77,9 +77,10 @@ case for nightly-only software that pins to a revision from the release
 archives.
 
 In these cases the toolchain can be named in the project's directory in a file
-called `rust-toolchain.toml` or `rust-toolchain`. If both files are present in
-a directory, the latter is used for backwards compatibility. The files use the
-[TOML] format and have the following layout:
+called `.rust-toolchain.toml`, `rust-toolchain.toml` or `rust-toolchain`.
+If multiple files are present in a directory, the latter present one is used
+for backwards compatibility. The files use the [TOML] format and have the
+following layout:
 
 [TOML]: https://toml.io/
 
@@ -110,10 +111,10 @@ it means you're running `rustup` pre-1.23.0 and trying to interact with a projec
 that uses the new TOML encoding in the `rust-toolchain` file. You need to upgrade
 `rustup` to 1.23.0+.
 
-The `rust-toolchain.toml`/`rust-toolchain` files are suitable to check in to
-source control. If that's done, `Cargo.lock` should probably be tracked too if
-the toolchain is pinned to a specific release, to avoid potential compatibility
-issues with dependencies.
+The `.rust-toolchain.toml`/`rust-toolchain.toml`/`rust-toolchain` files are
+suitable to check in to source control. If that's done, `Cargo.lock` should
+probably be tracked too if the toolchain is pinned to a specific release, to
+avoid potential compatibility issues with dependencies.
 
 ### Toolchain file settings
 
