@@ -77,10 +77,15 @@ case for nightly-only software that pins to a revision from the release
 archives.
 
 In these cases the toolchain can be named in the project's directory in a file
-called `.rust-toolchain.toml`, `rust-toolchain.toml` or `rust-toolchain`.
-If multiple files are present in a directory, the latter present one is used
-for backwards compatibility. The files use the [TOML] format and have the
-following layout:
+called `.rust-toolchain.toml`, `rust-toolchain.toml` or `rust-toolchain`.  If
+multiple files are present in a directory, the following precedence will be
+applied for backwards compatibility:
+
+1. `rust-toolchain`
+2. `rust-toolchain.toml`
+3. `.rust-toolchain.toml`
+
+The files use the [TOML] format and have the following layout:
 
 [TOML]: https://toml.io/
 
