@@ -615,8 +615,8 @@ where
 
     println!("inprocess: {inprocess}");
     println!("status: {:?}", out.status);
-    println!("----- stdout\n{}", output.stdout);
-    println!("----- stderr\n{}", output.stderr);
+    println!("stdout:\n====\n{}\n====\n", output.stdout);
+    println!("stderr:\n====\n{}\n====\n", output.stderr);
 
     output
 }
