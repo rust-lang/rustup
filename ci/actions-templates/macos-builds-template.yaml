@@ -93,7 +93,7 @@ jobs:
             exit 1
           fi
       - name: Upload the built artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
