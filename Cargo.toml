@@ -39,7 +39,7 @@ home = "0.5.4"
 lazy_static = "1"
 libc = "0.2"
 num_cpus = "1.15"
-opener = "0.5.0"
+opener = "0.5.2"
 # Used by `curl` or `reqwest` backend although it isn't imported
 # by our rustup.
 openssl = {version = "0.10", optional = true}
