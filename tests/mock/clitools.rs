@@ -616,7 +616,6 @@ where
         stderr: String::from_utf8(out.stderr).unwrap(),
     };
 
-
     println!("inprocess: {inprocess}");
     println!("status: {:?}", out.status);
     println!("duration: {:.3}s", duration.as_secs_f32());
