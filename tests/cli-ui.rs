@@ -1,7 +1,7 @@
 use std::fs;
 
 #[test]
-fn ui_tests() {
+fn ui_doc_text_tests() {
     let t = trycmd::TestCases::new();
     let rustup_init = trycmd::cargo::cargo_bin("rustup-init");
     let rustup = trycmd::cargo::cargo_bin("rustup");

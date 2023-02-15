@@ -167,12 +167,6 @@ fn check_updates_none() {
         expect_ok(config, &["rustup", "update", "stable"]);
         expect_ok(config, &["rustup", "update", "beta"]);
         expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(config, &["rustup", "upgrade", "stable"]);
-        expect_ok(config, &["rustup", "upgrade", "beta"]);
-        expect_ok(config, &["rustup", "upgrade", "nightly"]);
-        expect_ok(config, &["rustup", "up", "stable"]);
-        expect_ok(config, &["rustup", "up", "beta"]);
-        expect_ok(config, &["rustup", "up", "nightly"]);
         expect_stdout_ok(
             config,
             &["rustup", "check"],
@@ -193,9 +187,6 @@ fn check_updates_some() {
         expect_ok(config, &["rustup", "update", "stable"]);
         expect_ok(config, &["rustup", "update", "beta"]);
         expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(config, &["rustup", "upgrade", "stable"]);
-        expect_ok(config, &["rustup", "upgrade", "beta"]);
-        expect_ok(config, &["rustup", "upgrade", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
         expect_stdout_ok(
             config,

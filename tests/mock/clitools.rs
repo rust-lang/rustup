@@ -10,6 +10,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
+use std::time::Instant;
 
 use lazy_static::lazy_static;
 use url::Url;
@@ -602,11 +603,13 @@ where
     A: AsRef<OsStr>,
 {
     let inprocess = allow_inprocess(name, args.clone());
+    let start = Instant::now();
     let out = if inprocess {
         run_inprocess(config, name, args, env)
     } else {
         run_subprocess(config, name, args, env)
     };
+    let duration = Instant::now() - start;
     let output = SanitizedOutput {
         ok: matches!(out.status, Some(0)),
         stdout: String::from_utf8(out.stdout).unwrap(),
@@ -615,8 +618,9 @@ where
 
     println!("inprocess: {inprocess}");
     println!("status: {:?}", out.status);
-    println!("----- stdout\n{}", output.stdout);
-    println!("----- stderr\n{}", output.stderr);
+    println!("duration: {:.3}s", duration.as_secs_f32());
+    println!("stdout:\n====\n{}\n====\n", output.stdout);
+    println!("stderr:\n====\n{}\n====\n", output.stderr);
 
     output
 }
