@@ -31,7 +31,7 @@ cfg-if = "1.0"
 chrono = "0.4"
 clap = {version = "2", features = ["wrap_help"]}
 download = {path = "download", default-features = false}
-effective-limits = "0.5.3"
+effective-limits = "0.5.5"
 enum-map = "2.4.2"
 flate2 = "1"
 git-testament = "0.2"
