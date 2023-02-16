@@ -55,7 +55,7 @@ pub fn main() -> Result<utils::ExitCode> {
             Arg::with_name("default-toolchain")
                 .long("default-toolchain")
                 .takes_value(true)
-                .help("Choose a default toolchain to install"),
+                .help("Choose a default toolchain to install. Use 'none' to not install any toolchains at all"),
         )
         .arg(
             Arg::with_name("profile")

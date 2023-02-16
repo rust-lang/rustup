@@ -19,7 +19,9 @@ FLAGS:
 
 OPTIONS:
         --default-host <default-host>              Choose a default host triple
-        --default-toolchain <default-toolchain>    Choose a default toolchain to install
+        --default-toolchain <default-toolchain>
+            Choose a default toolchain to install. Use 'none' to not install any toolchains at all
+
         --profile <profile>                         [default: default]  [possible values: minimal, default, complete]
     -c, --component <components>...                Component name to also install
     -t, --target <targets>...                      Target name to also install
