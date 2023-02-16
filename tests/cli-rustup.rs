@@ -19,7 +19,7 @@ macro_rules! for_host_and_home {
 }
 
 pub fn setup(f: &dyn Fn(&mut Config)) {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         f(config);
     });
 }
@@ -604,7 +604,7 @@ nightly-{0} (default)
 
 #[test]
 fn show_multiple_targets() {
-    clitools::setup(Scenario::MultiHost, &|config| {
+    clitools::test(Scenario::MultiHost, &|config| {
         config.expect_ok(&[
             "rustup",
             "default",
@@ -646,7 +646,7 @@ fn show_multiple_toolchains_and_targets() {
         return;
     }
 
-    clitools::setup(Scenario::MultiHost, &|config| {
+    clitools::test(Scenario::MultiHost, &|config| {
         config.expect_ok(&[
             "rustup",
             "default",
@@ -1969,7 +1969,7 @@ fn non_utf8_toolchain() {
 
 #[test]
 fn check_host_goes_away() {
-    clitools::setup(Scenario::HostGoesMissing, &|config| {
+    clitools::test(Scenario::HostGoesMissing, &|config| {
         set_current_dist_date(config, "2019-12-09");
         config.expect_ok(&["rustup", "default", "nightly"]);
         set_current_dist_date(config, "2019-12-10");
@@ -2016,7 +2016,7 @@ fn check_unix_settings_fallback() {
 
 #[test]
 fn warn_on_unmatch_build() {
-    clitools::setup(Scenario::MultiHost, &|config| {
+    clitools::test(Scenario::MultiHost, &|config| {
         let arch = clitools::MULTI_ARCH1;
         config.expect_stderr_ok(
             &["rustup", "toolchain", "install", &format!("nightly-{arch}")],

@@ -13,11 +13,11 @@ use rustup::test::this_host_triple;
 use crate::mock::clitools::{self, set_current_dist_date, Config, Scenario};
 
 pub fn setup(f: &dyn Fn(&mut Config)) {
-    clitools::setup(Scenario::SimpleV2, f);
+    clitools::test(Scenario::SimpleV2, f);
 }
 
 pub fn setup_complex(f: &dyn Fn(&mut Config)) {
-    clitools::setup(Scenario::UnavailableRls, f);
+    clitools::test(Scenario::UnavailableRls, f);
 }
 
 #[test]
@@ -52,7 +52,7 @@ fn install_toolchain_from_channel() {
 
 #[test]
 fn install_toolchain_from_archive() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         config.expect_ok(&["rustup", "default", "nightly-2015-01-01"]);
         config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
         config.expect_ok(&["rustup", "default", "beta-2015-01-01"]);
@@ -115,7 +115,7 @@ fn default_existing_toolchain() {
 
 #[test]
 fn update_channel() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
@@ -127,7 +127,7 @@ fn update_channel() {
 
 #[test]
 fn list_toolchains() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         config.expect_ok(&["rustup", "update", "nightly"]);
         config.expect_ok(&["rustup", "update", "beta-2015-01-01"]);
         config.expect_stdout_ok(&["rustup", "toolchain", "list"], "nightly");
@@ -283,7 +283,11 @@ fn plus_override_toolchain_err_handling() {
 fn bad_sha_on_manifest() {
     setup(&|config| {
         // Corrupt the sha
-        let sha_file = config.distdir.join("dist/channel-rust-nightly.toml.sha256");
+        let sha_file = config
+            .distdir
+            .as_ref()
+            .unwrap()
+            .join("dist/channel-rust-nightly.toml.sha256");
         let sha_str = fs::read_to_string(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
@@ -301,7 +305,7 @@ fn bad_sha_on_manifest() {
 fn bad_sha_on_installer() {
     setup(&|config| {
         // Since the v2 sha's are contained in the manifest, corrupt the installer
-        let dir = config.distdir.join("dist/2015-01-02");
+        let dir = config.distdir.as_ref().unwrap().join("dist/2015-01-02");
         for file in fs::read_dir(&dir).unwrap() {
             let file = file.unwrap();
             let path = file.path();
@@ -331,7 +335,7 @@ fn install_override_toolchain_from_channel() {
 
 #[test]
 fn install_override_toolchain_from_archive() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         config.expect_ok(&["rustup", "override", "add", "nightly-2015-01-01"]);
         config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
         config.expect_ok(&["rustup", "override", "add", "beta-2015-01-01"]);
@@ -487,7 +491,7 @@ fn no_update_on_channel_when_date_has_not_changed() {
 
 #[test]
 fn update_on_channel_when_date_has_changed() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
@@ -522,10 +526,17 @@ fn remove_toolchain_then_add_again() {
 
 #[test]
 fn upgrade_v1_to_v2() {
-    clitools::setup(Scenario::Full, &|config| {
+    clitools::test(Scenario::Full, &|config| {
         set_current_dist_date(config, "2015-01-01");
         // Delete the v2 manifest so the first day we install from the v1s
-        fs::remove_file(config.distdir.join("dist/channel-rust-nightly.toml.sha256")).unwrap();
+        fs::remove_file(
+            config
+                .distdir
+                .as_ref()
+                .unwrap()
+                .join("dist/channel-rust-nightly.toml.sha256"),
+        )
+        .unwrap();
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
         set_current_dist_date(config, "2015-01-02");
@@ -536,11 +547,18 @@ fn upgrade_v1_to_v2() {
 
 #[test]
 fn upgrade_v2_to_v1() {
-    clitools::setup(Scenario::Full, &|config| {
+    clitools::test(Scenario::Full, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
-        fs::remove_file(config.distdir.join("dist/channel-rust-nightly.toml.sha256")).unwrap();
+        fs::remove_file(
+            config
+                .distdir
+                .as_ref()
+                .unwrap()
+                .join("dist/channel-rust-nightly.toml.sha256"),
+        )
+        .unwrap();
         config.expect_err(
             &["rustup", "update", "nightly"],
             "the server unexpectedly provided an obsolete version of the distribution manifest",
@@ -560,7 +578,7 @@ fn list_targets_no_toolchain() {
 
 #[test]
 fn list_targets_v1_toolchain() {
-    clitools::setup(Scenario::SimpleV1, &|config| {
+    clitools::test(Scenario::SimpleV1, &|config| {
         config.expect_ok(&["rustup", "update", "nightly"]);
         config.expect_err(
             &["rustup", "target", "list", "--toolchain=nightly"],
@@ -745,7 +763,7 @@ fn add_target_bogus() {
 
 #[test]
 fn add_target_v1_toolchain() {
-    clitools::setup(Scenario::SimpleV1, &|config| {
+    clitools::test(Scenario::SimpleV1, &|config| {
         config.expect_ok(&["rustup", "update", "nightly"]);
         config.expect_err(
             &[
@@ -887,7 +905,7 @@ fn remove_target_bogus() {
 
 #[test]
 fn remove_target_v1_toolchain() {
-    clitools::setup(Scenario::SimpleV1, &|config| {
+    clitools::test(Scenario::SimpleV1, &|config| {
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_err(
             &[
@@ -985,7 +1003,11 @@ fn make_component_unavailable(config: &Config, name: &str, target: &str) {
     use crate::mock::dist::create_hash;
     use rustup::dist::manifest::Manifest;
 
-    let manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");
+    let manifest_path = config
+        .distdir
+        .as_ref()
+        .unwrap()
+        .join("dist/channel-rust-nightly.toml");
     let manifest_str = fs::read_to_string(&manifest_path).unwrap();
     let mut manifest = Manifest::parse(&manifest_str).unwrap();
     {
@@ -1315,7 +1337,11 @@ info: installing component 'rustc'
 
 /// Invalidates the signature on the manifest of the nightly channel.
 fn make_signature_invalid(config: &Config) {
-    let manifest_path = config.distdir.join("dist/channel-rust-nightly.toml");
+    let manifest_path = config
+        .distdir
+        .as_ref()
+        .unwrap()
+        .join("dist/channel-rust-nightly.toml");
 
     // Set signature to sth bogus.
     use crate::mock::dist::{create_signature, write_file};
@@ -1333,7 +1359,7 @@ fn warn_on_invalid_signature() {
             &["rustup", "update", "nightly", ],
             &format!(
                 "warning: Signature verification failed for 'file://{}/dist/channel-rust-nightly.toml'",
-                config.distdir.display(),
+                config.distdir.as_ref().unwrap().display(),
             ),
         );
     });
@@ -1355,7 +1381,7 @@ fn check_pgp_keys() {
 
 #[test]
 fn install_allow_downgrade() {
-    clitools::setup(Scenario::MissingComponent, &|config| {
+    clitools::test(Scenario::MissingComponent, &|config| {
         let trip = this_host_triple();
 
         // this dist has no rls and there is no newer one

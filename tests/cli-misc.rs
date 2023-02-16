@@ -13,7 +13,7 @@ use rustup::utils::utils;
 use crate::mock::clitools::{self, set_current_dist_date, Config, Scenario};
 
 pub fn setup(f: &dyn Fn(&mut Config)) {
-    clitools::setup(Scenario::SimpleV2, f);
+    clitools::test(Scenario::SimpleV2, f);
 }
 
 #[test]
@@ -199,7 +199,7 @@ fn multi_host_smoke_test() {
     // to be sure.
     assert_ne!(this_host_triple(), clitools::MULTI_ARCH1);
 
-    clitools::setup(Scenario::MultiHost, &|config| {
+    clitools::test(Scenario::MultiHost, &|config| {
         let toolchain = format!("nightly-{}", clitools::MULTI_ARCH1);
         config.expect_ok(&["rustup", "default", &toolchain]);
         config.expect_stdout_ok(&["rustc", "--version"], "xxxx-nightly-2"); // cross-host mocks have their own versions
@@ -506,7 +506,7 @@ fn rls_exists_in_toolchain() {
 
 #[test]
 fn run_rls_when_not_available_in_toolchain() {
-    clitools::setup(Scenario::UnavailableRls, &|config| {
+    clitools::test(Scenario::UnavailableRls, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_err(
@@ -543,7 +543,7 @@ fn run_rls_when_not_installed() {
 
 #[test]
 fn run_rust_lldb_when_not_in_toolchain() {
-    clitools::setup(Scenario::UnavailableRls, &|config| {
+    clitools::test(Scenario::UnavailableRls, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_err(
@@ -559,7 +559,7 @@ fn run_rust_lldb_when_not_in_toolchain() {
 
 #[test]
 fn rename_rls_before() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_ok(&["rustup", "component", "add", "rls"]);
@@ -574,7 +574,7 @@ fn rename_rls_before() {
 
 #[test]
 fn rename_rls_after() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
 
@@ -589,7 +589,7 @@ fn rename_rls_after() {
 
 #[test]
 fn rename_rls_add_old_name() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
 
@@ -604,7 +604,7 @@ fn rename_rls_add_old_name() {
 
 #[test]
 fn rename_rls_list() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
 
@@ -620,7 +620,7 @@ fn rename_rls_list() {
 
 #[test]
 fn rename_rls_preview_list() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
 
@@ -636,7 +636,7 @@ fn rename_rls_preview_list() {
 
 #[test]
 fn rename_rls_remove() {
-    clitools::setup(Scenario::ArchivesV2, &|config| {
+    clitools::test(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
 
@@ -710,7 +710,7 @@ info: toolchain 'test' uninstalled
 // issue #1297
 #[test]
 fn update_unavailable_rustc() {
-    clitools::setup(Scenario::Unavailable, &|config| {
+    clitools::test(Scenario::Unavailable, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
 
@@ -727,7 +727,7 @@ fn update_unavailable_rustc() {
 // issue 2562
 #[test]
 fn install_unavailable_platform() {
-    clitools::setup(Scenario::Unavailable, &|config| {
+    clitools::test(Scenario::Unavailable, &|config| {
         set_current_dist_date(config, "2015-01-02");
         // explicit attempt to install should fail
         config.expect_err(
@@ -741,7 +741,7 @@ fn install_unavailable_platform() {
 
 #[test]
 fn update_nightly_even_with_incompat() {
-    clitools::setup(Scenario::MissingComponent, &|config| {
+    clitools::test(Scenario::MissingComponent, &|config| {
         set_current_dist_date(config, "2019-09-12");
         config.expect_ok(&["rustup", "default", "nightly"]);
 
@@ -762,7 +762,7 @@ fn update_nightly_even_with_incompat() {
 
 #[test]
 fn nightly_backtrack_skips_missing() {
-    clitools::setup(Scenario::MissingNightly, &|config| {
+    clitools::test(Scenario::MissingNightly, &|config| {
         set_current_dist_date(config, "2019-09-16");
         config.expect_ok(&["rustup", "default", "nightly"]);
 

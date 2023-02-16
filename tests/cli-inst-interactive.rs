@@ -52,7 +52,7 @@ fn run_input_with_env(
 
 #[test]
 fn update() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         with_saved_path(&mut || {
             run_input(config, &["rustup-init"], "\n\n");
             let out = run_input(config, &["rustup-init"], "\n\n");
@@ -66,7 +66,7 @@ fn update() {
 // test for the install case.
 #[test]
 fn smoke_case_install_no_modify_path() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "\n\n");
         assert!(out.ok);
         // During an interactive session, after "Press the Enter
@@ -115,7 +115,7 @@ Rust is installed now. Great!
 
 #[test]
 fn smoke_case_install_with_path_install() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         with_saved_path(&mut || {
             let out = run_input(config, &["rustup-init"], "\n\n");
             assert!(out.ok);
@@ -128,7 +128,7 @@ fn smoke_case_install_with_path_install() {
 
 #[test]
 fn blank_lines_around_stderr_log_output_update() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         let out = run_input(
             config,
@@ -152,7 +152,7 @@ Rust is installed now. Great!
 
 #[test]
 fn installer_shows_default_host_triple() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "2\n");
 
         println!("-- stdout --\n {}", out.stdout);
@@ -167,7 +167,7 @@ Default host triple? [{0}]
 
 #[test]
 fn installer_shows_default_toolchain_as_stable() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "2\n\n");
 
         println!("-- stdout --\n {}", out.stdout);
@@ -182,7 +182,7 @@ Default toolchain? (stable/beta/nightly/none) [stable]
 
 #[test]
 fn installer_shows_default_toolchain_when_set_in_args() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(
             config,
             &[
@@ -205,7 +205,7 @@ Default toolchain? (stable/beta/nightly/none) [nightly]
 
 #[test]
 fn installer_shows_default_profile() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "2\n\n\n");
 
         println!("-- stdout --\n {}", out.stdout);
@@ -220,7 +220,7 @@ Profile (which tools and data to install)? (minimal/default/complete) [default]
 
 #[test]
 fn installer_shows_default_profile_when_set_in_args() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(
             config,
             &["rustup-init", "--no-modify-path", "--profile=minimal"],
@@ -239,7 +239,7 @@ Profile (which tools and data to install)? (minimal/default/complete) [minimal]
 
 #[test]
 fn installer_shows_default_for_modify_path() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(config, &["rustup-init"], "2\n\n\n\n");
 
         println!("-- stdout --\n {}", out.stdout);
@@ -254,7 +254,7 @@ Modify PATH variable? (Y/n)
 
 #[test]
 fn installer_shows_default_for_modify_path_when_set_with_args() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "2\n\n\n\n");
 
         println!("-- stdout --\n {}", out.stdout);
@@ -269,7 +269,7 @@ Modify PATH variable? (y/N)
 
 #[test]
 fn user_says_nope() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "n\n\n");
         assert!(out.ok);
         assert!(!config.cargodir.join("bin").exists());
@@ -278,7 +278,7 @@ fn user_says_nope() {
 
 #[test]
 fn with_no_toolchain() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(
             config,
             &[
@@ -296,7 +296,7 @@ fn with_no_toolchain() {
 
 #[test]
 fn with_non_default_toolchain_still_prompts() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(
             config,
             &[
@@ -314,7 +314,7 @@ fn with_non_default_toolchain_still_prompts() {
 
 #[test]
 fn with_non_release_channel_non_default_toolchain() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(
             config,
             &[
@@ -333,7 +333,7 @@ fn with_non_release_channel_non_default_toolchain() {
 
 #[test]
 fn set_nightly_toolchain() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(
             config,
             &["rustup-init", "--no-modify-path"],
@@ -347,7 +347,7 @@ fn set_nightly_toolchain() {
 
 #[test]
 fn set_no_modify_path() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(
             config,
             &["rustup-init", "--no-modify-path"],
@@ -363,7 +363,7 @@ fn set_no_modify_path() {
 
 #[test]
 fn set_nightly_toolchain_and_unset() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(
             config,
             &["rustup-init", "--no-modify-path"],
@@ -379,7 +379,7 @@ fn set_nightly_toolchain_and_unset() {
 
 #[test]
 fn user_says_nope_after_advanced_install() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = run_input(
             config,
             &["rustup-init", "--no-modify-path"],
@@ -396,7 +396,7 @@ fn install_with_components() {
         let mut args = vec!["rustup-init", "-y", "--no-modify-path"];
         args.extend_from_slice(comp_args);
 
-        clitools::setup(Scenario::SimpleV2, &|config| {
+        clitools::test(Scenario::SimpleV2, &|config| {
             config.expect_ok(&args);
             config.expect_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)");
             config.expect_stdout_ok(
@@ -412,7 +412,7 @@ fn install_with_components() {
 
 #[test]
 fn install_forces_and_skips_rls() {
-    clitools::setup(Scenario::UnavailableRls, &|config| {
+    clitools::test(Scenario::UnavailableRls, &|config| {
         set_current_dist_date(config, "2015-01-01");
 
         let out = run_input(
@@ -436,7 +436,7 @@ fn install_forces_and_skips_rls() {
 
 #[test]
 fn test_warn_if_complete_profile_is_used() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.expect_stderr_ok(
             &[
                 "rustup-init",
@@ -452,7 +452,7 @@ fn test_warn_if_complete_profile_is_used() {
 
 #[test]
 fn test_prompt_fail_if_rustup_sh_already_installed_reply_nothing() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.create_rustup_sh_metadata();
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "\n");
         assert!(!out.ok);
@@ -468,7 +468,7 @@ fn test_prompt_fail_if_rustup_sh_already_installed_reply_nothing() {
 
 #[test]
 fn test_prompt_fail_if_rustup_sh_already_installed_reply_no() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.create_rustup_sh_metadata();
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "no\n");
         assert!(!out.ok);
@@ -484,7 +484,7 @@ fn test_prompt_fail_if_rustup_sh_already_installed_reply_no() {
 
 #[test]
 fn test_prompt_succeed_if_rustup_sh_already_installed_reply_yes() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.create_rustup_sh_metadata();
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "yes\n\n\n");
         assert!(out
@@ -503,7 +503,7 @@ fn test_prompt_succeed_if_rustup_sh_already_installed_reply_yes() {
 
 #[test]
 fn installing_when_already_installed_updates_toolchain() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "\n\n");
         println!("stdout:\n{}\n...\n", out.stdout);
@@ -524,7 +524,7 @@ fn install_stops_if_rustc_exists() {
     raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = config.run(
             "rustup-init",
             &["--no-modify-path"],
@@ -554,7 +554,7 @@ fn install_stops_if_cargo_exists() {
     raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = config.run(
             "rustup-init",
             &["--no-modify-path"],
@@ -584,7 +584,7 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
     raw::append_file(&fake_exe, "").unwrap();
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let out = config.run(
             "rustup-init",
             &["-y", "--no-modify-path"],
@@ -600,7 +600,7 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
 // Issue 2547
 #[test]
 fn install_non_installable_toolchain() {
-    clitools::setup(Scenario::Unavailable, &|config| {
+    clitools::test(Scenario::Unavailable, &|config| {
         config.expect_err(
             &[
                 "rustup-init",

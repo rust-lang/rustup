@@ -12,7 +12,10 @@ use std::process::Command;
 use std::sync::Arc;
 use std::time::Instant;
 
+use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
+use rustup::test::const_dist_dir;
 use url::Url;
 
 use rustup::cli::rustup_mode;
@@ -32,8 +35,12 @@ use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 pub struct Config {
     /// Where we put the rustup / rustc / cargo bins
     pub exedir: PathBuf,
-    /// The distribution server
-    pub distdir: PathBuf,
+    /// The tempfile for the mutable distribution server
+    pub test_dist_dir: tempfile::TempDir,
+    /// The mutable distribution server; None if none is set.
+    pub distdir: Option<PathBuf>,
+    /// The const distribution server; None if none is set
+    const_dist_dir: Option<PathBuf>,
     /// RUSTUP_HOME
     pub rustupdir: rustup_test::RustupHome,
     /// Custom toolchains
@@ -50,14 +57,21 @@ pub struct Config {
 
 // Describes all the features of the mock dist server.
 // Building the mock server is slow, so use simple scenario when possible.
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Enum)]
 pub enum Scenario {
+    /// No mutable dist server at all
+    None,
     /// No dist server content
     Empty,
     /// Two dates, two manifests
     Full,
     /// Two dates, v2 manifests
+    /// See SimpleV2 for the 2015_01_02 date of ArchivesV2
     ArchivesV2,
+    /// The 2015-01-01 date of ArchivesV2
+    ArchivesV2_2015_01_01,
+    /// Two versions of 'stable'
+    ArchivesV2TwoVersions,
     /// Two dates, v1 manifests
     ArchivesV1,
     /// One date, v2 manifests
@@ -90,9 +104,68 @@ pub static MULTI_ARCH1: &str = "i686-unknown-linux-gnu";
 #[cfg(not(target_pointer_width = "64"))]
 pub static MULTI_ARCH1: &str = "x86_64-unknown-linux-gnu";
 
-/// Run this to create the test environment containing rustup, and
-/// a mock dist server.
-pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
+static CONST_TEST_STATE: Lazy<ConstState> =
+    Lazy::new(|| ConstState::new(const_dist_dir().unwrap()));
+
+/// Const test state - test dirs that can be reused across tests.
+struct ConstState {
+    scenarios: EnumMap<Scenario, RwLock<Option<PathBuf>>>,
+    const_dist_dir: tempfile::TempDir,
+}
+
+impl ConstState {
+    fn new(const_dist_dir: tempfile::TempDir) -> Self {
+        Self {
+            const_dist_dir,
+            scenarios: enum_map! {
+                Scenario::ArchivesV1 => RwLock::new(None),
+                Scenario::ArchivesV2 => RwLock::new(None),
+                Scenario::ArchivesV2_2015_01_01 => RwLock::new(None),
+                Scenario::ArchivesV2TwoVersions => RwLock::new(None),
+                Scenario::Empty => RwLock::new(None),
+                Scenario::Full => RwLock::new(None),
+                Scenario::HostGoesMissing => RwLock::new(None),
+                Scenario::MissingComponent => RwLock::new(None),
+                Scenario::MissingComponentMulti => RwLock::new(None),
+                Scenario::MissingNightly => RwLock::new(None),
+                Scenario::MultiHost => RwLock::new(None),
+                Scenario::None => RwLock::new(None),
+                Scenario::SimpleV1 => RwLock::new(None),
+                Scenario::SimpleV2 => RwLock::new(None),
+                Scenario::Unavailable => RwLock::new(None),
+                Scenario::UnavailableRls => RwLock::new(None),
+            },
+        }
+    }
+
+    /// Get a dist server for a scenario
+    fn dist_server_for(&self, s: Scenario) -> io::Result<PathBuf> {
+        {
+            // fast path: the dist already exists
+            let lock = self.scenarios[s].read().unwrap();
+            if let Some(ref path) = *lock {
+                return Ok(path.clone());
+            }
+        }
+        {
+            let mut lock = self.scenarios[s].write().unwrap();
+            // another writer may have initialized it
+            match *lock {
+                Some(ref path) => Ok(path.clone()),
+
+                None => {
+                    let dist_path = self.const_dist_dir.path().join(format!("{:?}", s));
+                    create_mock_dist_server(&dist_path, s);
+                    *lock = Some(dist_path.clone());
+                    Ok(dist_path)
+                }
+            }
+        }
+    }
+}
+
+/// State a test can interact and mutate
+pub fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir, Config) {
     // Unset env variables that will break our testing
     env::remove_var("RUSTUP_UPDATE_ROOT");
     env::remove_var("RUSTUP_TOOLCHAIN");
@@ -124,7 +197,6 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     }
 
     let exedir = tempdir_in_with_prefix(&test_dir, "rustup-exe");
-    let distdir = tempdir_in_with_prefix(&test_dir, "rustup-dist");
     let customdir = tempdir_in_with_prefix(&test_dir, "rustup-custom");
     let cargodir = tempdir_in_with_prefix(&test_dir, "rustup-cargo");
     let homedir = tempdir_in_with_prefix(&test_dir, "rustup-home");
@@ -135,9 +207,11 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     let cargodir = cargodir.join("ch");
     fs::create_dir(&cargodir).unwrap();
 
-    let mut config = Config {
+    let config = Config {
         exedir,
-        distdir,
+        distdir: None,
+        const_dist_dir: None,
+        test_dist_dir,
         rustupdir: rustup_test::RustupHome::new_in(&test_dir).unwrap(),
         customdir,
         cargodir,
@@ -145,8 +219,6 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
         rustup_update_root: None,
         workdir: RefCell::new(workdir),
     };
-
-    create_mock_dist_server(&config.distdir, s);
 
     let build_path = exe_dir.join(format!("rustup-init{EXE_SUFFIX}"));
 
@@ -175,47 +247,46 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     // Create some custom toolchains
     create_custom_toolchains(&config.customdir);
 
-    f(&mut config);
-
-    // These are the bogus values the test harness sets "HOME" and "CARGO_HOME"
-    // to during testing. If they exist that means a test unexpectedly used
-    // one of these environment variables.
-    assert!(!PathBuf::from("./bogus-home").exists());
-    assert!(!PathBuf::from("./bogus-cargo-home").exists());
+    (test_dir, config)
 }
 
-fn create_local_update_server(self_dist: &Path, config: &mut Config, version: &str) {
+/// Run this to create the test environment containing rustup, and
+/// a mock dist server.
+pub fn test(s: Scenario, f: &dyn Fn(&mut Config)) {
+    // Things we might cache or what not
+
+    // Mutable dist server - working toward elimination
+    let test_dist_dir = rustup::test::test_dist_dir().unwrap();
+    create_mock_dist_server(test_dist_dir.path(), s);
+
+    // Things that are just about the test itself
+    let (_test_dir, mut config) = setup_test_state(test_dist_dir);
+    // Pulled out of setup_test_state for clarity: the long term intent is to
+    // not have this at all.
+    if s != Scenario::None {
+        config.distdir = Some(config.test_dist_dir.path().to_path_buf());
+    }
+
+    // Run the test
+    f(&mut config);
+}
+
+fn create_local_update_server(self_dist: &Path, exedir: &Path, version: &str) -> String {
     let trip = this_host_triple();
     let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
     let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
-    let rustup_bin = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
+    let rustup_bin = exedir.join(format!("rustup-init{EXE_SUFFIX}"));
 
     fs::create_dir_all(dist_dir).unwrap();
     output_release_file(self_dist, "1", version);
     fs::copy(rustup_bin, dist_exe).unwrap();
 
     let root_url = format!("file://{}", self_dist.display());
-    config.rustup_update_root = Some(root_url);
-}
-
-pub fn check_update_setup(f: &dyn Fn(&mut Config)) {
-    let version = env!("CARGO_PKG_VERSION");
-
-    setup(Scenario::ArchivesV2, &|config| {
-        let self_dist_tmp = tempfile::Builder::new()
-            .prefix("self_dist")
-            .tempdir()
-            .unwrap();
-        let self_dist = self_dist_tmp.path();
-
-        create_local_update_server(self_dist, config, version);
-
-        f(config);
-    });
+    root_url
 }
 
 pub fn self_update_setup(f: &dyn Fn(&mut Config, &Path), version: &str) {
-    setup(Scenario::SimpleV2, &|config| {
+    test(Scenario::SimpleV2, &|config| {
         // Create a mock self-update server
         let self_dist_tmp = tempfile::Builder::new()
             .prefix("self_dist")
@@ -223,7 +294,8 @@ pub fn self_update_setup(f: &dyn Fn(&mut Config, &Path), version: &str) {
             .unwrap();
         let self_dist = self_dist_tmp.path();
 
-        create_local_update_server(self_dist, config, version);
+        let root_url = create_local_update_server(self_dist, &config.exedir, version);
+        config.rustup_update_root = Some(root_url);
 
         let trip = this_host_triple();
         let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
@@ -234,6 +306,25 @@ pub fn self_update_setup(f: &dyn Fn(&mut Config, &Path), version: &str) {
 
         f(config, self_dist);
     });
+}
+
+pub fn with_update_server(config: &mut Config, version: &str, f: &dyn Fn(&mut Config)) {
+    let self_dist_tmp = tempfile::Builder::new()
+        .prefix("self_dist")
+        .tempdir()
+        .unwrap();
+    let self_dist = self_dist_tmp.path();
+
+    let root_url = create_local_update_server(self_dist, &config.exedir, version);
+    let trip = this_host_triple();
+    let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
+    let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
+    // Modify the exe so it hashes different
+    raw::append_file(&dist_exe, "").unwrap();
+
+    config.rustup_update_root = Some(root_url);
+    f(config);
+    config.rustup_update_root = None;
 }
 
 pub fn output_release_file(dist_dir: &Path, schema: &str, version: &str) {
@@ -265,6 +356,15 @@ impl Config {
         raw::write_file(&version_file, "").unwrap();
     }
 
+    /// Move the dist server to the specified scenario and restore it
+    /// afterwards.
+    pub fn with_scenario(&mut self, s: Scenario, f: &dyn Fn(&mut Config)) {
+        let dist_path = CONST_TEST_STATE.dist_server_for(s).unwrap();
+        self.const_dist_dir = Some(dist_path);
+        f(self);
+        self.const_dist_dir = None;
+    }
+
     pub fn cmd<I, A>(&self, name: &str, args: I) -> Command
     where
         I: IntoIterator<Item = A>,
@@ -288,9 +388,15 @@ impl Config {
         }
         cmd.env("PATH", new_path);
         self.rustupdir.apply(cmd);
+        let distdir = match (&self.distdir, &self.const_dist_dir) {
+            (None, None) => Path::new("no-such-distdir"),
+            // mutable takes precedence
+            (Some(distdir), _) => distdir,
+            (_, Some(distdir)) => distdir,
+        };
         cmd.env(
             "RUSTUP_DIST_SERVER",
-            format!("file://{}", self.distdir.to_string_lossy()),
+            format!("file://{}", distdir.to_string_lossy()),
         );
         cmd.env("CARGO_HOME", self.cargodir.to_string_lossy().to_string());
         cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_triple());
@@ -398,7 +504,7 @@ impl Config {
         }
     }
 
-    pub fn expect_ok_ex(&self, args: &[&str], stdout: &str, stderr: &str) {
+    pub fn expect_ok_ex(&mut self, args: &[&str], stdout: &str, stderr: &str) {
         let out = self.run(args[0], &args[1..], &[]);
         if !out.ok || out.stdout != stdout || out.stderr != stderr {
             print_command(args, &out);
@@ -583,7 +689,7 @@ impl Config {
 
 /// Change the current distribution manifest to a particular date
 pub fn set_current_dist_date(config: &Config, date: &str) {
-    let url = Url::from_file_path(&config.distdir).unwrap();
+    let url = Url::from_file_path(&config.distdir.as_ref().unwrap()).unwrap();
     for channel in &["nightly", "beta", "stable"] {
         change_channel_date(&url, channel, date);
     }
@@ -866,6 +972,7 @@ impl Release {
 // Creates a mock dist server populated with some test data
 fn create_mock_dist_server(path: &Path, s: Scenario) {
     let chans = match s {
+        Scenario::None => return,
         Scenario::Empty => vec![],
         Scenario::MissingComponent => vec![
             Release::new("nightly", "1.37.0", "2019-09-12", "1"),
@@ -882,6 +989,15 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
             Release::beta("1.1.0", "2015-01-01"),
             Release::stable("1.0.0", "2015-01-01"),
             Release::new("nightly", "1.3.0", "2015-01-02", "2").unavailable(),
+        ],
+        Scenario::ArchivesV2_2015_01_01 => vec![
+            Release::new("nightly", "1.2.0", "2015-01-01", "1").with_rls(RlsStatus::Available),
+            Release::beta("1.1.0", "2015-01-01"),
+            Release::stable("1.0.0", "2015-01-01"),
+        ],
+        Scenario::ArchivesV2TwoVersions => vec![
+            Release::stable("0.100.99", "2014-12-31"),
+            Release::stable("1.0.0", "2015-01-01"),
         ],
         Scenario::Full | Scenario::ArchivesV1 | Scenario::ArchivesV2 | Scenario::UnavailableRls => {
             vec![
@@ -927,11 +1043,14 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
     };
 
     let vs = match s {
+        Scenario::None => unreachable!("None exits above"),
         Scenario::Empty => vec![],
         Scenario::Full => vec![ManifestVersion::V1, ManifestVersion::V2],
         Scenario::SimpleV1 | Scenario::ArchivesV1 => vec![ManifestVersion::V1],
         Scenario::SimpleV2
         | Scenario::ArchivesV2
+        | Scenario::ArchivesV2_2015_01_01
+        | Scenario::ArchivesV2TwoVersions
         | Scenario::MultiHost
         | Scenario::Unavailable
         | Scenario::UnavailableRls

@@ -252,7 +252,7 @@ stack backtrace:
    8: core::panicking::panic_fmt
              at /rustc/de02101e6d949c4a9040211e9ce8c488a997497e\/src\libcore\panicking.rs:85
    9: core::result::unwrap_failed
-  10: cli_v1::mock::clitools::setup
+  10: cli_v1::mock::clitools::test
   11: alloc::boxed::{{impl}}::call_once<(),FnOnce<()>>
              at /rustc/de02101e6d949c4a9040211e9ce8c488a997497e\src\liballoc\boxed.rs:746
   12: panic_unwind::__rust_maybe_catch_panic
