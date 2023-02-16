@@ -1,6 +1,10 @@
 name: Deploy Docs
 
 on:
+  pull_request:
+    branches:
+      - stable
+      - master
   push:
     branches:
       - stable
@@ -28,13 +32,3 @@ jobs:
           git checkout master
           mdbook build
           mv book ${{ runner.temp }}/book/devel
-      - name: Deploy to GitHub
-        run: |
-          cd ${{ runner.temp }}/book
-          git init
-          git config user.name "Deploy from CI"
-          git config user.email ""
-          git add . .nojekyll
-          git commit -m "Deploy $GITHUB_REF $GITHUB_SHA to gh-pages"
-          git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
-          git push --force --set-upstream origin master:gh-pages
