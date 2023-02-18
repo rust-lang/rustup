@@ -15,7 +15,7 @@ mod unix {
     use rustup::utils::raw;
 
     use super::INIT_NONE;
-    use crate::mock::clitools::{self, expect_err, expect_ok, Scenario};
+    use crate::mock::clitools::{self, Scenario};
 
     // Let's write a fake .rc which looks vaguely like a real script.
     const FAKE_RC: &str = r#"
@@ -82,7 +82,7 @@ export PATH="$HOME/apple/bin"
                 raw::write_file(rc, FAKE_RC).unwrap();
             }
 
-            expect_ok(config, &INIT_NONE);
+            config.expect_ok(&INIT_NONE);
 
             let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
             for rc in &rcs {
@@ -100,7 +100,7 @@ export PATH="$HOME/apple/bin"
                 .map(|rc| config.homedir.join(rc))
                 .collect();
             let rcs_before = rcs.iter().map(|rc| rc.exists());
-            expect_ok(config, &INIT_NONE);
+            config.expect_ok(&INIT_NONE);
 
             for (before, after) in rcs_before.zip(rcs.iter().map(|rc| rc.exists())) {
                 assert!(!before);
@@ -119,7 +119,7 @@ export PATH="$HOME/apple/bin"
             perms.set_readonly(true);
             fs::set_permissions(&rc, perms).unwrap();
 
-            expect_err(config, &INIT_NONE, "amend shell");
+            config.expect_err(&INIT_NONE, "amend shell");
         });
     }
 
@@ -149,8 +149,8 @@ export PATH="$HOME/apple/bin"
         clitools::setup(Scenario::Empty, &|config| {
             let profile = config.homedir.join(".profile");
             raw::write_file(&profile, FAKE_RC).unwrap();
-            expect_ok(config, &INIT_NONE);
-            expect_ok(config, &INIT_NONE);
+            config.expect_ok(&INIT_NONE);
+            config.expect_ok(&INIT_NONE);
 
             let new_profile = fs::read_to_string(&profile).unwrap();
             let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
@@ -165,9 +165,9 @@ export PATH="$HOME/apple/bin"
             let fake_rc_modified = FAKE_RC.strip_suffix('\n').expect("Should end in a newline");
             raw::write_file(&profile, fake_rc_modified).unwrap();
             // Run once to to add the configuration
-            expect_ok(config, &INIT_NONE);
+            config.expect_ok(&INIT_NONE);
             // Run twice to test that the process is idempotent
-            expect_ok(config, &INIT_NONE);
+            config.expect_ok(&INIT_NONE);
 
             let new_profile = fs::read_to_string(&profile).unwrap();
             let expected = FAKE_RC.to_owned() + &source(config.cargodir.display(), POSIX_SH);
@@ -189,7 +189,7 @@ export PATH="$HOME/apple/bin"
                 raw::write_file(path1, &expected).unwrap();
                 raw::write_file(path2, FAKE_RC).unwrap();
 
-                expect_ok(config, &INIT_NONE);
+                config.expect_ok(&INIT_NONE);
 
                 let new1 = fs::read_to_string(path1).unwrap();
                 assert_eq!(new1, expected);
@@ -217,8 +217,8 @@ export PATH="$HOME/apple/bin"
                 raw::write_file(rc, FAKE_RC).unwrap();
             }
 
-            expect_ok(config, &INIT_NONE);
-            expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+            config.expect_ok(&INIT_NONE);
+            config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
 
             for rc in &rcs {
                 let new_rc = fs::read_to_string(rc).unwrap();
@@ -269,7 +269,7 @@ export PATH="$HOME/apple/bin"
     fn uninstall_cleans_up_legacy_paths() {
         clitools::setup(Scenario::Empty, &|config| {
             // Install first, then overwrite.
-            expect_ok(config, &INIT_NONE);
+            config.expect_ok(&INIT_NONE);
 
             let zdotdir = tempfile::Builder::new()
                 .prefix("zdotdir")
@@ -337,16 +337,13 @@ export PATH="$HOME/apple/bin"
     fn install_doesnt_modify_path_if_passed_no_modify_path() {
         clitools::setup(Scenario::Empty, &|config| {
             let profile = config.homedir.join(".profile");
-            expect_ok(
-                config,
-                &[
-                    "rustup-init",
-                    "-y",
-                    "--no-modify-path",
-                    "--default-toolchain",
-                    "none",
-                ],
-            );
+            config.expect_ok(&[
+                "rustup-init",
+                "-y",
+                "--no-modify-path",
+                "--default-toolchain",
+                "none",
+            ]);
             assert!(!profile.exists());
         });
     }
@@ -366,7 +363,7 @@ mod windows {
             with_saved_path(&|| {
                 let path = format!("{:?}", config.cargodir.join("bin").to_string_lossy());
 
-                expect_ok(config, &INIT_NONE);
+                config.expect_ok(&INIT_NONE);
                 assert!(
                     get_path()
                         .unwrap()
@@ -378,7 +375,7 @@ mod windows {
                     get_path().unwrap().unwrap()
                 );
 
-                expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+                config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
                 assert!(!get_path().unwrap().unwrap().to_string().contains(&path));
             })
         });
@@ -420,10 +417,10 @@ mod windows {
                     vtype: RegType::REG_EXPAND_SZ,
                 };
 
-                expect_ok(config, &INIT_NONE);
+                config.expect_ok(&INIT_NONE);
                 assert_eq!(get_path().unwrap().unwrap(), expected);
 
-                expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+                config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
                 assert_eq!(get_path().unwrap().unwrap(), reg_value);
             })
         });

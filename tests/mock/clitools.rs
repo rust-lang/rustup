@@ -171,18 +171,10 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     // Make sure the host triple matches the build triple. Otherwise testing a 32-bit build of
     // rustup on a 64-bit machine will fail, because the tests do not have the host detection
     // functionality built in.
-    config.run(
-        "rustup",
-        &["set", "default-host", &this_host_triple()],
-        &[],
-    );
+    config.run("rustup", &["set", "default-host", &this_host_triple()], &[]);
 
     // Set the auto update mode to disable, as most tests do not want to update rustup itself during the test.
-    config.run(
-        "rustup",
-        &["set", "auto-self-update", "disable"],
-        &[],
-    );
+    config.run("rustup", &["set", "auto-self-update", "disable"], &[]);
 
     // Create some custom toolchains
     create_custom_toolchains(&config.customdir);
@@ -284,69 +276,69 @@ impl Config {
         raw::write_file(&version_file, "").unwrap();
     }
 
-pub fn cmd<I, A>(&self, name: &str, args: I) -> Command
-where
-    I: IntoIterator<Item = A>,
-    A: AsRef<OsStr>,
-{
-    let exe_path = self.exedir.join(format!("{name}{EXE_SUFFIX}"));
-    let mut cmd = Command::new(exe_path);
-    cmd.args(args);
-    cmd.current_dir(&*self.workdir.borrow());
-    self.env( &mut cmd);
-    cmd
-}
-
-pub fn env<E: rustup_test::Env>(&self, cmd: &mut E) {
-    // Ensure PATH is prefixed with the rustup-exe directory
-    let prev_path = env::var_os("PATH");
-    let mut new_path = self.exedir.clone().into_os_string();
-    if let Some(ref p) = prev_path {
-        new_path.push(if cfg!(windows) { ";" } else { ":" });
-        new_path.push(p);
+    pub fn cmd<I, A>(&self, name: &str, args: I) -> Command
+    where
+        I: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
+    {
+        let exe_path = self.exedir.join(format!("{name}{EXE_SUFFIX}"));
+        let mut cmd = Command::new(exe_path);
+        cmd.args(args);
+        cmd.current_dir(&*self.workdir.borrow());
+        self.env(&mut cmd);
+        cmd
     }
-    cmd.env("PATH", new_path);
-    self.rustupdir.apply(cmd);
-    cmd.env(
-        "RUSTUP_DIST_SERVER",
-        format!("file://{}", self.distdir.to_string_lossy()),
-    );
-    cmd.env("CARGO_HOME", self.cargodir.to_string_lossy().to_string());
-    cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_triple());
 
-    // These are used in some installation tests that unset RUSTUP_HOME/CARGO_HOME
-    cmd.env("HOME", self.homedir.to_string_lossy().to_string());
-    cmd.env("USERPROFILE", self.homedir.to_string_lossy().to_string());
+    pub fn env<E: rustup_test::Env>(&self, cmd: &mut E) {
+        // Ensure PATH is prefixed with the rustup-exe directory
+        let prev_path = env::var_os("PATH");
+        let mut new_path = self.exedir.clone().into_os_string();
+        if let Some(ref p) = prev_path {
+            new_path.push(if cfg!(windows) { ";" } else { ":" });
+            new_path.push(p);
+        }
+        cmd.env("PATH", new_path);
+        self.rustupdir.apply(cmd);
+        cmd.env(
+            "RUSTUP_DIST_SERVER",
+            format!("file://{}", self.distdir.to_string_lossy()),
+        );
+        cmd.env("CARGO_HOME", self.cargodir.to_string_lossy().to_string());
+        cmd.env("RUSTUP_OVERRIDE_HOST_TRIPLE", this_host_triple());
 
-    // Setting HOME will confuse the sudo check for rustup-init. Override it
-    cmd.env("RUSTUP_INIT_SKIP_SUDO_CHECK", "yes");
+        // These are used in some installation tests that unset RUSTUP_HOME/CARGO_HOME
+        cmd.env("HOME", self.homedir.to_string_lossy().to_string());
+        cmd.env("USERPROFILE", self.homedir.to_string_lossy().to_string());
 
-    // Skip the MSVC warning check since it's environment dependent
-    cmd.env("RUSTUP_INIT_SKIP_MSVC_CHECK", "yes");
+        // Setting HOME will confuse the sudo check for rustup-init. Override it
+        cmd.env("RUSTUP_INIT_SKIP_SUDO_CHECK", "yes");
 
-    // The test environment may interfere with checking the PATH for the existence of rustc or
-    // cargo, so we disable that check globally
-    cmd.env("RUSTUP_INIT_SKIP_PATH_CHECK", "yes");
+        // Skip the MSVC warning check since it's environment dependent
+        cmd.env("RUSTUP_INIT_SKIP_MSVC_CHECK", "yes");
 
-    // Setup pgp test key
-    cmd.env(
-        "RUSTUP_PGP_KEY",
-        std::env::current_dir()
-            .unwrap()
-            .join("tests/mock/signing-key.pub.asc"),
-    );
+        // The test environment may interfere with checking the PATH for the existence of rustc or
+        // cargo, so we disable that check globally
+        cmd.env("RUSTUP_INIT_SKIP_PATH_CHECK", "yes");
 
-    // The unix fallback settings file may be present in the test environment, so override
-    // the path to the settings file with a non-existing path to avoid interference
-    cmd.env(
-        "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS",
-        "/bogus-config-file.toml",
-    );
+        // Setup pgp test key
+        cmd.env(
+            "RUSTUP_PGP_KEY",
+            std::env::current_dir()
+                .unwrap()
+                .join("tests/mock/signing-key.pub.asc"),
+        );
 
-    if let Some(root) = self.rustup_update_root.as_ref() {
-        cmd.env("RUSTUP_UPDATE_ROOT", root);
+        // The unix fallback settings file may be present in the test environment, so override
+        // the path to the settings file with a non-existing path to avoid interference
+        cmd.env(
+            "RUSTUP_OVERRIDE_UNIX_FALLBACK_SETTINGS",
+            "/bogus-config-file.toml",
+        );
+
+        if let Some(root) = self.rustup_update_root.as_ref() {
+            cmd.env("RUSTUP_UPDATE_ROOT", root);
+        }
     }
-}
 
     pub fn expect_ok(&self, args: &[&str]) {
         let out = self.run(args[0], &args[1..], &[]);
@@ -498,9 +490,9 @@ pub fn env<E: rustup_test::Env>(&self, cmd: &mut E) {
         let inprocess = allow_inprocess(name, args.clone());
         let start = Instant::now();
         let out = if inprocess {
-            self.run_inprocess( name, args, env)
+            self.run_inprocess(name, args, env)
         } else {
-            self.run_subprocess( name, args, env)
+            self.run_subprocess(name, args, env)
         };
         let duration = Instant::now() - start;
         let output = SanitizedOutput {
@@ -562,42 +554,42 @@ pub fn env<E: rustup_test::Env>(&self, cmd: &mut E) {
     }
 
     pub fn run_subprocess<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> Output
-where
-    I: IntoIterator<Item = A>,
-    A: AsRef<OsStr>,
-{
-    let mut cmd = self.cmd(name, args);
-    for env in env {
-        cmd.env(env.0, env.1);
-    }
+    where
+        I: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
+    {
+        let mut cmd = self.cmd(name, args);
+        for env in env {
+            cmd.env(env.0, env.1);
+        }
 
-    let mut retries = 8;
-    let out = loop {
-        let lock = cmd_lock().read().unwrap();
-        let out = cmd.output();
-        drop(lock);
-        match out {
-            Ok(out) => break out,
-            Err(e) => {
-                retries -= 1;
-                if retries > 0
-                    && e.kind() == std::io::ErrorKind::Other
-                    && e.raw_os_error() == Some(26)
-                {
-                    // This is an ETXTBSY situation
-                    std::thread::sleep(std::time::Duration::from_millis(250));
-                } else {
-                    panic!("Unable to run test command: {e:?}");
+        let mut retries = 8;
+        let out = loop {
+            let lock = cmd_lock().read().unwrap();
+            let out = cmd.output();
+            drop(lock);
+            match out {
+                Ok(out) => break out,
+                Err(e) => {
+                    retries -= 1;
+                    if retries > 0
+                        && e.kind() == std::io::ErrorKind::Other
+                        && e.raw_os_error() == Some(26)
+                    {
+                        // This is an ETXTBSY situation
+                        std::thread::sleep(std::time::Duration::from_millis(250));
+                    } else {
+                        panic!("Unable to run test command: {e:?}");
+                    }
                 }
             }
+        };
+        Output {
+            status: out.status.code(),
+            stdout: out.stdout,
+            stderr: out.stderr,
         }
-    };
-    Output {
-        status: out.status.code(),
-        stdout: out.stdout,
-        stderr: out.stderr,
     }
-}
 }
 
 /// Change the current distribution manifest to a particular date
@@ -606,71 +598,6 @@ pub fn set_current_dist_date(config: &Config, date: &str) {
     for channel in &["nightly", "beta", "stable"] {
         change_channel_date(&url, channel, date);
     }
-}
-
-#[deprecated]
-pub fn expect_ok(config: &Config, args: &[&str]) {
-    config.expect_ok(args)
-}
-
-#[deprecated]
-pub fn expect_err(config: &Config, args: &[&str], expected: &str) {
-    config.expect_err(args, expected)
-}
-
-#[deprecated]
-pub fn expect_stdout_ok(config: &Config, args: &[&str], expected: &str) {
-    config.expect_stdout_ok(args, expected)
-}
-
-#[deprecated]
-pub fn expect_not_stdout_ok(config: &Config, args: &[&str], expected: &str) {
-    config.expect_not_stdout_ok(args, expected)
-}
-
-#[deprecated]
-pub fn expect_not_stderr_ok(config: &Config, args: &[&str], expected: &str) {
-    config.expect_not_stderr_ok(args, expected)
-}
-
-#[deprecated]
-pub fn expect_not_stderr_err(config: &Config, args: &[&str], expected: &str) {
-    config.expect_not_stderr_err(args, expected)
-}
-
-#[deprecated]
-pub fn expect_stderr_ok(config: &Config, args: &[&str], expected: &str) {
-    config.expect_stderr_ok(args, expected)
-}
-
-#[deprecated]
-pub fn expect_ok_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) {
-    config.expect_ok_ex(args, stdout, stderr)
-}
-
-#[deprecated]
-pub fn expect_err_ex(config: &Config, args: &[&str], stdout: &str, stderr: &str) {
-    config.expect_err_ex(args, stdout, stderr)
-}
-
-#[deprecated]
-pub fn expect_ok_contains(config: &Config, args: &[&str], stdout: &str, stderr: &str) {
-    config.expect_ok_contains(args, stdout, stderr)
-}
-
-#[deprecated]
-pub fn expect_ok_eq(config: &Config, args1: &[&str], args2: &[&str]) {
-    config.expect_ok_eq(args1, args2)
-}
-
-#[deprecated]
-pub fn expect_component_executable(config: &Config, cmd: &str) {
-    config.expect_component_executable(cmd)
-}
-
-#[deprecated]
-pub fn expect_component_not_executable(config: &Config, cmd: &str) {
-    config.expect_component_not_executable(cmd)
 }
 
 pub(crate) fn print_command(args: &[&str], out: &SanitizedOutput) {

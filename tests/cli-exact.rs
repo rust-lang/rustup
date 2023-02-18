@@ -4,8 +4,7 @@
 pub mod mock;
 
 use crate::mock::clitools::{
-    self, check_update_setup, expect_err_ex, expect_ok, expect_ok_ex, expect_stderr_ok,
-    expect_stdout_ok, self_update_setup, set_current_dist_date, Config, Scenario,
+    self, check_update_setup, self_update_setup, set_current_dist_date, Config, Scenario,
 };
 use rustup::for_host;
 use rustup::test::this_host_triple;
@@ -17,8 +16,7 @@ fn setup(f: &dyn Fn(&mut Config)) {
 #[test]
 fn update_once() {
     setup(&|config| {
-        expect_ok_ex(
-            config,
+        config.expect_ok_ex(
             &["rustup", "update", "nightly"],
             for_host!(
                 r"
@@ -50,12 +48,11 @@ fn update_once_and_check_self_update() {
 
     self_update_setup(
         &|config, _| {
-            expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
-            expect_ok(config, &["rustup", "set", "auto-self-update", "check-only"]);
+            config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+            config.expect_ok(&["rustup", "set", "auto-self-update", "check-only"]);
             let current_version = env!("CARGO_PKG_VERSION");
 
-            expect_ok_ex(
-                config,
+            config.expect_ok_ex(
                 &["rustup", "update", "nightly"],
                 &format!(
                     r"
@@ -92,10 +89,9 @@ fn update_once_and_self_update() {
 
     self_update_setup(
         &|config, _| {
-            expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
-            expect_ok(config, &["rustup", "set", "auto-self-update", "enable"]);
-            expect_ok_ex(
-                config,
+            config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+            config.expect_ok(&["rustup", "set", "auto-self-update", "enable"]);
+            config.expect_ok_ex(
                 &["rustup", "update", "nightly"],
                 for_host!(
                     r"
@@ -127,10 +123,9 @@ info: downloading self-update
 #[test]
 fn update_again() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(config, &["rustup", "upgrade", "nightly"]);
-        expect_ok_ex(
-            config,
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_ok(&["rustup", "upgrade", "nightly"]);
+        config.expect_ok_ex(
             &["rustup", "update", "nightly"],
             for_host!(
                 r"
@@ -143,8 +138,7 @@ fn update_again() {
 "
             ),
         );
-        expect_ok_ex(
-            config,
+        config.expect_ok_ex(
             &["rustup", "upgrade", "nightly"],
             for_host!(
                 r"
@@ -164,11 +158,10 @@ fn update_again() {
 fn check_updates_none() {
     check_update_setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "update", "stable"]);
-        expect_ok(config, &["rustup", "update", "beta"]);
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(
-            config,
+        config.expect_ok(&["rustup", "update", "stable"]);
+        config.expect_ok(&["rustup", "update", "beta"]);
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_stdout_ok(
             &["rustup", "check"],
             for_host!(
                 r"stable-{0} - Up to date : 1.0.0 (hash-stable-1.0.0)
@@ -184,12 +177,11 @@ nightly-{0} - Up to date : 1.2.0 (hash-nightly-1)
 fn check_updates_some() {
     check_update_setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "update", "stable"]);
-        expect_ok(config, &["rustup", "update", "beta"]);
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        config.expect_ok(&["rustup", "update", "stable"]);
+        config.expect_ok(&["rustup", "update", "beta"]);
+        config.expect_ok(&["rustup", "update", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
-        expect_stdout_ok(
-            config,
+        config.expect_stdout_ok(
             &["rustup", "check"],
             for_host!(
                 r"stable-{0} - Update available : 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
@@ -209,8 +201,7 @@ fn check_updates_self() {
         &|config, _| {
             let current_version = env!("CARGO_PKG_VERSION");
 
-            expect_stdout_ok(
-                config,
+            config.expect_stdout_ok(
                 &["rustup", "check"],
                 &format!(
                     r"rustup - Update available : {current_version} -> {test_version}
@@ -228,8 +219,7 @@ fn check_updates_self_no_change() {
 
     self_update_setup(
         &|config, _| {
-            expect_stdout_ok(
-                config,
+            config.expect_stdout_ok(
                 &["rustup", "check"],
                 &format!(
                     r"rustup - Up to date : {current_version}
@@ -245,11 +235,10 @@ fn check_updates_self_no_change() {
 fn check_updates_with_update() {
     check_update_setup(&|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "update", "stable"]);
-        expect_ok(config, &["rustup", "update", "beta"]);
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(
-            config,
+        config.expect_ok(&["rustup", "update", "stable"]);
+        config.expect_ok(&["rustup", "update", "beta"]);
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_stdout_ok(
             &["rustup", "check"],
             for_host!(
                 r"stable-{0} - Up to date : 1.0.0 (hash-stable-1.0.0)
@@ -259,8 +248,7 @@ nightly-{0} - Up to date : 1.2.0 (hash-nightly-1)
             ),
         );
         set_current_dist_date(config, "2015-01-02");
-        expect_stdout_ok(
-            config,
+        config.expect_stdout_ok(
             &["rustup", "check"],
             for_host!(
                 r"stable-{0} - Update available : 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
@@ -269,9 +257,8 @@ nightly-{0} - Update available : 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2
 "
             ),
         );
-        expect_ok(config, &["rustup", "update", "beta"]);
-        expect_stdout_ok(
-            config,
+        config.expect_ok(&["rustup", "update", "beta"]);
+        config.expect_stdout_ok(
             &["rustup", "check"],
             for_host!(
                 r"stable-{0} - Update available : 1.0.0 (hash-stable-1.0.0) -> 1.1.0 (hash-stable-1.1.0)
@@ -286,8 +273,7 @@ nightly-{0} - Update available : 1.2.0 (hash-nightly-1) -> 1.3.0 (hash-nightly-2
 #[test]
 fn default() {
     setup(&|config| {
-        expect_ok_ex(
-            config,
+        config.expect_ok_ex(
             &["rustup", "default", "nightly"],
             for_host!(
                 r"
@@ -317,9 +303,8 @@ info: default toolchain set to 'nightly-{0}'
 fn override_again() {
     setup(&|config| {
         let cwd = config.current_dir();
-        expect_ok(config, &["rustup", "override", "add", "nightly"]);
-        expect_ok_ex(
-            config,
+        config.expect_ok(&["rustup", "override", "add", "nightly"]);
+        config.expect_ok_ex(
             &["rustup", "override", "add", "nightly"],
             for_host!(
                 r"
@@ -343,9 +328,8 @@ fn remove_override() {
     for keyword in &["remove", "unset"] {
         setup(&|config| {
             let cwd = config.current_dir();
-            expect_ok(config, &["rustup", "override", "add", "nightly"]);
-            expect_ok_ex(
-                config,
+            config.expect_ok(&["rustup", "override", "add", "nightly"]);
+            config.expect_ok_ex(
                 &["rustup", "override", keyword],
                 r"",
                 &format!("info: override toolchain for '{}' removed\n", cwd.display()),
@@ -359,8 +343,7 @@ fn remove_override_none() {
     for keyword in &["remove", "unset"] {
         setup(&|config| {
             let cwd = config.current_dir();
-            expect_ok_ex(
-                config,
+            config.expect_ok_ex(
                 &["rustup", "override", keyword],
                 r"",
                 &format!(
@@ -382,10 +365,9 @@ fn remove_override_with_path() {
                 .tempdir()
                 .unwrap();
             config.change_dir(dir.path(), || {
-                expect_ok(config, &["rustup", "override", "add", "nightly"]);
+                config.expect_ok(&["rustup", "override", "add", "nightly"]);
             });
-            expect_ok_ex(
-                config,
+            config.expect_ok_ex(
                 &[
                     "rustup",
                     "override",
@@ -414,12 +396,11 @@ fn remove_override_with_path_deleted() {
                     .unwrap();
                 let path = std::fs::canonicalize(dir.path()).unwrap();
                 config.change_dir(&path, || {
-                    expect_ok(config, &["rustup", "override", "add", "nightly"]);
+                    config.expect_ok(&["rustup", "override", "add", "nightly"]);
                 });
                 path
             };
-            expect_ok_ex(
-                config,
+            config.expect_ok_ex(
                 &[
                     "rustup",
                     "override",
@@ -449,15 +430,14 @@ fn remove_override_nonexistent() {
                     .unwrap();
                 let path = std::fs::canonicalize(dir.path()).unwrap();
                 config.change_dir(&path, || {
-                    expect_ok(config, &["rustup", "override", "add", "nightly"]);
+                    config.expect_ok(&["rustup", "override", "add", "nightly"]);
                 });
                 path
             };
             // FIXME TempDir seems to succumb to difficulties removing dirs on windows
             let _ = rustup::utils::raw::remove_dir(&path);
             assert!(!path.exists());
-            expect_ok_ex(
-                config,
+            config.expect_ok_ex(
                 &["rustup", "override", keyword, "--nonexistent"],
                 r"",
                 &format!(
@@ -480,9 +460,8 @@ fn list_overrides() {
         }
 
         let trip = this_host_triple();
-        expect_ok(config, &["rustup", "override", "add", "nightly"]);
-        expect_ok_ex(
-            config,
+        config.expect_ok(&["rustup", "override", "add", "nightly"]);
+        config.expect_ok_ex(
             &["rustup", "override", "list"],
             &format!(
                 "{:<40}\t{:<20}\n",
@@ -505,7 +484,7 @@ fn list_overrides_with_nonexistent() {
                 .tempdir()
                 .unwrap();
             config.change_dir(dir.path(), || {
-                expect_ok(config, &["rustup", "override", "add", "nightly"]);
+                config.expect_ok(&["rustup", "override", "add", "nightly"]);
             });
             std::fs::canonicalize(dir.path()).unwrap()
         };
@@ -518,8 +497,7 @@ fn list_overrides_with_nonexistent() {
             path_formatted = path_formatted[4..].to_owned();
         }
 
-        expect_ok_ex(
-            config,
+        config.expect_ok_ex(
             &["rustup", "override", "list"],
             &format!(
                 "{:<40}\t{:<20}\n\n",
@@ -535,8 +513,7 @@ fn list_overrides_with_nonexistent() {
 #[test]
 fn update_no_manifest() {
     setup(&|config| {
-        expect_err_ex(
-            config,
+        config.expect_err_ex(
             &["rustup", "update", "nightly-2016-01-01"],
             r"",
             for_host!(
@@ -552,8 +529,7 @@ error: no release found for 'nightly-2016-01-01'
 #[test]
 fn update_invalid_toolchain() {
     setup(&|config| {
-        expect_err_ex(
-            config,
+        config.expect_err_ex(
             &["rustup", "update", "nightly-2016-03-1"],
             r"",
             r"info: syncing channel updates for 'nightly-2016-03-1'
@@ -567,8 +543,7 @@ error: target '2016-03-1' not found in channel.  Perhaps check https://doc.rust-
 #[test]
 fn default_invalid_toolchain() {
     setup(&|config| {
-        expect_err_ex(
-            config,
+        config.expect_err_ex(
             &["rustup", "default", "nightly-2016-03-1"],
             r"",
             r"info: syncing channel updates for 'nightly-2016-03-1'
@@ -582,13 +557,11 @@ error: target '2016-03-1' not found in channel.  Perhaps check https://doc.rust-
 #[test]
 fn default_none() {
     setup(&|config| {
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &["rustup", "default", "none"],
             "info: default toolchain unset",
         );
-        expect_err_ex(
-            config,
+        config.expect_err_ex(
             &["rustc", "--version"],
             "",
             "error: rustup could not choose a version of rustc to run, because one wasn't specified explicitly, and no default is configured.
@@ -611,9 +584,9 @@ fn list_targets() {
 
         let expected = format!("{}\n{}\n{}\n", sorted[0], sorted[1], sorted[2]);
 
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        expect_ok_ex(config, &["rustup", "target", "list"], &expected, r"");
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        config.expect_ok_ex(&["rustup", "target", "list"], &expected, r"");
     });
 }
 
@@ -630,25 +603,19 @@ fn list_installed_targets() {
 
         let expected = format!("{}\n{}\n{}\n", sorted[0], sorted[1], sorted[2]);
 
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH2]);
-        expect_ok_ex(
-            config,
-            &["rustup", "target", "list", "--installed"],
-            &expected,
-            r"",
-        );
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH2]);
+        config.expect_ok_ex(&["rustup", "target", "list", "--installed"], &expected, r"");
     });
 }
 
 #[test]
 fn cross_install_indicates_target() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
         // TODO error 'nightly-x86_64-apple-darwin' is not installed
-        expect_ok_ex(
-            config,
+        config.expect_ok_ex(
             &["rustup", "target", "add", clitools::CROSS_ARCH1],
             r"",
             &format!(
@@ -665,8 +632,7 @@ info: installing component 'rust-std' for '{0}'
 #[test]
 fn undefined_linked_toolchain() {
     setup(&|config| {
-        expect_err_ex(
-            config,
+        config.expect_err_ex(
             &["cargo", "+bogus", "test"],
             r"",
             "error: toolchain 'bogus' is not installed\n",
@@ -677,7 +643,7 @@ fn undefined_linked_toolchain() {
 #[test]
 fn install_by_version_number() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "0.100.99"]);
+        config.expect_ok(&["rustup", "default", "0.100.99"]);
     })
 }
 
@@ -687,14 +653,13 @@ fn install_unreleased_component() {
     clitools::setup(Scenario::MissingComponentMulti, &|config| {
         // Initial channel content is host + rls + multiarch-std
         set_current_dist_date(config, "2019-09-12");
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "component", "add", "rls"]);
-        expect_ok(config, &["rustup", "target", "add", clitools::MULTI_ARCH1]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "component", "add", "rls"]);
+        config.expect_ok(&["rustup", "target", "add", clitools::MULTI_ARCH1]);
 
         // Next channel variant should have host + rls but not multiarch-std
         set_current_dist_date(config, "2019-09-13");
-        expect_ok_ex(
-            config,
+        config.expect_ok_ex(
             &["rustup", "update", "nightly"],
             for_host!(
                 r"
@@ -715,8 +680,7 @@ info: syncing channel updates for 'nightly-2019-09-12-{0}'
 
         // Next channel variant should have host + multiarch-std but have rls missing
         set_current_dist_date(config, "2019-09-14");
-        expect_ok_ex(
-            config,
+        config.expect_ok_ex(
             &["rustup", "update", "nightly"],
             for_host!(
                 r"

@@ -11,10 +11,7 @@ use rustup::test::this_host_triple;
 use rustup::test::with_saved_path;
 use rustup::utils::raw;
 
-use crate::mock::clitools::{
-    self, expect_err, expect_ok, expect_stderr_ok, expect_stdout_ok, run, set_current_dist_date,
-    Config, SanitizedOutput, Scenario,
-};
+use crate::mock::clitools::{self, set_current_dist_date, Config, SanitizedOutput, Scenario};
 
 fn run_input(config: &Config, args: &[&str], input: &str) -> SanitizedOutput {
     run_input_with_env(config, args, input, &[])
@@ -132,7 +129,7 @@ fn smoke_case_install_with_path_install() {
 #[test]
 fn blank_lines_around_stderr_log_output_update() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         let out = run_input(
             config,
             &["rustup-init", "--no-update-default-toolchain"],
@@ -293,7 +290,7 @@ fn with_no_toolchain() {
         );
         assert!(out.ok);
 
-        expect_stdout_ok(config, &["rustup", "show"], "no active toolchain");
+        config.expect_stdout_ok(&["rustup", "show"], "no active toolchain");
     });
 }
 
@@ -311,7 +308,7 @@ fn with_non_default_toolchain_still_prompts() {
         );
         assert!(out.ok);
 
-        expect_stdout_ok(config, &["rustup", "show"], "nightly");
+        config.expect_stdout_ok(&["rustup", "show"], "nightly");
     });
 }
 
@@ -329,8 +326,8 @@ fn with_non_release_channel_non_default_toolchain() {
         );
         assert!(out.ok);
 
-        expect_stdout_ok(config, &["rustup", "show"], "nightly");
-        expect_stdout_ok(config, &["rustup", "show"], "2015-01-02");
+        config.expect_stdout_ok(&["rustup", "show"], "nightly");
+        config.expect_stdout_ok(&["rustup", "show"], "2015-01-02");
     });
 }
 
@@ -344,7 +341,7 @@ fn set_nightly_toolchain() {
         );
         assert!(out.ok);
 
-        expect_stdout_ok(config, &["rustup", "show"], "nightly");
+        config.expect_stdout_ok(&["rustup", "show"], "nightly");
     });
 }
 
@@ -376,7 +373,7 @@ fn set_nightly_toolchain_and_unset() {
         println!("{:?}", out.stdout);
         assert!(out.ok);
 
-        expect_stdout_ok(config, &["rustup", "show"], "beta");
+        config.expect_stdout_ok(&["rustup", "show"], "beta");
     });
 }
 
@@ -400,14 +397,9 @@ fn install_with_components() {
         args.extend_from_slice(comp_args);
 
         clitools::setup(Scenario::SimpleV2, &|config| {
-            expect_ok(config, &args);
-            expect_stdout_ok(
-                config,
-                &["rustup", "component", "list"],
-                "rust-src (installed)",
-            );
-            expect_stdout_ok(
-                config,
+            config.expect_ok(&args);
+            config.expect_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)");
+            config.expect_stdout_ok(
                 &["rustup", "component", "list"],
                 &format!("rust-analysis-{} (installed)", this_host_triple()),
             );
@@ -445,8 +437,7 @@ fn install_forces_and_skips_rls() {
 #[test]
 fn test_warn_if_complete_profile_is_used() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &[
                 "rustup-init",
                 "-y",
@@ -513,7 +504,7 @@ fn test_prompt_succeed_if_rustup_sh_already_installed_reply_yes() {
 #[test]
 fn installing_when_already_installed_updates_toolchain() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         let out = run_input(config, &["rustup-init", "--no-modify-path"], "\n\n");
         println!("stdout:\n{}\n...\n", out.stdout);
         assert!(out
@@ -534,8 +525,7 @@ fn install_stops_if_rustc_exists() {
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     clitools::setup(Scenario::SimpleV2, &|config| {
-        let out = run(
-            config,
+        let out = config.run(
             "rustup-init",
             &["--no-modify-path"],
             &[
@@ -565,8 +555,7 @@ fn install_stops_if_cargo_exists() {
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     clitools::setup(Scenario::SimpleV2, &|config| {
-        let out = run(
-            config,
+        let out = config.run(
             "rustup-init",
             &["--no-modify-path"],
             &[
@@ -596,8 +585,7 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
     let temp_dir_path = temp_dir.path().to_str().unwrap();
 
     clitools::setup(Scenario::SimpleV2, &|config| {
-        let out = run(
-            config,
+        let out = config.run(
             "rustup-init",
             &["-y", "--no-modify-path"],
             &[
@@ -613,8 +601,7 @@ fn with_no_prompt_install_succeeds_if_rustc_exists() {
 #[test]
 fn install_non_installable_toolchain() {
     clitools::setup(Scenario::Unavailable, &|config| {
-        expect_err(
-            config,
+        config.expect_err(
             &[
                 "rustup-init",
                 "-y",

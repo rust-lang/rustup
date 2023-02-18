@@ -10,11 +10,7 @@ use rustup::dist::dist::TargetTriple;
 use rustup::for_host;
 use rustup::test::this_host_triple;
 
-use crate::mock::clitools::{
-    self, expect_component_executable, expect_component_not_executable, expect_err,
-    expect_not_stderr_err, expect_not_stdout_ok, expect_ok, expect_ok_ex, expect_stderr_ok,
-    expect_stdout_ok, set_current_dist_date, Config, Scenario,
-};
+use crate::mock::clitools::{self, set_current_dist_date, Config, Scenario};
 
 pub fn setup(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, f);
@@ -27,8 +23,7 @@ pub fn setup_complex(f: &dyn Fn(&mut Config)) {
 #[test]
 fn rustc_no_default_toolchain() {
     setup(&|config| {
-        expect_err(
-            config,
+        config.expect_err(
             &["rustc"],
             "rustup could not choose a version of rustc to run",
         );
@@ -38,40 +33,40 @@ fn rustc_no_default_toolchain() {
 #[test]
 fn expected_bins_exist() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "1.3.0");
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "1.3.0");
     });
 }
 
 #[test]
 fn install_toolchain_from_channel() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
-        expect_ok(config, &["rustup", "default", "beta"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
-        expect_ok(config, &["rustup", "default", "stable"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+        config.expect_ok(&["rustup", "default", "beta"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
+        config.expect_ok(&["rustup", "default", "stable"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
     });
 }
 
 #[test]
 fn install_toolchain_from_archive() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
-        expect_ok(config, &["rustup", "default", "nightly-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
-        expect_ok(config, &["rustup", "default", "beta-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.1.0");
-        expect_ok(config, &["rustup", "default", "stable-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.0.0");
+        config.expect_ok(&["rustup", "default", "nightly-2015-01-01"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
+        config.expect_ok(&["rustup", "default", "beta-2015-01-01"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.1.0");
+        config.expect_ok(&["rustup", "default", "stable-2015-01-01"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.0.0");
     });
 }
 
 #[test]
 fn install_toolchain_from_version() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "1.1.0"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+        config.expect_ok(&["rustup", "default", "1.1.0"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
     });
 }
 
@@ -80,42 +75,38 @@ fn install_with_profile() {
     setup_complex(&|config| {
         // Start with a config that uses the "complete" profile
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "set", "profile", "complete"]);
+        config.expect_ok(&["rustup", "set", "profile", "complete"]);
 
         // Installing with minimal profile should only install rustc
-        expect_ok(
-            config,
-            &[
-                "rustup",
-                "toolchain",
-                "install",
-                "--profile",
-                "minimal",
-                "nightly",
-            ],
-        );
-        expect_ok(config, &["rustup", "default", "nightly"]);
+        config.expect_ok(&[
+            "rustup",
+            "toolchain",
+            "install",
+            "--profile",
+            "minimal",
+            "nightly",
+        ]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
 
-        expect_component_executable(config, "rustup");
-        expect_component_executable(config, "rustc");
-        expect_component_not_executable(config, "cargo");
+        config.expect_component_executable("rustup");
+        config.expect_component_executable("rustc");
+        config.expect_component_not_executable("cargo");
 
         // After an update, we should _still_ only have the profile-dictated components
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        config.expect_ok(&["rustup", "update", "nightly"]);
 
-        expect_component_executable(config, "rustup");
-        expect_component_executable(config, "rustc");
-        expect_component_not_executable(config, "cargo");
+        config.expect_component_executable("rustup");
+        config.expect_component_executable("rustc");
+        config.expect_component_not_executable("cargo");
     });
 }
 
 #[test]
 fn default_existing_toolchain() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stderr_ok(
-            config,
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_stderr_ok(
             &["rustup", "default", "nightly"],
             for_host!("using existing install for 'nightly-{0}'"),
         );
@@ -126,47 +117,39 @@ fn default_existing_toolchain() {
 fn update_channel() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
     });
 }
 
 #[test]
 fn list_toolchains() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(config, &["rustup", "update", "beta-2015-01-01"]);
-        expect_stdout_ok(config, &["rustup", "toolchain", "list"], "nightly");
-        expect_stdout_ok(
-            config,
-            &["rustup", "toolchain", "list", "-v"],
-            "(default)\t",
-        );
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_ok(&["rustup", "update", "beta-2015-01-01"]);
+        config.expect_stdout_ok(&["rustup", "toolchain", "list"], "nightly");
+        config.expect_stdout_ok(&["rustup", "toolchain", "list", "-v"], "(default)\t");
         #[cfg(windows)]
-        expect_stdout_ok(
-            config,
+        config.expect_stdout_ok(
             &["rustup", "toolchain", "list", "-v"],
             for_host!("\\toolchains\\nightly-{}"),
         );
         #[cfg(not(windows))]
-        expect_stdout_ok(
-            config,
+        config.expect_stdout_ok(
             &["rustup", "toolchain", "list", "-v"],
             for_host!("/toolchains/nightly-{}"),
         );
-        expect_stdout_ok(config, &["rustup", "toolchain", "list"], "beta-2015-01-01");
+        config.expect_stdout_ok(&["rustup", "toolchain", "list"], "beta-2015-01-01");
         #[cfg(windows)]
-        expect_stdout_ok(
-            config,
+        config.expect_stdout_ok(
             &["rustup", "toolchain", "list", "-v"],
             "\\toolchains\\beta-2015-01-01",
         );
         #[cfg(not(windows))]
-        expect_stdout_ok(
-            config,
+        config.expect_stdout_ok(
             &["rustup", "toolchain", "list", "-v"],
             "/toolchains/beta-2015-01-01",
         );
@@ -177,38 +160,30 @@ fn list_toolchains() {
 fn list_toolchains_with_bogus_file() {
     // #520
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        config.expect_ok(&["rustup", "update", "nightly"]);
 
         let name = "bogus_regular_file.txt";
         let path = config.rustupdir.join("toolchains").join(name);
         rustup::utils::utils::write_file(name, &path, "").unwrap();
-        expect_stdout_ok(config, &["rustup", "toolchain", "list"], "nightly");
-        expect_not_stdout_ok(config, &["rustup", "toolchain", "list"], name);
+        config.expect_stdout_ok(&["rustup", "toolchain", "list"], "nightly");
+        config.expect_not_stdout_ok(&["rustup", "toolchain", "list"], name);
     });
 }
 
 #[test]
 fn list_toolchains_with_none() {
     setup(&|config| {
-        expect_stdout_ok(
-            config,
-            &["rustup", "toolchain", "list"],
-            "no installed toolchains",
-        );
+        config.expect_stdout_ok(&["rustup", "toolchain", "list"], "no installed toolchains");
     });
 }
 
 #[test]
 fn remove_toolchain() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
-        expect_ok(config, &["rustup", "toolchain", "list"]);
-        expect_stdout_ok(
-            config,
-            &["rustup", "toolchain", "list"],
-            "no installed toolchains",
-        );
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_ok(&["rustup", "toolchain", "remove", "nightly"]);
+        config.expect_ok(&["rustup", "toolchain", "list"]);
+        config.expect_stdout_ok(&["rustup", "toolchain", "list"], "no installed toolchains");
     });
 }
 
@@ -219,9 +194,8 @@ fn remove_toolchain_ignore_trailing_slash() {
         // custom toolchain name with trailing slash
         let path = config.customdir.join("custom-1");
         let path_str = path.to_string_lossy();
-        expect_ok(config, &["rustup", "toolchain", "link", "dev", &path_str]);
-        expect_stderr_ok(
-            config,
+        config.expect_ok(&["rustup", "toolchain", "link", "dev", &path_str]);
+        config.expect_stderr_ok(
             &["rustup", "toolchain", "remove", "dev/"],
             "toolchain 'dev' uninstalled",
         );
@@ -229,9 +203,8 @@ fn remove_toolchain_ignore_trailing_slash() {
         let toolchain_dir_is_non_empty = fs::read_dir(&path).unwrap().next().is_some();
         assert!(toolchain_dir_is_non_empty);
         // distributable toolchain name with trailing slash
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stderr_ok(
-            config,
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_stderr_ok(
             &["rustup", "toolchain", "remove", for_host!("nightly-{}/")],
             for_host!("toolchain 'nightly-{}' uninstalled"),
         );
@@ -245,15 +218,15 @@ fn add_remove_multiple_toolchains() {
             let tch1 = "beta";
             let tch2 = "nightly";
 
-            expect_ok(config, &["rustup", "toolchain", add, tch1, tch2]);
-            expect_ok(config, &["rustup", "toolchain", "list"]);
-            expect_stdout_ok(config, &["rustup", "toolchain", "list"], tch1);
-            expect_stdout_ok(config, &["rustup", "toolchain", "list"], tch2);
+            config.expect_ok(&["rustup", "toolchain", add, tch1, tch2]);
+            config.expect_ok(&["rustup", "toolchain", "list"]);
+            config.expect_stdout_ok(&["rustup", "toolchain", "list"], tch1);
+            config.expect_stdout_ok(&["rustup", "toolchain", "list"], tch2);
 
-            expect_ok(config, &["rustup", "toolchain", rm, tch1, tch2]);
-            expect_ok(config, &["rustup", "toolchain", "list"]);
-            expect_not_stdout_ok(config, &["rustup", "toolchain", "list"], tch1);
-            expect_not_stdout_ok(config, &["rustup", "toolchain", "list"], tch2);
+            config.expect_ok(&["rustup", "toolchain", rm, tch1, tch2]);
+            config.expect_ok(&["rustup", "toolchain", "list"]);
+            config.expect_not_stdout_ok(&["rustup", "toolchain", "list"], tch1);
+            config.expect_not_stdout_ok(&["rustup", "toolchain", "list"], tch2);
         });
     }
 
@@ -267,13 +240,9 @@ fn add_remove_multiple_toolchains() {
 #[test]
 fn remove_default_toolchain_autoinstalls() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
-        expect_stderr_ok(
-            config,
-            &["rustc", "--version"],
-            "info: installing component",
-        );
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "toolchain", "remove", "nightly"]);
+        config.expect_stderr_ok(&["rustc", "--version"], "info: installing component");
     });
 }
 
@@ -282,14 +251,10 @@ fn remove_override_toolchain_err_handling() {
     setup(&|config| {
         let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         config.change_dir(tempdir.path(), &|| {
-            expect_ok(config, &["rustup", "default", "nightly"]);
-            expect_ok(config, &["rustup", "override", "add", "beta"]);
-            expect_ok(config, &["rustup", "toolchain", "remove", "beta"]);
-            expect_stderr_ok(
-                config,
-                &["rustc", "--version"],
-                "info: installing component",
-            );
+            config.expect_ok(&["rustup", "default", "nightly"]);
+            config.expect_ok(&["rustup", "override", "add", "beta"]);
+            config.expect_ok(&["rustup", "toolchain", "remove", "beta"]);
+            config.expect_stderr_ok(&["rustc", "--version"], "info: installing component");
         });
     });
 }
@@ -300,19 +265,14 @@ fn file_override_toolchain_err_handling() {
         let cwd = config.current_dir();
         let toolchain_file = cwd.join("rust-toolchain");
         rustup::utils::raw::write_file(&toolchain_file, "beta").unwrap();
-        expect_stderr_ok(
-            config,
-            &["rustc", "--version"],
-            "info: installing component",
-        );
+        config.expect_stderr_ok(&["rustc", "--version"], "info: installing component");
     });
 }
 
 #[test]
 fn plus_override_toolchain_err_handling() {
     setup(&|config| {
-        expect_err(
-            config,
+        config.expect_err(
             &["rustc", "+beta"],
             for_host!("toolchain 'beta-{0}' is not installed"),
         );
@@ -330,8 +290,7 @@ fn bad_sha_on_manifest() {
         let sha_str = String::from_utf8(sha_bytes).unwrap();
         rustup::utils::raw::write_file(&sha_file, &sha_str).unwrap();
         // We fail because the sha is bad, but we should emit the special message to that effect.
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "default", "nightly"],
             "update not yet available",
         );
@@ -354,39 +313,39 @@ fn bad_sha_on_installer() {
                 rustup::utils::raw::write_file(&path, "xxx").unwrap();
             }
         }
-        expect_err(config, &["rustup", "default", "nightly"], "checksum failed");
+        config.expect_err(&["rustup", "default", "nightly"], "checksum failed");
     });
 }
 
 #[test]
 fn install_override_toolchain_from_channel() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "override", "add", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
-        expect_ok(config, &["rustup", "override", "add", "beta"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
-        expect_ok(config, &["rustup", "override", "add", "stable"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+        config.expect_ok(&["rustup", "override", "add", "nightly"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+        config.expect_ok(&["rustup", "override", "add", "beta"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
+        config.expect_ok(&["rustup", "override", "add", "stable"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
     });
 }
 
 #[test]
 fn install_override_toolchain_from_archive() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
-        expect_ok(config, &["rustup", "override", "add", "nightly-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
-        expect_ok(config, &["rustup", "override", "add", "beta-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.1.0");
-        expect_ok(config, &["rustup", "override", "add", "stable-2015-01-01"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.0.0");
+        config.expect_ok(&["rustup", "override", "add", "nightly-2015-01-01"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
+        config.expect_ok(&["rustup", "override", "add", "beta-2015-01-01"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.1.0");
+        config.expect_ok(&["rustup", "override", "add", "stable-2015-01-01"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.0.0");
     });
 }
 
 #[test]
 fn install_override_toolchain_from_version() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "override", "add", "1.1.0"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+        config.expect_ok(&["rustup", "override", "add", "1.1.0"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
     });
 }
 
@@ -394,10 +353,10 @@ fn install_override_toolchain_from_version() {
 fn override_overrides_default() {
     setup(&|config| {
         let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-        expect_ok(config, &["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
         config.change_dir(tempdir.path(), &|| {
-            expect_ok(config, &["rustup", "override", "add", "beta"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
+            config.expect_ok(&["rustup", "override", "add", "beta"]);
+            config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
         });
     });
 }
@@ -408,21 +367,21 @@ fn multiple_overrides() {
         let tempdir1 = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         let tempdir2 = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
 
-        expect_ok(config, &["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
         config.change_dir(tempdir1.path(), &|| {
-            expect_ok(config, &["rustup", "override", "add", "beta"]);
+            config.expect_ok(&["rustup", "override", "add", "beta"]);
         });
         config.change_dir(tempdir2.path(), &|| {
-            expect_ok(config, &["rustup", "override", "add", "stable"]);
+            config.expect_ok(&["rustup", "override", "add", "stable"]);
         });
 
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
 
         config.change_dir(tempdir1.path(), &|| {
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
+            config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
         });
         config.change_dir(tempdir2.path(), &|| {
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+            config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
         });
     });
 }
@@ -446,11 +405,11 @@ fn override_windows_root() {
         let prefix = prefix.as_os_str().to_str().unwrap();
         let prefix = format!("{}\\", prefix);
         config.change_dir(&PathBuf::from(&prefix), &|| {
-            expect_ok(config, &["rustup", "default", "stable"]);
-            expect_ok(config, &["rustup", "override", "add", "nightly"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
-            expect_ok(config, &["rustup", "override", "remove"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+            config.expect_ok(&["rustup", "default", "stable"]);
+            config.expect_ok(&["rustup", "override", "add", "nightly"]);
+            config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+            config.expect_ok(&["rustup", "override", "remove"]);
+            config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
         });
     });
 }
@@ -460,9 +419,9 @@ fn change_override() {
     setup(&|config| {
         let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         config.change_dir(tempdir.path(), &|| {
-            expect_ok(config, &["rustup", "override", "add", "nightly"]);
-            expect_ok(config, &["rustup", "override", "add", "beta"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
+            config.expect_ok(&["rustup", "override", "add", "nightly"]);
+            config.expect_ok(&["rustup", "override", "add", "beta"]);
+            config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
         });
     });
 }
@@ -472,10 +431,9 @@ fn remove_override_no_default() {
     setup(&|config| {
         let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         config.change_dir(tempdir.path(), &|| {
-            expect_ok(config, &["rustup", "override", "add", "nightly"]);
-            expect_ok(config, &["rustup", "override", "remove"]);
-            expect_err(
-                config,
+            config.expect_ok(&["rustup", "override", "add", "nightly"]);
+            config.expect_ok(&["rustup", "override", "remove"]);
+            config.expect_err(
                 &["rustc"],
                 "rustup could not choose a version of rustc to run",
             );
@@ -488,10 +446,10 @@ fn remove_override_with_default() {
     setup(&|config| {
         let tempdir = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         config.change_dir(tempdir.path(), &|| {
-            expect_ok(config, &["rustup", "default", "nightly"]);
-            expect_ok(config, &["rustup", "override", "add", "beta"]);
-            expect_ok(config, &["rustup", "override", "remove"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+            config.expect_ok(&["rustup", "default", "nightly"]);
+            config.expect_ok(&["rustup", "override", "add", "beta"]);
+            config.expect_ok(&["rustup", "override", "remove"]);
+            config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
         });
     });
 }
@@ -501,20 +459,20 @@ fn remove_override_with_multiple_overrides() {
     setup(&|config| {
         let tempdir1 = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
         let tempdir2 = tempfile::Builder::new().prefix("rustup").tempdir().unwrap();
-        expect_ok(config, &["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
         config.change_dir(tempdir1.path(), &|| {
-            expect_ok(config, &["rustup", "override", "add", "beta"]);
+            config.expect_ok(&["rustup", "override", "add", "beta"]);
         });
         config.change_dir(tempdir2.path(), &|| {
-            expect_ok(config, &["rustup", "override", "add", "stable"]);
+            config.expect_ok(&["rustup", "override", "add", "stable"]);
         });
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
         config.change_dir(tempdir1.path(), &|| {
-            expect_ok(config, &["rustup", "override", "remove"]);
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+            config.expect_ok(&["rustup", "override", "remove"]);
+            config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
         });
         config.change_dir(tempdir2.path(), &|| {
-            expect_stdout_ok(config, &["rustc", "--version"], "hash-stable-1.1.0");
+            config.expect_stdout_ok(&["rustc", "--version"], "hash-stable-1.1.0");
         });
     });
 }
@@ -522,8 +480,8 @@ fn remove_override_with_multiple_overrides() {
 #[test]
 fn no_update_on_channel_when_date_has_not_changed() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(config, &["rustup", "update", "nightly"], "unchanged");
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_stdout_ok(&["rustup", "update", "nightly"], "unchanged");
     });
 }
 
@@ -531,21 +489,20 @@ fn no_update_on_channel_when_date_has_not_changed() {
 fn update_on_channel_when_date_has_changed() {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
     });
 }
 
 #[test]
 fn run_command() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(config, &["rustup", "default", "beta"]);
-        expect_stdout_ok(
-            config,
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_ok(&["rustup", "default", "beta"]);
+        config.expect_stdout_ok(
             &["rustup", "run", "nightly", "rustc", "--version"],
             "hash-nightly-2",
         );
@@ -556,10 +513,10 @@ fn run_command() {
 fn remove_toolchain_then_add_again() {
     // Issue brson/multirust #53
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "beta"]);
-        expect_ok(config, &["rustup", "toolchain", "remove", "beta"]);
-        expect_ok(config, &["rustup", "update", "beta"]);
-        expect_ok(config, &["rustc", "--version"]);
+        config.expect_ok(&["rustup", "default", "beta"]);
+        config.expect_ok(&["rustup", "toolchain", "remove", "beta"]);
+        config.expect_ok(&["rustup", "update", "beta"]);
+        config.expect_ok(&["rustc", "--version"]);
     });
 }
 
@@ -569,11 +526,11 @@ fn upgrade_v1_to_v2() {
         set_current_dist_date(config, "2015-01-01");
         // Delete the v2 manifest so the first day we install from the v1s
         fs::remove_file(config.distdir.join("dist/channel-rust-nightly.toml.sha256")).unwrap();
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-1");
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
         set_current_dist_date(config, "2015-01-02");
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
     });
 }
 
@@ -581,11 +538,10 @@ fn upgrade_v1_to_v2() {
 fn upgrade_v2_to_v1() {
     clitools::setup(Scenario::Full, &|config| {
         set_current_dist_date(config, "2015-01-01");
-        expect_ok(config, &["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
         set_current_dist_date(config, "2015-01-02");
         fs::remove_file(config.distdir.join("dist/channel-rust-nightly.toml.sha256")).unwrap();
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "update", "nightly"],
             "the server unexpectedly provided an obsolete version of the distribution manifest",
         );
@@ -595,8 +551,7 @@ fn upgrade_v2_to_v1() {
 #[test]
 fn list_targets_no_toolchain() {
     setup(&|config| {
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "target", "list", "--toolchain=nightly"],
             for_host!("toolchain 'nightly-{0}' is not installed"),
         );
@@ -606,9 +561,8 @@ fn list_targets_no_toolchain() {
 #[test]
 fn list_targets_v1_toolchain() {
     clitools::setup(Scenario::SimpleV1, &|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_err(
             &["rustup", "target", "list", "--toolchain=nightly"],
             for_host!("toolchain 'nightly-{0}' does not support components"),
         );
@@ -620,13 +574,9 @@ fn list_targets_custom_toolchain() {
     setup(&|config| {
         let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
-        expect_ok(
-            config,
-            &["rustup", "toolchain", "link", "default-from-path", &path],
-        );
-        expect_ok(config, &["rustup", "default", "default-from-path"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "toolchain", "link", "default-from-path", &path]);
+        config.expect_ok(&["rustup", "default", "default-from-path"]);
+        config.expect_err(
             &["rustup", "target", "list"],
             "toolchain 'default-from-path' does not support components",
         );
@@ -636,9 +586,9 @@ fn list_targets_custom_toolchain() {
 #[test]
 fn list_targets() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustup", "target", "list"], clitools::CROSS_ARCH1);
-        expect_stdout_ok(config, &["rustup", "target", "list"], clitools::CROSS_ARCH2);
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_stdout_ok(&["rustup", "target", "list"], clitools::CROSS_ARCH1);
+        config.expect_stdout_ok(&["rustup", "target", "list"], clitools::CROSS_ARCH2);
     });
 }
 
@@ -647,16 +597,16 @@ fn list_installed_targets() {
     setup(&|config| {
         let trip = this_host_triple();
 
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustup", "target", "list", "--installed"], &trip);
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_stdout_ok(&["rustup", "target", "list", "--installed"], &trip);
     });
 }
 
 #[test]
 fn add_target1() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             this_host_triple(),
@@ -669,8 +619,8 @@ fn add_target1() {
 #[test]
 fn add_target2() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH2]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH2]);
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             this_host_triple(),
@@ -683,8 +633,8 @@ fn add_target2() {
 #[test]
 fn add_all_targets() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", "all"]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "target", "add", "all"]);
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             this_host_triple(),
@@ -703,9 +653,8 @@ fn add_all_targets() {
 #[test]
 fn add_all_targets_fail() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_err(
             &[
                 "rustup",
                 "target",
@@ -726,23 +675,18 @@ fn add_all_targets_fail() {
 #[test]
 fn add_target_by_component_add() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_not_stdout_ok(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_not_stdout_ok(
             &["rustup", "target", "list"],
             &format!("{} (installed)", clitools::CROSS_ARCH1),
         );
-        expect_ok(
-            config,
-            &[
-                "rustup",
-                "component",
-                "add",
-                &format!("rust-std-{}", clitools::CROSS_ARCH1),
-            ],
-        );
-        expect_stdout_ok(
-            config,
+        config.expect_ok(&[
+            "rustup",
+            "component",
+            "add",
+            &format!("rust-std-{}", clitools::CROSS_ARCH1),
+        ]);
+        config.expect_stdout_ok(
             &["rustup", "target", "list"],
             &format!("{} (installed)", clitools::CROSS_ARCH1),
         );
@@ -752,24 +696,19 @@ fn add_target_by_component_add() {
 #[test]
 fn remove_target_by_component_remove() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        expect_stdout_ok(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        config.expect_stdout_ok(
             &["rustup", "target", "list"],
             &format!("{} (installed)", clitools::CROSS_ARCH1),
         );
-        expect_ok(
-            config,
-            &[
-                "rustup",
-                "component",
-                "remove",
-                &format!("rust-std-{}", clitools::CROSS_ARCH1),
-            ],
-        );
-        expect_not_stdout_ok(
-            config,
+        config.expect_ok(&[
+            "rustup",
+            "component",
+            "remove",
+            &format!("rust-std-{}", clitools::CROSS_ARCH1),
+        ]);
+        config.expect_not_stdout_ok(
             &["rustup", "target", "list"],
             &format!("{} (installed)", clitools::CROSS_ARCH1),
         );
@@ -779,8 +718,7 @@ fn remove_target_by_component_remove() {
 #[test]
 fn add_target_no_toolchain() {
     setup(&|config| {
-        expect_err(
-            config,
+        config.expect_err(
             &[
                 "rustup",
                 "target",
@@ -795,9 +733,8 @@ fn add_target_no_toolchain() {
 #[test]
 fn add_target_bogus() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_err(
             &["rustup", "target", "add", "bogus"],
             "does not contain component 'rust-std' for target 'bogus'\n\
                 note: not all platforms have the standard library pre-compiled: https://doc.rust-lang.org/nightly/rustc/platform-support.html\n\
@@ -809,9 +746,8 @@ fn add_target_bogus() {
 #[test]
 fn add_target_v1_toolchain() {
     clitools::setup(Scenario::SimpleV1, &|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_err(
             &[
                 "rustup",
                 "target",
@@ -829,13 +765,9 @@ fn add_target_custom_toolchain() {
     setup(&|config| {
         let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
-        expect_ok(
-            config,
-            &["rustup", "toolchain", "link", "default-from-path", &path],
-        );
-        expect_ok(config, &["rustup", "default", "default-from-path"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "toolchain", "link", "default-from-path", &path]);
+        config.expect_ok(&["rustup", "default", "default-from-path"]);
+        config.expect_err(
             &["rustup", "target", "add", clitools::CROSS_ARCH1],
             "toolchain 'default-from-path' does not support components",
         );
@@ -847,8 +779,7 @@ fn cannot_add_empty_named_custom_toolchain() {
     setup(&|config| {
         let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "toolchain", "link", "", &path],
             "toolchain names must not be empty",
         );
@@ -858,10 +789,9 @@ fn cannot_add_empty_named_custom_toolchain() {
 #[test]
 fn add_target_again() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        expect_stderr_ok(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        config.expect_stderr_ok(
             &["rustup", "target", "add", clitools::CROSS_ARCH1],
             &format!(
                 "component 'rust-std' for target '{}' is up to date",
@@ -881,20 +811,17 @@ fn add_target_again() {
 fn add_target_host() {
     setup(&|config| {
         let trip = this_host_triple();
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", &trip]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "target", "add", &trip]);
     });
 }
 
 #[test]
 fn remove_target() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        expect_ok(
-            config,
-            &["rustup", "target", "remove", clitools::CROSS_ARCH1],
-        );
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        config.expect_ok(&["rustup", "target", "remove", clitools::CROSS_ARCH1]);
         let path = format!(
             "toolchains/nightly-{}/lib/rustlib/{}/lib/libstd.rlib",
             this_host_triple(),
@@ -919,9 +846,8 @@ fn remove_target() {
 #[test]
 fn remove_target_not_installed() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_err(
             &["rustup", "target", "remove", clitools::CROSS_ARCH1],
             &format!(
                 "toolchain 'nightly-{}' does not contain component 'rust-std' for target '{}'",
@@ -935,8 +861,7 @@ fn remove_target_not_installed() {
 #[test]
 fn remove_target_no_toolchain() {
     setup(&|config| {
-        expect_err(
-            config,
+        config.expect_err(
             &[
                 "rustup",
                 "target",
@@ -952,9 +877,8 @@ fn remove_target_no_toolchain() {
 #[test]
 fn remove_target_bogus() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_err(
             &["rustup", "target", "remove", "bogus"],
             "does not contain component 'rust-std' for target 'bogus'",
         );
@@ -964,9 +888,8 @@ fn remove_target_bogus() {
 #[test]
 fn remove_target_v1_toolchain() {
     clitools::setup(Scenario::SimpleV1, &|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_err(
             &[
                 "rustup",
                 "target",
@@ -984,13 +907,9 @@ fn remove_target_custom_toolchain() {
     setup(&|config| {
         let path = config.customdir.join("custom-1");
         let path = path.to_string_lossy();
-        expect_ok(
-            config,
-            &["rustup", "toolchain", "link", "default-from-path", &path],
-        );
-        expect_ok(config, &["rustup", "default", "default-from-path"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "toolchain", "link", "default-from-path", &path]);
+        config.expect_ok(&["rustup", "default", "default-from-path"]);
+        config.expect_err(
             &["rustup", "target", "remove", clitools::CROSS_ARCH1],
             "toolchain 'default-from-path' does not support components",
         );
@@ -1000,14 +919,10 @@ fn remove_target_custom_toolchain() {
 #[test]
 fn remove_target_again() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        expect_ok(
-            config,
-            &["rustup", "target", "remove", clitools::CROSS_ARCH1],
-        );
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        config.expect_ok(&["rustup", "target", "remove", clitools::CROSS_ARCH1]);
+        config.expect_err(
             &["rustup", "target", "remove", clitools::CROSS_ARCH1],
             &format!(
                 "toolchain 'nightly-{}' does not contain component 'rust-std' for target '{}'",
@@ -1022,8 +937,8 @@ fn remove_target_again() {
 fn remove_target_host() {
     setup(&|config| {
         let trip = this_host_triple();
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "target", "remove", &trip]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "target", "remove", &trip]);
     });
 }
 
@@ -1031,12 +946,12 @@ fn remove_target_host() {
 // Issue #304
 fn remove_target_missing_update_hash() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        config.expect_ok(&["rustup", "update", "nightly"]);
 
         let file_name = format!("nightly-{}", this_host_triple());
         fs::remove_file(config.rustupdir.join("update-hashes").join(file_name)).unwrap();
 
-        expect_ok(config, &["rustup", "toolchain", "remove", "nightly"]);
+        config.expect_ok(&["rustup", "toolchain", "remove", "nightly"]);
     });
 }
 
@@ -1054,16 +969,15 @@ fn warn_about_and_remove_stray_hash() {
             .expect("Unable to write update-hash");
         drop(file);
 
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &["rustup", "toolchain", "install", "nightly"],
             &format!(
                 "removing stray hash found at '{}' in order to continue",
                 hash_path.display()
             ),
         );
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "1.3.0");
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "1.3.0");
     });
 }
 
@@ -1099,8 +1013,7 @@ fn make_component_unavailable(config: &Config, name: &str, target: &str) {
 fn update_unavailable_std() {
     setup(&|config| {
         make_component_unavailable(config, "rust-std", &this_host_triple());
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "update", "nightly", ],
             for_host!(
                 "component 'rust-std' for target '{0}' is unavailable for download for channel 'nightly'"
@@ -1113,8 +1026,7 @@ fn update_unavailable_std() {
 fn add_missing_component_toolchain() {
     setup(&|config| {
         make_component_unavailable(config, "rust-std", &this_host_triple());
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "toolchain", "add", "nightly"],
             for_host!(
                 r"component 'rust-std' for target '{0}' is unavailable for download for channel 'nightly'
@@ -1130,80 +1042,65 @@ Sometimes not all components are available in any given nightly. If you don't ne
 fn update_unavailable_force() {
     setup(&|config| {
         let trip = this_host_triple();
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(
-            config,
-            &[
-                "rustup",
-                "component",
-                "add",
-                "rls",
-                "--toolchain",
-                "nightly",
-            ],
-        );
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_ok(&[
+            "rustup",
+            "component",
+            "add",
+            "rls",
+            "--toolchain",
+            "nightly",
+        ]);
         make_component_unavailable(config, "rls-preview", &trip);
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "update", "nightly"],
             for_host!(
                 "component 'rls' for target '{0}' is unavailable for download for channel 'nightly'"
             ),
         );
-        expect_ok(config, &["rustup", "update", "nightly", "--force"]);
+        config.expect_ok(&["rustup", "update", "nightly", "--force"]);
     });
 }
 
 #[test]
 fn add_component_suggest_best_match() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_err(
             &["rustup", "component", "add", "rsl"],
             "did you mean 'rls'?",
         );
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "component", "add", "rsl-preview"],
             "did you mean 'rls-preview'?",
         );
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "component", "add", "rustd"],
             "did you mean 'rustc'?",
         );
-        expect_not_stderr_err(
-            config,
-            &["rustup", "component", "add", "potato"],
-            "did you mean",
-        );
+        config.expect_not_stderr_err(&["rustup", "component", "add", "potato"], "did you mean");
     });
 }
 
 #[test]
 fn remove_component_suggest_best_match() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_not_stderr_err(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_not_stderr_err(
             &["rustup", "component", "remove", "rsl"],
             "did you mean 'rls'?",
         );
-        expect_ok(config, &["rustup", "component", "add", "rls"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "component", "add", "rls"]);
+        config.expect_err(
             &["rustup", "component", "remove", "rsl"],
             "did you mean 'rls'?",
         );
-        expect_ok(config, &["rustup", "component", "add", "rls-preview"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "component", "add", "rls-preview"]);
+        config.expect_err(
             &["rustup", "component", "add", "rsl-preview"],
             "did you mean 'rls-preview'?",
         );
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "component", "remove", "rustd"],
             "did you mean 'rustc'?",
         );
@@ -1213,9 +1110,8 @@ fn remove_component_suggest_best_match() {
 #[test]
 fn add_target_suggest_best_match() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_err(
             &[
                 "rustup",
                 "target",
@@ -1224,20 +1120,15 @@ fn add_target_suggest_best_match() {
             ],
             &format!("did you mean '{}'", clitools::CROSS_ARCH1),
         );
-        expect_not_stderr_err(
-            config,
-            &["rustup", "target", "add", "potato"],
-            "did you mean",
-        );
+        config.expect_not_stderr_err(&["rustup", "target", "add", "potato"], "did you mean");
     });
 }
 
 #[test]
 fn remove_target_suggest_best_match() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_not_stderr_err(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_not_stderr_err(
             &[
                 "rustup",
                 "target",
@@ -1246,9 +1137,8 @@ fn remove_target_suggest_best_match() {
             ],
             &format!("did you mean '{}'", clitools::CROSS_ARCH1),
         );
-        expect_ok(config, &["rustup", "target", "add", clitools::CROSS_ARCH1]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "target", "add", clitools::CROSS_ARCH1]);
+        config.expect_err(
             &[
                 "rustup",
                 "target",
@@ -1263,12 +1153,12 @@ fn remove_target_suggest_best_match() {
 #[test]
 fn target_list_ignores_unavailable_targets() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
         let target_list = &["rustup", "target", "list"];
-        expect_stdout_ok(config, target_list, clitools::CROSS_ARCH1);
+        config.expect_stdout_ok(target_list, clitools::CROSS_ARCH1);
         make_component_unavailable(config, "rust-std", clitools::CROSS_ARCH1);
-        expect_ok(config, &["rustup", "update", "nightly", "--force"]);
-        expect_not_stdout_ok(config, target_list, clitools::CROSS_ARCH1);
+        config.expect_ok(&["rustup", "update", "nightly", "--force"]);
+        config.expect_not_stdout_ok(target_list, clitools::CROSS_ARCH1);
     })
 }
 
@@ -1279,14 +1169,9 @@ fn install_with_components() {
         args.extend_from_slice(comp_args);
 
         setup(&|config| {
-            expect_ok(config, &args);
-            expect_stdout_ok(
-                config,
-                &["rustup", "component", "list"],
-                "rust-src (installed)",
-            );
-            expect_stdout_ok(
-                config,
+            config.expect_ok(&args);
+            config.expect_stdout_ok(&["rustup", "component", "list"], "rust-src (installed)");
+            config.expect_stdout_ok(
                 &["rustup", "component", "list"],
                 &format!("rust-analysis-{} (installed)", this_host_triple()),
             );
@@ -1304,14 +1189,12 @@ fn install_with_targets() {
         args.extend_from_slice(comp_args);
 
         setup(&|config| {
-            expect_ok(config, &args);
-            expect_stdout_ok(
-                config,
+            config.expect_ok(&args);
+            config.expect_stdout_ok(
                 &["rustup", "target", "list"],
                 &format!("{} (installed)", clitools::CROSS_ARCH1),
             );
-            expect_stdout_ok(
-                config,
+            config.expect_stdout_ok(
                 &["rustup", "target", "list"],
                 &format!("{} (installed)", clitools::CROSS_ARCH2),
             );
@@ -1328,27 +1211,22 @@ fn install_with_targets() {
 #[test]
 fn install_with_component_and_target() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(
-            config,
-            &[
-                "rustup",
-                "toolchain",
-                "install",
-                "nightly",
-                "-c",
-                "rls",
-                "-t",
-                clitools::CROSS_ARCH1,
-            ],
-        );
-        expect_stdout_ok(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&[
+            "rustup",
+            "toolchain",
+            "install",
+            "nightly",
+            "-c",
+            "rls",
+            "-t",
+            clitools::CROSS_ARCH1,
+        ]);
+        config.expect_stdout_ok(
             &["rustup", "component", "list"],
             &format!("rls-{} (installed)", this_host_triple()),
         );
-        expect_stdout_ok(
-            config,
+        config.expect_stdout_ok(
             &["rustup", "target", "list"],
             &format!("{} (installed)", clitools::CROSS_ARCH1),
         );
@@ -1358,9 +1236,8 @@ fn install_with_component_and_target() {
 #[test]
 fn test_warn_if_complete_profile_is_used() {
     setup(&|config| {
-        expect_ok(config, &["rustup", "set", "auto-self-update", "enable"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "set", "auto-self-update", "enable"]);
+        config.expect_err(
             &[
                 "rustup",
                 "toolchain",
@@ -1379,10 +1256,9 @@ fn test_complete_profile_skips_missing_when_forced() {
     setup_complex(&|config| {
         set_current_dist_date(config, "2015-01-01");
 
-        expect_ok(config, &["rustup", "set", "profile", "complete"]);
+        config.expect_ok(&["rustup", "set", "profile", "complete"]);
         // First try and install without force
-        expect_err(
-            config,
+        config.expect_err(
             &[
                 "rustup",
                 "toolchain",
@@ -1392,15 +1268,13 @@ fn test_complete_profile_skips_missing_when_forced() {
             for_host!("error: component 'rls' for target '{}' is unavailable for download for channel 'nightly'")
         );
         // Now try and force
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &["rustup", "toolchain", "install", "--force", "nightly"],
             for_host!("warning: Force-skipping unavailable component 'rls-{}'"),
         );
 
         // Ensure that the skipped component (rls) is not installed
-        expect_not_stdout_ok(
-            config,
+        config.expect_not_stdout_ok(
             &["rustup", "component", "list"],
             for_host!("rls-{} (installed)"),
         );
@@ -1412,8 +1286,7 @@ fn run_with_install_flag_against_unavailable_component() {
     setup(&|config| {
         let trip = this_host_triple();
         make_component_unavailable(config, "rust-std", &trip);
-        expect_ok_ex(
-            config,
+        config.expect_ok_ex(
             &[
                 "rustup",
                 "run",
@@ -1456,8 +1329,7 @@ fn warn_on_invalid_signature() {
     setup(&|config| {
         make_signature_invalid(config);
 
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &["rustup", "update", "nightly", ],
             &format!(
                 "warning: Signature verification failed for 'file://{}/dist/channel-rust-nightly.toml'",
@@ -1470,13 +1342,11 @@ fn warn_on_invalid_signature() {
 #[test]
 fn check_pgp_keys() {
     setup(&|config| {
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &["rustup", "show", "keys"],
             "Fingerprint: 108F 6620 5EAE B0AA A8DD 5E1C 85AB 96E6 FA1B E5FE",
         );
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &["rustup", "show", "keys"],
             "Fingerprint: B695 EF92 BE5C D24E D391 24DD 1F62 3994 2A48 2D51",
         );
@@ -1490,34 +1360,30 @@ fn install_allow_downgrade() {
 
         // this dist has no rls and there is no newer one
         set_current_dist_date(config, "2019-09-14");
-        expect_ok(config, &["rustup", "toolchain", "install", "nightly"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-3");
-        expect_component_not_executable(config, "rls");
+        config.expect_ok(&["rustup", "toolchain", "install", "nightly"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-3");
+        config.expect_component_not_executable("rls");
 
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "toolchain", "install", "nightly", "-c", "rls"],
             &format!(
                 "component 'rls' for target '{trip}' is unavailable for download for channel 'nightly'",
             ),
         );
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-3");
-        expect_component_not_executable(config, "rls");
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-3");
+        config.expect_component_not_executable("rls");
 
-        expect_ok(
-            config,
-            &[
-                "rustup",
-                "toolchain",
-                "install",
-                "nightly",
-                "-c",
-                "rls",
-                "--allow-downgrade",
-            ],
-        );
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
-        expect_component_executable(config, "rls");
+        config.expect_ok(&[
+            "rustup",
+            "toolchain",
+            "install",
+            "nightly",
+            "-c",
+            "rls",
+            "--allow-downgrade",
+        ]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+        config.expect_component_executable("rls");
     });
 }
 
@@ -1525,24 +1391,20 @@ fn install_allow_downgrade() {
 fn regression_2601() {
     // We're checking that we don't regress per #2601
     setup(&|config| {
-        expect_ok(
-            config,
-            &[
-                "rustup",
-                "toolchain",
-                "install",
-                "--profile",
-                "minimal",
-                "nightly",
-                "--component",
-                "rust-src",
-            ],
-        );
+        config.expect_ok(&[
+            "rustup",
+            "toolchain",
+            "install",
+            "--profile",
+            "minimal",
+            "nightly",
+            "--component",
+            "rust-src",
+        ]);
         // The bug exposed in #2601 was that the above would end up installing
         // rust-src-$ARCH which would then have to be healed on the following
         // command, resulting in a reinstallation.
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &["rustup", "component", "add", "rust-src"],
             "info: component 'rust-src' is up to date",
         );
