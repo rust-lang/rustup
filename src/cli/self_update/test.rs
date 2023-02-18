@@ -36,7 +36,7 @@ fn restore_path(p: Option<RegValue>) {
 }
 
 /// Support testing of code that mutates global path state
-pub fn with_saved_path(f: &dyn Fn()) {
+pub fn with_saved_path(f: &mut dyn FnMut()) {
     // Lock protects concurrent mutation of registry
     lazy_static! {
         static ref LOCK: Mutex<()> = Mutex::new(());

@@ -360,7 +360,7 @@ mod windows {
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
     fn install_uninstall_affect_path() {
         clitools::setup(Scenario::Empty, &|config| {
-            with_saved_path(&|| {
+            with_saved_path(&mut || {
                 let path = format!("{:?}", config.cargodir.join("bin").to_string_lossy());
 
                 config.expect_ok(&INIT_NONE);
@@ -390,7 +390,7 @@ mod windows {
         use winreg::{RegKey, RegValue};
 
         clitools::setup(Scenario::Empty, &|config| {
-            with_saved_path(&|| {
+            with_saved_path(&mut || {
                 // Set up a non unicode PATH
                 let reg_value = RegValue {
                     bytes: vec![

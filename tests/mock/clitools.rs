@@ -329,7 +329,7 @@ impl Config {
         }
     }
 
-    pub fn expect_ok(&self, args: &[&str]) {
+    pub fn expect_ok(&mut self, args: &[&str]) {
         let out = self.run(args[0], &args[1..], &[]);
         if !out.ok {
             print_command(args, &out);

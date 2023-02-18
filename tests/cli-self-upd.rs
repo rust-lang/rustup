@@ -25,7 +25,7 @@ pub fn update_setup(f: &dyn Fn(&mut Config, &Path)) {
 }
 
 /// Empty dist server, rustup installed with no toolchain
-fn setup_empty_installed(f: &dyn Fn(&Config)) {
+fn setup_empty_installed(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::Empty, &|config| {
         config.expect_ok(&[
             "rustup-init",
@@ -39,7 +39,7 @@ fn setup_empty_installed(f: &dyn Fn(&Config)) {
 }
 
 /// SimpleV3 dist server, rustup installed with default toolchain
-fn setup_installed(f: &dyn Fn(&Config)) {
+fn setup_installed(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::SimpleV2, &|config| {
         config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         f(config);
@@ -52,7 +52,7 @@ fn setup_installed(f: &dyn Fn(&Config)) {
 /// status of the proxies.
 fn install_bins_to_cargo_home() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             config.expect_ok_contains(
                 &["rustup-init", "-y"],
                 for_host!(
@@ -101,7 +101,7 @@ info: default toolchain set to 'stable-{0}'
 #[test]
 fn install_twice() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             config.expect_ok(&["rustup-init", "-y"]);
             config.expect_ok(&["rustup-init", "-y"]);
             let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
