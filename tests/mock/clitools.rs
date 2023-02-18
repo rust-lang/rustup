@@ -42,8 +42,6 @@ pub struct Config {
     pub cargodir: PathBuf,
     /// ~
     pub homedir: PathBuf,
-    /// An empty directory. Tests should not write to this.
-    pub emptydir: PathBuf,
     /// Root for updates to rustup itself aka RUSTUP_UPDATE_ROOT
     pub rustup_update_root: Option<String>,
     /// This is cwd for the test
@@ -130,7 +128,6 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
     let customdir = tempdir_in_with_prefix(&test_dir, "rustup-custom");
     let cargodir = tempdir_in_with_prefix(&test_dir, "rustup-cargo");
     let homedir = tempdir_in_with_prefix(&test_dir, "rustup-home");
-    let emptydir = tempdir_in_with_prefix(&test_dir, "rustup-empty");
     let workdir = tempdir_in_with_prefix(&test_dir, "rustup-workdir");
 
     // The uninstall process on windows involves using the directory above
@@ -145,7 +142,6 @@ pub fn setup(s: Scenario, f: &dyn Fn(&mut Config)) {
         customdir,
         cargodir,
         homedir,
-        emptydir,
         rustup_update_root: None,
         workdir: RefCell::new(workdir),
     };
@@ -218,7 +214,7 @@ pub fn check_update_setup(f: &dyn Fn(&mut Config)) {
     });
 }
 
-pub fn self_update_setup(f: &dyn Fn(&Config, &Path), version: &str) {
+pub fn self_update_setup(f: &dyn Fn(&mut Config, &Path), version: &str) {
     setup(Scenario::SimpleV2, &|config| {
         // Create a mock self-update server
         let self_dist_tmp = tempfile::Builder::new()
@@ -256,16 +252,9 @@ impl Config {
         self.workdir.borrow().clone()
     }
 
-    pub fn change_dir<F>(&self, path: &Path, mut f: F)
-    where
-        F: FnMut(),
-    {
-        self._change_dir(path, &mut f)
-    }
-
-    fn _change_dir(&self, path: &Path, f: &mut dyn FnMut()) {
+    pub fn change_dir(&mut self, path: &Path, f: &dyn Fn(&mut Config)) {
         let prev = self.workdir.replace(path.to_owned());
-        f();
+        f(self);
         *self.workdir.borrow_mut() = prev;
     }
 

@@ -20,7 +20,7 @@ use crate::mock::dist::calc_hash;
 
 const TEST_VERSION: &str = "1.1.1";
 
-pub fn update_setup(f: &dyn Fn(&Config, &Path)) {
+pub fn update_setup(f: &dyn Fn(&mut Config, &Path)) {
     self_update_setup(f, TEST_VERSION)
 }
 

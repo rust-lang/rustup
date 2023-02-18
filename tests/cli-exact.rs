@@ -364,7 +364,7 @@ fn remove_override_with_path() {
                 .prefix("rustup-test")
                 .tempdir()
                 .unwrap();
-            config.change_dir(dir.path(), || {
+            config.change_dir(dir.path(), &|config| {
                 config.expect_ok(&["rustup", "override", "add", "nightly"]);
             });
             config.expect_ok_ex(
@@ -395,7 +395,7 @@ fn remove_override_with_path_deleted() {
                     .tempdir()
                     .unwrap();
                 let path = std::fs::canonicalize(dir.path()).unwrap();
-                config.change_dir(&path, || {
+                config.change_dir(&path, &|config| {
                     config.expect_ok(&["rustup", "override", "add", "nightly"]);
                 });
                 path
@@ -429,7 +429,7 @@ fn remove_override_nonexistent() {
                     .tempdir()
                     .unwrap();
                 let path = std::fs::canonicalize(dir.path()).unwrap();
-                config.change_dir(&path, || {
+                config.change_dir(&path, &|config| {
                     config.expect_ok(&["rustup", "override", "add", "nightly"]);
                 });
                 path
@@ -483,7 +483,7 @@ fn list_overrides_with_nonexistent() {
                 .prefix("rustup-test")
                 .tempdir()
                 .unwrap();
-            config.change_dir(dir.path(), || {
+            config.change_dir(dir.path(), &|config| {
                 config.expect_ok(&["rustup", "override", "add", "nightly"]);
             });
             std::fs::canonicalize(dir.path()).unwrap()
