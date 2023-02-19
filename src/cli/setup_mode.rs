@@ -22,7 +22,7 @@ pub fn main() -> Result<utils::ExitCode> {
         return Ok(utils::ExitCode(0));
     }
 
-    // XXX: If you change anything here, please make the same changes in rustup-init.sh
+    // NOTICE: If you change anything here, please make the same changes in rustup-init.sh.
     let cli = App::new("rustup-init")
         .version(common::version())
         .about("The installer for rustup")
@@ -55,7 +55,7 @@ pub fn main() -> Result<utils::ExitCode> {
             Arg::with_name("default-toolchain")
                 .long("default-toolchain")
                 .takes_value(true)
-                .help("Choose a default toolchain to install"),
+                .help("Choose a default toolchain to install. Use 'none' to not install any toolchains at all"),
         )
         .arg(
             Arg::with_name("profile")
