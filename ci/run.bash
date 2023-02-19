@@ -30,13 +30,15 @@ if [ "$TARGET" = arm-linux-androideabi ]; then
   export CFLAGS='-march=armv7'
 fi
 
-cargo build --locked --release --target "$TARGET" "${FEATURES[@]}"
-
-runtest () {
-  cargo test --locked --release --target "$TARGET" "${FEATURES[@]}" "$@"
+target_cargo() {
+    cmd="$1"
+    shift
+    cargo "${cmd}" --locked --release --target "$TARGET" "${FEATURES[@]}" "$@"
 }
 
-run_download_pkg_test() {
+target_cargo build
+
+download_pkg_test() {
   features=('--no-default-features' '--features' 'curl-backend,reqwest-backend,reqwest-default-tls')
   case "$TARGET" in
     # these platforms aren't supported by ring:
@@ -49,21 +51,38 @@ run_download_pkg_test() {
     * ) features+=('--features' 'reqwest-rustls-tls') ;;
   esac
 
-  cargo test --locked --release --target "$TARGET" "${features[@]}" -p download
+  cargo "$1" --locked --release --target "$TARGET" "${features[@]}" -p download
 }
 
-if [ -z "$SKIP_TESTS" ]; then
-  cargo run --locked --release --target "$TARGET" "${FEATURES[@]}" -- --dump-testament
-  run_download_pkg_test 
-  runtest --bin rustup-init
-  runtest --lib --all
-  runtest --doc --all
+# Machines have 7GB of RAM, and our target/ contents is large enough that
+# thrashing will occur if we build-run-build-run rather than
+# build-build-build-run-run-run.
+build_test() {
+  cmd="$1"
+  shift
+  download_pkg_test "${cmd}"
+  target_cargo "${cmd}" --bin rustup-init
+  target_cargo "${cmd}" --lib --all
+  if [ "build" != "${cmd}" ]; then
+    target_cargo "${cmd}" --doc --all
+  fi
 
-  runtest --test dist -- --test-threads 1
+  if [ "build" = "${cmd}" ]; then
+    target_cargo "${cmd}" --test dist
+  else
+    #  free runners have 2 or 3(mac) cores
+    target_cargo "${cmd}" --test dist -- --test-threads 2
+  fi
 
   find tests -maxdepth 1 -type f ! -path '*/dist.rs' -name '*.rs' \
   | sed -e 's@^tests/@@;s@\.rs$@@g' \
   | while read -r test; do
-    runtest --test "${test}"
+      target_cargo "${cmd}" --test "${test}"
   done
+}
+
+if [ -z "$SKIP_TESTS" ]; then
+  cargo run --locked --release --target "$TARGET" "${FEATURES[@]}" -- --dump-testament
+  build_test build
+  build_test test
 fi
