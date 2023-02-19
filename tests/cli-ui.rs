@@ -6,7 +6,7 @@ fn rustup_ui_doc_text_tests() {
     let rustup_init = trycmd::cargo::cargo_bin("rustup-init");
     let rustup = trycmd::cargo::cargo_bin("rustup");
     // Copy rustup-init to rustup so that the tests can run it.
-    fs::copy(&rustup_init, &rustup).unwrap();
+    fs::copy(rustup_init, &rustup).unwrap();
     t.register_bin("rustup", &rustup);
     t.case("tests/cli-ui/rustup/*.toml");
     #[cfg(target_os = "windows")]

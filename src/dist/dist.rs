@@ -300,7 +300,7 @@ impl TargetTriple {
 
             // Default to msvc
             let arch = arch_primary().or_else(arch_fallback)?;
-            let msvc_triple = format!("{}-pc-windows-msvc", arch);
+            let msvc_triple = format!("{arch}-pc-windows-msvc");
             Some(TargetTriple(msvc_triple))
         }
 

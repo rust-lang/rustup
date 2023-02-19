@@ -403,7 +403,7 @@ fn override_windows_root() {
         // This value is probably "C:"
         // Really sketchy to be messing with C:\ in a test...
         let prefix = prefix.as_os_str().to_str().unwrap();
-        let prefix = format!("{}\\", prefix);
+        let prefix = format!("{prefix}\\");
         config.change_dir(&PathBuf::from(&prefix), &|| {
             config.expect_ok(&["rustup", "default", "stable"]);
             config.expect_ok(&["rustup", "override", "add", "nightly"]);
