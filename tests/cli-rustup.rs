@@ -1919,7 +1919,7 @@ fn non_utf8_arg() {
 
     setup(&|config| {
         config.expect_ok(&["rustup", "default", "nightly"]);
-        let out = self.run(
+        let out = config.run(
             "rustc",
             &[
                 OsString::from("--echo-args".to_string()),
@@ -1957,7 +1957,7 @@ fn non_utf8_toolchain() {
 
     setup(&|config| {
         config.expect_ok(&["rustup", "default", "nightly"]);
-        let out = self.run(
+        let out = config.run(
             "rustc",
             &[OsString::from_wide(&[u16::from(b'+'), 0xd801, 0xd801])],
             &[("RUST_BACKTRACE", "1")],

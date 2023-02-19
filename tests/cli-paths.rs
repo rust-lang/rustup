@@ -354,7 +354,7 @@ mod windows {
     use rustup::test::{get_path, with_saved_path};
 
     use super::INIT_NONE;
-    use crate::mock::clitools::{self, expect_ok, Scenario};
+    use crate::mock::clitools::{self, Scenario};
 
     #[test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
