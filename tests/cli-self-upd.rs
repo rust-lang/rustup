@@ -14,11 +14,8 @@ use rustup::test::{this_host_triple, with_saved_path};
 use rustup::utils::{raw, utils};
 use rustup::{for_host, Notification, DUP_TOOLS, TOOLS};
 
-use crate::mock::clitools::{
-    self, expect_component_executable, expect_component_not_executable, expect_err, expect_err_ex,
-    expect_ok, expect_ok_contains, expect_ok_ex, expect_stderr_ok, expect_stdout_ok,
-    output_release_file, run, self_update_setup, Config, Scenario,
-};
+use crate::clitools::output_release_file;
+use crate::mock::clitools::{self, self_update_setup, Config, Scenario};
 use crate::mock::dist::calc_hash;
 
 const TEST_VERSION: &str = "1.1.1";
@@ -30,16 +27,13 @@ pub fn update_setup(f: &dyn Fn(&Config, &Path)) {
 /// Empty dist server, rustup installed with no toolchain
 fn setup_empty_installed(f: &dyn Fn(&Config)) {
     clitools::setup(Scenario::Empty, &|config| {
-        expect_ok(
-            config,
-            &[
-                "rustup-init",
-                "-y",
-                "--no-modify-path",
-                "--default-toolchain",
-                "none",
-            ],
-        );
+        config.expect_ok(&[
+            "rustup-init",
+            "-y",
+            "--no-modify-path",
+            "--default-toolchain",
+            "none",
+        ]);
         f(config);
     })
 }
@@ -47,7 +41,7 @@ fn setup_empty_installed(f: &dyn Fn(&Config)) {
 /// SimpleV3 dist server, rustup installed with default toolchain
 fn setup_installed(f: &dyn Fn(&Config)) {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         f(config);
     })
 }
@@ -59,8 +53,7 @@ fn setup_installed(f: &dyn Fn(&Config)) {
 fn install_bins_to_cargo_home() {
     clitools::setup(Scenario::SimpleV2, &|config| {
         with_saved_path(&|| {
-            expect_ok_contains(
-                config,
+            config.expect_ok_contains(
                 &["rustup-init", "-y"],
                 for_host!(
                     r"
@@ -109,8 +102,8 @@ info: default toolchain set to 'stable-{0}'
 fn install_twice() {
     clitools::setup(Scenario::SimpleV2, &|config| {
         with_saved_path(&|| {
-            expect_ok(config, &["rustup-init", "-y"]);
-            expect_ok(config, &["rustup-init", "-y"]);
+            config.expect_ok(&["rustup-init", "-y"]);
+            config.expect_ok(&["rustup-init", "-y"]);
             let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
             assert!(rustup.exists());
         })
@@ -125,16 +118,13 @@ fn install_creates_cargo_home() {
     clitools::setup(Scenario::Empty, &|config| {
         remove_dir_all(&config.cargodir).unwrap();
         config.rustupdir.remove().unwrap();
-        expect_ok(
-            config,
-            &[
-                "rustup-init",
-                "-y",
-                "--no-modify-path",
-                "--default-toolchain",
-                "none",
-            ],
-        );
+        config.expect_ok(&[
+            "rustup-init",
+            "-y",
+            "--no-modify-path",
+            "--default-toolchain",
+            "none",
+        ]);
         assert!(config.cargodir.exists());
     });
 }
@@ -146,7 +136,7 @@ fn uninstall_deletes_bins() {
     setup_empty_installed(&|config| {
         // no-modify-path isn't needed here, as the test-dir-path isn't present
         // in the registry, so the no-change code path will be triggered.
-        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+        config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
         let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         let rustc = config.cargodir.join(format!("bin/rustc{EXE_SUFFIX}"));
         let rustdoc = config.cargodir.join(format!("bin/rustdoc{EXE_SUFFIX}"));
@@ -178,7 +168,7 @@ fn uninstall_works_if_some_bins_dont_exist() {
         fs::remove_file(&rustc).unwrap();
         fs::remove_file(&cargo).unwrap();
 
-        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+        config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
 
         assert!(!rustup.exists());
         assert!(!rustc.exists());
@@ -193,7 +183,7 @@ fn uninstall_works_if_some_bins_dont_exist() {
 #[test]
 fn uninstall_deletes_rustup_home() {
     setup_empty_installed(&|config| {
-        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+        config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
         assert!(!config.rustupdir.has("."));
     });
 }
@@ -202,14 +192,14 @@ fn uninstall_deletes_rustup_home() {
 fn uninstall_works_if_rustup_home_doesnt_exist() {
     setup_empty_installed(&|config| {
         config.rustupdir.remove().unwrap();
-        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+        config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
     });
 }
 
 #[test]
 fn uninstall_deletes_cargo_home() {
     setup_empty_installed(&|config| {
-        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+        config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
         assert!(!config.cargodir.exists());
     });
 }
@@ -219,8 +209,7 @@ fn uninstall_fails_if_not_installed() {
     setup_empty_installed(&|config| {
         let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         fs::remove_file(rustup).unwrap();
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup", "self", "uninstall", "-y"],
             "rustup is not installed",
         );
@@ -269,7 +258,7 @@ fn uninstall_doesnt_leave_gc_file() {
     use std::time::Duration;
 
     setup_empty_installed(&|config| {
-        expect_ok(config, &["rustup", "self", "uninstall", "-y"]);
+        config.expect_ok(&["rustup", "self", "uninstall", "-y"]);
 
         // The gc removal happens after rustup terminates. Give it a moment.
         thread::sleep(Duration::from_millis(100));
@@ -293,9 +282,8 @@ info: downloading self-update
     .to_string();
 
     update_setup(&|config, _| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
-        expect_ok_ex(
-            config,
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok_ex(
             &["rustup", "self", "update"],
             &format!("  rustup updated - {version} (from {version})\n\n",),
             &expected_output,
@@ -306,8 +294,7 @@ info: downloading self-update
 #[test]
 fn update_but_not_installed() {
     update_setup(&|config, _| {
-        expect_err_ex(
-            config,
+        config.expect_err_ex(
             &["rustup", "self", "update"],
             r"",
             &format!(
@@ -325,12 +312,12 @@ fn update_but_delete_existing_updater_first() {
         // The updater is stored in a known location
         let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
 
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
 
         // If it happens to already exist for some reason it
         // should just be deleted.
         raw::write_file(&setup, "").unwrap();
-        expect_ok(config, &["rustup", "self", "update"]);
+        config.expect_ok(&["rustup", "self", "update"]);
 
         let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         assert!(rustup.exists());
@@ -340,7 +327,7 @@ fn update_but_delete_existing_updater_first() {
 #[test]
 fn update_download_404() {
     update_setup(&|config, self_dist| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
 
         let trip = this_host_triple();
         let dist_dir = self_dist.join(format!("archive/{TEST_VERSION}/{trip}"));
@@ -348,20 +335,15 @@ fn update_download_404() {
 
         fs::remove_file(dist_exe).unwrap();
 
-        expect_err(
-            config,
-            &["rustup", "self", "update"],
-            "could not download file",
-        );
+        config.expect_err(&["rustup", "self", "update"], "could not download file");
     });
 }
 
 #[test]
 fn update_bogus_version() {
     update_setup(&|config, _| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
-        expect_err(
-            config,
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_err(
             &["rustup", "update", "1.0.0-alpha"],
             "could not download nonexistent rust version `1.0.0-alpha`",
         );
@@ -374,7 +356,7 @@ fn update_bogus_version() {
 #[test]
 fn update_updates_rustup_bin() {
     update_setup(&|config, _| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
 
         let bin = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         let before_hash = calc_hash(&bin);
@@ -400,13 +382,9 @@ fn update_updates_rustup_bin() {
 #[test]
 fn update_bad_schema() {
     update_setup(&|config, self_dist| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         output_release_file(self_dist, "17", "1.1.1");
-        expect_err(
-            config,
-            &["rustup", "self", "update"],
-            "unknown schema version",
-        );
+        config.expect_err(&["rustup", "self", "update"], "unknown schema version");
     });
 }
 
@@ -414,10 +392,9 @@ fn update_bad_schema() {
 fn update_no_change() {
     let version = env!("CARGO_PKG_VERSION");
     update_setup(&|config, self_dist| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         output_release_file(self_dist, "1", version);
-        expect_ok_ex(
-            config,
+        config.expect_ok_ex(
             &["rustup", "self", "update"],
             &format!(
                 r"  rustup unchanged - {version}
@@ -433,13 +410,13 @@ fn update_no_change() {
 #[test]
 fn rustup_self_updates_trivial() {
     update_setup(&|config, _| {
-        expect_ok(config, &["rustup", "set", "auto-self-update", "enable"]);
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup", "set", "auto-self-update", "enable"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
 
         let bin = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         let before_hash = calc_hash(&bin);
 
-        expect_ok(config, &["rustup", "update"]);
+        config.expect_ok(&["rustup", "update"]);
 
         let after_hash = calc_hash(&bin);
 
@@ -450,13 +427,13 @@ fn rustup_self_updates_trivial() {
 #[test]
 fn rustup_self_updates_with_specified_toolchain() {
     update_setup(&|config, _| {
-        expect_ok(config, &["rustup", "set", "auto-self-update", "enable"]);
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup", "set", "auto-self-update", "enable"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
 
         let bin = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         let before_hash = calc_hash(&bin);
 
-        expect_ok(config, &["rustup", "update", "stable"]);
+        config.expect_ok(&["rustup", "update", "stable"]);
 
         let after_hash = calc_hash(&bin);
 
@@ -467,12 +444,12 @@ fn rustup_self_updates_with_specified_toolchain() {
 #[test]
 fn rustup_no_self_update_with_specified_toolchain() {
     update_setup(&|config, _| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
 
         let bin = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         let before_hash = calc_hash(&bin);
 
-        expect_ok(config, &["rustup", "update", "stable"]);
+        config.expect_ok(&["rustup", "update", "stable"]);
 
         let after_hash = calc_hash(&bin);
 
@@ -483,11 +460,10 @@ fn rustup_no_self_update_with_specified_toolchain() {
 #[test]
 fn rustup_self_update_exact() {
     update_setup(&|config, _| {
-        expect_ok(config, &["rustup", "set", "auto-self-update", "enable"]);
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup", "set", "auto-self-update", "enable"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
 
-        expect_ok_ex(
-            config,
+        config.expect_ok_ex(
             &["rustup", "update"],
             for_host!(
                 r"
@@ -512,9 +488,9 @@ info: cleaning up downloads & tmp directories
 #[test]
 fn updater_leaves_itself_for_later_deletion() {
     update_setup(&|config, _| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(config, &["rustup", "self", "update"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_ok(&["rustup", "self", "update"]);
 
         let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
         assert!(setup.exists());
@@ -524,11 +500,11 @@ fn updater_leaves_itself_for_later_deletion() {
 #[test]
 fn updater_is_deleted_after_running_rustup() {
     update_setup(&|config, _| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
-        expect_ok(config, &["rustup", "update", "nightly"]);
-        expect_ok(config, &["rustup", "self", "update"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup", "update", "nightly"]);
+        config.expect_ok(&["rustup", "self", "update"]);
 
-        expect_ok(config, &["rustup", "update", "nightly"]);
+        config.expect_ok(&["rustup", "update", "nightly"]);
 
         let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
         assert!(!setup.exists());
@@ -538,11 +514,11 @@ fn updater_is_deleted_after_running_rustup() {
 #[test]
 fn updater_is_deleted_after_running_rustc() {
     update_setup(&|config, _| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "self", "update"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "self", "update"]);
 
-        expect_ok(config, &["rustc", "--version"]);
+        config.expect_ok(&["rustc", "--version"]);
 
         let setup = config.cargodir.join(format!("bin/rustup-init{EXE_SUFFIX}"));
         assert!(!setup.exists());
@@ -552,12 +528,12 @@ fn updater_is_deleted_after_running_rustc() {
 #[test]
 fn rustup_still_works_after_update() {
     update_setup(&|config, _| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "self", "update"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
-        expect_ok(config, &["rustup", "default", "beta"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-beta-1.2.0");
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "self", "update"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+        config.expect_ok(&["rustup", "default", "beta"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-beta-1.2.0");
     });
 }
 
@@ -569,24 +545,20 @@ fn as_rustup_setup() {
         let init = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
         let setup = config.exedir.join(format!("rustup-setup{EXE_SUFFIX}"));
         fs::copy(init, setup).unwrap();
-        expect_ok(
-            config,
-            &[
-                "rustup-setup",
-                "-y",
-                "--no-modify-path",
-                "--default-toolchain",
-                "none",
-            ],
-        );
+        config.expect_ok(&[
+            "rustup-setup",
+            "-y",
+            "--no-modify-path",
+            "--default-toolchain",
+            "none",
+        ]);
     });
 }
 
 #[test]
 fn reinstall_exact() {
     setup_empty_installed(&|config| {
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &[
                 "rustup-init",
                 "-y",
@@ -601,8 +573,7 @@ fn reinstall_exact() {
 #[test]
 fn reinstall_specifying_toolchain() {
     setup_installed(&|config| {
-        expect_stdout_ok(
-            config,
+        config.expect_stdout_ok(
             &[
                 "rustup-init",
                 "-y",
@@ -617,9 +588,8 @@ fn reinstall_specifying_toolchain() {
 #[test]
 fn reinstall_specifying_component() {
     setup_installed(&|config| {
-        expect_ok(config, &["rustup", "component", "add", "rls"]);
-        expect_stdout_ok(
-            config,
+        config.expect_ok(&["rustup", "component", "add", "rls"]);
+        config.expect_stdout_ok(
             &[
                 "rustup-init",
                 "-y",
@@ -634,8 +604,7 @@ fn reinstall_specifying_component() {
 #[test]
 fn reinstall_specifying_different_toolchain() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &[
                 "rustup-init",
                 "-y",
@@ -650,29 +619,25 @@ fn reinstall_specifying_different_toolchain() {
 #[test]
 fn install_sets_up_stable_unless_a_different_default_is_requested() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        expect_ok(
-            config,
-            &[
-                "rustup-init",
-                "-y",
-                "--default-toolchain",
-                "nightly",
-                "--no-modify-path",
-            ],
-        );
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
+        config.expect_ok(&[
+            "rustup-init",
+            "-y",
+            "--default-toolchain",
+            "nightly",
+            "--no-modify-path",
+        ]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
     });
 }
 
 #[test]
 fn install_sets_up_stable_unless_there_is_already_a_default() {
     setup_installed(&|config| {
-        expect_ok(config, &["rustup", "default", "nightly"]);
-        expect_ok(config, &["rustup", "toolchain", "remove", "stable"]);
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
-        expect_stdout_ok(config, &["rustc", "--version"], "hash-nightly-2");
-        expect_err(
-            config,
+        config.expect_ok(&["rustup", "default", "nightly"]);
+        config.expect_ok(&["rustup", "toolchain", "remove", "stable"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
+        config.expect_err(
             &["rustup", "run", "stable", "rustc", "--version"],
             for_host!("toolchain 'stable-{0}' is not installed"),
         );
@@ -682,8 +647,7 @@ fn install_sets_up_stable_unless_there_is_already_a_default() {
 #[test]
 fn readline_no_stdin() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        expect_err(
-            config,
+        config.expect_err(
             &["rustup-init", "--no-modify-path"],
             "unable to read from stdin for confirmation",
         );
@@ -697,7 +661,7 @@ fn rustup_init_works_with_weird_names() {
         let old = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
         let new = config.exedir.join(format!("rustup-init(2){EXE_SUFFIX}"));
         utils::rename_file("test", &old, &new, &|_: Notification<'_>| {}).unwrap();
-        expect_ok(config, &["rustup-init(2)", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init(2)", "-y", "--no-modify-path"]);
         let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
         assert!(rustup.exists());
     });
@@ -707,8 +671,7 @@ fn rustup_init_works_with_weird_names() {
 fn install_but_rustup_sh_is_installed() {
     clitools::setup(Scenario::Empty, &|config| {
         config.create_rustup_sh_metadata();
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &[
                 "rustup-init",
                 "-y",
@@ -725,7 +688,7 @@ fn install_but_rustup_sh_is_installed() {
 fn test_warn_succeed_if_rustup_sh_already_installed_y_flag() {
     clitools::setup(Scenario::SimpleV2, &|config| {
         config.create_rustup_sh_metadata();
-        let out = run(config, "rustup-init", &["-y", "--no-modify-path"], &[]);
+        let out = config.run("rustup-init", &["-y", "--no-modify-path"], &[]);
         assert!(out.ok);
         assert!(out
             .stderr
@@ -744,8 +707,7 @@ fn test_warn_succeed_if_rustup_sh_already_installed_y_flag() {
 fn test_succeed_if_rustup_sh_already_installed_env_var_set() {
     clitools::setup(Scenario::SimpleV2, &|config| {
         config.create_rustup_sh_metadata();
-        let out = run(
-            config,
+        let out = config.run(
             "rustup-init",
             &["-y", "--no-modify-path"],
             &[("RUSTUP_INIT_SKIP_EXISTENCE_CHECKS", "yes")],
@@ -767,8 +729,7 @@ fn test_succeed_if_rustup_sh_already_installed_env_var_set() {
 #[test]
 fn rls_proxy_set_up_after_install() {
     setup_installed(&|config| {
-        expect_err(
-            config,
+        config.expect_err(
             &["rls", "--version"],
             &format!(
                 "'rls{}' is not installed for the toolchain 'stable-{}'",
@@ -776,8 +737,8 @@ fn rls_proxy_set_up_after_install() {
                 this_host_triple(),
             ),
         );
-        expect_ok(config, &["rustup", "component", "add", "rls"]);
-        expect_ok(config, &["rls", "--version"]);
+        config.expect_ok(&["rustup", "component", "add", "rls"]);
+        config.expect_ok(&["rls", "--version"]);
     });
 }
 
@@ -785,9 +746,9 @@ fn rls_proxy_set_up_after_install() {
 fn rls_proxy_set_up_after_update() {
     update_setup(&|config, _| {
         let rls_path = config.cargodir.join(format!("bin/rls{EXE_SUFFIX}"));
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         fs::remove_file(&rls_path).unwrap();
-        expect_ok(config, &["rustup", "self", "update"]);
+        config.expect_ok(&["rustup", "self", "update"]);
         assert!(rls_path.exists());
     });
 }
@@ -795,7 +756,7 @@ fn rls_proxy_set_up_after_update() {
 #[test]
 fn update_does_not_overwrite_rustfmt() {
     update_setup(&|config, self_dist| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         let version = env!("CARGO_PKG_VERSION");
         output_release_file(self_dist, "1", version);
 
@@ -810,8 +771,7 @@ fn update_does_not_overwrite_rustfmt() {
 
         // Ok, now a self-update should complain about `rustfmt` not looking
         // like rustup and the user should take some action.
-        expect_stderr_ok(
-            config,
+        config.expect_stderr_ok(
             &["rustup", "self", "update"],
             "`rustfmt` is already installed",
         );
@@ -825,10 +785,7 @@ fn update_does_not_overwrite_rustfmt() {
         // current process.
         fs::remove_file(&rustfmt_path).unwrap();
         let installed_rustup = config.cargodir.join("bin/rustup");
-        expect_ok(
-            config,
-            &[installed_rustup.to_str().unwrap(), "self", "update"],
-        );
+        config.expect_ok(&[installed_rustup.to_str().unwrap(), "self", "update"]);
         assert!(rustfmt_path.exists());
         assert!(utils::file_size(&rustfmt_path).unwrap() > 0);
     });
@@ -837,7 +794,7 @@ fn update_does_not_overwrite_rustfmt() {
 #[test]
 fn update_installs_clippy_cargo_and() {
     update_setup(&|config, self_dist| {
-        expect_ok(config, &["rustup-init", "-y", "--no-modify-path"]);
+        config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         let version = env!("CARGO_PKG_VERSION");
         output_release_file(self_dist, "1", version);
 
@@ -851,27 +808,22 @@ fn update_installs_clippy_cargo_and() {
 #[test]
 fn install_with_components_and_targets() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        expect_ok(
-            config,
-            &[
-                "rustup-init",
-                "--default-toolchain",
-                "nightly",
-                "-y",
-                "-c",
-                "rls",
-                "-t",
-                clitools::CROSS_ARCH1,
-                "--no-modify-path",
-            ],
-        );
-        expect_stdout_ok(
-            config,
+        config.expect_ok(&[
+            "rustup-init",
+            "--default-toolchain",
+            "nightly",
+            "-y",
+            "-c",
+            "rls",
+            "-t",
+            clitools::CROSS_ARCH1,
+            "--no-modify-path",
+        ]);
+        config.expect_stdout_ok(
             &["rustup", "target", "list"],
             &format!("{} (installed)", clitools::CROSS_ARCH1),
         );
-        expect_stdout_ok(
-            config,
+        config.expect_stdout_ok(
             &["rustup", "component", "list"],
             &format!("rls-{} (installed)", this_host_triple()),
         );
@@ -881,19 +833,16 @@ fn install_with_components_and_targets() {
 #[test]
 fn install_minimal_profile() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        expect_ok(
-            config,
-            &[
-                "rustup-init",
-                "-y",
-                "--profile",
-                "minimal",
-                "--no-modify-path",
-            ],
-        );
+        config.expect_ok(&[
+            "rustup-init",
+            "-y",
+            "--profile",
+            "minimal",
+            "--no-modify-path",
+        ]);
 
-        expect_component_executable(config, "rustup");
-        expect_component_executable(config, "rustc");
-        expect_component_not_executable(config, "cargo");
+        config.expect_component_executable("rustup");
+        config.expect_component_executable("rustc");
+        config.expect_component_not_executable("cargo");
     });
 }
