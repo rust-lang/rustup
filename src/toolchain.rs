@@ -389,10 +389,11 @@ impl<'a> InstalledCommonToolchain<'a> {
     fn set_env(&self, cmd: &mut Command) {
         self.set_ldpath(cmd);
 
-        // Because rustup and cargo use slightly different
-        // definitions of cargo home (rustup doesn't read HOME on
-        // windows), we must set it here to ensure cargo and
-        // rustup agree.
+        // Older versions of Cargo used a slightly different definition of
+        // cargo home. Rustup does not read HOME on Windows whereas the older
+        // versions of Cargo did. Rustup and Cargo should be in sync now (both
+        // using the same `home` crate), but this is retained to ensure cargo
+        // and rustup agree in older versions.
         if let Ok(cargo_home) = utils::cargo_home() {
             cmd.env("CARGO_HOME", &cargo_home);
         }
