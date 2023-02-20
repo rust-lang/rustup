@@ -634,7 +634,7 @@ pub(crate) fn delete_rustup_and_cargo_home() -> Result<()> {
     // CARGO_HOME, hopefully empty except for bin/rustup.exe
     let cargo_home = utils::cargo_home()?;
     // The rustup.exe bin
-    let rustup_path = cargo_home.join(&format!("bin/rustup{}", EXE_SUFFIX));
+    let rustup_path = cargo_home.join(format!("bin/rustup{EXE_SUFFIX}"));
 
     // The directory containing CARGO_HOME
     let work_path = cargo_home
@@ -644,7 +644,7 @@ pub(crate) fn delete_rustup_and_cargo_home() -> Result<()> {
     // Generate a unique name for the files we're about to move out
     // of CARGO_HOME.
     let numbah: u32 = rand::random();
-    let gc_exe = work_path.join(&format!("rustup-gc-{:x}.exe", numbah));
+    let gc_exe = work_path.join(format!("rustup-gc-{numbah:x}.exe"));
     // Copy rustup (probably this process's exe) to the gc exe
     utils::copy_file(&rustup_path, &gc_exe)?;
     let gc_exe_win: Vec<_> = gc_exe.as_os_str().encode_wide().chain(Some(0)).collect();
@@ -800,7 +800,7 @@ mod tests {
                 match reg_value {
                     Ok(_) => panic!("key not deleted"),
                     Err(ref e) if e.kind() == io::ErrorKind::NotFound => {}
-                    Err(ref e) => panic!("error {}", e),
+                    Err(ref e) => panic!("error {e}"),
                 }
             })
         });
