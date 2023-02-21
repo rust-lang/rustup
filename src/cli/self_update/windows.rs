@@ -745,7 +745,7 @@ mod tests {
     fn windows_path_regkey_type() {
         // per issue #261, setting PATH should use REG_EXPAND_SZ.
         let tp = Box::new(currentprocess::TestProcess::default());
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             currentprocess::with(tp.clone(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root
@@ -775,7 +775,7 @@ mod tests {
         // during uninstall the PATH key may end up empty; if so we should
         // delete it.
         let tp = Box::new(currentprocess::TestProcess::default());
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             currentprocess::with(tp.clone(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root
@@ -816,7 +816,7 @@ mod tests {
                 .collect(),
             ..Default::default()
         });
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             currentprocess::with(tp.clone(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root
@@ -845,7 +845,7 @@ mod tests {
     fn windows_treat_missing_path_as_empty() {
         // during install the PATH key may be missing; treat it as empty
         let tp = Box::new(currentprocess::TestProcess::default());
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             currentprocess::with(tp.clone(), || {
                 let root = RegKey::predef(HKEY_CURRENT_USER);
                 let environment = root

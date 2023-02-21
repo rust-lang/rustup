@@ -56,7 +56,7 @@ mod tests {
             vars,
             ..Default::default()
         });
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             currentprocess::with(tp.clone(), || {
                 let mut path_entries = vec![];
                 let mut cmd = Command::new("test");

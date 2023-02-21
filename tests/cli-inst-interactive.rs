@@ -53,7 +53,7 @@ fn run_input_with_env(
 #[test]
 fn update() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             run_input(config, &["rustup-init"], "\n\n");
             let out = run_input(config, &["rustup-init"], "\n\n");
             assert!(out.ok, "stdout:\n{}\nstderr:\n{}", out.stdout, out.stderr);
@@ -116,7 +116,7 @@ Rust is installed now. Great!
 #[test]
 fn smoke_case_install_with_path_install() {
     clitools::setup(Scenario::SimpleV2, &|config| {
-        with_saved_path(&|| {
+        with_saved_path(&mut || {
             let out = run_input(config, &["rustup-init"], "\n\n");
             assert!(out.ok);
             assert!(!out

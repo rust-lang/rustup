@@ -18,7 +18,7 @@ macro_rules! for_host_and_home {
     };
 }
 
-pub fn setup(f: &dyn Fn(&Config)) {
+pub fn setup(f: &dyn Fn(&mut Config)) {
     clitools::setup(Scenario::ArchivesV2, &|config| {
         f(config);
     });
@@ -851,7 +851,7 @@ fn show_toolchain_version_nested_file_override() {
         let subdir = cwd.join("foo");
 
         fs::create_dir_all(&subdir).unwrap();
-        config.change_dir(&subdir, &|| {
+        config.change_dir(&subdir, &|config| {
             config.expect_ok_ex(
                 &["rustup", "show"],
                 &format!(
@@ -932,7 +932,8 @@ fn override_set_unset_with_path() {
             cwd_str = &cwd_str[4..];
         }
 
-        config.change_dir(&config.emptydir, &|| {
+        let emptydir = tempfile::tempdir().unwrap();
+        config.change_dir(emptydir.path(), &|config| {
             config.expect_ok(&["rustup", "override", "set", "nightly", "--path", cwd_str]);
         });
         config.expect_ok_ex(
@@ -940,7 +941,7 @@ fn override_set_unset_with_path() {
             &format!("{}\tnightly-{}\n", cwd_str, this_host_triple()),
             r"",
         );
-        config.change_dir(&config.emptydir, &|| {
+        config.change_dir(emptydir.path(), &|config| {
             config.expect_ok(&["rustup", "override", "unset", "--path", cwd_str]);
         });
         config.expect_ok_ex(&["rustup", "override", "list"], "no overrides\n", r"");
@@ -1417,7 +1418,7 @@ fn file_override_path_relative() {
         // Change into an ephemeral dir so that we test that the path is relative to the override
         let ephemeral = config.current_dir().join("ephemeral");
         fs::create_dir_all(&ephemeral).unwrap();
-        config.change_dir(&ephemeral, || {
+        config.change_dir(&ephemeral, &|config| {
             config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
         });
     });
@@ -1505,7 +1506,7 @@ fn file_override_subdir() {
 
         let subdir = cwd.join("subdir");
         fs::create_dir_all(&subdir).unwrap();
-        config.change_dir(&subdir, &|| {
+        config.change_dir(&subdir, &|config| {
             config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
         });
     });
@@ -1708,7 +1709,7 @@ fn close_file_override_beats_far_directory_override() {
         let toolchain_file = subdir.join("rust-toolchain");
         raw::write_file(&toolchain_file, "nightly").unwrap();
 
-        config.change_dir(&subdir, &|| {
+        config.change_dir(&subdir, &|config| {
             config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-2");
         });
     });
