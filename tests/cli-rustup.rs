@@ -10,7 +10,7 @@ use rustup::for_host;
 use rustup::test::this_host_triple;
 use rustup::utils::raw;
 
-use crate::mock::clitools::{self, set_current_dist_date, Config, Scenario};
+use crate::mock::clitools::{self, Config, Scenario};
 
 macro_rules! for_host_and_home {
     ($config:ident, $s: expr) => {
@@ -2125,15 +2125,16 @@ fn non_utf8_toolchain() {
 
 #[test]
 fn check_host_goes_away() {
-    // TODO:migrate to with-scenario
-    clitools::test(Scenario::HostGoesMissing, &|config| {
-        set_current_dist_date(config, "2019-12-09");
-        config.expect_ok(&["rustup", "default", "nightly"]);
-        set_current_dist_date(config, "2019-12-10");
-        config.expect_err(
-            &["rustup", "update", "nightly"],
-            for_host!("target '{}' not found in channel"),
-        );
+    test(&|config| {
+        config.with_scenario(Scenario::HostGoesMissingBefore, &|config| {
+            config.expect_ok(&["rustup", "default", "nightly"]);
+        });
+        config.with_scenario(Scenario::HostGoesMissingAfter, &|config| {
+            config.expect_err(
+                &["rustup", "update", "nightly"],
+                for_host!("target '{}' not found in channel"),
+            );
+        })
     })
 }
 

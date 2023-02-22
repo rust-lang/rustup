@@ -88,8 +88,10 @@ pub enum Scenario {
     MissingComponent,
     /// Three dates, v2 manifests, RLS available in first, middle missing nightly
     MissingNightly,
-    /// Two dates, v2 manifests, host and MULTI_ARCH1 in first, host not in second
-    HostGoesMissing,
+    /// 1 date, v2 manifests, host and MULTI_ARCH1 in first
+    HostGoesMissingBefore,
+    /// 1 later date, v2 manifests, MULTI_ARCH1 only
+    HostGoesMissingAfter,
     /// Three dates, v2 manifests, host and MULTI_ARCH1 in first, host only in second,
     /// host and MULTI_ARCH1 but no RLS in last
     MissingComponentMulti,
@@ -124,7 +126,8 @@ impl ConstState {
                 Scenario::ArchivesV2TwoVersions => RwLock::new(None),
                 Scenario::Empty => RwLock::new(None),
                 Scenario::Full => RwLock::new(None),
-                Scenario::HostGoesMissing => RwLock::new(None),
+                Scenario::HostGoesMissingBefore => RwLock::new(None),
+                Scenario::HostGoesMissingAfter => RwLock::new(None),
                 Scenario::MissingComponent => RwLock::new(None),
                 Scenario::MissingComponentMulti => RwLock::new(None),
                 Scenario::MissingNightly => RwLock::new(None),
@@ -1027,10 +1030,12 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
             Release::beta("1.2.0", "2015-01-02").multi_arch(),
             Release::stable("1.1.0", "2015-01-02").multi_arch(),
         ],
-        Scenario::HostGoesMissing => vec![
-            Release::new("nightly", "1.3.0", "2019-12-09", "1"),
-            Release::new("nightly", "1.3.0", "2019-12-10", "2").only_multi_arch(),
-        ],
+        Scenario::HostGoesMissingBefore => {
+            vec![Release::new("nightly", "1.3.0", "2019-12-09", "1")]
+        }
+        Scenario::HostGoesMissingAfter => {
+            vec![Release::new("nightly", "1.3.0", "2019-12-10", "2").only_multi_arch()]
+        }
         Scenario::MissingComponentMulti => vec![
             Release::new("nightly", "1.37.0", "2019-09-12", "1")
                 .multi_arch()
@@ -1055,7 +1060,8 @@ fn create_mock_dist_server(path: &Path, s: Scenario) {
         | Scenario::Unavailable
         | Scenario::UnavailableRls
         | Scenario::MissingNightly
-        | Scenario::HostGoesMissing
+        | Scenario::HostGoesMissingBefore
+        | Scenario::HostGoesMissingAfter
         | Scenario::MissingComponent
         | Scenario::MissingComponentMulti => vec![ManifestVersion::V2],
     };
