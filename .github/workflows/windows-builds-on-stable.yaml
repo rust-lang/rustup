@@ -20,6 +20,7 @@ jobs:
         target:
           - x86_64-pc-windows-msvc
           - i686-pc-windows-msvc # skip-pr skip-master
+          - aarch64-pc-windows-msvc # skip-pr
           - x86_64-pc-windows-gnu # skip-pr
           - i686-pc-windows-gnu # skip-pr skip-master
         include:
