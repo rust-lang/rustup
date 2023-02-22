@@ -45,17 +45,49 @@ impl Env for HashMap<String, String> {
     }
 }
 
-/// Returns a tempdir for running tests in
-pub fn test_dir() -> io::Result<tempfile::TempDir> {
+/// The path to a dir for this test binaries state
+fn exe_test_dir() -> io::Result<PathBuf> {
     let current_exe_path = env::current_exe().unwrap();
     let mut exe_dir = current_exe_path.parent().unwrap();
     if exe_dir.ends_with("deps") {
         exe_dir = exe_dir.parent().unwrap();
     }
-    let test_dir = exe_dir.parent().unwrap().join("tests");
+    Ok(exe_dir.parent().unwrap().to_owned())
+}
+
+/// Returns a tempdir for running tests in
+pub fn test_dir() -> io::Result<tempfile::TempDir> {
+    let exe_dir = exe_test_dir()?;
+    let test_dir = exe_dir.join("tests");
     fs::create_dir_all(&test_dir).unwrap();
     tempfile::Builder::new()
         .prefix("running-test-")
+        .tempdir_in(test_dir)
+}
+
+/// Returns a directory for storing immutable distributions in
+pub fn const_dist_dir() -> io::Result<tempfile::TempDir> {
+    // TODO: do something smart, like managing garbage collection or something.
+    let exe_dir = exe_test_dir()?;
+    let dists_dir = exe_dir.join("dists");
+    fs::create_dir_all(&dists_dir)?;
+    let current_exe = env::current_exe().unwrap();
+    let current_exe_name = current_exe.file_name().unwrap();
+    tempfile::Builder::new()
+        .prefix(&format!(
+            "dist-for-{}-",
+            Path::new(current_exe_name).display()
+        ))
+        .tempdir_in(dists_dir)
+}
+
+/// Returns a tempdir for storing test-scoped distributions in
+pub fn test_dist_dir() -> io::Result<tempfile::TempDir> {
+    let exe_dir = exe_test_dir()?;
+    let test_dir = exe_dir.join("tests");
+    fs::create_dir_all(&test_dir).unwrap();
+    tempfile::Builder::new()
+        .prefix("test-dist-dir-")
         .tempdir_in(test_dir)
 }
 

@@ -33,7 +33,7 @@ use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 const SHA256_HASH_LEN: usize = 64;
 
 // Creates a mock dist server populated with some test data
-pub fn create_mock_dist_server(
+fn create_mock_dist_server(
     path: &Path,
     edit: Option<&dyn Fn(&str, &mut MockChannel)>,
 ) -> MockDistServer {
@@ -46,7 +46,7 @@ pub fn create_mock_dist_server(
     }
 }
 
-pub fn create_mock_channel(
+fn create_mock_channel(
     channel: &str,
     date: &str,
     edit: Option<&dyn Fn(&str, &mut MockChannel)>,

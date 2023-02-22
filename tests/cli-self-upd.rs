@@ -26,7 +26,7 @@ pub fn update_setup(f: &dyn Fn(&mut Config, &Path)) {
 
 /// Empty dist server, rustup installed with no toolchain
 fn setup_empty_installed(f: &dyn Fn(&mut Config)) {
-    clitools::setup(Scenario::Empty, &|config| {
+    clitools::test(Scenario::Empty, &|config| {
         config.expect_ok(&[
             "rustup-init",
             "-y",
@@ -40,7 +40,7 @@ fn setup_empty_installed(f: &dyn Fn(&mut Config)) {
 
 /// SimpleV3 dist server, rustup installed with default toolchain
 fn setup_installed(f: &dyn Fn(&mut Config)) {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.expect_ok(&["rustup-init", "-y", "--no-modify-path"]);
         f(config);
     })
@@ -51,7 +51,7 @@ fn setup_installed(f: &dyn Fn(&mut Config)) {
 /// installation code path: everything that is output, the proxy installation,
 /// status of the proxies.
 fn install_bins_to_cargo_home() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         with_saved_path(&mut || {
             config.expect_ok_contains(
                 &["rustup-init", "-y"],
@@ -100,7 +100,7 @@ info: default toolchain set to 'stable-{0}'
 
 #[test]
 fn install_twice() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         with_saved_path(&mut || {
             config.expect_ok(&["rustup-init", "-y"]);
             config.expect_ok(&["rustup-init", "-y"]);
@@ -115,7 +115,7 @@ fn install_twice() {
 /// depending just on unit tests here could miss subtle dependencies being added
 /// earlier in the code, so a black-box test is needed.
 fn install_creates_cargo_home() {
-    clitools::setup(Scenario::Empty, &|config| {
+    clitools::test(Scenario::Empty, &|config| {
         remove_dir_all(&config.cargodir).unwrap();
         config.rustupdir.remove().unwrap();
         config.expect_ok(&[
@@ -541,7 +541,7 @@ fn rustup_still_works_after_update() {
 // still needs to work in that mode.
 #[test]
 fn as_rustup_setup() {
-    clitools::setup(Scenario::Empty, &|config| {
+    clitools::test(Scenario::Empty, &|config| {
         let init = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
         let setup = config.exedir.join(format!("rustup-setup{EXE_SUFFIX}"));
         fs::copy(init, setup).unwrap();
@@ -603,7 +603,7 @@ fn reinstall_specifying_component() {
 
 #[test]
 fn reinstall_specifying_different_toolchain() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.expect_stderr_ok(
             &[
                 "rustup-init",
@@ -618,7 +618,7 @@ fn reinstall_specifying_different_toolchain() {
 
 #[test]
 fn install_sets_up_stable_unless_a_different_default_is_requested() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.expect_ok(&[
             "rustup-init",
             "-y",
@@ -646,7 +646,7 @@ fn install_sets_up_stable_unless_there_is_already_a_default() {
 
 #[test]
 fn readline_no_stdin() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.expect_err(
             &["rustup-init", "--no-modify-path"],
             "unable to read from stdin for confirmation",
@@ -657,7 +657,7 @@ fn readline_no_stdin() {
 #[test]
 fn rustup_init_works_with_weird_names() {
     // Browsers often rename bins to e.g. rustup-init(2).exe.
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         let old = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
         let new = config.exedir.join(format!("rustup-init(2){EXE_SUFFIX}"));
         utils::rename_file("test", &old, &new, &|_: Notification<'_>| {}).unwrap();
@@ -669,7 +669,7 @@ fn rustup_init_works_with_weird_names() {
 
 #[test]
 fn install_but_rustup_sh_is_installed() {
-    clitools::setup(Scenario::Empty, &|config| {
+    clitools::test(Scenario::Empty, &|config| {
         config.create_rustup_sh_metadata();
         config.expect_stderr_ok(
             &[
@@ -686,7 +686,7 @@ fn install_but_rustup_sh_is_installed() {
 
 #[test]
 fn test_warn_succeed_if_rustup_sh_already_installed_y_flag() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.create_rustup_sh_metadata();
         let out = config.run("rustup-init", &["-y", "--no-modify-path"], &[]);
         assert!(out.ok);
@@ -705,7 +705,7 @@ fn test_warn_succeed_if_rustup_sh_already_installed_y_flag() {
 
 #[test]
 fn test_succeed_if_rustup_sh_already_installed_env_var_set() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.create_rustup_sh_metadata();
         let out = config.run(
             "rustup-init",
@@ -807,7 +807,7 @@ fn update_installs_clippy_cargo_and() {
 
 #[test]
 fn install_with_components_and_targets() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.expect_ok(&[
             "rustup-init",
             "--default-toolchain",
@@ -832,7 +832,7 @@ fn install_with_components_and_targets() {
 
 #[test]
 fn install_minimal_profile() {
-    clitools::setup(Scenario::SimpleV2, &|config| {
+    clitools::test(Scenario::SimpleV2, &|config| {
         config.expect_ok(&[
             "rustup-init",
             "-y",

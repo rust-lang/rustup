@@ -41,7 +41,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_creates_necessary_scripts() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             // Override the test harness so that cargo home looks like
             // $HOME/.cargo by removing CARGO_HOME from the environment,
             // otherwise the literal path will be written to the file.
@@ -73,7 +73,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_updates_bash_rcs() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login", ".profile"]
                 .iter()
                 .map(|rc| config.homedir.join(rc))
@@ -94,7 +94,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_does_not_create_bash_rcs() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             let rcs: Vec<PathBuf> = [".bashrc", ".bash_profile", ".bash_login"]
                 .iter()
                 .map(|rc| config.homedir.join(rc))
@@ -112,7 +112,7 @@ export PATH="$HOME/apple/bin"
     // This test should NOT be run as root!
     #[test]
     fn install_errors_when_rc_cannot_be_updated() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             let rc = config.homedir.join(".profile");
             fs::File::create(&rc).unwrap();
             let mut perms = fs::metadata(&rc).unwrap().permissions();
@@ -125,7 +125,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_with_zdotdir() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             let zdotdir = tempfile::Builder::new()
                 .prefix("zdotdir")
                 .tempdir()
@@ -146,7 +146,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_adds_path_to_rc_just_once() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             let profile = config.homedir.join(".profile");
             raw::write_file(&profile, FAKE_RC).unwrap();
             config.expect_ok(&INIT_NONE);
@@ -160,7 +160,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_adds_path_to_rc_handling_no_newline() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             let profile = config.homedir.join(".profile");
             let fake_rc_modified = FAKE_RC.strip_suffix('\n').expect("Should end in a newline");
             raw::write_file(&profile, fake_rc_modified).unwrap();
@@ -177,7 +177,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_adds_path_to_multiple_rc_files() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             // Two RC files that are both from the same shell
             let bash_profile = config.homedir.join(".bash_profile");
             let bashrc = config.homedir.join(".bashrc");
@@ -201,7 +201,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn uninstall_removes_source_from_rcs() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             let rcs: Vec<PathBuf> = [
                 ".bashrc",
                 ".bash_profile",
@@ -229,7 +229,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_adds_sources_while_removing_legacy_paths() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             let zdotdir = tempfile::Builder::new()
                 .prefix("zdotdir")
                 .tempdir()
@@ -267,7 +267,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn uninstall_cleans_up_legacy_paths() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             // Install first, then overwrite.
             config.expect_ok(&INIT_NONE);
 
@@ -309,7 +309,7 @@ export PATH="$HOME/apple/bin"
     // not the full path.
     #[test]
     fn when_cargo_home_is_the_default_write_path_specially() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             // Override the test harness so that cargo home looks like
             // $HOME/.cargo by removing CARGO_HOME from the environment,
             // otherwise the literal path will be written to the file.
@@ -335,7 +335,7 @@ export PATH="$HOME/apple/bin"
 
     #[test]
     fn install_doesnt_modify_path_if_passed_no_modify_path() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             let profile = config.homedir.join(".profile");
             config.expect_ok(&[
                 "rustup-init",
@@ -359,7 +359,7 @@ mod windows {
     #[test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
     fn install_uninstall_affect_path() {
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             with_saved_path(&mut || {
                 let path = format!("{:?}", config.cargodir.join("bin").to_string_lossy());
 
@@ -389,7 +389,7 @@ mod windows {
         use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
         use winreg::{RegKey, RegValue};
 
-        clitools::setup(Scenario::Empty, &|config| {
+        clitools::test(Scenario::Empty, &|config| {
             with_saved_path(&mut || {
                 // Set up a non unicode PATH
                 let reg_value = RegValue {

@@ -10,7 +10,7 @@ use rustup::for_host;
 use crate::mock::clitools::{self, set_current_dist_date, Config, Scenario};
 
 pub fn setup(f: &dyn Fn(&mut Config)) {
-    clitools::setup(Scenario::SimpleV1, f);
+    clitools::test(Scenario::SimpleV1, f);
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn install_toolchain_from_channel() {
 
 #[test]
 fn install_toolchain_from_archive() {
-    clitools::setup(Scenario::ArchivesV1, &|config| {
+    clitools::test(Scenario::ArchivesV1, &|config| {
         config.expect_ok(&["rustup", "default", "nightly-2015-01-01"]);
         config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
         config.expect_ok(&["rustup", "default", "beta-2015-01-01"]);
@@ -76,7 +76,7 @@ fn default_existing_toolchain() {
 
 #[test]
 fn update_channel() {
-    clitools::setup(Scenario::ArchivesV1, &|config| {
+    clitools::test(Scenario::ArchivesV1, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
@@ -88,7 +88,7 @@ fn update_channel() {
 
 #[test]
 fn list_toolchains() {
-    clitools::setup(Scenario::ArchivesV1, &|config| {
+    clitools::test(Scenario::ArchivesV1, &|config| {
         config.expect_ok(&["rustup", "update", "nightly"]);
         config.expect_ok(&["rustup", "update", "beta-2015-01-01"]);
         config.expect_stdout_ok(&["rustup", "toolchain", "list"], "nightly");
@@ -159,7 +159,11 @@ fn remove_override_toolchain_err_handling() {
 #[test]
 fn bad_sha_on_manifest() {
     setup(&|config| {
-        let sha_file = config.distdir.join("dist/channel-rust-nightly.sha256");
+        let sha_file = config
+            .distdir
+            .as_ref()
+            .unwrap()
+            .join("dist/channel-rust-nightly.sha256");
         let sha_str = fs::read_to_string(&sha_file).unwrap();
         let mut sha_bytes = sha_str.into_bytes();
         sha_bytes[..10].clone_from_slice(b"aaaaaaaaaa");
@@ -172,7 +176,7 @@ fn bad_sha_on_manifest() {
 #[test]
 fn bad_sha_on_installer() {
     setup(&|config| {
-        let dir = config.distdir.join("dist");
+        let dir = config.distdir.as_ref().unwrap().join("dist");
         for file in fs::read_dir(&dir).unwrap() {
             let file = file.unwrap();
             let path = file.path();
@@ -199,7 +203,7 @@ fn install_override_toolchain_from_channel() {
 
 #[test]
 fn install_override_toolchain_from_archive() {
-    clitools::setup(Scenario::ArchivesV1, &|config| {
+    clitools::test(Scenario::ArchivesV1, &|config| {
         config.expect_ok(&["rustup", "override", "add", "nightly-2015-01-01"]);
         config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");
         config.expect_ok(&["rustup", "override", "add", "beta-2015-01-01"]);
@@ -327,7 +331,7 @@ fn no_update_on_channel_when_date_has_not_changed() {
 
 #[test]
 fn update_on_channel_when_date_has_changed() {
-    clitools::setup(Scenario::ArchivesV1, &|config| {
+    clitools::test(Scenario::ArchivesV1, &|config| {
         set_current_dist_date(config, "2015-01-01");
         config.expect_ok(&["rustup", "default", "nightly"]);
         config.expect_stdout_ok(&["rustc", "--version"], "hash-nightly-1");

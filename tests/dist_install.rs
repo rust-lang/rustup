@@ -1,6 +1,8 @@
 pub mod mock;
 
-use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
+use std::fs::File;
+use std::io::Write;
+
 use rustup::dist::component::Components;
 use rustup::dist::component::Transaction;
 use rustup::dist::component::{DirectoryPackage, Package};
@@ -9,8 +11,8 @@ use rustup::dist::prefix::InstallPrefix;
 use rustup::dist::temp;
 use rustup::dist::Notification;
 use rustup::utils::utils;
-use std::fs::File;
-use std::io::Write;
+
+use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 // Just testing that the mocks work
 #[test]
