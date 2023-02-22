@@ -109,7 +109,7 @@ version = "0.3"
 
 [dev-dependencies]
 walkdir = "2"
-once_cell = "1.17.0"
+once_cell = "1.17.1"
 enum-map = "2.4.2"
 
 [build-dependencies]
