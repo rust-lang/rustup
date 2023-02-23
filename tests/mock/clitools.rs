@@ -6,7 +6,7 @@ use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::ffi::OsStr;
 use std::fs;
-use std::io;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
@@ -232,7 +232,7 @@ pub fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir,
     let rls_path = config.exedir.join(format!("rls{EXE_SUFFIX}"));
     let rust_lldb_path = config.exedir.join(format!("rust-lldb{EXE_SUFFIX}"));
 
-    copy_binary(build_path, &rustup_path).unwrap();
+    hard_link(build_path, &rustup_path).unwrap();
     hard_link(&rustup_path, setup_path).unwrap();
     hard_link(&rustup_path, rustc_path).unwrap();
     hard_link(&rustup_path, cargo_path).unwrap();
@@ -282,6 +282,7 @@ fn create_local_update_server(self_dist: &Path, exedir: &Path, version: &str) ->
 
     fs::create_dir_all(dist_dir).unwrap();
     output_release_file(self_dist, "1", version);
+    // TODO: should this hardlink?
     fs::copy(rustup_bin, dist_exe).unwrap();
 
     let root_url = format!("file://{}", self_dist.display());
@@ -303,9 +304,21 @@ pub fn self_update_setup(f: &dyn Fn(&mut Config, &Path), version: &str) {
         let trip = this_host_triple();
         let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
         let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
+        let dist_tmp = dist_dir.join("rustup-init-tmp");
 
         // Modify the exe so it hashes different
-        raw::append_file(&dist_exe, "").unwrap();
+        // 1) move out of the way the file
+        fs::rename(&dist_exe, &dist_tmp).unwrap();
+        // 2) copy it
+        fs::copy(dist_tmp, &dist_exe).unwrap();
+        // modify it
+        let mut dest_file = fs::OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open(dist_exe)
+            .unwrap();
+        writeln!(dest_file).unwrap();
 
         f(config, self_dist);
     });
@@ -322,8 +335,21 @@ pub fn with_update_server(config: &mut Config, version: &str, f: &dyn Fn(&mut Co
     let trip = this_host_triple();
     let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
     let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
+    let dist_tmp = dist_dir.join("rustup-init-tmp");
+
     // Modify the exe so it hashes different
-    raw::append_file(&dist_exe, "").unwrap();
+    // 1) move out of the way the file
+    fs::rename(&dist_exe, &dist_tmp).unwrap();
+    // 2) copy it
+    fs::copy(dist_tmp, &dist_exe).unwrap();
+    // modify it
+    let mut dest_file = fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(dist_exe)
+        .unwrap();
+    writeln!(dest_file).unwrap();
 
     config.rustup_update_root = Some(root_url);
     f(config);
@@ -1496,21 +1522,5 @@ where
         }
         fs::hard_link(a, b).map(drop)
     }
-    inner(a.as_ref(), b.as_ref())
-}
-
-pub fn copy_binary<A, B>(a: A, b: B) -> io::Result<()>
-where
-    A: AsRef<Path>,
-    B: AsRef<Path>,
-{
-    fn inner(a: &Path, b: &Path) -> io::Result<()> {
-        match fs::remove_file(b) {
-            Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
-            _ => {}
-        }
-        fs::copy(a, b).map(drop)
-    }
-    let _lock = cmd_lock().write().unwrap();
     inner(a.as_ref(), b.as_ref())
 }
