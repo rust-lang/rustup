@@ -68,7 +68,7 @@ jobs:
       - name: Get rustc commit hash
         id: cargo-target-cache
         run: |
-          echo "::set-output name=rust_hash::$(rustc -Vv | grep commit-hash | awk '{print $2}')"
+          echo "{rust_hash}={$(rustc -Vv | grep commit-hash | awk '{print $2}')}" >> $GITHUB_OUTPUT
         shell: bash
       - name: Cache cargo build
         uses: actions/cache@v3
