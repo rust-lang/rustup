@@ -53,6 +53,8 @@ pub struct Config {
     pub rustup_update_root: Option<String>,
     /// This is cwd for the test
     pub workdir: RefCell<PathBuf>,
+    /// This is the test root for keeping stuff together
+    pub test_root_dir: PathBuf,
 }
 
 // Describes all the features of the mock dist server.
@@ -221,6 +223,7 @@ pub fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir,
         homedir,
         rustup_update_root: None,
         workdir: RefCell::new(workdir),
+        test_root_dir: test_dir.path().to_path_buf(),
     };
 
     let build_path = exe_dir.join(format!("rustup-init{EXE_SUFFIX}"));
@@ -292,9 +295,10 @@ fn create_local_update_server(self_dist: &Path, exedir: &Path, version: &str) ->
 pub fn self_update_setup(f: &dyn Fn(&mut Config, &Path), version: &str) {
     test(Scenario::SimpleV2, &|config| {
         // Create a mock self-update server
+
         let self_dist_tmp = tempfile::Builder::new()
             .prefix("self_dist")
-            .tempdir()
+            .tempdir_in(&config.test_root_dir)
             .unwrap();
         let self_dist = self_dist_tmp.path();
 
