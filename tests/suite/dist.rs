@@ -1,8 +1,6 @@
 // Tests of installation and updates from a v2 Rust distribution
 // server (mocked on the file system)
 
-pub mod mock;
-
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::env;

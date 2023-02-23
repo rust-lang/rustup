@@ -806,24 +806,6 @@ where
     !(run || self_cmd || version || (is_update && !no_self_update))
 }
 
-#[deprecated]
-pub fn run<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> SanitizedOutput
-where
-    I: IntoIterator<Item = A> + Clone,
-    A: AsRef<OsStr>,
-{
-    config.run(name, args, env)
-}
-
-#[deprecated]
-pub fn run_subprocess<I, A>(config: &Config, name: &str, args: I, env: &[(&str, &str)]) -> Output
-where
-    I: IntoIterator<Item = A>,
-    A: AsRef<OsStr>,
-{
-    config.run_subprocess(name, args, env)
-}
-
 #[derive(Copy, Clone, Eq, PartialEq)]
 enum RlsStatus {
     Available,
