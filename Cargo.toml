@@ -47,7 +47,7 @@ openssl = {version = "0.10", optional = true}
 pulldown-cmark = {version = "0.9", default-features = false}
 rand = "0.8"
 regex = "1"
-remove_dir_all = "0.7.0"
+remove_dir_all = "0.8.0"
 same-file = "1"
 scopeguard = "1"
 semver = "1.0"
