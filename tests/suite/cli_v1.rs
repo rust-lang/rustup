@@ -1,8 +1,6 @@
 //! Test cases of the rustup command, using v1 manifests, mostly
 //! derived from multirust/test-v2.sh
 
-pub mod mock;
-
 use std::fs;
 
 use rustup::for_host;

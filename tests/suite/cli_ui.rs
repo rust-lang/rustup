@@ -23,20 +23,20 @@ fn rustup_init_ui_doc_text_tests() {
     let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     t.register_bin("rustup-init", &rustup_init);
     t.register_bin("rustup-init.sh", &project_root.join("rustup-init.sh"));
-    t.case("tests/cli-ui/rustup-init/*.toml");
+    t.case("tests/suite/cli-ui/rustup-init/*.toml");
     #[cfg(target_os = "windows")]
     {
-        // On non-windows, we don't use rustup-init.sh, so skip the test.
-        t.skip("tests/cli-ui/rustup-init/rustup-init_sh_help_flag_stdout.toml");
+        // On windows, we don't use rustup-init.sh, so skip the test.
+        t.skip("tests/suite/cli-ui/rustup-init/rustup-init_sh_help_flag_stdout.toml");
     }
 
     // On non-windows, we don't use rustup-init.sh, so skip the test.
     #[cfg(not(target_os = "windows"))]
     {
         let rustup_init_help_toml =
-            project_root.join("tests/cli-ui/rustup-init/rustup-init_help_flag_stdout.toml");
-        let rustup_init_sh_help_toml =
-            project_root.join("tests/cli-ui/rustup-init/rustup-init_sh_help_flag_stdout.toml");
+            project_root.join("tests/suite/cli-ui/rustup-init/rustup-init_help_flag_stdout.toml");
+        let rustup_init_sh_help_toml = project_root
+            .join("tests/suite/cli-ui/rustup-init/rustup-init_sh_help_flag_stdout.toml");
 
         #[derive(Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
         struct Stdout {

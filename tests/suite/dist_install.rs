@@ -1,5 +1,3 @@
-pub mod mock;
-
 use std::fs::File;
 use std::io::Write;
 

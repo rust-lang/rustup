@@ -61,24 +61,17 @@ build_test() {
   cmd="$1"
   shift
   download_pkg_test "${cmd}"
-  target_cargo "${cmd}" --bin rustup-init
-  target_cargo "${cmd}" --lib --all
-  if [ "build" != "${cmd}" ]; then
-    target_cargo "${cmd}" --doc --all
-  fi
-
-  if [ "build" = "${cmd}" ]; then
-    target_cargo "${cmd}" --test dist
+    if [ "build" = "${cmd}" ]; then
+    target_cargo "${cmd}" --workspace --all-targets
   else
     #  free runners have 2 or 3(mac) cores
-    target_cargo "${cmd}" --test dist -- --test-threads 2
+    target_cargo "${cmd}" --workspace --tests -- --test-threads 2
   fi
 
-  find tests -maxdepth 1 -type f ! -path '*/dist.rs' -name '*.rs' \
-  | sed -e 's@^tests/@@;s@\.rs$@@g' \
-  | while read -r test; do
-      target_cargo "${cmd}" --test "${test}"
-  done
+  if [ "build" != "${cmd}" ]; then
+    target_cargo "${cmd}" --doc --workspace
+  fi
+
 }
 
 if [ -z "$SKIP_TESTS" ]; then

@@ -1,7 +1,5 @@
 //! Testing self install, uninstall and update
 
-pub mod mock;
-
 use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
@@ -14,9 +12,10 @@ use rustup::test::{this_host_triple, with_saved_path};
 use rustup::utils::{raw, utils};
 use rustup::{for_host, Notification, DUP_TOOLS, TOOLS};
 
-use crate::clitools::output_release_file;
-use crate::mock::clitools::{self, self_update_setup, Config, Scenario};
-use crate::mock::dist::calc_hash;
+use crate::mock::{
+    clitools::{self, output_release_file, self_update_setup, Config, Scenario},
+    dist::calc_hash,
+};
 
 const TEST_VERSION: &str = "1.1.1";
 

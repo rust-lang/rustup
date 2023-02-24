@@ -1,7 +1,5 @@
 //! Test cases for new rustup UI
 
-pub mod mock;
-
 use std::env::consts::EXE_SUFFIX;
 use std::fs;
 use std::path::{PathBuf, MAIN_SEPARATOR};
@@ -10,7 +8,10 @@ use rustup::for_host;
 use rustup::test::this_host_triple;
 use rustup::utils::raw;
 
-use crate::mock::clitools::{self, Config, Scenario};
+use crate::mock::{
+    self,
+    clitools::{self, Config, Scenario},
+};
 
 macro_rules! for_host_and_home {
     ($config:ident, $s: expr) => {

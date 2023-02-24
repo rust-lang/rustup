@@ -1,8 +1,6 @@
 //! Yet more cli test cases. These are testing that the output
 //! is exactly as expected.
 
-pub mod mock;
-
 use crate::mock::clitools::{self, set_current_dist_date, with_update_server, Config, Scenario};
 use rustup::for_host;
 use rustup::test::this_host_triple;
