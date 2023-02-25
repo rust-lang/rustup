@@ -154,6 +154,24 @@ fn uninstall_deletes_bins() {
 }
 
 #[test]
+fn uninstall_deletes_installed_toolchains() {
+    setup_installed(&|config| {
+        let path = config.customdir.join("custom-1");
+        let path = path.to_string_lossy();
+        config.expect_ok(&["rustup", "toolchain", "link", "custom", &path]);
+        config.expect_ok_contains(
+            &["rustup", "self", "uninstall", "-y"],
+            "",
+            r"
+info: uninstalling toolchain 'custom'
+info: toolchain 'custom' uninstalled
+",
+        );
+        assert!(!&config.rustupdir.join("toolchains").exists())
+    });
+}
+
+#[test]
 fn uninstall_works_if_some_bins_dont_exist() {
     setup_empty_installed(&|config| {
         let rustup = config.cargodir.join(format!("bin/rustup{EXE_SUFFIX}"));
