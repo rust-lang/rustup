@@ -27,16 +27,6 @@ pub fn main() -> Result<utils::ExitCode> {
         .version(common::version())
         .about("The installer for rustup")
         .setting(AppSettings::DeriveDisplayOrder)
-        .help_template(
-            "\
-{name} {version}
-{about}
-
-USAGE:
-    {usage}
-
-{all-args}",
-        )
         .arg(
             Arg::new("verbose")
                 .short('v')
@@ -68,7 +58,7 @@ USAGE:
             Arg::new("default-toolchain")
                 .long("default-toolchain")
                 .takes_value(true)
-                .help("Choose a default toolchain to install"),
+                .help("Choose a default toolchain to install. Use 'none' to not install any toolchains at all"),
         )
         .arg(
             Arg::new("profile")
@@ -93,7 +83,8 @@ USAGE:
                 .short('t')
                 .takes_value(true)
                 .multiple_values(true)
-                .use_value_delimiter(true),
+                .use_value_delimiter(true)
+                .action(ArgAction::Append),
         )
         .arg(
             Arg::new("no-update-default-toolchain")
