@@ -67,7 +67,7 @@ url.workspace = true
 wait-timeout = "0.2"
 xz2 = "0.1.3"
 zstd = "0.12"
-trycmd = "0.14.12"
+trycmd = "0.14.13"
 
 [dependencies.retry]
 default-features = false
