@@ -7,15 +7,15 @@ Modify or query the installed toolchains
 USAGE:
     rustup[EXE] toolchain <SUBCOMMAND>
 
-FLAGS:
-    -h, --help    Prints help information
+OPTIONS:
+    -h, --help    Print help information
 
 SUBCOMMANDS:
     list         List installed toolchains
     install      Install or update a given toolchain
     uninstall    Uninstall a toolchain
     link         Create a custom toolchain by symlinking to a directory
-    help         Prints this message or the help of the given subcommand(s)
+    help         Print this message or the help of the given subcommand(s)
 
 DISCUSSION:
     Many `rustup` commands deal with *toolchains*, a single
@@ -58,5 +58,6 @@ DISCUSSION:
     rustup can also manage symlinked local toolchain builds, which are
     often used for developing Rust itself. For more information see
     `rustup toolchain help link`.
+
 """
 stderr = ""

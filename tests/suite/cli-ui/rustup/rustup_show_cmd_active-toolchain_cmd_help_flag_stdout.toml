@@ -5,11 +5,11 @@ stdout = """
 Show the active toolchain
 
 USAGE:
-    rustup[EXE] show active-toolchain [FLAGS]
+    rustup[EXE] show active-toolchain [OPTIONS]
 
-FLAGS:
-    -h, --help       Prints help information
+OPTIONS:
     -v, --verbose    Enable verbose output with rustc information
+    -h, --help       Print help information
 
 DISCUSSION:
     Shows the name of the active toolchain.
@@ -19,5 +19,6 @@ DISCUSSION:
 
     You should use `rustc --print sysroot` to get the sysroot, or
     `rustc --version` to get the toolchain version.
+
 """
 stderr = ""

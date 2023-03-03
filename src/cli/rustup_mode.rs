@@ -71,11 +71,11 @@ pub fn main() -> Result<utils::ExitCode> {
     let matches = match cli().try_get_matches_from(process().args_os()) {
         Ok(matches) => Ok(matches),
         Err(err) if err.kind() == DisplayHelp => {
-            writeln!(process().stdout().lock(), "{}", err)?;
+            writeln!(process().stdout().lock(), "{err}")?;
             return Ok(utils::ExitCode(0));
         }
         Err(err) if err.kind() == DisplayVersion => {
-            writeln!(process().stdout().lock(), "{}", err)?;
+            writeln!(process().stdout().lock(), "{err}")?;
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
             fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
@@ -107,7 +107,7 @@ pub fn main() -> Result<utils::ExitCode> {
             ]
             .contains(&err.kind())
             {
-                writeln!(process().stdout().lock(), "{}", err)?;
+                writeln!(process().stdout().lock(), "{err}")?;
                 return Ok(utils::ExitCode(1));
             }
             Err(err)
@@ -206,16 +206,6 @@ pub(crate) fn cli() -> Command<'static> {
         .arg_required_else_help(true)
         .arg(
             verbose_arg("Enable verbose output"),
-        )
-        .help_template(
-            "\
-{name} {version}
-{about}
-
-USAGE:
-    {usage}
-
-{all-args}",
         )
         .arg(
             Arg::new("quiet")
@@ -351,7 +341,6 @@ USAGE:
                     Arg::new("toolchain")
                         .help(TOOLCHAIN_ARG_HELP)
                         .required(false)
-                        .takes_value(true),
                 ),
         )
         .subcommand(
@@ -392,7 +381,7 @@ USAGE:
                                 .takes_value(true)
                                 .multiple_values(true)
                                 .use_value_delimiter(true)
-                                .action(ArgAction::Append),
+                            .action(ArgAction::Append),
                         )
                         .arg(
                             Arg::new("targets")
@@ -401,8 +390,8 @@ USAGE:
                                 .short('t')
                                 .takes_value(true)
                                 .multiple_values(true)
-                                .multiple_occurrences(true)
-                                .use_value_delimiter(true),
+                                .use_value_delimiter(true)
+                                .action(ArgAction::Append),
                         )
                         .arg(
                             Arg::new("no-self-update")
@@ -1520,7 +1509,7 @@ fn override_remove(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             info!("override toolchain for '{}' removed", path);
         } else {
             info!("no override toolchain for '{}'", path);
-            if !m.get_one::<String>("path").is_some() && !m.get_flag("nonexistent") {
+            if m.get_one::<String>("path").is_none() && !m.get_flag("nonexistent") {
                 info!(
                     "you may use `--path <path>` option to remove override toolchain \
                      for a specific path"

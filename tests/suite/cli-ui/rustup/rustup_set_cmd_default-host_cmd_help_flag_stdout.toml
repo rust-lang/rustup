@@ -7,11 +7,11 @@ The triple used to identify toolchains when not specified
 USAGE:
     rustup[EXE] set default-host <host_triple>
 
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-
 ARGS:
     <host_triple>    
+
+OPTIONS:
+    -h, --help    Print help information
+
 """
 stderr = ""

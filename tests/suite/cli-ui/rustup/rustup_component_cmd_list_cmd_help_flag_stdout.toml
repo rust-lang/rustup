@@ -5,14 +5,13 @@ stdout = """
 List installed and available components
 
 USAGE:
-    rustup[EXE] component list [FLAGS] [OPTIONS]
-
-FLAGS:
-    -h, --help         Prints help information
-        --installed    List only installed components
+    rustup[EXE] component list [OPTIONS]
 
 OPTIONS:
-        --toolchain <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see
-                                   `rustup help toolchain`
+        --toolchain <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
+                                   information see `rustup help toolchain`
+        --installed                List only installed components
+    -h, --help                     Print help information
+
 """
 stderr = ""

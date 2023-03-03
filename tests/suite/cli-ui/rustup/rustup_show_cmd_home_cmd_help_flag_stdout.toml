@@ -7,7 +7,8 @@ Display the computed value of RUSTUP_HOME
 USAGE:
     rustup[EXE] show home
 
-FLAGS:
-    -h, --help    Prints help information
+OPTIONS:
+    -h, --help    Print help information
+
 """
 stderr = ""

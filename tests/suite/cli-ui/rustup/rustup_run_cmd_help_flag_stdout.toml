@@ -5,16 +5,16 @@ stdout = """
 Run a command with an environment configured for a given toolchain
 
 USAGE:
-    rustup[EXE] run [FLAGS] <toolchain> <command>...
-
-FLAGS:
-    -h, --help       Prints help information
-        --install    Install the requested toolchain if needed
+    rustup[EXE] run [OPTIONS] <toolchain> <command>...
 
 ARGS:
-    <toolchain>     Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see `rustup help
-                    toolchain`
+    <toolchain>     Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
+                    information see `rustup help toolchain`
     <command>...    
+
+OPTIONS:
+        --install    Install the requested toolchain if needed
+    -h, --help       Print help information
 
 DISCUSSION:
     Configures an environment to use the given toolchain and then runs
@@ -30,5 +30,6 @@ DISCUSSION:
         $ cargo +nightly build
 
         $ rustup run nightly cargo build
+
 """
 stderr = ""

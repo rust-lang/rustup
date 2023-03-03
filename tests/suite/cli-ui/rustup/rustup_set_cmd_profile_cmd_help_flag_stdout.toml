@@ -7,11 +7,11 @@ The default components installed
 USAGE:
     rustup[EXE] set profile <profile-name>
 
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-
 ARGS:
-    <profile-name>     [default: default]  [possible values: minimal, default, complete]
+    <profile-name>    [default: default] [possible values: minimal, default, complete]
+
+OPTIONS:
+    -h, --help    Print help information
+
 """
 stderr = ""

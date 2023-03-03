@@ -7,11 +7,12 @@ Uninstall a toolchain
 USAGE:
     rustup[EXE] toolchain uninstall <toolchain>...
 
-FLAGS:
-    -h, --help    Prints help information
-
 ARGS:
-    <toolchain>...    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see `rustup help
-                      toolchain`
+    <toolchain>...    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
+                      information see `rustup help toolchain`
+
+OPTIONS:
+    -h, --help    Print help information
+
 """
 stderr = ""
