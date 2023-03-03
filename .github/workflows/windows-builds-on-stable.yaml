@@ -26,7 +26,9 @@ jobs:
         mode:
           - dev
           - release         
-        include: # skip-pr
+        include:
+          - target: x86_64-pc-windows-msvc
+            run_tests: YES
           - target: x86_64-pc-windows-gnu  # skip-pr
             mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z  # skip-pr
             mingwdir: mingw64  # skip-pr
