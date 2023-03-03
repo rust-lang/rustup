@@ -128,72 +128,96 @@ pub fn main() -> Result<utils::ExitCode> {
     cfg.check_metadata_version()?;
 
     Ok(match matches.subcommand() {
-        Some(("dump-testament", _)) => common::dump_testament()?,
-        Some(("show", c)) => match c.subcommand() {
-            Some(("active-toolchain", m)) => handle_epipe(show_active_toolchain(cfg, m))?,
-            Some(("home", _)) => handle_epipe(show_rustup_home(cfg))?,
-            Some(("profile", _)) => handle_epipe(show_profile(cfg))?,
-            Some(("keys", _)) => handle_epipe(show_keys(cfg))?,
-            _ => handle_epipe(show(cfg, c))?,
-        },
-        Some(("install", m)) => deprecated("toolchain install", cfg, m, update)?,
-        Some(("update", m)) => update(cfg, m)?,
-        Some(("check", _)) => check_updates(cfg)?,
-        Some(("uninstall", m)) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
-        Some(("default", m)) => default_(cfg, m)?,
-        Some(("toolchain", c)) => match c.subcommand() {
-            Some(("install", m)) => update(cfg, m)?,
-            Some(("list", m)) => handle_epipe(toolchain_list(cfg, m))?,
-            Some(("link", m)) => toolchain_link(cfg, m)?,
-            Some(("uninstall", m)) => toolchain_remove(cfg, m)?,
-            _ => unreachable!(),
-        },
-        Some(("target", c)) => match c.subcommand() {
-            Some(("list", m)) => handle_epipe(target_list(cfg, m))?,
-            Some(("add", m)) => target_add(cfg, m)?,
-            Some(("remove", m)) => target_remove(cfg, m)?,
-            _ => unreachable!(),
-        },
-        Some(("component", c)) => match c.subcommand() {
-            Some(("list", m)) => handle_epipe(component_list(cfg, m))?,
-            Some(("add", m)) => component_add(cfg, m)?,
-            Some(("remove", m)) => component_remove(cfg, m)?,
-            _ => unreachable!(),
-        },
-        Some(("override", c)) => match c.subcommand() {
-            Some(("list", _)) => handle_epipe(common::list_overrides(cfg))?,
-            Some(("set", m)) => override_add(cfg, m)?,
-            Some(("unset", m)) => override_remove(cfg, m)?,
-            _ => unreachable!(),
-        },
-        Some(("run", m)) => run(cfg, m)?,
-        Some(("which", m)) => which(cfg, m)?,
-        Some(("doc", m)) => doc(cfg, m)?,
-        Some(("man", m)) => man(cfg, m)?,
-        Some(("self", c)) => match c.subcommand() {
-            Some(("update", _)) => self_update::update(cfg)?,
-            Some(("uninstall", m)) => self_uninstall(m)?,
-            _ => unreachable!(),
-        },
-        Some(("set", c)) => match c.subcommand() {
-            Some(("default-host", m)) => set_default_host_triple(cfg, m)?,
-            Some(("profile", m)) => set_profile(cfg, m)?,
-            Some(("auto-self-update", m)) => set_auto_self_update(cfg, m)?,
-            _ => unreachable!(),
-        },
-        Some(("completions", c)) => {
-            if let Some(&shell) = c.get_one::<Shell>("shell") {
-                (output_completion_script(
-                    shell,
-                    c.get_one::<CompletionCommand>("command")
-                        .copied()
-                        .unwrap_or(CompletionCommand::Rustup),
-                ))?
-            } else {
-                unreachable!()
+        Some(s) => match s {
+            ("dump-testament", _) => common::dump_testament()?,
+            ("show", c) => match c.subcommand() {
+                Some(s) => match s {
+                    ("active-toolchain", m) => handle_epipe(show_active_toolchain(cfg, m))?,
+                    ("home", _) => handle_epipe(show_rustup_home(cfg))?,
+                    ("profile", _) => handle_epipe(show_profile(cfg))?,
+                    ("keys", _) => handle_epipe(show_keys(cfg))?,
+                    _ => handle_epipe(show(cfg, c))?,
+                },
+                None => handle_epipe(show(cfg, c))?,
+            },
+            ("install", m) => deprecated("toolchain install", cfg, m, update)?,
+            ("update", m) => update(cfg, m)?,
+            ("check", _) => check_updates(cfg)?,
+            ("uninstall", m) => deprecated("toolchain uninstall", cfg, m, toolchain_remove)?,
+            ("default", m) => default_(cfg, m)?,
+            ("toolchain", c) => match c.subcommand() {
+                Some(s) => match s {
+                    ("install", m) => update(cfg, m)?,
+                    ("list", m) => handle_epipe(toolchain_list(cfg, m))?,
+                    ("link", m) => toolchain_link(cfg, m)?,
+                    ("uninstall", m) => toolchain_remove(cfg, m)?,
+                    _ => unreachable!(),
+                },
+                None => unreachable!(),
+            },
+            ("target", c) => match c.subcommand() {
+                Some(s) => match s {
+                    ("list", m) => handle_epipe(target_list(cfg, m))?,
+                    ("add", m) => target_add(cfg, m)?,
+                    ("remove", m) => target_remove(cfg, m)?,
+                    _ => unreachable!(),
+                },
+                None => unreachable!(),
+            },
+            ("component", c) => match c.subcommand() {
+                Some(s) => match s {
+                    ("list", m) => handle_epipe(component_list(cfg, m))?,
+                    ("add", m) => component_add(cfg, m)?,
+                    ("remove", m) => component_remove(cfg, m)?,
+                    _ => unreachable!(),
+                },
+                None => unreachable!(),
+            },
+            ("override", c) => match c.subcommand() {
+                Some(s) => match s {
+                    ("list", _) => handle_epipe(common::list_overrides(cfg))?,
+                    ("set", m) => override_add(cfg, m)?,
+                    ("unset", m) => override_remove(cfg, m)?,
+                    _ => unreachable!(),
+                },
+                None => unreachable!(),
+            },
+            ("run", m) => run(cfg, m)?,
+            ("which", m) => which(cfg, m)?,
+            ("doc", m) => doc(cfg, m)?,
+            ("man", m) => man(cfg, m)?,
+            ("self", c) => match c.subcommand() {
+                Some(s) => match s {
+                    ("update", _) => self_update::update(cfg)?,
+                    ("uninstall", m) => self_uninstall(m)?,
+                    _ => unreachable!(),
+                },
+                None => unreachable!(),
+            },
+            ("set", c) => match c.subcommand() {
+                Some(s) => match s {
+                    ("default-host", m) => set_default_host_triple(cfg, m)?,
+                    ("profile", m) => set_profile(cfg, m)?,
+                    ("auto-self-update", m) => set_auto_self_update(cfg, m)?,
+                    _ => unreachable!(),
+                },
+                None => unreachable!(),
+            },
+            ("completions", c) => {
+                if let Some(&shell) = c.get_one::<Shell>("shell") {
+                    output_completion_script(
+                        shell,
+                        c.get_one::<CompletionCommand>("command")
+                            .copied()
+                            .unwrap_or(CompletionCommand::Rustup),
+                    )?
+                } else {
+                    unreachable!()
+                }
             }
-        }
-        _ => unreachable!(),
+            _ => unreachable!(),
+        },
+        None => unreachable!(),
     })
 }
 
