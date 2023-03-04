@@ -14,6 +14,5 @@ OPTIONS:
         --toolchain <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
                                    information see `rustup help toolchain`
     -h, --help                     Print help information
-
 """
 stderr = ""

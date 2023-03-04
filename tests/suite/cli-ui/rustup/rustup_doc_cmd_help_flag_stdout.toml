@@ -41,6 +41,5 @@ DISCUSSION:
 
     By default, it opens the documentation index. Use the various
     flags to open specific pieces of documentation.
-
 """
 stderr = ""

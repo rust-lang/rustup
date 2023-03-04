@@ -71,11 +71,11 @@ pub fn main() -> Result<utils::ExitCode> {
     let matches = match cli().try_get_matches_from(process().args_os()) {
         Ok(matches) => Ok(matches),
         Err(err) if err.kind() == DisplayHelp => {
-            writeln!(process().stdout().lock(), "{err}")?;
+            write!(process().stdout().lock(), "{err}")?;
             return Ok(utils::ExitCode(0));
         }
         Err(err) if err.kind() == DisplayVersion => {
-            writeln!(process().stdout().lock(), "{err}")?;
+            write!(process().stdout().lock(), "{err}")?;
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
             fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
@@ -107,7 +107,7 @@ pub fn main() -> Result<utils::ExitCode> {
             ]
             .contains(&err.kind())
             {
-                writeln!(process().stdout().lock(), "{err}")?;
+                write!(process().stdout().lock(), "{err}")?;
                 return Ok(utils::ExitCode(1));
             }
             Err(err)

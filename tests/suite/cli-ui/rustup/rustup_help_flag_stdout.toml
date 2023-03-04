@@ -44,6 +44,5 @@ DISCUSSION:
 
     If you are new to Rust consider running `rustup doc --book` to
     learn Rust.
-
 """
 stderr = ""

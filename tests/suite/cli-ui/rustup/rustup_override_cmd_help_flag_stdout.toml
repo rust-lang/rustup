@@ -36,6 +36,5 @@ DISCUSSION:
     To see the active toolchain use `rustup show`. To remove the
     override and use the default toolchain again, `rustup override
     unset`.
-
 """
 stderr = ""

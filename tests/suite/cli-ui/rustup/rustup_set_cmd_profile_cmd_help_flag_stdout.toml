@@ -12,6 +12,5 @@ ARGS:
 
 OPTIONS:
     -h, --help    Print help information
-
 """
 stderr = ""

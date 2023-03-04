@@ -30,6 +30,5 @@ DISCUSSION:
         $ cargo +nightly build
 
         $ rustup run nightly cargo build
-
 """
 stderr = ""

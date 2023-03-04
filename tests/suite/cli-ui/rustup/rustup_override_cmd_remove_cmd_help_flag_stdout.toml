@@ -18,6 +18,5 @@ DISCUSSION:
     present, removes the override toolchain for all nonexistent
     directories. Otherwise, removes the override toolchain for the
     current directory.
-
 """
 stderr = ""

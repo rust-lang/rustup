@@ -10,6 +10,5 @@ USAGE:
 OPTIONS:
     -v, --verbose    Enable verbose output with toolchain information
     -h, --help       Print help information
-
 """
 stderr = ""

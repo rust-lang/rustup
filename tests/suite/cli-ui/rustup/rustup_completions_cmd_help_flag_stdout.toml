@@ -134,6 +134,5 @@ ${env:USERPROFILE}/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1
     ZSH:
 
         $ rustup completions zsh cargo > ~/.zfunc/_cargo
-
 """
 stderr = ""

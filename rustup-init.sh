@@ -67,7 +67,6 @@ OPTIONS:
 
     -V, --version
             Print version information
-
 EOF
 }
 

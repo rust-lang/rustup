@@ -17,6 +17,5 @@ OPTIONS:
 DISCUSSION:
     Sets the default toolchain to the one specified. If the toolchain
     is not already installed then it is installed first.
-
 """
 stderr = ""

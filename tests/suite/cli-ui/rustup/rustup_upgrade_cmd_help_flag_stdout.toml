@@ -25,6 +25,5 @@ DISCUSSION:
 
     If given a toolchain argument then `update` updates that
     toolchain, the same as `rustup toolchain install`.
-
 """
 stderr = ""

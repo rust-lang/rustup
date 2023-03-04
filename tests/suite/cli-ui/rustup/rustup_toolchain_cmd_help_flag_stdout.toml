@@ -58,6 +58,5 @@ DISCUSSION:
     rustup can also manage symlinked local toolchain builds, which are
     often used for developing Rust itself. For more information see
     `rustup toolchain help link`.
-
 """
 stderr = ""

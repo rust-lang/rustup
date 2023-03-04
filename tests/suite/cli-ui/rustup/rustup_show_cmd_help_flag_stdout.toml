@@ -26,6 +26,5 @@ DISCUSSION:
 
     If there are multiple toolchains installed then all installed
     toolchains are listed as well.
-
 """
 stderr = ""

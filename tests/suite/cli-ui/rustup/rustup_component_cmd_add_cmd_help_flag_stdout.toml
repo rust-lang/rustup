@@ -15,6 +15,5 @@ OPTIONS:
                                    information see `rustup help toolchain`
         --target <target>          
     -h, --help                     Print help information
-
 """
 stderr = ""

@@ -23,6 +23,5 @@ OPTIONS:
         --force-non-host               Install toolchains that require an emulator. See
                                        https://github.com/rust-lang/rustup/wiki/Non-host-toolchains
     -h, --help                         Print help information
-
 """
 stderr = ""

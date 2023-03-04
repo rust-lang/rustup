@@ -32,6 +32,5 @@ DISCUSSION:
 
     If you now compile a crate in the current directory, the custom
     toolchain 'latest-stage1' will be used.
-
 """
 stderr = ""

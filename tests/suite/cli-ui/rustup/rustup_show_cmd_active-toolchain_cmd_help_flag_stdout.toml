@@ -19,6 +19,5 @@ DISCUSSION:
 
     You should use `rustc --print sysroot` to get the sysroot, or
     `rustc --version` to get the toolchain version.
-
 """
 stderr = ""
