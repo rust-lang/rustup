@@ -8,11 +8,11 @@ fn rustup_ui_doc_text_tests() {
     // Copy rustup-init to rustup so that the tests can run it.
     fs::copy(rustup_init, &rustup).unwrap();
     t.register_bin("rustup", &rustup);
-    t.case("tests/cli-ui/rustup/*.toml");
+    t.case("tests/suite/cli-ui/rustup/*.toml");
     #[cfg(target_os = "windows")]
     {
         // On windows, we don't have man command, so skip the test.
-        t.skip("tests/cli-ui/rustup/rustup_man_cmd_help_flag_stdout.toml");
+        t.skip("tests/suite/cli-ui/rustup/rustup_man_cmd_help_flag_stdout.toml");
     }
 }
 
@@ -53,6 +53,6 @@ fn rustup_init_ui_doc_text_tests() {
         .unwrap();
 
         // Make sure that the help output of rustup-init and rustup-init.sh are the same.
-        assert!(rustup_init_help_std_out == rustup_init_sh_help_std_out)
+        assert_eq!(rustup_init_help_std_out, rustup_init_sh_help_std_out)
     }
 }

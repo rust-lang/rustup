@@ -806,11 +806,11 @@ fn completion_bad_shell() {
     setup(&|config| {
         config.expect_err(
             &["rustup", "completions", "fake"],
-            "error: 'fake' isn't a valid value for '<shell>'",
+            r#"error: "fake" isn't a valid value for '<shell>'"#,
         );
         config.expect_err(
             &["rustup", "completions", "fake", "cargo"],
-            "error: 'fake' isn't a valid value for '<shell>'",
+            r#"error: "fake" isn't a valid value for '<shell>'"#,
         );
     });
 }
@@ -820,7 +820,7 @@ fn completion_bad_tool() {
     setup(&|config| {
         config.expect_err(
             &["rustup", "completions", "bash", "fake"],
-            "error: 'fake' isn't a valid value for '<command>'",
+            r#"error: "fake" isn't a valid value for '<command>'"#,
         );
     });
 }
@@ -946,7 +946,7 @@ fn override_by_toolchain_on_the_command_line() {
         );
         config.expect_err(
             &["rustup", "@stable", "which", "rustc"],
-            "Invalid value for '<+toolchain>': Toolchain overrides must begin with '+'",
+            r#"Invalid value "@stable" for '<+toolchain>': Toolchain overrides must begin with '+'"#,
         );
         config.expect_stderr_ok(
             &["rustup", "+stable", "set", "profile", "minimal"],

@@ -7,7 +7,7 @@ Display the known PGP keys
 USAGE:
     rustup[EXE] show keys
 
-FLAGS:
-    -h, --help    Prints help information
+OPTIONS:
+    -h, --help    Print help information
 """
 stderr = ""

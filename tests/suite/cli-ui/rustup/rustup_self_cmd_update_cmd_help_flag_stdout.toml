@@ -7,7 +7,7 @@ Download and install updates to rustup
 USAGE:
     rustup[EXE] self update
 
-FLAGS:
-    -h, --help    Prints help information
+OPTIONS:
+    -h, --help    Print help information
 """
 stderr = ""
