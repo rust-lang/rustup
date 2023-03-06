@@ -1,16 +1,15 @@
 bin.name = "rustup"
-args = ["component","list","--help"]
+args = ["component", "list", "--help"]
 stdout = """
 ...
 List installed and available components
 
-USAGE:
-    rustup[EXE] component list [OPTIONS]
+Usage: rustup[EXE] component list [OPTIONS]
 
-OPTIONS:
-        --toolchain <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
-                                   information see `rustup help toolchain`
-        --installed                List only installed components
-    -h, --help                     Print help information
+Options:
+      --toolchain <toolchain>  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
+                               information see `rustup help toolchain`
+      --installed              List only installed components
+  -h, --help                   Print help
 """
 stderr = ""

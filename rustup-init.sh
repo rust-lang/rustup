@@ -25,48 +25,35 @@ RUSTUP_UPDATE_ROOT="${RUSTUP_UPDATE_ROOT:-https://static.rust-lang.org/rustup}"
 # NOTICE: If you change anything here, please make the same changes in setup_mode.rs
 usage() {
     cat <<EOF
-rustup-init 1.26.0 (577bf51ae 2023-04-05)
 The installer for rustup
 
-USAGE:
-    rustup-init [OPTIONS]
+Usage: rustup-init [OPTIONS]
 
-OPTIONS:
-    -v, --verbose
-            Enable verbose output
-
-    -q, --quiet
-            Disable progress output
-
-    -y
-            Disable confirmation prompt.
-
-        --default-host <default-host>
-            Choose a default host triple
-
-        --default-toolchain <default-toolchain>
-            Choose a default toolchain to install. Use 'none' to not install any toolchains at all
-
-        --profile <profile>
-            [default: default] [possible values: minimal, default, complete]
-
-    -c, --component <components>...
-            Component name to also install
-
-    -t, --target <targets>...
-            Target name to also install
-
-        --no-update-default-toolchain
-            Don't update any existing default toolchain after install
-
-        --no-modify-path
-            Don't configure the PATH environment variable
-
-    -h, --help
-            Print help information
-
-    -V, --version
-            Print version information
+Options:
+  -v, --verbose
+          Enable verbose output
+  -q, --quiet
+          Disable progress output
+  -y
+          Disable confirmation prompt.
+      --default-host <default-host>
+          Choose a default host triple
+      --default-toolchain <default-toolchain>
+          Choose a default toolchain to install. Use 'none' to not install any toolchains at all
+      --profile <profile>
+          [default: default] [possible values: minimal, default, complete]
+  -c, --component <components>...
+          Component name to also install
+  -t, --target <targets>...
+          Target name to also install
+      --no-update-default-toolchain
+          Don't update any existing default toolchain after install
+      --no-modify-path
+          Don't configure the PATH environment variable
+  -h, --help
+          Print help
+  -V, --version
+          Print version
 EOF
 }
 

@@ -1,19 +1,18 @@
 bin.name = "rustup"
-args = ["target","--help"]
+args = ["target", "--help"]
 stdout = """
 ...
 Modify a toolchain's supported targets
 
-USAGE:
-    rustup[EXE] target <SUBCOMMAND>
+Usage: rustup[EXE] target <COMMAND>
 
-OPTIONS:
-    -h, --help    Print help information
+Commands:
+  list    List installed and available targets
+  add     Add a target to a Rust toolchain
+  remove  Remove a target from a Rust toolchain
+  help    Print this message or the help of the given subcommand(s)
 
-SUBCOMMANDS:
-    list      List installed and available targets
-    add       Add a target to a Rust toolchain
-    remove    Remove a target from a Rust toolchain
-    help      Print this message or the help of the given subcommand(s)
+Options:
+  -h, --help  Print help
 """
 stderr = ""

@@ -169,7 +169,7 @@ impl ConstState {
                 Some(ref path) => Ok(path.clone()),
 
                 None => {
-                    let dist_path = self.const_dist_dir.path().join(format!("{:?}", s));
+                    let dist_path = self.const_dist_dir.path().join(format!("{s:?}"));
                     create_mock_dist_server(&dist_path, s);
                     *lock = Some(dist_path.clone());
                     Ok(dist_path)

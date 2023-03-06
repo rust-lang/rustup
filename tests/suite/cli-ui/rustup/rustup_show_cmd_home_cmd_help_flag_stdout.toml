@@ -1,13 +1,12 @@
 bin.name = "rustup"
-args = ["show","home","--help"]
+args = ["show", "home", "--help"]
 stdout = """
 ...
 Display the computed value of RUSTUP_HOME
 
-USAGE:
-    rustup[EXE] show home
+Usage: rustup[EXE] show home
 
-OPTIONS:
-    -h, --help    Print help information
+Options:
+  -h, --help  Print help
 """
 stderr = ""

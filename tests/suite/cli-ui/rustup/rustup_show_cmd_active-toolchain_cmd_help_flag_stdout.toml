@@ -1,17 +1,16 @@
 bin.name = "rustup"
-args = ["show","active-toolchain","--help"]
+args = ["show", "active-toolchain", "--help"]
 stdout = """
 ...
 Show the active toolchain
 
-USAGE:
-    rustup[EXE] show active-toolchain [OPTIONS]
+Usage: rustup[EXE] show active-toolchain [OPTIONS]
 
-OPTIONS:
-    -v, --verbose    Enable verbose output with rustc information
-    -h, --help       Print help information
+Options:
+  -v, --verbose  Enable verbose output with rustc information
+  -h, --help     Print help
 
-DISCUSSION:
+Discussion:
     Shows the name of the active toolchain.
 
     This is useful for figuring out the active tool chain from

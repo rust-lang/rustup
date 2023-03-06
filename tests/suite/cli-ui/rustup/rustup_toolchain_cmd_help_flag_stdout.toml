@@ -1,23 +1,22 @@
 bin.name = "rustup"
-args = ["toolchain","--help"]
+args = ["toolchain", "--help"]
 stdout = """
 ...
 Modify or query the installed toolchains
 
-USAGE:
-    rustup[EXE] toolchain <SUBCOMMAND>
+Usage: rustup[EXE] toolchain <COMMAND>
 
-OPTIONS:
-    -h, --help    Print help information
+Commands:
+  list       List installed toolchains
+  install    Install or update a given toolchain
+  uninstall  Uninstall a toolchain
+  link       Create a custom toolchain by symlinking to a directory
+  help       Print this message or the help of the given subcommand(s)
 
-SUBCOMMANDS:
-    list         List installed toolchains
-    install      Install or update a given toolchain
-    uninstall    Uninstall a toolchain
-    link         Create a custom toolchain by symlinking to a directory
-    help         Print this message or the help of the given subcommand(s)
+Options:
+  -h, --help  Print help
 
-DISCUSSION:
+Discussion:
     Many `rustup` commands deal with *toolchains*, a single
     installation of the Rust compiler. `rustup` supports multiple
     types of toolchains. The most basic track the official release

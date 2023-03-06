@@ -1,14 +1,13 @@
 bin.name = "rustup"
-args = ["self","uninstall","--help"]
+args = ["self", "uninstall", "--help"]
 stdout = """
 ...
 Uninstall rustup.
 
-USAGE:
-    rustup[EXE] self uninstall [OPTIONS]
+Usage: rustup[EXE] self uninstall [OPTIONS]
 
-OPTIONS:
-    -y            
-    -h, --help    Print help information
+Options:
+  -y          
+  -h, --help  Print help
 """
 stderr = ""

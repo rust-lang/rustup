@@ -1,17 +1,16 @@
 bin.name = "rustup"
-args = ["toolchain","uninstall","--help"]
+args = ["toolchain", "uninstall", "--help"]
 stdout = """
 ...
 Uninstall a toolchain
 
-USAGE:
-    rustup[EXE] toolchain uninstall <toolchain>...
+Usage: rustup[EXE] toolchain uninstall <toolchain>...
 
-ARGS:
-    <toolchain>...    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
-                      information see `rustup help toolchain`
+Arguments:
+  <toolchain>...  Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see
+                  `rustup help toolchain`
 
-OPTIONS:
-    -h, --help    Print help information
+Options:
+  -h, --help  Print help
 """
 stderr = ""

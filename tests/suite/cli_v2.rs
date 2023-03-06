@@ -1029,7 +1029,7 @@ fn update_unavailable_std() {
     setup(&|config| {
         make_component_unavailable(config, "rust-std", &this_host_triple());
         config.expect_err(
-            &["rustup", "update", "nightly", ],
+            &["rustup", "update", "nightly"],
             for_host!(
                 "component 'rust-std' for target '{0}' is unavailable for download for channel 'nightly'"
             ),

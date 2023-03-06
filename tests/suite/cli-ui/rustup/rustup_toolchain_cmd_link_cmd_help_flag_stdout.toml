@@ -1,20 +1,19 @@
 bin.name = "rustup"
-args = ["toolchain","link","--help"]
+args = ["toolchain", "link", "--help"]
 stdout = """
 ...
 Create a custom toolchain by symlinking to a directory
 
-USAGE:
-    rustup[EXE] toolchain link <toolchain> <path>
+Usage: rustup[EXE] toolchain link <toolchain> <path>
 
-ARGS:
-    <toolchain>    Custom toolchain name
-    <path>         Path to the directory
+Arguments:
+  <toolchain>  Custom toolchain name
+  <path>       Path to the directory
 
-OPTIONS:
-    -h, --help    Print help information
+Options:
+  -h, --help  Print help
 
-DISCUSSION:
+Discussion:
     'toolchain' is the custom name to be assigned to the new toolchain.
     Any name is permitted as long as it does not fully match an initial
     substring of a standard release channel. For example, you can use

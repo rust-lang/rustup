@@ -121,7 +121,7 @@ pub fn this_host_triple() -> String {
         // For windows, this host may be different to the target: we may be
         // building with i686 toolchain, but on an x86_64 host, so run the
         // actual detection logic and trust it.
-        let tp = Box::new(currentprocess::TestProcess::default());
+        let tp = Box::<currentprocess::TestProcess>::default();
         return currentprocess::with(tp, || TargetTriple::from_host().unwrap().to_string());
     }
     let arch = if cfg!(target_arch = "x86") {

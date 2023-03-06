@@ -145,7 +145,7 @@ fn subcommand_required_for_target() {
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
         assert_eq!(out.status.code().unwrap(), 1);
-        assert!(str::from_utf8(&out.stdout).unwrap().contains("USAGE"));
+        assert!(str::from_utf8(&out.stderr).unwrap().contains("Usage"));
     });
 }
 
@@ -159,7 +159,7 @@ fn subcommand_required_for_toolchain() {
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
         assert_eq!(out.status.code().unwrap(), 1);
-        assert!(str::from_utf8(&out.stdout).unwrap().contains("USAGE"));
+        assert!(str::from_utf8(&out.stderr).unwrap().contains("Usage"));
     });
 }
 
@@ -173,7 +173,7 @@ fn subcommand_required_for_override() {
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
         assert_eq!(out.status.code().unwrap(), 1);
-        assert!(str::from_utf8(&out.stdout).unwrap().contains("USAGE"));
+        assert!(str::from_utf8(&out.stderr).unwrap().contains("Usage"));
     });
 }
 
@@ -187,7 +187,7 @@ fn subcommand_required_for_self() {
         let out = cmd.output().unwrap();
         assert!(!out.status.success());
         assert_eq!(out.status.code().unwrap(), 1);
-        assert!(str::from_utf8(&out.stdout).unwrap().contains("USAGE"));
+        assert!(str::from_utf8(&out.stderr).unwrap().contains("Usage"));
     });
 }
 
@@ -807,11 +807,11 @@ fn completion_bad_shell() {
     setup(&|config| {
         config.expect_err(
             &["rustup", "completions", "fake"],
-            r#"error: "fake" isn't a valid value for '<shell>'"#,
+            r#"error: invalid value 'fake' for '[shell]'"#,
         );
         config.expect_err(
             &["rustup", "completions", "fake", "cargo"],
-            r#"error: "fake" isn't a valid value for '<shell>'"#,
+            r#"error: invalid value 'fake' for '[shell]'"#,
         );
     });
 }
@@ -821,7 +821,7 @@ fn completion_bad_tool() {
     setup(&|config| {
         config.expect_err(
             &["rustup", "completions", "bash", "fake"],
-            r#"error: "fake" isn't a valid value for '<command>'"#,
+            r#"error: invalid value 'fake' for '[command]'"#,
         );
     });
 }
