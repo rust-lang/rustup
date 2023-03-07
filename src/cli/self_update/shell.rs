@@ -235,6 +235,17 @@ impl UnixShell for Fish {
     fn update_rcs(&self) -> Vec<PathBuf> {
         self.rcfiles()
     }
+
+    fn env_script(&self) -> ShellScript {
+        ShellScript {
+            name: "env.fish",
+            content: include_str!("env.fish"),
+        }
+    }
+
+    fn source_string(&self) -> Result<String> {
+        Ok(format!(r#". "{}/env.fish""#, cargo_home_str()?))
+    }
 }
 
 pub(crate) fn legacy_paths() -> impl Iterator<Item = PathBuf> {
