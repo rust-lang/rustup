@@ -220,12 +220,12 @@ impl UnixShell for Fish {
     fn rcfiles(&self) -> Vec<PathBuf> {
         let p0 = process().var("XDG_CONFIG_HOME").ok().map(|p| {
             let mut path = PathBuf::from(p);
-            path.push("fish/config.d/rustup.fish");
+            path.push("fish/conf.d/rustup.fish");
             path
         });
 
         let p1 = utils::home_dir().map(|mut path| {
-            path.push(".config/fish/config.d/rustup.fish");
+            path.push(".config/fish/conf.d/rustup.fish");
             path
         });
 
