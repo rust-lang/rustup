@@ -233,16 +233,7 @@ impl UnixShell for Fish {
     }
 
     fn update_rcs(&self) -> Vec<PathBuf> {
-        if let Ok(home) = process().var("XDG_CONFIG_HOME") {
-            let mut path = PathBuf::from(home);
-            path.push("fish/config.d/rustup.fish");
-            vec![path]
-        } else if let Some(mut path) = utils::home_dir() {
-            path.push(".config/fish/config.d/rustup.fish");
-            vec![path]
-        } else {
-            Vec::new()
-        }
+        self.rcfiles()
     }
 }
 
