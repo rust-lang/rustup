@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 name = "rustup"
 readme = "README.md"
 repository = "https://github.com/rust-lang/rustup"
-version = "1.25.2"
+version = "1.26.0"
 
 [features]
 curl-backend = ["download/curl-backend"]
