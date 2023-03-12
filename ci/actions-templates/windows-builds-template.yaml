@@ -76,6 +76,7 @@ jobs:
       - name: Set PATH
         run: |
           echo "%USERPROFILE%\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+          echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Skip tests
         if: matrix.run_tests == '' || matrix.mode == 'release'
         run: |
