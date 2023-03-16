@@ -63,6 +63,39 @@ please review the repository.
 [pr#3054]: https://github.com/rust-lang/rustup/pull/3054
 [pr#renovate-bot]: https://github.com/rust-lang/rustup/pulls?q=is:pr+author:app/renovate+is:merged
 
+Thanks go to:
+
+- Daniel Silverstone (kinnison)
+- Sabrina Jewson (SabrinaJewson)
+- Robert Collins (rbtcollins)
+- chansuke (chansuke)
+- Shamil (shamilsan)
+- Oli Lalonde (olalonde)
+- 二手掉包工程师 (hi-rustin)
+- Eric Huss (ehuss)
+- J Balint BIRO (jbalintbiro)
+- Easton Pillay (jedieaston)
+- zhaixiaojuan (zhaixiaojuan)
+- Chris Denton (ChrisDenton)
+- Martin Geisler (mgeisler)
+- Lucio Franco (LucioFranco)
+- Nicholas Bishop (nicholasbishop)
+- SADIK KUZU (sadikkuzu)
+- darkyshiny (darkyshiny)
+- René Dudfield (illume)
+- Noritada Kobayashi (noritada)
+- Mohammad AlSaleh (MoSal)
+- Dustin Martin (dmartin)
+- Ville Skyttä (scop)
+- Tshepang Mbambo (tshepang)
+- Illia Bobyr (ilya-bobyr)
+- Vincent Rischmann (vrischmann)
+- Alexander (Alovchin91)
+- Daniel Brotsky (brotskydotcom)
+- zohnannor (zohnannor)
+- Joshua Nelson (jyn514)
+- Renovate Bot (renovate-bot)
+
 ## [1.25.2] - 2023-02-01
 
 This version of Rustup changes the signature verification code to continue
