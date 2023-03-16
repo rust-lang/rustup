@@ -1,5 +1,68 @@
 # Changelog
 
+## [1.26.0] - unreleased
+
+This version of Rustup involves a significant number of internal refactors, both in terms
+of the Rustup code and its tests.
+
+The headlines for this release are:
+
+1. Add [rust-analyzer] as a [proxy] of rustup. Now you can call `rust-analyzer` and it will
+   be proxied to the rust-analyzer component for the current toolchain.
+2. Bump the [clap] dependency from 2.x to 3.x. It's a major version bump, so there are some
+   help text changes, but the command line interface is unchanged.
+
+In addition to a lot of work on the codebase itself, due to the length of time since the last
+release this one has a record number of contributors and we thank you all for your efforts and time.
+
+Rather than list every single merged PR since the last release, we have pulled out
+a number of highlights to include in this changelog entry. For everything else,
+please review the repository.
+
+### Added
+
+- Added `rust-analyzer` as a proxy of rustup [pr#3022]
+- Added DisplayVersion for rustup to registry on Windows [pr#3047]
+- Build Rustup for Windows arm64 on stable [pr#3232]
+- Added `up` as an alias of the `update` command [pr#3044]
+- Added details of each setting in the toolchain file in the documentation [pr#3067]
+- Added automatic resume flag when retrying download with curl [pr#3089]
+- Added UI tests for rustup [pr#3209]
+
+### Changed
+
+- Bump the `clap` dependency from 2.x to 3.x [pr#3064]
+- Remove use of hard links to symlinks on macOS [pr#3137]
+- Avoid deduplicate PATH entries added during build [pr#2848]
+- The toolchain name cannot be left blank [pr#2993]
+- Correctly propagate subshell failures in rustup-init.sh [pr#3012]
+- Enhanced warning message for Rust installation already present [pr#3038]
+- Improved error message when there is an error caused by override file [pr#3041]
+- Explain [proxy] in terminology documentation [pr#3091]
+- Recommend tracking `Cargo.lock` with rust-toolchain file [pr#3054]
+- Bump a lot of dependencies to their latest versions [pr#renovate-bot]
+
+[rust-analyzer]: https://github.com/rust-lang/rust-analyzer
+[proxy]: https://rust-lang.github.io/rustup/concepts/proxies.html
+[clap]: https://crates.io/crates/clap
+[pr#3022]: https://github.com/rust-lang/rustup/pull/3022
+[pr#3047]: https://github.com/rust-lang/rustup/pull/3047
+[pr#3232]: https://github.com/rust-lang/rustup/pull/3232
+[pr#3044]: https://github.com/rust-lang/rustup/pull/3044
+[pr#3067]: https://github.com/rust-lang/rustup/pull/3067
+[pr#3089]: https://github.com/rust-lang/rustup/pull/3089
+[pr#3209]: https://github.com/rust-lang/rustup/pull/3209
+[pr#3064]: https://github.com/rust-lang/rustup/pull/3064
+[pr#3137]: https://github.com/rust-lang/rustup/pull/3137
+[pr#2848]: https://github.com/rust-lang/rustup/pull/2848
+[pr#2993]: https://github.com/rust-lang/rustup/pull/2993
+[pr#3012]: https://github.com/rust-lang/rustup/pull/3012
+[pr#3038]: https://github.com/rust-lang/rustup/pull/3038
+[pr#3041]: https://github.com/rust-lang/rustup/pull/3041
+[pr#3091]: https://github.com/rust-lang/rustup/pull/3091
+[pr#3054]: https://github.com/rust-lang/rustup/pull/3054
+[pr#renovate-bot]: https://github.com/rust-lang/rustup/pulls?q=is:pr+author:app/renovate+is:merged
+
 ## [1.25.2] - 2023-02-01
 
 This version of Rustup changes the signature verification code to continue
