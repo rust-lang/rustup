@@ -8,7 +8,7 @@ use anyhow::Result;
 
 use sequoia_openpgp::{
     parse::{stream::*, Parse},
-    policy::{HashAlgoSecurity, StandardPolicy},
+    policy::StandardPolicy,
     types::HashAlgorithm,
     Cert, KeyHandle,
 };
@@ -23,13 +23,8 @@ pub(crate) fn sequoia_policy() -> StandardPolicy<'static> {
     // 2023-02-01, which caused warnings to be displayed to rustup users from that day onwards.
     //
     // To keep supporting the Rust signature key, we allow the SHA-1 algorithm in rustup without a
-    // cutoff date when verifying the signature key bindings. SHA-1 data signatures are still
-    // disallowed.
-    policy.reject_hash_property_at(
-        HashAlgorithm::SHA1,
-        HashAlgoSecurity::SecondPreImageResistance,
-        None,
-    );
+    // cutoff date when verifying the signature key bindings.
+    policy.accept_hash(HashAlgorithm::SHA1);
 
     policy
 }
