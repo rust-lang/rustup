@@ -1,3 +1,4 @@
+#![allow(clippy::box_default)]
 //! Test support module; public to permit use from integration tests.
 use std::collections::HashMap;
 use std::env;
@@ -120,7 +121,6 @@ pub fn this_host_triple() -> String {
         // For windows, this host may be different to the target: we may be
         // building with i686 toolchain, but on an x86_64 host, so run the
         // actual detection logic and trust it.
-        #[allow(clippy::box_default)]
         let tp = Box::new(currentprocess::TestProcess::default());
         return currentprocess::with(tp, || TargetTriple::from_host().unwrap().to_string());
     }
