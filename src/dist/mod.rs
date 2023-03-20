@@ -13,5 +13,4 @@ pub mod manifest;
 pub mod manifestation;
 pub(crate) mod notifications;
 pub mod prefix;
-pub(crate) mod signatures;
 pub(crate) mod triple;

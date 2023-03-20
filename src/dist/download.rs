@@ -6,7 +6,6 @@ use anyhow::{anyhow, Context, Result};
 use sha2::{Digest, Sha256};
 use url::Url;
 
-use crate::config::PgpPublicKey;
 use crate::dist::notifications::*;
 use crate::dist::temp;
 use crate::errors::*;
@@ -20,7 +19,6 @@ pub struct DownloadCfg<'a> {
     pub temp_cfg: &'a temp::Cfg,
     pub download_dir: &'a PathBuf,
     pub notify_handler: &'a dyn Fn(Notification<'_>),
-    pub pgp_keys: &'a [PgpPublicKey],
 }
 
 pub(crate) struct File {
@@ -137,43 +135,6 @@ impl<'a> DownloadCfg<'a> {
         utils::read_file("hash", &hash_file).map(|s| s[0..64].to_owned())
     }
 
-    fn download_signature(&self, url: &str) -> Result<String> {
-        let sig_url = utils::parse_url(&(url.to_owned() + ".asc"))?;
-        let sig_file = self.temp_cfg.new_file()?;
-
-        utils::download_file(&sig_url, &sig_file, None, &|n| {
-            (self.notify_handler)(n.into())
-        })?;
-
-        utils::read_file("signature", &sig_file)
-    }
-
-    fn check_signature(&self, url: &str, file: &temp::File<'_>) -> Result<&PgpPublicKey> {
-        assert!(
-            !self.pgp_keys.is_empty(),
-            "At least the builtin key must be present"
-        );
-
-        let signature = self
-            .download_signature(url)
-            .with_context(|| format!("failed to download signature file {url}"))?;
-
-        let file_path: &Path = file;
-        let content = std::fs::File::open(file_path).with_context(|| RustupError::ReadingFile {
-            name: "channel data",
-            path: PathBuf::from(file_path),
-        })?;
-
-        let sig_result =
-            crate::dist::signatures::verify_signature(content, &signature, self.pgp_keys)?;
-        if let Some(keyidx) = sig_result {
-            let key = &self.pgp_keys[keyidx];
-            Ok(key)
-        } else {
-            Err(anyhow!(format!("signature verification failed for {url}")))
-        }
-    }
-
     /// Downloads a file, sourcing its hash from the same url with a `.sha256` suffix.
     /// If `update_hash` is present, then that will be compared to the downloaded hash,
     /// and if they match, the download is skipped.
@@ -222,14 +183,6 @@ impl<'a> DownloadCfg<'a> {
             .into());
         } else {
             (self.notify_handler)(Notification::ChecksumValid(url_str));
-        }
-
-        // No signatures for tarballs for now.
-        if !url_str.ends_with(".tar.gz") && !url_str.ends_with(".tar.xz") {
-            match self.check_signature(url_str, &file) {
-                Ok(key) => (self.notify_handler)(Notification::SignatureValid(url_str, key)),
-                Err(_) => (self.notify_handler)(Notification::SignatureInvalid(url_str)),
-            }
         }
 
         Ok(Some((file, partial_hash)))

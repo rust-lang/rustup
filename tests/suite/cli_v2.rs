@@ -1021,12 +1021,6 @@ fn make_component_unavailable(config: &Config, name: &str, target: &str) {
     let hash_path = manifest_path.with_extension("toml.sha256");
     println!("{}", hash_path.display());
     create_hash(&manifest_path, &hash_path);
-
-    // update that signature
-    use crate::mock::dist::{create_signature, write_file};
-    let signature = create_signature(manifest_str.as_bytes()).unwrap();
-    let sig_path = manifest_path.with_extension("toml.asc");
-    write_file(&sig_path, &signature);
 }
 
 #[test]
@@ -1331,50 +1325,6 @@ info: installing component 'rustc'
             ),
         );
     });
-}
-
-/// Invalidates the signature on the manifest of the nightly channel.
-fn make_signature_invalid(config: &Config) {
-    let manifest_path = config
-        .distdir
-        .as_ref()
-        .unwrap()
-        .join("dist/channel-rust-nightly.toml");
-
-    // Set signature to sth bogus.
-    use crate::mock::dist::{create_signature, write_file};
-    let signature = create_signature(b"hello invalid").unwrap();
-    let sig_path = manifest_path.with_extension("toml.asc");
-    write_file(&sig_path, &signature);
-}
-
-#[test]
-fn warn_on_invalid_signature() {
-    setup(&|config| {
-        make_signature_invalid(config);
-
-        config.expect_stderr_ok(
-            &["rustup", "update", "nightly", ],
-            &format!(
-                "warning: Signature verification failed for 'file://{}/dist/channel-rust-nightly.toml'",
-                config.distdir.as_ref().unwrap().display(),
-            ),
-        );
-    });
-}
-
-#[test]
-fn check_pgp_keys() {
-    setup(&|config| {
-        config.expect_stderr_ok(
-            &["rustup", "show", "keys"],
-            "Fingerprint: 108F 6620 5EAE B0AA A8DD 5E1C 85AB 96E6 FA1B E5FE",
-        );
-        config.expect_stderr_ok(
-            &["rustup", "show", "keys"],
-            "Fingerprint: B695 EF92 BE5C D24E D391 24DD 1F62 3994 2A48 2D51",
-        );
-    })
 }
 
 #[test]

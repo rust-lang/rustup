@@ -997,7 +997,6 @@ fn try_update_from_dist_(
         update_hash,
         download.temp_cfg,
         &download.notify_handler,
-        download.pgp_keys,
     );
     // inspect, determine what context to add, then process afterwards.
     let mut download_not_exists = false;
