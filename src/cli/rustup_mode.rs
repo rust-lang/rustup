@@ -135,7 +135,6 @@ pub fn main() -> Result<utils::ExitCode> {
                     ("active-toolchain", m) => handle_epipe(show_active_toolchain(cfg, m))?,
                     ("home", _) => handle_epipe(show_rustup_home(cfg))?,
                     ("profile", _) => handle_epipe(show_profile(cfg))?,
-                    ("keys", _) => handle_epipe(show_keys(cfg))?,
                     _ => handle_epipe(show(cfg, c))?,
                 },
                 None => handle_epipe(show(cfg, c))?,
@@ -1665,15 +1664,6 @@ fn set_auto_self_update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode
 
 fn show_profile(cfg: &Cfg) -> Result<utils::ExitCode> {
     writeln!(process().stdout(), "{}", cfg.get_profile()?)?;
-    Ok(utils::ExitCode(0))
-}
-
-fn show_keys(cfg: &Cfg) -> Result<utils::ExitCode> {
-    for key in cfg.get_pgp_keys() {
-        for l in key.show_key()? {
-            info!("{}", l);
-        }
-    }
     Ok(utils::ExitCode(0))
 }
 

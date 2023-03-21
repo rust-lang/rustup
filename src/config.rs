@@ -7,13 +7,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use anyhow::{anyhow, bail, Context, Result};
-use sequoia_openpgp::{parse::Parse, Cert};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 
 use crate::cli::self_update::SelfUpdateMode;
 use crate::dist::download::DownloadCfg;
-use crate::dist::signatures::sequoia_policy;
 use crate::dist::{
     dist::{self, Profile},
     temp,
@@ -155,77 +153,6 @@ impl<'a> OverrideCfg<'a> {
     }
 }
 
-lazy_static::lazy_static! {
-    static ref BUILTIN_PGP_KEY: Cert =
-        Cert::from_bytes(&include_bytes!("rust-key.pgp.ascii")[..]).unwrap();
-}
-
-#[allow(clippy::large_enum_variant)] // Builtin is tiny, the rest are sane
-#[derive(Debug)]
-pub enum PgpPublicKey {
-    Builtin,
-    FromEnvironment(PathBuf, Cert),
-    FromConfiguration(PathBuf, Cert),
-}
-
-impl PgpPublicKey {
-    /// Retrieve the key.
-    pub(crate) fn cert(&self) -> &Cert {
-        match self {
-            Self::Builtin => &BUILTIN_PGP_KEY,
-            Self::FromEnvironment(_, k) => k,
-            Self::FromConfiguration(_, k) => k,
-        }
-    }
-
-    /// Display the key in detail for the user
-    pub(crate) fn show_key(&self) -> Result<Vec<String>> {
-        fn format_hex(bytes: &[u8], separator: &str, every: usize) -> Result<String> {
-            use std::fmt::Write;
-            let mut ret = String::new();
-            let mut wait = every;
-            for b in bytes.iter() {
-                if wait == 0 {
-                    ret.push_str(separator);
-                    wait = every;
-                }
-                wait -= 1;
-                write!(ret, "{b:02X}")?;
-            }
-            Ok(ret)
-        }
-        let mut ret = vec![format!("from {self}")];
-        let cert = self.cert();
-        let keyid = format_hex(cert.keyid().as_bytes(), "-", 4)?;
-        let algo = cert.primary_key().pk_algo();
-        let fpr = format_hex(cert.fingerprint().as_bytes(), " ", 2)?;
-        let p = sequoia_policy();
-
-        let uid0 = cert
-            .with_policy(&p, None)?
-            .primary_userid()
-            .map(|u| u.userid().to_string())
-            .unwrap_or_else(|_| "<No User ID>".into());
-        ret.push(format!("  {algo:?}/{keyid} - {uid0}"));
-        ret.push(format!("  Fingerprint: {fpr}"));
-        Ok(ret)
-    }
-}
-
-impl Display for PgpPublicKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Builtin => write!(f, "builtin Rust release key"),
-            Self::FromEnvironment(p, _) => {
-                write!(f, "key specified in RUSTUP_PGP_KEY ({})", p.display())
-            }
-            Self::FromConfiguration(p, _) => {
-                write!(f, "key specified in configuration file ({})", p.display())
-            }
-        }
-    }
-}
-
 pub(crate) const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
 
 pub struct Cfg {
@@ -237,7 +164,6 @@ pub struct Cfg {
     pub update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
     pub temp_cfg: temp::Cfg,
-    pgp_keys: Vec<PgpPublicKey>,
     pub toolchain_override: Option<String>,
     pub env_override: Option<String>,
     pub dist_root_url: String,
@@ -270,35 +196,6 @@ impl Cfg {
         let toolchains_dir = rustup_dir.join("toolchains");
         let update_hash_dir = rustup_dir.join("update-hashes");
         let download_dir = rustup_dir.join("downloads");
-
-        // PGP keys
-        let mut pgp_keys: Vec<PgpPublicKey> = vec![PgpPublicKey::Builtin];
-
-        if let Some(ref s_path) = process().var_os("RUSTUP_PGP_KEY") {
-            let path = PathBuf::from(s_path);
-            let file = utils::open_file("RUSTUP_PGP_KEY", &path)?;
-            let key = Cert::from_reader(file).map_err(|error| RustupError::InvalidPgpKey {
-                path: s_path.into(),
-                source: error,
-            })?;
-
-            pgp_keys.push(PgpPublicKey::FromEnvironment(path, key));
-        }
-        settings_file.with(|s| {
-            if let Some(s) = &s.pgp_keys {
-                let path = PathBuf::from(s);
-                let file = utils::open_file("PGP Key from config", &path)?;
-                let key = Cert::from_reader(file).map_err(|error| {
-                    anyhow!(RustupError::InvalidPgpKey {
-                        path: s.into(),
-                        source: error,
-                    })
-                })?;
-
-                pgp_keys.push(PgpPublicKey::FromConfiguration(path, key));
-            }
-            Ok(())
-        })?;
 
         // Environment override
         let env_override = process()
@@ -338,7 +235,6 @@ impl Cfg {
             update_hash_dir,
             download_dir,
             temp_cfg,
-            pgp_keys,
             notify_handler,
             toolchain_override: None,
             env_override,
@@ -364,12 +260,7 @@ impl Cfg {
             temp_cfg: &self.temp_cfg,
             download_dir: &self.download_dir,
             notify_handler,
-            pgp_keys: self.get_pgp_keys(),
         }
-    }
-
-    pub(crate) fn get_pgp_keys(&self) -> &[PgpPublicKey] {
-        &self.pgp_keys
     }
 
     pub(crate) fn set_profile_override(&mut self, profile: dist::Profile) {

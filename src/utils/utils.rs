@@ -42,13 +42,6 @@ where
     })
 }
 
-pub(crate) fn open_file(name: &'static str, path: &Path) -> Result<File> {
-    File::open(path).with_context(|| RustupError::ReadingFile {
-        name,
-        path: PathBuf::from(path),
-    })
-}
-
 pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
     fs::read_to_string(path).with_context(|| RustupError::ReadingFile {
         name,
