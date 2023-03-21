@@ -1,3 +1,4 @@
+#![allow(clippy::box_default)]
 //! Test support module; public to permit use from integration tests.
 use std::collections::HashMap;
 use std::env;

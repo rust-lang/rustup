@@ -1,5 +1,6 @@
 // Tests of installation and updates from a v2 Rust distribution
 // server (mocked on the file system)
+#![allow(clippy::type_complexity)]
 
 use std::cell::Cell;
 use std::collections::HashMap;
