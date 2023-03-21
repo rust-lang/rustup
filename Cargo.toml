@@ -41,7 +41,7 @@ clap = { version = "3", features = ["wrap_help"] }
 clap_complete = "3"
 download = { path = "download", default-features = false }
 effective-limits = "0.5.5"
-enum-map = "2.4.2"
+enum-map = "2.5.0"
 flate2 = "1"
 git-testament = "0.2"
 home = "0.5.4"
@@ -116,7 +116,7 @@ features = [
 version = "0.3"
 
 [dev-dependencies]
-enum-map = "2.4.2"
+enum-map = "2.5.0"
 once_cell = "1.17.1"
 trycmd = "0.14.13"
 walkdir = "2"
