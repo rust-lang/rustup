@@ -547,6 +547,63 @@ fn fallback_cargo_calls_correct_rustc() {
     });
 }
 
+// Checks that cargo can recursively invoke itself with rustup shorthand (via
+// the proxy).
+//
+// This involves a series of chained commands:
+//
+// 1. Calls `cargo --recursive-cargo-subcommand`
+// 2. The rustup `cargo` proxy launches, and launches the "mock" nightly cargo exe.
+// 3. The nightly "mock" cargo sees --recursive-cargo-subcommand, and launches
+//    `cargo-foo --recursive-cargo`
+// 4. `cargo-foo` sees `--recursive-cargo` and launches `cargo +nightly --version`
+// 5. The rustup `cargo` proxy launches, and launches the "mock" nightly cargo exe.
+// 6. The nightly "mock" cargo sees `--version` and prints the version.
+//
+// Previously, rustup would place the toolchain's `bin` directory in PATH for
+// Windows due to some DLL issues. However, those aren't necessary anymore.
+// If the toolchain `bin` directory is in PATH, then this test would fail in
+// step 5 because the `cargo` executable would be the "mock" nightly cargo,
+// and the first argument would be `+nightly` which would be an error.
+#[test]
+fn recursive_cargo() {
+    test(&|config| {
+        config.with_scenario(Scenario::ArchivesV2, &|config| {
+            config.expect_ok(&["rustup", "default", "nightly"]);
+
+            // We need an intermediary to run cargo itself.
+            // The "mock" cargo can't do that because on Windows it will check
+            // for a `cargo.exe` in the current directory before checking PATH.
+            //
+            // The solution here is to copy from the "mock" `cargo.exe` into
+            // `~/.cargo/bin/cargo-foo`. This is just for convenience to avoid
+            // needing to build another executable just for this test.
+            let output = config.run("rustup", &["which", "cargo"], &[]);
+            let real_mock_cargo = output.stdout.trim();
+            let cargo_bin_path = config.cargodir.join("bin");
+            let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{}", EXE_SUFFIX));
+            fs::create_dir_all(&cargo_bin_path).unwrap();
+            fs::copy(&real_mock_cargo, &cargo_subcommand).unwrap();
+
+            // Verify the default behavior, which is currently broken on Windows.
+            let args = &["cargo", "--recursive-cargo-subcommand"];
+            if cfg!(windows) {
+                config.expect_err(
+                    &["cargo", "--recursive-cargo-subcommand"],
+                    "bad mock proxy commandline",
+                );
+            }
+
+            // Try the opt-in, which should fix it.
+            let out = config.run(args[0], &args[1..], &[("RUSTUP_WINDOWS_PATH_ADD_BIN", "0")]);
+            if !out.ok || !out.stdout.contains("hash-nightly-2") {
+                clitools::print_command(args, &out);
+                panic!("expected hash-nightly-2 in output");
+            }
+        });
+    });
+}
+
 #[test]
 fn show_home() {
     test(&|config| {

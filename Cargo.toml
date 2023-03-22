@@ -1,5 +1,8 @@
 [package]
-authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>", "Diggory Blake <diggsey@googlemail.com>"]
+authors = [
+    "Daniel Silverstone <dsilvers@digital-scurf.org>",
+    "Diggory Blake <diggsey@googlemail.com>",
+]
 build = "build.rs"
 description = "Manage multiple rust installations with ease"
 edition = "2021"
@@ -13,7 +16,12 @@ version = "1.26.0"
 
 [features]
 curl-backend = ["download/curl-backend"]
-default = ["curl-backend", "reqwest-backend", "reqwest-default-tls", "reqwest-rustls-tls"]
+default = [
+    "curl-backend",
+    "reqwest-backend",
+    "reqwest-default-tls",
+    "reqwest-rustls-tls",
+]
 
 reqwest-backend = ["download/reqwest-backend"]
 vendored-openssl = ['openssl/vendored']
@@ -29,9 +37,9 @@ no-self-update = []
 anyhow.workspace = true
 cfg-if = "1.0"
 chrono = "0.4"
-clap = {version = "3", features = ["wrap_help"]}
+clap = { version = "3", features = ["wrap_help"] }
 clap_complete = "3"
-download = {path = "download", default-features = false}
+download = { path = "download", default-features = false }
 effective-limits = "0.5.5"
 enum-map = "2.4.2"
 flate2 = "1"
@@ -44,16 +52,15 @@ opener = "0.5.2"
 # Used by `curl` or `reqwest` backend although it isn't imported by our rustup :
 # this allows controlling the vendoring status without exposing the presence of
 # the download crate.
-openssl = {version = "0.10", optional = true}
-pulldown-cmark = {version = "0.9", default-features = false}
+openssl = { version = "0.10", optional = true }
+pulldown-cmark = { version = "0.9", default-features = false }
 rand = "0.8"
 regex = "1"
-remove_dir_all = {version= "0.8.1", features=["parallel"]}
+remove_dir_all = { version = "0.8.1", features = ["parallel"] }
 same-file = "1"
 scopeguard = "1"
 semver = "1.0"
-serde = {version = "1.0", features = ["derive"]}
-sequoia-openpgp = { version = "1.13", default-features = false, features = ["crypto-rust", "allow-experimental-crypto", "allow-variable-time-crypto"] }
+serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10"
 sharded-slab = "0.1.1"
 strsim = "0.10"
@@ -68,7 +75,6 @@ url.workspace = true
 wait-timeout = "0.2"
 xz2 = "0.1.3"
 zstd = "0.12"
-trycmd = "0.14.13"
 
 [dependencies.retry]
 default-features = false
@@ -85,34 +91,35 @@ winreg = "0.11"
 
 [target."cfg(windows)".dependencies.winapi]
 features = [
-  "combaseapi",
-  "errhandlingapi",
-  "fileapi",
-  "handleapi",
-  "ioapiset",
-  "jobapi",
-  "jobapi2",
-  "minwindef",
-  "processthreadsapi",
-  "psapi",
-  "shlobj",
-  "shtypes",
-  "synchapi",
-  "sysinfoapi",
-  "tlhelp32",
-  "userenv",
-  "winbase",
-  "winerror",
-  "winioctl",
-  "winnt",
-  "winuser",
+    "combaseapi",
+    "errhandlingapi",
+    "fileapi",
+    "handleapi",
+    "ioapiset",
+    "jobapi",
+    "jobapi2",
+    "minwindef",
+    "processthreadsapi",
+    "psapi",
+    "shlobj",
+    "shtypes",
+    "synchapi",
+    "sysinfoapi",
+    "tlhelp32",
+    "userenv",
+    "winbase",
+    "winerror",
+    "winioctl",
+    "winnt",
+    "winuser",
 ]
 version = "0.3"
 
 [dev-dependencies]
-walkdir = "2"
-once_cell = "1.17.1"
 enum-map = "2.4.2"
+once_cell = "1.17.1"
+trycmd = "0.14.13"
+walkdir = "2"
 
 [build-dependencies]
 lazy_static = "1"
@@ -139,4 +146,3 @@ lto = true
 # Reduce build time by setting proc-macro crates non optimized.
 [profile.release.build-override]
 opt-level = 0
-

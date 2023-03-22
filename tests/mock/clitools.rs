@@ -762,7 +762,7 @@ impl Config {
 
 /// Change the current distribution manifest to a particular date
 pub fn set_current_dist_date(config: &Config, date: &str) {
-    let url = Url::from_file_path(&config.distdir.as_ref().unwrap()).unwrap();
+    let url = Url::from_file_path(config.distdir.as_ref().unwrap()).unwrap();
     for channel in &["nightly", "beta", "stable"] {
         change_channel_date(&url, channel, date);
     }

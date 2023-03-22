@@ -3,7 +3,6 @@
 
 use crate::mock::MockInstallerBuilder;
 use lazy_static::lazy_static;
-use sequoia_openpgp::{parse::Parse, Cert};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -294,13 +293,6 @@ impl MockDistServer {
 
         let archive_hash_path = self.path.join(format!("{archive_manifest_name}.sha256"));
         hard_link(&hash_path, archive_hash_path).unwrap();
-
-        let signature = create_signature(buf.as_bytes()).unwrap();
-        let sig_path = self.path.join(format!("{manifest_name}.asc"));
-        write_file(&sig_path, &signature);
-
-        let archive_sig_path = self.path.join(format!("{archive_manifest_name}.asc"));
-        hard_link(sig_path, archive_sig_path).unwrap();
     }
 
     fn write_manifest_v2(
@@ -452,13 +444,6 @@ impl MockDistServer {
             .path
             .join(format!("{archive_manifest_name}.toml.sha256"));
         hard_link(hash_path, archive_hash_path).unwrap();
-
-        let signature = create_signature(manifest_content.as_bytes()).unwrap();
-        let sig_path = self.path.join(format!("{manifest_name}.toml.asc"));
-        write_file(&sig_path, &signature);
-
-        let archive_sig_path = self.path.join(format!("{archive_manifest_name}.toml.asc"));
-        hard_link(sig_path, archive_sig_path).unwrap();
     }
 }
 
@@ -526,44 +511,4 @@ pub fn write_file(dst: &Path, contents: &str) {
     File::create(dst)
         .and_then(|mut f| f.write_all(contents.as_bytes()))
         .unwrap();
-}
-
-const SIGNING_KEY_BYTES: &[u8] = include_bytes!("signing-key.asc");
-const PUB_SIGNING_KEY_BYTES: &[u8] = include_bytes!("signing-key.pub.asc");
-
-fn get_secret_key() -> Cert {
-    Cert::from_bytes(SIGNING_KEY_BYTES).unwrap()
-}
-
-pub fn get_public_key() -> Cert {
-    Cert::from_bytes(PUB_SIGNING_KEY_BYTES).unwrap()
-}
-
-pub fn create_signature(data: &[u8]) -> anyhow::Result<String> {
-    use sequoia_openpgp::serialize::stream::*;
-    let key = get_secret_key();
-
-    let p = sequoia_openpgp::policy::StandardPolicy::new();
-    let signing_keypair = key
-        .with_policy(&p, None)?
-        .keys()
-        .secret()
-        .supported()
-        .alive()
-        .revoked(false)
-        .for_signing()
-        .next()
-        .unwrap()
-        .key()
-        .clone()
-        .into_keypair()?;
-
-    let mut buf = Vec::new();
-    let message = Message::new(&mut buf);
-    let message = Armorer::new(message).build()?;
-    let mut message = Signer::new(message, signing_keypair).detached().build()?;
-    message.write_all(data)?;
-    message.finalize()?;
-
-    Ok(String::from_utf8(buf)?)
 }

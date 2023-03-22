@@ -1,5 +1,6 @@
 // Tests of installation and updates from a v2 Rust distribution
 // server (mocked on the file system)
+#![allow(clippy::type_complexity)]
 
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -23,7 +24,6 @@ use rustup::dist::Notification;
 use rustup::errors::RustupError;
 use rustup::utils::raw as utils_raw;
 use rustup::utils::utils;
-use rustup::PgpPublicKey;
 
 use crate::mock::dist::*;
 use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
@@ -553,10 +553,6 @@ fn setup_from_dist_server(
         notify_handler: &|event| {
             println!("{event}");
         },
-        pgp_keys: &[PgpPublicKey::FromEnvironment(
-            "test-key".into(),
-            get_public_key(),
-        )],
     };
 
     currentprocess::with(
@@ -2091,10 +2087,6 @@ fn reuse_downloaded_file() {
                     reuse_notification_fired.set(true);
                 }
             },
-            pgp_keys: &[PgpPublicKey::FromEnvironment(
-                "test-key".into(),
-                get_public_key(),
-            )],
         };
 
         update_from_dist(
@@ -2162,10 +2154,6 @@ fn checks_files_hashes_before_reuse() {
                     noticed_bad_checksum.set(true);
                 }
             },
-            pgp_keys: &[PgpPublicKey::FromEnvironment(
-                "test-key".into(),
-                get_public_key(),
-            )],
         };
 
         update_from_dist(
