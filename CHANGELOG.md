@@ -11,8 +11,9 @@ The headlines for this release are:
    be proxied to the rust-analyzer component for the current toolchain.
 2. Bump the [clap] dependency from 2.x to 3.x. It's a major version bump, so there are some
    help text changes, but the command line interface is unchanged.
-3. Remove GPG signature support, which will result in the removal of the `rustup show keys` command.
-   This change is necessary because the use of SHA-1 for signature verification is [no longer secure], as it has been found to be vulnerable to attacks. However, rest assured that rustup remains safe to use, as we still have checksum verification in place. We plan to reintroduce signature support as soon as we have a more secure solution.
+3. Remove experimental GPG signature validation and the `rustup show keys` command. Due to its
+   experimental status, validating the integrity of downloaded binaries did not rely on it, and there was no option to abort the installation if a signature mismatch happened.
+   Multiple problems with its implementation were discovered in the recent months, which led to the decision to remove the experimental code. The team is working on the design of a new signature validation scheme, which will be implemented in the future.
 
 In addition to a lot of work on the codebase itself, due to the length of time since the last
 release this one has a record number of contributors and we thank you all for your efforts and time.
