@@ -21,6 +21,7 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
+          - aarch64-linux-android
           - aarch64-unknown-linux-gnu     # skip-pr
           - aarch64-unknown-linux-musl    # skip-pr skip-master
           - powerpc64-unknown-linux-gnu   # skip-pr
@@ -38,13 +39,10 @@ jobs:
           - mipsel-unknown-linux-gnu      # skip-pr skip-master
           - mips64el-unknown-linux-gnuabi64 # skip-pr skip-master
           - s390x-unknown-linux-gnu       # skip-pr skip-master
-# Temporarily disabled due to https://github.com/rust-lang/rust/issues/103673.
-# FIXME(hi-rustin): Re-enable them after the issue is fixed.
-#          - arm-linux-androideabi         skip-pr skip-master
-#          - armv7-linux-androideabi       skip-pr skip-master
-#          - i686-linux-android            skip-pr skip-master
-#          - x86_64-linux-android          skip-pr skip-master
-#          - aarch64-linux-android
+          - arm-linux-androideabi         # skip-pr skip-master
+          - armv7-linux-androideabi       # skip-pr skip-master
+          - i686-linux-android            # skip-pr skip-master
+          - x86_64-linux-android          # skip-pr skip-master
           - riscv64gc-unknown-linux-gnu   # skip-pr skip-master
         include:
           - target: x86_64-unknown-linux-gnu

@@ -22,9 +22,7 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
-# Temporarily disabled due to https://github.com/rust-lang/rust/issues/103673.
-# FIXME(hi-rustin): Re-enable them after the issue is fixed.
-#          - aarch64-linux-android
+          - aarch64-linux-android
         include:
           - target: x86_64-unknown-linux-gnu
             run_tests: YES
