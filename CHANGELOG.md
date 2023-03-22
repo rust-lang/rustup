@@ -49,7 +49,6 @@ please review the repository.
 
 [rust-analyzer]: https://github.com/rust-lang/rust-analyzer
 [proxy]: https://rust-lang.github.io/rustup/concepts/proxies.html
-[no longer secure]: https://sequoia-pgp.org/blog/2023/02/01/202302-happy-sha1-day
 [clap]: https://crates.io/crates/clap
 [pr#3022]: https://github.com/rust-lang/rustup/pull/3022
 [pr#3047]: https://github.com/rust-lang/rustup/pull/3047
