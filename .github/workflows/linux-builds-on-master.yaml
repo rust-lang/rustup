@@ -23,12 +23,10 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
+          - aarch64-linux-android
           - aarch64-unknown-linux-gnu     # skip-pr
           - powerpc64-unknown-linux-gnu   # skip-pr
           - x86_64-unknown-linux-musl     # skip-pr
-# Temporarily disabled due to https://github.com/rust-lang/rust/issues/103673.
-# FIXME(hi-rustin): Re-enable them after the issue is fixed.
-#          - aarch64-linux-android
         include:
           - target: x86_64-unknown-linux-gnu
             run_tests: YES
