@@ -11,6 +11,8 @@ The headlines for this release are:
    be proxied to the rust-analyzer component for the current toolchain.
 2. Bump the [clap] dependency from 2.x to 3.x. It's a major version bump, so there are some
    help text changes, but the command line interface is unchanged.
+3. Remove GPG signature support, which will result in the removal of the `rustup show keys` command.
+   This change is necessary because the use of SHA-1 for signature verification is [no longer secure], as it has been found to be vulnerable to attacks. However, rest assured that rustup remains safe to use, as we still have checksum verification in place. We plan to reintroduce signature support as soon as we have a more secure solution.
 
 In addition to a lot of work on the codebase itself, due to the length of time since the last
 release this one has a record number of contributors and we thank you all for your efforts and time.
@@ -32,6 +34,8 @@ please review the repository.
 ### Changed
 
 - Bump the `clap` dependency from 2.x to 3.x [pr#3064]
+- Remove GPG signature support [pr#3277]
+- Don't add toolchain bin to PATH on Windows [pr#3178]
 - Remove use of hard links to symlinks on macOS [pr#3137]
 - Avoid deduplicate PATH entries added during build [pr#2848]
 - The toolchain name cannot be left blank [pr#2993]
@@ -44,6 +48,7 @@ please review the repository.
 
 [rust-analyzer]: https://github.com/rust-lang/rust-analyzer
 [proxy]: https://rust-lang.github.io/rustup/concepts/proxies.html
+[no longer secure]: https://sequoia-pgp.org/blog/2023/02/01/202302-happy-sha1-day
 [clap]: https://crates.io/crates/clap
 [pr#3022]: https://github.com/rust-lang/rustup/pull/3022
 [pr#3047]: https://github.com/rust-lang/rustup/pull/3047
@@ -53,6 +58,8 @@ please review the repository.
 [pr#3089]: https://github.com/rust-lang/rustup/pull/3089
 [pr#3209]: https://github.com/rust-lang/rustup/pull/3209
 [pr#3064]: https://github.com/rust-lang/rustup/pull/3064
+[pr#3277]: https://github.com/rust-lang/rustup/pull/3277
+[pr#3178]: https://github.com/rust-lang/rustup/pull/3178
 [pr#3137]: https://github.com/rust-lang/rustup/pull/3137
 [pr#2848]: https://github.com/rust-lang/rustup/pull/2848
 [pr#2993]: https://github.com/rust-lang/rustup/pull/2993
@@ -94,6 +101,7 @@ Thanks go to:
 - Daniel Brotsky (brotskydotcom)
 - zohnannor (zohnannor)
 - Joshua Nelson (jyn514)
+- Prikshit Gautam (gautamprikshit1)
 - Renovate Bot (renovate-bot)
 
 ## [1.25.2] - 2023-02-01
