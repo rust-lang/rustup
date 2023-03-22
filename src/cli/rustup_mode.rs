@@ -274,7 +274,6 @@ pub(crate) fn cli() -> Command<'static> {
                         .about("Display the computed value of RUSTUP_HOME"),
                 )
                 .subcommand(Command::new("profile").about("Show the current profile"))
-                .subcommand(Command::new("keys").about("Display the known PGP keys")),
         )
         .subcommand(
             Command::new("install")
