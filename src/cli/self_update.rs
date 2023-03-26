@@ -1210,6 +1210,7 @@ pub(crate) fn check_rustup_update() -> Result<()> {
     Ok(())
 }
 
+#[cfg_attr(feature = "otel", tracing::instrument)]
 pub(crate) fn cleanup_self_updater() -> Result<()> {
     let cargo_home = utils::cargo_home()?;
     let setup = cargo_home.join(format!("bin/rustup-init{EXE_SUFFIX}"));
@@ -1234,6 +1235,8 @@ mod tests {
     use std::collections::HashMap;
 
     use anyhow::Result;
+
+    use rustup_macros::unit_test as test;
 
     use crate::cli::common;
     use crate::dist::dist::ToolchainDesc;

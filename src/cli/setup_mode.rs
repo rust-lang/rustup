@@ -7,6 +7,7 @@ use crate::dist::dist::Profile;
 use crate::process;
 use crate::utils::utils;
 
+#[cfg_attr(feature = "otel", tracing::instrument)]
 pub fn main() -> Result<utils::ExitCode> {
     let args: Vec<_> = process().args().collect();
     let arg1 = args.get(1).map(|a| &**a);

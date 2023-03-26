@@ -38,12 +38,14 @@ pub(crate) fn inc(name: &str, cmd: &mut Command) {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+    use std::ffi::{OsStr, OsString};
+
+    use rustup_macros::unit_test as test;
+
     use super::*;
     use crate::currentprocess;
     use crate::test::{with_saved_path, Env};
-
-    use std::collections::HashMap;
-    use std::ffi::{OsStr, OsString};
 
     #[test]
     fn prepend_unique_path() {

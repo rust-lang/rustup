@@ -1,6 +1,7 @@
 use rustup::dist::dist::TargetTriple;
 use rustup::dist::manifest::Manifest;
 use rustup::RustupError;
+use rustup_macros::integration_test as test;
 
 // Example manifest from https://public.etherpad-mozilla.org/p/Rust-infra-work-week
 static EXAMPLE: &str = include_str!("channel-rust-nightly-example.toml");

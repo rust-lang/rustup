@@ -17,14 +17,21 @@ reqwest-rustls-tls = ["reqwest/rustls-tls-native-roots"]
 
 [dependencies]
 anyhow.workspace = true
-curl = {version = "0.4.44", optional = true}
-env_proxy = {version = "0.4.1", optional = true}
-lazy_static = {workspace=true, optional = true}
-reqwest = {version = "0.11", default-features = false, features = ["blocking", "gzip", "socks"], optional = true}
+curl = { version = "0.4.44", optional = true }
+env_proxy = { version = "0.4.1", optional = true }
+lazy_static = { workspace = true, optional = true }
+reqwest = { version = "0.11", default-features = false, features = [
+    "blocking",
+    "gzip",
+    "socks",
+], optional = true }
 thiserror.workspace = true
 url.workspace = true
 
 [dev-dependencies]
-hyper = {version = "0.14", default-features = false, features = ["tcp", "server"]}
+hyper = { version = "0.14", default-features = false, features = [
+    "tcp",
+    "server",
+] }
 tempfile.workspace = true
-tokio = {version = "1", default-features = false, features = ["sync"]}
+tokio = { workspace = true, default-features = false, features = ["sync"] }

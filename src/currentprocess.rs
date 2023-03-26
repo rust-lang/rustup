@@ -268,6 +268,8 @@ mod tests {
     use std::collections::HashMap;
     use std::env;
 
+    use rustup_macros::unit_test as test;
+
     use super::{process, with, ProcessSource, TestProcess};
 
     #[test]

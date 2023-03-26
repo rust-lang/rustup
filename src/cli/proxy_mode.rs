@@ -1,5 +1,4 @@
 use std::ffi::OsString;
-use std::process;
 
 use anyhow::Result;
 
@@ -10,6 +9,7 @@ use crate::command::run_command_for_dir;
 use crate::utils::utils::{self, ExitCode};
 use crate::Cfg;
 
+#[cfg_attr(feature = "otel", tracing::instrument)]
 pub fn main(arg0: &str) -> Result<ExitCode> {
     self_update::cleanup_self_updater()?;
 
@@ -38,9 +38,10 @@ pub fn main(arg0: &str) -> Result<ExitCode> {
         direct_proxy(&cfg, arg0, toolchain, &cmd_args)?
     };
 
-    process::exit(c)
+    Ok(ExitCode(c))
 }
 
+#[cfg_attr(feature = "otel", tracing::instrument(skip(cfg)))]
 fn direct_proxy(
     cfg: &Cfg,
     arg0: &str,

@@ -156,6 +156,7 @@ impl NotifyOnConsole {
     }
 }
 
+#[cfg_attr(feature = "otel", tracing::instrument)]
 pub(crate) fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
     use std::cell::RefCell;
 

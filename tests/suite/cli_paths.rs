@@ -12,6 +12,7 @@ mod unix {
     use std::path::PathBuf;
 
     use rustup::utils::raw;
+    use rustup_macros::integration_test as test;
 
     use super::INIT_NONE;
     use crate::mock::clitools::{self, Scenario};
@@ -351,6 +352,7 @@ export PATH="$HOME/apple/bin"
 #[cfg(windows)]
 mod windows {
     use rustup::test::{get_path, with_saved_path};
+    use rustup_macros::integration_test as test;
 
     use super::INIT_NONE;
     use crate::mock::clitools::{self, Scenario};

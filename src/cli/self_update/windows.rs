@@ -259,6 +259,7 @@ fn has_windows_sdk_libs() -> bool {
 }
 
 /// Run by rustup-gc-$num.exe to delete CARGO_HOME
+#[cfg_attr(feature = "otel", tracing::instrument)]
 pub fn complete_windows_uninstall() -> Result<utils::ExitCode> {
     use std::process::Stdio;
 
@@ -702,6 +703,8 @@ mod tests {
 
     use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
     use winreg::{RegKey, RegValue};
+
+    use rustup_macros::unit_test as test;
 
     use crate::currentprocess;
     use crate::test::with_saved_path;

@@ -1,5 +1,7 @@
 use std::{fs, path::PathBuf};
 
+use rustup_macros::integration_test as test;
+
 #[test]
 fn rustup_ui_doc_text_tests() {
     let t = trycmd::TestCases::new();

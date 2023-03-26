@@ -387,6 +387,7 @@ impl Cfg {
         Ok(toolchain.binary_file(binary))
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn upgrade_data(&self) -> Result<()> {
         let current_version = self.settings_file.with(|s| Ok(s.version.clone()))?;
 
@@ -623,6 +624,7 @@ impl Cfg {
         }
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn find_or_install_override_toolchain_or_default(
         &self,
         path: &Path,
@@ -731,6 +733,7 @@ impl Cfg {
         user_opt
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn list_toolchains(&self) -> Result<Vec<String>> {
         if utils::is_directory(&self.toolchains_dir) {
             let mut toolchains: Vec<_> = utils::read_dir("toolchains", &self.toolchains_dir)?
@@ -784,6 +787,7 @@ impl Cfg {
         Ok(channels.collect())
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn check_metadata_version(&self) -> Result<()> {
         utils::assert_is_directory(&self.rustup_dir)?;
 
@@ -887,6 +891,7 @@ impl Cfg {
         })
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn get_default_host_triple(&self) -> Result<dist::TargetTriple> {
         Ok(self
             .settings_file
@@ -926,6 +931,8 @@ enum ParseMode {
 
 #[cfg(test)]
 mod tests {
+    use rustup_macros::unit_test as test;
+
     use super::*;
 
     #[test]

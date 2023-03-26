@@ -359,6 +359,7 @@ impl Manifestation {
         }
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument)]
     pub fn load_manifest(&self) -> Result<Option<Manifest>> {
         let prefix = self.installation.prefix();
         let old_manifest_path = prefix.manifest_file(DIST_MANIFEST);
