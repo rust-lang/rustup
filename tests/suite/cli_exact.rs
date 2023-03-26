@@ -2,11 +2,13 @@
 //! is exactly as expected.
 
 use rustup::for_host;
-use rustup::test::this_host_triple;
+use rustup::test::{
+    mock::clitools::{self, set_current_dist_date, with_update_server, Config, Scenario},
+    this_host_triple,
+};
 use rustup_macros::integration_test as test;
 
-use crate::mock::clitools::{self, set_current_dist_date, with_update_server, Config, Scenario};
-
+/// Start a test with Scenario::None
 fn test(f: &dyn Fn(&mut Config)) {
     clitools::test(Scenario::None, f);
 }
@@ -313,15 +315,9 @@ fn override_again() {
             config.expect_ok(&["rustup", "override", "add", "nightly"]);
             config.expect_ok_ex(
                 &["rustup", "override", "add", "nightly"],
-                for_host!(
-                    r"
-  nightly-{} unchanged - 1.3.0 (hash-nightly-2)
-
-"
-                ),
+                "",
                 &format!(
-                    r"info: using existing install for 'nightly-{1}'
-info: override toolchain for '{}' set to 'nightly-{1}'
+                    r"info: override toolchain for '{}' set to 'nightly-{1}'
 ",
                     cwd.display(),
                     &this_host_triple()
@@ -551,41 +547,32 @@ error: no release found for 'nightly-2016-01-01'
 
 // Issue #111
 #[test]
-fn update_invalid_toolchain() {
+fn update_custom_toolchain() {
     test(&|config| {
-        config.with_scenario(Scenario::SimpleV2, &|config| {
-        config.expect_err_ex(
+        // installable toolchains require 2 digits in the DD and MM fields, so this is
+        // treated as a custom toolchain, which can't be used with update.
+        config.expect_err(
             &["rustup", "update", "nightly-2016-03-1"],
-            r"",
-            r"info: syncing channel updates for 'nightly-2016-03-1'
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-error: target '2016-03-1' not found in channel.  Perhaps check https://doc.rust-lang.org/nightly/rustc/platform-support.html for available targets
-",
+            "invalid toolchain name: 'nightly-2016-03-1'",
         );
-     })
     });
 }
 
 #[test]
-fn default_invalid_toolchain() {
+fn default_custom_not_installed_toolchain() {
     test(&|config| {
-        config.with_scenario(Scenario::SimpleV2, &|config| {
-        config.expect_err_ex(
+        // installable toolchains require 2 digits in the DD and MM fields, so this is
+        // treated as a custom toolchain, which isn't installed.
+        config.expect_err(
             &["rustup", "default", "nightly-2016-03-1"],
-            r"",
-            r"info: syncing channel updates for 'nightly-2016-03-1'
-info: latest update on 2015-01-02, rust version 1.3.0 (hash-nightly-2)
-error: target '2016-03-1' not found in channel.  Perhaps check https://doc.rust-lang.org/nightly/rustc/platform-support.html for available targets
-",
+            "toolchain 'nightly-2016-03-1' is not installed",
         );
-    })
     });
 }
 
 #[test]
 fn default_none() {
     test(&|config| {
-        config.with_scenario(Scenario::SimpleV2, &|config| {
         config.expect_stderr_ok(
             &["rustup", "default", "none"],
             "info: default toolchain unset",
@@ -597,7 +584,6 @@ fn default_none() {
 help: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.
 ",
         );
-    })
     })
 }
 
@@ -672,7 +658,7 @@ fn undefined_linked_toolchain() {
             config.expect_err_ex(
                 &["cargo", "+bogus", "test"],
                 r"",
-                "error: toolchain 'bogus' is not installed\n",
+                "error: toolchain 'bogus' is not installable\n",
             );
         })
     });

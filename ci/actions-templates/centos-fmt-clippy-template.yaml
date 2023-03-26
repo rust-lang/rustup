@@ -22,7 +22,8 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v3
+      - name: Clone repo
+        uses: actions/checkout@v3
         with:
           # v2 defaults to a shallow checkout, but we need at least to the previous tag
           fetch-depth: 0
@@ -71,6 +72,10 @@ jobs:
         run: |
           rustup component add rustfmt
           rustup component add clippy
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.x'
       - name: Run the centos check within the docker image
         run: |
           docker run \
@@ -91,6 +96,6 @@ jobs:
           cargo fmt --all --check
       - name: Run cargo check and clippy
         run: |
-          cargo check --all --all-targets
+          cargo check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
-          cargo clippy --all --all-targets
+          cargo clippy --all --all-targets --features test

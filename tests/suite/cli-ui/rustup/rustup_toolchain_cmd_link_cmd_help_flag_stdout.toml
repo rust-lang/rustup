@@ -16,10 +16,12 @@ OPTIONS:
 
 DISCUSSION:
     'toolchain' is the custom name to be assigned to the new toolchain.
-    Any name is permitted as long as it does not fully match an initial
-    substring of a standard release channel. For example, you can use
-    the names 'latest' or '2017-04-01' but you cannot use 'stable' or
-    'beta-i686' or 'nightly-x86_64-unknown-linux-gnu'.
+    Any name is permitted as long as:
+    - it does not include '/' or '/' except as the last character
+    - it is not equal to 'none'
+    - it does not fully match an initialsubstring of a standard release channel.
+    For example, you can use the names 'latest' or '2017-04-01' but you cannot
+    use 'stable' or 'beta-i686' or 'nightly-x86_64-unknown-linux-gnu'.
 
     'path' specifies the directory where the binaries and libraries for
     the custom toolchain can be found. For example, when used for

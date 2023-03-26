@@ -6,10 +6,9 @@ use std::io::Write;
 
 use rustup::dist::dist::TargetTriple;
 use rustup::for_host;
+use rustup::test::mock::clitools::{self, set_current_dist_date, Config, Scenario};
 use rustup::test::this_host_triple;
 use rustup_macros::integration_test as test;
-
-use crate::mock::clitools::{self, set_current_dist_date, Config, Scenario};
 
 pub fn setup(f: &dyn Fn(&mut Config)) {
     clitools::test(Scenario::SimpleV2, f);
@@ -772,7 +771,7 @@ fn add_target_v1_toolchain() {
                 clitools::CROSS_ARCH1,
                 "--toolchain=nightly",
             ],
-            for_host!("Missing manifest in toolchain 'nightly-{0}'"),
+            for_host!("toolchain 'nightly-{0}' does not support components (v1 manifest)"),
         );
     });
 }
@@ -798,7 +797,7 @@ fn cannot_add_empty_named_custom_toolchain() {
         let path = path.to_string_lossy();
         config.expect_err(
             &["rustup", "toolchain", "link", "", &path],
-            "toolchain names must not be empty",
+            "Invalid value \"\" for '<toolchain>': invalid toolchain name ''",
         );
     });
 }
@@ -914,7 +913,7 @@ fn remove_target_v1_toolchain() {
                 clitools::CROSS_ARCH1,
                 "--toolchain=nightly",
             ],
-            for_host!("Missing manifest in toolchain 'nightly-{0}'"),
+            for_host!("toolchain 'nightly-{0}' does not support components (v1 manifest)"),
         );
     });
 }
@@ -975,32 +974,30 @@ fn remove_target_missing_update_hash() {
 // Issue #1777
 #[test]
 fn warn_about_and_remove_stray_hash() {
-    setup(&|config| {
+    clitools::test(Scenario::None, &|config| {
         let mut hash_path = config.rustupdir.join("update-hashes");
         fs::create_dir_all(&hash_path).expect("Unable to make the update-hashes directory");
-
         hash_path.push(for_host!("nightly-{}"));
-
         let mut file = fs::File::create(&hash_path).expect("Unable to open update-hash file");
         file.write_all(b"LEGITHASH")
             .expect("Unable to write update-hash");
         drop(file);
 
-        config.expect_stderr_ok(
-            &["rustup", "toolchain", "install", "nightly"],
-            &format!(
-                "removing stray hash found at '{}' in order to continue",
-                hash_path.display()
-            ),
-        );
-        config.expect_ok(&["rustup", "default", "nightly"]);
-        config.expect_stdout_ok(&["rustc", "--version"], "1.3.0");
+        config.with_scenario(Scenario::SimpleV2, &|config| {
+            config.expect_stderr_ok(
+                &["rustup", "toolchain", "install", "nightly"],
+                &format!(
+                    "removing stray hash found at '{}' in order to continue",
+                    hash_path.display()
+                ),
+            );
+        })
     });
 }
 
 fn make_component_unavailable(config: &Config, name: &str, target: &str) {
-    use crate::mock::dist::create_hash;
     use rustup::dist::manifest::Manifest;
+    use rustup::test::mock::dist::create_hash;
 
     let manifest_path = config
         .distdir

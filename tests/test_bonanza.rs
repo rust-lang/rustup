@@ -1,2 +1,1 @@
-mod mock;
 mod suite;

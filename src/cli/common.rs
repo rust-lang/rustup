@@ -1,5 +1,6 @@
 //! Just a dumping ground for cli stuff
 
+use std::fmt::Display;
 use std::fs;
 use std::io::{BufRead, ErrorKind, Write};
 use std::path::Path;
@@ -13,13 +14,15 @@ use term2::Terminal;
 
 use super::self_update;
 use super::term2;
-use crate::dist::notifications as dist_notifications;
-use crate::process;
-use crate::toolchain::DistributableToolchain;
 use crate::utils::notifications as util_notifications;
 use crate::utils::notify::NotificationLevel;
 use crate::utils::utils;
-use crate::{Cfg, Notification, Toolchain, UpdateStatus};
+use crate::{dist::dist::ToolchainDesc, install::UpdateStatus};
+use crate::{
+    dist::notifications as dist_notifications, toolchain::distributable::DistributableToolchain,
+};
+use crate::{process, toolchain::toolchain::Toolchain};
+use crate::{Cfg, Notification};
 
 pub(crate) const WARN_COMPLETE_PROFILE: &str = "downloading with complete profile isn't recommended unless you are a developer of the rust language";
 
@@ -178,51 +181,71 @@ pub(crate) fn set_globals(verbose: bool, quiet: bool) -> Result<Cfg> {
 
 pub(crate) fn show_channel_update(
     cfg: &Cfg,
-    name: &str,
+    name: PackageUpdate,
     updated: Result<UpdateStatus>,
 ) -> Result<()> {
-    show_channel_updates(cfg, vec![(name.to_string(), updated)])
+    show_channel_updates(cfg, vec![(name, updated)])
 }
 
-fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>)>) -> Result<()> {
-    let data = toolchains.into_iter().map(|(name, result)| {
-        let toolchain = cfg.get_toolchain(&name, false)?;
-        let mut version: String = toolchain.rustc_version();
+pub(crate) enum PackageUpdate {
+    Rustup,
+    Toolchain(ToolchainDesc),
+}
 
-        let banner;
-        let color;
-        let mut previous_version: Option<String> = None;
-        match result {
-            Ok(UpdateStatus::Installed) => {
-                banner = "installed";
-                color = Some(term2::color::GREEN);
-            }
-            Ok(UpdateStatus::Updated(v)) => {
-                if name == "rustup" {
-                    previous_version = Some(env!("CARGO_PKG_VERSION").into());
-                    version = v;
-                } else {
-                    previous_version = Some(v);
-                }
-                banner = "updated";
-                color = Some(term2::color::GREEN);
-            }
-            Ok(UpdateStatus::Unchanged) => {
-                if name == "rustup" {
-                    version = env!("CARGO_PKG_VERSION").into();
-                }
-                banner = "unchanged";
-                color = None;
-            }
-            Err(_) => {
-                banner = "update failed";
-                color = Some(term2::color::RED);
-            }
+impl Display for PackageUpdate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PackageUpdate::Rustup => write!(f, "rustup"),
+            PackageUpdate::Toolchain(t) => write!(f, "{t}"),
         }
+    }
+}
 
-        let width = name.len() + 1 + banner.len();
+fn show_channel_updates(
+    cfg: &Cfg,
+    updates: Vec<(PackageUpdate, Result<UpdateStatus>)>,
+) -> Result<()> {
+    let data = updates.into_iter().map(|(pkg, result)| {
+        let (banner, color) = match &result {
+            Ok(UpdateStatus::Installed) => ("installed", Some(term2::color::GREEN)),
+            Ok(UpdateStatus::Updated(_)) => ("updated", Some(term2::color::GREEN)),
+            Ok(UpdateStatus::Unchanged) => ("unchanged", None),
+            Err(_) => ("update failed", Some(term2::color::RED)),
+        };
 
-        Ok((name, banner, width, color, version, previous_version))
+        let (previous_version, version) = match &pkg {
+            PackageUpdate::Rustup => {
+                let previous_version: Option<String> = match result {
+                    Ok(UpdateStatus::Installed) | Ok(UpdateStatus::Unchanged) | Err(_) => None,
+                    _ => Some(env!("CARGO_PKG_VERSION").into()),
+                };
+                let version = match result {
+                    Err(_) | Ok(UpdateStatus::Installed) | Ok(UpdateStatus::Unchanged) => {
+                        env!("CARGO_PKG_VERSION").into()
+                    }
+                    Ok(UpdateStatus::Updated(v)) => v,
+                };
+                (previous_version, version)
+            }
+            PackageUpdate::Toolchain(name) => {
+                // this is a bit strange: we don't supply the version we
+                // presumably had (for Installed and Unchanged), so we query it
+                // again. Perhaps we can do better.
+                let version = match Toolchain::new(cfg, name.into()) {
+                    Ok(t) => t.rustc_version(),
+                    Err(_) => String::from("(toolchain not installed)"),
+                };
+                let previous_version: Option<String> = match result {
+                    Ok(UpdateStatus::Installed) | Ok(UpdateStatus::Unchanged) | Err(_) => None,
+                    Ok(UpdateStatus::Updated(v)) => Some(v),
+                };
+                (previous_version, version)
+            }
+        };
+
+        let width = pkg.to_string().len() + 1 + banner.len();
+
+        Ok((pkg, banner, width, color, version, previous_version))
     });
 
     let mut t = term2::stdout();
@@ -232,7 +255,7 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
         .iter()
         .fold(0, |a, &(_, _, width, _, _, _)| cmp::max(a, width));
 
-    for (name, banner, width, color, version, previous_version) in data {
+    for (pkg, banner, width, color, version, previous_version) in data {
         let padding = max_width - width;
         let padding: String = " ".repeat(padding);
         let _ = write!(t, "  {padding}");
@@ -240,8 +263,7 @@ fn show_channel_updates(cfg: &Cfg, toolchains: Vec<(String, Result<UpdateStatus>
         if let Some(color) = color {
             let _ = t.fg(color);
         }
-        let _ = write!(t, "{name} ");
-        let _ = write!(t, "{banner}");
+        let _ = write!(t, "{pkg} {banner}");
         let _ = t.reset();
         let _ = write!(t, " - {version}");
         if let Some(previous_version) = previous_version {
@@ -269,7 +291,11 @@ pub(crate) fn update_all_channels(
         if !toolchains.is_empty() {
             writeln!(process().stdout())?;
 
-            show_channel_updates(cfg, toolchains)?;
+            let t = toolchains
+                .into_iter()
+                .map(|(p, s)| (PackageUpdate::Toolchain(p), s))
+                .collect();
+            show_channel_updates(cfg, t)?;
         }
         Ok(utils::ExitCode(0))
     };
@@ -342,10 +368,12 @@ where
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_targets(distributable: DistributableToolchain<'_>) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new_for_components(toolchain)?;
-    let components = distributable.list_components()?;
+    let manifestation = distributable.get_manifestation()?;
+    let config = manifestation.read_config()?.unwrap_or_default();
+    let manifest = distributable.get_manifest()?;
+    let components = manifest.query_components(distributable.desc(), &config)?;
     for component in components {
         if component.component.short_name_in_manifest() == "rust-std" {
             let target = component
@@ -366,10 +394,14 @@ pub(crate) fn list_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode>
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_installed_targets(
+    distributable: DistributableToolchain<'_>,
+) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new_for_components(toolchain)?;
-    let components = distributable.list_components()?;
+    let manifestation = distributable.get_manifestation()?;
+    let config = manifestation.read_config()?.unwrap_or_default();
+    let manifest = distributable.get_manifest()?;
+    let components = manifest.query_components(distributable.desc(), &config)?;
     for component in components {
         if component.component.short_name_in_manifest() == "rust-std" {
             let target = component
@@ -385,10 +417,14 @@ pub(crate) fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils:
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_components(
+    distributable: DistributableToolchain<'_>,
+) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new_for_components(toolchain)?;
-    let components = distributable.list_components()?;
+    let manifestation = distributable.get_manifestation()?;
+    let config = manifestation.read_config()?.unwrap_or_default();
+    let manifest = distributable.get_manifest()?;
+    let components = manifest.query_components(distributable.desc(), &config)?;
     for component in components {
         let name = component.name;
         if component.installed {
@@ -403,16 +439,19 @@ pub(crate) fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCo
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_installed_components(distributable: DistributableToolchain<'_>) -> Result<()> {
     let mut t = term2::stdout();
-    let distributable = DistributableToolchain::new_for_components(toolchain)?;
-    let components = distributable.list_components()?;
+    let manifestation = distributable.get_manifestation()?;
+    let config = manifestation.read_config()?.unwrap_or_default();
+    let manifest = distributable.get_manifest()?;
+    let components = manifest.query_components(distributable.desc(), &config)?;
+
     for component in components {
         if component.installed {
             writeln!(t, "{}", component.name)?;
         }
     }
-    Ok(utils::ExitCode(0))
+    Ok(())
 }
 
 fn print_toolchain_path(
@@ -422,11 +461,7 @@ fn print_toolchain_path(
     if_override: &str,
     verbose: bool,
 ) -> Result<()> {
-    let toolchain_path = {
-        let mut t_path = cfg.toolchains_dir.clone();
-        t_path.push(toolchain);
-        t_path
-    };
+    let toolchain_path = cfg.toolchains_dir.join(toolchain);
     let toolchain_meta = fs::symlink_metadata(&toolchain_path)?;
     let toolchain_path = if verbose {
         if toolchain_meta.is_dir() {
@@ -449,35 +484,42 @@ fn print_toolchain_path(
 }
 
 pub(crate) fn list_toolchains(cfg: &Cfg, verbose: bool) -> Result<utils::ExitCode> {
-    let toolchains = cfg.list_toolchains()?;
+    // Work with LocalToolchainName to accomdate path based overrides
+    let toolchains = cfg
+        .list_toolchains()?
+        .iter()
+        .map(Into::into)
+        .collect::<Vec<_>>();
     if toolchains.is_empty() {
         writeln!(process().stdout(), "no installed toolchains")?;
     } else {
-        let def_toolchain_name = if let Ok(Some(def_toolchain)) = cfg.find_default() {
-            def_toolchain.name().to_string()
-        } else {
-            String::new()
-        };
+        let def_toolchain_name = cfg.get_default()?.map(|t| (&t).into());
         let cwd = utils::current_dir()?;
         let ovr_toolchain_name = if let Ok(Some((toolchain, _reason))) = cfg.find_override(&cwd) {
-            toolchain.name().to_string()
+            Some(toolchain)
         } else {
-            String::new()
+            None
         };
         for toolchain in toolchains {
-            let if_default = if def_toolchain_name == *toolchain {
+            let if_default = if def_toolchain_name.as_ref() == Some(&toolchain) {
                 " (default)"
             } else {
                 ""
             };
-            let if_override = if ovr_toolchain_name == *toolchain {
+            let if_override = if ovr_toolchain_name.as_ref() == Some(&toolchain) {
                 " (override)"
             } else {
                 ""
             };
 
-            print_toolchain_path(cfg, &toolchain, if_default, if_override, verbose)
-                .context("Failed to list toolchains' directories")?;
+            print_toolchain_path(
+                cfg,
+                &toolchain.to_string(),
+                if_default,
+                if_override,
+                verbose,
+            )
+            .context("Failed to list toolchains' directories")?;
         }
     }
     Ok(utils::ExitCode(0))

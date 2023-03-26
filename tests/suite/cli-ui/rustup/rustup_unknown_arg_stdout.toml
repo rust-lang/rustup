@@ -3,7 +3,7 @@ args = ["random"]
 status.code = 1
 stdout = ""
 stderr = """
-error: Invalid value \"random\" for '<+toolchain>': \"random\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. To override the toolchain using the 'rustup +toolchain' syntax, make sure to prefix the toolchain override with a '+'
+error: Invalid value \"random\" for '<+toolchain>': error: \"random\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. To override the toolchain using the 'rustup +toolchain' syntax, make sure to prefix the toolchain override with a '+'
 
 For more information try --help
 """

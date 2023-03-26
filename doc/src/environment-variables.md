@@ -4,9 +4,10 @@
   root `rustup` folder, used for storing installed toolchains and
   configuration options.
 
-- `RUSTUP_TOOLCHAIN` (default: none) If set, will [override] the toolchain
-  used for all rust tool invocations. A toolchain with this name should be
-  installed, or invocations will fail.
+- `RUSTUP_TOOLCHAIN` (default: none) If set, will [override] the toolchain used
+  for all rust tool invocations. A toolchain with this name should be installed,
+  or invocations will fail. This can specify custom toolchains, installable
+  toolchains, or the absolute path to a toolchain.
 
 - `RUSTUP_DIST_SERVER` (default: `https://static.rust-lang.org`) Sets the root
   URL for downloading static resources related to Rust. You can change this to

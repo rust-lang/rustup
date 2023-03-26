@@ -1,11 +1,16 @@
 use anyhow::Result;
 use clap::{builder::PossibleValuesParser, AppSettings, Arg, ArgAction, Command};
 
-use super::common;
-use super::self_update::{self, InstallOpts};
-use crate::dist::dist::Profile;
-use crate::process;
-use crate::utils::utils;
+use crate::{
+    cli::{
+        common,
+        self_update::{self, InstallOpts},
+    },
+    dist::dist::Profile,
+    process,
+    toolchain::names::{maybe_official_toolchainame_parser, MaybeOfficialToolchainName},
+    utils::utils,
+};
 
 #[cfg_attr(feature = "otel", tracing::instrument)]
 pub fn main() -> Result<utils::ExitCode> {
@@ -59,7 +64,8 @@ pub fn main() -> Result<utils::ExitCode> {
             Arg::new("default-toolchain")
                 .long("default-toolchain")
                 .takes_value(true)
-                .help("Choose a default toolchain to install. Use 'none' to not install any toolchains at all"),
+                .help("Choose a default toolchain to install. Use 'none' to not install any toolchains at all")
+                .value_parser(maybe_official_toolchainame_parser)
         )
         .arg(
             Arg::new("profile")
@@ -118,7 +124,7 @@ pub fn main() -> Result<utils::ExitCode> {
         .get_one::<String>("default-host")
         .map(ToOwned::to_owned);
     let default_toolchain = matches
-        .get_one::<String>("default-toolchain")
+        .get_one::<MaybeOfficialToolchainName>("default-toolchain")
         .map(ToOwned::to_owned);
     let profile = matches
         .get_one::<String>("profile")

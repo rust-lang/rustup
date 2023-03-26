@@ -56,26 +56,28 @@ download_pkg_test() {
 
 # Machines have 7GB of RAM, and our target/ contents is large enough that
 # thrashing will occur if we build-run-build-run rather than
-# build-build-build-run-run-run.
+# build-build-build-run-run-run. Since this is used soley for non-release
+# artifacts, we try to keep features consistent across the builds, whether for
+# docs/test/runs etc.
 build_test() {
   cmd="$1"
   shift
   download_pkg_test "${cmd}"
-    if [ "build" = "${cmd}" ]; then
-    target_cargo "${cmd}" --workspace --all-targets
+  if [ "build" = "${cmd}" ]; then
+    target_cargo "${cmd}" --workspace --all-targets --features test
   else
     #  free runners have 2 or 3(mac) cores
-    target_cargo "${cmd}" --workspace --tests -- --test-threads 2
+    target_cargo "${cmd}" --workspace --features test --tests -- --test-threads 2
   fi
 
   if [ "build" != "${cmd}" ]; then
-    target_cargo "${cmd}" --doc --workspace
+    target_cargo "${cmd}" --doc --workspace --features test
   fi
 
 }
 
 if [ -z "$SKIP_TESTS" ]; then
-  cargo run --locked --profile "$BUILD_PROFILE" --target "$TARGET" "${FEATURES[@]}" -- --dump-testament
+  cargo run --locked --profile "$BUILD_PROFILE" --features test --target "$TARGET" "${FEATURES[@]}" -- --dump-testament
   build_test build
   build_test test
 fi

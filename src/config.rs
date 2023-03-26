@@ -7,22 +7,33 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use anyhow::{anyhow, bail, Context, Result};
+use derivative::Derivative;
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 
-use crate::cli::self_update::SelfUpdateMode;
-use crate::dist::download::DownloadCfg;
-use crate::dist::{
-    dist::{self, Profile},
-    temp,
+use crate::{
+    cli::self_update::SelfUpdateMode,
+    dist::{
+        dist::{self, PartialToolchainDesc, Profile, ToolchainDesc},
+        download::DownloadCfg,
+        temp,
+    },
+    errors::RustupError,
+    fallback_settings::FallbackSettings,
+    install::UpdateStatus,
+    notifications::*,
+    process,
+    settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION},
+    toolchain::{
+        distributable::DistributableToolchain,
+        names::{
+            LocalToolchainName, PathBasedToolchainName, ResolvableLocalToolchainName,
+            ResolvableToolchainName, ToolchainName,
+        },
+        toolchain::Toolchain,
+    },
+    utils::utils,
 };
-use crate::errors::RustupError;
-use crate::fallback_settings::FallbackSettings;
-use crate::notifications::*;
-use crate::process;
-use crate::settings::{Settings, SettingsFile, DEFAULT_METADATA_VERSION};
-use crate::toolchain::{DistributableToolchain, Toolchain, UpdateStatus};
-use crate::utils::utils;
 
 #[derive(Debug, ThisError)]
 enum OverrideFileConfigError {
@@ -104,22 +115,22 @@ impl Display for OverrideReason {
 }
 
 #[derive(Default, Debug)]
-struct OverrideCfg<'a> {
-    toolchain: Option<Toolchain<'a>>,
+struct OverrideCfg {
+    toolchain: Option<LocalToolchainName>,
     components: Vec<String>,
     targets: Vec<String>,
     profile: Option<dist::Profile>,
 }
 
-impl<'a> OverrideCfg<'a> {
-    fn from_file(
-        cfg: &'a Cfg,
-        cfg_path: Option<impl AsRef<Path>>,
-        file: OverrideFile,
-    ) -> Result<Self> {
+impl OverrideCfg {
+    fn from_file(cfg: &Cfg, file: OverrideFile) -> Result<Self> {
         Ok(Self {
             toolchain: match (file.toolchain.channel, file.toolchain.path) {
-                (Some(name), None) => Some(Toolchain::from(cfg, &name)?),
+                (Some(name), None) => Some(
+                    (&ResolvableToolchainName::try_from(name)?
+                        .resolve(&cfg.get_default_host_triple()?)?)
+                        .into(),
+                ),
                 (None, Some(path)) => {
                     if file.toolchain.targets.is_some()
                         || file.toolchain.components.is_some()
@@ -130,7 +141,12 @@ impl<'a> OverrideCfg<'a> {
                             path.display()
                         )
                     }
-                    Some(Toolchain::from_path(cfg, cfg_path, &path)?)
+                    // We -do not- support relative paths, they permit trivial
+                    // completely arbitrary code execution in a directory.
+                    // Longer term we'll not support path based toolchains at
+                    // all, because they also permit arbitrary code execution,
+                    // though with more challenges to exploit.
+                    Some((&PathBasedToolchainName::try_from(&path as &Path)?).into())
                 }
                 (Some(channel), Some(path)) => {
                     bail!(
@@ -155,7 +171,9 @@ impl<'a> OverrideCfg<'a> {
 
 pub(crate) const UNIX_FALLBACK_SETTINGS: &str = "/etc/rustup/settings.toml";
 
-pub struct Cfg {
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub(crate) struct Cfg {
     profile_override: Option<dist::Profile>,
     pub rustup_dir: PathBuf,
     pub settings_file: SettingsFile,
@@ -164,9 +182,10 @@ pub struct Cfg {
     pub update_hash_dir: PathBuf,
     pub download_dir: PathBuf,
     pub temp_cfg: temp::Cfg,
-    pub toolchain_override: Option<String>,
-    pub env_override: Option<String>,
+    pub toolchain_override: Option<ResolvableToolchainName>,
+    pub env_override: Option<LocalToolchainName>,
     pub dist_root_url: String,
+    #[derivative(Debug = "ignore")]
     pub notify_handler: Arc<dyn Fn(Notification<'_>)>,
 }
 
@@ -197,11 +216,17 @@ impl Cfg {
         let update_hash_dir = rustup_dir.join("update-hashes");
         let download_dir = rustup_dir.join("downloads");
 
+        // Figure out get_default_host_triple before Config is populated
+        let default_host_triple = settings_file.with(|s| Ok(get_default_host_triple(s)))?;
         // Environment override
         let env_override = process()
             .var("RUSTUP_TOOLCHAIN")
             .ok()
-            .and_then(utils::if_not_empty);
+            .and_then(utils::if_not_empty)
+            .map(ResolvableLocalToolchainName::try_from)
+            .transpose()?
+            .map(|t| t.resolve(&default_host_triple))
+            .transpose()?;
 
         let dist_root_server = match process().var("RUSTUP_DIST_SERVER") {
             Ok(ref s) if !s.is_empty() => s.clone(),
@@ -244,8 +269,10 @@ impl Cfg {
         // Run some basic checks against the constructed configuration
         // For now, that means simply checking that 'stable' can resolve
         // for the current configuration.
-        cfg.resolve_toolchain("stable")
-            .context("Unable parse configuration")?;
+        ResolvableToolchainName::try_from("stable")?.resolve(
+            &cfg.get_default_host_triple()
+                .context("Unable parse configuration")?,
+        )?;
 
         Ok(cfg)
     }
@@ -267,13 +294,9 @@ impl Cfg {
         self.profile_override = Some(profile);
     }
 
-    pub(crate) fn set_default(&self, toolchain: &str) -> Result<()> {
+    pub(crate) fn set_default(&self, toolchain: Option<&ToolchainName>) -> Result<()> {
         self.settings_file.with_mut(|s| {
-            s.default_toolchain = if toolchain == "none" {
-                None
-            } else {
-                Some(toolchain.to_owned())
-            };
+            s.default_toolchain = toolchain.map(|t| t.to_string());
             Ok(())
         })?;
         (self.notify_handler)(Notification::SetDefaultToolchain(toolchain));
@@ -309,7 +332,7 @@ impl Cfg {
         }
     }
 
-    pub(crate) fn set_toolchain_override(&mut self, toolchain_override: &str) {
+    pub(crate) fn set_toolchain_override(&mut self, toolchain_override: &ResolvableToolchainName) {
         self.toolchain_override = Some(toolchain_override.to_owned());
     }
 
@@ -343,21 +366,18 @@ impl Cfg {
         })
     }
 
-    pub(crate) fn get_toolchain(&self, name: &str, create_parent: bool) -> Result<Toolchain<'_>> {
-        if create_parent {
-            utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {
-                (self.notify_handler)(n)
-            })?;
-        }
-
-        if name.is_empty() {
-            anyhow::bail!("toolchain names must not be empty");
-        }
-
-        Toolchain::from(self, name)
+    pub(crate) fn ensure_toolchains_dir(&self) -> Result<(), anyhow::Error> {
+        utils::ensure_dir_exists("toolchains", &self.toolchains_dir, &|n| {
+            (self.notify_handler)(n)
+        })?;
+        Ok(())
     }
 
-    pub(crate) fn get_hash_file(&self, toolchain: &str, create_parent: bool) -> Result<PathBuf> {
+    pub(crate) fn get_hash_file(
+        &self,
+        toolchain: &ToolchainDesc,
+        create_parent: bool,
+    ) -> Result<PathBuf> {
         if create_parent {
             utils::ensure_dir_exists(
                 "update-hash",
@@ -366,20 +386,7 @@ impl Cfg {
             )?;
         }
 
-        Ok(self.update_hash_dir.join(toolchain))
-    }
-
-    pub(crate) fn which_binary_by_toolchain(
-        &self,
-        toolchain_name: &str,
-        binary: &str,
-    ) -> Result<PathBuf> {
-        let toolchain = self.get_toolchain(toolchain_name, false)?;
-        if toolchain.exists() {
-            Ok(toolchain.binary_file(binary))
-        } else {
-            Err(RustupError::ToolchainNotInstalled(toolchain_name.to_string()).into())
-        }
+        Ok(self.update_hash_dir.join(toolchain.to_string()))
     }
 
     pub(crate) fn which_binary(&self, path: &Path, binary: &str) -> Result<PathBuf> {
@@ -429,41 +436,36 @@ impl Cfg {
     }
 
     pub(crate) fn find_default(&self) -> Result<Option<Toolchain<'_>>> {
-        let opt_name = self.get_default()?;
-
-        if let Some(name) = opt_name {
-            let toolchain = Toolchain::from(self, &name)?;
-            Ok(Some(toolchain))
-        } else {
-            Ok(None)
-        }
+        Ok(self
+            .get_default()?
+            .map(|n| Toolchain::new(self, (&n).into()))
+            .transpose()?)
     }
 
     pub(crate) fn find_override(
         &self,
         path: &Path,
-    ) -> Result<Option<(Toolchain<'_>, OverrideReason)>> {
-        self.find_override_config(path).map(|opt| {
-            opt.and_then(|(override_cfg, reason)| {
-                override_cfg.toolchain.map(|toolchain| (toolchain, reason))
-            })
-        })
+    ) -> Result<Option<(LocalToolchainName, OverrideReason)>> {
+        Ok(self
+            .find_override_config(path)?
+            .and_then(|(override_cfg, reason)| override_cfg.toolchain.map(|t| (t, reason))))
     }
 
-    fn find_override_config(
-        &self,
-        path: &Path,
-    ) -> Result<Option<(OverrideCfg<'_>, OverrideReason)>> {
+    fn find_override_config(&self, path: &Path) -> Result<Option<(OverrideCfg, OverrideReason)>> {
         let mut override_ = None;
 
         // First check toolchain override from command
         if let Some(ref name) = self.toolchain_override {
-            override_ = Some((name.into(), OverrideReason::CommandLine));
+            override_ = Some((name.to_string().into(), OverrideReason::CommandLine));
         }
 
         // Check RUSTUP_TOOLCHAIN
         if let Some(ref name) = self.env_override {
-            override_ = Some((name.into(), OverrideReason::Environment));
+            // Because path based toolchain files exist, this has to support
+            // custom, distributable, and absolute path toolchains otherwise
+            // rustup's export of a RUSTUP_TOOLCHAIN when running a process will
+            // error when a nested rustup invocation occurs
+            override_ = Some((name.to_string().into(), OverrideReason::Environment));
         }
 
         // Then walk up the directory tree from 'path' looking for either the
@@ -500,25 +502,25 @@ impl Cfg {
                 ),
             };
 
-            let cfg_file = if let OverrideReason::ToolchainFile(ref path) = reason {
-                Some(path)
-            } else {
-                None
-            };
-
-            let override_cfg = OverrideCfg::from_file(self, cfg_file, file)?;
-            if let Some(toolchain) = &override_cfg.toolchain {
-                // Overridden toolchains can be literally any string, but only
-                // distributable toolchains will be auto-installed by the wrapping
-                // code; provide a nice error for this common case. (default could
-                // be set badly too, but that is much less common).
-                if !toolchain.exists() && toolchain.is_custom() {
-                    // Strip the confusing NotADirectory error and only mention that the
-                    // override toolchain is not installed.
-                    return Err(anyhow!(reason_err)).with_context(|| {
-                        format!("override toolchain '{}' is not installed", toolchain.name())
-                    });
+            let override_cfg = OverrideCfg::from_file(self, file)?;
+            // Overridden toolchains can be literally any string, but only
+            // distributable toolchains will be auto-installed by the wrapping
+            // code; provide a nice error for this common case. (default could
+            // be set badly too, but that is much less common).
+            match &override_cfg.toolchain {
+                Some(t @ LocalToolchainName::Named(ToolchainName::Custom(_)))
+                | Some(t @ LocalToolchainName::Path(_)) => {
+                    if let Err(RustupError::ToolchainNotInstalled(_)) =
+                        Toolchain::new(self, t.to_owned())
+                    {
+                        // Strip the confusing NotADirectory error and only mention that the
+                        // override toolchain is not installed.
+                        return Err(anyhow!(reason_err))
+                            .with_context(|| format!("override toolchain '{t}' is not installed"));
+                    }
                 }
+                // Either official (can auto install) or no toolchain specified
+                _ => {}
             }
 
             Ok(Some((override_cfg, reason)))
@@ -572,15 +574,44 @@ impl Cfg {
 
             if let Ok(contents) = contents {
                 let add_file_context = || format!("in {}", toolchain_file.to_string_lossy());
+                // XXX Should not return the unvalidated contents; but a new
+                // internal only safe struct
                 let override_file = Cfg::parse_override_file(contents, parse_mode)
                     .with_context(add_file_context)?;
-                if let Some(toolchain_name) = &override_file.toolchain.channel {
-                    let all_toolchains = self.list_toolchains().with_context(add_file_context)?;
-                    if !all_toolchains.iter().any(|s| s == toolchain_name) {
-                        // The given name is not resolvable as a toolchain, so
-                        // instead check it's plausible for installation later
-                        dist::validate_channel_name(toolchain_name)
-                            .with_context(add_file_context)?;
+                if let Some(toolchain_name_str) = &override_file.toolchain.channel {
+                    let toolchain_name = ResolvableToolchainName::try_from(toolchain_name_str)?;
+                    let default_host_triple = get_default_host_triple(settings);
+                    // Do not permit architecture/os selection in channels as
+                    // these are host specific and toolchain files are portable.
+                    if let ResolvableToolchainName::Official(ref name) = toolchain_name {
+                        if name.has_triple() {
+                            // Permit fully qualified names IFF the toolchain is installed. TODO(robertc): consider
+                            // disabling this and backing out https://github.com/rust-lang/rustup/pull/2141 (but provide
+                            // the base name in the error to help users)
+                            let resolved_name = &ToolchainName::try_from(toolchain_name_str)?;
+                            let ts = self.list_toolchains()?;
+                            eprintln!("{resolved_name:?} {ts:?}");
+                            if !self.list_toolchains()?.iter().any(|s| s == resolved_name) {
+                                return Err(anyhow!(format!(
+                                    "target triple in channel name '{name}'"
+                                )));
+                            }
+                        }
+                    }
+
+                    // XXX: this awkwardness deals with settings file being locked already
+                    let toolchain_name = toolchain_name.resolve(&default_host_triple)?;
+                    match Toolchain::new(self, (&toolchain_name).into()) {
+                        Err(RustupError::ToolchainNotInstalled(_)) => {
+                            if matches!(toolchain_name, ToolchainName::Custom(_)) {
+                                bail!(
+                                    "Toolchain {toolchain_name} in {} is custom and not installed",
+                                    toolchain_file.display()
+                                )
+                            }
+                        }
+                        Ok(_) => {}
+                        Err(e) => Err(e)?,
                     }
                 }
 
@@ -629,50 +660,7 @@ impl Cfg {
         &self,
         path: &Path,
     ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
-        fn components_exist(
-            distributable: &DistributableToolchain<'_>,
-            components: &[&str],
-            targets: &[&str],
-        ) -> Result<bool> {
-            let components_requested = !components.is_empty() || !targets.is_empty();
-            // If we're here, the toolchain exists on disk and is a dist toolchain
-            // so we should attempt to load its manifest
-            let desc = if let Some(desc) = distributable.get_toolchain_desc_with_manifest()? {
-                desc
-            } else {
-                // We can't read the manifest.  If this is a v1 install that's understandable
-                // and we assume the components are all good, otherwise we need to have a go
-                // at re-fetching the manifest to try again.
-                return Ok(distributable.guess_v1_manifest());
-            };
-            match (desc.list_components(), components_requested) {
-                // If the toolchain does not support components but there were components requested, bubble up the error
-                (Err(e), true) => Err(e),
-                // Otherwise check if all the components we want are installed
-                (Ok(installed_components), _) => Ok(components.iter().all(|name| {
-                    installed_components.iter().any(|status| {
-                        let cname = status.component.short_name(&desc.manifest);
-                        let cname = cname.as_str();
-                        let cnameim = status.component.short_name_in_manifest();
-                        let cnameim = cnameim.as_str();
-                        (cname == *name || cnameim == *name) && status.installed
-                    })
-                })
-                // And that all the targets we want are installed
-                && targets.iter().all(|name| {
-                    installed_components
-                        .iter()
-                        .filter(|c| c.component.short_name_in_manifest() == "rust-std")
-                        .any(|status| {
-                            let ctarg = status.component.target();
-                            (ctarg == *name) && status.installed
-                        })
-                })),
-                _ => Ok(true),
-            }
-        }
-
-        if let Some((toolchain, components, targets, reason, profile)) =
+        let (toolchain, components, targets, reason, profile) =
             match self.find_override_config(path)? {
                 Some((
                     OverrideCfg {
@@ -682,67 +670,92 @@ impl Cfg {
                         profile,
                     },
                     reason,
-                )) => {
-                    let default = if toolchain.is_none() {
-                        self.find_default()?
-                    } else {
-                        None
-                    };
-
-                    toolchain
-                        .or(default)
-                        .map(|toolchain| (toolchain, components, targets, Some(reason), profile))
-                }
-                None => self
-                    .find_default()?
-                    .map(|toolchain| (toolchain, vec![], vec![], None, None)),
+                )) => (toolchain, components, targets, Some(reason), profile),
+                None => (None, vec![], vec![], None, None),
+            };
+        let toolchain = match toolchain {
+            t @ Some(_) => t,
+            None => self.get_default()?.map(Into::into),
+        };
+        match toolchain {
+            // No override and no default set
+            None => Err(RustupError::ToolchainNotSelected.into()),
+            Some(toolchain @ LocalToolchainName::Named(ToolchainName::Custom(_)))
+            | Some(toolchain @ LocalToolchainName::Path(_)) => {
+                Ok((Toolchain::new(self, toolchain)?, reason))
             }
-        {
-            if toolchain.is_custom() {
-                if !toolchain.exists() {
-                    return Err(
-                        RustupError::ToolchainNotInstalled(toolchain.name().to_string()).into(),
-                    );
-                }
-            } else {
+            Some(LocalToolchainName::Named(ToolchainName::Official(desc))) => {
                 let components: Vec<_> = components.iter().map(AsRef::as_ref).collect();
                 let targets: Vec<_> = targets.iter().map(AsRef::as_ref).collect();
-
-                let distributable = DistributableToolchain::new(&toolchain)?;
-                if !toolchain.exists() || !components_exist(&distributable, &components, &targets)?
-                {
-                    distributable.install_from_dist(true, false, &components, &targets, profile)?;
+                let toolchain = match DistributableToolchain::new(self, desc.clone()) {
+                    Err(RustupError::ToolchainNotInstalled(_)) => {
+                        DistributableToolchain::install(
+                            self,
+                            &desc,
+                            &components,
+                            &targets,
+                            profile.unwrap_or(Profile::Default),
+                            false,
+                        )?
+                        .1
+                    }
+                    Ok(mut distributable) => {
+                        if !distributable.components_exist(&components, &targets)? {
+                            distributable.update(
+                                &components,
+                                &targets,
+                                profile.unwrap_or(Profile::Default),
+                            )?;
+                        }
+                        distributable
+                    }
+                    Err(e) => return Err(e.into()),
                 }
+                .into();
+                Ok((toolchain, reason))
             }
-
-            Ok((toolchain, reason))
-        } else {
-            // No override and no default set
-            Err(RustupError::ToolchainNotSelected.into())
         }
     }
 
-    pub(crate) fn get_default(&self) -> Result<Option<String>> {
+    /// Get the configured default toolchain.
+    /// If none is configured, returns None
+    /// If a bad toolchain name is configured, errors.
+    pub(crate) fn get_default(&self) -> Result<Option<ToolchainName>> {
         let user_opt = self.settings_file.with(|s| Ok(s.default_toolchain.clone()));
-        if let Some(fallback_settings) = &self.fallback_settings {
+        let toolchain_maybe_str = if let Some(fallback_settings) = &self.fallback_settings {
             match user_opt {
-                Err(_) | Ok(None) => return Ok(fallback_settings.default_toolchain.clone()),
-                _ => {}
-            };
-        };
-        user_opt
+                Err(_) | Ok(None) => Ok(fallback_settings.default_toolchain.clone()),
+                o => o,
+            }
+        } else {
+            user_opt
+        }?;
+        toolchain_maybe_str
+            .map(ResolvableToolchainName::try_from)
+            .transpose()?
+            .map(|t| t.resolve(&self.get_default_host_triple()?))
+            .transpose()
     }
 
+    /// List all the installed toolchains: that is paths in the toolchain dir
+    /// that are:
+    /// - not files
+    /// - named with a valid resolved toolchain name
+    /// Currently no notification of incorrect names or entry type is done.
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
-    pub(crate) fn list_toolchains(&self) -> Result<Vec<String>> {
+    pub(crate) fn list_toolchains(&self) -> Result<Vec<ToolchainName>> {
         if utils::is_directory(&self.toolchains_dir) {
             let mut toolchains: Vec<_> = utils::read_dir("toolchains", &self.toolchains_dir)?
+                // TODO: this discards errors reading the directory, is that
+                // correct? could we get a short-read and report less toolchains
+                // than exist?
                 .filter_map(io::Result::ok)
                 .filter(|e| e.file_type().map(|f| !f.is_file()).unwrap_or(false))
                 .filter_map(|e| e.file_name().into_string().ok())
+                .filter_map(|n| ToolchainName::try_from(&n).ok())
                 .collect();
 
-            utils::toolchain_sort(&mut toolchains);
+            crate::toolchain::names::toolchain_sort(&mut toolchains);
 
             Ok(toolchains)
         } else {
@@ -750,38 +763,49 @@ impl Cfg {
         }
     }
 
-    pub(crate) fn list_channels(&self) -> Result<Vec<(String, Result<Toolchain<'_>>)>> {
-        let toolchains = self.list_toolchains()?;
+    pub(crate) fn list_channels(&self) -> Result<Vec<(ToolchainDesc, DistributableToolchain<'_>)>> {
+        self.list_toolchains()?
+            .into_iter()
+            .filter_map(|t| {
+                if let ToolchainName::Official(desc) = t {
+                    Some(desc)
+                } else {
+                    None
+                }
+            })
+            .filter(ToolchainDesc::is_tracking)
+            .map(|n| {
+                DistributableToolchain::new(self, n.clone())
+                    .map_err(Into::into)
+                    .map(|t| (n.clone(), t))
+            })
+            .collect::<Result<Vec<_>>>()
+    }
 
-        // Convert the toolchain strings to Toolchain values
-        let toolchains = toolchains.into_iter();
-        let toolchains = toolchains.map(|n| (n.clone(), self.get_toolchain(&n, true)));
-
-        // Filter out toolchains that don't track a release channel
-        Ok(toolchains
-            .filter(|(_, ref t)| t.as_ref().map(Toolchain::is_tracking).unwrap_or(false))
-            .collect())
+    /// Create an override for a toolchain
+    pub(crate) fn make_override(&self, path: &Path, toolchain: &ToolchainName) -> Result<()> {
+        self.settings_file.with_mut(|s| {
+            s.add_override(path, toolchain.to_string(), self.notify_handler.as_ref());
+            Ok(())
+        })
     }
 
     pub(crate) fn update_all_channels(
         &self,
         force_update: bool,
-    ) -> Result<Vec<(String, Result<UpdateStatus>)>> {
+    ) -> Result<Vec<(ToolchainDesc, Result<UpdateStatus>)>> {
         let channels = self.list_channels()?;
         let channels = channels.into_iter();
+        let profile = self.get_profile()?;
 
         // Update toolchains and collect the results
-        let channels = channels.map(|(n, t)| {
-            let st = t.and_then(|t| {
-                let distributable = DistributableToolchain::new(&t)?;
-                let st = distributable.install_from_dist(force_update, false, &[], &[], None);
-                if let Err(ref e) = st {
-                    (self.notify_handler)(Notification::NonFatalError(e));
-                }
-                st
-            });
+        let channels = channels.map(|(desc, mut distributable)| {
+            let st = distributable.update_extra(&[], &[], profile, force_update, false);
 
-            (n, st)
+            if let Err(ref e) = st {
+                (self.notify_handler)(Notification::NonFatalError(e));
+            }
+            (desc, st)
         });
 
         Ok(channels.collect())
@@ -803,45 +827,68 @@ impl Cfg {
         })
     }
 
-    pub(crate) fn toolchain_for_dir(
-        &self,
-        path: &Path,
-    ) -> Result<(Toolchain<'_>, Option<OverrideReason>)> {
-        self.find_or_install_override_toolchain_or_default(path)
-    }
-
     pub(crate) fn create_command_for_dir(&self, path: &Path, binary: &str) -> Result<Command> {
-        let (ref toolchain, _) = self.toolchain_for_dir(path)?;
-
-        if let Some(cmd) = self.maybe_do_cargo_fallback(toolchain, binary)? {
-            Ok(cmd)
-        } else {
-            // NB this can only fail in race conditions since we used toolchain
-            // for dir.
-            let installed = toolchain.as_installed_common()?;
-            installed.create_command(binary)
-        }
+        let (toolchain, _) = self.find_or_install_override_toolchain_or_default(path)?;
+        self.create_command_for_toolchain_(toolchain, binary)
     }
 
     pub(crate) fn create_command_for_toolchain(
         &self,
-        toolchain: &str,
+        toolchain_name: &LocalToolchainName,
         install_if_missing: bool,
         binary: &str,
     ) -> Result<Command> {
-        let toolchain = self.get_toolchain(toolchain, false)?;
-        if install_if_missing && !toolchain.exists() {
-            let distributable = DistributableToolchain::new(&toolchain)?;
-            distributable.install_from_dist(true, false, &[], &[], None)?;
+        match toolchain_name {
+            LocalToolchainName::Named(ToolchainName::Official(desc)) => {
+                match DistributableToolchain::new(self, desc.clone()) {
+                    Err(RustupError::ToolchainNotInstalled(_)) => {
+                        if install_if_missing {
+                            DistributableToolchain::install(
+                                self,
+                                desc,
+                                &[],
+                                &[],
+                                self.get_profile()?,
+                                true,
+                            )?;
+                        }
+                    }
+                    o => {
+                        o?;
+                    }
+                }
+            }
+            n => {
+                if !Toolchain::exists(self, n)? {
+                    return Err(RustupError::ToolchainNotInstallable(n.to_string()).into());
+                }
+            }
         }
 
-        if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {
-            Ok(cmd)
-        } else {
-            // NB note this really can't fail due to to having installed the toolchain if needed
-            let installed = toolchain.as_installed_common()?;
-            installed.create_command(binary)
+        let toolchain = Toolchain::new(self, toolchain_name.clone())?;
+
+        // NB this can only fail in race conditions since we handle existence above
+        // for dir.
+        self.create_command_for_toolchain_(toolchain, binary)
+    }
+
+    fn create_command_for_toolchain_(
+        &self,
+        toolchain: Toolchain<'_>,
+        binary: &str,
+    ) -> Result<Command> {
+        // Should push the cargo fallback into a custom toolchain type? And then
+        // perhaps a trait that create command layers on?
+        if !matches!(
+            toolchain.name(),
+            LocalToolchainName::Named(ToolchainName::Official(_))
+        ) {
+            if let Some(cmd) = self.maybe_do_cargo_fallback(&toolchain, binary)? {
+                return Ok(cmd);
+            }
         }
+
+        toolchain.create_command(binary)
     }
 
     // Custom toolchains don't have cargo, so here we detect that situation and
@@ -851,27 +898,31 @@ impl Cfg {
         toolchain: &Toolchain<'_>,
         binary: &str,
     ) -> Result<Option<Command>> {
-        if !toolchain.is_custom() {
-            return Ok(None);
-        }
-
         if binary != "cargo" && binary != "cargo.exe" {
             return Ok(None);
         }
 
-        let cargo_path = toolchain.path().join("bin/cargo");
-        let cargo_exe_path = toolchain.path().join("bin/cargo.exe");
+        let cargo_path = toolchain.binary_file("cargo");
 
-        if cargo_path.exists() || cargo_exe_path.exists() {
+        // breadcrumb in case of regression: we used to get the cargo path and
+        // cargo.exe path separately, not using the binary_file helper. This may
+        // matter if calling a binary with some personality that allows .exe and
+        // not .exe to coexist (e.g. wine) - but thats not something we aim to
+        // support : the host should always be correct.
+        if cargo_path.exists() {
             return Ok(None);
         }
 
-        // XXX: This could actually consider all distributable toolchains in principle.
-        for fallback in &["nightly", "beta", "stable"] {
-            let fallback = self.get_toolchain(fallback, false)?;
-            if fallback.exists() {
-                let distributable = DistributableToolchain::new(&fallback)?;
-                let cmd = distributable.create_fallback_command("cargo", toolchain)?;
+        let default_host_triple = self.get_default_host_triple()?;
+        // XXX: This could actually consider all installed distributable
+        // toolchains in principle.
+        for fallback in ["nightly", "beta", "stable"] {
+            let resolved =
+                PartialToolchainDesc::from_str(fallback)?.resolve(&default_host_triple)?;
+            if let Ok(fallback) =
+                crate::toolchain::distributable::DistributableToolchain::new(self, resolved)
+            {
+                let cmd = fallback.create_fallback_command("cargo", toolchain)?;
                 return Ok(Some(cmd));
             }
         }
@@ -893,26 +944,23 @@ impl Cfg {
 
     #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn get_default_host_triple(&self) -> Result<dist::TargetTriple> {
-        Ok(self
-            .settings_file
-            .with(|s| {
-                Ok(s.default_host_triple
-                    .as_ref()
-                    .map(|s| dist::TargetTriple::new(s)))
-            })?
-            .unwrap_or_else(dist::TargetTriple::from_host_or_build))
+        self.settings_file.with(|s| Ok(get_default_host_triple(s)))
     }
 
-    pub(crate) fn resolve_toolchain(&self, name: &str) -> Result<String> {
-        // remove trailing slashes in toolchain name
-        let normalized_name = name.trim_end_matches('/');
-        if let Ok(desc) = dist::PartialToolchainDesc::from_str(normalized_name) {
-            let host = self.get_default_host_triple()?;
-            Ok(desc.resolve(&host)?.to_string())
-        } else {
-            Ok(normalized_name.to_owned())
+    /// The path on disk of any concrete toolchain
+    pub(crate) fn toolchain_path(&self, toolchain: &LocalToolchainName) -> PathBuf {
+        match toolchain {
+            LocalToolchainName::Named(name) => self.toolchains_dir.join(name.to_string()),
+            LocalToolchainName::Path(p) => p.to_path_buf(),
         }
     }
+}
+
+fn get_default_host_triple(s: &Settings) -> dist::TargetTriple {
+    s.default_host_triple
+        .as_ref()
+        .map(|s| dist::TargetTriple::new(s))
+        .unwrap_or_else(dist::TargetTriple::from_host_or_build)
 }
 
 /// Specifies how a `rust-toolchain`/`rust-toolchain.toml` configuration file should be parsed.

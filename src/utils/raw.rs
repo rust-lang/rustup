@@ -1,10 +1,14 @@
 #[cfg(not(windows))]
 use std::env;
 use std::fs;
+use std::fs::File;
 use std::io;
 use std::io::Write;
 use std::path::Path;
 use std::str;
+
+#[cfg(not(windows))]
+use libc;
 
 #[cfg(not(windows))]
 use crate::process;
@@ -27,6 +31,29 @@ pub(crate) fn is_directory<P: AsRef<Path>>(path: P) -> bool {
 
 pub fn is_file<P: AsRef<Path>>(path: P) -> bool {
     fs::metadata(path).ok().as_ref().map(fs::Metadata::is_file) == Some(true)
+}
+
+#[cfg(windows)]
+pub fn open_dir(p: &Path) -> std::io::Result<File> {
+    use std::fs::OpenOptions;
+    use std::os::windows::fs::OpenOptionsExt;
+
+    use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_BACKUP_SEMANTICS;
+
+    let mut options = OpenOptions::new();
+    options.read(true);
+    options.custom_flags(FILE_FLAG_BACKUP_SEMANTICS);
+    options.open(p)
+}
+#[cfg(not(windows))]
+pub fn open_dir(p: &Path) -> std::io::Result<File> {
+    use std::fs::OpenOptions;
+    use std::os::unix::fs::OpenOptionsExt;
+
+    let mut options = OpenOptions::new();
+    options.read(true);
+    options.custom_flags(libc::O_NOFOLLOW);
+    options.open(p)
 }
 
 pub fn path_exists<P: AsRef<Path>>(path: P) -> bool {

@@ -7,7 +7,4 @@ mod cli_self_upd;
 mod cli_ui;
 mod cli_v1;
 mod cli_v2;
-mod dist;
 mod dist_install;
-mod dist_manifest;
-mod dist_transactions;

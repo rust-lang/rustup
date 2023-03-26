@@ -1,5 +1,6 @@
+args = ["run", "--help"]
 bin.name = "rustup"
-args = ["run","--help"]
+stderr = ""
 stdout = """
 ...
 Run a command with an environment configured for a given toolchain
@@ -8,8 +9,8 @@ USAGE:
     rustup[EXE] run [OPTIONS] <toolchain> <command>...
 
 ARGS:
-    <toolchain>     Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more
-                    information see `rustup help toolchain`
+    <toolchain>     Toolchain name, such as 'stable', 'nightly', '1.8.0', or a custom toolchain
+                    name, or an absolute path. For more information see `rustup help toolchain`
     <command>...    
 
 OPTIONS:
@@ -31,4 +32,3 @@ DISCUSSION:
 
         $ rustup run nightly cargo build
 """
-stderr = ""

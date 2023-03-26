@@ -1,7 +1,6 @@
 //! Tools for building and working with the filesystem of a mock Rust
 //! distribution server, with v1 and v2 manifests.
 
-use crate::mock::MockInstallerBuilder;
 use lazy_static::lazy_static;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -11,7 +10,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use url::Url;
 
-use crate::mock::clitools::hard_link;
+use super::clitools::hard_link;
+use super::MockInstallerBuilder;
 
 // This function changes the mock manifest for a given channel to that
 // of a particular date. For advancing the build from e.g. 2016-02-1

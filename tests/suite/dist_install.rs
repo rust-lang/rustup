@@ -11,7 +11,7 @@ use rustup::dist::Notification;
 use rustup::utils::utils;
 use rustup_macros::integration_test as test;
 
-use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
+use rustup::test::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 // Just testing that the mocks work
 #[test]

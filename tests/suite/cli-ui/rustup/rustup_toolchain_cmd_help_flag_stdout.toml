@@ -22,8 +22,8 @@ DISCUSSION:
     installation of the Rust compiler. `rustup` supports multiple
     types of toolchains. The most basic track the official release
     channels: 'stable', 'beta' and 'nightly'; but `rustup` can also
-    install toolchains from the official archives, for alternate host
-    platforms, and from local builds.
+    install specific toolchains from the official archives, toolchains for
+    alternate host platforms, and from local builds ('custom toolchains').
 
     Standard release channel toolchain names have the following form:
 

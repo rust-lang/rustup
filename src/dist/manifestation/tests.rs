@@ -13,21 +13,22 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use url::Url;
 
-use rustup::currentprocess;
-use rustup::dist::dist::{Profile, TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER};
-use rustup::dist::download::DownloadCfg;
-use rustup::dist::manifest::{Component, Manifest};
-use rustup::dist::manifestation::{Changes, Manifestation, UpdateStatus};
-use rustup::dist::prefix::InstallPrefix;
-use rustup::dist::temp;
-use rustup::dist::Notification;
-use rustup::errors::RustupError;
-use rustup::utils::raw as utils_raw;
-use rustup::utils::utils;
-use rustup_macros::integration_test as test;
+use rustup_macros::unit_test as test;
 
-use crate::mock::dist::*;
-use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
+use crate::{
+    currentprocess,
+    dist::{
+        dist::{Profile, TargetTriple, ToolchainDesc, DEFAULT_DIST_SERVER},
+        download::DownloadCfg,
+        manifest::{Component, Manifest},
+        manifestation::{Changes, Manifestation, UpdateStatus},
+        prefix::InstallPrefix,
+        temp, Notification,
+    },
+    errors::RustupError,
+    test::mock::{dist::*, MockComponentBuilder, MockFile, MockInstallerBuilder},
+    utils::{raw as utils_raw, utils},
+};
 
 const SHA256_HASH_LEN: usize = 64;
 
@@ -546,7 +547,7 @@ fn setup_from_dist_server(
     );
 
     let toolchain = ToolchainDesc::from_str("nightly-x86_64-apple-darwin").unwrap();
-    let prefix = InstallPrefix::from(prefix_tempdir.path().to_owned());
+    let prefix = InstallPrefix::from(prefix_tempdir.path());
     let download_cfg = DownloadCfg {
         dist_root: "phony",
         temp_cfg: &temp_cfg,

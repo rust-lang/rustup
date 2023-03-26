@@ -1,4 +1,3 @@
-use std::cmp::Ord;
 use std::env;
 use std::fs::{self, File};
 use std::io::{self, BufReader, Write};
@@ -536,40 +535,6 @@ pub(crate) fn format_path_for_display(path: &str) -> String {
     }
 }
 
-pub(crate) fn toolchain_sort<T: AsRef<str>>(v: &mut [T]) {
-    use semver::{BuildMetadata, Prerelease, Version};
-
-    fn special_version(ord: u64, s: &str) -> Version {
-        Version {
-            major: 0,
-            minor: 0,
-            patch: 0,
-            pre: Prerelease::new(&format!("pre.{}.{}", ord, s.replace('_', "-"))).unwrap(),
-            build: BuildMetadata::EMPTY,
-        }
-    }
-
-    fn toolchain_sort_key(s: &str) -> Version {
-        if s.starts_with("stable") {
-            special_version(0, s)
-        } else if s.starts_with("beta") {
-            special_version(1, s)
-        } else if s.starts_with("nightly") {
-            special_version(2, s)
-        } else {
-            Version::parse(&s.replace('_', "-")).unwrap_or_else(|_| special_version(3, s))
-        }
-    }
-
-    v.sort_by(|a, b| {
-        let a_str: &str = a.as_ref();
-        let b_str: &str = b.as_ref();
-        let a_key = toolchain_sort_key(a_str);
-        let b_key = toolchain_sort_key(b_str);
-        a_key.cmp(&b_key)
-    });
-}
-
 #[cfg(target_os = "linux")]
 fn copy_and_delete<'a, N>(
     name: &'static str,
@@ -744,33 +709,6 @@ mod tests {
     use rustup_macros::unit_test as test;
 
     use super::*;
-
-    #[test]
-    fn test_toolchain_sort() {
-        let expected = vec![
-            "stable-x86_64-unknown-linux-gnu",
-            "beta-x86_64-unknown-linux-gnu",
-            "nightly-x86_64-unknown-linux-gnu",
-            "1.0.0-x86_64-unknown-linux-gnu",
-            "1.2.0-x86_64-unknown-linux-gnu",
-            "1.8.0-x86_64-unknown-linux-gnu",
-            "1.10.0-x86_64-unknown-linux-gnu",
-        ];
-
-        let mut v = vec![
-            "1.8.0-x86_64-unknown-linux-gnu",
-            "1.0.0-x86_64-unknown-linux-gnu",
-            "nightly-x86_64-unknown-linux-gnu",
-            "stable-x86_64-unknown-linux-gnu",
-            "1.10.0-x86_64-unknown-linux-gnu",
-            "beta-x86_64-unknown-linux-gnu",
-            "1.2.0-x86_64-unknown-linux-gnu",
-        ];
-
-        toolchain_sort(&mut v);
-
-        assert_eq!(expected, v);
-    }
 
     #[test]
     fn test_remove_file() {

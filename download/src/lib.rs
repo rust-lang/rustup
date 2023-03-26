@@ -48,6 +48,7 @@ fn download_with_backend(
 }
 
 type DownloadCallback<'a> = &'a dyn Fn(Event<'_>) -> Result<()>;
+
 pub fn download_to_path_with_backend(
     backend: Backend,
     url: &Url,
@@ -137,6 +138,9 @@ pub fn download_to_path_with_backend(
         }
     })
 }
+
+#[cfg(all(not(feature = "reqwest-backend"), not(feature = "curl-backend")))]
+compile_error!("Must enable at least one backend");
 
 /// Download via libcurl; encrypt with the native (or OpenSSl) TLS
 /// stack via libcurl
@@ -255,10 +259,17 @@ pub mod curl {
 
 #[cfg(feature = "reqwest-backend")]
 pub mod reqwest_be {
+    #[cfg(all(
+        not(feature = "reqwest-rustls-tls"),
+        not(feature = "reqwest-default-tls")
+    ))]
+    compile_error!("Must select a reqwest TLS backend");
+
     use std::io;
     use std::time::Duration;
 
     use anyhow::{anyhow, Context, Result};
+    #[cfg(feature = "reqwest-rustls-tls")]
     use lazy_static::lazy_static;
     use reqwest::blocking::{Client, ClientBuilder, Response};
     use reqwest::{header, Proxy};

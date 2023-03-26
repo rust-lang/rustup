@@ -125,9 +125,9 @@ jobs:
           TARGET: ${{ matrix.target }} 
         # os-specific code leads to lints escaping if we only run this in one target
         run: |
-          cargo check --all --all-targets
+          cargo check --all --all-targets --features test
           git ls-files -- '*.rs' | xargs touch
-          cargo clippy --workspace --all-targets      
+          cargo clippy --workspace --all-targets --features test   
       - name: Upload the built artifact
         if: matrix.mode == 'release'
         uses: actions/upload-artifact@v3

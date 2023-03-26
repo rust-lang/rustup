@@ -15,7 +15,7 @@ mod unix {
     use rustup_macros::integration_test as test;
 
     use super::INIT_NONE;
-    use crate::mock::clitools::{self, Scenario};
+    use rustup::test::mock::clitools::{self, Scenario};
 
     // Let's write a fake .rc which looks vaguely like a real script.
     const FAKE_RC: &str = r#"
@@ -351,11 +351,11 @@ export PATH="$HOME/apple/bin"
 
 #[cfg(windows)]
 mod windows {
+    use rustup::test::mock::clitools::{self, Scenario};
     use rustup::test::{get_path, with_saved_path};
     use rustup_macros::integration_test as test;
 
     use super::INIT_NONE;
-    use crate::mock::clitools::{self, Scenario};
 
     #[test]
     /// Smoke test for end-to-end code connectivity of the installer path mgmt on windows.
