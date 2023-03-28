@@ -6,7 +6,7 @@ rustup [..]
 The Rust toolchain installer
 
 USAGE:
-    rustup[EXE] [OPTIONS] [+toolchain] [SUBCOMMAND]
+    rustup[EXE] [OPTIONS] [+toolchain] <SUBCOMMAND>
 
 ARGS:
     <+toolchain>    release channel (e.g. +stable) or custom toolchain to set override

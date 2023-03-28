@@ -1,6 +1,6 @@
 bin.name = "rustup"
-args = ["help"]
-status.code = 0
+args = ["-v"]
+status.code = 1
 stdout = """
 rustup [..]
 The Rust toolchain installer
