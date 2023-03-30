@@ -622,9 +622,8 @@ where
                     OperationResult::Retry(e)
                 }
                 #[cfg(target_os = "linux")]
-                io::ErrorKind::Other
-                    if process().var_os("RUSTUP_PERMIT_COPY_RENAME").is_some()
-                        && Some(EXDEV) == e.raw_os_error() =>
+                _ if process().var_os("RUSTUP_PERMIT_COPY_RENAME").is_some()
+                    && Some(EXDEV) == e.raw_os_error() =>
                 {
                     match copy_and_delete(name, src, dest, notify_handler) {
                         Ok(()) => OperationResult::Ok(()),
