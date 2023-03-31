@@ -1189,6 +1189,10 @@ fn install_with_components() {
                 &["rustup", "component", "list"],
                 &format!("rust-analysis-{} (installed)", this_host_triple()),
             );
+            config.expect_stdout_ok(
+                &["rustup", "component", "list", "--no-target"],
+                "rust-analysis (installed)",
+            );
         })
     }
 

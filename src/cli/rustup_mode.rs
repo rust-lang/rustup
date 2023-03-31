@@ -549,6 +549,12 @@ pub(crate) fn cli() -> Command<'static> {
                                 .long("installed")
                                 .help("List only installed components")
                                 .action(ArgAction::SetTrue)
+                        )
+                        .arg(
+                            Arg::new("no-target")
+                                .long("no-target")
+                                .help("Omit target from component name")
+                                .action(ArgAction::SetTrue)
                         ),
                 )
                 .subcommand(
@@ -1369,9 +1375,9 @@ fn component_list(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let toolchain = explicit_or_dir_toolchain(cfg, m)?;
 
     if m.get_flag("installed") {
-        common::list_installed_components(&toolchain)
+        common::list_installed_components(&toolchain, m.get_flag("no-target"))
     } else {
-        common::list_components(&toolchain)?;
+        common::list_components(&toolchain, m.get_flag("no-target"))?;
         Ok(utils::ExitCode(0))
     }
 }

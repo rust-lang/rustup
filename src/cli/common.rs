@@ -384,12 +384,17 @@ pub(crate) fn list_installed_targets(toolchain: &Toolchain<'_>) -> Result<utils:
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_components(toolchain: &Toolchain<'_>, short: bool) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
     let distributable = DistributableToolchain::new_for_components(toolchain)?;
     let components = distributable.list_components()?;
     for component in components {
-        let name = component.name;
+        let name = if short {
+            component.component.short_name_in_manifest()
+        } else {
+            &component.name
+        };
+
         if component.installed {
             t.attr(term2::Attr::Bold)?;
             writeln!(t, "{name} (installed)")?;
@@ -402,13 +407,22 @@ pub(crate) fn list_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCo
     Ok(utils::ExitCode(0))
 }
 
-pub(crate) fn list_installed_components(toolchain: &Toolchain<'_>) -> Result<utils::ExitCode> {
+pub(crate) fn list_installed_components(
+    toolchain: &Toolchain<'_>,
+    short: bool,
+) -> Result<utils::ExitCode> {
     let mut t = term2::stdout();
     let distributable = DistributableToolchain::new_for_components(toolchain)?;
     let components = distributable.list_components()?;
     for component in components {
+        let name = if short {
+            component.component.short_name_in_manifest()
+        } else {
+            &component.name
+        };
+
         if component.installed {
-            writeln!(t, "{}", component.name)?;
+            writeln!(t, "{}", name)?;
         }
     }
     Ok(utils::ExitCode(0))
