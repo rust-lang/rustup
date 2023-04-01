@@ -30,6 +30,8 @@ use crate::utils::utils;
 use crate::Notification;
 use crate::{command, Cfg, ComponentStatus, Toolchain};
 
+const TOOLCHAIN_OVERRIDE_ERROR: &str = "Toolchain overrides must begin with '+'";
+
 fn handle_epipe(res: Result<utils::ExitCode>) -> Result<utils::ExitCode> {
     match res {
         Err(e) => {
@@ -68,7 +70,7 @@ pub fn main() -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
     use clap::ErrorKind::*;
-    let matches = match cli().try_get_matches_from(process().args_os()) {
+    let matches = match cli(true).try_get_matches_from(process().args_os()) {
         Ok(matches) => Ok(matches),
         Err(err) if err.kind() == DisplayHelp => {
             write!(process().stdout().lock(), "{err}")?;
@@ -109,6 +111,17 @@ pub fn main() -> Result<utils::ExitCode> {
             {
                 write!(process().stdout().lock(), "{err}")?;
                 return Ok(utils::ExitCode(1));
+            }
+            if err.kind() == ValueValidation && err.to_string().contains(TOOLCHAIN_OVERRIDE_ERROR) {
+                match cli(false).try_get_matches_from(process().args_os()) {
+                    Ok(_) => unreachable!(
+                        "Error should have been caught by the first call to try_get_matches_from"
+                    ),
+                    Err(err) => {
+                        write!(process().stdout().lock(), "{err}")?;
+                        return Ok(utils::ExitCode(1));
+                    }
+                }
             }
             Err(err)
         }
@@ -220,16 +233,20 @@ pub fn main() -> Result<utils::ExitCode> {
     })
 }
 
-pub(crate) fn cli() -> Command<'static> {
+/// The main entry point for the rustup CLI.
+/// We use toolchain_supported to determine if we should
+/// enable the toolchain argument or not. This is because
+/// we want to print the unexpected argument error instead
+/// of the toolchain syntax error when the user passes an
+/// unexpected argument or subcommand.
+pub(crate) fn cli(toolchain_supported: bool) -> Command<'static> {
     let mut app = Command::new("rustup")
         .version(common::version())
         .about("The Rust toolchain installer")
         .after_help(RUSTUP_HELP)
         .global_setting(AppSettings::DeriveDisplayOrder)
         .setting(AppSettings::SubcommandRequiredElseHelp)
-        .arg(
-            verbose_arg("Enable verbose output"),
-        )
+        .arg(verbose_arg("Enable verbose output"))
         .arg(
             Arg::new("quiet")
                 .conflicts_with("verbose")
@@ -237,19 +254,23 @@ pub(crate) fn cli() -> Command<'static> {
                 .short('q')
                 .long("quiet")
                 .action(ArgAction::SetTrue),
-        )
-        .arg(
+        );
+
+    if toolchain_supported {
+        app = app.arg(
             Arg::new("+toolchain")
                 .help("release channel (e.g. +stable) or custom toolchain to set override")
                 .value_parser(|s: &str| {
                     if s.starts_with('+') {
                         Ok(s.to_owned())
                     } else {
-                        Err("Toolchain overrides must begin with '+'".to_owned())
+                        Err(TOOLCHAIN_OVERRIDE_ERROR.to_owned())
                     }
                 }),
         )
-        .subcommand(
+    }
+
+    app = app.subcommand(
             Command::new("dump-testament")
                 .about("Dump information about the build")
                 .hide(true), // Not for users, only CI
@@ -1691,7 +1712,7 @@ impl fmt::Display for CompletionCommand {
 fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<utils::ExitCode> {
     match command {
         CompletionCommand::Rustup => {
-            clap_complete::generate(shell, &mut cli(), "rustup", &mut term2::stdout());
+            clap_complete::generate(shell, &mut cli(true), "rustup", &mut term2::stdout());
         }
         CompletionCommand::Cargo => {
             if let Shell::Zsh = shell {
