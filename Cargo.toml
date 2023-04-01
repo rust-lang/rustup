@@ -67,7 +67,7 @@ strsim = "0.10"
 tar = "0.4.26"
 tempfile.workspace = true
 # FIXME(issue #1818, #1826, and friends)
-term = "=0.7.0"
+term = "=0.5.1"
 thiserror.workspace = true
 threadpool = "1"
 toml = "0.5"
