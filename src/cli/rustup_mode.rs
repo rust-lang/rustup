@@ -114,13 +114,8 @@ pub fn main() -> Result<utils::ExitCode> {
                 write!(process().stdout().lock(), "{err}")?;
                 return Ok(utils::ExitCode(1));
             }
-            if err.kind() == ValueValidation {
-                if err.to_string().contains(TOOLCHAIN_OVERRIDE_ERROR) {
-                    err!("{TOOLCHAIN_OVERRIDE_ERROR}\n");
-                    cli().print_help()?;
-                } else {
-                    write!(process().stdout().lock(), "{err}")?;
-                }
+            if err.kind() == ValueValidation && err.to_string().contains(TOOLCHAIN_OVERRIDE_ERROR) {
+                write!(process().stderr().lock(), "{err}")?;
                 return Ok(utils::ExitCode(1));
             }
             Err(err)
@@ -258,7 +253,9 @@ pub(crate) fn cli() -> Command<'static> {
                     if s.starts_with('+') {
                         Ok(s.to_owned())
                     } else {
-                        Err(TOOLCHAIN_OVERRIDE_ERROR.to_owned())
+                        Err(format!(
+                            "\"{s}\" is not a valid subcommand, so it was interpreted as a toolchain name, but it is also invalid. {TOOLCHAIN_OVERRIDE_ERROR}"
+                        ))
                     }
                 }),
         )
