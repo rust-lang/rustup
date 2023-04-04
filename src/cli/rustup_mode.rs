@@ -30,6 +30,10 @@ use crate::utils::utils;
 use crate::Notification;
 use crate::{command, Cfg, ComponentStatus, Toolchain};
 
+const TOOLCHAIN_OVERRIDE_ERROR: &str =
+    "To override the toolchain using the 'rustup +toolchain' syntax, \
+                        make sure to prefix the toolchain override with a '+'";
+
 fn handle_epipe(res: Result<utils::ExitCode>) -> Result<utils::ExitCode> {
     match res {
         Err(e) => {
@@ -108,6 +112,15 @@ pub fn main() -> Result<utils::ExitCode> {
             .contains(&err.kind())
             {
                 write!(process().stdout().lock(), "{err}")?;
+                return Ok(utils::ExitCode(1));
+            }
+            if err.kind() == ValueValidation {
+                if err.to_string().contains(TOOLCHAIN_OVERRIDE_ERROR) {
+                    err!("{TOOLCHAIN_OVERRIDE_ERROR}\n");
+                    cli().print_help()?;
+                } else {
+                    write!(process().stdout().lock(), "{err}")?;
+                }
                 return Ok(utils::ExitCode(1));
             }
             Err(err)
@@ -245,7 +258,7 @@ pub(crate) fn cli() -> Command<'static> {
                     if s.starts_with('+') {
                         Ok(s.to_owned())
                     } else {
-                        Err("Toolchain overrides must begin with '+'".to_owned())
+                        Err(TOOLCHAIN_OVERRIDE_ERROR.to_owned())
                     }
                 }),
         )
