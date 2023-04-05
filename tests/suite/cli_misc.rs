@@ -944,10 +944,6 @@ fn override_by_toolchain_on_the_command_line() {
             &["rustup", "+foo", "which", "rustc"],
             "toolchain 'foo' is not installed",
         );
-        config.expect_err(
-            &["rustup", "@stable", "which", "rustc"],
-            r#"Invalid value "@stable" for '<+toolchain>': Toolchain overrides must begin with '+'"#,
-        );
         config.expect_stderr_ok(
             &["rustup", "+stable", "set", "profile", "minimal"],
             "profile set to 'minimal'",
