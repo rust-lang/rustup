@@ -45,6 +45,7 @@ please review the repository.
 - Improved error message when there is an error caused by override file [pr#3041]
 - Explain [proxy] in terminology documentation [pr#3091]
 - Recommend tracking `Cargo.lock` with rust-toolchain file [pr#3054]
+- Fix RUSTUP_PERMIT_COPY_RENAME condition so it is actually used [pr#3292]
 - Bump a lot of dependencies to their latest versions [pr#renovate-bot]
 
 [rust-analyzer]: https://github.com/rust-lang/rust-analyzer
@@ -68,6 +69,7 @@ please review the repository.
 [pr#3041]: https://github.com/rust-lang/rustup/pull/3041
 [pr#3091]: https://github.com/rust-lang/rustup/pull/3091
 [pr#3054]: https://github.com/rust-lang/rustup/pull/3054
+[pr#3292]: https://github.com/rust-lang/rustup/pull/3292
 [pr#renovate-bot]: https://github.com/rust-lang/rustup/pulls?q=is:pr+author:app/renovate+is:merged
 
 Thanks go to:
@@ -102,6 +104,10 @@ Thanks go to:
 - zohnannor (zohnannor)
 - Joshua Nelson (jyn514)
 - Prikshit Gautam (gautamprikshit1)
+- Dylan Thacker-Smith (dylanahsmith)
+- Jan David (jdno)
+- Aurora (lilith13666)
+- Pietro Albini (pietroalbini)
 - Renovate Bot (renovate-bot)
 
 ## [1.25.2] - 2023-02-01
