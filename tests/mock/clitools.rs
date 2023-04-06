@@ -6,10 +6,10 @@ use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::ffi::OsStr;
 use std::fs;
-use std::io;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock, RwLockWriteGuard};
 use std::time::Instant;
 
 use enum_map::{enum_map, Enum, EnumMap};
@@ -53,6 +53,8 @@ pub struct Config {
     pub rustup_update_root: Option<String>,
     /// This is cwd for the test
     pub workdir: RefCell<PathBuf>,
+    /// This is the test root for keeping stuff together
+    pub test_root_dir: PathBuf,
 }
 
 // Describes all the features of the mock dist server.
@@ -114,6 +116,15 @@ struct ConstState {
     scenarios: EnumMap<Scenario, RwLock<Option<PathBuf>>>,
     const_dist_dir: tempfile::TempDir,
 }
+
+/// The lock to be used when creating test environments.
+///
+/// Essentially we use this in `.read()` mode to gate access to `fork()`
+/// new subprocesses, and in `.write()` mode to gate creation of new test
+/// environments. In doing this we can ensure that new test environment creation
+/// does not result in ETXTBSY because the FDs in question happen to be in
+/// newly `fork()`d but not yet `exec()`d subprocesses of other tests.
+pub static CMD_LOCK: Lazy<RwLock<usize>> = Lazy::new(|| RwLock::new(0));
 
 impl ConstState {
     fn new(const_dist_dir: tempfile::TempDir) -> Self {
@@ -185,9 +196,9 @@ pub fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir,
     }
 
     let current_exe_path = env::current_exe().unwrap();
-    let mut exe_dir = current_exe_path.parent().unwrap();
-    if exe_dir.ends_with("deps") {
-        exe_dir = exe_dir.parent().unwrap();
+    let mut built_exe_dir = current_exe_path.parent().unwrap();
+    if built_exe_dir.ends_with("deps") {
+        built_exe_dir = built_exe_dir.parent().unwrap();
     }
     let test_dir = rustup_test::test_dir().unwrap();
 
@@ -221,19 +232,50 @@ pub fn setup_test_state(test_dist_dir: tempfile::TempDir) -> (tempfile::TempDir,
         homedir,
         rustup_update_root: None,
         workdir: RefCell::new(workdir),
+        test_root_dir: test_dir.path().to_path_buf(),
     };
 
-    let build_path = exe_dir.join(format!("rustup-init{EXE_SUFFIX}"));
+    let build_path = built_exe_dir.join(format!("rustup-init{EXE_SUFFIX}"));
 
     let rustup_path = config.exedir.join(format!("rustup{EXE_SUFFIX}"));
-    let setup_path = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
+    // Used to create dist servers. Perhaps should only link when needed?
+    let init_path = config.exedir.join(format!("rustup-init{EXE_SUFFIX}"));
     let rustc_path = config.exedir.join(format!("rustc{EXE_SUFFIX}"));
     let cargo_path = config.exedir.join(format!("cargo{EXE_SUFFIX}"));
     let rls_path = config.exedir.join(format!("rls{EXE_SUFFIX}"));
     let rust_lldb_path = config.exedir.join(format!("rust-lldb{EXE_SUFFIX}"));
 
-    copy_binary(build_path, &rustup_path).unwrap();
-    hard_link(&rustup_path, setup_path).unwrap();
+    const ESTIMATED_LINKS_PER_TEST: usize = 6 * 2;
+    // NTFS has a limit of 1023 links per file; test setup creates 6 links, and
+    // then some tests will link the cached installer to rustup/cargo etc,
+    // adding more links
+    const MAX_TESTS_PER_RUSTUP_EXE: usize = 1023 / ESTIMATED_LINKS_PER_TEST;
+    // This returning-result inner structure allows failures without poisoning
+    // cmd_lock.
+    {
+        fn link_or_copy(
+            original: &Path,
+            link: &Path,
+            lock: &mut RwLockWriteGuard<usize>,
+        ) -> io::Result<()> {
+            **lock += 1;
+            if **lock < MAX_TESTS_PER_RUSTUP_EXE {
+                hard_link(original, link)
+            } else {
+                // break the *original* so new tests form a new distinct set of
+                // links. Do this by copying to link, breaking the source,
+                // linking back.
+                **lock = 0;
+                fs::copy(original, link)?;
+                fs::remove_file(original)?;
+                hard_link(link, original)
+            }
+        }
+        let mut lock = CMD_LOCK.write().unwrap();
+        link_or_copy(&build_path, &rustup_path, &mut lock)
+    }
+    .unwrap();
+    hard_link(&rustup_path, init_path).unwrap();
     hard_link(&rustup_path, rustc_path).unwrap();
     hard_link(&rustup_path, cargo_path).unwrap();
     hard_link(&rustup_path, rls_path).unwrap();
@@ -282,6 +324,8 @@ fn create_local_update_server(self_dist: &Path, exedir: &Path, version: &str) ->
 
     fs::create_dir_all(dist_dir).unwrap();
     output_release_file(self_dist, "1", version);
+    // TODO: should this hardlink since the modify-codepath presumes it has to
+    // link break?
     fs::copy(rustup_bin, dist_exe).unwrap();
 
     let root_url = format!("file://{}", self_dist.display());
@@ -291,9 +335,10 @@ fn create_local_update_server(self_dist: &Path, exedir: &Path, version: &str) ->
 pub fn self_update_setup(f: &dyn Fn(&mut Config, &Path), version: &str) {
     test(Scenario::SimpleV2, &|config| {
         // Create a mock self-update server
+
         let self_dist_tmp = tempfile::Builder::new()
             .prefix("self_dist")
-            .tempdir()
+            .tempdir_in(&config.test_root_dir)
             .unwrap();
         let self_dist = self_dist_tmp.path();
 
@@ -303,9 +348,21 @@ pub fn self_update_setup(f: &dyn Fn(&mut Config, &Path), version: &str) {
         let trip = this_host_triple();
         let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
         let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
+        let dist_tmp = dist_dir.join("rustup-init-tmp");
 
         // Modify the exe so it hashes different
-        raw::append_file(&dist_exe, "").unwrap();
+        // 1) move out of the way the file
+        fs::rename(&dist_exe, &dist_tmp).unwrap();
+        // 2) copy it
+        fs::copy(dist_tmp, &dist_exe).unwrap();
+        // modify it
+        let mut dest_file = fs::OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open(dist_exe)
+            .unwrap();
+        writeln!(dest_file).unwrap();
 
         f(config, self_dist);
     });
@@ -322,8 +379,21 @@ pub fn with_update_server(config: &mut Config, version: &str, f: &dyn Fn(&mut Co
     let trip = this_host_triple();
     let dist_dir = self_dist.join(format!("archive/{version}/{trip}"));
     let dist_exe = dist_dir.join(format!("rustup-init{EXE_SUFFIX}"));
+    let dist_tmp = dist_dir.join("rustup-init-tmp");
+
     // Modify the exe so it hashes different
-    raw::append_file(&dist_exe, "").unwrap();
+    // 1) move out of the way the file
+    fs::rename(&dist_exe, &dist_tmp).unwrap();
+    // 2) copy it
+    fs::copy(dist_tmp, &dist_exe).unwrap();
+    // modify it
+    let mut dest_file = fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(dist_exe)
+        .unwrap();
+    writeln!(dest_file).unwrap();
 
     config.rustup_update_root = Some(root_url);
     f(config);
@@ -663,7 +733,7 @@ impl Config {
 
         let mut retries = 8;
         let out = loop {
-            let lock = cmd_lock().read().unwrap();
+            let lock = CMD_LOCK.read().unwrap();
             let out = cmd.output();
             drop(lock);
             match out {
@@ -692,7 +762,7 @@ impl Config {
 
 /// Change the current distribution manifest to a particular date
 pub fn set_current_dist_date(config: &Config, date: &str) {
-    let url = Url::from_file_path(&config.distdir.as_ref().unwrap()).unwrap();
+    let url = Url::from_file_path(config.distdir.as_ref().unwrap()).unwrap();
     for channel in &["nightly", "beta", "stable"] {
         change_channel_date(&url, channel, date);
     }
@@ -751,22 +821,6 @@ where
 
 pub fn env<E: rustup_test::Env>(config: &Config, cmd: &mut E) {
     config.env(cmd)
-}
-
-use std::sync::RwLock;
-
-/// Returns the lock to be used when creating test environments.
-///
-/// Essentially we use this in `.read()` mode to gate access to `fork()`
-/// new subprocesses, and in `.write()` mode to gate creation of new test
-/// environments. In doing this we can ensure that new test environment creation
-/// does not result in ETXTBSY because the FDs in question happen to be in
-/// newly `fork()`d but not yet `exec()`d subprocesses of other tests.
-pub fn cmd_lock() -> &'static RwLock<()> {
-    lazy_static! {
-        static ref LOCK: RwLock<()> = RwLock::new(());
-    };
-    &LOCK
 }
 
 fn allow_inprocess<I, A>(name: &str, args: I) -> bool
@@ -1484,7 +1538,7 @@ fn create_custom_toolchains(customdir: &Path) {
     }
 }
 
-pub fn hard_link<A, B>(a: A, b: B) -> io::Result<()>
+pub fn hard_link<A, B>(original: A, link: B) -> io::Result<()>
 where
     A: AsRef<Path>,
     B: AsRef<Path>,
@@ -1496,21 +1550,5 @@ where
         }
         fs::hard_link(a, b).map(drop)
     }
-    inner(a.as_ref(), b.as_ref())
-}
-
-pub fn copy_binary<A, B>(a: A, b: B) -> io::Result<()>
-where
-    A: AsRef<Path>,
-    B: AsRef<Path>,
-{
-    fn inner(a: &Path, b: &Path) -> io::Result<()> {
-        match fs::remove_file(b) {
-            Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
-            _ => {}
-        }
-        fs::copy(a, b).map(drop)
-    }
-    let _lock = cmd_lock().write().unwrap();
-    inner(a.as_ref(), b.as_ref())
+    inner(original.as_ref(), link.as_ref())
 }

@@ -7,7 +7,6 @@ use anyhow::{anyhow, bail, Context, Result};
 use retry::delay::NoDelay;
 use retry::{retry, OperationResult};
 
-use crate::config::PgpPublicKey;
 use crate::dist::component::{
     Components, Package, TarGzPackage, TarXzPackage, TarZStdPackage, Transaction,
 };
@@ -378,7 +377,6 @@ impl Manifestation {
         update_hash: Option<&Path>,
         temp_cfg: &temp::Cfg,
         notify_handler: &dyn Fn(Notification<'_>),
-        pgp_keys: &[PgpPublicKey],
     ) -> Result<Option<String>> {
         // If there's already a v2 installation then something has gone wrong
         if self.read_config()?.is_some() {
@@ -414,7 +412,6 @@ impl Manifestation {
             download_dir: &dld_dir,
             temp_cfg,
             notify_handler,
-            pgp_keys,
         };
 
         let dl = dlcfg.download_and_check(&url, update_hash, ".tar.gz")?;

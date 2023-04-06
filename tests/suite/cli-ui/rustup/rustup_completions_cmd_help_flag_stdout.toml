@@ -7,12 +7,12 @@ Generate tab-completion scripts for your shell
 USAGE:
     rustup[EXE] completions [ARGS]
 
-FLAGS:
-    -h, --help    Prints help information
-
 ARGS:
-    <shell>       [possible values: zsh, bash, fish, powershell, elvish]
-    <command>     [possible values: rustup, cargo]
+    <shell>      [possible values: bash, elvish, fish, powershell, zsh]
+    <command>    [possible values: rustup, cargo]
+
+OPTIONS:
+    -h, --help    Print help information
 
 DISCUSSION:
     Enable tab completion for Bash, Fish, Zsh, or PowerShell

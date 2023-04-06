@@ -61,6 +61,20 @@ fn main() {
             let rustc = &format!("rustc{}", EXE_SUFFIX);
             Command::new(rustc).arg("--version").status().unwrap();
         }
+        Some("--recursive-cargo-subcommand") => {
+            let status = Command::new("cargo-foo")
+                .arg("--recursive-cargo")
+                .status()
+                .unwrap();
+            assert!(status.success());
+        }
+        Some("--recursive-cargo") => {
+            let status = Command::new("cargo")
+                .args(&["+nightly", "--version"])
+                .status()
+                .unwrap();
+            assert!(status.success());
+        }
         Some("--echo-args") => {
             let mut out = io::stderr();
             for arg in args {
@@ -71,7 +85,7 @@ fn main() {
             let mut out = io::stderr();
             writeln!(out, "{}", std::env::var("PATH").unwrap()).unwrap();
         }
-        _ => panic!("bad mock proxy commandline"),
+        arg => panic!("bad mock proxy commandline: {:?}", arg),
     }
 }
 

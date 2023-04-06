@@ -32,15 +32,18 @@ jobs:
           - aarch64-pc-windows-msvc # skip-pr
           - x86_64-pc-windows-gnu # skip-pr
           - i686-pc-windows-gnu # skip-pr skip-master
+        mode:
+          - dev
+          - release         
         include:
-          - target: x86_64-pc-windows-gnu
-            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z
-            mingwdir: mingw64
-          - target: i686-pc-windows-gnu
-            mingwdir: mingw32
-            mingw: https://ci-mirrors.rust-lang.org/rustc/i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z
-          - target: aarch64-pc-windows-msvc # skip-pr skip-stable
-            skip_tests: yes # skip-pr skip-stable
+          - target: x86_64-pc-windows-msvc
+            run_tests: YES
+          - target: x86_64-pc-windows-gnu  # skip-pr
+            mingw: https://ci-mirrors.rust-lang.org/rustc/x86_64-6.3.0-release-posix-seh-rt_v5-rev2.7z  # skip-pr
+            mingwdir: mingw64  # skip-pr
+          - target: i686-pc-windows-gnu  # skip-pr skip-master
+            mingwdir: mingw32  # skip-pr skip-master
+            mingw: https://ci-mirrors.rust-lang.org/rustc/i686-6.3.0-release-posix-dwarf-rt_v5-rev2.7z  # skip-pr skip-master
     steps:
       - uses: actions/checkout@v3
         # v2 defaults to a shallow checkout, but we need at least to the previous tag
@@ -70,11 +73,15 @@ jobs:
           echo "C:\msys64\${{ matrix.mingwdir }}\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
         shell: powershell
         if: matrix.mingw != ''
-      - name: Set environment variables appropriately for the build
+      - name: Set PATH
         run: |
           echo "%USERPROFILE%\.cargo\bin" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           echo "TARGET=${{ matrix.target }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
-          echo "SKIP_TESTS=${{ matrix.skip_tests }}" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+      - name: Skip tests
+        if: matrix.run_tests == '' || matrix.mode == 'release'
+        run: |
+          echo "SKIP_TESTS=yes" >> $GITHUB_ENV
+        shell: bash
       - name: Cache cargo registry and git trees
         uses: actions/cache@v3
         with:
@@ -91,8 +98,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using win.rustup.rs
         run: |
           # Disable the download progress bar which can cause perf issues
@@ -108,8 +115,21 @@ jobs:
         run: |
           rustup target install ${{ matrix.target }}
       - name: Run a full build
+        env:
+          TARGET: ${{ matrix.target }} 
+          BUILD_PROFILE: ${{ matrix.mode }}
         run: bash ci/run.bash
+      - name: Run cargo check and clippy
+        if: matrix.mode != 'release'
+        env:
+          TARGET: ${{ matrix.target }} 
+        # os-specific code leads to lints escaping if we only run this in one target
+        run: |
+          cargo check --all --all-targets
+          git ls-files -- '*.rs' | xargs touch
+          cargo clippy --workspace --all-targets      
       - name: Upload the built artifact
+        if: matrix.mode == 'release'
         uses: actions/upload-artifact@v3
         with:
           name: rustup-init-${{ matrix.target }}
@@ -117,22 +137,22 @@ jobs:
             target/${{ matrix.target }}/release/rustup-init.exe
           retention-days: 7
       - name: Acquire the AWS tooling
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
           choco upgrade awscli
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
       - name: Prepare the dist
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
           .\ci\prepare-deploy.ps1
         shell: powershell
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
       - name: Deploy build to dev-static dist tree for release team
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
           aws --debug s3 cp --recursive dist s3://dev-static-rust-lang-org/rustup/dist
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-west-1
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
       - name: Clear the cargo caches
         run: |
           cargo install cargo-cache --no-default-features --features ci-autoclean

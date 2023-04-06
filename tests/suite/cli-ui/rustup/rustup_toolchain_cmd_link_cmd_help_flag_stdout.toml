@@ -7,12 +7,12 @@ Create a custom toolchain by symlinking to a directory
 USAGE:
     rustup[EXE] toolchain link <toolchain> <path>
 
-FLAGS:
-    -h, --help    Prints help information
-
 ARGS:
     <toolchain>    Custom toolchain name
     <path>         Path to the directory
+
+OPTIONS:
+    -h, --help    Print help information
 
 DISCUSSION:
     'toolchain' is the custom name to be assigned to the new toolchain.

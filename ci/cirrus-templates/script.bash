@@ -42,4 +42,6 @@ unset SKIP_TESTS
 export LIBZ_SYS_STATIC=1
 export CARGO_BUILD_JOBS=1
 export TARGET="x86_64-unknown-freebsd"
+# TODO: This should be split into two as the other jobs are.
+export BUILD_PROFILE="release"
 bash ci/run.bash

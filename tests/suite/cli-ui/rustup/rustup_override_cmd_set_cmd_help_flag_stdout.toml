@@ -7,14 +7,12 @@ Set the override toolchain for a directory
 USAGE:
     rustup[EXE] override set [OPTIONS] <toolchain>
 
-FLAGS:
-    -h, --help    Prints help information
+ARGS:
+    <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information
+                   see `rustup help toolchain`
 
 OPTIONS:
         --path <path>    Path to the directory
-
-ARGS:
-    <toolchain>    Toolchain name, such as 'stable', 'nightly', or '1.8.0'. For more information see `rustup help
-                   toolchain`
+    -h, --help           Print help information
 """
 stderr = ""

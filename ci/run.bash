@@ -33,7 +33,7 @@ fi
 target_cargo() {
     cmd="$1"
     shift
-    cargo "${cmd}" --locked --release --target "$TARGET" "${FEATURES[@]}" "$@"
+    cargo "${cmd}" --locked --profile "$BUILD_PROFILE" --target "$TARGET" "${FEATURES[@]}" "$@"
 }
 
 target_cargo build
@@ -51,7 +51,7 @@ download_pkg_test() {
     * ) features+=('--features' 'reqwest-rustls-tls') ;;
   esac
 
-  cargo "$1" --locked --release --target "$TARGET" "${features[@]}" -p download
+  cargo "$1" --locked --profile "$BUILD_PROFILE" --target "$TARGET" "${features[@]}" -p download
 }
 
 # Machines have 7GB of RAM, and our target/ contents is large enough that
@@ -75,7 +75,7 @@ build_test() {
 }
 
 if [ -z "$SKIP_TESTS" ]; then
-  cargo run --locked --release --target "$TARGET" "${FEATURES[@]}" -- --dump-testament
+  cargo run --locked --profile "$BUILD_PROFILE" --target "$TARGET" "${FEATURES[@]}" -- --dump-testament
   build_test build
   build_test test
 fi

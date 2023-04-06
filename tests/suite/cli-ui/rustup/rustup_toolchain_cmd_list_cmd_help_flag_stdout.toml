@@ -5,10 +5,10 @@ stdout = """
 List installed toolchains
 
 USAGE:
-    rustup[EXE] toolchain list [FLAGS]
+    rustup[EXE] toolchain list [OPTIONS]
 
-FLAGS:
-    -h, --help       Prints help information
+OPTIONS:
     -v, --verbose    Enable verbose output with toolchain information
+    -h, --help       Print help information
 """
 stderr = ""

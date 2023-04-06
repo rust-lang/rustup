@@ -42,13 +42,6 @@ where
     })
 }
 
-pub(crate) fn open_file(name: &'static str, path: &Path) -> Result<File> {
-    File::open(path).with_context(|| RustupError::ReadingFile {
-        name,
-        path: PathBuf::from(path),
-    })
-}
-
 pub fn read_file(name: &'static str, path: &Path) -> Result<String> {
     fs::read_to_string(path).with_context(|| RustupError::ReadingFile {
         name,
@@ -629,9 +622,8 @@ where
                     OperationResult::Retry(e)
                 }
                 #[cfg(target_os = "linux")]
-                io::ErrorKind::Other
-                    if process().var_os("RUSTUP_PERMIT_COPY_RENAME").is_some()
-                        && Some(EXDEV) == e.raw_os_error() =>
+                _ if process().var_os("RUSTUP_PERMIT_COPY_RENAME").is_some()
+                    && Some(EXDEV) == e.raw_os_error() =>
                 {
                     match copy_and_delete(name, src, dest, notify_handler) {
                         Ok(()) => OperationResult::Ok(()),

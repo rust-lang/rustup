@@ -38,6 +38,6 @@ http_proxy=proxy.example.com:1080` (and likewise for HTTPS). If you are
 getting an SSL `unknown protocol` error from `rustup` via `libcurl` but the
 command-line `curl` command works fine, this may be the problem.
 
-[curlman]: https://curl.haxx.se/docs/manpage.html
+[curlman]: https://curl.se/docs/manpage.html#:~:text=Environment,-The%20environment%20variables
 [cmd]: https://en.wikipedia.org/wiki/Cmd.exe
 [ps]: https://en.wikipedia.org/wiki/PowerShell

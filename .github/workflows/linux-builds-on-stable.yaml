@@ -15,9 +15,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        mode:
+          - dev
+          - release
         target:
           - x86_64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
+          - aarch64-linux-android
           - aarch64-unknown-linux-gnu     # skip-pr
           - aarch64-unknown-linux-musl    # skip-pr skip-master
           - powerpc64-unknown-linux-gnu   # skip-pr
@@ -35,13 +39,10 @@ jobs:
           - mipsel-unknown-linux-gnu      # skip-pr skip-master
           - mips64el-unknown-linux-gnuabi64 # skip-pr skip-master
           - s390x-unknown-linux-gnu       # skip-pr skip-master
-# Temporarily disabled due to https://github.com/rust-lang/rust/issues/103673.
-# FIXME(hi-rustin): Re-enable them after the issue is fixed.
-#          - arm-linux-androideabi         skip-pr skip-master
-#          - armv7-linux-androideabi       skip-pr skip-master
-#          - i686-linux-android            skip-pr skip-master
-#          - x86_64-linux-android          skip-pr skip-master
-#          - aarch64-linux-android
+          - arm-linux-androideabi         # skip-pr skip-master
+          - armv7-linux-androideabi       # skip-pr skip-master
+          - i686-linux-android            # skip-pr skip-master
+          - x86_64-linux-android          # skip-pr skip-master
           - riscv64gc-unknown-linux-gnu   # skip-pr skip-master
         include:
           - target: x86_64-unknown-linux-gnu
@@ -78,9 +79,9 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
       - name: Skip tests
+        if: matrix.run_tests == '' || matrix.mode == 'release'
         run: |
           echo "SKIP_TESTS=yes" >> $GITHUB_ENV
-        if: matrix.run_tests == ''
       - name: Cache cargo registry and git trees
         uses: actions/cache@v3
         with:
@@ -97,8 +98,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: target
-          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.base_ref }}-${{ github.head_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ github.base_ref }}-${{ matrix.target }}-${{ matrix.mode }}-cargo-target-dir-${{ steps.cargo-target-cache.outputs.rust_hash }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rustup using ./rustup-init.sh
         run: |
           sh ./rustup-init.sh --default-toolchain=none --profile=minimal -y
@@ -126,51 +127,55 @@ jobs:
             docker build -t "$DOCKER" -f "ci/docker/${DOCKER}/Dockerfile" .
           fi
       - name: Run the build within the docker image
+        env:
+          BUILD_PROFILE: ${{ matrix.mode }}
         run: |
           mkdir -p "${PWD}/target"
           chown -R "$(id -u)":"$(id -g)" "${PWD}/target"
           docker run \
             --entrypoint sh \
-            --user "$(id -u)":"$(id -g)" \
-            --volume "$(rustc --print sysroot)":/rustc-sysroot:ro \
-            --volume "${PWD}":/checkout:ro \
-            --volume "${PWD}"/target:/checkout/target \
-            --workdir /checkout \
-            --env TARGET="${TARGET}" \
-            --env SKIP_TESTS="${SKIP_TESTS}" \
-            --volume "${HOME}/.cargo:/cargo" \
+            --env BUILD_PROFILE="${BUILD_PROFILE}" \
             --env CARGO_HOME=/cargo \
             --env CARGO_TARGET_DIR=/checkout/target \
             --env LIBZ_SYS_STATIC=1 \
-            --tty \
+            --env SKIP_TESTS="${SKIP_TESTS}" \
+            --env TARGET="${TARGET}" \
             --init \
             --rm \
+            --tty \
+            --user "$(id -u)":"$(id -g)" \
+            --volume "$(rustc --print sysroot)":/rustc-sysroot:ro \
+            --volume "${HOME}/.cargo:/cargo" \
+            --volume "${PWD}":/checkout:ro \
+            --volume "${PWD}"/target:/checkout/target \
+            --workdir /checkout \
             "${DOCKER}" \
             -c 'PATH="${PATH}":/rustc-sysroot/bin bash ci/run.bash'
       - name: Upload the built artifact
         uses: actions/upload-artifact@v3
+        if: matrix.mode == 'release'
         with:
           name: rustup-init-${{ matrix.target }}
           path: |
             target/${{ matrix.target }}/release/rustup-init
           retention-days: 7
       - name: Acquire the AWS tooling
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
           pip3 install -U setuptools
           pip3 install awscli
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
       - name: Prepare the dist
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
           bash ci/prepare-deploy.bash
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
       - name: Deploy build to dev-static dist tree for release team
+        if: github.event_name == 'push' && github.ref == 'refs/heads/stable' && matrix.mode == 'release'
         run: |
           aws s3 cp --recursive deploy/ s3://dev-static-rust-lang-org/rustup/
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-west-1
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stable'
       - name: Clear the cargo caches
         run: |
           cargo install cargo-cache --no-default-features --features ci-autoclean
