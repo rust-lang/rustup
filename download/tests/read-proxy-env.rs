@@ -9,13 +9,10 @@ use std::thread;
 use std::time::Duration;
 
 use env_proxy::for_url;
-use lazy_static::lazy_static;
 use reqwest::{blocking::Client, Proxy};
 use url::Url;
 
-lazy_static! {
-    static ref SERIALISE_TESTS: Mutex<()> = Mutex::new(());
-}
+static SERIALISE_TESTS: Mutex<()> = Mutex::new(());
 
 fn scrub_env() {
     remove_var("http_proxy");
