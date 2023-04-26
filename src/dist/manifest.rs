@@ -117,7 +117,7 @@ impl Manifest {
         Ok(manifest)
     }
     pub fn stringify(self) -> String {
-        toml::Value::Table(self.into_toml()).to_string()
+        self.into_toml().to_string()
     }
 
     pub(crate) fn from_toml(mut table: toml::value::Table, path: &str) -> Result<Self> {
