@@ -131,7 +131,7 @@ members = ["download"]
 [workspace.dependencies]
 anyhow = "1.0.69"
 lazy_static = "1"
-tempfile = "3.4"
+tempfile = "3.5"
 thiserror = "1.0"
 url = "2.3"
 
