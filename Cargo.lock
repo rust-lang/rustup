@@ -1633,7 +1633,7 @@ dependencies = [
  "wait-timeout",
  "walkdir",
  "winapi",
- "winreg 0.11.0",
+ "winreg 0.50.0",
  "xz2",
  "zstd",
 ]
@@ -2611,12 +2611,12 @@ dependencies = [
 
 [[package]]
 name = "winreg"
-version = "0.11.0"
+version = "0.50.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76a1a57ff50e9b408431e8f97d5456f2807f8eb2a2cd79b06068fc87f8ecf189"
+checksum = "524e57b2c537c0f9b1e69f1965311ec12182b4122e45035b1508cd24d2adadb1"
 dependencies = [
  "cfg-if 1.0.0",
- "winapi",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
