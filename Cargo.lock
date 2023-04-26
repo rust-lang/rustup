@@ -1200,11 +1200,12 @@ checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
 name = "opener"
-version = "0.5.2"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "293c15678e37254c15bd2f092314abb4e51d7fdde05c2021279c12631b54f005"
+checksum = "d57fbd03b7f4ab9605d497df6f1cb7ea0ac60b18a2038b1e66e5ab34fe01fa99"
 dependencies = [
  "bstr",
+ "normpath",
  "winapi",
 ]
 

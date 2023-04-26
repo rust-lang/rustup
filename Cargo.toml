@@ -48,7 +48,7 @@ home = "0.5.4"
 lazy_static.workspace = true
 libc = "0.2"
 num_cpus = "1.15"
-opener = "0.5.2"
+opener = "0.6.0"
 # Used by `curl` or `reqwest` backend although it isn't imported by our rustup :
 # this allows controlling the vendoring status without exposing the presence of
 # the download crate.
