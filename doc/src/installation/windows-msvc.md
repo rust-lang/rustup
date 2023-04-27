@@ -41,7 +41,7 @@ This will includes all needed components for Rust:
 
 ### Installing only the required components (optional)
 
-If you'd like a more minimal install (and won't doing C++ development) then you can use the "Individual Components" tab to select just the essentials, which are:
+If you'd like a more minimal install (and won't be doing C++ development) then you can use the "Individual Components" tab to select just the essentials, which are:
 
 * MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)
 * Windows 11 SDK (10.0.22621.0)
