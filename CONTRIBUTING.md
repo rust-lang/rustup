@@ -4,12 +4,14 @@
 2. Create your feature branch: `git checkout -b my-new-feature`
 3. Test it: `cargo test`
 4. Lint it: `cargo +beta clippy --all --all-targets -- -D warnings`
+
 > We use `cargo clippy` to ensure high-quality code and to enforce a set of best practices for Rust programming. However, not all lints provided by `cargo clippy` are relevant or applicable to our project.
 > We may choose to ignore some lints if they are unstable, experimental, or specific to our project.
 > If you are unsure about a lint, please ask us in the [rustup Discord channel](https://discord.com/channels/442252698964721669/463480252723888159).
-5. Commit your changes: `git commit -am 'Add some feature'`
-6. Push to the branch: `git push origin my-new-feature`
-7. Submit a pull request :D
+
+1. Commit your changes: `git commit -am 'Add some feature'`
+2. Push to the branch: `git push origin my-new-feature`
+3. Submit a pull request :D
 
 For developing on `rustup` itself, you may want to install into a temporary
 directory, with a series of commands similar to this:
@@ -72,7 +74,7 @@ clippy is a moving target that can make it hard to merge for little benefit.
 
 We do ask that contributors keep the clippy status clean themselves.
 
-Minimally, run `cargo +nightly clippy --all --all-targets -- -D warnings` before
+Minimally, run `cargo +beta clippy --all --all-targets -- -D warnings` before
 submitting code.
 
 If possible, adding `--all-features` to the command is useful, but will require
