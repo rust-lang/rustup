@@ -583,7 +583,7 @@ fn recursive_cargo() {
             let cargo_bin_path = config.cargodir.join("bin");
             let cargo_subcommand = cargo_bin_path.join(format!("cargo-foo{}", EXE_SUFFIX));
             fs::create_dir_all(&cargo_bin_path).unwrap();
-            fs::copy(&real_mock_cargo, &cargo_subcommand).unwrap();
+            fs::copy(real_mock_cargo, cargo_subcommand).unwrap();
 
             // Verify the default behavior, which is currently broken on Windows.
             let args = &["cargo", "--recursive-cargo-subcommand"];

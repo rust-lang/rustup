@@ -72,7 +72,7 @@ clippy is a moving target that can make it hard to merge for little benefit.
 
 We do ask that contributors keep the clippy status clean themselves.
 
-Minimally, run `cargo +nightly clippy --all --all-targets -- -D warnings` before
+Minimally, run `cargo +beta clippy --all --all-targets -- -D warnings` before
 submitting code.
 
 If possible, adding `--all-features` to the command is useful, but will require
