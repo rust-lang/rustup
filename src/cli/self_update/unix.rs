@@ -140,7 +140,7 @@ pub(crate) fn run_update(setup_path: &Path) -> Result<utils::ExitCode> {
 }
 
 /// This function is as the final step of a self-upgrade. It replaces
-/// `CARGO_HOME`/bin/rustup with the running exe, and updates the the
+/// `CARGO_HOME`/bin/rustup with the running exe, and updates the
 /// links to it.
 pub(crate) fn self_replace() -> Result<utils::ExitCode> {
     install_bins()?;
