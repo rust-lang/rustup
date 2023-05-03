@@ -32,6 +32,7 @@ use crate::mock::topical_doc_data;
 use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};
 
 /// The configuration used by the tests in this module
+#[derive(Debug)]
 pub struct Config {
     /// Where we put the rustup / rustc / cargo bins
     pub exedir: PathBuf,
@@ -678,6 +679,7 @@ impl Config {
         output
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn run_inprocess<I, A>(&self, name: &str, args: I, env: &[(&str, &str)]) -> Output
     where
         I: IntoIterator<Item = A>,
@@ -957,6 +959,7 @@ impl Release {
         }
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     fn link(&self, path: &Path) {
         // Also create the manifests for releases by version
         let _ = hard_link(
@@ -1009,6 +1012,7 @@ impl Release {
 }
 
 // Creates a mock dist server populated with some test data
+#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
 fn create_mock_dist_server(path: &Path, s: Scenario) {
     let chans = match s {
         Scenario::None => return,

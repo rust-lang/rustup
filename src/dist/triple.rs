@@ -97,7 +97,10 @@ impl PartialTargetTriple {
 
 #[cfg(test)]
 mod test {
+    use rustup_macros::unit_test as test;
+
     use super::*;
+
     #[test]
     fn test_partial_target_triple_new() {
         let success_cases = vec![

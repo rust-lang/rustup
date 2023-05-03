@@ -11,6 +11,7 @@ use remove_dir_all::remove_dir_all;
 use rustup::test::{this_host_triple, with_saved_path};
 use rustup::utils::{raw, utils};
 use rustup::{for_host, Notification, DUP_TOOLS, TOOLS};
+use rustup_macros::integration_test as test;
 
 use crate::mock::{
     clitools::{self, output_release_file, self_update_setup, Config, Scenario},

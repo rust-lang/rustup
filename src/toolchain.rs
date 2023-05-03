@@ -1,4 +1,3 @@
-use std::env;
 use std::env::consts::EXE_SUFFIX;
 use std::ffi::OsStr;
 use std::ffi::OsString;
@@ -7,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::time::Duration;
+use std::{env, fmt::Debug};
 
 use anyhow::{anyhow, bail, Context, Result};
 use thiserror::Error as ThisError;
@@ -240,6 +240,7 @@ impl<'a> Toolchain<'a> {
         path
     }
     // Distributable and Custom. Installed only.
+    #[cfg_attr(feature = "otel", tracing::instrument)]
     pub fn rustc_version(&self) -> String {
         if let Ok(installed) = self.as_installed_common() {
             let rustc_path = self.binary_file("rustc");
@@ -521,6 +522,7 @@ impl<'a> InstalledToolchain<'a> for CustomToolchain<'a> {
 }
 
 /// Newtype to facilitate splitting out distributable-toolchain specific code.
+#[derive(Debug)]
 pub struct DistributableToolchain<'a>(&'a Toolchain<'a>);
 
 impl<'a> DistributableToolchain<'a> {
@@ -803,6 +805,7 @@ impl<'a> DistributableToolchain<'a> {
         }
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
     pub(crate) fn get_toolchain_desc_with_manifest(
         &self,
     ) -> Result<Option<ToolchainDescWithManifest>> {
@@ -824,6 +827,7 @@ impl<'a> DistributableToolchain<'a> {
             }))
     }
 
+    #[cfg_attr(feature = "otel", tracing::instrument)]
     pub fn list_components(&self) -> Result<Vec<ComponentStatus>> {
         if let Some(toolchain) = self.get_toolchain_desc_with_manifest()? {
             toolchain.list_components()

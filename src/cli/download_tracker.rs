@@ -268,7 +268,10 @@ fn format_dhms(sec: u64) -> (u64, u8, u8, u8) {
 
 #[cfg(test)]
 mod tests {
+    use rustup_macros::unit_test as test;
+
     use super::format_dhms;
+
     #[test]
     fn download_tracker_format_dhms_test() {
         assert_eq!(format_dhms(2), (0, 0, 0, 2));

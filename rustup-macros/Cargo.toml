@@ -1,0 +1,15 @@
+[package]
+edition = "2021"
+name = "rustup-macros"
+publish = false
+version = "0.1.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0.51"
+quote = "1.0.23"
+regex = "1.7.1"
+sha2 = "0.10.6"
+syn = { version = "2.0.13", features = ["full"] }

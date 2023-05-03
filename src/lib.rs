@@ -100,6 +100,8 @@ pub mod utils;
 
 #[cfg(test)]
 mod tests {
+    use rustup_macros::unit_test as test;
+
     use crate::{is_proxyable_tools, DUP_TOOLS, TOOLS};
 
     #[test]

@@ -650,6 +650,7 @@ pub(crate) fn valid_profile_names() -> String {
 // an upgrade then all the existing components will be upgraded.
 //
 // Returns the manifest's hash if anything changed.
+#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
 pub(crate) fn update_from_dist(
     download: DownloadCfg<'_>,
     update_hash: Option<&Path>,
@@ -664,7 +665,6 @@ pub(crate) fn update_from_dist(
 ) -> Result<Option<String>> {
     let fresh_install = !prefix.path().exists();
     let hash_exists = update_hash.map(Path::exists).unwrap_or(false);
-
     // fresh_install means the toolchain isn't present, but hash_exists means there is a stray hash file
     if fresh_install && hash_exists {
         // It's ok to unwrap, because hash have to exist at this point
@@ -1077,6 +1077,8 @@ fn date_from_manifest_date(date_str: &str) -> Option<NaiveDate> {
 
 #[cfg(test)]
 mod tests {
+    use rustup_macros::unit_test as test;
+
     use super::*;
 
     #[test]

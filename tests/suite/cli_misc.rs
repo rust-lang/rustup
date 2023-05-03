@@ -7,6 +7,7 @@ use std::{env::consts::EXE_SUFFIX, path::Path};
 use rustup::for_host;
 use rustup::test::this_host_triple;
 use rustup::utils::utils;
+use rustup_macros::integration_test as test;
 
 use crate::mock::clitools::{self, set_current_dist_date, Config, Scenario};
 

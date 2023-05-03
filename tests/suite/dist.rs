@@ -24,6 +24,7 @@ use rustup::dist::Notification;
 use rustup::errors::RustupError;
 use rustup::utils::raw as utils_raw;
 use rustup::utils::utils;
+use rustup_macros::integration_test as test;
 
 use crate::mock::dist::*;
 use crate::mock::{MockComponentBuilder, MockFile, MockInstallerBuilder};

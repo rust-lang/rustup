@@ -68,6 +68,7 @@ where
     callee(cfg, matches)
 }
 
+#[cfg_attr(feature = "otel", tracing::instrument(fields(args = format!("{:?}", process().args_os().collect::<Vec<_>>()))))]
 pub fn main() -> Result<utils::ExitCode> {
     self_update::cleanup_self_updater()?;
 
@@ -82,6 +83,7 @@ pub fn main() -> Result<utils::ExitCode> {
             write!(process().stdout().lock(), "{err}")?;
             info!("This is the version for the rustup toolchain manager, not the rustc compiler.");
 
+            #[cfg_attr(feature = "otel", tracing::instrument)]
             fn rustc_version() -> std::result::Result<String, Box<dyn std::error::Error>> {
                 let cfg = &mut common::set_globals(false, true)?;
                 let cwd = std::env::current_dir()?;
@@ -1105,6 +1107,7 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
+#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
 fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let verbose = m.get_flag("verbose");
 
@@ -1266,6 +1269,7 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
+#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
 fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     let verbose = m.get_flag("verbose");
     let cwd = utils::current_dir()?;
@@ -1293,6 +1297,7 @@ fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
     Ok(utils::ExitCode(0))
 }
 
+#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
 fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
     writeln!(process().stdout(), "{}", cfg.rustup_dir.display())?;
     Ok(utils::ExitCode(0))
@@ -1665,6 +1670,7 @@ fn set_auto_self_update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode
     Ok(utils::ExitCode(0))
 }
 
+#[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
 fn show_profile(cfg: &Cfg) -> Result<utils::ExitCode> {
     writeln!(process().stdout(), "{}", cfg.get_profile()?)?;
     Ok(utils::ExitCode(0))

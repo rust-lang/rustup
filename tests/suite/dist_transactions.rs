@@ -1,3 +1,7 @@
+use std::fs;
+use std::io::Write;
+use std::path::PathBuf;
+
 use rustup::dist::component::Transaction;
 use rustup::dist::dist::DEFAULT_DIST_SERVER;
 use rustup::dist::prefix::InstallPrefix;
@@ -6,9 +10,7 @@ use rustup::dist::Notification;
 use rustup::utils::raw as utils_raw;
 use rustup::utils::utils;
 use rustup::RustupError;
-use std::fs;
-use std::io::Write;
-use std::path::PathBuf;
+use rustup_macros::integration_test as test;
 
 #[test]
 fn add_file() {
