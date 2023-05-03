@@ -70,7 +70,7 @@ tempfile.workspace = true
 term = "=0.5.1"
 thiserror.workspace = true
 threadpool = "1"
-toml = "0.5"
+toml = "0.7"
 url.workspace = true
 wait-timeout = "0.2"
 xz2 = "0.1.3"

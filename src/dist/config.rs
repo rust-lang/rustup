@@ -48,7 +48,7 @@ impl Config {
     }
 
     pub(crate) fn stringify(self) -> String {
-        toml::Value::Table(self.into_toml()).to_string()
+        self.into_toml().to_string()
     }
 
     fn toml_to_components(arr: toml::value::Array, path: &str) -> Result<Vec<Component>> {
