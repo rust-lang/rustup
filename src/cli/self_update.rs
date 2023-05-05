@@ -937,7 +937,7 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
     info!("removing cargo home");
 
     // Remove CARGO_HOME/bin from PATH
-    do_remove_from_path()?;
+    do_remove_from_paths()?;
     do_remove_from_programs()?;
 
     // Delete everything in CARGO_HOME *except* the rustup bin
