@@ -4,7 +4,7 @@ use std::path::Path;
 use url::Url;
 
 use crate::utils::notify::NotificationLevel;
-use crate::utils::units::{self, Unit};
+use crate::utils::units::{self};
 
 #[derive(Debug)]
 pub enum Notification<'a> {
@@ -19,12 +19,6 @@ pub enum Notification<'a> {
     DownloadDataReceived(&'a [u8]),
     /// Download has finished.
     DownloadFinished,
-    /// The things we're tracking that are not counted in bytes.
-    /// Must be paired with a pop-units; our other calls are not
-    /// setup to guarantee this any better.
-    DownloadPushUnit(Unit),
-    /// finish using an unusual unit.
-    DownloadPopUnit,
     NoCanonicalPath(&'a Path),
     ResumingPartialDownload,
     /// This would make more sense as a crate::notifications::Notification
@@ -54,8 +48,6 @@ impl<'a> Notification<'a> {
             | DownloadingFile(_, _)
             | DownloadContentLengthReceived(_)
             | DownloadDataReceived(_)
-            | DownloadPushUnit(_)
-            | DownloadPopUnit
             | DownloadFinished
             | ResumingPartialDownload
             | UsingCurl
@@ -94,8 +86,6 @@ impl<'a> Display for Notification<'a> {
             DownloadingFile(url, _) => write!(f, "downloading file from: '{url}'"),
             DownloadContentLengthReceived(len) => write!(f, "download size is: '{len}'"),
             DownloadDataReceived(data) => write!(f, "received some data of size {}", data.len()),
-            DownloadPushUnit(_) => Ok(()),
-            DownloadPopUnit => Ok(()),
             DownloadFinished => write!(f, "download finished"),
             NoCanonicalPath(path) => write!(f, "could not canonicalize path: '{}'", path.display()),
             ResumingPartialDownload => write!(f, "resuming partial download"),
