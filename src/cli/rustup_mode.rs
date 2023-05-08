@@ -17,7 +17,6 @@ use crate::{
         errors::CLIError,
         help::*,
         self_update::{self, check_rustup_update, SelfUpdateMode},
-        term2::{self, Terminal},
         topical_doc,
     },
     command,
@@ -33,6 +32,7 @@ use crate::{
     errors::RustupError,
     install::UpdateStatus,
     process,
+    terminalsource::{self, ColorableTerminal},
     toolchain::{
         distributable::DistributableToolchain,
         names::{
@@ -856,7 +856,7 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
                 cfg.set_default(Some(&(&desc).into()))?;
 
-                writeln!(process().stdout())?;
+                writeln!(process().stdout().lock())?;
 
                 common::show_channel_update(cfg, PackageUpdate::Toolchain(desc), Ok(status))?;
             }
@@ -870,44 +870,44 @@ fn default_(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         let default_toolchain = cfg
             .get_default()?
             .ok_or_else(|| anyhow!("no default toolchain configured"))?;
-        writeln!(process().stdout(), "{default_toolchain} (default)")?;
+        writeln!(process().stdout().lock(), "{default_toolchain} (default)")?;
     }
 
     Ok(utils::ExitCode(0))
 }
 
 fn check_updates(cfg: &Cfg) -> Result<utils::ExitCode> {
-    let mut t = term2::stdout();
+    let mut t = process().stdout().terminal();
     let channels = cfg.list_channels()?;
 
     for channel in channels {
         let (name, distributable) = channel;
         let current_version = distributable.show_version()?;
         let dist_version = distributable.show_dist_version()?;
-        let _ = t.attr(term2::Attr::Bold);
-        write!(t, "{name} - ")?;
+        let _ = t.attr(terminalsource::Attr::Bold);
+        write!(t.lock(), "{name} - ")?;
         match (current_version, dist_version) {
             (None, None) => {
-                let _ = t.fg(term2::color::RED);
-                writeln!(t, "Cannot identify installed or update versions")?;
+                let _ = t.fg(terminalsource::Color::Red);
+                writeln!(t.lock(), "Cannot identify installed or update versions")?;
             }
             (Some(cv), None) => {
-                let _ = t.fg(term2::color::GREEN);
-                write!(t, "Up to date")?;
+                let _ = t.fg(terminalsource::Color::Green);
+                write!(t.lock(), "Up to date")?;
                 let _ = t.reset();
-                writeln!(t, " : {cv}")?;
+                writeln!(t.lock(), " : {cv}")?;
             }
             (Some(cv), Some(dv)) => {
-                let _ = t.fg(term2::color::YELLOW);
-                write!(t, "Update available")?;
+                let _ = t.fg(terminalsource::Color::Yellow);
+                write!(t.lock(), "Update available")?;
                 let _ = t.reset();
-                writeln!(t, " : {cv} -> {dv}")?;
+                writeln!(t.lock(), " : {cv} -> {dv}")?;
             }
             (None, Some(dv)) => {
-                let _ = t.fg(term2::color::YELLOW);
-                write!(t, "Update available")?;
+                let _ = t.fg(terminalsource::Color::Yellow);
+                write!(t.lock(), "Update available")?;
                 let _ = t.reset();
-                writeln!(t, " : (Unknown version) -> {dv}")?;
+                writeln!(t.lock(), " : (Unknown version) -> {dv}")?;
             }
         }
     }
@@ -989,7 +989,7 @@ fn update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
                 Err(e) => Err(e)?,
             };
 
-            writeln!(process().stdout())?;
+            writeln!(process().stdout().lock())?;
             common::show_channel_update(
                 cfg,
                 PackageUpdate::Toolchain(desc.clone()),
@@ -1045,7 +1045,7 @@ fn which(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
     utils::assert_is_file(&binary_path)?;
 
-    writeln!(process().stdout(), "{}", binary_path.display())?;
+    writeln!(process().stdout().lock(), "{}", binary_path.display())?;
     Ok(utils::ExitCode(0))
 }
 
@@ -1055,21 +1055,21 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
     // Print host triple
     {
-        let mut t = term2::stdout();
-        t.attr(term2::Attr::Bold)?;
-        write!(t, "Default host: ")?;
+        let mut t = process().stdout().terminal();
+        t.attr(terminalsource::Attr::Bold)?;
+        write!(t.lock(), "Default host: ")?;
         t.reset()?;
-        writeln!(t, "{}", cfg.get_default_host_triple()?)?;
+        writeln!(t.lock(), "{}", cfg.get_default_host_triple()?)?;
     }
 
     // Print rustup home directory
     {
-        let mut t = term2::stdout();
-        t.attr(term2::Attr::Bold)?;
-        write!(t, "rustup home:  ")?;
+        let mut t = process().stdout().terminal();
+        t.attr(terminalsource::Attr::Bold)?;
+        write!(t.lock(), "rustup home:  ")?;
         t.reset()?;
-        writeln!(t, "{}", cfg.rustup_dir.display())?;
-        writeln!(t)?;
+        writeln!(t.lock(), "{}", cfg.rustup_dir.display())?;
+        writeln!(t.lock())?;
     }
 
     let cwd = utils::current_dir()?;
@@ -1119,7 +1119,8 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         > 1;
 
     if show_installed_toolchains {
-        let mut t = term2::stdout();
+        let mut t = process().stdout().terminal();
+
         if show_headers {
             print_header::<Error>(&mut t, "installed toolchains")?;
         }
@@ -1128,31 +1129,32 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             .ok_or_else(|| anyhow!("no default toolchain configured"))?;
         for it in installed_toolchains {
             if default_name == it {
-                writeln!(t, "{it} (default)")?;
+                writeln!(t.lock(), "{it} (default)")?;
             } else {
-                writeln!(t, "{it}")?;
+                writeln!(t.lock(), "{it}")?;
             }
             if verbose {
                 let toolchain = Toolchain::new(cfg, it.into())?;
-                writeln!(process().stdout(), "{}", toolchain.rustc_version())?;
+                writeln!(process().stdout().lock(), "{}", toolchain.rustc_version())?;
                 // To make it easy to see what rustc that belongs to what
                 // toolchain we separate each pair with an extra newline
-                writeln!(process().stdout())?;
+                writeln!(process().stdout().lock())?;
             }
         }
         if show_headers {
-            writeln!(t)?
+            writeln!(t.lock())?
         };
     }
 
     if show_active_targets {
-        let mut t = term2::stdout();
+        let mut t = process().stdout().terminal();
+
         if show_headers {
             print_header::<Error>(&mut t, "installed targets for active toolchain")?;
         }
         for at in active_targets {
             writeln!(
-                t,
+                t.lock(),
                 "{}",
                 at.component
                     .target
@@ -1161,12 +1163,13 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
             )?;
         }
         if show_headers {
-            writeln!(t)?;
+            writeln!(t.lock())?;
         };
     }
 
     if show_active_toolchain {
-        let mut t = term2::stdout();
+        let mut t = process().stdout().terminal();
+
         if show_headers {
             print_header::<Error>(&mut t, "active toolchain")?;
         }
@@ -1174,12 +1177,12 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         match active_toolchain {
             Ok(atc) => match atc {
                 (ref toolchain, Some(ref reason)) => {
-                    writeln!(t, "{} ({})", toolchain.name(), reason)?;
-                    writeln!(t, "{}", toolchain.rustc_version())?;
+                    writeln!(t.lock(), "{} ({})", toolchain.name(), reason)?;
+                    writeln!(t.lock(), "{}", toolchain.rustc_version())?;
                 }
                 (ref toolchain, None) => {
-                    writeln!(t, "{} (default)", toolchain.name())?;
-                    writeln!(t, "{}", toolchain.rustc_version())?;
+                    writeln!(t.lock(), "{} (default)", toolchain.name())?;
+                    writeln!(t.lock(), "{}", toolchain.rustc_version())?;
                 }
             },
             Err(err) => {
@@ -1187,28 +1190,28 @@ fn show(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
                 if let Some(RustupError::ToolchainNotSelected) =
                     root_cause.downcast_ref::<RustupError>()
                 {
-                    writeln!(t, "no active toolchain")?;
+                    writeln!(t.lock(), "no active toolchain")?;
                 } else if let Some(cause) = err.source() {
-                    writeln!(t, "(error: {err}, {cause})")?;
+                    writeln!(t.lock(), "(error: {err}, {cause})")?;
                 } else {
-                    writeln!(t, "(error: {err})")?;
+                    writeln!(t.lock(), "(error: {err})")?;
                 }
             }
         }
 
         if show_headers {
-            writeln!(t)?
+            writeln!(t.lock())?
         }
     }
 
-    fn print_header<E>(t: &mut term2::StdoutTerminal, s: &str) -> std::result::Result<(), E>
+    fn print_header<E>(t: &mut ColorableTerminal, s: &str) -> std::result::Result<(), E>
     where
-        E: From<term::Error> + From<std::io::Error>,
+        E: From<std::io::Error>,
     {
-        t.attr(term2::Attr::Bold)?;
-        writeln!(t, "{s}")?;
-        writeln!(t, "{}", "-".repeat(s.len()))?;
-        writeln!(t)?;
+        t.attr(terminalsource::Attr::Bold)?;
+        writeln!(t.lock(), "{s}")?;
+        writeln!(t.lock(), "{}", "-".repeat(s.len()))?;
+        writeln!(t.lock())?;
         t.reset()?;
         Ok(())
     }
@@ -1232,12 +1235,17 @@ fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
         }
         Ok((toolchain, reason)) => {
             if let Some(reason) = reason {
-                writeln!(process().stdout(), "{} ({})", toolchain.name(), reason)?;
+                writeln!(
+                    process().stdout().lock(),
+                    "{} ({})",
+                    toolchain.name(),
+                    reason
+                )?;
             } else {
-                writeln!(process().stdout(), "{} (default)", toolchain.name())?;
+                writeln!(process().stdout().lock(), "{} (default)", toolchain.name())?;
             }
             if verbose {
-                writeln!(process().stdout(), "{}", toolchain.rustc_version())?;
+                writeln!(process().stdout().lock(), "{}", toolchain.rustc_version())?;
             }
         }
     }
@@ -1246,7 +1254,7 @@ fn show_active_toolchain(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
 fn show_rustup_home(cfg: &Cfg) -> Result<utils::ExitCode> {
-    writeln!(process().stdout(), "{}", cfg.rustup_dir.display())?;
+    writeln!(process().stdout().lock(), "{}", cfg.rustup_dir.display())?;
     Ok(utils::ExitCode(0))
 }
 
@@ -1465,7 +1473,7 @@ fn override_add(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
                     false,
                 )?
                 .0;
-                writeln!(process().stdout())?;
+                writeln!(process().stdout().lock())?;
                 common::show_channel_update(
                     cfg,
                     PackageUpdate::Toolchain(desc.clone()),
@@ -1590,7 +1598,7 @@ fn doc(cfg: &Cfg, m: &ArgMatches) -> Result<utils::ExitCode> {
 
     if m.get_flag("path") {
         let doc_path = toolchain.doc_path(doc_url)?;
-        writeln!(process().stdout(), "{}", doc_path.display())?;
+        writeln!(process().stdout().lock(), "{}", doc_path.display())?;
         Ok(utils::ExitCode(0))
     } else {
         toolchain.open_docs(doc_url)?;
@@ -1652,7 +1660,7 @@ fn set_auto_self_update(cfg: &mut Cfg, m: &ArgMatches) -> Result<utils::ExitCode
 
 #[cfg_attr(feature = "otel", tracing::instrument(skip_all))]
 fn show_profile(cfg: &Cfg) -> Result<utils::ExitCode> {
-    writeln!(process().stdout(), "{}", cfg.get_profile()?)?;
+    writeln!(process().stdout().lock(), "{}", cfg.get_profile()?)?;
     Ok(utils::ExitCode(0))
 }
 
@@ -1687,11 +1695,11 @@ impl fmt::Display for CompletionCommand {
 fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<utils::ExitCode> {
     match command {
         CompletionCommand::Rustup => {
-            clap_complete::generate(shell, &mut cli(), "rustup", &mut term2::stdout());
+            clap_complete::generate(shell, &mut cli(), "rustup", &mut process().stdout().lock());
         }
         CompletionCommand::Cargo => {
             if let Shell::Zsh = shell {
-                writeln!(term2::stdout(), "#compdef cargo")?;
+                writeln!(process().stdout().lock(), "#compdef cargo")?;
             }
 
             let script = match shell {
@@ -1707,7 +1715,7 @@ fn output_completion_script(shell: Shell, command: CompletionCommand) -> Result<
             };
 
             writeln!(
-                term2::stdout(),
+                process().stdout().lock(),
                 "if command -v rustc >/dev/null 2>&1; then\n\
                     \tsource \"$(rustc --print sysroot)\"{script}\n\
                  fi",

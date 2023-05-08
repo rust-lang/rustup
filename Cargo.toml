@@ -80,7 +80,7 @@ sharded-slab = "0.1.1"
 strsim = "0.10"
 tar = "0.4.26"
 tempfile.workspace = true
-term = "=0.5.1" # FIXME(issue #1818, #1826, and friends)
+termcolor.workspace = true
 thiserror.workspace = true
 threadpool = "1"
 tokio = { workspace = true, optional = true }
@@ -184,6 +184,7 @@ opentelemetry-otlp = { version = "0.11.0" }
 proptest = "1.1.0"
 rustup-macros = { path = "rustup-macros" }
 tempfile = "3.5"
+termcolor = "1.2"
 thiserror = "1.0"
 tokio = { version = "1.26.0", default-features = false, features = [
     "rt-multi-thread",

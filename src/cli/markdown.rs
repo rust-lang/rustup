@@ -1,23 +1,22 @@
 // Write Markdown to the terminal
-
-use std::io;
+use std::io::Write;
 
 use pulldown_cmark::{Event, Tag};
 
-use super::term2::{color, Attr, Terminal};
+use crate::currentprocess::terminalsource::{Attr, Color, ColorableTerminal};
 
 // Handles the wrapping of text written to the console
-struct LineWrapper<'a, T: Terminal> {
+struct LineWrapper<'a> {
     indent: u32,
     margin: u32,
     pos: u32,
-    w: &'a mut T,
+    w: &'a mut ColorableTerminal,
 }
 
-impl<'a, T: Terminal + 'a> LineWrapper<'a, T> {
+impl<'a> LineWrapper<'a> {
     // Just write a newline
     fn write_line(&mut self) {
-        let _ = writeln!(self.w);
+        let _ = writeln!(self.w.lock());
         // Reset column position to start of line
         self.pos = 0;
     }
@@ -26,7 +25,7 @@ impl<'a, T: Terminal + 'a> LineWrapper<'a, T> {
         if self.pos == 0 {
             // Write a space for each level of indent
             for _ in 0..self.indent {
-                let _ = write!(self.w, " ");
+                let _ = write!(self.w.lock(), " ");
             }
             self.pos = self.indent;
         }
@@ -48,7 +47,7 @@ impl<'a, T: Terminal + 'a> LineWrapper<'a, T> {
         }
 
         // Write the word
-        let _ = write!(self.w, "{word}");
+        let _ = write!(self.w.lock(), "{word}");
         self.pos += word_len;
     }
     fn write_space(&mut self) {
@@ -81,7 +80,7 @@ impl<'a, T: Terminal + 'a> LineWrapper<'a, T> {
         }
     }
     // Constructor
-    fn new(w: &'a mut T, indent: u32, margin: u32) -> Self {
+    fn new(w: &'a mut ColorableTerminal, indent: u32, margin: u32) -> Self {
         LineWrapper {
             indent,
             margin,
@@ -92,14 +91,14 @@ impl<'a, T: Terminal + 'a> LineWrapper<'a, T> {
 }
 
 // Handles the formatting of text
-struct LineFormatter<'a, T: Terminal + io::Write> {
+struct LineFormatter<'a> {
     is_code_block: bool,
-    wrapper: LineWrapper<'a, T>,
+    wrapper: LineWrapper<'a>,
     attrs: Vec<Attr>,
 }
 
-impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
-    fn new(w: &'a mut T, indent: u32, margin: u32) -> Self {
+impl<'a> LineFormatter<'a> {
+    fn new(w: &'a mut ColorableTerminal, indent: u32, margin: u32) -> Self {
         LineFormatter {
             is_code_block: false,
             wrapper: LineWrapper::new(w, indent, margin),
@@ -145,7 +144,7 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
                 self.wrapper.write_line();
             }
             Tag::Emphasis => {
-                self.push_attr(Attr::ForegroundColor(color::RED));
+                self.push_attr(Attr::ForegroundColor(Color::Red));
             }
             Tag::Strong => {}
             Tag::Strikethrough => {}
@@ -221,7 +220,7 @@ impl<'a, T: Terminal + io::Write + 'a> LineFormatter<'a, T> {
     }
 }
 
-pub(crate) fn md<'a, S: AsRef<str>, T: Terminal + io::Write + 'a>(t: &'a mut T, content: S) {
+pub(crate) fn md<S: AsRef<str>>(t: &mut ColorableTerminal, content: S) {
     let mut f = LineFormatter::new(t, 0, 79);
     let parser = pulldown_cmark::Parser::new(content.as_ref());
     for event in parser {

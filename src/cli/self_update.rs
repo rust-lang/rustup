@@ -58,12 +58,12 @@ use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
 use same_file::Handle;
 
+use crate::currentprocess::terminalsource;
 use crate::{
     cli::{
         common::{self, ignorable_error, report_error, Confirm, PackageUpdate},
         errors::*,
         markdown::md,
-        term2::{self, Terminal},
     },
     currentprocess::{filesource::StdoutSource, varsource::VarSource},
     dist::dist::{self, PartialToolchainDesc, Profile, TargetTriple, ToolchainDesc},
@@ -368,7 +368,7 @@ pub(crate) fn install(
     #[cfg(unix)]
     do_anti_sudo_check(no_prompt)?;
 
-    let mut term = term2::stdout();
+    let mut term = process().stdout().terminal();
 
     #[cfg(windows)]
     if let Some(plan) = do_msvc_check(&opts) {
@@ -684,12 +684,12 @@ fn current_install_opts(opts: &InstallOpts<'_>) -> String {
 // Interactive editing of the install options
 fn customize_install(mut opts: InstallOpts<'_>) -> Result<InstallOpts<'_>> {
     writeln!(
-        process().stdout(),
+        process().stdout().lock(),
         "I'm going to ask you the value of each of these installation options.\n\
          You may simply press the Enter key to leave unchanged."
     )?;
 
-    writeln!(process().stdout())?;
+    writeln!(process().stdout().lock())?;
 
     opts.default_host_triple = Some(common::question_str(
         "Default host triple?",
@@ -859,7 +859,7 @@ fn maybe_install_rust(
         };
 
         cfg.set_default(Some(&desc.into()))?;
-        writeln!(process().stdout())?;
+        writeln!(process().stdout().lock())?;
         common::show_channel_update(&cfg, PackageUpdate::Toolchain(desc.clone()), Ok(status))?;
     }
     Ok(())
@@ -911,7 +911,7 @@ fn _install_selection(
                     targets.join(", ")
                 );
             }
-            writeln!(process().stdout())?;
+            writeln!(process().stdout().lock())?;
             None
         } else if user_specified_something
             || (update_existing_toolchain && cfg.find_default()?.is_none())
@@ -938,7 +938,7 @@ fn _install_selection(
             }
         } else {
             info!("updating existing rustup installation - leaving toolchains alone");
-            writeln!(process().stdout())?;
+            writeln!(process().stdout().lock())?;
             None
         },
     )
@@ -958,9 +958,9 @@ pub(crate) fn uninstall(no_prompt: bool) -> Result<utils::ExitCode> {
     }
 
     if !no_prompt {
-        writeln!(process().stdout())?;
+        writeln!(process().stdout().lock())?;
         let msg = format!(pre_uninstall_msg!(), cargo_home = canonical_cargo_home()?);
-        md(&mut term2::stdout(), msg);
+        md(&mut process().stdout().terminal(), msg);
         if !common::confirm("\nContinue? (y/N)", false)? {
             info!("aborting uninstallation");
             return Ok(utils::ExitCode(0));
@@ -1234,26 +1234,26 @@ pub(crate) fn get_available_rustup_version() -> Result<String> {
 }
 
 pub(crate) fn check_rustup_update() -> Result<()> {
-    let mut t = term2::stdout();
+    let mut t = process().stdout().terminal();
     // Get current rustup version
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Get available rustup version
     let available_version = get_available_rustup_version()?;
 
-    let _ = t.attr(term2::Attr::Bold);
-    write!(t, "rustup - ")?;
+    let _ = t.attr(terminalsource::Attr::Bold);
+    write!(t.lock(), "rustup - ")?;
 
     if current_version != available_version {
-        let _ = t.fg(term2::color::YELLOW);
-        write!(t, "Update available")?;
+        let _ = t.fg(terminalsource::Color::Yellow);
+        write!(t.lock(), "Update available")?;
         let _ = t.reset();
-        writeln!(t, " : {current_version} -> {available_version}")?;
+        writeln!(t.lock(), " : {current_version} -> {available_version}")?;
     } else {
-        let _ = t.fg(term2::color::GREEN);
-        write!(t, "Up to date")?;
+        let _ = t.fg(terminalsource::Color::Green);
+        write!(t.lock(), "Up to date")?;
         let _ = t.reset();
-        writeln!(t, " : {current_version}")?;
+        writeln!(t.lock(), " : {current_version}")?;
     }
 
     Ok(())

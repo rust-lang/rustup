@@ -25,12 +25,15 @@ pub mod argsource;
 pub mod cwdsource;
 pub mod filesource;
 mod homethunk;
+pub mod terminalsource;
 pub mod varsource;
 
 use argsource::*;
 use cwdsource::*;
 use filesource::*;
 use varsource::*;
+
+use crate::utils::tty::{stderr_isatty, stdout_isatty};
 
 /// An abstraction for the current process.
 ///
@@ -176,8 +179,26 @@ pub trait ProcessSource {
 
 // ----------- real process -----------------
 
-#[derive(Clone, Debug, Default)]
-pub struct OSProcess {}
+#[derive(Clone, Debug)]
+pub struct OSProcess {
+    pub(self) stderr_is_a_tty: bool,
+    pub(self) stdout_is_a_tty: bool,
+}
+
+impl OSProcess {
+    pub fn new() -> Self {
+        OSProcess {
+            stderr_is_a_tty: stderr_isatty(),
+            stdout_is_a_tty: stdout_isatty(),
+        }
+    }
+}
+
+impl Default for OSProcess {
+    fn default() -> Self {
+        OSProcess::new()
+    }
+}
 
 impl ProcessSource for OSProcess {
     fn id(&self) -> u64 {

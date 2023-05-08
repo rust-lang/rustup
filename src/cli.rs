@@ -11,5 +11,4 @@ pub mod proxy_mode;
 pub mod rustup_mode;
 pub mod self_update;
 pub mod setup_mode;
-mod term2;
 mod topical_doc;

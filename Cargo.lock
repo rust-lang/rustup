@@ -2101,7 +2101,7 @@ dependencies = [
  "strsim",
  "tar",
  "tempfile",
- "term",
+ "termcolor",
  "thiserror",
  "threadpool",
  "tokio",
@@ -2459,16 +2459,6 @@ dependencies = [
  "redox_syscall 0.3.5",
  "rustix",
  "windows-sys 0.45.0",
-]
-
-[[package]]
-name = "term"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e6b677dd1e8214ea1ef4297f85dbcbed8e8cdddb561040cc998ca2551c37561"
-dependencies = [
- "byteorder",
- "winapi",
 ]
 
 [[package]]
