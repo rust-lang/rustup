@@ -34,9 +34,21 @@ pub(crate) fn do_anti_sudo_check(no_prompt: bool) -> Result<utils::ExitCode> {
     match home_mismatch() {
         (false, _, _) => {}
         (true, env_home, euid_home) => {
-            err!("$HOME differs from euid-obtained home directory: you may be using sudo");
-            err!("$HOME directory: {}", env_home.display());
-            err!("euid-obtained home directory: {}", euid_home.display());
+            let home_mismatched =
+                "$HOME differs from euid-obtained home directory: you may be using sudo";
+            let home_dir = format!("$HOME directory: {}", env_home.display());
+            let euid_home_dir = format!("euid-obtained home directory: {}", euid_home.display());
+
+            if no_prompt {
+                warn!("{}", home_mismatched);
+                warn!("{}", home_dir);
+                warn!("{}", euid_home_dir);
+            } else {
+                err!("{}", home_mismatched);
+                err!("{}", home_dir);
+                err!("{}", euid_home_dir);
+            }
+
             if !no_prompt {
                 err!("if this is what you want, restart the installation with `-y'");
                 return Ok(utils::ExitCode(1));
