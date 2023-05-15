@@ -178,7 +178,7 @@ fs_at = "0.1.6"
 lazy_static = "1"
 once_cell = "1.17.1"
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.11.0" }
+opentelemetry-otlp = { version = "0.12.0" }
 proptest = "1.1.0"
 rustup-macros = { path = "rustup-macros" }
 tempfile = "3.5"
